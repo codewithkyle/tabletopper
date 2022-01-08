@@ -1,0 +1,39 @@
+{
+    "name": "demo",
+    "version": 1,
+    "tables": [
+        {
+            "name": "users",
+            "keyPath": "uid",
+            "columns": [
+                {
+                    "key": "uid",
+                    "unique": true
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "customerId"
+                }
+            ]
+        },
+        {
+            "name": "orders",
+            "keyPath": "id",
+            "columns": [
+                {
+                    "key": "id",
+                    "unique": true,
+                    "autoIncrement": true
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "products"
+                }
+            ]
+        }
+    ]
+}

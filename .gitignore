@@ -1,0 +1,14 @@
+# General
+node_modules
+
+# Logs
+/server/404.log
+
+# Source files
+src/lib
+
+# Public
+public/js
+public/css
+public/config.js
+public/service-worker-assets.js

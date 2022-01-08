@@ -1,0 +1,22 @@
+html{
+    font-size: 100%;
+}
+
+body{
+    font-family: 'Open Sans', Roboto, Oxygen, -apple-system, BlinkMacSystemFont, 'Segoe UI', Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    background-color: var(--cool-grey-200);
+    display: block;
+    width: 100vw;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+}
+
+button{
+    padding: 0;
+}
+
+*{
+    box-sizing: border-box;
+}

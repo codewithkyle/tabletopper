@@ -1,0 +1,22 @@
+#bootstrap {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    top: 50%;
+    left: 50%;
+
+    svg{
+        width: 100%;
+        height: 100%;
+        animation: spinner 900ms linear infinite;
+        color: var(--grey-600);
+    }
+}
+@keyframes spinner {
+    from {
+        transform: rotate(0);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
