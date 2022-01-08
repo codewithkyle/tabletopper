@@ -17,23 +17,6 @@
                     "key": "customerId"
                 }
             ]
-        },
-        {
-            "name": "orders",
-            "keyPath": "id",
-            "columns": [
-                {
-                    "key": "id",
-                    "unique": true,
-                    "autoIncrement": true
-                },
-                {
-                    "key": "name"
-                },
-                {
-                    "key": "products"
-                }
-            ]
         }
     ]
 }

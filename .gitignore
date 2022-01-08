@@ -1,14 +1,17 @@
 # General
 node_modules
+.env
 
 # Logs
 /server/404.log
 
 # Source files
 src/lib
+src/framework
 
 # Public
 public/js
 public/css
 public/config.js
 public/service-worker-assets.js
+public/audio

@@ -1,31 +1,30 @@
-const express = require('express');
-const app = express();
-const port = 8080;
-const cwd = process.cwd();
-const path = require("path");
-const fs = require("fs");
+const uws = require("./uws/uws");
+require("dotenv").config({ path: "./.env" });
 
-const serverDir = path.join(cwd, "server");
-const log = path.join(serverDir, "404.log");
-if (!fs.existsSync(log)){
-    fs.writeFileSync(log, "");
-}
+const port = process.env.PORT;
+const app = uws.App();
 
-const publicDir = path.join(cwd, "public");
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(publicDir, "index.html"));
+app.ws("/*", {
+    open: (ws) => {
+        console.log("Socket connected");
+    },
+    message: (ws, message, isBinary) => {
+        /* Here we echo the message back, using compression if available */
+        let ok = ws.send(message, isBinary, true);
+    },
+    drain: (ws) => {
+        console.log('WebSocket backpressure: ' + ws.getBufferedAmount());
+    },
+    close: (ws) => {
+        console.log("Socket closed");
+    },
 });
 
-// 404 - keep at bottom
-app.get('*', (req, res) => {
-    const filePath = path.join(publicDir, req.path);
-    if (fs.existsSync(filePath)){
-        res.sendFile(filePath);
-    } else {
-        fs.writeFileSync(log, `[404] ${filePath}\n`, {flag: "a"});
-        res.status(404).sendFile(path.join(publicDir, "404.html"));
+app.listen(port, (token) => {
+    if (token){
+        console.log(`Listening on port: ${port}`);
+    }
+    else {
+        console.log(`Failed to start on port: ${port}`);
     }
 });
-
-app.listen(port, () => {});

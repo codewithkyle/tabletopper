@@ -1,6 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import { render, html } from "lit-html";
-import { css } from "../../controllers/env";
+import env from "~brixi/controllers/env";
 
 interface IHomepage{
 
@@ -8,9 +8,11 @@ interface IHomepage{
 export default class Homepage extends SuperComponent<IHomepage>{
     constructor(){
         super();
-        css(["homepage"]).then(() => {
-            this.render();
-        });
+    }
+
+    override async connected() {
+        await env.css(["homepage"]);
+        this.render();
     }
 
     override render(){

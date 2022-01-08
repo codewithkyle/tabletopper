@@ -1,6 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import { render, html } from "lit-html";
-import { css } from "../../controllers/env";
+import env from "~brixi/controllers/env";
 
 interface IMissingPage{
 
@@ -8,9 +8,11 @@ interface IMissingPage{
 export default class MissingPage extends SuperComponent<IMissingPage>{
     constructor(){
         super();
-        css(["404"]).then(() => {
-            this.render();
-        });
+    }
+
+    override async connected() {
+        await env.css(["404"]);
+        this.render();
     }
 
     override render(){
