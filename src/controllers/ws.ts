@@ -1,7 +1,7 @@
 import { publish } from "@codewithkyle/pubsub";
 import notifications from "~brixi/controllers/notifications";
 
-let socket;
+let socket:WebSocket;
 let connected = false;
 let wasReconnection = false;
 
@@ -55,4 +55,20 @@ function disconnect() {
         connect();
     }, 5000);
 }
-export { connected, disconnect, connect };
+
+function send(type:string, data:any = null):void{
+    const message = JSON.stringify({
+        type: type,
+        data: data,
+    });
+    if (connected){
+        socket.send(message);
+    }
+    else if (!connected && wasReconnection){
+        // We lost connection, check if we were in a game
+    }
+    else {
+        // Do... something... maybe?
+    }
+}
+export { connected, disconnect, connect, send };
