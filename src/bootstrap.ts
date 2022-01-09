@@ -7,6 +7,9 @@ import db from "@codewithkyle/jsql";
         await navigator.serviceWorker.register('service-worker.js');
     }
 
+    // @ts-expect-error
+    import("/js/soundscape.js");
+
     await db.start();
 
     //@ts-ignore

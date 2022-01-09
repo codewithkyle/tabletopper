@@ -1,7 +1,8 @@
-import { toast } from "@codewithkyle/notifyjs";
+import notifications from "~brixi/controllers/notifications";
 
 let socket;
 let connected = false;
+let wasReconnection = false;
 
 async function reconnect() {
     // @ts-expect-error
@@ -24,6 +25,10 @@ async function reconnect() {
     });
     socket.addEventListener("open", () => {
         connected = true;
+        if (wasReconnection){
+            notifications.success("Reconnected", "We've reconnected with the server.");
+        }
+        wasReconnection = false;
         // TODO: sync state
     });
 }
@@ -31,15 +36,9 @@ reconnect();
 
 function disconnect() {
     if (connected) {
-        toast({
-            title: "Connection Lost",
-            message:
-                "You've lost your connection with the server. Any changes you make will be applied when you've reconnected.",
-            classes: ["-yellow"],
-            closeable: true,
-            duration: Infinity,
-        });
+        notifications.warn("Connection Lost", "Hang tight we've lost the server connection. Any changes you make will be synced when you've reconnected.");
         connected = false;
+        wasReconnection = true;
     }
     setTimeout(() => {
         reconnect();

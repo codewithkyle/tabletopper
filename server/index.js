@@ -5,7 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 const port = process.env.PORT;
 let app;
 if (process.env.ENV === "dev"){
-    app = uw.App();
+    app = uws.App();
 }
 else {
     app = uws.SSLApp({
