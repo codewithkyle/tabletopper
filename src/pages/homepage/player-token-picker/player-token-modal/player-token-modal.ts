@@ -62,7 +62,7 @@ export default class PlayerTokenPickerModal extends SuperComponent<IPlayerTokenP
                </button>
                <h2 class="block font-lg pb-0.5 mb-1 font-medium font-grey-900 line-normal border-b-1 border-b-solid border-b-grey-200">Your Tokens</h2>
                <div class="content">
-                   <div class="upload-image-button">
+                   <div class="upload-image-button" sfx="button">
                        <label for="token-upload">
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-upload" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -76,7 +76,7 @@ export default class PlayerTokenPickerModal extends SuperComponent<IPlayerTokenP
                     </div>
                    ${images.map(img => {
                        return html`
-                            <button class="token-button" data-uid="${img.uid}" @click=${this.selectImage}>
+                            <button sfx="button" class="token-button" data-uid="${img.uid}" @click=${this.selectImage}>
                                 <img src="${img.data}" alt="${img.name}" draggalbe="false">
                             </button>
                         `;

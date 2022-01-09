@@ -15,7 +15,7 @@ home-page{
         user-select: none;
         object-fit: cover;
         opacity: 0;
-        animation: showBackground forwards 2s var(--ease-in);
+        animation: fadeIn forwards 2s var(--ease-in);
     }
 
     .menu{
@@ -25,14 +25,14 @@ home-page{
             font-weight: var(--font-bold);
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
             color: var(--white);
-            animation: showBackground forwards 600ms 300ms var(--ease-in);
+            animation: fadeIn forwards 600ms 300ms var(--ease-in);
             opacity: 0;
             margin-bottom: 3rem;
         }
 
         .actions{
             opacity: 0;
-            animation: showBackground forwards 600ms 300ms var(--ease-in);
+            animation: fadeIn forwards 600ms 300ms var(--ease-in);
 
             button-component{
                 box-shadow: 0 1px 3px rgba(0,0,0,0.3);
@@ -42,14 +42,6 @@ home-page{
 
     .join,
     .character{
-        animation: showBackground forwards 600ms 0ms var(--ease-in);
-    }
-}
-@keyframes showBackground {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
+        animation: fadeIn forwards 600ms 0ms var(--ease-in);
     }
 }

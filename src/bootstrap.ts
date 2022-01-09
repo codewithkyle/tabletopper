@@ -15,7 +15,8 @@ import env from "~brixi/controllers/env";
     env.css([
         "tooltip",
         "skeletons",
-        "toast"
+        "toast",
+        "animations",
     ]);
 
     await db.start();

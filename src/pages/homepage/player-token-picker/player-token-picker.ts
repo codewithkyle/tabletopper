@@ -2,7 +2,7 @@ import db from "@codewithkyle/jsql";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
-import PlayerTokenPickerModal from "./player-token-modal";
+import PlayerTokenPickerModal from "./player-token-modal/player-token-modal";
 
 interface IPlayerTokenPicker {
     selectedImageId: string;
