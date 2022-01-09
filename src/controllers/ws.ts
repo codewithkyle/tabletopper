@@ -10,7 +10,7 @@ async function connect() {
         return;
     }
     // @ts-expect-error
-    const { SOCKET_URL } = await import("/config.js");
+    const { SOCKET_URL, ENV } = await import("/config.js");
     try{
         socket = new WebSocket(SOCKET_URL);
     } catch (e) {
@@ -19,9 +19,12 @@ async function connect() {
     socket.addEventListener("message", (event) => {
         try {
             const data = JSON.parse(event.data);
+            if (ENV === "dev"){
+                console.log(data);
+            }
             publish("socket", {
-                type: "message",
-                data: data,
+                type: data.type,
+                data: data.data,
             });
         } catch (e) {
             console.error(e, event);

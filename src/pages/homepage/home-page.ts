@@ -1,9 +1,11 @@
 import { subscribe } from "@codewithkyle/pubsub";
+import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { render, html, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
+import dj from "~controllers/disk-jockey";
 import { connect, send } from "~controllers/ws";
 import HomepageMusicPlayer from "./homepage-music-player";
 
@@ -40,6 +42,10 @@ export default class Homepage extends SuperComponent<IHomepage>{
                         connected: false,
                     });
                 }
+                break;
+            case "room:join":
+                navigateTo(`/room/${data.code}`);
+                dj.pause("mainMenu");
                 break;
             default:
                 break;
