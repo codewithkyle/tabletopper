@@ -19,7 +19,10 @@ async function connect() {
     socket.addEventListener("message", (event) => {
         try {
             const data = JSON.parse(event.data);
-            console.log(data);
+            publish("socket", {
+                type: "message",
+                data: data,
+            });
         } catch (e) {
             console.error(e, event);
         }
@@ -36,7 +39,6 @@ async function connect() {
         publish("socket", {
             type: "connected",
         });
-        // TODO: sync state
     });
 }
 
