@@ -150,8 +150,8 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderJoin():TemplateResult{
        return html`
-            <div class="join w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
-                <div class="p-2">
+            <div class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+                <div class="p-1.5">
                     ${new Input({
                         name: "room",
                         label: "Room Code",
@@ -189,13 +189,15 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderCharacter():TemplateResult{
        return html`
-            <div class="join w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
-                <div class="p-2">
+            <div class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+                <div class="p-1.5" flex="row nowrap items-center">
                     ${new PlayerTokenPicker()}
                     ${new Input({
+                        class: "ml-1.5 mb-0.25",
                         name: "name",
                         label: "Character Name",
                         required: true,
+                        css: "flex:1;",
                     })}
                 </div>
                 <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
@@ -203,7 +205,16 @@ export default class Homepage extends SuperComponent<IHomepage>{
                         label: "Join Room",
                         kind: "solid",
                         color: "primary",
-                        callback: ()=>{}
+                        callback: async ()=>{
+                            const input = this.querySelector(".js-input") as Input;
+                            const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
+                            if (input.validate()){
+                                send("room:join", {
+                                    name: input.getValue().toString(),
+                                    token: await tokenPicker.getValue(),
+                                });
+                            }
+                        }
                     })}
                 </div>
             </div>

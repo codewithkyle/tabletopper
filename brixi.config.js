@@ -195,6 +195,7 @@ module.exports = {
         "light-bevel": "0 1px 0 hsl(0deg 0% 50% / 0.1), inset 0 -1px 1px hsl(0deg 0% 50% / 0.15)",
         "primary-opaque-hover": "rgba(14,165,233,0.05)",
         "primary-opaque-active": "rgba(14,165,233,0.1)",
+        "active-ring": "0 0 0 5px var(--primary-50)"
     },
     themes: {},
     classes: {},

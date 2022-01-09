@@ -1,9 +1,9 @@
 {
-    "name": "demo",
+    "name": "app",
     "version": 1,
     "tables": [
         {
-            "name": "users",
+            "name": "images",
             "keyPath": "uid",
             "columns": [
                 {
@@ -11,10 +11,13 @@
                     "unique": true
                 },
                 {
+                    "key": "data"
+                },
+                {
                     "key": "name"
                 },
                 {
-                    "key": "customerId"
+                    "key": "type"
                 }
             ]
         }
