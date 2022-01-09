@@ -1,10 +1,23 @@
-const uws = require("./uws/uws");
-require("dotenv").config({ path: "./.env" });
+const uws = require("./uws/uws.js");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const port = process.env.PORT;
-const app = uws.App();
+let app;
+if (process.env.ENV === "dev"){
+    app = uw.App();
+}
+else {
+    app = uws.SSLApp({
+        key_file_name: process.env.KEY,
+        cert_file_name: process.env.CERT,
+    });
+}
 
 app.ws("/*", {
+    compression: uws.SHARED_COMPRESSOR,
+    maxPayloadLength: 16 * 1024 * 1024,
+    idleTimeout: 32,
     open: (ws) => {
         console.log("Socket connected");
     },
@@ -20,11 +33,4 @@ app.ws("/*", {
     },
 });
 
-app.listen(port, (token) => {
-    if (token){
-        console.log(`Listening on port: ${port}`);
-    }
-    else {
-        console.log(`Failed to start on port: ${port}`);
-    }
-});
+app.listen("0.0.0.0", port, {}, (token) => {});
