@@ -30,6 +30,9 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 NEXT: "CHARACTER",
                 BACK: "MENU",
             },
+            CHARACTER: {
+                BACK: "ROOM",
+            },
         };
         this.model = {
             connected: false,
@@ -68,6 +71,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
     override async connected() {
         await env.css(["homepage"]);
+        sessionStorage.removeItem("room");
         this.render();
         connect();
     }
@@ -201,6 +205,13 @@ export default class Homepage extends SuperComponent<IHomepage>{
                     })}
                 </div>
                 <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
+                    ${new Button({
+                        label: "Back",
+                        class: "mr-1",
+                        callback: ()=> {
+                            this.trigger("BACK");
+                        },
+                    })}
                     ${new Button({
                         label: "Join Room",
                         kind: "solid",
