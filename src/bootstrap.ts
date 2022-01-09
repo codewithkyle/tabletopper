@@ -1,4 +1,5 @@
 import db from "@codewithkyle/jsql";
+import env from "~brixi/controllers/env";
 
 (async () => {
     // @ts-ignore
@@ -9,6 +10,13 @@ import db from "@codewithkyle/jsql";
 
     // @ts-expect-error
     import("/js/soundscape.js");
+    // @ts-expect-error
+    import("/js/tooltipper.js");
+    env.css([
+        "tooltip",
+        "skeletons",
+        "toast"
+    ]);
 
     await db.start();
 

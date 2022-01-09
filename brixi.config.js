@@ -26,7 +26,7 @@ module.exports = {
     fonts: {
         units: "rem",
         families: {
-            "sans-serif": "Raleway, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+            "sans-serif": "Rubik, Ubuntu, 'Open Sans', 'Noto Sans', Roboto, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Cantarell, 'Helvetica Neue', sans-serif",
             serif: "Georgia, Cambria, 'Times New Roman', Times, serif",
             mono: "Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         },
