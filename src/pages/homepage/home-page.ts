@@ -73,6 +73,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 ${new Button({
                         callback: ()=>{
                             send("create:room");
+                            sessionStorage.setItem("role", "gm");
                         },
                         label: "Create Room",
                         kind: "outline",

@@ -22,10 +22,25 @@ async function connect() {
             if (ENV === "dev"){
                 console.log(type, data);
             }
-            publish("socket", {
-                type: type,
-                data: data,
-            });
+            switch(type){
+                case "core:init":
+                    const prevId = sessionStorage.getItem("socketId");
+                    if (prevId != null){
+                        sessionStorage.setItem("lastSocketId", prevId);
+                    }
+                    sessionStorage.setItem("socketId", data.id);
+                    send("core:sync", {
+                        prevId: prevId,
+                        room: sessionStorage.getItem("room") || null,
+                    });
+                    break;
+                default:
+                    publish("socket", {
+                        type: type,
+                        data: data,
+                    });
+                    break;
+            }
         } catch (e) {
             console.error(e, event);
         }
