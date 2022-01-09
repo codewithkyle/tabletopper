@@ -1,10 +1,14 @@
+import { publish } from "@codewithkyle/pubsub";
 import notifications from "~brixi/controllers/notifications";
 
 let socket;
 let connected = false;
 let wasReconnection = false;
 
-async function reconnect() {
+async function connect() {
+    if (connected){
+        return;
+    }
     // @ts-expect-error
     const { SOCKET_URL } = await import("/config.js");
     try{
@@ -29,19 +33,24 @@ async function reconnect() {
             notifications.success("Reconnected", "We've reconnected with the server.");
         }
         wasReconnection = false;
+        publish("socket", {
+            type: "connected",
+        });
         // TODO: sync state
     });
 }
-reconnect();
 
 function disconnect() {
+    publish("socket", {
+        type: "disconnected",
+    });
     if (connected) {
         notifications.warn("Connection Lost", "Hang tight we've lost the server connection. Any changes you make will be synced when you've reconnected.");
         connected = false;
         wasReconnection = true;
     }
     setTimeout(() => {
-        reconnect();
+        connect();
     }, 5000);
 }
-export { connected, disconnect };
+export { connected, disconnect, connect };
