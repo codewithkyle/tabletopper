@@ -1,9 +1,9 @@
 # General
 node_modules
-.env
 
-# Logs
-/server/404.log
+# Server
+server/.env
+server/*.js
 
 # Source files
 src/lib
