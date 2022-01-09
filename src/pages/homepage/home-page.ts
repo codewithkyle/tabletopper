@@ -3,14 +3,17 @@ import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { render, html, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
+import Input from "~brixi/components/inputs/input/input";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import dj from "~controllers/disk-jockey";
 import { connect, send } from "~controllers/ws";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
+import PlayerTokenPicker from "./player-token-picker/player-token-picker";
 
 interface IHomepage{
     connected: boolean,
+    code: string,
 }
 export default class Homepage extends SuperComponent<IHomepage>{
     constructor(){
@@ -19,10 +22,18 @@ export default class Homepage extends SuperComponent<IHomepage>{
         this.stateMachine = {
             WELCOME: {
                 NEXT: "MENU",
-            }
-        }
+            },
+            MENU: {
+                JOIN: "ROOM"
+            },
+            ROOM: {
+                NEXT: "CHARACTER",
+                BACK: "MENU",
+            },
+        };
         this.model = {
             connected: false,
+            code: "",
         };
         subscribe("socket", this.inbox.bind(this));
     }
@@ -47,6 +58,9 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 navigateTo(`/room/${data.code}`);
                 dj.pause("mainMenu");
                 break;
+            case "character:getDetails":
+                this.trigger("NEXT");
+                break;
             default:
                 break;
         }
@@ -62,7 +76,9 @@ export default class Homepage extends SuperComponent<IHomepage>{
        return html`
             <div class="actions w-full" flex="row nowrap items-center justify-center">
                 ${new Button({
-                    callback: ()=>{},
+                    callback: ()=>{
+                        this.trigger("JOIN");
+                    },
                     label: "Join Room",
                     kind: "outline",
                     color: "white",
@@ -100,7 +116,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderWelcome():TemplateResult{
        return html`
-            <div class="w-768 bg-white border-1 border-solid border-grey-200 shadow-grey-sm radius-0.5 no-scroll">
+            <div class="w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
                 <h1 class="px-2 pt-1.75 font-grey-900 font-2xl line-normal font-bold block">Greetings Adventurer!</h1>
                 <p class="px-2 pb-2 pt-1 font-grey-700 line-normal block">
                     Welcome to the alpha build of Tabletopper, a free web-based virtual tabletop (VTT). Before you continue we must warn you that this is an alpha build which means you may experience some bugs or glitches. Please report any issues through the help menu.
@@ -108,7 +124,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                     <br>
                     May your adventures be grand and your rewards bountiful.
                 </p>
-                <div flex="justify-end items-center row nowrap" class="p-1 bg-grey-50 border-t-1 border-t-solid border-t-grey-200">
+                <div flex="justify-end items-center row nowrap" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-200">
                     ${new Button({
                         kind: "solid",
                         color: "info",
@@ -132,6 +148,69 @@ export default class Homepage extends SuperComponent<IHomepage>{
        `;
    }
 
+   private renderJoin():TemplateResult{
+       return html`
+            <div class="join w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+                <div class="p-2">
+                    ${new Input({
+                        name: "room",
+                        label: "Room Code",
+                        value: this.model.code,
+                        maxlength: 4,
+                        minlength: 4,
+                        required: true,
+                    })}
+                </div>
+                <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
+                    ${new Button({
+                        label: "Back",
+                        class: "mr-1",
+                        callback: ()=> {
+                            this.trigger("BACK");
+                        },
+                    })}
+                    ${new Button({
+                        label: "Next",
+                        callback: ()=>{
+                            const input = this.querySelector(".js-input") as Input;
+                            const value = input.getValue().toString().trim().toUpperCase();
+                            if (input.validate()){
+                                send("room:check", {
+                                    code: value,
+                                });
+                            }
+                        }
+                    })}
+                </div>
+            </div>
+            ${new HomepageMusicPlayer()}
+       `;
+   }
+
+   private renderCharacter():TemplateResult{
+       return html`
+            <div class="join w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+                <div class="p-2">
+                    ${new PlayerTokenPicker()}
+                    ${new Input({
+                        name: "name",
+                        label: "Character Name",
+                        required: true,
+                    })}
+                </div>
+                <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
+                    ${new Button({
+                        label: "Join Room",
+                        kind: "solid",
+                        color: "primary",
+                        callback: ()=>{}
+                    })}
+                </div>
+            </div>
+            ${new HomepageMusicPlayer()}
+       `;
+   }
+
     override render(){
         let content;
         switch(this.state){
@@ -140,6 +219,12 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 break;
             case "MENU":
                 content = this.renderMenu();
+                break;
+            case "ROOM":
+                content = this.renderJoin();
+                break;
+            case "CHARACTER":
+                content = this.renderCharacter();
                 break;
         }
         const view = html`

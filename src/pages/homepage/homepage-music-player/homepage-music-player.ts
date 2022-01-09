@@ -12,7 +12,7 @@ export default class HomepageMusicPlayer extends SuperComponent<IHomepageMusicPl
     constructor(){
         super();
         this.model = {
-            playing: true,
+            playing: dj.music["mainMenu"].muted ? false : true,
         };
     }
 
@@ -27,12 +27,12 @@ export default class HomepageMusicPlayer extends SuperComponent<IHomepageMusicPl
             this.set({
                 playing: false,
             });
-            dj.pause("mainMenu");
+            dj.mute("mainMenu");
         } else {
             this.set({
                 playing: true,
             });
-            dj.play("mainMenu");
+            dj.unmute("mainMenu");
         }
     }
 
