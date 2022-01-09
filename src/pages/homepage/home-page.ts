@@ -7,7 +7,7 @@ import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import dj from "~controllers/disk-jockey";
 import { connect, send } from "~controllers/ws";
-import HomepageMusicPlayer from "./homepage-music-player";
+import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
 
 interface IHomepage{
     connected: boolean,

@@ -18,13 +18,13 @@ async function connect() {
     }
     socket.addEventListener("message", (event) => {
         try {
-            const data = JSON.parse(event.data);
+            const { type, data } = JSON.parse(event.data);
             if (ENV === "dev"){
-                console.log(data);
+                console.log(type, data);
             }
             publish("socket", {
-                type: data.type,
-                data: data.data,
+                type: type,
+                data: data,
             });
         } catch (e) {
             console.error(e, event);

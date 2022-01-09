@@ -5,8 +5,8 @@ import env from "~brixi/controllers/env";
 interface ITabletopPage {}
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
     constructor(tokens, params){
-        console.log(tokens.CODE)
         super();
+        sessionStorage.setItem("room", tokens.CODE);
     }
 
     override async connected(){
