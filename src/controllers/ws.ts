@@ -24,15 +24,15 @@ async function connect() {
             }
             switch(type){
                 case "core:init":
-                    const prevId = sessionStorage.getItem("socketId");
-                    if (prevId != null){
-                        sessionStorage.setItem("lastSocketId", prevId);
-                    }
+                    const prevId = sessionStorage.getItem("socketId") || null;
+                    const room = sessionStorage.getItem("room") || null;
                     sessionStorage.setItem("socketId", data.id);
-                    send("core:sync", {
-                        prevId: prevId,
-                        room: sessionStorage.getItem("room") || null,
-                    });
+                    if (prevId !== null && room !== null){
+                        send("core:sync", {
+                            prevId: prevId,
+                            room: room,
+                        });
+                    }
                     break;
                 default:
                     publish("socket", {
