@@ -23,6 +23,9 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "core:error":
+                    notifications.error(data.title, data.message);
+                    break;
                 case "core:init":
                     const prevId = sessionStorage.getItem("socketId") || null;
                     const room = sessionStorage.getItem("room") || null;
