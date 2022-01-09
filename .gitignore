@@ -3,7 +3,8 @@ node_modules
 
 # Server
 server/.env
-server/*.js
+server/**/*.js
+!server/uws/uws.js
 
 # Source files
 src/lib
