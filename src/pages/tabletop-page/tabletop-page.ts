@@ -1,6 +1,7 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
+import Toolbar from "./tool-bar/tool-bar";
 
 interface ITabletopPage {}
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
@@ -15,7 +16,9 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
     }
 
     override render(): void {
-        const view = html`Tabletop`;
+        const view = html`
+            ${new Toolbar()} 
+        `;
         render(view, this);
     }
 }

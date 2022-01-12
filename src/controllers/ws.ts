@@ -92,4 +92,11 @@ function send(type:string, data:any = null):void{
         // Do... something... maybe?
     }
 }
-export { connected, disconnect, connect, send };
+
+function close():void{
+    if (connected){
+        socket.close();
+    }
+}
+
+export { connected, disconnect, connect, send, close };

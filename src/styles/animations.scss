@@ -7,6 +7,15 @@
     }
 }
 
+@keyframes fadeIn60 {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.6;
+    }
+}
+
 @keyframes fadePopIn {
     from{
         opacity: 0;
