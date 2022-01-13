@@ -33,6 +33,9 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 if(op.table === "games"){
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
                     this.set(updatedModel);
+                    this.moving = false;
+                    this.x = window.innerWidth * 0.5;
+                    this.y = (window.innerHeight - 28) * 0.5;
                 }
                 break;
             default:

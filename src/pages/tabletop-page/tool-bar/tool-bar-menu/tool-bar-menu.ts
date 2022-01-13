@@ -70,6 +70,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Ctrl+S</span>
                 </button>
                 <button sfx="button">
+                    <span>Save As</span>
+                    <span>Ctrl+Shift+S</span>
+                </button>
+                <button sfx="button">
                     <span>Load</span>
                     <span>Ctrl+L</span>
                 </button>
@@ -161,6 +165,17 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 </button>
                 <button sfx="button">
                     <span>Show keyboard shortcuts</span>
+                </button>
+                <hr>
+                <button sfx="button">
+                    <span>Privacy policy</span>
+                </button>
+                <button sfx="button">
+                    <span>License</span>
+                </button>
+                <hr>
+                <button sfx="button">
+                    <span>About</span>
                 </button>
             </div> 
         `;
