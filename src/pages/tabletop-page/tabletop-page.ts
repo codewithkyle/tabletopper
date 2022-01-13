@@ -1,14 +1,12 @@
 import db from "@codewithkyle/jsql";
-import { subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
-import { setValueFromKeypath } from "~utils/object";
+import TabeltopComponent from "./tabletop-component/tabletop-component";
 import Toolbar from "./tool-bar/tool-bar";
 
 interface ITabletopPage {
-    map: string,
 }
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
     constructor(tokens, params){
@@ -20,24 +18,6 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
                 DONE: "IDLING",
             },
         };
-        this.model = {
-            map: null,
-        };
-        subscribe("sync", this.syncInbox.bind(this));
-    }
-
-    private syncInbox(op){
-        let updatedModel = this.get();
-        switch (op.op){
-            case "SET":
-                if(op.table === "games"){
-                    setValueFromKeypath(updatedModel, op.keypath, op.value);
-                    this.set(updatedModel);
-                }
-                break;
-            default:
-                break;
-        }
     }
 
     override async connected(){
@@ -56,14 +36,8 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
     }
 
     private async renderIdling():Promise<TemplateResult>{
-        let image = null;
-        if (this.model.map){
-            image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))[0];
-        }
         return html`
-            <div class="anchor">
-                ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
-            </div>
+            ${new TabeltopComponent()}
         `;
     }
 
@@ -96,12 +70,6 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             ${content}
         `;
         render(view, this);
-        setTimeout(()=>{
-            const anchor = this.querySelector(".anchor") as HTMLElement;
-            if (anchor){
-                anchor.style.transform = `translate(${window.innerWidth * .5}px, ${(window.innerHeight - 28) * .5}px)`;
-            }
-        }, 150);
     }
 }
 env.bind("tabletop-page", TabletopPage);
