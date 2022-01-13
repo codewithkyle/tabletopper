@@ -62,6 +62,23 @@
                     "default": null
                 }
             ]
+        },
+        {
+            "name": "players",
+            "keyPath": "uid",
+            "columns": [
+                {
+                    "key": "uid",
+                    "unique": true
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "token",
+                    "default": null
+                }
+            ]
         }
     ]
 }

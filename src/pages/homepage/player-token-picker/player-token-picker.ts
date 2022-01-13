@@ -28,9 +28,9 @@ export default class PlayerTokenPicker extends SuperComponent<IPlayerTokenPicker
         }
     }
 
-    public async getValue():Promise<string>{
-        const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selectedImageId, }))[0];
-        return image.data;
+    public async getValue():Promise<any>{
+        const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selectedImageId, }))?.[0] ?? null;
+        return image ?? null;
     }
 
     private openModal:EventListener = (e:Event) => {

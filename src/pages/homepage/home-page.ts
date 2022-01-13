@@ -1,11 +1,13 @@
 import { subscribe } from "@codewithkyle/pubsub";
 import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
+import { UUID } from "@codewithkyle/uuid";
 import { render, html, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
+import cc from "~controllers/control-center";
 import dj from "~controllers/disk-jockey";
 import { connect, send } from "~controllers/ws";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
@@ -220,9 +222,21 @@ export default class Homepage extends SuperComponent<IHomepage>{
                             const input = this.querySelector(".js-input") as Input;
                             const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
                             if (input.validate()){
+                                const image = await tokenPicker.getValue();
+                                let imageOP = null;
+                                if (image){
+                                    imageOP = cc.insert("images", image.uid, image);
+                                }
+                                const name = input.getValue().toString();
+                                const uid = UUID();
+                                const nameOP = cc.insert("players", uid, {
+                                    uid: uid,
+                                    name: name,
+                                    token: image?.uid ?? null,
+                                });
                                 send("room:join", {
-                                    name: input.getValue().toString(),
-                                    token: await tokenPicker.getValue(),
+                                    name: nameOP,
+                                    token: imageOP,
                                 });
                             }
                         }
