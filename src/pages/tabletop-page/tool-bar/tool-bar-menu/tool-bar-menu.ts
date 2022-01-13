@@ -42,6 +42,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private close(){
+        publish("toolbar", {
+            type: "menu:close",
+        });
         this.remove();
     }
 
@@ -188,10 +191,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private clickBackdrop:EventListener = (e:Event) => {
-        publish("toolbar", {
-            type: "menu:close",
-        });
-        this.remove();
+        this.close();
     }
 
     override render(): void {

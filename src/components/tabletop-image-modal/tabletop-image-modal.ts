@@ -32,6 +32,10 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
         this.remove();
     }
 
+    private load(){
+        this.remove();
+    }
+
     private handleTabSwitch(tab:string):void{
         this.set({
             tab: tab,
@@ -214,7 +218,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                     ${new Button({
                         kind: "solid",
                         color: "success",
-                        callback: ()=>{},
+                        callback: this.load.bind(this),
                         label: "load image",
                         disabled: this.model.selected?.length ? false : true,
                     })}
