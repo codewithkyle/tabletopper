@@ -60,6 +60,10 @@
                 {
                     "key": "map",
                     "default": null
+                },
+                {
+                    "key": "loaded_maps",
+                    "default": []
                 }
             ]
         },

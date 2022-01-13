@@ -34,10 +34,20 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
     }
 
     private async load(){
-        const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selected }))[0];
-        const op = cc.insert("images", image.uid, image);
-        cc.dispatch(op);
-        const op2 = cc.set("games", sessionStorage.getItem("room"), "map", image.uid);
+        const prevMaps = (await db.query("SELECT loaded_maps FROM games WHERE room = $room", { room: sessionStorage.getItem("room") }))[0].loaded_maps;
+        let alreadyLoadedMap = false;
+        for (let i = 0; i < prevMaps.length; i++){
+            if (prevMaps[i] === this.model.selected){
+                alreadyLoadedMap = true;
+                break;
+            }
+        }
+        if (!alreadyLoadedMap){
+            const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selected }))[0];
+            const op = cc.insert("images", image.uid, image);
+            cc.dispatch(op);
+        }
+        const op2 = cc.set("games", sessionStorage.getItem("room"), "map", this.model.selected);
         cc.dispatch(op2);
         cc.perform(op2);
         this.remove();
