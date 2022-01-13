@@ -3,6 +3,7 @@ import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
+import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import { close } from "~controllers/ws";
 import { ToolbarMenu as Menu} from "~types/app";
 
@@ -23,7 +24,6 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     public changeMenu(menu:Menu):void{
-        console.log("change menu to", menu);
         this.set({
             menu: menu,
         });
@@ -35,10 +35,28 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         return bounds.x;
     }
 
-    private clickExit:EventListener = (e:Event) => {
+    private exit(){
         sessionStorage.clear();
         close();
         location.href = location.origin;
+    }
+
+    private close(){
+        this.remove();
+    }
+
+    private loadImage(){
+        const modal = new TabletopImageModal();
+        document.body.append(modal);
+        this.close();
+    }
+
+    private clickExit:EventListener = (e:Event) => {
+        this.exit();
+    }
+
+    private clickLoadImage:EventListener = (e:Event) => {
+        this.loadImage();
     }
 
     private renderFileMenu():TemplateResult{
@@ -69,7 +87,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     private renderTabletopMenu():TemplateResult{
         return html`
             <div style="left:${this.calcOffsetX()}px;" class="menu">
-                <button sfx="button">
+                <button sfx="button" @click=${this.clickLoadImage}>
                     <span>Load image</span>
                     <span>Ctrl+N</span>
                 </button>
@@ -110,20 +128,20 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 </button>
                 <hr>
                 <button sfx="button">
-                    <span>Toggle fullscreen</span>
-                    <span>F11</span>
-                </button>
-                <button sfx="button">
-                    <span>Reset zoom</span>
-                    <span>Ctrl+0</span>
-                </button>
-                <button sfx="button">
                     <span>Zoom in</span>
                     <span>Ctrl+=</span>
                 </button>
                 <button sfx="button">
                     <span>Zoom out</span>
                     <span>Ctrl+-</span>
+                </button>
+                <button sfx="button">
+                    <span>Reset zoom</span>
+                    <span>Ctrl+0</span>
+                </button>
+                <button sfx="button">
+                    <span>Toggle fullscreen</span>
+                    <span>F11</span>
                 </button>
             </div> 
         `;

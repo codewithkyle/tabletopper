@@ -20,6 +20,34 @@
                     "key": "type"
                 }
             ]
+        },
+        {
+            "name": "ledger",
+            "keyPath": "uid",
+            "columns": [
+                {
+                    "key": "uid",
+                    "unique": true
+                },
+                {
+                    "key": "timestamp"
+                },
+                {
+                    "key": "op"
+                },
+                {
+                    "key": "table"
+                },
+                {
+                    "key": "key"
+                },
+                {
+                    "key": "keypath"
+                },
+                {
+                    "key": "value"   
+                }
+            ]
         }
     ]
 }
