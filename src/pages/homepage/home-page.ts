@@ -235,7 +235,8 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     token: image?.uid ?? null,
                                 });
                                 send("room:join", {
-                                    name: nameOP,
+                                    name: name,
+                                    nameOP: nameOP,
                                     token: imageOP,
                                 });
                             }

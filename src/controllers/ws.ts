@@ -24,6 +24,12 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:announce:leave":
+                    notifications.alert("Player Left", data);
+                    break;
+                case "room:announce:join":
+                    notifications.alert("Player Joined", data);
+                    break;
                 case "room:op":
                     await cc.perform(data);
                     publish("sync", data);
