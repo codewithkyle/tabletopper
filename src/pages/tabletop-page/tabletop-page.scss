@@ -8,4 +8,17 @@ tabletop-page{
     top: 0;
     left: 0;
     overflow: hidden;
+
+    *{
+        user-select: none;
+    }
+
+    .anchor{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        overflow: visible;
+    }
 }

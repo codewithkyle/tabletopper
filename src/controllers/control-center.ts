@@ -115,7 +115,7 @@ class ControlCenter {
     public async dispatch(op:OPCode, bypassOutbox = false){
         if (connected){
             try{
-                send("op", op);
+                send("room:op", op);
             } catch (e) {
                 console.error(e);
                 if (!bypassOutbox){

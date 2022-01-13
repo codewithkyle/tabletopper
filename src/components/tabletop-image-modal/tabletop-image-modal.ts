@@ -8,6 +8,7 @@ import Lightswitch from "~brixi/components/lightswitch/lightswitch";
 import Select, { SelectOption } from "~brixi/components/select/select";
 import Tabs from "~brixi/components/tabs/tabs";
 import env from "~brixi/controllers/env";
+import cc from "~controllers/control-center";
 import { Base64EncodeFile } from "~utils/file";
 
 interface ITabletopImageModal {
@@ -32,7 +33,13 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
         this.remove();
     }
 
-    private load(){
+    private async load(){
+        const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selected }))[0];
+        const op = cc.insert("images", image.uid, image);
+        cc.dispatch(op);
+        const op2 = cc.set("games", sessionStorage.getItem("room"), "map", image.uid);
+        cc.dispatch(op2);
+        cc.perform(op2);
         this.remove();
     }
 

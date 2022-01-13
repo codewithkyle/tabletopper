@@ -48,6 +48,20 @@
                     "key": "value"   
                 }
             ]
+        },
+        {
+            "name": "games",
+            "keyPath": "room",
+            "columns": [
+                {
+                    "key": "room",
+                    "unique": true
+                },
+                {
+                    "key": "map",
+                    "default": null
+                }
+            ]
         }
     ]
 }

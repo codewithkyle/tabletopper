@@ -1,5 +1,6 @@
 import { publish } from "@codewithkyle/pubsub";
 import notifications from "~brixi/controllers/notifications";
+import cc from "./control-center";
 
 let socket:WebSocket;
 let connected = false;
@@ -16,13 +17,17 @@ async function connect() {
     } catch (e) {
         console.error(e);
     }
-    socket.addEventListener("message", (event) => {
+    socket.addEventListener("message", async (event) => {
         try {
             const { type, data } = JSON.parse(event.data);
             if (ENV === "dev"){
                 console.log(type, data);
             }
             switch(type){
+                case "room:op":
+                    await cc.perform(data);
+                    publish("sync", data);
+                    break;
                 case "core:error":
                     notifications.error(data.title, data.message);
                     break;
