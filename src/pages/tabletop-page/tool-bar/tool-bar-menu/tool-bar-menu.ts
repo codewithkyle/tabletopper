@@ -55,7 +55,8 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
-    private clearImage(){
+    private clearImage:EventListener = (e:Event) => {
+        this.close();
         const op = cc.set("games", sessionStorage.getItem("room"), "map", null);
         cc.perform(op);
         cc.dispatch(op);
@@ -67,6 +68,15 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private clickLoadImage:EventListener = (e:Event) => {
         this.loadImage();
+    }
+
+    private toggleFullscreen:EventListener = (e:Event) => {
+        if (window.innerHeight === screen.height){
+            document.exitFullscreen();
+        } else {
+            document.documentElement.requestFullscreen();
+        }
+        this.close();
     }
 
     private renderFileMenu():TemplateResult{
@@ -153,7 +163,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Reset zoom</span>
                     <span>Ctrl+0</span>
                 </button>
-                <button sfx="button">
+                <button sfx="button" @click=${this.toggleFullscreen}>
                     <span>Toggle fullscreen</span>
                     <span>F11</span>
                 </button>
