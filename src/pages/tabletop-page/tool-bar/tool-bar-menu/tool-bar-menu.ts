@@ -4,6 +4,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
+import cc from "~controllers/control-center";
 import { close } from "~controllers/ws";
 import { ToolbarMenu as Menu} from "~types/app";
 
@@ -54,6 +55,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private clearImage(){
+        const op = cc.set("games", sessionStorage.getItem("room"), "map", null);
+        cc.perform(op);
+        cc.dispatch(op);
+    }
+
     private clickExit:EventListener = (e:Event) => {
         this.exit();
     }
@@ -102,7 +109,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Spawn pawns</span>
                     <span>Ctrl+L</span>
                 </button>
-                <button sfx="button">
+                <button sfx="button" @click=${this.clearImage}>
                     <span>Clear tabletop</span>
                     <span>Ctrl+Backspace</span>
                 </button>

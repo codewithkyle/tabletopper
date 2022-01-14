@@ -19,7 +19,9 @@ import env from "~brixi/controllers/env";
         "animations",
     ]);
 
-    await db.start();
+    await db.start({
+        dbWorker: `${location.origin}/jsql.worker.js`,
+    });
 
     //@ts-ignore
     await import("/js/routes.js");
