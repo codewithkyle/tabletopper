@@ -14,16 +14,30 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private y: number;
     private lastX: number;
     private lastY: number;
+    private zoom: number;
 
     constructor(){
         super();
         this.moving = false;
         this.x = window.innerWidth * 0.5;
         this.y = (window.innerHeight - 28) * 0.5;
+        this.zoom = 1;
         this.model = {
             map: null,
         };
         subscribe("sync", this.syncInbox.bind(this));
+        subscribe("tabletop", this.tabletopInbox.bind(this));
+    }
+
+    private tabletopInbox({type, data}){
+        switch(type){
+            case "zoom":
+                this.zoom = data;
+                this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                break;
+            default:
+                break;
+        }
     }
 
     private syncInbox(op){
@@ -76,7 +90,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             const deltaY = this.lastY - y;
             this.x -= deltaX;
             this.y -= deltaY;
-            this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+            this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
             this.lastX = x;
             this.lastY = y;
         }

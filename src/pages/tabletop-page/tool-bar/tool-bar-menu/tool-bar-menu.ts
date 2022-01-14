@@ -1,5 +1,4 @@
 import { publish } from "@codewithkyle/pubsub";
-import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
@@ -12,8 +11,11 @@ interface IToolbarMenu {
     menu: Menu,
 };
 export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
+    private zoom: number;
+
     constructor(menu:Menu){
         super();
+        this.zoom = 1;
         this.model = {
             menu: menu,
         }
@@ -77,6 +79,37 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             document.documentElement.requestFullscreen();
         }
         this.close();
+    }
+
+    private zoomReset:EventListener = (e:Event) => {
+        this.zoom = 1;
+        publish("tabletop", {
+            type: "zoom",
+            data: this.zoom,
+        });
+        this.close();
+    }
+
+    private zoomOut:EventListener = (e:Event) => {
+        this.zoom -= 0.1;
+        if (this.zoom < 0.1){
+            this.zoom = 0.1;
+        }
+        publish("tabletop", {
+            type: "zoom",
+            data: this.zoom,
+        });
+    }
+
+    private zoomIn:EventListener = (e:Event) => {
+        this.zoom += 0.1;
+        if (this.zoom > 2){
+            this.zoom = 2;
+        }
+        publish("tabletop", {
+            type: "zoom",
+            data: this.zoom,
+        });
     }
 
     private renderFileMenu():TemplateResult{
@@ -151,15 +184,15 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Ctrl+5</span>
                 </button>
                 <hr>
-                <button sfx="button">
+                <button sfx="button" @click=${this.zoomIn}>
                     <span>Zoom in</span>
                     <span>Ctrl+=</span>
                 </button>
-                <button sfx="button">
+                <button sfx="button" @click=${this.zoomOut}>
                     <span>Zoom out</span>
                     <span>Ctrl+-</span>
                 </button>
-                <button sfx="button">
+                <button sfx="button" @click=${this.zoomReset}>
                     <span>Reset zoom</span>
                     <span>Ctrl+0</span>
                 </button>
