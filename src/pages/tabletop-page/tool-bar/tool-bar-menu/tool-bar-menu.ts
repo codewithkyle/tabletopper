@@ -111,6 +111,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             data: this.zoom,
         });
     }
+    
+    private centerTabletop:EventListener = (e:Event) => {
+        publish("tabletop", {
+            type: "position:reset",
+        });
+    }
 
     private renderFileMenu():TemplateResult{
         return html`
@@ -160,7 +166,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         `;
     }
 
-    private renderViewMenu():TemplateResult{
+    private renderWindowsMenu():TemplateResult{
         return html`
             <div style="left:${this.calcOffsetX()}px;" class="menu">
                 <button sfx="button">
@@ -183,7 +189,13 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Drawing tools</span>
                     <span>Ctrl+5</span>
                 </button>
-                <hr>
+            </div>
+        `;
+    }
+
+    private renderViewMenu():TemplateResult{
+        return html`
+            <div style="left:${this.calcOffsetX()}px;" class="menu">
                 <button sfx="button" @click=${this.zoomIn}>
                     <span>Zoom in</span>
                     <span>Ctrl+=</span>
@@ -196,9 +208,13 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Reset zoom</span>
                     <span>Ctrl+0</span>
                 </button>
+                <hr>
                 <button sfx="button" @click=${this.toggleFullscreen}>
                     <span>Toggle fullscreen</span>
                     <span>F11</span>
+                </button>
+                <button sfx="button" @click=${this.centerTabletop}>
+                    <span>Center tabletop</span>
                 </button>
             </div> 
         `;
@@ -262,6 +278,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     override render(): void {
         let menu;
         switch(this.model.menu){
+            case "window":
+                menu = this.renderWindowsMenu();
+                break;
             case "file":
                 menu = this.renderFileMenu();
                 break;

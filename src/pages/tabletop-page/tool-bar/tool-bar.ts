@@ -73,6 +73,7 @@ export default class Toolbar extends SuperComponent<IToolbar>{
             <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="tabletop">Tabletop</button>
             <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="initiative">Initiative</button>
             <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="view">View</button>
+            <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="window">Window</button>
             <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="help">Help</button>
        `;
        render(view, this); 
