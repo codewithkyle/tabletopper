@@ -8,6 +8,7 @@ import Lightswitch from "~brixi/components/lightswitch/lightswitch";
 import Select, { SelectOption } from "~brixi/components/select/select";
 import Tabs from "~brixi/components/tabs/tabs";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
 import { Base64EncodeFile } from "~utils/file";
 
@@ -68,19 +69,23 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
         const files = input.files;
         if (files.length){
             const image = files[0];
-            const data = await Base64EncodeFile(image);
-            const uid = UUID();
-            await db.query("INSERT INTO images VALUES ($img)", {
-                img: {
-                    uid: uid,
-                    name: image.name,
-                    data: data,
-                    type: "map",
-                },
-            });
-            this.set({
-                selected: uid,
-            });
+            if (image.size < 10000000){
+                const data = await Base64EncodeFile(image);
+                const uid = UUID();
+                await db.query("INSERT INTO images VALUES ($img)", {
+                    img: {
+                        uid: uid,
+                        name: image.name,
+                        data: data,
+                        type: "map",
+                    },
+                });
+                this.set({
+                    selected: uid,
+                });
+            } else {
+                notifications.error("Upload Failed", "Files must be 10MB or smaller.");
+            }
         }
     }
 
