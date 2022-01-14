@@ -84,6 +84,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                     selected: uid,
                 });
             } else {
+                // TODO: figure out how to reduce image quality using WASM? Take a look at Squoosh.app for more details
                 notifications.error("Upload Failed", "Files must be 10MB or smaller.");
             }
         }

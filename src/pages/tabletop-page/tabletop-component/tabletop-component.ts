@@ -31,7 +31,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private tabletopInbox({type, data}){
         switch(type){
+            case "position:reset":
+                    this.moving = false;
+                    this.x = window.innerWidth * 0.5;
+                    this.y = (window.innerHeight - 28) * 0.5;
+                    this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                break;
             case "zoom":
+                this.moving = false;
                 this.zoom = data;
                 this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
                 break;

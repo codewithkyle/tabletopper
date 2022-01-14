@@ -116,6 +116,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         publish("tabletop", {
             type: "position:reset",
         });
+        this.close();
     }
 
     private renderFileMenu():TemplateResult{
