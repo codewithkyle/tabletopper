@@ -178,9 +178,15 @@ export default class Homepage extends SuperComponent<IHomepage>{
                             const input = this.querySelector(".js-input") as Input;
                             const value = input.getValue().toString().trim().toUpperCase();
                             if (input.validate()){
-                                send("room:check", {
-                                    code: value,
-                                });
+                                const lastConfirmedCode = sessionStorage.getItem("room");
+                                const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
+                                if (lastConfirmedCode === value && lastConfiredSocket != null){
+                                    navigateTo(`/room/${value}`);
+                                } else {
+                                    send("room:check", {
+                                        code: value,
+                                    });
+                                }
                             }
                         }
                     })}
@@ -235,6 +241,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     player: player,
                                     token: imageOP,
                                 });
+                                sessionStorage.setItem("role", "player");
                             }
                         }
                     })}
