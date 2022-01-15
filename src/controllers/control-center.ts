@@ -32,14 +32,6 @@ class ControlCenter {
         // setTimeout(this.flushOutbox.bind(this), 30000);
     }
 
-    private async hardSync(incomingETag){
-        // TODO: hard sync with cloud
-    }
-
-    private async softSync(id, incomingETag){
-        // TODO: soft sync with cloud
-    }
-
     public async sync(){
         if (this.syncing){
             return;
@@ -53,8 +45,15 @@ class ControlCenter {
         this.syncing = false;
     }
 
-    private async runHistory(){
-        // TODO: run though history
+    public async runHistory(){
+        // Get all past operations
+        const ops = await db.query("SELECT * FROM ledger ORDER BY timestamp");
+        console.log(ops);
+        // Perform ops
+        for (const op of ops){
+            await this.op(op);
+            publish("sync", op);
+        }
     }
 
     public insert(table:string, key:string, value:any):Insert{

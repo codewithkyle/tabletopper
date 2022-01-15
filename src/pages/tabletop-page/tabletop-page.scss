@@ -9,6 +9,34 @@ tabletop-page{
     left: 0;
     overflow: hidden;
 
+    &[state="SYNCING"]{
+        .spinner{
+            visibility: visible;
+            opacity: 1;
+        }
+
+        tabletop-component{
+            visibility: hidden;
+            opacity: 0;
+        }
+    }
+
+    &[state="IDLING"]{
+        .spinner{
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        tabletop-component{
+            visibility: visible;
+            opacity: 1;
+        }
+    }
+
+    .spinner{
+        pointer-events: none;
+    }
+
     *{
         user-select: none;
     }

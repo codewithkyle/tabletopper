@@ -21,6 +21,7 @@ import env from "~brixi/controllers/env";
 
     await db.start({
         dbWorker: `${location.origin}/jsql.worker.js`,
+        streamWorker: `${location.origin}/stream.worker.js`,
     });
 
     await Promise.all([
