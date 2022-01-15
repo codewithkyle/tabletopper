@@ -81,6 +81,9 @@
                 {
                     "key": "token",
                     "default": null
+                },
+                {
+                    "key": "room"
                 }
             ]
         }

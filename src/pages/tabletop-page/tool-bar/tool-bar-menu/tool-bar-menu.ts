@@ -1,3 +1,4 @@
+import db from "@codewithkyle/jsql";
 import { publish } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
@@ -90,6 +91,15 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    public zoom200:EventListener = (e:Event) => {
+        this.zoom = 2;
+        publish("tabletop", {
+            type: "zoom",
+            data: this.zoom,
+        });
+        this.close();
+    }
+
     private zoomOut:EventListener = (e:Event) => {
         this.zoom -= 0.1;
         if (this.zoom < 0.1){
@@ -116,6 +126,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         publish("tabletop", {
             type: "position:reset",
         });
+        this.close();
+    }
+
+    private spawnPawns:EventListener = async (e:Event) => {
+        const players = await db.query("SELECT * FROM players WHERE room = $room", { room: sessionStorage.getItem("room") });
+        console.log(players);
         this.close();
     }
 
@@ -155,7 +171,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Load image</span>
                     <span>Ctrl+N</span>
                 </button>
-                <button sfx="button">
+                <button sfx="button" @click=${this.spawnPawns}>
                     <span>Spawn pawns</span>
                     <span>Ctrl+L</span>
                 </button>
@@ -172,23 +188,21 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             <div style="left:${this.calcOffsetX()}px;" class="menu">
                 <button sfx="button">
                     <span>Initiative tracker</span>
-                    <span>Ctrl+1</span>
                 </button>
                 <button sfx="button">
                     <span>Chat</span>
-                    <span>Ctrl+2</span>
                 </button>
                 <button sfx="button">
                     <span>Monster manual</span>
-                    <span>Ctrl+3</span>
                 </button>
                 <button sfx="button">
                     <span>Dice tray</span>
-                    <span>Ctrl+4</span>
                 </button>
                 <button sfx="button">
                     <span>Drawing tools</span>
-                    <span>Ctrl+5</span>
+                </button>
+                <button sfx="button">
+                    <span>Music</span>
                 </button>
             </div>
         `;
@@ -206,7 +220,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <span>Ctrl+-</span>
                 </button>
                 <button sfx="button" @click=${this.zoomReset}>
-                    <span>Reset zoom</span>
+                    <span>100%</span>
+                    <span>Ctrl+0</span>
+                </button>
+                <button sfx="button" @click=${this.zoom200}>
+                    <span>200%</span>
                     <span>Ctrl+0</span>
                 </button>
                 <hr>

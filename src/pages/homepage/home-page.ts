@@ -229,14 +229,14 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                 }
                                 const name = input.getValue().toString();
                                 const uid = UUID();
-                                const nameOP = cc.insert("players", uid, {
+                                const player = cc.insert("players", uid, {
                                     uid: uid,
                                     name: name,
                                     token: image?.uid ?? null,
                                 });
                                 send("room:join", {
                                     name: name,
-                                    nameOP: nameOP,
+                                    player: player,
                                     token: imageOP,
                                 });
                             }
