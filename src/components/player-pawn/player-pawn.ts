@@ -147,13 +147,16 @@ export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
         return out;
     }
 
-    override updated(): void {
-        if (!this.model.active){
-            this.remove();
-        }
-    }
-
     override async render() {
+        if (!this.model.active){
+            this.style.visibility = "hidden";
+            this.style.opacity = "0";
+            this.style.pointerEvents = "none";
+        } else {
+            this.style.visibility = "visible";
+            this.style.opacity = "1";
+            this.style.pointerEvents = "all";
+        }
         this.dataset.uid = this.model.uid;
         if (!this.dragging){
             this.setAttribute("tooltip", this.model.name);

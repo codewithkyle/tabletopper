@@ -1,5 +1,6 @@
 import db from "@codewithkyle/jsql";
 import env from "~brixi/controllers/env";
+import { connect } from "~controllers/ws";
 
 (async () => {
     // @ts-ignore
@@ -29,6 +30,8 @@ import env from "~brixi/controllers/env";
         db.query("RESET players"),
         db.query("RESET ledger"),
     ]);
+
+    connect();
 
     //@ts-ignore
     await import("/js/routes.js");

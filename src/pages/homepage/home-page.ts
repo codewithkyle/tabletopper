@@ -1,7 +1,6 @@
 import { subscribe } from "@codewithkyle/pubsub";
 import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
-import { UUID } from "@codewithkyle/uuid";
 import { render, html, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
@@ -9,7 +8,7 @@ import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import cc from "~controllers/control-center";
 import dj from "~controllers/disk-jockey";
-import { connect, send } from "~controllers/ws";
+import { connected, send } from "~controllers/ws";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
 import PlayerTokenPicker from "./player-token-picker/player-token-picker";
 
@@ -37,7 +36,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
             },
         };
         this.model = {
-            connected: false,
+            connected: connected,
             code: "",
         };
         subscribe("socket", this.inbox.bind(this));
@@ -73,9 +72,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
     override async connected() {
         await env.css(["homepage"]);
-        sessionStorage.removeItem("room");
         this.render();
-        connect();
     }
 
    private renderActions(): TemplateResult {

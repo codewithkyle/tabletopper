@@ -48,7 +48,6 @@ class ControlCenter {
     public async runHistory(){
         // Get all past operations
         const ops = await db.query("SELECT * FROM ledger ORDER BY timestamp");
-        console.log(ops);
         // Perform ops
         for (const op of ops){
             await this.op(op);

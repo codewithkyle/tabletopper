@@ -1,9 +1,11 @@
 import db from "@codewithkyle/jsql";
+import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import cc from "~controllers/control-center";
+import { send } from "~controllers/ws";
 import TabeltopComponent from "./tabletop-component/tabletop-component";
 import Toolbar from "./tool-bar/tool-bar";
 
@@ -12,7 +14,16 @@ interface ITabletopPage {
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
     constructor(tokens, params){
         super();
-        sessionStorage.setItem("room", tokens.CODE);
+        const lastConfirmedCode = sessionStorage.getItem("room");
+        const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
+        if (lastConfirmedCode === tokens.CODE.toUpperCase() && lastConfiredSocket !== sessionStorage.getItem("socketId")){
+            send("core:sync", {
+                room: lastConfirmedCode,
+                prevId: lastConfiredSocket,
+            });
+        } else {
+            navigateTo("/");
+        }
     }
 
     override async connected(){

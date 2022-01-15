@@ -24,6 +24,17 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:join":
+                    sessionStorage.setItem("room", data.code);
+                    sessionStorage.setItem("lastSocketId", sessionStorage.getItem("socketId"));
+                    publish("socket", {
+                        type: type,
+                        data: data,
+                    });
+                    break;
+                case "room:announce:reconnect":
+                    notifications.alert("Player Reconnected", data);
+                    break;
                 case "room:announce:leave":
                     notifications.alert("Player Left", data);
                     break;
@@ -38,15 +49,7 @@ async function connect() {
                     notifications.error(data.title, data.message);
                     break;
                 case "core:init":
-                    const prevId = sessionStorage.getItem("socketId") || null;
-                    const room = sessionStorage.getItem("room") || null;
                     sessionStorage.setItem("socketId", data.id);
-                    if (prevId !== null && room !== null){
-                        send("core:sync", {
-                            prevId: prevId,
-                            room: room,
-                        });
-                    }
                     break;
                 default:
                     publish("socket", {
