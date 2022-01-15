@@ -34,13 +34,19 @@ async function connect() {
                     });
                     break;
                 case "room:announce:reconnect":
-                    notifications.alert("Player Reconnected", data);
+                    notifications.success("Player Reconnected", data);
                     break;
-                case "room:announce:leave":
+                case "room:announce:kick":
+                    notifications.alert("Player Kicked", data);
+                    break;
+                case "room:announce:quit":
                     notifications.alert("Player Left", data);
                     break;
+                case "room:announce:dc":
+                    notifications.warn("Player Disconnected", data);
+                    break;
                 case "room:announce:join":
-                    notifications.alert("Player Joined", data);
+                    notifications.success("Player Joined", data);
                     break;
                 case "room:op":
                     await cc.perform(data);

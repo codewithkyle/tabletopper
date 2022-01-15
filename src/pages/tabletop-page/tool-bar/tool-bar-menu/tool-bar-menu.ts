@@ -1,4 +1,5 @@
 import { publish, subscribe } from "@codewithkyle/pubsub";
+import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
@@ -49,9 +50,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private exit(){
-        sessionStorage.clear();
-        close();
-        location.href = location.origin;
+        sessionStorage.removeItem("room");
+        sessionStorage.removeItem("lastSocketId");
+        send("room:quit");
+        navigateTo("/");
+        this.close();
     }
 
     private close(){
