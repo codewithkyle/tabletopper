@@ -23,6 +23,12 @@ import env from "~brixi/controllers/env";
         dbWorker: `${location.origin}/jsql.worker.js`,
     });
 
+    await Promise.all([
+        db.query("RESET games"),
+        db.query("RESET players"),
+        db.query("RESET ledger"),
+    ]);
+
     //@ts-ignore
     await import("/js/routes.js");
 })();

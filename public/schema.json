@@ -64,6 +64,10 @@
                 {
                     "key": "loaded_maps",
                     "default": []
+                },
+                {
+                    "key": "players",
+                    "default": []
                 }
             ]
         },
@@ -84,6 +88,14 @@
                 },
                 {
                     "key": "room"
+                },
+                {
+                    "key": "x",
+                    "default": 0
+                },
+                {
+                    "key": "y",
+                    "default": 0
                 }
             ]
         }

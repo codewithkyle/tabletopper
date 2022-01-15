@@ -1,12 +1,14 @@
 import db from "@codewithkyle/jsql";
-import { subscribe } from "@codewithkyle/pubsub";
+import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
+import PlayerPawn from "~components/player-pawn/player-pawn";
 import { setValueFromKeypath } from "~utils/object";
 
 interface ITabletopComponent {
     map: string,
+    players: Array<string>,
 }
 export default class TabeltopComponent extends SuperComponent<ITabletopComponent>{
     private moving: boolean;
@@ -24,6 +26,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         this.zoom = 1;
         this.model = {
             map: null,
+            players: [],
         };
         subscribe("sync", this.syncInbox.bind(this));
         subscribe("tabletop", this.tabletopInbox.bind(this));
@@ -54,9 +57,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 if(op.table === "games"){
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
                     this.set(updatedModel);
-                    this.moving = false;
-                    this.x = window.innerWidth * 0.5;
-                    this.y = (window.innerHeight - 28) * 0.5;
+                    if (op.keypath === "map"){
+                        this.moving = false;
+                        this.x = window.innerWidth * 0.5;
+                        this.y = (window.innerHeight - 28) * 0.5;
+                    }
                 }
                 break;
             default:
@@ -69,7 +74,21 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         window.addEventListener("mousemove", this.handleMouseMove, { passive: true });
         window.addEventListener("mousedown", this.handleWindowDown, { passive: true });
         window.addEventListener("mouseup", this.handleMouseUp, { passive: true });
+        window.addEventListener("wheel", this.handleScroll, { passive: true });
         this.render();
+    }
+
+    private handleScroll:EventListener = (e:WheelEvent) => {
+        let zoom = this.zoom + -(e.deltaY * 0.001);
+        if (zoom > 2){
+            zoom = 2;
+        } else if (zoom < 0.1){
+            zoom = 0.1;
+        }
+        publish("tabletop", {
+            type: "zoom",
+            data: zoom,
+        });
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent) =>{
@@ -108,8 +127,18 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.model.map){
             image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))[0];
         }
+        const players = [];
+        if (this.model.players.length){
+            for (const uid of this.model.players){
+                const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: uid }))[0];
+                players.push(player);
+            }
+        }
         const view = html`
             ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
+            ${players.map(player => {
+                return new PlayerPawn(player);
+            })}
         `;
         render(view, this);
         this.style.transform = `translate(${this.x}px, ${this.y}px)`;

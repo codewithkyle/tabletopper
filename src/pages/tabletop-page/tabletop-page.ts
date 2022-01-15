@@ -23,14 +23,13 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
     override async connected(){
         await env.css(["tabletop-page"]);
         this.render();
-        await db.query("DELETE FROM games WHERE room = $room", { room: sessionStorage.getItem("room") });
+        await db.query("RESET ledger");
         await db.query("INSERT INTO games VALUES ($game)", {
             game: {
                 map: null,
                 room: sessionStorage.getItem("room"),
             }
         });
-        await db.query("RESET ledger");
         // TODO: get room data from server
         this.trigger("DONE");
     }

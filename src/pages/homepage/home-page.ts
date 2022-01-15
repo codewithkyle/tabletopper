@@ -228,9 +228,8 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     imageOP = cc.insert("images", image.uid, image);
                                 }
                                 const name = input.getValue().toString();
-                                const uid = UUID();
-                                const player = cc.insert("players", uid, {
-                                    uid: uid,
+                                const player = cc.insert("players", sessionStorage.getItem("socketId"), {
+                                    uid: sessionStorage.getItem("socketId"),
                                     name: name,
                                     token: image?.uid ?? null,
                                 });

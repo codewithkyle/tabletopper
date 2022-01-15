@@ -1,11 +1,10 @@
-import db from "@codewithkyle/jsql";
-import { publish } from "@codewithkyle/pubsub";
+import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import cc from "~controllers/control-center";
-import { close } from "~controllers/ws";
+import { close, send } from "~controllers/ws";
 import { ToolbarMenu as Menu} from "~types/app";
 
 interface IToolbarMenu {
@@ -19,6 +18,17 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.zoom = 1;
         this.model = {
             menu: menu,
+        };
+        subscribe("tabletop", this.tabletopInbox.bind(this));
+    }
+
+    private tabletopInbox({ type, data }){
+        switch(type){
+            case "zoom":
+                this.zoom = data;
+                break;
+            default:
+                break;
         }
     }
 
@@ -83,42 +93,42 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private zoomReset:EventListener = (e:Event) => {
-        this.zoom = 1;
+        let zoom = 1;
         publish("tabletop", {
             type: "zoom",
-            data: this.zoom,
+            data: zoom,
         });
         this.close();
     }
 
     public zoom200:EventListener = (e:Event) => {
-        this.zoom = 2;
+        let zoom = 2;
         publish("tabletop", {
             type: "zoom",
-            data: this.zoom,
+            data: zoom,
         });
         this.close();
     }
 
     private zoomOut:EventListener = (e:Event) => {
-        this.zoom -= 0.1;
-        if (this.zoom < 0.1){
-            this.zoom = 0.1;
+        let zoom  = this.zoom - 0.1;
+        if (zoom < 0.1){
+            zoom = 0.1;
         }
         publish("tabletop", {
             type: "zoom",
-            data: this.zoom,
+            data: zoom,
         });
     }
 
     private zoomIn:EventListener = (e:Event) => {
-        this.zoom += 0.1;
-        if (this.zoom > 2){
-            this.zoom = 2;
+        let zoom = this.zoom + 0.1;
+        if (zoom > 2){
+            zoom = 2;
         }
         publish("tabletop", {
             type: "zoom",
-            data: this.zoom,
+            data: zoom,
         });
     }
     
@@ -126,12 +136,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         publish("tabletop", {
             type: "position:reset",
         });
+        send("room:tabletop:clear");
         this.close();
     }
 
     private spawnPawns:EventListener = async (e:Event) => {
-        const players = await db.query("SELECT * FROM players WHERE room = $room", { room: sessionStorage.getItem("room") });
-        console.log(players);
+        send("room:tabletop:spawn:players");
         this.close();
     }
 
