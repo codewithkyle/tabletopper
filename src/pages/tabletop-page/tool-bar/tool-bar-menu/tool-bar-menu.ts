@@ -69,13 +69,8 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private clearImage:EventListener = (e:Event) => {
+        send("room:tabletop:map:clear");
         this.close();
-        // Clear map
-        const op = cc.set("games", sessionStorage.getItem("room"), "map", null);
-        const op2 = cc.set("games", sessionStorage.getItem("room"), "players", []);
-        const ops = cc.batch("games", sessionStorage.getItem("room"), [op, op2]);
-        cc.perform(ops);
-        cc.dispatch(ops);
     }
 
     private clickExit:EventListener = (e:Event) => {
