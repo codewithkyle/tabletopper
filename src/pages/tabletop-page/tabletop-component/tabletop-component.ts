@@ -142,8 +142,10 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         const players = [];
         if (this.model.players.length){
             for (const uid of this.model.players){
-                const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: uid }))[0];
-                players.push(player);
+                const player = (await db.query("SELECT * FROM players WHERE uid = $uid AND active = $status", { uid: uid, status: true }))?.[0] ?? null;
+                if (player){
+                    players.push(player);
+                }
             }
         }
         const view = html`

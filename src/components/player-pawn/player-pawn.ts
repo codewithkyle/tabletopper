@@ -15,6 +15,7 @@ export interface IPlayerPawn {
     image: string,
     x: number,
     y: number,
+    active: boolean,
 };
 export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
     private dragging: boolean;
@@ -33,6 +34,7 @@ export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
             image: null,
             x: player.x,
             y: player.y,
+            active: player.active,
         };
         subscribe("pawn", this.pawnInbox.bind(this));
         subscribe("sync", this.syncInbox.bind(this));
@@ -143,6 +145,12 @@ export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
             `;
         }
         return out;
+    }
+
+    override updated(): void {
+        if (!this.model.active){
+            this.remove();
+        }
     }
 
     override async render() {

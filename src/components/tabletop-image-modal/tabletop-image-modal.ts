@@ -10,6 +10,7 @@ import Tabs from "~brixi/components/tabs/tabs";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
+import { send } from "~controllers/ws";
 import { Base64EncodeFile } from "~utils/file";
 
 interface ITabletopImageModal {
@@ -48,9 +49,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
             const op = cc.insert("images", image.uid, image);
             cc.dispatch(op);
         }
-        const op2 = cc.set("games", sessionStorage.getItem("room"), "map", this.model.selected);
-        cc.dispatch(op2);
-        cc.perform(op2);
+        send("room:tabletop:map:load", this.model.selected);
         this.remove();
     }
 
