@@ -53,6 +53,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private syncInbox(op){
         let updatedModel = this.get();
         switch (op.op){
+            case "BATCH":
+                for (let i = 0; i < op.ops.length; i++){
+                    this.syncInbox(op.ops[i]);
+                }
+                break;
             case "SET":
                 if(op.table === "games"){
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
@@ -141,7 +146,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             })}
         `;
         render(view, this);
-        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
     }
 }
 env.bind("tabletop-component", TabeltopComponent);
