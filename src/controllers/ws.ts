@@ -1,4 +1,5 @@
 import { publish } from "@codewithkyle/pubsub";
+import { navigateTo } from "@codewithkyle/router";
 import notifications from "~brixi/controllers/notifications";
 import cc from "./control-center";
 
@@ -50,6 +51,11 @@ async function connect() {
                     break;
                 case "core:init":
                     sessionStorage.setItem("socketId", data.id);
+                    break;
+                case "core:sync:fail":
+                    sessionStorage.removeItem("room");
+                    sessionStorage.removeItem("lastSocketId");
+                    navigateTo("/");
                     break;
                 default:
                     publish("socket", {

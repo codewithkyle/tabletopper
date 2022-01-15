@@ -3,9 +3,8 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
-import cc from "~controllers/control-center";
 import { close, send } from "~controllers/ws";
-import { ToolbarMenu as Menu} from "~types/app";
+import type { ToolbarMenu as Menu} from "~types/app";
 
 interface IToolbarMenu {
     menu: Menu,
@@ -15,7 +14,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     constructor(menu:Menu){
         super();
-        this.zoom = 1;
+        this.zoom = sessionStorage.getItem("zoom") != null ? parseFloat(sessionStorage.getItem("zoom")) : 1;
         this.model = {
             menu: menu,
         };

@@ -44,6 +44,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 this.moving = false;
                 this.zoom = data;
                 this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
                 break;
             default:
                 break;
