@@ -12,11 +12,11 @@ interface ITabletopComponent {
 }
 export default class TabeltopComponent extends SuperComponent<ITabletopComponent>{
     private moving: boolean;
-    private x: number;
-    private y: number;
+    public x: number;
+    public y: number;
     private lastX: number;
     private lastY: number;
-    private zoom: number;
+    public zoom: number;
 
     constructor(){
         super();
@@ -80,7 +80,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         window.addEventListener("mousedown", this.handleWindowDown, { passive: true });
         window.addEventListener("mouseup", this.handleMouseUp, { passive: true });
         window.addEventListener("wheel", this.handleScroll, { passive: true });
+        document.body.addEventListener("drop", this.handleDrop, { passive: false, capture: true });
         this.render();
+    }
+
+    private handleDrop:EventListener = (e:DragEvent) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        console.log(e);
     }
 
     private handleScroll:EventListener = (e:WheelEvent) => {

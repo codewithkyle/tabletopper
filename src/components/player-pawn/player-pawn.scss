@@ -9,6 +9,12 @@ player-pawn{
     width: 32px;
     height: 32px;
     cursor: grab;
+    transition: all 300ms var(--ease-in-out);
+
+    &.no-anim{
+        transition: none !important;
+        cursor: grabbing !important;
+    }
 
     img{
         position: absolute;
@@ -17,18 +23,16 @@ player-pawn{
         width: 100%;
         height: 100%;
         object-fit: contain;
-        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+        filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6));
     }
 
     .generic-pawn{
         position: absolute;
-        top: 0;
-        left: 0;
         width: 75%;
         height: 75%;
         background-color: var(--info-500);
         border-bottom: 2px solid var(--info-600);
         border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
 }
