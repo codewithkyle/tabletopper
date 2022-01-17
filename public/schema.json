@@ -102,6 +102,149 @@
                     "default": true
                 }
             ]
+        },
+        {
+            "name": "monsters",
+            "keyPath": "index",
+            "columns": [
+                {
+                    "key": "index",
+                    "unique": true
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "size"
+                },
+                {
+                    "key": "type"
+                },
+                {
+                    "key": "subtype"
+                },
+                {
+                    "key": "alignment"
+                },
+                {
+                    "key": "ac"
+                },
+                {
+                    "key": "hp"
+                },
+                {
+                    "key": "hitDice"
+                },
+                {
+                    "key": "str"
+                },
+                {
+                    "key": "dex"
+                },
+                {
+                    "key": "con"
+                },
+                {
+                    "key": "int"
+                },
+                {
+                    "key": "wis"
+                },
+                {
+                    "key": "cha"
+                },
+                {
+                    "key": "languages"
+                },
+                {
+                    "key": "cr"
+                },
+                {
+                    "key": "xp"
+                },
+                {
+                    "key": "speed"
+                },
+                {
+                    "key": "vulnerabilities"
+                },
+                {
+                    "key": "resistances"
+                },
+                {
+                    "key": "immunities"
+                },
+                {
+                    "key": "senses"
+                },
+                {
+                    "key": "savingThrows"
+                },
+                {
+                    "key": "skills"
+                },
+                {
+                    "key": "abilities"
+                },
+                {
+                    "key": "actions"
+                },
+                {
+                    "key": "legendaryActions"
+                }
+            ]
+        },
+        {
+            "name": "spells",
+            "keyPath": "index",
+            "columns": [
+                {
+                    "key": "index",
+                    "unique": true
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "desc"
+                },
+                {
+                    "key": "range"
+                },
+                {
+                    "key": "components"
+                },
+                {
+                    "key": "materials"
+                },
+                {
+                    "key": "ritual"
+                },
+                {
+                    "key": "duration"
+                },
+                {
+                    "key": "castingTime"
+                },
+                {
+                    "key": "level"
+                },
+                {
+                    "key": "attackType"
+                },
+                {
+                    "key": "damageType"
+                },
+                {
+                    "key": "school"
+                },
+                {
+                    "key": "classes"
+                },
+                {
+                    "key": "subclasses"
+                }
+            ]
         }
     ]
 }
