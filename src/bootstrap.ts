@@ -31,6 +31,17 @@ import { connect } from "~controllers/ws";
         db.query("RESET ledger"),
     ]);
 
+    db.query("SELECT COUNT(index) FROM spells").then(results => {
+        if (results[0] === 0){
+            db.ingest(`${location.origin}/spells.ndjson`, "spells", "NDJSON");
+        }
+    });
+    db.query("SELECT COUNT(index) FROM monsters").then(results => {
+        if (results[0] === 0){
+            db.ingest(`${location.origin}/monsters.ndjson`, "monsters", "NDJSON");
+        }
+    });
+
     connect();
 
     //@ts-ignore
