@@ -145,76 +145,131 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private renderFileMenu():TemplateResult{
-        return html`
-            <div style="left:${this.calcOffsetX()}px;" class="menu">
-                <button sfx="button">
-                    <span>Save</span>
-                    <span>Ctrl+S</span>
-                </button>
-                <button sfx="button">
-                    <span>Save As</span>
-                    <span>Ctrl+Shift+S</span>
-                </button>
-                <button sfx="button">
-                    <span>Load</span>
-                    <span>Ctrl+L</span>
-                </button>
-                <hr>
-                <button sfx="button">
-                    <span>Options</span>
-                    <span>Ctrl+,</span>
-                </button>
-                <hr>
-                <button sfx="button" @click=${this.clickExit}>
-                    <span>Exit</span>
-                    <span>Alt+F4</span>
-                </button>
-            </div> 
-        `;
+        if (sessionStorage.getItem("role") === "gm"){
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button">
+                        <span>Save</span>
+                        <span>Ctrl+S</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Save As</span>
+                        <span>Ctrl+Shift+S</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Load</span>
+                        <span>Ctrl+L</span>
+                    </button>
+                    <hr>
+                    <button sfx="button">
+                        <span>Export Spells</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Export Monsters</span>
+                    </button>
+                    <hr>
+                    <button sfx="button">
+                        <span>Options</span>
+                        <span>Ctrl+,</span>
+                    </button>
+                    <hr>
+                    <button sfx="button" @click=${this.clickExit}>
+                        <span>Exit</span>
+                        <span>Alt+F4</span>
+                    </button>
+                </div> 
+            `;
+        }
+        else {
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button">
+                        <span>Export Spells</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Export Monsters</span>
+                    </button>
+                    <hr>
+                    <button sfx="button">
+                        <span>Options</span>
+                        <span>Ctrl+,</span>
+                    </button>
+                    <hr>
+                    <button sfx="button" @click=${this.clickExit}>
+                        <span>Exit</span>
+                        <span>Alt+F4</span>
+                    </button>
+                </div> 
+            `;
+        }
     }
 
-    private renderTabletopMenu():TemplateResult{
-        return html`
-            <div style="left:${this.calcOffsetX()}px;" class="menu">
-                <button sfx="button" @click=${this.clickLoadImage}>
-                    <span>Load image</span>
-                    <span>Ctrl+N</span>
-                </button>
-                <button sfx="button" @click=${this.spawnPawns}>
-                    <span>Spawn pawns</span>
-                    <span>Ctrl+L</span>
-                </button>
-                <button sfx="button" @click=${this.clearImage}>
-                    <span>Clear tabletop</span>
-                    <span>Ctrl+Backspace</span>
-                </button>
-            </div> 
-        `;
+    private renderTabletopMenu():TemplateResult|string{
+        if (sessionStorage.getItem("role") === "gm"){
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button" @click=${this.clickLoadImage}>
+                        <span>Load image</span>
+                        <span>Ctrl+N</span>
+                    </button>
+                    <button sfx="button" @click=${this.spawnPawns}>
+                        <span>Spawn pawns</span>
+                        <span>Ctrl+L</span>
+                    </button>
+                    <button sfx="button" @click=${this.clearImage}>
+                        <span>Clear tabletop</span>
+                        <span>Ctrl+Backspace</span>
+                    </button>
+                </div> 
+            `;
+        } else {
+            return "";
+        }
     }
 
     private renderWindowsMenu():TemplateResult{
-        return html`
-            <div style="left:${this.calcOffsetX()}px;" class="menu">
-                <button sfx="button">
-                    <span>Initiative tracker</span>
-                </button>
-                <button sfx="button">
-                    <span>Chat</span>
-                </button>
-                <button sfx="button">
-                    <span>Monster manual</span>
-                </button>
-                <button sfx="button">
-                    <span>Dice tray</span>
-                </button>
-                <button sfx="button">
-                    <span>Drawing tools</span>
-                </button>
-                <button sfx="button">
-                    <span>Music</span>
-                </button>
-            </div>
-        `;
+        if (sessionStorage.getItem("role") === "gm"){
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button">
+                        <span>Initiative tracker</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Chat</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Monster manual</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Dice tray</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Drawing tools</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Music</span>
+                    </button>
+                </div>
+            `;
+        }
+        else {
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button">
+                        <span>Initiative tracker</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Chat</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Dice tray</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Drawing tools</span>
+                    </button>
+                </div>
+            `;
+        }
     }
 
     private renderViewMenu():TemplateResult{
@@ -275,28 +330,33 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         `;
     }
 
-    private renderInitiativeMenu():TemplateResult{
-        return html`
-            <div style="left:${this.calcOffsetX()}px;" class="menu">
-                <button sfx="button">
-                    <span>Next</span>
-                    <span>Ctrl+Shift+=</span>
-                </button>
-                <button sfx="button">
-                    <span>Previous</span>
-                    <span>Ctrl+Shift+-</span>
-                </button>
-                <hr>
-                <button sfx="button">
-                    <span>Clear tracker</span>
-                    <span>Ctrl+Shift+Backspace</span>
-                </button>
-                <button sfx="button">
-                    <span>Sync tracker</span>
-                    <span>Ctrl+R</span>
-                </button>
-            </div> 
-        `;
+    private renderInitiativeMenu():TemplateResult|string{
+        if (sessionStorage.getItem("role") === "gm"){
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button">
+                        <span>Next</span>
+                        <span>Ctrl+Shift+=</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Previous</span>
+                        <span>Ctrl+Shift+-</span>
+                    </button>
+                    <hr>
+                    <button sfx="button">
+                        <span>Clear tracker</span>
+                        <span>Ctrl+Shift+Backspace</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Sync tracker</span>
+                        <span>Ctrl+R</span>
+                    </button>
+                </div> 
+            `;
+        }
+        else {
+            return "";
+        }
     }
 
     private clickBackdrop:EventListener = (e:Event) => {
