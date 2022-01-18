@@ -1,1 +1,1 @@
-export type ToolbarMenu = "file" | "tabletop" | "initiative" | "help" | "view" | "window";
+export type ToolbarMenu = "file" | "tabletop" | "initiative" | "help" | "view" | "window" | "room";

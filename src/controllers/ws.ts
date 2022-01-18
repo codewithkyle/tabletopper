@@ -33,6 +33,12 @@ async function connect() {
                         data: data,
                     });
                     break;
+                case "room:announce:unlock":
+                    notifications.snackbar("The room has been unlocked.");
+                    break;
+                case "room:announce:lock":
+                    notifications.snackbar("The room has been locked.");
+                    break;
                 case "room:announce:reconnect":
                     notifications.success("Player Reconnected", data);
                     break;

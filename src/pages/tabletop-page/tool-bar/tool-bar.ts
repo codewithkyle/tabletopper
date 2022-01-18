@@ -72,6 +72,7 @@ export default class Toolbar extends SuperComponent<IToolbar>{
         if (sessionStorage.getItem("role") === "gm"){
             view = html`
                 <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="file">File</button>
+                <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="room">Room</button>
                 <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="tabletop">Tabletop</button>
                 <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="initiative">Initiative</button>
                 <button sfx="button" @mouseenter=${this.handleMouseEnter} @click=${this.handleClick} data-menu="view">View</button>

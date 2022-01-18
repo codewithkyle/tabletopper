@@ -18,6 +18,7 @@ import { connect } from "~controllers/ws";
         "skeletons",
         "toast",
         "animations",
+        "snackbar",
     ]);
 
     await db.start({

@@ -3,6 +3,7 @@ import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
@@ -141,6 +142,22 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private spawnPawns:EventListener = async (e:Event) => {
         send("room:tabletop:spawn:players");
+        this.close();
+    }
+
+    private copyRoomCode:EventListener = async (e:Event) => {
+        await navigator.clipboard.writeText(sessionStorage.getItem("room"));
+        notifications.snackbar("Room code copied to clipboard.");
+        this.close();
+    }
+
+    private lockRoom:EventListener = (e:Event) => {
+        send("room:lock");
+        this.close();
+    }
+
+    private unlockRoom:EventListener = (e:Event) => {
+        send("room:unlock");
         this.close();
     }
 
@@ -359,6 +376,28 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
     }
 
+    private renderRoomMenu():TemplateResult|string{
+        if (sessionStorage.getItem("role") === "gm"){
+            return html`
+                <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button" @click=${this.lockRoom}>
+                        <span>Lock room</span>
+                    </button>
+                    <button sfx="button" @click=${this.unlockRoom}>
+                        <span>Unlock room</span>
+                    </button>
+                    <hr>
+                    <button sfx="button" @click=${this.copyRoomCode}>
+                        <span>Copy room code</span>
+                    </button>
+                </div> 
+            `;
+        }
+        else {
+            return "";
+        }
+    }
+
     private clickBackdrop:EventListener = (e:Event) => {
         this.close();
     }
@@ -366,6 +405,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     override render(): void {
         let menu;
         switch(this.model.menu){
+            case "room":
+                menu = this.renderRoomMenu();
+                break;
             case "window":
                 menu = this.renderWindowsMenu();
                 break;
