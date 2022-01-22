@@ -3,6 +3,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 
 interface IMonsterManual {
     query: string,
@@ -39,6 +40,19 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
         const target = e.currentTarget as HTMLElement;
         await db.query("DELETE FROM monsters WHERE index = $index", { index: target.dataset.index });
         this.render();
+        notifications.snackbar(`${target.dataset.name} has been deleted.`);
+    }
+
+    private openMonster:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
+    }
+
+    private spawnMonster:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
+    }
+
+    private editMonster:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
     }
 
     private renderMonster(monster): TemplateResult{
@@ -46,17 +60,17 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
             <div class="monster" flex="row nowrap items-center justify-between">
                 <span class="font-sm font-medium font-grey-700" title="${monster.name}">${monster.name}</span>
                 <div class="row nowrap items-center" style="font-size:0;">
-                    <button tooltip="Open stat block" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
+                    <button @click=${this.openMonster} data-index="${monster.index}" tooltip="Open stat block" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copy" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <rect x="8" y="8" width="12" height="12" rx="2"></rect>
                             <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
                         </svg>
                     </button>
-                    <button tooltip="Spawn" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
+                    <button @click=${this.spawnMonster} data-index="${monster.index}" tooltip="Spawn" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
                         <svg aria-hidden="true" focusable="false" data-prefix="far" data-icon="street-view" class="svg-inline--fa fa-street-view fa-w-15" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M168 338.59V384c0 30.88 25.12 56 56 56h64c30.88 0 56-25.12 56-56v-45.41c18.91-9 32-28.3 32-50.59v-72c0-28.78-17.09-53.48-41.54-65C345.43 135.4 352 116.49 352 96c0-52.94-43.06-96-96-96s-96 43.06-96 96c0 20.49 6.57 39.4 17.55 55-24.46 11.52-41.55 36.22-41.55 65v72c0 22.3 13.09 41.59 32 50.59zM256 48c26.51 0 48 21.49 48 48s-21.49 48-48 48-48-21.49-48-48 21.49-48 48-48zm-72 168c0-13.23 10.78-24 24-24h96c13.22 0 24 10.77 24 24v72c0 4.41-3.59 8-8 8h-24v88c0 4.41-3.59 8-8 8h-64c-4.41 0-8-3.59-8-8v-88h-24c-4.41 0-8-3.59-8-8v-72zm209.61 119.14c-4.9 7.65-10.55 14.83-17.61 20.69v14.49c53.18 10.14 88 26.81 88 45.69 0 30.93-93.12 56-208 56S48 446.93 48 416c0-18.88 34.82-35.54 88-45.69v-14.49c-7.06-5.86-12.71-13.03-17.61-20.69C47.28 352.19 0 382 0 416c0 53.02 114.62 96 256 96s256-42.98 256-96c0-34-47.28-63.81-118.39-80.86z"></path></svg>
                     </button>
-                    <button tooltip="Edit" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
+                    <button @click=${this.editMonster} data-index="${monster.index}" tooltip="Edit" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-edit" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M9 7h-3a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-3"></path>
@@ -64,7 +78,7 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
                             <line x1="16" y1="5" x2="19" y2="8"></line>
                         </svg>
                     </button>
-                    <button @click=${this.deleteMonster} data-index="${monster.index}" tooltip="Delete" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
+                    <button @click=${this.deleteMonster} data-name="${monster.name}" data-index="${monster.index}" tooltip="Delete" class="h-full bttn" color="grey" kind="text" icon="center" sfx="button">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <line x1="4" y1="7" x2="20" y2="7"></line>
