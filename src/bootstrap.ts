@@ -19,6 +19,8 @@ import { connect } from "~controllers/ws";
         "toast",
         "animations",
         "snackbar",
+        "modals",
+        "modal"
     ]);
 
     await db.start({
