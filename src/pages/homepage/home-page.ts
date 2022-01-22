@@ -6,6 +6,7 @@ import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
 import dj from "~controllers/disk-jockey";
 import { connected, send } from "~controllers/ws";
@@ -39,6 +40,10 @@ export default class Homepage extends SuperComponent<IHomepage>{
             connected: connected,
             code: "",
         };
+        if (sessionStorage.getItem("kicked")){
+            notifications.error("Kicked From Game", "You have been kicked by the Game Master.");
+            sessionStorage.removeItem("kicked");
+        }
         subscribe("socket", this.inbox.bind(this));
     }
 
@@ -235,6 +240,9 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     uid: sessionStorage.getItem("socketId"),
                                     name: name,
                                     token: image?.uid ?? null,
+                                    x: 0,
+                                    y: 0,
+                                    active: true,
                                 });
                                 send("room:join", {
                                     name: name,

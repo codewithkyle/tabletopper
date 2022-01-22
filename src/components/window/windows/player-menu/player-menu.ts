@@ -1,13 +1,32 @@
 import db from "@codewithkyle/jsql";
-import { publish } from "@codewithkyle/pubsub";
+import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
+import { send } from "~controllers/ws";
 
 interface IPlayerMenu {};
 export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
     constructor(){
         super();
+        subscribe("sync", this.syncInbox.bind(this));
+    }
+
+    private syncInbox(op){
+        switch(op.op){
+            case "INSERT":
+                if (op.table === "players"){
+                    this.render();
+                }
+                break;
+            case "SET":
+                if (op.table === "players"){
+                    this.render();
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     override async connected(){
@@ -21,6 +40,11 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
             type: "locate:pawn",
             data: target.dataset.uid,
         });
+    }
+
+    private banPlayer:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
+        send("room:player:ban", target.dataset.uid);
     }
 
     private renderPlayer(player):TemplateResult{
@@ -50,11 +74,12 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <path d="M13 12h.01"></path>
                         </svg> 
                     </button>
-                    <button sfx="button" tooltip="Ban ${player.name}" class="bttn" kind="text" color="grey" icon="center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-ban" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <button data-uid="${player.uid}" @click=${this.banPlayer} sfx="button" tooltip="Kick ${player.name}" class="bttn" kind="text" color="grey" icon="center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-off" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <line x1="5.7" y1="5.7" x2="18.3" y2="18.3"></line>
+                            <path d="M14.274 10.291a4 4 0 1 0 -5.554 -5.58m-.548 3.453a4.01 4.01 0 0 0 2.62 2.65"></path>
+                            <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 1.147 .167m2.685 2.681a4 4 0 0 1 .168 1.152v2"></path>
+                            <line x1="3" y1="3" x2="21" y2="21"></line>
                         </svg>
                     </button>
                 </div>

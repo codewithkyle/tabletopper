@@ -25,6 +25,12 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:ban":
+                    sessionStorage.removeItem("room");
+                    sessionStorage.removeItem("lastSocketId");
+                    sessionStorage.setItem("kicked", "true");
+                    location.href = location.origin;
+                    break;
                 case "room:join":
                     sessionStorage.setItem("room", data.code);
                     sessionStorage.setItem("lastSocketId", sessionStorage.getItem("socketId"));
