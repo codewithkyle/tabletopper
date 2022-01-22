@@ -74,7 +74,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
 
     private renderPlayer(player):TemplateResult{
         return html`
-            <div flex="row nowrap items-center justify-between" class="w-full player border-b-1 border-b-solid border-b-grey-300 pl-0.5">
+            <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 radius-0.25 pl-0.75">
                 <span title="${player.name}" class="cursor-default font-sm font-medium font-grey-700">${player.name}</span>
                 <div class="h-full" flex="row nowrap items-center">
                     <button data-uid="${player.uid}" @click=${this.locatePawn} sfx="button" tooltip="Go to pawn" class="bttn border-r-1 border-l-1 border-l-solid border-l-grey-300 border-r-solid border-r-grey-300" kind="text" color="grey" icon="center">
@@ -117,7 +117,9 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
             room: sessionStorage.getItem("room"),
         });
         const view = html`
-            ${players.map(this.renderPlayer.bind(this))}
+            <div class="w-full block p-0.5">
+                ${players.map(this.renderPlayer.bind(this))}
+            </div>
         `;
         render(view, this);
     }
