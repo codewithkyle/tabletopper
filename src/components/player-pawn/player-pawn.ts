@@ -102,7 +102,7 @@ export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
         }
     }
 
-    private startDrag:EventListener = (e:DragEvent) => {
+    private startDrag:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
         this.dragging = true;

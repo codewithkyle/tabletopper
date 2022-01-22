@@ -6,7 +6,7 @@ tool-bar-menu {
     width: 100vw;
     height: calc(100vh - 28px);
     overflow: hidden;
-    z-index: 1001;
+    z-index: 2001;
 
     .backdrop{
         position: absolute;
@@ -24,7 +24,7 @@ tool-bar-menu {
         top: 0;
         background-color: var(--grey-800);
         box-shadow: var(--shadow-grey-sm);
-        z-index: 1002;
+        z-index: 2002;
         overflow: hidden;
 
         &::before{

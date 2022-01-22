@@ -5,6 +5,8 @@ import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
+import Window from "~components/window/window";
+import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
 
@@ -161,6 +163,14 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private openPlayerMenu:EventListener = (e:Event) => {
+        const window = document.body.querySelector('window-component[window="players"]') || new Window("Players", new PlayerMenu());
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
+    }
+
     private renderFileMenu():TemplateResult{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
@@ -258,6 +268,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Monster manual</span>
                     </button>
                     <button sfx="button">
+                        <span>Spellbook</span>
+                    </button>
+                    <button sfx="button">
                         <span>Dice tray</span>
                     </button>
                     <button sfx="button">
@@ -277,6 +290,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     </button>
                     <button sfx="button">
                         <span>Chat</span>
+                    </button>
+                    <button sfx="button">
+                        <span>Spellbook</span>
                     </button>
                     <button sfx="button">
                         <span>Dice tray</span>
@@ -389,6 +405,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <hr>
                     <button sfx="button" @click=${this.copyRoomCode}>
                         <span>Copy room code</span>
+                    </button>
+                    <hr>
+                    <button sfx="button" @click=${this.openPlayerMenu}>
+                        <span>Player list</span>
                     </button>
                 </div> 
             `;
