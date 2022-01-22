@@ -6,6 +6,10 @@ player-menu{
     .player{
         height: 36px;
 
+        &:not(:last-of-type){
+            margin-bottom: 0.5rem;
+        }
+
         span{
             flex: 1;
             overflow: hidden;
