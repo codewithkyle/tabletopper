@@ -23,6 +23,8 @@ export default class ResizeHandle extends HTMLElement{
     }
 
     private handleMouseDown:EventListener = (e:MouseEvent|TouchEvent) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
         this.resizing = true;
         if (e instanceof MouseEvent){
             this.pos3 = e.clientX;
@@ -35,12 +37,10 @@ export default class ResizeHandle extends HTMLElement{
 
     private handleMouseUp:EventListener = () => {
         if (this.resizing){
-            if (this.target instanceof Window){
-                this.target.save();
-            }
+            // @ts-ignore
+            this.target?.save();
         }
         this.resizing = false;
-        this.parentElement.parentElement.setAttribute("resizing", "false");
     }
 
     private handleMouseMove:EventListener = (e:MouseEvent|TouchEvent) => {

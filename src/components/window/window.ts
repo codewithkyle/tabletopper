@@ -27,11 +27,23 @@ export default class Window extends SuperComponent<IWindow>{
         this.x = savedX ? parseInt(savedX) : 0;
         this.y = savedY ? parseInt(savedY) : 28;
         this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        if (savedX == null){
+            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
+        }
+        if (savedY == null){
+            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
+        }
 
         const savedWidth = localStorage.getItem(`${this.handle}-w`);
         const savedHeight = localStorage.getItem(`${this.handle}-h`);
         this.w = savedWidth ? parseInt(savedWidth) : 411;
         this.h = savedHeight ? parseInt(savedHeight) : 231;
+        if (savedWidth == null){
+            localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
+        }
+        if (savedHeight == null){
+            localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
+        }
 
         this.view = view;
         this.name = name;
@@ -39,8 +51,6 @@ export default class Window extends SuperComponent<IWindow>{
         this.model = {
             size: "normal",
         };
-
-        this.save();
     }
 
     override async connected(){
@@ -64,10 +74,8 @@ export default class Window extends SuperComponent<IWindow>{
 
     public minimize(){
         this.moving = false;
-        this.x = 0;
-        this.y = window.innerHeight - 28;
-        this.w = 200;
-        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        this.h = 28;
+        this.w = parseInt(localStorage.getItem(`${this.handle}-w`));
         this.set({
             size: "minimized",
         });
@@ -90,10 +98,23 @@ export default class Window extends SuperComponent<IWindow>{
     }
 
     public save(){
+        const bounds = this.getBoundingClientRect();
+        this.x = bounds.x;
+        this.y = bounds.y;
+        this.w = bounds.width;
+        if (this.w < 411){
+            this.w = 411;
+        }
+        this.h = bounds.height;
+        if (this.h < 231){
+            this.h = 231;
+        }
         localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
         localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
-        localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
-        localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
+        if (this.model.size !== "maximized"){
+            localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
+            localStorage.setItem(`${this.handle}-y`, this.y.toFixed(0).toString());
+        }
     }
 
     private move:EventListener = (e:MouseEvent|TouchEvent) => {
@@ -126,7 +147,7 @@ export default class Window extends SuperComponent<IWindow>{
     private startMove:EventListener = (e:MouseEvent|TouchEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (this.model.size !== "normal"){
+        if (this.model.size === "maximized"){
             return;
         }
         this.moving = true;

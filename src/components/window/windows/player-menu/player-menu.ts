@@ -2,7 +2,6 @@ import db from "@codewithkyle/jsql";
 import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
-import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import Modal from "~components/modal/modal";

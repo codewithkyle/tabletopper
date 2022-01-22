@@ -1,0 +1,28 @@
+monster-manual{
+    display: block;
+    width: 100%;
+    position: relative;
+    padding: 0.5rem;
+    user-select: none;
+
+    .monster{
+        height: 36px;
+        border-bottom: 1px solid var(--grey-300);
+        padding-left: 0.75rem;
+
+        span{
+            flex: 1;
+        }
+
+        button{
+            border-radius: 0 !important;
+
+            &:first-of-type{
+                border-left: 1px solid var(--grey-300);
+            }
+            &:not(:last-of-type){
+                border-right: 1px solid var(--grey-300);
+            }
+        }
+    }
+}

@@ -6,6 +6,7 @@ import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import Window from "~components/window/window";
+import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
@@ -171,6 +172,14 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private openMonsterManual:EventListener = (e:Event) => {
+        const window = document.body.querySelector('window-component[window="monster-manual"]') || new Window("Monster Manual", new MonsterManual());
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
+    }
+
     private renderFileMenu():TemplateResult{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
@@ -264,7 +273,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button">
                         <span>Chat</span>
                     </button>
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openMonsterManual}>
                         <span>Monster manual</span>
                     </button>
                     <button sfx="button">
