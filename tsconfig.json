@@ -26,5 +26,9 @@
     "include": [
         "src"
     ],
-    "exclude": ["lib"]
+    "exclude": [
+        "src/workers",
+        "src/framework",
+        "src/lib"
+    ]
 }
