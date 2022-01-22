@@ -85,10 +85,10 @@ export default class ResizeHandle extends HTMLElement{
     }
 
     connectedCallback(){        
-        window.addEventListener("mouseup", this.handleMouseUp);
-        window.addEventListener("mousemove", this.handleMouseMove);
-        window.addEventListener("touchend", this.handleMouseUp);
-        window.addEventListener("touchmove", this.handleMouseMove);
+        window.addEventListener("mouseup", this.handleMouseUp, { capture: true, passive: true });
+        window.addEventListener("mousemove", this.handleMouseMove, { capture: true, passive: true });
+        window.addEventListener("touchend", this.handleMouseUp, { capture: true, passive: true });
+        window.addEventListener("touchmove", this.handleMouseMove, { capture: true, passive: true });
         this.addEventListener("mousedown", this.handleMouseDown);
         this.addEventListener("touchstart", this.handleMouseDown);
     }
