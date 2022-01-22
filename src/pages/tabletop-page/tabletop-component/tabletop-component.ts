@@ -3,6 +3,7 @@ import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 import PlayerPawn from "~components/player-pawn/player-pawn";
 import { setValueFromKeypath } from "~utils/object";
 
@@ -34,6 +35,20 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private tabletopInbox({type, data}){
         switch(type){
+            case "locate:pawn":
+                const el = this.querySelector(`[data-uid="${data}"]`);
+                if (el){
+                    this.moving = false;
+                    const bounds = el.getBoundingClientRect();
+                    const diffX = window.innerWidth * 0.5 - bounds.x;
+                    const diffY = window.innerHeight * 0.5 - bounds.y;
+                    this.x = this.x + diffX;
+                    this.y = this.y + diffY;
+                    this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                } else {
+                    notifications.snackbar("Failed to locate pawn.");
+                }
+                break;
             case "position:reset":
                     this.moving = false;
                     this.x = window.innerWidth * 0.5;

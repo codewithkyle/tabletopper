@@ -2,4 +2,15 @@ player-menu{
     display: block;
     width: 100%;
     position: relative;
+
+    .player{
+        height: 32px;
+
+        span{
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+    }
 }

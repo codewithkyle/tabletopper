@@ -19,8 +19,8 @@ export interface IPlayerPawn {
 };
 export default class PlayerPawn extends SuperComponent<IPlayerPawn>{
     private dragging: boolean;
-    private localX: number;
-    private localY: number;
+    public localX: number;
+    public localY: number;
 
     constructor(player){
         super();

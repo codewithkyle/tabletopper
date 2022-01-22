@@ -190,7 +190,7 @@ export default class Window extends SuperComponent<IWindow>{
 
     private renderContent():TemplateResult|string{
         let out;
-        if (this.model.size === "minimized"){
+        if (this.model.size !== "minimized"){
             out = html`
                 <div class="container">
                     ${this.view}
