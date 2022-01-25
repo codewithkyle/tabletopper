@@ -165,7 +165,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private openPlayerMenu:EventListener = (e:Event) => {
-        const window = document.body.querySelector('window-component[window="players"]') || new Window("Players", new PlayerMenu());
+        const window = document.body.querySelector('window-component[window="players"]') || new Window({
+            name: "Players",
+            view: new PlayerMenu(),
+        });
         if (!window.isConnected){
             document.body.append(window);
         }
@@ -173,7 +176,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private openMonsterManual:EventListener = (e:Event) => {
-        const window = document.body.querySelector('window-component[window="monster-manual"]') || new Window("Monster Manual", new MonsterManual());
+        const window = document.body.querySelector('window-component[window="monster-manual"]') || new Window({
+            name: "Monster Manual",
+            view: new MonsterManual(),
+        });
         if (!window.isConnected){
             document.body.append(window);
         }

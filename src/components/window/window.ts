@@ -6,6 +6,13 @@ import ResizeHandle from "~components/resize-handle/resize-handle";
 interface IWindow {
     size: "minimized" | "maximized" | "normal";
 };
+export interface Settings {
+    name:string,
+    view:HTMLElement | TemplateResult | string,
+    handle?: string,
+    width?: number,
+    height?: number,
+}
 export default class Window extends SuperComponent<IWindow>{
     private moving: boolean;
     private x: number;
@@ -18,9 +25,9 @@ export default class Window extends SuperComponent<IWindow>{
     private localX: number;
     private localY: number;
 
-    constructor(name:string, view:HTMLElement | TemplateResult | string){
+    constructor(settings:Settings){
         super();
-        this.handle = name.toLowerCase().trim().replace(/\s+/g, "-");
+        this.handle = settings?.handle ?? settings.name.toLowerCase().trim().replace(/\s+/g, "-");
 
         const savedX = localStorage.getItem(`${this.handle}-x`);
         const savedY = localStorage.getItem(`${this.handle}-y`);
@@ -36,8 +43,13 @@ export default class Window extends SuperComponent<IWindow>{
 
         const savedWidth = localStorage.getItem(`${this.handle}-w`);
         const savedHeight = localStorage.getItem(`${this.handle}-h`);
-        this.w = savedWidth ? parseInt(savedWidth) : 411;
-        this.h = savedHeight ? parseInt(savedHeight) : 231;
+        if (savedWidth != null && savedHeight != null){
+            this.w = parseInt(savedWidth);
+            this.h = parseInt(savedHeight);
+        } else {
+            this.w = settings?.width ?? 411;
+            this.h = settings?.height ?? 231;
+        }
         if (savedWidth == null){
             localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
         }
@@ -45,8 +57,8 @@ export default class Window extends SuperComponent<IWindow>{
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
 
-        this.view = view;
-        this.name = name;
+        this.view = settings.view;
+        this.name = settings.name;
         this.moving = false;
         this.model = {
             size: "normal",
@@ -58,6 +70,18 @@ export default class Window extends SuperComponent<IWindow>{
         window.addEventListener("mouseup", this.stopMove, { capture: true, passive: true });
         window.addEventListener("mousemove", this.move, { capture: true, passive: true });
         this.render();
+        this.focus();
+    }
+
+    public focus():void{
+        document.body.querySelectorAll("window-component").forEach((window:Window) => {
+            window.blur();
+        });
+        this.style.zIndex = "1001";
+    }
+
+    public blur(): void {
+       this.style.zIndex = "1000";
     }
 
     public maximize(){
@@ -70,6 +94,7 @@ export default class Window extends SuperComponent<IWindow>{
         this.set({
             size: "maximized",
         });
+        this.focus();
     }
 
     public minimize(){
@@ -91,6 +116,7 @@ export default class Window extends SuperComponent<IWindow>{
         this.set({
             size: "normal",
         });
+        this.focus();
     }
     
     public close(){
@@ -163,6 +189,7 @@ export default class Window extends SuperComponent<IWindow>{
         const bounds = this.getBoundingClientRect();
         this.localX = bounds.x - x;
         this.localY = bounds.y - y;
+        this.focus();
     }
 
     private handleMinimize:EventListener = (e:Event) => {
