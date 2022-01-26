@@ -5,6 +5,7 @@ import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import Window from "~components/window/window";
+import MonsterEditor from "../monster-editor/monster-editor";
 import MonsterStatBlock from "../monster-stat-block/monster-stat-block";
 
 interface IMonsterManual {
@@ -65,6 +66,16 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
 
     private editMonster:EventListener = (e:Event) => {
         const target = e.currentTarget as HTMLElement;
+        const window = document.body.querySelector(`window-component[window="monster-editor-${target.dataset.index}"]`) || new Window({
+            name: "Monster Editor",
+            view: new MonsterEditor(target.dataset.index),
+            width: 450,
+            height: 600,
+            handle: `monster-editor-${target.dataset.index}`,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
     }
 
     private renderMonster(monster): TemplateResult{

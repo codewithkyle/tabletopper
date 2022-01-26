@@ -11,8 +11,8 @@ export default class MonsterStatBlock extends SuperComponent<IMonsterStatBlock>{
         super();
         this.model = {
             index: index,
-            name:        null,
-            size:        null,
+            name: null,
+            size: null,
             type:        null,
             subtype:     null,
             alignment:   null,
