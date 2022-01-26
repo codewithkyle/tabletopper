@@ -74,6 +74,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
             await db.query("INSERT INTO monsters VALUES ($monster)", {
                 monster: data,
             });
+            notifications.snackbar(`${data["name"]} has been updated.`);
         }
     }
 
