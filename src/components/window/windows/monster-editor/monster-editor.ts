@@ -239,11 +239,13 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                         name: "type",
                         value: this.model.type,
                         required: true,
+                        datalist: types,
                     })}
                     ${new Input({
                         label: "Subtype",
                         name: "subtype",
                         value: this.model.subtype,
+                        datalist: subtypes,
                     })}
                     ${new NumberInput({
                         label: "Armor Class",
