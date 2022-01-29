@@ -12,6 +12,8 @@ export interface Settings {
     handle?: string,
     width?: number,
     height?: number,
+    minWidth?: number,
+    minHeight?: number,
 }
 export default class Window extends SuperComponent<IWindow>{
     private moving: boolean;
@@ -24,10 +26,15 @@ export default class Window extends SuperComponent<IWindow>{
     private h: number;
     private localX: number;
     private localY: number;
+    private minWidth: number;
+    private minHeight: number;
 
     constructor(settings:Settings){
         super();
         this.handle = settings?.handle ?? settings.name.toLowerCase().trim().replace(/\s+/g, "-");
+
+        this.minWidth = settings?.minWidth ?? 411;
+        this.minHeight = settings?.minHeight ?? 231;
 
         const savedX = localStorage.getItem(`${this.handle}-x`);
         const savedY = localStorage.getItem(`${this.handle}-y`);
@@ -47,8 +54,8 @@ export default class Window extends SuperComponent<IWindow>{
             this.w = parseInt(savedWidth);
             this.h = parseInt(savedHeight);
         } else {
-            this.w = settings?.width ?? 411;
-            this.h = settings?.height ?? 231;
+            this.w = settings?.width ?? this.minWidth;
+            this.h = settings?.height ?? this.minHeight;
         }
         if (savedWidth == null){
             localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
@@ -128,12 +135,12 @@ export default class Window extends SuperComponent<IWindow>{
         this.x = bounds.x;
         this.y = bounds.y;
         this.w = bounds.width;
-        if (this.w < 411){
-            this.w = 411;
+        if (this.w < this.minWidth){
+            this.w = this.minWidth;
         }
         this.h = bounds.height;
-        if (this.h < 231){
-            this.h = 231;
+        if (this.h < this.minHeight){
+            this.h = this.minHeight;
         }
         localStorage.setItem(`${this.handle}-w`, this.w.toFixed(0).toString());
         localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
@@ -278,9 +285,9 @@ export default class Window extends SuperComponent<IWindow>{
                 </div>
             </div>
             ${this.renderContent()}
-            ${new ResizeHandle(this, "x")}
-            ${new ResizeHandle(this, "y")}
-            ${new ResizeHandle(this, "both")}
+            ${new ResizeHandle(this, "x", this.minWidth, this.minHeight)}
+            ${new ResizeHandle(this, "y", this.minWidth, this.minHeight)}
+            ${new ResizeHandle(this, "both", this.minWidth, this.minHeight)}
         `;
         render(view, this);
     }

@@ -8,6 +8,7 @@ import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-
 import Window from "~components/window/window";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import PlayerMenu from "~components/window/windows/player-menu/player-menu";
+import Spellbook from "~components/window/windows/spellbook/spellbook";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
 
@@ -186,6 +187,18 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private openSpellbook:EventListener = (e:Event) => {
+        const window = document.body.querySelector('window-component[window="spellbook"]') || new Window({
+            name: "Spellbook",
+            view: new Spellbook(),
+            minWidth: 650,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
+    }
+
     private renderFileMenu():TemplateResult{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
@@ -282,7 +295,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button" @click=${this.openMonsterManual}>
                         <span>Monster manual</span>
                     </button>
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
                     </button>
                     <button sfx="button">

@@ -35,3 +35,24 @@ export interface Ability {
     name: string;
     desc: string;
 }
+
+export interface Damage {
+    [level:string]: string,
+}
+
+export interface Spell {
+    index:       string;
+    name:        string;
+    desc:        string;
+    range:       string;
+    components:  string[];
+    ritual:      boolean;
+    duration:    string;
+    castingTime: string;
+    level:       number;
+    damageType:  string | null;
+    damage:      null | Damage;
+    school:      string;
+    classes:     string[];
+    subsclasses: string[];
+}

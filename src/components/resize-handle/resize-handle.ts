@@ -10,8 +10,10 @@ export default class ResizeHandle extends HTMLElement{
     private pos4:number;
     private target:HTMLElement;
     private axis: Axis;
+    private minWidth: number;
+    private minHeight: number;
 
-    constructor(target:HTMLElement, axis:Axis){
+    constructor(target:HTMLElement, axis:Axis, minWidth: number = 411, minHeight: number = 231){
         super();
         this.resizing = false;
         this.pos1 = 0;
@@ -20,6 +22,8 @@ export default class ResizeHandle extends HTMLElement{
         this.pos4 = 0;
         this.target = target;
         this.axis = axis;
+        this.minWidth = minWidth;
+        this.minHeight = minHeight;
     }
 
     private handleMouseDown:EventListener = (e:MouseEvent|TouchEvent) => {
@@ -59,13 +63,13 @@ export default class ResizeHandle extends HTMLElement{
             const bounds = this.target.getBoundingClientRect();
             let height = bounds.height - this.pos2;
             let width = bounds.width - this.pos1;
-            if (height < 231){
-                height = 231;
+            if (height < this.minHeight){
+                height = this.minHeight;
             } else if (height > window.innerHeight - 28){
                 height = window.innerHeight - 28;
             }
-            if (width < 411){
-                width = 411;
+            if (width < this.minWidth){
+                width = this.minWidth;
             } else if (width > window.innerWidth){
                 width = window.innerWidth;
             }

@@ -1,0 +1,142 @@
+spell-book{
+    display: block;
+    width: 100%;
+    position: relative;
+
+    .filters{
+        display: block;
+        width: 100%;
+
+        .classes{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-flow: row nowrap;
+            width: calc((64px + 1rem) * 10);
+            white-space: nowrap;
+            margin: 0 auto;
+            padding: 1.25rem 0.5rem 0.5rem;
+
+            button{
+                width: 64px;
+                height: 64px;
+                position: relative;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                flex-flow: column wrap;
+                border-radius: 50%;
+                background-color: var(--grey-800);
+                color: var(--grey-600);
+                white-space: normal;
+                margin: 0 0.5rem;
+                transition: all 150ms var(--ease-in-out);
+                background: var(--grey-100);
+
+                &:active{
+                    transform: scale(0.95);
+                }
+
+                &:hover,
+                &:focus-visible{
+                    background-color: var(--grey-200);
+                }
+
+                &.is-selected{
+                    color: var(--white);
+
+                    &:nth-child(1){
+                        background: radial-gradient(circle, #b348dd, #7a36d3);
+                    }
+
+                    &:nth-child(2){
+                        background: radial-gradient(circle, #dfa579, #a16e5f);
+                    }
+
+                    &:nth-child(3){
+                        background: radial-gradient(circle, #fa71cd, #c471f5);
+                    }
+
+                    &:nth-child(4){
+                        background: radial-gradient(circle, rgb(155, 155, 155), #555555);
+                    }
+
+                    &:nth-child(5){
+                        background: radial-gradient(circle,  #5ccc00, #349745);
+                    }
+
+                    &:nth-child(6){
+                        background: radial-gradient(circle, #eacda3, #cf984f);
+                    }
+
+                    &:nth-child(7){
+                        background: radial-gradient(circle, #3cba92, #128855);
+                    }
+
+                    &:nth-child(8){
+                        background: radial-gradient(circle, #f9d423, #f83600);
+                    }
+
+                    &:nth-child(9){
+                        background: radial-gradient(circle, #cc208e, #6713d2);
+                    }
+
+                    &:nth-child(10){
+                        background: radial-gradient(circle, #0acffe, #495aff);
+                    }
+                }
+
+                svg{
+                    display: block;
+                    width: 32px;
+                    height: 32px;
+                }
+            }
+        }
+
+        .inputs{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            padding: 1rem 1rem 0;
+        }
+    }
+
+    .spells{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        width: 100%;
+        overflow-x: auto;
+        padding: 1rem;
+
+        .spell{
+            display: grid;
+            grid-template-columns: 32px 200px repeat(4, 1fr);
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            border-radius: 0.25rem;
+            background-color: var(--white);
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--grey-200);
+            transition: all 150ms var(--ease-in-out);
+            cursor: pointer;
+            text-align: left;
+
+            &:hover,
+            &:focus-visible{
+                box-shadow: var(--shadow-grey-sm);
+            }
+
+            &:active{
+                box-shadow: none;
+            }
+
+            span{
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+}
