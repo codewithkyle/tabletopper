@@ -1,4 +1,5 @@
 import db from "@codewithkyle/jsql";
+import { publish } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import Input from "~brixi/components/inputs/input/input";
@@ -75,6 +76,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                 monster: data,
             });
             notifications.snackbar(`${data["name"]} has been updated.`);
+            publish(data["index"], data);
         }
     }
 
@@ -285,7 +287,6 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                         name: "xp",
                         value: this.model.xp,
                         required: true,
-                        // @ts-expect-error
                         min: 0,
                         max: 9999999,
                     })}
@@ -384,8 +385,8 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     addLabel: "Add Legendary Action",
                     class: "mt-1",
                 })}
-                <div class="w-full text-right">
-                    <button class="bttn" kind="solid" color="success">Save monster</button>
+                <div class="w-full">
+                    <button class="bttn w-full" kind="solid" color="success">Save monster</button>
                 </div>
             </form>
         `;

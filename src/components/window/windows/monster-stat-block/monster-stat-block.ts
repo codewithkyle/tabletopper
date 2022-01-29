@@ -1,4 +1,5 @@
 import db from "@codewithkyle/jsql";
+import { subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
@@ -39,6 +40,11 @@ export default class MonsterStatBlock extends SuperComponent<IMonsterStatBlock>{
             actions:        null,
             legendaryActions: null,
         };
+        subscribe(index, this.inbox.bind(this));
+    }
+
+    private inbox(data){
+        this.set(data);
     }
 
     override async connected(){
