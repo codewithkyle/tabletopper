@@ -44,7 +44,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
         const input:Input = form.querySelector(".js-input");
         const name = input.getValue();
         const op = cc.set("players", form.dataset.playerUid, "name", name);
-        cc.perform(op);
+        cc.perform(op, true);
         cc.dispatch(op);
         const modal = form.closest("modal-component");
         modal.remove();
@@ -55,7 +55,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
         const modal = new Modal("medium");
         modal.setHeading("Rename Player");
         modal.setView(html`
-            <form @submit=${this.handleRenameSubmit} data-player-uid="${target.dataset.uid}">
+            <form @submit=${this.handleRenameSubmit.bind(this)} data-player-uid="${target.dataset.uid}">
                 <div class="w-full px-1 pb-1 pt-0.5">
                     ${new Input({
                         name: "name",
