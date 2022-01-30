@@ -123,6 +123,8 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         const window = document.body.querySelector(`window-component[window="${target.dataset.index}"]`) || new Window({
             name: target.dataset.name,
             view: new Spell(target.dataset.index),
+            width: 600,
+            height: 350
         });
         if (!window.isConnected){
             document.body.append(window);
@@ -191,9 +193,6 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             sql += `WHERE ${clauses.join(" AND ")}`;
         }
         spells = await db.query(sql, bindings);
-
-        console.log(sql, bindings);
-
 
         const levels = await db.query("SELECT UNIQUE level FROM spells ORDER BY level");
         const levelOptions = [{
