@@ -7,6 +7,7 @@ import Button from "~brixi/components/buttons/button/button";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import type { Spell as S } from "~types/app";
+import { marked } from "marked";
 
 interface ISpell extends S{}
 export default class Spell extends SuperComponent<ISpell>{
@@ -90,6 +91,7 @@ export default class Spell extends SuperComponent<ISpell>{
     }
 
     override render(): void {
+        const markdown = marked.parse(this.model.desc);
         const view = html`
             <div class="block w-full p-1">
                 <div class="w-full mb-0.5" flex="row nowrap items-center justify-between">
@@ -117,7 +119,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         })}
                     </div>
                 </div>
-                <p class="block w-full font-grey-700 font-sm line-normal">${unsafeHTML(this.model.desc.replace(/\n/g, "<br>"))}</p>
+                <div class="desc block w-full font-grey-700 font-sm line-normal">${unsafeHTML(markdown)}</div>
             </div>
             <hr class="block w-full border-b-1 border-b-solid border-b-grey-200 my-1">
             <div class="details">
