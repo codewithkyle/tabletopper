@@ -1,0 +1,82 @@
+spell-component{
+    display: block;
+    width: 100%;
+    position: relative;
+
+    .details{
+        display: grid;
+        width: 100%;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+        padding: 1rem 2rem;
+
+        h3{
+            display: block;
+            font-weight: var(--font-bold);
+            font-size: var(--font-sm);
+            color: var(--grey-800);
+            margin-bottom: 0.5rem;
+        }
+
+        p{
+            display: block;
+            color: var(--grey-700);
+            font-size: var(--font-sm);
+            text-transform: capitalize;
+        }
+    }
+
+    table{
+        display: block;
+        border-collapse: collapse;
+
+        tbody,
+        thead{
+            display: block;
+        }
+
+        thead{
+            tr{
+                border-top: 1px solid var(--grey-300);
+            }
+        }
+
+        tbody{
+            tr{
+                &:hover{
+                    background-color: var(--grey-100);
+                }
+            }
+        }
+
+        tr{
+            display: flex;
+            width: 100%;
+            border-bottom: 1px solid var(--grey-300);
+            transition: all 150ms var(--ease-in-out);
+
+            td,
+            th{
+                flex: 1;
+                border-right: 1px solid var(--grey-300);
+                text-align: left;
+                padding: 0.5rem;
+                display: inline-block;
+
+                &:first-of-type{
+                    border-left: 1px solid var(--grey-300);
+                }
+            }
+
+            th{
+                color: var(--grey-800);
+                font-size: var(--font-sm);
+            }
+
+            td{
+                color: var(--grey-700);
+                font-size: var(--font-sm);
+            }
+        }
+    }
+}

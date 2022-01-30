@@ -4,8 +4,9 @@ import { html, render, TemplateResult } from "lit-html";
 import Input from "~brixi/components/inputs/input/input";
 import Select from "~brixi/components/select/select";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
-import { Spell } from "~types/app";
+import { Spell as ISpell } from "~types/app";
+import Window from "~components/window/window";
+import Spell from "../spell/spell";
 
 interface ISpellbook{
     query: string,
@@ -49,13 +50,6 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         });
     }
     private debounceInput = this.debounce(this.search.bind(this), 300);
-
-    private deleteSpell:EventListener = async (e:Event) => {
-        const target = e.currentTarget as HTMLElement;
-        await db.query("DELETE FROM monsters WHERE index = $index", { index: target.dataset.index });
-        this.render();
-        notifications.snackbar(`${target.dataset.name} has been deleted.`);
-    }
 
     private clickClassFilter:EventListener = (e:Event) => {
         const target = e.currentTarget as HTMLElement;
@@ -112,15 +106,26 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         });
     }
 
-    private renderSpell(spell:Spell, index): TemplateResult{
+    private openSpell:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
+        const window = document.body.querySelector(`window-component[window="${target.dataset.index}"]`) || new Window({
+            name: target.dataset.name,
+            view: new Spell(target.dataset.index),
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+    }
+
+    private renderSpell(spell:ISpell, index): TemplateResult{
         return html`
-            <button sfx="button" class="spell">
+            <button sfx="button" class="spell" @click=${this.openSpell} data-index="${spell.index}" data-name="${spell.name}">
                 <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
                     ${spell.level}
                 </div>
                 <div flex="column wrap" class="pl-1">
                     <h3 class="block font-medium font-grey-800 mb-0.25">${spell.name}</h3>
-                    <h4 class="block font-xs font-grey-700">${spell.school} - ${spell.components.join(",")}</h4>
+                    <h4 class="block font-xs font-grey-700">${spell.school} - ${spell.components.join(",")} ${spell.material?.length ? "*" : ""}</h4>
                 </div>
                 <span class="font-sm font-grey-700">${spell.castingTime}</span>
                 <span class="font-sm font-grey-700">${spell.duration}</span>
@@ -315,12 +320,13 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
                     })}
                 </div>
             </div>
-            <hr class="w-full block my-0.5 py-0.5 border-b-1 border-b-solid border-b-grey-200">
-            <div class="spells">
-                ${spells.map(this.renderSpell.bind(this))}
-            </div>
-            <div class="w-full px-1 pb-1">
-                <button @click=${this.showMore} class="w-full bttn" color="grey" kind="text" sfx="button">show more spells</button>
+            <div class="w-full block border-t-1 border-t-solid border-t-grey-200">
+                <div class="spells">
+                    ${spells.map(this.renderSpell.bind(this))}
+                </div>
+                <div class="w-full px-1 pb-1">
+                    <button @click=${this.showMore} class="w-full bttn" color="grey" kind="text" sfx="button">load more spells</button>
+                </div>
             </div>
         `;
         render(view, this);

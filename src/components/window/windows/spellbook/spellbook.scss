@@ -1,11 +1,15 @@
 spell-book{
     display: block;
     width: 100%;
+    min-height: 100%;
     position: relative;
+    background-color: var(--grey-100);
 
     .filters{
         display: block;
         width: 100%;
+        background-color: var(--white);
+        padding-bottom: 1rem;
 
         .classes{
             display: flex;

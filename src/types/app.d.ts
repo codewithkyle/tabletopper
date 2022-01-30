@@ -50,9 +50,11 @@ export interface Spell {
     duration:    string;
     castingTime: string;
     level:       number;
+    attackType:  string;
     damageType:  string | null;
-    damage:      null | Damage;
+    damage:      Damage | null;
     school:      string;
     classes:     string[];
     subsclasses: string[];
+    material:    string | null;
 }
