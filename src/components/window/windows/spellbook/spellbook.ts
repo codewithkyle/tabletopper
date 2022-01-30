@@ -7,6 +7,7 @@ import env from "~brixi/controllers/env";
 import { Spell as ISpell } from "~types/app";
 import Window from "~components/window/window";
 import Spell from "../spell/spell";
+import { subscribe } from "@codewithkyle/pubsub";
 
 interface ISpellbook{
     query: string,
@@ -31,6 +32,17 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             range: null,
             damageType: null,
         };
+        subscribe("spells", this.inbox.bind(this));
+    }
+
+    private inbox({ type, data }){
+        switch(type){
+            case "refresh":
+                this.render();
+                break;
+            default:
+                break;
+        }
     }
 
     override async connected(){
