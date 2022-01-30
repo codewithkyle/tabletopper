@@ -2,6 +2,7 @@ import db from "@codewithkyle/jsql";
 import { publish } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html";
 import Button from "~brixi/components/buttons/button/button";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
@@ -116,7 +117,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         })}
                     </div>
                 </div>
-                <p class="block w-full font-grey-700 font-sm line-normal">${this.model.desc}</p>
+                <p class="block w-full font-grey-700 font-sm line-normal">${unsafeHTML(this.model.desc.replace(/\n/g, "<br>"))}</p>
             </div>
             <hr class="block w-full border-b-1 border-b-solid border-b-grey-200 my-1">
             <div class="details">
@@ -134,7 +135,7 @@ export default class Spell extends SuperComponent<ISpell>{
                 </div>
                 <div>
                     <h3>Components</h3>
-                    <p>${this.model.components.join(", ")} ${this.model.material?.length ? html`
+                    <p>${this.model.components?.join(", ")} ${this.model.material?.length ? html`
                         <span tooltip="${this.model.material}" style="cursor: help;">*</span>
                     ` : ""}</p>
                 </div>
@@ -156,11 +157,11 @@ export default class Spell extends SuperComponent<ISpell>{
                 </div>
                 <div>
                     <h3>Classes</h3>
-                    <p>${this.model.classes.join(", ")}</p>
+                    <p>${this.model.classes?.join(", ") ?? "N/A"}</p>
                 </div>
                 <div>
                     <h3>Subclasses</h3>
-                    <p>${this.model.subsclasses.join(", ")}</p>
+                    <p>${this.model.subsclasses?.join(", ") ?? "N/A"}</p>
                 </div>
             </div>
             ${this.renderDamageTable()}

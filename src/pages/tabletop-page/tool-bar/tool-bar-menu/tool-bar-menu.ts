@@ -192,6 +192,8 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             name: "Spellbook",
             view: new Spellbook(),
             minWidth: 650,
+            minHeight: 480,
+            width: 900,
         });
         if (!window.isConnected){
             document.body.append(window);
