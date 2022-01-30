@@ -114,6 +114,19 @@ spell-book{
         overflow-x: auto;
         padding: 1rem;
 
+        .heading{
+            display: grid;
+            grid-template-columns: 32px 200px repeat(4, 1fr);
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            color: var(--grey-800);
+            font-size: var(--font-xs);
+            font-weight: var(--font-bold);
+            padding: 0 1rem;
+            text-align: left;
+        }
+
         .spell{
             display: grid;
             grid-template-columns: 32px 200px repeat(4, 1fr);

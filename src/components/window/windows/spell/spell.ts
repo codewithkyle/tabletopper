@@ -122,15 +122,15 @@ export default class Spell extends SuperComponent<ISpell>{
             <div class="details">
                 <div>
                     <h3>Level</h3>
-                    <p>${this.model.level}</p>
+                    <p>${this.model.level || "Cantrip"}</p>
                 </div>
                 <div>
                     <h3>Casting Time</h3>
-                    <p>${this.model.castingTime}</p>
+                    <p>${this.model.castingTime || "N/A"}</p>
                 </div>
                 <div>
                     <h3>Range/Area</h3>
-                    <p>${this.model.range}</p>
+                    <p>${this.model.range || "N/A"}</p>
                 </div>
                 <div>
                     <h3>Components</h3>
@@ -140,19 +140,19 @@ export default class Spell extends SuperComponent<ISpell>{
                 </div>
                 <div>
                     <h3>Duration</h3>
-                    <p>${this.model.duration}</p>
+                    <p>${this.model.duration || "N/A"}</p>
                 </div>
                 <div>
                     <h3>Attack/Save</h3>
-                    <p>${this.model.attackType}</p>
+                    <p>${this.model.attackType || "N/A"}</p>
                 </div>
                 <div>
                     <h3>Damage/Effect</h3>
-                    <p>${this.model.damageType}</p>
+                    <p>${this.model.damageType || "N/A"}</p>
                 </div>
                 <div>
                     <h3>School</h3>
-                    <p>${this.model.school}</p>
+                    <p>${this.model.school || "N/A"}</p>
                 </div>
                 <div>
                     <h3>Classes</h3>

@@ -334,6 +334,14 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             </div>
             <div class="w-full block border-t-1 border-t-solid border-t-grey-200">
                 <div class="spells">
+                    <div class="heading">
+                        <span>Level</span>
+                        <span class="pl-1">Spell</span>
+                        <span>Cast Time</span>
+                        <span>Duration</span>
+                        <span>Range</span>
+                        <span>Damage/Effect</span>
+                    </div>
                     ${spells.map(this.renderSpell.bind(this))}
                 </div>
                 <div class="w-full px-1 pb-1">
