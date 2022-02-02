@@ -1,6 +1,7 @@
 import db from "@codewithkyle/jsql";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
+import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
@@ -78,6 +79,19 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
         }
     }
 
+    private addMonster() {
+        const window = document.body.querySelector(`window-component[window="monster-editor"]`) || new Window({
+            name: "Monster Editor",
+            view: new MonsterEditor(),
+            width: 450,
+            height: 600,
+            handle: `monster-editor`,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+    }
+
     private renderMonster(monster): TemplateResult{
         return html`
             <div class="monster" flex="row nowrap items-center justify-between">
@@ -128,13 +142,26 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
             `, container);
         } else {
             const view = html`
-                ${new Input({
-                    name: "monsterSearch",
-                    value: this.model.query,
-                    placeholder: "Search monsters...",
-                    callback: this.debounceInput.bind(this),
-                    class: "mb-0.5",
-                })}
+                <div class="mb-0.5" flex="row nowrap items-center">
+                    ${new Input({
+                        name: "monsterSearch",
+                        value: this.model.query,
+                        placeholder: "Search monsters...",
+                        callback: this.debounceInput.bind(this),
+                        css: "flex:1;"
+                    })}
+                    ${new Button({
+                        callback: this.addMonster.bind(this),
+                        class: "ml-0.5",
+                        color: "grey",
+                        kind: "text",
+                        shape: "round",
+                        size: "large",
+                        icon: `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-plus" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><circle cx="12" cy="12" r="9"></circle><line x1="9" y1="12" x2="15" y2="12"></line><line x1="12" y1="9" x2="12" y2="15"></line></svg>`,
+                        iconPosition: "center",
+                        tooltip: "Add monster",
+                    })}
+                </div>
                 <div class="radius-0.25 border-solid border-1 border-grey-300 no-scroll">
                     <div class="monsters">
                         ${monsters.map(this.renderMonster.bind(this))}

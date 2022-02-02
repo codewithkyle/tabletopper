@@ -71,7 +71,14 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
             }
         });
         if (allValid){
-            data["index"] = this.model.index;
+            if (this.model.index !== null){
+                data["index"] = this.model.index;
+            } else {
+                data["index"] = data["name"].replace(/[^a-z\s]/gi, "").trim().replace(/\s+/g, "-");
+                this.set({
+                    index: data["index"],
+                }, true);
+            }
             await db.query("INSERT INTO monsters VALUES ($monster)", {
                 monster: data,
             });
@@ -367,21 +374,21 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                 ${new MonsterInfoTable({
                     label: "Abilities",
                     name: "abilities",
-                    rows: this.model.abilities,
+                    rows: this.model.abilities || [],
                     addLabel: "Add Ability",
                     class: "mt-1",
                 })}
                 ${new MonsterInfoTable({
                     label: "Actions",
                     name: "actions",
-                    rows: this.model.actions,
+                    rows: this.model.actions || [],
                     addLabel: "Add Action",
                     class: "mt-1",
                 })}
                 ${new MonsterInfoTable({
                     label: "Legendary Actions",
                     name: "legendaryActions",
-                    rows: this.model.legendaryActions,
+                    rows: this.model.legendaryActions || [],
                     addLabel: "Add Legendary Action",
                     class: "mt-1",
                 })}
@@ -479,6 +486,7 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
     }
 
     override render(): void {
+        console.log(this.model);
         this.style.cssText = this.model.css;
         this.className = `${this.model.class} js-input`;
         const view = html`
@@ -496,7 +504,7 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
                     </table-row>
                 `;
             })}
-            <button class="bttn" kind="text" color="grey" @click=${this.addRow}>${this.model.addLabel}</button>
+            <button type="button" class="bttn" kind="text" color="grey" @click=${this.addRow}>${this.model.addLabel}</button>
         `;
         render(view, this);
     }
