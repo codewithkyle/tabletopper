@@ -1,0 +1,1 @@
+import r from"./supercomponent.js";import{render as n,html as o}from"./lit-html.js";import t from"./env.js";class i extends r{constructor(){super()}async connected(){await t.css(["404"]),this.render()}render(){const e=o`404 | Page not found.`;n(e,this)}}export{i as default};

@@ -1,0 +1,1 @@
+function t(e){const n=Math.floor((e-10)/2);return n>=0?`+${n}`:`${n}`}function i(e){return e>=0&&e<=4?"+2":e>=5&&e<=8?"+3":e>=9&&e<=12?"+4":e>=13&&e<=16?"+5":e>=17&&e<=20?"+6":e>=21&&e<=24?"+7":e>=26&&e<=28?"+8":"+9"}export{t as CalculateModifier,i as CalculateProficiencyBonus};

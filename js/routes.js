@@ -1,0 +1,1 @@
+import{configure as o,mount as n}from"./router.js";(()=>{document.body.innerHTML="";const e=document.createElement("main");document.body.appendChild(e),n(e),o({"/":"home-page","/room/{CODE}":"tabletop-page","404":"missing-page"})})();

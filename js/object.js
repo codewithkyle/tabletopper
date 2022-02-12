@@ -1,0 +1,1 @@
+function n(r,i,s){Array.isArray(i)||(i=i.split("."));const l=i[0];i.splice(0,1),i.length?n(r[l],i,s):r[l]=s}function e(r,i){Array.isArray(i)||(i=i.split("."));const s=i[0];i.splice(0,1),i.length?e(r[s],i):delete r[s]}export{n as setValueFromKeypath,e as unsetValueFromKeypath};

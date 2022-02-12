@@ -1,0 +1,1 @@
+player-menu{display:block;width:100%;position:relative}player-menu .player{height:36px}player-menu .player:not(:last-of-type){margin-bottom:.5rem}player-menu .player span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
