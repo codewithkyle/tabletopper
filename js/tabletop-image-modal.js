@@ -1,4 +1,4 @@
-import l from"./jsql.js";import p from"./supercomponent.js";import{UUID as h}from"./uuid.js";import{html as a,render as g}from"./lit-html.js";import s from"./button.js";import u from"./number-input.js";import b from"./lightswitch.js";import v from"./select.js";import w from"./tabs.js";import r from"./env.js";import f from"./notifications.js";import c from"./control-center.js";import{send as k}from"./ws.js";import{Base64EncodeFile as x}from"./file.js";class d extends p{constructor(){super();this.clickClose=e=>{this.close()};this.handleInput=async e=>{const o=e.currentTarget.files;if(o.length){const i=o[0];if(i.size<1e7){const m=await x(i),n=h();await l.query("INSERT INTO images VALUES ($img)",{img:{uid:n,name:i.name,data:m,type:"map"}}),this.set({selected:n})}else f.error("Upload Failed","Files must be 10MB or smaller.")}};this.selectImage=e=>{const o=e.currentTarget.dataset.uid;this.set({selected:o})};this.model={tab:"images",selected:null}}async connected(){await r.css(["tabletop-image-modal"]),this.render()}close(){this.remove()}async load(){const e=(await l.query("SELECT loaded_maps FROM games WHERE room = $room",{room:sessionStorage.getItem("room")}))[0].loaded_maps;let t=!1;for(let o=0;o<e.length;o++)if(e[o]===this.model.selected){t=!0;break}if(!t){const o=(await l.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selected}))[0],i=c.insert("images",o.uid,o);c.dispatch(i)}k("room:tabletop:map:load",this.model.selected),this.remove()}handleTabSwitch(e){this.set({tab:e})}async renderImages(){const e=await l.query("SELECT * FROM images WHERE type = map");return a`
+import i from"./jsql.js";import p from"./supercomponent.js";import{UUID as g}from"./uuid.js";import{html as l,render as h}from"./lit-html.js";import s from"./button.js";import u from"./number-input.js";import b from"./lightswitch.js";import v from"./select.js";import w from"./tabs.js";import n from"./env.js";import f from"./notifications.js";import c from"./control-center.js";import{send as k}from"./ws.js";import{Base64EncodeFile as y}from"./file.js";class d extends p{constructor(){super();this.clickClose=e=>{this.close()};this.handleInput=async e=>{const a=e.currentTarget.files;if(a.length){const o=a[0];if(o.size<1e7){const m=await y(o),r=g();await i.query("INSERT INTO images VALUES ($img)",{img:{uid:r,name:o.name,data:m,type:"map"}}),this.set({selected:r})}else f.error("Upload Failed","Files must be 10MB or smaller.")}};this.selectImage=e=>{const a=e.currentTarget.dataset.uid;this.set({selected:a})};this.model={tab:"images",selected:null}}async connected(){await n.css(["tabletop-image-modal"]),this.render()}close(){this.remove()}async load(){const e=(await i.query("SELECT loaded_maps FROM games WHERE room = $room",{room:sessionStorage.getItem("room")}))[0].loaded_maps;let t=!1;for(let a=0;a<e.length;a++)if(e[a]===this.model.selected){t=!0;break}if(!t){const a=(await i.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selected}))[0],o=c.insert("images",a.uid,a);c.dispatch(o)}k("room:tabletop:map:load",this.model.selected),this.remove()}handleTabSwitch(e){this.set({tab:e})}async renderImages(){const e=await i.query("SELECT * FROM images WHERE type = map");return l`
             <div class="images">
                 <div class="upload-image-button" sfx="button">
                     <label for="upload">
@@ -12,10 +12,10 @@ import l from"./jsql.js";import p from"./supercomponent.js";import{UUID as h}fro
                     </label>
                     <input @change=${this.handleInput} type="file" accept="image/png, image/jpg, image/jpeg" id="upload" name="token">
                 </div>
-                ${e.map(t=>a`
+                ${e.map(t=>l`
                         <button sfx="button" class="token-button ${this.model.selected===t.uid?"is-selected":""}" data-uid="${t.uid}" @click=${this.selectImage} aria-label="${t.name}" tooltip>
                             <img src="${t.data}" alt="${t.name}" draggalbe="false">
-                            ${this.model.selected===t.uid?a`
+                            ${this.model.selected===t.uid?l`
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-check" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                                     <circle cx="12" cy="12" r="9"></circle>
@@ -25,13 +25,13 @@ import l from"./jsql.js";import p from"./supercomponent.js";import{UUID as h}fro
                         </button>
                     `)}
             </div>
-        `}renderSettings(){return a`
+        `}renderSettings(){return l`
             <div class="settings">
                 ${new u({name:"gridSize",label:"Grid Size",required:!0,value:localStorage.getItem("gridSize")?parseInt(localStorage.getItem("gridSize")):32,class:"mb-1.5",callback:e=>{localStorage.setItem("gridSize",e)}})}
                 ${new v({name:"fog",class:"mb-1.5",label:"Fog of War",value:localStorage.getItem("fogOfWar")||"no",callback:e=>{localStorage.setItem("fogOfWar",e.value.toString())},options:[{label:"No Fog of War",value:"no"},{label:"Manual Fog of War",value:"manual"},{label:"Auto Fog of War",value:"auto"}]})}
                 ${new b({name:"autoLines",label:"No Lines",altLabel:"Auto Lines",enabled:!!localStorage.getItem("autoLines"),class:"mb-1.5",callback:e=>{e?localStorage.setItem("autoLines","true"):localStorage.removeItem("autoLines")}})}
             </div>
-        `}async render(){let e;switch(this.model.tab){case"images":e=await this.renderImages();break;case"settings":e=this.renderSettings();break;default:break}const t=a`
+        `}async render(){let e;switch(this.model.tab){case"images":e=await this.renderImages();break;case"settings":e=this.renderSettings();break;default:break}const t=l`
             <div class="backdrop" @click=${this.clickClose}></div>
             <div class="modal">
                 <h2 class="font-grey-800 font-bold block px-1.5 pt-1.5 pb-1">Tabletop Images</h2>
@@ -45,4 +45,4 @@ import l from"./jsql.js";import p from"./supercomponent.js";import{UUID as h}fro
                     ${new s({kind:"solid",color:"success",callback:this.load.bind(this),label:"load image",disabled:!this.model.selected?.length})}
                 </div>
             </div>
-        `;g(t,this)}}r.bind("tabletop-image-modal",d);export{d as default};
+        `;h(t,this)}}n.bind("tabletop-image-modal",d);export{d as default};

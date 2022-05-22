@@ -1,14 +1,14 @@
-import c from"./jsql.js";import{publish as d,subscribe as p}from"./pubsub.js";import m from"./supercomponent.js";import{html as r,render as u}from"./lit-html.js";import h from"./input.js";import i from"./env.js";import b from"./modal.js";import o from"./control-center.js";import{send as v}from"./ws.js";class s extends m{constructor(){super();this.locatePawn=e=>{const t=e.currentTarget;d("tabletop",{type:"locate:pawn",data:t.dataset.uid})};this.kickPlayer=e=>{const t=e.currentTarget;v("room:player:ban",t.dataset.uid)};this.handleRenameSubmit=e=>{const t=e.currentTarget,l=t.querySelector(".js-input").getValue(),a=o.set("players",t.dataset.playerUid,"name",l);o.perform(a,!0),o.dispatch(a),t.closest("modal-component").remove()};this.renamePlayer=e=>{const t=e.currentTarget,n=new b("medium");n.setHeading("Rename Player"),n.setView(r`
+import c from"./jsql.js";import{publish as d,subscribe as p}from"./pubsub.js";import m from"./supercomponent.js";import{html as n,render as u}from"./lit-html.js";import h from"./input.js";import i from"./env.js";import b from"./modal.js";import o from"./control-center.js";import{send as v}from"./ws.js";class s extends m{constructor(){super();this.locatePawn=e=>{const t=e.currentTarget;d("tabletop",{type:"locate:pawn",data:t.dataset.uid})};this.kickPlayer=e=>{const t=e.currentTarget;v("room:player:ban",t.dataset.uid)};this.handleRenameSubmit=e=>{const t=e.currentTarget,l=t.querySelector(".js-input").getValue(),a=o.set("players",t.dataset.playerUid,"name",l);o.perform(a,!0),o.dispatch(a),t.closest("modal-component").remove()};this.renamePlayer=e=>{const t=e.currentTarget,r=new b("medium");r.setHeading("Rename Player"),r.setView(n`
             <form @submit=${this.handleRenameSubmit.bind(this)} data-player-uid="${t.dataset.uid}">
                 <div class="w-full px-1 pb-1 pt-0.5">
                     ${new h({name:"name",value:t.dataset.name})}
                 </div>
                 <div class="actions">
-                    <button class="bttn mr-1" kind="solid" color="white" type="button" @click=${n.close.bind(n)}>cancel</button>
+                    <button class="bttn mr-1" kind="solid" color="white" type="button" @click=${r.close.bind(r)}>cancel</button>
                     <button class="bttn" kind="solid" color="success" type="submit">update</button>
                 </div>
             </form>
-        `),document.body.append(n)};p("sync",this.syncInbox.bind(this))}syncInbox(e){e.table==="players"&&this.render()}async connected(){await i.css(["player-menu","button"]),this.render()}renderPlayer(e){return r`
+        `),document.body.append(r)};p("sync",this.syncInbox.bind(this))}syncInbox(e){e.table==="players"&&this.render()}async connected(){await i.css(["player-menu","button"]),this.render()}renderPlayer(e){return n`
             <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 radius-0.25 pl-0.75">
                 <span title="${e.name}" class="cursor-default font-sm font-medium font-grey-700">${e.name}</span>
                 <div class="h-full" flex="row nowrap items-center">
@@ -44,7 +44,7 @@ import c from"./jsql.js";import{publish as d,subscribe as p}from"./pubsub.js";im
                     </button>
                 </div>
             </div>
-        `}async render(){const e=await c.query("SELECT * FROM players WHERE room = $room AND active = 1",{room:sessionStorage.getItem("room")}),t=r`
+        `}async render(){const e=await c.query("SELECT * FROM players WHERE room = $room AND active = 1",{room:sessionStorage.getItem("room")}),t=n`
             <div class="w-full block p-0.5">
                 ${e.map(this.renderPlayer.bind(this))}
             </div>

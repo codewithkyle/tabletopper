@@ -1,4 +1,4 @@
-import l from"./jsql.js";import c from"./supercomponent.js";import{html as a,render as d}from"./lit-html.js";import p from"./env.js";import{UUID as m}from"./uuid.js";import{Base64EncodeFile as u}from"./file.js";class r extends c{constructor(e){super();this.close=e=>{this.model.callback(null),this.remove()};this.handleInput=async e=>{const t=e.currentTarget.files;if(t.length){const n=t[0],s=await u(n),i=m();await l.query("INSERT INTO images VALUES ($img)",{img:{uid:i,name:n.name,data:s,type:"player-token"}}),this.model.callback(i),this.remove()}};this.selectImage=e=>{const o=e.currentTarget;this.model.callback(o.dataset.uid),this.remove()};this.model={callback:e},this.render()}async render(){const e=await l.query("SELECT * FROM images WHERE type = 'player-token'"),o=a`
+import i from"./jsql.js";import c from"./supercomponent.js";import{html as l,render as d}from"./lit-html.js";import p from"./env.js";import{UUID as m}from"./uuid.js";import{Base64EncodeFile as u}from"./file.js";class r extends c{constructor(e){super();this.close=e=>{this.model.callback(null),this.remove()};this.handleInput=async e=>{const t=e.currentTarget.files;if(t.length){const o=t[0],s=await u(o),a=m();await i.query("INSERT INTO images VALUES ($img)",{img:{uid:a,name:o.name,data:s,type:"player-token"}}),this.model.callback(a),this.remove()}};this.selectImage=e=>{const n=e.currentTarget;this.model.callback(n.dataset.uid),this.remove()};this.model={callback:e},this.render()}async render(){const e=await i.query("SELECT * FROM images WHERE type = 'player-token'"),n=l`
            <div class="backdrop" @click=${this.close}></div>
            <div class="modal">
                <button class="close" @click=${this.close}>
@@ -22,11 +22,11 @@ import l from"./jsql.js";import c from"./supercomponent.js";import{html as a,ren
                        </label>
                        <input @change=${this.handleInput} type="file" accept="image/png, image/jpg, image/jpeg" id="token-upload" name="token">
                     </div>
-                   ${e.map(t=>a`
+                   ${e.map(t=>l`
                             <button sfx="button" class="token-button" data-uid="${t.uid}" @click=${this.selectImage}>
                                 <img src="${t.data}" alt="${t.name}" draggalbe="false">
                             </button>
                         `)}
                </div>
            </div>
-        `;d(o,this)}}p.bind("player-token-picker-modal",r);export{r as default};
+        `;d(n,this)}}p.bind("player-token-picker-modal",r);export{r as default};

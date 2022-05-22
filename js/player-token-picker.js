@@ -1,4 +1,4 @@
-import r from"./jsql.js";import l from"./supercomponent.js";import{html as t,render as a}from"./lit-html.js";import o from"./env.js";import s from"./player-token-modal.js";class i extends l{constructor(){super();this.openModal=e=>{const n=new s(this.imageUploadCallback.bind(this));document.body.appendChild(n)};this.model={selectedImageId:null}}async connected(){await o.css(["player-token-picker","player-token-picker-modal"]),this.render()}imageUploadCallback(e){e!==null&&this.set({selectedImageId:e})}async getValue(){return(await r.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selectedImageId}))?.[0]??null??null}async renderImage(){const e=(await r.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selectedImageId}))[0];return t`
+import r from"./jsql.js";import a from"./supercomponent.js";import{html as t,render as l}from"./lit-html.js";import i from"./env.js";import s from"./player-token-modal.js";class n extends a{constructor(){super();this.openModal=e=>{const o=new s(this.imageUploadCallback.bind(this));document.body.appendChild(o)};this.model={selectedImageId:null}}async connected(){await i.css(["player-token-picker","player-token-picker-modal"]),this.render()}imageUploadCallback(e){e!==null&&this.set({selectedImageId:e})}async getValue(){return(await r.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selectedImageId}))?.[0]??null??null}async renderImage(){const e=(await r.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selectedImageId}))[0];return t`
             <button @click=${this.openModal} class="picker" sfx="button" tooltip="Change token">
                 <img src="${e.data}" alt="${e.name}" draggable="false">
             </button>
@@ -14,4 +14,4 @@ import r from"./jsql.js";import l from"./supercomponent.js";import{html as t,ren
             </button>
         `}async render(){const e=t`
             ${this.model.selectedImageId?await this.renderImage():this.renderEmpty()}
-        `;a(e,this)}}o.bind("player-token-picker",i);export{i as default};
+        `;l(e,this)}}i.bind("player-token-picker",n);export{n as default};

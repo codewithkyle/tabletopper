@@ -1,5 +1,5 @@
-import i from"./jsql.js";import{subscribe as r}from"./pubsub.js";import d from"./supercomponent.js";import{html as l,render as a}from"./lit-html.js";import e from"./env.js";import{CalculateModifier as n,CalculateProficiencyBonus as c}from"./game.js";class o extends d{constructor(s){super();this.model={index:s,name:null,size:null,type:null,subtype:null,alignment:null,ac:null,hp:null,hitDice:null,str:null,dex:null,con:null,int:null,wis:null,cha:null,languages:null,cr:null,xp:null,speed:null,vulnerabilities:null,resistances:null,immunities:null,senses:null,savingThrows:null,skills:null,abilities:null,actions:null,legendaryActions:null},r(s,this.inbox.bind(this))}inbox(s){this.set(s)}async connected(){await e.css(["monster-stat-block"]);const s=(await i.query("SELECT * FROM monsters WHERE index = $index",{index:this.model.index}))[0];this.set(s)}render(){const s=l`
-            <div class="container">
+import i from"./jsql.js";import{subscribe as r}from"./pubsub.js";import d from"./supercomponent.js";import{html as l,render as a}from"./lit-html.js";import o from"./env.js";import{CalculateModifier as n,CalculateProficiencyBonus as c}from"./game.js";class e extends d{constructor(s){super(),this.model={index:s,name:null,size:null,type:null,subtype:null,alignment:null,ac:null,hp:null,hitDice:null,str:null,dex:null,con:null,int:null,wis:null,cha:null,languages:null,cr:null,xp:null,speed:null,vulnerabilities:null,resistances:null,immunities:null,senses:null,savingThrows:null,skills:null,abilities:null,actions:null,legendaryActions:null},r(s,this.inbox.bind(this))}inbox(s){this.set(s)}async connected(){await o.css(["monster-stat-block"]);const s=(await i.query("SELECT * FROM monsters WHERE index = $index",{index:this.model.index}))[0];this.set(s)}render(){const s=l`
+            <div calss="block">
                 <div class="stats line-normal">
                     <div class="block w-full p-0.5">
                         <h3 class="block font-danger-800 font-lg font-bold font-serif">${this.model.name}</h3>
@@ -102,4 +102,4 @@ import i from"./jsql.js";import{subscribe as r}from"./pubsub.js";import d from".
                     `:null}
                 </div>
             </div>
-        `;a(s,this)}}e.bind("monster-stat-block",o);export{o as default};
+        `;a(s,this)}}o.bind("monster-stat-block",e);export{e as default};
