@@ -55,7 +55,7 @@ export default class MonsterStatBlock extends SuperComponent<IMonsterStatBlock>{
 
     override render(): void {
         const view = html`
-            <div class="container">
+            <div calss="block">
                 <div class="stats line-normal">
                     <div class="block w-full p-0.5">
                         <h3 class="block font-danger-800 font-lg font-bold font-serif">${this.model.name}</h3>
