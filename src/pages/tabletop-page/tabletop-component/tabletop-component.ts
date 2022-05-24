@@ -107,16 +107,19 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleScroll:EventListener = (e:WheelEvent) => {
-        let zoom = this.zoom + -(e.deltaY * 0.001);
-        if (zoom > 2){
-            zoom = 2;
-        } else if (zoom < 0.1){
-            zoom = 0.1;
+        const target = e.target as HTMLElement;
+        if (target.closest("tabletop-page")){
+            let zoom = this.zoom + -(e.deltaY * 0.00025);
+            if (zoom > 2){
+                zoom = 2;
+            } else if (zoom < 0.1){
+                zoom = 0.1;
+            }
+            publish("tabletop", {
+                type: "zoom",
+                data: zoom,
+            });
         }
-        publish("tabletop", {
-            type: "zoom",
-            data: zoom,
-        });
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent) =>{
