@@ -57,7 +57,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 break;
             case "zoom":
                 this.moving = false;
-                this.zoom = data;
+                this.zoom = data.zoom;
                 this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
                 sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
                 break;
@@ -117,7 +117,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             }
             publish("tabletop", {
                 type: "zoom",
-                data: zoom,
+                data: {
+                    zoom: zoom,
+                    x: e.clientX,
+                    y: e.clientY,
+                    delta: e.deltaY,
+                },
             });
         }
     }

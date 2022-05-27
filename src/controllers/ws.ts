@@ -2,6 +2,7 @@ import { publish } from "@codewithkyle/pubsub";
 import { navigateTo } from "@codewithkyle/router";
 import notifications from "~brixi/controllers/notifications";
 import cc from "./control-center";
+import db from "@codewithkyle/jsql";
 
 let socket:WebSocket;
 let connected = false;
@@ -25,6 +26,9 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:tabletop:clear":
+                    await db.query("RESET ledger");
+                    break;
                 case "room:ban":
                     sessionStorage.removeItem("room");
                     sessionStorage.removeItem("lastSocketId");

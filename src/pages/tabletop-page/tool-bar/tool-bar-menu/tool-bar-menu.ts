@@ -30,7 +30,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     private tabletopInbox({ type, data }){
         switch(type){
             case "zoom":
-                this.zoom = data;
+                this.zoom = data.zoom;
                 break;
             default:
                 break;
@@ -101,7 +101,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         let zoom = 1;
         publish("tabletop", {
             type: "zoom",
-            data: zoom,
+            data: {
+                zoom: zoom,
+                x: 0,
+                y: 0
+            },
         });
         this.close();
     }
@@ -110,7 +114,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         let zoom = 2;
         publish("tabletop", {
             type: "zoom",
-            data: zoom,
+            data: {
+                zoom: zoom,
+                x: 0,
+                y: 0
+            },
         });
         this.close();
     }
@@ -122,7 +130,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
         publish("tabletop", {
             type: "zoom",
-            data: zoom,
+            data: {
+                zoom: zoom,
+                x: 0,
+                y: 0
+            },
         });
     }
 
@@ -133,7 +145,11 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
         publish("tabletop", {
             type: "zoom",
-            data: zoom,
+            data: {
+                zoom: zoom,
+                x: 0,
+                y: 0
+            },
         });
     }
     
@@ -295,7 +311,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Chat</span>
                     </button>
                     <button sfx="button" @click=${this.openMonsterManual}>
-                        <span>Monster manual</span>
+                        <span>Monster Manual</span>
                     </button>
                     <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
