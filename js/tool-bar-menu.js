@@ -1,4 +1,4 @@
-import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercomponent.js";import{html as n,render as l}from"./lit-html.js";import i from"./env.js";import b from"./notifications.js";import c from"./tabletop-image-modal.js";import a from"./window.js";import m from"./monster-manual.js";import d from"./player-menu.js";import f from"./spellbook.js";import{send as s}from"./ws.js";class r extends u{constructor(t){super();this.clearImage=t=>{s("room:tabletop:map:clear"),this.close()};this.clickExit=t=>{this.exit()};this.clickLoadImage=t=>{this.loadImage()};this.toggleFullscreen=t=>{window.innerHeight===screen.height?document.exitFullscreen():document.documentElement.requestFullscreen(),this.close()};this.zoomReset=t=>{o("tabletop",{type:"zoom",data:{zoom:1,x:0,y:0}}),this.close()};this.zoom200=t=>{o("tabletop",{type:"zoom",data:{zoom:2,x:0,y:0}}),this.close()};this.zoomOut=t=>{let e=this.zoom-.1;e<.1&&(e=.1),o("tabletop",{type:"zoom",data:{zoom:e,x:0,y:0}})};this.zoomIn=t=>{let e=this.zoom+.1;e>2&&(e=2),o("tabletop",{type:"zoom",data:{zoom:e,x:0,y:0}})};this.centerTabletop=t=>{o("tabletop",{type:"position:reset"}),this.close()};this.spawnPawns=async t=>{s("room:tabletop:spawn:players"),this.close()};this.copyRoomCode=async t=>{await navigator.clipboard.writeText(sessionStorage.getItem("room")),b.snackbar("Room code copied to clipboard."),this.close()};this.lockRoom=t=>{s("room:lock"),this.close()};this.unlockRoom=t=>{s("room:unlock"),this.close()};this.openPlayerMenu=t=>{const e=document.body.querySelector('window-component[window="players"]')||new a({name:"Players",view:new d});e.isConnected||document.body.append(e),this.close()};this.openMonsterManual=t=>{const e=document.body.querySelector('window-component[window="monster-manual"]')||new a({name:"Monster Manual",view:new m});e.isConnected||document.body.append(e),this.close()};this.openSpellbook=t=>{const e=document.body.querySelector('window-component[window="spellbook"]')||new a({name:"Spellbook",view:new f,minWidth:650,minHeight:480,width:900});e.isConnected||document.body.append(e),this.close()};this.clickBackdrop=t=>{this.close()};this.zoom=sessionStorage.getItem("zoom")!=null?parseFloat(sessionStorage.getItem("zoom")):1,this.model={menu:t},p("tabletop",this.tabletopInbox.bind(this))}tabletopInbox({type:t,data:e}){switch(t){case"zoom":this.zoom=e.zoom;break;default:break}}async connected(){i.css(["tool-bar-menu"]),this.render()}changeMenu(t){this.set({menu:t})}calcOffsetX(){return document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`).getBoundingClientRect().x}exit(){sessionStorage.removeItem("room"),sessionStorage.removeItem("lastSocketId"),s("room:quit"),this.close(),location.href=location.origin}close(){o("toolbar",{type:"menu:close"}),this.remove()}loadImage(){const t=new c;document.body.append(t),this.close()}renderFileMenu(){return sessionStorage.getItem("role")==="gm"?n`
+import{publish as o,subscribe as p}from"./pubsub.js";import l from"./supercomponent.js";import{html as n,render as u}from"./lit-html.js";import i from"./env.js";import b from"./notifications.js";import c from"./tabletop-image-modal.js";import a from"./window.js";import m from"./monster-manual.js";import d from"./player-menu.js";import f from"./spellbook.js";import{send as s}from"./ws.js";class r extends l{constructor(t){super();this.clearImage=t=>{s("room:tabletop:map:clear"),this.close()};this.clickExit=t=>{this.exit()};this.clickLoadImage=t=>{this.loadImage()};this.toggleFullscreen=t=>{window.innerHeight===screen.height?document.exitFullscreen():document.documentElement.requestFullscreen(),this.close()};this.zoomReset=t=>{o("tabletop",{type:"zoom",data:{zoom:1,x:null,y:null,delta:this.zoom<=1?-100:100}}),this.close()};this.zoom200=t=>{o("tabletop",{type:"zoom",data:{zoom:2,x:null,y:null,delta:100}}),this.close()};this.zoomOut=t=>{if(this.zoom===.1)return;let e=this.zoom-.1;e<.1&&(e=.1),o("tabletop",{type:"zoom",data:{zoom:e,x:null,y:null,delta:-100}})};this.zoomIn=t=>{if(this.zoom===2)return;let e=this.zoom+.1;e>2&&(e=2),o("tabletop",{type:"zoom",data:{zoom:e,x:null,y:null,delta:100}})};this.centerTabletop=t=>{o("tabletop",{type:"position:reset"}),this.close()};this.spawnPawns=async t=>{s("room:tabletop:spawn:players"),this.close()};this.copyRoomCode=async t=>{await navigator.clipboard.writeText(sessionStorage.getItem("room")),b.snackbar("Room code copied to clipboard."),this.close()};this.lockRoom=t=>{s("room:lock"),this.close()};this.unlockRoom=t=>{s("room:unlock"),this.close()};this.openPlayerMenu=t=>{const e=document.body.querySelector('window-component[window="players"]')||new a({name:"Players",view:new d});e.isConnected||document.body.append(e),this.close()};this.openMonsterManual=t=>{const e=document.body.querySelector('window-component[window="monster-manual"]')||new a({name:"Monster Manual",view:new m});e.isConnected||document.body.append(e),this.close()};this.openSpellbook=t=>{const e=document.body.querySelector('window-component[window="spellbook"]')||new a({name:"Spellbook",view:new f,minWidth:650,minHeight:480,width:900});e.isConnected||document.body.append(e),this.close()};this.clickBackdrop=t=>{this.close()};this.zoom=sessionStorage.getItem("zoom")!=null?parseFloat(sessionStorage.getItem("zoom")):1,this.model={menu:t},p("tabletop",this.tabletopInbox.bind(this))}tabletopInbox({type:t,data:e}){switch(t){case"zoom":this.zoom=e.zoom;break;default:break}}async connected(){i.css(["tool-bar-menu"]),this.render()}changeMenu(t){this.set({menu:t})}calcOffsetX(){return document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`).getBoundingClientRect().x}exit(){sessionStorage.removeItem("room"),sessionStorage.removeItem("lastSocketId"),s("room:quit"),this.close(),location.href=location.origin}close(){o("toolbar",{type:"menu:close"}),this.remove()}loadImage(){const t=new c;document.body.append(t),this.close()}renderFileMenu(){return sessionStorage.getItem("role")==="gm"?n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button">
                         <span>Save</span>
@@ -29,7 +29,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                         <span>Exit</span>
                         <span>Alt+F4</span>
                     </button>
-                </div> 
+                </div>
             `:n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button">
@@ -48,7 +48,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                         <span>Exit</span>
                         <span>Alt+F4</span>
                     </button>
-                </div> 
+                </div>
             `}renderTabletopMenu(){return sessionStorage.getItem("role")==="gm"?n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button" @click=${this.clickLoadImage}>
@@ -63,7 +63,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                         <span>Clear tabletop</span>
                         <span>Ctrl+Backspace</span>
                     </button>
-                </div> 
+                </div>
             `:""}renderWindowsMenu(){return sessionStorage.getItem("role")==="gm"?n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button">
@@ -132,7 +132,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                 <button sfx="button" @click=${this.centerTabletop}>
                     <span>Center tabletop</span>
                 </button>
-            </div> 
+            </div>
         `}renderHelpMenu(){return n`
             <div style="left:${this.calcOffsetX()}px;" class="menu">
                 <button sfx="button">
@@ -155,7 +155,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                 <button sfx="button">
                     <span>About</span>
                 </button>
-            </div> 
+            </div>
         `}renderInitiativeMenu(){return sessionStorage.getItem("role")==="gm"?n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button">
@@ -175,7 +175,7 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                         <span>Sync tracker</span>
                         <span>Ctrl+R</span>
                     </button>
-                </div> 
+                </div>
             `:""}renderRoomMenu(){return sessionStorage.getItem("role")==="gm"?n`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
                     <button sfx="button" @click=${this.lockRoom}>
@@ -192,8 +192,8 @@ import{publish as o,subscribe as p}from"./pubsub.js";import u from"./supercompon
                     <button sfx="button" @click=${this.openPlayerMenu}>
                         <span>Player list</span>
                     </button>
-                </div> 
+                </div>
             `:""}render(){let t;switch(this.model.menu){case"room":t=this.renderRoomMenu();break;case"window":t=this.renderWindowsMenu();break;case"file":t=this.renderFileMenu();break;case"tabletop":t=this.renderTabletopMenu();break;case"initiative":t=this.renderInitiativeMenu();break;case"help":t=this.renderHelpMenu();break;case"view":t=this.renderViewMenu();break;default:break}const e=n`
-            <div @click=${this.clickBackdrop} class="backdrop"></div> 
+            <div @click=${this.clickBackdrop} class="backdrop"></div>
             ${t}
-        `;l(e,this)}}i.bind("tool-bar-menu",r);export{r as default};
+        `;u(e,this)}}i.bind("tool-bar-menu",r);export{r as default};
