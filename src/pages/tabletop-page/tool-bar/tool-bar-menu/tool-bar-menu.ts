@@ -103,8 +103,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             type: "zoom",
             data: {
                 zoom: zoom,
-                x: 0,
-                y: 0
+                x: null,
+                y: null,
+                delta: this.zoom <= 1 ? -100 : 100,
             },
         });
         this.close();
@@ -116,14 +117,18 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             type: "zoom",
             data: {
                 zoom: zoom,
-                x: 0,
-                y: 0
+                x: null,
+                y: null,
+                delta: 100,
             },
         });
         this.close();
     }
 
     private zoomOut:EventListener = (e:Event) => {
+        if (this.zoom === 0.1){
+            return;
+        }
         let zoom  = this.zoom - 0.1;
         if (zoom < 0.1){
             zoom = 0.1;
@@ -132,13 +137,17 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             type: "zoom",
             data: {
                 zoom: zoom,
-                x: 0,
-                y: 0
+                x: null,
+                y: null,
+                delta: -100,
             },
         });
     }
 
     private zoomIn:EventListener = (e:Event) => {
+        if (this.zoom === 2){
+            return;
+        }
         let zoom = this.zoom + 0.1;
         if (zoom > 2){
             zoom = 2;
@@ -147,12 +156,13 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             type: "zoom",
             data: {
                 zoom: zoom,
-                x: 0,
-                y: 0
+                x: null,
+                y: null,
+                delta: 100,
             },
         });
     }
-    
+
     private centerTabletop:EventListener = (e:Event) => {
         publish("tabletop", {
             type: "position:reset",
@@ -250,7 +260,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Exit</span>
                         <span>Alt+F4</span>
                     </button>
-                </div> 
+                </div>
             `;
         }
         else {
@@ -272,7 +282,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Exit</span>
                         <span>Alt+F4</span>
                     </button>
-                </div> 
+                </div>
             `;
         }
     }
@@ -293,7 +303,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Clear tabletop</span>
                         <span>Ctrl+Backspace</span>
                     </button>
-                </div> 
+                </div>
             `;
         } else {
             return "";
@@ -378,7 +388,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 <button sfx="button" @click=${this.centerTabletop}>
                     <span>Center tabletop</span>
                 </button>
-            </div> 
+            </div>
         `;
     }
 
@@ -405,7 +415,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 <button sfx="button">
                     <span>About</span>
                 </button>
-            </div> 
+            </div>
         `;
     }
 
@@ -430,7 +440,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                         <span>Sync tracker</span>
                         <span>Ctrl+R</span>
                     </button>
-                </div> 
+                </div>
             `;
         }
         else {
@@ -456,7 +466,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button" @click=${this.openPlayerMenu}>
                         <span>Player list</span>
                     </button>
-                </div> 
+                </div>
             `;
         }
         else {
@@ -496,7 +506,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 break;
         }
         const view = html`
-            <div @click=${this.clickBackdrop} class="backdrop"></div> 
+            <div @click=${this.clickBackdrop} class="backdrop"></div>
             ${menu}
         `;
         render(view, this);

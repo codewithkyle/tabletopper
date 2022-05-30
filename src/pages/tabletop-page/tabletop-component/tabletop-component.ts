@@ -33,7 +33,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         subscribe("tabletop", this.tabletopInbox.bind(this));
     }
 
-    private tabletopInbox({type, data}){
+     tabletopInbox({type, data}){
         switch(type){
             case "locate:pawn":
                 const el = this.querySelector(`[data-uid="${data}"]`);
@@ -44,22 +44,43 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                     const diffY = window.innerHeight * 0.5 - bounds.y;
                     this.x = this.x + diffX;
                     this.y = this.y + diffY;
-                    this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                    this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
                 } else {
                     notifications.snackbar("Failed to locate pawn.");
                 }
                 break;
             case "position:reset":
-                    this.moving = false;
-                    this.x = window.innerWidth * 0.5;
-                    this.y = (window.innerHeight - 28) * 0.5;
-                    this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+                this.moving = false;
+                this.x = window.innerWidth * 0.5;
+                this.y = (window.innerHeight - 28) * 0.5;
+                this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
                 break;
             case "zoom":
                 this.moving = false;
-                this.zoom = data.zoom;
-                this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
-                sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
+                if (this.zoom !== data.zoom){
+                    if (data.x === null){
+                        data.x = window.innerWidth * .5;
+                    }
+                    if (data.y === null){
+                        data.y = window.innerHeight * .5;
+                    }
+                    if (!data?.ratio){
+                        if (data.zoom < this.zoom){
+                            data.ratio = 0.8046875;
+                        }
+                        else if (data.zoom > this.zoom){
+                            data.ratio = 1.1953125;
+                        }
+                        else {
+                            data.raito = 0;
+                        }
+                    }
+                    this.zoom = data.zoom;
+                    this.x = data.x - data.ratio * (data.x - this.x);
+                    this.y = data.y - data.ratio * (data.y - this.y);
+                    this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
+                    sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
+                }
                 break;
             default:
                 break;
@@ -109,7 +130,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private handleScroll:EventListener = (e:WheelEvent) => {
         const target = e.target as HTMLElement;
         if (target.closest("tabletop-page")){
-            let zoom = this.zoom + -(e.deltaY * 0.00025);
+            let delta = e.deltaY;
+            let sign = Math.sign(delta);
+            let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
+            let multiplier = 1 - sign * deltaAdjustedSpeed;
+            let zoom = this.zoom * multiplier;
             if (zoom > 2){
                 zoom = 2;
             } else if (zoom < 0.1){
@@ -122,6 +147,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                     x: e.clientX,
                     y: e.clientY,
                     delta: e.deltaY,
+                    ratio: multiplier,
                 },
             });
         }
@@ -152,7 +178,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             const deltaY = this.lastY - y;
             this.x -= deltaX;
             this.y -= deltaY;
-            this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+            this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
             this.lastX = x;
             this.lastY = y;
         }
@@ -179,7 +205,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             })}
         `;
         render(view, this);
-        this.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.zoom})`;
+        this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }
 }
 env.bind("tabletop-component", TabeltopComponent);
