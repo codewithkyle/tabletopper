@@ -1,1 +1,1 @@
-import{configure as o,mount as n}from"./router.js";(()=>{document.body.innerHTML="";const e=document.createElement("main");document.body.appendChild(e),n(e),o({"/":"home-page","/room/{CODE}":"tabletop-page","404":"missing-page"})})();
+import{router as e,mount as d}from"./router.js";(()=>{e.add("/","home-page"),e.add("/room/{CODE}","tabletop-page"),e.add("*","missing-page"),document.body.innerHTML="";const o=document.createElement("main");document.body.appendChild(o),d(o)})();
