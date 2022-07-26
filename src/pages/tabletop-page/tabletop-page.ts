@@ -72,3 +72,4 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
     }
 }
 env.bind("tabletop-page", TabletopPage);
+
