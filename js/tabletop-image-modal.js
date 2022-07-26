@@ -1,4 +1,4 @@
-import i from"./jsql.js";import p from"./supercomponent.js";import{UUID as g}from"./uuid.js";import{html as l,render as h}from"./lit-html.js";import s from"./button.js";import u from"./number-input.js";import b from"./lightswitch.js";import v from"./select.js";import w from"./tabs.js";import n from"./env.js";import f from"./notifications.js";import c from"./control-center.js";import{send as k}from"./ws.js";import{Base64EncodeFile as y}from"./file.js";class d extends p{constructor(){super();this.clickClose=e=>{this.close()};this.handleInput=async e=>{const a=e.currentTarget.files;if(a.length){const o=a[0];if(o.size<1e7){const m=await y(o),r=g();await i.query("INSERT INTO images VALUES ($img)",{img:{uid:r,name:o.name,data:m,type:"map"}}),this.set({selected:r})}else f.error("Upload Failed","Files must be 10MB or smaller.")}};this.selectImage=e=>{const a=e.currentTarget.dataset.uid;this.set({selected:a})};this.model={tab:"images",selected:null}}async connected(){await n.css(["tabletop-image-modal"]),this.render()}close(){this.remove()}async load(){const e=(await i.query("SELECT loaded_maps FROM games WHERE room = $room",{room:sessionStorage.getItem("room")}))[0].loaded_maps;let t=!1;for(let a=0;a<e.length;a++)if(e[a]===this.model.selected){t=!0;break}if(!t){const a=(await i.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selected}))[0],o=c.insert("images",a.uid,a);c.dispatch(o)}k("room:tabletop:map:load",this.model.selected),this.remove()}handleTabSwitch(e){this.set({tab:e})}async renderImages(){const e=await i.query("SELECT * FROM images WHERE type = map");return l`
+import a from"./jsql.js";import p from"./supercomponent.js";import{UUID as h}from"./uuid.js";import{html as o,render as g}from"./lit-html.js";import l from"./button.js";import u from"./spinner.js";import n from"./env.js";import b from"./notifications.js";import d from"./control-center.js";import{send as v}from"./ws.js";import{Base64EncodeFile as f}from"./file.js";class c extends p{constructor(){super();this.clickClose=e=>{this.close()};this.handleInput=async e=>{const t=e.currentTarget.files;if(t.length){const s=t[0];if(s.size<1e7){this.trigger("LOAD");const m=await f(s),r=h();await a.query("INSERT INTO images VALUES ($img)",{img:{uid:r,name:s.name,data:m,type:"map"}}),this.set({selected:r})}else b.error("Upload Failed","Files must be 10MB or smaller.")}};this.selectImage=e=>{const t=e.currentTarget.dataset.uid;this.set({selected:t})};this.model={selected:null,images:[]},this.state="LOADING",this.stateMachine={LOADING:{READY:"IDLING",LOAD:" LOADING"},IDLING:{LOAD:"LOADING"}}}async connected(){await n.css(["tabletop-image-modal"]),this.render();const e=await a.query("SELECT * FROM images WHERE type = map");this.update({images:e}),this.trigger("READY")}close(){this.remove()}async load(){const e=(await a.query("SELECT loaded_maps FROM games WHERE room = $room",{room:sessionStorage.getItem("room")}))[0].loaded_maps;let i=!1;for(let t=0;t<e.length;t++)if(e[t]===this.model.selected){i=!0;break}if(!i){const t=(await a.query("SELECT * FROM images WHERE uid = $uid",{uid:this.model.selected}))[0],s=d.insert("images",t.uid,t);d.dispatch(s)}v("room:tabletop:map:load",this.model.selected),this.remove()}async renderImages(){return o`
             <div class="images">
                 <div class="upload-image-button" sfx="button">
                     <label for="upload">
@@ -12,10 +12,10 @@ import i from"./jsql.js";import p from"./supercomponent.js";import{UUID as g}fro
                     </label>
                     <input @change=${this.handleInput} type="file" accept="image/png, image/jpg, image/jpeg" id="upload" name="token">
                 </div>
-                ${e.map(t=>l`
-                        <button sfx="button" class="token-button ${this.model.selected===t.uid?"is-selected":""}" data-uid="${t.uid}" @click=${this.selectImage} aria-label="${t.name}" tooltip>
-                            <img src="${t.data}" alt="${t.name}" draggalbe="false">
-                            ${this.model.selected===t.uid?l`
+                ${this.model.images.map(e=>o`
+                        <button sfx="button" class="token-button ${this.model.selected===e.uid?"is-selected":""}" data-uid="${e.uid}" @click=${this.selectImage} aria-label="${e.name}" tooltip>
+                            <img src="${e.data}" alt="${e.name}" draggalbe="false">
+                            ${this.model.selected===e.uid?o`
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-check" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                                     <circle cx="12" cy="12" r="9"></circle>
@@ -25,24 +25,19 @@ import i from"./jsql.js";import p from"./supercomponent.js";import{UUID as g}fro
                         </button>
                     `)}
             </div>
-        `}renderSettings(){return l`
-            <div class="settings">
-                ${new u({name:"gridSize",label:"Grid Size",required:!0,value:localStorage.getItem("gridSize")?parseInt(localStorage.getItem("gridSize")):32,class:"mb-1.5",callback:e=>{localStorage.setItem("gridSize",e)}})}
-                ${new v({name:"fog",class:"mb-1.5",label:"Fog of War",value:localStorage.getItem("fogOfWar")||"no",callback:e=>{localStorage.setItem("fogOfWar",e.value.toString())},options:[{label:"No Fog of War",value:"no"},{label:"Manual Fog of War",value:"manual"},{label:"Auto Fog of War",value:"auto"}]})}
-                ${new b({name:"autoLines",label:"No Lines",altLabel:"Auto Lines",enabled:!!localStorage.getItem("autoLines"),class:"mb-1.5",callback:e=>{e?localStorage.setItem("autoLines","true"):localStorage.removeItem("autoLines")}})}
-            </div>
-        `}async render(){let e;switch(this.model.tab){case"images":e=await this.renderImages();break;case"settings":e=this.renderSettings();break;default:break}const t=l`
+        `}async render(){let e;switch(this.state){case"LOADING":e=o`
+                    ${new u({size:32,color:"grey",css:"z-index: 5;"})}
+                `;break;default:e=o`
+                    <div class="modal">
+                        <h2 class="font-grey-800 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300">Tabletop Images</h2>
+                        ${new l({callback:this.close.bind(this),kind:"text",color:"grey",icon:'<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',class:"close",iconPosition:"center",shape:"round"})}
+                        ${await this.renderImages()}
+                        <div class="w-full border-t-solid border-t-1 border-t-grey-200 bg-grey-50 p-1" flex="row nowrap items-center justify-end">
+                            ${new l({callback:this.close.bind(this),kind:"solid",color:"white",label:"cancel",class:"mr-1"})}
+                            ${new l({kind:"solid",color:"success",callback:this.load.bind(this),label:"load image",disabled:!this.model.selected?.length})}
+                        </div>
+                    </div>
+                `;break}const i=o`
             <div class="backdrop" @click=${this.clickClose}></div>
-            <div class="modal">
-                <h2 class="font-grey-800 font-bold block px-1.5 pt-1.5 pb-1">Tabletop Images</h2>
-                <div class="block w-full px-1 border-b-1 border-b-solid border-b-grey-200">
-                    ${new w({active:this.model.tab,tabs:[{label:"Images",value:"images",icon:'<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-photo" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="15" y1="8" x2="15.01" y2="8"></line><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M4 15l4 -4a3 5 0 0 1 3 0l5 5"></path><path d="M14 14l1 -1a3 5 0 0 1 3 0l2 2"></path></svg>'},{label:"Settings",value:"settings",icon:'<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-settings" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>'}],callback:this.handleTabSwitch.bind(this)})}
-                </div>
-                ${new s({callback:this.close.bind(this),kind:"text",color:"grey",icon:'<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',class:"close",iconPosition:"center",shape:"round"})}
-                ${e}
-                <div class="w-full border-t-solid border-t-1 border-t-grey-200 bg-grey-50 p-1" flex="row nowrap items-center justify-end">
-                    ${new s({callback:this.close.bind(this),kind:"solid",color:"white",label:"cancel",class:"mr-1"})}
-                    ${new s({kind:"solid",color:"success",callback:this.load.bind(this),label:"load image",disabled:!this.model.selected?.length})}
-                </div>
-            </div>
-        `;h(t,this)}}n.bind("tabletop-image-modal",d);export{d as default};
+            ${e}
+        `;g(i,this)}}n.bind("tabletop-image-modal",c);export{c as default};
