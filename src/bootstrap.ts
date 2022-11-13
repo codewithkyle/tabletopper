@@ -56,12 +56,12 @@ import { connect } from "~controllers/ws";
     ]);
 
     db.query("SELECT COUNT(index) FROM spells").then(results => {
-        if (results[0] === 0){
+        if (results[0]["COUNT(index)"] === 0){
             db.ingest(`${location.origin}/spells.ndjson`, "spells", "NDJSON");
         }
     });
     db.query("SELECT COUNT(index) FROM monsters").then(results => {
-        if (results[0] === 0){
+        if (results[0]["COUNT(index)"] === 0){
             db.ingest(`${location.origin}/monsters.ndjson`, "monsters", "NDJSON");
         }
     });

@@ -194,7 +194,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         }
         spells = await db.query(sql, bindings);
 
-        const levels = await db.query("SELECT UNIQUE level FROM spells ORDER BY level");
+        const levels = (await db.query("SELECT UNIQUE level FROM spells")).sort();
         const levelOptions = [{
             label: "Any level",
             value: null,
@@ -206,7 +206,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             });
         }
 
-        const castingTime = await db.query("SELECT UNIQUE castingTime FROM spells ORDER BY castingTime");
+        const castingTime = (await db.query("SELECT UNIQUE castingTime FROM spells")).sort();
         const castingTimeOptions = [{
             label: "Any cast time",
             value: null,
@@ -218,7 +218,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             });
         }
 
-        const duration = await db.query("SELECT UNIQUE duration FROM spells ORDER BY duration");
+        const duration = (await db.query("SELECT UNIQUE duration FROM spells")).sort();
         const durationOptions = [{
             label: "Any duration",
             value: null,
@@ -230,7 +230,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             });
         }
 
-        const range = await db.query("SELECT UNIQUE range FROM spells ORDER BY range");
+        const range = (await db.query("SELECT UNIQUE range FROM spells")).sort();
         const rangeOptions = [{
             label: "Any range",
             value: null,
@@ -242,7 +242,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             });
         }
 
-        const damageType = await db.query("SELECT UNIQUE damageType FROM spells ORDER BY damageType");
+        const damageType = (await db.query("SELECT UNIQUE damageType FROM spells")).sort();
         const damageTypeOptions = [{
             label: "Any damage type",
             value: null,
