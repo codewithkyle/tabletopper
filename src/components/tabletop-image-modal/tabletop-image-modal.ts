@@ -78,6 +78,9 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                 this.trigger("LOAD");
                 const data = await Base64EncodeFile(image);
                 const uid = UUID();
+                this.set({
+                    selected: uid,
+                }, true);
                 await db.query("INSERT INTO images VALUES ($img)", {
                     img: {
                         uid: uid,
@@ -86,10 +89,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                         type: "map",
                     },
                 });
-                this.set({
-                    selected: uid,
-                });
-                //this.trigger("DONE");
+                this.load();
             } else {
                 // TODO: figure out how to reduce image quality using WASM? Take a look at Squoosh.app for more details
                 notifications.error("Upload Failed", "Files must be 10MB or smaller.");

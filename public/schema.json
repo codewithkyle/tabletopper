@@ -54,7 +54,7 @@
             "keyPath": "room",
             "columns": [
                 {
-                    "key": "room",
+                    "key": "uid",
                     "unique": true
                 },
                 {
