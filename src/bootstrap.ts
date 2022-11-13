@@ -47,10 +47,7 @@ import { connect } from "~controllers/ws";
         "modal"
     ]);
 
-    await db.start({
-        dbWorker: `${location.origin}/jsql.worker.js`,
-        streamWorker: `${location.origin}/stream.worker.js`,
-    });
+    await db.start();
 
     await Promise.all([
         db.query("RESET games"),

@@ -24,7 +24,7 @@
     "@codewithkyle/twist": "^2.0.2",
     "@codewithkyle/uuid": "^1.0.1",
     "brixi": "^0.6.2",
-    "brixi-ui": "^0.4.6",
+    "brixi-ui": "^0.4.7",
     "cssmonster": "^0.5.0",
     "dayjs": "^1.10.7",
     "esbuild": "^0.14.39",

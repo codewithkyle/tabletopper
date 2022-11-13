@@ -37,7 +37,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
         await env.css(["tabletop-image-modal"]);
         this.render();
         const images = await db.query("SELECT * FROM images WHERE type = map");
-        this.update({
+        this.set({
             images: images,
         });
         this.trigger("READY");
@@ -144,9 +144,9 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
             case "LOADING":
                 content = html`
                     ${new Spinner({
-                        size: 32,
                         color: "grey",
                         css: "z-index: 5;",
+                        size: 32,
                     })}
                 `;
                 break;
