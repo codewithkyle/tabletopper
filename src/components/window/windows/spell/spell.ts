@@ -47,7 +47,7 @@ export default class Spell extends SuperComponent<ISpell>{
     }
 
     override async connected() {
-        await env.css(["spell"]);
+        await env.css(["spell", "link"]);
         const spell = (await db.query("SELECT * FROM spells WHERE index = $index", {
             index: this.model.index,
         }))[0];
@@ -240,7 +240,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         }, true);
                     },
                     class: "mb-1.5",
-                    instructions: `This field supports <a href="https://www.markdownguide.org/cheat-sheet/" target="_blank">Markdown</a>.`,
+                    instructions: `This field supports <a class="link" href="https://www.markdownguide.org/cheat-sheet/" target="_blank">Markdown</a>.`,
                 })}
                 ${new Input({
                     name: "material",
