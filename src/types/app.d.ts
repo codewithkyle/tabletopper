@@ -55,6 +55,6 @@ export interface Spell {
     damage:      Damage | null;
     school:      string;
     classes:     string[];
-    subsclasses: string[];
+    subclasses: string[];
     material:    string | null;
 }

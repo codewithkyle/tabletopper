@@ -131,6 +131,19 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         }
     }
 
+    private addSpell = (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const window = document.body.querySelector(`window-component[window="create-spell"]`) || new Window({
+            name: "Create Spell",
+            view: new Spell(),
+            width: 600,
+            height: 350
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+    }
+
     private renderSpell(spell:ISpell, index): TemplateResult{
         return html`
             <button sfx="button" class="spell" @click=${this.openSpell} data-index="${spell.index}" data-name="${spell.name}">
@@ -289,6 +302,13 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
                         </button>
                         <button sfx="button" class="${this.model.classes.includes("Wizard") ? "is-selected" : ""}" aria-label="Wizard" tooltip data-class="Wizard" @click=${this.clickClassFilter}>
                             <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="hat-wizard" class="svg-inline--fa fa-hat-wizard fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M496 448H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h480c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16zm-304-64l-64-32 64-32 32-64 32 64 64 32-64 32-16 32h208l-86.41-201.63a63.955 63.955 0 0 1-1.89-45.45L416 0 228.42 107.19a127.989 127.989 0 0 0-53.46 59.15L64 416h144l-16-32zm64-224l16-32 16 32 32 16-32 16-16 32-16-32-32-16 32-16z"></path></svg>
+                        </button>
+                        <button sfx="button" aria-label="Add spell" tooltip @click=${this.addSpell}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                               <line x1="12" y1="5" x2="12" y2="19"></line>
+                               <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
                         </button>
                     </div>
                 </div>
