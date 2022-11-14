@@ -56,7 +56,6 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private exit(){
         sessionStorage.removeItem("room");
-        sessionStorage.removeItem("lastSocketId");
         send("room:quit");
         this.close();
         location.href = location.origin;

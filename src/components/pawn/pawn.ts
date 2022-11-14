@@ -79,6 +79,11 @@ export default class Pawn extends SuperComponent<IPawn>{
                     this.set(updatedModel);
                 }
                 break;
+            case "DELETE":
+                if (op.table === "pawns" && op.key === this.model.uid){
+                    this.remove();
+                }
+                break;
             default:
                 break;
         }
