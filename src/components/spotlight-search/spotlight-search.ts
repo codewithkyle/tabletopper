@@ -32,7 +32,13 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
     private async search(value:string){
         const queueId = UUID();
         this.lastQueueId = queueId;
-        const results = await db.query<ISpell|Monster>("SELECT * FROM spells WHERE name LIKE $value UNION SELECT * FROM monsters WHERE name LIKE $value", {
+        let sql;
+        if (sessionStorage.getItem("role") === "gm"){
+            sql = "SELECT * FROM spells WHERE name LIKE $value UNION SELECT * FROM monsters WHERE name LIKE $value";
+        } else {
+            sql = "SELECT * FROM spells WHERE name LIKE $value";
+        }
+        const results = await db.query<ISpell|Monster>(sql, {
             value: value,
         });
         this.set({
@@ -78,7 +84,7 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
             `;
         } else if (!this.model.results.length && this.model.query.length) {
             return html`
-                <p class="text-center p-1 font-sm font-grey-400">No Monsters or Spells match '${this.model.query}'.</p>
+                <p class="text-center p-1 font-sm font-grey-400">No${sessionStorage.getItem("role") === "gm" ? " Monsters or " : " "}Spells match '${this.model.query}'.</p>
             `;
         } else {
             return "";
