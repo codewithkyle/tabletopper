@@ -314,18 +314,21 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <!--
                     <button sfx="button">
                         <span>Initiative tracker</span>
                     </button>
                     <button sfx="button">
                         <span>Chat</span>
                     </button>
+                    -->
                     <button sfx="button" @click=${this.openMonsterManual}>
                         <span>Monster Manual</span>
                     </button>
                     <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Dice tray</span>
                     </button>
@@ -335,27 +338,32 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button">
                         <span>Music</span>
                     </button>
+                    -->
                 </div>
             `;
         }
         else {
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <!--
                     <button sfx="button">
                         <span>Initiative tracker</span>
                     </button>
                     <button sfx="button">
                         <span>Chat</span>
                     </button>
-                    <button sfx="button">
+                    -->
+                    <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Dice tray</span>
                     </button>
                     <button sfx="button">
                         <span>Drawing tools</span>
                     </button>
+                    -->
                 </div>
             `;
         }
