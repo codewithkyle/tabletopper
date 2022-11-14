@@ -167,7 +167,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.moving){
             let x;
             let y;
-            if (e instanceof TouchEvent){
+            if (window.TouchEvent && e instanceof TouchEvent){
                 x = e.touches[0].clientX;
                 y = e.touches[0].clientY;
             } else {

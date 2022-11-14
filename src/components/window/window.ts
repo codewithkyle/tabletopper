@@ -154,7 +154,7 @@ export default class Window extends SuperComponent<IWindow>{
         if (this.moving){
             let x;
             let y;
-            if (e instanceof TouchEvent){
+            if (window.TouchEvent && e instanceof TouchEvent){
                 x = e.touches[0].clientX;
                 y = e.touches[0].clientY;
             } else {
@@ -186,7 +186,7 @@ export default class Window extends SuperComponent<IWindow>{
         this.moving = true;
         let x;
         let y;
-        if (e instanceof TouchEvent){
+        if (window.TouchEvent && e instanceof TouchEvent){
             x = e.touches[0].clientX;
             y = e.touches[0].clientY;
         } else {

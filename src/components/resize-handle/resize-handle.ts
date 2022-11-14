@@ -33,7 +33,7 @@ export default class ResizeHandle extends HTMLElement{
         if (e instanceof MouseEvent){
             this.pos3 = e.clientX;
             this.pos4 = e.clientY;
-        } else if (e instanceof TouchEvent){
+        } else if (window.TouchEvent && e instanceof TouchEvent){
             this.pos3 = e.touches[0].clientX;
             this.pos4 = e.touches[0].clientY;
         }
@@ -54,7 +54,7 @@ export default class ResizeHandle extends HTMLElement{
                 this.pos2 = this.pos4 - e.clientY;
                 this.pos3 = e.clientX;
                 this.pos4 = e.clientY;
-            }else if (e instanceof TouchEvent){
+            }else if (window.TouchEvent && e instanceof TouchEvent){
                 this.pos1 = this.pos3 - e.touches[0].clientX;
                 this.pos2 = this.pos4 - e.touches[0].clientY;
                 this.pos3 = e.touches[0].clientX;
