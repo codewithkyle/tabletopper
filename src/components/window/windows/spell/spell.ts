@@ -77,13 +77,16 @@ export default class Spell extends SuperComponent<ISpell>{
             return;
         }
         const dmgRows:HTMLElement[] = Array.from(this.querySelectorAll("damage-table table-row"));
-        const damage = {};
+        let damage = {};
         for (let i = 0; i < dmgRows.length; i++){
             const key = dmgRows[i].querySelector("input:first-of-type").value.trim();
             const value = dmgRows[i].querySelector("input:last-of-type").value.trim();
             if (key.length && value.length){
                 damage[key] = value;
             }
+        }
+        if (!Object.keys(damage).length){
+            damage = null;
         }
         this.model.damage = damage;
         if (this.model.index === null){
@@ -344,7 +347,7 @@ export default class Spell extends SuperComponent<ISpell>{
                 </div>
                 <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125 mb-0.5">Damage</h4>
                 <damage-table class="mb-0.5">
-                    ${Object.keys(this.model.damage).map((key, index) => {
+                    ${Object.keys(this.model?.damage ?? {}).map((key, index) => {
                         return html`
                             <table-row>
                                 <input required value="${key}" placeholder="Level">
