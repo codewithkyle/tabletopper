@@ -8,12 +8,16 @@ import cc from "~controllers/control-center";
 import { send } from "~controllers/ws";
 import TabeltopComponent from "./tabletop-component/tabletop-component";
 import Toolbar from "./tool-bar/tool-bar";
+import SpotlightSearch from "components/spotlight-search/spotlight-search";
 
 interface ITabletopPage {
 }
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
+    private spotlightSearchEl: HTMLElement;
+
     constructor(tokens, params){
         super();
+        this.spotlightSearchEl = null;
         const lastConfirmedCode = sessionStorage.getItem("room");
         const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
         if (lastConfirmedCode === tokens.CODE.toUpperCase() && lastConfiredSocket !== sessionStorage.getItem("socketId")){
@@ -48,6 +52,30 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             cc.runHistory();
         }
         this.setAttribute("state", "IDLING");
+        window.addEventListener("keydown", this.handleKeyboard);
+    }
+
+    private handleKeyboard = (e:KeyboardEvent) => {
+        if (e?.["KeyStatus"]?.["RepeatCount"]){
+            e["KeyStatus"]["RepeatCount"]++;
+        } else {
+            e["KeyStatus"] = {
+                RepeatCount: 1,
+            };
+        }
+        if (e instanceof KeyboardEvent){
+            const key = e.key.toLowerCase();
+            switch(key){
+                case " ":
+                    if (e.ctrlKey && (this.spotlightSearchEl === null || !this.spotlightSearchEl.isConnected) && e?.["KeyStatus"]?.["RepeatCount"] === 1){
+                        this.spotlightSearchEl = new SpotlightSearch();
+                        document.body.appendChild(this.spotlightSearchEl);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     private renderSyncing():TemplateResult{
