@@ -44,13 +44,8 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         // @ts-expect-error
         const { SERVER_URL } = await import("/config.js");
         const url = `${SERVER_URL.trim().replace(/\/$/, "")}`;
-        const lookupRequest = await fetch(`${url}/room/${sessionStorage.getItem("room")}`, {
-            method: "HEAD"
-        });
-        if (lookupRequest.status === 200){
-            await db.ingest(`${url}/room/${sessionStorage.getItem("room")}`, "ledger", "NDJSON");
-            cc.runHistory();
-        }
+        await db.ingest(`${url}/room/${sessionStorage.getItem("room")}`, "ledger", "NDJSON");
+        cc.runHistory();
         this.setAttribute("state", "IDLING");
         window.addEventListener("keydown", this.handleKeyboard);
     }
