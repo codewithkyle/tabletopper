@@ -9,6 +9,9 @@ import { send } from "~controllers/ws";
 import TabeltopComponent from "./tabletop-component/tabletop-component";
 import Toolbar from "./tool-bar/tool-bar";
 import SpotlightSearch from "components/spotlight-search/spotlight-search";
+import Window from "~components/window/window";
+import Spell from "~components/window/windows/spell/spell";
+import MonsterEditor from "~components/window/windows/monster-editor/monster-editor";
 
 interface ITabletopPage {
 }
@@ -50,6 +53,33 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         window.addEventListener("keydown", this.handleKeyboard);
     }
 
+    private create(type: "spell"|"monster"){
+        let window;
+        switch(type){
+            case "spell":
+                window = new Window({
+                    name: "Create Spell",
+                    view: new Spell(),
+                    width: 600,
+                    height: 350,
+                });
+                break;
+            case "monster":
+                window = new Window({
+                    name: "Create Monster",
+                    view: new MonsterEditor(),
+                    width: 600,
+                    height: 350,
+                });
+                break;
+            default:
+                break;
+        }
+        if (window && !window.isConnected){
+            document.body.appendChild(window);
+        }
+    }
+
     private handleKeyboard = (e:KeyboardEvent) => {
         if (e?.["KeyStatus"]?.["RepeatCount"]){
             e["KeyStatus"]["RepeatCount"]++;
@@ -63,7 +93,7 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             switch(key){
                 case " ":
                     if (e.ctrlKey && (this.spotlightSearchEl === null || !this.spotlightSearchEl.isConnected) && e?.["KeyStatus"]?.["RepeatCount"] === 1){
-                        this.spotlightSearchEl = new SpotlightSearch();
+                        this.spotlightSearchEl = new SpotlightSearch(sessionStorage.getItem("role") === "gm", true, this.create.bind(this));
                         document.body.appendChild(this.spotlightSearchEl);
                     }
                     break;
