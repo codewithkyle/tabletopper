@@ -45,7 +45,7 @@
                     "key": "keypath"
                 },
                 {
-                    "key": "value"   
+                    "key": "value"
                 }
             ]
         },
@@ -72,6 +72,46 @@
             ]
         },
         {
+            "name": "pawns",
+            "keyPath": "uid",
+            "columns": [
+                {
+                    "key": "uid",
+                    "unique": true
+                },
+                {
+                    "key": "room"
+                },
+                {
+                    "key": "x",
+                    "default": 0
+                },
+                {
+                    "key": "y",
+                    "default": 0
+                },
+                {
+                    "key": "hidden",
+                    "default": false
+                },
+                {
+                    "key": "playerId",
+                    "default": null
+                },
+                {
+                    "key": "monsterId",
+                    "default": null
+                },
+                {
+                    "key": "name"
+                },
+                {
+                    "key": "token",
+                    "default": null
+                }
+            ]
+        },
+        {
             "name": "players",
             "keyPath": "uid",
             "columns": [
@@ -88,14 +128,6 @@
                 },
                 {
                     "key": "room"
-                },
-                {
-                    "key": "x",
-                    "default": 0
-                },
-                {
-                    "key": "y",
-                    "default": 0
                 },
                 {
                     "key": "active",

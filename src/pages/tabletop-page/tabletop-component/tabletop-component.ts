@@ -189,19 +189,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.model.map){
             image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))[0];
         }
-        const players = [];
-        if (this.model.players.length){
-            for (const uid of this.model.players){
-                const player = (await db.query("SELECT * FROM players WHERE uid = $uid AND active = $status", { uid: uid, status: true }))?.[0] ?? null;
-                if (player){
-                    players.push(player);
-                }
-            }
-        }
+        const playerPawns = await db.query("SELECT * FROM pawns WHERE playerId != $value AND room = $room", {
+            value: null,
+            room: sessionStorage.getItem("room"),
+        });
         const view = html`
             ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
-            ${players.map(player => {
-                return new PlayerPawn(player);
+            ${playerPawns.map(pawn => {
+                return new PlayerPawn(pawn);
             })}
         `;
         render(view, this);

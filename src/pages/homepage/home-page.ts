@@ -240,8 +240,6 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     uid: sessionStorage.getItem("socketId"),
                                     name: name,
                                     token: image?.uid ?? null,
-                                    x: 0,
-                                    y: 0,
                                     active: true,
                                 });
                                 send("room:join", {

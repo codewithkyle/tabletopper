@@ -26,8 +26,21 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:tabletop:spawn:pawns":
+                    {
+                        await db.query("RESET pawns");
+                        const sqlData = {};
+                        const values = [];
+                        for (let i = 0; i < data.length; i++){
+                            sqlData[`value${i}`] = data[i];
+                            values.push(`$value${i}`);
+                        }
+                        await db.query(`INSERT INTO pawns VALUES (${values.join(", ")})`, sqlData);
+                    }
+                    break;
                 case "room:tabletop:clear":
                     await db.query("RESET ledger");
+                    await db.query("RESET pawns");
                     break;
                 case "room:ban":
                     sessionStorage.removeItem("room");
