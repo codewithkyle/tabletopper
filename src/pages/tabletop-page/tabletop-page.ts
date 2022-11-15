@@ -12,15 +12,18 @@ import SpotlightSearch from "components/spotlight-search/spotlight-search";
 import Window from "~components/window/window";
 import Spell from "~components/window/windows/spell/spell";
 import MonsterEditor from "~components/window/windows/monster-editor/monster-editor";
+import ContextMenu from  "./context-menu/context-menu";
 
 interface ITabletopPage {
 }
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
     private spotlightSearchEl: HTMLElement;
+    private contextEl: HTMLElement;
 
     constructor(tokens, params){
         super();
         this.spotlightSearchEl = null;
+        this.contextEl = null;
         const lastConfirmedCode = sessionStorage.getItem("room");
         const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
         if (lastConfirmedCode === tokens.CODE.toUpperCase() && lastConfiredSocket !== sessionStorage.getItem("socketId")){
@@ -51,15 +54,18 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         cc.runHistory();
         this.setAttribute("state", "IDLING");
         window.addEventListener("keydown", this.handleKeyboard);
+        if (sessionStorage.getItem("role") === "gm"){
+            this.addEventListener("contextmenu", this.handleContextMenu);
+        }
     }
 
-    private create(type: "spell"|"monster"){
+    private handleSpotlightCallback(type: "spell"|"monster", index:string = null){
         let window;
         switch(type){
             case "spell":
                 window = new Window({
                     name: "Create Spell",
-                    view: new Spell(),
+                    view: new Spell(index),
                     width: 600,
                     height: 350,
                 });
@@ -67,7 +73,7 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             case "monster":
                 window = new Window({
                     name: "Create Monster",
-                    view: new MonsterEditor(),
+                    view: new MonsterEditor(index),
                     width: 600,
                     height: 350,
                 });
@@ -77,6 +83,18 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         }
         if (window && !window.isConnected){
             document.body.appendChild(window);
+        }
+    }
+
+    private handleContextMenu = (e) => {
+        e.preventDefault();
+        const x = e.clientX;
+        const y = e.clientY;
+        this.contextEl = document.body.querySelector("context-menu") || new ContextMenu(x, y);
+        if (!this.contextEl.isConnected){
+            document.body.appendChild(this.contextEl);
+        } else {
+            this.contextEl.setLocation(x, y);
         }
     }
 
@@ -93,7 +111,7 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             switch(key){
                 case " ":
                     if (e.ctrlKey && (this.spotlightSearchEl === null || !this.spotlightSearchEl.isConnected) && e?.["KeyStatus"]?.["RepeatCount"] === 1){
-                        this.spotlightSearchEl = new SpotlightSearch(sessionStorage.getItem("role") === "gm", true, this.create.bind(this));
+                        this.spotlightSearchEl = new SpotlightSearch(sessionStorage.getItem("role") === "gm", true, this.handleSpotlightCallback.bind(this));
                         document.body.appendChild(this.spotlightSearchEl);
                     }
                     break;

@@ -4,6 +4,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
+import MonsterPawn from "~components/pawn/monster-pawn/monster-pawn";
 import PlayerPawn from "~components/player-pawn/player-pawn";
 import { setValueFromKeypath } from "~utils/object";
 
@@ -106,6 +107,21 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                     }
                 }
                 break;
+            case "INSERT":
+                if (op.table === "pawns"){
+                    if (op.value?.playerId != null){
+                        const el = this.querySelector(`player-pawn[data-uid="${op.value.uid}"]`) || new PlayerPawn(op.value);
+                        if (!el.isConnected){
+                            this.appendChild(el);
+                        }
+                    } else if (op.value?.monsterId != null){
+                        const el = this.querySelector(`monster-pawn[data-uid="${op.value.uid}"]`) || new MonsterPawn(op.value);
+                        if (!el.isConnected){
+                            this.appendChild(el);
+                        }
+                    }
+                }
+                break;
             default:
                 break;
         }
@@ -189,15 +205,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.model.map){
             image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))[0];
         }
-        const playerPawns = await db.query("SELECT * FROM pawns WHERE playerId != $value AND room = $room", {
-            value: null,
-            room: sessionStorage.getItem("room"),
-        });
         const view = html`
             ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
-            ${playerPawns.map(pawn => {
-                return new PlayerPawn(pawn);
-            })}
         `;
         render(view, this);
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;

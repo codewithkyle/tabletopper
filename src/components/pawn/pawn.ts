@@ -26,8 +26,8 @@ export default class Pawn extends SuperComponent<IPawn>{
     constructor(pawn){
         super();
         this.dragging = false;
-        this.localX = 0;
-        this.localY = 0;
+        this.localX = pawn.x;
+        this.localY = pawn.y;
         this.model = {
             uid: pawn.uid,
             x: pawn.x,
@@ -93,15 +93,14 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.classList.remove("no-anim");
         this.setAttribute("tooltip", this.model.name);
         this.setAttribute("sfx", "button");
-        const wasDraggnig = this.dragging;
-        this.dragging = false;
-        if (wasDraggnig){
+        if (this.dragging){
             const op1 = cc.set("pawns", this.model.uid, "x", this.localX);
             const op2 = cc.set("pawns", this.model.uid, "y", this.localY);
             const ops = cc.batch("pawns", this.model.uid, [op1, op2]);
             cc.perform(ops);
             cc.dispatch(ops);
         }
+        this.dragging = false;
     }
 
     private startDrag:EventListener = (e:MouseEvent) => {
