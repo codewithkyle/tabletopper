@@ -66,16 +66,44 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
     }
 
     private clickResult(index) {
-        const window = document.body.querySelector(`window-component[window="${this.model.results[index].index}"]`) || new Window({
-            name: this.model.results[index].name,
-            view: ("hp" in this.model.results[index]) ? new MonsterStatBlock(this.model.results[index].index) : new Spell(this.model.results[index].index),
-            width: 600,
-            height: 350
-        });
-        if (!window.isConnected){
-            document.body.append(window);
-        }
+        this.callback(("hp" in this.model.results[index]) ? "monster" : "spell", this.model.results[index].index);
         this.remove();
+    }
+
+    private renderCreateSpellButton(){
+        if (this.callback !== null && this.includeSpells){
+            return new Button({
+                label: "Create Spell",
+                kind: "outline",
+                color: "grey",
+                class: "mx-0.5 mb-0.5",
+                css: "width: calc(100% - 1rem);",
+                callback: ()=>{
+                    this.callback("spell");
+                    this.remove();
+                },
+            });
+        } else {
+            return "";
+        }
+    }
+
+    private renderCreateMonsterButton(){
+        if (this.callback !== null && this.includeMonsters){
+            return new Button({
+                label: "Create Monster",
+                kind: "outline",
+                color: "grey",
+                class: "mx-0.5 mb-0.5",
+                css: "width: calc(100% - 1rem);",
+                callback: ()=>{
+                    this.callback("monster");
+                    this.remove();
+                },
+            });
+        } else {
+            return "";
+        }
     }
 
     private renderResults(){
@@ -94,54 +122,14 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
                         });
                     })}
                 </div>
-                ${this.callback !== null ? new Button({
-                    label: "Create Spell",
-                    kind: "outline",
-                    color: "grey",
-                    class: "mx-0.5 mb-0.5",
-                    css: "width: calc(100% - 1rem);",
-                    callback: ()=>{
-                        this.callback("spell");
-                        this.remove();
-                    },
-                }) : ""}
-                ${this.callback !== null ? new Button({
-                    label: "Create Monster",
-                    kind: "outline",
-                    color: "grey",
-                    class: "mx-0.5 mb-0.5",
-                    css: "width: calc(100% - 1rem);",
-                    callback: ()=>{
-                        this.callback("monster");
-                        this.remove();
-                    },
-                }) : ""}
+                ${this.renderCreateSpellButton()}
+                ${this.renderCreateMonsterButton()}
             `;
         } else if (!this.model.results.length && this.model.query.length) {
             return html`
                 <p class="text-center p-1 font-sm font-grey-400 border-t-solid border-t-1 border-t-grey-300">No${sessionStorage.getItem("role") === "gm" ? " Monsters or " : " "}Spells match '${this.model.query}'.</p>
-                ${this.callback !== null ? new Button({
-                    label: "Create Spell",
-                    kind: "outline",
-                    color: "grey",
-                    class: "mx-0.5 mb-0.5",
-                    css: "width: calc(100% - 1rem);",
-                    callback: ()=>{
-                        this.callback("spell");
-                        this.remove();
-                    },
-                }) : ""}
-                ${this.callback !== null ? new Button({
-                    label: "Create Monster",
-                    kind: "outline",
-                    color: "grey",
-                    class: "mx-0.5 mb-0.5",
-                    css: "width: calc(100% - 1rem);",
-                    callback: ()=>{
-                        this.callback("monster");
-                        this.remove();
-                    },
-                }) : ""}
+                ${this.renderCreateSpellButton()}
+                ${this.renderCreateMonsterButton()}
             `;
         } else {
             return "";
