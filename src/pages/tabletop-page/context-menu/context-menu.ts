@@ -62,6 +62,8 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                                 y: Math.round(diffY) - 16,
                                 index: index,
                                 name: monster.name,
+                                ac: monster.ac,
+                                hp: monster.hp,
                             });
                         }
                     });

@@ -1,0 +1,18 @@
+stat-block{
+    display: block;
+    width: 100%;
+    position: relative;
+    padding: 1rem;
+
+    &.overhealed {
+        number-input-component.input input-container input#Hit-Points-hp{
+            color: var(--success-700) !important;
+        }
+    }
+
+    &.bloody{ 
+        number-input-component.input input-container input#Hit-Points-hp{
+            color: var(--danger-700) !important;
+        }
+    }
+}

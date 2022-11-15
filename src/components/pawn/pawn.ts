@@ -7,6 +7,8 @@ import { setValueFromKeypath } from "utils/object";
 import cc from "controllers/control-center";
 import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-component";
 import {html, render, TemplateResult} from "lit-html";
+import Window from "~components/window/window";
+import StatBlock from "components/window/windows/stat-block/stat-block";
 
 interface IPawn{
     uid: string,
@@ -48,6 +50,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         window.addEventListener("mousemove", this.dragPawn, { passive: true, capture: true });
         this.addEventListener("mousedown", this.startDrag, { passive: false, capture: true });
         window.addEventListener("mouseup", this.stopDrag, { passive: true, capture: true });
+        this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
         if (this.model.playerId){
             const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))[0];
             if (player.token){
@@ -90,6 +93,25 @@ export default class Pawn extends SuperComponent<IPawn>{
         }
     }
 
+    private contextMenu:EventListener = (e:MouseEvent) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (this.model?.playerId == null && sessionStorage.getItem("role") === "gm"){
+            const x = e.clientX;
+            const y = e.clientY;
+            const windowEl = new Window({
+                name: `${this.model.name} ${this.model?.monsterId == null ? "(npc)" : "(monster)"}`,
+                width: 400,
+                height: 200,
+                view: new StatBlock(this.model.uid, this.model.monsterId),
+                handle: "stat-block",
+            });
+            if (!windowEl.isConnected){
+                document.body.appendChild(windowEl);
+            }
+        }
+    }
+
     private stopDrag:EventListener = (e:DragEvent) => {
         this.classList.remove("no-anim");
         this.setAttribute("tooltip", this.model.name);
@@ -106,14 +128,16 @@ export default class Pawn extends SuperComponent<IPawn>{
     private startDrag:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        this.dragging = true;
-        const tooltip = document.body.querySelector(`tool-tip[uid="${this.dataset.tooltipUid}"]`);
-        if (tooltip){
-            tooltip.remove();
+        if (e.button === 0){
+            this.dragging = true;
+            const tooltip = document.body.querySelector(`tool-tip[uid="${this.dataset.tooltipUid}"]`);
+            if (tooltip){
+                tooltip.remove();
+            }
+            this.removeAttribute("sfx");
+            this.removeAttribute("tooltip");
+            this.classList.add("no-anim");
         }
-        this.removeAttribute("sfx");
-        this.removeAttribute("tooltip");
-        this.classList.add("no-anim");
     }
 
     private dragPawn:EventListener = (e:MouseEvent) => {
@@ -155,14 +179,18 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     override async render() {
-        if (this.model.hidden){
-            this.style.visibility = "hidden";
-            this.style.opacity = "0";
-            this.style.pointerEvents = "none";
-        } else {
+        if (!this.model.hidden){
             this.style.visibility = "visible";
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
+        } else if (this.model.hidden && sessionStorage.getItem("role") === "gm") {
+            this.style.visibility = "visible";
+            this.style.opacity = "0.5";
+            this.style.pointerEvents = "all";
+        } else {
+            this.style.visibility = "hidden";
+            this.style.opacity = "0";
+            this.style.pointerEvents = "none";
         }
         this.dataset.uid = this.model.uid;
         if (this.model?.playerId){

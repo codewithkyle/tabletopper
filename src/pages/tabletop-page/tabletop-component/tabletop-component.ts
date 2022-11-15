@@ -36,12 +36,16 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
      tabletopInbox({type, data}){
         switch(type){
             case "locate:player":
-                const playerPawn = this.querySelector(`[data-player-uid="${data}"]`) as HTMLElement;
-                this.locatePawn(playerPawn);
+                if (data != null){
+                    const playerPawn = this.querySelector(`[data-player-uid="${data}"]`) as HTMLElement;
+                    this.locatePawn(playerPawn);
+                }
                 break;
             case "locate:pawn":
-                const pawn = this.querySelector(`[data-uid="${data}"]`) as HTMLElement;
-                this.locatePawn(pawn);
+                if (data != null){
+                    const pawn = this.querySelector(`[data-uid="${data}"]`) as HTMLElement;
+                    this.locatePawn(pawn);
+                }
                 break;
             case "position:reset":
                 this.moving = false;
@@ -82,7 +86,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private locatePawn(el:HTMLElement){
-        if (el){
+        if (el != null && el instanceof HTMLElement && el.isConnected){
             this.moving = false;
             const bounds = el.getBoundingClientRect();
             const diffX = window.innerWidth * 0.5 - bounds.x;
@@ -90,8 +94,6 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.x = this.x + diffX;
             this.y = this.y + diffY;
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
-        } else {
-            notifications.snackbar("Failed to locate pawn.");
         }
     }
 
