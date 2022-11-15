@@ -5,7 +5,8 @@ import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import MonsterPawn from "~components/pawn/monster-pawn/monster-pawn";
-import PlayerPawn from "~components/player-pawn/player-pawn";
+import PlayerPawn from "~components/pawn/player-pawn/player-pawn";
+import NPCPawn from "~components/pawn/npc-pawn/npc-pawn";
 import { setValueFromKeypath } from "~utils/object";
 
 interface ITabletopComponent {
@@ -116,6 +117,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                         }
                     } else if (op.value?.monsterId != null){
                         const el = this.querySelector(`monster-pawn[data-uid="${op.value.uid}"]`) || new MonsterPawn(op.value);
+                        if (!el.isConnected){
+                            this.appendChild(el);
+                        }
+                    } else {
+                        const el = this.querySelector(`npc-pawn[data-uid="${op.value.uid}"]`) || new NPCPawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }

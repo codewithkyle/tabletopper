@@ -6,6 +6,7 @@ import SpotlightSearch from "~components/spotlight-search/spotlight-search";
 import MonsterEditor from "~components/window/windows/monster-editor/monster-editor";
 import { send } from "controllers/ws";
 import db from "@codewithkyle/jsql";
+import NPCModal from "./npc-modal/npc-modal";
 
 interface IContextMenu{}
 export default class ContextMenu extends SuperComponent<IContextMenu>{
@@ -71,6 +72,8 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                 class: "w-full",
                 css: "justify-content: flex-start;",
                 callback: ()=>{
+                    const modal = new NPCModal();
+                    document.body.appendChild(modal);
                     this.remove();
                 }
             })}
