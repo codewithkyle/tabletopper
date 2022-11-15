@@ -169,6 +169,14 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private centerPlayerPawn:EventListener = (e:Event) => {
+        publish("tabletop", {
+            type: "locate:player",
+            data: sessionStorage.getItem("socketId"),
+        });
+        this.close();
+    }
+
     private spawnPawns:EventListener = async (e:Event) => {
         send("room:tabletop:spawn:players");
         this.close();
@@ -394,6 +402,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 </button>
                 <button sfx="button" @click=${this.centerTabletop}>
                     <span>Center tabletop</span>
+                </button>
+                <button sfx="button" @click=${this.centerPlayerPawn}>
+                    <span>Center on character</span>
                 </button>
             </div>
         `;

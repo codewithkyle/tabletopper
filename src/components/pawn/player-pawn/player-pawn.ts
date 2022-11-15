@@ -38,6 +38,7 @@ export default class PlayerPawn extends Pawn{
             this.style.pointerEvents = "all";
         }
         this.dataset.uid = this.model.uid;
+        this.dataset.playerUid = this.model.playerId;
         if (!this.dragging){
             this.setAttribute("tooltip", this.model.name);
             this.setAttribute("sfx", "button");
