@@ -4,10 +4,8 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
-import MonsterPawn from "~components/pawn/monster-pawn/monster-pawn";
-import PlayerPawn from "~components/pawn/player-pawn/player-pawn";
-import NPCPawn from "~components/pawn/npc-pawn/npc-pawn";
 import { setValueFromKeypath } from "~utils/object";
+import Pawn from "~components/pawn/pawn";
 
 interface ITabletopComponent {
     map: string,
@@ -119,17 +117,17 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             case "INSERT":
                 if (op.table === "pawns"){
                     if (op.value?.playerId != null){
-                        const el = this.querySelector(`player-pawn[data-uid="${op.value.uid}"]`) || new PlayerPawn(op.value);
+                        const el = this.querySelector(`player-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }
                     } else if (op.value?.monsterId != null){
-                        const el = this.querySelector(`monster-pawn[data-uid="${op.value.uid}"]`) || new MonsterPawn(op.value);
+                        const el = this.querySelector(`monster-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }
                     } else {
-                        const el = this.querySelector(`npc-pawn[data-uid="${op.value.uid}"]`) || new NPCPawn(op.value);
+                        const el = this.querySelector(`npc-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }

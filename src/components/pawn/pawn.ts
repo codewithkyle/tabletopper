@@ -6,6 +6,7 @@ import { ConvertBase64ToBlob } from "utils/file";
 import { setValueFromKeypath } from "utils/object";
 import cc from "controllers/control-center";
 import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-component";
+import {html, render, TemplateResult} from "lit-html";
 
 interface IPawn{
     uid: string,
@@ -40,10 +41,9 @@ export default class Pawn extends SuperComponent<IPawn>{
             monsterId: pawn?.monsterId ?? null,
         };
         subscribe("sync", this.syncInbox.bind(this));
-        this.init();
     }
     
-    async init() {
+    override async connected() {
         await env.css(["pawn"]);
         window.addEventListener("mousemove", this.dragPawn, { passive: true, capture: true });
         this.addEventListener("mousedown", this.startDrag, { passive: false, capture: true });
@@ -54,6 +54,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 await this.loadImage(player.token);
             }
         }
+        this.render();
     }
 
     public async loadImage(imageId:string){
@@ -132,4 +133,53 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.transform = `translate(${this.localX}px, ${this.localY}px)`;
         }
     }
+
+    private renderPawn():TemplateResult{
+        let out:TemplateResult;
+        if (this.model.image){
+            out = html`
+                <img src="${this.model.image}" alt="${this.model.name} token" draggable="false">
+            `;
+        } else {
+            let pawnType = "npc";
+            if (this.model?.playerId != null){
+                pawnType = "player";
+            } else if (this.model?.monsterId != null){
+                pawnType = "monster";
+            }
+            out = html`
+                <div pawn="${pawnType}"></div>
+            `;
+        }
+        return out;
+    }
+
+    override async render() {
+        if (this.model.hidden){
+            this.style.visibility = "hidden";
+            this.style.opacity = "0";
+            this.style.pointerEvents = "none";
+        } else {
+            this.style.visibility = "visible";
+            this.style.opacity = "1";
+            this.style.pointerEvents = "all";
+        }
+        this.dataset.uid = this.model.uid;
+        if (this.model?.playerId){
+            this.dataset.playerUid = this.model.playerId;
+        }
+        if (!this.dragging){
+            this.setAttribute("tooltip", this.model.name);
+            this.setAttribute("sfx", "button");
+        }
+        this.style.transform = `translate(${this.model.x}px, ${this.model.y}px)`;
+        this.localX = this.model.x;
+        this.localY = this.model.y;
+        this.className = "pawn";
+        const view = html`
+            ${this.renderPawn()}
+        `;
+        render(view, this);
+    }
 }
+env.bind("pawn-component", Pawn);

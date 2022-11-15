@@ -15,4 +15,44 @@
         transition: none !important;
         cursor: grabbing !important;
     }
+
+    img{
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6));
+    }
+
+    [pawn="player"]{
+        position: absolute;
+        width: 75%;
+        height: 75%;
+        background-color: var(--info-500);
+        border-bottom: 2px solid var(--info-600);
+        border-radius: 50%;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
+    }
+
+    [pawn="npc"]{
+        position: absolute;
+        width: 75%;
+        height: 75%;
+        background-color: var(--success-500);
+        border-bottom: 2px solid var(--success-600);
+        border-radius: 50%;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
+    }
+
+    [pawn="monster"]{
+        position: absolute;
+        width: 75%;
+        height: 75%;
+        background-color: var(--danger-500);
+        border-bottom: 2px solid var(--danger-600);
+        border-radius: 50%;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
+    }
 }
