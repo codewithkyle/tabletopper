@@ -97,7 +97,6 @@ export default class Pawn extends SuperComponent<IPawn>{
             const op1 = cc.set("pawns", this.model.uid, "x", this.localX);
             const op2 = cc.set("pawns", this.model.uid, "y", this.localY);
             const ops = cc.batch("pawns", this.model.uid, [op1, op2]);
-            cc.perform(ops);
             cc.dispatch(ops);
         }
         this.dragging = false;
