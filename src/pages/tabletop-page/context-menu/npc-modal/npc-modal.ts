@@ -14,14 +14,14 @@ interface INPCModal {
     y: number,
 }
 export default class NPCModal extends SuperComponent<INPCModal>{
-    constructor(){
+    constructor(x:number, y:number){
         super();
         this.model = {
             name: "",
             hp: 0,
             ac: 0,
-            x: 0,
-            y: 0,
+            x: x,
+            y: y,
         };
     }
 
@@ -85,6 +85,11 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                         label: "Create",
                         callback: ()=>{
                             const npc = this.get();
+                            const tabletop = document.body.querySelector("tabletop-component");
+                            let diffX = (this.model.x - tabletop.x) / tabletop.zoom;
+                            let diffY = (this.model.y - tabletop.y) / tabletop.zoom;
+                            npc.x = Math.round(diffX) - 16;
+                            npc.y = Math.round(diffY) - 16;
                             send("room:tabletop:spawn:npc", npc);
                             this.remove();
                         }

@@ -7,6 +7,7 @@ import MonsterEditor from "~components/window/windows/monster-editor/monster-edi
 import { send } from "controllers/ws";
 import db from "@codewithkyle/jsql";
 import NPCModal from "./npc-modal/npc-modal";
+import type { Monster } from "types/app";
 
 interface IContextMenu{}
 export default class ContextMenu extends SuperComponent<IContextMenu>{
@@ -52,10 +53,13 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                                 height: 350,
                             });
                         } else {
+                            const tabletop = document.body.querySelector("tabletop-component");
+                            let diffX = (this.x - tabletop.x) / tabletop.zoom;
+                            let diffY = (this.y - tabletop.y) / tabletop.zoom;
                             const monster = (await db.query<Monster>("SELECT * FROM monsters WHERE index = $index", { index: index }))[0];
                             send("room:tabletop:spawn:monster", {
-                                x: 0,
-                                y: 0,
+                                x: Math.round(diffX) - 16,
+                                y: Math.round(diffY) - 16,
                                 index: index,
                                 name: monster.name,
                             });
@@ -72,7 +76,7 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                 class: "w-full",
                 css: "justify-content: flex-start;",
                 callback: ()=>{
-                    const modal = new NPCModal();
+                    const modal = new NPCModal(this.x, this.y);
                     document.body.appendChild(modal);
                     this.remove();
                 }
