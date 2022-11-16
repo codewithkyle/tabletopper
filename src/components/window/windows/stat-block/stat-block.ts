@@ -72,9 +72,11 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         this.render();
     }
 
-    private updateHP(value:number){
+    private deferedHPUpdate = this.debounce((value) => {
         const op = cc.set("pawns", this.pawnId, "hp", value);
         cc.dispatch(op);
+    }, 1000);
+    private updateHP(value:number){
         if (value > this.model.fullHP) {
             this.classList.add("overhealed");
             this.classList.remove("bloody");
@@ -84,6 +86,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         } else if (value <= this.model.fullHP / 2) {
             this.classList.add("bloody");
         }
+        this.deferedHPUpdate(value);
     }
 
     private updateAC(value:number){
@@ -138,8 +141,8 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         return html`
             ${Object.keys(this.model.rings).map(key => {
                 return html`
-                    <input type="checkbox" id="ring-${key}" name="ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
-                    <label for="ring-${key}" color="${key}"></label>
+                    <input type="checkbox" id="ring-${key}" name="${this.pawnId}-ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
+                    <label for="${this.pawnId}-ring-${key}" color="${key}"></label>
                 `;
             })}
         `;
@@ -152,7 +155,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     name: "hp",
                     label: "Hit Points",
                     value: this.model.hp,
-                    callback: this.debounce(this.updateHP.bind(this), 1000).bind(this),
+                    callback: this.updateHP.bind(this),
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
                 })}
                 ${new NumberInput({
