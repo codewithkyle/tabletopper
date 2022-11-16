@@ -56,6 +56,25 @@
         box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
 
+    [pawn="dead"]{
+        position: absolute;
+        width: 75%;
+        height: 75%;
+        background-color: var(--white);
+        border-bottom: 2px solid var(--grey-200);
+        border-radius: 50%;
+        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
+
+        svg{
+            width: 75%;
+            height: 75%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    }
+
     .ring{
         position: absolute;
         border-width: 2px;
