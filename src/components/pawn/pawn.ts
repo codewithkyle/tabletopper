@@ -30,14 +30,18 @@ interface IPawn{
         white: boolean,
         yellow: boolean,
     },
+    hp?: number,
+    fullHP?: number,
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
     public localX: number;
     public localY: number;
+    public timeToSplatter: number;
 
     constructor(pawn){
         super();
+        this.timeToSplatter = 0;
         this.dragging = false;
         this.localX = pawn.x;
         this.localY = pawn.y;
@@ -52,6 +56,8 @@ export default class Pawn extends SuperComponent<IPawn>{
             playerId: pawn?.playerId ?? null,
             monsterId: pawn?.monsterId ?? null,
             rings: pawn.rings,
+            hp: pawn?.hp ?? null,
+            fullHP: pawn?.fullHP ?? null,
         };
         subscribe("sync", this.syncInbox.bind(this));
     }
@@ -123,9 +129,23 @@ export default class Pawn extends SuperComponent<IPawn>{
         }
     }
 
+    private resetTooltip(){
+        if (this.model.hp !== null && this.model.fullHP !== null){
+            if (this.model.hp <= this.model.fullHP * 0.5){
+                this.setAttribute("bleeding", "true");
+                this.setAttribute("tooltip", `${this.model.name} (bloody)`);
+            } else {
+                this.setAttribute("bleeding", "false");
+                this.setAttribute("tooltip", this.model.name);
+            }
+        } else {
+            this.setAttribute("tooltip", this.model.name);
+        }
+    }
+
     private stopDrag:EventListener = (e:DragEvent) => {
         this.classList.remove("no-anim");
-        this.setAttribute("tooltip", this.model.name);
+        this.resetTooltip();
         this.setAttribute("sfx", "button");
         if (this.dragging){
             const op1 = cc.set("pawns", this.model.uid, "x", this.localX);
@@ -218,26 +238,31 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.visibility = "visible";
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
+            this.setAttribute("ghost", "false");
         } else if (this.model.hidden && sessionStorage.getItem("role") === "gm") {
             this.style.visibility = "visible";
             this.style.opacity = "0.5";
             this.style.pointerEvents = "all";
+            this.setAttribute("ghost", "true");
         } else {
             this.style.visibility = "hidden";
             this.style.opacity = "0";
             this.style.pointerEvents = "none";
+            this.setAttribute("ghost", "false");
         }
         this.dataset.uid = this.model.uid;
         if (this.model?.playerId){
             this.dataset.playerUid = this.model.playerId;
         }
         if (!this.dragging){
-            this.setAttribute("tooltip", this.model.name);
             this.setAttribute("sfx", "button");
         }
+        this.resetTooltip();
         this.style.transform = `translate(${this.model.x}px, ${this.model.y}px)`;
         this.localX = this.model.x;
         this.localY = this.model.y;
+        this.dataset.x = `${this.localX}`;
+        this.dataset.y = `${this.localY}`;
         this.className = "pawn";
         const view = html`
             ${this.renderRings()}

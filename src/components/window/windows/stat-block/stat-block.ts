@@ -64,7 +64,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         this.set({
             hp: pawn.hp,
             ac: pawn.ac,
-            fullHP: monster ? monster.hp : pawn.hp,
+            fullHP: pawn.fullHP,
             hidden: pawn.hidden,
             name: pawn.name,
             rings: pawn.rings,
@@ -76,7 +76,8 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         const op = cc.set("pawns", this.pawnId, "hp", value);
         cc.dispatch(op);
     }, 1000);
-    private updateHP(value:number){
+    private updateHP(value){
+        value = parseInt(value);
         if (value > this.model.fullHP) {
             this.classList.add("overhealed");
             this.classList.remove("bloody");
@@ -89,7 +90,8 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         this.deferedHPUpdate(value);
     }
 
-    private updateAC(value:number){
+    private updateAC(value){
+        value = parseInt(value);
         const op = cc.set("pawns", this.pawnId, "ac", value);
         cc.dispatch(op);
     }
