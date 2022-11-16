@@ -20,6 +20,16 @@ interface IPawn{
     name: string;
     playerId: string|null;
     monsterId: string|null;
+    rings: {
+        blue: boolean,
+        green: boolean,
+        orange: boolean,
+        pink: boolean,
+        purple: boolean,
+        red: boolean,
+        white: boolean,
+        yellow: boolean,
+    },
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
@@ -41,6 +51,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             token: pawn?.token ?? null,
             playerId: pawn?.playerId ?? null,
             monsterId: pawn?.monsterId ?? null,
+            rings: pawn.rings,
         };
         subscribe("sync", this.syncInbox.bind(this));
     }
@@ -178,6 +189,30 @@ export default class Pawn extends SuperComponent<IPawn>{
         return out;
     }
 
+    private renderRings(){
+        let x = 0;
+        let y = 0;
+        let w = 32;
+        let h = 32;
+        let delay = 0;
+        return html`
+            ${Object.keys(this.model.rings).map(key => {
+                if (this.model.rings[key]){
+                    x -= 3;
+                    y -= 3;
+                    w += 6;
+                    h += 6;
+                    delay += 0.25;
+                    return html`
+                        <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${key}"></div>
+                    `;
+                } else {
+                    return "";
+                }
+            })}
+        `;
+    }
+
     override async render() {
         if (!this.model.hidden){
             this.style.visibility = "visible";
@@ -205,6 +240,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.localY = this.model.y;
         this.className = "pawn";
         const view = html`
+            ${this.renderRings()}
             ${this.renderPawn()}
         `;
         render(view, this);

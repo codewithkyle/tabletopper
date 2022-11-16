@@ -16,6 +16,16 @@ interface IStatBlock {
     ac: number,
     hidden: boolean,
     name: string,
+    rings: {
+        blue: boolean,
+        green: boolean,
+        orange: boolean,
+        pink: boolean,
+        purple: boolean,
+        red: boolean,
+        white: boolean,
+        yellow: boolean,
+    },
 }
 export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
@@ -31,6 +41,16 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             ac: 0,
             hidden: true,
             name: "",
+            rings: {
+                blue: false,
+                green: false,
+                orange: false,
+                pink: false,
+                purple: false,
+                red: false,
+                white: false,
+                yellow: false,
+            },
         };
     }
 
@@ -47,6 +67,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             fullHP: monster ? monster.hp : pawn.hp,
             hidden: pawn.hidden,
             name: pawn.name,
+            rings: pawn.rings,
         });
         this.render();
     }
@@ -75,6 +96,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             type: "locate:pawn",
             data: this.pawnId,
         });
+    }
+
+    private handleRingChange:EventListener = (e:Event) => {
+        const input = e.currentTarget as HTMLInputElement;
+        const op = cc.set("pawns", this.pawnId, `rings.${input.value}`, input.checked);
+        cc.dispatch(op);
     }
 
     private openMonsterManual(){
@@ -107,6 +134,17 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }
     }
 
+    private renderRings(){
+        return html`
+            ${Object.keys(this.model.rings).map(key => {
+                return html`
+                    <input type="checkbox" id="ring-${key}" name="ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
+                    <label for="ring-${key}" color="${key}"></label>
+                `;
+            })}
+        `;
+    }
+
     override render(): void {
         const view = html`
             <div class="w-full mb-0.5" grid="columns 2 gap-1">
@@ -125,7 +163,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>`,
                 })}
             </div>
-            <div class="w-full mb-1" flex="items-center justify-between row nowrap">
+            <div class="w-full mb-0.5" flex="items-center justify-between row nowrap">
                 ${new Lightswitch({
                     name: "hidden",
                     label: "Visible",
@@ -164,6 +202,9 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                         size: "slim",
                     })}
                 </div>
+            </div>
+            <div class="w-full rings" flex="row wrap items-center">
+                ${this.renderRings()}
             </div>
         `;
         render(view, this);

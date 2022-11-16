@@ -55,4 +55,66 @@
         border-radius: 50%;
         box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
+
+    .ring{
+        position: absolute;
+        border-width: 2px;
+        border-style: solid;
+        border-radius: 50%;
+        animation-name: spin;
+        animation-duration: 3s;
+        transition-timing-function: var(--ease-in-out);
+        animation-iteration-count: infinite;
+
+        &[color="red"]{
+            border-color: var(--red-500);
+        }
+
+        &[color="blue"]{
+            border-color: var(--blue-500);
+        }
+
+        &[color="green"]{
+            border-color: var(--green-500);
+        }
+
+        &[color="orange"]{
+            border-color: var(--orange-500);
+        }
+
+        &[color="pink"]{
+            border-color: var(--pink-500);
+        }
+
+        &[color="purple"]{
+            border-color: var(--purple-500);
+        }
+
+        &[color="white"]{
+            border-color: var(--white);
+        }
+
+        &[color="yellow"]{
+            border-color: var(--yellow-500);
+        }
+
+        &::after{
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: calc(100% + 4px);
+            height: calc(100% + 4px);
+            content: "";
+            border: 2px dashed rgba(0,0,0,0.25);
+            border-radius: 50%;
+        }
+    }
+}
+@keyframes spin{
+    to {
+        transform: rotate(0);
+    }
+    from {
+        transform: rotate(360deg);
+    }
 }
