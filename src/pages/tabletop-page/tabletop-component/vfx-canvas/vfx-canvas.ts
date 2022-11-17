@@ -62,8 +62,8 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                     const x = Math.round(centerX + pawnX);
                     const y = Math.round(centerY + pawnY)
                     const pos = [
-                        this.randomInt((x - (pawnBounds.width * 0.25)), (x + (pawnBounds.width * 0.25))),
-                        this.randomInt((y - (pawnBounds.height * 0.25)), (y + (pawnBounds.height * 0.25)))
+                        this.randomInt((x - (pawnBounds.width * 0.125)), (x + (pawnBounds.width * 0.125))),
+                        this.randomInt((y - (pawnBounds.height * 0.125)), (y + (pawnBounds.height * 0.125)))
                     ];
                     const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnBounds.width / this.parentElement.zoom);
                     this.effects.push(splatter);
