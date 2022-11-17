@@ -105,12 +105,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private handleRingChange:EventListener = (e:Event) => {
         const input = e.currentTarget as HTMLInputElement;
+        console.log(input);
         const op = cc.set("pawns", this.pawnId, `rings.${input.value}`, input.checked);
         cc.dispatch(op);
     }
 
     private openMonsterManual(){
-        console.log("asdfsadfsadf");
         const windowEl = document.body.querySelector(`window-component[window="${this.monsterId}"]`) || new Window({
             name: this.model.name,
             view: new MonsterStatBlock(this.monsterId),
@@ -143,7 +143,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         return html`
             ${Object.keys(this.model.rings).map(key => {
                 return html`
-                    <input type="checkbox" id="ring-${key}" name="${this.pawnId}-ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
+                    <input type="checkbox" id="${this.pawnId}-ring-${key}" name="${this.pawnId}-ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
                     <label for="${this.pawnId}-ring-${key}" color="${key}"></label>
                 `;
             })}
@@ -154,14 +154,14 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         const view = html`
             <div class="w-full mb-0.5" grid="columns 2 gap-1">
                 ${new NumberInput({
-                    name: "hp",
+                    name: `${this.pawnId}-hp`,
                     label: "Hit Points",
                     value: this.model.hp,
                     callback: this.updateHP.bind(this),
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
                 })}
                 ${new NumberInput({
-                    name: "ac",
+                    name: `${this.pawnId}-ac`,
                     label: "Armour Class",
                     value: this.model.ac,
                     callback: this.debounce(this.updateAC.bind(this), 1000).bind(this),
@@ -170,7 +170,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             </div>
             <div class="w-full mb-0.5" flex="items-center justify-between row nowrap">
                 ${new Lightswitch({
-                    name: "hidden",
+                    name: `${this.pawnId}-hidden`,
                     label: "Visible",
                     labelIcon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><circle cx="12" cy="12" r="2"></circle><path d="M22 12c-2.667 4.667 -6 7 -10 7s-7.333 -2.333 -10 -7c2.667 -4.667 6 -7 10 -7s7.333 2.333 10 7"></path></svg>`,
                     altLabel: "Hidden",
