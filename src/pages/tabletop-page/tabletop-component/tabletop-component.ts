@@ -132,17 +132,17 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             case "INSERT":
                 if (op.table === "pawns"){
                     if (op.value?.playerId != null){
-                        const el = this.querySelector(`player-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
+                        const el = this.querySelector(`pawn-component[data-player-uid="${op.value.playerId}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }
                     } else if (op.value?.monsterId != null){
-                        const el = this.querySelector(`monster-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
+                        const el = this.querySelector(`pawn-component[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }
                     } else {
-                        const el = this.querySelector(`npc-pawn[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
+                        const el = this.querySelector(`pawn-component[data-uid="${op.value.uid}"]`) || new Pawn(op.value);
                         if (!el.isConnected){
                             this.appendChild(el);
                         }
