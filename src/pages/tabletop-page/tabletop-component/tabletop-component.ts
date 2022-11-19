@@ -250,12 +250,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (!this.vfxCanvas.isConnected){
             this.appendChild(this.vfxCanvas);
         }
-        if (image !== null){
-            setTimeout(()=>{
-                this.gridCanvas.render();
-                this.vfxCanvas.render();
-            }, 100);
-        }
+        this.gridCanvas.render();
+        this.vfxCanvas.render();
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }
 }
