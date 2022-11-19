@@ -7,6 +7,7 @@ import notifications from "~brixi/controllers/notifications";
 import { setValueFromKeypath } from "~utils/object";
 import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
+import GridCanvas from "./grid-canvas/grid-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -223,6 +224,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         const view = html`
             ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
             ${image ? new VFXCanvas() : ""}
+            ${image ? new GridCanvas() : ""}
         `;
         render(view, this);
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;

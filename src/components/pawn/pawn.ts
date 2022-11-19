@@ -1,6 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
-import { subscribe } from "@codewithkyle/pubsub";
+import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
 import db from "@codewithkyle/jsql";
 import { ConvertBase64ToBlob } from "utils/file";
 import { setValueFromKeypath } from "utils/object";
@@ -40,6 +40,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     public localX: number;
     public localY: number;
     public timeToSplatter: number;
+    private ticket: string;
 
     constructor(pawn){
         super();
@@ -62,7 +63,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             fullHP: pawn?.fullHP ?? null,
             size: pawn?.size ?? "medium",
         };
-        subscribe("sync", this.syncInbox.bind(this));
+        this.ticket = subscribe("sync", this.syncInbox.bind(this));
     }
     
     override async connected() {
@@ -78,6 +79,10 @@ export default class Pawn extends SuperComponent<IPawn>{
             }
         }
         this.render();
+    }
+
+    override disconnected(): void {
+        unsubscribe(this.ticket);
     }
 
     public async loadImage(imageId:string){
