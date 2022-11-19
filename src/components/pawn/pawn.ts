@@ -99,6 +99,10 @@ export default class Pawn extends SuperComponent<IPawn>{
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
                     this.set(updatedModel);
                 }
+                if(op.table === "games" && op.key === sessionStorage.getItem("room")){
+                    this.style.width = `${op.value}px`;
+                    this.style.height = `${op.value}px`;
+                }
                 break;
             case "DELETE":
                 if (op.table === "pawns" && op.key === this.model.uid){
@@ -251,6 +255,9 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     override async render() {
+        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
+        this.style.width = `${game["grid_size"]}px`;
+        this.style.height = `${game["grid_size"]}px`;
         if (!this.model.hidden){
             this.style.visibility = "visible";
             this.style.opacity = "1";
