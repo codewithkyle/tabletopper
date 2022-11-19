@@ -48,7 +48,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
     }
 
     private async load(){
-        const prevMaps = (await db.query("SELECT loaded_maps FROM games WHERE room = $room", { room: sessionStorage.getItem("room") }))[0].loaded_maps;
+        const prevMaps = (await db.query("SELECT loaded_maps FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0].loaded_maps;
         let alreadyLoadedMap = false;
         for (let i = 0; i < prevMaps.length; i++){
             if (prevMaps[i] === this.model.selected){

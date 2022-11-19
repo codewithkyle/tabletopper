@@ -6,11 +6,14 @@ import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import Window from "~components/window/window";
+import Initiative from "~components/window/windows/initiative/initiative";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import Spellbook from "~components/window/windows/spellbook/spellbook";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
+import cc from "controllers/control-center";
+import db from "@codewithkyle/jsql";
 
 interface IToolbarMenu {
     menu: Menu,
@@ -234,6 +237,79 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private openInitiative:EventListener = (e:Event) => {
+        const window = document.body.querySelector('window-component[window="initiative"]') || new Window({
+            name: "Initiative",
+            view: new Initiative(),
+            width: 300,
+            height: 300,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
+    }
+
+    private clearInitiative:EventListener = (e:Event) => {
+        const op = cc.set("games", sessionStorage.getItem("room"), "initiative", []);
+        cc.dispatch(op);
+        const op2 = cc.set("games", sessionStorage.getItem("room"), "active_initiative", null);
+        cc.dispatch(op2);
+    }
+
+    private nextInitiative:EventListener = async (e:Event) => {
+        const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))?.[0] ?? {};
+        if (result?.initiative?.length === 1){
+            notifications.snackbar("Too few initiatives to track.");
+            return;
+        }
+        if (result?.active_initiative != null && result.initiative.length){
+            for (let i = 0; i < result.initiative.length; i++){
+                if (result.initiative[i].uid === result.active_initiative){
+                    let nextIndex = result.initiative[i].index + 1;
+                    if (nextIndex >= result.initiative.length){
+                        nextIndex = 0;
+                    }
+                    let onDeckIndex = nextIndex + 1;
+                    if (onDeckIndex >= result.initiative.length){
+                        onDeckIndex = 0;
+                    }
+                    send("room:announce:initiative", {
+                        current: result.initiative[nextIndex],
+                        next: result.initiative[onDeckIndex],
+                    });
+                    break;
+                }
+            }
+        } else if ("active_initiative" in result && result.active_initiative === null && result?.initiative?.length) {
+            send("room:announce:initiative", {
+                current: result.initiative[0],
+                next: result.initiative[1],
+            });
+        } else {
+            notifications.snackbar("Initiative tracker is not currently tracking anything.");
+        }
+    }
+
+    private syncInitiativePawn:EventListener = (e:Event) => {
+        const pawns: HTMLElement[] = Array.from(document.body.querySelectorAll("pawn-component"));
+        const data = [];
+        const claimedNames = [];
+        for (let i = 0; i < pawns.length; i++){
+            if (!claimedNames.includes(pawns[i].dataset.name)){
+                claimedNames.push(pawns[i].dataset.name);
+                data.push({
+                    uid: pawns[i].dataset.uid,
+                    name: pawns[i].dataset.name,
+                    playerId: pawns[i].dataset?.playerUid ?? null,
+                    index: i,
+                });
+            }
+        }
+        const op = cc.set("games", sessionStorage.getItem("room"), "initiative", data);
+        cc.dispatch(op);
+    }
+
     private renderFileMenu():TemplateResult{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
@@ -321,10 +397,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
-                    <!--
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openInitiative}>
                         <span>Initiative tracker</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Chat</span>
                     </button>
@@ -441,22 +517,18 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.nextInitiative}>
                         <span>Next</span>
                         <span>Ctrl+Shift+=</span>
                     </button>
-                    <button sfx="button">
-                        <span>Previous</span>
-                        <span>Ctrl+Shift+-</span>
-                    </button>
                     <hr>
-                    <button sfx="button">
-                        <span>Clear tracker</span>
-                        <span>Ctrl+Shift+Backspace</span>
-                    </button>
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.syncInitiativePawn}>
                         <span>Sync tracker</span>
                         <span>Ctrl+R</span>
+                    </button>
+                    <button sfx="button" @click=${this.clearInitiative}>
+                        <span>Clear tracker</span>
+                        <span>Ctrl+Shift+Backspace</span>
                     </button>
                 </div>
             `;

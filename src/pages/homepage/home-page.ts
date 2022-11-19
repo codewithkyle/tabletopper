@@ -64,7 +64,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 }
                 break;
             case "room:join":
-                navigateTo(`/room/${data.code}`);
+                navigateTo(`/room/${data.uid}`);
                 dj.pause("mainMenu");
                 break;
             case "character:getDetails":

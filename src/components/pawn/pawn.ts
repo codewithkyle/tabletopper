@@ -281,6 +281,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.dataset.x = `${this.localX}`;
         this.dataset.y = `${this.localY}`;
         this.className = "pawn";
+        this.dataset.name = this.model.name;
         const view = html`
             ${this.renderRings()}
             ${this.renderPawn()}

@@ -43,8 +43,11 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         await db.query("RESET ledger");
         await db.query("INSERT INTO games VALUES ($game)", {
             game: {
+                uid: sessionStorage.getItem("room"),
                 map: null,
-                room: sessionStorage.getItem("room"),
+                loaded_maps: [],
+                players: [],
+                initiative: [],
             }
         });
         // @ts-expect-error

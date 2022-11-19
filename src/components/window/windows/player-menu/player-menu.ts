@@ -111,7 +111,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
     }
 
     override async render(){
-        const players = await db.query("SELECT * FROM players WHERE room = $room AND active = 1", {
+        const players = await db.query("SELECT * FROM players WHERE uid = $room AND active = 1", {
             room: sessionStorage.getItem("room"),
         });
         const view = html`

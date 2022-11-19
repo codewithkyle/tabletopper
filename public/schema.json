@@ -51,7 +51,7 @@
         },
         {
             "name": "games",
-            "keyPath": "room",
+            "keyPath": "uid",
             "columns": [
                 {
                     "key": "uid",
@@ -68,6 +68,14 @@
                 {
                     "key": "players",
                     "default": []
+                },
+                {
+                    "key": "initiative",
+                    "default": []
+                },
+                {
+                    "key": "active_initiative",
+                    "default": null
                 }
             ]
         },

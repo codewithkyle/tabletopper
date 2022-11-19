@@ -37,7 +37,7 @@ async function connect() {
                     location.href = location.origin;
                     break;
                 case "room:join":
-                    sessionStorage.setItem("room", data.code);
+                    sessionStorage.setItem("room", data.uid);
                     sessionStorage.setItem("lastSocketId", sessionStorage.getItem("socketId"));
                     publish("socket", {
                         type: type,
@@ -52,6 +52,9 @@ async function connect() {
                     break;
                 case "room:announce:reconnect":
                     notifications.success("Player Reconnected", data);
+                    break;
+                case "room:announce:initiative":
+                    notifications.alert(data.title, data.message);
                     break;
                 case "room:announce:kick":
                     notifications.alert("Player Kicked", data);

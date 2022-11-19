@@ -39,6 +39,7 @@
     "npm-watch": "^0.10.0",
     "sass": "^1.47.0",
     "serve": "^13.0.2",
+    "sortablejs": "^1.15.0",
     "tooltipper": "^1.1.3"
   },
   "bundle": [
@@ -55,7 +56,8 @@
     "tooltipper",
     "fuse.js",
     "dayjs",
-    "marked"
+    "marked",
+    "sortablejs"
   ],
   "watch": {
     "build": {
