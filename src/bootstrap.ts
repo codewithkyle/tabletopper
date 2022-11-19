@@ -54,6 +54,7 @@ import { connect } from "~controllers/ws";
         db.query("RESET players"),
         db.query("RESET ledger"),
         db.query("RESET pawns"),
+        db.query("RESET rolls"),
     ]);
 
     db.query("SELECT COUNT(index) FROM spells").then(results => {

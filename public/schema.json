@@ -3,6 +3,25 @@
     "version": 1,
     "tables": [
         {
+            "name": "rolls",
+            "keyPath": "uid",
+            "columns": [
+                {
+                    "key": "uid",
+                    "unique": true
+                },
+                {
+                    "key": "room"
+                },
+                {
+                    "key": "timestamp"
+                },
+                {
+                    "key": "result"
+                }
+            ]
+        },
+        {
             "name": "images",
             "keyPath": "uid",
             "columns": [

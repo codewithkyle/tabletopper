@@ -14,6 +14,7 @@ import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
 import cc from "controllers/control-center";
 import db from "@codewithkyle/jsql";
+import DiceBox from "~components/window/windows/dice-box/dice-box";
 
 interface IToolbarMenu {
     menu: Menu,
@@ -223,6 +224,19 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         this.close();
     }
 
+    private openDiceBox:EventListener = (e:Event) => {
+        const window = document.body.querySelector('window-component[window="dice-box"]') || new Window({
+            name: "Dice Tray",
+            view: new DiceBox(),
+            minHeight: 400,
+            width: 350,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
+    }
+
     private openSpellbook:EventListener = (e:Event) => {
         const window = document.body.querySelector('window-component[window="spellbook"]') || new Window({
             name: "Spellbook",
@@ -411,10 +425,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
                     </button>
-                    <!--
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openDiceBox}>
                         <span>Dice tray</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Drawing tools</span>
                     </button>
@@ -428,10 +442,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         else {
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
-                    <!--
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openInitiative}>
                         <span>Initiative tracker</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Chat</span>
                     </button>
@@ -439,10 +453,10 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                     <button sfx="button" @click=${this.openSpellbook}>
                         <span>Spellbook</span>
                     </button>
-                    <!--
-                    <button sfx="button">
+                    <button sfx="button" @click=${this.openDiceBox}>
                         <span>Dice tray</span>
                     </button>
+                    <!--
                     <button sfx="button">
                         <span>Drawing tools</span>
                     </button>
