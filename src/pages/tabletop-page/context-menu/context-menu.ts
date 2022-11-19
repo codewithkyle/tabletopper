@@ -64,6 +64,7 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                                 name: monster.name,
                                 ac: monster.ac,
                                 hp: monster.hp,
+                                size: monster.size.toLowerCase(),
                             });
                         }
                     });

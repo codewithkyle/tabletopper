@@ -1,5 +1,7 @@
 export type ToolbarMenu = "file" | "tabletop" | "initiative" | "help" | "view" | "window" | "room";
 
+export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+
 export interface Monster {
     index:            string;
     name:             string;

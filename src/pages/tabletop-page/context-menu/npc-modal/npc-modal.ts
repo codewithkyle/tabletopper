@@ -3,8 +3,10 @@ import {html, render} from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import NumberInput from "~brixi/components/inputs/number-input/number-input";
+import Select from "~brixi/components/select/select";
 import env from "~brixi/controllers/env";
 import {send} from "~controllers/ws";
+import {Size} from "~types/app";
 
 interface INPCModal {
     name: string,
@@ -12,6 +14,7 @@ interface INPCModal {
     ac: number,
     x: number,
     y: number,
+    size: Size,
 }
 export default class NPCModal extends SuperComponent<INPCModal>{
     constructor(x:number, y:number){
@@ -22,6 +25,7 @@ export default class NPCModal extends SuperComponent<INPCModal>{
             ac: 0,
             x: x,
             y: y,
+            size: "medium",
         };
     }
 
@@ -70,6 +74,24 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                             }
                         })}
                     </div>
+                    ${new Select({
+                        name: "size",
+                        label: "Size",
+                        value: "medium",
+                        options: [
+                            { label: "Tiny", value: "tiny", },
+                            { label: "Small", value: "small", },
+                            { label: "Medium", value: "medium", },
+                            { label: "Large", value: "large", },
+                            { label: "Huge", value: "huge", },
+                            { label: "Gargantuan", value: "gargantuan", },
+                        ],
+                        callback: (value:string) => {
+                            this.set({
+                                size: value,
+                            }, true);
+                        }
+                    })}
                 </div>
                 <div class="w-full border-t-1 border-t-solid border-t-grey-300 bg-grey-50 p-1" flex="items-center justify-end">
                     ${new Button({

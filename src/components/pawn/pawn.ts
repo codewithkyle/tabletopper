@@ -9,6 +9,7 @@ import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-c
 import {html, render, TemplateResult} from "lit-html";
 import Window from "~components/window/window";
 import StatBlock from "components/window/windows/stat-block/stat-block";
+import {Size} from "~types/app";
 
 interface IPawn{
     uid: string,
@@ -32,6 +33,7 @@ interface IPawn{
     },
     hp?: number,
     fullHP?: number,
+    size: Size,
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
@@ -58,6 +60,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             rings: pawn.rings,
             hp: pawn?.hp ?? null,
             fullHP: pawn?.fullHP ?? null,
+            size: pawn?.size ?? "medium",
         };
         subscribe("sync", this.syncInbox.bind(this));
     }
@@ -99,9 +102,8 @@ export default class Pawn extends SuperComponent<IPawn>{
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
                     this.set(updatedModel);
                 }
-                if(op.table === "games" && op.key === sessionStorage.getItem("room")){
-                    this.style.width = `${op.value}px`;
-                    this.style.height = `${op.value}px`;
+                if(op.table === "games" && op.key === sessionStorage.getItem("room") && op.keypath === "grid_size"){
+                    this.setSize();
                 }
                 break;
             case "DELETE":
@@ -196,6 +198,30 @@ export default class Pawn extends SuperComponent<IPawn>{
         }
     }
 
+    private async setSize(){
+        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
+        let multi;
+        switch (this.model.size){
+            case "tiny":
+                multi = 0.5;
+                break;
+            case "large":
+                multi = 2;
+                break;
+            case "huge":
+                multi = 3;
+                break;
+            case "gargantuan":
+                multi = 4;
+                break;
+            default:
+                multi = 1;
+                break;
+        }
+        this.style.width = `${game["grid_size"] * multi}px`;
+        this.style.height = `${game["grid_size"] * multi}px`;
+    }
+
     private renderPawn():TemplateResult{
         let out:TemplateResult;
         if ("hp" in this.model && this.model.hp === 0){
@@ -255,9 +281,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     override async render() {
-        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
-        this.style.width = `${game["grid_size"]}px`;
-        this.style.height = `${game["grid_size"]}px`;
+        this.setSize();
         if (!this.model.hidden){
             this.style.visibility = "visible";
             this.style.opacity = "1";
