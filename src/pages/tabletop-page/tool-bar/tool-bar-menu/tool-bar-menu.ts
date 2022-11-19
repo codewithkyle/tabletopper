@@ -255,6 +255,8 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         const window = document.body.querySelector('window-component[window="initiative"]') || new Window({
             name: "Initiative",
             view: new Initiative(),
+            minWidth: 300,
+            minHeight: 300,
             width: 300,
             height: 300,
         });

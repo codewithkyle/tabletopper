@@ -102,14 +102,9 @@ class InitiativeItem extends SuperComponent<IInitiativeItem>{
         this.ping = ping;
         this.render();
     }
-    override render(): void {
-        this.dataset.uid = this.pawn.uid;
-        if (this.active_initiative === this.pawn.uid){
-            this.classList.add("is-active");
-        }
-        const view = html`
-            <span>${this.pawn.name}</span>
-            ${new Button({
+    private renderButton(){
+        if (sessionStorage.getItem("role") === "gm"){
+            return new Button({
                 icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M15 11l4 4l-4 4m4 -4h-11a4 4 0 0 1 0 -8h1"></path></svg>`,
                 tooltip: "Start turn",
                 kind: "text",
@@ -120,7 +115,19 @@ class InitiativeItem extends SuperComponent<IInitiativeItem>{
                     let nextIndex = this.pawn.index + 1;
                     this.ping(this.pawn, nextIndex);
                 },
-            })}
+            });
+        } else {
+            return "";
+        }
+    }
+    override render(): void {
+        this.dataset.uid = this.pawn.uid;
+        if (this.active_initiative === this.pawn.uid){
+            this.classList.add("is-active");
+        }
+        const view = html`
+            <span>${this.pawn.name}</span>
+            ${this.renderButton()}
         `;
         render(view, this);
     }
