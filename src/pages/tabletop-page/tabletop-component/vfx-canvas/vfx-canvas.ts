@@ -9,9 +9,12 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     private time:number;
     private effects:Array<BloodSpatter>;
     private images:Array<HTMLImageElement>;
+    private img:HTMLImageElement;
 
-    constructor(){
+    constructor(img:HTMLImageElement){
         super();
+        this.canvas = document.createElement("canvas");
+        this.img = img;
         this.images = [];
         this.effects = [];
         for (let i = 1; i <= 5; i++){
@@ -80,12 +83,11 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     }
 
     override render(): void {
-        this.innerHTML = `<canvas></canvas>`;
-        const bgImg = this.parentElement.querySelector(":scope > img");
-        this.canvas = this.querySelector("canvas");
-        const bgImgBounds = bgImg.getBoundingClientRect();
-        this.canvas.width = bgImgBounds.width;
-        this.canvas.height = bgImgBounds.height;
+        if (!this.canvas.isConnected){
+            this.appendChild(this.canvas);
+        }
+        this.canvas.width = this.img.width;
+        this.canvas.height = this.img.height;
         this.ctx = this.canvas.getContext("2d");
         this.time = performance.now();
         this.renderLoop();

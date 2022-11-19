@@ -29,6 +29,9 @@ async function connect() {
                 case "room:tabletop:clear":
                     await db.query("RESET ledger");
                     await db.query("RESET pawns");
+                    publish("tabletop", {
+                        type: "clear",
+                    });
                     break;
                 case "room:ban":
                     sessionStorage.removeItem("room");

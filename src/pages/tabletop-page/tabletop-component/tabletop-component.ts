@@ -1,9 +1,7 @@
 import db from "@codewithkyle/jsql";
 import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
-import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import { setValueFromKeypath } from "~utils/object";
 import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
@@ -20,9 +18,15 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private lastX: number;
     private lastY: number;
     public zoom: number;
+    private vfxCanvas: VFXCanvas;
+    private gridCanvas: GridCanvas;
+    private img: HTMLImageElement;
 
     constructor(){
-        super();
+        super(); 
+        this.img = new Image();
+        this.vfxCanvas = new VFXCanvas(this.img);
+        this.gridCanvas = new GridCanvas(this.img);
         this.moving = false;
         this.x = window.innerWidth * 0.5;
         this.y = (window.innerHeight - 28) * 0.5;
@@ -37,6 +41,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
      tabletopInbox({type, data}){
         switch(type){
+            case "clear":
+                this.querySelectorAll("pawn-component").forEach((el:HTMLElement) => {
+                    el.remove();
+                });
+                break;
             case "locate:player":
                 if (data != null){
                     const playerPawn = this.querySelector(`[data-player-uid="${data}"]`) as HTMLElement;
@@ -110,11 +119,13 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             case "SET":
                 if(op.table === "games"){
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
-                    this.set(updatedModel);
                     if (op.keypath === "map"){
                         this.moving = false;
                         this.x = window.innerWidth * 0.5;
                         this.y = (window.innerHeight - 28) * 0.5;
+                        this.set(updatedModel);
+                    } else {
+                        this.set(updatedModel, true);
                     }
                 }
                 break;
@@ -219,14 +230,32 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     override async render() {
         let image = null;
         if (this.model.map){
-            image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))[0];
+            image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
         }
-        const view = html`
-            ${image ? html`<img class="center absolute" src="${image.data}" alt="${image.name}" draggable="false">` : ""}
-            ${image ? new VFXCanvas() : ""}
-            ${image ? new GridCanvas() : ""}
-        `;
-        render(view, this);
+        if (image !== null){
+            this.img.src = image.data;
+            this.img.alt = image.name;
+        } else {
+            this.img.src = "";
+            this.img.alt = "";
+        }
+        if (!this.img.isConnected){
+            this.img.className = "center absolute map";
+            this.img.draggable = false;
+            this.appendChild(this.img);
+        }
+        if (!this.gridCanvas.isConnected){
+            this.appendChild(this.gridCanvas);
+        }
+        if (!this.vfxCanvas.isConnected){
+            this.appendChild(this.vfxCanvas);
+        }
+        if (image !== null){
+            setTimeout(()=>{
+                this.gridCanvas.render();
+                this.vfxCanvas.render();
+            }, 100);
+        }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }
 }
