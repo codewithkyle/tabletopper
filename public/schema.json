@@ -95,6 +95,14 @@
                 {
                     "key": "active_initiative",
                     "default": null
+                },
+                {
+                    "key": "grid_size",
+                    "default": 32
+                },
+                {
+                    "key": "render_grid",
+                    "default": false
                 }
             ]
         },

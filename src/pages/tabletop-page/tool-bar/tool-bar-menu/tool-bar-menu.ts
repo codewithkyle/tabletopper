@@ -15,6 +15,7 @@ import type { ToolbarMenu as Menu} from "~types/app";
 import cc from "controllers/control-center";
 import db from "@codewithkyle/jsql";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
+import TabletopSettingsModal from "~components/tabletop-settings/tabletop-settings-modal";
 
 interface IToolbarMenu {
     menu: Menu,
@@ -89,6 +90,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private clickLoadImage:EventListener = (e:Event) => {
         this.loadImage();
+    }
+
+    private clickTabletopSettings:EventListener = (e:Event) => {
+        const modalEl = new TabletopSettingsModal();
+        document.body.appendChild(modalEl);
+        this.close();
     }
 
     private toggleFullscreen:EventListener = (e:Event) => {
@@ -390,6 +397,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         if (sessionStorage.getItem("role") === "gm"){
             return html`
                 <div style="left:${this.calcOffsetX()}px;" class="menu">
+                    <button sfx="button" @click=${this.clickTabletopSettings}>
+                        <span>Settings</span>
+                    </button>
                     <button sfx="button" @click=${this.clickLoadImage}>
                         <span>Load image</span>
                         <span>Ctrl+N</span>
