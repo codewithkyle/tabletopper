@@ -57,7 +57,7 @@ async function connect() {
                     notifications.success("Player Reconnected", data);
                     break;
                 case "room:announce:initiative":
-                    notifications.alert(data.title, data.message);
+                    notifications.alert(data.title, data.message, [], 30);
                     break;
                 case "room:announce:kick":
                     notifications.alert("Player Kicked", data);
