@@ -5,13 +5,13 @@ stat-block{
     padding: 1rem;
 
     &.overhealed {
-        number-input-component.input input-container input#Hit-Points-hp{
+        number-input-component.input:first-of-type input-container input[type="number"]{
             color: var(--success-700) !important;
         }
     }
 
     &.bloody{ 
-        number-input-component.input input-container input#Hit-Points-hp{
+        number-input-component.input:first-of-type input-container input[type="number"]{
             color: var(--danger-700) !important;
         }
     }
