@@ -41,6 +41,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     public localY: number;
     public timeToSplatter: number;
     private ticket: string;
+    private gridSize: number;
 
     constructor(pawn){
         super();
@@ -78,6 +79,8 @@ export default class Pawn extends SuperComponent<IPawn>{
                 await this.loadImage(player.token);
             }
         }
+        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))?.[0] ?? [];
+        this.gridSize = game?.["grid_size"] ?? 32;
         this.render();
     }
 
@@ -108,7 +111,8 @@ export default class Pawn extends SuperComponent<IPawn>{
                     this.set(updatedModel);
                 }
                 if(op.table === "games" && op.key === sessionStorage.getItem("room") && op.keypath === "grid_size"){
-                    this.setSize();
+                    this.gridSize = op.value;
+                    this.render();
                 }
                 break;
             case "DELETE":
@@ -203,9 +207,8 @@ export default class Pawn extends SuperComponent<IPawn>{
         }
     }
 
-    private async setSize(){
-        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
-        let multi;
+    private getSizeMultiplier():number{
+        let multi = 1;
         switch (this.model.size){
             case "tiny":
                 multi = 0.5;
@@ -223,8 +226,13 @@ export default class Pawn extends SuperComponent<IPawn>{
                 multi = 1;
                 break;
         }
-        this.style.width = `${game["grid_size"] * multi}px`;
-        this.style.height = `${game["grid_size"] * multi}px`;
+        return multi;
+    }
+
+    private setSize(){
+        let multi = this.getSizeMultiplier();
+        this.style.width = `${this.gridSize * multi}px`;
+        this.style.height = `${this.gridSize * multi}px`;
     }
 
     private renderPawn():TemplateResult{
@@ -262,10 +270,11 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private renderRings(){
+        const m = this.getSizeMultiplier();
         let x = 0;
         let y = 0;
-        let w = 32;
-        let h = 32;
+        let w = this.gridSize * m;
+        let h = this.gridSize * m;
         let delay = 0;
         return html`
             ${Object.keys(this.model.rings).map(key => {
