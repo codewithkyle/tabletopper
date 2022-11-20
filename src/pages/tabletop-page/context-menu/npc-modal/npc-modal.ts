@@ -50,7 +50,8 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                             this.set({
                                 name: value,
                             }, true);
-                        }
+                        },
+                        autofocus: true,
                     })}
                     <div class="w-full" grid="columns 2 gap-1.5">
                         ${new NumberInput({
