@@ -10,12 +10,14 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     private effects:Array<BloodSpatter>;
     private images:Array<HTMLImageElement>;
     private img:HTMLImageElement;
+    private running: boolean;
 
     constructor(img:HTMLImageElement){
         super();
-        this.canvas = document.createElement("canvas");
+        this.canvas = null;
         this.img = img;
         this.images = [];
+        this.running = false;
         this.effects = [];
         for (let i = 1; i <= 5; i++){
             const image = new Image();
@@ -45,6 +47,7 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     }
 
     private renderLoop(){
+        this.running = true;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         const newTime = performance.now();
         const deltaTime = (newTime - this.time) / 1000;
@@ -83,14 +86,19 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     }
 
     override render(): void {
-        if (!this.canvas.isConnected){
+        if (!this.canvas){
+            this.canvas = document.createElement("canvas");
             this.appendChild(this.canvas);
         }
         this.canvas.width = this.img.width;
         this.canvas.height = this.img.height;
+        this.canvas.style.width = `${this.img.width}px`;
+        this.canvas.style.height = `${this.img.height}px`;
         this.ctx = this.canvas.getContext("2d");
-        this.time = performance.now();
-        this.renderLoop();
+        if (!this.running){
+            this.time = performance.now();
+            this.renderLoop();
+        }
     }
 }
 env.bind("vfx-canvas", VFXCanvas);
