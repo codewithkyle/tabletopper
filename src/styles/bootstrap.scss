@@ -1,3 +1,9 @@
+html {
+  overscroll-behavior-x: none;
+} 
+body {
+  overscroll-behavior-x: none;
+}
 #bootstrap {
     position: absolute;
     width: 36px;
