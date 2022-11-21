@@ -129,8 +129,8 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private contextMenu:EventListener = (e:MouseEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        //e.preventDefault();
+        //e.stopImmediatePropagation();
         if (this.model?.playerId == null && sessionStorage.getItem("role") === "gm"){
             const x = e.clientX;
             const y = e.clientY;
@@ -178,8 +178,8 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private startDrag:EventListener = (e:MouseEvent|TouchEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        //e.preventDefault();
+        //e.stopImmediatePropagation();
         if (e.button === 0 || window.TouchEvent && e instanceof TouchEvent){
             this.dragging = true;
             const tooltip = document.body.querySelector(`tool-tip[uid="${this.dataset.tooltipUid}"]`);
