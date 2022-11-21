@@ -76,6 +76,8 @@ export default class Window extends SuperComponent<IWindow>{
         await env.css(["window"]);
         window.addEventListener("mouseup", this.stopMove, { capture: true, passive: true });
         window.addEventListener("mousemove", this.move, { capture: true, passive: true });
+        window.addEventListener("touchend", this.stopMove, { capture: true, passive: true });
+        window.addEventListener("touchmove", this.move, { capture: true, passive: true });
         this.render();
         this.focus();
     }
@@ -263,7 +265,7 @@ export default class Window extends SuperComponent<IWindow>{
         this.setAttribute("window", this.name.toLowerCase().trim().replace(/\s+/g, "-"));
         this.setAttribute("size", this.model.size);
         const view = html`
-            <div class="header" flex="row nowrap items-center justify-between" @mousedown=${this.startMove}>
+            <div class="header" flex="row nowrap items-center justify-between" @mousedown=${this.startMove} @touchstart=${this.startMove}>
                 <h3 class="font-sm px-0.5">${this.name}</h3>
                 <div class="h-full" flex="row nowrap items-center">
                     <button @click=${this.handleMinimize} @mousedown=${this.noop} sfx="button">
