@@ -180,8 +180,8 @@ export default class Window extends SuperComponent<IWindow>{
     }
 
     private startMove:EventListener = (e:MouseEvent|TouchEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        //e.preventDefault();
+        //e.stopImmediatePropagation();
         if (this.model.size === "maximized"){
             return;
         }
