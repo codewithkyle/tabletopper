@@ -72,6 +72,9 @@ export default class Pawn extends SuperComponent<IPawn>{
         window.addEventListener("mousemove", this.dragPawn, { passive: true, capture: true });
         this.addEventListener("mousedown", this.startDrag, { passive: false, capture: true });
         window.addEventListener("mouseup", this.stopDrag, { passive: true, capture: true });
+        window.addEventListener("touchmove", this.dragPawn, { passive: true, capture: true });
+        this.addEventListener("touchstart", this.startDrag, { passive: false, capture: true });
+        window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
         this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
         if (this.model.playerId){
             const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? [];
@@ -174,10 +177,10 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.dragging = false;
     }
 
-    private startDrag:EventListener = (e:MouseEvent) => {
+    private startDrag:EventListener = (e:MouseEvent|TouchEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (e.button === 0){
+        if (e.button === 0 || window.TouchEvent && e instanceof TouchEvent){
             this.dragging = true;
             const tooltip = document.body.querySelector(`tool-tip[uid="${this.dataset.tooltipUid}"]`);
             if (tooltip){
@@ -189,11 +192,18 @@ export default class Pawn extends SuperComponent<IPawn>{
         }
     }
 
-    private dragPawn:EventListener = (e:MouseEvent) => {
+    private dragPawn:EventListener = (e:MouseEvent|TouchEvent) => {
         if (this.dragging){
             const tabletop = this.parentElement as TabeltopComponent;
-            const x = e.clientX;
-            const y = e.clientY;
+            let x;
+            let y;
+            if (window.TouchEvent && e instanceof TouchEvent){
+                x = e.touches[0].clientX;
+                y = e.touches[0].clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
             const bounds = this.getBoundingClientRect();
             let diffX = (tabletop.x - x);
             let diffY = (tabletop.y - y);
