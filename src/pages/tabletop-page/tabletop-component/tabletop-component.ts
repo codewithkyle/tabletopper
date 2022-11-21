@@ -159,6 +159,9 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         window.addEventListener("mousemove", this.handleMouseMove, { passive: true });
         window.addEventListener("mousedown", this.handleWindowDown, { passive: true });
         window.addEventListener("mouseup", this.handleMouseUp, { passive: true });
+        window.addEventListener("touchmove", this.handleMouseMove, { passive: true });
+        window.addEventListener("touchstart", this.handleWindowDown, { passive: true });
+        window.addEventListener("touchend", this.handleMouseUp, { passive: true });
         window.addEventListener("wheel", this.handleScroll, { passive: true });
         document.body.addEventListener("drop", this.handleDrop, { passive: false, capture: true });
         this.render();
