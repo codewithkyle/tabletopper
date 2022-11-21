@@ -199,11 +199,16 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         }
     }
 
-    private handleWindowDown:EventListener = (e:MouseEvent) =>{
+    private handleWindowDown:EventListener = (e:MouseEvent|TouchEvent) =>{
         if (e.target.classList.contains("map")){
             this.moving = true;
-            this.lastX = e.clientX;
-            this.lastY = e.clientY;
+            if (window.TouchEvent && e instanceof TouchEvent){
+                this.lastX = e.touches[0].clientX;
+                this.lastY = e.touches[0].clientY;
+            } else {
+                this.lastX = e.clientX;
+                this.lastY = e.clientY;
+            }
         }
     }
 
