@@ -200,7 +200,6 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent|TouchEvent) =>{
-        console.log(e);
         if (e.target.classList.contains("map")){
             this.moving = true;
             if (window.TouchEvent && e instanceof TouchEvent){
