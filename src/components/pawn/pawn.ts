@@ -75,7 +75,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         window.addEventListener("touchmove", this.dragPawn, { passive: true, capture: true });
         this.addEventListener("touchstart", this.startDrag, { passive: false, capture: true });
         window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
-        this.addEventListener("dblclick", this.contextMenu, { passive: false, capture: true });
+        this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
         if (this.model.playerId){
             const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? [];
             if (player?.token){
@@ -129,8 +129,8 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private contextMenu:EventListener = (e:MouseEvent) => {
-        //e.preventDefault();
-        //e.stopImmediatePropagation();
+        e.preventDefault();
+        e.stopImmediatePropagation();
         if (this.model?.playerId == null && sessionStorage.getItem("role") === "gm"){
             const x = e.clientX;
             const y = e.clientY;

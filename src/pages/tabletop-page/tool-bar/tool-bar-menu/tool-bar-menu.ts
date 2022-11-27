@@ -5,7 +5,7 @@ import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
-import Window from "~components/window/window";
+import Window from "components/window/window";
 import Initiative from "~components/window/windows/initiative/initiative";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import PlayerMenu from "~components/window/windows/player-menu/player-menu";
