@@ -314,10 +314,16 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
     }
 
-    private syncInitiativePawn:EventListener = (e:Event) => {
+    private syncInitiativePawn:EventListener = async (e:Event) => {
+        const result = (await db.query("SELECT initiative FROM games WHERE uid = $room", { room: sessionStorage.getItem("room"), }))[0];
         const pawns: HTMLElement[] = Array.from(document.body.querySelectorAll("pawn-component"));
-        const data = [];
+        const data = result["initiative"] || [];
         const claimedNames = [];
+        if (data.length){
+            for (let i = 0; i < data.length; i++){
+                claimedNames.push(data[i].name);
+            }
+        }
         for (let i = 0; i < pawns.length; i++){
             if (!claimedNames.includes(pawns[i].dataset.name)){
                 claimedNames.push(pawns[i].dataset.name);
