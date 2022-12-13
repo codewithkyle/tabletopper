@@ -325,7 +325,8 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
             }
         }
         for (let i = 0; i < pawns.length; i++){
-            if (!claimedNames.includes(pawns[i].dataset.name)){
+            const pawnType = pawns[i].querySelector("[pawn]").getAttribute("pawn");
+            if (pawnType !== "dead" && !claimedNames.includes(pawns[i].dataset.name)){
                 claimedNames.push(pawns[i].dataset.name);
                 data.push({
                     uid: pawns[i].dataset.uid,
