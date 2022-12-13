@@ -1,5 +1,6 @@
 import db from "@codewithkyle/jsql";
 import env from "~brixi/controllers/env";
+import notifications from "~brixi/controllers/notifications";
 import { connect } from "~controllers/ws";
 
 (async () => {
@@ -12,7 +13,14 @@ import { connect } from "~controllers/ws";
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
                 if (update){
-                    alert("Updated, refresh page");
+                    notifications.snackbar("An update has been applied.", [
+                        {
+                            label: "Restart",
+                            callback: ()=>{
+                                location.reload();
+                            },
+                        }
+                    ]);
                 }
             });
             navigator.serviceWorker.ready.then(async (registration) => {
