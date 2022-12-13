@@ -6,17 +6,21 @@ import { connect } from "~controllers/ws";
     // @ts-ignore
     const { ENV } = await import("/config.js");
     if (ENV === "production"){
+        let update = false;
         await new Promise<void>(resolve => {
             navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
-                console.log(e.data);
+                if (update){
+                    alert("Updated, refresh page");
+                }
             });
             navigator.serviceWorker.ready.then(async (registration) => {
                 try {
                     await import("/service-worker-assets.js?t=" + Date.now());
                     // @ts-expect-error
                     if (self.manifest.version !== localStorage.getItem("version")) {
+                        update = true;
                         localStorage.removeItem("version");
                     } else {
                         // @ts-expect-error
