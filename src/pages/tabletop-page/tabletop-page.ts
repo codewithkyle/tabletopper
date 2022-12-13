@@ -13,6 +13,7 @@ import Window from "~components/window/window";
 import Spell from "~components/window/windows/spell/spell";
 import MonsterEditor from "~components/window/windows/monster-editor/monster-editor";
 import ContextMenu from  "./context-menu/context-menu";
+import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
 
 interface ITabletopPage {
 }
@@ -62,24 +63,39 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         }
     }
 
-    private handleSpotlightCallback(type: "spell"|"monster", index:string = null){
+    private async handleSpotlightCallback(type: "spell"|"monster", index:string = null){
         let window;
         switch(type){
             case "spell":
+                let title = "Create Spell";
+                if (index !== null){
+                    const spell = (await db.query("SELECT name FROM spells WHERE index = $index", { index: index, }))[0];
+                    title = spell["name"];
+                }
                 window = new Window({
-                    name: "Create Spell",
+                    name: title,
                     view: new Spell(index),
                     width: 600,
                     height: 350,
                 });
                 break;
             case "monster":
-                window = new Window({
-                    name: "Create Monster",
-                    view: new MonsterEditor(index),
-                    width: 600,
-                    height: 350,
-                });
+                if (index === null){
+                    window = new Window({
+                        name: "Create Monster",
+                        view: new MonsterEditor(index),
+                        width: 600,
+                        height: 350,
+                    });
+                } else {
+                    const monster = (await db.query("SELECT name FROM monsters WHERE index = $index", { index: index, }))[0];
+                    window = new Window({
+                        name: monster["name"],
+                        width: 600,
+                        height: 350,
+                        view: new MonsterStatBlock(index),
+                    });
+                }
                 break;
             default:
                 break;
