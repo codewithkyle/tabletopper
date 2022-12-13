@@ -10,6 +10,7 @@ import { connect } from "~controllers/ws";
             navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
+                console.log(e.data);
             });
             navigator.serviceWorker.ready.then(async (registration) => {
                 try {
