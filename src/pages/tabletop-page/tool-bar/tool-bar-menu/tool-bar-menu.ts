@@ -331,6 +331,18 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
         const op = cc.set("games", sessionStorage.getItem("room"), "initiative", data);
         cc.dispatch(op);
+        const window = document.body.querySelector('window-component[window="initiative"]') || new Window({
+            name: "Initiative",
+            view: new Initiative(),
+            minWidth: 300,
+            minHeight: 300,
+            width: 300,
+            height: 300,
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+        this.close();
     }
 
     private renderFileMenu():TemplateResult{
