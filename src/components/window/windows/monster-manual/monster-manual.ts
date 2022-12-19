@@ -8,6 +8,8 @@ import notifications from "~brixi/controllers/notifications";
 import Window from "~components/window/window";
 import MonsterEditor from "../monster-editor/monster-editor";
 import MonsterStatBlock from "../monster-stat-block/monster-stat-block";
+import { send } from "~controllers/ws";
+import type { Monster } from "~types/app";
 
 interface IMonsterManual {
     query: string,
@@ -61,8 +63,18 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
         }
     }
 
-    private spawnMonster:EventListener = (e:Event) => {
+    private spawnMonster:EventListener = async (e:Event) => {
         const target = e.currentTarget as HTMLElement;
+        const monster = (await db.query<Monster>("SELECT * FROM monsters WHERE index = $index", { index: target.dataset.index }))[0];
+        send("room:tabletop:spawn:monster", {
+            x: 0,
+            y: 0,
+            index: monster.index,
+            name: monster.name,
+            ac: monster.ac,
+            hp: monster.hp,
+            size: monster.size.toLowerCase(),
+        });
     }
 
     private editMonster:EventListener = (e:Event) => {
