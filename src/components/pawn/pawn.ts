@@ -250,20 +250,18 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.style.height = `${this.gridSize * multi}px`;
     }
 
-    private renderPawn():TemplateResult{
-        let out:TemplateResult;
+    private renderPawn():TemplateResult|string{
+        let out:TemplateResult|string;
         if ("hp" in this.model && this.model.hp === 0){
             return html`
-                <div pawn="dead">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                       <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                       <path d="M12 4c4.418 0 8 3.358 8 7.5c0 1.901 -.755 3.637 -1.999 4.96l-.001 2.54a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-2.54c-1.245 -1.322 -2 -3.058 -2 -4.96c0 -4.142 3.582 -7.5 8 -7.5z"></path>
-                       <path d="M10 17v3"></path>
-                       <path d="M14 17v3"></path>
-                       <circle cx="9" cy="11" r="1"></circle>
-                       <circle cx="15" cy="11" r="1"></circle>
-                    </svg>
-                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                   <path d="M12 4c4.418 0 8 3.358 8 7.5c0 1.901 -.755 3.637 -1.999 4.96l-.001 2.54a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1v-2.54c-1.245 -1.322 -2 -3.058 -2 -4.96c0 -4.142 3.582 -7.5 8 -7.5z"></path>
+                   <path d="M10 17v3"></path>
+                   <path d="M14 17v3"></path>
+                   <circle cx="9" cy="11" r="1"></circle>
+                   <circle cx="15" cy="11" r="1"></circle>
+                </svg>
             `;
         }
         if (this.model.image){
@@ -271,15 +269,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 <img src="${this.model.image}" alt="${this.model.name} token" draggable="false">
             `;
         } else {
-            let pawnType = "npc";
-            if (this.model?.playerId != null){
-                pawnType = "player";
-            } else if (this.model?.monsterId != null){
-                pawnType = "monster";
-            }
-            out = html`
-                <div pawn="${pawnType}"></div>
-            `;
+            out = "";
         }
         return out;
     }
@@ -342,6 +332,18 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.dataset.y = `${this.localY}`;
         this.className = "pawn";
         this.dataset.name = this.model.name;
+        let pawnType = "npc";
+        if ("hp" in this.model && this.model.hp === 0){
+            pawnType = "dead";
+        } else if (this.model?.playerId != null){
+            pawnType = "player";
+        } else if (this.model?.monsterId != null){
+            pawnType = "monster";
+        }
+        this.setAttribute("pawn", pawnType);
+        if (this.model.image){
+            this.classList.add("has-image");
+        }
         const view = html`
             ${this.renderRings()}
             ${this.renderPawn()}
