@@ -189,6 +189,11 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.removeAttribute("sfx");
             this.removeAttribute("tooltip");
             this.classList.add("no-anim");
+
+            document.body.querySelectorAll("pawn-component").forEach((el:HTMLElement) => {
+                el.style.zIndex = "10";
+            });
+            this.style.zIndex = "100";
         }
     }
 
