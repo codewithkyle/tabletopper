@@ -109,7 +109,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 }
                 break;
             case "SET":
-                if(op.table === "pawns" && op.key === this.model.uid && !this.dragging){
+                if(op.table === "pawns" && op.key === this.model.uid){
                     setValueFromKeypath(updatedModel, op.keypath, op.value);
                     this.set(updatedModel);
                 }
