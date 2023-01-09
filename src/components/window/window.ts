@@ -40,7 +40,6 @@ export default class Window extends SuperComponent<IWindow>{
         const savedY = localStorage.getItem(`${this.handle}-y`);
         this.x = savedX ? parseInt(savedX) : 0;
         this.y = savedY ? parseInt(savedY) : 28;
-        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         if (savedX == null){
             localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
         }
@@ -64,6 +63,15 @@ export default class Window extends SuperComponent<IWindow>{
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
 
+        // Prevent overflow issue when opening at different resolutions
+        if (this.x >= window.innerWidth){
+            this.x = window.innerWidth - this.w;
+        }
+        if (this.y >= window.innerHeight){
+            this.y = window.innerHeight - this.h;
+        }
+
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         this.view = settings.view;
         this.name = settings.name;
         this.moving = false;
