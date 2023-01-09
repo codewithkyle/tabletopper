@@ -209,11 +209,10 @@ export default class Pawn extends SuperComponent<IPawn>{
                 x = e.clientX;
                 y = e.clientY;
             }
-            const bounds = this.getBoundingClientRect();
             let diffX = (tabletop.x - x);
             let diffY = (tabletop.y - y);
-            diffX += bounds.width * 0.5;
-            diffY += bounds.height * 0.5;
+            diffX += this.gridSize * 0.5;
+            diffY += this.gridSize * 0.5;
             diffX /= tabletop.zoom;
             diffY /= tabletop.zoom;
             this.localX = -diffX;
