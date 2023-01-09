@@ -247,6 +247,8 @@ export default class Pawn extends SuperComponent<IPawn>{
         let multi = this.getSizeMultiplier();
         this.style.width = `${this.gridSize * multi}px`;
         this.style.height = `${this.gridSize * multi}px`;
+        this.dataset.w = `${this.gridSize * multi}`;
+        this.dataset.h = `${this.gridSize * multi}`;
     }
 
     private renderPawn():TemplateResult|string{

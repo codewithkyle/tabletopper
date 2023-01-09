@@ -59,19 +59,20 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                 bleedingPawns[i].timeToSplatter -= deltaTime;
                 if (bleedingPawns[i].timeToSplatter <= 0){
                     bleedingPawns[i].timeToSplatter = this.randomInt(0, 2);
-                    const pawnBounds = bleedingPawns[i].getBoundingClientRect();
                     const imageIndex = this.randomInt(0, this.images.length - 1);
                     const pawnX = parseInt(bleedingPawns[i].dataset.x);
                     const pawnY = parseInt(bleedingPawns[i].dataset.y);
+                    const pawnW = parseInt(bleedingPawns[i].dataset.w);
+                    const pawnH = parseInt(bleedingPawns[i].dataset.h);
                     const centerX = this.canvas.width * 0.5;
                     const centerY = this.canvas.height * 0.5;
                     const x = Math.round(centerX + pawnX);
                     const y = Math.round(centerY + pawnY)
                     const pos = [
-                        this.randomInt((x - (pawnBounds.width * 0.125)), (x + (pawnBounds.width * 0.125))),
-                        this.randomInt((y - (pawnBounds.height * 0.125)), (y + (pawnBounds.height * 0.125)))
+                        this.randomInt((x - (pawnW * 0.125)), (x + (pawnW * 0.125))),
+                        this.randomInt((y - (pawnH * 0.125)), (y + (pawnH * 0.125)))
                     ];
-                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnBounds.width / this.parentElement.zoom);
+                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnW / this.parentElement.zoom);
                     this.effects.push(splatter);
                 }
             }
