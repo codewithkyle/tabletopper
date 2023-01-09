@@ -11,6 +11,8 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     private images:Array<HTMLImageElement>;
     private img:HTMLImageElement;
     private running: boolean;
+    private w: number;
+    private h: number;
 
     constructor(img:HTMLImageElement){
         super();
@@ -19,6 +21,8 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
         this.images = [];
         this.running = false;
         this.effects = [];
+        this.w = 0;
+        this.h = 0;
         for (let i = 1; i <= 5; i++){
             const image = new Image();
             image.src = `${location.origin}/images/blood-${i}.png`;
@@ -48,7 +52,7 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     private renderLoop(){
         this.running = true;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, this.w, this.h);
         const newTime = performance.now();
         const deltaTime = (newTime - this.time) / 1000;
         this.time = newTime;
@@ -64,8 +68,8 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                     const pawnY = parseInt(bleedingPawns[i].dataset.y);
                     const pawnW = parseInt(bleedingPawns[i].dataset.w);
                     const pawnH = parseInt(bleedingPawns[i].dataset.h);
-                    const centerX = this.canvas.width * 0.5;
-                    const centerY = this.canvas.height * 0.5;
+                    const centerX = this.w * 0.5;
+                    const centerY = this.h * 0.5;
                     const x = Math.round(centerX + pawnX);
                     const y = Math.round(centerY + pawnY)
                     const pos = [
@@ -91,10 +95,12 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
             this.canvas = document.createElement("canvas");
             this.appendChild(this.canvas);
         }
-        this.canvas.width = this.img.width;
-        this.canvas.height = this.img.height;
-        this.canvas.style.width = `${this.img.width}px`;
-        this.canvas.style.height = `${this.img.height}px`;
+        this.w = this.img.width;
+        this.h = this.img.height;
+        this.canvas.width = this.w;
+        this.canvas.height = this.h;
+        this.canvas.style.width = `${this.w}px`;
+        this.canvas.style.height = `${this.h}px`;
         this.ctx = this.canvas.getContext("2d");
         if (!this.running){
             this.time = performance.now();
