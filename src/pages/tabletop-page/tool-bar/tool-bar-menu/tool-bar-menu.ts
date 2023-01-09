@@ -275,9 +275,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private clearInitiative:EventListener = (e:Event) => {
         const op = cc.set("games", sessionStorage.getItem("room"), "initiative", []);
-        cc.dispatch(op);
         const op2 = cc.set("games", sessionStorage.getItem("room"), "active_initiative", null);
-        cc.dispatch(op2);
+        const batch = cc.batch("games", sessionStorage.getItem("room"), [op, op2]);
+        cc.dispatch(batch);
     }
 
     private nextInitiative:EventListener = async (e:Event) => {
