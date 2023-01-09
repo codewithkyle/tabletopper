@@ -27,7 +27,7 @@ async function connect() {
             }
             switch(type){
                 case "room:tabletop:clear":
-                    await db.query("RESET ledger");
+                    //await db.query("RESET ledger");
                     await db.query("RESET pawns");
                     publish("tabletop", {
                         type: "clear",
