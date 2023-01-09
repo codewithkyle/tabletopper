@@ -55,8 +55,13 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private calcOffsetX():number{
         const el = document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`);
-        const bounds = el.getBoundingClientRect();
-        return bounds.x;
+        if (el.dataset?.offsetX){
+            return parseInt(el.dataset.offsetX);
+        } else {
+            const bounds = el.getBoundingClientRect();
+            el.dataset.offsetX = bounds.x.toString();
+            return bounds.x;
+        }
     }
 
     private exit(){
