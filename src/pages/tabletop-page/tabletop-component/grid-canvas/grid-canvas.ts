@@ -59,17 +59,19 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
             this.canvas = document.createElement("canvas") as HTMLCanvasElement;
             this.appendChild(this.canvas);
         }
-        this.canvas.width = this.img.width;
-        this.canvas.height = this.img.height;
+        const w = this.img.width;
+        const h = this.img.height;
+        this.canvas.width = w;
+        this.canvas.height = h;
         this.canvas.style.width = `${this.img.width}px`;
         this.canvas.style.height = `${this.img.height}px`;
         this.ctx = this.canvas.getContext("2d");
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, w, h);
 
         if (this.renderGrid){
             const cells = [];
-            const cellsInRow = Math.ceil(this.canvas.width / this.gridSize);
-            const rows = Math.ceil(this.canvas.height / this.gridSize);
+            const cellsInRow = Math.ceil(w / this.gridSize);
+            const rows = Math.ceil(h / this.gridSize);
             for (let i = 0; i < rows; i++){
                 for (let j = 0; j < cellsInRow; j++){
                     cells.push({
@@ -79,9 +81,9 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                 }
             }
 
+            this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
             for (let i = 0; i < cells.length; i++){
                 const { x, y } = cells[i];
-                this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, y);
                 this.ctx.lineTo(x, y + this.gridSize);
