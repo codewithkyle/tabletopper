@@ -64,9 +64,16 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
         }
     }
 
-    private exit(){
+    private async exit(){
         sessionStorage.removeItem("room");
         send("room:quit");
+        await Promise.all([
+            db.query("RESET games"),
+            db.query("RESET players"),
+            db.query("RESET ledger"),
+            db.query("RESET pawns"),
+            db.query("RESET rolls"),
+        ]);
         this.close();
         location.href = location.origin;
     }

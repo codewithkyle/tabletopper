@@ -63,7 +63,7 @@ import { connect } from "~controllers/ws";
     await db.start();
 
     await Promise.all([
-        db.query("RESET games"),
+        //db.query("RESET games"),
         db.query("RESET players"),
         db.query("RESET ledger"),
         db.query("RESET pawns"),
