@@ -35,6 +35,11 @@ export default class Initiative extends SuperComponent<IInitiative>{
                     this.set(updatedModel);
                 }
                 break;
+            case "BATCH":
+                for (let i = 0; i < op.ops.length; i++){
+                    this.inbox(op.ops[i]);
+                }
+                break;
             default:
                 break;
         }
