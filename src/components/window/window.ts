@@ -63,13 +63,7 @@ export default class Window extends SuperComponent<IWindow>{
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
 
-        // Prevent overflow issue when opening at different resolutions
-        if (this.x >= window.innerWidth){
-            this.x = window.innerWidth - this.w;
-        }
-        if (this.y >= window.innerHeight){
-            this.y = window.innerHeight - this.h;
-        }
+        this.resize();
 
         this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         this.view = settings.view;
@@ -86,8 +80,23 @@ export default class Window extends SuperComponent<IWindow>{
         window.addEventListener("mousemove", this.move, { capture: true, passive: true });
         window.addEventListener("touchend", this.stopMove, { capture: true, passive: true });
         window.addEventListener("touchmove", this.move, { capture: true, passive: true });
+        window.addEventListener("resize", this.debounce(this.resizeEvent, 300), { capture: true, passive: true });
         this.render();
         this.focus();
+    }
+
+    private resize(){
+        if (this.x >= window.innerWidth){
+            this.x = window.innerWidth - this.w;
+        }
+        if (this.y >= window.innerHeight){
+            this.y = window.innerHeight - this.h;
+        }
+    }
+
+    private resizeEvent:EventListener = (e) => {
+        this.resize();
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
     }
 
     public focus():void{
