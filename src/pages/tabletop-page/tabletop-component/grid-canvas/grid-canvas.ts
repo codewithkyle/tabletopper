@@ -48,6 +48,11 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                     }
                 }
                 break;
+            case "BATCH":
+                for (let i = 0; i < op.ops.length; i++){
+                    this.inbox(op.ops[i]);
+                }
+                break;
             default:
                 break;
         }
