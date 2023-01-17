@@ -178,9 +178,9 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private startDrag:EventListener = (e:MouseEvent|TouchEvent) => {
-        //e.preventDefault();
-        //e.stopImmediatePropagation();
-        if (e.button === 0 || window.TouchEvent && e instanceof TouchEvent){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e instanceof MouseEvent && e.button === 0 || window.TouchEvent && e instanceof TouchEvent){
             this.dragging = true;
             const tooltip = document.body.querySelector(`tool-tip[uid="${this.dataset.tooltipUid}"]`);
             if (tooltip){
@@ -211,8 +211,8 @@ export default class Pawn extends SuperComponent<IPawn>{
             }
             let diffX = (tabletop.x - x);
             let diffY = (tabletop.y - y);
-            diffX += this.gridSize * 0.5;
-            diffY += this.gridSize * 0.5;
+            diffX += this.gridSize * this.getSizeMultiplier() * 0.5 * tabletop.zoom;
+            diffY += this.gridSize * this.getSizeMultiplier() * 0.5 * tabletop.zoom;
             diffX /= tabletop.zoom;
             diffY /= tabletop.zoom;
             this.localX = -diffX;
