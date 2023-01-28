@@ -7,6 +7,7 @@ import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
 import type { Image } from "~types/app";
+import PingComponent from "./ping-component/ping-component";
 
 interface ITabletopComponent {
     map: string,
@@ -91,6 +92,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                     this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
                     sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
                 }
+                break;
+            case "ping":
+                const { x, y } = data;
+                const pingEl = new PingComponent(x, y, this.zoom);
+                this.appendChild(pingEl);
                 break;
             default:
                 break;

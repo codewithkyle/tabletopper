@@ -34,9 +34,47 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
         }, { passive: true });
     }
 
-    override render(){
-        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
-        const view = html`
+    private renderPlayerMenu(){
+        return html`
+            ${new Button({
+                label: "Ping",
+                kind: "text",
+                color: "grey",
+                class: "w-full",
+                css: "justify-content: flex-start;",
+                callback: ()=>{
+                    const tabletop = document.body.querySelector("tabletop-component");
+                    let diffX = (this.x - tabletop.x) / tabletop.zoom;
+                    let diffY = (this.y - tabletop.y) / tabletop.zoom;
+                    send("room:tabletop:ping", {
+                        x: Math.round(diffX) - 16,
+                        y: Math.round(diffY) - 16
+                    });
+                    this.remove();
+                },
+            })}
+        `;
+    }
+
+    private renderGMMenu(){
+        return html`
+            ${new Button({
+                label: "Ping",
+                kind: "text",
+                color: "grey",
+                class: "w-full",
+                css: "justify-content: flex-start;",
+                callback: ()=>{
+                    const tabletop = document.body.querySelector("tabletop-component");
+                    let diffX = (this.x - tabletop.x) / tabletop.zoom;
+                    let diffY = (this.y - tabletop.y) / tabletop.zoom;
+                    send("room:tabletop:ping", {
+                        x: Math.round(diffX) - 16,
+                        y: Math.round(diffY) - 16
+                    });
+                    this.remove();
+                },
+            })}
             ${new Button({
                 label: "Spawn monster",
                 kind: "text",
@@ -84,7 +122,12 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                     this.remove();
                 }
             })}
-        `;
+        `
+    }
+
+    override render(){
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
+        const view = sessionStorage.getItem("role") === "gm" ? this.renderGMMenu() : this.renderPlayerMenu();
         render(view, this);
     }
 }
