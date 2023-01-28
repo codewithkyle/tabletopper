@@ -78,6 +78,11 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                 this.trigger("LOAD");
                 const data = await Base64EncodeFile(image);
                 const uid = UUID();
+                const img = new Image();
+                await new Promise(res => {
+                    img.onload = res;
+                    img.src = data;
+                });
                 this.set({
                     selected: uid,
                 }, true);
@@ -87,6 +92,8 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                         name: image.name,
                         data: data,
                         type: "map",
+                        width: img.width,
+                        height: img.height,
                     },
                 });
                 this.load();

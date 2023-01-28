@@ -1,6 +1,7 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "components/pawn/pawn";
+import type { Image } from "~types/app";
 
 interface IVFXCanvas {}
 export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
@@ -9,15 +10,13 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     private time:number;
     private effects:Array<BloodSpatter>;
     private images:Array<HTMLImageElement>;
-    private img:HTMLImageElement;
     private running: boolean;
     private w: number;
     private h: number;
 
-    constructor(img:HTMLImageElement){
+    constructor(){
         super();
         this.canvas = null;
-        this.img = img;
         this.images = [];
         this.running = false;
         this.effects = [];
@@ -35,7 +34,6 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     override async connected(){
         await env.css(["vfx-canvas"]);
-        this.render();
     }
 
     private cleanup(){
@@ -90,13 +88,15 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
         window.requestAnimationFrame(this.renderLoop.bind(this));
     }
 
-    override render(): void {
+    // @ts-ignore
+    override render(image:Image): void {
         if (!this.canvas){
             this.canvas = document.createElement("canvas");
             this.appendChild(this.canvas);
         }
-        this.w = this.img.width;
-        this.h = this.img.height;
+        if (!image) return;
+        this.w = image.width;
+        this.h = image.height;
         this.canvas.width = this.w;
         this.canvas.height = this.h;
         this.canvas.style.width = `${this.w}px`;

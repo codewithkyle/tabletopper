@@ -1,6 +1,6 @@
 {
     "name": "app",
-    "version": 1,
+    "version": 2,
     "tables": [
         {
             "name": "rolls",
@@ -37,6 +37,12 @@
                 },
                 {
                     "key": "type"
+                },
+                {
+                    "key": "width"
+                },
+                {
+                    "key": "height"
                 }
             ]
         },
