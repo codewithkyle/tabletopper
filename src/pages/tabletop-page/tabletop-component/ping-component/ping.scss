@@ -1,0 +1,32 @@
+.ping{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2rem;
+    height: 2rem;
+    color: var(--warning-400);
+
+    svg{
+        width: 100%;
+        height: 100%;
+        animation: wiggleIcon 300ms infinite var(--ease-in-out);
+        filter: drop-shadow(0 1px 2px rgba(0,0,0, 0.5));
+    }
+}
+@keyframes wiggleIcon {
+    0% {
+        transform: rotate(-15deg);
+    }
+    25% {
+        transform: rotate(0deg);
+    }
+    50% {
+        transform: rotate(15deg);
+    }
+    75% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(-15deg);
+    }
+}

@@ -1,5 +1,6 @@
 # General
 node_modules
+*:Zone.Identifier
 
 # Server
 server/.env

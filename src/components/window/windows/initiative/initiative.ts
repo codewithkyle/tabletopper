@@ -35,6 +35,11 @@ export default class Initiative extends SuperComponent<IInitiative>{
                     this.set(updatedModel);
                 }
                 break;
+            case "BATCH":
+                for (let i = 0; i < op.ops.length; i++){
+                    this.inbox(op.ops[i]);
+                }
+                break;
             default:
                 break;
         }
@@ -63,12 +68,25 @@ export default class Initiative extends SuperComponent<IInitiative>{
         });
     }
 
+    public drop(uid:string){
+        const updated = this.get();
+        for (let i = 0; i < updated.initiative.length; i++){
+            if (updated.initiative[i].uid === uid){
+                updated.initiative.splice(i, 1);
+                break;
+            }
+        }
+        const op = cc.set("games", sessionStorage.getItem("room"), "initiative", updated.initiative);
+        console.log(updated.initiative);
+        cc.dispatch(op);
+    }
+
     override render(): void{
         this.innerHTML = "";
         this.model.initiative.map((pawn, index) => {
-            const el = new InitiativeItem(pawn, this.model.active_initiative, this.ping.bind(this));
+            const el = new InitiativeItem(pawn, this.model.active_initiative, this.ping.bind(this), this.drop.bind(this));
             this.appendChild(el);
-        })
+        });
         new Sortable(this, {
             sort: true,
             animation: 150,
@@ -94,28 +112,42 @@ class InitiativeItem extends SuperComponent<IInitiativeItem>{
     private pawn: any;
     private active_initiative: string;
     private ping: Function;
+    private drop: Function;
 
-    constructor(pawn, active_initiative, ping){
+    constructor(pawn, active_initiative, ping, drop){
         super();
         this.pawn = pawn;
         this.active_initiative = active_initiative;
         this.ping = ping;
+        this.drop = drop;
         this.render();
     }
-    private renderButton(){
+    private renderButtons(){
         if (sessionStorage.getItem("role") === "gm"){
-            return new Button({
-                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M15 11l4 4l-4 4m4 -4h-11a4 4 0 0 1 0 -8h1"></path></svg>`,
-                tooltip: "Start turn",
-                kind: "text",
-                iconPosition: "center",
-                color: "grey",
-                class: "ml-0.5",
-                callback: ()=>{
-                    let nextIndex = this.pawn.index + 1;
-                    this.ping(this.pawn, nextIndex);
-                },
-            });
+            return html`
+                ${new Button({
+                    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M15 11l4 4l-4 4m4 -4h-11a4 4 0 0 1 0 -8h1"></path></svg>`,
+                    tooltip: "Start turn",
+                    kind: "text",
+                    iconPosition: "center",
+                    color: "grey",
+                    class: "ml-0.5",
+                    callback: ()=>{
+                        let nextIndex = this.pawn.index + 1;
+                        this.ping(this.pawn, nextIndex);
+                    },
+                })}
+                ${new Button({
+                    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 7l16 0"></path><path d="M10 11l0 6"></path><path d="M14 11l0 6"></path><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>`,
+                    tooltip: "Remove",
+                    kind: "text",
+                    iconPosition: "center",
+                    color: "danger",
+                    callback: ()=>{
+                        this.drop(this.pawn.uid)
+                    },
+                })}
+            `;
         } else {
             return "";
         }
@@ -127,7 +159,7 @@ class InitiativeItem extends SuperComponent<IInitiativeItem>{
         }
         const view = html`
             <span>${this.pawn.name}</span>
-            ${this.renderButton()}
+            ${this.renderButtons()}
         `;
         render(view, this);
     }

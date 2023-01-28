@@ -60,3 +60,12 @@ export interface Spell {
     subclasses: string[];
     material:    string | null;
 }
+
+export interface Image {
+    data: string,
+    height: number,
+    width: number,
+    type: string,
+    name: string,
+    uid: string,
+}

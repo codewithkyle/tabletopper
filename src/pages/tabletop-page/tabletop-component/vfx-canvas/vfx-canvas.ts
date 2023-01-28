@@ -1,6 +1,7 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "components/pawn/pawn";
+import type { Image } from "~types/app";
 
 interface IVFXCanvas {}
 export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
@@ -9,16 +10,18 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     private time:number;
     private effects:Array<BloodSpatter>;
     private images:Array<HTMLImageElement>;
-    private img:HTMLImageElement;
     private running: boolean;
+    private w: number;
+    private h: number;
 
-    constructor(img:HTMLImageElement){
+    constructor(){
         super();
         this.canvas = null;
-        this.img = img;
         this.images = [];
         this.running = false;
         this.effects = [];
+        this.w = 0;
+        this.h = 0;
         for (let i = 1; i <= 5; i++){
             const image = new Image();
             image.src = `${location.origin}/images/blood-${i}.png`;
@@ -31,7 +34,6 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     override async connected(){
         await env.css(["vfx-canvas"]);
-        this.render();
     }
 
     private cleanup(){
@@ -48,7 +50,7 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     private renderLoop(){
         this.running = true;
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(0, 0, this.w, this.h);
         const newTime = performance.now();
         const deltaTime = (newTime - this.time) / 1000;
         this.time = newTime;
@@ -59,19 +61,20 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                 bleedingPawns[i].timeToSplatter -= deltaTime;
                 if (bleedingPawns[i].timeToSplatter <= 0){
                     bleedingPawns[i].timeToSplatter = this.randomInt(0, 2);
-                    const pawnBounds = bleedingPawns[i].getBoundingClientRect();
                     const imageIndex = this.randomInt(0, this.images.length - 1);
                     const pawnX = parseInt(bleedingPawns[i].dataset.x);
                     const pawnY = parseInt(bleedingPawns[i].dataset.y);
-                    const centerX = this.canvas.width * 0.5;
-                    const centerY = this.canvas.height * 0.5;
+                    const pawnW = parseInt(bleedingPawns[i].dataset.w);
+                    const pawnH = parseInt(bleedingPawns[i].dataset.h);
+                    const centerX = this.w * 0.5;
+                    const centerY = this.h * 0.5;
                     const x = Math.round(centerX + pawnX);
                     const y = Math.round(centerY + pawnY)
                     const pos = [
-                        this.randomInt((x - (pawnBounds.width * 0.125)), (x + (pawnBounds.width * 0.125))),
-                        this.randomInt((y - (pawnBounds.height * 0.125)), (y + (pawnBounds.height * 0.125)))
+                        this.randomInt((x - (pawnW * 0.125)), (x + (pawnW * 0.125))),
+                        this.randomInt((y - (pawnH * 0.125)), (y + (pawnH * 0.125)))
                     ];
-                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnBounds.width / this.parentElement.zoom);
+                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnW / this.parentElement.zoom);
                     this.effects.push(splatter);
                 }
             }
@@ -85,15 +88,19 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
         window.requestAnimationFrame(this.renderLoop.bind(this));
     }
 
-    override render(): void {
+    // @ts-ignore
+    override render(image:Image): void {
         if (!this.canvas){
             this.canvas = document.createElement("canvas");
             this.appendChild(this.canvas);
         }
-        this.canvas.width = this.img.width;
-        this.canvas.height = this.img.height;
-        this.canvas.style.width = `${this.img.width}px`;
-        this.canvas.style.height = `${this.img.height}px`;
+        if (!image) return;
+        this.w = image.width;
+        this.h = image.height;
+        this.canvas.width = this.w;
+        this.canvas.height = this.h;
+        this.canvas.style.width = `${this.w}px`;
+        this.canvas.style.height = `${this.h}px`;
         this.ctx = this.canvas.getContext("2d");
         if (!this.running){
             this.time = performance.now();

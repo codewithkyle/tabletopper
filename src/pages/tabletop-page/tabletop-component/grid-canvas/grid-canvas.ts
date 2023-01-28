@@ -2,6 +2,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import db from "@codewithkyle/jsql";
 import {subscribe, unsubscribe} from "@codewithkyle/pubsub";
+import type { Image } from "~types/app";
 
 interface IGridCanvas {}
 export default class GridCanvas extends SuperComponent<IGridCanvas>{
@@ -11,11 +12,13 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
     private gridSize: number;
     private renderGrid: boolean;
     private ticket: string;
-    private img:HTMLImageElement;
+    private w:number;
+    private h:number;
 
-    constructor(img:HTMLImageElement){
+    constructor(){
         super();
-        this.img = img;
+        this.w = 0;
+        this.h = 0;
         this.canvas = null;
         this.ctx = null;
         this.time = 0;
@@ -41,11 +44,16 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                 if (op.table === "games" && op.key === sessionStorage.getItem("room")){
                     if (op.keypath === "grid_size"){
                         this.gridSize = op.value;
-                        this.render();
+                        this.renderGridLines();
                     } else if (op.keypath === "render_grid"){
                         this.renderGrid = op.value;
-                        this.render();
+                        this.renderGridLines();
                     }
+                }
+                break;
+            case "BATCH":
+                for (let i = 0; i < op.ops.length; i++){
+                    this.inbox(op.ops[i]);
                 }
                 break;
             default:
@@ -53,23 +61,12 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         }
     }
 
-    // @ts-ignore
-    override render(): void {
-        if (!this.canvas){
-            this.canvas = document.createElement("canvas") as HTMLCanvasElement;
-            this.appendChild(this.canvas);
-        }
-        this.canvas.width = this.img.width;
-        this.canvas.height = this.img.height;
-        this.canvas.style.width = `${this.img.width}px`;
-        this.canvas.style.height = `${this.img.height}px`;
-        this.ctx = this.canvas.getContext("2d");
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
+    private renderGridLines(){
         if (this.renderGrid){
+            this.ctx.clearRect(0, 0, this.w, this.h);
             const cells = [];
-            const cellsInRow = Math.ceil(this.canvas.width / this.gridSize);
-            const rows = Math.ceil(this.canvas.height / this.gridSize);
+            const cellsInRow = Math.ceil(this.w / this.gridSize);
+            const rows = Math.ceil(this.h / this.gridSize);
             for (let i = 0; i < rows; i++){
                 for (let j = 0; j < cellsInRow; j++){
                     cells.push({
@@ -79,9 +76,9 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                 }
             }
 
+            this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
             for (let i = 0; i < cells.length; i++){
                 const { x, y } = cells[i];
-                this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, y);
                 this.ctx.lineTo(x, y + this.gridSize);
@@ -92,6 +89,23 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                 this.ctx.stroke();
             }
         }
+    }
+
+    // @ts-ignore
+    override render(image:Image): void {
+        if (!this.canvas){
+            this.canvas = document.createElement("canvas") as HTMLCanvasElement;
+            this.appendChild(this.canvas);
+        }
+        if (!image) return;
+        this.w = image.width;
+        this.h = image.height;
+        this.canvas.width = this.w;
+        this.canvas.height = this.h;
+        this.canvas.style.width = `${image.width}px`;
+        this.canvas.style.height = `${image.height}px`;
+        this.ctx = this.canvas.getContext("2d");
+        this.renderGridLines();
     }
 }
 env.bind("grid-canvas", GridCanvas);

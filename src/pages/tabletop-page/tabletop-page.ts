@@ -58,9 +58,7 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         cc.runHistory();
         this.setAttribute("state", "IDLING");
         window.addEventListener("keydown", this.handleKeyboard);
-        if (sessionStorage.getItem("role") === "gm"){
-            this.addEventListener("contextmenu", this.handleContextMenu);
-        }
+        this.addEventListener("contextmenu", this.handleContextMenu);
     }
 
     private async handleSpotlightCallback(type: "spell"|"monster", index:string = null){

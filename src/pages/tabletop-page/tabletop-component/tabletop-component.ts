@@ -6,6 +6,8 @@ import { setValueFromKeypath } from "~utils/object";
 import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
+import type { Image } from "~types/app";
+import PingComponent from "./ping-component/ping-component";
 
 interface ITabletopComponent {
     map: string,
@@ -25,8 +27,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     constructor(){
         super(); 
         this.img = new Image();
-        this.vfxCanvas = new VFXCanvas(this.img);
-        this.gridCanvas = new GridCanvas(this.img);
+        this.vfxCanvas = new VFXCanvas();
+        this.gridCanvas = new GridCanvas();
         this.moving = false;
         this.x = window.innerWidth * 0.5;
         this.y = (window.innerHeight - 28) * 0.5;
@@ -90,6 +92,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                     this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
                     sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
                 }
+                break;
+            case "ping":
+                const { x, y } = data;
+                const pingEl = new PingComponent(x, y, this.zoom);
+                this.appendChild(pingEl);
                 break;
             default:
                 break;
@@ -238,9 +245,9 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     override async render() {
-        let image = null;
+        let image:Image = null;
         if (this.model.map){
-            image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
+            image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
         }
         if (image !== null){
             this.img.src = image.data;
@@ -260,8 +267,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (!this.vfxCanvas.isConnected){
             this.appendChild(this.vfxCanvas);
         }
-        this.gridCanvas.render();
-        this.vfxCanvas.render();
+        this.gridCanvas.render(image);
+        this.vfxCanvas.render(image);
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }
 }

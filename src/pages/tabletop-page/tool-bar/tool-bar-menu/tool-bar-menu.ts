@@ -55,13 +55,25 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private calcOffsetX():number{
         const el = document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`);
-        const bounds = el.getBoundingClientRect();
-        return bounds.x;
+        if (el.dataset?.offsetX){
+            return parseInt(el.dataset.offsetX);
+        } else {
+            const bounds = el.getBoundingClientRect();
+            el.dataset.offsetX = bounds.x.toString();
+            return bounds.x;
+        }
     }
 
-    private exit(){
+    private async exit(){
         sessionStorage.removeItem("room");
         send("room:quit");
+        await Promise.all([
+            db.query("RESET games"),
+            db.query("RESET players"),
+            db.query("RESET ledger"),
+            db.query("RESET pawns"),
+            db.query("RESET rolls"),
+        ]);
         this.close();
         location.href = location.origin;
     }
@@ -275,9 +287,9 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private clearInitiative:EventListener = (e:Event) => {
         const op = cc.set("games", sessionStorage.getItem("room"), "initiative", []);
-        cc.dispatch(op);
         const op2 = cc.set("games", sessionStorage.getItem("room"), "active_initiative", null);
-        cc.dispatch(op2);
+        const batch = cc.batch("games", sessionStorage.getItem("room"), [op, op2]);
+        cc.dispatch(batch);
     }
 
     private nextInitiative:EventListener = async (e:Event) => {

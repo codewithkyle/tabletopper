@@ -41,9 +41,8 @@ export default class TabletopSettingsModal extends SuperComponent<ITabletopSetti
 
     private saveSettings(){
         const op = cc.set("games", sessionStorage.getItem("room"), "grid_size", this.model.gridSize);
-        cc.dispatch(op);
         const op2 = cc.set("games", sessionStorage.getItem("room"), "render_grid", this.model.renderGrid);
-        cc.dispatch(op2);
+        cc.dispatch(cc.batch("games", sessionStorage.getItem("room"), [op, op2]));
         this.remove();
     }
 

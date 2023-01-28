@@ -40,7 +40,6 @@ export default class Window extends SuperComponent<IWindow>{
         const savedY = localStorage.getItem(`${this.handle}-y`);
         this.x = savedX ? parseInt(savedX) : 0;
         this.y = savedY ? parseInt(savedY) : 28;
-        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         if (savedX == null){
             localStorage.setItem(`${this.handle}-x`, this.x.toFixed(0).toString());
         }
@@ -64,6 +63,9 @@ export default class Window extends SuperComponent<IWindow>{
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
 
+        this.resize();
+
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         this.view = settings.view;
         this.name = settings.name;
         this.moving = false;
@@ -78,8 +80,23 @@ export default class Window extends SuperComponent<IWindow>{
         window.addEventListener("mousemove", this.move, { capture: true, passive: true });
         window.addEventListener("touchend", this.stopMove, { capture: true, passive: true });
         window.addEventListener("touchmove", this.move, { capture: true, passive: true });
+        window.addEventListener("resize", this.debounce(this.resizeEvent, 300), { capture: true, passive: true });
         this.render();
         this.focus();
+    }
+
+    private resize(){
+        if (this.x >= window.innerWidth){
+            this.x = window.innerWidth - this.w;
+        }
+        if (this.y >= window.innerHeight){
+            this.y = window.innerHeight - this.h;
+        }
+    }
+
+    private resizeEvent:EventListener = (e) => {
+        this.resize();
+        this.style.transform = `translate(${this.x}px, ${this.y}px)`;
     }
 
     public focus():void{

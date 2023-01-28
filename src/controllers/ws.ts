@@ -26,8 +26,14 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
+                case "room:tabletop:ping":
+                    publish("tabletop", {
+                        type: "ping",
+                        data: data,
+                    });
+                    break;
                 case "room:tabletop:clear":
-                    await db.query("RESET ledger");
+                    //await db.query("RESET ledger");
                     await db.query("RESET pawns");
                     publish("tabletop", {
                         type: "clear",
