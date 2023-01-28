@@ -19,8 +19,8 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         super();
         this.w = 0;
         this.h = 0;
-        this.canvas = null;
-        this.ctx = null;
+        this.canvas = document.createElement("canvas") as HTMLCanvasElement;
+        this.ctx = this.canvas.getContext("2d");
         this.time = 0;
         this.gridSize = 32;
         this.renderGrid = false;
@@ -29,6 +29,7 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
 
     override async connected(){
         await env.css(["grid-canvas"]);
+        this.appendChild(this.canvas);
         const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
         this.gridSize = result?.["grid_size"] ?? 32;
         this.renderGrid = result?.["render_grid"] ?? false;
@@ -93,10 +94,6 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
 
     // @ts-ignore
     override render(image:Image): void {
-        if (!this.canvas){
-            this.canvas = document.createElement("canvas") as HTMLCanvasElement;
-            this.appendChild(this.canvas);
-        }
         if (!image) return;
         this.w = image.width;
         this.h = image.height;
@@ -104,7 +101,6 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         this.canvas.height = this.h;
         this.canvas.style.width = `${image.width}px`;
         this.canvas.style.height = `${image.height}px`;
-        this.ctx = this.canvas.getContext("2d");
         this.renderGridLines();
     }
 }
