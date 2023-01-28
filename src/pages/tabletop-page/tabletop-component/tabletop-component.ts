@@ -247,7 +247,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     override async render() {
         let image:Image = null;
         if (this.model.map){
-            image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
+            // Wait and retry query due to insert race condition
+            // TODO: Find a better way to do this
+            while (image === null){
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
+            }
         }
         if (image !== null){
             this.img.src = image.data;
