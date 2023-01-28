@@ -16,7 +16,9 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     constructor(){
         super();
-        this.canvas = null;
+        this.canvas = document.createElement("canvas");
+        this.appendChild(this.canvas);
+        this.ctx = this.canvas.getContext("2d");
         this.images = [];
         this.running = false;
         this.effects = [];
@@ -90,10 +92,6 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
 
     // @ts-ignore
     override render(image:Image): void {
-        if (!this.canvas){
-            this.canvas = document.createElement("canvas");
-            this.appendChild(this.canvas);
-        }
         if (!image) return;
         this.w = image.width;
         this.h = image.height;
@@ -101,7 +99,6 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
         this.canvas.height = this.h;
         this.canvas.style.width = `${this.w}px`;
         this.canvas.style.height = `${this.h}px`;
-        this.ctx = this.canvas.getContext("2d");
         if (!this.running){
             this.time = performance.now();
             this.renderLoop();
