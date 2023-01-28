@@ -8,6 +8,7 @@ import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
 import { send } from "~controllers/ws";
+import type { Image } from "~types/app";
 import { Base64EncodeFile } from "~utils/file";
 
 interface ITabletopImageModal {
@@ -57,11 +58,15 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
             }
         }
         if (!alreadyLoadedMap){
-            const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selected }))[0];
+            const image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selected }))[0];
             const op = cc.insert("images", image.uid, image);
             cc.dispatch(op);
+            const op2 = cc.set("games", sessionStorage.getItem("room"), "map", this.model.selected);
+            cc.dispatch(op2);
+        } else {
+            const op = cc.set("games", sessionStorage.getItem("room"), "map", this.model.selected);
+            cc.dispatch(op);
         }
-        send("room:tabletop:map:load", this.model.selected);
         this.remove();
     }
 
