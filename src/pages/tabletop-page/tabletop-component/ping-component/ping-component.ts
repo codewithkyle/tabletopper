@@ -3,12 +3,13 @@ import env from "~brixi/controllers/env";
 export default class PingComponent extends HTMLElement{
     private audio:HTMLAudioElement;
 
-    constructor(x:number, y:number, zoom:number){
+    constructor(x:number, y:number, color:string, zoom:number){
         super();
         if (zoom < 1){
             zoom = 2;
         }
         this.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+        this.style.color = `var(--${color})`;
         this.className = "ping";
         this.audio = new Audio("/static/ping.mp3");
     }

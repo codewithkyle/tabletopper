@@ -239,12 +239,14 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     imageOP = cc.insert("images", image.uid, image);
                                 }
                                 const name = input.getValue().toString();
+                                const color = `${COLORS[randomInt(0, COLORS.length)]}-500`;
+                                sessionStorage.setItem("color", color);
                                 const player = cc.insert("players", sessionStorage.getItem("socketId"), {
                                     uid: sessionStorage.getItem("socketId"),
                                     name: name,
                                     token: image?.uid ?? null,
                                     active: true,
-                                    color: `${COLORS[randomInt(0, COLORS.length)]}-500`,
+                                    color: color,
                                 });
                                 send("room:join", {
                                     name: name,
