@@ -173,6 +173,10 @@
                 {
                     "key": "active",
                     "default": true
+                },
+                {
+                    "key": "color",
+                    "default": "amber-500"
                 }
             ]
         },
@@ -316,6 +320,10 @@
                 },
                 {
                     "key": "subclasses"
+                },
+                {
+                    "key": "favorite",
+                    "default": false
                 }
             ]
         }

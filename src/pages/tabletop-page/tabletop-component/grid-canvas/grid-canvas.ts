@@ -63,8 +63,8 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
     }
 
     private renderGridLines(){
+        this.ctx.clearRect(0, 0, this.w, this.h);
         if (this.renderGrid){
-            this.ctx.clearRect(0, 0, this.w, this.h);
             const cells = [];
             const cellsInRow = Math.ceil(this.w / this.gridSize);
             const rows = Math.ceil(this.h / this.gridSize);

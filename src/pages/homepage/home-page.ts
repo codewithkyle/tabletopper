@@ -10,8 +10,11 @@ import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
 import dj from "~controllers/disk-jockey";
 import { connected, send } from "~controllers/ws";
+import { randomInt } from "../../utils/math";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
 import PlayerTokenPicker from "./player-token-picker/player-token-picker";
+
+const COLORS = ["grey", "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "light-blue", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
 
 interface IHomepage{
     connected: boolean,
@@ -236,11 +239,14 @@ export default class Homepage extends SuperComponent<IHomepage>{
                                     imageOP = cc.insert("images", image.uid, image);
                                 }
                                 const name = input.getValue().toString();
+                                const color = `${COLORS[randomInt(0, COLORS.length)]}-500`;
+                                sessionStorage.setItem("color", color);
                                 const player = cc.insert("players", sessionStorage.getItem("socketId"), {
                                     uid: sessionStorage.getItem("socketId"),
                                     name: name,
                                     token: image?.uid ?? null,
                                     active: true,
+                                    color: color,
                                 });
                                 send("room:join", {
                                     name: name,

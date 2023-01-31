@@ -77,7 +77,10 @@ export default class Pawn extends SuperComponent<IPawn>{
         window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
         this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
         if (this.model.playerId){
-            const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? [];
+            let player = null;
+            while (player === null){
+                player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? null;
+            }
             if (player?.token){
                 await this.loadImage(player.token);
             }

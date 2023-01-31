@@ -70,6 +70,13 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
         document.body.append(modal);
     }
 
+    private mutePlayer:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLElement;
+        send("room:player:mute", {
+            playerId: target.dataset.uid,
+        });
+    }
+
     private renderPlayer(player):TemplateResult{
         return html`
             <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 radius-0.25 pl-0.75">
@@ -96,6 +103,14 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <path d="M17 12h.01"></path>
                             <path d="M13 12h.01"></path>
                         </svg> 
+                    </button>
+                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.mutePlayer} sfx="button" tooltip="Toggle ${player.name} pings" class="bttn border-r-1 border-r-solid border-r-grey-300" kind="text" color="grey" icon="center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+                            <path d="M12 8l0 4"></path>
+                            <path d="M12 16l.01 0"></path>
+                        </svg>
                     </button>
                     <button data-uid="${player.uid}" @click=${this.kickPlayer} sfx="button" tooltip="Kick ${player.name}" class="bttn" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-off" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
