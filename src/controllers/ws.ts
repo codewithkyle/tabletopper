@@ -53,6 +53,9 @@ async function connect() {
                         data: data,
                     });
                     break;
+                case "room:announce:snackbar":
+                    notifications.snackbar(data);
+                    break;
                 case "room:announce:unlock":
                     notifications.snackbar("The room has been unlocked.");
                     break;
