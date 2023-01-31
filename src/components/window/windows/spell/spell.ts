@@ -73,6 +73,10 @@ export default class Spell extends SuperComponent<ISpell>{
 
     private toggleFavorite(){
         this.set({ favorite: !this.model.favorite });
+        db.query("UPDATE spells SET $spell WHERE index = $index", {
+            spell: {...this.model},
+            index: this.model.index,
+        });
     }
 
     private async saveSpell(){

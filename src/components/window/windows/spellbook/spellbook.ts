@@ -220,7 +220,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         }
 
         // Favorite spells first
-        sql += "ORDER BY favorite";
+        sql += " ORDER BY favorite DESC";
 
         spells = await db.query(sql, bindings);
 
@@ -371,6 +371,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             <div class="w-full block border-t-1 border-t-solid border-t-grey-200">
                 <div class="spells">
                     <div class="heading">
+                        <span></span>
                         <span>Level</span>
                         <span class="pl-1">Spell</span>
                         <span>Cast Time</span>
