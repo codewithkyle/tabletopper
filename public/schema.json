@@ -320,6 +320,10 @@
                 },
                 {
                     "key": "subclasses"
+                },
+                {
+                    "key": "favorite",
+                    "default": false
                 }
             ]
         }

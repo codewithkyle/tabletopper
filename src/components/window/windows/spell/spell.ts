@@ -43,6 +43,7 @@ export default class Spell extends SuperComponent<ISpell>{
             classes: [],
             subclasses: [],
             material: "",
+            favorite: false,
         };
     }
 
@@ -68,6 +69,10 @@ export default class Spell extends SuperComponent<ISpell>{
 
     private editSpell(){
         this.trigger("EDIT");
+    }
+
+    private toggleFavorite(){
+        this.set({ favorite: !this.model.favorite });
     }
 
     private async saveSpell(){
@@ -145,6 +150,26 @@ export default class Spell extends SuperComponent<ISpell>{
                 <div class="w-full mb-0.5" flex="row nowrap items-center justify-between">
                     <h1 class="block font-grey-800 font-lg font-bold">${this.model.name}</h1>
                     <div flex="row nowrap items-center">
+                        ${new Button({
+                            icon: this.model.favorite ? `
+                                    <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
+                                    </svg>
+                                ` : `
+                                    <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
+                                    </svg>
+                                `,
+                            tooltip: this.model.favorite ? "Unfavorite" : "Mark as favorite",
+                            kind: "text",
+                            color: "grey",
+                            iconPosition: "center",
+                            shape: "round",
+                            size: "slim",
+                            callback: this.toggleFavorite.bind(this),
+                        })}
                         ${new Button({
                             icon: `<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-edit" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 7h-3a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-3"></path><path d="M9 15h3l8.5 -8.5a1.5 1.5 0 0 0 -3 -3l-8.5 8.5v3"></path><line x1="16" y1="5" x2="19" y2="8"></line></svg>`,
                             iconPosition: "center",
