@@ -25,7 +25,7 @@
     "@codewithkyle/uuid": "^1.0.1",
     "brixi": "^0.6.2",
     "brixi-ui": "^0.5.3",
-    "cssmonster": "^0.5.0",
+    "cssmonster": "^0.7.2",
     "dayjs": "^1.10.7",
     "esbuild": "^0.16.4",
     "esinstall": "^1.1.7",
