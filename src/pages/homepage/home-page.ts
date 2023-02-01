@@ -83,7 +83,53 @@ export default class Homepage extends SuperComponent<IHomepage>{
         this.render();
     }
 
-   private renderActions(): TemplateResult {
+    private submitRoom:EventListener = (e:Event) => {
+        e.preventDefault();
+        const input = this.querySelector(".js-input") as Input;
+        const value = input.getValue().toString().trim().toUpperCase();
+        if (input.validate()){
+            const lastConfirmedCode = sessionStorage.getItem("room");
+            const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
+            if (lastConfirmedCode === value && lastConfiredSocket != null){
+                navigateTo(`/room/${value}`);
+            } else {
+                send("room:check", {
+                    code: value,
+                });
+            }
+        }
+    }
+
+    private submitCharacter:EventListener = (e:Event) => {
+        e.preventDefault();
+        const input = this.querySelector(".js-input") as Input;
+        const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
+        if (input.validate()){
+            const image = await tokenPicker.getValue();
+            let imageOP = null;
+            if (image){
+                imageOP = cc.insert("images", image.uid, image);
+            }
+            const name = input.getValue().toString();
+            const color = `${COLORS[randomInt(0, COLORS.length)]}-500`;
+            sessionStorage.setItem("color", color);
+            const player = cc.insert("players", sessionStorage.getItem("socketId"), {
+                uid: sessionStorage.getItem("socketId"),
+                name: name,
+                token: image?.uid ?? null,
+                active: true,
+                color: color,
+            });
+            send("room:join", {
+                name: name,
+                player: player,
+                token: imageOP,
+            });
+            sessionStorage.setItem("role", "player");
+        }
+    }
+
+    private renderActions(): TemplateResult {
        return html`
             <div class="actions w-full" flex="row nowrap items-center justify-center">
                 ${new Button({
@@ -161,7 +207,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderJoin():TemplateResult{
        return html`
-            <div class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+            <form @submit=${this.submitRoom} class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
                 <div class="p-1.5">
                     ${new Input({
                         name: "room",
@@ -176,37 +222,24 @@ export default class Homepage extends SuperComponent<IHomepage>{
                     ${new Button({
                         label: "Back",
                         class: "mr-1",
+                        type: "button",
                         callback: ()=> {
                             this.trigger("BACK");
                         },
                     })}
                     ${new Button({
                         label: "Next",
-                        callback: ()=>{
-                            const input = this.querySelector(".js-input") as Input;
-                            const value = input.getValue().toString().trim().toUpperCase();
-                            if (input.validate()){
-                                const lastConfirmedCode = sessionStorage.getItem("room");
-                                const lastConfiredSocket = sessionStorage.getItem("lastSocketId");
-                                if (lastConfirmedCode === value && lastConfiredSocket != null){
-                                    navigateTo(`/room/${value}`);
-                                } else {
-                                    send("room:check", {
-                                        code: value,
-                                    });
-                                }
-                            }
-                        }
+                        type: "submit",
                     })}
                 </div>
-            </div>
+            </form>
             ${new HomepageMusicPlayer()}
        `;
    }
 
    private renderCharacter():TemplateResult{
        return html`
-            <div class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
+            <form @submit=${this.submitCharacter} class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
                 <div class="p-1.5" flex="row nowrap items-center">
                     ${new PlayerTokenPicker()}
                     ${new Input({
@@ -219,6 +252,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 </div>
                 <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
                     ${new Button({
+                        type: "button",
                         label: "Back",
                         class: "mr-1",
                         callback: ()=> {
@@ -226,39 +260,13 @@ export default class Homepage extends SuperComponent<IHomepage>{
                         },
                     })}
                     ${new Button({
+                        type: "submit",
                         label: "Join Room",
                         kind: "solid",
                         color: "primary",
-                        callback: async ()=>{
-                            const input = this.querySelector(".js-input") as Input;
-                            const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
-                            if (input.validate()){
-                                const image = await tokenPicker.getValue();
-                                let imageOP = null;
-                                if (image){
-                                    imageOP = cc.insert("images", image.uid, image);
-                                }
-                                const name = input.getValue().toString();
-                                const color = `${COLORS[randomInt(0, COLORS.length)]}-500`;
-                                sessionStorage.setItem("color", color);
-                                const player = cc.insert("players", sessionStorage.getItem("socketId"), {
-                                    uid: sessionStorage.getItem("socketId"),
-                                    name: name,
-                                    token: image?.uid ?? null,
-                                    active: true,
-                                    color: color,
-                                });
-                                send("room:join", {
-                                    name: name,
-                                    player: player,
-                                    token: imageOP,
-                                });
-                                sessionStorage.setItem("role", "player");
-                            }
-                        }
                     })}
                 </div>
-            </div>
+            </form>
             ${new HomepageMusicPlayer()}
        `;
    }
