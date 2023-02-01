@@ -22,7 +22,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
 
     private async doRoll(){
         const input = this.querySelector("input") as HTMLInputElement;
-        const roll = input.value.trim();
+        const roll = input.value.trim().toLowerCase();
         if (roll.indexOf("*") !== -1 || roll.indexOf("/") !== -1){
             notifications.error("Dice Tray Error", "The dice tray does not support division or multiplication.");
             return;
