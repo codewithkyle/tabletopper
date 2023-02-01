@@ -141,7 +141,23 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} ${this.model?.monsterId == null ? "(npc)" : "(monster)"}`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.monsterId),
+                view: new StatBlock(this.model.uid, this.model.monsterId, "non-player"),
+                handle: "stat-block",
+            });
+            if (!windowEl.isConnected){
+                document.body.appendChild(windowEl);
+            }
+        } else if (
+                this.model?.playerId != null && sessionStorage.getItem("role") === "gm" || 
+                this.model?.playerId != null && this.model.playerId === sessionStorage.getItem("socketId")
+            ){
+            const x = e.clientX;
+            const y = e.clientY;
+            const windowEl = new Window({
+                name: `${this.model.name}`,
+                width: 400,
+                height: 200,
+                view: new StatBlock(this.model.uid, this.model.playerId, "player"),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){

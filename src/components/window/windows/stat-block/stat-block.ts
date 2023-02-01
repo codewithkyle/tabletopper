@@ -29,12 +29,14 @@ interface IStatBlock {
 }
 export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
-    private monsterId: string|null;
+    private entityId: string|null;
+    private type: "player" | "npc" | "monster";
 
-    constructor(pawnId:string, monsterId:string = null){
+    constructor(pawnId:string, id:string = null, type:"player" | "npc" | "monster" = "monster"){
         super();
         this.pawnId = pawnId;
-        this.monsterId = monsterId;
+        this.entityId = id;
+        this.type = type;
         this.model = {
             hp: 0,
             fullHP: 0,
@@ -57,10 +59,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     override async connected(){
         await env.css(["stat-block"]);
         const pawn = (await db.query("SELECT * FROM pawns WHERE uid = $uid", { uid: this.pawnId }))[0];
-        let monster = null;
-        if (this.monsterId != null){
-            monster = (await db.query("SELECT * FROM monsters WHERE index = $index", { index: this.monsterId }))[0];
-        }
         this.set({
             hp: pawn.hp,
             ac: pawn.ac,
@@ -111,10 +109,10 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     }
 
     private openMonsterManual(){
-        const windowEl = document.body.querySelector(`window-component[window="${this.monsterId}"]`) || new Window({
+        const windowEl = document.body.querySelector(`window-component[window="${this.entityId}"]`) || new Window({
             name: this.model.name,
-            view: new MonsterStatBlock(this.monsterId),
-            handle: this.monsterId,
+            view: new MonsterStatBlock(this.entityId),
+            handle: this.entityId,
             width: 450,
             height: 600,
         });
@@ -123,8 +121,28 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }
     }
 
+    private renderDeleteButton(){
+        if (this.type !== "player"){
+            return new Button({
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>`,
+                iconPosition: "center",
+                kind: "text",
+                color: "danger",
+                callback: ()=>{
+                    const op = cc.delete("pawns", this.pawnId);
+                    cc.dispatch(op);
+                    this.closest("window-component").close();
+                },
+                tooltip: "Delete pawn",
+                size: "slim",
+            });
+        } else {
+            return "";
+        }
+    }
+
     private renderBookButton(){
-        if (this.monsterId != null){
+        if (this.type === "monster"){
             return new Button({
                 icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19 4v16h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12z"></path><path d="M19 16h-12a2 2 0 0 0 -2 2"></path><path d="M9 8h6"></path></svg>`,
                 iconPosition: "center",
@@ -134,6 +152,14 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                 tooltip: "Open monster manual",
                 size: "slim",
             });
+        } else {
+            return "";
+        }
+    }
+
+    private renderDeletButton(){
+        if (this.type !== "player"){
+
         } else {
             return "";
         }
@@ -193,19 +219,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                         tooltip: "Locate pawn",
                         size: "slim",
                     })}
-                    ${new Button({
-                        icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>`,
-                        iconPosition: "center",
-                        kind: "text",
-                        color: "danger",
-                        callback: ()=>{
-                            const op = cc.delete("pawns", this.pawnId);
-                            cc.dispatch(op);
-                            this.closest("window-component").close();
-                        },
-                        tooltip: "Delete pawn",
-                        size: "slim",
-                    })}
+                    ${this.renderDeleteButton()}
                 </div>
             </div>
             <div class="w-full rings" flex="row wrap items-center">
