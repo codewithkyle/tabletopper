@@ -261,6 +261,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         }, true);
                     },
                     class: "mb-1.5",
+                    required: true,
                 })}
                 ${new Textarea({
                     name: "description",
@@ -284,7 +285,7 @@ export default class Spell extends SuperComponent<ISpell>{
                 <div grid="columns 2 gap-1.5" class="mb-1.5">
                     ${new NumberInput({
                         name: "level",
-                        value: this.model.level,
+                        value: this.model.level || 0,
                         label: "Level",
                         instructions: "Set Level to 0 for cantrips.",
                         callback: (value) => { this.set({ level: value }, true) },
