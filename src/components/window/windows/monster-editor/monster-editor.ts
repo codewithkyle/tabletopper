@@ -242,7 +242,6 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                         label: "Alignment",
                         value: this.model.alignment,
                         options: alignments,
-                        required: true,
                     })}
                     ${new Input({
                         label: "Type",
@@ -274,26 +273,22 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     label: "Hit Dice",
                     name: "hitDice",
                     value: this.model.hitDice,
-                    required: true,
                 })}
                 ${new Input({
                     label: "Speed",
                     name: "speed",
                     value: this.model.speed,
-                    required: true,
                 })}
                 <div grid="columns 2 gap-1">
                     ${new NumberInput({
                         label: "Challenge Rating",
                         name: "cr",
                         value: this.model.cr,
-                        required: true,
                     })}
                     ${new NumberInput({
                         label: "XP",
                         name: "xp",
                         value: this.model.xp,
-                        required: true,
                         min: 0,
                         max: 9999999,
                     })}
@@ -302,38 +297,32 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     ${new NumberInput({
                         label: "Strength",
                         name: "str",
-                        value: this.model.str,
-                        required: true,
+                        value: this.model.str || 0,
                     })}
                     ${new NumberInput({
                         label: "Dexterity",
                         name: "dex",
-                        value: this.model.dex,
-                        required: true,
+                        value: this.model.dex || 0,
                     })}
                     ${new NumberInput({
                         label: "Constitution",
                         name: "con",
-                        value: this.model.con,
-                        required: true,
+                        value: this.model.con || 0,
                     })}
                     ${new NumberInput({
                         label: "Intelligence",
                         name: "int",
-                        value: this.model.int,
-                        required: true,
+                        value: this.model.int || 0,
                     })}
                     ${new NumberInput({
                         label: "Wisdom",
                         name: "wis",
-                        value: this.model.wis,
-                        required: true,
+                        value: this.model.wis || 0,
                     })}
                     ${new NumberInput({
                         label: "Charisma",
                         name: "cha",
-                        value: this.model.cha,
-                        required: true,
+                        value: this.model.cha || 0,
                     })}
                 </div>
                 ${new Input({
