@@ -239,7 +239,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     })}
                     ${new Select({
                         name: "alignment",
-                        label: "Alignment",
+                        label: "Alignment <span class='font-sm font-grey-600'>(optional)</span>",
                         value: this.model.alignment,
                         options: alignments,
                     })}
@@ -251,7 +251,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                         datalist: types,
                     })}
                     ${new Input({
-                        label: "Subtype",
+                        label: "Subtype <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "subtype",
                         value: this.model.subtype,
                         datalist: subtypes,
@@ -270,23 +270,23 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     })}
                 </div>
                 ${new Input({
-                    label: "Hit Dice",
+                    label: "Hit Dice <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "hitDice",
                     value: this.model.hitDice,
                 })}
                 ${new Input({
-                    label: "Speed",
+                    label: "Speed <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "speed",
                     value: this.model.speed,
                 })}
                 <div grid="columns 2 gap-1">
                     ${new NumberInput({
-                        label: "Challenge Rating",
+                        label: "Challenge Rating <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "cr",
                         value: this.model.cr,
                     })}
                     ${new NumberInput({
-                        label: "XP",
+                        label: "XP <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "xp",
                         value: this.model.xp,
                         min: 0,
@@ -295,87 +295,87 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                 </div>
                 <div grid="columns 3 gap-1">
                     ${new NumberInput({
-                        label: "Strength",
+                        label: "Strength <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "str",
                         value: this.model.str || 0,
                     })}
                     ${new NumberInput({
-                        label: "Dexterity",
+                        label: "Dexterity <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "dex",
                         value: this.model.dex || 0,
                     })}
                     ${new NumberInput({
-                        label: "Constitution",
+                        label: "Constitution <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "con",
                         value: this.model.con || 0,
                     })}
                     ${new NumberInput({
-                        label: "Intelligence",
+                        label: "Intelligence <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "int",
                         value: this.model.int || 0,
                     })}
                     ${new NumberInput({
-                        label: "Wisdom",
+                        label: "Wisdom <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "wis",
                         value: this.model.wis || 0,
                     })}
                     ${new NumberInput({
-                        label: "Charisma",
+                        label: "Charisma <span class='font-sm font-grey-600'>(optional)</span>",
                         name: "cha",
                         value: this.model.cha || 0,
                     })}
                 </div>
                 ${new Input({
-                    label: "Immunities",
+                    label: "Immunities <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "immunities",
                     value: this.model.immunities,
                 })}
                 ${new Input({
-                    label: "Resistances",
+                    label: "Resistances <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "resistances",
                     value: this.model.resistances,
                 })}
                 ${new Input({
-                    label: "Vulnerabilities",
+                    label: "Vulnerabilities <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "vulnerabilities",
                     value: this.model.vulnerabilities,
                 })}
                 ${new Input({
-                    label: "Senses",
+                    label: "Senses <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "senses",
                     value: this.model.senses,
                 })}
                 ${new Input({
-                    label: "Languages",
+                    label: "Languages <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "languages",
                     value: this.model.languages,
                 })}
                 ${new Input({
-                    label: "Saving Throws",
+                    label: "Saving Throws <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "savingThrows",
                     value: this.model.savingThrows,
                 })}
                 ${new Input({
-                    label: "Skills",
+                    label: "Skills <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "skills",
                     value: this.model.skills,
                 })}
                 ${new MonsterInfoTable({
-                    label: "Abilities",
+                    label: "Abilities <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "abilities",
                     rows: this.model.abilities || [],
                     addLabel: "Add Ability",
                     class: "mt-1",
                 })}
                 ${new MonsterInfoTable({
-                    label: "Actions",
+                    label: "Actions <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "actions",
                     rows: this.model.actions || [],
                     addLabel: "Add Action",
                     class: "mt-1",
                 })}
                 ${new MonsterInfoTable({
-                    label: "Legendary Actions",
+                    label: "Legendary Actions <span class='font-sm font-grey-600'>(optional)</span>",
                     name: "legendaryActions",
                     rows: this.model.legendaryActions || [],
                     addLabel: "Add Legendary Action",
@@ -479,7 +479,7 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
         this.style.cssText = this.model.css;
         this.className = `${this.model.class} js-input`;
         const view = html`
-            <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125">${this.model.label}</h4>
+            <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125">${html`${this.model.label}`}</h4>
             ${this.model.rows.map((row, index) => {
                 return html`
                     <table-row>

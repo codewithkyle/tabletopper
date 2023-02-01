@@ -265,7 +265,7 @@ export default class Spell extends SuperComponent<ISpell>{
                 })}
                 ${new Textarea({
                     name: "description",
-                    label: "Description",
+                    label: "Description <span class='font-sm font-grey-600'>(optional)</span>",
                     value: this.model.desc,
                     callback: (desc) => {
                         this.set({
@@ -278,7 +278,7 @@ export default class Spell extends SuperComponent<ISpell>{
                 ${new Input({
                     name: "material",
                     value: this.model.material,
-                    label: "Materials",
+                    label: "Materials <span class='font-sm font-grey-600'>(optional)</span>",
                     callback: (value) => { this.set({ material: value }, true) },
                     class: "mb-1.5",
                 })}
@@ -286,14 +286,14 @@ export default class Spell extends SuperComponent<ISpell>{
                     ${new NumberInput({
                         name: "level",
                         value: this.model.level || 0,
-                        label: "Level",
+                        label: "Level <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Set Level to 0 for cantrips.",
                         callback: (value) => { this.set({ level: value }, true) },
                     })}
                     ${new Input({
                         name: "components",
                         value: this.model.components.join(", "),
-                        label: "Components",
+                        label: "Components <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Components must be separated using commas.",
                         callback: (value) => {
                             const values = value.split(",");
@@ -309,43 +309,43 @@ export default class Spell extends SuperComponent<ISpell>{
                     ${new Input({
                         name: "castingTime",
                         value: this.model.castingTime,
-                        label: "Casting Time",
+                        label: "Casting Time <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ castingTime: value }, true) },
                     })}
                     ${new Input({
                         name: "range",
                         value: this.model.range,
-                        label: "Range/Area",
+                        label: "Range/Area <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ range: value }, true) },
                     })}
                     ${new Input({
                         name: "duration",
                         value: this.model.duration,
-                        label: "Duration",
+                        label: "Duration <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ duration: value }, true) },
                     })}
                     ${new Input({
                         name: "attackType",
                         value: this.model.attackType,
-                        label: "Attack/Save",
+                        label: "Attack/Save <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ attackType: value }, true) },
                     })}
                     ${new Input({
                         name: "damage",
                         value: this.model.damageType,
-                        label: "Damage/Effect",
+                        label: "Damage/Effect <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ damageType: value }, true) },
                     })}
                     ${new Input({
                         name: "school",
                         value: this.model.school,
-                        label: "School",
+                        label: "School <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => { this.set({ school: value }, true) },
                     })}
                     ${new Input({
                         name: "classes",
                         value: this.model.classes.join(", "),
-                        label: "Classes",
+                        label: "Classes <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Class names must be separated using commas.",
                         callback: (value) => {
                             const values = value.split(",");
@@ -362,7 +362,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         name: "subclasses",
                         value: this.model.subclasses.join(", "),
                         instructions: "Subclass names must be separated using commas.",
-                        label: "Subclasses",
+                        label: "Subclasses <span class='font-sm font-grey-600'>(optional)</span>",
                         callback: (value) => {
                             const values = value.split(",");
                             const classes = [];
@@ -375,7 +375,7 @@ export default class Spell extends SuperComponent<ISpell>{
                         },
                     })}
                 </div>
-                <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125 mb-0.5">Damage</h4>
+                <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125 mb-0.5">Damage <span class="font-sm font-grey-600">(optional)</span></h4>
                 <damage-table class="mb-0.5">
                     ${Object.keys(this.model?.damage ?? {}).map((key, index) => {
                         return html`
