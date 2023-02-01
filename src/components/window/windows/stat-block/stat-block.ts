@@ -70,22 +70,49 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         this.render();
     }
 
-    private deferedHPUpdate = this.debounce((value) => {
-        const op = cc.set("pawns", this.pawnId, "hp", value);
-        cc.dispatch(op);
-    }, 1000);
-    private updateHP(value){
-        value = parseInt(value);
-        if (value > this.model.fullHP) {
+    private updateHP:EventListener = (e:Event) => {
+        const target = e.currentTarget as HTMLInputElement;
+        const value = target.value;
+        const values = value
+                    .trim()
+                    .replace(/[^0-9\-\+]/g, "") // only allow digets, +, and -
+                    .replace(/\+{1,}/g, " + ") // force space round +
+                    .replace(/\-{1,}/g, " - ") // force space around -
+                    .replace(/\s+/g, " ") // convert 1+ spaces into 1 space
+                    .split(" ");
+        let hp = 0;
+        let lastSeenOperator = "+";
+        for (let i = 0; i < values.length; i++){
+            switch (values[i]){
+                case "+":
+                    lastSeenOperator = "+";
+                    break;
+                case "-":
+                    lastSeenOperator = "-";
+                    break;
+                default:
+                    switch (lastSeenOperator){
+                        case "+":
+                            hp += +value;
+                            break;
+                        case "-":
+                            hp -= +value;
+                            break;
+                    }
+                    break;
+            }
+        }
+        if (hp > this.model.fullHP) {
             this.classList.add("overhealed");
             this.classList.remove("bloody");
-        } else if (value <= this.model.fullHP && value > this.model.fullHP / 2){
+        } else if (hp <= this.model.fullHP && hp > this.model.fullHP / 2){
             this.classList.remove("overhealed");
             this.classList.remove("bloody");
-        } else if (value <= this.model.fullHP / 2) {
+        } else if (hp <= this.model.fullHP / 2) {
             this.classList.add("bloody");
         }
-        this.deferedHPUpdate(value);
+        const op = cc.set("pawns", this.pawnId, "hp", value);
+        cc.dispatch(op);
     }
 
     private updateAC(value){
@@ -175,7 +202,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     name: `${this.pawnId}-hp`,
                     label: "Hit Points",
                     value: this.model.hp,
-                    callback: this.updateHP.bind(this),
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
                 })}
                 ${new NumberInput({
@@ -219,6 +245,10 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             </div>
         `;
         render(view, this);
+        const hpInput = this.querySelector(`[name="${this.pawnId}-hp"]`);
+        if (hpInput){
+            hpInput.addEventListener("blur", this.updateHP);
+        }
     }
 }
 env.bind("stat-block", StatBlock);
