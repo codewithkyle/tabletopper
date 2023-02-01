@@ -141,7 +141,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} ${this.model?.monsterId == null ? "(npc)" : "(monster)"}`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.monsterId, "non-player"),
+                view: new StatBlock(this.model.uid, this.model.monsterId, this.model?.monsterId == null ? "npc" : "monster"),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){

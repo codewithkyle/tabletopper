@@ -157,14 +157,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }
     }
 
-    private renderDeletButton(){
-        if (this.type !== "player"){
-
-        } else {
-            return "";
-        }
-    }
-
     private renderRings(){
         return html`
             ${Object.keys(this.model.rings).map(key => {
