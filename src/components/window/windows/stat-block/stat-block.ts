@@ -2,6 +2,7 @@ import db from "@codewithkyle/jsql";
 import SuperComponent from "@codewithkyle/supercomponent";
 import {html, render} from "lit-html";
 import NumberInput from "~brixi/components/inputs/number-input/number-input";
+import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import cc from "controllers/control-center";
 import Lightswitch from "~brixi/components/lightswitch/lightswitch";
@@ -70,9 +71,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         this.render();
     }
 
-    private updateHP:EventListener = (e:Event) => {
-        const target = e.currentTarget as HTMLInputElement;
-        const value = target.value;
+    private updateHP(value){
         const values = value
                     .trim()
                     .replace(/[^0-9\-\+]/g, "") // only allow digets, +, and -
@@ -93,10 +92,10 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                 default:
                     switch (lastSeenOperator){
                         case "+":
-                            hp += +value;
+                            hp += +values[i];
                             break;
                         case "-":
-                            hp -= +value;
+                            hp -= +values[i];
                             break;
                     }
                     break;
@@ -113,6 +112,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }
         const op = cc.set("pawns", this.pawnId, "hp", value);
         cc.dispatch(op);
+        this.set({hp: hp});
     }
 
     private updateAC(value){
@@ -198,11 +198,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     override render(): void {
         const view = html`
             <div class="w-full mb-0.5" grid="columns 2 gap-1">
-                ${new NumberInput({
+                ${new Input({
                     name: `${this.pawnId}-hp`,
                     label: "Hit Points",
                     value: this.model.hp,
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
+                    callback: this.debounce(this.updateHP.bind(this), 5000).bind(this),
                 })}
                 ${new NumberInput({
                     name: `${this.pawnId}-ac`,
@@ -245,10 +246,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             </div>
         `;
         render(view, this);
-        const hpInput = this.querySelector(`[name="${this.pawnId}-hp"]`);
-        if (hpInput){
-            hpInput.addEventListener("blur", this.updateHP);
-        }
     }
 }
 env.bind("stat-block", StatBlock);
