@@ -326,7 +326,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && sessionStorage.getItem("role") === "gm") {
+        } else if (this.model.hidden && (sessionStorage.getItem("role") === "gm" || this.model.playerId === sessionStorage.getItem("socketId"))){
             this.style.visibility = "visible";
             this.style.opacity = "0.5";
             this.style.pointerEvents = "all";
