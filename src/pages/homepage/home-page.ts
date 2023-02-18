@@ -100,8 +100,9 @@ export default class Homepage extends SuperComponent<IHomepage>{
         }
     }
 
-    private submitCharacter:EventListener = (e:Event) => {
+    private submitCharacter:EventListener = async (e:Event) => {
         e.preventDefault();
+        console.log("submit character");
         const input = this.querySelector(".js-input") as Input;
         const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
         if (input.validate()){
@@ -227,10 +228,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                             this.trigger("BACK");
                         },
                     })}
-                    ${new Button({
-                        label: "Next",
-                        type: "submit",
-                    })}
+                    <button type="submit" class="bttn" color="primary" kind="solid">Next</button>
                 </div>
             </form>
             ${new HomepageMusicPlayer()}
@@ -259,12 +257,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                             this.trigger("BACK");
                         },
                     })}
-                    ${new Button({
-                        type: "submit",
-                        label: "Join Room",
-                        kind: "solid",
-                        color: "primary",
-                    })}
+                    <button type="submit" class="bttn" color="primary" kind="solid">Join Room</button>
                 </div>
             </form>
             ${new HomepageMusicPlayer()}

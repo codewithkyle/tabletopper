@@ -2,6 +2,7 @@ import db from "@codewithkyle/jsql";
 import { publish } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html";
 import Input from "~brixi/components/inputs/input/input";
 import NumberInput from "~brixi/components/inputs/number-input/number-input";
 import Select from "~brixi/components/select/select";
@@ -479,7 +480,7 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
         this.style.cssText = this.model.css;
         this.className = `${this.model.class} js-input`;
         const view = html`
-            <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125">${html`${this.model.label}`}</h4>
+            <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125">${unsafeHTML(this.model.label)}</h4>
             ${this.model.rows.map((row, index) => {
                 return html`
                     <table-row>
