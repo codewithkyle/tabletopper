@@ -77,7 +77,10 @@ export default class Pawn extends SuperComponent<IPawn>{
         window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
         this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
         if (this.model.playerId){
-            const player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? [];
+            let player = null;
+            while (player === null){
+                player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? null;
+            }
             if (player?.token){
                 await this.loadImage(player.token);
             }
@@ -138,7 +141,23 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} ${this.model?.monsterId == null ? "(npc)" : "(monster)"}`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.monsterId),
+                view: new StatBlock(this.model.uid, this.model.monsterId, this.model?.monsterId == null ? "npc" : "monster"),
+                handle: "stat-block",
+            });
+            if (!windowEl.isConnected){
+                document.body.appendChild(windowEl);
+            }
+        } else if (
+                this.model?.playerId != null && sessionStorage.getItem("role") === "gm" || 
+                this.model?.playerId != null && this.model.playerId === sessionStorage.getItem("socketId")
+            ){
+            const x = e.clientX;
+            const y = e.clientY;
+            const windowEl = new Window({
+                name: `${this.model.name}`,
+                width: 400,
+                height: 200,
+                view: new StatBlock(this.model.uid, this.model.playerId, "player"),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -307,7 +326,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && sessionStorage.getItem("role") === "gm") {
+        } else if (this.model.hidden && (sessionStorage.getItem("role") === "gm" || this.model.playerId === sessionStorage.getItem("socketId"))){
             this.style.visibility = "visible";
             this.style.opacity = "0.5";
             this.style.pointerEvents = "all";

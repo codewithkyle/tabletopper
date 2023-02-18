@@ -48,7 +48,8 @@ export default class ContextMenu extends SuperComponent<IContextMenu>{
                     let diffY = (this.y - tabletop.y) / tabletop.zoom;
                     send("room:tabletop:ping", {
                         x: Math.round(diffX) - 16,
-                        y: Math.round(diffY) - 16
+                        y: Math.round(diffY) - 16,
+                        color: sessionStorage.getItem("color"),
                     });
                     this.remove();
                 },

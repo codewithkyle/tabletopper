@@ -94,8 +94,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 }
                 break;
             case "ping":
-                const { x, y } = data;
-                const pingEl = new PingComponent(x, y, this.zoom);
+                const { x, y, color } = data;
+                const pingEl = new PingComponent(x, y, color, this.zoom);
                 this.appendChild(pingEl);
                 break;
             default:

@@ -147,6 +147,19 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
     private renderSpell(spell:ISpell, index): TemplateResult{
         return html`
             <button sfx="button" class="spell" @click=${this.openSpell} data-index="${spell.index}" data-name="${spell.name}">
+                <div flex="column wrap items-center justify-center" style="width:32px;height:32px;">
+                    ${spell.favorite ? html`
+                        <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
+                        </svg>
+                    ` : html`
+                        <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
+                        </svg>
+                    `}
+                </div>
                 <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
                     ${spell.level}
                 </div>
@@ -205,6 +218,10 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         if (clauses.length){
             sql += `WHERE ${clauses.join(" AND ")}`;
         }
+
+        // Favorite spells first
+        sql += " ORDER BY favorite DESC";
+
         spells = await db.query(sql, bindings);
 
         const levels = (await db.query("SELECT UNIQUE level FROM spells")).sort();
@@ -354,6 +371,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             <div class="w-full block border-t-1 border-t-solid border-t-grey-200">
                 <div class="spells">
                     <div class="heading">
+                        <span></span>
                         <span>Level</span>
                         <span class="pl-1">Spell</span>
                         <span>Cast Time</span>

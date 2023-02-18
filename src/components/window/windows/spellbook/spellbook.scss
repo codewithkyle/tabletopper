@@ -116,7 +116,7 @@ spell-book{
 
         .heading{
             display: grid;
-            grid-template-columns: 32px 200px repeat(4, 1fr);
+            grid-template-columns: 32px 32px 200px repeat(4, 1fr);
             align-items: center;
             gap: 1rem;
             width: 100%;
@@ -129,7 +129,7 @@ spell-book{
 
         .spell{
             display: grid;
-            grid-template-columns: 32px 200px repeat(4, 1fr);
+            grid-template-columns: 32px 32px 200px repeat(4, 1fr);
             align-items: center;
             gap: 1rem;
             width: 100%;

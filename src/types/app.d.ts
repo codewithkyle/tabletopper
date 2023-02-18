@@ -57,8 +57,9 @@ export interface Spell {
     damage:      Damage | null;
     school:      string;
     classes:     string[];
-    subclasses: string[];
+    subclasses:  string[];
     material:    string | null;
+    favorite:    boolean;
 }
 
 export interface Image {
