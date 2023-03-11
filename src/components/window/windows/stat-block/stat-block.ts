@@ -110,6 +110,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         } else if (hp <= this.model.fullHP / 2) {
             this.classList.add("bloody");
         }
+        console.log(hp);
         const op = cc.set("pawns", this.pawnId, "hp", value);
         cc.dispatch(op);
         this.set({hp: hp});
@@ -119,6 +120,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         value = parseInt(value);
         const op = cc.set("pawns", this.pawnId, "ac", value);
         cc.dispatch(op);
+        this.set({ac: value}, true);
     }
 
     private locate(){
