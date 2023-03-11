@@ -179,7 +179,7 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         }
 
         // Favorite spells first
-        sql += " ORDER BY favorite DESC";
+        sql += " ORDER BY name";
 
         spells = await db.query(sql, bindings);
 
@@ -370,6 +370,7 @@ class SpellOverview extends HTMLElement {
     constructor(spell: ISpell){
         super();
         this.spell = spell;
+        this.addEventListener("click", this.openSpell);
         this.render();
     }
 
@@ -386,33 +387,37 @@ class SpellOverview extends HTMLElement {
     }
 
     private render(){
+        if (this.spell.favorite){
+            this.style.order = "-1";
+        }
+        this.setAttribute("sfx", "button");
+        this.className = "spell";
+        this.tabIndex = 0;
         const view = html`
-            <button sfx="button" class="spell" @click=${this.openSpell}>
-                <div flex="column wrap items-center justify-center" style="width:32px;height:32px;">
-                    ${this.spell.favorite ? html`
-                        <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
-                        </svg>
-                    ` : html`
-                        <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
-                        </svg>
-                    `}
-                </div>
-                <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
-                    ${this.spell.level}
-                </div>
-                <div flex="column wrap" class="pl-1">
-                    <h3 class="block font-medium font-grey-800 mb-0.25">${this.spell.name}</h3>
-                    <h4 class="block font-xs font-grey-700">${this.spell.school} - ${this.spell.components.join(",")} ${this.spell.material?.length ? "*" : ""}</h4>
-                </div>
-                <span class="font-sm font-grey-700">${this.spell.castingTime}</span>
-                <span class="font-sm font-grey-700">${this.spell.duration}</span>
-                <span class="font-sm font-grey-700">${this.spell.range}</span>
-                <span class="font-sm font-grey-700">${this.spell.damageType}</span>
-            </button>
+            <div flex="column wrap items-center justify-center" style="width:32px;height:32px;">
+                ${this.spell.favorite ? html`
+                    <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
+                    </svg>
+                ` : html`
+                    <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
+                    </svg>
+                `}
+            </div>
+            <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
+                ${this.spell.level}
+            </div>
+            <div flex="column wrap" class="pl-1">
+                <h3 class="block font-medium font-grey-800 mb-0.25">${this.spell.name}</h3>
+                <h4 class="block font-xs font-grey-700">${this.spell.school} - ${this.spell.components.join(",")} ${this.spell.material?.length ? "*" : ""}</h4>
+            </div>
+            <span class="font-sm font-grey-700">${this.spell.castingTime}</span>
+            <span class="font-sm font-grey-700">${this.spell.duration}</span>
+            <span class="font-sm font-grey-700">${this.spell.range}</span>
+            <span class="font-sm font-grey-700">${this.spell.damageType}</span>
         `;
         render(view, this);
     }

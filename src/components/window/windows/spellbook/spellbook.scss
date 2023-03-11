@@ -112,7 +112,7 @@ spell-book{
         gap: 1rem;
         width: 100%;
         overflow-x: auto;
-        padding: 1rem;
+        padding: 1rem 1rem 0;
 
         .heading{
             display: grid;
@@ -127,7 +127,13 @@ spell-book{
             text-align: left;
         }
 
-        .spell{
+        .spell-list{
+            display: flex;
+            flex-flow: column wrap;
+        }
+
+        spell-overview{
+            margin-bottom: 0.5rem;
             display: grid;
             grid-template-columns: 32px 32px 200px repeat(4, 1fr);
             align-items: center;
@@ -141,6 +147,11 @@ spell-book{
             cursor: pointer;
             text-align: left;
 
+            span{
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
             &:hover,
             &:focus-visible{
                 box-shadow: var(--shadow-grey-sm);
@@ -150,10 +161,6 @@ spell-book{
                 box-shadow: none;
             }
 
-            span{
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
         }
     }
 }
