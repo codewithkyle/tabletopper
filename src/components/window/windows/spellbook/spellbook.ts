@@ -20,8 +20,11 @@ interface ISpellbook{
     damageType: string,
 }
 export default class Spellbook extends SuperComponent<ISpellbook>{
+    private firstRender: boolean;
+
     constructor(){
         super();
+        this.firstRender = true;
         this.model = {
             query: "",
             limit: 10,
@@ -118,19 +121,6 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         });
     }
 
-    private openSpell:EventListener = (e:Event) => {
-        const target = e.currentTarget as HTMLElement;
-        const window = document.body.querySelector(`window-component[window="${target.dataset.index}"]`) || new Window({
-            name: target.dataset.name,
-            view: new Spell(target.dataset.index),
-            width: 600,
-            height: 350
-        });
-        if (!window.isConnected){
-            document.body.append(window);
-        }
-    }
-
     private addSpell = (e) => {
         const target = e.currentTarget as HTMLElement;
         const window = document.body.querySelector(`window-component[window="create-spell"]`) || new Window({
@@ -142,37 +132,6 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         if (!window.isConnected){
             document.body.append(window);
         }
-    }
-
-    private renderSpell(spell:ISpell, index): TemplateResult{
-        return html`
-            <button sfx="button" class="spell" @click=${this.openSpell} data-index="${spell.index}" data-name="${spell.name}">
-                <div flex="column wrap items-center justify-center" style="width:32px;height:32px;">
-                    ${spell.favorite ? html`
-                        <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
-                        </svg>
-                    ` : html`
-                        <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
-                        </svg>
-                    `}
-                </div>
-                <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
-                    ${spell.level}
-                </div>
-                <div flex="column wrap" class="pl-1">
-                    <h3 class="block font-medium font-grey-800 mb-0.25">${spell.name}</h3>
-                    <h4 class="block font-xs font-grey-700">${spell.school} - ${spell.components.join(",")} ${spell.material?.length ? "*" : ""}</h4>
-                </div>
-                <span class="font-sm font-grey-700">${spell.castingTime}</span>
-                <span class="font-sm font-grey-700">${spell.duration}</span>
-                <span class="font-sm font-grey-700">${spell.range}</span>
-                <span class="font-sm font-grey-700">${spell.damageType}</span>
-            </button>
-        `;
     }
 
     override async render(){
@@ -223,6 +182,17 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
         sql += " ORDER BY favorite DESC";
 
         spells = await db.query(sql, bindings);
+
+        if (!this.firstRender){
+            const spellList = this.querySelector(".spell-list");
+            spellList.innerHTML = "";
+            for (let i = 0; i < spells.length; i++){
+                const spell = new SpellOverview(spells[i]);
+                spellList.append(spell);
+            }
+            return;
+        }
+
 
         const levels = (await db.query("SELECT UNIQUE level FROM spells")).sort();
         const levelOptions = [{
@@ -379,7 +349,9 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
                         <span>Range</span>
                         <span>Damage/Effect</span>
                     </div>
-                    ${spells.map(this.renderSpell.bind(this))}
+                    <div class="spell-list">
+                        ${spells.map(spell => new SpellOverview(spell))}
+                    </div>
                 </div>
                 <div class="w-full px-1 pb-1">
                     <button @click=${this.showMore} class="w-full bttn" color="grey" kind="text" sfx="button">load more spells</button>
@@ -387,6 +359,62 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
             </div>
         `;
         render(view, this);
+        this.firstRender = false;
     }
 }
 env.bind("spell-book", Spellbook);
+
+class SpellOverview extends HTMLElement {
+    private spell: ISpell;
+
+    constructor(spell: ISpell){
+        super();
+        this.spell = spell;
+        this.render();
+    }
+
+    private openSpell:EventListener = () => {
+        const window = document.body.querySelector(`window-component[window="${this.spell.index}"]`) || new Window({
+            name: this.spell.name,
+            view: new Spell(this.spell.index),
+            width: 600,
+            height: 350
+        });
+        if (!window.isConnected){
+            document.body.append(window);
+        }
+    }
+
+    private render(){
+        const view = html`
+            <button sfx="button" class="spell" @click=${this.openSpell}>
+                <div flex="column wrap items-center justify-center" style="width:32px;height:32px;">
+                    ${this.spell.favorite ? html`
+                        <svg class="font-warning-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" fill="currentColor"></path>
+                        </svg>
+                    ` : html`
+                        <svg class="font-grey-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path>
+                        </svg>
+                    `}
+                </div>
+                <div class="font-sm font-medium font-grey-800 bg-grey-50 radius-0.25 border-1 border-solid border-grey-100" style="width:32px;height:32px;" flex="column wrap items-center justify-center">
+                    ${this.spell.level}
+                </div>
+                <div flex="column wrap" class="pl-1">
+                    <h3 class="block font-medium font-grey-800 mb-0.25">${this.spell.name}</h3>
+                    <h4 class="block font-xs font-grey-700">${this.spell.school} - ${this.spell.components.join(",")} ${this.spell.material?.length ? "*" : ""}</h4>
+                </div>
+                <span class="font-sm font-grey-700">${this.spell.castingTime}</span>
+                <span class="font-sm font-grey-700">${this.spell.duration}</span>
+                <span class="font-sm font-grey-700">${this.spell.range}</span>
+                <span class="font-sm font-grey-700">${this.spell.damageType}</span>
+            </button>
+        `;
+        render(view, this);
+    }
+}
+env.bind("spell-overview", SpellOverview);
