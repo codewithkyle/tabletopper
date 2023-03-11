@@ -2,6 +2,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "components/pawn/pawn";
 import type { Image } from "~types/app";
+import TabeltopComponent from "../tabletop-component";
 
 interface IVFXCanvas {}
 export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
@@ -76,7 +77,7 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                         this.randomInt((x - (pawnW * 0.125)), (x + (pawnW * 0.125))),
                         this.randomInt((y - (pawnH * 0.125)), (y + (pawnH * 0.125)))
                     ];
-                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnW / this.parentElement.zoom);
+                    const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnW);
                     this.effects.push(splatter);
                 }
             }
