@@ -1,6 +1,6 @@
 {
     "name": "app",
-    "version": 3,
+    "version": 4,
     "tables": [
         {
             "name": "rolls",
