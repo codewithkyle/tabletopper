@@ -205,15 +205,15 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     value: this.model.hp.toString(),
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
                     callbacks: {
-                        onBlur: this.debounce(this.updateHP.bind(this), 5000).bind(this),
-                    }
+                        onBlur: this.updateHP.bind(this),
+                    },
                 })}
                 ${new NumberInput({
                     name: `${this.pawnId}-ac`,
                     label: "Armour Class",
                     value: this.model.ac,
                     callbacks: {
-                        onBlur: this.debounce(this.updateAC.bind(this), 1000).bind(this),
+                        onBlur: this.updateAC.bind(this),
                     },
                     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>`,
                 })}
