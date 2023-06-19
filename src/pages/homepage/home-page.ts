@@ -8,11 +8,11 @@ import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
-import dj from "~controllers/disk-jockey";
 import { connected, send } from "~controllers/ws";
 import { randomInt } from "../../utils/math";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
 import PlayerTokenPicker from "./player-token-picker/player-token-picker";
+import sound from "~brixi/controllers/soundscape";
 
 const COLORS = ["grey", "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "light-blue", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
 
@@ -67,8 +67,8 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 }
                 break;
             case "room:join":
+                sound.pause("mainMenu");
                 navigateTo(`/room/${data.uid}`);
-                dj.pause("mainMenu");
                 break;
             case "character:getDetails":
                 this.trigger("NEXT");

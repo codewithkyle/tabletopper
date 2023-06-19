@@ -12,8 +12,10 @@ import SpotlightSearch from "components/spotlight-search/spotlight-search";
 import Window from "~components/window/window";
 import Spell from "~components/window/windows/spell/spell";
 import MonsterEditor from "~components/window/windows/monster-editor/monster-editor";
-import ContextMenu from  "./context-menu/context-menu";
+import ContextMenu from  "~brixi/components/context-menu/context-menu";
 import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
+import NPCModal from "./npc-modal/npc-modal";
+import type { Monster } from "~types/app";
 
 interface ITabletopPage {
 }
@@ -107,12 +109,65 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         e.preventDefault();
         const x = e.clientX;
         const y = e.clientY;
-        this.contextEl = document.body.querySelector("context-menu") || new ContextMenu(x, y);
-        if (!this.contextEl.isConnected){
-            document.body.appendChild(this.contextEl);
-        } else {
-            this.contextEl.setLocation(x, y);
+        const items = [
+            {
+                label: "Ping",
+                callback: ()=>{
+                    const tabletop = document.body.querySelector("tabletop-component");
+                    let diffX = (x - tabletop.x) / tabletop.zoom;
+                    let diffY = (y - tabletop.y) / tabletop.zoom;
+                    send("room:tabletop:ping", {
+                        x: Math.round(diffX) - 16,
+                        y: Math.round(diffY) - 16,
+                        color: sessionStorage.getItem("color"),
+                    });
+                }
+            }
+        ];
+        if (sessionStorage.getItem("role") === "gm"){
+            items.push({
+                label: "Spawn Monster",
+                callback: ()=>{
+                    const el = new SpotlightSearch(true, false, async (type:"monster"|"spell", index:string)=>{
+                        if (index === null){
+                            const windowEl = new Window({
+                                name: "Create Monster",
+                                view: new MonsterEditor(),
+                                width: 600,
+                                height: 350,
+                            });
+                        } else {
+                            const tabletop = document.body.querySelector("tabletop-component");
+                            let diffX = (x - tabletop.x) / tabletop.zoom;
+                            let diffY = (y - tabletop.y) / tabletop.zoom;
+                            const monster = (await db.query<Monster>("SELECT * FROM monsters WHERE index = $index", { index: index }))[0];
+                            send("room:tabletop:spawn:monster", {
+                                x: Math.round(diffX) - 16,
+                                y: Math.round(diffY) - 16,
+                                index: index,
+                                name: monster.name,
+                                ac: monster.ac,
+                                hp: monster.hp,
+                                size: monster.size.toLowerCase(),
+                            });
+                        }
+                    });
+                    document.body.appendChild(el);
+                }
+            });
+            items.push({
+                label: "Spawn NPC",
+                callback: ()=>{
+                    const modal = new NPCModal(x, y);
+                    document.body.appendChild(modal);
+                }
+            });
         }
+        new ContextMenu({
+            x: x,
+            y: y,
+            items: items,
+        });
     }
 
     private handleKeyboard = (e:KeyboardEvent) => {

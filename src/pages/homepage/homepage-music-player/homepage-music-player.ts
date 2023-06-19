@@ -2,7 +2,7 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import env from "~brixi/controllers/env";
-import dj from "~controllers/disk-jockey";
+import sound from "~brixi/controllers/soundscape";
 
 interface IHomepageMusicPlayer {
     playing: boolean;
@@ -12,13 +12,18 @@ export default class HomepageMusicPlayer extends SuperComponent<IHomepageMusicPl
     constructor(){
         super();
         this.model = {
-            playing: dj.music["mainMenu"].muted ? false : true,
+            playing: true,
         };
     }
 
     override async connected() {
        await env.css(["homepage-music-player"]);
-       dj.play("mainMenu");
+       await sound.add("mainMenu", "/music/177_Tavern_Music.mp3");
+       sound.setVolume("mainMenu", 0.15);
+       const buffer = sound.play("mainMenu", true);
+       if (buffer === null) {
+           this.model.playing = false;
+       }
        this.render();
     }
 
@@ -27,12 +32,12 @@ export default class HomepageMusicPlayer extends SuperComponent<IHomepageMusicPl
             this.set({
                 playing: false,
             });
-            dj.mute("mainMenu");
+            sound.toggleSound("mainMenu", false);
         } else {
             this.set({
                 playing: true,
             });
-            dj.unmute("mainMenu");
+            sound.toggleSound("mainMenu", true);
         }
     }
 
