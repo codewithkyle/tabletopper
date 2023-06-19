@@ -255,10 +255,12 @@ export default class Spell extends SuperComponent<ISpell>{
                     name: "name",
                     label: "Spell",
                     value: this.model.name,
-                    callback: (name) => {
-                        this.set({
-                            name: name,
-                        }, true);
+                    callbacks: {
+                        onInput: (name:string) => {
+                            this.set({
+                                name: name,
+                            }, true);
+                        },
                     },
                     class: "mb-1.5",
                     required: true,
@@ -267,10 +269,12 @@ export default class Spell extends SuperComponent<ISpell>{
                     name: "description",
                     label: "Description <span class='font-sm font-grey-600'>(optional)</span>",
                     value: this.model.desc,
-                    callback: (desc) => {
-                        this.set({
-                            desc: desc,
-                        }, true);
+                    callbacks: {
+                        onInput: (desc:string) => {
+                            this.set({
+                                desc: desc,
+                            }, true);
+                        },
                     },
                     class: "mb-1.5",
                     instructions: `This field supports <a class="link" href="https://www.markdownguide.org/cheat-sheet/" target="_blank">Markdown</a>.`,
@@ -279,7 +283,9 @@ export default class Spell extends SuperComponent<ISpell>{
                     name: "material",
                     value: this.model.material,
                     label: "Materials <span class='font-sm font-grey-600'>(optional)</span>",
-                    callback: (value) => { this.set({ material: value }, true) },
+                    callbacks: {
+                        onInput: (value:string) => { this.set({ material: value }, true) },
+                    },
                     class: "mb-1.5",
                 })}
                 <div grid="columns 2 gap-1.5" class="mb-1.5">
@@ -288,91 +294,111 @@ export default class Spell extends SuperComponent<ISpell>{
                         value: this.model.level || 0,
                         label: "Level <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Set Level to 0 for cantrips.",
-                        callback: (value) => { this.set({ level: value }, true) },
+                        callbacks: {
+                            onInput: (value) => { this.set({ level: value }, true) },
+                        },
                     })}
                     ${new Input({
                         name: "components",
                         value: this.model.components.join(", "),
                         label: "Components <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Components must be separated using commas.",
-                        callback: (value) => {
-                            const values = value.split(",");
-                            const components = [];
-                            for (let i = 0; i < values.length; i++){
-                                components.push(values[i].trim());
-                            }
-                            this.set({
-                                components: components,
-                            }, true);
+                        callbacks: {
+                            onInput: (value:string) => {
+                                const values = value.split(",");
+                                const components = [];
+                                for (let i = 0; i < values.length; i++){
+                                    components.push(values[i].trim());
+                                }
+                                this.set({
+                                    components: components,
+                                }, true);
+                            },
                         },
                     })}
                     ${new Input({
                         name: "castingTime",
                         value: this.model.castingTime,
                         label: "Casting Time <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ castingTime: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ castingTime: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "range",
                         value: this.model.range,
                         label: "Range/Area <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ range: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ range: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "duration",
                         value: this.model.duration,
                         label: "Duration <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ duration: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ duration: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "attackType",
                         value: this.model.attackType,
                         label: "Attack/Save <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ attackType: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ attackType: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "damage",
                         value: this.model.damageType,
                         label: "Damage/Effect <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ damageType: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ damageType: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "school",
                         value: this.model.school,
                         label: "School <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => { this.set({ school: value }, true) },
+                        callbacks: {
+                            onInput: (value:string) => { this.set({ school: value }, true) },
+                        }
                     })}
                     ${new Input({
                         name: "classes",
                         value: this.model.classes.join(", "),
                         label: "Classes <span class='font-sm font-grey-600'>(optional)</span>",
                         instructions: "Class names must be separated using commas.",
-                        callback: (value) => {
-                            const values = value.split(",");
-                            const classes = [];
-                            for (let i = 0; i < values.length; i++){
-                                classes.push(values[i].trim());
-                            }
-                            this.set({
-                                classes: classes,
-                            }, true);
-                        },
+                        callbacks: {
+                            onInput: (value:string) => {
+                                const values = value.split(",");
+                                const classes = [];
+                                for (let i = 0; i < values.length; i++){
+                                    classes.push(values[i].trim());
+                                }
+                                this.set({
+                                    classes: classes,
+                                }, true);
+                            },
+                        }
                     })}
                     ${new Input({
                         name: "subclasses",
                         value: this.model.subclasses.join(", "),
                         instructions: "Subclass names must be separated using commas.",
                         label: "Subclasses <span class='font-sm font-grey-600'>(optional)</span>",
-                        callback: (value) => {
-                            const values = value.split(",");
-                            const classes = [];
-                            for (let i = 0; i < values.length; i++){
-                                classes.push(values[i].trim());
-                            }
-                            this.set({
-                                subclasses: classes,
-                            }, true);
-                        },
+                        callbacks: {
+                            onInput: (value:string) => {
+                                const values = value.split(",");
+                                const classes = [];
+                                for (let i = 0; i < values.length; i++){
+                                    classes.push(values[i].trim());
+                                }
+                                this.set({
+                                    subclasses: classes,
+                                }, true);
+                            },
+                        }
                     })}
                 </div>
                 <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125 mb-0.5">Damage <span class="font-sm font-grey-600">(optional)</span></h4>

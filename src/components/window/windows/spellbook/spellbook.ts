@@ -304,7 +304,9 @@ export default class Spellbook extends SuperComponent<ISpellbook>{
                         name: "spellSearch",
                         value: this.model.query,
                         placeholder: "Search spells...",
-                        callback: this.debounceInput.bind(this),
+                        callbacks: {
+                            onInput: this.debounceInput.bind(this),
+                        }
                     })}
                     ${new Select({
                         name: "spellLevel",

@@ -153,7 +153,9 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
                     name: "monsterSearch",
                     value: this.model.query,
                     placeholder: "Search monsters...",
-                    callback: this.debounceInput.bind(this),
+                    callbacks: {
+                        onInput: this.debounceInput.bind(this),
+                    },
                     css: "flex:1;"
                 })}
                 ${new Button({

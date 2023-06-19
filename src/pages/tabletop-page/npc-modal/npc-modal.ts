@@ -46,10 +46,12 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                     ${new Input({
                         name: "name",
                         label: "Name",
-                        callback: (value:string) => {
-                            this.set({
-                                name: value,
-                            }, true);
+                        callbacks: {
+                            onInput: (value:string) => {
+                                this.set({
+                                    name: value,
+                                }, true);
+                            }
                         },
                         autofocus: true,
                     })}
@@ -58,20 +60,24 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                             name: "hp",
                             label: "Hit Points",
                             icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>`,
-                            callback: (value:number) => {
-                                this.set({
-                                    hp: value
-                                }, true);
+                            callbacks: {
+                                onInput: (value:number) => {
+                                    this.set({
+                                        hp: value
+                                    }, true);
+                                }
                             }
                         })}
                         ${new NumberInput({
                             name: "ac",
                             label: "Armour Class",
                             icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>`,
-                            callback: (value:number) => {
-                                this.set({
-                                    ac: value,
-                                }, true);
+                            callbacks: {
+                                onInput: (value:number) => {
+                                    this.set({
+                                        ac: value,
+                                    }, true);
+                                }
                             }
                         })}
                     </div>
@@ -89,7 +95,7 @@ export default class NPCModal extends SuperComponent<INPCModal>{
                         ],
                         callback: (value:string) => {
                             this.set({
-                                size: value,
+                                size: value as Size,
                             }, true);
                         }
                     })}

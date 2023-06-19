@@ -55,19 +55,22 @@ export default class TabletopSettingsModal extends SuperComponent<ITabletopSetti
                         value: this.model.gridSize,
                         label: "Grid Cell Size",
                         instructions: "Units in pixels.",
-                        callback: this.handleGridSizeInput.bind(this),
+                        callbacks: {
+                            onInput: this.handleGridSizeInput.bind(this),
+                        },
                         name: "grid-cell-size",
                         icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><line x1="7" y1="4" x2="7" y2="20"></line><line x1="17" y1="4" x2="17" y2="20"></line></svg>`,
                     })}
                     ${new Lightswitch({
-                        label: "Grid hidden",
-                        altLabel: "Grid visible",
+                        disabledLabel: "Grid hidden",
+                        enabledLabel: "Grid visible",
                         enabled: this.model.renderGrid,
                         callback: (enabled:boolean)=>{
                             this.set({
                                 renderGrid: enabled,
                             }, true);
-                        }
+                        },
+                        value: "grid"
                     })}
                 </div>
                 <div class="w-full p-1 bg-grey-50 border-t-1 border-t-solid border-t-grey-300" flex="row nowrap items-center justify-end">
