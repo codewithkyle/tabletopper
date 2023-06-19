@@ -1,8 +1,7 @@
 import env from "~brixi/controllers/env";
+import sound from "~brixi/controllers/soundscape";
 
 export default class PingComponent extends HTMLElement{
-    private audio:HTMLAudioElement;
-
     constructor(x:number, y:number, color:string, zoom:number){
         super();
         if (zoom < 1){
@@ -11,11 +10,15 @@ export default class PingComponent extends HTMLElement{
         this.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
         this.style.color = `var(--${color})`;
         this.className = "ping";
-        this.audio = new Audio("/static/ping.mp3");
     }
 
     connectedCallback(){
-        env.css(["ping"]).then(() => {
+        Promise.all([
+            sound.add("ping", "/static/ping.mp3"),
+            env.css(["ping"]),
+        ])
+        .then(() => {
+            sound.setVolume("ping", 0.25);
             this.render();
         });
     }
@@ -29,8 +32,7 @@ export default class PingComponent extends HTMLElement{
                 <path d="M12 16l.01 0"></path>
             </svg>
         `;
-        this.audio.volume = 0.25;
-        this.audio.play();
+        sound.play("ping");
         setTimeout(() => {
             this.remove();
         }, 1000);

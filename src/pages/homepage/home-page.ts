@@ -147,6 +147,8 @@ export default class Homepage extends SuperComponent<IHomepage>{
                         callback: ()=>{
                             send("create:room");
                             sessionStorage.setItem("role", "gm");
+                            const color = `${COLORS[randomInt(0, COLORS.length)]}-500`;
+                            sessionStorage.setItem("color", color);
                         },
                         label: "Create Room",
                         kind: "outline",
