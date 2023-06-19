@@ -41,7 +41,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
 
     private handleRenameSubmit:EventListener = (e:SubmitEvent) => {
         const form = e.currentTarget as HTMLFormElement;
-        const input:Input = form.querySelector(".js-input");
+        const input:Input = form.querySelector("[form-input]");
         const name = input.getValue();
         const op = cc.set("players", form.dataset.playerUid, "name", name);
         cc.dispatch(op);

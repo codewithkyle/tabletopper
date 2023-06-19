@@ -85,7 +85,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
     private submitRoom:EventListener = (e:Event) => {
         e.preventDefault();
-        const input = this.querySelector(".js-input") as Input;
+        const input = this.querySelector("[form-input]") as Input;
         const value = input.getValue().toString().trim().toUpperCase();
         if (input.validate()){
             const lastConfirmedCode = sessionStorage.getItem("room");
@@ -103,7 +103,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
     private submitCharacter:EventListener = async (e:Event) => {
         e.preventDefault();
         console.log("submit character");
-        const input = this.querySelector(".js-input") as Input;
+        const input = this.querySelector("[form-input]") as Input;
         const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
         if (input.validate()){
             const image = await tokenPicker.getValue();

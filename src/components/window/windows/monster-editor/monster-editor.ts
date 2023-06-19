@@ -61,7 +61,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
         const target = e.currentTarget as HTMLElement;
         const data = {};
         let allValid = true;
-        target.querySelectorAll(".js-input").forEach(el => {
+        target.querySelectorAll("[form-input]").forEach(el => {
             // @ts-expect-error
             const valid = el.validate();
             if (valid){
@@ -383,7 +383,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
                     class: "mt-1",
                 })}
                 <div class="w-full">
-                    <button class="bttn w-full" kind="solid" color="success">Save monster</button>
+                    <button class="bttn w-full" kind="solid" color="success">Save</button>
                 </div>
             </form>
         `;
@@ -478,7 +478,8 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
     override render(): void {
         console.log(this.model);
         this.style.cssText = this.model.css;
-        this.className = `${this.model.class} js-input`;
+        this.className = `${this.model.class}`;
+        this.setAttribute("form-input", "");
         const view = html`
             <h4 class="block w-full font-medium font-sm font-grey-800 pl-0.125">${unsafeHTML(this.model.label)}</h4>
             ${this.model.rows.map((row, index) => {

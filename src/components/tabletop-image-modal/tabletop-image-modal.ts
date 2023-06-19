@@ -180,14 +180,14 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                                 callback: this.close.bind(this),
                                 kind: "solid",
                                 color: "white",
-                                label: "cancel",
+                                label: "Cancel",
                                 class: "mr-1"
                             })}
                             ${new Button({
                                 kind: "solid",
                                 color: "success",
                                 callback: this.load.bind(this),
-                                label: "load image",
+                                label: "Select",
                                 disabled: this.model.selected?.length ? false : true,
                             })}
                         </div>

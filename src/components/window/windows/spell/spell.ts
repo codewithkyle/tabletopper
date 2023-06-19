@@ -430,7 +430,7 @@ export default class Spell extends SuperComponent<ISpell>{
                     }
                 })}
                 ${new Button({
-                    label: "Save Spell",
+                    label: "Save",
                     callback: this.saveSpell.bind(this),
                     kind: "solid",
                     color: "success",
