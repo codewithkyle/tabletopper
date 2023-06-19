@@ -41,7 +41,7 @@ export default class PlayerTokenPicker extends SuperComponent<IPlayerTokenPicker
     private async renderImage(){
         const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: this.model.selectedImageId, }))[0];
         return html`
-            <button @click=${this.openModal} class="picker" sfx="button" tooltip="Change token">
+            <button @click=${this.openModal} class="picker" sfx="button" tooltip="Change token" type="button">
                 <img src="${image.data}" alt="${image.name}" draggable="false">
             </button>
         `;
@@ -49,7 +49,7 @@ export default class PlayerTokenPicker extends SuperComponent<IPlayerTokenPicker
 
     private renderEmpty(){
         return html`
-            <button @click=${this.openModal} class="picker" sfx="button" tooltip="Select token">
+            <button @click=${this.openModal} class="picker" sfx="button" tooltip="Select token" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-photo" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                     <line x1="15" y1="8" x2="15.01" y2="8"></line>

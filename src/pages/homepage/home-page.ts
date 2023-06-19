@@ -102,7 +102,6 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
     private submitCharacter:EventListener = async (e:Event) => {
         e.preventDefault();
-        console.log("submit character");
         const input = this.querySelector("[form-input]") as Input;
         const tokenPicker = this.querySelector("player-token-picker") as PlayerTokenPicker;
         if (input.validate()){
