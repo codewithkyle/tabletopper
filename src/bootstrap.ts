@@ -1,7 +1,7 @@
 import db from "@codewithkyle/jsql";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import { connect } from "~controllers/ws";
+import alerts from "~brixi/controllers/alerts";
 
 (async () => {
     // @ts-ignore
@@ -13,7 +13,7 @@ import { connect } from "~controllers/ws";
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
                 if (update){
-                    notifications.snackbar("An update has been applied.", [
+                    alerts.snackbar("An update has been applied.", [
                         {
                             label: "Restart",
                             callback: ()=>{
@@ -47,17 +47,19 @@ import { connect } from "~controllers/ws";
     }
 
     // @ts-expect-error
-    import("/js/soundscape.js");
+    import("/js/soundscape.js").then(module => {
+        module.default.load();
+    });
     // @ts-expect-error
     import("/js/tooltipper.js");
     env.css([
         "tooltip",
         "skeletons",
-        "toast",
         "animations",
         "snackbar",
-        "modals",
-        "modal"
+        "buttons",
+        "toast",
+        "notifications",
     ]);
 
     await db.start();

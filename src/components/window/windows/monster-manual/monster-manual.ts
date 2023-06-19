@@ -4,7 +4,7 @@ import { html, render, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
+import alerts from "~brixi/controllers/alerts";
 import Window from "~components/window/window";
 import MonsterEditor from "../monster-editor/monster-editor";
 import MonsterStatBlock from "../monster-stat-block/monster-stat-block";
@@ -46,7 +46,7 @@ export default class MonsterManual extends SuperComponent<IMonsterManual>{
         const target = e.currentTarget as HTMLElement;
         await db.query("DELETE FROM monsters WHERE index = $index", { index: target.dataset.index });
         this.render();
-        notifications.snackbar(`${target.dataset.name} has been deleted.`);
+        alerts.toast(`${target.dataset.name} has been deleted.`);
     }
 
     private openMonster:EventListener = (e:Event) => {

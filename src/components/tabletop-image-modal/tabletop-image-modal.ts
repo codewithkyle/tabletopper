@@ -5,11 +5,10 @@ import { html, render, TemplateResult } from "lit-html";
 import Button from "~brixi/components/buttons/button/button";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
-import { send } from "~controllers/ws";
 import type { Image } from "~types/app";
 import { Base64EncodeFile } from "~utils/file";
+import alerts from "~brixi/controllers/alerts";
 
 interface ITabletopImageModal {
     selected: string,
@@ -104,7 +103,7 @@ export default class TabletopImageModal extends SuperComponent<ITabletopImageMod
                 this.load();
             } else {
                 // TODO: figure out how to reduce image quality using WASM? Take a look at Squoosh.app for more details
-                notifications.error("Upload Failed", "Files must be 10MB or smaller.");
+                alerts.error("Upload Failed", "Files must be 10MB or smaller.");
             }
         }
     }

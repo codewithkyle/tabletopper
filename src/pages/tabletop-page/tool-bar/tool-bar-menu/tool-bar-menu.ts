@@ -3,7 +3,7 @@ import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
+import alerts from "~brixi/controllers/alerts";
 import TabletopImageModal from "~components/tabletop-image-modal/tabletop-image-modal";
 import Window from "components/window/window";
 import Initiative from "~components/window/windows/initiative/initiative";
@@ -207,7 +207,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
 
     private copyRoomCode:EventListener = async (e:Event) => {
         await navigator.clipboard.writeText(sessionStorage.getItem("room"));
-        notifications.snackbar("Room code copied to clipboard.");
+        alerts.toast("Room code copied to clipboard.");
         this.close();
     }
 
@@ -295,7 +295,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     private nextInitiative:EventListener = async (e:Event) => {
         const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))?.[0] ?? {};
         if (result?.initiative?.length === 1){
-            notifications.snackbar("Too few initiatives to track.");
+            alerts.snackbar("Too few initiatives to track.");
             return;
         }
         if (result?.active_initiative != null && result.initiative.length){
@@ -322,7 +322,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
                 next: result.initiative[1],
             });
         } else {
-            notifications.snackbar("Initiative tracker is not currently tracking anything.");
+            alerts.snackbar("Initiative tracker is not currently tracking anything.");
         }
     }
 

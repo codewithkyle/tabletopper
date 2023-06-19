@@ -3,8 +3,8 @@ import {html, render} from "lit-html";
 import env from "~brixi/controllers/env";
 import db from "@codewithkyle/jsql";
 import Button from "~brixi/components/buttons/button/button";
-import notifications from "~brixi/controllers/notifications";
 import {UUID} from "@codewithkyle/uuid";
+import alerts from "~brixi/controllers/alerts";
 
 // @ts-ignore
 const DiceRoll: any = rpgDiceRoller.DiceRoll;
@@ -24,7 +24,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
         const input = this.querySelector("input") as HTMLInputElement;
         const roll = input.value.trim().toLowerCase();
         if (roll.indexOf("*") !== -1 || roll.indexOf("/") !== -1){
-            notifications.error("Dice Tray Error", "The dice tray does not support division or multiplication.");
+            alerts.error("Dice Tray Error", "The dice tray does not support division or multiplication.");
             return;
         }
         const results = new DiceRoll(roll);

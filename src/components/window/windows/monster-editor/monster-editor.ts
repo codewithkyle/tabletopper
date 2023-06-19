@@ -7,8 +7,8 @@ import Input from "~brixi/components/inputs/input/input";
 import NumberInput from "~brixi/components/inputs/number-input/number-input";
 import Select from "~brixi/components/select/select";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import { Ability, Monster } from "~types/app";
+import alerts from "~brixi/controllers/alerts";
 
 interface IMonsterEditor extends Monster{}
 export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
@@ -83,7 +83,7 @@ export default class MonsterEditor extends SuperComponent<IMonsterEditor>{
             await db.query("INSERT INTO monsters VALUES ($monster)", {
                 monster: data,
             });
-            notifications.snackbar(`${data["name"]} has been updated.`);
+            alerts.toast(`${data["name"]} has been updated.`);
             publish(data["index"], data);
         }
     }

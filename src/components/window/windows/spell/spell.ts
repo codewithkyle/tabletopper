@@ -5,12 +5,12 @@ import { html, render, TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html";
 import Button from "~brixi/components/buttons/button/button";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import type { Spell as S } from "~types/app";
 import { marked } from "marked";
 import Input from "~brixi/components/inputs/input/input";
 import Textarea from "~brixi/components/textarea/textarea";
 import NumberInput from "~brixi/components/inputs/number-input/number-input";
+import alerts from "~brixi/controllers/alerts";
 
 interface ISpell extends S{}
 export default class Spell extends SuperComponent<ISpell>{
@@ -61,7 +61,7 @@ export default class Spell extends SuperComponent<ISpell>{
         });
         const window = this.closest("window-component");
         window.remove();
-        notifications.snackbar(`${this.model.name} has been deleted.`);
+        alerts.toast(`${this.model.name} has been deleted.`);
         publish("spells", {
             type: "refresh",
         });
@@ -82,7 +82,7 @@ export default class Spell extends SuperComponent<ISpell>{
     private async saveSpell(){
         const isNew = this.model.index === null;
         if (this.model.index === null && this.model.name.trim().length === 0){
-            notifications.error("Failed to save.", "Spells must have a name.");
+            alerts.error("Failed to save.", "Spells must have a name.");
             return;
         }
         const dmgRows:HTMLElement[] = Array.from(this.querySelectorAll("damage-table table-row"));

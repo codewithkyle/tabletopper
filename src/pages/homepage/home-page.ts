@@ -6,13 +6,13 @@ import Button from "~brixi/components/buttons/button/button";
 import Input from "~brixi/components/inputs/input/input";
 import Spinner from "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
-import notifications from "~brixi/controllers/notifications";
 import cc from "~controllers/control-center";
 import { connected, send } from "~controllers/ws";
 import { randomInt } from "../../utils/math";
 import HomepageMusicPlayer from "./homepage-music-player/homepage-music-player";
 import PlayerTokenPicker from "./player-token-picker/player-token-picker";
 import sound from "~brixi/controllers/soundscape";
+import alerts from "~brixi/controllers/alerts";
 
 const COLORS = ["grey", "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "light-blue", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
 
@@ -44,7 +44,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
             code: "",
         };
         if (sessionStorage.getItem("kicked")){
-            notifications.error("Kicked From Game", "You have been kicked by the Game Master.");
+            alerts.error("Kicked From Game", "You have been kicked by the Game Master.");
             sessionStorage.removeItem("kicked");
         }
         subscribe("socket", this.inbox.bind(this));
