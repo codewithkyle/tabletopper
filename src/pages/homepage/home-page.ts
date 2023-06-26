@@ -67,6 +67,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
                 }
                 break;
             case "room:join":
+                console.log("pausing main menu music");
                 sound.pause("mainMenu");
                 navigateTo(`/room/${data.uid}`);
                 break;

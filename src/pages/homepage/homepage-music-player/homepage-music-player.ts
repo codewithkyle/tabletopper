@@ -18,11 +18,16 @@ export default class HomepageMusicPlayer extends SuperComponent<IHomepageMusicPl
 
     override async connected() {
        await env.css(["homepage-music-player"]);
-       await sound.add("mainMenu", "/music/177_Tavern_Music.mp3");
-       sound.setVolume("mainMenu", 0.15);
-       const buffer = sound.play("mainMenu", true);
-       if (buffer === null) {
-           this.model.playing = false;
+
+       const music = sound.get("mainMenu");
+       if (music === null){
+           console.log("music is null");
+           await sound.add("mainMenu", "/music/177_Tavern_Music.mp3");
+           sound.setVolume("mainMenu", 0.15);
+           const buffer = sound.play("mainMenu", true);
+           if (buffer === null) {
+               this.model.playing = false;
+           }
        }
        this.render();
     }
