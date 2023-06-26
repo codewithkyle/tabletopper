@@ -122,7 +122,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 }
                 break;
             case "DELETE":
-                if (op.table === "pawns" && op.key === this.model.uid){
+                if (op.table === "pawns" && op.key === this.model.playerId){
                     this.remove();
                 }
                 break;
