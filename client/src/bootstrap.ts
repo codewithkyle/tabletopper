@@ -1,6 +1,4 @@
-import db from "@codewithkyle/jsql";
 import env from "~brixi/controllers/env";
-import { connect } from "~controllers/ws";
 import alerts from "~brixi/controllers/alerts";
 
 (async () => {

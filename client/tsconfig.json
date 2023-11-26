@@ -9,7 +9,7 @@
         "checkJs": false,
         "module": "ES2020",
         "moduleResolution": "Node",
-        "baseUrl": "src",
+        "baseUrl": "./src",
         "paths": {
             "~brixi/*": [
                 "framework/*"
@@ -21,14 +21,14 @@
         },
         "declaration": true,
         "emitDeclarationOnly": true,
-        "outDir": "_types",
+        "outDir": "_types"
     },
     "include": [
-        "src"
+        "./src"
     ],
     "exclude": [
-        "src/workers",
-        "src/framework",
-        "src/lib"
+        "./src/workers",
+        "./src/framework",
+        "./src/lib"
     ]
 }
