@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
-	"tabletopper/models"
+	"main/models"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -50,7 +50,13 @@ func main() {
         }, "layouts/main")
     })
     app.Get("/stub/home", func(c *fiber.Ctx) error {
-        return c.Render("stubs/home", fiber.Map{})
+        user, err := getSession(c, rdb)
+        if err != nil {
+            return c.SendStatus(500)
+        }
+        return c.Render("stubs/home", fiber.Map{
+            "User": user,
+        })
     })
 
 	app.Get("/register", func(c *fiber.Ctx) error {
@@ -119,4 +125,26 @@ func main() {
 	})
 
 	log.Fatal(app.Listen(":3000"))
+}
+
+func getSession(c *fiber.Ctx, rdb *redis.Client) (models.User, error) {
+    sessionId := c.Cookies("session_id", "")
+    if sessionId == "" {
+        return models.User{}, nil
+    }
+
+    marshalledSession, err := rdb.Get(ctx, "session:" + sessionId).Result()
+    if err != nil {
+        log.Error("Failed to get session from Redis: " + err.Error());
+        return models.User{}, err
+    }
+
+    var customUser models.User
+    err = json.Unmarshal([]byte(marshalledSession), &customUser)
+    if err != nil {
+        log.Error("Failed to unmarshal session from Redis: " + err.Error());
+        return models.User{}, err
+    }
+
+    return customUser, nil
 }
