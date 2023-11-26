@@ -24,6 +24,13 @@
     <script defer src="/static/htmx.min.js"></script>
     <script defer src="/static/alpine.min.js"></script>
     <script type="module" src="/js/bootstrap.js"></script>
+
+    <script type="module">
+        import { UUID } from '/js/uuid.js';
+        if (!localStorage.getItem('uid')) {
+            localStorage.setItem('uid', UUID());
+        }
+    </script>
 </head>
 <body>
     <img id="wood-img" src="/images/background.jpg" width="1920" loading="lazy" draggable="false" onload="this.style.opacity = '1';">

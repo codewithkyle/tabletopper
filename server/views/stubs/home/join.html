@@ -1,8 +1,22 @@
 <div
     class="join w-411 bg-white dark:bg-grey-950 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-grey-sm radius-0.5 no-scroll"
-    x-data="{ room: '' }"
+    x-data="{ room: '', character: '' }"
+    x-effect=""
 >
     <div class="p-1.5">
+        <input-component class="input mb-1.5" form-input state="IDLING">
+            <label for="room-code">Character Name</label>
+            <input-container>
+                <input 
+                    id="character-name" 
+                    type="text" 
+                    name="character"
+                    autocomplete="off" 
+                    required="true"
+                    x-on:keyup="character = $event.target.value.trim()"
+                >
+            </input-container>
+        </input-component>
         <input-component class="input" form-input state="IDLING">
             <label for="room-code">Room Code</label>
             <input-container>
@@ -31,8 +45,9 @@
             class="bttn" 
             color="primary" 
             kind="solid"
-            :href="room.length == 4 ? '/room/' + room : '#'"
-            :disabled="room.length != 4"
+            :href="room.length == 4 && character.length ? '/room/' + room : '#'"
+            :disabled="room.length != 4 || !character.length"
+            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') }))"
         >Next</a>
     </div>
 </div>
