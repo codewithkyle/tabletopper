@@ -1,0 +1,32 @@
+<div id="sign-in"></div>
+<script>
+    const script = document.createElement('script');
+    script.async = true;
+    if (location.hostname === "localhost"){
+        script.src = "https://sincere-swift-4.clerk.accounts.dev/npm/@clerk/clerk-js@4/dist/clerk.browser.js";
+        script.setAttribute('data-clerk-publishable-key', 'pk_test_c2luY2VyZS1zd2lmdC00LmNsZXJrLmFjY291bnRzLmRldiQ');
+    } else {
+        script.src = "https://clerk.tabletopper.app/npm/@clerk/clerk-js@4/dist/clerk.browser.js";
+        script.setAttribute('data-clerk-publishable-key', 'pk_live_Y2xlcmsudGFibGV0b3BwZXIuYXBwJA');
+    }
+
+    script.addEventListener('load', async function () {
+        await window.Clerk.load();
+
+        const signInComponent = document.querySelector('#sign-in');
+
+        if (window.Clerk.session === null){
+            window.Clerk.mountSignIn(signInComponent, {
+                appearance: {
+                    baseTheme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? "dark" : "light",
+                },
+                afterSignInUrl: "/authorize",
+                afterSignUpUrl: "/authorize",
+            });
+        }
+        else {
+            location.href = '/authorize';
+        }
+    });
+    document.body.appendChild(script);
+</script>

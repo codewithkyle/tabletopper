@@ -24,7 +24,10 @@ func main() {
 		log.Fatalf("failed to load environment variables: %v", err)
 	}
 
-	client, _ := clerk.NewClient(os.Getenv("CLERK_API_KEY"))
+	client, err := clerk.NewClient(os.Getenv("CLERK_API_KEY"))
+    if err != nil {
+        log.Fatalf("failed to create Clerk client: %v", err)
+    }
     rdb := redis.NewClient(&redis.Options{
         Addr:     os.Getenv("REDIS_SERVER"),
         Password: os.Getenv("REDIS_PASSWORD"),
@@ -62,28 +65,35 @@ func main() {
         return c.Render("stubs/home/join", fiber.Map{})
     })
 
-	app.Get("/register", func(c *fiber.Ctx) error {
-		return c.Render("pages/register/index", fiber.Map{})
-	})
-	app.Get("/sign-in", func(c *fiber.Ctx) error {
-		return c.Render("pages/sign-in/index", fiber.Map{})
-	})
-	app.Get("/sign-out", func(c *fiber.Ctx) error {
-		c.ClearCookie("session_id")
-		return c.Render("pages/sign-out/index", fiber.Map{})
-	})
+    app.Get("/sign-in", func(c *fiber.Ctx) error {
+        return c.Render("pages/sign-in/index", fiber.Map{
+            "Styles": []string{
+                "/css/homepage.css",
+            },
+        }, "layouts/main")
+    })
+    app.Get("/sign-up", func(c *fiber.Ctx) error {
+        return c.Render("pages/sign-up/index", fiber.Map{
+            "Styles": []string{
+                "/css/homepage.css",
+            },
+        }, "layouts/main")
+    })
 	app.Get("/authorize", func(c *fiber.Ctx) error {
 		token := c.Cookies("__session", "")
 		if token == "" {
-			return c.Redirect("/sign-in")
+            log.Error("No token found in cookie")
+			return c.Redirect("/")
 		}
 		sessClaims, err := client.VerifyToken(token)
 		if err != nil {
-			return c.Redirect("/sign-in")
+            log.Error("Failed to verify token: " + err.Error() + " - " + token)
+			return c.Redirect("/")
 		}
 		user, err := client.Users().Read(sessClaims.Claims.Subject)
 		if err != nil {
-			return c.Redirect("/sign-in")
+            log.Error("Failed to read user: " + err.Error())
+			return c.Redirect("/")
 		}
 
 		email := ""
