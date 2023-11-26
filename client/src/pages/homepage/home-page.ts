@@ -176,25 +176,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderWelcome():TemplateResult{
        return html`
-            <div class="w-768 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
-                <h1 class="px-2 pt-1.75 font-grey-900 font-2xl line-normal font-bold block">Greetings Adventurer!</h1>
-                <p class="px-2 pb-2 pt-1 font-grey-700 line-normal block">
-                    Welcome to the alpha build of Tabletopper, a free web-based virtual tabletop (VTT). Before you continue we must warn you that this is an alpha build which means you may experience some bugs or glitches. Please report any issues through the help menu.
-                    <br>
-                    <br>
-                    May your adventures be grand and your rewards bountiful.
-                </p>
-                <div flex="justify-end items-center row nowrap" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-200">
-                    ${new Button({
-                        kind: "solid",
-                        color: "info",
-                        callback: ()=>{
-                            this.trigger("NEXT");
-                        },
-                        label: "I understand",
-                    })}
-                </div>
-            </div>
+            
        `;
    }
 
@@ -265,31 +247,4 @@ export default class Homepage extends SuperComponent<IHomepage>{
             ${new HomepageMusicPlayer()}
        `;
    }
-
-    override render(){
-        let content;
-        switch(this.state){
-            case "WELCOME":
-                content = this.renderWelcome();
-                break;
-            case "MENU":
-                content = this.renderMenu();
-                break;
-            case "ROOM":
-                content = this.renderJoin();
-                break;
-            case "CHARACTER":
-                content = this.renderCharacter();
-                break;
-        }
-        const view = html`
-            <img src="/images/background.jpg" width="1920" loading="lazy" draggable="false">
-            <div class="w-full h-full" flex="justify-center items-center column wrap">
-                ${content}
-            </div>
-        `;
-        setTimeout(()=>{
-            render(view, this);
-        }, 100);
-    }
 }

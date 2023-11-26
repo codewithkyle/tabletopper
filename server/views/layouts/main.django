@@ -19,18 +19,24 @@
     <link rel="stylesheet" href="/css/skeletons.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/snackbar.css">
-    <link rel="stylesheet" href="/css/buttons.css">
+    <link rel="stylesheet" href="/css/button.css">
     <link rel="stylesheet" href="/css/toast.css">
     <link rel="stylesheet" href="/css/notifications.css">
+
+    {% for style in Styles %}
+        <link rel="stylesheet" href="{{ style }}">
+    {% endfor %}
 
     <script defer src="/static/htmx.min.js"></script>
     <script defer src="/static/alpine.min.js"></script>
     <script type="module" src="/js/bootstrap.js"></script>
-    <script defer src="/js/tooltipper.js"></script>
+    <script type="module" src="/js/tooltipper.js"></script>
     <script defer src="/static/rpg-dice-roller.js"></script>
 </head>
-<body>
-    {% block content %}
-    {% endblock %}
+<body class="bg-white dark:bg-black">
+    <img id="wood-img" src="/images/background.jpg" width="1920" loading="lazy" draggable="false" onload="this.style.opacity = '1';">
+    <div class="w-full h-full" flex="justify-center items-center column wrap">
+        {{ embed }}
+    </div>
 </body>
 </html>

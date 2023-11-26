@@ -1,6 +1,8 @@
-package tabletopper
+package main
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"tabletopper/models"
@@ -12,7 +14,10 @@ import (
 	"github.com/gofiber/template/django/v3"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
+
+var ctx = context.Background();
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -20,6 +25,11 @@ func main() {
 	}
 
 	client, _ := clerk.NewClient(os.Getenv("CLERK_API_KEY"))
+    rdb := redis.NewClient(&redis.Options{
+        Addr:     os.Getenv("REDIS_SERVER"),
+        Password: os.Getenv("REDIS_PASSWORD"),
+        DB:       0,
+    })
 
 	engine := django.New("./views", ".django")
 	app := fiber.New(fiber.Config{
@@ -28,7 +38,20 @@ func main() {
 
 	app.Static("/css", "../client/public/css")
 	app.Static("/js", "../client/public/js")
-	app.Static("/static", "../client/public/static")
+    app.Static("/static", "../client/public/static")
+    app.Static("/audio", "../client/public/audio")
+    app.Static("/images", "../client/public/images")
+
+    app.Get("/", func(c *fiber.Ctx) error {
+        return c.Render("pages/homepage/index", fiber.Map{
+            "Styles": []string{
+                "/css/homepage.css",
+            },
+        }, "layouts/main")
+    })
+    app.Get("/stub/home", func(c *fiber.Ctx) error {
+        return c.Render("stubs/home", fiber.Map{})
+    })
 
 	app.Get("/register", func(c *fiber.Ctx) error {
 		return c.Render("pages/register/index", fiber.Map{})
@@ -76,7 +99,12 @@ func main() {
 		sessionId = strings.ReplaceAll(sessionId, "-", "")
 		expires := time.Now().Add(168 * time.Hour) // 7 days
 
-        // TODO: Store the session in Redis
+        marshalledSession, err := json.Marshal(customUser)
+        err = rdb.Set(ctx, "session:" + sessionId, marshalledSession, 168 * time.Hour).Err();
+        if err != nil {
+            log.Error("Failed to set session in Redis: " + err.Error());
+            return c.SendStatus(500);
+        }
 
 		c.Cookie(&fiber.Cookie{
 			Name:     "session_id",
@@ -87,10 +115,7 @@ func main() {
 			SameSite: "Strict",
 		})
 
-		postLoginRedirect := c.Cookies("post_login_redirect", "/")
-		c.ClearCookie("post_login_redirect")
-
-		return c.Redirect(postLoginRedirect)
+		return c.Redirect("/")
 	})
 
 	log.Fatal(app.Listen(":3000"))
