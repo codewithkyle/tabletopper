@@ -19,16 +19,13 @@
     <link rel="stylesheet" href="/css/snackbar.css">
     <link rel="stylesheet" href="/css/button.css">
     <link rel="stylesheet" href="/css/input.css">
-
-    {% for style in Styles %}
-        <link rel="stylesheet" href="{{ style }}">
-    {% endfor %}
+    <link rel="stylesheet" href="/css/homepage.css">
 
     <script defer src="/static/htmx.min.js"></script>
     <script defer src="/static/alpine.min.js"></script>
     <script type="module" src="/js/bootstrap.js"></script>
 </head>
-<body class="bg-white dark:bg-black">
+<body>
     <img id="wood-img" src="/images/background.jpg" width="1920" loading="lazy" draggable="false" onload="this.style.opacity = '1';">
     <div class="w-full h-full" flex="justify-center items-center column wrap">
         {{ embed }}

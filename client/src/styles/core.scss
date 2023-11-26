@@ -17,6 +17,12 @@ body{
     height: 100vh;
     position: relative;
     overflow: hidden;
+    color: var(--grey-700);
+
+    @media (prefers-color-scheme: dark){
+        background-color: var(--grey-950);
+        color: var(--grey-300);
+    }
 }
 
 button{

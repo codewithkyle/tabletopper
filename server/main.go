@@ -46,11 +46,7 @@ func main() {
     app.Static("/images", "../client/public/images")
 
     app.Get("/", func(c *fiber.Ctx) error {
-        return c.Render("pages/homepage/index", fiber.Map{
-            "Styles": []string{
-                "/css/homepage.css",
-            },
-        }, "layouts/main")
+        return c.Render("pages/homepage/index", fiber.Map{}, "layouts/main")
     })
     app.Get("/stub/home", func(c *fiber.Ctx) error {
         user, err := getSession(c, rdb)
@@ -129,7 +125,7 @@ func main() {
 			Name:     "session_id",
 			Value:    sessionId,
 			Expires:  expires,
-			Secure:   true,
+			Secure:   os.Getenv("ENV") == "production",
 			HTTPOnly: true,
 			SameSite: "Strict",
 		})
@@ -137,10 +133,12 @@ func main() {
 		return c.Redirect("/")
 	})
 
+    RoomRoutes(app, rdb)
+
 	log.Fatal(app.Listen(":3000"))
 }
 
-func getSession(c *fiber.Ctx, rdb *redis.Client) (models.User, error) {
+func GetSession(c *fiber.Ctx, rdb *redis.Client) (models.User, error) {
     sessionId := c.Cookies("session_id", "")
     if sessionId == "" {
         return models.User{}, nil
