@@ -9,5 +9,5 @@ module.exports = {
             publicDir: "/css"
         }
     ],
-    output: "./public/service-worker-assets.js",
+    output: "./public/static/service-worker-assets.js",
 };

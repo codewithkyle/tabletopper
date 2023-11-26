@@ -9,6 +9,6 @@ src/framework
 # Public
 public/js
 public/css
-public/config.js
-public/service-worker-assets.js
+public/static/config.js
+public/static/service-worker-assets.js
 public/audio

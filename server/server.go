@@ -3,7 +3,6 @@ package tabletopper
 import (
 	"os"
 	"strings"
-	"tabletopper/helpers"
 	"tabletopper/models"
 	"time"
 
@@ -27,9 +26,9 @@ func main() {
 		Views: engine,
 	})
 
-	app.Static("/css", "./public/css")
-	app.Static("/js", "./public/js")
-	app.Static("/static", "./public/static")
+	app.Static("/css", "../client/public/css")
+	app.Static("/js", "../client/public/js")
+	app.Static("/static", "../client/public/static")
 
 	app.Get("/register", func(c *fiber.Ctx) error {
 		return c.Render("pages/register/index", fiber.Map{})
