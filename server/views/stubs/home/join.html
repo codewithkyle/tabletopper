@@ -1,0 +1,38 @@
+<div
+    class="join w-411 bg-white dark:bg-grey-950 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-grey-sm radius-0.5 no-scroll"
+    x-data="{ room: '' }"
+>
+    <div class="p-1.5">
+        <input-component class="input" form-input state="IDLING">
+            <label for="room-code">Room Code</label>
+            <input-container>
+                <input 
+                    id="room-code" 
+                    type="text" 
+                    maxlength="4" 
+                    minlength="4" 
+                    name="room" 
+                    autocomplete="off" 
+                    required="true"
+                    x-on:keyup="room = $event.target.value.toUpperCase().trim()"
+                >
+            </input-container>
+        </input-component>
+    </div>
+    <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 dark:bg-grey-900 border-t-1 border-t-solid border-t-grey-300 dark:border-t-grey-800">
+        <button 
+            class="bttn mr-1" 
+            color="grey" 
+            kind="solid"
+            hx-get="/stub/home"
+            hx-target="home-page"
+        >Back</button>
+        <a 
+            class="bttn" 
+            color="primary" 
+            kind="solid"
+            :href="room.length == 4 ? '/room/' + room : '#'"
+            :disabled="room.length != 4"
+        >Next</a>
+    </div>
+</div>

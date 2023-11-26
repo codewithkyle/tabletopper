@@ -192,29 +192,7 @@ export default class Homepage extends SuperComponent<IHomepage>{
 
    private renderJoin():TemplateResult{
        return html`
-            <form @submit=${this.submitRoom} class="join w-411 bg-white border-1 border-solid border-grey-300 shadow-grey-sm radius-0.5 no-scroll">
-                <div class="p-1.5">
-                    ${new Input({
-                        name: "room",
-                        label: "Room Code",
-                        value: this.model.code,
-                        maxlength: 4,
-                        minlength: 4,
-                        required: true,
-                    })}
-                </div>
-                <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 border-t-1 border-t-solid border-t-grey-300">
-                    ${new Button({
-                        label: "Back",
-                        class: "mr-1",
-                        type: "button",
-                        callback: ()=> {
-                            this.trigger("BACK");
-                        },
-                    })}
-                    <button type="submit" class="bttn" color="primary" kind="solid">Next</button>
-                </div>
-            </form>
+            
             ${new HomepageMusicPlayer()}
        `;
    }

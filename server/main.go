@@ -31,7 +31,7 @@ func main() {
         DB:       0,
     })
 
-	engine := django.New("./views", ".django")
+	engine := django.New("./views", ".html")
 	app := fiber.New(fiber.Config{
 		Views: engine,
 	})
@@ -54,9 +54,12 @@ func main() {
         if err != nil {
             return c.SendStatus(500)
         }
-        return c.Render("stubs/home", fiber.Map{
+        return c.Render("stubs/home/welcome", fiber.Map{
             "User": user,
         })
+    })
+    app.Get("/stub/home/join", func(c *fiber.Ctx) error {
+        return c.Render("stubs/home/join", fiber.Map{})
     })
 
 	app.Get("/register", func(c *fiber.Ctx) error {
