@@ -35,11 +35,11 @@
             class="token-button" 
             aria-label="{{ image.Name }}" 
             tooltip
-            x-on:click="selected = '{{ image.FileId }}'"
-            :class="{ 'is-selected': selected == '{{ image.FileId }}' }"
+            x-on:click="selected = '{{ User.Id }}/{{ image.FileId }}'"
+            :class="{ 'is-selected': selected == '{{ User.Id }}/{{ image.FileId }}' }"
         >
             <img 
-                src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/maps/{{ image.FileId }}" 
+                src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/maps/{{ User.Id }}/{{ image.FileId }}" 
                 alt="{{ image.Name }}" 
                 draggalbe="false"
                 onload="this.style.opacity = '1'"

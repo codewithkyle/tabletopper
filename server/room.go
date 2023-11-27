@@ -106,6 +106,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         return c.Render("stubs/tabletop/images", fiber.Map{
             "Images": images,
+            "User": user,
         })
     })
 
@@ -155,7 +156,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         object := s3.PutObjectInput{
             Bucket: aws.String("tabletopper"),
-            Key:    aws.String("maps/" + fileId),
+            Key:    aws.String("maps/" + user.Id + "/" + fileId),
             Body:   src,
             ACL:    aws.String("public-read"),
             ContentType: aws.String(mimeType),
@@ -178,6 +179,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         return c.Render("stubs/tabletop/images", fiber.Map{
             "Images": images,
+            "User": user,
         })
     })
 }
