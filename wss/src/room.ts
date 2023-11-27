@@ -20,6 +20,7 @@ class Room {
     private mutedPlayers: {
         [id:string]: null,
     };
+    private map: string;
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -30,6 +31,7 @@ class Room {
         this.deadSockets = {};
         this.showPawns = false;
         this.mutedPlayers = {};
+        this.map = "";
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -88,19 +90,15 @@ class Room {
         }
     }
 
+    public loadMap(map:string):void{
+        this.map = map;
+        this.broadcast("room:tabletop:load", map);
+    }
+
     public async clearMap():Promise<void>{
         this.broadcast("room:tabletop:clear");
         this.showPawns = false;
-        //const op = set("games", this.code, "map", null);
-        //await this.dispatch(op);
-        //const op2 = set("games", this.code, "players", []);
-        //await this.dispatch(op2);
-        //const op3 = set("games", this.code, "initiative", []);
-        //await this.dispatch(op3);
-        //const op4 = set("games", this.code, "active_initiative", null);
-        //await this.dispatch(op4);
-        //const op5 = set("games", this.code, "render_grid", false);
-        //await this.dispatch(op5);
+        this.map = "";
     }
 
     public async spawnNPC({ name, ac, hp, x, y, size }):Promise<void>{

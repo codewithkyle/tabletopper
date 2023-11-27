@@ -23,7 +23,6 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         this.time = 0;
         this.gridSize = 32;
         this.renderGrid = false;
-        this.ticket = subscribe("sync", this.inbox.bind(this));
     }
 
     override async connected(){
@@ -32,33 +31,6 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         //const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
         //this.gridSize = result?.["grid_size"] ?? 32;
         //this.renderGrid = result?.["render_grid"] ?? false;
-    }
-
-    override disconnected(): void {
-        unsubscribe(this.ticket);
-    }
-
-    private inbox(op){
-        switch (op.op){
-            case "SET":
-                if (op.table === "games" && op.key === sessionStorage.getItem("room")){
-                    if (op.keypath === "grid_size"){
-                        this.gridSize = op.value;
-                        this.renderGridLines();
-                    } else if (op.keypath === "render_grid"){
-                        this.renderGrid = op.value;
-                        this.renderGridLines();
-                    }
-                }
-                break;
-            case "BATCH":
-                for (let i = 0; i < op.ops.length; i++){
-                    this.inbox(op.ops[i]);
-                }
-                break;
-            default:
-                break;
-        }
     }
 
     private renderGridLines(){
@@ -92,7 +64,7 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
     }
 
     // @ts-ignore
-    override render(image:Image): void {
+    override render(image:HTMLImageElement): void {
         if (!image) return;
         this.w = image.width;
         this.h = image.height;

@@ -15,6 +15,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/credentials"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/s3"
 )
 
 var ctx = context.Background();
@@ -37,6 +41,8 @@ func main() {
 	engine := django.New("./views", ".html")
 	app := fiber.New(fiber.Config{
 		Views: engine,
+        BodyLimit: 1024 * 1024 * 1024,
+        StreamRequestBody: true,
 	})
 
 	app.Static("/css", "../client/public/css")
@@ -158,4 +164,20 @@ func GetSession(c *fiber.Ctx, rdb *redis.Client) (models.User, error) {
     }
 
     return customUser, nil
+}
+
+func CreateSpacesClient() *s3.S3 {
+    key := os.Getenv("SPACES_KEY")
+    secret := os.Getenv("SPACES_SECRET")
+
+    s3Config := &aws.Config{
+        Credentials: credentials.NewStaticCredentials(key, secret, ""),
+        Endpoint:    aws.String("https://nyc3.digitaloceanspaces.com"),
+        Region:      aws.String("us-east-1"),
+        S3ForcePathStyle: aws.Bool(false),
+    }
+
+    newSession := session.New(s3Config)
+    s3Client := s3.New(newSession)
+    return s3Client
 }

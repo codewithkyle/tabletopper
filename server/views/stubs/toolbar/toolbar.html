@@ -13,14 +13,14 @@
         x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'tabletop';"
         :class="{ 'active': open === 'tabletop' }"
     >Tabletop</button>
+    <button
+        sfx="button" 
+        hx-get="/stub/toolbar/initiative"
+        hx-target="tool-bar-menu .menu"
+        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'initiative';"
+        :class="{ 'active': open === 'initiative' }"
+    >Initiative</button>
 {% endif %}
-<button
-    sfx="button" 
-    hx-get="/stub/toolbar/initiative"
-    hx-target="tool-bar-menu .menu"
-    x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'initiative';"
-    :class="{ 'active': open === 'initiative' }"
->Initiative</button>
 <button
     sfx="button" 
     hx-get="/stub/toolbar/view"

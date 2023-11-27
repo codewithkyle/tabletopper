@@ -98,6 +98,13 @@ class Room {
                 document.body.append(window);
             }
         });
+        window.addEventListener("tabletop:clear", () => {
+            send("room:tabletop:map:clear");
+        });
+        window.addEventListener("tabletop:load", (e:CustomEvent) => {
+            const { id } = e.detail;
+            send("room:tabletop:map:load", id);
+        });
     }
 }
 const room = new Room();

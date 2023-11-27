@@ -85,13 +85,6 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             }
         }
     }
-
-    override async render(){
-        const view = html` 
-            <tabletop-component></tabletop-component>
-        `;
-        render(view, this);
-    }
 }
 env.bind("tabletop-page", TabletopPage);
 

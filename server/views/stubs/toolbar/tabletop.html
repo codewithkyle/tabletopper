@@ -1,7 +1,13 @@
 <button sfx="button">
     <span>Settings</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-data=""
+    x-on:click="$dispatch('show-tabletop-images')"
+    hx-get="/stub/tabletop/images"
+    hx-target="tabletop-images .modal"
+>
     <span>Load image</span>
     <span>Ctrl+N</span>
 </button>
@@ -9,7 +15,11 @@
     <span>Spawn pawns</span>
     <span>Ctrl+L</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-data=""
+    x-on:click="$dispatch('tabletop:clear')"
+>
     <span>Clear tabletop</span>
     <span>Ctrl+Backspace</span>
 </button>

@@ -91,7 +91,7 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     }
 
     // @ts-ignore
-    override render(image:Image): void {
+    override render(image:HTMLImageElement): void {
         if (!image) return;
         this.w = image.width;
         this.h = image.height;
