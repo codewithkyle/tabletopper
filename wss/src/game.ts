@@ -28,7 +28,7 @@ class GameManager {
 
     public message(ws:Socket, message):void{
         const { type, data } = message;
-        const room = this.rooms?.[ws?.room] ?? null;
+        const room = this.rooms?.[ws?.room] || this.rooms?.[data?.room] || null;
         switch (type){
             case "room:player:rename":
                 if (room){
@@ -162,7 +162,6 @@ class GameManager {
     public removeRoom(code:string):void{
         delete this.rooms[code];
         console.log(`Room ${code} was removed`);
-        //logger.delete(code);
     }
 }
 const gm = new GameManager();

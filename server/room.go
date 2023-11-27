@@ -18,15 +18,6 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             return c.Redirect("/sign-in")
         }
 
-        c.Cookie(&fiber.Cookie{
-			Name:     "gm",
-			Value:    "true",
-			Expires:  time.Now().Add(24 * time.Hour),
-			Secure:   os.Getenv("ENV") == "production",
-			HTTPOnly: true,
-			SameSite: "Strict",
-		})
-
         return c.Render("pages/room/index", fiber.Map{
             "GM": true,
         }, "layouts/vtt")
@@ -36,6 +27,22 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
         return c.Render("pages/room/index", fiber.Map{
             "GM": isGM == "true",
         }, "layouts/vtt")
+    })
+    app.Post("/session/gm/:room", func(c *fiber.Ctx) error {
+        room := c.Params("room")
+        c.Cookie(&fiber.Cookie{
+			Name: "gm",
+			Value: room,
+			Expires: time.Now().Add(24 * time.Hour),
+			Secure: os.Getenv("ENV") == "production",
+			HTTPOnly: true,
+			SameSite: "Strict",
+		})
+        return c.SendStatus(200)
+    })
+    app.Delete("/session/gm", func(c *fiber.Ctx) error {
+        c.ClearCookie("gm")
+        return c.SendStatus(200)
     })
 
     app.Get("/stub/toolbar/room", func(c *fiber.Ctx) error {

@@ -16,7 +16,7 @@ class Room {
         this.init();
     }
 
-    private inbox({ type, data }){
+    private async inbox({ type, data }){
         switch (type){
             case "core:init":
                 const urlSegments = location.pathname.split("/");
@@ -29,6 +29,7 @@ class Room {
                 } else {
                     const roomCode = urlSegments[urlSegments.length - 1];
                     const room = JSON.parse(localStorage.getItem(`room:${roomCode.toUpperCase().trim()}`));
+                    console.log(room);
                     this.isGM = false;
                     this.uid = room.uid;
                     this.room = room.room;
@@ -41,6 +42,9 @@ class Room {
                 }
                 break;
             case "room:create":
+                fetch(`/session/gm/${data}`, {
+                    method: "POST",
+                });
                 this.room = data;
                 localStorage.setItem(`room:${data.toUpperCase().trim()}`, JSON.stringify({
                     uid: this.uid,
@@ -48,6 +52,17 @@ class Room {
                     character: this.character,
                 }));
                 window.history.replaceState({}, "", `/room/${data.toUpperCase().trim()}`);
+                break;
+            case "room:joined":
+                if (data){
+                    fetch(`/session/gm/${data}`, {
+                        method: "POST",
+                    });
+                } else {
+                    fetch(`/session/gm`, {
+                        method: "DELETE",
+                    });
+                }
                 break;
             default:
                 break;

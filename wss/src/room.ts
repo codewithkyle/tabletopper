@@ -11,7 +11,7 @@ class Room {
         [id:string]: Socket,
     };
     public locked:boolean;
-    private deadPlayers: {
+    private deadSockets: {
         [id:string]: {
             name: string,
         }
@@ -27,7 +27,7 @@ class Room {
         this.sockets = {};
         this.sockets[ws.id] = ws;
         this.locked = false;
-        this.deadPlayers = {};
+        this.deadSockets = {};
         this.showPawns = false;
         this.mutedPlayers = {};
 
@@ -197,37 +197,30 @@ class Room {
         }
     }
 
-    public async resetSocket(ws:Socket, lastId: string):Promise<void>{
-        if (lastId in this.deadPlayers){
-            ws.room = this.code;
-            this.sockets[ws.id] = ws;
-            ws.name = this.deadPlayers[ws.id].name;
-            delete this.deadPlayers[ws.id];
-            console.log(`Socket ${ws.id} reconnected to ${this.code}`);
-            gm.send(ws, "room:join", {
-                uid: this.code,
-            });
-            this.broadcast("room:announce:reconnect", `${ws.name} has returned.`);
-            if (ws.id !== this.gmId){
-                //const op = set("players", ws.id, "active", true);
-                //await this.dispatch(op);
-            }
-        } else {
-            // Player wasn't dead...
-            gm.send(ws, "core:sync:fail");
-        }
+    public async resetSocket(ws:Socket):Promise<void>{
+        ws.room = this.code;
+        this.sockets[ws.id] = ws;
+        ws.name = this.deadSockets[ws.id].name;
+        delete this.deadSockets[ws.id];
+        console.log(`Socket ${ws.id} reconnected to ${this.code}`);
+        gm.send(ws, "room:joined", this.gmId === ws.id ? this.code : null);
+        this.broadcast("room:announce:reconnect", `${ws.name} has returned.`);
     }
 
     public addSocket(ws:Socket){
+        if (ws.id in this.deadSockets){
+            return this.resetSocket(ws);
+        }
         ws.room = this.code;
         this.sockets[ws.id] = ws;
         console.log(`Socket ${ws.id} joined room ${this.code}`);
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
+        gm.send(ws, "room:joined");
     }
 
     public async removeSocket(ws:Socket, reason: ExitReason = "UNKNOWN"):Promise<void>{
         if (ws.id in this.sockets){
-            this.deadPlayers[ws.id] = {
+            this.deadSockets[ws.id] = {
                 name: ws.name,
             };
             delete this.sockets[ws.id];

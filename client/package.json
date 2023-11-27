@@ -56,7 +56,7 @@
   "watch": {
     "build": {
       "patterns": [
-        "src"
+        "./src"
       ],
       "extensions": "ts,js,scss,css,tsx,jsx,mjs,cjs",
       "quiet": false
