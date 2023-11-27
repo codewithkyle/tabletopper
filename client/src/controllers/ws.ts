@@ -1,24 +1,25 @@
 import { publish } from "@codewithkyle/pubsub";
-import { navigateTo } from "@codewithkyle/router";
-import cc from "./control-center";
-import db from "@codewithkyle/jsql";
 import alerts from "~brixi/controllers/alerts";
 
 let socket:WebSocket;
 let connected = false;
 let wasReconnection = false;
 
+let offlineQueue = [];
+function flushOfflineQueue(){
+    while (offlineQueue.length > 0){
+        const {type, data} = offlineQueue.shift();
+        send(type, data);
+    }
+}
+
 async function connect() {
     if (connected){
         return;
     }
     // @ts-expect-error
-    const { SOCKET_URL, ENV } = await import("/config.js");
-    try{
-        socket = new WebSocket(SOCKET_URL);
-    } catch (e) {
-        console.error(e);
-    }
+    const { SOCKET_URL, ENV } = await import("/static/config.js");
+    socket = new WebSocket(SOCKET_URL);
     socket.addEventListener("message", async (event) => {
         try {
             const { type, data } = JSON.parse(event.data);
@@ -27,31 +28,18 @@ async function connect() {
             }
             switch(type){
                 case "room:tabletop:ping":
-                    publish("tabletop", {
-                        type: "ping",
-                        data: data,
-                    });
                     break;
                 case "room:tabletop:clear":
-                    //await db.query("RESET ledger");
-                    await db.query("RESET pawns");
-                    publish("tabletop", {
-                        type: "clear",
-                    });
+                    break;
+                case "room:exit":
+                    setTimeout(() => {
+                        location.href = location.origin;
+                    }, 3000);
                     break;
                 case "room:ban":
-                    sessionStorage.removeItem("room");
-                    sessionStorage.removeItem("lastSocketId");
-                    sessionStorage.setItem("kicked", "true");
                     location.href = location.origin;
                     break;
                 case "room:join":
-                    sessionStorage.setItem("room", data.uid);
-                    sessionStorage.setItem("lastSocketId", sessionStorage.getItem("socketId"));
-                    publish("socket", {
-                        type: type,
-                        data: data,
-                    });
                     break;
                 case "room:announce:snackbar":
                     alerts.snackbar(data);
@@ -80,51 +68,42 @@ async function connect() {
                 case "room:announce:join":
                     alerts.success("Player Joined", data);
                     break;
-                case "room:op":
-                    await cc.perform(data);
-                    publish("sync", data);
+                case "room:create":
+                    publish("socket", {
+                        type: type,
+                        data: data,
+                    });
                     break;
                 case "core:error":
                     alerts.error(data.title, data.message);
                     break;
                 case "core:init":
-                    sessionStorage.setItem("socketId", data.id);
-                    break;
-                case "core:sync:fail":
-                    sessionStorage.removeItem("room");
-                    sessionStorage.removeItem("lastSocketId");
-                    navigateTo("/");
                     break;
                 default:
-                    publish("socket", {
-                        type: type,
-                        data: data,
-                    });
                     break;
             }
         } catch (e) {
             console.error(e, event);
         }
     });
-    socket.addEventListener("close", () => {
+    socket.addEventListener("close", () => { 
         disconnect();
     });
     socket.addEventListener("open", () => {
         connected = true;
         if (wasReconnection){
             alerts.success("Reconnected", "We've reconnected with the server.");
+            flushOfflineQueue();
         }
         wasReconnection = false;
         publish("socket", {
-            type: "connected",
+            type: "core:init",
+            data: null,
         });
     });
 }
 
 function disconnect() {
-    publish("socket", {
-        type: "disconnected",
-    });
     if (connected) {
         alerts.warn("Connection Lost", "Hang tight we've lost the server connection. Any changes you make will be synced when you've reconnected.");
         connected = false;
@@ -143,11 +122,14 @@ function send(type:string, data:any = null):void{
     if (connected){
         socket.send(message);
     }
-    else if (!connected && wasReconnection){
-        // We lost connection, check if we were in a game
-    }
-    else {
-        // Do... something... maybe?
+    else if (wasReconnection){
+        console.log("Queued message", type, data);
+        offlineQueue.push({
+            type: type,
+            data: data,
+        });
+    } else {
+        console.error("Failed to send message", type, data, connected, wasReconnection, socket);
     }
 }
 

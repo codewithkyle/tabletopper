@@ -16,7 +16,6 @@
     "@codewithkyle/asset-manager": "^1.0.2",
     "@codewithkyle/notifyjs": "^4.1.0",
     "@codewithkyle/pubsub": "^1.1.1",
-    "@codewithkyle/router": "^2.1.0",
     "@codewithkyle/supercomponent": "^2.0.0",
     "@codewithkyle/twist": "^2.0.2",
     "@codewithkyle/uuid": "^1.0.1",
@@ -39,7 +38,6 @@
   },
   "bundle": [
     "@codewithkyle/pubsub",
-    "@codewithkyle/router",
     "@codewithkyle/supercomponent",
     "@codewithkyle/uuid",
     "@codewithkyle/notifyjs/snackbar.js",
