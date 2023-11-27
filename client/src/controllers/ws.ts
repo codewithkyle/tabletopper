@@ -27,10 +27,6 @@ async function connect() {
                 console.log(type, data);
             }
             switch(type){
-                case "room:tabletop:ping":
-                    break;
-                case "room:tabletop:clear":
-                    break;
                 case "room:exit":
                     setTimeout(() => {
                         location.href = location.origin;
@@ -39,7 +35,8 @@ async function connect() {
                 case "room:ban":
                     location.href = location.origin;
                     break;
-                case "room:join":
+                case "room:announce:toast":
+                    alerts.toast(data);
                     break;
                 case "room:announce:snackbar":
                     alerts.snackbar(data);
@@ -68,18 +65,14 @@ async function connect() {
                 case "room:announce:join":
                     alerts.success("Player Joined", data);
                     break;
-                case "room:create":
+                case "core:error":
+                    alerts.error(data.title, data.message);
+                    break;
+                default:
                     publish("socket", {
                         type: type,
                         data: data,
                     });
-                    break;
-                case "core:error":
-                    alerts.error(data.title, data.message);
-                    break;
-                case "core:init":
-                    break;
-                default:
                     break;
             }
         } catch (e) {

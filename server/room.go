@@ -45,8 +45,17 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
         return c.SendStatus(200)
     })
 
+    app.Get("/stub/toolbar", func(c *fiber.Ctx) error {
+        isGM := c.Cookies("gm", "")
+        return c.Render("stubs/toolbar/toolbar", fiber.Map{
+            "GM": isGM != "",
+        })
+    })
     app.Get("/stub/toolbar/room", func(c *fiber.Ctx) error {
-        return c.Render("stubs/toolbar/room", fiber.Map{})
+        isGM := c.Cookies("gm", "")
+        return c.Render("stubs/toolbar/room", fiber.Map{
+            "GM": isGM != "",
+        })
     })
     app.Get("/stub/toolbar/window", func(c *fiber.Ctx) error {
         return c.Render("stubs/toolbar/window", fiber.Map{})

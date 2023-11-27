@@ -3,48 +3,6 @@
     x-on:keydown.escape.window="open = ''"
     x-on:click.outside="open = ''"
 >
-    <button 
-        sfx="button" 
-        hx-get="/stub/toolbar/room"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'room';"
-        :class="{ 'active': open === 'room' }"
-    >Room</button>
-    <button 
-        sfx="button" 
-        hx-get="/stub/toolbar/tabletop"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'tabletop';"
-        :class="{ 'active': open === 'tabletop' }"
-    >Tabletop</button>
-    <button
-        sfx="button" 
-        hx-get="/stub/toolbar/initiative"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'initiative';"
-        :class="{ 'active': open === 'initiative' }"
-    >Initiative</button>
-    <button
-        sfx="button" 
-        hx-get="/stub/toolbar/view"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'view';"
-        :class="{ 'active': open === 'view' }"
-    >View</button>
-    <button 
-        sfx="button"
-        hx-get="/stub/toolbar/window"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'window';"
-        :class="{ 'active': open === 'window' }"
-    >Window</button>
-    <button
-        sfx="button" 
-        hx-get="/stub/toolbar/help"
-        hx-target="tool-bar-menu .menu"
-        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'help';"
-        :class="{ 'active': open === 'help' }"
-    >Help</button>
 </tool-bar>
 <tabletop-page></tabletop-page>
 <tool-bar-menu

@@ -1,7 +1,7 @@
 window-component{
     background-color: var(--white);
     border-radius: 0.25rem;
-    box-shadow: var(--shadow-grey-md);
+    box-shadow: var(--shadow-black-md);
     position: absolute;
     top: 0;
     left: 0;
@@ -9,6 +9,10 @@ window-component{
     grid-template-rows: 28px 1fr;
     gap: 0;
     z-index: 1000;
+
+    @media (prefers-color-scheme: dark){
+        background-color: var(--grey-900);
+    }
 
     &[size="maximized"]{
         border-radius: 0;
@@ -100,5 +104,9 @@ window-component{
         width: 100%;
         display: block;
         overflow-y: scroll;
+
+        @media (prefers-color-scheme: dark){
+            color: var(--grey-300);
+        }
     }
 }

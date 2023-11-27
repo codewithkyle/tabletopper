@@ -1,14 +1,34 @@
-<button sfx="button">
-    <span>Lock room</span>
-</button>
-<button sfx="button">
-    <span>Unlock room</span>
-</button>
-<hr>
-<button sfx="button">
-    <span>Copy room code</span>
-</button>
-<hr>
-<button sfx="button">
-    <span>Player list</span>
-</button>
+{% if GM %}
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:lock')"
+    >
+        <span>Lock room</span>
+    </button>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:unlock')"
+    >
+        <span>Unlock room</span>
+    </button>
+    <hr>
+{% endif %}
+    <button 
+        sfx="button"
+        x-data="{ room: window.location.pathname.split('/').pop() }"
+        x-on:click="navigator.clipboard.writeText(room);$dispatch('toast', { msg: 'Room code copied to clipboard' })"
+    >
+        <span>Copy room code</span>
+    </button>
+{% if GM %}
+    <hr>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:players')"
+    >
+        <span>Player list</span>
+    </button>
+{% endif %}

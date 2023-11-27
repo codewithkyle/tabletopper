@@ -39,6 +39,7 @@ class Room {
         if (playerId in this.sockets){
             this.sockets[playerId].name = name;
         }
+        this.syncPlayers();
     }
 
     public mutePlayer({ playerId }): void{
@@ -50,7 +51,7 @@ class Room {
             this.mutePlayer[playerId] = null;
         }
         gm.send(this.sockets[playerId], "room:announce:snackbar", `The Game Master has ${muted ? "muted" : "unmuted"} your pings.`);
-        gm.send(this.sockets[this.gmId], "room:announce:snackbar", `${this.sockets[playerId].name} is now ${muted ? "muted" : "unmuted"}.`);
+        gm.send(this.sockets[this.gmId], "room:announce:toast", `${this.sockets[playerId].name} is now ${muted ? "muted" : "unmuted"}.`);
     }
 
     public ping(data, ws):void{
@@ -205,17 +206,37 @@ class Room {
         console.log(`Socket ${ws.id} reconnected to ${this.code}`);
         gm.send(ws, "room:joined", this.gmId === ws.id ? this.code : null);
         this.broadcast("room:announce:reconnect", `${ws.name} has returned.`);
+        this.syncPlayers();
     }
 
     public addSocket(ws:Socket){
         if (ws.id in this.deadSockets){
             return this.resetSocket(ws);
         }
+        if (this.locked){
+            gm.error(ws, "Room Locked", "This room is locked. You cannot join.");
+            gm.send(ws, "room:exit");
+            return;
+        }
         ws.room = this.code;
         this.sockets[ws.id] = ws;
         console.log(`Socket ${ws.id} joined room ${this.code}`);
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
         gm.send(ws, "room:joined");
+        this.syncPlayers();
+    }
+
+    private syncPlayers(){
+        const players = [];
+        for (const id in this.sockets){
+            players.push({
+                uid: id,
+                name: this.sockets[id].name,
+                gm: id === this.gmId,
+                muted: id in this.mutedPlayers,
+            });
+        }
+        this.broadcast("room:sync:players", players);
     }
 
     public async removeSocket(ws:Socket, reason: ExitReason = "UNKNOWN"):Promise<void>{
@@ -239,6 +260,7 @@ class Room {
             default:
                 break;
         }
+        this.syncPlayers();
         if (Object.keys(this.sockets).length === 0){
             gm.removeRoom(this.code);
         }

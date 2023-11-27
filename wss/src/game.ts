@@ -3,22 +3,25 @@ import Room from "./room.js";
 import { GenerateCode } from "./utils.js";
 
 class GameManager {
-    private sockets: Socket[];
+    private sockets: {
+        [id:string]: Socket,
+    };
     private rooms: {
         [code:string]: Room,
     }
 
     constructor(){
-        this.sockets = [];
+        this.sockets = {};
         this.rooms = {};
     }
 
     public connect(ws):void{
-        this.sockets.push(ws);
+        //this.sockets.push(ws);
     }
 
     public disconnect(ws:Socket):void{
         if (ws.id in this.sockets){
+            console.log(`Socket ${ws.id} disconnected`);
             if (ws.room && ws.room in this.rooms){
                 this.rooms[ws.room].removeSocket(ws, "DC");
             }
@@ -102,6 +105,7 @@ class GameManager {
                 if (room){
                     ws.id = data.id;
                     ws.name = data.name;
+                    this.sockets[ws.id] = ws;
                     room.addSocket(ws);
                 }
                 else {
@@ -126,6 +130,7 @@ class GameManager {
             case "room:create":
                 ws.id = data;
                 ws.name = "Game Master";
+                this.sockets[ws.id] = ws;
                 this.createRoom(ws); 
                 break;
             default:

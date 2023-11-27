@@ -2,6 +2,13 @@ export type ToolbarMenu = "file" | "tabletop" | "initiative" | "help" | "view" |
 
 export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
 
+export type Player = {
+    uid: string,
+    name: string,
+    muted: boolean,
+    gm: boolean,
+};
+
 export interface Monster {
     index:            string;
     name:             string;

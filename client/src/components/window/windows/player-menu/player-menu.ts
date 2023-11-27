@@ -1,30 +1,36 @@
-import db from "@codewithkyle/jsql";
 import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
-import Input from "~brixi/components/inputs/input/input";
+import "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
-//import Modal from "~components/modal/modal";
-import cc from "~controllers/control-center";
 import { send } from "~controllers/ws";
 import modals from "~brixi/controllers/modals";
 import Form from "~brixi/components/form/form";
+import type { Player } from "~types/app";
 
 interface IPlayerMenu {};
 export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
-    constructor(){
+    private players:Player[];
+
+    constructor(players:Player[]){
         super();
-        subscribe("sync", this.syncInbox.bind(this));
+        this.players = players;
+        subscribe("socket", this.inbox.bind(this));
     }
 
-    private syncInbox(op){
-        if (op.table === "players"){
-            this.render();
+    private inbox({ type, data }){
+        switch (type){
+            case "room:sync:players":
+                this.players = data;
+                this.render();
+                break;
+            default:
+                break;
         }
     }
 
     override async connected(){
-        await env.css(["player-menu", "button"]);
+        await env.css(["player-menu"]);
         this.render();
     }
 
@@ -47,8 +53,6 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
             playerId: playerUid,
             name: name,
         });
-        const op = cc.set("players", playerUid, "name", name);
-        cc.dispatch(op);
         form.stop();
         modal.remove();
     }
@@ -58,13 +62,13 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
         modals.form({
             title: "Rename Player",
             view: html`
-                ${new Input({
-                    name: "name",
-                    value: target.dataset.name,
-                })}
+                <input-component
+                    data-name="name"
+                    data-value="${target.dataset.name}"
+                ></input-component>
             `,
             callbacks: {
-                submit: (data, form, modal) => {
+                submit: (data, form:Form, modal) => {
                     this.handleRenameSubmit(data, form, modal, target.dataset.uid);
                 },
             },
@@ -78,12 +82,12 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
         });
     }
 
-    private renderPlayer(player):TemplateResult{
+    private renderPlayer(player:Player):TemplateResult{
         return html`
-            <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 radius-0.25 pl-0.75">
-                <span title="${player.name}" class="cursor-default font-sm font-medium font-grey-700">${player.name}</span>
+            <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 dark:border-grey-800 radius-0.25 pl-0.75">
+                <span title="${player.name}" class="cursor-default font-sm font-medium font-grey-700 dark:font-grey-100">${player.name}</span>
                 <div class="h-full" flex="row nowrap items-center">
-                    <button data-uid="${player.uid}" @click=${this.locatePawn} sfx="button" tooltip="Go to pawn" class="bttn border-r-1 border-l-1 border-l-solid border-l-grey-300 border-r-solid border-r-grey-300" kind="text" color="grey" icon="center">
+                    <button data-uid="${player.uid}" @click=${this.locatePawn} sfx="button" tooltip="Go to pawn" class="bttn border-r-1 border-l-1 border-l-solid border-l-grey-300 border-r-solid border-r-grey-300 dark:border-l-grey-800 dark:border-r-grey-800" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-current-location" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <circle cx="12" cy="12" r="3"></circle>
@@ -94,7 +98,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <line x1="2" y1="12" x2="4" y2="12"></line>
                         </svg>
                     </button>
-                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.renamePlayer} sfx="button" tooltip="Rename player" class="bttn border-r-1 border-r-solid border-r-grey-300" kind="text" color="grey" icon="center">
+                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.renamePlayer} sfx="button" tooltip="Rename player" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-l-grey-800 dark:border-r-grey-800" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-forms" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M12 3a3 3 0 0 0 -3 3v12a3 3 0 0 0 3 3"></path>
@@ -105,7 +109,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <path d="M13 12h.01"></path>
                         </svg> 
                     </button>
-                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.mutePlayer} sfx="button" tooltip="Toggle ${player.name} pings" class="bttn border-r-1 border-r-solid border-r-grey-300" kind="text" color="grey" icon="center">
+                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.mutePlayer} sfx="button" tooltip="Toggle ${player.name} pings" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-r-grey-800" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
@@ -127,12 +131,9 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
     }
 
     override async render(){
-        const players = await db.query("SELECT * FROM players WHERE room = $room AND active = 1", {
-            room: sessionStorage.getItem("room"),
-        });
         const view = html`
             <div class="w-full block p-0.5">
-                ${players.map(this.renderPlayer.bind(this))}
+                ${this.players.map(this.renderPlayer.bind(this))}
             </div>
         `;
         render(view, this);

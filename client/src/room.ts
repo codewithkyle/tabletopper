@@ -1,23 +1,33 @@
 import { subscribe } from "@codewithkyle/pubsub";
+import PlayerMenu from "~components/window/windows/player-menu/player-menu";
+import Window from "~components/window/window";
 import { connect, send } from "~controllers/ws";
+import { Player } from "~types/app";
+
+declare const htmx: any;
 
 class Room {
     private uid: string;
     private room: string;
     private character: string;
     private isGM: boolean;
+    private players: Player[];
 
     constructor() {
         this.uid = "";
         this.room = "";
         this.character = "";
         this.isGM = false;
+        this.players = [];
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
 
     private async inbox({ type, data }){
         switch (type){
+            case "room:sync:players":
+                this.players = data;
+                break;
             case "core:init":
                 const urlSegments = location.pathname.split("/");
                 if (urlSegments.length < 3){
@@ -29,7 +39,7 @@ class Room {
                 } else {
                     const roomCode = urlSegments[urlSegments.length - 1];
                     const room = JSON.parse(localStorage.getItem(`room:${roomCode.toUpperCase().trim()}`));
-                    console.log(room);
+                    if (!room) location.href = location.origin;
                     this.isGM = false;
                     this.uid = room.uid;
                     this.room = room.room;
@@ -52,17 +62,19 @@ class Room {
                     character: this.character,
                 }));
                 window.history.replaceState({}, "", `/room/${data.toUpperCase().trim()}`);
+                htmx.ajax("GET", "/stub/toolbar", "tool-bar");
                 break;
             case "room:joined":
                 if (data){
-                    fetch(`/session/gm/${data}`, {
+                    await fetch(`/session/gm/${data}`, {
                         method: "POST",
                     });
                 } else {
-                    fetch(`/session/gm`, {
+                    await fetch(`/session/gm`, {
                         method: "DELETE",
                     });
                 }
+                htmx.ajax("GET", "/stub/toolbar", "tool-bar");
                 break;
             default:
                 break;
@@ -71,6 +83,21 @@ class Room {
 
     async init(){
         connect();
+        window.addEventListener("room:lock", () => {
+            send("room:lock");
+        });
+        window.addEventListener("room:unlock", () => {
+            send("room:unlock");
+        });
+        window.addEventListener("room:players", () => {
+            const window = document.body.querySelector('window-component[window="players"]') || new Window({
+                name: "Players",
+                view: new PlayerMenu(this.players),
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
+        });
     }
 }
 const room = new Room();
