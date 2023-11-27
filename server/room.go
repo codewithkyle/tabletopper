@@ -86,6 +86,9 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
         return c.Render("stubs/toolbar/help", fiber.Map{})
     })
 
+    app.Get("/stub/tabletop/settings", func(c *fiber.Ctx) error {
+        return c.Render("stubs/tabletop/settings", fiber.Map{})
+    })
     app.Get("/stub/tabletop/images", func(c *fiber.Ctx) error {
         user, err := GetSession(c, rdb)
         if err != nil {

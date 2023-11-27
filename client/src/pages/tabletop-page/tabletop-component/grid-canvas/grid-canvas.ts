@@ -1,20 +1,20 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
-import {subscribe, unsubscribe} from "@codewithkyle/pubsub";
+import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
 import type { Image } from "~types/app";
 
-interface IGridCanvas {}
+interface IGridCanvas { }
 export default class GridCanvas extends SuperComponent<IGridCanvas>{
-    private canvas:HTMLCanvasElement;
-    private ctx:CanvasRenderingContext2D;
-    private time:number;
+    private canvas: HTMLCanvasElement;
+    private ctx: CanvasRenderingContext2D;
+    private time: number;
     private gridSize: number;
     private renderGrid: boolean;
     private ticket: string;
-    private w:number;
-    private h:number;
+    private w: number;
+    private h: number;
 
-    constructor(){
+    constructor() {
         super();
         this.w = 0;
         this.h = 0;
@@ -23,24 +23,42 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
         this.time = 0;
         this.gridSize = 32;
         this.renderGrid = false;
+        this.ticket = subscribe("socket", this.inbox.bind(this));
     }
 
-    override async connected(){
+    override async connected() {
         await env.css(["grid-canvas"]);
         this.appendChild(this.canvas);
-        //const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
-        //this.gridSize = result?.["grid_size"] ?? 32;
-        //this.renderGrid = result?.["render_grid"] ?? false;
     }
 
-    private renderGridLines(){
+    override disconnected() {
+        unsubscribe(this.ticket);
+    }
+
+    private inbox({ type, data }) {
+        switch (type) {
+            case "room:tabletop:clear":
+                this.renderGrid = false;
+                this.renderGridLines();
+                break;
+            case "room:tabletop:map:update":
+                this.renderGrid = data.renderGrid;
+                this.gridSize = data.cellSize;
+                this.renderGridLines();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private renderGridLines() {
         this.ctx.clearRect(0, 0, this.w, this.h);
-        if (this.renderGrid){
+        if (this.renderGrid) {
             const cells = [];
             const cellsInRow = Math.ceil(this.w / this.gridSize);
             const rows = Math.ceil(this.h / this.gridSize);
-            for (let i = 0; i < rows; i++){
-                for (let j = 0; j < cellsInRow; j++){
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cellsInRow; j++) {
                     cells.push({
                         x: j * this.gridSize,
                         y: i * this.gridSize,
@@ -49,7 +67,7 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
             }
 
             this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
-            for (let i = 0; i < cells.length; i++){
+            for (let i = 0; i < cells.length; i++) {
                 const { x, y } = cells[i];
                 this.ctx.beginPath();
                 this.ctx.moveTo(x, y);
@@ -64,14 +82,22 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
     }
 
     // @ts-ignore
-    override render(image:HTMLImageElement): void {
-        if (!image) return;
-        this.w = image.width;
-        this.h = image.height;
-        this.canvas.width = this.w;
-        this.canvas.height = this.h;
-        this.canvas.style.width = `${image.width}px`;
-        this.canvas.style.height = `${image.height}px`;
+    override render(image: HTMLImageElement): void {
+        if (!image) {
+            this.w = 0;
+            this.h = 0;
+            this.canvas.width = this.w;
+            this.canvas.height = this.h;
+            this.canvas.style.width = `0px`;
+            this.canvas.style.height = `0px`;
+        } else {
+            this.w = image.width;
+            this.h = image.height;
+            this.canvas.width = this.w;
+            this.canvas.height = this.h;
+            this.canvas.style.width = `${image.width}px`;
+            this.canvas.style.height = `${image.height}px`;
+        }
         this.renderGridLines();
     }
 }

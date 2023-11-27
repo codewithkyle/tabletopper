@@ -168,6 +168,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map){
+            if (this.img?.isConnected) this.img?.remove();
             this.img = new Image();
             this.img.src = this.model.map;
             this.img.className = "center absolute map";
@@ -175,14 +176,16 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         } else {
             this.img?.remove();
             this.img = null;
+            this.gridCanvas.render(this.img);
+            this.vfxCanvas.render(this.img);
         }
-        if (!this.img.isConnected){
+        if (!this.img?.isConnected){
             this.appendChild(this.img);
         }
-        if (!this.gridCanvas.isConnected){
+        if (!this.gridCanvas?.isConnected){
             this.appendChild(this.gridCanvas);
         }
-        if (!this.vfxCanvas.isConnected){
+        if (!this.vfxCanvas?.isConnected){
             this.appendChild(this.vfxCanvas);
         }
         this.img.onload = () => {

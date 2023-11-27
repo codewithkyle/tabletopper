@@ -82,6 +82,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:tabletop:map:update":
+                if (room){
+                    room.updateMap(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:map:clear":
                 if (room){
                     room.clearMap();

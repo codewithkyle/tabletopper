@@ -105,6 +105,10 @@ class Room {
             const { id } = e.detail;
             send("room:tabletop:map:load", id);
         });
+        window.addEventListener("tabletop:update", (e:CustomEvent) => {
+            const { cellSize, renderGrid } = e.detail;
+            send("room:tabletop:map:update", { cellSize, renderGrid });
+        });
     }
 }
 const room = new Room();

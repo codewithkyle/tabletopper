@@ -6,4 +6,8 @@ tabletop-component {
     height: 0;
     overflow: visible;
     transform-origin: 0px 0px 0px;
+
+    img {
+        z-index: -1;
+    }
 }

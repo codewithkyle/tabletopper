@@ -31,3 +31,14 @@
         x-data="{ selected: '' }"
     ></div>
 </tabletop-images>
+<tabletop-settings
+    x-data="{ open: false }"
+    x-on:show-tabletop-settings.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+    ></div>
+</tabletop-settings>

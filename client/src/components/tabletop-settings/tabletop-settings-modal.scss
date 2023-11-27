@@ -1,4 +1,4 @@
-tabletop-settings-modal{
+tabletop-settings{
     position: fixed;
     top: 0;
     left: 0;
@@ -29,7 +29,13 @@ tabletop-settings-modal{
         z-index: 2;
         position: relative;
         overflow: hidden;
-        box-shadow: var(--shadow-grey-lg);
+        box-shadow: var(--shadow-black-lg);
         border: 1px solid var(--grey-300);
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-800);
+            background-color: var(--grey-900);
+            color: var(--grey-300);
+        }
     }
 }

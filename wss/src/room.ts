@@ -21,6 +21,8 @@ class Room {
         [id:string]: null,
     };
     private map: string;
+    private cellSize: number;
+    private renderGrid: boolean;
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -32,6 +34,8 @@ class Room {
         this.showPawns = false;
         this.mutedPlayers = {};
         this.map = "";
+        this.cellSize = 32;
+        this.renderGrid = false;
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -95,13 +99,19 @@ class Room {
         this.broadcast("room:tabletop:load", map);
     }
 
-    public async clearMap():Promise<void>{
+    public updateMap({ cellSize, renderGrid }){
+        this.cellSize = cellSize;
+        this.renderGrid = renderGrid;
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid });
+    }
+
+    public clearMap(){
         this.broadcast("room:tabletop:clear");
         this.showPawns = false;
         this.map = "";
     }
 
-    public async spawnNPC({ name, ac, hp, x, y, size }):Promise<void>{
+    public spawnNPC({ name, ac, hp, x, y, size }){
         const id = randomUUID();
         const pawn:Pawn = {
             uid: id,
@@ -129,7 +139,7 @@ class Room {
         //await this.dispatch(op);
     }
 
-    public async spawnMonster({ index, x, y, name, hp, ac, size }):Promise<void>{
+    public spawnMonster({ index, x, y, name, hp, ac, size }){
         const id = randomUUID();
         const pawn:Pawn = {
             uid: id,
@@ -158,7 +168,7 @@ class Room {
         //await this.dispatch(op);
     }
 
-    public async spawnPlayers():Promise<void>{
+    public spawnPlayers(){
         this.showPawns = true;
         const ids = [];
         for (const id in this.sockets){
@@ -229,6 +239,9 @@ class Room {
     private syncMap(ws:Socket){
         if (this.map !== ""){
             gm.send(ws, "room:tabletop:load", this.map);
+            const cellSize = this.cellSize;
+            const renderGrid = this.renderGrid;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid });
         }
     }
 
