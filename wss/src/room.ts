@@ -205,6 +205,7 @@ class Room {
         gm.send(ws, "room:joined", this.gmId === ws.id ? this.code : null);
         this.broadcast("room:announce:reconnect", `${ws.name} has returned.`);
         this.syncPlayers();
+        this.syncMap(ws);
     }
 
     public addSocket(ws:Socket){
@@ -222,6 +223,13 @@ class Room {
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
         gm.send(ws, "room:joined");
         this.syncPlayers();
+        this.syncMap(ws);
+    }
+
+    private syncMap(ws:Socket){
+        if (this.map !== ""){
+            gm.send(ws, "room:tabletop:load", this.map);
+        }
     }
 
     private syncPlayers(){
