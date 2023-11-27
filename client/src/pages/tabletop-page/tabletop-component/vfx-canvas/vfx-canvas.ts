@@ -2,7 +2,6 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "components/pawn/pawn";
 import type { Image } from "~types/app";
-import TabeltopComponent from "../tabletop-component";
 
 interface IVFXCanvas {}
 export default class VFXCanvas extends SuperComponent<IVFXCanvas>{

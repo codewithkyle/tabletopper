@@ -46,6 +46,7 @@
     "flatpickr",
     "lit-html",
     "lit-html/directives/unsafe-html.js",
+    "lit-html/directives/cache.js",
     "tooltipper",
     "fuse.js",
     "dayjs",

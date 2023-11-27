@@ -2,12 +2,10 @@ import SuperComponent from "@codewithkyle/supercomponent";
 import {UUID} from "@codewithkyle/uuid";
 import {html, render} from "lit-html";
 import env from "~brixi/controllers/env";
-import db from "@codewithkyle/jsql";
 import { Spell as ISpell, Monster } from "types/app";
 import Spell from "components/window/windows/spell/spell"
 import Window from "components/window/window";
 import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
-import Button from "~brixi/components/buttons/button/button";
 
 interface ISpotlightSearch{
     results: Array<ISpell|Monster>,
@@ -37,23 +35,23 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
     }
 
     private async search(value:string){
-        const queueId = UUID();
-        this.lastQueueId = queueId;
-        let sql;
-        if (this.includeMonsters && this.includeSpells){
-            sql = "SELECT * FROM spells WHERE name LIKE $value UNION SELECT * FROM monsters WHERE name LIKE $value";
-        } else if(this.includeSpells) {
-            sql = "SELECT * FROM spells WHERE name LIKE $value";
-        } else {
-            sql = "SELECT * FROM monsters WHERE name LIKE $value";
-        }
-        const results = await db.query<ISpell|Monster>(sql, {
-            value: value,
-        });
-        this.set({
-            results: results,
-            query: value,
-        });
+        //const queueId = UUID();
+        //this.lastQueueId = queueId;
+        //let sql;
+        //if (this.includeMonsters && this.includeSpells){
+            //sql = "SELECT * FROM spells WHERE name LIKE $value UNION SELECT * FROM monsters WHERE name LIKE $value";
+        //} else if(this.includeSpells) {
+            //sql = "SELECT * FROM spells WHERE name LIKE $value";
+        //} else {
+            //sql = "SELECT * FROM monsters WHERE name LIKE $value";
+        //}
+        //const results = await db.query<ISpell|Monster>(sql, {
+            //value: value,
+        //});
+        //this.set({
+            //results: results,
+            //query: value,
+        //});
     }
     private handleInputDebounce = this.debounce(this.search.bind(this), 300);
     private handleInput = (e) => {
@@ -71,69 +69,70 @@ export default class SpotlightSearch extends SuperComponent<ISpotlightSearch>{
     }
 
     private renderCreateSpellButton(){
-        if (this.callback !== null && this.includeSpells){
-            return new Button({
-                label: "Create Spell",
-                kind: "outline",
-                color: "grey",
-                class: "mx-0.5 mb-0.5",
-                css: "width: calc(100% - 1rem);",
-                callback: ()=>{
-                    this.callback("spell");
-                    this.remove();
-                },
-            });
-        } else {
-            return "";
-        }
+        //if (this.callback !== null && this.includeSpells){
+            //return new Button({
+                //label: "Create Spell",
+                //kind: "outline",
+                //color: "grey",
+                //class: "mx-0.5 mb-0.5",
+                //css: "width: calc(100% - 1rem);",
+                //callback: ()=>{
+                    //this.callback("spell");
+                    //this.remove();
+                //},
+            //});
+        //} else {
+            //return "";
+        //}
     }
 
     private renderCreateMonsterButton(){
-        if (this.callback !== null && this.includeMonsters){
-            return new Button({
-                label: "Create Monster",
-                kind: "outline",
-                color: "grey",
-                class: "mx-0.5 mb-0.5",
-                css: "width: calc(100% - 1rem);",
-                callback: ()=>{
-                    this.callback("monster");
-                    this.remove();
-                },
-            });
-        } else {
-            return "";
-        }
+        //if (this.callback !== null && this.includeMonsters){
+            //return new Button({
+                //label: "Create Monster",
+                //kind: "outline",
+                //color: "grey",
+                //class: "mx-0.5 mb-0.5",
+                //css: "width: calc(100% - 1rem);",
+                //callback: ()=>{
+                    //this.callback("monster");
+                    //this.remove();
+                //},
+            //});
+        //} else {
+            //return "";
+        //}
     }
 
     private renderResults(){
-        if (this.model.results.length){
-            return html`
-                <div class="results">
-                    ${this.model.results.map((res, index) => {
-                        return new Button({
-                            label: res.name,
-                            kind: "text",
-                            color: "grey",
-                            class: "w-full",
-                            callback: ()=>{
-                                this.clickResult(index);
-                            }
-                        });
-                    })}
-                </div>
-                ${this.renderCreateSpellButton()}
-                ${this.renderCreateMonsterButton()}
-            `;
-        } else if (!this.model.results.length && this.model.query.length) {
-            return html`
-                <p class="text-center p-1 font-sm font-grey-400 border-t-solid border-t-1 border-t-grey-300">No${sessionStorage.getItem("role") === "gm" ? " Monsters or " : " "}Spells match '${this.model.query}'.</p>
-                ${this.renderCreateSpellButton()}
-                ${this.renderCreateMonsterButton()}
-            `;
-        } else {
-            return "";
-        }
+        return "";
+        //if (this.model.results.length){
+            //return html`
+                //<div class="results">
+                    //${this.model.results.map((res, index) => {
+                        //return new Button({
+                            //label: res.name,
+                            //kind: "text",
+                            //color: "grey",
+                            //class: "w-full",
+                            //callback: ()=>{
+                                //this.clickResult(index);
+                            //}
+                        //});
+                    //})}
+                //</div>
+                //${this.renderCreateSpellButton()}
+                //${this.renderCreateMonsterButton()}
+            //`;
+        //} else if (!this.model.results.length && this.model.query.length) {
+            //return html`
+                //<p class="text-center p-1 font-sm font-grey-400 border-t-solid border-t-1 border-t-grey-300">No${sessionStorage.getItem("role") === "gm" ? " Monsters or " : " "}Spells match '${this.model.query}'.</p>
+                //${this.renderCreateSpellButton()}
+                //${this.renderCreateMonsterButton()}
+            //`;
+        //} else {
+            //return "";
+        //}
     }
 
     override render(){

@@ -1,12 +1,11 @@
 tabletop-page{
-    display: grid;
-    grid-template-rows: 28px 1fr;
-    gap: 0;
+    display: block;
     width: 100vw;
     height: 100vh;
     position: fixed;
     top: 0;
     left: 0;
+    padding-top: 28px;
     overflow: hidden;
 
     &[state="SYNCING"]{

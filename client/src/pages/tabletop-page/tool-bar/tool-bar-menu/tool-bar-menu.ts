@@ -1,5 +1,4 @@
 import { publish, subscribe } from "@codewithkyle/pubsub";
-import { navigateTo } from "@codewithkyle/router";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render, TemplateResult } from "lit-html";
 import env from "~brixi/controllers/env";
@@ -12,8 +11,6 @@ import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import Spellbook from "~components/window/windows/spellbook/spellbook";
 import { close, send } from "~controllers/ws";
 import type { ToolbarMenu as Menu} from "~types/app";
-import cc from "controllers/control-center";
-import db from "@codewithkyle/jsql";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
 import TabletopSettingsModal from "~components/tabletop-settings/tabletop-settings-modal";
 
@@ -54,7 +51,7 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private calcOffsetX():number{
-        const el = document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`);
+        const el = document.body.querySelector(`tool-bar button[data-menu="${this.model.menu}"]`) as HTMLElement;
         if (el.dataset?.offsetX){
             return parseInt(el.dataset.offsetX);
         } else {
@@ -67,13 +64,6 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     private async exit(){
         sessionStorage.removeItem("room");
         send("room:quit");
-        await Promise.all([
-            db.query("RESET games"),
-            db.query("RESET players"),
-            db.query("RESET ledger"),
-            db.query("RESET pawns"),
-            db.query("RESET rolls"),
-        ]);
         this.close();
         location.href = location.origin;
     }
@@ -286,82 +276,12 @@ export default class ToolbarMenu extends SuperComponent<IToolbarMenu>{
     }
 
     private clearInitiative:EventListener = (e:Event) => {
-        const op = cc.set("games", sessionStorage.getItem("room"), "initiative", []);
-        const op2 = cc.set("games", sessionStorage.getItem("room"), "active_initiative", null);
-        const batch = cc.batch("games", sessionStorage.getItem("room"), [op, op2]);
-        cc.dispatch(batch);
     }
 
     private nextInitiative:EventListener = async (e:Event) => {
-        const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))?.[0] ?? {};
-        if (result?.initiative?.length === 1){
-            alerts.snackbar("Too few initiatives to track.");
-            return;
-        }
-        if (result?.active_initiative != null && result.initiative.length){
-            for (let i = 0; i < result.initiative.length; i++){
-                if (result.initiative[i].uid === result.active_initiative){
-                    let nextIndex = result.initiative[i].index + 1;
-                    if (nextIndex >= result.initiative.length){
-                        nextIndex = 0;
-                    }
-                    let onDeckIndex = nextIndex + 1;
-                    if (onDeckIndex >= result.initiative.length){
-                        onDeckIndex = 0;
-                    }
-                    send("room:announce:initiative", {
-                        current: result.initiative[nextIndex],
-                        next: result.initiative[onDeckIndex],
-                    });
-                    break;
-                }
-            }
-        } else if ("active_initiative" in result && result.active_initiative === null && result?.initiative?.length) {
-            send("room:announce:initiative", {
-                current: result.initiative[0],
-                next: result.initiative[1],
-            });
-        } else {
-            alerts.snackbar("Initiative tracker is not currently tracking anything.");
-        }
     }
 
     private syncInitiativePawn:EventListener = async (e:Event) => {
-        const result = (await db.query("SELECT initiative FROM games WHERE uid = $room", { room: sessionStorage.getItem("room"), }))[0];
-        const pawns: HTMLElement[] = Array.from(document.body.querySelectorAll("pawn-component"));
-        const data = result["initiative"] || [];
-        const claimedNames = [];
-        if (data.length){
-            for (let i = 0; i < data.length; i++){
-                claimedNames.push(data[i].name);
-            }
-        }
-        for (let i = 0; i < pawns.length; i++){
-            const pawnType = pawns[i].getAttribute("pawn");
-            if (pawnType !== "dead" && !claimedNames.includes(pawns[i].dataset.name)){
-                claimedNames.push(pawns[i].dataset.name);
-                data.push({
-                    uid: pawns[i].dataset.uid,
-                    name: pawns[i].dataset.name,
-                    playerId: pawns[i].dataset?.playerUid ?? null,
-                    index: i,
-                });
-            }
-        }
-        const op = cc.set("games", sessionStorage.getItem("room"), "initiative", data);
-        cc.dispatch(op);
-        const window = document.body.querySelector('window-component[window="initiative"]') || new Window({
-            name: "Initiative",
-            view: new Initiative(),
-            minWidth: 300,
-            minHeight: 300,
-            width: 300,
-            height: 300,
-        });
-        if (!window.isConnected){
-            document.body.append(window);
-        }
-        this.close();
     }
 
     private renderFileMenu():TemplateResult{

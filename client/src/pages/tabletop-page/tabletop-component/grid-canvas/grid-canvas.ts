@@ -1,6 +1,5 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
-import db from "@codewithkyle/jsql";
 import {subscribe, unsubscribe} from "@codewithkyle/pubsub";
 import type { Image } from "~types/app";
 
@@ -30,9 +29,9 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
     override async connected(){
         await env.css(["grid-canvas"]);
         this.appendChild(this.canvas);
-        const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
-        this.gridSize = result?.["grid_size"] ?? 32;
-        this.renderGrid = result?.["render_grid"] ?? false;
+        //const result = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))[0];
+        //this.gridSize = result?.["grid_size"] ?? 32;
+        //this.renderGrid = result?.["render_grid"] ?? false;
     }
 
     override disconnected(): void {

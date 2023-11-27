@@ -1,4 +1,3 @@
-import db from "@codewithkyle/jsql";
 import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
@@ -207,16 +206,16 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent|TouchEvent) =>{
-        if (e.target.classList.contains("map")){
-            this.moving = true;
-            if (window.TouchEvent && e instanceof TouchEvent){
-                this.lastX = e.touches[0].clientX;
-                this.lastY = e.touches[0].clientY;
-            } else {
-                this.lastX = e.clientX;
-                this.lastY = e.clientY;
-            }
-        }
+        //if (e.target.classList.contains("map")){
+            //this.moving = true;
+            //if (window.TouchEvent && e instanceof TouchEvent){
+                //this.lastX = e.touches[0].clientX;
+                //this.lastY = e.touches[0].clientY;
+            //} else {
+                //this.lastX = e.clientX;
+                //this.lastY = e.clientY;
+            //}
+        //}
     }
 
     private handleMouseUp:EventListener = () => {
@@ -225,13 +224,15 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private handleMouseMove:EventListener = (e:MouseEvent|TouchEvent) => {
         if (this.moving){
-            let x;
-            let y;
+            let x = 0;
+            let y = 0;
             if (window.TouchEvent && e instanceof TouchEvent){
                 x = e.touches[0].clientX;
                 y = e.touches[0].clientY;
             } else {
+                // @ts-ignore
                 x = e.clientX;
+                // @ts-ignore
                 y = e.clientY;
             }
             const deltaX = this.lastX - x;
@@ -247,11 +248,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     override async render() {
         let image:Image = null;
         if (this.model.map){
-            // Wait and retry query due to insert race condition
-            // TODO: Find a better way to do this
             while (image === null){
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
+                //image = (await db.query<Image>("SELECT * FROM images WHERE uid = $uid", { uid : this.model.map }))?.[0] ?? null;
             }
         }
         if (image !== null){

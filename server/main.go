@@ -49,7 +49,7 @@ func main() {
         return c.Render("pages/homepage/index", fiber.Map{}, "layouts/main")
     })
     app.Get("/stub/home", func(c *fiber.Ctx) error {
-        user, err := getSession(c, rdb)
+        user, err := GetSession(c, rdb)
         if err != nil {
             return c.SendStatus(500)
         }
