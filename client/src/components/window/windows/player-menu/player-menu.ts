@@ -84,10 +84,10 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
 
     private renderPlayer(player:Player):TemplateResult{
         return html`
-            <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 dark:border-grey-800 radius-0.25 pl-0.75">
+            <div flex="row nowrap items-center justify-between" class="w-full player border-1 border-solid border-grey-300 dark:border-grey-700 radius-0.25 pl-0.75">
                 <span title="${player.name}" class="cursor-default font-sm font-medium font-grey-700 dark:font-grey-100">${player.name}</span>
                 <div class="h-full" flex="row nowrap items-center">
-                    <button data-uid="${player.uid}" @click=${this.locatePawn} sfx="button" tooltip="Go to pawn" class="bttn border-r-1 border-l-1 border-l-solid border-l-grey-300 border-r-solid border-r-grey-300 dark:border-l-grey-800 dark:border-r-grey-800" kind="text" color="grey" icon="center">
+                    <button data-uid="${player.uid}" @click=${this.locatePawn} sfx="button" tooltip="Go to pawn" class="bttn border-r-1 border-l-1 border-l-solid border-l-grey-300 border-r-solid border-r-grey-300 dark:border-l-grey-700 dark:border-r-grey-700" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-current-location" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <circle cx="12" cy="12" r="3"></circle>
@@ -98,7 +98,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <line x1="2" y1="12" x2="4" y2="12"></line>
                         </svg>
                     </button>
-                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.renamePlayer} sfx="button" tooltip="Rename player" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-l-grey-800 dark:border-r-grey-800" kind="text" color="grey" icon="center">
+                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.renamePlayer} sfx="button" tooltip="Rename player" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-r-grey-700" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-forms" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M12 3a3 3 0 0 0 -3 3v12a3 3 0 0 0 3 3"></path>
@@ -109,7 +109,7 @@ export default class PlayerMenu extends SuperComponent<IPlayerMenu>{
                             <path d="M13 12h.01"></path>
                         </svg> 
                     </button>
-                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.mutePlayer} sfx="button" tooltip="Toggle ${player.name} pings" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-r-grey-800" kind="text" color="grey" icon="center">
+                    <button data-name="${player.name}" data-uid="${player.uid}" @click=${this.mutePlayer} sfx="button" tooltip="Toggle ${player.name} pings" class="bttn border-r-1 border-r-solid border-r-grey-300 dark:border-r-grey-700" kind="text" color="grey" icon="center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
