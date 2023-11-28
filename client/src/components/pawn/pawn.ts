@@ -111,7 +111,8 @@ export default class Pawn extends SuperComponent<IPawn>{
     private contextMenu:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (this.model.type === "monster" && room.isGM){
+        if (!room.isGM) return;
+        if (this.model.type === "monster"){
             const x = e.clientX;
             const y = e.clientY;
             const windowEl = new Window({

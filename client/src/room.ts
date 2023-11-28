@@ -74,6 +74,7 @@ class Room {
                     await fetch(`/session/gm/${data}`, {
                         method: "POST",
                     });
+                    this.isGM = true;
                 } else {
                     await fetch(`/session/gm`, {
                         method: "DELETE",
