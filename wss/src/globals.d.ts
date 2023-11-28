@@ -7,6 +7,13 @@ export type Socket = {
 
 export type ExitReason = "UNKNOWN" | "KICKED" | "DC" | "QUIT";
 
+export type Initiative = {
+    uid: string,
+    name: string,
+    type: "player"|"monster"|"npc",
+    index: number,
+}
+
 export type Pawn = {
     uid: string,
     x: number,

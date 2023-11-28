@@ -1,5 +1,5 @@
 import gm from "./game.js";
-import type { ExitReason, Socket, Pawn } from "./globals.js";
+import type { ExitReason, Socket, Pawn, Initiative } from "./globals.js";
 import { randomUUID } from "crypto";
 
 const COLORS = ["grey", "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "light-blue", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
@@ -24,6 +24,8 @@ class Room {
     private cellSize: number;
     private renderGrid: boolean;
     private pawns: Pawn[];
+    private initiative: Array<Initiative>;
+    private activeInitiative: string|null;
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -38,6 +40,8 @@ class Room {
         this.cellSize = 32;
         this.renderGrid = false;
         this.pawns = [];
+        this.initiative = [];
+        this.activeInitiative = null;
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -67,17 +71,33 @@ class Room {
         this.broadcast("room:tabletop:ping", data);
     }
 
+    public syncInitiative(initiative:Array<Initiative>):void{
+        this.initiative = initiative;
+        this.broadcast("room:initiative:sync", initiative);
+    }
+
+    public setActiveInitiative(uid:string):void{
+        this.activeInitiative = uid;
+        this.broadcast("room:initiative:active", uid);
+    }
+
+    public clearInitiative():void{
+        this.initiative = [];
+        this.broadcast("room:initiative:sync", []);
+        this.activeInitiative = null;
+        this.broadcast("room:initiative:active", null);
+    }
+
     public async announceInitiative({ current, next }):Promise<void>{
-        //const op = set("games", this.code, "active_initiative", current.uid);
-        //await this.dispatch(op);
-        if (current?.playerId != null){
-            gm.send(this.sockets[current.playerId], "room:announce:initiative", {
+        this.broadcast("room:initiative:active", current.uid);
+        if (current.type === "player"){
+            gm.send(this.sockets[current.uid], "room:announce:initiative", {
                 title: "You're up!",
                 message: "It's your turn for combat. Good luck!",
             });
         }
-        if (next.playerId != null){
-            gm.send(this.sockets[next.playerId], "room:announce:initiative", {
+        if (next.type === "player"){
+            gm.send(this.sockets[next.uid], "room:announce:initiative", {
                 title: "You're on deck.",
                 message: "Start planning your turn now. You're next in the initiative order.",
             });
@@ -246,6 +266,8 @@ class Room {
         this.syncPlayers();
         this.syncMap(ws);
         this.syncPawns(ws);
+        gm.send(ws, "room:initiative:sync", this.initiative);
+        gm.send(ws, "room:initiative:active", this.activeInitiative);
     }
 
     public addSocket(ws:Socket){

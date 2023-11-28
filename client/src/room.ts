@@ -4,6 +4,7 @@ import Window from "~components/window/window";
 import { connect, send } from "~controllers/ws";
 import { Player } from "~types/app";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
+import Initiative from "~components/window/windows/initiative/initiative";
 
 declare const htmx: any;
 
@@ -14,6 +15,8 @@ class Room {
     public isGM: boolean;
     private players: Player[];
     public gridSize: number;
+    public activeInitiative: string|null;
+    private initiative: Array<any>;
 
     constructor() {
         this.uid = "";
@@ -22,12 +25,20 @@ class Room {
         this.isGM = false;
         this.players = [];
         this.gridSize = 32;
+        this.initiative = [];
+        this.activeInitiative = null;
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
 
     private async inbox({ type, data }){
         switch (type){
+            case "room:initiative:sync":
+                this.initiative = data;
+                break;
+            case "room:initiative:active":
+                this.activeInitiative = data;
+                break;
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
                 break;
@@ -123,12 +134,57 @@ class Room {
             const window = document.body.querySelector('window-component[window="dicebox"]') || new Window({
                 name: "Dicebox",
                 view: new DiceBox(),
-                width: 200,
+                width: 300,
                 height: 350,
             });
             if (!window.isConnected){
                 document.body.append(window);
             }
+        });
+        window.addEventListener("window:initiative", () => {
+            const w = document.body.querySelector('window-component[window="initiative"]') || new Window({
+                name: "Initiative",
+                view: new Initiative(this.initiative),
+                width: 300,
+                height: 350,
+            });
+            if (!w.isConnected){
+                document.body.append(w);
+            }
+        });
+        window.addEventListener("initiative:sync", () => {
+            const pawns: HTMLElement[] = Array.from(document.body.querySelectorAll("pawn-component"));
+            const claimedNames = [];
+            if (this.initiative.length){
+                for (let i = 0; i < this.initiative.length; i++){
+                    claimedNames.push(this.initiative[i].name);
+                }
+            }
+            for (let i = 0; i < pawns.length; i++){
+                const pawnType = pawns[i].getAttribute("pawn");
+                if (pawnType !== "dead" && !claimedNames.includes(pawns[i].dataset.name)){
+                    claimedNames.push(pawns[i].dataset.name);
+                    this.initiative.push({
+                        uid: pawns[i].dataset.uid,
+                        name: pawns[i].dataset.name,
+                        type: pawnType,
+                        index: i,
+                    });
+                }
+            }
+            send("room:initiative:sync", this.initiative);
+            const w = document.body.querySelector('window-component[window="initiative"]') || new Window({
+                name: "Initiative",
+                view: new Initiative(this.initiative),
+                width: 300,
+                height: 350,
+            });
+            if (!w.isConnected){
+                document.body.append(w);
+            }
+        });
+        window.addEventListener("initiative:clear", () => {
+            send("room:initiative:clear");
         });
     }
 }

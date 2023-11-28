@@ -1,8 +1,14 @@
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('initiative:sync')"
+>
     <span>Sync tracker</span>
     <span>Ctrl+R</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('initiative:clear')"
+>
     <span>Clear tracker</span>
     <span>Ctrl+Shift+Backspace</span>
 </button>

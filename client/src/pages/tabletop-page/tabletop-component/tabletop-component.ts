@@ -1,11 +1,9 @@
-import { publish, subscribe } from "@codewithkyle/pubsub";
+import { subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
-import type { Image } from "~types/app";
-import PingComponent from "./ping-component/ping-component";
 import room from "room";
 
 interface ITabletopComponent {

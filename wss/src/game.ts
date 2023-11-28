@@ -54,6 +54,27 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:initiative:active":
+                if (room){
+                    room.setActiveInitiative(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:initiative:sync":
+                if (room){
+                    room.syncInitiative(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:initiative:clear":
+                if (room){
+                    room.clearInitiative();
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:announce:initiative":
                 if (room){
                     room.announceInitiative(data);
