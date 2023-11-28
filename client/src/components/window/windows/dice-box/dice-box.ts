@@ -1,9 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import {html, render} from "lit-html";
 import env from "~brixi/controllers/env";
-import db from "@codewithkyle/jsql";
-import Button from "~brixi/components/buttons/button/button";
-import {UUID} from "@codewithkyle/uuid";
 import alerts from "~brixi/controllers/alerts";
 
 // @ts-ignore
@@ -11,8 +8,11 @@ const DiceRoll: any = rpgDiceRoller.DiceRoll;
 
 interface IDiceBox {}
 export default class DiceBox extends SuperComponent<IDiceBox>{
+    private log: Array<string>;
+
     constructor(){
         super();
+        this.log = [];
     }
 
     override async connected(){
@@ -59,14 +59,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
         }
         result += ` = ${results.total}`;
         input.value = "";
-        await db.query("INSERT INTO rolls VALUES ($roll)", {
-            roll: {
-                uid: UUID(),
-                room: sessionStorage.getItem("room"),
-                result: result,
-                timestamp: new Date().getTime(),
-            }
-        });
+        this.log.push(result);
         this.render();
     }
 
@@ -79,28 +72,18 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
     }
 
     override async render() {
-        const log = await db.query("SELECT * FROM rolls WHERE room = $room ORDER BY timestamp", {
-            room: sessionStorage.getItem("room"),
-        });
         const view = html`
             <dice-log>
-                ${log.map(roll => {
+                ${this.log.map(roll => {
                     return html`
-                        <p>${roll.result}</p>
+                        <p>${roll}</p>
                     `;
                 })}
             </dice-log>
             <div class="w-full" flex="items-center row nowrap">
-                <input type="text" placeholder="Dice codes" @keypress=${this.handleKeypress}>
-                ${new Button({
-                    label: "Roll",
-                    kind: "solid",
-                    color: "white",
-                    class: "ml-0.5",
-                    callback: this.doRoll.bind(this),
-                })}
+                <input autofocus type="text" placeholder="Dice codes" @keypress=${this.handleKeypress}>
             </div>
-            <p class="block font-xs font-grey-600 px-0.125">Example: 1d20 + 1d6 + 4</p>
+            <p class="block font-xs font-grey-600 dark:font-grey-500 px-0.125">Example: 1d20 + 1d6 + 4</p>
         `;
         render(view, this);
         const diceLog = this.querySelector("dice-log");

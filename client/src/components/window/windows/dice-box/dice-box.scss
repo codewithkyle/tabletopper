@@ -15,6 +15,12 @@ dice-box{
         border-radius: 0.25rem;
         background-color: var(--white);
         padding: 0 0.5rem;
+
+        @media (prefers-color-scheme: dark){
+            background-color: var(--grey-950);
+            border-color: var(--grey-800);
+            color: var(--white);
+        }
     }
 
     dice-log{
@@ -25,6 +31,10 @@ dice-box{
         border-radius: 0.5rem;
         overflow-y: scroll;
 
+        @media (prefers-color-scheme: dark){
+            border-color: var(--grey-800);
+        }
+
         p{
             display: block;
             width: 100%;
@@ -32,6 +42,10 @@ dice-box{
             font-size: var(--font-sm);
             color: var(--grey-700);
             line-height: 24px;
+
+            @media (prefers-color-scheme: dark){
+                color: var(--grey-300);
+            }
         }
     }
 }

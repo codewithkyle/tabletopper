@@ -9,7 +9,10 @@
 <button sfx="button">
     <span>Monster Manual</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('window:dicebox')"
+>
     <span>Dice tray</span>
 </button>
 <!--

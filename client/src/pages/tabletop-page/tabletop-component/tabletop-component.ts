@@ -113,6 +113,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleScroll:EventListener = (e:WheelEvent) => {
+        if (!e.target.closest("tabletop-page")) return;
         let delta = e.deltaY;
         let sign = Math.sign(delta);
         let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));

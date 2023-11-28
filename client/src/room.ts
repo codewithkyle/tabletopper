@@ -3,6 +3,7 @@ import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import Window from "~components/window/window";
 import { connect, send } from "~controllers/ws";
 import { Player } from "~types/app";
+import DiceBox from "~components/window/windows/dice-box/dice-box";
 
 declare const htmx: any;
 
@@ -117,6 +118,17 @@ class Room {
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
+        });
+        window.addEventListener("window:dicebox", () => {
+            const window = document.body.querySelector('window-component[window="dicebox"]') || new Window({
+                name: "Dicebox",
+                view: new DiceBox(),
+                width: 200,
+                height: 350,
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
         });
     }
 }
