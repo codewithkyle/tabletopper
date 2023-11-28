@@ -1,15 +1,13 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
-import db from "@codewithkyle/jsql";
-import { ConvertBase64ToBlob } from "utils/file";
-import { setValueFromKeypath } from "utils/object";
-import cc from "controllers/control-center";
 import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-component";
 import {html, render, TemplateResult} from "lit-html";
 import Window from "~components/window/window";
 import StatBlock from "components/window/windows/stat-block/stat-block";
 import {Size} from "~types/app";
+import room from "room";
+import { send } from "~controllers/ws";
 
 interface IPawn{
     uid: string,
@@ -19,8 +17,6 @@ interface IPawn{
     hidden: boolean;
     token: string|null;
     name: string;
-    playerId: string|null;
-    monsterId: string|null;
     rings: {
         blue: boolean,
         green: boolean,
@@ -34,6 +30,7 @@ interface IPawn{
     hp?: number,
     fullHP?: number,
     size: Size,
+    type: "player"|"monster"|"npc",
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
@@ -43,7 +40,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     private ticket: string;
     private gridSize: number;
 
-    constructor(pawn){
+    constructor(pawn:IPawn){
         super();
         this.timeToSplatter = 0;
         this.dragging = false;
@@ -57,14 +54,13 @@ export default class Pawn extends SuperComponent<IPawn>{
             hidden: pawn?.hidden ?? false,
             name: pawn.name,
             token: pawn?.token ?? null,
-            playerId: pawn?.playerId ?? null,
-            monsterId: pawn?.monsterId ?? null,
             rings: pawn.rings,
             hp: pawn?.hp ?? null,
             fullHP: pawn?.fullHP ?? null,
             size: pawn?.size ?? "medium",
+            type: pawn.type,
         };
-        this.ticket = subscribe("sync", this.syncInbox.bind(this));
+        this.ticket = subscribe("socket", this.inbox.bind(this));
     }
     
     override async connected() {
@@ -76,54 +72,28 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.addEventListener("touchstart", this.startDrag, { passive: false, capture: true });
         window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
         this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
-        if (this.model.playerId){
-            let player = null;
-            while (player === null){
-                player = (await db.query("SELECT * FROM players WHERE uid = $uid", { uid: this.model.playerId }))?.[0] ?? null;
-            }
-            if (player?.token){
-                await this.loadImage(player.token);
-            }
-        }
-        const game = (await db.query("SELECT * FROM games WHERE uid = $room", { room: sessionStorage.getItem("room") }))?.[0] ?? [];
-        this.gridSize = game?.["grid_size"] ?? 32;
+        this.gridSize = 32;
         this.render();
     }
 
-    override disconnected(): void {
+    override disconnected(){
         unsubscribe(this.ticket);
     }
 
-    public async loadImage(imageId:string){
-        const image = (await db.query("SELECT * FROM images WHERE uid = $uid", { uid: imageId }))[0];
-        const blob = ConvertBase64ToBlob(image.data);
-        const url = URL.createObjectURL(blob);
-        this.set({
-            image: url,
-        });
-    }
-
-    private syncInbox(op){
-        let updatedModel = this.get();
-        switch (op.op){
-            case "BATCH":
-                for (let i = 0; i < op.ops.length; i++){
-                    this.syncInbox(op.ops[i]);
-                }
+    private inbox({ type, data }){
+        switch(type){
+            case "room:tabletop:map:update":
+                this.gridSize = data.cellSize;
+                this.render();
                 break;
-            case "SET":
-                if(op.table === "pawns" && op.key === this.model.uid){
-                    setValueFromKeypath(updatedModel, op.keypath, op.value);
-                    this.set(updatedModel);
-                }
-                if(op.table === "games" && op.key === sessionStorage.getItem("room") && op.keypath === "grid_size"){
-                    this.gridSize = op.value;
+            case "room:tabletop:clear":
+                this.remove();
+                break;
+            case "room:tabletop:pawn:move":
+                if (data.uid === this.model.uid){
+                    this.model.x = data.x;
+                    this.model.y = data.y;
                     this.render();
-                }
-                break;
-            case "DELETE":
-                if (op.table === "pawns" && op.key === this.model.playerId){
-                    this.remove();
                 }
                 break;
             default:
@@ -134,30 +104,27 @@ export default class Pawn extends SuperComponent<IPawn>{
     private contextMenu:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (this.model?.playerId == null && sessionStorage.getItem("role") === "gm"){
+        if (this.model.type === "monster" && room.isGM){
             const x = e.clientX;
             const y = e.clientY;
             const windowEl = new Window({
-                name: `${this.model.name} ${this.model?.monsterId == null ? "(npc)" : "(monster)"}`,
+                name: `${this.model.name} (${this.model.type})`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.monsterId, this.model?.monsterId == null ? "npc" : "monster"),
+                view: new StatBlock(this.model.uid, this.model.uid, this.model.type),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (
-                this.model?.playerId != null && sessionStorage.getItem("role") === "gm" || 
-                this.model?.playerId != null && this.model.playerId === sessionStorage.getItem("socketId")
-            ){
+        } else if (this.model.type === "player"){
             const x = e.clientX;
             const y = e.clientY;
             const windowEl = new Window({
                 name: `${this.model.name}`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.playerId, "player"),
+                view: new StatBlock(this.model.uid, "player"),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -188,10 +155,12 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.resetTooltip();
         this.setAttribute("sfx", "button");
         if (this.dragging){
-            const op1 = cc.set("pawns", this.model.uid, "x", this.localX);
-            const op2 = cc.set("pawns", this.model.uid, "y", this.localY);
-            const ops = cc.batch("pawns", this.model.uid, [op1, op2]);
-            cc.dispatch(ops);
+            console.log("sending move", this.model.uid, this.localX, this.localY);
+            send("room:tabletop:pawn:move", {
+                uid: this.model.uid,
+                x: this.localX,
+                y: this.localY,
+            });
         }
         this.dragging = false;
     }
@@ -225,7 +194,9 @@ export default class Pawn extends SuperComponent<IPawn>{
                 x = e.touches[0].clientX;
                 y = e.touches[0].clientY;
             } else {
+                // @ts-ignore
                 x = e.clientX;
+                // @ts-ignore
                 y = e.clientY;
             }
             let diffX = (tabletop.x - x);
@@ -326,7 +297,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && (sessionStorage.getItem("role") === "gm" || this.model.playerId === sessionStorage.getItem("socketId"))){
+        } else if (this.model.hidden && room.isGM){
             this.style.visibility = "visible";
             this.style.opacity = "0.5";
             this.style.pointerEvents = "all";
@@ -338,9 +309,6 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.setAttribute("ghost", "false");
         }
         this.dataset.uid = this.model.uid;
-        if (this.model?.playerId){
-            this.dataset.playerUid = this.model.playerId;
-        }
         if (!this.dragging){
             this.setAttribute("sfx", "button");
         }
@@ -355,15 +323,12 @@ export default class Pawn extends SuperComponent<IPawn>{
         let pawnType = "npc";
         if ("hp" in this.model && this.model.hp === 0){
             pawnType = "dead";
-        } else if (this.model?.playerId != null){
+        } else if (this.model.type === "player"){
             pawnType = "player";
-        } else if (this.model?.monsterId != null){
+        } else if (this.model.type === "monster"){
             pawnType = "monster";
         }
         this.setAttribute("pawn", pawnType);
-        if (this.model.image){
-            this.classList.add("has-image");
-        }
         const view = html`
             ${this.renderRings()}
             ${this.renderPawn()}

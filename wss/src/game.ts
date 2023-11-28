@@ -103,6 +103,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:tabletop:pawn:move":
+                if (room){
+                    room.movePawn(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:spawn:players":
                 if (room){
                     room.spawnPlayers();
@@ -148,7 +155,7 @@ class GameManager {
                 this.createRoom(ws); 
                 break;
             default:
-                // TODO: log unexpected message types
+                console.log(`Unknown message type: ${type}`);
                 break;
         }
     }

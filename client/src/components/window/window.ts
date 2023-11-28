@@ -177,7 +177,9 @@ export default class Window extends SuperComponent<IWindow>{
                 x = e.touches[0].clientX;
                 y = e.touches[0].clientY;
             } else {
+                // @ts-ignore
                 x = e.clientX;
+                // @ts-ignore
                 y = e.clientY;
             }
             const bounds = this.getBoundingClientRect();
@@ -209,7 +211,9 @@ export default class Window extends SuperComponent<IWindow>{
             x = e.touches[0].clientX;
             y = e.touches[0].clientY;
         } else {
+            // @ts-ignore
             x = e.clientX;
+            // @ts-ignore
             y = e.clientY;
         }
         const bounds = this.getBoundingClientRect();

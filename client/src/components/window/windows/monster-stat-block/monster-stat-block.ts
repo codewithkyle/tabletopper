@@ -1,9 +1,8 @@
-import db from "@codewithkyle/jsql";
 import { subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import { html, render } from "lit-html";
 import env from "~brixi/controllers/env";
-import { Monster } from "~types/app";
+import type { Monster } from "~types/app";
 import { CalculateModifier, CalculateProficiencyBonus } from "~utils/game";
 
 interface IMonsterStatBlock extends Monster {};
@@ -49,8 +48,6 @@ export default class MonsterStatBlock extends SuperComponent<IMonsterStatBlock>{
 
     override async connected(){
         await env.css(["monster-stat-block"]);
-        const monster = (await db.query("SELECT * FROM monsters WHERE index = $index", { index: this.model.index }))[0];
-        this.set(monster);
     }
 
     override render(): void {

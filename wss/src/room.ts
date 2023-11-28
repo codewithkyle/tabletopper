@@ -23,6 +23,7 @@ class Room {
     private map: string;
     private cellSize: number;
     private renderGrid: boolean;
+    private pawns: Pawn[];
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -36,6 +37,7 @@ class Room {
         this.map = "";
         this.cellSize = 32;
         this.renderGrid = false;
+        this.pawns = [];
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -106,9 +108,10 @@ class Room {
     }
 
     public clearMap(){
-        this.broadcast("room:tabletop:clear");
         this.showPawns = false;
+        this.pawns = [];
         this.map = "";
+        this.broadcast("room:tabletop:clear");
     }
 
     public spawnNPC({ name, ac, hp, x, y, size }){
@@ -117,6 +120,7 @@ class Room {
             uid: id,
             x: x,
             y: y,
+            hidden: false,
             room: this.code,
             name: name,
             ac: ac,
@@ -133,22 +137,22 @@ class Room {
                 pink: false,
                 green: false,
             },
+            type: "npc",
         };
-        //const op = insert("pawns", id, pawn);
-        //console.log(`Room ${this.code} is spawning an NPC named ${name}`);
-        //await this.dispatch(op);
+        this.pawns.push(pawn);
+        this.broadcast("room:tabletop:pawn:spawn", pawn);
     }
 
     public spawnMonster({ index, x, y, name, hp, ac, size }){
         const id = randomUUID();
         const pawn:Pawn = {
-            uid: id,
             x: x,
             y: y,
             hp: hp,
             ac: ac,
             room: this.code,
-            monsterId: index,
+            hidden: true,
+            uid: id,
             name: name,
             fullHP: hp,
             size: size,
@@ -162,24 +166,40 @@ class Room {
                 pink: false,
                 green: false,
             },
+            type: "monster",
         };
-        //const op = insert("pawns", id, pawn);
-        //console.log(`Room ${this.code} is spawning a ${index}`);
-        //await this.dispatch(op);
+        this.pawns.push(pawn);
+        this.broadcast("room:tabletop:pawn:spawn", pawn);
+    }
+
+    public movePawn({ uid, x, y }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === uid){
+                console.log(`Moving pawn ${uid} to ${x}, ${y}`);
+                pawn.x = x;
+                pawn.y = y;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:move", { uid, x, y });
+    }
+
+    public syncPawns(ws:Socket){
+        for (const pawn of this.pawns){
+            gm.send(ws, "room:tabletop:pawn:spawn", pawn);
+        }
     }
 
     public spawnPlayers(){
         this.showPawns = true;
-        const ids = [];
         for (const id in this.sockets){
             if (id !== this.gmId){
-                ids.push(id);
                 const pawn:Pawn = {
-                    uid: randomUUID(),
                     x: 0,
                     y: 0,
                     room: this.code,
-                    playerId: id,
+                    hidden: false,
+                    uid: id,
                     name: this.sockets[id].name,
                     rings: {
                         red: false,
@@ -191,13 +211,12 @@ class Room {
                         pink: false,
                         green: false,
                     },
+                    type: "player",
                 };
-                //await this.dispatch(insert("pawns", id, pawn));
+                this.pawns.push(pawn);
+                this.broadcast("room:tabletop:pawn:spawn", pawn);
             }
         }
-        //console.log(`Room ${this.code} is spawning players`);
-        //const op = set("games", this.code, "players", ids);
-        //await this.dispatch(op);
     }
 
     public broadcast(type: string, data = null):void{
@@ -206,7 +225,7 @@ class Room {
         }
     }
 
-    public async resetSocket(ws:Socket):Promise<void>{
+    public resetSocket(ws:Socket){
         ws.room = this.code;
         this.sockets[ws.id] = ws;
         ws.name = this.deadSockets[ws.id].name;
@@ -216,6 +235,7 @@ class Room {
         this.broadcast("room:announce:reconnect", `${ws.name} has returned.`);
         this.syncPlayers();
         this.syncMap(ws);
+        this.syncPawns(ws);
     }
 
     public addSocket(ws:Socket){
@@ -232,8 +252,31 @@ class Room {
         console.log(`Socket ${ws.id} joined room ${this.code}`);
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
         gm.send(ws, "room:joined");
+        if (this.showPawns){
+            const pawn:Pawn = {
+                x: 0,
+                y: 0,
+                room: this.code,
+                hidden: false,
+                uid: ws.id,
+                name: ws.name,
+                rings: {
+                    red: false,
+                    orange: false,
+                    blue: false,
+                    white: false,
+                    purple: false,
+                    yellow: false,
+                    pink: false,
+                    green: false,
+                },
+                type: "player",
+            };
+            this.pawns.push(pawn);
+        }
         this.syncPlayers();
         this.syncMap(ws);
+        this.syncPawns(ws);
     }
 
     private syncMap(ws:Socket){

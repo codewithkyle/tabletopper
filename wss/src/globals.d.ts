@@ -8,16 +8,15 @@ export type Socket = {
 export type ExitReason = "UNKNOWN" | "KICKED" | "DC" | "QUIT";
 
 export type Pawn = {
+    uid: string,
     x: number,
     y: number,
-    uid: string,
-    playerId?: string|null,
-    monsterId?: string|null,
     token?: string|null,
     name: string,
     room: string,
     hp?: number,
     ac?: number,
+    hidden: boolean,
     rings: {
         red: boolean,
         orange: boolean,
@@ -30,4 +29,5 @@ export type Pawn = {
     },
     fullHP?: number,
     size?: string|null,
+    type: "player"|"monster"|"npc",
 }

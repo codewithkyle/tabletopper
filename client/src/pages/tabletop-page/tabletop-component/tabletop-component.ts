@@ -40,6 +40,13 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:spawn":
+                const pawn = this.querySelector(`pawn-component[data-uid="${data.uid}"]`);
+                if (!pawn){
+                    const pawn = new Pawn(data);
+                    this.appendChild(pawn);
+                }
+                break;
             case "room:tabletop:load":
                 this.model.map = `https://tabletopper.nyc3.digitaloceanspaces.com/maps/${data}`;
                 this.render();
@@ -173,14 +180,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.img.src = this.model.map;
             this.img.className = "center absolute map";
             this.img.draggable = false;
+            this.appendChild(this.img);
         } else {
             this.img?.remove();
             this.img = null;
             this.gridCanvas.render(this.img);
             this.vfxCanvas.render(this.img);
-        }
-        if (!this.img?.isConnected){
-            this.appendChild(this.img);
         }
         if (!this.gridCanvas?.isConnected){
             this.appendChild(this.gridCanvas);

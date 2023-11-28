@@ -7,10 +7,10 @@ import { Player } from "~types/app";
 declare const htmx: any;
 
 class Room {
-    private uid: string;
+    public uid: string;
     private room: string;
     private character: string;
-    private isGM: boolean;
+    public isGM: boolean;
     private players: Player[];
 
     constructor() {
@@ -108,6 +108,9 @@ class Room {
         window.addEventListener("tabletop:update", (e:CustomEvent) => {
             const { cellSize, renderGrid } = e.detail;
             send("room:tabletop:map:update", { cellSize, renderGrid });
+        });
+        window.addEventListener("tabletop:spawn-pawns", () => {
+            send("room:tabletop:spawn:players");
         });
     }
 }
