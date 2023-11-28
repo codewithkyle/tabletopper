@@ -45,73 +45,73 @@ stat-block{
 
             &[color="blue"]{
                 &::before{
-                    border-color: var(--blue-500);
+                    border-color: var(--blue);
                 }
                 &::after{
-                    background-color: var(--blue-500);
+                    background-color: var(--blue);
                 }
             }
 
             &[color="green"]{
                 &::before{
-                    border-color: var(--green-500);
+                    border-color: var(--green);
                 }
                 &::after{
-                    background-color: var(--green-500);
+                    background-color: var(--green);
                 }
             }
 
             &[color="orange"]{
                 &::before{
-                    border-color: var(--orange-500);
+                    border-color: var(--orange);
                 }
                 &::after{
-                    background-color: var(--orange-500);
+                    background-color: var(--orange);
                 }
             }
 
             &[color="pink"]{
                 &::before{
-                    border-color: var(--pink-500);
+                    border-color: var(--pink);
                 }
                 &::after{
-                    background-color: var(--pink-500);
+                    background-color: var(--pink);
                 }
             }
 
             &[color="purple"]{
                 &::before{
-                    border-color: var(--purple-500);
+                    border-color: var(--purple);
                 }
                 &::after{
-                    background-color: var(--purple-500);
+                    background-color: var(--purple);
                 }
             }
 
             &[color="red"]{
                 &::before{
-                    border-color: var(--red-500);
+                    border-color: var(--red);
                 }
                 &::after{
-                    background-color: var(--red-500);
+                    background-color: var(--red);
                 }
             }
 
             &[color="white"]{
                 &::before{
-                    border-color: var(--grey-500);
+                    border-color: var(--grey);
                 }
                 &::after{
-                    background-color: var(--grey-500);
+                    background-color: var(--grey);
                 }
             }
 
             &[color="yellow"]{
                 &::before{
-                    border-color: var(--yellow-500);
+                    border-color: var(--yellow);
                 }
                 &::after{
-                    background-color: var(--yellow-500);
+                    background-color: var(--yellow);
                 }
             }
 

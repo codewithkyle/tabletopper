@@ -33,8 +33,8 @@ export default class Window extends SuperComponent<IWindow>{
         super();
         this.handle = settings?.handle ?? settings.name.toLowerCase().trim().replace(/\s+/g, "-");
 
-        this.minWidth = settings?.minWidth ?? 411;
-        this.minHeight = settings?.minHeight ?? 231;
+        this.minWidth = settings?.minWidth ?? 100;
+        this.minHeight = settings?.minHeight ?? 50;
 
         const savedX = localStorage.getItem(`${this.handle}-x`);
         const savedY = localStorage.getItem(`${this.handle}-y`);
@@ -76,13 +76,13 @@ export default class Window extends SuperComponent<IWindow>{
 
     override async connected(){
         await env.css(["window"]);
+        this.render();
+        this.focus();
         window.addEventListener("mouseup", this.stopMove, { capture: true, passive: true });
         window.addEventListener("mousemove", this.move, { capture: true, passive: true });
         window.addEventListener("touchend", this.stopMove, { capture: true, passive: true });
         window.addEventListener("touchmove", this.move, { capture: true, passive: true });
         window.addEventListener("resize", this.debounce(this.resizeEvent, 300), { capture: true, passive: true });
-        this.render();
-        this.focus();
     }
 
     private resize(){

@@ -72,12 +72,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async connected(){
         await env.css(["tabletop-component"]);
-        window.addEventListener("mousemove", this.handleMouseMove, { passive: true });
-        window.addEventListener("mousedown", this.handleWindowDown, { passive: true });
-        window.addEventListener("mouseup", this.handleMouseUp, { passive: true });
-        window.addEventListener("touchmove", this.handleMouseMove, { passive: true });
-        window.addEventListener("touchstart", this.handleWindowDown, { passive: true });
-        window.addEventListener("touchend", this.handleMouseUp, { passive: true });
+        document.body.addEventListener("mousemove", this.handleMouseMove, { passive: true });
+        document.body.addEventListener("mousedown", this.handleWindowDown, { passive: true });
+        document.body.addEventListener("mouseup", this.handleMouseUp, { passive: true });
+        document.body.addEventListener("touchmove", this.handleMouseMove, { passive: true });
+        document.body.addEventListener("touchstart", this.handleWindowDown, { passive: true });
+        document.body.addEventListener("touchend", this.handleMouseUp, { passive: true });
         window.addEventListener("wheel", this.handleScroll, { passive: true });
         document.body.addEventListener("drop", this.handleDrop, { passive: false, capture: true });
         this.render();
@@ -136,6 +136,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent|TouchEvent) =>{
+        if (!e.target.closest("tabletop-page")) return;
         this.moving = true;
         if (window.TouchEvent && e instanceof TouchEvent){
             this.lastX = e.touches[0].clientX;

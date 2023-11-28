@@ -63,6 +63,13 @@ module.exports = {
         white: "#ffffff",
         black: "#000000",
         "off-black": "#212121",
+        blue: "#3b82f6",
+        green: "#22c55e",
+        orange: "#f97316",
+        purple: "#a855f7",
+        pink: "#ec4899",
+        red: "#ef4444",
+        yellow: "#eab308",
         grey: {
             50: "#FAFAFA",
             100: "#F4F4F5",

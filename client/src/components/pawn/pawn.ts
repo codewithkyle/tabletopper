@@ -61,6 +61,8 @@ export default class Pawn extends SuperComponent<IPawn>{
             type: pawn.type,
         };
         this.ticket = subscribe("socket", this.inbox.bind(this));
+        this.gridSize = room.gridSize;
+        console.log(this.gridSize);
     }
     
     override async connected() {
@@ -72,7 +74,6 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.addEventListener("touchstart", this.startDrag, { passive: false, capture: true });
         window.addEventListener("touchend", this.stopDrag, { passive: true, capture: true });
         this.addEventListener("contextmenu", this.contextMenu, { passive: false, capture: true });
-        this.gridSize = 32;
         this.render();
     }
 
@@ -122,8 +123,8 @@ export default class Pawn extends SuperComponent<IPawn>{
             const y = e.clientY;
             const windowEl = new Window({
                 name: `${this.model.name}`,
-                width: 400,
-                height: 200,
+                width: 300,
+                height: 150,
                 view: new StatBlock(this.model.uid, "player"),
                 handle: "stat-block",
             });

@@ -247,9 +247,6 @@ class Room {
             gm.send(ws, "room:exit");
             return;
         }
-        ws.room = this.code;
-        this.sockets[ws.id] = ws;
-        console.log(`Socket ${ws.id} joined room ${this.code}`);
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
         gm.send(ws, "room:joined");
         if (this.showPawns){
@@ -273,7 +270,11 @@ class Room {
                 type: "player",
             };
             this.pawns.push(pawn);
+            this.broadcast("room:tabletop:pawn:spawn", pawn);
         }
+        ws.room = this.code;
+        this.sockets[ws.id] = ws;
+        console.log(`Socket ${ws.id} joined room ${this.code}`);
         this.syncPlayers();
         this.syncMap(ws);
         this.syncPawns(ws);

@@ -12,6 +12,7 @@ class Room {
     private character: string;
     public isGM: boolean;
     private players: Player[];
+    public gridSize: number;
 
     constructor() {
         this.uid = "";
@@ -19,12 +20,16 @@ class Room {
         this.character = "";
         this.isGM = false;
         this.players = [];
+        this.gridSize = 32;
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
 
     private async inbox({ type, data }){
         switch (type){
+            case "room:tabletop:map:update":
+                this.gridSize = data.cellSize;
+                break;
             case "room:sync:players":
                 this.players = data;
                 break;
