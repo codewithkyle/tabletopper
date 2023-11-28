@@ -7,6 +7,7 @@ import "~brixi/components/lightswitch/lightswitch";
 import {publish} from "@codewithkyle/pubsub";
 import MonsterStatBlock from "../monster-stat-block/monster-stat-block";
 import Window from "components/window/window";
+import { send } from "~controllers/ws";
 
 interface IStatBlock {
     hp: number,
@@ -29,7 +30,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
     private type: "player" | "npc" | "monster";
 
-    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster"){
+    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", rings){
         super();
         this.pawnId = pawnId;
         this.type = type;
@@ -39,16 +40,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             ac: 0,
             hidden: true,
             name: "",
-            rings: {
-                blue: false,
-                green: false,
-                orange: false,
-                pink: false,
-                purple: false,
-                red: false,
-                white: false,
-                yellow: false,
-            },
+            rings: rings,
         };
     }
 
@@ -125,9 +117,11 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private handleRingChange:EventListener = (e:Event) => {
         const input = e.currentTarget as HTMLInputElement;
-        console.log(input);
-        //const op = cc.set("pawns", this.pawnId, `rings.${input.value}`, input.checked);
-        //cc.dispatch(op);
+        send("room:tabletop:pawn:status", {
+            pawnId: this.pawnId,
+            type: input.value,
+            checked: input.checked,
+        });
     }
 
     private openMonsterManual(){

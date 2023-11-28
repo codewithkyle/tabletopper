@@ -172,6 +172,16 @@ class Room {
         this.broadcast("room:tabletop:pawn:spawn", pawn);
     }
 
+    public updatePawnStatus({ pawnId, type, checked }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                pawn.rings[type] = checked;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:status", { pawnId, type, checked });
+    }
+
     public movePawn({ uid, x, y }){
         for (const pawn of this.pawns){
             if (pawn.uid === uid){

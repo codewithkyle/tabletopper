@@ -110,6 +110,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:tabletop:pawn:status":
+                if (room){
+                    room.updatePawnStatus(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:spawn:players":
                 if (room){
                     room.spawnPlayers();

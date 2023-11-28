@@ -90,27 +90,27 @@
         animation-iteration-count: infinite;
 
         &[color="red"]{
-            border-color: var(--red-500);
+            border-color: var(--red);
         }
 
         &[color="blue"]{
-            border-color: var(--blue-500);
+            border-color: var(--blue);
         }
 
         &[color="green"]{
-            border-color: var(--green-500);
+            border-color: var(--green);
         }
 
         &[color="orange"]{
-            border-color: var(--orange-500);
+            border-color: var(--orange);
         }
 
         &[color="pink"]{
-            border-color: var(--pink-500);
+            border-color: var(--pink);
         }
 
         &[color="purple"]{
-            border-color: var(--purple-500);
+            border-color: var(--purple);
         }
 
         &[color="white"]{
@@ -118,7 +118,7 @@
         }
 
         &[color="yellow"]{
-            border-color: var(--yellow-500);
+            border-color: var(--yellow);
         }
 
         &::after{

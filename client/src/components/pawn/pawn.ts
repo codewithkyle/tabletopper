@@ -83,6 +83,12 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:status":
+                if (data.pawnId === this.model.uid){
+                    this.model.rings[data.type] = data.checked;
+                    this.render();
+                }
+                break;
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
                 this.render();
@@ -112,7 +118,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} (${this.model.type})`,
                 width: 400,
                 height: 200,
-                view: new StatBlock(this.model.uid, this.model.uid, this.model.type),
+                view: new StatBlock(this.model.uid, this.model.type, this.model.rings),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -125,7 +131,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name}`,
                 width: 300,
                 height: 150,
-                view: new StatBlock(this.model.uid, "player"),
+                view: new StatBlock(this.model.uid, "player", this.model.rings),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
