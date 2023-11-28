@@ -11,10 +11,11 @@ tool-bar-menu {
     .menu{
         position: absolute;
         top: 0;
-        background-color: var(--grey-900);
+        background-color: hsl(var(--grey-900-hsl)/0.87);
         box-shadow: var(--shadow-black-sm);
         z-index: 2002;
         overflow: hidden;
+        backdrop-filter: blur(8px);
 
         &::before{
             content: "";
@@ -51,7 +52,7 @@ tool-bar-menu {
 
             &:hover,
             &:focus-visible{
-                background-color: var(--primary-500);
+                background-color: hsl(var(--primary-500-hsl)/0.15);
             }
 
             span{

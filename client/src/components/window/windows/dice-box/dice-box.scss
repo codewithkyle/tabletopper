@@ -17,9 +17,13 @@ dice-box{
         padding: 0 0.5rem;
 
         @media (prefers-color-scheme: dark){
-            background-color: var(--grey-950);
-            border-color: var(--grey-800);
+            background-color: hsl(var(--white-hsl)/0.05);
+            border-color: var(--grey-700);
             color: var(--white);
+
+            &:focus{
+                background-color: transparent;
+            }
         }
     }
 
@@ -32,7 +36,7 @@ dice-box{
         overflow-y: scroll;
 
         @media (prefers-color-scheme: dark){
-            border-color: var(--grey-800);
+            border-color: var(--grey-700);
         }
 
         p{

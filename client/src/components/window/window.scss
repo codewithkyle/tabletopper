@@ -9,9 +9,10 @@ window-component{
     grid-template-rows: 28px 1fr;
     gap: 0;
     z-index: 1000;
+    backdrop-filter: blur(8px);
 
     @media (prefers-color-scheme: dark){
-        background-color: var(--grey-900);
+        background-color: hsl(var(--grey-900-hsl) / 0.87);
     }
 
     &[size="maximized"]{
@@ -51,7 +52,7 @@ window-component{
     }
 
     .header{
-        background-color: var(--grey-800);
+        background-color: var(--grey-900);
         color: var(--white);
         width: 100%;
         user-select: none;

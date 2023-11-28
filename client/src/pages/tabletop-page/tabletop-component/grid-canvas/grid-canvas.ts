@@ -66,7 +66,7 @@ export default class GridCanvas extends SuperComponent<IGridCanvas>{
                 }
             }
 
-            this.ctx.strokeStyle = "rgba(0,0,0,0.6)";
+            this.ctx.strokeStyle = "rgb(0,0,0)";
             for (let i = 0; i < cells.length; i++) {
                 const { x, y } = cells[i];
                 this.ctx.beginPath();

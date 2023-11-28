@@ -22,7 +22,7 @@ tabletop-settings{
 
     .modal {
         display: inline-block;
-        background-color: var(--white);
+        background-color: hsl(var(--white-hsl)/0.87);
         border-radius: 0.5rem;
         width: 480px;
         max-width: calc(100% - 2rem);
@@ -31,10 +31,11 @@ tabletop-settings{
         overflow: hidden;
         box-shadow: var(--shadow-black-lg);
         border: 1px solid var(--grey-300);
+        backdrop-filter: blur(8px);
 
         @media (prefers-color-scheme: dark) {
             border-color: var(--grey-800);
-            background-color: var(--grey-900);
+            background-color: hsl(var(--grey-900-hsl) / 0.87);
             color: var(--grey-300);
         }
     }

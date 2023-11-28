@@ -83,7 +83,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
             <div class="w-full" flex="items-center row nowrap">
                 <input autofocus type="text" placeholder="Dice codes" @keypress=${this.handleKeypress}>
             </div>
-            <p class="block font-xs font-grey-600 dark:font-grey-500 px-0.125">Example: 1d20 + 1d6 + 4</p>
+            <p class="block font-xs font-grey-600 dark:font-grey-400 px-0.125">Example: 1d20 + 1d6 + 4</p>
         `;
         render(view, this);
         const diceLog = this.querySelector("dice-log");

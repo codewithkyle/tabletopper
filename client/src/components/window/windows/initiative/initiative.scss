@@ -11,7 +11,7 @@ initiative-menu{
         align-items: center;
         flex-flow: row nowrap;
         height: 36px;
-        border-radius: 0.25rem;
+        border-radius: 0.375rem;
         border: 1px solid var(--grey-300);
         padding-left: 1.5rem;
         position: relative;
@@ -19,7 +19,8 @@ initiative-menu{
         cursor: grab;
 
         @media (prefers-color-scheme: dark){
-            border-color: var(--grey-800);
+            border-color: var(--grey-700);
+            background-color: hsl(var(--white-hsl)/.05);
         }
 
         &.is-active{

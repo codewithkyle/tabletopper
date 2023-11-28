@@ -193,8 +193,8 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     override render(): void {
         const view = html`
-            <div class="w-full mb-0.5" grid="columns 2 gap-1">
-                ${ this.type !== "player" ? html`
+            ${ this.type !== "player" ? html`
+                <div class="w-full mb-0.5" grid="columns 2 gap-1">
                     <input-component
                         data-name="${this.pawnId}-hp"
                         data-label="Hit Points"
@@ -209,8 +209,8 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                         data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
                         @blur=${this.updateAC.bind(this)}
                     ></number-input-component>
-                ` : "" }
-            </div>
+                </div>
+            ` : "" }
             <div class="w-full mb-0.5" flex="items-center justify-between row nowrap">
                 <lightswitch-component
                     data-name="${this.pawnId}-hidden"

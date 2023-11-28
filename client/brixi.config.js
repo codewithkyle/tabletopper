@@ -180,4 +180,5 @@ module.exports = {
             rule: "prefers-color-scheme: dark",
         },
     },
+    opacity: [0.05, 0.1, 0.3, 0.6, 0.87],
 };

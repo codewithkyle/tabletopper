@@ -1,4 +1,4 @@
-<h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-800">Tabletop Images</h2>
+<h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Tabletop Images</h2>
 <div 
     class="images"
 >
@@ -10,7 +10,7 @@
         enctype="multipart/form-data"
     >
         <label for="upload">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-upload" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                 <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"></path>
                 <polyline points="7 9 12 4 17 9"></polyline>
@@ -56,7 +56,7 @@
                 fill="none" 
                 stroke-linecap="round" 
                 stroke-linejoin="round"
-                x-show="selected == '{{ image.FileId }}'"
+                x-show="selected == '{{ User.Id }}/{{ image.FileId }}'"
             >
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                 <circle cx="12" cy="12" r="9"></circle>
@@ -66,7 +66,7 @@
     {% endfor %}
 </div>
 <div class="block w-full p-1">
-    <div class="radius-0.5 w-full bg-grey-50 dark:bg-grey-950 p-1" flex="row nowrap items-center justify-end">
+    <div class="radius-0.5 w-full bg-grey-50/60 dark:bg-grey-950/60 p-1" flex="row nowrap items-center justify-end">
         <button
             sfx="button"
             x-on:click="open = false"
