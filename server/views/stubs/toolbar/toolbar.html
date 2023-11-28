@@ -21,13 +21,6 @@
         :class="{ 'active': open === 'initiative' }"
     >Initiative</button>
 {% endif %}
-<button
-    sfx="button" 
-    hx-get="/stub/toolbar/view"
-    hx-target="tool-bar-menu .menu"
-    x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'view';"
-    :class="{ 'active': open === 'view' }"
->View</button>
 <button 
     sfx="button"
     hx-get="/stub/toolbar/window"
@@ -35,6 +28,13 @@
     x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'window';"
     :class="{ 'active': open === 'window' }"
 >Window</button>
+<button
+    sfx="button" 
+    hx-get="/stub/toolbar/view"
+    hx-target="tool-bar-menu .menu"
+    x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'view';"
+    :class="{ 'active': open === 'view' }"
+>View</button>
 <button
     sfx="button" 
     hx-get="/stub/toolbar/help"

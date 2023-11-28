@@ -6,6 +6,7 @@ import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
 import type { Image } from "~types/app";
 import PingComponent from "./ping-component/ping-component";
+import room from "room";
 
 interface ITabletopComponent {
     map: string,
@@ -80,6 +81,28 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         document.body.addEventListener("touchend", this.handleMouseUp, { passive: true });
         window.addEventListener("wheel", this.handleScroll, { passive: true });
         document.body.addEventListener("drop", this.handleDrop, { passive: false, capture: true });
+        window.addEventListener("tabletop:center:player", () => {
+            const playerPawn = document.body.querySelector(`pawn-component[data-uid="${room.uid}"]`) as HTMLElement;
+            this.locatePawn(playerPawn);
+        });
+        window.addEventListener("tabletop:view:reset", () => {
+            this.moving = false;
+            this.x = window.innerWidth * 0.5;
+            this.y = (window.innerHeight - 28) * 0.5;
+            this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
+        });
+        window.addEventListener("tabletop:view:zoom", (e:CustomEvent) => {
+            const { zoom } = e.detail;
+            if (zoom){
+                this.doZoom({ zoom: zoom, x: null, y: null, ratio: null });
+            }
+        });
+        window.addEventListener("tabletop:view:zoom:in", () => {
+            this.doZoom({ zoom: this.zoom + 0.1, x: null, y: null, ratio: null });
+        });
+        window.addEventListener("tabletop:view:zoom:out", () => {
+            this.doZoom({ zoom: this.zoom - 0.1, x: null, y: null, ratio: null });
+        });
         this.render();
     }
 
@@ -90,17 +113,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private handleScroll:EventListener = (e:WheelEvent) => {
-        const target = this.querySelector("tabletop-page");
         let delta = e.deltaY;
         let sign = Math.sign(delta);
         let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
         let multiplier = 1 - sign * deltaAdjustedSpeed;
         let zoom = this.zoom * multiplier;
-        if (zoom > 2){
-            zoom = 2;
-        } else if (zoom < 0.1){
-            zoom = 0.1;
-        }
         const data = {
             zoom: zoom,
             x: e.clientX,
@@ -110,29 +127,38 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         };
         this.moving = false;
         if (this.zoom !== data.zoom){
-            if (data.x === null){
-                data.x = window.innerWidth * .5;
-            }
-            if (data.y === null){
-                data.y = window.innerHeight * .5;
-            }
-            if (!data?.ratio){
-                if (data.zoom < this.zoom){
-                    data.ratio = 0.8046875;
-                }
-                else if (data.zoom > this.zoom){
-                    data.ratio = 1.1953125;
-                }
-                else {
-                    data.ratio = 0;
-                }
-            }
-            this.zoom = data.zoom;
-            this.x = data.x - data.ratio * (data.x - this.x);
-            this.y = data.y - data.ratio * (data.y - this.y);
-            this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
-            sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
+            this.doZoom(data);
         }
+    }
+
+    private doZoom(data){
+        if (data.x === null){
+            data.x = window.innerWidth * .5;
+        }
+        if (data.y === null){
+            data.y = window.innerHeight * .5;
+        }
+        if (!data?.ratio){
+            if (data.zoom < this.zoom){
+                data.ratio = 0.8046875;
+            }
+            else if (data.zoom > this.zoom){
+                data.ratio = 1.1953125;
+            }
+            else {
+                data.ratio = 0;
+            }
+        }
+        this.zoom = data.zoom;
+        if (this.zoom > 2){
+            this.zoom = 2;
+        } else if (this.zoom < 0.1){
+            this.zoom = 0.1;
+        }
+        this.x = data.x - data.ratio * (data.x - this.x);
+        this.y = data.y - data.ratio * (data.y - this.y);
+        this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
+        sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
     }
 
     private handleWindowDown:EventListener = (e:MouseEvent|TouchEvent) =>{

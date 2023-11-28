@@ -1,27 +1,50 @@
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:view:zoom:in')"
+>
     <span>Zoom in</span>
     <span>Ctrl+=</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:view:zoom:out')"
+>
     <span>Zoom out</span>
     <span>Ctrl+-</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:view:zoom', { zoom: 1 })"
+>
     <span>100%</span>
     <span>Ctrl+0</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:view:zoom', { zoom: 2 })"
+>
     <span>200%</span>
     <span>Ctrl+0</span>
 </button>
 <hr>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="window.innerHeight === screen.height ? document.exitFullscreen() : document.documentElement.requestFullscreen();"
+>
     <span>Toggle fullscreen</span>
     <span>F11</span>
 </button>
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:view:reset')"
+>
     <span>Center tabletop</span>
 </button>
-<button sfx="button">
-    <span>Center on character</span>
-</button>
+{% if not GM %}
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('tabletop:center:player')"
+    >
+        <span>Center on character</span>
+    </button>
+{% endif %}

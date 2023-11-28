@@ -80,7 +80,10 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
         return c.Render("stubs/toolbar/initiative", fiber.Map{})
     })
     app.Get("/stub/toolbar/view", func(c *fiber.Ctx) error {
-        return c.Render("stubs/toolbar/view", fiber.Map{})
+        isGM := c.Cookies("gm", "")
+        return c.Render("stubs/toolbar/view", fiber.Map{
+            "GM": isGM != "",
+        })
     })
     app.Get("/stub/toolbar/help", func(c *fiber.Ctx) error {
         return c.Render("stubs/toolbar/help", fiber.Map{})
