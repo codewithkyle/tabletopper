@@ -253,4 +253,106 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             "User": user,
         })
     })
+
+    app.Post("/monster/image", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+
+        file, err := c.FormFile("file")
+        if err != nil {
+            log.Error("Failed to get file from form: " + err.Error())
+            c.Response().Header.Set("HX-Trigger", "{'toast': 'Failed to upload file.'}")
+            return c.SendStatus(400)
+        }
+
+        src, err := file.Open()
+        if err != nil {
+            log.Error("Failed to open file: " + err.Error())
+            c.Response().Header.Set("HX-Trigger", "{'toast': 'Failed to upload file.'}")
+            return c.SendStatus(400)
+        }
+        defer src.Close()
+
+        fileId := uuid.New().String()
+        fileName := file.Filename
+        mimeType := file.Header.Get("Content-Type")
+        switch mimeType {
+            case "image/jpeg":
+                break
+            case "image/png":
+                break
+            case "image/jpg":
+                break
+            default:
+                log.Error("Invalid mime type: " + mimeType)
+                c.Response().Header.Set("HX-Trigger", "{'toast': 'Failed to upload file.'}")
+                return c.SendStatus(400)
+        }
+
+        s3Client := CreateSpacesClient()
+
+        object := s3.PutObjectInput{
+            Bucket: aws.String("tabletopper"),
+            Key:    aws.String("monsters/" + user.Id + "/" + fileId),
+            Body:   src,
+            ACL:    aws.String("public-read"),
+            ContentType: aws.String(mimeType),
+        }
+        _, err = s3Client.PutObject(&object)
+        if err != nil {
+            log.Error("Failed to upload file: " + err.Error())
+            c.Response().Header.Set("HX-Trigger", "{'toast': 'Failed to upload file.'}")
+            return c.SendStatus(500)
+        }
+
+        id := uuid.New().String()
+        id = strings.ReplaceAll(id, "-", "")
+
+        db := helpers.ConnectDB()
+        db.Exec("INSERT INTO monster_images (id, userId, fileId, name) VALUES (UNHEX(?), ?, ?, ?)", id, user.Id, fileId, fileName)
+
+        return c.Render("stubs/tabletop/monster-image", fiber.Map{
+            "Image": "monsters/" + user.Id + "/" + fileId,
+            "Name": fileName,
+            "Id": id,
+        })
+    })
+    app.Delete("/monster/image/:id", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+
+        id := c.Params("id")
+
+        s3Client := CreateSpacesClient()
+        input := &s3.DeleteObjectInput{
+            Bucket: aws.String("tabletopper"),
+            Key:    aws.String("monsters/" + user.Id + "/" + id),
+        }
+
+        _, err = s3Client.DeleteObject(input)
+        if err != nil {
+            log.Error("Failed to delete file: " + err.Error())
+            c.Response().Header.Set("HX-Trigger", "{'toast': 'Failed to delete file.'}")
+            return c.SendStatus(500)
+        }
+
+        db := helpers.ConnectDB()
+        db.Exec("DELETE FROM monster_images WHERE id = UNHEX(?) AND userId = ?", id, user.Id)
+
+        return c.Render("stubs/tabletop/monster-image-upload", fiber.Map{})
+    })
 }
