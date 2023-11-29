@@ -1,5 +1,5 @@
 <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Create Monster</h2>
-<div class="container w-full p-2" grid="columns 1 gap-1.5">
+<div id="create-monster" class="container w-full p-2" grid="columns 1 gap-1.5">
     {% include "stubs/tabletop/monster-image-upload.html" %}
     <input-component
         data-name="name"
@@ -148,6 +148,10 @@
             kind="solid"
             color="grey"
             x-on:click="open = false"
+            hx-delete="/monster/create"
+            hx-include="#create-monster"
+            hx-target="monster-maker .modal #create-monster"
+            hx-swap="delete"
         >Cancel</button>
         <button
             class="bttn"
@@ -155,6 +159,11 @@
             kind="solid"
             color="success"
             x-on:click="open = false"
+            hx-post="/monster/create"
+            hx-include="#create-monster"
+            hx-target="monster-maker .modal #create-monster"
+            hx-swap="delete"
+            hx-encoding="multipart/form-data"
         >Create</button>
     </div>
 </div>

@@ -3,10 +3,17 @@ import env from "~brixi/controllers/env";
 
 declare const htmx: any;
 
-interface IMonsterManual {}
+interface IMonsterManual { }
 export default class MonsterManual extends SuperComponent<IMonsterManual>{
-    override async connected(){
+    override async connected() {
         await env.css(["monster-manual"]);
+        this.fetch();
+        window.addEventListener("window:monsters:reset", () => {
+            this.fetch();
+        });
+    }
+
+    private fetch() {
         htmx.ajax("GET", "/stub/windows/monsters", { target: this });
     }
 }

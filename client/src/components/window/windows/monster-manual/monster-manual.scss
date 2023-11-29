@@ -7,13 +7,31 @@ monster-manual{
 
     .monster{
         height: 36px;
-        border-bottom: 1px solid var(--grey-300);
+        border: 1px solid var(--grey-300);
+
+        &:first-of-type{
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+
+        &:last-of-type{
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+        }
 
         & > button {
             flex: 1;
             text-align: left;
             justify-content: flex-start;
             border-right: 1px solid var(--grey-300) !important;
+
+            @media (prefers-color-scheme: dark) {
+                border-right-color: var(--grey-700) !important;
+            }
         }
 
         button{
@@ -21,6 +39,10 @@ monster-manual{
 
             &:not(:last-of-type){
                 border-right: 1px solid var(--grey-300);
+
+                @media (prefers-color-scheme: dark) {
+                    border-right-color: var(--grey-700);
+                }
             }
         }
     }
