@@ -8,6 +8,7 @@
     left: 0;
     cursor: grab;
     transition: all 300ms var(--ease-in-out);
+    box-shadow: var(--shadow-black-sm);
 
     &.no-anim{
         transition: none !important;
@@ -19,9 +20,8 @@
         width: 75%;
         height: 75%;
         background-color: var(--primary-500);
-        border-bottom: 2px solid var(--primary-600);
+        border: 2px solid var(--primary-600);
         border-radius: 50%;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
 
     &[pawn="npc"]{
@@ -29,9 +29,8 @@
         width: 75%;
         height: 75%;
         background-color: var(--success-500);
-        border-bottom: 2px solid var(--success-600);
+        border: 2px solid var(--success-600);
         border-radius: 50%;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
 
     &[pawn="monster"]{
@@ -39,9 +38,8 @@
         width: 75%;
         height: 75%;
         background-color: var(--danger-500);
-        border-bottom: 2px solid var(--danger-600);
+        border: 2px solid var(--danger-600);
         border-radius: 50%;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
     }
 
     &[pawn="dead"]{
@@ -49,9 +47,8 @@
         width: 75%;
         height: 75%;
         background-color: var(--white);
-        border-bottom: 2px solid var(--grey-200);
+        border: 2px solid var(--grey-200);
         border-radius: 50%;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.6);
 
         svg{
             width: 75%;
@@ -64,9 +61,13 @@
     }
 
     &.has-image{
-        background-color: transparent;
-        border-bottom: none;
-        box-shadow: none;
+        background-color: var(--black);
+        border: 2px solid var(--black);
+    }
+
+    &[bleeding="true"]{
+        border-color: var(--danger-600);
+        animation: deadlyPulse 2s infinite var(--ease-in-out);
     }
 
     img{
@@ -75,6 +76,7 @@
         left: 0;
         width: 100%;
         height: 100%;
+        border-radius: 50%;
         object-fit: contain;
         filter: drop-shadow(0 1px 1px rgba(0,0,0,0.6));
     }
@@ -139,5 +141,16 @@
     }
     from {
         transform: rotate(360deg);
+    }
+}
+@keyframes deadlyPulse{
+    0% {
+        border-color: var(--danger-600);
+    }
+    50% {
+        border-color: var(--danger-900);
+    }
+    100% {
+        border-color: var(--danger-600);
     }
 }

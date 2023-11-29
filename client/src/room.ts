@@ -132,6 +132,21 @@ class Room {
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
         });
+        window.addEventListener("tabletop:spawn-monster", (e:CustomEvent) => {
+            const { uid, name, hp, ac, size, image } = e.detail;
+            const x = parseInt(sessionStorage.getItem("tabletop:spawn-monster:x"));
+            const y = parseInt(sessionStorage.getItem("tabletop:spawn-monster:y"));
+            send("room:tabletop:spawn:monster", {
+                x: x,
+                y: y,
+                name: name, 
+                hp: parseInt(hp), 
+                ac: parseInt(ac), 
+                size: size,
+                image: image,
+                monsterId: uid,
+            });
+        });
         window.addEventListener("window:dicebox", () => {
             const window = document.body.querySelector('window-component[window="dicebox"]') || new Window({
                 name: "Dicebox",

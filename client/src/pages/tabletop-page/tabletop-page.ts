@@ -1,39 +1,33 @@
 import SuperComponent from "@codewithkyle/supercomponent";
-import { html, render } from "lit-html";
 import "~brixi/components/progress/spinner/spinner";
 import env from "~brixi/controllers/env";
 import { send } from "~controllers/ws";
 import ContextMenu from  "~brixi/components/context-menu/context-menu";
+import TabeltopComponent from "./tabletop-component/tabletop-component";
+import { subscribe } from "@codewithkyle/pubsub";
+import PingComponent from "./tabletop-component/ping-component/ping-component";
+import room from "room";
+
+declare const htmx:any;
 
 interface ITabletopPage {
 }
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
-    private spotlightSearchEl: HTMLElement;
-
-    constructor(){
-        super();
-        this.spotlightSearchEl = null;
-    }
 
     override async connected(){
-        this.setAttribute("state", "IDLING");
-        this.render();
-        window.addEventListener("keydown", this.handleKeyboard);
         this.addEventListener("contextmenu", this.handleContextMenu);
+        subscribe("socket", this.inbox.bind(this));
     }
 
-    private async handleSpotlightCallback(type: "spell"|"monster", index:string = null){
-        let window;
+    private inbox({ type, data }){
         switch(type){
-            case "spell":
-                break;
-            case "monster":
+            case "room:tabletop:ping":
+                const tabletop = document.body.querySelector("tabletop-component") as TabeltopComponent;
+                const el = new PingComponent(data.x, data.y, data.color);
+                tabletop.appendChild(el);
                 break;
             default:
                 break;
-        }
-        if (window && !window.isConnected){
-            document.body.appendChild(window);
         }
     }
 
@@ -51,39 +45,30 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
                     send("room:tabletop:ping", {
                         x: Math.round(diffX) - 16,
                         y: Math.round(diffY) - 16,
-                        color: sessionStorage.getItem("color"),
+                        color: "yellow",
                     });
                 }
             }
         ];
+        if (room.isGM){
+            items.push({
+                label: "Spawn Monster",
+                callback: ()=>{
+                    const tabletop = document.body.querySelector("tabletop-component") as TabeltopComponent;
+                    let diffX = (x - tabletop.x) / tabletop.zoom;
+                    let diffY = (y - tabletop.y) / tabletop.zoom;
+                    sessionStorage.setItem("tabletop:spawn-monster:y", `${Math.round(diffY) - 16}`);
+                    sessionStorage.setItem("tabletop:spawn-monster:x", `${Math.round(diffX) - 16}`);
+                    htmx.ajax("GET", "/stub/tabletop/spotlight", { target: "spotlight-search .modal" });
+                    window.dispatchEvent(new CustomEvent("show-spotlight-search"));
+                }
+            });
+        }
         new ContextMenu({
             x: x,
             y: y,
             items: items,
         });
-    }
-
-    private handleKeyboard = (e:KeyboardEvent) => {
-        if (e?.["KeyStatus"]?.["RepeatCount"]){
-            e["KeyStatus"]["RepeatCount"]++;
-        } else {
-            e["KeyStatus"] = {
-                RepeatCount: 1,
-            };
-        }
-        if (e instanceof KeyboardEvent){
-            const key = e.key.toLowerCase();
-            switch(key){
-                case " ":
-                    if (e.ctrlKey && (this.spotlightSearchEl === null || !this.spotlightSearchEl.isConnected) && e?.["KeyStatus"]?.["RepeatCount"] === 1){
-                        this.spotlightSearchEl = new SpotlightSearch(sessionStorage.getItem("role") === "gm", true, this.handleSpotlightCallback.bind(this));
-                        document.body.appendChild(this.spotlightSearchEl);
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
     }
 }
 env.bind("tabletop-page", TabletopPage);

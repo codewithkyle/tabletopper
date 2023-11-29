@@ -131,6 +131,34 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:tabletop:pawn:delete":
+                if (room){
+                    room.deletePawn(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:pawn:health":
+                if (room){
+                    room.setPawnHealth(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:pawn:ac":
+                if (room){
+                    room.setPawnAC(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:pawn:visibility":
+                if (room){
+                    room.setPawnVisibility(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:pawn:status":
                 if (room){
                     room.updatePawnStatus(data);

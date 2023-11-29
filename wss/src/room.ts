@@ -147,6 +147,7 @@ class Room {
             hp: hp,
             fullHP: hp,
             size: size,
+            image: "",
             rings: {
                 red: false,
                 orange: false,
@@ -163,7 +164,17 @@ class Room {
         this.broadcast("room:tabletop:pawn:spawn", pawn);
     }
 
-    public spawnMonster({ index, x, y, name, hp, ac, size }){
+    public deletePawn(pawnId){
+        for (let i = 0; i < this.pawns.length; i++){
+            if (this.pawns[i].uid === pawnId){
+                this.pawns.splice(i, 1);
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:delete", pawnId);
+    }
+
+    public spawnMonster({ monsterId, x, y, name, hp, ac, size, image }){
         const id = randomUUID();
         const pawn:Pawn = {
             x: x,
@@ -176,6 +187,8 @@ class Room {
             name: name,
             fullHP: hp,
             size: size,
+            image: image,
+            monsterId: monsterId,
             rings: {
                 red: false,
                 orange: false,
@@ -190,6 +203,37 @@ class Room {
         };
         this.pawns.push(pawn);
         this.broadcast("room:tabletop:pawn:spawn", pawn);
+    }
+
+    public setPawnHealth({ pawnId, hp }){
+        console.log(`Setting pawn ${pawnId} to ${hp} HP`);
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                pawn.hp = hp;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:health", { pawnId, hp });
+    }
+    
+    public setPawnAC({ pawnId, ac }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                pawn.ac = ac;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:ac", { pawnId, ac });
+    }
+
+    public setPawnVisibility({ pawnId, hidden }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                pawn.hidden = hidden;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:visibility", { pawnId, hidden });
     }
 
     public updatePawnStatus({ pawnId, type, checked }){
@@ -231,6 +275,7 @@ class Room {
                     hidden: false,
                     uid: id,
                     name: this.sockets[id].name,
+                    image: "",
                     rings: {
                         red: false,
                         orange: false,
@@ -289,6 +334,7 @@ class Room {
                 hidden: false,
                 uid: ws.id,
                 name: ws.name,
+                image: "",
                 rings: {
                     red: false,
                     orange: false,

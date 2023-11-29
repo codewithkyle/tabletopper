@@ -25,8 +25,8 @@
             data-name="size"
             data-label="Size"
             data-required="true"
-            data-options='[{"label":"Tiny","value":"Tiny"},{"label":"Small","value":"Small"},{"label":"Medium","value":"Medium"},{"label":"Large","value":"Large"},{"label":"Huge","value":"Huge"},{"label":"Gargantuan","value":"Gargantuan"}]'
-            data-value="{% if Monster.Size %}{{ Monster.Size }}{% else %}Medium{% endif %}"
+            data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+            data-value="{% if Monster.Size %}{{ Monster.Size }}{% else %}medium{% endif %}"
         ></select-component>
         <select-component
             data-name="alignment"
@@ -189,7 +189,7 @@
             x-on:click="open = false"
             hx-delete="/monster/create"
             hx-include="#create-monster"
-            hx-target="monster-maker .modal #create-monster"
+            hx-target="#create-monster"
             hx-swap="delete"
         >Cancel</button>
         <button
@@ -200,7 +200,7 @@
             x-on:click="open = false"
             hx-post="/monster/create"
             hx-include="#create-monster"
-            hx-target="monster-maker .modal #create-monster"
+            hx-target="#create-monster"
             hx-swap="delete"
             hx-encoding="multipart/form-data"
         >

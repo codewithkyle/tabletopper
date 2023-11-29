@@ -53,3 +53,14 @@
         x-on:click.outside="open = false"
     ></div>
 </monster-maker>
+<spotlight-search
+    x-data="{ open: false }"
+    x-on:show-spotlight-search.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+    ></div>
+</spotlight-search>

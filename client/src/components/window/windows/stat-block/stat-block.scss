@@ -99,10 +99,10 @@ stat-block{
 
             &[color="white"]{
                 &::before{
-                    border-color: var(--grey);
+                    border-color: var(--white);
                 }
                 &::after{
-                    background-color: var(--grey);
+                    background-color: var(--white);
                 }
             }
 

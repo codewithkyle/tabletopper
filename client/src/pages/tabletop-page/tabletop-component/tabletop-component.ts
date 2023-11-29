@@ -39,11 +39,21 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:delete":
+                {
+                    const pawn = this.querySelector(`pawn-component[data-uid="${data}"]`);
+                    if (pawn){
+                        pawn.remove();
+                    }
+                }
+                break;
             case "room:tabletop:pawn:spawn":
-                const pawn = this.querySelector(`pawn-component[data-uid="${data.uid}"]`);
-                if (!pawn){
-                    const pawn = new Pawn(data);
-                    this.appendChild(pawn);
+                {
+                    const pawn = this.querySelector(`pawn-component[data-uid="${data.uid}"]`);
+                    if (!pawn){
+                        const pawn = new Pawn(data);
+                        this.appendChild(pawn);
+                    }
                 }
                 break;
             case "room:tabletop:load":

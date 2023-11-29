@@ -1,7 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "components/pawn/pawn";
-import type { Image } from "~types/app";
 
 interface IVFXCanvas {}
 export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
@@ -73,8 +72,8 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                     const x = Math.round(centerX + pawnX);
                     const y = Math.round(centerY + pawnY)
                     const pos = [
-                        this.randomInt((x - (pawnW * 0.125)), (x + (pawnW * 0.125))),
-                        this.randomInt((y - (pawnH * 0.125)), (y + (pawnH * 0.125)))
+                        this.randomInt((x - (pawnW * 0.25)), (x + (pawnW * 0.25))),
+                        this.randomInt((y - (pawnH * 0.25)), (y + (pawnH * 0.25)))
                     ];
                     const splatter = new BloodSpatter(this.images[imageIndex], pos, pawnW);
                     this.effects.push(splatter);

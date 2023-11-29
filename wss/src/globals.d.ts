@@ -24,6 +24,7 @@ export type Pawn = {
     hp?: number,
     ac?: number,
     hidden: boolean,
+    image: string,
     rings: {
         red: boolean,
         orange: boolean,
@@ -37,4 +38,5 @@ export type Pawn = {
     fullHP?: number,
     size?: string|null,
     type: "player"|"monster"|"npc",
+    monsterId?: string,
 }

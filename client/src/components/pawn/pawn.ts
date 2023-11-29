@@ -13,9 +13,10 @@ interface IPawn{
     uid: string,
     x: number,
     y: number,
-    image: string|null;
+    image: string;
     hidden: boolean;
     token: string|null;
+    monsterId?: string;
     name: string;
     rings: {
         blue: boolean,
@@ -29,6 +30,7 @@ interface IPawn{
     },
     hp?: number,
     fullHP?: number,
+    ac?: number,
     size: Size,
     type: "player"|"monster"|"npc",
 }
@@ -50,7 +52,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             uid: pawn.uid,
             x: pawn.x,
             y: pawn.y,
-            image: null,
+            image: pawn.image,
             hidden: pawn?.hidden ?? false,
             name: pawn.name,
             token: pawn?.token ?? null,
@@ -59,6 +61,8 @@ export default class Pawn extends SuperComponent<IPawn>{
             fullHP: pawn?.fullHP ?? null,
             size: pawn?.size ?? "medium",
             type: pawn.type,
+            ac: pawn?.ac ?? null,
+            monsterId: pawn?.monsterId ?? null,
         };
         this.ticket = subscribe("socket", this.inbox.bind(this));
         this.gridSize = room.gridSize;
@@ -83,6 +87,24 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:health":
+                if (data.pawnId === this.model.uid){
+                    this.model.hp = data.hp;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:ac":
+                if (data.pawnId === this.model.uid){
+                    this.model.ac = data.ac;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:visibility":
+                if (data.pawnId === this.model.uid){
+                    this.model.hidden = data.hidden;
+                    this.render();
+                }
+                break;
             case "room:tabletop:pawn:status":
                 if (data.pawnId === this.model.uid){
                     this.model.rings[data.type] = data.checked;
@@ -113,21 +135,17 @@ export default class Pawn extends SuperComponent<IPawn>{
         e.stopImmediatePropagation();
         if (!room.isGM) return;
         if (this.model.type === "monster"){
-            const x = e.clientX;
-            const y = e.clientY;
             const windowEl = new Window({
                 name: `${this.model.name} (${this.model.type})`,
-                width: 400,
-                height: 200,
-                view: new StatBlock(this.model.uid, this.model.type, this.model.rings),
+                width: 500,
+                height: 300,
+                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
         } else if (this.model.type === "player"){
-            const x = e.clientX;
-            const y = e.clientY;
             const windowEl = new Window({
                 name: `${this.model.name}`,
                 width: 300,
@@ -142,6 +160,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private resetTooltip(){
+        console.log(this.model);
         if (this.model.hp !== null && this.model.fullHP !== null){
             if (this.model.hp === 0){
                 this.setAttribute("bleeding", "false");
@@ -221,8 +240,11 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private getSizeMultiplier():number{
         let multi = 1;
-        switch (this.model.size){
+        switch (this.model.size as Size){
             case "tiny":
+                multi = 0.25;
+                break;
+            case "small":
                 multi = 0.5;
                 break;
             case "large":
@@ -263,9 +285,9 @@ export default class Pawn extends SuperComponent<IPawn>{
                 </svg>
             `;
         }
-        if (this.model.image){
+        if (this.model.image.length){
             out = html`
-                <img src="${this.model.image}" alt="${this.model.name} token" draggable="false">
+                <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${this.model.image}" alt="${this.model.name} token" draggable="false">
             `;
         } else {
             out = "";
@@ -275,18 +297,18 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private renderRings(){
         const m = this.getSizeMultiplier();
-        let x = 0;
-        let y = 0;
+        let x = -2;
+        let y = -2;
         let w = this.gridSize * m;
         let h = this.gridSize * m;
         let delay = 0;
         return html`
             ${Object.keys(this.model.rings).map(key => {
                 if (this.model.rings[key]){
-                    x -= 3;
-                    y -= 3;
-                    w += 6;
-                    h += 6;
+                    x -= 2;
+                    y -= 2;
+                    w += 4;
+                    h += 4;
                     delay += 0.25;
                     return html`
                         <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${key}"></div>
@@ -304,11 +326,12 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.visibility = "visible";
             this.style.opacity = "1";
             this.style.pointerEvents = "all";
+            this.style.filter = "contrast(1) saturate(1)";
             this.setAttribute("ghost", "false");
         } else if (this.model.hidden && room.isGM){
             this.style.visibility = "visible";
-            this.style.opacity = "0.5";
             this.style.pointerEvents = "all";
+            this.style.filter = "contrast(0.5) saturate(0)";
             this.setAttribute("ghost", "true");
         } else {
             this.style.visibility = "hidden";
@@ -326,7 +349,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.localY = this.model.y;
         this.dataset.x = `${this.localX}`;
         this.dataset.y = `${this.localY}`;
-        this.className = "pawn";
+        this.className = `pawn ${this.model.image ? "has-image" : ""}`;
         this.dataset.name = this.model.name;
         let pawnType = "npc";
         if ("hp" in this.model && this.model.hp === 0){

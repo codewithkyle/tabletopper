@@ -130,6 +130,42 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		return c.Render("stubs/toolbar/help", fiber.Map{})
 	})
 
+    app.Get("/stub/tabletop/spotlight", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+		if err != nil {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+
+        return c.Render("stubs/tabletop/spotlight", fiber.Map{});
+    })
+    app.Get("/stub/tabletop/spotlight-search", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+		if err != nil {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+
+        search := c.Query("search", "")
+        monsters := []Monster{}
+        if search != "" {
+            db := helpers.ConnectDB()
+            db.Raw("SELECT HEX(id) as id, name, hp, ac, size, image FROM monsters WHERE userId = ? AND name LIKE ?", user.Id, "%"+strings.Trim(search, " ")+"%").Scan(&monsters)
+        }
+
+        return c.Render("stubs/tabletop/spotlight-search", fiber.Map{
+            "Monsters": monsters,
+            "User": user,
+        });
+    })
 	app.Get("/stub/tabletop/settings", func(c *fiber.Ctx) error {
 		return c.Render("stubs/tabletop/settings", fiber.Map{})
 	})
@@ -627,7 +663,8 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
         if doUpdate {
             db.Exec(
-                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, userId = ?, image = ?, abilities = ?, actions = ?, reactions = ?, legendaryActions = ?, lairActions = ? ",
+                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
+                "WHERE id = UNHEX(?) AND userId = ?",
                 monster.Name,
                 monster.Size,
                 monster.Alignment,
@@ -651,13 +688,14 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
                 monster.Languages,
                 monster.CR,
                 monster.XP,
-                monster.UserId,
                 monster.Image,
                 monster.Abilities,
                 monster.Actions,
                 monster.Reactions,
                 monster.LegendaryActions,
                 monster.LairActions,
+                monster.Id,
+                monster.UserId,
             )
         } else {
             db.Exec(

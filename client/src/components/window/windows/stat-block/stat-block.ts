@@ -4,9 +4,6 @@ import "~brixi/components/inputs/number-input/number-input";
 import "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import "~brixi/components/lightswitch/lightswitch";
-import {publish} from "@codewithkyle/pubsub";
-import MonsterStatBlock from "../monster-stat-block/monster-stat-block";
-import Window from "components/window/window";
 import { send } from "~controllers/ws";
 
 interface IStatBlock {
@@ -28,36 +25,31 @@ interface IStatBlock {
 }
 export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
+    private monsterId: string;
     private type: "player" | "npc" | "monster";
 
-    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", rings){
+    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", rings, hp = 0, fullHP = 0, ac = 0, hidden = true, name = "", monsterId = ""){
         super();
         this.pawnId = pawnId;
+        this.monsterId = monsterId;
         this.type = type;
         this.model = {
-            hp: 0,
-            fullHP: 0,
-            ac: 0,
-            hidden: true,
-            name: "",
+            hp: hp,
+            fullHP: fullHP,
+            ac: ac,
+            hidden: hidden,
+            name: name,
             rings: rings,
         };
     }
 
     override async connected(){
         await env.css(["stat-block"]);
-        //this.set({
-            //hp: pawn.hp,
-            //ac: pawn.ac,
-            //fullHP: pawn.fullHP,
-            //hidden: pawn.hidden,
-            //name: pawn.name,
-            //rings: pawn.rings,
-        //});
         this.render();
     }
 
-    private updateHP(value){
+    private updateHP(e:CustomEvent){
+        const { name, value } = e.detail;
         const values = value
                     .trim()
                     .replace(/[^0-9\-\+]/g, "") // only allow digets, +, and -
@@ -97,21 +89,27 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             this.classList.add("bloody");
         }
         this.set({hp: hp});
-        //const op = cc.set("pawns", this.pawnId, "hp", hp);
-        //cc.dispatch(op);
+        send("room:tabletop:pawn:health", {
+            pawnId: this.pawnId,
+            hp: hp,
+        });
     }
 
-    private updateAC(value){
+    private updateAC(e:CustomEvent){
+        let { name, value } = e.detail;
         value = parseInt(value);
         this.set({ac: value}, true);
-        //const op = cc.set("pawns", this.pawnId, "ac", value);
-        //cc.dispatch(op);
+        send("room:tabletop:pawn:ac", {
+            pawnId: this.pawnId,
+            ac: value,
+        });
     }
 
-    private locate(){
-        publish("tabletop", {
-            type: "locate:pawn",
-            data: this.pawnId,
+    private changeVisibility(e:CustomEvent){
+        const { name, value, enabled } = e.detail;
+        send("room:tabletop:pawn:visibility", {
+            pawnId: this.pawnId,
+            hidden: !enabled,
         });
     }
 
@@ -125,16 +123,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     }
 
     private openMonsterManual(){
-        //const windowEl = document.body.querySelector(`window-component[window="${this.entityId}"]`) || new Window({
-            //name: this.model.name,
-            //view: new MonsterStatBlock(this.entityId),
-            //handle: this.entityId,
-            //width: 450,
-            //height: 600,
-        //});
-        //if (!windowEl.isConnected){
-            //document.body.append(windowEl);
-        //}
+        window.dispatchEvent(new CustomEvent("window:monsters:open", { 
+            detail: {
+                uid: this.monsterId,
+                name: this.model.name
+            } 
+        }));
     }
 
     private renderDeleteButton(){
@@ -148,6 +142,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     tooltip="Delete pawn"
                     size="slim"
                     @click=${()=>{
+                        send("room:tabletop:pawn:delete", this.pawnId);
                         // @ts-ignore
                         this.closest("window-component").close();
                     }}
@@ -193,8 +188,23 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     override render(): void {
         const view = html`
+            <div class="w-full mb-1" flex="items-center justify-between row nowrap">
+                <lightswitch-component
+                    data-name="${this.pawnId}-hidden"
+                    data-enabled-label="Visible"
+                    data-disabled-label="Hidden"
+                    data-enabled="${this.model.hidden === false}"
+                    data-value="hidden"
+                    class="mt-0.25"
+                    @change=${this.changeVisibility.bind(this)}
+                ></lightswitch-component>
+                <div flex="items-center row nowrap">
+                    ${this.renderBookButton()}
+                    ${this.renderDeleteButton()}
+                </div>
+            </div>
             ${ this.type !== "player" ? html`
-                <div class="w-full mb-0.5" grid="columns 2 gap-1">
+                <div class="w-full mb-1" grid="columns 2 gap-1">
                     <input-component
                         data-name="${this.pawnId}-hp"
                         data-label="Hit Points"
@@ -211,31 +221,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     ></number-input-component>
                 </div>
             ` : "" }
-            <div class="w-full mb-0.5" flex="items-center justify-between row nowrap">
-                <lightswitch-component
-                    data-name="${this.pawnId}-hidden"
-                    data-enabled-label="Visible"
-                    data-disabled-label="Hidden"
-                    data-enabled="${this.model.hidden === true}"
-                    data-value="hidden"
-                    class="mt-0.25"
-                ></lightswitch-component>
-                <div flex="items-center row nowrap">
-                    ${this.renderBookButton()}
-                    <button
-                        class="bttn"
-                        kind="text"
-                        color="grey"
-                        icon="center"
-                        tooltip="Locate pawn"
-                        size="slim"
-                        @click=${this.locate.bind(this)}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="8"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="20" y1="12" x2="22" y2="12"></line><line x1="2" y1="12" x2="4" y2="12"></line></svg>
-                    </button>
-                    ${this.renderDeleteButton()}
-                </div>
-            </div>
             <div class="w-full rings" flex="row wrap items-center">
                 ${this.renderRings()}
             </div>

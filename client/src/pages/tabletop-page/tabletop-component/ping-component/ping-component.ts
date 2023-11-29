@@ -2,12 +2,9 @@ import env from "~brixi/controllers/env";
 import sound from "~brixi/controllers/soundscape";
 
 export default class PingComponent extends HTMLElement{
-    constructor(x:number, y:number, color:string, zoom:number){
+    constructor(x:number, y:number, color:string){
         super();
-        if (zoom < 1){
-            zoom = 2;
-        }
-        this.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+        this.style.transform = `translate(${x}px, ${y}px)`;
         this.style.color = `var(--${color})`;
         this.className = "ping";
     }
@@ -35,7 +32,7 @@ export default class PingComponent extends HTMLElement{
         sound.play("ping");
         setTimeout(() => {
             this.remove();
-        }, 1000);
+        }, 2000);
     }
 }
 env.bind("ping-component", PingComponent);
