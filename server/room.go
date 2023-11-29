@@ -258,8 +258,38 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		}
 		return c.Render("stubs/tabletop/create-monster", fiber.Map{
 			"User": user,
+            "Monster": Monster{},
+            "ImageId": "",
+            "ImageName": "",
 		})
 	})
+    app.Get("/stub/tabletop/create-monster/:id", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+		if err != nil {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+
+        id := c.Params("id")
+
+        db := helpers.ConnectDB()
+        monster := Monster{}
+        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+
+        image := Image{}
+        db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM monster_images WHERE userId = ? AND fileId = ?", user.Id, monster.Image).Scan(&image)
+
+		return c.Render("stubs/tabletop/create-monster", fiber.Map{
+			"User": user,
+            "Monster": monster,
+            "ImageId": image.FileId,
+            "ImageName": image.Name,
+		})
+    })
 
 	app.Post("/monster/image", func(c *fiber.Ctx) error {
 		user, err := GetSession(c, rdb)
@@ -325,10 +355,15 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
 		db.Exec("INSERT INTO monster_images (id, userId, fileId, name) VALUES (UNHEX(?), ?, ?, ?)", id, user.Id, fileId, fileName)
 
+        monsterId := c.FormValue("monsterId", "")
+        if monsterId != "" {
+            db.Exec("UPDATE monsters SET image = ? WHERE id = UNHEX(?) AND userId = ?", fileId, monsterId, user.Id)
+        }
+
 		return c.Render("stubs/tabletop/monster-image", fiber.Map{
-			"Image": "monsters/" + user.Id + "/" + fileId,
-			"Name":  fileName,
-			"Id":    fileId,
+			"ImageName":  fileName,
+			"ImageId":    fileId,
+            "User":  user,
 		})
 	})
 	app.Delete("/monster/image/:id", func(c *fiber.Ctx) error {
@@ -359,6 +394,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
 		db := helpers.ConnectDB()
 		db.Exec("DELETE FROM monster_images WHERE fileId = ? AND userId = ?", id, user.Id)
+        db.Exec("UPDATE monsters SET image = '' WHERE image = ? AND userId = ?", id, user.Id)
 
 		return c.Render("stubs/tabletop/monster-image-upload", fiber.Map{})
 	})
@@ -373,6 +409,10 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
+        id := c.FormValue("id", "")
+        if id != "" {
+            return c.SendStatus(200)
+        }
 		imageId := c.FormValue("imageId", "")
 		if imageId == "" {
 			return c.SendStatus(200)
@@ -477,6 +517,13 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			imageId = form.Value["imageId"][0]
 		}
 
+        id := strings.ReplaceAll(uuid.New().String(), "-", "")
+        doUpdate := false
+        if len(form.Value["id"]) > 0 {
+            id = form.Value["id"][0]
+            doUpdate = true
+        }
+
 		abilityNames := form.Value["abilities-name"]
 		abilityValues := form.Value["abilities-value"]
 		abilities := []MonsterInfoTable{}
@@ -543,7 +590,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		}
 
 		monster := Monster{
-			Id:               strings.ReplaceAll(uuid.New().String(), "-", ""),
+			Id:               id,
 			Name:             name,
 			Size:             size,
 			Alignment:        alignment,
@@ -577,43 +624,83 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		}
 
 		db := helpers.ConnectDB()
-		db.Exec(
-			"INSERT INTO monsters (id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions) "+
-				"VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			monster.Id,
-			monster.Name,
-			monster.Size,
-			monster.Alignment,
-			monster.Type,
-			monster.Subtype,
-			monster.AC,
-			monster.HP,
-			monster.Speed,
-			monster.Strength,
-			monster.Dexterity,
-			monster.Constitution,
-			monster.Intelligence,
-			monster.Wisdom,
-			monster.Charisma,
-			monster.SavingThrows,
-			monster.Skills,
-			monster.Vulnerabilities,
-			monster.Resistances,
-			monster.Immunities,
-			monster.Senses,
-			monster.Languages,
-			monster.CR,
-			monster.XP,
-			monster.UserId,
-			monster.Image,
-			monster.Abilities,
-			monster.Actions,
-			monster.Reactions,
-			monster.LegendaryActions,
-			monster.LairActions,
-		)
+        if doUpdate {
+            db.Exec(
+                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, userId = ?, image = ?, abilities = ?, actions = ?, reactions = ?, legendaryActions = ?, lairActions = ? ",
+                monster.Name,
+                monster.Size,
+                monster.Alignment,
+                monster.Type,
+                monster.Subtype,
+                monster.AC,
+                monster.HP,
+                monster.Speed,
+                monster.Strength,
+                monster.Dexterity,
+                monster.Constitution,
+                monster.Intelligence,
+                monster.Wisdom,
+                monster.Charisma,
+                monster.SavingThrows,
+                monster.Skills,
+                monster.Vulnerabilities,
+                monster.Resistances,
+                monster.Immunities,
+                monster.Senses,
+                monster.Languages,
+                monster.CR,
+                monster.XP,
+                monster.UserId,
+                monster.Image,
+                monster.Abilities,
+                monster.Actions,
+                monster.Reactions,
+                monster.LegendaryActions,
+                monster.LairActions,
+            )
+        } else {
+            db.Exec(
+                "INSERT INTO monsters (id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions) "+
+                    "VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                monster.Id,
+                monster.Name,
+                monster.Size,
+                monster.Alignment,
+                monster.Type,
+                monster.Subtype,
+                monster.AC,
+                monster.HP,
+                monster.Speed,
+                monster.Strength,
+                monster.Dexterity,
+                monster.Constitution,
+                monster.Intelligence,
+                monster.Wisdom,
+                monster.Charisma,
+                monster.SavingThrows,
+                monster.Skills,
+                monster.Vulnerabilities,
+                monster.Resistances,
+                monster.Immunities,
+                monster.Senses,
+                monster.Languages,
+                monster.CR,
+                monster.XP,
+                monster.UserId,
+                monster.Image,
+                monster.Abilities,
+                monster.Actions,
+                monster.Reactions,
+                monster.LegendaryActions,
+                monster.LairActions,
+            )
+        }
 
-        c.Response().Header.Set("HX-Trigger", `{"toast": "Created `+name+`", "window:monsters:reset": true}`)
+        if id == "" {
+            c.Response().Header.Set("HX-Trigger", `{"toast": "Created `+name+`", "window:monsters:reset": true}`)
+        } else {
+            c.Response().Header.Set("HX-Trigger", `{"toast": "Updated `+name+`", "window:monsters:reset": true}`)
+        }
 		return c.SendStatus(200)
 	})
 

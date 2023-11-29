@@ -1,7 +1,7 @@
 <monster-image-preview flex="row nowrap">
     <img 
-        src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/{{ Image }}" 
-        alt="{{ Name }}" 
+        src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/monsters/{{ User.Id }}/{{ ImageId }}" 
+        alt="{{ ImageName }}" 
         draggalbe="false"
         onload="this.style.opacity = '1'"
         loading="lazy"
@@ -13,9 +13,9 @@
         sfx="button"
         kind="solid"
         color="danger"
-        hx-delete="/monster/image/{{ Id }}"
+        hx-delete="/monster/image/{{ ImageId }}"
         hx-swap="outerHTML"
         hx-target="monster-image-preview"
     >Delete</button>
-    <input type="hidden" name="imageId" value="{{ Id }}">
+    <input type="hidden" name="imageId" value="{{ ImageId }}">
 </monster-image-preview>

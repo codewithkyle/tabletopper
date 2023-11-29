@@ -35,6 +35,9 @@
                         kind="text" 
                         icon="center" 
                         sfx="button"
+                        x-on:click="$dispatch('show-monster-maker')"
+                        hx-get="/stub/tabletop/create-monster/{{ monster.Id }}"
+                        hx-target="monster-maker .modal"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-edit" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

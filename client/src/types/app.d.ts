@@ -42,7 +42,7 @@ export interface Monster {
 
 export interface Ability {
     name: string;
-    desc: string;
+    value: string;
 }
 
 export interface Damage {
