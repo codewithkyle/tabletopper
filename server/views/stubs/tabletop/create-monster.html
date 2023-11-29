@@ -6,6 +6,20 @@
         data-required="true"
     ></input-component>
     <div class="w-full" grid="columns 2 gap-1.5">
+        <select-component
+            data-name="size"
+            data-label="Size"
+            data-required="true"
+            data-options='[{"label":"Tiny","value":"Tiny"},{"label":"Small","value":"Small"},{"label":"Medium","value":"Medium"},{"label":"Large","value":"Large"},{"label":"Huge","value":"Huge"},{"label":"Gargantuan","value":"Gargantuan"}]'
+            data-value="Medium"
+        ></select-component>
+        <select-component
+            data-name="alignment"
+            data-label="Alignment"
+            data-required="true"
+            data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
+            data-value="unaligned"
+        ></select-component>
         <input-component
             data-name="type"
             data-label="Type"
@@ -29,16 +43,6 @@
         data-name="speed"
         data-label="Speed"
     ></input-component>
-    <div class="w-full" grid="columns 2 gap-1.5">
-        <number-input-component
-            data-name="cr"
-            data-label="Challenge Rating"
-        ></number-input-component>
-        <number-input-component
-            data-name="xp"
-            data-label="XP"
-        ></number-input-component>
-    </div>
     <div class="w-full" grid="columns 3 gap-1.5">
         <number-input-component
             data-name="str"
@@ -72,26 +76,6 @@
         ></number-input-component>
     </div>
     <input-component
-        data-name="senses"
-        data-label="Senses"
-    ></input-component>
-    <input-component
-        data-name="immunities"
-        data-label="Inmunities"
-    ></input-component>
-    <input-component
-        data-name="resistances"
-        data-label="Resistances"
-    ></input-component>
-    <input-component
-        data-name="vulnerabilities"
-        data-label="Vulnerabilities"
-    ></input-component>
-    <input-component
-        data-name="languages"
-        data-label="Languages"
-    ></input-component>
-    <input-component
         data-name="savingThrows"
         data-label="Saving Throws"
     ></input-component>
@@ -99,6 +83,36 @@
         data-name="skills"
         data-label="Skills"
     ></input-component>
+    <input-component
+        data-name="vulnerabilities"
+        data-label="Vulnerabilities"
+    ></input-component>
+    <input-component
+        data-name="resistances"
+        data-label="Resistances"
+    ></input-component>
+    <input-component
+        data-name="immunities"
+        data-label="Inmunities"
+    ></input-component>
+    <input-component
+        data-name="senses"
+        data-label="Senses"
+    ></input-component>
+    <input-component
+        data-name="languages"
+        data-label="Languages"
+    ></input-component>
+    <div class="w-full" grid="columns 2 gap-1.5">
+        <number-input-component
+            data-name="cr"
+            data-label="Challenge Rating"
+        ></number-input-component>
+        <number-input-component
+            data-name="xp"
+            data-label="XP"
+        ></number-input-component>
+    </div>
     <monster-info-table
         data-name="abilities"
         data-label="Abilities"
