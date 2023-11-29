@@ -2,7 +2,7 @@ monster-manual{
     display: block;
     width: 100%;
     position: relative;
-    padding: 0.5rem;
+    padding: 1rem;
     user-select: none;
 
     .monster{
@@ -22,6 +22,43 @@ monster-manual{
             &:not(:last-of-type){
                 border-right: 1px solid var(--grey-300);
             }
+        }
+    }
+}
+monster-maker{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+
+    .modal {
+        display: inline-block;
+        background-color: var(--white);
+        border-radius: 0.5rem;
+        width: 600px;
+        max-width: calc(100% - 2rem);
+        z-index: 2;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-black-lg);
+        border: 1px solid var(--grey-300);
+        backdrop-filter: blur(8px);
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-800);
+            background-color: hsl(var(--grey-900-hsl) / 0.87);
+            color: var(--grey-300);
+        }
+
+        .container{
+            height: 600px;
+            max-height: calc(100% - 100px - 60px - 4rem);
+            overflow-y: auto;
         }
     }
 }

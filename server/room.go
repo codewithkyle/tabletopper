@@ -21,6 +21,39 @@ type Image struct {
     Name string `gorm:"column:name"`
 }
 
+type Monster struct {
+    Id               string
+    Name             string
+    Size             string
+    Type             string
+    Subtype          string
+    Alignment        string
+    AC               int
+    HP               int
+    HitDice          string
+    Strength         int `gorm:"column:str"`
+    Dexterity        int `gorm:"column:dex"`
+    Constitution     int `gorm:"column:con"`
+    Intelligence     int `gorm:"column:int"`
+    Wisdom           int `gorm:"column:wis"`
+    Charisma         int `gorm:"column:cha"`
+    Languages        string
+    CR               int
+    XP               int
+    Speed            string
+    Vulnerabilities  string
+    Resistances      string
+    Immunities       string
+    Senses           string
+    SavingThrows     string
+    Skills           string
+    Abilities        string `gorm:"type:text"`
+    Actions          string `gorm:"type:text"`
+    LegendaryActions string `gorm:"column:legendaryActions;type:text"`
+    Reactions        string `gorm:"type:text"`
+    UserId           string
+}
+
 func RoomRoutes(app *fiber.App, rdb *redis.Client) {
     app.Get("/room", func(c *fiber.Ctx) error {
         user, err := GetSession(c, rdb)
@@ -182,6 +215,41 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         return c.Render("stubs/tabletop/images", fiber.Map{
             "Images": images,
+            "User": user,
+        })
+    })
+
+    app.Get("/stub/windows/monsters", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+
+        db := helpers.ConnectDB()
+        monsters := []Monster{}
+        db.Raw("SELECT * FROM monsters WHERE userId = ? LIMIT 10", user.Id).Scan(&monsters)
+
+        return c.Render("stubs/windows/monsters", fiber.Map{
+            "Monsters": monsters,
+        })
+    })
+
+    app.Get("/stub/tabletop/create-monster", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            c.Response().Header.Set("HX-Redirect", "/sign-in")
+            return c.SendStatus(401)
+        }
+        return c.Render("stubs/tabletop/create-monster", fiber.Map{
             "User": user,
         })
     })

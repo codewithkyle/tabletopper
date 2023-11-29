@@ -5,6 +5,7 @@ import { connect, send } from "~controllers/ws";
 import { Player } from "~types/app";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
 import Initiative from "~components/window/windows/initiative/initiative";
+import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 
 declare const htmx: any;
 
@@ -185,6 +186,17 @@ class Room {
         });
         window.addEventListener("initiative:clear", () => {
             send("room:initiative:clear");
+        });
+        window.addEventListener("window:monsters", () => {
+            const window = document.body.querySelector('window-component[window="monsters"]') || new Window({
+                name: "Monsters",
+                view: new MonsterManual(),
+                width: 600,
+                height: 650,
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
         });
     }
 }

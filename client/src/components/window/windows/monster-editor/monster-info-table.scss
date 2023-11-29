@@ -9,6 +9,11 @@ monster-info-table{
         width: 100%;
         border-radius: 0.25rem;
         border: 1px solid var(--grey-300);
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+            color: var(--grey-300);
+        }
         
         input,
         textarea{
@@ -19,6 +24,15 @@ monster-info-table{
             line-height: 1.375;
             color: var(--grey-800);
             width: 100%;
+
+            @media (prefers-color-scheme: dark) {
+                color: var(--grey-300);
+                background-color: hsl(var(--white-hsl) / 0.05);
+
+                &:focus{
+                    background-color: transparent;
+                }
+            }
         }
 
         input{
@@ -38,11 +52,19 @@ monster-info-table{
             width: 100%;
             border-bottom: 1px solid var(--grey-300);
 
+            @media (prefers-color-scheme: dark) {
+                border-color: var(--grey-700);
+            }
+
             input{
                 font-weight: var(--font-medium);
                 color: var(--grey-700);
                 width: 100%;
                 flex: 1;
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-300);
+                }
             }
 
             button{
@@ -63,6 +85,23 @@ monster-info-table{
 
                 &:active{
                     color: var(--danger-800);
+                }
+
+                @media (prefers-color-scheme: dark) {
+                    border-color: var(--grey-700);
+                    color: var(--grey-300);
+                    background-color: hsl(var(--white-hsl) / 0.05);
+
+                    &:hover,
+                    &:focus-visible{
+                        color: var(--danger-400);
+                        background-color: hsl(var(--danger-400-hsl) / 0.05);
+                    }
+
+                    &:active{
+                        color: var(--danger-400);
+                        background-color: hsl(var(--danger-400-hsl) / 0.1);
+                    }
                 }
 
                 svg{

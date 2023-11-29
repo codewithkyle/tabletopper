@@ -9,7 +9,10 @@
     <span>Chat</span>
 </button>
 -->
-<button sfx="button">
+<button 
+    sfx="button"
+    x-on:click="$dispatch('window:monsters')"
+>
     <span>Monster Manual</span>
 </button>
 <button 
