@@ -8,7 +8,7 @@
     left: 0;
     cursor: grab;
     transition: all 300ms var(--ease-in-out);
-    box-shadow: var(--shadow-black-sm);
+    border: 2px solid var(--black);
 
     &.no-anim{
         transition: none !important;
@@ -20,7 +20,6 @@
         width: 75%;
         height: 75%;
         background-color: var(--primary-500);
-        border: 2px solid var(--primary-900);
         border-radius: 50%;
     }
 
@@ -29,7 +28,6 @@
         width: 75%;
         height: 75%;
         background-color: var(--success-500);
-        border: 2px solid var(--success-900);
         border-radius: 50%;
     }
 
@@ -38,7 +36,6 @@
         width: 75%;
         height: 75%;
         background-color: var(--danger-500);
-        border: 2px solid var(--danger-900);
         border-radius: 50%;
     }
 
@@ -47,7 +44,6 @@
         width: 75%;
         height: 75%;
         background-color: var(--white);
-        border: 2px solid var(--grey-700);
         border-radius: 50%;
 
         svg{
@@ -62,7 +58,6 @@
 
     &.has-image{
         background-color: var(--black);
-        border: 2px solid var(--black);
     }
 
     &[bleeding="true"]{
