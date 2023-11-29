@@ -156,6 +156,17 @@ export default class Pawn extends SuperComponent<IPawn>{
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
+        } else if (this.model.type === "npc"){
+            const windowEl = new Window({
+                name: `${this.model.name} (${this.model.type})`,
+                width: 500,
+                height: 300,
+                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
+                handle: "stat-block",
+            });
+            if (!windowEl.isConnected){
+                document.body.appendChild(windowEl);
+            }
         }
     }
 

@@ -20,7 +20,7 @@
         width: 75%;
         height: 75%;
         background-color: var(--primary-500);
-        border: 2px solid var(--primary-600);
+        border: 2px solid var(--primary-900);
         border-radius: 50%;
     }
 
@@ -29,7 +29,7 @@
         width: 75%;
         height: 75%;
         background-color: var(--success-500);
-        border: 2px solid var(--success-600);
+        border: 2px solid var(--success-900);
         border-radius: 50%;
     }
 
@@ -38,7 +38,7 @@
         width: 75%;
         height: 75%;
         background-color: var(--danger-500);
-        border: 2px solid var(--danger-600);
+        border: 2px solid var(--danger-900);
         border-radius: 50%;
     }
 
@@ -47,7 +47,7 @@
         width: 75%;
         height: 75%;
         background-color: var(--white);
-        border: 2px solid var(--grey-200);
+        border: 2px solid var(--grey-700);
         border-radius: 50%;
 
         svg{

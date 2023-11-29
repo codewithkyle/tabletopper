@@ -147,6 +147,23 @@ class Room {
                 monsterId: uid,
             });
         });
+        window.addEventListener("tabletop:quick-spawn", () => {
+            const inputs = document.body.querySelectorAll("quick-spawn [form-input]");
+            const data = {};
+            inputs.forEach((input) => {
+                // @ts-ignore
+                data[input.getName()] = input.getValue();
+            });
+            const x = parseInt(sessionStorage.getItem("tabletop:spawn-monster:x"));
+            const y = parseInt(sessionStorage.getItem("tabletop:spawn-monster:y"));
+            data["x"] = x;
+            data["y"] = y;
+            if (data["type"] === "npc"){
+                send("room:tabletop:spawn:npc", data);
+            } else {
+                send("room:tabletop:spawn:monster", data);
+            }
+        });
         window.addEventListener("window:dicebox", () => {
             const window = document.body.querySelector('window-component[window="dicebox"]') || new Window({
                 name: "Dicebox",
