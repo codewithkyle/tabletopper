@@ -5,6 +5,10 @@ monster-stat-block{
     padding: 0.5rem;
     background-color: #fdf1dc;
     overscroll-behavior: contain;
+
+    @media (prefers-color-scheme: dark){
+        background-color: transparent;
+    }
     
     .stats{
         border-top: 4px solid #e69a28;
@@ -17,7 +21,11 @@ monster-stat-block{
             display: block;
             width: calc(100% - 1rem);
             margin: 0.125rem auto 0;
-            border-bottom: 2px solid var(--red);
+            border-bottom: 2px solid var(--danger-800);
+
+            @media (prefers-color-scheme: dark){
+                border-bottom-color: var(--danger-600);
+            }
         }
 
         .abilities{

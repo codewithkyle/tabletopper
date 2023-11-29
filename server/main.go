@@ -3,11 +3,17 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"strings"
 	"main/models"
+	"math"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/charmbracelet/log"
 	"github.com/clerkinc/clerk-sdk-go/clerk"
 	"github.com/gofiber/fiber/v2"
@@ -15,13 +21,39 @@ import (
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-    "github.com/aws/aws-sdk-go/aws"
-    "github.com/aws/aws-sdk-go/aws/credentials"
-    "github.com/aws/aws-sdk-go/aws/session"
-    "github.com/aws/aws-sdk-go/service/s3"
 )
 
 var ctx = context.Background();
+
+func CalculateModifier(base int) string {
+    modifier := math.Floor(float64(base - 10) / 2);
+    modifierStr := strconv.Itoa(int(modifier));
+    if modifier >= 0 {
+        return "+" + modifierStr;
+    } else {
+        return modifierStr;
+    }
+}
+
+func CalculateProficiencyBonus(cr int) string {
+    if (cr >= 0 && cr <=4){
+        return "+2";
+    } else if (cr >= 5 && cr <= 8){
+        return "+3";
+    } else if (cr >= 9 && cr <= 12){
+        return "+4";
+    } else if (cr >= 13 && cr <= 16){
+        return "+5";
+    } else if (cr >= 17 && cr <= 20){
+        return "+6";
+    } else if (cr >= 21 && cr <= 24){
+        return "+7";
+    } else if (cr >= 26 && cr <= 28){
+        return "+8";
+    } else {
+        return "+9";
+    }
+}
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -39,6 +71,8 @@ func main() {
     })
 
 	engine := django.New("./views", ".html")
+    engine.AddFunc("CalculateModifier", CalculateModifier)
+    engine.AddFunc("CalculateProficiencyBonus", CalculateProficiencyBonus)
 	app := fiber.New(fiber.Config{
 		Views: engine,
         BodyLimit: 1024 * 1024 * 1024,

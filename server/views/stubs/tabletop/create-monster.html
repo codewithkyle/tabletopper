@@ -152,31 +152,31 @@
         data-name="abilities"
         data-label="Abilities"
         data-add-label="Add Ability"
-        data-rows="{{ Monster.Abilities|escape }}"
+        data-rows="{% if Monster.Abilities %}{{ Monster.Abilities|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
     <monster-info-table
         data-name="actions"
         data-label="Actions"
         data-add-label="Add Action"
-        data-rows="{{ Monster.Actions|escape }}"
+        data-rows="{% if Monster.Actions %}{{ Monster.Actions|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
     <monster-info-table
         data-name="reactions"
         data-label="Reactions"
         data-add-label="Add Reaction"
-        data-rows="{{ Monster.Reactions|escape }}"
+        data-rows="{% if Monster.Reactions %}{{ Monster.Reactions|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
     <monster-info-table
         data-name="legendaryActions"
         data-label="Legendary Actions"
         data-add-label="Add Legendary Action"
-        data-rows="{{ Monster.LegendaryActions|escape }}"
+        data-rows="{% if Monster.LegendaryActions %}{{ Monster.LegendaryActions|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
     <monster-info-table
         data-name="lairActions"
         data-label="Lair Actions"
         data-add-label="Add Lair Action"
-        data-rows="{{ Monster.LairActions|escape }}"
+        data-rows="{% if Monster.LairActions %}{{ Monster.LairActions|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
 </div>
 <div class="p-1 block w-full">

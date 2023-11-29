@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"main/helpers"
 	"os"
 	"strings"
@@ -743,5 +744,47 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted `+monster.Name+`"}`)
         return c.SendStatus(200)
+    })
+
+    app.Get("/stub/windows/monsters/:id", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+		if err != nil {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+
+        id := c.Params("id")
+
+        db := helpers.ConnectDB()
+        monster := Monster{}
+        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+
+        abilities := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.Abilities), &abilities)
+
+        actions := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.Actions), &actions)
+
+        reactions := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.Reactions), &reactions)
+
+        legendaryActions := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.LegendaryActions), &legendaryActions)
+
+        lairActions := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.LairActions), &lairActions)
+
+        return c.Render("stubs/windows/monster", fiber.Map{
+            "Monster": monster,
+            "Abilities": abilities,
+            "Actions": actions,
+            "Reactions": reactions,
+            "LegendaryActions": legendaryActions,
+            "LairActions": lairActions,
+        })
     })
 }

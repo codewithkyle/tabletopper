@@ -6,6 +6,7 @@ import { Player } from "~types/app";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
 import Initiative from "~components/window/windows/initiative/initiative";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
+import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
 
 declare const htmx: any;
 
@@ -193,6 +194,18 @@ class Room {
                 view: new MonsterManual(),
                 width: 600,
                 height: 650,
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
+        });
+        window.addEventListener("window:monsters:open", (e:CustomEvent) => {
+            const { uid, name } = e.detail;
+            const window = document.body.querySelector(`window-component[window="monster-${uid}"]`) || new Window({
+                name: name,
+                view: new MonsterStatBlock(uid),
+                width: 400,
+                height: 600,
             });
             if (!window.isConnected){
                 document.body.append(window);

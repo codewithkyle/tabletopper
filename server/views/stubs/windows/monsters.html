@@ -26,7 +26,14 @@
     <div class="monsters">
         {% for monster in Monsters %}
             <div class="monster" flex="row nowrap items-center justify-between">
-                <button sfx="button" class="bttn" color="grey" kind="text" title="{{ monster.Name }}">{{ monster.Name }}</button>
+                <button 
+                    sfx="button" 
+                    class="bttn" 
+                    color="grey" 
+                    kind="text" 
+                    title="{{ monster.Name }}"
+                    x-on:click="$dispatch('window:monsters:open', { uid: '{{ monster.Id }}', name: '{{ monster.Name }}' })"
+                >{{ monster.Name }}</button>
                 <div class="row nowrap items-center" style="font-size:0;">
                     <button 
                         tooltip="Edit" 
