@@ -1,5 +1,22 @@
 <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Create Monster</h2>
 <div class="container w-full p-2" grid="columns 1 gap-1.5">
+    <monster-image>
+        <label for="monster-img">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"></path>
+                <polyline points="7 9 12 4 17 9"></polyline>
+                <line x1="12" y1="4" x2="12" y2="16"></line>
+            </svg>
+            <span>Upload image</span>
+        </label>
+        <input 
+            type="file" 
+            accept="image/png, image/jpg, image/jpeg" 
+            id="monster-img" 
+            name="file"
+        >
+    </monster-image>
     <input-component
         data-name="name"
         data-label="Name"
