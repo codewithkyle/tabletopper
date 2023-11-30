@@ -101,6 +101,19 @@ func main() {
         return c.Render("stubs/home/join", fiber.Map{})
     })
 
+    app.Get("/logout", func(c *fiber.Ctx) error {
+        sessionId := c.Cookies("session_id", "")
+        if sessionId == "" {
+            return c.Redirect("/")
+        }
+        err := rdb.Del(ctx, "session:" + sessionId).Err()
+        if err != nil {
+            log.Error("Failed to delete session from Redis: " + err.Error());
+            return c.SendStatus(500)
+        }
+        c.ClearCookie("session_id")
+        return c.Redirect("/")
+    })
     app.Get("/sign-in", func(c *fiber.Ctx) error {
         return c.Render("pages/sign-in/index", fiber.Map{
             "Styles": []string{
