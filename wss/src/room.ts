@@ -2,8 +2,6 @@ import gm from "./game.js";
 import type { ExitReason, Socket, Pawn, Initiative } from "./globals.js";
 import { randomUUID } from "crypto";
 
-const COLORS = ["grey", "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal", "cyan", "light-blue", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
-
 class Room {
     public code: string;
     public gmId: string;
@@ -107,6 +105,11 @@ class Room {
                 message: `${next.name} is next in the initiative order.`,
             });
         }
+    }
+
+    public setPlayerImage(ws, image:string):void{
+        this.sockets[ws.id].image = image;
+        this.broadcast("room:tabletop:pawn:image", { pawnId: ws.id, image });
     }
     
     public kickPlayer(id:string):void{
@@ -275,7 +278,7 @@ class Room {
                     hidden: false,
                     uid: id,
                     name: this.sockets[id].name,
-                    image: "",
+                    image: this.sockets[id].image,
                     rings: {
                         red: false,
                         orange: false,

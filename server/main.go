@@ -108,6 +108,17 @@ func main() {
         return c.Render("pages/privacy-policy/index", fiber.Map{}, "layouts/main")
     })
 
+    app.Get("/user/verify", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            return c.SendStatus(500)
+        }
+        if user.Id == "" {
+            return c.SendStatus(401)
+        }
+        return c.SendStatus(200)
+    })
+
     app.Get("/logout", func(c *fiber.Ctx) error {
         sessionId := c.Cookies("session_id", "")
         if sessionId == "" {

@@ -106,9 +106,15 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		})
 	})
 	app.Get("/stub/toolbar/room", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            log.Error("Failed to get session: " + err.Error())
+            return c.SendStatus(401)
+        }
 		isGM := c.Cookies("gm", "")
 		return c.Render("stubs/toolbar/room", fiber.Map{
 			"GM": isGM != "",
+            "User": user,
 		})
 	})
 	app.Get("/stub/toolbar/window", func(c *fiber.Ctx) error {
@@ -824,5 +830,95 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             "LegendaryActions": legendaryActions,
             "LairActions": lairActions,
         })
+    })
+
+    app.Get("/stub/user/menu", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            return c.SendStatus(401)
+        }
+
+        db := helpers.ConnectDB()
+        images := []Image{}
+        db.Raw("SELECT HEX(id) as id, userId, fileId FROM character_images WHERE userId = ?", user.Id).Scan(&images)
+
+        return c.Render("stubs/user/menu", fiber.Map{
+            "User": user,
+            "Images": images,
+        })
+    })
+
+    app.Post("/user/image", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            return c.SendStatus(401)
+        }
+
+        file, err := c.FormFile("file")
+		if err != nil {
+			log.Error("Failed to get file from form: " + err.Error())
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+			return c.SendStatus(400)
+		}
+
+		src, err := file.Open()
+		if err != nil {
+			log.Error("Failed to open file: " + err.Error())
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+			return c.SendStatus(400)
+		}
+		defer src.Close()
+
+		fileId := uuid.New().String()
+		fileName := file.Filename
+		mimeType := file.Header.Get("Content-Type")
+		switch mimeType {
+		case "image/jpeg":
+			break
+		case "image/png":
+			break
+		case "image/jpg":
+			break
+		default:
+			log.Error("Invalid mime type: " + mimeType)
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+			return c.SendStatus(400)
+		}
+
+		s3Client := CreateSpacesClient()
+
+		object := s3.PutObjectInput{
+			Bucket:      aws.String("tabletopper"),
+			Key:         aws.String("characters/" + user.Id + "/" + fileId),
+			Body:        src,
+			ACL:         aws.String("public-read"),
+			ContentType: aws.String(mimeType),
+		}
+		_, err = s3Client.PutObject(&object)
+		if err != nil {
+			log.Error("Failed to upload file: " + err.Error())
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+			return c.SendStatus(500)
+		}
+
+		id := uuid.New().String()
+		id = strings.ReplaceAll(id, "-", "")
+
+		db := helpers.ConnectDB()
+		db.Exec("INSERT INTO character_images (id, userId, fileId, name) VALUES (UNHEX(?), ?, ?, ?)", id, user.Id, fileId, fileName)
+
+		images := []Image{}
+		db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM character_images WHERE userId = ?", user.Id).Scan(&images)
+
+		return c.Render("stubs/user/menu", fiber.Map{
+			"Images": images,
+			"User":   user,
+		})
     })
 }

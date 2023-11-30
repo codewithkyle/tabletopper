@@ -3,6 +3,7 @@ export type Socket = {
     room: string,
     send: Function,
     name: string,
+    image: string,
 };
 
 export type ExitReason = "UNKNOWN" | "KICKED" | "DC" | "QUIT";

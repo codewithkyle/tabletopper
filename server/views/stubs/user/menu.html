@@ -1,11 +1,11 @@
-<h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Tabletop Images</h2>
+<h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Your Images</h2>
 <div 
     class="images"
 >
     <form 
         class="upload-image-button" 
         sfx="button"
-        action="/tabletop/image"
+        action="/user/image"
         method="POST"
         enctype="multipart/form-data"
     >
@@ -23,9 +23,9 @@
             accept="image/png, image/jpg, image/jpeg" 
             id="upload" 
             name="file"
-            hx-post="/tabletop/image"
+            hx-post="/user/image"
             hx-trigger="change once"
-            hx-target="tabletop-images .modal"
+            hx-target="user-menu .modal"
             hx-encoding="multipart/form-data"
         >
     </form>
@@ -35,11 +35,11 @@
             class="token-button" 
             aria-label="{{ image.Name }}" 
             tooltip
-            x-on:click="selected = '{{ User.Id }}/{{ image.FileId }}'"
-            :class="{ 'is-selected': selected == '{{ User.Id }}/{{ image.FileId }}' }"
+            x-on:click="selected = 'characters/{{ User.Id }}/{{ image.FileId }}'"
+            :class="{ 'is-selected': selected == 'characters/{{ User.Id }}/{{ image.FileId }}' }"
         >
             <img 
-                src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/maps/{{ User.Id }}/{{ image.FileId }}" 
+                src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/characters/{{ User.Id }}/{{ image.FileId }}" 
                 alt="{{ image.Name }}" 
                 draggalbe="false"
                 onload="this.style.opacity = '1'"
@@ -56,7 +56,7 @@
                 fill="none" 
                 stroke-linecap="round" 
                 stroke-linejoin="round"
-                x-show="selected == '{{ User.Id }}/{{ image.FileId }}'"
+                x-show="selected == 'characters/{{ User.Id }}/{{ image.FileId }}'"
             >
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                 <circle cx="12" cy="12" r="9"></circle>
@@ -80,7 +80,7 @@
             kind="solid"
             color="success"
             :disabled="selected == ''"
-            x-on:click="open = false; $dispatch('tabletop:load', { 'id': selected }); selected = '';"
+            x-on:click="open = false; $dispatch('character:load', { 'id': selected })"
         >Select</button>
     </div>
 </div>

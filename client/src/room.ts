@@ -19,6 +19,7 @@ class Room {
     public gridSize: number;
     public activeInitiative: string|null;
     private initiative: Array<any>;
+    private hasLogOn: boolean;
 
     constructor() {
         this.uid = "";
@@ -29,6 +30,7 @@ class Room {
         this.gridSize = 32;
         this.initiative = [];
         this.activeInitiative = null;
+        this.hasLogOn = false;
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
@@ -95,6 +97,16 @@ class Room {
                     });
                 }
                 htmx.ajax("GET", "/stub/toolbar", "tool-bar");
+                if (!this.isGM){
+                    const verifyReq = await fetch('/user/verify')
+                    if (verifyReq.status === 200){
+                        this.hasLogOn = true;
+                    }
+                    if (this.hasLogOn){
+                        window.dispatchEvent(new CustomEvent("show-user-menu"));
+                        htmx.ajax("GET", "/stub/user/menu", { target: "user-menu .modal" });
+                    }
+                }
                 break;
             default:
                 break;
@@ -117,6 +129,10 @@ class Room {
             if (!window.isConnected){
                 document.body.append(window);
             }
+        });
+        window.addEventListener("character:load", (e:CustomEvent) => {
+            const { id } = e.detail;
+            send("room:player:image", id);
         });
         window.addEventListener("tabletop:clear", () => {
             send("room:tabletop:map:clear");

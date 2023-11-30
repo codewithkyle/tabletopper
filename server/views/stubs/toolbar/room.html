@@ -32,3 +32,15 @@
         <span>Player list</span>
     </button>
 {% endif %}
+{% if User.Id and not GM %}
+    <hr>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('show-user-menu')"
+        hx-get="/stub/user/menu"
+        hx-target="user-menu .modal"
+    >
+        <span>Token menu</span>
+    </button>
+{% endif %}

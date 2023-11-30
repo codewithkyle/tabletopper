@@ -103,6 +103,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:player:image":
+                if (room){
+                    room.setPlayerImage(ws, data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:player:ban":
                 if (room){
                     room.kickPlayer(data);

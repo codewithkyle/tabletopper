@@ -87,6 +87,12 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:image":
+                if (data.pawnId === this.model.uid){
+                    this.model.image = data.image;
+                    this.render();
+                }
+                break;
             case "room:tabletop:pawn:health":
                 if (data.pawnId === this.model.uid){
                     this.model.hp = data.hp;
