@@ -101,6 +101,13 @@ func main() {
         return c.Render("stubs/home/join", fiber.Map{})
     })
 
+    app.Get("/tos", func(c *fiber.Ctx) error {
+        return c.Render("pages/tos/index", fiber.Map{}, "layouts/main")
+    })
+    app.Get("/privacy", func(c *fiber.Ctx) error {
+        return c.Render("pages/privacy-policy/index", fiber.Map{}, "layouts/main")
+    })
+
     app.Get("/logout", func(c *fiber.Ctx) error {
         sessionId := c.Cookies("session_id", "")
         if sessionId == "" {
