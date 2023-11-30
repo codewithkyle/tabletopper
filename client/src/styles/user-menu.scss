@@ -21,8 +21,8 @@ user-menu {
         overflow: hidden;
         box-shadow: var(--shadow-black-lg);
         border: 1px solid var(--grey-300);
-        width: 768px;
-        height: 512px;
+        width: 913px;
+        height: 650px;
         opacity: 0;
         animation: fadePopIn forwards 150ms 150ms var(--ease-in);
         backdrop-filter: blur(8px);
@@ -42,11 +42,12 @@ user-menu {
 
         .images{
             display: grid;
-            grid-template-columns: repeat(auto-fill, 96px);
+            grid-template-columns: repeat(auto-fill, 150px);
+            grid-auto-rows: 150px;
             gap: 1.5rem;
             width: 100%;
             padding: 1.5rem;
-            height: 69%;
+            height: 76%;
             overflow-y: auto;
 
             .upload-image-button{
@@ -54,7 +55,7 @@ user-menu {
                 border-radius: 0.5rem;
                 position: relative;
                 border: 1px solid var(--grey-200);
-                height: 96px;
+                aspect-ratio: 1/1;
                 user-select: none;
                 transition: all 150ms var(--ease-in-out);
 
@@ -117,7 +118,7 @@ user-menu {
                 }
             }
 
-            button{
+            .token-button{
                 display: inline-flex;
                 justify-content: center;
                 align-items: center;
@@ -125,13 +126,23 @@ user-menu {
                 border: 2px solid transparent;
                 overflow: hidden;
                 cursor: pointer;
-                height: 96px;
+                aspect-ratio: 1/1;
                 transition: all 150ms var(--ease-in-out);
                 background-color: var(--grey-50);
 
                 &:hover{
                     box-shadow: var(--shadow-grey-sm);
                     border-color: var(--primary-50);
+
+                    & > button{
+                        opacity: 1;
+                    }
+                }
+
+                &:focus-within{
+                    & > button{
+                        opacity: 1;
+                    }
                 }
 
                 &.is-selected {
@@ -160,12 +171,17 @@ user-menu {
                     transition: opacity 300ms var(--ease-in);
                 }
 
-                svg{
+                & > svg{
                     position: absolute;
                     width: 32px;
                     height: 32px;
                     color: var(--white);
                     filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+                }
+
+                & > button {
+                    opacity: 0;
+                    transition: opacity 80ms var(--ease-in-out);
                 }
             }
         }

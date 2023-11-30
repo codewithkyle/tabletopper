@@ -953,4 +953,35 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			"User":   user,
 		})
     })
+
+    app.Delete("/user/image/:id", func(c *fiber.Ctx) error {
+        user, err := GetSession(c, rdb)
+        if err != nil {
+            return c.SendStatus(401)
+        }
+        if user.Id == "" {
+            return c.SendStatus(401)
+        }
+
+        id := c.Params("id")
+
+        s3Client := CreateSpacesClient()
+        input := &s3.DeleteObjectInput{
+            Bucket: aws.String("tabletopper"),
+            Key:    aws.String("characters/" + user.Id + "/" + id),
+        }
+
+        _, err = s3Client.DeleteObject(input)
+        if err != nil {
+            log.Error("Failed to delete file: " + err.Error())
+            c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
+            return c.SendStatus(500)
+        }
+
+        db := helpers.ConnectDB()
+        db.Exec("DELETE FROM character_images WHERE fileId = ? AND userId = ?", id, user.Id)
+
+        c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted image."}`)
+        return c.SendStatus(200)
+    })
 }
