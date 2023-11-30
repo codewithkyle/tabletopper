@@ -45,12 +45,10 @@
 <monster-maker
     x-data="{ open: false }"
     x-on:show-monster-maker.window="open = true"
-    x-on:keydown.escape.window="open = false"
     x-show="open"
 >
     <div 
         class="modal"
-        x-on:click.outside="open = false"
     ></div>
 </monster-maker>
 <spotlight-search
@@ -67,12 +65,10 @@
 <quick-spawn
     x-data="{ open: false }"
     x-on:show-quick-spawn.window="open = true"
-    x-on:keydown.escape.window="open = false"
     x-show="open"
 >
     <div 
         class="modal"
-        x-on:click.outside="open = false"
     >
         <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Quick Spawn</h2>
         <div id="create-monster" class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">

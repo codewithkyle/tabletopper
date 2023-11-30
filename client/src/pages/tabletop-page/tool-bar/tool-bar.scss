@@ -9,7 +9,8 @@ tool-bar {
     z-index: 2000;
     backdrop-filter: blur(8px);
 
-    button{
+    button,
+    a{
         color: var(--white);
         display: inline-block;
         height: 100%;

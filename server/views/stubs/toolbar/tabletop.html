@@ -1,7 +1,7 @@
 <button 
     sfx="button"
     x-data=""
-    x-on:click="$dispatch('show-tabletop-settings')"
+    x-on:click="$dispatch('show-tabletop-settings');open = false;"
     hx-get="/stub/tabletop/settings"
     hx-target="tabletop-settings .modal"
 >
@@ -10,7 +10,7 @@
 <button 
     sfx="button"
     x-data=""
-    x-on:click="$dispatch('show-tabletop-images')"
+    x-on:click="$dispatch('show-tabletop-images');open = false;"
     hx-get="/stub/tabletop/images"
     hx-target="tabletop-images .modal"
 >

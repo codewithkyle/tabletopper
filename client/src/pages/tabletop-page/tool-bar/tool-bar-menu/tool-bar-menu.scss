@@ -38,7 +38,8 @@ tool-bar-menu {
             padding: 0;
         }
 
-        button{
+        button,
+        a{
             display: flex;
             flex-flow: row nowrap;
             align-items: center;

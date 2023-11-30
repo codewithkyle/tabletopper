@@ -29,21 +29,21 @@
 <hr>
 <button 
     sfx="button"
-    x-on:click="window.innerHeight === screen.height ? document.exitFullscreen() : document.documentElement.requestFullscreen();"
+    x-on:click="window.innerHeight === screen.height ? document.exitFullscreen() : document.documentElement.requestFullscreen();open = false;"
 >
     <span>Toggle fullscreen</span>
     <span>F11</span>
 </button>
 <button 
     sfx="button"
-    x-on:click="$dispatch('tabletop:view:reset')"
+    x-on:click="$dispatch('tabletop:view:reset');open = false;"
 >
     <span>Center tabletop</span>
 </button>
 {% if not GM %}
     <button 
         sfx="button"
-        x-on:click="$dispatch('tabletop:center:player')"
+        x-on:click="$dispatch('tabletop:center:player');open = false;"
     >
         <span>Center on character</span>
     </button>

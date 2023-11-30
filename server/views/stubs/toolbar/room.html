@@ -27,7 +27,7 @@
     <button 
         sfx="button"
         x-data=""
-        x-on:click="$dispatch('room:players')"
+        x-on:click="$dispatch('room:players');open = false;"
     >
         <span>Player list</span>
     </button>
@@ -37,7 +37,7 @@
     <button 
         sfx="button"
         x-data=""
-        x-on:click="$dispatch('show-user-menu')"
+        x-on:click="$dispatch('show-user-menu');open = false;"
         hx-get="/stub/user/menu"
         hx-target="user-menu .modal"
     >
