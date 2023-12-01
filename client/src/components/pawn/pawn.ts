@@ -224,11 +224,6 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.removeAttribute("sfx");
             this.removeAttribute("tooltip");
             this.classList.add("no-anim");
-
-            document.body.querySelectorAll("pawn-component").forEach((el:HTMLElement) => {
-                el.style.zIndex = "10";
-            });
-            this.style.zIndex = "100";
         }
     }
 
@@ -380,6 +375,9 @@ export default class Pawn extends SuperComponent<IPawn>{
             pawnType = "monster";
         }
         this.setAttribute("pawn", pawnType);
+        if (this.model.uid === room.uid){
+            this.style.zIndex = "200";
+        }
         const view = html`
             ${this.renderRings()}
             ${this.renderPawn()}
