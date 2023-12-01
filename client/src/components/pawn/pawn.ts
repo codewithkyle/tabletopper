@@ -302,7 +302,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 </svg>
             `;
         }
-        if (this.model.image.length){
+        if (this.model?.image?.length){
             out = html`
                 <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${this.model.image}" alt="${this.model.name} token" draggable="false">
             `;
@@ -366,7 +366,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.localY = this.model.y;
         this.dataset.x = `${this.localX}`;
         this.dataset.y = `${this.localY}`;
-        this.className = `pawn ${this.model.image ? "has-image" : ""}`;
+        this.className = `pawn ${this.model?.image ? "has-image" : ""}`;
         this.dataset.name = this.model.name;
         let pawnType = "npc";
         if ("hp" in this.model && this.model.hp === 0){

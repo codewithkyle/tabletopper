@@ -24,6 +24,9 @@ class Room {
     private pawns: Pawn[];
     private initiative: Array<Initiative>;
     private activeInitiative: string|null;
+    private playerImages: {
+        [id:string]: string,
+    };
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -40,6 +43,7 @@ class Room {
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
+        this.playerImages = {};
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -108,7 +112,7 @@ class Room {
     }
 
     public setPlayerImage(ws, image:string):void{
-        this.sockets[ws.id].image = image;
+        this.playerImages[ws.id] = image;
         this.broadcast("room:tabletop:pawn:image", { pawnId: ws.id, image });
     }
     
@@ -278,7 +282,7 @@ class Room {
                     hidden: false,
                     uid: id,
                     name: this.sockets[id].name,
-                    image: this.sockets[id].image,
+                    image: this.playerImages?.[id] || "",
                     rings: {
                         red: false,
                         orange: false,
@@ -337,7 +341,7 @@ class Room {
                 hidden: false,
                 uid: ws.id,
                 name: ws.name,
-                image: "",
+                image: this.playerImages?.[ws.id] || "",
                 rings: {
                     red: false,
                     orange: false,

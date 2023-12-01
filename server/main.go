@@ -206,6 +206,10 @@ func main() {
 
     RoomRoutes(app, rdb)
 
+    app.Get("/*", func(c *fiber.Ctx) error {
+        return c.Redirect("/")
+    })
+
 	log.Fatal(app.Listen(":3000"))
 }
 
