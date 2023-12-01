@@ -15,6 +15,13 @@
     >Tabletop</button>
     <button
         sfx="button" 
+        hx-get="/stub/toolbar/fog"
+        hx-target="tool-bar-menu .menu"
+        x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'fog';"
+        :class="{ 'active': open === 'fog' }"
+    >Fog</button>
+    <button
+        sfx="button" 
         hx-get="/stub/toolbar/initiative"
         hx-target="tool-bar-menu .menu"
         x-on:click.stop="$dispatch('open', { left: $event.target.getBoundingClientRect().left }); open = 'initiative';"

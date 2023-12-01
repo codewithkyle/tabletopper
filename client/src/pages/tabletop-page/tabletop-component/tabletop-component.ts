@@ -5,6 +5,7 @@ import Pawn from "~components/pawn/pawn";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
 import room from "room";
+import FogCanvas from "./fog-canvas/fog-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -19,6 +20,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     public zoom: number;
     private vfxCanvas: VFXCanvas;
     private gridCanvas: GridCanvas;
+    private fogCanvas: FogCanvas;
     private img: HTMLImageElement;
 
     constructor(){
@@ -26,6 +28,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         this.img = new Image();
         this.vfxCanvas = new VFXCanvas();
         this.gridCanvas = new GridCanvas();
+        this.fogCanvas = new FogCanvas();
         this.moving = false;
         this.x = window.innerWidth * 0.5;
         this.y = (window.innerHeight - 28) * 0.5;
@@ -222,16 +225,24 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.img = null;
             this.gridCanvas.render(this.img);
             this.vfxCanvas.render(this.img);
-        }
-        if (!this.gridCanvas?.isConnected){
-            this.appendChild(this.gridCanvas);
+            this.fogCanvas.render(this.img);
         }
         if (!this.vfxCanvas?.isConnected){
             this.appendChild(this.vfxCanvas);
         }
-        this.img.onload = () => {
-            this.gridCanvas.render(this.img);
-            this.vfxCanvas.render(this.img);
+        if (!this.fogCanvas?.isConnected){
+            this.appendChild(this.fogCanvas);
+        }
+        if (!this.gridCanvas?.isConnected){
+            this.appendChild(this.gridCanvas);
+        }
+        if (this.img){
+            this.img.onload = () => {
+                console.log("rendering tabletop");
+                this.gridCanvas.render(this.img);
+                this.vfxCanvas.render(this.img);
+                this.fogCanvas.render(this.img);
+            }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }

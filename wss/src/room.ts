@@ -21,12 +21,16 @@ class Room {
     private map: string;
     private cellSize: number;
     private renderGrid: boolean;
+    private fogOfWar: boolean;
     private pawns: Pawn[];
     private initiative: Array<Initiative>;
     private activeInitiative: string|null;
     private playerImages: {
         [id:string]: string,
     };
+    private clearedCells: {
+        [key: string]: boolean,
+    }
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -40,13 +44,20 @@ class Room {
         this.map = "";
         this.cellSize = 32;
         this.renderGrid = false;
+        this.fogOfWar = false;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
         this.playerImages = {};
+        this.clearedCells = {};
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
+    }
+
+    public syncFog(cells):void{
+        this.clearedCells = cells;
+        this.broadcastPlayers("room:tabletop:fog:sync", this.clearedCells);
     }
 
     public renamePlayer({ playerId, name }):void{
@@ -128,10 +139,14 @@ class Room {
         this.broadcast("room:tabletop:load", map);
     }
 
-    public updateMap({ cellSize, renderGrid }){
+    public updateMap({ cellSize, renderGrid, fogOfWar }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid });
+        this.fogOfWar = fogOfWar;
+        if (this.fogOfWar){
+            this.clearedCells = {};
+        }
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, fogOfWar });
     }
 
     public clearMap(){
@@ -307,6 +322,14 @@ class Room {
         }
     }
 
+    public broadcastPlayers(type: string, data = null):void{
+        for (const socket in this.sockets){
+            if (socket !== this.gmId){
+                gm.send(this.sockets[socket], type, data);
+            }
+        }
+    }
+
     public resetSocket(ws:Socket){
         ws.room = this.code;
         this.sockets[ws.id] = ws;
@@ -370,7 +393,9 @@ class Room {
             gm.send(ws, "room:tabletop:load", this.map);
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid });
+            const fogOfWar = this.fogOfWar;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, fogOfWar });
+            gm.send(ws, "room:tabletop:fog:sync", this.clearedCells);
         }
     }
 

@@ -17,6 +17,16 @@
         x-on:change="$data.renderGrid = $event.detail.enabled"
     >
     </lightswitch-component>
+    <lightswitch-component 
+        data-name="fog-of-war"
+        data-enabled-label="On"
+        data-disabled-label="Off"
+        data-label="Fog of War"
+        data-instructions="Warning: this setting will override the current fog of war. If you have already clearned some fog, it will be reset."
+        :data-enabled="$data.fogOfWar"
+        x-on:change="$data.fogOfWar = $event.detail.enabled"
+    >
+    </lightswitch-component>
 </div>
 <div class="p-1 block w-full">
     <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
@@ -32,7 +42,7 @@
             sfx="button"
             kind="solid"
             color="success"
-            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked })"
+            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked, fogOfWar: document.querySelector(`[name='fog-of-war']`).checked });"
         >Save</button>
     </div>
 </div>

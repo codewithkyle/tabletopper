@@ -33,6 +33,13 @@ class GameManager {
         const { type, data } = message;
         const room = this.rooms?.[ws?.room] || this.rooms?.[data?.room] || null;
         switch (type){
+            case "room:tabletop:fog:sync":
+                if (room){
+                    room.syncFog(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:player:rename":
                 if (room){
                     room.renamePlayer(data);

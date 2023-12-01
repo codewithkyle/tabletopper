@@ -7,6 +7,7 @@ import DiceBox from "~components/window/windows/dice-box/dice-box";
 import Initiative from "~components/window/windows/initiative/initiative";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
+import FogBrush from "~components/window/windows/fog-brush/fog-brush";
 
 declare const htmx: any;
 
@@ -17,6 +18,7 @@ class Room {
     public isGM: boolean;
     private players: Player[];
     public gridSize: number;
+    public renderGrid: boolean;
     public activeInitiative: string|null;
     private initiative: Array<any>;
     private hasLogOn: boolean;
@@ -28,6 +30,7 @@ class Room {
         this.isGM = false;
         this.players = [];
         this.gridSize = 32;
+        this.renderGrid = false;
         this.initiative = [];
         this.activeInitiative = null;
         this.hasLogOn = false;
@@ -45,6 +48,7 @@ class Room {
                 break;
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
+                this.renderGrid = data.renderGrid;
                 break;
             case "room:sync:players":
                 this.players = data;
@@ -142,8 +146,8 @@ class Room {
             send("room:tabletop:map:load", id);
         });
         window.addEventListener("tabletop:update", (e:CustomEvent) => {
-            const { cellSize, renderGrid } = e.detail;
-            send("room:tabletop:map:update", { cellSize, renderGrid });
+            const { cellSize, renderGrid, fogOfWar } = e.detail;
+            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, fogOfWar });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
@@ -254,6 +258,24 @@ class Room {
                 view: new MonsterStatBlock(uid),
                 width: 400,
                 height: 600,
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
+        });
+        window.addEventListener("fog:fill", () => {
+            send("room:tabletop:map:update", { cellSize: this.gridSize, renderGrid: this.renderGrid, fogOfWar: true });
+        });
+        window.addEventListener("fog:clear", () => {
+            send("room:tabletop:map:update", { cellSize: this.gridSize, renderGrid: this.renderGrid, fogOfWar: false });
+        });
+        window.addEventListener("window:fog", () => {
+            const name = "Fog of War";
+            const window = document.body.querySelector(`window-component[window="fog-of-war"]`) || new Window({
+                name: name,
+                view: new FogBrush(),
+                width: 400,
+                height: 200,
             });
             if (!window.isConnected){
                 document.body.append(window);

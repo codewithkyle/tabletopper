@@ -18,14 +18,11 @@ async function connect() {
         return;
     }
     // @ts-expect-error
-    const { SOCKET_URL, ENV } = await import("/static/config.js");
+    const { SOCKET_URL } = await import("/static/config.js");
     socket = new WebSocket(SOCKET_URL);
     socket.addEventListener("message", async (event) => {
         try {
             const { type, data } = JSON.parse(event.data);
-            if (ENV === "dev"){
-                console.log(type, data);
-            }
             switch(type){
                 case "room:exit":
                     setTimeout(() => {
