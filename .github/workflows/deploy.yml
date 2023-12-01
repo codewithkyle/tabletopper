@@ -49,7 +49,7 @@ jobs:
               run: cd ./client && npm ci
 
             - name: Compile
-              run: npm run production
+              run: cd ./client && npm run production
 
             - name: Load SSH Key
               uses: webfactory/ssh-agent@v0.8.0
