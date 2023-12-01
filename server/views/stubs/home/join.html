@@ -13,6 +13,7 @@
                     name="character"
                     autocomplete="off" 
                     required="true"
+                    x-on:keyup.enter="if (room.length == 4 && character.length) { localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') })); window.location.href = '/room/' + room; }"
                     x-on:keyup="character = $event.target.value.trim()"
                 >
             </input-container>
@@ -28,6 +29,7 @@
                     name="room" 
                     autocomplete="off" 
                     required="true"
+                    x-on:keyup.enter="if (room.length == 4 && character.length) { localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') })); window.location.href = '/room/' + room; }"
                     x-on:keyup="room = $event.target.value.toUpperCase().trim()"
                 >
             </input-container>
