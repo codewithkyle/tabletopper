@@ -6,6 +6,7 @@ import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import GridCanvas from "./grid-canvas/grid-canvas";
 import room from "room";
 import FogCanvas from "./fog-canvas/fog-canvas";
+import DoodleCanvas from "./doodle-canvas/doodle-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -21,6 +22,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private vfxCanvas: VFXCanvas;
     private gridCanvas: GridCanvas;
     private fogCanvas: FogCanvas;
+    private doodleCanvas: DoodleCanvas;
     private img: HTMLImageElement;
 
     constructor(){
@@ -29,6 +31,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         this.vfxCanvas = new VFXCanvas();
         this.gridCanvas = new GridCanvas();
         this.fogCanvas = new FogCanvas();
+        this.doodleCanvas = new DoodleCanvas();
         this.moving = false;
         this.x = window.innerWidth * 0.5;
         this.y = (window.innerHeight - 28) * 0.5;
@@ -226,6 +229,10 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.gridCanvas.render(this.img);
             this.vfxCanvas.render(this.img);
             this.fogCanvas.render(this.img);
+            this.doodleCanvas.render(this.img);
+        }
+        if (!this.doodleCanvas?.isConnected){
+            this.appendChild(this.doodleCanvas);
         }
         if (!this.vfxCanvas?.isConnected){
             this.appendChild(this.vfxCanvas);
@@ -242,6 +249,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 this.gridCanvas.render(this.img);
                 this.vfxCanvas.render(this.img);
                 this.fogCanvas.render(this.img);
+                this.doodleCanvas.render(this.img);
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;

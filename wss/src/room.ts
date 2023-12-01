@@ -31,6 +31,7 @@ class Room {
     private clearedCells: {
         [key: string]: boolean,
     }
+    private doodleData: any;
 
     constructor(code:string, ws:Socket){
         this.code = code;
@@ -55,9 +56,17 @@ class Room {
         gm.send(ws, "room:create", this.code);
     }
 
+    public syncDoodle(data):void{
+        this.doodleData = data;
+        this.broadcastPlayers("room:tabletop:doodle", data);
+    }
+
     public syncFog(cells):void{
         this.clearedCells = cells;
-        this.broadcastPlayers("room:tabletop:fog:sync", this.clearedCells);
+        this.broadcast("room:tabletop:fog:sync", {
+            fogOfWar: this.fogOfWar,
+            clearedCells: this.clearedCells,
+        });
     }
 
     public renamePlayer({ playerId, name }):void{
@@ -139,20 +148,36 @@ class Room {
         this.broadcast("room:tabletop:load", map);
     }
 
-    public updateMap({ cellSize, renderGrid, fogOfWar }){
+    public fillFog():void{
+        this.fogOfWar = true;
+        this.clearedCells = {};
+        this.broadcast("room:tabletop:fog:sync", {
+            fogOfWar: this.fogOfWar,
+            clearedCells: this.clearedCells,
+        });
+    }
+
+    public clearFog():void{
+        this.fogOfWar = false;
+        this.clearedCells = {};
+        this.broadcast("room:tabletop:fog:sync", {
+            fogOfWar: this.fogOfWar,
+            clearedCells: this.clearedCells,
+        });
+    }
+
+    public updateMap({ cellSize, renderGrid }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
-        this.fogOfWar = fogOfWar;
-        if (this.fogOfWar){
-            this.clearedCells = {};
-        }
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, fogOfWar });
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid });
     }
 
     public clearMap(){
         this.showPawns = false;
         this.pawns = [];
         this.map = "";
+        this.clearedCells = {};
+        this.doodleData = "";
         this.broadcast("room:tabletop:clear");
     }
 
@@ -395,7 +420,11 @@ class Room {
             const renderGrid = this.renderGrid;
             const fogOfWar = this.fogOfWar;
             gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, fogOfWar });
-            gm.send(ws, "room:tabletop:fog:sync", this.clearedCells);
+            gm.send(ws, "room:tabletop:fog:sync", {
+                fogOfWar: this.fogOfWar,
+                clearedCells: this.clearedCells,
+            });
+            gm.send(ws, "room:tabletop:doodle", this.doodleData);
         }
     }
 

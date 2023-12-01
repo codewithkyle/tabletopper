@@ -33,6 +33,13 @@ class GameManager {
         const { type, data } = message;
         const room = this.rooms?.[ws?.room] || this.rooms?.[data?.room] || null;
         switch (type){
+            case "room:tabletop:doodle":
+                if (room){
+                    room.syncDoodle(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:fog:sync":
                 if (room){
                     room.syncFog(data);
@@ -120,6 +127,20 @@ class GameManager {
             case "room:player:ban":
                 if (room){
                     room.kickPlayer(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:fog:fill":
+                if (room){
+                    room.fillFog();
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:fog:clear":
+                if (room){
+                    room.clearFog();
                 } else {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }

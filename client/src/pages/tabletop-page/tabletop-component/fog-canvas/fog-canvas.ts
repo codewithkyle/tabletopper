@@ -69,18 +69,17 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private inbox({ type, data }) {
         switch (type) {
             case "room:tabletop:fog:sync":
-                this.clearedCells = data;
+                this.fogOfWar = data.fogOfWar;
+                this.clearedCells = data.clearedCells;
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:clear":
+                this.fogOfWar = false;
+                this.clearedCells = {};
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
-                this.fogOfWar = data.fogOfWar;
-                if (this.fogOfWar){
-                    this.clearedCells = {};
-                }
                 this.renderFogOfWar();
                 break;
             default:

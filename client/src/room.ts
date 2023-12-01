@@ -8,6 +8,7 @@ import Initiative from "~components/window/windows/initiative/initiative";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
 import FogBrush from "~components/window/windows/fog-brush/fog-brush";
+import DoodleBrush from "~components/window/windows/doodle-brush/doodle-brush";
 
 declare const htmx: any;
 
@@ -146,8 +147,8 @@ class Room {
             send("room:tabletop:map:load", id);
         });
         window.addEventListener("tabletop:update", (e:CustomEvent) => {
-            const { cellSize, renderGrid, fogOfWar } = e.detail;
-            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, fogOfWar });
+            const { cellSize, renderGrid } = e.detail;
+            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
@@ -264,16 +265,28 @@ class Room {
             }
         });
         window.addEventListener("fog:fill", () => {
-            send("room:tabletop:map:update", { cellSize: this.gridSize, renderGrid: this.renderGrid, fogOfWar: true });
+            send("room:tabletop:fog:fill");
         });
         window.addEventListener("fog:clear", () => {
-            send("room:tabletop:map:update", { cellSize: this.gridSize, renderGrid: this.renderGrid, fogOfWar: false });
+            send("room:tabletop:fog:clear");
         });
         window.addEventListener("window:fog", () => {
             const name = "Fog of War";
             const window = document.body.querySelector(`window-component[window="fog-of-war"]`) || new Window({
                 name: name,
                 view: new FogBrush(),
+                width: 400,
+                height: 200,
+            });
+            if (!window.isConnected){
+                document.body.append(window);
+            }
+        });
+        window.addEventListener("window:doodle", () => {
+            const name = "Doodle";
+            const window = document.body.querySelector(`window-component[window="doodle"]`) || new Window({
+                name: name,
+                view: new DoodleBrush(),
                 width: 400,
                 height: 200,
             });
