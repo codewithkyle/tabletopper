@@ -24,7 +24,8 @@ jobs:
                 go-version: '1.21.1'
 
             - name: Compile Server
-              run: cd ./server && go build -ldflags="-s -w"
+              run: go build -ldflags="-s -w"
+              working-directory: server
 
             - name: Load SSH Key
               uses: webfactory/ssh-agent@v0.8.0
@@ -32,27 +33,29 @@ jobs:
                 ssh-private-key: ${{ secrets.SSHKEY }}
 
             - name: Deploy
-              run: rsync -azh --delete-after --exclude={'.ari.toml','.env','.env.example','.gitignore','/tmp'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/server
-
-            - name: Compile
-              run: cd ../client && npm run production
-
-            - name: Deploy
-              run: rsync -azh --delete-after --exclude={'/public/static/config.js','/node_modules','/build','.gitignore','brixi.config.js','cssmonster.config.json','asset-manager.config.js','package.json','package-lock.json','tsconfig.json','/src'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/client
-
-            - name: Install NPM Packages
-              run: cd ../wss && npm ci
+              run: rsync -azh --delete-after --exclude={'.ari.toml','.env','.env.example','.gitignore','/tmp'} -e "ssh -o StrictHostKeyChecking=no" ./server ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/server
+            
+            - name: Install Client NPM Packages
+              run: npm ci
+              working-directory: client
 
             - name: Compile
               run: npm run production
-
-            - name: Load SSH Key
-              uses: webfactory/ssh-agent@v0.8.0
-              with:
-                ssh-private-key: ${{ secrets.SSHKEY }}
+              working-directory: client
 
             - name: Deploy
-              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
+              run: rsync -azh --delete-after --exclude={'/public/static/config.js','/node_modules','/build','.gitignore','brixi.config.js','cssmonster.config.json','asset-manager.config.js','package.json','package-lock.json','tsconfig.json','/src'} -e "ssh -o StrictHostKeyChecking=no" ./client ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/client
+
+            - name: Install WSS NPM Packages
+              run: npm ci
+              working-directory: wss
+
+            - name: Compile
+              run: npm run production
+              working-directory: wss
+
+            - name: Deploy
+              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./wss ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
             
             - name: Post Deployment
               uses: appleboy/ssh-action@master
