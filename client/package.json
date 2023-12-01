@@ -9,8 +9,7 @@
     "build:css": "cssmonster",
     "production": "run-p install:* && npm run build && asset-manager",
     "watch": "run-p watch:*",
-    "watch:src": "npm-watch",
-    "deploy": "cp ./build/prod.config.js ./public/config.js && node ./build/deploy.js"
+    "watch:src": "npm-watch"
   },
   "devDependencies": {
     "@codewithkyle/asset-manager": "^1.0.2",
