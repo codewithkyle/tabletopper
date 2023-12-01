@@ -156,7 +156,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name}`,
                 width: 300,
                 height: 150,
-                view: new StatBlock(this.model.uid, "player", this.model.rings),
+                view: new StatBlock(this.model.uid, "player", this.model.rings, null, null, null, this.model.hidden),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -345,7 +345,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(1) saturate(1)";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && room.isGM){
+        } else if (this.model.hidden && room.isGM || this.model.hidden && this.model.uid === room.uid){
             this.style.visibility = "visible";
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(0.5) saturate(0)";
