@@ -66,7 +66,6 @@ export default class Pawn extends SuperComponent<IPawn>{
         };
         this.ticket = subscribe("socket", this.inbox.bind(this));
         this.gridSize = room.gridSize;
-        console.log(this.gridSize);
     }
     
     override async connected() {
@@ -177,7 +176,6 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private resetTooltip(){
-        console.log(this.model);
         if (this.model.hp !== null && this.model.fullHP !== null){
             if (this.model.hp === 0){
                 this.setAttribute("bleeding", "false");
@@ -199,7 +197,6 @@ export default class Pawn extends SuperComponent<IPawn>{
         this.resetTooltip();
         this.setAttribute("sfx", "button");
         if (this.dragging){
-            console.log("sending move", this.model.uid, this.localX, this.localY);
             send("room:tabletop:pawn:move", {
                 uid: this.model.uid,
                 x: this.localX,
