@@ -23,14 +23,14 @@ jobs:
               with:
                 go-version: '1.21.1'
 
-            - name: Compile Server
-              run: go build -ldflags="-s -w"
-              working-directory: server
-
             - name: Load SSH Key
               uses: webfactory/ssh-agent@v0.8.0
               with:
                 ssh-private-key: ${{ secrets.SSHKEY }}
+
+            - name: Compile Server
+              run: go build -ldflags="-s -w"
+              working-directory: server
 
             - name: Deploy
               run: rsync -azh --delete-after --exclude={'.ari.toml','.env','.env.example','.gitignore','/tmp'} -e "ssh -o StrictHostKeyChecking=no" ./server ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/server
@@ -55,7 +55,7 @@ jobs:
               working-directory: wss
 
             - name: Deploy
-              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./wss ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
+              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./wss ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/wss
             
             - name: Post Deployment
               uses: appleboy/ssh-action@master
