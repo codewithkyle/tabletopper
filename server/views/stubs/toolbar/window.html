@@ -9,12 +9,14 @@
     <span>Chat</span>
 </button>
 -->
-<button 
-    sfx="button"
-    x-on:click="$dispatch('window:monsters');open = false;"
->
-    <span>Monster Manual</span>
-</button>
+{% if isGM %}
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:monsters');open = false;"
+    >
+        <span>Monster Manual</span>
+    </button>
+{ % endif %}
 <button 
     sfx="button"
     x-on:click="$dispatch('window:dicebox');open = false;"
@@ -36,10 +38,10 @@
     >
         <span>Fog brush</span>
     </button>
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:doodle');open = false;"
+    >
+        <span>Doodle brush</span>
+    </button>
 {% endif %}
-<button 
-    sfx="button"
-    x-on:click="$dispatch('window:doodle');open = false;"
->
-    <span>Doodle brush</span>
-</button>
