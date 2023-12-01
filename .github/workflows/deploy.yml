@@ -32,30 +32,33 @@ jobs:
               run: go build -ldflags="-s -w"
               working-directory: server
 
-            - name: Deploy
-              run: rsync -azh --delete-after --exclude={'.ari.toml','.env','.env.example','.gitignore','/tmp'} -e "ssh -o StrictHostKeyChecking=no" ./server ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/server/
+            - name: Deploy Server
+              run: rsync -azh --delete-after --exclude={'.ari.toml','.env','.env.example','.gitignore','/tmp'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/
+              working-directory: server
             
             - name: Install Client NPM Packages
               run: npm ci
               working-directory: client
 
-            - name: Compile
+            - name: Compile Client
               run: npm run production
               working-directory: client
 
-            - name: Deploy
-              run: rsync -azh --delete-after --exclude={'/public/static/config.js','/node_modules','/build','.gitignore','brixi.config.js','cssmonster.config.json','asset-manager.config.js','package.json','package-lock.json','tsconfig.json','/src'} -e "ssh -o StrictHostKeyChecking=no" ./client ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/client/
+            - name: Deploy Client
+              run: rsync -azh --delete-after --exclude={'/public/static/config.js','/node_modules','/build','.gitignore','brixi.config.js','cssmonster.config.json','asset-manager.config.js','package.json','package-lock.json','tsconfig.json','/src'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/
+              working-directory: client
 
             - name: Install WSS NPM Packages
               run: npm ci
               working-directory: wss
 
-            - name: Compile
+            - name: Compile WSS
               run: npm run production
               working-directory: wss
 
-            - name: Deploy
-              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./wss ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/wss/
+            - name: Deploy WSS
+              run: rsync -azh --delete-after --exclude={'.git','.env','.github','.gitignore','tsconfig.json','/src','/build'} -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/tabletopper/
+              working-directory: wss
             
             - name: Post Deployment
               uses: appleboy/ssh-action@master
