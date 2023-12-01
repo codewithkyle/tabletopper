@@ -1,0 +1,42 @@
+tabletop-page{
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding-top: 28px;
+    overflow: hidden;
+
+    &[state="SYNCING"]{
+        .spinner{
+            visibility: visible;
+            opacity: 1;
+        }
+
+        tabletop-component{
+            visibility: hidden;
+            opacity: 0;
+        }
+    }
+
+    &[state="IDLING"]{
+        .spinner{
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        tabletop-component{
+            visibility: visible;
+            opacity: 1;
+        }
+    }
+
+    .spinner{
+        pointer-events: none;
+    }
+
+    *{
+        user-select: none;
+    }
+}

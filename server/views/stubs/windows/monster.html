@@ -1,0 +1,117 @@
+<div calss="block">
+    <div class="stats line-normal">
+        <div class="block w-full p-0.5">
+            <h3 class="block font-danger-800 dark:font-danger-600 font-lg font-bold font-serif">{{ Monster.Name }}</h3>
+            <p style="font-style:italic;" class="block font-grey-900 dark:font-grey-300 font-xs">{{ Monster.Size }} {{ Monster.Type }} {{ Monster.Subtype }} {{ Monster.Alignment }}</p>
+        </div>
+        <hr>
+        <p class="block w-full p-0.5 font-danger-800 dark:font-danger-600 font-sm">
+            <strong>Armor Class</strong>
+            {{ Monster.AC }}
+            <br>
+            <strong>Hit Points</strong>
+            {{ Monster.HP }}
+            <br>
+            <strong>Speed</strong>
+            {{ Monster.Speed }}
+            <br>
+            <strong>Challenge</strong>
+            {{ Monster.CR }} ({{ Monster.XP }})
+        </p>
+        <hr>
+        <div class="abilities p-0.5">
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">STR</strong>
+                <span>{{ Monster.Strength }} ({{ CalculateModifier(Monster.Strength) }})</span>
+            </div>
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">DEX</strong>
+                <span>{{ Monster.Dexterity }} ({{ CalculateModifier(Monster.Dexterity) }})</span>
+            </div>
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">CON</strong>
+                <span>{{ Monster.Constitution }} ({{ CalculateModifier(Monster.Constitution) }})</span>
+            </div>
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">INT</strong>
+                <span>{{ Monster.Intelligence }} ({{ CalculateModifier(Monster.Intelligence) }})</span>
+            </div>
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">WIS</strong>
+                <span>{{ Monster.Wisdom }} ({{ CalculateModifier(Monster.Wisdom) }})</span>
+            </div>
+            <div class="text-center font-danger-800 dark:font-danger-600 font-sm">
+                <strong class="block">CHA</strong>
+                <span>{{ Monster.Charisma }} ({{ CalculateModifier(Monster.Charisma) }})</span>
+            </div>
+        </div>
+        <hr>
+        <p class="block w-full p-0.5 font-danger-800 dark:font-danger-600 font-sm">
+            <strong>Immunities</strong>
+            {% if Monster.Immunities %}{{ Monster.Immunities }}{% else %}-{% endif %}
+            <br>
+            <strong>Resistances</strong>
+            {% if Monster.Resistances %}{{ Monster.Resistances }}{% else %}-{% endif %}
+            <br>
+            <strong>Vulnerabilities</strong>
+            {% if Monster.Vulnerabilities %}{{ Monster.Vulnerabilities }}{% else %}-{% endif %}
+            <br>
+            <strong>Senses</strong>
+            {% if Monster.Senses %}{{ Monster.Senses }}{% else %}-{% endif %}
+            <br>
+            <strong>Languages</strong>
+            {% if Monster.Languages %}{{ Monster.Languages }}{% else %}-{% endif %}
+            <br>
+            <strong>Saving Throws</strong>
+            {% if Monster.SavingThrows %}{{ Monster.SavingThrows }}{% else %}-{% endif %}
+            <br>
+            <strong>Skills</strong>
+            {% if Monster.Skills %}{{ Monster.Skills }}{% else %}-{% endif %}
+            <br>
+            <strong>Proficiency Bonus</strong>
+            {{ CalculateProficiencyBonus(Monster.CR) }}
+            <br>
+        </p>
+        <hr>
+        {% if Abilities|length %}
+            <dl class="block w-full p-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for ability in Abilities %}
+                    <dt class="block mt-0.5 font-medium block">{{ ability.Name }}</dt>
+                    <dd>{{ ability.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if Actions|length %}
+            <dl class="block w-full p-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for action in Actions %}
+                    <dt class="block mt-0.5 font-medium block">{{ action.Name }}</dt>
+                    <dd>{{ action.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if Reactions|length %}
+            <dl class="block w-full p-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for reaction in Reactions %}
+                    <dt class="block mt-0.5 font-medium block">{{ reaction.Name }}</dt>
+                    <dd>{{ reaction.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if LengandaryActions|length %}
+            <dl class="block w-full p-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for legendaryAction in LengandaryActions %}
+                    <dt class="block mt-0.5 font-medium block">{{ legendaryAction.Name }}</dt>
+                    <dd>{{ lengandaryAction.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
+        {% if LairActions|length %}
+            <dl class="block w-full p-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for lairAction in LairActions %}
+                    <dt class="block mt-0.5 font-medium block">{{ lairAction.Name }}</dt>
+                    <dd>{{ lairAction.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
+    </div>
+</div>

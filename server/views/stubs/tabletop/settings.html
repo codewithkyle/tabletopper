@@ -1,0 +1,38 @@
+<div class="w-full p-2" grid="columns 1 gap-1.5">
+    <number-input-component
+        data-name="cell-size"
+        data-label="Grid Cell Size"
+        data-instructions="Units in pixels."
+        data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="17" x2="20" y2="17"></line><line x1="7" y1="4" x2="7" y2="20"></line><line x1="17" y1="4" x2="17" y2="20"></line></svg>'
+        :data-value="$data.cellSize"
+        x-on:input="$data.cellSize = $event.detail.value"
+    >
+    </number-input-component>
+    <lightswitch-component 
+        data-name="render-grid"
+        data-enabled-label="Visible"
+        data-disabled-label="Hidden"
+        data-label="Show grid"
+        :data-enabled="$data.renderGrid"
+        x-on:change="$data.renderGrid = $event.detail.enabled"
+    >
+    </lightswitch-component>
+</div>
+<div class="p-1 block w-full">
+    <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
+        <button
+            class="mr-1 bttn"
+            sfx="button"
+            kind="solid"
+            color="grey"
+            x-on:click="open = false"
+        >Cancel</button>
+        <button
+            class="bttn"
+            sfx="button"
+            kind="solid"
+            color="success"
+            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked });"
+        >Save</button>
+    </div>
+</div>

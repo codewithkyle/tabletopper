@@ -1,0 +1,53 @@
+<div
+    class="join w-411 bg-white dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-grey-sm radius-0.5 no-scroll"
+    style="backdrop-filter: blur(8px);"
+    x-data="{ room: '', character: '' }"
+>
+    <div class="p-1.5">
+        <input-component class="input mb-1.5" form-input state="IDLING">
+            <label for="room-code">Character Name</label>
+            <input-container>
+                <input 
+                    id="character-name" 
+                    type="text" 
+                    name="character"
+                    autocomplete="off" 
+                    required="true"
+                    x-on:keyup="character = $event.target.value.trim()"
+                >
+            </input-container>
+        </input-component>
+        <input-component class="input" form-input state="IDLING">
+            <label for="room-code">Room Code</label>
+            <input-container>
+                <input 
+                    id="room-code" 
+                    type="text" 
+                    maxlength="4" 
+                    minlength="4" 
+                    name="room" 
+                    autocomplete="off" 
+                    required="true"
+                    x-on:keyup="room = $event.target.value.toUpperCase().trim()"
+                >
+            </input-container>
+        </input-component>
+    </div>
+    <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 dark:bg-grey-950/60 border-t-1 border-t-solid border-t-grey-300 dark:border-t-grey-800">
+        <button 
+            class="bttn mr-1" 
+            color="grey" 
+            kind="solid"
+            hx-get="/stub/home"
+            hx-target="home-page"
+        >Back</button>
+        <a 
+            class="bttn" 
+            color="primary" 
+            kind="solid"
+            :href="room.length == 4 && character.length ? '/room/' + room : '#'"
+            :disabled="room.length != 4 || !character.length"
+            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') }))"
+        >Next</a>
+    </div>
+</div>

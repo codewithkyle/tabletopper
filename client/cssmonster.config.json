@@ -1,0 +1,4 @@
+{
+    "sources": "./src",
+    "outDir": "./public/css"
+}

@@ -1,0 +1,26 @@
+{
+    "devDependencies": {
+        "@types/node": "^17.0.8",
+        "npm-watch": "^0.11.0",
+        "typescript": "^4.5.4"
+    },
+    "dependencies": {
+        "dotenv": "^10.0.0",
+        "uuid": "^8.3.2"
+    },
+    "scripts": {
+        "make": "tsc",
+        "test": "rm -rf ./dist && npm run make && node ./build/mover.js && node ./dist/src/index.js",
+        "production": "npm run make && node ./build/mover.js",
+        "watch": "npm-watch"
+    },
+    "watch": {
+        "test": {
+            "patterns": [
+                "./src"
+            ],
+            "extensions": "ts,js",
+            "quiet": false
+        }
+    }
+}

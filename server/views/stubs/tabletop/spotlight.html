@@ -1,0 +1,11 @@
+<input 
+    type="search" 
+    name="search" 
+    placeholder="Search for monsters..." 
+    autofocus
+    hx-get="/stub/tabletop/spotlight-search"
+    hx-trigger="keyup changed delay:500ms"
+    hx-target="#spotlight-search-results"
+    autocomplete="off"
+>
+<div id="spotlight-search-results"></div>

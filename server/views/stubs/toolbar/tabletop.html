@@ -1,0 +1,34 @@
+<button 
+    sfx="button"
+    x-data=""
+    x-on:click="$dispatch('show-tabletop-settings');open = false;"
+    hx-get="/stub/tabletop/settings"
+    hx-target="tabletop-settings .modal"
+>
+    <span>Settings</span>
+</button>
+<button 
+    sfx="button"
+    x-data=""
+    x-on:click="$dispatch('show-tabletop-images');open = false;"
+    hx-get="/stub/tabletop/images"
+    hx-target="tabletop-images .modal"
+>
+    <span>Load image</span>
+    <span>Ctrl+N</span>
+</button>
+<button 
+    sfx="button"
+    x-on:click="$dispatch('tabletop:spawn-pawns')"
+>
+    <span>Spawn pawns</span>
+    <span>Ctrl+L</span>
+</button>
+<button 
+    sfx="button"
+    x-data=""
+    x-on:click="$dispatch('tabletop:clear')"
+>
+    <span>Clear tabletop</span>
+    <span>Ctrl+Backspace</span>
+</button>

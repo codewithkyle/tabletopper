@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "lib": [
+            "ES2020"
+        ],
+        "allowJs": true,
+        "checkJs": false,
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "baseUrl": "src",
+        "outDir": "dist",
+        "esModuleInterop": true,
+        "skipLibCheck": true
+    },
+    "exclude": ["dist", "build"]
+}
