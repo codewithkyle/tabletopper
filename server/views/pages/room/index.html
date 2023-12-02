@@ -63,7 +63,7 @@
     ></div>
 </spotlight-search>
 <quick-spawn
-    x-data="{ open: false }"
+    x-data="{ open: false, name: '' }"
     x-on:show-quick-spawn.window="open = true"
     x-show="open"
 >
@@ -77,13 +77,14 @@
                 data-label="Name"
                 data-required="true"
                 :data-value="name"
+                @input="name = $event.detail.value"
             ></input-component>
             <div class="w-full" grid="columns 2 gap-1.5">
                 <select-component
                     data-name="type"
                     data-label="Type"
                     data-required="true"
-                    data-options='[{"label":"NPC","value":"npc"},{"label":"Monster","value":"monster"}]'
+                    data-options='[{"label":"NPC","value":"npc"}{% if GM %},{"label":"Monster","value":"monster"}{% endif %}]'
                     data-value="npc"
                 ></select-component>
                 <select-component
@@ -104,6 +105,7 @@
                     data-label="Hit Points"
                     data-required="true"
                     data-value="1"
+                    data-min="1"
                 ></number-input-component>
             </div>
         </div>
@@ -121,6 +123,7 @@
                     sfx="button"
                     kind="solid"
                     color="success"
+                    :disabled="!name"
                     x-on:click="open = false; $dispatch('tabletop:quick-spawn');"
                 >Spawn</button>
             </div>
