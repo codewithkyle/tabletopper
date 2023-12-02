@@ -3,10 +3,10 @@ import alerts from "~brixi/controllers/alerts";
 (async () => {
     // @ts-ignore
     const { ENV } = await import("/static/config.js");
-    if (ENV === "production"){
+    if (ENV === "dev"){
         let update = false;
         await new Promise<void>(resolve => {
-            navigator.serviceWorker.register("/static/service-worker.js", { scope: "/" });
+            navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
                 if (update){
@@ -26,6 +26,7 @@ import alerts from "~brixi/controllers/alerts";
                     // @ts-expect-error
                     if (self.manifest.version !== localStorage.getItem("version")) {
                         update = true;
+                        alerts.alert("Installing Update", "An app update is in progress. Please wait...");
                         localStorage.removeItem("version");
                     } else {
                         // @ts-expect-error

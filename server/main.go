@@ -84,6 +84,7 @@ func main() {
     app.Static("/static", "../client/public/static")
     app.Static("/audio", "../client/public/audio")
     app.Static("/images", "../client/public/images")
+    app.Static("/service-worker.js", "../client/public/service-worker.js")
 
     app.Get("/", func(c *fiber.Ctx) error {
         return c.Render("pages/homepage/index", fiber.Map{}, "layouts/main")
