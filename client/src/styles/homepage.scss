@@ -4,7 +4,7 @@ home-page{
 
     .menu{
         h1{
-            font-size: 10rem;
+            font-size: 4rem;
             font-family: "Lobster";
             font-weight: var(--font-bold);
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -12,6 +12,10 @@ home-page{
             animation: fadeIn forwards 600ms 300ms var(--ease-in);
             opacity: 0;
             margin-bottom: 3rem;
+
+            @media (min-width: 768px){
+                font-size: 10rem;
+            }
         }
 
         .actions{
