@@ -22,7 +22,6 @@ class Room {
     private cellSize: number;
     private cellDistance: number;
     private renderGrid: boolean;
-    private fogOfWar: boolean;
     private pawns: Pawn[];
     private initiative: Array<Initiative>;
     private activeInitiative: string|null;
@@ -47,7 +46,6 @@ class Room {
         this.cellSize = 32;
         this.cellDistance = 5;
         this.renderGrid = false;
-        this.fogOfWar = false;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
@@ -66,7 +64,6 @@ class Room {
     public syncFog(cells):void{
         this.clearedCells = cells;
         this.broadcast("room:tabletop:fog:sync", {
-            fogOfWar: this.fogOfWar,
             clearedCells: this.clearedCells,
         });
     }
@@ -149,22 +146,23 @@ class Room {
     public loadMap(map:string):void{
         this.map = map;
         this.broadcast("room:tabletop:load", map);
+        gm.send(this.sockets[this.gmId], "room:tabletop:fog:init");
     }
 
     public fillFog():void{
-        this.fogOfWar = true;
-        this.clearedCells = {};
+        for (const key in this.clearedCells){
+            this.clearedCells[key] = false;
+        }
         this.broadcast("room:tabletop:fog:sync", {
-            fogOfWar: this.fogOfWar,
             clearedCells: this.clearedCells,
         });
     }
 
     public clearFog():void{
-        this.fogOfWar = false;
-        this.clearedCells = {};
+        for (const key in this.clearedCells){
+            this.clearedCells[key] = true;
+        }
         this.broadcast("room:tabletop:fog:sync", {
-            fogOfWar: this.fogOfWar,
             clearedCells: this.clearedCells,
         });
     }
@@ -422,11 +420,9 @@ class Room {
             gm.send(ws, "room:tabletop:load", this.map);
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
-            const fogOfWar = this.fogOfWar;
             const cellDistance = this.cellDistance;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, fogOfWar, cellDistance });
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
             gm.send(ws, "room:tabletop:fog:sync", {
-                fogOfWar: this.fogOfWar,
                 clearedCells: this.clearedCells,
             });
             gm.send(ws, "room:tabletop:doodle", this.doodleData);

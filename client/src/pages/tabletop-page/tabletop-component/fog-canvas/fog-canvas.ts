@@ -12,7 +12,6 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private ctx: CanvasRenderingContext2D;
     private time: number;
     private gridSize: number;
-    private fogOfWar: boolean;
     private ticket: string;
     private w: number;
     private h: number;
@@ -31,7 +30,6 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.tabletop = document.querySelector("tabletop-component");
         this.time = 0;
         this.gridSize = 32;
-        this.fogOfWar = false;
         this.brushSize = 1;
         this.clearedCells = {};
         subscribe("socket", this.inbox.bind(this));
@@ -43,16 +41,16 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.appendChild(this.canvas);
     }
 
-    public convertViewportToTabletopPosition(clientX:number, clientY:number):Array<number>{
+    public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
         const canvas = this.getBoundingClientRect();
         const x = Math.round(clientX - canvas.left + this.scrollLeft) / this.tabletop.zoom;
         const y = Math.round(clientY - canvas.top + this.scrollTop) / this.tabletop.zoom;
         return [x, y];
     }
 
-    private fogInbox({ type, data }){
+    private fogInbox({ type, data }) {
         const [x, y] = this.convertViewportToTabletopPosition(data.x, data.y);
-        switch(type){
+        switch (type) {
             case "eraser":
                 this.brushSize = data.brushSize;
                 this.erase(x, y);
@@ -69,13 +67,13 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private inbox({ type, data }) {
         switch (type) {
             case "room:tabletop:fog:sync":
-                this.fogOfWar = data.fogOfWar;
                 this.clearedCells = data.clearedCells;
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:clear":
-                this.fogOfWar = false;
-                this.clearedCells = {};
+                for (const key in this.clearedCells) {
+                    this.clearedCells[key] = true;
+                }
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:map:update":
@@ -87,9 +85,9 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         }
     }
 
-    private fill(x: number, y: number){
+    private fill(x: number, y: number) {
         let x1, y1, x2, y2;
-        if (this.brushSize > 2){
+        if (this.brushSize > 2) {
             x1 = x - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
             y1 = y - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
             x2 = x + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
@@ -106,9 +104,9 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             for (let j = 0; j < cellsInRow; j++) {
                 const cellX = j * this.gridSize;
                 const cellY = i * this.gridSize;
-                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2){
+                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2) {
                     const key = `${cellX}-${cellY}`;
-                    if (key in this.clearedCells){
+                    if (key in this.clearedCells) {
                         this.clearedCells[key] = false;
                         this.debounceSyncClearCells();
                     }
@@ -118,9 +116,9 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.renderFogOfWar();
     }
 
-    private erase(x: number, y: number){
+    private erase(x: number, y: number) {
         let x1, y1, x2, y2;
-        if (this.brushSize > 2){
+        if (this.brushSize > 2) {
             x1 = x - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
             y1 = y - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
             x2 = x + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
@@ -137,7 +135,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             for (let j = 0; j < cellsInRow; j++) {
                 const cellX = j * this.gridSize;
                 const cellY = i * this.gridSize;
-                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2){
+                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2) {
                     const key = `${cellX}-${cellY}`;
                     this.clearedCells[key] = true;
                     this.debounceSyncClearCells();
@@ -147,7 +145,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.renderFogOfWar();
     }
 
-    private syncClearCells(){
+    private syncClearCells() {
         send("room:tabletop:fog:sync", this.clearedCells);
     }
 
@@ -155,19 +153,19 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
 
     private renderFogOfWar() {
         this.ctx.clearRect(0, 0, this.w, this.h);
-        if (room.isGM){
+        if (room.isGM) {
             this.ctx.globalAlpha = 0.6;
         }
-        if (this.fogOfWar) {
-            const cells = [];
-            const cellsInRow = Math.ceil(this.w / this.gridSize);
-            const rows = Math.ceil(this.h / this.gridSize);
-            for (let i = 0; i < rows; i++) {
-                for (let j = 0; j < cellsInRow; j++) {
-                    const x = j * this.gridSize;
-                    const y = i * this.gridSize;
-                    const key = `${x}-${y}`;
-                    if (this.clearedCells?.[key]){
+        const cells = [];
+        const cellsInRow = Math.ceil(this.w / this.gridSize);
+        const rows = Math.ceil(this.h / this.gridSize);
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cellsInRow; j++) {
+                const x = j * this.gridSize;
+                const y = i * this.gridSize;
+                const key = `${x}-${y}`;
+                if (key in this.clearedCells) {
+                    if (this.clearedCells[key]) {
                         continue;
                     }
                     cells.push({
@@ -176,13 +174,28 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
                     });
                 }
             }
+        }
 
-            this.ctx.fillStyle = "rgba(24,24,24)";
-            for (let i = 0; i < cells.length; i++) {
-                const { x, y } = cells[i];
-                this.ctx.fillRect(x, y, this.gridSize, this.gridSize);
+        this.ctx.fillStyle = "rgba(24,24,24)";
+        for (let i = 0; i < cells.length; i++) {
+            const { x, y } = cells[i];
+            this.ctx.fillRect(x, y, this.gridSize, this.gridSize);
+        }
+    }
+
+    public load() {
+        this.clearedCells = {};
+        const cellsInRow = Math.ceil(this.w / this.gridSize);
+        const rows = Math.ceil(this.h / this.gridSize);
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cellsInRow; j++) {
+                const x = j * this.gridSize;
+                const y = i * this.gridSize;
+                const key = `${x}-${y}`;
+                this.clearedCells[key] = true;
             }
         }
+        this.syncClearCells();
     }
 
     // @ts-ignore

@@ -14,6 +14,7 @@ export interface Settings {
     height?: number,
     minWidth?: number,
     minHeight?: number,
+    enableControls?: boolean,
 }
 export default class Window extends SuperComponent<IWindow>{
     private moving: boolean;
@@ -28,6 +29,7 @@ export default class Window extends SuperComponent<IWindow>{
     private localY: number;
     private minWidth: number;
     private minHeight: number;
+    private enableControls: boolean;
 
     constructor(settings:Settings){
         super();
@@ -62,6 +64,8 @@ export default class Window extends SuperComponent<IWindow>{
         if (savedHeight == null){
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
+
+        this.enableControls = settings?.enableControls ?? true;
 
         this.resize();
 
@@ -280,14 +284,9 @@ export default class Window extends SuperComponent<IWindow>{
         return out;
     }
 
-    override render(): void {
-        this.style.width = `${this.w}px`;
-        this.style.height = `${this.h}px`;
-        this.setAttribute("window", this.name.toLowerCase().trim().replace(/\s+/g, "-"));
-        this.setAttribute("size", this.model.size);
-        const view = html`
-            <div class="header" flex="row nowrap items-center justify-between" @mousedown=${this.startMove} @touchstart=${this.startMove}>
-                <h3 class="font-sm px-0.5">${this.name}</h3>
+    private renderControls():TemplateResult|string {
+        if (this.enableControls){
+            return html`
                 <div class="h-full" flex="row nowrap items-center">
                     <button @click=${this.handleMinimize} @mousedown=${this.noop} sfx="button">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-minus" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -306,6 +305,21 @@ export default class Window extends SuperComponent<IWindow>{
                         </svg>
                     </button>
                 </div>
+            `;
+        } else {
+            return "";
+        }
+    }
+
+    override render(): void {
+        this.style.width = `${this.w}px`;
+        this.style.height = `${this.h}px`;
+        this.setAttribute("window", this.name.toLowerCase().trim().replace(/\s+/g, "-"));
+        this.setAttribute("size", this.model.size);
+        const view = html`
+            <div class="header" flex="row nowrap items-center justify-between" @mousedown=${this.startMove} @touchstart=${this.startMove}>
+                <h3 class="font-sm px-0.5">${this.name}</h3>
+                ${this.renderControls()}
             </div>
             ${this.renderContent()}
             ${new ResizeHandle(this, "x", this.minWidth, this.minHeight)}

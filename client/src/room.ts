@@ -278,28 +278,38 @@ class Room {
             send("room:tabletop:fog:clear");
         });
         window.addEventListener("window:fog", () => {
-            const name = "Fog of War";
-            const window = document.body.querySelector(`window-component[window="fog-of-war"]`) || new Window({
+            const name = "Fog of War Settings";
+            const window = document.body.querySelector(`window-component[window="fog-of-war-settings"]`) || new Window({
                 name: name,
                 view: new FogBrush(),
                 width: 400,
                 height: 200,
+                enableControls: false,
             });
             if (!window.isConnected){
                 document.body.append(window);
             }
         });
-        window.addEventListener("window:doodle", () => {
-            const name = "Doodle";
-            const window = document.body.querySelector(`window-component[window="doodle"]`) || new Window({
+        window.addEventListener("window:fog:close", ()=>{
+            const w = document.body.querySelector(`window-component[window="fog-of-war-settings"]`)
+            if (w) w.remove();
+        });
+        window.addEventListener("window:draw", () => {
+            const name = "Draw Settings";
+            const window = document.body.querySelector(`window-component[window="draw-settings"]`) || new Window({
                 name: name,
                 view: new DoodleBrush(),
                 width: 400,
                 height: 200,
+                enableControls: false,
             });
             if (!window.isConnected){
                 document.body.append(window);
             }
+        });
+        window.addEventListener("window:draw:close", ()=>{
+            const w = document.body.querySelector(`window-component[window="draw-settings"]`)
+            if (w) w.remove();
         });
     }
 }

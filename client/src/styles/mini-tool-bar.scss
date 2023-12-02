@@ -1,0 +1,23 @@
+mini-tool-bar{
+    display: inline-block;
+    position: fixed;
+    top: calc(28px + 1rem);
+    right: 1rem;
+    z-index: 1000;
+    background-color: hsl(var(--grey-900-hsl)/0.87);
+    width: calc(38px + 0.5rem);
+    padding: 0.25rem;
+    border-radius: calc(18px + 0.5rem);
+    box-shadow: var(--shadow-black-sm);
+    border: 1px solid var(--grey-800);
+    backdrop-filter: blur(8px);
+
+    button{
+        display: block;
+        margin: 0 auto;
+
+        &.is-active{
+            color: var(--primary-500) !important;
+        }
+    }
+}

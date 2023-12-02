@@ -24,6 +24,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private fogCanvas: FogCanvas;
     private doodleCanvas: DoodleCanvas;
     private img: HTMLImageElement;
+    private isNewImage: boolean;
 
     constructor(){
         super(); 
@@ -45,6 +46,9 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:fog:init":
+                this.isNewImage = true;
+                break;
             case "room:tabletop:pawn:delete":
                 {
                     const pawn = this.querySelector(`pawn-component[data-uid="${data}"]`);
@@ -123,7 +127,6 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private handleDrop:EventListener = (e:DragEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        console.log(e);
     }
 
     private handleScroll:EventListener = (e:WheelEvent) => {
@@ -245,11 +248,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         }
         if (this.img){
             this.img.onload = () => {
-                console.log("rendering tabletop");
                 this.gridCanvas.render(this.img);
                 this.vfxCanvas.render(this.img);
                 this.fogCanvas.render(this.img);
                 this.doodleCanvas.render(this.img);
+                if (this.isNewImage){
+                    this.isNewImage = false;
+                    this.fogCanvas.load();
+                }
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
