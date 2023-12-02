@@ -1,0 +1,50 @@
+{% if GM %}
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:lock')"
+    >
+        <span>Lock room</span>
+    </button>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:unlock')"
+    >
+        <span>Unlock room</span>
+    </button>
+    <hr>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('room:players');open = false;"
+    >
+        <span>Player list</span>
+    </button>
+{% endif %}
+<button 
+    sfx="button"
+    x-data="{ room: window.location.pathname.split('/').pop() }"
+    x-on:click="navigator.clipboard.writeText(room);$dispatch('toast', { msg: 'Room code copied to clipboard' })"
+>
+    <span>Copy room code</span>
+</button>
+{% if User.Id and not GM %}
+    <hr>
+    <button 
+        sfx="button"
+        x-data=""
+        x-on:click="$dispatch('show-user-menu');open = false;"
+        hx-get="/stub/user/menu"
+        hx-target="user-menu .modal"
+    >
+        <span>Token menu</span>
+    </button>
+{% endif %}
+<hr>
+<a
+    sfx="button"
+    href="/"
+>
+    <span>Exit</span>
+</a>

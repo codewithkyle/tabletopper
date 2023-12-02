@@ -1,0 +1,223 @@
+<h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">
+    {% if Monster.Id %}
+        Update Monster
+    {% else %}
+        Create Monster
+    {% endif %}
+</h2>
+<div id="create-monster" class="container w-full p-2" grid="columns 1 gap-1.5">
+    {% if Monster.Id %}
+        <input type="hidden" name="id" value="{{ Monster.Id }}">
+    {% endif %}
+    {% if ImageId %}
+        {% include "stubs/tabletop/monster-image.html" %}
+    {% else %}
+        {% include "stubs/tabletop/monster-image-upload.html" %}
+    {% endif %}
+    <input-component
+        data-name="name"
+        data-label="Name"
+        data-required="true"
+        data-value="{{ Monster.Name }}"
+    ></input-component>
+    <div class="w-full" grid="columns 2 gap-1.5">
+        <select-component
+            data-name="size"
+            data-label="Size"
+            data-required="true"
+            data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+            data-value="{% if Monster.Size %}{{ Monster.Size }}{% else %}medium{% endif %}"
+        ></select-component>
+        <select-component
+            data-name="alignment"
+            data-label="Alignment"
+            data-required="true"
+            data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
+            data-value="{% if Monster.Alignment %}{{ Monster.Alignment }}{% else %}unaligned{% endif %}"
+        ></select-component>
+        <input-component
+            data-name="type"
+            data-label="Type"
+            data-value="{{ Monster.Type }}"
+        ></input-component>
+        <input-component
+            data-name="subtype"
+            data-label="Subtype"
+            data-value="{{ Monster.Subtype }}"
+        ></input-component>
+        <number-input-component
+            data-name="ac"
+            data-label="Armor Class"
+            data-required="true"
+            data-value="{{ Monster.AC }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="hp"
+            data-label="Hit Points"
+            data-required="true"
+            data-value="{{ Monster.HP }}"
+        ></number-input-component>
+    </div>
+    <input-component
+        data-name="speed"
+        data-label="Speed"
+        data-value="{{ Monster.Speed }}"
+    ></input-component>
+    <div class="w-full" grid="columns 3 gap-1.5">
+        <number-input-component
+            data-name="str"
+            data-label="Strength"
+            data-required="true"
+            data-value="{{ Monster.Strength }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="dex"
+            data-label="Dexterity"
+            data-required="true"
+            data-value="{{ Monster.Dexterity }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="con"
+            data-label="Constitution"
+            data-required="true"
+            data-value="{{ Monster.Constitution }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="int"
+            data-label="Intelligence"
+            data-required="true"
+            data-value="{{ Monster.Intelligence }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="wis"
+            data-label="Wisdom"
+            data-required="true"
+            data-value="{{ Monster.Wisdom }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="cha"
+            data-label="Charisma"
+            data-required="true"
+            data-value="{{ Monster.Charisma }}"
+        ></number-input-component>
+    </div>
+    <input-component
+        data-name="savingThrows"
+        data-label="Saving Throws"
+        data-value="{{ Monster.SavingThrows }}"
+    ></input-component>
+    <input-component
+        data-name="skills"
+        data-label="Skills"
+        data-value="{{ Monster.Skills }}"
+    ></input-component>
+    <input-component
+        data-name="vulnerabilities"
+        data-label="Vulnerabilities"
+        data-value="{{ Monster.Vulnerabilities }}"
+    ></input-component>
+    <input-component
+        data-name="resistances"
+        data-label="Resistances"
+        data-value="{{ Monster.Resistances }}"
+    ></input-component>
+    <input-component
+        data-name="immunities"
+        data-label="Inmunities"
+        data-value="{{ Monster.Immunities }}"
+    ></input-component>
+    <input-component
+        data-name="senses"
+        data-label="Senses"
+        data-value="{{ Monster.Senses }}"
+    ></input-component>
+    <input-component
+        data-name="languages"
+        data-label="Languages"
+        data-value="{{ Monster.Languages }}"
+    ></input-component>
+    <div class="w-full" grid="columns 2 gap-1.5">
+        <number-input-component
+            data-name="cr"
+            data-label="Challenge Rating"
+            data-value="{{ Monster.CR }}"
+        ></number-input-component>
+        <number-input-component
+            data-name="xp"
+            data-label="XP"
+            data-value="{{ Monster.XP }}"
+        ></number-input-component>
+    </div>
+    <monster-info-table
+        data-name="abilities"
+        data-label="Abilities"
+        data-add-label="Add Ability"
+        data-rows="{% if Monster.Abilities %}{{ Monster.Abilities|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+    <monster-info-table
+        data-name="actions"
+        data-label="Actions"
+        data-add-label="Add Action"
+        data-rows="{% if Monster.Actions %}{{ Monster.Actions|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+    <monster-info-table
+        data-name="reactions"
+        data-label="Reactions"
+        data-add-label="Add Reaction"
+        data-rows="{% if Monster.Reactions %}{{ Monster.Reactions|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+    <monster-info-table
+        data-name="legendaryActions"
+        data-label="Legendary Actions"
+        data-add-label="Add Legendary Action"
+        data-rows="{% if Monster.LegendaryActions %}{{ Monster.LegendaryActions|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+    <monster-info-table
+        data-name="lairActions"
+        data-label="Lair Actions"
+        data-add-label="Add Lair Action"
+        data-rows="{% if Monster.LairActions %}{{ Monster.LairActions|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+</div>
+<div class="p-1 block w-full">
+    <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
+        <button
+            class="mr-1 bttn"
+            sfx="button"
+            kind="solid"
+            color="grey"
+            x-on:click="open = false"
+            hx-delete="/monster/create"
+            hx-include="#create-monster"
+            hx-target="#create-monster"
+            hx-swap="delete"
+        >Cancel</button>
+        <button
+            class="bttn"
+            sfx="button"
+            kind="solid"
+            color="success"
+            x-on:click="open = false"
+            hx-post="/monster/create"
+            hx-include="#create-monster"
+            hx-target="#create-monster"
+            hx-swap="delete"
+            hx-encoding="multipart/form-data"
+        >
+            {% if Monster.Id %}
+                Update
+            {% else %}
+                Create
+            {% endif %}
+        </button>
+    </div>
+</div>
+<div 
+    id="monster-images-spinner"
+    class="absolute t-0 r-0 htmx-indicator pt-1 pr-1"
+>
+    <spinner-component
+        data-color="grey"
+        data-size="24"
+    ></spinner-component>
+</div>

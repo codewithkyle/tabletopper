@@ -1,0 +1,114 @@
+monster-info-table{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+
+    table-row{
+        display: block;
+        width: 100%;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+            color: var(--grey-300);
+        }
+        
+        input,
+        textarea{
+            background: transparent;
+            display: block;
+            min-height: 36px;
+            font-size: var(--font-sm);
+            line-height: 1.375;
+            color: var(--grey-800);
+            width: 100%;
+
+            @media (prefers-color-scheme: dark) {
+                color: var(--grey-300);
+                background-color: hsl(var(--white-hsl) / 0.05);
+
+                &:focus{
+                    background-color: transparent;
+                }
+            }
+        }
+
+        input{
+            padding: 0 0.5rem;
+        }
+
+        textarea{
+            resize: none;
+            padding: 0.5rem;
+            resize: vertical;
+        }
+
+        row-title{
+            display: flex;
+            flex-flow: row nowrap;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1px solid var(--grey-300);
+
+            @media (prefers-color-scheme: dark) {
+                border-color: var(--grey-700);
+            }
+
+            input{
+                font-weight: var(--font-medium);
+                color: var(--grey-700);
+                width: 100%;
+                flex: 1;
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-300);
+                }
+            }
+
+            button{
+                width: 36px;
+                height: 36px;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                border-left: 1px solid var(--grey-300);
+                transition: all 150ms var(--ease-in-out);
+                color: var(--grey-700);
+
+                &:hover,
+                &:focus-visible{
+                    color: var(--danger-700);
+                }
+
+                &:active{
+                    color: var(--danger-800);
+                }
+
+                @media (prefers-color-scheme: dark) {
+                    border-color: var(--grey-700);
+                    color: var(--grey-300);
+                    background-color: hsl(var(--white-hsl) / 0.05);
+
+                    &:hover,
+                    &:focus-visible{
+                        color: var(--danger-400);
+                        background-color: hsl(var(--danger-400-hsl) / 0.05);
+                    }
+
+                    &:active{
+                        color: var(--danger-400);
+                        background-color: hsl(var(--danger-400-hsl) / 0.1);
+                    }
+                }
+
+                svg{
+                    width: 14px;
+                    height: 14px;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+player-menu{
+    display: block;
+    width: 100%;
+    position: relative;
+
+    .player{
+        height: 36px;
+
+        &:not(:last-of-type){
+            margin-bottom: 0.5rem;
+        }
+
+        span{
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+    }
+}

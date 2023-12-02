@@ -1,0 +1,34 @@
+<button 
+    sfx="button"
+    x-on:click="$dispatch('window:initiative');open = false;"
+>
+    <span>Initiative tracker</span>
+</button>
+{% if isGM %}
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:monsters');open = false;"
+    >
+        <span>Monster Manual</span>
+    </button>
+{% endif %}
+<button 
+    sfx="button"
+    x-on:click="$dispatch('window:dicebox');open = false;"
+>
+    <span>Dice tray</span>
+</button>
+{% if isGM %}
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:fog');open = false;"
+    >
+        <span>Fog brush</span>
+    </button>
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:doodle');open = false;"
+    >
+        <span>Doodle brush</span>
+    </button>
+{% endif %}

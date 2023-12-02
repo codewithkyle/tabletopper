@@ -1,0 +1,16 @@
+doodle-brush{
+    display: block;
+    padding: 1rem;
+}
+brush-circle{
+    display: inline-block;
+    border-radius: 50%;
+    background-color: hsl(var(--white-hsl)/0.3);
+    border: 1px solid var(--white);
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    width: 4px;
+    height: 4px;
+}

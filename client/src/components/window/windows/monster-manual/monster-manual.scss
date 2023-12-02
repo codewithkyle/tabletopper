@@ -1,0 +1,154 @@
+monster-manual{
+    display: block;
+    width: 100%;
+    position: relative;
+    padding: 1rem;
+    user-select: none;
+
+    .monster{
+        height: 36px;
+        border: 1px solid var(--grey-300);
+
+        &:first-of-type{
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+
+        &:last-of-type{
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+        }
+
+        & > button {
+            flex: 1;
+            text-align: left;
+            justify-content: flex-start;
+            border-right: 1px solid var(--grey-300) !important;
+
+            @media (prefers-color-scheme: dark) {
+                border-right-color: var(--grey-700) !important;
+            }
+        }
+
+        button{
+            border-radius: 0 !important;
+
+            &:not(:last-of-type){
+                border-right: 1px solid var(--grey-300);
+
+                @media (prefers-color-scheme: dark) {
+                    border-right-color: var(--grey-700);
+                }
+            }
+        }
+    }
+}
+monster-maker{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+
+    .modal {
+        display: inline-block;
+        background-color: var(--white);
+        border-radius: 0.5rem;
+        width: 600px;
+        max-width: calc(100% - 2rem);
+        z-index: 2;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-black-lg);
+        border: 1px solid var(--grey-300);
+        backdrop-filter: blur(8px);
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-800);
+            background-color: hsl(var(--grey-900-hsl) / 0.87);
+            color: var(--grey-300);
+        }
+
+        .container{
+            height: 600px;
+            max-height: calc(100% - 100px - 60px - 4rem);
+            overflow-y: auto;
+
+            monster-image{
+                display: inline-block;
+                border-radius: 0.5rem;
+                position: relative;
+                border: 1px solid var(--grey-200);
+                height: 96px;
+                user-select: none;
+                transition: all 150ms var(--ease-in-out);
+
+                @media (prefers-color-scheme: dark) {
+                    border-color: var(--grey-700);
+                }
+
+                &:hover{
+                    border-color: var(--grey-300);
+                }
+
+                &:active{
+                    border-color: var(--primary-400);
+                    box-shadow: var(--active-ring);
+                    background-color: var(--white);
+
+                    @media (prefers-color-scheme: dark) {
+                        background-color: hsl(var(--white-hsl) / 0.1);
+                    }
+                }
+
+                &:focus-visible{
+                    box-shadow: var(--focus-ring);
+                }
+
+                label{
+                    display: inline-flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-flow: column wrap;
+                    font-size: var(--font-xs);
+                    color: var(--grey-700);
+                    width: 100%;
+                    height: 100%;
+                    cursor: pointer;
+
+                    @media (prefers-color-scheme: dark) {
+                        color: var(--grey-300);
+                    }
+                }
+
+                svg{
+                    color: var(--grey-600);
+                    display: block;
+                    width: 20px;
+                    height: 20px;
+                    margin-bottom: 0.5rem;
+
+                    @media (prefers-color-scheme: dark) {
+                        color: var(--grey-500);
+                    }
+                }
+
+                input{
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    opacity: 0;
+                    visibility: hidden;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,19 @@
+<button 
+    sfx="button"
+    x-on:click="$dispatch('fog:fill');"
+>
+    <span>Fill fog</span>
+</button>
+<button 
+    sfx="button"
+    x-on:click="$dispatch('fog:clear');"
+>
+    <span>Clear fog</span>
+</button>
+<hr>
+<button 
+    sfx="button"
+    x-on:click="$dispatch('window:fog');open = false;"
+>
+    <span>Fog brush</span>
+</button>

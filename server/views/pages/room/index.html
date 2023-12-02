@@ -1,0 +1,142 @@
+<tool-bar
+    x-data="{ open: '' }"
+    x-on:keydown.escape.window="open = ''"
+    x-on:click.outside="open = ''"
+>
+</tool-bar>
+<tabletop-page>
+    <tabletop-component></tabletop-component>
+</tabletop-page>
+<tool-bar-menu
+    x-data="{ open: false, left: 0 }"
+    x-on:open.window="open = true; left = $event.detail.left;"
+    x-show="open"
+    x-on:keydown.escape.window="open = false"
+>
+    <div 
+        class="menu"
+        x-on:click.outside="open = false"
+        :style="{ transform: 'translateX(' + left + 'px)' }"
+    ></div>
+</tool-bar-menu>
+<tabletop-images
+    x-data="{ open: false }"
+    x-on:show-tabletop-images.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+        x-data="{ selected: '' }"
+    ></div>
+</tabletop-images>
+<tabletop-settings
+    x-data="{ open: false, cellSize: 32, renderGrid: false, fogOfWar: false }"
+    x-on:show-tabletop-settings.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+    ></div>
+</tabletop-settings>
+<monster-maker
+    x-data="{ open: false }"
+    x-on:show-monster-maker.window="open = true"
+    x-show="open"
+>
+    <div 
+        class="modal"
+    ></div>
+</monster-maker>
+<spotlight-search
+    x-data="{ open: false }"
+    x-on:show-spotlight-search.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+    ></div>
+</spotlight-search>
+<quick-spawn
+    x-data="{ open: false }"
+    x-on:show-quick-spawn.window="open = true"
+    x-show="open"
+>
+    <div 
+        class="modal"
+    >
+        <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Quick Spawn</h2>
+        <div id="create-monster" class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">
+            <input-component
+                data-name="name"
+                data-label="Name"
+                data-required="true"
+                :data-value="name"
+            ></input-component>
+            <div class="w-full" grid="columns 2 gap-1.5">
+                <select-component
+                    data-name="type"
+                    data-label="Type"
+                    data-required="true"
+                    data-options='[{"label":"NPC","value":"npc"},{"label":"Monster","value":"monster"}]'
+                    data-value="npc"
+                ></select-component>
+                <select-component
+                    data-name="size"
+                    data-label="Size"
+                    data-required="true"
+                    data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+                    data-value="medium"
+                ></select-component>
+                <number-input-component
+                    data-name="ac"
+                    data-label="Armor Class"
+                    data-required="true"
+                    data-value="0"
+                ></number-input-component>
+                <number-input-component
+                    data-name="hp"
+                    data-label="Hit Points"
+                    data-required="true"
+                    data-value="1"
+                ></number-input-component>
+            </div>
+        </div>
+        <div class="p-1 block w-full">
+            <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
+                <button
+                    class="mr-1 bttn"
+                    sfx="button"
+                    kind="solid"
+                    color="grey"
+                    x-on:click="open = false"
+                >Cancel</button>
+                <button
+                    class="bttn"
+                    sfx="button"
+                    kind="solid"
+                    color="success"
+                    x-on:click="open = false; $dispatch('tabletop:quick-spawn');"
+                >Spawn</button>
+            </div>
+        </div>
+    </div>
+</quick-spawn>
+<user-menu
+    x-data="{ open: false }"
+    x-on:show-user-menu.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+        x-data="{ selected: '' }"
+    >
+    </div>
+</user-menu>
