@@ -10,14 +10,8 @@ import alerts from "~brixi/controllers/alerts";
             navigator.serviceWorker.addEventListener("message", (e) => {
                 localStorage.setItem("version", e.data);
                 if (update){
-                    alerts.snackbar("An update has been applied.", [
-                        {
-                            label: "Restart",
-                            callback: ()=>{
-                                location.reload();
-                            },
-                        }
-                    ]);
+                    window.location.hash = "updated";
+                    window.location.reload();
                 }
             });
             navigator.serviceWorker.ready.then(async (registration) => {
@@ -42,6 +36,9 @@ import alerts from "~brixi/controllers/alerts";
                 resolve();
             });
         });
+        if (window.location.hash === "#updated"){
+            alerts.snackbar("Tabletopper has been updated.");
+        }
     }
 
     // @ts-expect-error
