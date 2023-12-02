@@ -75,7 +75,7 @@ func main() {
     engine.AddFunc("CalculateProficiencyBonus", CalculateProficiencyBonus)
 	app := fiber.New(fiber.Config{
 		Views: engine,
-        BodyLimit: 1024 * 1024 * 100, // 100mb
+        BodyLimit: 1024 * 1024 * 100,
         StreamRequestBody: true,
 	})
 
