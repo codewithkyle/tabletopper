@@ -22,6 +22,10 @@ tabletop-page{
 
     &[cursor="draw"]{
         cursor: crosshair !important;
+
+        .pawn{
+            pointer-events: none !important;
+        }
     }
 
     .spinner{
