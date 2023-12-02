@@ -20,6 +20,7 @@ class Room {
     };
     private map: string;
     private cellSize: number;
+    private cellDistance: number;
     private renderGrid: boolean;
     private fogOfWar: boolean;
     private pawns: Pawn[];
@@ -44,6 +45,7 @@ class Room {
         this.mutedPlayers = {};
         this.map = "";
         this.cellSize = 32;
+        this.cellDistance = 5;
         this.renderGrid = false;
         this.fogOfWar = false;
         this.pawns = [];
@@ -167,10 +169,11 @@ class Room {
         });
     }
 
-    public updateMap({ cellSize, renderGrid }){
+    public updateMap({ cellSize, renderGrid, cellDistance }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid });
+        this.cellDistance = cellDistance;
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
     }
 
     public clearMap(){
@@ -420,7 +423,8 @@ class Room {
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
             const fogOfWar = this.fogOfWar;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, fogOfWar });
+            const cellDistance = this.cellDistance;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, fogOfWar, cellDistance });
             gm.send(ws, "room:tabletop:fog:sync", {
                 fogOfWar: this.fogOfWar,
                 clearedCells: this.clearedCells,

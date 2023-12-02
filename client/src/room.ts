@@ -19,6 +19,7 @@ class Room {
     public isGM: boolean;
     private players: Player[];
     public gridSize: number;
+    public cellDistance: number;
     public renderGrid: boolean;
     public activeInitiative: string|null;
     private initiative: Array<any>;
@@ -31,6 +32,7 @@ class Room {
         this.isGM = false;
         this.players = [];
         this.gridSize = 32;
+        this.cellDistance = 5;
         this.renderGrid = false;
         this.initiative = [];
         this.activeInitiative = null;
@@ -50,6 +52,7 @@ class Room {
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
                 this.renderGrid = data.renderGrid;
+                this.cellDistance = data.cellDistance;
                 break;
             case "room:sync:players":
                 this.players = data;
@@ -151,8 +154,8 @@ class Room {
             send("room:tabletop:map:load", id);
         });
         window.addEventListener("tabletop:update", (e:CustomEvent) => {
-            const { cellSize, renderGrid } = e.detail;
-            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid });
+            const { cellSize, renderGrid, cellDistance } = e.detail;
+            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance) });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");

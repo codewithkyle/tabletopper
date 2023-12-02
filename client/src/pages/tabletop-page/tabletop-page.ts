@@ -47,6 +47,9 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             case "cursor:draw":
                 this.setAttribute("cursor", "draw");
                 break;
+            case "cursor:measure":
+                this.setAttribute("cursor", "draw");
+                break;
             default:
                 this.setAttribute("cursor", "move");
                 break;
