@@ -79,7 +79,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 	app.Get("/room/:id", func(c *fiber.Ctx) error {
 		isGM := c.Cookies("gm", "")
 		return c.Render("pages/room/index", fiber.Map{
-			"GM": isGM == "true",
+			"GM": isGM != "",
 		}, "layouts/vtt")
 	})
 	app.Post("/session/gm/:room", func(c *fiber.Ctx) error {
