@@ -67,7 +67,7 @@ jobs:
                 USERNAME: ${{ secrets.USERNAME }}
                 PORT: 22
                 KEY: ${{ secrets.SSHKEY }}
-                script: systemctl restart tabletoper-server.service && systemctl restart tabletoper-wss.service
+                script: systemctl restart tabletopper-server.service && systemctl restart tabletopper-wss.service
 
             - name: Purge cache
               uses: nathanvaughn/actions-cloudflare-purge@master
