@@ -382,7 +382,7 @@ class Room {
             return;
         }
         this.broadcast("room:announce:join", `${ws.name} joined the room.`);
-        gm.send(ws, "room:joined");
+        gm.send(ws, "room:joined", this.gmId === ws.id ? this.code : null);
         if (this.showPawns){
             const pawn:Pawn = {
                 x: 0,

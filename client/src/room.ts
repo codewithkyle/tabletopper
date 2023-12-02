@@ -94,7 +94,7 @@ class Room {
                 htmx.ajax("GET", "/stub/toolbar", "tool-bar");
                 break;
             case "room:joined":
-                if (data){
+                if (data === this.room){
                     await fetch(`/session/gm/${data}`, {
                         method: "POST",
                     });
