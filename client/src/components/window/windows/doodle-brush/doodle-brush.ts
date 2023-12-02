@@ -22,23 +22,21 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
     override async connected() {
         await env.css(["doodle-brush"]);
         this.tabletop = document.querySelector("tabletop-page") as TabletopPage;
-        this.tabletop.addEventListener("mousedown", this.onMouseDown, { passive: false, capture: true });
-        this.tabletop.addEventListener("mouseup", this.onMouseUp, { passive: false, capture: true });
-        this.tabletop.addEventListener("mousemove", this.onMouseMove, { passive: false, capture: true });
+        this.tabletop.addEventListener("mousedown", this.onMouseDown);
+        this.tabletop.addEventListener("mouseup", this.onMouseUp);
+        this.tabletop.addEventListener("mousemove", this.onMouseMove);
         this.render();
         publish("tabletop", "cursor:draw");
     }
 
     disconnected(): void {
-        this.tabletop.removeEventListener("mousedown", this.onMouseDown, true);
-        this.tabletop.removeEventListener("mouseup", this.onMouseUp, true);
-        this.tabletop.removeEventListener("mousemove", this.onMouseMove, true);
+        this.tabletop.removeEventListener("mousedown", this.onMouseDown);
+        this.tabletop.removeEventListener("mouseup", this.onMouseUp);
+        this.tabletop.removeEventListener("mousemove", this.onMouseMove);
         publish("tabletop", "cursor:move");
     }
 
     private onMouseDown = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
         if (e.button === 0) {
             this.painting = true;
             const x = e.clientX;
@@ -55,8 +53,6 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
     }
 
     private onMouseUp = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
         this.painting = false;
         publish("doodle", {
             type: "stop",
@@ -69,8 +65,6 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
 
     private onMouseMove = (e: MouseEvent) => {
         if (this.painting) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
             const x = e.clientX;
             const y = e.clientY;
             publish("doodle", {
@@ -82,8 +76,6 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
                 },
             });
         } else {
-            e.preventDefault();
-            e.stopImmediatePropagation();
             const x = e.clientX;
             const y = e.clientY;
             publish("doodle", {

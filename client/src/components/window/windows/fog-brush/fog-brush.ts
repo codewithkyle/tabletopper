@@ -24,10 +24,10 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
     override async connected() {
         await env.css(["fog-brush"]);
         this.tabletop = document.querySelector("tabletop-page") as TabletopPage;
-        this.tabletop.addEventListener("mousedown", this.onMouseDown, { passive: false, capture: true });
-        this.tabletop.addEventListener("mouseup", this.onMouseUp, { passive: false, capture: true });
-        this.tabletop.addEventListener("mousemove", this.onMouseMove, { passive: false, capture: true });
-        window.addEventListener("wheel", this.onMouseWheel, { passive: true, capture: true });
+        this.tabletop.addEventListener("mousedown", this.onMouseDown);
+        this.tabletop.addEventListener("mouseup", this.onMouseUp);
+        this.tabletop.addEventListener("mousemove", this.onMouseMove);
+        window.addEventListener("wheel", this.onMouseWheel, { passive: true });
         this.render();
         this.fogBrushCircle = document.createElement("fog-brush-circle");
         document.body.appendChild(this.fogBrushCircle);
@@ -39,10 +39,10 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
         if (this.fogBrushCircle) {
             this.fogBrushCircle.remove();
         }
-        this.tabletop.removeEventListener("mousedown", this.onMouseDown, true);
-        this.tabletop.removeEventListener("mouseup", this.onMouseUp, true);
-        this.tabletop.removeEventListener("mousemove", this.onMouseMove, true);
-        window.removeEventListener("wheel", this.onMouseWheel, true);
+        this.tabletop.removeEventListener("mousedown", this.onMouseDown);
+        this.tabletop.removeEventListener("mouseup", this.onMouseUp);
+        this.tabletop.removeEventListener("mousemove", this.onMouseMove);
+        window.removeEventListener("wheel", this.onMouseWheel);
         publish("tabletop", "cursor:move");
     }
 
@@ -59,8 +59,6 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
     }
 
     private onMouseDown = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
         if (e.button === 0) {
             this.painting = true;
             const x = e.clientX;
@@ -77,8 +75,6 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
     }
 
     private onMouseUp = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
         this.painting = false;
     }
 
@@ -109,8 +105,6 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
             }
         }
         if (this.painting) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
             const x = e.clientX;
             const y = e.clientY;
             publish("fog", {

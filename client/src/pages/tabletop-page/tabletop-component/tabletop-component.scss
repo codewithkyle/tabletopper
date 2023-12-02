@@ -11,3 +11,34 @@ tabletop-component {
         z-index: -1;
     }
 }
+.measurement{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 32px;
+    transform-origin: 0px 0px 0px;
+    z-index: 500;
+    background: hsl(var(--grey-900-hsl) / 0.87);
+    backdrop-filter: blur(8px);
+    border-width: 1px 1px 2px 1px;
+    border-style: solid;
+    border-color: var(--grey-800);
+    border-bottom-color: var(--yellow);
+
+    &.left{
+        border-top-color: var(--yellow);
+        border-bottom-color: var(--grey-800);
+        border-width: 2px 1px 1px 1px;
+
+        span{
+            transform: rotate(180deg);
+        }
+    }
+
+    span {
+        padding-left: 0.5rem;
+        line-height: 28px;
+        display: inline-block;
+    }
+}

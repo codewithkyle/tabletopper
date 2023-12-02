@@ -43,7 +43,7 @@
         icon="center"
         shape="round"
         tooltip="Move"
-        x-on:click="$dispatch('window:draw:close');$dispatch('window:fog:close');active = 'move';"
+        x-on:click="$dispatch('tabletop:mode', { mode: 'move' });$dispatch('window:draw:close');$dispatch('window:fog:close');active = 'move';"
     >
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 9l3 3l-3 3" /><path d="M15 12h6" /><path d="M6 9l-3 3l3 3" /><path d="M3 12h6" /><path d="M9 18l3 3l3 -3" /><path d="M12 15v6" /><path d="M15 6l-3 -3l-3 3" /><path d="M12 3v6" /></svg>
     </button>
@@ -56,7 +56,7 @@
         icon="center"
         tooltip="Measure"
         shape="round"
-        x-on:click="$dispatch('window:draw:close');$dispatch('window:fog:close');active = 'measure';"
+        x-on:click="$dispatch('tabletop:mode', { mode: 'measure' });$dispatch('window:draw:close');$dispatch('window:fog:close');active = 'measure';"
     >
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 3l4 4l-14 14l-4 -4z" /><path d="M16 7l-1.5 -1.5" /><path d="M13 10l-1.5 -1.5" /><path d="M10 13l-1.5 -1.5" /><path d="M7 16l-1.5 -1.5" /></svg>
     </button>
@@ -70,7 +70,7 @@
             icon="center"
             tooltip="Fog"
             shape="round"
-            x-on:click="$dispatch('window:draw:close');$dispatch('window:fog');active = 'fog';"
+            x-on:click="$dispatch('tabletop:mode', { mode: 'lock' });$dispatch('window:draw:close');$dispatch('window:fog');active = 'fog';"
         >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 16a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-12" /><path d="M5 20l14 0" /></svg>
         </button>
@@ -83,7 +83,7 @@
             icon="center"
             tooltip="Draw"
             shape="round"
-            x-on:click="$dispatch('window:fog:close');$dispatch('window:draw');active = 'draw';"
+            x-on:click="$dispatch('tabletop:mode', { mode: 'lock' });$dispatch('window:fog:close');$dispatch('window:draw');active = 'draw';"
         >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 21v-4a4 4 0 1 1 4 4h-4" /><path d="M21 3a16 16 0 0 0 -12.8 10.2" /><path d="M21 3a16 16 0 0 1 -10.2 12.8" /><path d="M10.6 9a9 9 0 0 1 4.4 4.4" /></svg>
         </button>
