@@ -101,6 +101,10 @@ class Room {
                         method: "DELETE",
                     });
                 }
+                send("room:player:rename", {
+                    playerId: this.uid,
+                    name: this.character,
+                });
                 htmx.ajax("GET", "/stub/toolbar", "tool-bar");
                 if (!this.isGM){
                     const verifyReq = await fetch('/user/verify')

@@ -86,6 +86,12 @@ export default class Pawn extends SuperComponent<IPawn>{
 
     private inbox({ type, data }){
         switch(type){
+            case "room:player:rename":
+                if (data.playerId === this.model.uid){
+                    this.model.name = data.name;
+                    this.render();
+                }
+                break;
             case "room:tabletop:pawn:image":
                 if (data.pawnId === this.model.uid){
                     this.model.image = data.image;
@@ -218,11 +224,6 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.removeAttribute("sfx");
             this.removeAttribute("tooltip");
             this.classList.add("no-anim");
-
-            document.body.querySelectorAll("pawn-component").forEach((el:HTMLElement) => {
-                el.style.zIndex = "10";
-            });
-            this.style.zIndex = "100";
         }
     }
 
@@ -374,6 +375,9 @@ export default class Pawn extends SuperComponent<IPawn>{
             pawnType = "monster";
         }
         this.setAttribute("pawn", pawnType);
+        if (this.model.uid === room.uid){
+            this.style.zIndex = "200";
+        }
         const view = html`
             ${this.renderRings()}
             ${this.renderPawn()}

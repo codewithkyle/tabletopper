@@ -74,6 +74,7 @@ class Room {
             this.sockets[playerId].name = name;
         }
         this.syncPlayers();
+        this.broadcast("room:player:rename", { playerId, name });
     }
 
     public mutePlayer({ playerId }): void{

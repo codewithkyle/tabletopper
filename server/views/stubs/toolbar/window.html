@@ -4,31 +4,20 @@
 >
     <span>Initiative tracker</span>
 </button>
-<!--
-<button sfx="button">
-    <span>Chat</span>
-</button>
--->
-<button 
-    sfx="button"
-    x-on:click="$dispatch('window:monsters');open = false;"
->
-    <span>Monster Manual</span>
-</button>
+{% if isGM %}
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:monsters');open = false;"
+    >
+        <span>Monster Manual</span>
+    </button>
+{% endif %}
 <button 
     sfx="button"
     x-on:click="$dispatch('window:dicebox');open = false;"
 >
     <span>Dice tray</span>
 </button>
-<!--
-<button sfx="button">
-    <span>Drawing tools</span>
-</button>
-<button sfx="button">
-    <span>Music</span>
-</button>
--->
 {% if isGM %}
     <button 
         sfx="button"
@@ -36,10 +25,10 @@
     >
         <span>Fog brush</span>
     </button>
+    <button 
+        sfx="button"
+        x-on:click="$dispatch('window:doodle');open = false;"
+    >
+        <span>Doodle brush</span>
+    </button>
 {% endif %}
-<button 
-    sfx="button"
-    x-on:click="$dispatch('window:doodle');open = false;"
->
-    <span>Doodle brush</span>
-</button>

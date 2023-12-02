@@ -27,6 +27,7 @@
             hx-trigger="change once"
             hx-target="user-menu .modal"
             hx-encoding="multipart/form-data"
+            hx-indicator="#user-images-spinner"
         >
     </form>
     {% for image in Images %}
@@ -99,4 +100,13 @@
             x-on:click="open = false; $dispatch('character:load', { 'id': selected })"
         >Select</button>
     </div>
+</div>
+<div 
+    id="user-images-spinner"
+    class="absolute t-0 r-0 htmx-indicator pt-1 pr-1"
+>
+    <spinner-component
+        data-color="grey"
+        data-size="24"
+    ></spinner-component>
 </div>

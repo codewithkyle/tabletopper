@@ -35,6 +35,9 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
         e.preventDefault();
         const x = e.clientX;
         const y = e.clientY;
+        document.body.querySelectorAll("context-menu").forEach((el) => {
+            el.remove();
+        });
         const items = [
             {
                 label: "Ping",
