@@ -3,7 +3,7 @@ import alerts from "~brixi/controllers/alerts";
 (async () => {
     // @ts-ignore
     const { ENV } = await import("/static/config.js");
-    if (ENV === "dev"){
+    if (ENV === "production"){
         let update = false;
         await new Promise<void>(resolve => {
             navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
