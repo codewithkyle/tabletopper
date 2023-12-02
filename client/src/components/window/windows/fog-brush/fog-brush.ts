@@ -32,6 +32,7 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
         this.fogBrushCircle = document.createElement("fog-brush-circle");
         document.body.appendChild(this.fogBrushCircle);
         this.scaleBrush();
+        publish("tabletop", "cursor:draw");
     }
 
     disconnected(): void {
@@ -42,6 +43,7 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
         this.tabletop.removeEventListener("mouseup", this.onMouseUp, true);
         this.tabletop.removeEventListener("mousemove", this.onMouseMove, true);
         window.removeEventListener("wheel", this.onMouseWheel, true);
+        publish("tabletop", "cursor:move");
     }
 
     private scaleBrush() {

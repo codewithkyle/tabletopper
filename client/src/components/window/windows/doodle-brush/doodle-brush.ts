@@ -9,7 +9,6 @@ interface IDoodleBrush { }
 export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
     private painting: boolean;
     private mode: "draw" | "erase";
-    private brushCircle: HTMLElement;
     private tabletop: TabletopPage;
     private color: string;
 
@@ -26,20 +25,15 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
         this.tabletop.addEventListener("mousedown", this.onMouseDown, { passive: false, capture: true });
         this.tabletop.addEventListener("mouseup", this.onMouseUp, { passive: false, capture: true });
         this.tabletop.addEventListener("mousemove", this.onMouseMove, { passive: false, capture: true });
-        window.addEventListener("wheel", this.onMouseWheel, { passive: true, capture: true });
         this.render();
-        this.brushCircle = document.createElement("brush-circle");
-        document.body.appendChild(this.brushCircle);
+        publish("tabletop", "cursor:draw");
     }
 
     disconnected(): void {
-        if (this.brushCircle) {
-            this.brushCircle.remove();
-        }
         this.tabletop.removeEventListener("mousedown", this.onMouseDown, true);
         this.tabletop.removeEventListener("mouseup", this.onMouseUp, true);
         this.tabletop.removeEventListener("mousemove", this.onMouseMove, true);
-        window.removeEventListener("wheel", this.onMouseWheel, true);
+        publish("tabletop", "cursor:move");
     }
 
     private onMouseDown = (e: MouseEvent) => {
@@ -73,25 +67,7 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
         });
     }
 
-    private updateBrushCircle(e){
-        if (!this.brushCircle) return;
-        let zoom = 1;
-        if (sessionStorage.getItem("zoom")) {
-            zoom = parseFloat(sessionStorage.getItem("zoom"));
-        }
-        if (this.mode === "erase") {
-            this.brushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - 8}, ${e.clientY - 8})`;
-        } else {
-            this.brushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - 2}, ${e.clientY - 2})`;
-        }
-    }
-
-    private onMouseWheel = (e: WheelEvent) => {
-        this.updateBrushCircle(e);
-    }
-
     private onMouseMove = (e: MouseEvent) => {
-        this.updateBrushCircle(e);
         if (this.painting) {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -128,14 +104,6 @@ export default class DoodleBrush extends SuperComponent<IDoodleBrush>{
                 data-active="${this.mode}"
                 @change=${(e) => {
                     this.mode = e.detail.id;
-                    if (this.mode === "erase") {
-                        this.brushCircle.style.width = "16px";
-                        this.brushCircle.style.height = "16px";
-                    } else {
-                        this.brushCircle.style.width = "4px";
-                        this.brushCircle.style.height = "4px";
-                    }
-                    this.render();
                 }}
             ></group-button-component>
             ${ this.mode === "erase" ? "" : html`

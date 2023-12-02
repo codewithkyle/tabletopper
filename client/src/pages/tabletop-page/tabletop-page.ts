@@ -15,8 +15,10 @@ interface ITabletopPage {
 export default class TabletopPage extends SuperComponent<ITabletopPage>{
 
     override async connected() {
+        this.setAttribute("cursor", "move");
         this.addEventListener("contextmenu", this.handleContextMenu);
         subscribe("socket", this.inbox.bind(this));
+        subscribe("tabletop", this.tabletopInbox.bind(this));
     }
 
     private inbox({ type, data }) {
@@ -27,6 +29,26 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
                 tabletop.appendChild(el);
                 break;
             default:
+                break;
+        }
+    }
+
+    private tabletopInbox(type) {
+        switch (type) {
+            case "cursor:move":
+                this.setAttribute("cursor", "move");
+                break;
+            case "cursor:grab":
+                this.setAttribute("cursor", "grab");
+                break;
+            case "cursor:grabbing":
+                this.setAttribute("cursor", "grabbing");
+                break;
+            case "cursor:draw":
+                this.setAttribute("cursor", "draw");
+                break;
+            default:
+                this.setAttribute("cursor", "move");
                 break;
         }
     }

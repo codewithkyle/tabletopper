@@ -8,28 +8,20 @@ tabletop-page{
     padding-top: 28px;
     overflow: hidden;
 
-    &[state="SYNCING"]{
-        .spinner{
-            visibility: visible;
-            opacity: 1;
-        }
-
-        tabletop-component{
-            visibility: hidden;
-            opacity: 0;
-        }
+    &[cursor="move"]{
+        cursor: move !important;
     }
 
-    &[state="IDLING"]{
-        .spinner{
-            visibility: hidden;
-            opacity: 0;
-        }
+    &[cursor="grab"]{
+        cursor: grab !important;
+    }
 
-        tabletop-component{
-            visibility: visible;
-            opacity: 1;
-        }
+    &[cursor="grabbing"]{
+        cursor: grabbing !important;
+    }
+
+    &[cursor="draw"]{
+        cursor: crosshair !important;
     }
 
     .spinner{
