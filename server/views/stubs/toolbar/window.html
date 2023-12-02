@@ -4,11 +4,6 @@
 >
     <span>Initiative tracker</span>
 </button>
-<!--
-<button sfx="button">
-    <span>Chat</span>
-</button>
--->
 {% if isGM %}
     <button 
         sfx="button"
@@ -16,21 +11,13 @@
     >
         <span>Monster Manual</span>
     </button>
-{ % endif %}
+{% endif %}
 <button 
     sfx="button"
     x-on:click="$dispatch('window:dicebox');open = false;"
 >
     <span>Dice tray</span>
 </button>
-<!--
-<button sfx="button">
-    <span>Drawing tools</span>
-</button>
-<button sfx="button">
-    <span>Music</span>
-</button>
--->
 {% if isGM %}
     <button 
         sfx="button"
