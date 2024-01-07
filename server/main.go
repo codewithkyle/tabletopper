@@ -151,17 +151,17 @@ func main() {
 		token := c.Cookies("__session", "")
 		if token == "" {
             log.Error("No token found in cookie")
-			return c.Redirect("/")
+			return c.Redirect("/sign-in")
 		}
 		sessClaims, err := client.VerifyToken(token)
 		if err != nil {
             log.Error("Failed to verify token: " + err.Error() + " - " + token)
-			return c.Redirect("/")
+			return c.Redirect("/sign-in")
 		}
 		user, err := client.Users().Read(sessClaims.Claims.Subject)
 		if err != nil {
             log.Error("Failed to read user: " + err.Error())
-			return c.Redirect("/")
+			return c.Redirect("/sign-in")
 		}
 
 		email := ""
