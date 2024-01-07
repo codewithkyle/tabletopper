@@ -82,27 +82,23 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			"GM": isGM != "",
 		}, "layouts/vtt")
 	})
-	app.Post("/session/gm/:room", func(c *fiber.Ctx) error {
-		room := c.Params("room")
-		c.Cookie(&fiber.Cookie{
-			Name:     "gm",
-			Value:    room,
-			Expires:  time.Now().Add(24 * time.Hour),
-			Secure:   os.Getenv("ENV") == "production",
-			HTTPOnly: true,
-			SameSite: "Strict",
-		})
-		return c.SendStatus(200)
-	})
-	app.Delete("/session/gm", func(c *fiber.Ctx) error {
-		c.ClearCookie("gm")
-		return c.SendStatus(200)
-	})
 
 	app.Get("/stub/toolbar", func(c *fiber.Ctx) error {
-		isGM := c.Cookies("gm", "")
+        isGM := c.Query("gm", "0")
+        if (isGM == "1") {
+            c.Cookie(&fiber.Cookie{
+                Name:     "gm",
+                Value:    "1",
+                Expires:  time.Now().Add(24 * time.Hour),
+                Secure:   os.Getenv("ENV") == "production",
+                HTTPOnly: true,
+                SameSite: "Strict",
+            })
+        } else {
+            c.ClearCookie("gm")
+        }
 		return c.Render("stubs/toolbar/toolbar", fiber.Map{
-			"GM": isGM != "",
+			"GM": isGM == "1",
 		})
 	})
 	app.Get("/stub/toolbar/room", func(c *fiber.Ctx) error {

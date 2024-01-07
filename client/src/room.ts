@@ -81,9 +81,6 @@ class Room {
                 }
                 break;
             case "room:create":
-                fetch(`/session/gm/${data}`, {
-                    method: "POST",
-                });
                 this.room = data;
                 localStorage.setItem(`room:${data.toUpperCase().trim()}`, JSON.stringify({
                     uid: this.uid,
@@ -91,24 +88,17 @@ class Room {
                     character: this.character,
                 }));
                 window.history.replaceState({}, "", `/room/${data.toUpperCase().trim()}`);
-                htmx.ajax("GET", "/stub/toolbar", "tool-bar");
+                htmx.ajax("GET", `/stub/toolbar?gm=1`, "tool-bar");
                 break;
             case "room:joined":
                 if (data === this.room){
-                    await fetch(`/session/gm/${data}`, {
-                        method: "POST",
-                    });
                     this.isGM = true;
-                } else {
-                    await fetch(`/session/gm`, {
-                        method: "DELETE",
-                    });
                 }
                 send("room:player:rename", {
                     playerId: this.uid,
                     name: this.character,
                 });
-                htmx.ajax("GET", "/stub/toolbar", "tool-bar");
+                htmx.ajax("GET", `/stub/toolbar?gm=${this.isGM ? '1' : '0'}`, "tool-bar");
                 if (!this.isGM){
                     const verifyReq = await fetch('/user/verify')
                     if (verifyReq.status === 200){
