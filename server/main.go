@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"main/helpers"
 	"main/models"
 	"math"
 	"os"
@@ -85,6 +86,12 @@ func main() {
     app.Static("/audio", "../client/public/audio")
     app.Static("/images", "../client/public/images")
     app.Static("/service-worker.js", "../client/public/service-worker.js")
+
+    app.Get("/api/heartbeat", func(c *fiber.Ctx) error {
+        db := helpers.ConnectDB()
+        db.Exec("SELECT COUNT(id) FROM tabletop_images")
+        return c.SendStatus(200)
+    })
 
     app.Get("/", func(c *fiber.Ctx) error {
         return c.Render("pages/homepage/index", fiber.Map{}, "layouts/main")
