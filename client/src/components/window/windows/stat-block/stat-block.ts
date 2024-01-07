@@ -79,15 +79,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     break;
             }
         }
-        if (hp > this.model.fullHP) {
-            this.classList.add("overhealed");
-            this.classList.remove("bloody");
-        } else if (hp <= this.model.fullHP && hp > this.model.fullHP / 2){
-            this.classList.remove("overhealed");
-            this.classList.remove("bloody");
-        } else if (hp <= this.model.fullHP / 2) {
-            this.classList.add("bloody");
-        }
         this.set({hp: hp});
         send("room:tabletop:pawn:health", {
             pawnId: this.pawnId,
@@ -226,6 +217,15 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             </div>
         `;
         render(view, this);
+        if (this.model.hp > this.model.fullHP) {
+            this.classList.add("overhealed");
+            this.classList.remove("bloody");
+        } else if (this.model.hp <= this.model.fullHP && this.model.hp > this.model.fullHP / 2){
+            this.classList.remove("overhealed");
+            this.classList.remove("bloody");
+        } else if (this.model.hp <= this.model.fullHP / 2) {
+            this.classList.add("bloody");
+        }
     }
 }
 env.bind("stat-block", StatBlock);
