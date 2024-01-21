@@ -228,16 +228,22 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		fileName := file.Filename
 		mimeType := file.Header.Get("Content-Type")
 		switch mimeType {
-		case "image/jpeg":
-			break
-		case "image/png":
-			break
-		case "image/jpg":
-			break
-		default:
-			log.Error("Invalid mime type: " + mimeType)
-			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
-			return c.SendStatus(400)
+            case "image/jpeg":
+                break
+            case "image/png":
+                break
+            case "image/jpg":
+                break
+            case "image/webp":
+                break
+            case "image/gif":
+                break
+            case "image/avif":
+                break
+            default:
+                log.Error("Invalid mime type: " + mimeType)
+                c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+                return c.SendStatus(400)
 		}
 
 		s3Client := CreateSpacesClient()
@@ -404,6 +410,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			break
 		case "image/jpg":
 			break
+        case "image/webp":
+            break
+        case "image/gif":
+            break
+        case "image/avif":
+            break
 		default:
 			log.Error("Invalid mime type: " + mimeType)
 			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
@@ -919,6 +931,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			break
 		case "image/jpg":
 			break
+        case "image/webp":
+            break
+        case "image/gif":
+            break
+        case "image/avif":
+            break
 		default:
 			log.Error("Invalid mime type: " + mimeType)
 			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
