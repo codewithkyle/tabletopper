@@ -94,16 +94,10 @@ func main() {
     })
 
     app.Get("/", func(c *fiber.Ctx) error {
-        return c.Render("pages/homepage/index", fiber.Map{}, "layouts/main")
-    })
-    app.Get("/stub/home", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            return c.SendStatus(500)
-        }
-        return c.Render("stubs/home/welcome", fiber.Map{
+        user, _ := GetSession(c, rdb)
+        return c.Render("pages/homepage/index", fiber.Map{
             "User": user,
-        })
+        }, "layouts/main")
     })
     app.Get("/stub/home/join", func(c *fiber.Ctx) error {
         return c.Render("stubs/home/join", fiber.Map{})
