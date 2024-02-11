@@ -91,6 +91,15 @@
                 {% endfor %}
             </dl>
         {% endif %}
+        {% if BonusActions|length %}
+            <strong class="block w-full px-0.5 pt-0.5 font-sm font-grey-900 dark:font-grey-100">Bonus Actions</strong>
+            <dl class="block w-full px-0.5 pb-0.5 font-sm font-grey-900 dark:font-grey-300">
+                {% for bonusAction in BonusActions %}
+                    <dt class="block mt-0.5 font-medium block">{{ bonusAction.Name }}</dt>
+                    <dd>{{ bonusAction.Value }}</dd>
+                {% endfor %}
+            </dl>
+        {% endif %}
         {% if Reactions|length %}
             <strong class="blockw-full px-0.5 pt-0.5 font-sm font-grey-900 dark:font-grey-100">Reactions</strong>
             <dl class="block w-full px-0.5 pb-0.5 font-sm font-grey-900 dark:font-grey-300">

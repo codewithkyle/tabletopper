@@ -162,6 +162,12 @@
         data-rows="{% if Monster.Actions %}{{ Monster.Actions|escape }}{% else %}[]{% endif %}"
     ></monster-info-table>
     <monster-info-table
+        data-name="bonusActions"
+        data-label="Bonus Actions"
+        data-add-label="Add Bonus Action"
+        data-rows="{% if Monster.BonusActions %}{{ Monster.BonusActions|escape }}{% else %}[]{% endif %}"
+    ></monster-info-table>
+    <monster-info-table
         data-name="reactions"
         data-label="Reactions"
         data-add-label="Add Reaction"

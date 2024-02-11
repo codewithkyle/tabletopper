@@ -50,6 +50,7 @@ type Monster struct {
 	Skills           string
 	Abilities        string `gorm:"type:text"`
 	Actions          string `gorm:"type:text"`
+    BonusActions     string `gorm:"column:bonusActions;type:text"`
 	LegendaryActions string `gorm:"column:legendaryActions;type:text"`
 	Reactions        string `gorm:"type:text"`
 	LairActions      string `gorm:"column:lairActions;type:text"`
@@ -361,7 +362,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         db := helpers.ConnectDB()
         monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
         image := Image{}
         db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM monster_images WHERE userId = ? AND fileId = ?", user.Id, monster.Image).Scan(&image)
@@ -639,6 +640,19 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			}
 		}
 
+        bonusActionNames := form.Value["bonusActions-name"]
+        bonusActionValues := form.Value["bonusActions-value"]
+        bonusActions := []MonsterInfoTable{}
+        if len(bonusActionNames) > 0 {
+            for i, name := range bonusActionNames {
+                value := bonusActionValues[i]
+                bonusActions = append(bonusActions, MonsterInfoTable{
+                    Name:  name,
+                    Value: value,
+                })
+            }
+        }
+
 		legendaryActionNames := form.Value["legendaryActions-name"]
 		legendaryActionValues := form.Value["legendaryActions-value"]
 		legendaryActions := []MonsterInfoTable{}
@@ -707,6 +721,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			Image:            imageId,
 			Abilities:        helpers.Marshal(abilities),
 			Actions:          helpers.Marshal(actions),
+            BonusActions:     helpers.Marshal(bonusActions),
 			Reactions:        helpers.Marshal(reactions),
 			LegendaryActions: helpers.Marshal(legendaryActions),
 			LairActions:      helpers.Marshal(lairActions),
@@ -715,7 +730,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
         if doUpdate {
             db.Exec(
-                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
+                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, bonusActions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
                 "WHERE id = UNHEX(?) AND userId = ?",
                 monster.Name,
                 monster.Size,
@@ -743,6 +758,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
                 monster.Image,
                 monster.Abilities,
                 monster.Actions,
+                monster.BonusActions,
                 monster.Reactions,
                 monster.LegendaryActions,
                 monster.LairActions,
@@ -751,8 +767,8 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             )
         } else {
             db.Exec(
-                "INSERT INTO monsters (id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions) "+
-                    "VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO monsters (id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions) "+
+                    "VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 monster.Id,
                 monster.Name,
                 monster.Size,
@@ -781,6 +797,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
                 monster.Image,
                 monster.Abilities,
                 monster.Actions,
+                monster.BonusActions,
                 monster.Reactions,
                 monster.LegendaryActions,
                 monster.LairActions,
@@ -851,13 +868,16 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         db := helpers.ConnectDB()
         monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
         abilities := []MonsterInfoTable{}
         json.Unmarshal([]byte(monster.Abilities), &abilities)
 
         actions := []MonsterInfoTable{}
         json.Unmarshal([]byte(monster.Actions), &actions)
+
+        bonusActions := []MonsterInfoTable{}
+        json.Unmarshal([]byte(monster.BonusActions), &bonusActions)
 
         reactions := []MonsterInfoTable{}
         json.Unmarshal([]byte(monster.Reactions), &reactions)
@@ -875,6 +895,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             "Reactions": reactions,
             "LegendaryActions": legendaryActions,
             "LairActions": lairActions,
+            "BonusActions": bonusActions,
         })
     })
 
