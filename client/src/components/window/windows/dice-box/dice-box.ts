@@ -24,7 +24,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
         const input = this.querySelector("input") as HTMLInputElement;
         const roll = input.value.trim().toLowerCase();
         if (roll.indexOf("*") !== -1 || roll.indexOf("/") !== -1){
-            alerts.error("Dice Tray Error", "The dice tray does not support division or multiplication.");
+            alerts.error("Dice Tray Error", "The dice tray does not support division or multiplication.", [], 10);
             return;
         }
         const results = new DiceRoll(roll);
