@@ -259,10 +259,14 @@ class GameManager {
     }
 
     public send(ws:Socket, type:string, data:any = null):void{
-        ws.send(JSON.stringify({
-            type: type,
-            data: data,
-        }));
+        try {
+            ws.send(JSON.stringify({
+                type: type,
+                data: data,
+            }));
+        } catch (e){
+            console.error(`Failed to send message to socket ${ws?.id ?? 'unknown'}`);
+        }
     }
 
     public error(ws:Socket, title:string, message:string):void{
