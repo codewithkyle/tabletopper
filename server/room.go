@@ -363,7 +363,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         db := helpers.ConnectDB()
         monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+        db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
         image := Image{}
         db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM monster_images WHERE userId = ? AND fileId = ?", user.Id, monster.Image).Scan(&image)
@@ -731,7 +731,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
         if doUpdate {
             db.Exec(
-                "UPDATE monsters SET name = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, int = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, bonusActions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
+                "UPDATE monsters SET `name` = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, `int` = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, bonusActions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
                 "WHERE id = UNHEX(?) AND userId = ?",
                 monster.Name,
                 monster.Size,
@@ -768,7 +768,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
             )
         } else {
             db.Exec(
-                "INSERT INTO monsters (id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions) "+
+                "INSERT INTO monsters (id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions) "+
                     "VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 monster.Id,
                 monster.Name,
@@ -869,7 +869,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
         db := helpers.ConnectDB()
         monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, name, size, alignment, type, subtype, ac, hp, speed, str, dex, con, int, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+        db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
         abilities := []MonsterInfoTable{}
         json.Unmarshal([]byte(monster.Abilities), &abilities)
