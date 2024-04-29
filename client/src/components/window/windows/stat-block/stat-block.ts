@@ -128,7 +128,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private updateAC(e:CustomEvent){
         let { name, value } = e.detail;
-        value = parseInt(value);
         this.set({ac: value}, true);
         send("room:tabletop:pawn:ac", {
             pawnId: this.pawnId,
@@ -267,7 +266,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     data-label="Armour Class"
                     data-value="${this.model.ac}"
                     data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
-                    @change=${this.updateAC.bind(this)}
+                    @input=${this.updateAC.bind(this)}
                 ></number-input-component>
             </div>
             <div class="w-full conditions" flex="row wrap items-center">

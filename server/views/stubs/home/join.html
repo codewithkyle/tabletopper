@@ -41,8 +41,8 @@
                         type="nubmer" 
                         name="hp"
                         required="true"
-                        value="1"
-                        x-on:keyup="hp = +$event.target.value.trim()"
+                        :value="hp"
+                        x-on:blur="hp = +$event.target.value.trim()"
                     >
                 </input-container>
             </number-component>
@@ -54,8 +54,8 @@
                         type="number" 
                         name="max-hp"
                         required="true"
-                        value="1"
-                        x-on:keyup="maxHP = +$event.target.value.trim()"
+                        :value="maxHP"
+                        x-on:blur="maxHP = +$event.target.value.trim()"
                     >
                 </input-container>
             </number-component>
@@ -68,8 +68,8 @@
                     type="number" 
                     name="ac"
                     required="true"
-                    value="1"
-                    x-on:keyup="ac = +$event.target.value.trim()"
+                    :value="ac"
+                    x-on:blur="ac = +$event.target.value.trim()"
                 >
             </input-container>
         </number-component>
@@ -82,13 +82,12 @@
             hx-get="/stub/home"
             hx-target="home-page"
         >Back</button>
-        <a 
+        <button
             class="bttn" 
             color="primary" 
             kind="solid"
-            :href="room.length == 4 && character.length ? '/room/' + room : '#'"
             :disabled="room.length != 4 || !character.length"
-            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid'), 'maxHP': maxHP, 'ac': ac, 'hp': hp }))"
-        >Next</a>
+            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid'), 'maxHP': maxHP, 'ac': ac, 'hp': hp })); window.location.href = '/room/' + room;"
+        >Next</button>
     </div>
 </div>
