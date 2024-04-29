@@ -144,8 +144,7 @@ export default class Pawn extends SuperComponent<IPawn>{
     private contextMenu:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!room.isGM) return;
-        if (this.model.type === "monster"){
+        if (this.model.type === "monster" && room.isGM){
             const windowEl = new Window({
                 name: `${this.model.name} (${this.model.type})`,
                 width: 500,
@@ -156,7 +155,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "player"){
+        } else if (this.model.type === "player" && room.isGM || this.model.type === "player" && this.model.uid) {
             const windowEl = new Window({
                 name: `${this.model.name}`,
                 width: 300,
@@ -167,7 +166,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "npc"){
+        } else if (this.model.type === "npc") {
             const windowEl = new Window({
                 name: `${this.model.name} (${this.model.type})`,
                 width: 500,
@@ -343,7 +342,11 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(1) saturate(1)";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && room.isGM || this.model.hidden && this.model.uid === room.uid){
+        } else if (
+            this.model.hidden && room.isGM || 
+            this.model.hidden && this.model.uid === room.uid ||
+            this.model.hidden && this.model.type === "npc"
+        ){
             this.style.visibility = "visible";
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(0.5) saturate(0)";
