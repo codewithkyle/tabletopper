@@ -184,12 +184,19 @@ export default class Pawn extends SuperComponent<IPawn>{
         if (this.model.hp !== null && this.model.fullHP !== null){
             if (this.model.hp === 0){
                 this.setAttribute("bleeding", "false");
+                this.setAttribute("bloodied", "false");
                 tooltip += " (dead)"
-            } else if (this.model.hp <= this.model.fullHP * 0.5){
+            } else if (this.model.hp <= this.model.fullHP * 0.25){
                 this.setAttribute("bleeding", "true");
-                tooltip += " (bloody)";
+                this.setAttribute("bloodied", "true");
+                tooltip += " (very bloodied)";
+            } else if (this.model.hp <= this.model.fullHP * 0.5){
+                this.setAttribute("bleeding", "false");
+                this.setAttribute("bloodied", "true");
+                tooltip += " (bloodied)";
             } else {
                 this.setAttribute("bleeding", "false");
+                this.setAttribute("bloodied", "false");
             }
         }
         for (const key in this.model.conditions){
@@ -303,9 +310,16 @@ export default class Pawn extends SuperComponent<IPawn>{
         if (this.model?.image?.length){
             out = html`
                 <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${this.model.image}" alt="${this.model.name} token" draggable="false">
+                <div class="dmg-container">
+                    <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
+                </div>
             `;
         } else {
-            out = "";
+            out = html`
+                <div class="dmg-container">
+                    <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
+                </div>
+            `;
         }
         return out;
     }
