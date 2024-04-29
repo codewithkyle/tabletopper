@@ -180,20 +180,22 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private resetTooltip(){
+        let tooltip = this.model.name;
         if (this.model.hp !== null && this.model.fullHP !== null){
             if (this.model.hp === 0){
                 this.setAttribute("bleeding", "false");
-                this.setAttribute("tooltip", `${this.model.name} (dead)`);
+                tooltip += " (dead)"
             } else if (this.model.hp <= this.model.fullHP * 0.5){
                 this.setAttribute("bleeding", "true");
-                this.setAttribute("tooltip", `${this.model.name} (bloody)`);
+                tooltip += " (bloody)";
             } else {
                 this.setAttribute("bleeding", "false");
-                this.setAttribute("tooltip", this.model.name);
             }
-        } else {
-            this.setAttribute("tooltip", this.model.name);
         }
+        for (const key in this.model.conditions){
+            tooltip += ` (${this.model.conditions[key].name})`;
+        }
+        this.setAttribute("tooltip", tooltip);
     }
 
     private stopDrag:EventListener = (e:DragEvent) => {
