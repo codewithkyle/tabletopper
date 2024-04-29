@@ -117,9 +117,9 @@ export default class Window extends SuperComponent<IWindow>{
     public maximize(){
         this.moving = false;
         this.x = 0;
-        this.y = 0;
+        this.y = 28;
         this.w = window.innerWidth;
-        this.h = window.innerHeight;
+        this.h = window.innerHeight - 28;
         this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         this.set({
             size: "maximized",

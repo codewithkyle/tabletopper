@@ -223,7 +223,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         return html`
             ${Object.keys(this.model.conditions).map(key => {
                 const condition = this.model.conditions[key];
-                console.log(condition);
                 return html`
                     <condition-badge color="${condition.color}" @click=${this.onRemoveConditionClick} data-uid="${condition.uid}">
                         <span>${condition.name}</span>

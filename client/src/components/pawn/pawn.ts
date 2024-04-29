@@ -9,7 +9,7 @@ import {Condition, Size} from "~types/app";
 import room from "room";
 import { send } from "~controllers/ws";
 
-interface IPawn{
+export interface IPawn{
     uid: string,
     x: number,
     y: number,

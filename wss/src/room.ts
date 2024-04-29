@@ -1,5 +1,5 @@
 import gm from "./game.js";
-import type { ExitReason, Socket, Pawn, Initiative } from "./globals.js";
+import type { ExitReason, Socket, Pawn } from "./globals.js";
 import { randomUUID } from "crypto";
 
 class Room {
@@ -25,8 +25,8 @@ class Room {
     private prefillFog: boolean;
     private dmgOverlay: boolean;
     private pawns: Pawn[];
-    private initiative: Array<Initiative>;
-    private activeInitiative: string|null;
+    private initiative: Array<Pawn>;
+    private activeInitiative: number|null;
     private playerImages: {
         [id:string]: string,
     };
@@ -97,14 +97,15 @@ class Room {
         this.broadcast("room:tabletop:ping", data);
     }
 
-    public syncInitiative(initiative:Array<Initiative>):void{
+    public syncInitiative(initiative:Array<Pawn>):void{
         this.initiative = initiative;
         this.broadcast("room:initiative:sync", initiative);
     }
 
-    public setActiveInitiative(uid:string):void{
-        this.activeInitiative = uid;
-        this.broadcast("room:initiative:active", uid);
+    public setActiveInitiative(index:number):void{
+        this.activeInitiative = index;
+        this.broadcast("room:initiative:active", index);
+        this.announceInitiative();
     }
 
     public clearInitiative():void{
@@ -114,8 +115,16 @@ class Room {
         this.broadcast("room:initiative:active", null);
     }
 
-    public async announceInitiative({ current, next }):Promise<void>{
-        this.broadcast("room:initiative:active", current.uid);
+    public async announceInitiative():Promise<void>{
+        if (this.initiative.length < 3 || this.activeInitiative === null) return;
+        const current = this.initiative[this.activeInitiative];
+        let next;
+        if (this.activeInitiative + 1 < this.initiative.length) {
+            next = this.initiative[this.activeInitiative + 1];
+        } else {
+            next = this.initiative[0];
+        }
+        if (!current || !next) return;
         if (current.type === "player"){
             gm.send(this.sockets[current.uid], "room:announce:initiative", {
                 title: "You're up!",
@@ -286,11 +295,23 @@ class Room {
                 break;
             }
         }
+        for (const pawn of this.initiative) {
+            if (pawn.uid === pawnId){
+                pawn.conditions[uid] = condition;
+                break;
+            }
+        }
         this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawnId, condition: condition });
     }
 
     public removePawnCondition({ pawnId, uid }){
         for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                delete pawn.conditions[uid];
+                break;
+            }
+        }
+        for (const pawn of this.initiative){
             if (pawn.uid === pawnId){
                 delete pawn.conditions[uid];
                 break;
