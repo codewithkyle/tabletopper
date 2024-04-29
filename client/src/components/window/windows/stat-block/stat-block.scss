@@ -16,124 +16,118 @@ stat-block{
         }
     }
 
-    .rings{
+    .conditions{
         position: relative;
 
-        input{
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity: 0;
-            width: 0;
-            height: 0;
-
-            &:checked + label{
-                &::after{
-                    opacity: 1;
-                }
-            }
-        }
-
-        label{
+        condition-badge{
             display: inline-flex;
-            justify-content: center;
             align-items: center;
-            width: 24px;
-            height: 24px;
-            margin: 0 0.25rem 0.25rem 0;
+            justify-content: center;
+            flex-flow: row nowrap;
+            position: relative;
+            height: 32px;
+            border-radius: 0.5rem;
+            background-color: var(--white);
+            border: 1px solid var(--grey-300);
+            color: var(--grey-700);
+            font-size: var(--font-sm);
+            font-weight: var(--font-medium);
+            padding: 0 0.75rem;
+            transition: all 80ms var(--ease-in-out);
             cursor: pointer;
+            user-select: none;
+            margin: 0 0.5rem 0.5rem 0;
 
             &[color="blue"]{
-                &::before{
-                    border-color: var(--blue);
-                }
-                &::after{
-                    background-color: var(--blue);
-                }
+                border-color: var(--blue);
             }
 
             &[color="green"]{
-                &::before{
-                    border-color: var(--green);
-                }
-                &::after{
-                    background-color: var(--green);
-                }
+                border-color: var(--green);
             }
 
             &[color="orange"]{
-                &::before{
-                    border-color: var(--orange);
-                }
-                &::after{
-                    background-color: var(--orange);
-                }
+                border-color: var(--orange);
             }
 
             &[color="pink"]{
-                &::before{
-                    border-color: var(--pink);
-                }
-                &::after{
-                    background-color: var(--pink);
-                }
+                border-color: var(--pink);
             }
 
             &[color="purple"]{
-                &::before{
-                    border-color: var(--purple);
-                }
-                &::after{
-                    background-color: var(--purple);
-                }
+                border-color: var(--purple);
             }
 
             &[color="red"]{
-                &::before{
-                    border-color: var(--red);
-                }
-                &::after{
-                    background-color: var(--red);
-                }
+                border-color: var(--red);
             }
 
             &[color="white"]{
-                &::before{
-                    border-color: var(--white);
-                }
-                &::after{
-                    background-color: var(--white);
-                }
+                border-color: var(--white);
             }
 
             &[color="yellow"]{
-                &::before{
-                    border-color: var(--yellow);
-                }
-                &::after{
-                    background-color: var(--yellow);
+                border-color: var(--yellow);
+            }
+
+            &:hover {
+                background-color: var(--grey-50);
+
+                & svg {
+                    color: var(--grey-600);
+
+                    @media (prefers-color-scheme: dark) {
+                        color: var(--grey-300);
+                    }
                 }
             }
 
-            &::before{
-                content: "";
-                display: inline-block;
-                width: 18px;
-                height: 18px;
-                border-radius: 50%;
-                position: absolute;
-                border-width: 2px;
-                border-style: solid;
+            &:active,
+            &.is-active {
+                background-color: var(--grey-100);
+                outline-offset: 0 !important;
+                transition: outline-offset 0ms linear;
             }
 
-            &::after{
-                content: "";
-                display: inline-block;
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-                position: absolute;
-                opacity: 0;
+            &:focus-visible {
+                outline: var(--focus-ring);
+                outline-offset: 5px;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                background-color: hsl(var(--grey-950-hsl) / 0.6);
+                color: var(--grey-300);
+
+                &:hover,
+                &:focus-visible {
+                    color: var(--grey-100);
+                    background-color: hsl(var(--grey-950-hsl) / 0.6);
+
+                    &::before {
+                        opacity: 0.05;
+                    }
+                }
+
+                &:active,
+                &.is-active {
+                    color: var(--white);
+                    background-color: hsl(var(--grey-950-hsl) / 0.6);
+
+                    &::before {
+                        opacity: 0.1;
+                    }
+                }
+            }
+
+            svg {
+                width: 14px;
+                height: 14px;
+                color: var(--grey-400);
+                margin-left: 0.5rem;
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-600);
+                }
             }
         }
     }

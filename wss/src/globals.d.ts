@@ -29,18 +29,18 @@ export type Pawn = {
     ac: number,
     hidden: boolean,
     image: string,
-    rings: {
-        red: boolean,
-        orange: boolean,
-        blue: boolean,
-        white: boolean,
-        purple: boolean,
-        yellow: boolean,
-        pink: boolean,
-        green: boolean,
+    conditions: {
+        [uid: string]: Condition,
     },
     fullHP: number,
     size?: string|null,
     type: "player"|"monster"|"npc",
     monsterId?: string,
+}
+
+export interface Condition {
+    uid: string,
+    name: string,
+    color: "blue" | "green" | "orange" | "pink" | "purple" | "red" | "white" | "yellow",
+    duration: number,
 }

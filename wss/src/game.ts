@@ -201,9 +201,16 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
-            case "room:tabletop:pawn:status":
+            case "room:tabletop:pawn:status:add":
                 if (room){
-                    room.updatePawnStatus(data);
+                    room.setPawnCondition(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:pawn:status:remove":
+                if (room){
+                    room.removePawnCondition(data);
                 } else {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }

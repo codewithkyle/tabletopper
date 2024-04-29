@@ -5,7 +5,7 @@ import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-c
 import {html, render, TemplateResult} from "lit-html";
 import Window from "~components/window/window";
 import StatBlock from "components/window/windows/stat-block/stat-block";
-import {Size} from "~types/app";
+import {Condition, Size} from "~types/app";
 import room from "room";
 import { send } from "~controllers/ws";
 
@@ -18,15 +18,8 @@ interface IPawn{
     token: string|null;
     monsterId?: string;
     name: string;
-    rings: {
-        blue: boolean,
-        green: boolean,
-        orange: boolean,
-        pink: boolean,
-        purple: boolean,
-        red: boolean,
-        white: boolean,
-        yellow: boolean,
+    conditions: {
+        [uid: string]: Condition,
     },
     hp?: number,
     fullHP?: number,
@@ -56,7 +49,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             hidden: pawn?.hidden ?? false,
             name: pawn.name,
             token: pawn?.token ?? null,
-            rings: pawn.rings,
+            conditions: pawn?.conditions ?? {},
             hp: pawn?.hp ?? null,
             fullHP: pawn?.fullHP ?? null,
             size: pawn?.size ?? "medium",
@@ -116,9 +109,15 @@ export default class Pawn extends SuperComponent<IPawn>{
                     this.render();
                 }
                 break;
-            case "room:tabletop:pawn:status":
+            case "room:tabletop:pawn:status:add":
                 if (data.pawnId === this.model.uid){
-                    this.model.rings[data.type] = data.checked;
+                    this.model.conditions[data.condition.uid] = data.condition;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:status:remove":
+                if (data.pawnId === this.model.uid){
+                    delete this.model.conditions[data.uid];
                     this.render();
                 }
                 break;
@@ -149,7 +148,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} (${this.model.type})`,
                 width: 500,
                 height: 300,
-                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
+                view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -160,7 +159,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name}`,
                 width: 300,
                 height: 150,
-                view: new StatBlock(this.model.uid, "player", this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden),
+                view: new StatBlock(this.model.uid, "player", this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -171,7 +170,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name} (${this.model.type})`,
                 width: 500,
                 height: 300,
-                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
+                view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -309,7 +308,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         return out;
     }
 
-    private renderRings(){
+    private renderConditions(){
         const m = this.getSizeMultiplier();
         let x = -2;
         let y = -2;
@@ -317,19 +316,17 @@ export default class Pawn extends SuperComponent<IPawn>{
         let h = this.gridSize * m;
         let delay = 0;
         return html`
-            ${Object.keys(this.model.rings).map(key => {
-                if (this.model.rings[key]){
-                    x -= 2;
-                    y -= 2;
-                    w += 4;
-                    h += 4;
-                    delay += 0.25;
-                    return html`
-                        <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${key}"></div>
-                    `;
-                } else {
-                    return "";
-                }
+            ${Object.keys(this.model.conditions).map(key => {
+                const condition = this.model.conditions[key];
+                x -= 2;
+                y -= 2;
+                w += 4;
+                h += 4;
+                delay += 0.25;
+                return html`
+                    <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${condition.color}"></div>
+                `;
+                
             })}
         `;
     }
@@ -382,7 +379,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.zIndex = "200";
         }
         const view = html`
-            ${this.renderRings()}
+            ${this.renderConditions()}
             ${this.renderPawn()}
         `;
         render(view, this);

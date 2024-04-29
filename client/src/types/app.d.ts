@@ -77,3 +77,10 @@ export interface Image {
     name: string,
     uid: string,
 }
+
+export interface Condition {
+    uid: string,
+    name: string,
+    color: "blue" | "green" | "orange" | "pink" | "purple" | "red" | "white" | "yellow",
+    duration: number,
+}

@@ -200,16 +200,7 @@ class Room {
             fullHP: hp,
             size: size,
             image: "",
-            rings: {
-                red: false,
-                orange: false,
-                blue: false,
-                white: false,
-                purple: false,
-                yellow: false,
-                pink: false,
-                green: false,
-            },
+            conditions: {},
             type: "npc",
         };
         this.pawns.push(pawn);
@@ -241,16 +232,7 @@ class Room {
             size: size,
             image: image,
             monsterId: monsterId,
-            rings: {
-                red: false,
-                orange: false,
-                blue: false,
-                white: false,
-                purple: false,
-                yellow: false,
-                pink: false,
-                green: false,
-            },
+            conditions: {},
             type: "monster",
         };
         this.pawns.push(pawn);
@@ -288,14 +270,30 @@ class Room {
         this.broadcast("room:tabletop:pawn:visibility", { pawnId, hidden });
     }
 
-    public updatePawnStatus({ pawnId, type, checked }){
+    public setPawnCondition({ pawnId, uid, name, color, duration }){
+        const condition = {
+            uid: uid,
+            name: name,
+            color: color,
+            duration: duration,
+        };
         for (const pawn of this.pawns){
             if (pawn.uid === pawnId){
-                pawn.rings[type] = checked;
+                pawn.conditions[uid] = condition;
                 break;
             }
         }
-        this.broadcast("room:tabletop:pawn:status", { pawnId, type, checked });
+        this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawnId, condition: condition });
+    }
+
+    public removePawnCondition({ pawnId, uid }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                delete pawn.conditions[uid];
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:status:remove", { pawnId, uid });
     }
 
     public movePawn({ uid, x, y }){
@@ -328,16 +326,7 @@ class Room {
                     uid: id,
                     name: this.sockets[id].name,
                     image: this.playerImages?.[id] || "",
-                    rings: {
-                        red: false,
-                        orange: false,
-                        blue: false,
-                        white: false,
-                        purple: false,
-                        yellow: false,
-                        pink: false,
-                        green: false,
-                    },
+                    conditions: {},
                     type: "player",
                     hp: this.sockets[id].hp,
                     fullHP: this.sockets[id].maxHP,
@@ -398,16 +387,7 @@ class Room {
                 uid: ws.id,
                 name: ws.name,
                 image: this.playerImages?.[ws.id] || "",
-                rings: {
-                    red: false,
-                    orange: false,
-                    blue: false,
-                    white: false,
-                    purple: false,
-                    yellow: false,
-                    pink: false,
-                    green: false,
-                },
+                conditions: {},
                 type: "player",
                 hp: ws.hp,
                 fullHP: ws.maxHP,
