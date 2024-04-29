@@ -12,6 +12,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private ctx: CanvasRenderingContext2D;
     private time: number;
     private gridSize: number;
+    private prefillFog: boolean;
     private ticket: string;
     private w: number;
     private h: number;
@@ -30,6 +31,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.tabletop = document.querySelector("tabletop-component");
         this.time = 0;
         this.gridSize = 32;
+        this.prefillFog = false;
         this.brushSize = 1;
         this.clearedCells = {};
         subscribe("socket", this.inbox.bind(this));
@@ -68,6 +70,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         switch (type) {
             case "room:tabletop:fog:sync":
                 this.clearedCells = data.clearedCells;
+                console.log("fog sync", this.clearedCells);
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:clear":
@@ -77,7 +80,9 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:map:update":
+                console.log("updated", data.prefillFog, this.clearedCells);
                 this.gridSize = data.cellSize;
+                this.prefillFog = data.prefillFog;
                 this.renderFogOfWar();
                 break;
             default:
@@ -192,7 +197,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
                 const x = j * this.gridSize;
                 const y = i * this.gridSize;
                 const key = `${x}-${y}`;
-                this.clearedCells[key] = true;
+                this.clearedCells[key] = !this.prefillFog;
             }
         }
         this.syncClearCells();

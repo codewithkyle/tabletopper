@@ -22,6 +22,7 @@ class Room {
     private cellSize: number;
     private cellDistance: number;
     private renderGrid: boolean;
+    private prefillFog: boolean;
     private pawns: Pawn[];
     private initiative: Array<Initiative>;
     private activeInitiative: string|null;
@@ -46,6 +47,7 @@ class Room {
         this.cellSize = 32;
         this.cellDistance = 5;
         this.renderGrid = false;
+        this.prefillFog = false;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
@@ -167,11 +169,12 @@ class Room {
         });
     }
 
-    public updateMap({ cellSize, renderGrid, cellDistance }){
+    public updateMap({ cellSize, renderGrid, cellDistance, prefillFog }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
         this.cellDistance = cellDistance;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
+        this.prefillFog = prefillFog;
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog });
     }
 
     public clearMap(){
@@ -421,7 +424,8 @@ class Room {
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
             const cellDistance = this.cellDistance;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
+            const prefillFog = this.prefillFog;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog });
             gm.send(ws, "room:tabletop:fog:sync", {
                 clearedCells: this.clearedCells,
             });
