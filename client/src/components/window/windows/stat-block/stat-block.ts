@@ -5,6 +5,7 @@ import "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import "~brixi/components/lightswitch/lightswitch";
 import { send } from "~controllers/ws";
+import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
 
 interface IStatBlock {
     hp: number,
@@ -27,6 +28,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
     private monsterId: string;
     private type: "player" | "npc" | "monster";
+    private ticket: string;
 
     constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", rings, hp = 0, fullHP = 0, ac = 0, hidden = true, name = "", monsterId = ""){
         super();
@@ -44,8 +46,44 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
     }
 
     override async connected(){
+        this.ticket = subscribe("socket", this.inbox.bind(this));
         await env.css(["stat-block"]);
         this.render();
+    }
+
+    override disconnected(): void {
+        unsubscribe("socket", this.ticket);
+    }
+
+    private inbox({ type, data }){
+        switch(type){
+            case "room:tabletop:pawn:health":
+                if (data.pawnId === this.pawnId){
+                    this.model.hp = data.hp;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:ac":
+                if (data.pawnId === this.pawnId){
+                    this.model.ac = data.ac;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:visibility":
+                if (data.pawnId === this.pawnId){
+                    this.model.hidden = data.hidden;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:status":
+                if (data.pawnId === this.pawnId){
+                    this.model.rings[data.type] = data.checked;
+                    this.render();
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     private updateHP(e:CustomEvent){
@@ -207,7 +245,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     data-label="Armour Class"
                     data-value="${this.model.ac}"
                     data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
-                    @blur=${this.updateAC.bind(this)}
+                    @change=${this.updateAC.bind(this)}
                 ></number-input-component>
             </div>
             <div class="w-full rings" flex="row wrap items-center">
