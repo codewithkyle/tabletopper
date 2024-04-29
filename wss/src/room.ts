@@ -23,6 +23,7 @@ class Room {
     private cellDistance: number;
     private renderGrid: boolean;
     private prefillFog: boolean;
+    private dmgOverlay: boolean;
     private pawns: Pawn[];
     private initiative: Array<Initiative>;
     private activeInitiative: string|null;
@@ -48,6 +49,7 @@ class Room {
         this.cellDistance = 5;
         this.renderGrid = false;
         this.prefillFog = false;
+        this.dmgOverlay = false;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
@@ -169,12 +171,13 @@ class Room {
         });
     }
 
-    public updateMap({ cellSize, renderGrid, cellDistance, prefillFog }){
+    public updateMap({ cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
         this.cellDistance = cellDistance;
         this.prefillFog = prefillFog;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog });
+        this.dmgOverlay = dmgOverlay;
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
     }
 
     public clearMap(){

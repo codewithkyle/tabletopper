@@ -310,16 +310,20 @@ export default class Pawn extends SuperComponent<IPawn>{
         if (this.model?.image?.length){
             out = html`
                 <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${this.model.image}" alt="${this.model.name} token" draggable="false">
-                <div class="dmg-container">
-                    <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
-                </div>
+                ${room.dmgOverlay ? html`
+                    <div class="dmg-container">
+                        <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
+                    </div>
+                ` : ""}
             `;
-        } else {
+        } else if (room.dmgOverlay) {
             out = html`
                 <div class="dmg-container">
                     <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
                 </div>
             `;
+        } else {
+            out = "";
         }
         return out;
     }

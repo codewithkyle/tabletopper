@@ -22,6 +22,7 @@ class Room {
     public cellDistance: number;
     public renderGrid: boolean;
     public prefillFog: boolean;
+    public dmgOverlay: boolean;
     public activeInitiative: string|null;
     private initiative: Array<any>;
     private hasLogOn: boolean;
@@ -36,6 +37,7 @@ class Room {
         this.cellDistance = 5;
         this.renderGrid = false;
         this.prefillFog = false;
+        this.dmgOverlay = false;
         this.initiative = [];
         this.activeInitiative = null;
         this.hasLogOn = false;
@@ -56,6 +58,7 @@ class Room {
                 this.renderGrid = data.renderGrid;
                 this.cellDistance = data.cellDistance;
                 this.prefillFog = data.prefillFog;
+                this.dmgOverlay = data.dmgOverlay;
                 break;
             case "room:sync:players":
                 this.players = data;
@@ -150,8 +153,8 @@ class Room {
             send("room:tabletop:map:load", id);
         });
         window.addEventListener("tabletop:update", (e:CustomEvent) => {
-            const { cellSize, renderGrid, cellDistance, prefillFog } = e.detail;
-            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance), prefillFog });
+            const { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay } = e.detail;
+            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance), prefillFog, dmgOverlay });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
