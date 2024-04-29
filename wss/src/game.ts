@@ -224,6 +224,9 @@ class GameManager {
                 if (room){
                     ws.id = data.id;
                     ws.name = data.name;
+                    ws.maxHP = data.maxHP;
+                    ws.hp = data.hp;
+                    ws.ac = data.ac;
                     this.sockets[ws.id] = ws;
                     room.addSocket(ws);
                 }

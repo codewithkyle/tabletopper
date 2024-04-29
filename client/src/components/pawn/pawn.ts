@@ -160,7 +160,7 @@ export default class Pawn extends SuperComponent<IPawn>{
                 name: `${this.model.name}`,
                 width: 300,
                 height: 150,
-                view: new StatBlock(this.model.uid, "player", this.model.rings, null, null, null, this.model.hidden),
+                view: new StatBlock(this.model.uid, "player", this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){

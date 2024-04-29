@@ -4,6 +4,9 @@ export type Socket = {
     send: Function,
     name: string,
     image: string,
+    maxHP: number,
+    hp: number,
+    ac: number,
 };
 
 export type ExitReason = "UNKNOWN" | "KICKED" | "DC" | "QUIT";
@@ -22,8 +25,8 @@ export type Pawn = {
     token?: string|null,
     name: string,
     room: string,
-    hp?: number,
-    ac?: number,
+    hp: number,
+    ac: number,
     hidden: boolean,
     image: string,
     rings: {
@@ -36,7 +39,7 @@ export type Pawn = {
         pink: boolean,
         green: boolean,
     },
-    fullHP?: number,
+    fullHP: number,
     size?: string|null,
     type: "player"|"monster"|"npc",
     monsterId?: string,

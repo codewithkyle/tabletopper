@@ -194,24 +194,22 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     ${this.renderDeleteButton()}
                 </div>
             </div>
-            ${ this.type !== "player" ? html`
-                <div class="w-full mb-1" grid="columns 2 gap-1">
-                    <input-component
-                        data-name="${this.pawnId}-hp"
-                        data-label="Hit Points"
-                        data-value="${this.model.hp}"
-                        data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>'
-                        @blur=${this.updateHP.bind(this)}
-                    ></input-component>
-                    <number-input-component
-                        data-name="${this.pawnId}-ac"
-                        data-label="Armour Class"
-                        data-value="${this.model.ac}"
-                        data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
-                        @blur=${this.updateAC.bind(this)}
-                    ></number-input-component>
-                </div>
-            ` : "" }
+            <div class="w-full mb-1" grid="columns 2 gap-1">
+                <input-component
+                    data-name="${this.pawnId}-hp"
+                    data-label="Hit Points"
+                    data-value="${this.model.hp}"
+                    data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>'
+                    @blur=${this.updateHP.bind(this)}
+                ></input-component>
+                <number-input-component
+                    data-name="${this.pawnId}-ac"
+                    data-label="Armour Class"
+                    data-value="${this.model.ac}"
+                    data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
+                    @blur=${this.updateAC.bind(this)}
+                ></number-input-component>
+            </div>
             <div class="w-full rings" flex="row wrap items-center">
                 ${this.renderRings()}
             </div>

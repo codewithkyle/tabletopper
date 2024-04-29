@@ -339,6 +339,9 @@ class Room {
                         green: false,
                     },
                     type: "player",
+                    hp: this.sockets[id].hp,
+                    fullHP: this.sockets[id].maxHP,
+                    ac: this.sockets[id].ac,
                 };
                 this.pawns.push(pawn);
                 this.broadcast("room:tabletop:pawn:spawn", pawn);
@@ -406,6 +409,9 @@ class Room {
                     green: false,
                 },
                 type: "player",
+                hp: ws.hp,
+                fullHP: ws.maxHP,
+                ac: ws.ac,
             };
             this.pawns.push(pawn);
             this.broadcast("room:tabletop:pawn:spawn", pawn);
@@ -441,6 +447,9 @@ class Room {
                 name: this.sockets[id].name,
                 gm: id === this.gmId,
                 muted: id in this.mutedPlayers,
+                ac: this.sockets[id].ac,
+                hp: this.sockets[id].hp,
+                maxHP: this.sockets[id].maxHP,
             });
         }
         this.broadcast("room:sync:players", players);

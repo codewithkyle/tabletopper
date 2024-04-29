@@ -1,7 +1,7 @@
 <div
     class="join w-411 bg-white dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-grey-sm radius-0.5 no-scroll"
     style="backdrop-filter: blur(8px);"
-    x-data="{ room: '', character: '' }"
+    x-data="{ room: '', character: '', maxHP: 1, ac: 1, hp: 1 }"
 >
     <div class="p-1.5">
         <input-component class="input mb-1.5" form-input state="IDLING">
@@ -13,12 +13,11 @@
                     name="character"
                     autocomplete="off" 
                     required="true"
-                    x-on:keyup.enter="if (room.length == 4 && character.length) { localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') })); window.location.href = '/room/' + room; }"
                     x-on:keyup="character = $event.target.value.trim()"
                 >
             </input-container>
         </input-component>
-        <input-component class="input" form-input state="IDLING">
+        <input-component class="input mb-1.5" form-input state="IDLING">
             <label for="room-code">Room Code</label>
             <input-container>
                 <input 
@@ -29,11 +28,51 @@
                     name="room" 
                     autocomplete="off" 
                     required="true"
-                    x-on:keyup.enter="if (room.length == 4 && character.length) { localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') })); window.location.href = '/room/' + room; }"
                     x-on:keyup="room = $event.target.value.toUpperCase().trim()"
                 >
             </input-container>
         </input-component>
+        <div class="w-full mb-1.5" grid="columns 2 gap-1.5">
+            <number-component class="input" form-input state="IDLING">
+                <label for="hp">Current HP</label>
+                <input-container>
+                    <input 
+                        id="hp" 
+                        type="nubmer" 
+                        name="hp"
+                        required="true"
+                        value="1"
+                        x-on:keyup="hp = +$event.target.value.trim()"
+                    >
+                </input-container>
+            </number-component>
+            <number-component class="input" form-input state="IDLING">
+                <label for="max-hp">Max HP</label>
+                <input-container>
+                    <input 
+                        id="max-hp" 
+                        type="number" 
+                        name="max-hp"
+                        required="true"
+                        value="1"
+                        x-on:keyup="maxHP = +$event.target.value.trim()"
+                    >
+                </input-container>
+            </number-component>
+        </div>
+        <number-component class="input" form-input state="IDLING">
+            <label for="max-hp">AC</label>
+            <input-container>
+                <input 
+                    id="ac" 
+                    type="number" 
+                    name="ac"
+                    required="true"
+                    value="1"
+                    x-on:keyup="ac = +$event.target.value.trim()"
+                >
+            </input-container>
+        </number-component>
     </div>
     <div flex="row nowrap items-center justify-end" class="p-1 bg-grey-100 dark:bg-grey-950/60 border-t-1 border-t-solid border-t-grey-300 dark:border-t-grey-800">
         <button 
@@ -49,7 +88,7 @@
             kind="solid"
             :href="room.length == 4 && character.length ? '/room/' + room : '#'"
             :disabled="room.length != 4 || !character.length"
-            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid') }))"
+            x-on:click="localStorage.setItem('room:' + room, JSON.stringify({ 'room': room, 'character': character, 'uid': localStorage.getItem('uid'), 'maxHP': maxHP, 'ac': ac, 'hp': hp }))"
         >Next</a>
     </div>
 </div>

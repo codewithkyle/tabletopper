@@ -80,6 +80,9 @@ class Room {
                         id: this.uid,
                         name: this.character,
                         room: this.room,
+                        maxHP: room.maxHP,
+                        hp: room.hp,
+                        ac: room.ac,
                     });
                 }
                 break;
