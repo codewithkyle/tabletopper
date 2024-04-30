@@ -22,7 +22,7 @@ class Room {
     public renderGrid: boolean;
     public prefillFog: boolean;
     public dmgOverlay: boolean;
-    public activeInitiative: string|null;
+    public activeInitiative: string | null;
     private hasLogOn: boolean;
 
     constructor() {
@@ -42,8 +42,8 @@ class Room {
         this.init();
     }
 
-    private async inbox({ type, data }){
-        switch (type){
+    private async inbox({ type, data }) {
+        switch (type) {
             case "room:tabletop:map:update":
                 this.gridSize = data.cellSize;
                 this.renderGrid = data.renderGrid;
@@ -56,7 +56,7 @@ class Room {
                 break;
             case "core:init":
                 const urlSegments = location.pathname.split("/");
-                if (urlSegments.length < 3){
+                if (urlSegments.length < 3) {
                     this.uid = localStorage.getItem("uid");
                     this.room = "";
                     this.character = "Game Master";
@@ -91,7 +91,7 @@ class Room {
                 htmx.ajax("GET", `/stub/toolbar?gm=1`, "tool-bar");
                 break;
             case "room:joined":
-                if (data === this.room){
+                if (data === this.room) {
                     this.isGM = true;
                 }
                 send("room:player:rename", {
@@ -99,14 +99,15 @@ class Room {
                     name: this.character,
                 });
                 htmx.ajax("GET", `/stub/toolbar?gm=${this.isGM ? '1' : '0'}`, "tool-bar");
-                if (!this.isGM){
+                if (!this.isGM) {
                     const verifyReq = await fetch('/user/verify')
-                    if (verifyReq.status === 200){
+                    if (verifyReq.status === 200) {
                         this.hasLogOn = true;
                     }
-                    if (this.hasLogOn){
+                    if (this.hasLogOn) {
                         window.dispatchEvent(new CustomEvent("show-user-menu"));
-                        htmx.ajax("GET", "/stub/user/menu", { target: "user-menu .modal" });
+                        window.addEventListener("character:load", this.onCharacterLoad);
+                        window.addEventListener("character:cancel", this.onCharacterLoadCancel);
                     }
                 }
                 break;
@@ -115,7 +116,18 @@ class Room {
         }
     }
 
-    async init(){
+    private onCharacterLoad:EventListener = (e:CustomEvent) => {
+        const { id } = e.detail;
+        send("room:player:image", id);
+        window.removeEventListener("character:load", this.onCharacterLoad);
+        window.removeEventListener("character:cancel", this.onCharacterLoadCancel);
+    }
+    private onCharacterLoadCancel:EventListener = () => {
+        window.removeEventListener("character:load", this.onCharacterLoad);
+        window.removeEventListener("character:cancel", this.onCharacterLoadCancel);
+    }
+
+    async init() {
         connect();
         window.addEventListener("room:lock", () => {
             send("room:lock");
@@ -128,38 +140,34 @@ class Room {
                 name: "Players",
                 view: new PlayerMenu(this.players),
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
-        });
-        window.addEventListener("character:load", (e:CustomEvent) => {
-            const { id } = e.detail;
-            send("room:player:image", id);
         });
         window.addEventListener("tabletop:clear", () => {
             send("room:tabletop:map:clear");
         });
-        window.addEventListener("tabletop:load", (e:CustomEvent) => {
+        window.addEventListener("tabletop:load", (e: CustomEvent) => {
             const { id } = e.detail;
             send("room:tabletop:map:load", id);
         });
-        window.addEventListener("tabletop:update", (e:CustomEvent) => {
+        window.addEventListener("tabletop:update", (e: CustomEvent) => {
             const { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay } = e.detail;
             send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance), prefillFog, dmgOverlay });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");
         });
-        window.addEventListener("tabletop:spawn-monster", (e:CustomEvent) => {
+        window.addEventListener("tabletop:spawn-monster", (e: CustomEvent) => {
             const { uid, name, hp, ac, size, image } = e.detail;
             const x = parseInt(sessionStorage.getItem("tabletop:spawn-monster:x"));
             const y = parseInt(sessionStorage.getItem("tabletop:spawn-monster:y"));
             send("room:tabletop:spawn:monster", {
                 x: x,
                 y: y,
-                name: name, 
-                hp: parseInt(hp), 
-                ac: parseInt(ac), 
+                name: name,
+                hp: parseInt(hp),
+                ac: parseInt(ac),
                 size: size,
                 image: image,
                 monsterId: uid,
@@ -172,11 +180,19 @@ class Room {
                 // @ts-ignore
                 data[input.getName()] = input.getValue();
             });
+
             const x = parseInt(sessionStorage.getItem("tabletop:spawn-monster:x"));
             const y = parseInt(sessionStorage.getItem("tabletop:spawn-monster:y"));
             data["x"] = x;
             data["y"] = y;
-            if (data["type"] === "npc"){
+
+            data["image"] = null;
+            const imgInput = document.body.querySelector('quick-spawn input[name="image"]') as HTMLInputElement;
+            if (imgInput && imgInput.value) {
+                data["image"] = imgInput.value;
+            }
+
+            if (data["type"] === "npc") {
                 data["ownerId"] = this.uid;
                 send("room:tabletop:spawn:npc", data);
             } else {
@@ -190,7 +206,7 @@ class Room {
                 width: 300,
                 height: 350,
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
         });
@@ -201,11 +217,11 @@ class Room {
                 width: 600,
                 height: 650,
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
         });
-        window.addEventListener("window:monsters:open", (e:CustomEvent) => {
+        window.addEventListener("window:monsters:open", (e: CustomEvent) => {
             const { uid, name } = e.detail;
             const window = document.body.querySelector(`window-component[window="monster-${uid}"]`) || new Window({
                 name: name,
@@ -213,7 +229,7 @@ class Room {
                 width: 400,
                 height: 600,
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
         });
@@ -232,11 +248,11 @@ class Room {
                 height: 200,
                 enableControls: false,
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
         });
-        window.addEventListener("window:fog:close", ()=>{
+        window.addEventListener("window:fog:close", () => {
             const w = document.body.querySelector(`window-component[window="fog-of-war-settings"]`)
             if (w) w.remove();
         });
@@ -249,11 +265,11 @@ class Room {
                 height: 200,
                 enableControls: false,
             });
-            if (!window.isConnected){
+            if (!window.isConnected) {
                 document.body.append(window);
             }
         });
-        window.addEventListener("window:draw:close", ()=>{
+        window.addEventListener("window:draw:close", () => {
             const w = document.body.querySelector(`window-component[window="draw-settings"]`)
             if (w) w.remove();
         });

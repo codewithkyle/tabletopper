@@ -1,0 +1,101 @@
+<div 
+    class="modal"
+    hx-trigger="show-quick-spawn from:window"
+    hx-swap="outerHTMLHTML"
+    hx-get="/stub/tabletop/quick-spawn"
+>
+    <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Quick Spawn</h2>
+    <div id="create-monster" class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">
+        {% if User.Id|length %}
+            <input 
+                type="hidden"
+                x-on:character:load.window="img = $event.detail.id;"
+                :value="img"
+                name="image"
+            >
+            <div flex="row nowrap items-center">
+                <img 
+                    :src="'https://tabletopper.nyc3.cdn.digitaloceanspaces.com/' + img" 
+                    draggalbe="false"
+                    onload="this.style.opacity = '1'"
+                    loading="lazy"
+                    width="92"
+                    class="radius-0.5 mr-1 ar-1:1"
+                    style="object-fit: cover;"
+                    x-show="img != ''"
+                >
+                <button
+                    class="bttn"
+                    sfx="button"
+                    kind="solid"
+                    color="grey"
+                    x-show="img != ''"
+                    x-on:click="img = ''"
+                >Remove Image</button>
+                <button
+                    class="bttn"
+                    sfx="button"
+                    kind="solid"
+                    color="grey"
+                    x-show="img == ''"
+                    x-on:click="$dispatch('show-user-menu');"
+                >Select Image</button>
+            </div>
+        {% endif %}
+        <input-component
+            data-name="name"
+            data-label="Name"
+            data-required="true"
+            :data-value="name"
+            @input="name = $event.detail.value"
+            ></input-component>
+        <div class="w-full" grid="columns 2 gap-1.5">
+            <select-component
+                data-name="type"
+                data-label="Type"
+                data-required="true"
+                data-options='[{"label":"NPC","value":"npc"}{% if GM %},{"label":"Monster","value":"monster"}{% endif %}]'
+                data-value="npc"
+                ></select-component>
+            <select-component
+                data-name="size"
+                data-label="Size"
+                data-required="true"
+                data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+                data-value="medium"
+                ></select-component>
+            <number-input-component
+                data-name="ac"
+                data-label="Armor Class"
+                data-required="true"
+                data-value="0"
+                ></number-input-component>
+            <number-input-component
+                data-name="hp"
+                data-label="Hit Points"
+                data-required="true"
+                data-value="1"
+                data-min="1"
+                ></number-input-component>
+        </div>
+    </div>
+    <div class="p-1 block w-full">
+        <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
+            <button
+                class="mr-1 bttn"
+                sfx="button"
+                kind="solid"
+                color="grey"
+                x-on:click="open = false"
+            >Cancel</button>
+            <button
+                class="bttn"
+                sfx="button"
+                kind="solid"
+                color="success"
+                :disabled="!name"
+                x-on:click="open = false; $dispatch('tabletop:quick-spawn');"
+                >Spawn</button>
+        </div>
+    </div>
+</div>

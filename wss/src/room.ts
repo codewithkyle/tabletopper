@@ -255,7 +255,7 @@ class Room {
         this.broadcast("room:tabletop:clear");
     }
 
-    public spawnNPC({ x, y, name, hp, ac, size, ownerId }){
+    public spawnNPC({ x, y, name, hp, ac, size, ownerId, image }){
         const id = randomUUID();
         const pawn:Pawn = {
             uid: id,
@@ -268,7 +268,7 @@ class Room {
             hp: hp,
             fullHP: hp,
             size: size,
-            image: "",
+            image: image || "",
             conditions: {},
             type: "npc",
             ownerId: ownerId,

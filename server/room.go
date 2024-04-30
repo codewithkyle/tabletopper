@@ -50,7 +50,7 @@ type Monster struct {
 	Skills           string
 	Abilities        string `gorm:"type:text"`
 	Actions          string `gorm:"type:text"`
-    BonusActions     string `gorm:"column:bonusActions;type:text"`
+	BonusActions     string `gorm:"column:bonusActions;type:text"`
 	LegendaryActions string `gorm:"column:legendaryActions;type:text"`
 	Reactions        string `gorm:"type:text"`
 	LairActions      string `gorm:"column:lairActions;type:text"`
@@ -85,40 +85,40 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 	})
 
 	app.Get("/stub/toolbar", func(c *fiber.Ctx) error {
-        isGM := c.Query("gm", "0")
-        if (isGM == "1") {
-            c.Cookie(&fiber.Cookie{
-                Name:     "gm",
-                Value:    "1",
-                Expires:  time.Now().Add(24 * time.Hour),
-                Secure:   os.Getenv("ENV") == "production",
-                HTTPOnly: true,
-                SameSite: "Strict",
-            })
-        } else {
-            c.ClearCookie("gm")
-        }
+		isGM := c.Query("gm", "0")
+		if isGM == "1" {
+			c.Cookie(&fiber.Cookie{
+				Name:     "gm",
+				Value:    "1",
+				Expires:  time.Now().Add(24 * time.Hour),
+				Secure:   os.Getenv("ENV") == "production",
+				HTTPOnly: true,
+				SameSite: "Strict",
+			})
+		} else {
+			c.ClearCookie("gm")
+		}
 		return c.Render("stubs/toolbar/toolbar", fiber.Map{
 			"GM": isGM == "1",
 		})
 	})
 	app.Get("/stub/toolbar/room", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            log.Error("Failed to get session: " + err.Error())
-            return c.SendStatus(401)
-        }
+		user, err := GetSession(c, rdb)
+		if err != nil {
+			log.Error("Failed to get session: " + err.Error())
+			return c.SendStatus(401)
+		}
 		isGM := c.Cookies("gm", "")
 		return c.Render("stubs/toolbar/room", fiber.Map{
-			"GM": isGM != "",
-            "User": user,
+			"GM":   isGM != "",
+			"User": user,
 		})
 	})
 	app.Get("/stub/toolbar/window", func(c *fiber.Ctx) error {
-        isGM := c.Cookies("gm", "")
+		isGM := c.Cookies("gm", "")
 		return c.Render("stubs/toolbar/window", fiber.Map{
-            "isGM": isGM != "",
-        })
+			"isGM": isGM != "",
+		})
 	})
 	app.Get("/stub/toolbar/tabletop", func(c *fiber.Ctx) error {
 		return c.Render("stubs/toolbar/tabletop", fiber.Map{})
@@ -135,12 +135,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 	app.Get("/stub/toolbar/help", func(c *fiber.Ctx) error {
 		return c.Render("stubs/toolbar/help", fiber.Map{})
 	})
-    app.Get("/stub/toolbar/fog", func(c *fiber.Ctx) error {
+	app.Get("/stub/toolbar/fog", func(c *fiber.Ctx) error {
 		return c.Render("stubs/toolbar/fog", fiber.Map{})
 	})
 
-    app.Get("/stub/tabletop/spotlight", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
+	app.Get("/stub/tabletop/spotlight", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
 		if err != nil {
 			c.Response().Header.Set("HX-Redirect", "/sign-in")
 			return c.SendStatus(401)
@@ -150,10 +150,10 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        return c.Render("stubs/tabletop/spotlight", fiber.Map{});
-    })
-    app.Get("/stub/tabletop/spotlight-search", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
+		return c.Render("stubs/tabletop/spotlight", fiber.Map{})
+	})
+	app.Get("/stub/tabletop/spotlight-search", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
 		if err != nil {
 			c.Response().Header.Set("HX-Redirect", "/sign-in")
 			return c.SendStatus(401)
@@ -163,18 +163,18 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        search := c.Query("search", "")
-        monsters := []Monster{}
-        if search != "" {
-            db := helpers.ConnectDB()
-            db.Raw("SELECT HEX(id) as id, name, hp, ac, size, image FROM monsters WHERE userId = ? AND name LIKE ?", user.Id, "%"+strings.Trim(search, " ")+"%").Scan(&monsters)
-        }
+		search := c.Query("search", "")
+		monsters := []Monster{}
+		if search != "" {
+			db := helpers.ConnectDB()
+			db.Raw("SELECT HEX(id) as id, name, hp, ac, size, image FROM monsters WHERE userId = ? AND name LIKE ?", user.Id, "%"+strings.Trim(search, " ")+"%").Scan(&monsters)
+		}
 
-        return c.Render("stubs/tabletop/spotlight-search", fiber.Map{
-            "Monsters": monsters,
-            "User": user,
-        });
-    })
+		return c.Render("stubs/tabletop/spotlight-search", fiber.Map{
+			"Monsters": monsters,
+			"User":     user,
+		})
+	})
 	app.Get("/stub/tabletop/settings", func(c *fiber.Ctx) error {
 		return c.Render("stubs/tabletop/settings", fiber.Map{})
 	})
@@ -196,6 +196,15 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		return c.Render("stubs/tabletop/images", fiber.Map{
 			"Images": images,
 			"User":   user,
+		})
+	})
+	app.Get("/stub/tabletop/quick-spawn", func(c *fiber.Ctx) error {
+		user, _ := GetSession(c, rdb)
+		isGM := c.Cookies("gm", "")
+
+		return c.Render("stubs/tabletop/quick-spawn", fiber.Map{
+			"User":   user,
+			"GM": isGM != "",
 		})
 	})
 
@@ -229,22 +238,22 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		fileName := file.Filename
 		mimeType := file.Header.Get("Content-Type")
 		switch mimeType {
-            case "image/jpeg":
-                break
-            case "image/png":
-                break
-            case "image/jpg":
-                break
-            case "image/webp":
-                break
-            case "image/gif":
-                break
-            case "image/avif":
-                break
-            default:
-                log.Error("Invalid mime type: " + mimeType)
-                c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
-                return c.SendStatus(400)
+		case "image/jpeg":
+			break
+		case "image/png":
+			break
+		case "image/jpg":
+			break
+		case "image/webp":
+			break
+		case "image/gif":
+			break
+		case "image/avif":
+			break
+		default:
+			log.Error("Invalid mime type: " + mimeType)
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
+			return c.SendStatus(400)
 		}
 
 		s3Client := CreateSpacesClient()
@@ -277,38 +286,38 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			"User":   user,
 		})
 	})
-    app.Delete("/tabletop/image/:id", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            c.Response().Header.Set("HX-Redirect", "/sign-in")
-            return c.SendStatus(401)
-        }
-        if user.Id == "" {
-            c.Response().Header.Set("HX-Redirect", "/sign-in")
-            return c.SendStatus(401)
-        }
+	app.Delete("/tabletop/image/:id", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
+		if err != nil {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			c.Response().Header.Set("HX-Redirect", "/sign-in")
+			return c.SendStatus(401)
+		}
 
-        id := c.Params("id")
+		id := c.Params("id")
 
-        s3Client := CreateSpacesClient()
-        input := &s3.DeleteObjectInput{
-            Bucket: aws.String("tabletopper"),
-            Key:    aws.String("maps/" + user.Id + "/" + id),
-        }
+		s3Client := CreateSpacesClient()
+		input := &s3.DeleteObjectInput{
+			Bucket: aws.String("tabletopper"),
+			Key:    aws.String("maps/" + user.Id + "/" + id),
+		}
 
-        _, err = s3Client.DeleteObject(input)
-        if err != nil {
-            log.Error("Failed to delete file: " + err.Error())
-            c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
-            return c.SendStatus(500)
-        }
+		_, err = s3Client.DeleteObject(input)
+		if err != nil {
+			log.Error("Failed to delete file: " + err.Error())
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
+			return c.SendStatus(500)
+		}
 
-        db := helpers.ConnectDB()
-        db.Exec("DELETE FROM tabletop_images WHERE fileId = ? AND userId = ?", id, user.Id)
+		db := helpers.ConnectDB()
+		db.Exec("DELETE FROM tabletop_images WHERE fileId = ? AND userId = ?", id, user.Id)
 
-        c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted image."}`)
-        return c.SendStatus(200)
-    })
+		c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted image."}`)
+		return c.SendStatus(200)
+	})
 
 	app.Get("/stub/windows/monsters", func(c *fiber.Ctx) error {
 		user, err := GetSession(c, rdb)
@@ -323,7 +332,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
 		db := helpers.ConnectDB()
 		monsters := []Monster{}
-        // TODO: pagination
+		// TODO: pagination
 		db.Raw("SELECT HEX(id) as id, name FROM monsters WHERE userId = ?", user.Id).Scan(&monsters)
 
 		return c.Render("stubs/windows/monsters", fiber.Map{
@@ -342,14 +351,14 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 		return c.Render("stubs/tabletop/create-monster", fiber.Map{
-			"User": user,
-            "Monster": Monster{},
-            "ImageId": "",
-            "ImageName": "",
+			"User":      user,
+			"Monster":   Monster{},
+			"ImageId":   "",
+			"ImageName": "",
 		})
 	})
-    app.Get("/stub/tabletop/create-monster/:id", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
+	app.Get("/stub/tabletop/create-monster/:id", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
 		if err != nil {
 			c.Response().Header.Set("HX-Redirect", "/sign-in")
 			return c.SendStatus(401)
@@ -359,22 +368,22 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        id := c.Params("id")
+		id := c.Params("id")
 
-        db := helpers.ConnectDB()
-        monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+		db := helpers.ConnectDB()
+		monster := Monster{}
+		db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
-        image := Image{}
-        db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM monster_images WHERE userId = ? AND fileId = ?", user.Id, monster.Image).Scan(&image)
+		image := Image{}
+		db.Raw("SELECT HEX(id) as id, userId, fileId, name FROM monster_images WHERE userId = ? AND fileId = ?", user.Id, monster.Image).Scan(&image)
 
 		return c.Render("stubs/tabletop/create-monster", fiber.Map{
-			"User": user,
-            "Monster": monster,
-            "ImageId": image.FileId,
-            "ImageName": image.Name,
+			"User":      user,
+			"Monster":   monster,
+			"ImageId":   image.FileId,
+			"ImageName": image.Name,
 		})
-    })
+	})
 
 	app.Post("/monster/image", func(c *fiber.Ctx) error {
 		user, err := GetSession(c, rdb)
@@ -412,12 +421,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			break
 		case "image/jpg":
 			break
-        case "image/webp":
-            break
-        case "image/gif":
-            break
-        case "image/avif":
-            break
+		case "image/webp":
+			break
+		case "image/gif":
+			break
+		case "image/avif":
+			break
 		default:
 			log.Error("Invalid mime type: " + mimeType)
 			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
@@ -446,15 +455,15 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
 		db.Exec("INSERT INTO monster_images (id, userId, fileId, name) VALUES (UNHEX(?), ?, ?, ?)", id, user.Id, fileId, fileName)
 
-        monsterId := c.FormValue("monsterId", "")
-        if monsterId != "" {
-            db.Exec("UPDATE monsters SET image = ? WHERE id = UNHEX(?) AND userId = ?", fileId, monsterId, user.Id)
-        }
+		monsterId := c.FormValue("monsterId", "")
+		if monsterId != "" {
+			db.Exec("UPDATE monsters SET image = ? WHERE id = UNHEX(?) AND userId = ?", fileId, monsterId, user.Id)
+		}
 
 		return c.Render("stubs/tabletop/monster-image", fiber.Map{
-			"ImageName":  fileName,
-			"ImageId":    fileId,
-            "User":  user,
+			"ImageName": fileName,
+			"ImageId":   fileId,
+			"User":      user,
 		})
 	})
 	app.Delete("/monster/image/:id", func(c *fiber.Ctx) error {
@@ -485,7 +494,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 
 		db := helpers.ConnectDB()
 		db.Exec("DELETE FROM monster_images WHERE fileId = ? AND userId = ?", id, user.Id)
-        db.Exec("UPDATE monsters SET image = '' WHERE image = ? AND userId = ?", id, user.Id)
+		db.Exec("UPDATE monsters SET image = '' WHERE image = ? AND userId = ?", id, user.Id)
 
 		return c.Render("stubs/tabletop/monster-image-upload", fiber.Map{})
 	})
@@ -500,10 +509,10 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        id := c.FormValue("id", "")
-        if id != "" {
-            return c.SendStatus(200)
-        }
+		id := c.FormValue("id", "")
+		if id != "" {
+			return c.SendStatus(200)
+		}
 		imageId := c.FormValue("imageId", "")
 		if imageId == "" {
 			return c.SendStatus(200)
@@ -608,12 +617,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			imageId = form.Value["imageId"][0]
 		}
 
-        id := strings.ReplaceAll(uuid.New().String(), "-", "")
-        doUpdate := false
-        if len(form.Value["id"]) > 0 {
-            id = form.Value["id"][0]
-            doUpdate = true
-        }
+		id := strings.ReplaceAll(uuid.New().String(), "-", "")
+		doUpdate := false
+		if len(form.Value["id"]) > 0 {
+			id = form.Value["id"][0]
+			doUpdate = true
+		}
 
 		abilityNames := form.Value["abilities-name"]
 		abilityValues := form.Value["abilities-value"]
@@ -641,18 +650,18 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			}
 		}
 
-        bonusActionNames := form.Value["bonusActions-name"]
-        bonusActionValues := form.Value["bonusActions-value"]
-        bonusActions := []MonsterInfoTable{}
-        if len(bonusActionNames) > 0 {
-            for i, name := range bonusActionNames {
-                value := bonusActionValues[i]
-                bonusActions = append(bonusActions, MonsterInfoTable{
-                    Name:  name,
-                    Value: value,
-                })
-            }
-        }
+		bonusActionNames := form.Value["bonusActions-name"]
+		bonusActionValues := form.Value["bonusActions-value"]
+		bonusActions := []MonsterInfoTable{}
+		if len(bonusActionNames) > 0 {
+			for i, name := range bonusActionNames {
+				value := bonusActionValues[i]
+				bonusActions = append(bonusActions, MonsterInfoTable{
+					Name:  name,
+					Value: value,
+				})
+			}
+		}
 
 		legendaryActionNames := form.Value["legendaryActions-name"]
 		legendaryActionValues := form.Value["legendaryActions-value"]
@@ -722,99 +731,99 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			Image:            imageId,
 			Abilities:        helpers.Marshal(abilities),
 			Actions:          helpers.Marshal(actions),
-            BonusActions:     helpers.Marshal(bonusActions),
+			BonusActions:     helpers.Marshal(bonusActions),
 			Reactions:        helpers.Marshal(reactions),
 			LegendaryActions: helpers.Marshal(legendaryActions),
 			LairActions:      helpers.Marshal(lairActions),
 		}
 
 		db := helpers.ConnectDB()
-        if doUpdate {
-            db.Exec(
-                "UPDATE monsters SET `name` = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, `int` = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, bonusActions = ?, reactions = ?, legendaryActions = ?, lairActions = ? " +
-                "WHERE id = UNHEX(?) AND userId = ?",
-                monster.Name,
-                monster.Size,
-                monster.Alignment,
-                monster.Type,
-                monster.Subtype,
-                monster.AC,
-                monster.HP,
-                monster.Speed,
-                monster.Strength,
-                monster.Dexterity,
-                monster.Constitution,
-                monster.Intelligence,
-                monster.Wisdom,
-                monster.Charisma,
-                monster.SavingThrows,
-                monster.Skills,
-                monster.Vulnerabilities,
-                monster.Resistances,
-                monster.Immunities,
-                monster.Senses,
-                monster.Languages,
-                monster.CR,
-                monster.XP,
-                monster.Image,
-                monster.Abilities,
-                monster.Actions,
-                monster.BonusActions,
-                monster.Reactions,
-                monster.LegendaryActions,
-                monster.LairActions,
-                monster.Id,
-                monster.UserId,
-            )
-        } else {
-            db.Exec(
-                "INSERT INTO monsters (id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions) "+
-                    "VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                monster.Id,
-                monster.Name,
-                monster.Size,
-                monster.Alignment,
-                monster.Type,
-                monster.Subtype,
-                monster.AC,
-                monster.HP,
-                monster.Speed,
-                monster.Strength,
-                monster.Dexterity,
-                monster.Constitution,
-                monster.Intelligence,
-                monster.Wisdom,
-                monster.Charisma,
-                monster.SavingThrows,
-                monster.Skills,
-                monster.Vulnerabilities,
-                monster.Resistances,
-                monster.Immunities,
-                monster.Senses,
-                monster.Languages,
-                monster.CR,
-                monster.XP,
-                monster.UserId,
-                monster.Image,
-                monster.Abilities,
-                monster.Actions,
-                monster.BonusActions,
-                monster.Reactions,
-                monster.LegendaryActions,
-                monster.LairActions,
-            )
-        }
+		if doUpdate {
+			db.Exec(
+				"UPDATE monsters SET `name` = ?, size = ?, alignment = ?, type = ?, subtype = ?, ac = ?, hp = ?, speed = ?, str = ?, dex = ?, con = ?, `int` = ?, wis = ?, cha = ?, savingThrows = ?, skills = ?, vulnerabilities = ?, resistances = ?, immunities = ?, senses = ?, languages = ?, cr = ?, xp = ?, image = ?, abilities = ?, actions = ?, bonusActions = ?, reactions = ?, legendaryActions = ?, lairActions = ? "+
+					"WHERE id = UNHEX(?) AND userId = ?",
+				monster.Name,
+				monster.Size,
+				monster.Alignment,
+				monster.Type,
+				monster.Subtype,
+				monster.AC,
+				monster.HP,
+				monster.Speed,
+				monster.Strength,
+				monster.Dexterity,
+				monster.Constitution,
+				monster.Intelligence,
+				monster.Wisdom,
+				monster.Charisma,
+				monster.SavingThrows,
+				monster.Skills,
+				monster.Vulnerabilities,
+				monster.Resistances,
+				monster.Immunities,
+				monster.Senses,
+				monster.Languages,
+				monster.CR,
+				monster.XP,
+				monster.Image,
+				monster.Abilities,
+				monster.Actions,
+				monster.BonusActions,
+				monster.Reactions,
+				monster.LegendaryActions,
+				monster.LairActions,
+				monster.Id,
+				monster.UserId,
+			)
+		} else {
+			db.Exec(
+				"INSERT INTO monsters (id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions) "+
+					"VALUES (UNHEX(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				monster.Id,
+				monster.Name,
+				monster.Size,
+				monster.Alignment,
+				monster.Type,
+				monster.Subtype,
+				monster.AC,
+				monster.HP,
+				monster.Speed,
+				monster.Strength,
+				monster.Dexterity,
+				monster.Constitution,
+				monster.Intelligence,
+				monster.Wisdom,
+				monster.Charisma,
+				monster.SavingThrows,
+				monster.Skills,
+				monster.Vulnerabilities,
+				monster.Resistances,
+				monster.Immunities,
+				monster.Senses,
+				monster.Languages,
+				monster.CR,
+				monster.XP,
+				monster.UserId,
+				monster.Image,
+				monster.Abilities,
+				monster.Actions,
+				monster.BonusActions,
+				monster.Reactions,
+				monster.LegendaryActions,
+				monster.LairActions,
+			)
+		}
 
-        if id == "" {
-            c.Response().Header.Set("HX-Trigger", `{"toast": "Created `+name+`", "window:monsters:reset": true}`)
-        } else {
-            c.Response().Header.Set("HX-Trigger", `{"toast": "Updated `+name+`", "window:monsters:reset": true}`)
-        }
+		if id == "" {
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Created `+name+`", "window:monsters:reset": true}`)
+		} else {
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Updated `+name+`", "window:monsters:reset": true}`)
+		}
 		return c.SendStatus(200)
 	})
 
-    app.Delete("/monster/:id", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
+	app.Delete("/monster/:id", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
 		if err != nil {
 			c.Response().Header.Set("HX-Redirect", "/sign-in")
 			return c.SendStatus(401)
@@ -824,38 +833,38 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        id := c.Params("id")
+		id := c.Params("id")
 
-        db := helpers.ConnectDB()
+		db := helpers.ConnectDB()
 
-        monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, image, name FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+		monster := Monster{}
+		db.Raw("SELECT HEX(id) as id, image, name FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
-        if monster.Image != "" {
-            s3Client := CreateSpacesClient()
-            input := &s3.DeleteObjectInput{
-                Bucket: aws.String("tabletopper"),
-                Key:    aws.String("monsters/" + user.Id + "/" + monster.Image),
-            }
+		if monster.Image != "" {
+			s3Client := CreateSpacesClient()
+			input := &s3.DeleteObjectInput{
+				Bucket: aws.String("tabletopper"),
+				Key:    aws.String("monsters/" + user.Id + "/" + monster.Image),
+			}
 
-            _, err = s3Client.DeleteObject(input)
-            if err != nil {
-                log.Error("Failed to delete file: " + err.Error())
-                c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
-                return c.SendStatus(500)
-            }
+			_, err = s3Client.DeleteObject(input)
+			if err != nil {
+				log.Error("Failed to delete file: " + err.Error())
+				c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
+				return c.SendStatus(500)
+			}
 
-            db.Exec("DELETE FROM monster_images WHERE fileId = ? AND userId = ?", monster.Image, user.Id)
-        }
+			db.Exec("DELETE FROM monster_images WHERE fileId = ? AND userId = ?", monster.Image, user.Id)
+		}
 
-        db.Exec("DELETE FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id)
+		db.Exec("DELETE FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id)
 
-        c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted `+monster.Name+`"}`)
-        return c.SendStatus(200)
-    })
+		c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted `+monster.Name+`"}`)
+		return c.SendStatus(200)
+	})
 
-    app.Get("/stub/windows/monsters/:id", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
+	app.Get("/stub/windows/monsters/:id", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
 		if err != nil {
 			c.Response().Header.Set("HX-Redirect", "/sign-in")
 			return c.SendStatus(401)
@@ -865,70 +874,70 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			return c.SendStatus(401)
 		}
 
-        id := c.Params("id")
+		id := c.Params("id")
 
-        db := helpers.ConnectDB()
-        monster := Monster{}
-        db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
+		db := helpers.ConnectDB()
+		monster := Monster{}
+		db.Raw("SELECT HEX(id) as id, `name`, size, alignment, type, subtype, ac, hp, speed, str, dex, con, `int`, wis, cha, savingThrows, skills, vulnerabilities, resistances, immunities, senses, languages, cr, xp, userId, image, abilities, actions, bonusActions, reactions, legendaryActions, lairActions FROM monsters WHERE id = UNHEX(?) AND userId = ?", id, user.Id).Scan(&monster)
 
-        abilities := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.Abilities), &abilities)
+		abilities := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.Abilities), &abilities)
 
-        actions := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.Actions), &actions)
+		actions := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.Actions), &actions)
 
-        bonusActions := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.BonusActions), &bonusActions)
+		bonusActions := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.BonusActions), &bonusActions)
 
-        reactions := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.Reactions), &reactions)
+		reactions := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.Reactions), &reactions)
 
-        legendaryActions := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.LegendaryActions), &legendaryActions)
+		legendaryActions := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.LegendaryActions), &legendaryActions)
 
-        lairActions := []MonsterInfoTable{}
-        json.Unmarshal([]byte(monster.LairActions), &lairActions)
+		lairActions := []MonsterInfoTable{}
+		json.Unmarshal([]byte(monster.LairActions), &lairActions)
 
-        return c.Render("stubs/windows/monster", fiber.Map{
-            "Monster": monster,
-            "Abilities": abilities,
-            "Actions": actions,
-            "Reactions": reactions,
-            "LegendaryActions": legendaryActions,
-            "LairActions": lairActions,
-            "BonusActions": bonusActions,
-        })
-    })
+		return c.Render("stubs/windows/monster", fiber.Map{
+			"Monster":          monster,
+			"Abilities":        abilities,
+			"Actions":          actions,
+			"Reactions":        reactions,
+			"LegendaryActions": legendaryActions,
+			"LairActions":      lairActions,
+			"BonusActions":     bonusActions,
+		})
+	})
 
-    app.Get("/stub/user/menu", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            return c.SendStatus(401)
-        }
-        if user.Id == "" {
-            return c.SendStatus(401)
-        }
+	app.Get("/stub/user/menu", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
+		if err != nil {
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			return c.SendStatus(401)
+		}
 
-        db := helpers.ConnectDB()
-        images := []Image{}
-        db.Raw("SELECT HEX(id) as id, userId, fileId FROM character_images WHERE userId = ?", user.Id).Scan(&images)
+		db := helpers.ConnectDB()
+		images := []Image{}
+		db.Raw("SELECT HEX(id) as id, userId, fileId FROM character_images WHERE userId = ?", user.Id).Scan(&images)
 
-        return c.Render("stubs/user/menu", fiber.Map{
-            "User": user,
-            "Images": images,
-        })
-    })
+		return c.Render("stubs/user/menu", fiber.Map{
+			"User":   user,
+			"Images": images,
+		})
+	})
 
-    app.Post("/user/image", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            return c.SendStatus(401)
-        }
-        if user.Id == "" {
-            return c.SendStatus(401)
-        }
+	app.Post("/user/image", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
+		if err != nil {
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			return c.SendStatus(401)
+		}
 
-        file, err := c.FormFile("file")
+		file, err := c.FormFile("file")
 		if err != nil {
 			log.Error("Failed to get file from form: " + err.Error())
 			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
@@ -953,12 +962,12 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			break
 		case "image/jpg":
 			break
-        case "image/webp":
-            break
-        case "image/gif":
-            break
-        case "image/avif":
-            break
+		case "image/webp":
+			break
+		case "image/gif":
+			break
+		case "image/avif":
+			break
 		default:
 			log.Error("Invalid mime type: " + mimeType)
 			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to upload file."}`)
@@ -994,36 +1003,36 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			"Images": images,
 			"User":   user,
 		})
-    })
+	})
 
-    app.Delete("/user/image/:id", func(c *fiber.Ctx) error {
-        user, err := GetSession(c, rdb)
-        if err != nil {
-            return c.SendStatus(401)
-        }
-        if user.Id == "" {
-            return c.SendStatus(401)
-        }
+	app.Delete("/user/image/:id", func(c *fiber.Ctx) error {
+		user, err := GetSession(c, rdb)
+		if err != nil {
+			return c.SendStatus(401)
+		}
+		if user.Id == "" {
+			return c.SendStatus(401)
+		}
 
-        id := c.Params("id")
+		id := c.Params("id")
 
-        s3Client := CreateSpacesClient()
-        input := &s3.DeleteObjectInput{
-            Bucket: aws.String("tabletopper"),
-            Key:    aws.String("characters/" + user.Id + "/" + id),
-        }
+		s3Client := CreateSpacesClient()
+		input := &s3.DeleteObjectInput{
+			Bucket: aws.String("tabletopper"),
+			Key:    aws.String("characters/" + user.Id + "/" + id),
+		}
 
-        _, err = s3Client.DeleteObject(input)
-        if err != nil {
-            log.Error("Failed to delete file: " + err.Error())
-            c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
-            return c.SendStatus(500)
-        }
+		_, err = s3Client.DeleteObject(input)
+		if err != nil {
+			log.Error("Failed to delete file: " + err.Error())
+			c.Response().Header.Set("HX-Trigger", `{"toast": "Failed to delete file."}`)
+			return c.SendStatus(500)
+		}
 
-        db := helpers.ConnectDB()
-        db.Exec("DELETE FROM character_images WHERE fileId = ? AND userId = ?", id, user.Id)
+		db := helpers.ConnectDB()
+		db.Exec("DELETE FROM character_images WHERE fileId = ? AND userId = ?", id, user.Id)
 
-        c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted image."}`)
-        return c.SendStatus(200)
-    })
+		c.Response().Header.Set("HX-Trigger", `{"toast": "Deleted image."}`)
+		return c.SendStatus(200)
+	})
 }

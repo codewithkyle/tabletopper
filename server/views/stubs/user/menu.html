@@ -86,10 +86,10 @@
     <div class="radius-0.5 w-full bg-grey-50 dark:bg-grey-950/60 p-1" flex="row nowrap items-center justify-end">
         <button
             sfx="button"
-            x-on:click="open = false"
             class="bttn mr-1"
             kind="solid"
             color="grey"
+            x-on:click="open = false; $dispatch('character:cancel');"
         >Cancel</button>
         <button
             sfx="button"
@@ -97,7 +97,7 @@
             kind="solid"
             color="success"
             :disabled="selected == ''"
-            x-on:click="open = false; $dispatch('character:load', { 'id': selected })"
+            x-on:click="open = false; $dispatch('character:load', { 'id': selected });"
         >Select</button>
     </div>
 </div>

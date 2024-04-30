@@ -158,7 +158,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             }
         } else if (
             this.model.type === "player" && room.isGM || 
-            this.model.type === "player" && this.model.uid
+            this.model.type === "player" && this.model.uid === room.uid
         ) {
             const windowEl = new Window({
                 name: this.model.name,
