@@ -184,11 +184,11 @@ class Room {
                 title: "You're up!",
                 message: "It's your turn for combat. Good luck!",
             });
-            gm.send(this.sockets[current.uid], "room:initiative:turn:start");
+            this.broadcast("room:initiative:turn:start", current.uid);
         } else if (current.type === "monster" && this.gmId in this.sockets) {
-            gm.send(this.sockets[this.gmId], "room:initiative:turn:start");
+            this.broadcast("room:initiative:turn:start", this.gmId);
         } else if (current.type === "npc" && current.ownerId in this.sockets) {
-            gm.send(this.sockets[current.ownerId], "room:initiative:turn:start");
+            this.broadcast("room:initiative:turn:start", current.ownerId);
         }
         if (next.type === "player"){
             gm.send(this.sockets[next.uid], "room:announce:initiative", {

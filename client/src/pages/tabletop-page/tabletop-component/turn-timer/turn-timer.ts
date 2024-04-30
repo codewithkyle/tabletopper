@@ -31,10 +31,17 @@ export default class TurnTimerComponent extends SuperComponent<ITurnTimerCompone
     private inbox({ type, data }) {
         switch(type){
             case "room:initiative:turn:start":
-                this.set({
-                    hidden: false,
-                    running: true,
-                });
+                if (data === room.uid){
+                    this.set({
+                        hidden: false,
+                        running: true,
+                    });
+                } else {
+                    this.set({
+                        hidden: true,
+                        running: false,
+                    });
+                }
                 break;
             default:
                 break;
