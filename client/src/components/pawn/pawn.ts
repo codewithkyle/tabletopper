@@ -26,6 +26,7 @@ export interface IPawn{
     ac?: number,
     size: Size,
     type: "player"|"monster"|"npc",
+    ownerId?: string,
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
@@ -56,6 +57,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             type: pawn.type,
             ac: pawn?.ac ?? null,
             monsterId: pawn?.monsterId ?? null,
+            ownerId: pawn?.ownerId ?? null,
         };
         this.ticket = subscribe("socket", this.inbox.bind(this));
         this.gridSize = room.gridSize;
@@ -154,7 +156,10 @@ export default class Pawn extends SuperComponent<IPawn>{
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "player" && room.isGM || this.model.type === "player" && this.model.uid) {
+        } else if (
+            this.model.type === "player" && room.isGM || 
+            this.model.type === "player" && this.model.uid
+        ) {
             const windowEl = new Window({
                 name: this.model.name,
                 width: 300,
@@ -165,7 +170,10 @@ export default class Pawn extends SuperComponent<IPawn>{
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "npc") {
+        } else if (
+            this.model.type === "npc" && room.isGM ||
+            this.model.type === "npc" && this.model.ownerId === room.uid
+        ) {
             const windowEl = new Window({
                 name: this.model.name,
                 width: 500,

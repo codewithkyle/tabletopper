@@ -245,21 +245,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     override render(): void {
         const view = html`
-            <div class="w-full mb-1" flex="items-center justify-between row nowrap">
-                <lightswitch-component
-                    data-name="${this.pawnId}-hidden"
-                    data-enabled-label="Visible"
-                    data-disabled-label="Hidden"
-                    data-enabled="${this.model.hidden === false}"
-                    data-value="hidden"
-                    class="mt-0.25"
-                    @change=${this.changeVisibility.bind(this)}
-                ></lightswitch-component>
-                <div flex="items-center row nowrap">
-                    ${this.renderBookButton()}
-                    ${this.renderDeleteButton()}
-                </div>
-            </div>
             <div class="w-full mb-1" grid="columns 2 gap-1">
                 <input-component
                     data-name="${this.pawnId}-hp"
@@ -276,17 +261,33 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     @input=${this.updateAC.bind(this)}
                 ></number-input-component>
             </div>
-            <div class="w-full conditions" flex="row wrap items-center">
-                <button
-                    class="bttn mr-0.25 mb-0.5"
-                    kind="text"
-                    color="grey"
-                    icon="center"
-                    tooltip="Add condition"
-                    @click=${this.onAddConditionClick}
-                >
-                    <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M13 12h5" /><path d="M13 15h4" /><path d="M13 18h1" /><path d="M13 9h4" /><path d="M13 6h1" /></svg>
-                </button>
+            <div class="w-full mb-1" flex="items-center justify-between row nowrap">
+                <lightswitch-component
+                    data-name="${this.pawnId}-hidden"
+                    data-enabled-label="Visible"
+                    data-disabled-label="Hidden"
+                    data-enabled="${this.model.hidden === false}"
+                    data-value="hidden"
+                    class="mt-0.25"
+                    @change=${this.changeVisibility.bind(this)}
+                ></lightswitch-component>
+                <div flex="items-center row nowrap">
+                    <button
+                        class="bttn"
+                        kind="text"
+                        color="grey"
+                        icon="center"
+                        tooltip="Add condition"
+                        size="slim"
+                        @click=${this.onAddConditionClick}
+                    >
+                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M13 12h5" /><path d="M13 15h4" /><path d="M13 18h1" /><path d="M13 9h4" /><path d="M13 6h1" /></svg>
+                    </button>
+                    ${this.renderBookButton()}
+                    ${this.renderDeleteButton()}
+                </div>
+            </div>
+            <div class="w-full conditions" flex="row wrap items-start justify-start">
                 ${this.renderConditions()}
             </div>
         `;

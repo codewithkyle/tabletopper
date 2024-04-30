@@ -29,6 +29,7 @@ export type Pawn = {
     size?: string|null,
     type: "player"|"monster"|"npc",
     monsterId?: string,
+    ownerId?: string,
 }
 
 export interface Condition {

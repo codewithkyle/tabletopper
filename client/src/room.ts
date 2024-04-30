@@ -177,6 +177,7 @@ class Room {
             data["x"] = x;
             data["y"] = y;
             if (data["type"] === "npc"){
+                data["ownerId"] = this.uid;
                 send("room:tabletop:spawn:npc", data);
             } else {
                 send("room:tabletop:spawn:monster", data);

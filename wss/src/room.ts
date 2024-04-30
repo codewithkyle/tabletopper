@@ -172,14 +172,16 @@ class Room {
             next = this.initiative[0];
         }
         if (!current || !next) return;
-        if (current.type === "player"){
+        if (current.type === "player" && current.uid in this.sockets){
             gm.send(this.sockets[current.uid], "room:announce:initiative", {
                 title: "You're up!",
                 message: "It's your turn for combat. Good luck!",
             });
             gm.send(this.sockets[current.uid], "room:initiative:turn:start");
-        } else if (current.type === "monster" || current.type === "npc") {
+        } else if (current.type === "monster" && this.gmId in this.sockets) {
             gm.send(this.sockets[this.gmId], "room:initiative:turn:start");
+        } else if (current.type === "npc" && current.ownerId in this.sockets) {
+            gm.send(this.sockets[current.ownerId], "room:initiative:turn:start");
         }
         if (next.type === "player"){
             gm.send(this.sockets[next.uid], "room:announce:initiative", {
@@ -246,7 +248,7 @@ class Room {
         this.broadcast("room:tabletop:clear");
     }
 
-    public spawnNPC({ x, y, name, hp, ac, size }){
+    public spawnNPC({ x, y, name, hp, ac, size, ownerId }){
         const id = randomUUID();
         const pawn:Pawn = {
             uid: id,
@@ -262,6 +264,7 @@ class Room {
             image: "",
             conditions: {},
             type: "npc",
+            ownerId: ownerId,
         };
         this.pawns.push(pawn);
         this.broadcast("room:tabletop:pawn:spawn", pawn);
