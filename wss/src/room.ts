@@ -24,6 +24,7 @@ class Room {
     private renderGrid: boolean;
     private prefillFog: boolean;
     private dmgOverlay: boolean;
+    private turnCounter: number;
     private pawns: Pawn[];
     private initiative: Array<Pawn>;
     private activeInitiative: number|null;
@@ -50,6 +51,7 @@ class Room {
         this.renderGrid = false;
         this.prefillFog = false;
         this.dmgOverlay = false;
+        this.turnCounter = 0;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
@@ -102,7 +104,51 @@ class Room {
         this.broadcast("room:initiative:sync", initiative);
     }
 
+    private decrementConditions() {
+        for (const pawn of this.pawns) {
+            for (const key in pawn.conditions) {
+                if (pawn.conditions[key].duration > 0) {
+                    pawn.conditions[key].duration--;
+                    this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawn.uid, condition: pawn.conditions[key] });
+                } else if (pawn.conditions[key].duration === 0) {
+                    delete pawn.conditions[key];
+                    this.broadcast("room:tabletop:pawn:status:remove", { pawnId: pawn.uid, uid: key });
+                }
+            }
+        }
+
+        // TODO: rethink how we track initiative conditions
+        for (const pawn of this.initiative) {
+            for (const key in pawn.conditions) {
+                if (pawn.conditions[key].duration > 0) {
+                    pawn.conditions[key].duration--;
+                } else if (pawn.conditions[key].duration === 0) {
+                    delete pawn.conditions[key];
+                }
+            }
+        }
+    }
+
+    public progressInitiative():void{
+        if (this.activeInitiative === null){
+            this.activeInitiative = 0;
+        } else {
+            this.activeInitiative++;
+        }
+        if (this.activeInitiative >= this.initiative.length) {
+            this.activeInitiative = 0;
+            this.turnCounter++;
+            this.decrementConditions();
+        }
+        this.broadcast("room:initiative:active", this.activeInitiative);
+        this.announceInitiative();
+    }
+
     public setActiveInitiative(index:number):void{
+        if (this.activeInitiative === this.initiative.length - 1 && index === 0) {
+            this.turnCounter++;
+            this.decrementConditions();
+        }
         this.activeInitiative = index;
         this.broadcast("room:initiative:active", index);
         this.announceInitiative();
@@ -113,6 +159,7 @@ class Room {
         this.broadcast("room:initiative:sync", []);
         this.activeInitiative = null;
         this.broadcast("room:initiative:active", null);
+        this.turnCounter = 0;
     }
 
     public async announceInitiative():Promise<void>{
@@ -130,16 +177,14 @@ class Room {
                 title: "You're up!",
                 message: "It's your turn for combat. Good luck!",
             });
+            gm.send(this.sockets[current.uid], "room:initiative:turn:start");
+        } else if (current.type === "monster" || current.type === "npc") {
+            gm.send(this.sockets[this.gmId], "room:initiative:turn:start");
         }
         if (next.type === "player"){
             gm.send(this.sockets[next.uid], "room:announce:initiative", {
                 title: "You're on deck.",
                 message: "Start planning your turn now. You're next in the initiative order.",
-            });
-        } else {
-            this.broadcast("room:announce:initiative", {
-                title: `${next.name} is on deck.`,
-                message: `${next.name} is next in the initiative order.`,
             });
         }
     }
@@ -195,6 +240,9 @@ class Room {
         this.map = "";
         this.clearedCells = {};
         this.doodleData = "";
+        this.initiative = [];
+        this.activeInitiative = null;
+        this.turnCounter = 0;
         this.broadcast("room:tabletop:clear");
     }
 

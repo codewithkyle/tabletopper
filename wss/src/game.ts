@@ -68,6 +68,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:initiative:next":
+                if (room){
+                    room.progressInitiative();
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:initiative:active":
                 if (room){
                     room.setActiveInitiative(data);
