@@ -154,10 +154,14 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private addCondition:EventListener = (e:CustomEvent) => {
         window.removeEventListener("add-condition", this.addCondition);
+        let duration = e.detail.duration;
+        if (e.detail.clear === "end") {
+            duration++;
+        }
         send("room:tabletop:pawn:status:add", {
             pawnId: this.pawnId,
             name: e.detail.name,
-            duration: e.detail.duration,
+            duration: duration,
             color: e.detail.color,
             uid: UUID(),
         });
@@ -224,7 +228,10 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                 const condition = this.model.conditions[key];
                 return html`
                     <condition-badge color="${condition.color}" @click=${this.onRemoveConditionClick} data-uid="${condition.uid}">
-                        <span>${condition.name}</span>
+                        <span>
+                            ${condition.name}
+                            ${condition.duration > 0 ? ` (${condition.duration})` : ""}
+                        </span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                             <path d="M18 6l-12 12"></path>

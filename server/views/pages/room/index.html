@@ -212,7 +212,7 @@
     <div 
         class="modal"
         x-on:click.outside="open = false"
-        x-data="{ name: '', duration: -1, color: 'white' }"
+        x-data="{ name: '', duration: -1, color: 'white', clear: 'start' }"
     >
         <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Condition Editor</h2>
         <div class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">
@@ -233,6 +233,14 @@
                 data-min="-1"
                 @input="duration = $event.detail.value"
             ></number-input-component>
+            <select-component
+                data-name="clear"
+                data-label="Condition Clear Trigger"
+                data-required="true"
+                data-options='[{"label":"Start of Turn","value":"start"},{"label":"End of Turn","value":"end"}]'
+                :data-value="clear"
+                @change="clear = $event.detail.value"
+            ></select-component>
             <select-component
                 data-name="color"
                 data-label="Color"
@@ -257,7 +265,7 @@
                     kind="solid"
                     color="success"
                     :disabled="!name"
-                    x-on:click="open = false; $dispatch('add-condition', { name: name, duration: duration, color: color }); name = ''; duration = 1; color = 'white';"
+                    x-on:click="$dispatch('add-condition', { name: name, duration: duration, color: color, clear: clear }); name = ''; open = false;"
                 >Add Condition</button>
             </div>
         </div>

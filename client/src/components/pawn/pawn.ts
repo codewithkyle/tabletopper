@@ -145,7 +145,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         e.stopImmediatePropagation();
         if (this.model.type === "monster" && room.isGM){
             const windowEl = new Window({
-                name: `${this.model.name} (${this.model.type})`,
+                name: this.model.name,
                 width: 500,
                 height: 300,
                 view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
@@ -156,7 +156,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             }
         } else if (this.model.type === "player" && room.isGM || this.model.type === "player" && this.model.uid) {
             const windowEl = new Window({
-                name: `${this.model.name}`,
+                name: this.model.name,
                 width: 300,
                 height: 150,
                 view: new StatBlock(this.model.uid, "player", this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden),
@@ -167,7 +167,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             }
         } else if (this.model.type === "npc") {
             const windowEl = new Window({
-                name: `${this.model.name} (${this.model.type})`,
+                name: this.model.name,
                 width: 500,
                 height: 300,
                 view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
