@@ -483,7 +483,8 @@ class Room {
             const renderGrid = this.renderGrid;
             const cellDistance = this.cellDistance;
             const prefillFog = this.prefillFog;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog });
+            const dmgOverlay = this.dmgOverlay;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
             gm.send(ws, "room:tabletop:fog:sync", {
                 clearedCells: this.clearedCells,
             });
