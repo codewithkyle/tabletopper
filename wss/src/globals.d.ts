@@ -37,4 +37,5 @@ export interface Condition {
     name: string,
     color: "blue" | "green" | "orange" | "pink" | "purple" | "red" | "white" | "yellow",
     duration: number,
+    trigger: "start" | "end",
 }

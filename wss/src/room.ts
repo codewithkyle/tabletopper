@@ -105,25 +105,32 @@ class Room {
     }
 
     private decrementConditions() {
-        for (const pawn of this.pawns) {
-            for (const key in pawn.conditions) {
-                if (pawn.conditions[key].duration > 0) {
-                    pawn.conditions[key].duration--;
-                    this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawn.uid, condition: pawn.conditions[key] });
-                } else if (pawn.conditions[key].duration === 0) {
-                    delete pawn.conditions[key];
-                    this.broadcast("room:tabletop:pawn:status:remove", { pawnId: pawn.uid, uid: key });
-                }
-            }
+        let prev;
+        if (this.activeInitiative - 1 < 0) {
+            prev = this.initiative[this.initiative.length - 1];
+        } else {
+            prev = this.initiative[this.activeInitiative - 1];
         }
+        const current = this.initiative[this.activeInitiative];
 
-        // TODO: rethink how we track initiative conditions
-        for (const pawn of this.initiative) {
-            for (const key in pawn.conditions) {
-                if (pawn.conditions[key].duration > 0) {
-                    pawn.conditions[key].duration--;
-                } else if (pawn.conditions[key].duration === 0) {
-                    delete pawn.conditions[key];
+        for (const pawn of this.pawns) {
+            let trigger = null;
+            if (pawn.uid === current.uid) {
+                trigger = "start";
+            } else if (pawn.uid === prev.uid){
+                trigger = "end";
+            }
+            if (trigger !== null){
+                for (const key in pawn.conditions) {
+                    if (pawn.conditions[key].duration >= 0 && pawn.conditions[key].trigger === trigger){
+                        pawn.conditions[key].duration--;
+                        if (pawn.conditions[key].duration > 0) {
+                            this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawn.uid, condition: pawn.conditions[key] });
+                        } else if (pawn.conditions[key].duration === 0) {
+                            delete pawn.conditions[key];
+                            this.broadcast("room:tabletop:pawn:status:remove", { pawnId: pawn.uid, uid: key });
+                        }
+                    }
                 }
             }
         }
@@ -138,8 +145,8 @@ class Room {
         if (this.activeInitiative >= this.initiative.length) {
             this.activeInitiative = 0;
             this.turnCounter++;
-            this.decrementConditions();
         }
+        this.decrementConditions();
         this.broadcast("room:initiative:active", this.activeInitiative);
         this.announceInitiative();
     }
@@ -147,9 +154,9 @@ class Room {
     public setActiveInitiative(index:number):void{
         if (this.activeInitiative === this.initiative.length - 1 && index === 0) {
             this.turnCounter++;
-            this.decrementConditions();
         }
         this.activeInitiative = index;
+        this.decrementConditions();
         this.broadcast("room:initiative:active", index);
         this.announceInitiative();
     }
@@ -333,12 +340,13 @@ class Room {
         this.broadcast("room:tabletop:pawn:visibility", { pawnId, hidden });
     }
 
-    public setPawnCondition({ pawnId, uid, name, color, duration }){
+    public setPawnCondition({ pawnId, uid, name, color, duration, trigger }){
         const condition = {
             uid: uid,
             name: name,
             color: color,
             duration: duration,
+            trigger: trigger,
         };
         for (const pawn of this.pawns){
             if (pawn.uid === pawnId){

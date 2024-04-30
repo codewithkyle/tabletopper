@@ -154,15 +154,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private addCondition:EventListener = (e:CustomEvent) => {
         window.removeEventListener("add-condition", this.addCondition);
-        let duration = e.detail.duration;
-        if (e.detail.clear === "end") {
-            duration++;
-        }
         send("room:tabletop:pawn:status:add", {
             pawnId: this.pawnId,
             name: e.detail.name,
-            duration: duration,
+            duration: e.detail.duration,
             color: e.detail.color,
+            trigger: e.detail.clear,
             uid: UUID(),
         });
     }
