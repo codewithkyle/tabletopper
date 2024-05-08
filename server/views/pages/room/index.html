@@ -4,6 +4,8 @@
     x-on:click.outside="open = ''"
 >
 </tool-bar>
+<initiative-tracker></initiative-tracker>
+<turn-timer></turn-timer>
 <tabletop-page>
     <tabletop-component></tabletop-component>
 </tabletop-page>
@@ -121,51 +123,79 @@
     ></div>
 </spotlight-search>
 <quick-spawn
-    x-data="{ open: false, name: '' }"
+    x-data="{ open: false, name: '', img: '' }"
     x-on:show-quick-spawn.window="open = true"
     x-show="open"
 >
     <div 
         class="modal"
+        hx-trigger="show-quick-spawn from:window"
+        hx-swap="outerHTML"
+        hx-get="/stub/tabletop/quick-spawn"
+    ></div>
+</quick-spawn>
+<user-menu
+    x-data="{ open: false }"
+    x-on:show-user-menu.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+        x-data="{ selected: '' }"
+        hx-trigger="show-user-menu from:window"
+        hx-swap="innerHTML"
+        hx-get="/stub/user/menu"
     >
-        <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Quick Spawn</h2>
-        <div id="create-monster" class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">
+    </div>
+</user-menu>
+<conditions-menu
+    x-data="{ open: false }"
+    x-on:show-conditions-menu.window="open = true"
+    x-on:keydown.escape.window="open = false"
+    x-show="open"
+>
+    <div 
+        class="modal"
+        x-on:click.outside="open = false"
+        x-data="{ name: '', duration: -1, color: 'white', clear: 'end' }"
+    >
+        <h2 class="font-grey-800 dark:font-grey-100 font-bold block px-1.5 pt-1.25 pb-1.25 border-b-solid border-b-1 border-b-grey-300 dark:border-b-grey-700">Condition Editor</h2>
+        <div class="container w-full px-2 pt-2 pb-1" grid="columns 1 gap-1.5">
             <input-component
                 data-name="name"
                 data-label="Name"
                 data-required="true"
+                data-datalist='["Blinded", "Charmed", "Deafened", "Frightened", "Grappled", "Incapacitated", "Invisible", "Paralyzed", "Petrified", "Poisoned", "Restrained", "Stunned", "Unconscious", "Exhaustion"]'
                 :data-value="name"
                 @input="name = $event.detail.value"
             ></input-component>
-            <div class="w-full" grid="columns 2 gap-1.5">
-                <select-component
-                    data-name="type"
-                    data-label="Type"
-                    data-required="true"
-                    data-options='[{"label":"NPC","value":"npc"}{% if GM %},{"label":"Monster","value":"monster"}{% endif %}]'
-                    data-value="npc"
-                ></select-component>
-                <select-component
-                    data-name="size"
-                    data-label="Size"
-                    data-required="true"
-                    data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
-                    data-value="medium"
-                ></select-component>
-                <number-input-component
-                    data-name="ac"
-                    data-label="Armor Class"
-                    data-required="true"
-                    data-value="0"
-                ></number-input-component>
-                <number-input-component
-                    data-name="hp"
-                    data-label="Hit Points"
-                    data-required="true"
-                    data-value="1"
-                    data-min="1"
-                ></number-input-component>
-            </div>
+            <number-input-component
+                data-name="duration"
+                data-label="Duration"
+                data-instructions="Number of turns this condition should persist. Set to -1 if this condition should be manually removed."
+                data-required="false"
+                :data-value="duration"
+                data-min="-1"
+                @input="duration = $event.detail.value"
+            ></number-input-component>
+            <select-component
+                data-name="clear"
+                data-label="Condition Clear Trigger"
+                data-required="true"
+                data-options='[{"label":"Start of Turn","value":"start"},{"label":"End of Turn","value":"end"}]'
+                :data-value="clear"
+                @change="clear = $event.detail.value"
+            ></select-component>
+            <select-component
+                data-name="color"
+                data-label="Color"
+                data-required="true"
+                data-options='[{"label":"White","value":"white"},{"label":"Blue","value":"blue"},{"label":"Green","value":"green"},{"label":"Orange","value":"orange"},{"label":"Pink","value":"pink"},{"label":"Purple","value":"purple"},{"label":"Red","value":"red"},{"label":"Yellow","value":"yellow"}]'
+                :data-value="color"
+                @change="color = $event.detail.value"
+            ></select-component>
         </div>
         <div class="p-1 block w-full">
             <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
@@ -182,22 +212,9 @@
                     kind="solid"
                     color="success"
                     :disabled="!name"
-                    x-on:click="open = false; $dispatch('tabletop:quick-spawn');"
-                >Spawn</button>
+                    x-on:click="$dispatch('add-condition', { name: name, duration: duration, color: color, clear: clear }); name = ''; open = false;"
+                >Add Condition</button>
             </div>
         </div>
     </div>
-</quick-spawn>
-<user-menu
-    x-data="{ open: false }"
-    x-on:show-user-menu.window="open = true"
-    x-on:keydown.escape.window="open = false"
-    x-show="open"
->
-    <div 
-        class="modal"
-        x-on:click.outside="open = false"
-        x-data="{ selected: '' }"
-    >
-    </div>
-</user-menu>
+</conditions-menu>

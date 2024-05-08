@@ -27,6 +27,24 @@
         x-on:change="$data.renderGrid = $event.detail.enabled"
     >
     </lightswitch-component>
+    <lightswitch-component 
+        data-name="prefill-fog"
+        data-enabled-label="Yes"
+        data-disabled-label="No"
+        data-label="Prefill fog of war"
+        :data-enabled="$data.prefillFog"
+        x-on:change="$data.prefillFog = $event.detail.enabled"
+    >
+    </lightswitch-component>
+    <lightswitch-component 
+        data-name="dmg-overlay"
+        data-enabled-label="On"
+        data-disabled-label="Off"
+        data-label="Enable damage overlay"
+        :data-enabled="$data.dmgOverlay"
+        x-on:change="$data.dmgOverlay = $event.detail.enabled"
+    >
+    </lightswitch-component>
 </div>
 <div class="p-1 block w-full">
     <div class="radius-0.5 w-full p-1 bg-grey-50 dark:bg-grey-950/60" flex="row nowrap items-center justify-end">
@@ -42,7 +60,7 @@
             sfx="button"
             kind="solid"
             color="success"
-            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked, cellDistance: document.querySelector(`[name='cell-distance']`).value });"
+            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked, cellDistance: document.querySelector(`[name='cell-distance']`).value, prefillFog: document.querySelector(`[name='prefill-fog']`).checked, dmgOverlay: document.querySelector(`[name='dmg-overlay']`).checked });"
         >Save</button>
     </div>
 </div>

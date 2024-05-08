@@ -4,16 +4,12 @@ export type Socket = {
     send: Function,
     name: string,
     image: string,
+    maxHP: number,
+    hp: number,
+    ac: number,
 };
 
 export type ExitReason = "UNKNOWN" | "KICKED" | "DC" | "QUIT";
-
-export type Initiative = {
-    uid: string,
-    name: string,
-    type: "player"|"monster"|"npc",
-    index: number,
-}
 
 export type Pawn = {
     uid: string,
@@ -22,22 +18,24 @@ export type Pawn = {
     token?: string|null,
     name: string,
     room: string,
-    hp?: number,
-    ac?: number,
+    hp: number,
+    ac: number,
     hidden: boolean,
     image: string,
-    rings: {
-        red: boolean,
-        orange: boolean,
-        blue: boolean,
-        white: boolean,
-        purple: boolean,
-        yellow: boolean,
-        pink: boolean,
-        green: boolean,
+    conditions: {
+        [uid: string]: Condition,
     },
-    fullHP?: number,
+    fullHP: number,
     size?: string|null,
     type: "player"|"monster"|"npc",
     monsterId?: string,
+    ownerId?: string,
+}
+
+export interface Condition {
+    uid: string,
+    name: string,
+    color: "blue" | "green" | "orange" | "pink" | "purple" | "red" | "white" | "yellow",
+    duration: number,
+    trigger: "start" | "end",
 }

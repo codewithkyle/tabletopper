@@ -1,0 +1,34 @@
+conditions-menu{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 5000;
+
+    .modal {
+        display: inline-block;
+        background-color: var(--white);
+        border-radius: 0.5rem;
+        width: 100%;
+        max-width: calc(100% - 2rem);
+        max-height: calc(100% - 2rem);
+        z-index: 2;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-black-lg);
+        border: 1px solid var(--grey-300);
+        width: 600px;
+        opacity: 0;
+        animation: fadePopIn forwards 150ms 150ms var(--ease-in);
+        backdrop-filter: blur(8px);
+
+        @media (prefers-color-scheme: dark) {
+            background-color: hsl(var(--grey-900-hsl)/0.87);
+            border: 1px solid var(--grey-800);
+        }
+    }
+}

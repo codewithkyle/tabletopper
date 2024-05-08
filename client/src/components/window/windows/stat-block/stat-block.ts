@@ -5,6 +5,9 @@ import "~brixi/components/inputs/input/input";
 import env from "~brixi/controllers/env";
 import "~brixi/components/lightswitch/lightswitch";
 import { send } from "~controllers/ws";
+import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
+import type { Condition } from "~types/app";
+import { UUID } from "@codewithkyle/uuid";
 
 interface IStatBlock {
     hp: number,
@@ -12,23 +15,17 @@ interface IStatBlock {
     ac: number,
     hidden: boolean,
     name: string,
-    rings: {
-        blue: boolean,
-        green: boolean,
-        orange: boolean,
-        pink: boolean,
-        purple: boolean,
-        red: boolean,
-        white: boolean,
-        yellow: boolean,
+    conditions: {
+        [uid:string]: Condition,
     },
 }
 export default class StatBlock extends SuperComponent<IStatBlock>{
     private pawnId: string;
     private monsterId: string;
     private type: "player" | "npc" | "monster";
+    private ticket: string;
 
-    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", rings, hp = 0, fullHP = 0, ac = 0, hidden = true, name = "", monsterId = ""){
+    constructor(pawnId:string, type:"player" | "npc" | "monster" = "monster", conditions = {}, hp = 0, fullHP = 0, ac = 0, hidden = true, name = "", monsterId = ""){
         super();
         this.pawnId = pawnId;
         this.monsterId = monsterId;
@@ -39,13 +36,56 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
             ac: ac,
             hidden: hidden,
             name: name,
-            rings: rings,
+            conditions: conditions,
         };
+        this.ticket = subscribe("socket", this.inbox.bind(this));
     }
 
     override async connected(){
         await env.css(["stat-block"]);
         this.render();
+    }
+
+    override disconnected(): void {
+        unsubscribe("socket", this.ticket);
+        window.removeEventListener("add-condition", this.addCondition);
+    }
+
+    private inbox({ type, data }){
+        switch(type){
+            case "room:tabletop:pawn:health":
+                if (data.pawnId === this.pawnId){
+                    this.model.hp = data.hp;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:ac":
+                if (data.pawnId === this.pawnId){
+                    this.model.ac = data.ac;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:visibility":
+                if (data.pawnId === this.pawnId){
+                    this.model.hidden = data.hidden;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:status:add":
+                if (data.pawnId === this.pawnId){
+                    this.model.conditions[data.condition.uid] = data.condition;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:status:remove":
+                if (data.pawnId === this.pawnId){
+                    delete this.model.conditions[data.uid];
+                    this.render();
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     private updateHP(e:CustomEvent){
@@ -88,7 +128,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private updateAC(e:CustomEvent){
         let { name, value } = e.detail;
-        value = parseInt(value);
         this.set({ac: value}, true);
         send("room:tabletop:pawn:ac", {
             pawnId: this.pawnId,
@@ -104,15 +143,6 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         });
     }
 
-    private handleRingChange:EventListener = (e:Event) => {
-        const input = e.currentTarget as HTMLInputElement;
-        send("room:tabletop:pawn:status", {
-            pawnId: this.pawnId,
-            type: input.value,
-            checked: input.checked,
-        });
-    }
-
     private openMonsterManual(){
         window.dispatchEvent(new CustomEvent("window:monsters:open", { 
             detail: {
@@ -120,6 +150,29 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                 name: this.model.name
             } 
         }));
+    }
+
+    private addCondition:EventListener = (e:CustomEvent) => {
+        window.removeEventListener("add-condition", this.addCondition);
+        send("room:tabletop:pawn:status:add", {
+            pawnId: this.pawnId,
+            name: e.detail.name,
+            duration: e.detail.duration,
+            color: e.detail.color,
+            trigger: e.detail.clear,
+            uid: UUID(),
+        });
+    }
+
+    private onAddConditionClick:EventListener = (e) => {
+        window.dispatchEvent(new CustomEvent("show-conditions-menu"));
+        window.addEventListener("add-condition", this.addCondition);
+    }
+
+    private onRemoveConditionClick:EventListener = (e) => {
+        // @ts-ignore
+        const uid = e.currentTarget.dataset.uid;
+        send("room:tabletop:pawn:status:remove", { pawnId: this.pawnId, uid: uid });
     }
 
     private renderDeleteButton(){
@@ -166,12 +219,22 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }
     }
 
-    private renderRings(){
+    private renderConditions(){
         return html`
-            ${Object.keys(this.model.rings).map(key => {
+            ${Object.keys(this.model.conditions).map(key => {
+                const condition = this.model.conditions[key];
                 return html`
-                    <input type="checkbox" id="${this.pawnId}-ring-${key}" name="${this.pawnId}-ring-${key}" ?checked=${this.model.rings[key]} value="${key}" @change=${this.handleRingChange}>
-                    <label for="${this.pawnId}-ring-${key}" color="${key}"></label>
+                    <condition-badge color="${condition.color}" @click=${this.onRemoveConditionClick} data-uid="${condition.uid}">
+                        <span>
+                            ${condition.name}
+                            ${condition.duration > 0 ? ` (${condition.duration})` : ""}
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M18 6l-12 12"></path>
+                            <path d="M6 6l12 12"></path>
+                        </svg>
+                    </condition-badge>
                 `;
             })}
         `;
@@ -179,6 +242,22 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     override render(): void {
         const view = html`
+            <div class="w-full mb-1" grid="columns 2 gap-1">
+                <input-component
+                    data-name="${this.pawnId}-hp"
+                    data-label="Hit Points"
+                    data-value="${this.model.hp}"
+                    data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>'
+                    @blur=${this.updateHP.bind(this)}
+                ></input-component> 
+                <number-input-component
+                    data-name="${this.pawnId}-ac"
+                    data-label="Armour Class"
+                    data-value="${this.model.ac}"
+                    data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
+                    @input=${this.updateAC.bind(this)}
+                ></number-input-component>
+            </div>
             <div class="w-full mb-1" flex="items-center justify-between row nowrap">
                 <lightswitch-component
                     data-name="${this.pawnId}-hidden"
@@ -190,30 +269,23 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     @change=${this.changeVisibility.bind(this)}
                 ></lightswitch-component>
                 <div flex="items-center row nowrap">
+                    <button
+                        class="bttn"
+                        kind="text"
+                        color="grey"
+                        icon="center"
+                        tooltip="Add condition"
+                        size="slim"
+                        @click=${this.onAddConditionClick}
+                    >
+                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M13 12h5" /><path d="M13 15h4" /><path d="M13 18h1" /><path d="M13 9h4" /><path d="M13 6h1" /></svg>
+                    </button>
                     ${this.renderBookButton()}
                     ${this.renderDeleteButton()}
                 </div>
             </div>
-            ${ this.type !== "player" ? html`
-                <div class="w-full mb-1" grid="columns 2 gap-1">
-                    <input-component
-                        data-name="${this.pawnId}-hp"
-                        data-label="Hit Points"
-                        data-value="${this.model.hp}"
-                        data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>'
-                        @blur=${this.updateHP.bind(this)}
-                    ></input-component>
-                    <number-input-component
-                        data-name="${this.pawnId}-ac"
-                        data-label="Armour Class"
-                        data-value="${this.model.ac}"
-                        data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"></path></svg>'
-                        @blur=${this.updateAC.bind(this)}
-                    ></number-input-component>
-                </div>
-            ` : "" }
-            <div class="w-full rings" flex="row wrap items-center">
-                ${this.renderRings()}
+            <div class="w-full conditions" flex="row wrap items-start justify-start">
+                ${this.renderConditions()}
             </div>
         `;
         render(view, this);

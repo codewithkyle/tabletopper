@@ -1,5 +1,5 @@
 import gm from "./game.js";
-import type { ExitReason, Socket, Pawn, Initiative } from "./globals.js";
+import type { ExitReason, Socket, Pawn } from "./globals.js";
 import { randomUUID } from "crypto";
 
 class Room {
@@ -22,9 +22,12 @@ class Room {
     private cellSize: number;
     private cellDistance: number;
     private renderGrid: boolean;
+    private prefillFog: boolean;
+    private dmgOverlay: boolean;
+    private turnCounter: number;
     private pawns: Pawn[];
-    private initiative: Array<Initiative>;
-    private activeInitiative: string|null;
+    private initiative: Array<Pawn>;
+    private activeInitiative: number|null;
     private playerImages: {
         [id:string]: string,
     };
@@ -46,6 +49,9 @@ class Room {
         this.cellSize = 32;
         this.cellDistance = 5;
         this.renderGrid = false;
+        this.prefillFog = false;
+        this.dmgOverlay = false;
+        this.turnCounter = 0;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
@@ -93,14 +99,66 @@ class Room {
         this.broadcast("room:tabletop:ping", data);
     }
 
-    public syncInitiative(initiative:Array<Initiative>):void{
+    public syncInitiative(initiative:Array<Pawn>):void{
         this.initiative = initiative;
         this.broadcast("room:initiative:sync", initiative);
     }
 
-    public setActiveInitiative(uid:string):void{
-        this.activeInitiative = uid;
-        this.broadcast("room:initiative:active", uid);
+    private decrementConditions() {
+        let prev;
+        if (this.activeInitiative - 1 < 0) {
+            prev = this.initiative[this.initiative.length - 1];
+        } else {
+            prev = this.initiative[this.activeInitiative - 1];
+        }
+        const current = this.initiative[this.activeInitiative];
+
+        for (const pawn of this.pawns) {
+            let trigger = null;
+            if (pawn.uid === current.uid) {
+                trigger = "start";
+            } else if (pawn.uid === prev.uid){
+                trigger = "end";
+            }
+            if (trigger !== null){
+                for (const key in pawn.conditions) {
+                    if (pawn.conditions[key].duration >= 0 && pawn.conditions[key].trigger === trigger){
+                        pawn.conditions[key].duration--;
+                        if (pawn.conditions[key].duration > 0) {
+                            this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawn.uid, condition: pawn.conditions[key] });
+                        } else if (pawn.conditions[key].duration === 0) {
+                            delete pawn.conditions[key];
+                            this.broadcast("room:tabletop:pawn:status:remove", { pawnId: pawn.uid, uid: key });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public progressInitiative():void{
+        if (this.activeInitiative === null){
+            this.activeInitiative = 0;
+        } else {
+            this.activeInitiative++;
+        }
+        if (this.activeInitiative >= this.initiative.length) {
+            this.activeInitiative = 0;
+            this.turnCounter++;
+        }
+        this.decrementConditions();
+        this.broadcast("room:initiative:active", this.activeInitiative);
+        this.announceInitiative();
+    }
+
+    public setActiveInitiative(index:number):void{
+        if (this.activeInitiative === this.initiative.length - 1 && index === 0) {
+            this.turnCounter++;
+        }
+        this.activeInitiative = index;
+        this.decrementConditions();
+        this.broadcast("room:initiative:active", index);
+        this.announceInitiative();
     }
 
     public clearInitiative():void{
@@ -108,25 +166,34 @@ class Room {
         this.broadcast("room:initiative:sync", []);
         this.activeInitiative = null;
         this.broadcast("room:initiative:active", null);
+        this.turnCounter = 0;
     }
 
-    public async announceInitiative({ current, next }):Promise<void>{
-        this.broadcast("room:initiative:active", current.uid);
-        if (current.type === "player"){
+    public async announceInitiative():Promise<void>{
+        if (this.initiative.length < 3 || this.activeInitiative === null) return;
+        const current = this.initiative[this.activeInitiative];
+        let next;
+        if (this.activeInitiative + 1 < this.initiative.length) {
+            next = this.initiative[this.activeInitiative + 1];
+        } else {
+            next = this.initiative[0];
+        }
+        if (!current || !next) return;
+        if (current.type === "player" && current.uid in this.sockets){
             gm.send(this.sockets[current.uid], "room:announce:initiative", {
                 title: "You're up!",
                 message: "It's your turn for combat. Good luck!",
             });
+            this.broadcast("room:initiative:turn:start", current.uid);
+        } else if (current.type === "monster" && this.gmId in this.sockets) {
+            this.broadcast("room:initiative:turn:start", this.gmId);
+        } else if (current.type === "npc" && current.ownerId in this.sockets) {
+            this.broadcast("room:initiative:turn:start", current.ownerId);
         }
         if (next.type === "player"){
             gm.send(this.sockets[next.uid], "room:announce:initiative", {
                 title: "You're on deck.",
                 message: "Start planning your turn now. You're next in the initiative order.",
-            });
-        } else {
-            this.broadcast("room:announce:initiative", {
-                title: `${next.name} is on deck.`,
-                message: `${next.name} is next in the initiative order.`,
             });
         }
     }
@@ -167,11 +234,13 @@ class Room {
         });
     }
 
-    public updateMap({ cellSize, renderGrid, cellDistance }){
+    public updateMap({ cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
         this.cellDistance = cellDistance;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
+        this.prefillFog = prefillFog;
+        this.dmgOverlay = dmgOverlay;
+        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
     }
 
     public clearMap(){
@@ -180,10 +249,13 @@ class Room {
         this.map = "";
         this.clearedCells = {};
         this.doodleData = "";
+        this.initiative = [];
+        this.activeInitiative = null;
+        this.turnCounter = 0;
         this.broadcast("room:tabletop:clear");
     }
 
-    public spawnNPC({ x, y, name, hp, ac, size }){
+    public spawnNPC({ x, y, name, hp, ac, size, ownerId, image }){
         const id = randomUUID();
         const pawn:Pawn = {
             uid: id,
@@ -196,18 +268,10 @@ class Room {
             hp: hp,
             fullHP: hp,
             size: size,
-            image: "",
-            rings: {
-                red: false,
-                orange: false,
-                blue: false,
-                white: false,
-                purple: false,
-                yellow: false,
-                pink: false,
-                green: false,
-            },
+            image: image || "",
+            conditions: {},
             type: "npc",
+            ownerId: ownerId,
         };
         this.pawns.push(pawn);
         this.broadcast("room:tabletop:pawn:spawn", pawn);
@@ -238,16 +302,7 @@ class Room {
             size: size,
             image: image,
             monsterId: monsterId,
-            rings: {
-                red: false,
-                orange: false,
-                blue: false,
-                white: false,
-                purple: false,
-                yellow: false,
-                pink: false,
-                green: false,
-            },
+            conditions: {},
             type: "monster",
         };
         this.pawns.push(pawn);
@@ -285,14 +340,43 @@ class Room {
         this.broadcast("room:tabletop:pawn:visibility", { pawnId, hidden });
     }
 
-    public updatePawnStatus({ pawnId, type, checked }){
+    public setPawnCondition({ pawnId, uid, name, color, duration, trigger }){
+        const condition = {
+            uid: uid,
+            name: name,
+            color: color,
+            duration: duration,
+            trigger: trigger,
+        };
         for (const pawn of this.pawns){
             if (pawn.uid === pawnId){
-                pawn.rings[type] = checked;
+                pawn.conditions[uid] = condition;
                 break;
             }
         }
-        this.broadcast("room:tabletop:pawn:status", { pawnId, type, checked });
+        for (const pawn of this.initiative) {
+            if (pawn.uid === pawnId){
+                pawn.conditions[uid] = condition;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:status:add", { pawnId: pawnId, condition: condition });
+    }
+
+    public removePawnCondition({ pawnId, uid }){
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                delete pawn.conditions[uid];
+                break;
+            }
+        }
+        for (const pawn of this.initiative){
+            if (pawn.uid === pawnId){
+                delete pawn.conditions[uid];
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:status:remove", { pawnId, uid });
     }
 
     public movePawn({ uid, x, y }){
@@ -325,17 +409,11 @@ class Room {
                     uid: id,
                     name: this.sockets[id].name,
                     image: this.playerImages?.[id] || "",
-                    rings: {
-                        red: false,
-                        orange: false,
-                        blue: false,
-                        white: false,
-                        purple: false,
-                        yellow: false,
-                        pink: false,
-                        green: false,
-                    },
+                    conditions: {},
                     type: "player",
+                    hp: this.sockets[id].hp,
+                    fullHP: this.sockets[id].maxHP,
+                    ac: this.sockets[id].ac,
                 };
                 this.pawns.push(pawn);
                 this.broadcast("room:tabletop:pawn:spawn", pawn);
@@ -392,17 +470,11 @@ class Room {
                 uid: ws.id,
                 name: ws.name,
                 image: this.playerImages?.[ws.id] || "",
-                rings: {
-                    red: false,
-                    orange: false,
-                    blue: false,
-                    white: false,
-                    purple: false,
-                    yellow: false,
-                    pink: false,
-                    green: false,
-                },
+                conditions: {},
                 type: "player",
+                hp: ws.hp,
+                fullHP: ws.maxHP,
+                ac: ws.ac,
             };
             this.pawns.push(pawn);
             this.broadcast("room:tabletop:pawn:spawn", pawn);
@@ -421,7 +493,9 @@ class Room {
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
             const cellDistance = this.cellDistance;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance });
+            const prefillFog = this.prefillFog;
+            const dmgOverlay = this.dmgOverlay;
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
             gm.send(ws, "room:tabletop:fog:sync", {
                 clearedCells: this.clearedCells,
             });
@@ -437,6 +511,9 @@ class Room {
                 name: this.sockets[id].name,
                 gm: id === this.gmId,
                 muted: id in this.mutedPlayers,
+                ac: this.sockets[id].ac,
+                hp: this.sockets[id].hp,
+                maxHP: this.sockets[id].maxHP,
             });
         }
         this.broadcast("room:sync:players", players);

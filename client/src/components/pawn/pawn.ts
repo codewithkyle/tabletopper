@@ -5,11 +5,11 @@ import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-c
 import {html, render, TemplateResult} from "lit-html";
 import Window from "~components/window/window";
 import StatBlock from "components/window/windows/stat-block/stat-block";
-import {Size} from "~types/app";
+import {Condition, Size} from "~types/app";
 import room from "room";
 import { send } from "~controllers/ws";
 
-interface IPawn{
+export interface IPawn{
     uid: string,
     x: number,
     y: number,
@@ -18,21 +18,15 @@ interface IPawn{
     token: string|null;
     monsterId?: string;
     name: string;
-    rings: {
-        blue: boolean,
-        green: boolean,
-        orange: boolean,
-        pink: boolean,
-        purple: boolean,
-        red: boolean,
-        white: boolean,
-        yellow: boolean,
+    conditions: {
+        [uid: string]: Condition,
     },
     hp?: number,
     fullHP?: number,
     ac?: number,
     size: Size,
     type: "player"|"monster"|"npc",
+    ownerId?: string,
 }
 export default class Pawn extends SuperComponent<IPawn>{
     public dragging: boolean;
@@ -56,13 +50,14 @@ export default class Pawn extends SuperComponent<IPawn>{
             hidden: pawn?.hidden ?? false,
             name: pawn.name,
             token: pawn?.token ?? null,
-            rings: pawn.rings,
+            conditions: pawn?.conditions ?? {},
             hp: pawn?.hp ?? null,
             fullHP: pawn?.fullHP ?? null,
             size: pawn?.size ?? "medium",
             type: pawn.type,
             ac: pawn?.ac ?? null,
             monsterId: pawn?.monsterId ?? null,
+            ownerId: pawn?.ownerId ?? null,
         };
         this.ticket = subscribe("socket", this.inbox.bind(this));
         this.gridSize = room.gridSize;
@@ -116,9 +111,15 @@ export default class Pawn extends SuperComponent<IPawn>{
                     this.render();
                 }
                 break;
-            case "room:tabletop:pawn:status":
+            case "room:tabletop:pawn:status:add":
                 if (data.pawnId === this.model.uid){
-                    this.model.rings[data.type] = data.checked;
+                    this.model.conditions[data.condition.uid] = data.condition;
+                    this.render();
+                }
+                break;
+            case "room:tabletop:pawn:status:remove":
+                if (data.pawnId === this.model.uid){
+                    delete this.model.conditions[data.uid];
                     this.render();
                 }
                 break;
@@ -144,35 +145,40 @@ export default class Pawn extends SuperComponent<IPawn>{
     private contextMenu:EventListener = (e:MouseEvent) => {
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!room.isGM) return;
-        if (this.model.type === "monster"){
+        if (this.model.type === "monster" && room.isGM){
             const windowEl = new Window({
-                name: `${this.model.name} (${this.model.type})`,
+                name: this.model.name,
                 width: 500,
                 height: 300,
-                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
+                view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name, this.model.monsterId),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "player"){
+        } else if (
+            this.model.type === "player" && room.isGM || 
+            this.model.type === "player" && this.model.uid === room.uid
+        ) {
             const windowEl = new Window({
-                name: `${this.model.name}`,
+                name: this.model.name,
                 width: 300,
                 height: 150,
-                view: new StatBlock(this.model.uid, "player", this.model.rings, null, null, null, this.model.hidden),
+                view: new StatBlock(this.model.uid, "player", this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
                 document.body.appendChild(windowEl);
             }
-        } else if (this.model.type === "npc"){
+        } else if (
+            this.model.type === "npc" && room.isGM ||
+            this.model.type === "npc" && this.model.ownerId === room.uid
+        ) {
             const windowEl = new Window({
-                name: `${this.model.name} (${this.model.type})`,
+                name: this.model.name,
                 width: 500,
                 height: 300,
-                view: new StatBlock(this.model.uid, this.model.type, this.model.rings, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
+                view: new StatBlock(this.model.uid, this.model.type, this.model.conditions, this.model.hp, this.model.fullHP, this.model.ac, this.model.hidden, this.model.name),
                 handle: "stat-block",
             });
             if (!windowEl.isConnected){
@@ -182,20 +188,29 @@ export default class Pawn extends SuperComponent<IPawn>{
     }
 
     private resetTooltip(){
+        let tooltip = this.model.name;
         if (this.model.hp !== null && this.model.fullHP !== null){
             if (this.model.hp === 0){
                 this.setAttribute("bleeding", "false");
-                this.setAttribute("tooltip", `${this.model.name} (dead)`);
-            } else if (this.model.hp <= this.model.fullHP * 0.5){
+                this.setAttribute("bloodied", "false");
+                tooltip += " (dead)"
+            } else if (this.model.hp <= this.model.fullHP * 0.25){
                 this.setAttribute("bleeding", "true");
-                this.setAttribute("tooltip", `${this.model.name} (bloody)`);
+                this.setAttribute("bloodied", "true");
+                tooltip += " (very bloodied)";
+            } else if (this.model.hp <= this.model.fullHP * 0.5){
+                this.setAttribute("bleeding", "false");
+                this.setAttribute("bloodied", "true");
+                tooltip += " (bloodied)";
             } else {
                 this.setAttribute("bleeding", "false");
-                this.setAttribute("tooltip", this.model.name);
+                this.setAttribute("bloodied", "false");
             }
-        } else {
-            this.setAttribute("tooltip", this.model.name);
         }
+        for (const key in this.model.conditions){
+            tooltip += ` (${this.model.conditions[key].name})`;
+        }
+        this.setAttribute("tooltip", tooltip);
     }
 
     private stopDrag:EventListener = (e:DragEvent) => {
@@ -303,6 +318,17 @@ export default class Pawn extends SuperComponent<IPawn>{
         if (this.model?.image?.length){
             out = html`
                 <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${this.model.image}" alt="${this.model.name} token" draggable="false">
+                ${room.dmgOverlay ? html`
+                    <div class="dmg-container">
+                        <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
+                    </div>
+                ` : ""}
+            `;
+        } else if (room.dmgOverlay) {
+            out = html`
+                <div class="dmg-container">
+                    <div class="dmg-overlay" style="transform: scaleY(${1 - (this.model.hp / this.model.fullHP)});"></div>
+                </div>
             `;
         } else {
             out = "";
@@ -310,7 +336,7 @@ export default class Pawn extends SuperComponent<IPawn>{
         return out;
     }
 
-    private renderRings(){
+    private renderConditions(){
         const m = this.getSizeMultiplier();
         let x = -2;
         let y = -2;
@@ -318,19 +344,17 @@ export default class Pawn extends SuperComponent<IPawn>{
         let h = this.gridSize * m;
         let delay = 0;
         return html`
-            ${Object.keys(this.model.rings).map(key => {
-                if (this.model.rings[key]){
-                    x -= 2;
-                    y -= 2;
-                    w += 4;
-                    h += 4;
-                    delay += 0.25;
-                    return html`
-                        <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${key}"></div>
-                    `;
-                } else {
-                    return "";
-                }
+            ${Object.keys(this.model.conditions).map(key => {
+                const condition = this.model.conditions[key];
+                x -= 2;
+                y -= 2;
+                w += 4;
+                h += 4;
+                delay += 0.25;
+                return html`
+                    <div style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;animation-delay:${delay}s;" class="ring" color="${condition.color}"></div>
+                `;
+                
             })}
         `;
     }
@@ -343,7 +367,11 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(1) saturate(1)";
             this.setAttribute("ghost", "false");
-        } else if (this.model.hidden && room.isGM || this.model.hidden && this.model.uid === room.uid){
+        } else if (
+            this.model.hidden && room.isGM || 
+            this.model.hidden && this.model.uid === room.uid ||
+            this.model.hidden && this.model.type === "npc"
+        ){
             this.style.visibility = "visible";
             this.style.pointerEvents = "all";
             this.style.filter = "contrast(0.5) saturate(0)";
@@ -379,7 +407,7 @@ export default class Pawn extends SuperComponent<IPawn>{
             this.style.zIndex = "200";
         }
         const view = html`
-            ${this.renderRings()}
+            ${this.renderConditions()}
             ${this.renderPawn()}
         `;
         render(view, this);

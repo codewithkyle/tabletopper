@@ -68,6 +68,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:initiative:next":
+                if (room){
+                    room.progressInitiative();
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:initiative:active":
                 if (room){
                     room.setActiveInitiative(data);
@@ -85,13 +92,6 @@ class GameManager {
             case "room:initiative:clear":
                 if (room){
                     room.clearInitiative();
-                } else {
-                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
-                }
-                break;
-            case "room:announce:initiative":
-                if (room){
-                    room.announceInitiative(data);
                 } else {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
@@ -201,9 +201,16 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
-            case "room:tabletop:pawn:status":
+            case "room:tabletop:pawn:status:add":
                 if (room){
-                    room.updatePawnStatus(data);
+                    room.setPawnCondition(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
+            case "room:tabletop:pawn:status:remove":
+                if (room){
+                    room.removePawnCondition(data);
                 } else {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
@@ -224,6 +231,9 @@ class GameManager {
                 if (room){
                     ws.id = data.id;
                     ws.name = data.name;
+                    ws.maxHP = data.maxHP;
+                    ws.hp = data.hp;
+                    ws.ac = data.ac;
                     this.sockets[ws.id] = ws;
                     room.addSocket(ws);
                 }
