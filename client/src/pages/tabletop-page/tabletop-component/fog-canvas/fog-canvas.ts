@@ -79,9 +79,11 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:map:update":
+                const prevGridSize = this.gridSize;
                 this.gridSize = data.cellSize;
                 this.prefillFog = data.prefillFog;
                 this.renderFogOfWar();
+                if (prevGridSize != this.gridSize) this.load();
                 break;
             default:
                 break;
