@@ -559,6 +559,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		if name == "" {
 			name = "Unnamed Monster"
 		}
+		name = strings.ReplaceAll(name, "`", "")
 		size := form.Value["size"][0]
 		alignment := form.Value["alignment"][0]
 		monsterType := form.Value["type"][0]
