@@ -17,6 +17,11 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
     override async connected() {
         this.setAttribute("cursor", "move");
         this.addEventListener("contextmenu", this.handleContextMenu);
+        window.addEventListener("beforeunload", function (e) {
+            var confirmationMessage = 'Are you sure you want to exit?';
+            (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+            return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+        });
         subscribe("socket", this.inbox.bind(this));
         subscribe("tabletop", this.tabletopInbox.bind(this));
     }
