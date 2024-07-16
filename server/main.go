@@ -88,8 +88,8 @@ func main() {
     app.Static("/service-worker.js", "../client/public/service-worker.js")
 
     app.Get("/api/heartbeat", func(c *fiber.Ctx) error {
-        db := helpers.ConnectDB()
-        db.Exec("SELECT COUNT(id) FROM tabletop_images")
+        //db := helpers.ConnectDB()
+        //db.Exec("SELECT COUNT(id) FROM tabletop_images")
         return c.SendStatus(200)
     })
 
