@@ -24,6 +24,19 @@ services:
       - redis
     networks:
       - app-network
+  wss:
+    build:
+      context: ./
+      dockerfile: Dockerfile.wss
+    labels:
+      - "traefik.http.routers.wss.rule=Host(`ws.tabletopper.local`)"
+    env_file: "./wss/.env"
+    depends_on:
+      - mysql
+      - reverse-proxy
+      - redis
+    networks:
+      - app-network
   mysql:
     image: mysql:8.0
     environment:

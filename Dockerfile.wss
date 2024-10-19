@@ -1,0 +1,22 @@
+# Use an official Node.js runtime as a parent image
+FROM node:18
+
+# Set the working directory inside the container
+WORKDIR /usr/src/app
+
+ENV PATH /usr/src/app/node_modules/.bin:$PATH
+
+# Copy the package.json and package-lock.json files into the container
+COPY ./wss/. .
+
+# Install the project dependencies
+RUN npm ci
+
+RUN npm run production
+
+# Expose the port that the app runs on (assuming the app runs on port 3000)
+EXPOSE 8080
+
+# Start the Node.js application
+CMD ["npm", "start"]
+
