@@ -5,6 +5,11 @@ let socket:WebSocket;
 let connected = false;
 let wasReconnection = false;
 
+let SOCKET_URL:string = "ws://ws.tabletopper.local";
+if (location.host == "tabletopper.app") {
+    SOCKET_URL = "wss://ws.tabletopper.app";
+}
+
 let offlineQueue = [];
 function flushOfflineQueue(){
     while (offlineQueue.length > 0){
@@ -17,8 +22,7 @@ async function connect() {
     if (connected){
         return;
     }
-    // @ts-expect-error
-    const { SOCKET_URL } = await import("/static/config.js");
+
     socket = new WebSocket(SOCKET_URL);
     socket.addEventListener("message", async (event) => {
         try {
