@@ -51,7 +51,7 @@ jobs:
           ssh-private-key: ${{ secrets.SSHKEY }}
 
       - name: Deploy
-        run: scp -o StrictHostKeyChecking=no ./tabletopper-http.tar ./tabletoper-wss.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
+        run: scp -o StrictHostKeyChecking=no ./tabletopper-http.tar ./tabletopper-wss.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
 
       - name: Post Deployment
         uses: appleboy/ssh-action@master
