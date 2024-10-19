@@ -30,7 +30,6 @@ services:
       dockerfile: Dockerfile.wss
     labels:
       - "traefik.http.routers.wss.rule=Host(`ws.tabletopper.local`)"
-    env_file: "./wss/.env"
     depends_on:
       - mysql
       - reverse-proxy
