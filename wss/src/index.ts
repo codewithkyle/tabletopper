@@ -26,4 +26,5 @@ app.ws("/*", {
     },
 });
 
-app.listen("127.0.0.1", 8080, {}, (token) => {});
+app.listen("127.0.0.1", "8080", {}, (token) => {});
+console.log("Listening on port 8080");
