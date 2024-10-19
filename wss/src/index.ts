@@ -1,23 +1,9 @@
 import * as uws from "../uws/uws.js";
-import dotenv from "dotenv";
 import gm from "./game.js";
 import { TextDecoder } from "util";
 
 const decoder = new TextDecoder("utf-8");
-dotenv.config();
-const port = process.env.PORT;
-let app;
-if (process.env.ENV === "dev"){
-    // @ts-ignore
-    app = uws.App();
-}
-else {
-    // @ts-ignore
-    app = uws.SSLApp({
-        key_file_name: process.env.KEY,
-        cert_file_name: process.env.CERT,
-    });
-}
+let app = uws.App();
 
 app.ws("/*", {
     // @ts-ignore
@@ -40,4 +26,4 @@ app.ws("/*", {
     },
 });
 
-app.listen("127.0.0.1", port, {}, (token) => {});
+app.listen("127.0.0.1", 8080, {}, (token) => {});
