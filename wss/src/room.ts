@@ -165,6 +165,7 @@ class Room {
         this.broadcast("room:initiative:sync", []);
         this.activeInitiative = null;
         this.broadcast("room:initiative:active", null);
+        this.broadcast("room:initiative:clear");
         this.turnCounter = 0;
     }
 

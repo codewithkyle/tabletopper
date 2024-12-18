@@ -43,6 +43,8 @@ export default class TurnTimerComponent extends SuperComponent<ITurnTimerCompone
                     });
                 }
                 break;
+            case "room:initiative:clear":
+                this.set({ hidden: true, running: false });
             default:
                 break;
         }
