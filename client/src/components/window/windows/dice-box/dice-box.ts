@@ -64,11 +64,16 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
     }
 
     private handleKeypress:EventListener = (e:Event) => {
+        e.stopImmediatePropagation()
         if (e instanceof KeyboardEvent){
             if (e.key.toLowerCase() === "enter"){
                 this.doRoll();
             }
         }
+    }
+
+    private noopEvent:EventListener = (e:Event) => {
+        e.stopImmediatePropagation();
     }
 
     override async render() {
@@ -81,7 +86,7 @@ export default class DiceBox extends SuperComponent<IDiceBox>{
                 })}
             </dice-log>
             <div class="w-full" flex="items-center row nowrap">
-                <input autofocus type="text" placeholder="Dice codes" @keypress=${this.handleKeypress}>
+                <input autofocus type="text" placeholder="Dice codes" @keypress=${this.handleKeypress}  @keydown=${this.noopEvent} @keyup=${this.noopEvent}>
             </div>
             <p class="block font-xs font-grey-600 dark:font-grey-400 px-0.125">Example: 1d20 + 1d6 + 4</p>
         `;

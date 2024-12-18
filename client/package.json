@@ -3,7 +3,6 @@
     "update": "npm update && run-p install:*",
     "install:pkg": "node ./build/bundle.js",
     "install:brixi": "brixi && mv ./brixi/brixi.css ./src/styles/brixi.css && rmdir ./brixi",
-    "install:ui": "install-ui --framework=./src/framework --audio=./public/audio",
     "build": "run-p build:*",
     "build:js": "twist --src=./src --outDir=./public/js --type=esbuild",
     "build:css": "cssmonster",

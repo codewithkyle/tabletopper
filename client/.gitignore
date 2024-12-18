@@ -4,11 +4,9 @@ node_modules
 
 # Source files
 src/lib
-src/framework
 
 # Public
 public/js
 public/css
 public/static/config.js
 public/static/service-worker-assets.js
-public/audio
