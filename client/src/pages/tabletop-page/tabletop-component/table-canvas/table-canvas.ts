@@ -1,7 +1,6 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
-import { subscribe, unsubscribe } from "@codewithkyle/pubsub";
-import type { Image } from "~types/app";
+import { subscribe } from "@codewithkyle/pubsub";
 import room from "room";
 import TabeltopComponent from "../tabletop-component";
 import { send } from "~controllers/ws";
@@ -15,13 +14,14 @@ type FogOfWarShape = {
     points: Array<Point>,
 }
 
-interface IFogCanvas { }
-export default class FogCanvas extends SuperComponent<IFogCanvas>{
+interface ITableCanvas { }
+export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private canvas: HTMLCanvasElement;
     private fogCanvas: HTMLCanvasElement;
     private fogctx: CanvasRenderingContext2D;
     private imgctx: CanvasRenderingContext2D;
     private time: number;
+    private renderGrid: boolean;
     private gridSize: number;
     private fogOfWar: boolean;
     private ticket: string;
@@ -41,6 +41,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.imgctx = this.canvas.getContext("2d");
         this.tabletop = document.querySelector("tabletop-component");
         this.time = 0;
+        this.renderGrid = false;
         this.gridSize = 32;
         this.fogOfWar = false;
         this.fogOfWarShapes = [];
@@ -50,7 +51,7 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     }
 
     override async connected() {
-        await env.css(["fog-canvas"]);
+        await env.css(["table-canvas"]);
         this.appendChild(this.canvas);
     }
 
@@ -94,19 +95,19 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
-                this.renderFogOfWar();
+                this.render();
                 break;
             case "room:tabletop:clear":
+                this.renderGrid = false;
                 this.fogOfWarShapes = [];
                 this.fogOfWar = false;
-                this.renderFogOfWar();
+                this.render();
                 break;
             case "room:tabletop:map:update":
-                const prevGridSize = this.gridSize;
+                this.renderGrid = data.renderGrid;
                 this.gridSize = data.cellSize;
                 this.fogOfWar = data.prefillFog;
-                this.renderFogOfWar();
-                if (prevGridSize != this.gridSize) this.load();
+                this.render();
                 break;
             default:
                 break;
@@ -144,10 +145,6 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     }
 
     private renderFogOfWar() {
-        this.fogctx.clearRect(0, 0, this.w, this.h);
-        this.imgctx.clearRect(0, 0, this.w, this.h);
-        if (!this.image) return;
-        this.imgctx.drawImage(this.image, 0, 0, this.w, this.h);
         if (!this.fogOfWar) return;
         if (room.isGM) {
             this.fogctx.globalAlpha = 0.6;
@@ -159,13 +156,31 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.fogctx.fillStyle = color;
         this.fogctx.fillRect(0, 0, this.w, this.h);
         this.revealShapes();
-        this.imgctx.drawImage(this.fogCanvas, 0, 0);
     }
 
-    public load() {}
+    private renderGridLines(){
+        if (!this.renderGrid) return;
+        const columns = Math.ceil(this.w / this.gridSize);
+        const rows = Math.ceil(this.h / this.gridSize);
 
-    // @ts-ignore
-    override render(image: HTMLImageElement): void {
+        this.imgctx.strokeStyle = "rgb(0,0,0)";
+        for (let i = 0; i < columns; i++) {
+            const x = i * this.gridSize;
+            this.imgctx.beginPath();
+            this.imgctx.moveTo(x, 0);
+            this.imgctx.lineTo(x, this.h);
+            this.imgctx.stroke();
+        }
+        for (let i = 0; i < rows; i++) {
+            const y = i * this.gridSize;
+            this.imgctx.beginPath();
+            this.imgctx.moveTo(0, y);
+            this.imgctx.lineTo(this.w, y);
+            this.imgctx.stroke();
+        }
+    }
+
+    public load(image: HTMLImageElement) {
         if (!image) {
             this.w = 0;
             this.h = 0;
@@ -191,7 +206,24 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             this.fogCanvas.style.height = `${image.height}px`;
             this.image = image;
         }
+        this.render();
+    }
+
+    override render(): void {
+        this.fogctx.clearRect(0, 0, this.w, this.h);
+        this.imgctx.clearRect(0, 0, this.w, this.h);
+
+        if (!this.image) return;
+
+        // First
+        this.imgctx.drawImage(this.image, 0, 0, this.w, this.h);
+
+        // Other
+        this.renderGridLines();
+
+        // Last
         this.renderFogOfWar();
+        this.imgctx.drawImage(this.fogCanvas, 0, 0);
     }
 }
-env.bind("fog-canvas", FogCanvas);
+env.bind("table-canvas", TableCanvas);

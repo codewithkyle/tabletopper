@@ -2,11 +2,8 @@ import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "~components/pawn/pawn";
-import VFXCanvas from "./vfx-canvas/vfx-canvas";
-import GridCanvas from "./grid-canvas/grid-canvas";
 import room from "room";
-import FogCanvas from "./fog-canvas/fog-canvas";
-import DoodleCanvas from "./doodle-canvas/doodle-canvas";
+import TableCanvas from "./table-canvas/table-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -20,10 +17,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private lastX: number;
     private lastY: number;
     public zoom: number;
-    private vfxCanvas: VFXCanvas;
-    private gridCanvas: GridCanvas;
-    private fogCanvas: FogCanvas;
-    private doodleCanvas: DoodleCanvas;
+    private canvas: TableCanvas;
     private img: HTMLImageElement;
     private isNewImage: boolean;
     private mode: "move" | "measure" | "lock";
@@ -33,10 +27,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     constructor(){
         super(); 
         this.img = new Image();
-        this.vfxCanvas = new VFXCanvas();
-        this.gridCanvas = new GridCanvas();
-        this.fogCanvas = new FogCanvas();
-        this.doodleCanvas = new DoodleCanvas();
+        this.canvas = new TableCanvas();
         this.moving = false;
         this.measuring = false;
         this.x = window.innerWidth * 0.5;
@@ -290,42 +281,18 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map){
-            //if (this.img?.isConnected) this.img?.remove();
             this.img = new Image();
             this.img.src = this.model.map;
-            //this.img.className = "center absolute map";
-            //this.img.draggable = false;
-            //this.appendChild(this.img);
         } else {
-            //this.img?.remove();
             this.img = null;
-            this.gridCanvas.render(this.img);
-            this.vfxCanvas.render(this.img);
-            this.fogCanvas.render(this.img);
-            this.doodleCanvas.render(this.img);
+            this.canvas.load(this.img);
         }
-        if (!this.doodleCanvas?.isConnected){
-            this.appendChild(this.doodleCanvas);
-        }
-        if (!this.vfxCanvas?.isConnected){
-            this.appendChild(this.vfxCanvas);
-        }
-        if (!this.fogCanvas?.isConnected){
-            this.appendChild(this.fogCanvas);
-        }
-        if (!this.gridCanvas?.isConnected){
-            this.appendChild(this.gridCanvas);
+        if (!this.canvas?.isConnected){
+            this.appendChild(this.canvas);
         }
         if (this.img){
             this.img.onload = () => {
-                this.gridCanvas.render(this.img);
-                this.vfxCanvas.render(this.img);
-                this.fogCanvas.render(this.img);
-                this.doodleCanvas.render(this.img);
-                if (this.isNewImage){
-                    this.isNewImage = false;
-                    this.fogCanvas.load();
-                }
+                this.canvas.load(this.img);
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
