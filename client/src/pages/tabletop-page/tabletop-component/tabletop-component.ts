@@ -4,6 +4,7 @@ import env from "~brixi/controllers/env";
 import Pawn from "~components/pawn/pawn";
 import room from "room";
 import TableCanvas from "./table-canvas/table-canvas";
+import VFXCanvas from "./vfx-canvas/vfx-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -18,6 +19,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private lastY: number;
     public zoom: number;
     private canvas: TableCanvas;
+    private vfxCanvas: VFXCanvas;
     private img: HTMLImageElement;
     private isNewImage: boolean;
     private mode: "move" | "measure" | "lock";
@@ -28,6 +30,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         super(); 
         this.img = new Image();
         this.canvas = new TableCanvas();
+        this.vfxCanvas = new VFXCanvas();
         this.moving = false;
         this.measuring = false;
         this.x = window.innerWidth * 0.5;
@@ -290,9 +293,13 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (!this.canvas?.isConnected){
             this.appendChild(this.canvas);
         }
+        if (!this.vfxCanvas?.isConnected){
+            this.appendChild(this.vfxCanvas);
+        }
         if (this.img){
             this.img.onload = () => {
                 this.canvas.load(this.img);
+                this.vfxCanvas.render(this.img);
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;

@@ -40,7 +40,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.fogctx = this.fogCanvas.getContext("2d");
         this.imgctx = this.canvas.getContext("2d");
         this.tabletop = document.querySelector("tabletop-component");
-        this.time = 0;
+        this.time = performance.now();
         this.renderGrid = false;
         this.gridSize = 32;
         this.fogOfWar = false;
@@ -184,27 +184,31 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         if (!image) {
             this.w = 0;
             this.h = 0;
+            this.image = null;
+
             this.canvas.width = this.w;
             this.canvas.height = this.h;
             this.canvas.style.width = `0px`;
             this.canvas.style.height = `0px`;
+
             this.fogCanvas.width = this.w;
             this.fogCanvas.height = this.h;
             this.fogCanvas.style.width = `0px`;
             this.fogCanvas.style.height = `0px`;
-            this.image = null;
         } else {
             this.w = image.width;
             this.h = image.height;
+            this.image = image;
+
             this.canvas.width = this.w;
             this.canvas.height = this.h;
             this.canvas.style.width = `${image.width}px`;
             this.canvas.style.height = `${image.height}px`;
+
             this.fogCanvas.width = this.w;
             this.fogCanvas.height = this.h;
             this.fogCanvas.style.width = `${image.width}px`;
             this.fogCanvas.style.height = `${image.height}px`;
-            this.image = image;
         }
         this.render();
     }
@@ -215,13 +219,13 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         if (!this.image) return;
 
-        // First
+        // Always draw map first
         this.imgctx.drawImage(this.image, 0, 0, this.w, this.h);
 
         // Other
         this.renderGridLines();
 
-        // Last
+        // Always draw fog last
         this.renderFogOfWar();
         this.imgctx.drawImage(this.fogCanvas, 0, 0);
     }
