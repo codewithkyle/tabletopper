@@ -6,21 +6,27 @@ import room from "room";
 import TabeltopComponent from "../tabletop-component";
 import { send } from "~controllers/ws";
 
+type Point = {
+    x: number,
+    y: number,
+}
+type FogOfWarShape = {
+    type: "poly" | "rect",
+    points: Array<Point>,
+}
+
 interface IFogCanvas { }
 export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private time: number;
     private gridSize: number;
-    private prefillFog: boolean;
+    private fogOfWar: boolean;
     private ticket: string;
     private w: number;
     private h: number;
-    private clearedCells: {
-        [key: string]: boolean,
-    }
+    private fogOfWarShapes: Array<FogOfWarShape>;
     private tabletop: TabeltopComponent;
-    private brushSize: number;
 
     constructor() {
         super();
@@ -31,9 +37,8 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         this.tabletop = document.querySelector("tabletop-component");
         this.time = 0;
         this.gridSize = 32;
-        this.prefillFog = false;
-        this.brushSize = 1;
-        this.clearedCells = {};
+        this.fogOfWar = false;
+        this.fogOfWarShapes = [];
         subscribe("socket", this.inbox.bind(this));
         subscribe("fog", this.fogInbox.bind(this));
     }
@@ -45,21 +50,34 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
 
     public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
         const canvas = this.getBoundingClientRect();
-        const x = Math.round(clientX - canvas.left + this.scrollLeft) / this.tabletop.zoom;
-        const y = Math.round(clientY - canvas.top + this.scrollTop) / this.tabletop.zoom;
+        const x = Math.round(clientX - canvas.left) / this.tabletop.zoom;
+        const y = Math.round(clientY - canvas.top) / this.tabletop.zoom;
         return [x, y];
     }
 
-    private fogInbox({ type, data }) {
-        const [x, y] = this.convertViewportToTabletopPosition(data.x, data.y);
+    private fogInbox({ type, points }) {
+        const convertedPoints = [];
+        for (let i = 0; i < points.length; i++){
+            const [x, y] = this.convertViewportToTabletopPosition(points[i].x, points[i].y);
+            convertedPoints.push({ x, y });
+        }
+        console.log("converted points", convertedPoints);
         switch (type) {
-            case "eraser":
-                this.brushSize = data.brushSize;
-                this.erase(x, y);
+            case "rect":
+                const newRect:FogOfWarShape = {
+                    type: "rect",
+                    points: convertedPoints,
+                };
+                this.fogOfWarShapes.push(newRect);
+                this.sync(newRect);
                 break;
-            case "fill":
-                this.brushSize = data.brushSize;
-                this.fill(x, y);
+            case "poly":
+                const newPoly:FogOfWarShape = {
+                    type: "poly",
+                    points: convertedPoints,
+                };
+                this.fogOfWarShapes.push(newPoly);
+                this.sync(newPoly);
                 break;
             default:
                 break;
@@ -69,19 +87,19 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private inbox({ type, data }) {
         switch (type) {
             case "room:tabletop:fog:sync":
-                this.clearedCells = data.clearedCells;
+                this.fogOfWar = data.fogOfWar;
+                this.fogOfWarShapes = data.fogOfWarShapes;
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:clear":
-                for (const key in this.clearedCells) {
-                    this.clearedCells[key] = true;
-                }
+                this.fogOfWarShapes = [];
+                this.fogOfWar = false;
                 this.renderFogOfWar();
                 break;
             case "room:tabletop:map:update":
                 const prevGridSize = this.gridSize;
                 this.gridSize = data.cellSize;
-                this.prefillFog = data.prefillFog;
+                this.fogOfWar = data.prefillFog;
                 this.renderFogOfWar();
                 if (prevGridSize != this.gridSize) this.load();
                 break;
@@ -90,118 +108,54 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         }
     }
 
-    private fill(x: number, y: number) {
-        let x1, y1, x2, y2;
-        if (this.brushSize > 2) {
-            x1 = x - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
-            y1 = y - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
-            x2 = x + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
-            y2 = y + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
-        } else {
-            x1 = x - (this.gridSize * this.brushSize * 0.5);
-            y1 = y - (this.gridSize * this.brushSize * 0.5);
-            x2 = x + (this.gridSize * this.brushSize * 0.5);
-            y2 = y + (this.gridSize * this.brushSize * 0.5);
-        }
-        const cellsInRow = Math.ceil(this.w / this.gridSize);
-        const rows = Math.ceil(this.h / this.gridSize);
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cellsInRow; j++) {
-                const cellX = j * this.gridSize;
-                const cellY = i * this.gridSize;
-                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2) {
-                    const key = `${cellX}-${cellY}`;
-                    if (key in this.clearedCells) {
-                        this.clearedCells[key] = false;
-                        this.debounceSyncClearCells();
+    private sync(shape) {
+        send("room:tabletop:fog:sync", shape);
+    }
+
+    private revealShapes() {
+        this.ctx.globalCompositeOperation = "destination-out";
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.fillStyle = "white";
+        for (let i = 0; i < this.fogOfWarShapes.length; i++) {
+            switch (this.fogOfWarShapes[i].type){
+                case "poly":
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
+                    for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
+                        this.ctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
                     }
-                }
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    break;
+                case "rect":
+                    const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
+                    const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
+                    this.ctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                    this.ctx.fill();
+                    console.log("drawing rect", this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                    break;
             }
         }
-        this.renderFogOfWar();
-    }
 
-    private erase(x: number, y: number) {
-        let x1, y1, x2, y2;
-        if (this.brushSize > 2) {
-            x1 = x - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
-            y1 = y - (this.gridSize * this.brushSize * 0.5) + (this.gridSize * 0.25);
-            x2 = x + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
-            y2 = y + (this.gridSize * this.brushSize * 0.5) - (this.gridSize * 0.25);
-        } else {
-            x1 = x - (this.gridSize * this.brushSize * 0.5);
-            y1 = y - (this.gridSize * this.brushSize * 0.5);
-            x2 = x + (this.gridSize * this.brushSize * 0.5);
-            y2 = y + (this.gridSize * this.brushSize * 0.5);
-        }
-        const cellsInRow = Math.ceil(this.w / this.gridSize);
-        const rows = Math.ceil(this.h / this.gridSize);
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cellsInRow; j++) {
-                const cellX = j * this.gridSize;
-                const cellY = i * this.gridSize;
-                if (cellX >= x1 && cellX + this.gridSize < x2 && cellY >= y1 && cellY + this.gridSize < y2) {
-                    const key = `${cellX}-${cellY}`;
-                    this.clearedCells[key] = true;
-                    this.debounceSyncClearCells();
-                }
-            }
-        }
-        this.renderFogOfWar();
+        this.ctx.globalCompositeOperation = "source-over";
     }
-
-    private syncClearCells() {
-        send("room:tabletop:fog:sync", this.clearedCells);
-    }
-
-    private debounceSyncClearCells = this.debounce(this.syncClearCells.bind(this), 500);
 
     private renderFogOfWar() {
         this.ctx.clearRect(0, 0, this.w, this.h);
+        if (!this.fogOfWar) return;
         if (room.isGM) {
             this.ctx.globalAlpha = 0.6;
         }
-        const cells = [];
-        const cellsInRow = Math.ceil(this.w / this.gridSize);
-        const rows = Math.ceil(this.h / this.gridSize);
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cellsInRow; j++) {
-                const x = j * this.gridSize;
-                const y = i * this.gridSize;
-                const key = `${x}-${y}`;
-                if (key in this.clearedCells) {
-                    if (this.clearedCells[key]) {
-                        continue;
-                    }
-                    cells.push({
-                        x: x,
-                        y: y,
-                    });
-                }
-            }
+        let color = "#fafafa"
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            color = "#09090b"
         }
-
-        this.ctx.fillStyle = "rgba(24,24,24)";
-        for (let i = 0; i < cells.length; i++) {
-            const { x, y } = cells[i];
-            this.ctx.fillRect(x, y, this.gridSize, this.gridSize);
-        }
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(0, 0, this.w, this.h);
+        this.revealShapes();
     }
 
-    public load() {
-        this.clearedCells = {};
-        const cellsInRow = Math.ceil(this.w / this.gridSize);
-        const rows = Math.ceil(this.h / this.gridSize);
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cellsInRow; j++) {
-                const x = j * this.gridSize;
-                const y = i * this.gridSize;
-                const key = `${x}-${y}`;
-                this.clearedCells[key] = !this.prefillFog;
-            }
-        }
-        this.syncClearCells();
-    }
+    public load() {}
 
     // @ts-ignore
     override render(image: HTMLImageElement): void {

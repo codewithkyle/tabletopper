@@ -6,19 +6,22 @@ import { publish } from "@codewithkyle/pubsub";
 import room from "room";
 import TabletopPage from "pages/tabletop-page/tabletop-page";
 
+type Point = {
+    x: number,
+    y: number,
+}
 interface IFogBrush { }
-export default class FogBrush extends SuperComponent<IFogBrush>{
+export default class FogBrush extends SuperComponent<IFogBrush> {
     private painting: boolean;
-    private mode: "eraser" | "fill";
-    private brushSize: number;
-    private fogBrushCircle: HTMLElement;
     private tabletop: TabletopPage;
+    private mode: "rect" | "poly";
+    private points: Array<Point>;
 
     constructor() {
         super();
         this.painting = false;
-        this.mode = "eraser";
-        this.brushSize = 2;
+        this.mode = "rect";
+        this.points = [];
     }
 
     override async connected() {
@@ -27,35 +30,15 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
         this.tabletop.addEventListener("mousedown", this.onMouseDown);
         this.tabletop.addEventListener("mouseup", this.onMouseUp);
         this.tabletop.addEventListener("mousemove", this.onMouseMove);
-        window.addEventListener("wheel", this.onMouseWheel, { passive: true });
         this.render();
-        this.fogBrushCircle = document.createElement("fog-brush-circle");
-        document.body.appendChild(this.fogBrushCircle);
-        this.scaleBrush();
         publish("tabletop", "cursor:draw");
     }
 
     disconnected(): void {
-        if (this.fogBrushCircle) {
-            this.fogBrushCircle.remove();
-        }
         this.tabletop.removeEventListener("mousedown", this.onMouseDown);
         this.tabletop.removeEventListener("mouseup", this.onMouseUp);
         this.tabletop.removeEventListener("mousemove", this.onMouseMove);
-        window.removeEventListener("wheel", this.onMouseWheel);
         publish("tabletop", "cursor:move");
-    }
-
-    private scaleBrush() {
-        if (this.fogBrushCircle) {
-            if (this.brushSize > 2) {
-                this.fogBrushCircle.style.width = `${(this.brushSize - 2) * room.gridSize}px`;
-                this.fogBrushCircle.style.height = `${(this.brushSize - 2) * room.gridSize}px`;
-            } else {
-                this.fogBrushCircle.style.width = `${(this.brushSize - 1) * room.gridSize}px`;
-                this.fogBrushCircle.style.height = `${(this.brushSize - 1) * room.gridSize}px`;
-            }
-        }
     }
 
     private onMouseDown = (e: MouseEvent) => {
@@ -63,58 +46,35 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
             this.painting = true;
             const x = e.clientX;
             const y = e.clientY;
-            publish("fog", {
-                type: this.mode,
-                data: {
-                    x: x,
-                    y: y,
-                    brushSize: this.brushSize,
-                },
-            });
+            this.points.push({ x, y});
+            console.log("fog clear start point", x, y);
         }
     }
 
     private onMouseUp = (e: MouseEvent) => {
+        const x = e.clientX;
+        const y = e.clientY;
+        if (this.painting) {
+            if (this.mode === "rect") {
+                console.log("fog clear end point", x, y);
+                this.points.push({ x, y });
+                if (this.points.length === 2){
+                    console.log("has rect points", this.points);
+                    publish("fog", {
+                        type: "rect",
+                        points: this.points,
+                    });
+                }
+            }
+        }
+        this.points = [];
         this.painting = false;
     }
 
-    private onMouseWheel = (e: WheelEvent) => {
-        if (this.fogBrushCircle) {
-            let zoom = 1;
-            if (sessionStorage.getItem("zoom")) {
-                zoom = parseFloat(sessionStorage.getItem("zoom"));
-            }
-            if (this.brushSize > 2) {
-                this.fogBrushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - (room.gridSize * (this.brushSize - 2) * 0.5)}, ${e.clientY - (room.gridSize * (this.brushSize - 2) * 0.5)})`;
-            } else {
-                this.fogBrushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - (room.gridSize * (this.brushSize - 1) * 0.5)}, ${e.clientY - (room.gridSize * (this.brushSize - 1) * 0.5)})`;
-            }
-        }
-    }
-
     private onMouseMove = (e: MouseEvent) => {
-        if (this.fogBrushCircle) {
-            let zoom = 1;
-            if (sessionStorage.getItem("zoom")) {
-                zoom = parseFloat(sessionStorage.getItem("zoom"));
-            }
-            if (this.brushSize > 2) {
-                this.fogBrushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - (room.gridSize * (this.brushSize - 2) * 0.5)}, ${e.clientY - (room.gridSize * (this.brushSize - 2) * 0.5)})`;
-            } else {
-                this.fogBrushCircle.style.transform = `matrix(${zoom}, 0, 0, ${zoom}, ${e.clientX - (room.gridSize * (this.brushSize - 1) * 0.5)}, ${e.clientY - (room.gridSize * (this.brushSize - 1) * 0.5)})`;
-            }
-        }
         if (this.painting) {
             const x = e.clientX;
             const y = e.clientY;
-            publish("fog", {
-                type: this.mode,
-                data: {
-                    x: x,
-                    y: y,
-                    brushSize: this.brushSize,
-                },
-            });
         }
     }
 
@@ -122,21 +82,12 @@ export default class FogBrush extends SuperComponent<IFogBrush>{
         const view = html`
             <group-button-component
                 class="mb-1"
-                data-buttons='[{"label":"Eraser","id":"eraser"},{"label":"Fill","id":"fill"}]'
+                data-buttons='[{"label":"Rectangle","id":"rect"},{"label":"Polygon","id":"poly"}]'
                 data-active="${this.mode}"
                 @change=${(e) => {
-                this.mode = e.detail.id;
-            }}
+                    this.mode = e.detail.id;
+                }}
             ></group-button-component>
-            <select-component 
-                data-label="Brush Size" 
-                data-options='[{"label":"Small","value":"2"},{"label":"Medium","value":"4"},{"label":"Large","value":"8"}]' 
-                data-value="${this.brushSize}"
-                @change=${(e) => {
-                this.brushSize = parseInt(e.detail.value);
-                this.scaleBrush();
-            }}
-            ></select-component>
         `;
         render(view, this);
     }
