@@ -18,7 +18,9 @@ type FogOfWarShape = {
 interface IFogCanvas { }
 export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private canvas: HTMLCanvasElement;
-    private ctx: CanvasRenderingContext2D;
+    private fogCanvas: HTMLCanvasElement;
+    private fogctx: CanvasRenderingContext2D;
+    private imgctx: CanvasRenderingContext2D;
     private time: number;
     private gridSize: number;
     private fogOfWar: boolean;
@@ -27,18 +29,22 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
     private h: number;
     private fogOfWarShapes: Array<FogOfWarShape>;
     private tabletop: TabeltopComponent;
+    private image: HTMLImageElement;
 
     constructor() {
         super();
         this.w = 0;
         this.h = 0;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.ctx = this.canvas.getContext("2d");
+        this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
+        this.fogctx = this.fogCanvas.getContext("2d");
+        this.imgctx = this.canvas.getContext("2d");
         this.tabletop = document.querySelector("tabletop-component");
         this.time = 0;
         this.gridSize = 32;
         this.fogOfWar = false;
         this.fogOfWarShapes = [];
+        this.image = null;
         subscribe("socket", this.inbox.bind(this));
         subscribe("fog", this.fogInbox.bind(this));
     }
@@ -61,7 +67,6 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             const [x, y] = this.convertViewportToTabletopPosition(points[i].x, points[i].y);
             convertedPoints.push({ x, y });
         }
-        console.log("converted points", convertedPoints);
         switch (type) {
             case "rect":
                 const newRect:FogOfWarShape = {
@@ -108,51 +113,53 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
         }
     }
 
-    private sync(shape) {
+    private sync(shape:FogOfWarShape) {
         send("room:tabletop:fog:sync", shape);
     }
 
     private revealShapes() {
-        this.ctx.globalCompositeOperation = "destination-out";
-        this.ctx.globalAlpha = 1.0;
-        this.ctx.fillStyle = "white";
+        this.fogctx.globalCompositeOperation = "destination-out";
+        this.fogctx.globalAlpha = 1.0;
+        this.fogctx.fillStyle = "white";
         for (let i = 0; i < this.fogOfWarShapes.length; i++) {
             switch (this.fogOfWarShapes[i].type){
                 case "poly":
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
+                    this.fogctx.beginPath();
+                    this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
                     for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
-                        this.ctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
+                        this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
                     }
-                    this.ctx.closePath();
-                    this.ctx.fill();
+                    this.fogctx.closePath();
+                    this.fogctx.fill();
                     break;
                 case "rect":
                     const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
                     const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
-                    this.ctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
-                    this.ctx.fill();
-                    console.log("drawing rect", this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                    this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                    this.fogctx.fill();
                     break;
             }
         }
-
-        this.ctx.globalCompositeOperation = "source-over";
+        this.fogctx.globalCompositeOperation = "source-over";
     }
 
     private renderFogOfWar() {
-        this.ctx.clearRect(0, 0, this.w, this.h);
+        this.fogctx.clearRect(0, 0, this.w, this.h);
+        this.imgctx.clearRect(0, 0, this.w, this.h);
+        if (!this.image) return;
+        this.imgctx.drawImage(this.image, 0, 0, this.w, this.h);
         if (!this.fogOfWar) return;
         if (room.isGM) {
-            this.ctx.globalAlpha = 0.6;
+            this.fogctx.globalAlpha = 0.6;
         }
         let color = "#fafafa"
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             color = "#09090b"
         }
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(0, 0, this.w, this.h);
+        this.fogctx.fillStyle = color;
+        this.fogctx.fillRect(0, 0, this.w, this.h);
         this.revealShapes();
+        this.imgctx.drawImage(this.fogCanvas, 0, 0);
     }
 
     public load() {}
@@ -166,6 +173,11 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             this.canvas.height = this.h;
             this.canvas.style.width = `0px`;
             this.canvas.style.height = `0px`;
+            this.fogCanvas.width = this.w;
+            this.fogCanvas.height = this.h;
+            this.fogCanvas.style.width = `0px`;
+            this.fogCanvas.style.height = `0px`;
+            this.image = null;
         } else {
             this.w = image.width;
             this.h = image.height;
@@ -173,6 +185,11 @@ export default class FogCanvas extends SuperComponent<IFogCanvas>{
             this.canvas.height = this.h;
             this.canvas.style.width = `${image.width}px`;
             this.canvas.style.height = `${image.height}px`;
+            this.fogCanvas.width = this.w;
+            this.fogCanvas.height = this.h;
+            this.fogCanvas.style.width = `${image.width}px`;
+            this.fogCanvas.style.height = `${image.height}px`;
+            this.image = image;
         }
         this.renderFogOfWar();
     }

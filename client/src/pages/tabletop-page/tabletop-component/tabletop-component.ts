@@ -290,14 +290,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map){
-            if (this.img?.isConnected) this.img?.remove();
+            //if (this.img?.isConnected) this.img?.remove();
             this.img = new Image();
             this.img.src = this.model.map;
-            this.img.className = "center absolute map";
-            this.img.draggable = false;
-            this.appendChild(this.img);
+            //this.img.className = "center absolute map";
+            //this.img.draggable = false;
+            //this.appendChild(this.img);
         } else {
-            this.img?.remove();
+            //this.img?.remove();
             this.img = null;
             this.gridCanvas.render(this.img);
             this.vfxCanvas.render(this.img);
