@@ -1,0 +1,10 @@
+declare let reader: ReadableStreamDefaultReader<Uint8Array>;
+declare let buffer: Uint8Array;
+declare let total: number;
+declare let recieved: number;
+declare let running: boolean;
+declare function tick(bytes: number): void;
+declare function start(totalBytes: number): void;
+declare function fail(error: any): void;
+declare function done(): void;
+declare function fetchData(url: RequestInfo, options: RequestInit): Promise<void>;

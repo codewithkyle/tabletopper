@@ -22,7 +22,7 @@ class Room {
     private cellSize: number;
     private cellDistance: number;
     private renderGrid: boolean;
-    private prefillFog: boolean;
+    private fogOfWar: boolean;
     private dmgOverlay: boolean;
     private turnCounter: number;
     private pawns: Pawn[];
@@ -31,9 +31,7 @@ class Room {
     private playerImages: {
         [id:string]: string,
     };
-    private clearedCells: {
-        [key: string]: boolean,
-    }
+    private fogOfWarShapes: Array<any>;
     private doodleData: any;
 
     constructor(code:string, ws:Socket){
@@ -49,14 +47,14 @@ class Room {
         this.cellSize = 32;
         this.cellDistance = 5;
         this.renderGrid = false;
-        this.prefillFog = false;
+        this.fogOfWar = false;
         this.dmgOverlay = false;
         this.turnCounter = 0;
         this.pawns = [];
         this.initiative = [];
         this.activeInitiative = null;
         this.playerImages = {};
-        this.clearedCells = {};
+        this.fogOfWarShapes = [];
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -67,10 +65,11 @@ class Room {
         this.broadcastPlayers("room:tabletop:doodle", data);
     }
 
-    public syncFog(cells):void{
-        this.clearedCells = cells;
+    public syncFog(shape):void{
+        this.fogOfWarShapes.push(shape);
         this.broadcast("room:tabletop:fog:sync", {
-            clearedCells: this.clearedCells,
+            fogOfWarShapes: this.fogOfWarShapes,
+            fogOfWar: this.fogOfWar,
         });
     }
 
@@ -166,6 +165,7 @@ class Room {
         this.broadcast("room:initiative:sync", []);
         this.activeInitiative = null;
         this.broadcast("room:initiative:active", null);
+        this.broadcast("room:initiative:clear");
         this.turnCounter = 0;
     }
 
@@ -217,20 +217,20 @@ class Room {
     }
 
     public fillFog():void{
-        for (const key in this.clearedCells){
-            this.clearedCells[key] = false;
-        }
+        this.fogOfWarShapes = [];
+        this.fogOfWar = true;
         this.broadcast("room:tabletop:fog:sync", {
-            clearedCells: this.clearedCells,
+            fogOfWarShapes: this.fogOfWarShapes,
+            fogOfWar: this.fogOfWar,
         });
     }
 
     public clearFog():void{
-        for (const key in this.clearedCells){
-            this.clearedCells[key] = true;
-        }
+        this.fogOfWarShapes = [];
+        this.fogOfWar = false;
         this.broadcast("room:tabletop:fog:sync", {
-            clearedCells: this.clearedCells,
+            fogOfWarShapes: this.fogOfWarShapes,
+            fogOfWar: false,
         });
     }
 
@@ -238,7 +238,7 @@ class Room {
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
         this.cellDistance = cellDistance;
-        this.prefillFog = prefillFog;
+        this.fogOfWar = prefillFog;
         this.dmgOverlay = dmgOverlay;
         this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
     }
@@ -247,7 +247,7 @@ class Room {
         this.showPawns = false;
         this.pawns = [];
         this.map = "";
-        this.clearedCells = {};
+        this.fogOfWarShapes = [];
         this.doodleData = "";
         this.initiative = [];
         this.activeInitiative = null;
@@ -493,11 +493,12 @@ class Room {
             const cellSize = this.cellSize;
             const renderGrid = this.renderGrid;
             const cellDistance = this.cellDistance;
-            const prefillFog = this.prefillFog;
+            const fogOfWar = this.fogOfWar;
             const dmgOverlay = this.dmgOverlay;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
+            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, fogOfWar, dmgOverlay });
             gm.send(ws, "room:tabletop:fog:sync", {
-                clearedCells: this.clearedCells,
+                fogOfWarShapes: this.fogOfWarShapes,
+                fogOfWar: this.fogOfWar,
             });
             gm.send(ws, "room:tabletop:doodle", this.doodleData);
         }

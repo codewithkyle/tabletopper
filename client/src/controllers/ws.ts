@@ -5,7 +5,7 @@ let socket:WebSocket;
 let connected = false;
 let wasReconnection = false;
 
-let SOCKET_URL:string = "ws://ws.tabletopper.local";
+let SOCKET_URL:string = "ws://localhost:8080";
 if (location.host == "tabletopper.app") {
     SOCKET_URL = "wss://ws.tabletopper.app";
 }

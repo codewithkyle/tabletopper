@@ -191,6 +191,10 @@ export default class Window extends SuperComponent<IWindow>{
             let diffY = bounds.y - y - this.localY;
             this.x -= diffX;
             this.y -= diffY;
+            if (this.y < 28) this.y = 28;
+            if (this.y > window.innerHeight - 28) this.y = window.innerHeight - 28;
+            if (this.x < 0) this.x = 0;
+            if (this.x > window.innerWidth - bounds.width) this.x = window.innerWidth - bounds.width;
             this.style.transform = `translate(${this.x}px, ${this.y}px)`;
         }
     }

@@ -2,10 +2,9 @@ import { publish, subscribe } from "@codewithkyle/pubsub";
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import Pawn from "~components/pawn/pawn";
-import VFXCanvas from "./vfx-canvas/vfx-canvas";
-import GridCanvas from "./grid-canvas/grid-canvas";
 import room from "room";
-import FogCanvas from "./fog-canvas/fog-canvas";
+import TableCanvas from "./table-canvas/table-canvas";
+import VFXCanvas from "./vfx-canvas/vfx-canvas";
 import DoodleCanvas from "./doodle-canvas/doodle-canvas";
 
 interface ITabletopComponent {
@@ -20,9 +19,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private lastX: number;
     private lastY: number;
     public zoom: number;
+    private canvas: TableCanvas;
     private vfxCanvas: VFXCanvas;
-    private gridCanvas: GridCanvas;
-    private fogCanvas: FogCanvas;
     private doodleCanvas: DoodleCanvas;
     private img: HTMLImageElement;
     private isNewImage: boolean;
@@ -33,9 +31,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     constructor(){
         super(); 
         this.img = new Image();
+        this.canvas = new TableCanvas();
         this.vfxCanvas = new VFXCanvas();
-        this.gridCanvas = new GridCanvas();
-        this.fogCanvas = new FogCanvas();
         this.doodleCanvas = new DoodleCanvas();
         this.moving = false;
         this.measuring = false;
@@ -290,42 +287,26 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map){
-            if (this.img?.isConnected) this.img?.remove();
             this.img = new Image();
             this.img.src = this.model.map;
-            this.img.className = "center absolute map";
-            this.img.draggable = false;
-            this.appendChild(this.img);
         } else {
-            this.img?.remove();
             this.img = null;
-            this.gridCanvas.render(this.img);
-            this.vfxCanvas.render(this.img);
-            this.fogCanvas.render(this.img);
-            this.doodleCanvas.render(this.img);
+            this.canvas.load(this.img);
         }
-        if (!this.doodleCanvas?.isConnected){
-            this.appendChild(this.doodleCanvas);
+        if (!this.canvas?.isConnected){
+            this.appendChild(this.canvas);
         }
         if (!this.vfxCanvas?.isConnected){
             this.appendChild(this.vfxCanvas);
         }
-        if (!this.fogCanvas?.isConnected){
-            this.appendChild(this.fogCanvas);
-        }
-        if (!this.gridCanvas?.isConnected){
-            this.appendChild(this.gridCanvas);
+        if (!this.doodleCanvas?.isConnected){
+            this.appendChild(this.doodleCanvas);
         }
         if (this.img){
             this.img.onload = () => {
-                this.gridCanvas.render(this.img);
+                this.canvas.load(this.img);
                 this.vfxCanvas.render(this.img);
-                this.fogCanvas.render(this.img);
                 this.doodleCanvas.render(this.img);
-                if (this.isNewImage){
-                    this.isNewImage = false;
-                    this.fogCanvas.load();
-                }
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
