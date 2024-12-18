@@ -20,6 +20,7 @@ rect-preview{
     border: 1px solid yellow;
     pointer-events: none;
     z-index: 1000;
+    transform-origin: top left;
 
     &.hidden {
         opacity: 0;

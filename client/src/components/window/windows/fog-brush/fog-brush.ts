@@ -62,12 +62,23 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
                 document.body.appendChild(this.rectPreviewEl);
             }
             this.rectPreviewEl.classList.remove("hidden");
-            const width = x - this.points[0].x;
-            const height = y - this.points[0].y;
+            const width = Math.abs(x - this.points[0].x);
+            const height = Math.abs(y - this.points[0].y);
             this.rectPreviewEl.style.top = `${this.points[0].y}px`;
             this.rectPreviewEl.style.left = `${this.points[0].x}px`;
             this.rectPreviewEl.style.width = `${width}px`;
             this.rectPreviewEl.style.height = `${height}px`;
+            let transform = "";
+            if (x > this.points[0].x && y < this.points[0].y) {
+                transform += `scaleY(-1) `;
+            }
+            if (x < this.points[0].x) {
+                transform = `scaleX(-1) `;
+                if (y < this.points[0].y) {
+                    transform += `scaleY(-1) `;
+                }
+            }
+            this.rectPreviewEl.style.transform = transform;
         }
     }
 
