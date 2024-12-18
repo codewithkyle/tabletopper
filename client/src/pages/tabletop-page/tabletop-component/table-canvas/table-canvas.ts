@@ -98,9 +98,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.render();
                 break;
             case "room:tabletop:clear":
-                this.renderGrid = false;
                 this.fogOfWarShapes = [];
-                this.fogOfWar = false;
                 this.render();
                 break;
             case "room:tabletop:map:update":

@@ -247,7 +247,6 @@ class Room {
         this.pawns = [];
         this.map = "";
         this.fogOfWarShapes = [];
-        this.fogOfWar = false;
         this.doodleData = "";
         this.initiative = [];
         this.activeInitiative = null;

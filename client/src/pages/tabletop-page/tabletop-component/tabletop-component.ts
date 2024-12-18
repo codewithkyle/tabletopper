@@ -5,6 +5,7 @@ import Pawn from "~components/pawn/pawn";
 import room from "room";
 import TableCanvas from "./table-canvas/table-canvas";
 import VFXCanvas from "./vfx-canvas/vfx-canvas";
+import DoodleCanvas from "./doodle-canvas/doodle-canvas";
 
 interface ITabletopComponent {
     map: string,
@@ -20,6 +21,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     public zoom: number;
     private canvas: TableCanvas;
     private vfxCanvas: VFXCanvas;
+    private doodleCanvas: DoodleCanvas;
     private img: HTMLImageElement;
     private isNewImage: boolean;
     private mode: "move" | "measure" | "lock";
@@ -31,6 +33,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         this.img = new Image();
         this.canvas = new TableCanvas();
         this.vfxCanvas = new VFXCanvas();
+        this.doodleCanvas = new DoodleCanvas();
         this.moving = false;
         this.measuring = false;
         this.x = window.innerWidth * 0.5;
@@ -296,10 +299,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (!this.vfxCanvas?.isConnected){
             this.appendChild(this.vfxCanvas);
         }
+        if (!this.doodleCanvas?.isConnected){
+            this.appendChild(this.doodleCanvas);
+        }
         if (this.img){
             this.img.onload = () => {
                 this.canvas.load(this.img);
                 this.vfxCanvas.render(this.img);
+                this.doodleCanvas.render(this.img);
             }
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
