@@ -13,3 +13,16 @@ fog-brush-circle{
     pointer-events: none;
     cursor: crosshair;
 }
+
+rect-preview{
+    display: inline-block;
+    position: fixed;
+    border: 1px solid yellow;
+    pointer-events: none;
+    z-index: 1000;
+
+    &.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+}

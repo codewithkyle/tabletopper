@@ -16,12 +16,14 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
     private tabletop: TabletopPage;
     private mode: "rect" | "poly";
     private points: Array<Point>;
+    private rectPreviewEl: HTMLElement;
 
     constructor() {
         super();
         this.painting = false;
         this.mode = "rect";
         this.points = [];
+        this.rectPreviewEl = document.createElement("rect-preview");
     }
 
     override async connected() {
@@ -38,7 +40,26 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
         this.tabletop.removeEventListener("mousedown", this.onMouseDown);
         this.tabletop.removeEventListener("mouseup", this.onMouseUp);
         this.tabletop.removeEventListener("mousemove", this.onMouseMove);
+        this.rectPreviewEl.remove();
         publish("tabletop", "cursor:move");
+    }
+
+    private updateRectPreview(x:number, y:number){
+        if (!this.painting) {
+            this.rectPreviewEl.classList.add("hidden");
+        }
+        if (this.mode === "rect") {
+            if (!this.rectPreviewEl?.isConnected) {
+                document.body.appendChild(this.rectPreviewEl);
+            }
+            this.rectPreviewEl.classList.remove("hidden");
+            const width = x - this.points[0].x;
+            const height = y - this.points[0].y;
+            this.rectPreviewEl.style.top = `${this.points[0].y}px`;
+            this.rectPreviewEl.style.left = `${this.points[0].x}px`;
+            this.rectPreviewEl.style.width = `${width}px`;
+            this.rectPreviewEl.style.height = `${height}px`;
+        }
     }
 
     private onMouseDown = (e: MouseEvent) => {
@@ -47,7 +68,6 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
             const x = e.clientX;
             const y = e.clientY;
             this.points.push({ x, y});
-            console.log("fog clear start point", x, y);
         }
     }
 
@@ -56,10 +76,9 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
         const y = e.clientY;
         if (this.painting) {
             if (this.mode === "rect") {
-                console.log("fog clear end point", x, y);
+                this.rectPreviewEl.classList.add("hidden");
                 this.points.push({ x, y });
                 if (this.points.length === 2){
-                    console.log("has rect points", this.points);
                     publish("fog", {
                         type: "rect",
                         points: this.points,
@@ -75,6 +94,9 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
         if (this.painting) {
             const x = e.clientX;
             const y = e.clientY;
+            if (this.mode === "rect") {
+                this.updateRectPreview(x, y);
+            }
         }
     }
 
