@@ -26,3 +26,18 @@ rect-preview{
         visibility: hidden;
     }
 }
+.poly-preview{
+    display: inline-block;
+    position: fixed;
+    pointer-events: none;
+    z-index: 1000;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+
+    &.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
