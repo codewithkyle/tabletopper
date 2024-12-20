@@ -18,18 +18,20 @@ interface ITableCanvas { }
 export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private canvas: HTMLCanvasElement;
     private fogCanvas: HTMLCanvasElement;
+    private gridCanvas: HTMLCanvasElement;
     private fogctx: CanvasRenderingContext2D;
     private imgctx: CanvasRenderingContext2D;
-    private time: number;
+    private gridctx: CanvasRenderingContext2D;
     private renderGrid: boolean;
     private gridSize: number;
     private fogOfWar: boolean;
-    private ticket: string;
     private w: number;
     private h: number;
     private fogOfWarShapes: Array<FogOfWarShape>;
     private tabletop: TabeltopComponent;
     private image: HTMLImageElement;
+    private updateGrid: boolean;
+    private updateFog: boolean;
 
     constructor() {
         super();
@@ -37,15 +39,19 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.h = 0;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
         this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
+        this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
         this.fogctx = this.fogCanvas.getContext("2d");
         this.imgctx = this.canvas.getContext("2d");
+        this.gridctx = this.gridCanvas.getContext("2d");
         this.tabletop = document.querySelector("tabletop-component");
-        this.time = performance.now();
         this.renderGrid = false;
         this.gridSize = 32;
         this.fogOfWar = false;
         this.fogOfWarShapes = [];
         this.image = null;
+        this.updateGrid = false;
+        this.updateFog = false;
+
         subscribe("socket", this.inbox.bind(this));
         subscribe("fog", this.fogInbox.bind(this));
     }
@@ -95,16 +101,20 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
+                this.updateFog = true;
                 this.render();
                 break;
             case "room:tabletop:clear":
                 this.fogOfWarShapes = [];
+                this.updateFog = true;
                 this.render();
                 break;
             case "room:tabletop:map:update":
                 this.renderGrid = data.renderGrid;
                 this.gridSize = data.cellSize;
                 this.fogOfWar = data.prefillFog;
+                this.updateGrid = true;
+                this.updateFog = true;
                 this.render();
                 break;
             default:
@@ -143,7 +153,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     }
 
     private renderFogOfWar() {
-        if (!this.fogOfWar) return;
+        if (!this.fogOfWar || !this.updateFog) return;
         if (room.isGM) {
             this.fogctx.globalAlpha = 0.6;
         }
@@ -154,28 +164,30 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.fogctx.fillStyle = color;
         this.fogctx.fillRect(0, 0, this.w, this.h);
         this.revealShapes();
+        this.updateFog = false;
     }
 
     private renderGridLines(){
-        if (!this.renderGrid) return;
+        if (!this.renderGrid || !this.updateGrid) return;
         const columns = Math.ceil(this.w / this.gridSize);
         const rows = Math.ceil(this.h / this.gridSize);
 
-        this.imgctx.strokeStyle = "rgb(0,0,0)";
+        this.gridctx.strokeStyle = "rgb(0,0,0)";
         for (let i = 0; i < columns; i++) {
             const x = i * this.gridSize;
-            this.imgctx.beginPath();
-            this.imgctx.moveTo(x, 0);
-            this.imgctx.lineTo(x, this.h);
-            this.imgctx.stroke();
+            this.gridctx.beginPath();
+            this.gridctx.moveTo(x, 0);
+            this.gridctx.lineTo(x, this.h);
+            this.gridctx.stroke();
         }
         for (let i = 0; i < rows; i++) {
             const y = i * this.gridSize;
-            this.imgctx.beginPath();
-            this.imgctx.moveTo(0, y);
-            this.imgctx.lineTo(this.w, y);
-            this.imgctx.stroke();
+            this.gridctx.beginPath();
+            this.gridctx.moveTo(0, y);
+            this.gridctx.lineTo(this.w, y);
+            this.gridctx.stroke();
         }
+        this.updateGrid = false;
     }
 
     public load(image: HTMLImageElement) {
@@ -183,6 +195,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.w = 0;
             this.h = 0;
             this.image = null;
+            this.updateGrid = true;
+            this.updateFog = true;
 
             this.canvas.width = this.w;
             this.canvas.height = this.h;
@@ -193,10 +207,17 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.fogCanvas.height = this.h;
             this.fogCanvas.style.width = `0px`;
             this.fogCanvas.style.height = `0px`;
+
+            this.gridCanvas.width = this.w;
+            this.gridCanvas.height = this.h;
+            this.gridCanvas.style.width = `0px`;
+            this.gridCanvas.style.height = `0px`;
         } else {
             this.w = image.width;
             this.h = image.height;
             this.image = image;
+            this.updateGrid = true;
+            this.updateFog = true;
 
             this.canvas.width = this.w;
             this.canvas.height = this.h;
@@ -207,25 +228,44 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.fogCanvas.height = this.h;
             this.fogCanvas.style.width = `${image.width}px`;
             this.fogCanvas.style.height = `${image.height}px`;
+
+            this.gridCanvas.width = this.w;
+            this.gridCanvas.height = this.h;
+            this.gridCanvas.style.width = `${image.width}px`;
+            this.gridCanvas.style.height = `${image.height}px`;
         }
         this.render();
     }
 
     override render(): void {
-        this.fogctx.clearRect(0, 0, this.w, this.h);
         this.imgctx.clearRect(0, 0, this.w, this.h);
-
+        if (this.updateFog) this.fogctx.clearRect(0, 0, this.w, this.h);
+        if (this.updateGrid) this.gridctx.clearRect(0, 0, this.w, this.h);
+        
         if (!this.image) return;
 
         // Always draw map first
-        this.imgctx.drawImage(this.image, 0, 0, this.w, this.h);
+        this.imgctx.drawImage(
+            this.image,
+            0, 0, this.w, this.h
+        );
 
         // Other
         this.renderGridLines();
+        this.renderFogOfWar();
+        
+        this.imgctx.drawImage(
+            this.gridCanvas,
+            0, 0,
+            this.w, this.h
+        );
 
         // Always draw fog last
-        this.renderFogOfWar();
-        this.imgctx.drawImage(this.fogCanvas, 0, 0);
+        this.imgctx.drawImage(
+            this.fogCanvas,
+            0, 0,
+            this.w, this.h
+        );
     }
 }
 env.bind("table-canvas", TableCanvas);

@@ -35,7 +35,7 @@ monster-menu {
         border-radius: 16px;
 
         @media (prefers-color-scheme: dark) {
-            background-color: hsl(var(--grey-400-hsl) / 0.15);
+            background-color: hsl(var(--grey-400-hsl) / 0.15)
         }
 
         svg {
