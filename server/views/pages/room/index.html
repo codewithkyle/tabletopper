@@ -110,22 +110,12 @@
     x-data="{ open: false }"
     x-on:show-monster-maker.window="open = true"
     x-show="open"
+    x-cloak
 >
     <div 
         class="modal"
     ></div>
 </monster-maker>
-<spotlight-search
-    x-data="{ open: false }"
-    x-on:show-spotlight-search.window="open = true"
-    x-on:keydown.escape.window="open = false"
-    x-show="open"
->
-    <div 
-        class="modal"
-        x-on:click.outside="open = false"
-    ></div>
-</spotlight-search>
 <quick-spawn
     x-data="{ open: false, name: '', img: '' }"
     x-on:show-quick-spawn.window="open = true"
@@ -222,3 +212,64 @@
         </div>
     </div>
 </conditions-menu>
+{% if GM %}
+    <monster-menu
+        x-data="{ open: false, spawnHidden: 'hidden', selected: null, hp: 0, ac: 0, name: '', size: '', image: '' }"
+        x-on:show-monster-menu.window="open = true; $dispatch('cursor:measure');"
+        x-show="open"
+        :class="open && 'is-open'"
+        x-on:click.window="if (open && selected != null && $event.button == 0 && $event.target?.tagName == 'TABLETOP-PAGE') $dispatch('tabletop:spawn-monster', { x: $event.clientX, y: $event.clientY, uid: $data.selected, hp: $data.hp, ac: $data.ac, name: $data.name, size: $data.size, image: $data.image, hidden: spawnHidden == 'hidden' })"
+    >
+        <div 
+            class="w-full pr-1.5" flex="row nowrap items-center"
+        >
+            <monster-search 
+                class="mr-0.75"
+            >
+                <svg  xmlns="http://www.w3.org/2000/svg"  width="18"  height="18"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-search"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+                <input 
+                    type="text" 
+                    placeholder="Search monsters..."
+                    name="search"
+                    hx-get="/stub/tabletop/spotlight-search"
+                    hx-trigger="keyup changed delay:500ms"
+                    hx-target="monster-list"
+                    hx-swap="innerHTML"
+                    autocomplete="off"
+                    x-on:keydown.stop=""
+                >
+            </monster-search>
+            <group-button-component
+                data-buttons='[{"label":"Visible","id":"visible"},{"label":"Hidden","id":"hidden"}]'
+                :data-active="$data.spawnHidden"
+                x-on:change="$data.spawnHidden = $event.detail.id"
+                class="mr-0.75"
+            ></group-button-component>
+            <button
+                class="bttn"
+                sfx="button"
+                kind="text"
+                icon="left"
+                color="grey"
+                x-on:click="$dispatch('show-monster-maker')"
+                hx-get="/stub/tabletop/create-monster"
+                hx-target="monster-maker .modal"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M9 12h6" /><path d="M12 9v6" /></svg>
+                <span>Quick add</span>
+            </button>
+        </div>
+        <monster-list
+            x-on:click.capture.stop=""
+        ></monster-list>
+        <button
+            class="bttn absolute t-0 r-0 mt-0.25 mr-0.25"
+            kind="text"
+            color="grey"
+            shape="round"
+            x-on:click="open = false; $dispatch('cursor:move');"
+        >
+            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
+        </button>
+    </monster-menu>
+{% endif %}

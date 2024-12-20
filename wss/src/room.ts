@@ -287,7 +287,7 @@ class Room {
         this.broadcast("room:tabletop:pawn:delete", pawnId);
     }
 
-    public spawnMonster({ monsterId, x, y, name, hp, ac, size, image }){
+    public spawnMonster({ monsterId, x, y, name, hp, ac, size, image, hidden }){
         const id = randomUUID();
         const pawn:Pawn = {
             x: x,
@@ -295,7 +295,7 @@ class Room {
             hp: hp,
             ac: ac,
             room: this.code,
-            hidden: true,
+            hidden: hidden,
             uid: id,
             name: name,
             fullHP: hp,

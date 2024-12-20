@@ -2,12 +2,13 @@ import { subscribe } from "@codewithkyle/pubsub";
 import PlayerMenu from "~components/window/windows/player-menu/player-menu";
 import Window from "~components/window/window";
 import { connect, send } from "~controllers/ws";
-import { Player } from "~types/app";
+import { Player, Size } from "~types/app";
 import DiceBox from "~components/window/windows/dice-box/dice-box";
 import MonsterManual from "~components/window/windows/monster-manual/monster-manual";
 import MonsterStatBlock from "~components/window/windows/monster-stat-block/monster-stat-block";
 import FogBrush from "~components/window/windows/fog-brush/fog-brush";
 import DoodleBrush from "~components/window/windows/doodle-brush/doodle-brush";
+import TabeltopComponent from "pages/tabletop-page/tabletop-component/tabletop-component";
 
 declare const htmx: any;
 
@@ -24,6 +25,16 @@ class Room {
     public dmgOverlay: boolean;
     public activeInitiative: string | null;
     private hasLogOn: boolean;
+    private selectedMonster?: {
+        x: number,
+        y: number,
+        name: string,
+        hp: number,
+        ac: number,
+        size: string,
+        image: string,
+        monsterId: string,
+    };
 
     constructor() {
         this.uid = "";
@@ -38,6 +49,7 @@ class Room {
         this.dmgOverlay = false;
         this.activeInitiative = null;
         this.hasLogOn = false;
+        this.selectedMonster = null;
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
@@ -159,18 +171,42 @@ class Room {
             send("room:tabletop:spawn:players");
         });
         window.addEventListener("tabletop:spawn-monster", (e: CustomEvent) => {
-            const { uid, name, hp, ac, size, image } = e.detail;
-            const x = parseInt(sessionStorage.getItem("tabletop:spawn-monster:x"));
-            const y = parseInt(sessionStorage.getItem("tabletop:spawn-monster:y"));
+            const { uid, name, hp, ac, size, image, x, y, hidden } = e.detail;
+            const tabletop = document.body.querySelector("tabletop-component") as TabeltopComponent;
+            let diffX = (x - tabletop.x) / tabletop.zoom;
+            let diffY = (y - tabletop.y) / tabletop.zoom;
+            let multi = 1;
+            switch (size as Size){
+                case "tiny":
+                    multi = 0.25;
+                    break;
+                case "small":
+                    multi = 0.5;
+                    break;
+                case "large":
+                    multi = 2;
+                    break;
+                case "huge":
+                    multi = 3;
+                    break;
+                case "gargantuan":
+                    multi = 4;
+                    break;
+                default:
+                    multi = 1;
+                    break;
+            }
+            const halfSize = this.gridSize * multi / 2;
             send("room:tabletop:spawn:monster", {
-                x: x,
-                y: y,
+                x: Math.round(diffX) - halfSize,
+                y: Math.round(diffY) - halfSize,
                 name: name,
-                hp: parseInt(hp),
-                ac: parseInt(ac),
+                hp: hp,
+                ac: ac,
                 size: size,
                 image: image,
                 monsterId: uid,
+                hidden: hidden,
             });
         });
         window.addEventListener("tabletop:quick-spawn", () => {

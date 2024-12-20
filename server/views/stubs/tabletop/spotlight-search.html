@@ -1,10 +1,27 @@
-<div id="spotlight-search-results" class="results">
-    {% for monster in Monsters %}
-        <button
-            class="bttn w-full text-left"
-            kind="text"
-            color="grey"
-            x-on:click="open = false; $dispatch('tabletop:spawn-monster', { uid: '{{ monster.Id }}', hp: '{{ monster.HP }}', ac: '{{ monster.AC }}', name: '{{ monster.Name }}', size: '{{ monster.Size }}', image: '{% if monster.Image %}monsters/{{ User.Id }}/{{ monster.Image }}{% endif %}' })"
-        >{{ monster.Name }}</button>
-    {% endfor %}
-</div>
+{% for monster in Monsters %}
+    <label 
+        for="{{ monster.Id }}"
+        :class="selected == '{{ monster.Id }}' ? 'is-selected' : ''"
+        role="button"
+    >
+        <input 
+            type="checkbox" 
+            name="monster" 
+            value="{{ monster.Id }}" 
+            id="{{ monster.Id }}"
+            x-on:change="selected = '{{ monster.Id }}'; hp = {{ monster.HP }}; ac = {{ monster.AC }}; name = '{{ monster.Name }}'; size = '{{ monster.Size }}'; image = {% if monster.Image %}'monsters/{{ User.Id }}/{{ monster.Image }}'{% else %}null{% endif %};"
+        >
+        {% if monster.Image %}
+            <img 
+                src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/monsters/{{ User.Id }}/{{ monster.Image }}" 
+                alt="{{ monster.Name }}"
+                style="opacity: 0;transition: opacity 150ms var(--ease-in);"
+                onload="this.style.opacity = '1'"
+                draggable="false"
+            >
+        {% else %}
+            <div class="placeholder-pawn"></div>
+        {% endif %}
+        <span>{{ monster.Name }}</span>
+    </label>
+{% endfor %}
