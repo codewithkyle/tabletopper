@@ -98,13 +98,6 @@ export default class TabletopPage extends SuperComponent<ITabletopPage>{
             items.push({
                 label: "Spawn Monster",
                 callback: () => {
-                    //const tabletop = document.body.querySelector("tabletop-component") as TabeltopComponent;
-                    //let diffX = (x - tabletop.x) / tabletop.zoom;
-                    //let diffY = (y - tabletop.y) / tabletop.zoom;
-                    //sessionStorage.setItem("tabletop:spawn-monster:y", `${Math.round(diffY) - 16}`);
-                    //sessionStorage.setItem("tabletop:spawn-monster:x", `${Math.round(diffX) - 16}`);
-                    //htmx.ajax("GET", "/stub/tabletop/spotlight", { target: "spotlight-search .modal" });
-                    //window.dispatchEvent(new CustomEvent("show-spotlight-search"));
                     window.dispatchEvent(new CustomEvent("show-monster-menu"));
                 }
             });

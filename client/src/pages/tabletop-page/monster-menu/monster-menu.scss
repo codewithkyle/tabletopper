@@ -31,7 +31,7 @@ monster-menu {
         width: 376px;
         flex-flow: row nowrap;
         align-items: center;
-        background-color: --grey-100;
+        background-color: var(--grey-100);
         border-radius: 16px;
 
         @media (prefers-color-scheme: dark) {

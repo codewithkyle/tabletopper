@@ -25,16 +25,6 @@ class Room {
     public dmgOverlay: boolean;
     public activeInitiative: string | null;
     private hasLogOn: boolean;
-    private selectedMonster?: {
-        x: number,
-        y: number,
-        name: string,
-        hp: number,
-        ac: number,
-        size: string,
-        image: string,
-        monsterId: string,
-    };
 
     constructor() {
         this.uid = "";
@@ -49,7 +39,6 @@ class Room {
         this.dmgOverlay = false;
         this.activeInitiative = null;
         this.hasLogOn = false;
-        this.selectedMonster = null;
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
