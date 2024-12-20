@@ -135,6 +135,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
                 publish("tabletop", "cursor:move");
             }
         });
+        window.addEventListener("cursor:measure", (e:CustomEvent) => {
+            publish("tabletop", "cursor:measure");
+        });
+        window.addEventListener("cursor:move", (e:CustomEvent) => {
+            publish("tabletop", "cursor:move");
+        });
         this.render();
     }
 

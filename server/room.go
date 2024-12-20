@@ -203,8 +203,8 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		isGM := c.Cookies("gm", "")
 
 		return c.Render("stubs/tabletop/quick-spawn", fiber.Map{
-			"User":   user,
-			"GM": isGM != "",
+			"User": user,
+			"GM":   isGM != "",
 		})
 	})
 

@@ -65,6 +65,11 @@ export default class Window extends SuperComponent<IWindow>{
             localStorage.setItem(`${this.handle}-h`, this.h.toFixed(0).toString());
         }
 
+        if (this.y < 28) this.y = 28;
+        if (this.y > window.innerHeight - 28) this.y = window.innerHeight - 28;
+        if (this.x < 0) this.x = 0;
+        if (this.x > window.innerWidth - this.w) this.x = window.innerWidth - this.w;
+
         this.enableControls = settings?.enableControls ?? true;
 
         this.resize();
