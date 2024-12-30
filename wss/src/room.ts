@@ -66,6 +66,10 @@ class Room {
     }
 
     public syncFog(shape):void{
+        if (shape.points.length < 2) {
+            console.log("Got malformed fog of war shape:", shape);
+            return;
+        }
         this.fogOfWarShapes.push(shape);
         this.broadcast("room:tabletop:fog:sync", {
             fogOfWarShapes: this.fogOfWarShapes,
@@ -105,7 +109,7 @@ class Room {
 
     private decrementConditions() {
         let prev;
-        if (this.activeInitiative - 1 < 0) {
+        if (this.activeInitiative -  < 0) {
             prev = this.initiative[this.initiative.length - 1];
         } else {
             prev = this.initiative[this.activeInitiative - 1];

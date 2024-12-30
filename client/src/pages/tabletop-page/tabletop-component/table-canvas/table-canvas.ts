@@ -133,19 +133,30 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         for (let i = 0; i < this.fogOfWarShapes.length; i++) {
             switch (this.fogOfWarShapes[i].type){
                 case "poly":
-                    this.fogctx.beginPath();
-                    this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
-                    for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
-                        this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
+                    try {
+                        this.fogctx.beginPath();
+                        this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
+                        for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
+                            this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
+                        }
+                        this.fogctx.closePath();
+                        this.fogctx.fill();
+                    } catch (e) {
+                        console.error("Render error:", e);
                     }
-                    this.fogctx.closePath();
-                    this.fogctx.fill();
                     break;
                 case "rect":
-                    const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
-                    const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
-                    this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
-                    this.fogctx.fill();
+                    try {
+                        const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
+                        const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
+                        this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                        this.fogctx.fill();
+                    } catch (e) {
+                        console.error("Render error:", e);
+                    }
+                    break;
+                default:
+                    console.error("How did you get here?");
                     break;
             }
         }
@@ -244,28 +255,32 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         
         if (!this.image) return;
 
+        // Other
+        this.renderGridLines();
+        this.renderFogOfWar();
+
         // Always draw map first
         this.imgctx.drawImage(
             this.image,
             0, 0, this.w, this.h
         );
-
-        // Other
-        this.renderGridLines();
-        this.renderFogOfWar();
-        
-        this.imgctx.drawImage(
-            this.gridCanvas,
-            0, 0,
-            this.w, this.h
-        );
+       
+        if (this.renderGridLines) {
+            this.imgctx.drawImage(
+                this.gridCanvas,
+                0, 0,
+                this.w, this.h
+            );
+        }
 
         // Always draw fog last
-        this.imgctx.drawImage(
-            this.fogCanvas,
-            0, 0,
-            this.w, this.h
-        );
+        if (this.renderFogOfWar) {
+            this.imgctx.drawImage(
+                this.fogCanvas,
+                0, 0,
+                this.w, this.h
+            );
+        }
     }
 }
 env.bind("table-canvas", TableCanvas);
