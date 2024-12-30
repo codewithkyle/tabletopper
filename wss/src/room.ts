@@ -109,7 +109,7 @@ class Room {
 
     private decrementConditions() {
         let prev;
-        if (this.activeInitiative -  < 0) {
+        if (this.activeInitiative - 1 < 0) {
             prev = this.initiative[this.initiative.length - 1];
         } else {
             prev = this.initiative[this.activeInitiative - 1];
