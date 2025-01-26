@@ -180,6 +180,13 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
+            case "room:tabletop:pawn:rename":
+                if (room){
+                    room.setPawnName(data);
+                } else {
+                    this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
+                }
+                break;
             case "room:tabletop:pawn:health":
                 if (room){
                     room.setPawnHealth(data);

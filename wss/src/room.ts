@@ -313,6 +313,17 @@ class Room {
         this.broadcast("room:tabletop:pawn:spawn", pawn);
     }
 
+    public setPawnName({ pawnId, name }){
+        console.log(`Setting pawn ${pawnId} name to ${name}`);
+        for (const pawn of this.pawns){
+            if (pawn.uid === pawnId){
+                pawn.name = name;
+                break;
+            }
+        }
+        this.broadcast("room:tabletop:pawn:rename", { pawnId, name });
+    }
+
     public setPawnHealth({ pawnId, hp }){
         console.log(`Setting pawn ${pawnId} to ${hp} HP`);
         for (const pawn of this.pawns){

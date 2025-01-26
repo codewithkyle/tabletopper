@@ -53,6 +53,12 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private inbox({ type, data }){
         switch(type){
+            case "room:tabletop:pawn:rename":
+                if (data.pawnId === this.pawnId){
+                    this.model.name = data.name;
+                    this.render();
+                }
+                break;
             case "room:tabletop:pawn:health":
                 if (data.pawnId === this.pawnId){
                     this.model.hp = data.hp;
@@ -152,6 +158,16 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
         }));
     }
 
+    private openRenameInput() {
+        const newName = window.prompt("New name:", this.model.name);
+        if (newName !== this.model.name) {
+            send("room:tabletop:pawn:rename", {
+                pawnId: this.pawnId,
+                name: newName,
+            });
+        }
+    }
+
     private addCondition:EventListener = (e:CustomEvent) => {
         window.removeEventListener("add-condition", this.addCondition);
         send("room:tabletop:pawn:status:add", {
@@ -192,6 +208,26 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     }}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><line x1="4" y1="7" x2="20" y2="7"></line><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path></svg>
+                </button>
+            `;
+        } else {
+            return "";
+        }
+    }
+
+    private renderRenameButton(){
+        if (this.type !== "player"){
+            return html`
+                <button
+                    class="bttn"
+                    kind="text"
+                    color="grey"
+                    icon="center"
+                    tooltip="Rename"
+                    size="slim"
+                    @click=${this.openRenameInput.bind(this)}
+                >
+                    <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-label"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.52 7h-10.52a2 2 0 0 0 -2 2v6a2 2 0 0 0 2 2h10.52a1 1 0 0 0 .78 -.375l3.7 -4.625l-3.7 -4.625a1 1 0 0 0 -.78 -.375" /></svg>
                 </button>
             `;
         } else {
@@ -265,7 +301,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     data-disabled-label="Hidden"
                     data-enabled="${this.model.hidden === false}"
                     data-value="hidden"
-                    class="mt-0.25"
+                    class="mt-0.25 w-auto"
                     @change=${this.changeVisibility.bind(this)}
                 ></lightswitch-component>
                 <div flex="items-center row nowrap">
@@ -280,6 +316,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     >
                         <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M13 12h5" /><path d="M13 15h4" /><path d="M13 18h1" /><path d="M13 9h4" /><path d="M13 6h1" /></svg>
                     </button>
+                    ${this.renderRenameButton()}
                     ${this.renderBookButton()}
                     ${this.renderDeleteButton()}
                 </div>
