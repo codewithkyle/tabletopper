@@ -333,7 +333,7 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 		db := helpers.ConnectDB()
 		monsters := []Monster{}
 		// TODO: pagination
-		db.Raw("SELECT HEX(id) as id, name FROM monsters WHERE userId = ?", user.Id).Scan(&monsters)
+		db.Raw("SELECT HEX(id) as id, name FROM monsters WHERE userId = ? ORDER BY name", user.Id).Scan(&monsters)
 
 		return c.Render("stubs/windows/monsters", fiber.Map{
 			"Monsters": monsters,
