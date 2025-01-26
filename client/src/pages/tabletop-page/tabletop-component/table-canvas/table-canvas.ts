@@ -127,76 +127,88 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     }
 
     private revealShapes() {
-        this.fogctx.globalCompositeOperation = "destination-out";
-        this.fogctx.globalAlpha = 1.0;
-        this.fogctx.fillStyle = "white";
-        for (let i = 0; i < this.fogOfWarShapes.length; i++) {
-            switch (this.fogOfWarShapes[i].type){
-                case "poly":
-                    try {
-                        this.fogctx.beginPath();
-                        this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
-                        for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
-                            this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
+        try {
+            this.fogctx.globalCompositeOperation = "destination-out";
+            this.fogctx.globalAlpha = 1.0;
+            this.fogctx.fillStyle = "white";
+            for (let i = 0; i < this.fogOfWarShapes.length; i++) {
+                switch (this.fogOfWarShapes[i].type){
+                    case "poly":
+                        try {
+                            this.fogctx.beginPath();
+                            this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
+                            for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
+                                this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
+                            }
+                            this.fogctx.closePath();
+                            this.fogctx.fill();
+                        } catch (e) {
+                            console.error("Reveal poly error:", e);
                         }
-                        this.fogctx.closePath();
-                        this.fogctx.fill();
-                    } catch (e) {
-                        console.error("Render error:", e);
-                    }
-                    break;
-                case "rect":
-                    try {
-                        const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
-                        const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
-                        this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
-                        this.fogctx.fill();
-                    } catch (e) {
-                        console.error("Render error:", e);
-                    }
-                    break;
-                default:
-                    console.error("How did you get here?");
-                    break;
+                        break;
+                    case "rect":
+                        try {
+                            const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
+                            const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
+                            this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
+                            this.fogctx.fill();
+                        } catch (e) {
+                            console.error("Reveal rect error:", e);
+                        }
+                        break;
+                    default:
+                        console.error("How did you get here?", this.fogOfWarShapes[i]);
+                        break;
+                }
             }
+            this.fogctx.globalCompositeOperation = "source-over";
+        } catch (e) {
+            console.error("Reveal shapes render error:", e);
         }
-        this.fogctx.globalCompositeOperation = "source-over";
     }
 
     private renderFogOfWar() {
-        if (!this.fogOfWar || !this.updateFog) return;
-        if (room.isGM) {
-            this.fogctx.globalAlpha = 0.6;
+        try {
+            if (!this.fogOfWar || !this.updateFog) return;
+            if (room.isGM) {
+                this.fogctx.globalAlpha = 0.6;
+            }
+            let color = "#fafafa"
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                color = "#09090b"
+            }
+            this.fogctx.fillStyle = color;
+            this.fogctx.fillRect(0, 0, this.w, this.h);
+            this.revealShapes();
+        } catch (e) {
+            console.error("Fog of war render error:", e);
         }
-        let color = "#fafafa"
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            color = "#09090b"
-        }
-        this.fogctx.fillStyle = color;
-        this.fogctx.fillRect(0, 0, this.w, this.h);
-        this.revealShapes();
         this.updateFog = false;
     }
 
     private renderGridLines(){
-        if (!this.renderGrid || !this.updateGrid) return;
-        const columns = Math.ceil(this.w / this.gridSize);
-        const rows = Math.ceil(this.h / this.gridSize);
+        try {
+            if (!this.renderGrid || !this.updateGrid) return;
+            const columns = Math.ceil(this.w / this.gridSize);
+            const rows = Math.ceil(this.h / this.gridSize);
 
-        this.gridctx.strokeStyle = "rgb(0,0,0)";
-        for (let i = 0; i < columns; i++) {
-            const x = i * this.gridSize;
-            this.gridctx.beginPath();
-            this.gridctx.moveTo(x, 0);
-            this.gridctx.lineTo(x, this.h);
-            this.gridctx.stroke();
-        }
-        for (let i = 0; i < rows; i++) {
-            const y = i * this.gridSize;
-            this.gridctx.beginPath();
-            this.gridctx.moveTo(0, y);
-            this.gridctx.lineTo(this.w, y);
-            this.gridctx.stroke();
+            this.gridctx.strokeStyle = "rgb(0,0,0)";
+            for (let i = 0; i < columns; i++) {
+                const x = i * this.gridSize;
+                this.gridctx.beginPath();
+                this.gridctx.moveTo(x, 0);
+                this.gridctx.lineTo(x, this.h);
+                this.gridctx.stroke();
+            }
+            for (let i = 0; i < rows; i++) {
+                const y = i * this.gridSize;
+                this.gridctx.beginPath();
+                this.gridctx.moveTo(0, y);
+                this.gridctx.lineTo(this.w, y);
+                this.gridctx.stroke();
+            }
+        } catch (e) {
+            console.error("Grid line render error:", e);
         }
         this.updateGrid = false;
     }
@@ -249,37 +261,49 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     }
 
     override render(): void {
-        this.imgctx.clearRect(0, 0, this.w, this.h);
-        if (this.updateFog) this.fogctx.clearRect(0, 0, this.w, this.h);
-        if (this.updateGrid) this.gridctx.clearRect(0, 0, this.w, this.h);
-        
-        if (!this.image) return;
+        try {
+            this.imgctx.clearRect(0, 0, this.w, this.h);
+            if (this.updateFog) this.fogctx.clearRect(0, 0, this.w, this.h);
+            if (this.updateGrid) this.gridctx.clearRect(0, 0, this.w, this.h);
+            
+            if (!this.image) return;
 
-        // Other
-        this.renderGridLines();
-        this.renderFogOfWar();
+            // Other
+            this.renderGridLines();
+            this.renderFogOfWar();
 
-        // Always draw map first
-        this.imgctx.drawImage(
-            this.image,
-            0, 0, this.w, this.h
-        );
-       
-        if (this.renderGridLines) {
+            // Always draw map first
             this.imgctx.drawImage(
-                this.gridCanvas,
-                0, 0,
-                this.w, this.h
+                this.image,
+                0, 0, this.w, this.h
             );
-        }
+           
+            if (this.renderGridLines) {
+                this.imgctx.drawImage(
+                    this.gridCanvas,
+                    0, 0,
+                    this.w, this.h
+                );
+            }
 
-        // Always draw fog last
-        if (this.renderFogOfWar) {
-            this.imgctx.drawImage(
-                this.fogCanvas,
-                0, 0,
-                this.w, this.h
-            );
+            // Always draw fog last
+            if (this.renderFogOfWar) {
+                this.imgctx.drawImage(
+                    this.fogCanvas,
+                    0, 0,
+                    this.w, this.h
+                );
+            }
+        } catch (e) {
+            console.error("Render error:", e);
+            console.groupCollapsed();
+            console.log("Update fog", this.updateFog);
+            console.log("Update grid", this.updateGrid);
+            console.log("Image", this.image);
+            console.log("Fog shapes", this.fogOfWarShapes);
+            console.log("Fog ctx", this.fogctx);
+            console.log("Grid ctx", this.gridctx);
+            console.groupEnd();
         }
     }
 }
