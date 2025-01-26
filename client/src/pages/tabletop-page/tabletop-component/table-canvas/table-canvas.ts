@@ -41,8 +41,11 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
         this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
         this.fogctx = this.fogCanvas.getContext("2d");
+        this.fogctx.imageSmoothingEnabled = false;
         this.imgctx = this.canvas.getContext("2d");
+        this.imgctx.imageSmoothingEnabled = false;
         this.gridctx = this.gridCanvas.getContext("2d");
+        this.gridctx.imageSmoothingEnabled = false;
         this.tabletop = document.querySelector("tabletop-component");
         this.renderGrid = false;
         this.gridSize = 32;
