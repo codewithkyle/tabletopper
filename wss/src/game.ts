@@ -40,7 +40,7 @@ class GameManager {
                     this.error(ws, "Action Failed", `Room ${ws.room} is no longer available.`);
                 }
                 break;
-            case "room:tabletop:fog:sync":
+            case "room:tabletop:fog:add":
                 if (room){
                     room.syncFog(data);
                 } else {

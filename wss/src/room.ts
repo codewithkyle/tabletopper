@@ -71,8 +71,8 @@ class Room {
             return;
         }
         this.fogOfWarShapes.push(shape);
-        this.broadcast("room:tabletop:fog:sync", {
-            fogOfWarShapes: this.fogOfWarShapes,
+        this.broadcast("room:tabletop:fog:add", {
+            fogOfWarShapes: shape,
             fogOfWar: this.fogOfWar,
         });
     }

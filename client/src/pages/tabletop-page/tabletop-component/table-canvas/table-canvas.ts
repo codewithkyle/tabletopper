@@ -98,6 +98,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
     private inbox({ type, data }) {
         switch (type) {
+            case "room:tabletop:fog:add":
+                this.fogOfWar = data.fogOfWar;
+                this.fogOfWarShapes.push(data.fogOfWarShapes);
+                this.updateFog = true;
+                this.render();
+                break;
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
@@ -123,7 +129,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     }
 
     private sync(shape:FogOfWarShape) {
-        send("room:tabletop:fog:sync", shape);
+        send("room:tabletop:fog:add", shape);
     }
 
     private revealShapes() {
