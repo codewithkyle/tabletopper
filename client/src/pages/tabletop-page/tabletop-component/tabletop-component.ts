@@ -132,14 +132,42 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             }
         });
         window.addEventListener("tabletop:view:zoom:in", () => {
-            const x = ((window.innerWidth * 0.5) - (this.imgWidth * 0.5) * this.zoom);
-            const y = (((window.innerHeight - 28) * 0.5) - (this.imgHeight * 0.5) * this.zoom);
-            this.doZoom({ zoom: this.zoom + 0.1, x: x, y: y, ratio: null });
+            let delta = -114;
+            let sign = Math.sign(delta);
+            let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
+            let multiplier = 1 - sign * deltaAdjustedSpeed;
+            let zoom = this.zoom * multiplier;
+            const data = {
+                zoom: zoom,
+                x: window.innerWidth * 0.5,
+                y: (window.innerHeight - 28) * 0.5,
+                delta: delta,
+                ratio: multiplier,
+            };
+            this.moving = false;
+            if (this.zoom !== data.zoom) {
+                this.doZoom(data);
+            }
+            //this.doZoom({ zoom: this.zoom + 0.1, x: 0, y: 0, ratio: null });
         });
         window.addEventListener("tabletop:view:zoom:out", () => {
-            const x = ((window.innerWidth * 0.5) - (this.imgWidth * 0.5) * this.zoom);
-            const y = (((window.innerHeight - 28) * 0.5) - (this.imgHeight * 0.5) * this.zoom);
-            this.doZoom({ zoom: this.zoom - 0.1, x: x, y: y, ratio: null });
+            let delta = 114;
+            let sign = Math.sign(delta);
+            let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
+            let multiplier = 1 - sign * deltaAdjustedSpeed;
+            let zoom = this.zoom * multiplier;
+            const data = {
+                zoom: zoom,
+                x: window.innerWidth * 0.5,
+                y: (window.innerHeight - 28) * 0.5,
+                delta: delta,
+                ratio: multiplier,
+            };
+            this.moving = false;
+            if (this.zoom !== data.zoom) {
+                this.doZoom(data);
+            }
+            //this.doZoom({ zoom: this.zoom - 0.1, x: 0, y: 0, ratio: null });
         });
         window.addEventListener("tabletop:mode", (e: CustomEvent) => {
             const { mode } = e.detail;
@@ -195,7 +223,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (data.y === null) {
             data.y = window.innerHeight * .5;
         }
-        if (!data?.ratio) {
+        if (!(data?.ratio)) {
             if (data.zoom < this.zoom) {
                 data.ratio = 0.777;
             }
