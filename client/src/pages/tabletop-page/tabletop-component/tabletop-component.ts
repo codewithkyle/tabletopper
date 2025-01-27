@@ -22,7 +22,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private canvas: TableCanvas;
     private vfxCanvas: VFXCanvas;
     private doodleCanvas: DoodleCanvas;
-    private img: HTMLImageElement;
+    private img: string;
     private isNewImage: boolean;
     private mode: "move" | "measure" | "lock";
     private startPos: Array<number>;
@@ -30,7 +30,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     constructor() {
         super();
-        this.img = new Image();
+        this.img = null;
         this.canvas = new TableCanvas();
         this.vfxCanvas = new VFXCanvas();
         this.doodleCanvas = new DoodleCanvas();
@@ -293,11 +293,10 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map) {
-            this.img = new Image();
-            this.img.src = this.model.map;
+            this.img = this.model.map;
         } else {
             this.img = null;
-            this.canvas.load(this.img);
+            this.canvas.load(null);
         }
         if (!this.canvas?.isConnected) {
             this.parentElement.appendChild(this.canvas);
@@ -309,13 +308,11 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.appendChild(this.doodleCanvas);
         }
         if (this.img) {
-            this.img.onload = () => {
-                this.canvas.load(this.img);
-                this.vfxCanvas.render(this.img);
-                this.doodleCanvas.render(this.img);
-                this.x = window.innerWidth * 0.5;
-                this.y = (window.innerHeight - 28) * 0.5;
-            }
+            this.canvas.load(this.img);
+            //this.vfxCanvas.render(this.img);
+            //this.doodleCanvas.render(this.img);
+            this.x = window.innerWidth * 0.5;
+            this.y = (window.innerHeight - 28) * 0.5;
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }

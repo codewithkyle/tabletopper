@@ -68,11 +68,27 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private updateFog: boolean;
     private indices: Uint16Array;
     private program: WebGLProgram;
+    private time: number;
+    private pos: {
+        x: number,
+        y: number,
+    };
+    private lastMousePos: {
+        x: number,
+        y: number,
+    };
+    private doMove: boolean;
 
     constructor() {
         super();
         this.w = 0;
         this.h = 0;
+        this.pos = {
+            x: 0,
+            y: 0,
+        };
+        this.lastMousePos = undefined;
+        this.doMove = false;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
@@ -107,8 +123,34 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
             this.imgctx.viewport(0, 0, this.canvas.width, this.canvas.height);
-            this.render();
         }, 150));
+        window.addEventListener("mousemove", this.onMove, { passive: true });
+        window.addEventListener("mousedown", () => {
+            this.doMove = true;
+        });
+        window.addEventListener("mouseup", () => {
+            this.doMove = false;
+        });
+    }
+
+    private onMove:EventListener = (e:MouseEvent) => {
+        const   x = e.clientX,
+                y = e.clientY;
+        if (this.lastMousePos === undefined) {
+            this.lastMousePos = {
+                x,
+                y,
+            };
+            return;
+        }
+        const deltaX = this.lastMousePos.x - x;
+        const deltaY = this.lastMousePos.y - y;
+        this.lastMousePos.x = x;
+        this.lastMousePos.y = y;
+        if (this.doMove) {
+            this.pos.x -= deltaX;
+            this.pos.y -= deltaY;
+        }
     }
 
     public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
@@ -152,18 +194,15 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes.push(data.fogOfWarShapes);
                 this.updateFog = true;
-                this.render();
                 break;
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
                 this.updateFog = true;
-                this.render();
                 break;
             case "room:tabletop:clear":
                 this.fogOfWarShapes = [];
                 this.updateFog = true;
-                this.render();
                 break;
             case "room:tabletop:map:update":
                 this.renderGrid = data.renderGrid;
@@ -171,7 +210,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.fogOfWar = data.prefillFog;
                 this.updateGrid = true;
                 this.updateFog = true;
-                this.render();
                 break;
             default:
                 break;
@@ -298,7 +336,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         return program;
     }
 
-    public load(image: HTMLImageElement) {
+    public load(imageSrc: string) {
         this.w = window.innerWidth;
         this.h = window.innerHeight;
 
@@ -310,7 +348,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         this.image = new Image();
         this.image.crossOrigin = "anonymous";
-        this.image.src = image.src;
+        this.image.src = imageSrc;
         this.image.onload = () => {
             const positions = new Float32Array([
                 0, 0, 0.0, 0.0, // top-left
@@ -346,11 +384,20 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_T, this.imgctx.CLAMP_TO_EDGE);
             this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MIN_FILTER, this.imgctx.LINEAR);
             this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MAG_FILTER, this.imgctx.LINEAR);
-            this.render();
+
+            window.requestAnimationFrame(this.firstFrame.bind(this));
         };
     }
 
-    override render(): void {
+    private firstFrame(ts) {
+        this.time = ts;
+        window.requestAnimationFrame(this.nextFrame.bind(this));
+    }
+
+    private nextFrame(ts) {
+        const dt = (ts - this.time) * 0.001;
+        this.time = ts;
+
         this.imgctx.clearColor(0,0,0,0);
         this.imgctx.clear(this.imgctx.COLOR_BUFFER_BIT);
 
@@ -360,9 +407,11 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.imgctx.uniform2f(uResolutionLoc, this.canvas.width, this.canvas.height);
 
         const uTranslationLoc = this.imgctx.getUniformLocation(this.program, "u_translation");
-        this.imgctx.uniform2f(uTranslationLoc, 500, 500);
+        this.imgctx.uniform2f(uTranslationLoc, this.pos.x, this.pos.y);
 
         this.imgctx.drawElements(this.imgctx.TRIANGLES, this.indices.length, this.imgctx.UNSIGNED_SHORT, 0);
+
+        window.requestAnimationFrame(this.nextFrame.bind(this));
     }
 }
 env.bind("table-canvas", TableCanvas);
