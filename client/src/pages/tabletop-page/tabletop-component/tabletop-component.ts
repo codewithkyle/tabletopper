@@ -300,7 +300,7 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.canvas.load(this.img);
         }
         if (!this.canvas?.isConnected) {
-            this.appendChild(this.canvas);
+            this.parentElement.appendChild(this.canvas);
         }
         if (!this.vfxCanvas?.isConnected) {
             this.appendChild(this.vfxCanvas);
