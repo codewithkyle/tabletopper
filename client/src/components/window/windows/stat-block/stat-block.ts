@@ -125,6 +125,9 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
                     break;
             }
         }
+        if (hp < 0) {
+            hp = 0;
+        }
         this.set({hp: hp});
         send("room:tabletop:pawn:health", {
             pawnId: this.pawnId,
