@@ -14,13 +14,36 @@ type FogOfWarShape = {
     points: Array<Point>,
 }
 
+const vsSource = `#version 300 es
+    in vec4 a_position;
+    in vec2 a_texCoord;
+    out vec2 v_texCoord;
+
+    void main() {
+        gl_Position = a_position;
+        v_texCoord = a_texCoord;
+    }
+`;
+
+const fsSource = `#version 300 es
+    precision mediump float;
+
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    out vec4 outColor;
+
+    void main() {
+        outColor = texture(u_texture, v_texCoord);
+    }
+`;
+
 interface ITableCanvas { }
 export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private canvas: HTMLCanvasElement;
     private fogCanvas: HTMLCanvasElement;
     private gridCanvas: HTMLCanvasElement;
     private fogctx: CanvasRenderingContext2D;
-    private imgctx: CanvasRenderingContext2D;
+    private imgctx: WebGL2RenderingContext;
     private gridctx: CanvasRenderingContext2D;
     private renderGrid: boolean;
     private gridSize: number;
@@ -32,20 +55,26 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private image: HTMLImageElement;
     private updateGrid: boolean;
     private updateFog: boolean;
+    private indices: Uint16Array;
 
     constructor() {
         super();
         this.w = 0;
         this.h = 0;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.fogctx = this.fogCanvas.getContext("2d");
-        this.fogctx.imageSmoothingEnabled = false;
-        this.imgctx = this.canvas.getContext("2d");
-        this.imgctx.imageSmoothingEnabled = false;
-        this.gridctx = this.gridCanvas.getContext("2d");
-        this.gridctx.imageSmoothingEnabled = false;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        //this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
+        //this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
+
+        //this.fogctx = this.fogCanvas.getContext("2d");
+        //this.fogctx.imageSmoothingEnabled = false;
+
+        this.imgctx = this.canvas.getContext("webgl2");
+
+        //this.gridctx = this.gridCanvas.getContext("2d");
+        //this.gridctx.imageSmoothingEnabled = false;
+
         this.tabletop = document.querySelector("tabletop-component");
         this.renderGrid = false;
         this.gridSize = 32;
@@ -222,98 +251,96 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.updateGrid = false;
     }
 
-    public load(image: HTMLImageElement) {
-        if (!image) {
-            this.w = 0;
-            this.h = 0;
-            this.image = null;
-            this.updateGrid = true;
-            this.updateFog = true;
+    private compileShader(gl, source, type) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
 
-            this.canvas.width = this.w;
-            this.canvas.height = this.h;
-            this.canvas.style.width = `0px`;
-            this.canvas.style.height = `0px`;
-
-            this.fogCanvas.width = this.w;
-            this.fogCanvas.height = this.h;
-            this.fogCanvas.style.width = `0px`;
-            this.fogCanvas.style.height = `0px`;
-
-            this.gridCanvas.width = this.w;
-            this.gridCanvas.height = this.h;
-            this.gridCanvas.style.width = `0px`;
-            this.gridCanvas.style.height = `0px`;
-        } else {
-            this.w = image.width;
-            this.h = image.height;
-            this.image = image;
-            this.updateGrid = true;
-            this.updateFog = true;
-
-            this.canvas.width = this.w;
-            this.canvas.height = this.h;
-            this.canvas.style.width = `${image.width}px`;
-            this.canvas.style.height = `${image.height}px`;
-
-            this.fogCanvas.width = this.w;
-            this.fogCanvas.height = this.h;
-            this.fogCanvas.style.width = `${image.width}px`;
-            this.fogCanvas.style.height = `${image.height}px`;
-
-            this.gridCanvas.width = this.w;
-            this.gridCanvas.height = this.h;
-            this.gridCanvas.style.width = `${image.width}px`;
-            this.gridCanvas.style.height = `${image.height}px`;
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error("Error compiling shader:", gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
         }
-        this.render();
+
+        return shader;
+    }
+
+    private createProgram(gl, vertexShader, fragmentShader) {
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error("Error linking program:", gl.getProgramInfoLog(program));
+            gl.deleteProgram(program);
+            return null;
+        }
+
+        return program;
+    }
+
+    public load(image: HTMLImageElement) {
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
+
+        const vertexShader = this.compileShader(this.imgctx, vsSource, this.imgctx.VERTEX_SHADER);
+        const fragmentShader = this.compileShader(this.imgctx, fsSource, this.imgctx.FRAGMENT_SHADER);
+        const program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
+
+        this.imgctx.useProgram(program);
+
+        const positions = new Float32Array([
+            -1, -1, 0, 0,  // Bottom-left
+             1, -1, 1, 0,  // Bottom-right
+            -1,  1, 0, 1,  // Top-left
+             1,  1, 1, 1   // Top-right
+        ]);
+        const posBuffer = this.imgctx.createBuffer();
+        this.imgctx.bindBuffer(this.imgctx.ARRAY_BUFFER, posBuffer);
+        this.imgctx.bufferData(this.imgctx.ARRAY_BUFFER, positions, this.imgctx.STATIC_DRAW);
+
+        this.indices = new Uint16Array([
+            0, 1, 2,  // First triangle
+            2, 1, 3   // Second triangle
+        ]);
+        const indexBuffer = this.imgctx.createBuffer();
+        this.imgctx.bindBuffer(this.imgctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+        this.imgctx.bufferData(this.imgctx.ELEMENT_ARRAY_BUFFER, this.indices, this.imgctx.STATIC_DRAW);
+
+        const aPositionLoc = this.imgctx.getAttribLocation(program, "a_position");
+        const aTexCoordLoc = this.imgctx.getAttribLocation(program, "a_texCoord");
+        // Enable the attributes
+        this.imgctx.enableVertexAttribArray(aPositionLoc);
+        this.imgctx.enableVertexAttribArray(aTexCoordLoc);
+
+        // Define how to read the `positions` buffer for each attribute
+        const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
+        this.imgctx.vertexAttribPointer(aPositionLoc, 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
+        this.imgctx.vertexAttribPointer(aTexCoordLoc, 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
+
+        this.image = new Image();
+        this.image.crossOrigin = "anonymous";
+        this.image.src = image.src;
+        this.image.onload = () => {
+            const texture = this.imgctx.createTexture();
+            this.imgctx.bindTexture(this.imgctx.TEXTURE_2D, texture);
+            this.imgctx.texImage2D(this.imgctx.TEXTURE_2D, 0, this.imgctx.RGBA, this.imgctx.RGBA, this.imgctx.UNSIGNED_BYTE, this.image);
+            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_S, this.imgctx.CLAMP_TO_EDGE);
+            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_T, this.imgctx.CLAMP_TO_EDGE);
+            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MIN_FILTER, this.imgctx.LINEAR);
+            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MAG_FILTER, this.imgctx.LINEAR);
+            this.render();
+        };
     }
 
     override render(): void {
-        try {
-            this.imgctx.clearRect(0, 0, this.w, this.h);
-            if (this.updateFog) this.fogctx.clearRect(0, 0, this.w, this.h);
-            if (this.updateGrid) this.gridctx.clearRect(0, 0, this.w, this.h);
-            
-            if (!this.image) return;
+        this.imgctx.clearColor(0,0,0,0);
+        this.imgctx.clear(this.imgctx.COLOR_BUFFER_BIT);
 
-            // Other
-            this.renderGridLines();
-            this.renderFogOfWar();
+        if (!this.image) return;
 
-            // Always draw map first
-            this.imgctx.drawImage(
-                this.image,
-                0, 0, this.w, this.h
-            );
-           
-            if (this.renderGridLines) {
-                this.imgctx.drawImage(
-                    this.gridCanvas,
-                    0, 0,
-                    this.w, this.h
-                );
-            }
-
-            // Always draw fog last
-            if (this.renderFogOfWar) {
-                this.imgctx.drawImage(
-                    this.fogCanvas,
-                    0, 0,
-                    this.w, this.h
-                );
-            }
-        } catch (e) {
-            console.error("Render error:", e);
-            console.groupCollapsed();
-            console.log("Update fog", this.updateFog);
-            console.log("Update grid", this.updateGrid);
-            console.log("Image", this.image);
-            console.log("Fog shapes", this.fogOfWarShapes);
-            console.log("Fog ctx", this.fogctx);
-            console.log("Grid ctx", this.gridctx);
-            console.groupEnd();
-        }
+        this.imgctx.drawElements(this.imgctx.TRIANGLES, this.indices.length, this.imgctx.UNSIGNED_SHORT, 0);
     }
 }
 env.bind("table-canvas", TableCanvas);
