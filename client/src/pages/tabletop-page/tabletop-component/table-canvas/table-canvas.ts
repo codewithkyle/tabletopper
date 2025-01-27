@@ -20,10 +20,14 @@ const vsSource = `#version 300 es
     out vec2 v_texCoord;
 
     uniform vec2 u_resolution;
+    uniform vec2 u_translation;
 
     void main() {
+        // apply translation
+        vec2 translatedPosition = a_position + u_translation;
+
         // convert pixel coord to normalized device coord
-        vec2 zeroToOne = a_position / u_resolution;
+        vec2 zeroToOne = translatedPosition / u_resolution;
         vec2 zeroToTwo = zeroToOne * 2.0;
         vec2 clipSpace = zeroToTwo - 1.0;
 
@@ -63,6 +67,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private updateGrid: boolean;
     private updateFog: boolean;
     private indices: Uint16Array;
+    private program: WebGLProgram;
 
     constructor() {
         super();
@@ -101,6 +106,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         window.addEventListener("resize", this.debounce(()=>{
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+            this.imgctx.viewport(0, 0, this.canvas.width, this.canvas.height);
             this.render();
         }, 150));
     }
@@ -277,7 +283,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         return shader;
     }
 
-    private createProgram(gl, vertexShader, fragmentShader) {
+    private createProgram(gl: WebGL2RenderingContext, vertexShader, fragmentShader) {
         const program = gl.createProgram();
         gl.attachShader(program, vertexShader);
         gl.attachShader(program, fragmentShader);
@@ -298,9 +304,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         const vertexShader = this.compileShader(this.imgctx, vsSource, this.imgctx.VERTEX_SHADER);
         const fragmentShader = this.compileShader(this.imgctx, fsSource, this.imgctx.FRAGMENT_SHADER);
-        const program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
+        this.program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
 
-        this.imgctx.useProgram(program);
+        this.imgctx.useProgram(this.program);
 
         this.image = new Image();
         this.image.crossOrigin = "anonymous";
@@ -326,15 +332,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
             // Define how to read the `positions` buffer for each attribute
             const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
-            const aPositionLoc = this.imgctx.getAttribLocation(program, "a_position");
-            const aTexCoordLoc = this.imgctx.getAttribLocation(program, "a_texCoord");
+            const aPositionLoc = this.imgctx.getAttribLocation(this.program, "a_position");
+            const aTexCoordLoc = this.imgctx.getAttribLocation(this.program, "a_texCoord");
             this.imgctx.vertexAttribPointer(aPositionLoc, 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
             this.imgctx.enableVertexAttribArray(aPositionLoc);
             this.imgctx.vertexAttribPointer(aTexCoordLoc, 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
             this.imgctx.enableVertexAttribArray(aTexCoordLoc);
-
-            const uResolutionLoc = this.imgctx.getUniformLocation(program, "u_resolution");
-            this.imgctx.uniform2f(uResolutionLoc, this.canvas.width, this.canvas.height);
 
             const texture = this.imgctx.createTexture();
             this.imgctx.bindTexture(this.imgctx.TEXTURE_2D, texture);
@@ -352,6 +355,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.imgctx.clear(this.imgctx.COLOR_BUFFER_BIT);
 
         if (!this.image) return;
+
+        const uResolutionLoc = this.imgctx.getUniformLocation(this.program, "u_resolution");
+        this.imgctx.uniform2f(uResolutionLoc, this.canvas.width, this.canvas.height);
+
+        const uTranslationLoc = this.imgctx.getUniformLocation(this.program, "u_translation");
+        this.imgctx.uniform2f(uTranslationLoc, 500, 500);
 
         this.imgctx.drawElements(this.imgctx.TRIANGLES, this.indices.length, this.imgctx.UNSIGNED_SHORT, 0);
     }
