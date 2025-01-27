@@ -9,7 +9,7 @@
             name="monster" 
             value="{{ monster.Id }}" 
             id="{{ monster.Id }}"
-            x-on:change="selected = '{{ monster.Id }}'; hp = {{ monster.HP }}; ac = {{ monster.AC }}; name = '{{ monster.Name }}'; size = '{{ monster.Size }}'; image = {% if monster.Image %}'monsters/{{ User.Id }}/{{ monster.Image }}'{% else %}null{% endif %};"
+            x-on:change="selected = '{{ monster.Id }}'; hp = {{ monster.HP }}; ac = {{ monster.AC }}; name = '{{ monster.Name|escape }}'; size = '{{ monster.Size }}'; image = {% if monster.Image %}'monsters/{{ User.Id }}/{{ monster.Image }}'{% else %}null{% endif %};"
         >
         {% if monster.Image %}
             <img 

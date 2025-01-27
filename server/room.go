@@ -170,6 +170,10 @@ func RoomRoutes(app *fiber.App, rdb *redis.Client) {
 			db.Raw("SELECT HEX(id) as id, name, hp, ac, size, image FROM monsters WHERE userId = ? AND name LIKE ?", user.Id, "%"+strings.Trim(search, " ")+"%").Scan(&monsters)
 		}
 
+		for i, _ := range monsters {
+			monsters[i].Name = strings.ReplaceAll(monsters[i].Name, "'", "&apos;")
+		}
+
 		return c.Render("stubs/tabletop/spotlight-search", fiber.Map{
 			"Monsters": monsters,
 			"User":     user,

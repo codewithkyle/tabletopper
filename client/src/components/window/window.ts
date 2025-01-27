@@ -33,6 +33,7 @@ export default class Window extends SuperComponent<IWindow>{
 
     constructor(settings:Settings){
         super();
+        settings.name = settings.name.replace(/\&apos\;/g, "'");
         this.handle = settings?.handle ?? settings.name.toLowerCase().trim().replace(/\s+/g, "-");
 
         this.minWidth = settings?.minWidth ?? 100;

@@ -96,6 +96,7 @@ export default class StatBlock extends SuperComponent<IStatBlock>{
 
     private updateHP(e:CustomEvent){
         const { name, value } = e.detail;
+        console.log(value);
         const values = value
                     .trim()
                     .replace(/[^0-9\-\+]/g, "") // only allow digets, +, and -

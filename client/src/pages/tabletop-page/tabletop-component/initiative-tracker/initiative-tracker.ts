@@ -157,11 +157,11 @@ export default class InitiativeTrackerComponent extends SuperComponent<Initiativ
             }
         }
         const view = html`
-            <span class="static-name">${pawn.name}</span>
+            <span class="static-name">${pawn.name.replace(/\&apos\;/g, "'")}</span>
             ${pawn.image?.length ? html`
-                <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${pawn.image}" alt="${pawn.name} token" draggable="false">
+                <img src="https://tabletopper.nyc3.cdn.digitaloceanspaces.com/${pawn.image}" alt="${pawn.name.replace(/\&apos\;/g, "'")} token" draggable="false">
             ` : ""}
-            <span class="name">${pawn.name}</span>
+            <span class="name">${pawn.name.replace(/\&apos\;/g, "'")}</span>
             ${renderConditions ? this.renderConditions(pawn.conditions) : ""}
         `;
         render(view, container);
