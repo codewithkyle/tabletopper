@@ -21,10 +21,11 @@ const vsSource = `#version 300 es
 
     uniform vec2 u_resolution;
     uniform vec2 u_translation;
+    uniform vec2 u_scale;
 
     void main() {
         // apply translation
-        vec2 translatedPosition = a_position + u_translation;
+        vec2 translatedPosition = a_position * u_scale + u_translation;
 
         // convert pixel coord to normalized device coord
         vec2 zeroToOne = translatedPosition / u_resolution;
@@ -114,6 +115,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         subscribe("socket", this.inbox.bind(this));
         subscribe("fog", this.fogInbox.bind(this));
+        subscribe("tabletop", this.tableInbox.bind(this));
     }
 
     override async connected() {
@@ -124,33 +126,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
             this.canvas.height = window.innerHeight;
             this.imgctx.viewport(0, 0, this.canvas.width, this.canvas.height);
         }, 150));
-        window.addEventListener("mousemove", this.onMove, { passive: true });
-        window.addEventListener("mousedown", () => {
-            this.doMove = true;
-        });
-        window.addEventListener("mouseup", () => {
-            this.doMove = false;
-        });
-    }
-
-    private onMove:EventListener = (e:MouseEvent) => {
-        const   x = e.clientX,
-                y = e.clientY;
-        if (this.lastMousePos === undefined) {
-            this.lastMousePos = {
-                x,
-                y,
-            };
-            return;
-        }
-        const deltaX = this.lastMousePos.x - x;
-        const deltaY = this.lastMousePos.y - y;
-        this.lastMousePos.x = x;
-        this.lastMousePos.y = y;
-        if (this.doMove) {
-            this.pos.x -= deltaX;
-            this.pos.y -= deltaY;
-        }
     }
 
     public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
@@ -158,6 +133,22 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         const x = Math.round(clientX - canvas.left) / this.tabletop.zoom;
         const y = Math.round(clientY - canvas.top) / this.tabletop.zoom;
         return [x, y];
+    }
+
+    private tableInbox(data) {
+        const type = data?.type ?? "";
+        switch (type) {
+            case "zoom":
+                this.pos.x = data.x;
+                this.pos.y = data.y;
+                break;
+            case "move":
+                this.pos.x = data.x;
+                this.pos.y = data.y;
+                break;
+            default:
+                break;
+        }
     }
 
     private fogInbox({ type, points }) {
@@ -336,57 +327,63 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         return program;
     }
 
-    public load(imageSrc: string) {
-        this.w = window.innerWidth;
-        this.h = window.innerHeight;
+    public load(imageSrc: string): Promise<Array<number>> {
+        return new Promise((resolve) => {
+            this.w = window.innerWidth;
+            this.h = window.innerHeight;
 
-        const vertexShader = this.compileShader(this.imgctx, vsSource, this.imgctx.VERTEX_SHADER);
-        const fragmentShader = this.compileShader(this.imgctx, fsSource, this.imgctx.FRAGMENT_SHADER);
-        this.program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
+            const vertexShader = this.compileShader(this.imgctx, vsSource, this.imgctx.VERTEX_SHADER);
+            const fragmentShader = this.compileShader(this.imgctx, fsSource, this.imgctx.FRAGMENT_SHADER);
+            this.program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
 
-        this.imgctx.useProgram(this.program);
+            this.imgctx.useProgram(this.program);
 
-        this.image = new Image();
-        this.image.crossOrigin = "anonymous";
-        this.image.src = imageSrc;
-        this.image.onload = () => {
-            const positions = new Float32Array([
-                0, 0, 0.0, 0.0, // top-left
-                this.image.width, 0, 1.0, 0.0, // top-right
-                0, this.image.height, 0.0, 1.0, // bottom-left
-                this.image.width, this.image.height, 1.0, 1.0 // bottom-right
-            ]);
-            const posBuffer = this.imgctx.createBuffer();
-            this.imgctx.bindBuffer(this.imgctx.ARRAY_BUFFER, posBuffer);
-            this.imgctx.bufferData(this.imgctx.ARRAY_BUFFER, positions, this.imgctx.STATIC_DRAW);
+            this.image = new Image();
+            this.image.crossOrigin = "anonymous";
+            this.image.src = imageSrc;
+            this.image.onload = () => {
+                this.pos.x = (window.innerWidth * 0.5) - (this.image.width * 0.5);
+                this.pos.y = ((window.innerHeight - 28) * 0.5) - (this.image.height * 0.5);
 
-            this.indices = new Uint16Array([
-                0, 1, 2,  // First triangle
-                2, 1, 3   // Second triangle
-            ]);
-            const indexBuffer = this.imgctx.createBuffer();
-            this.imgctx.bindBuffer(this.imgctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
-            this.imgctx.bufferData(this.imgctx.ELEMENT_ARRAY_BUFFER, this.indices, this.imgctx.STATIC_DRAW);
+                const positions = new Float32Array([
+                    0, 0, 0.0, 0.0, // top-left
+                    this.image.width, 0, 1.0, 0.0, // top-right
+                    0, this.image.height, 0.0, 1.0, // bottom-left
+                    this.image.width, this.image.height, 1.0, 1.0 // bottom-right
+                ]);
+                const posBuffer = this.imgctx.createBuffer();
+                this.imgctx.bindBuffer(this.imgctx.ARRAY_BUFFER, posBuffer);
+                this.imgctx.bufferData(this.imgctx.ARRAY_BUFFER, positions, this.imgctx.STATIC_DRAW);
 
-            // Define how to read the `positions` buffer for each attribute
-            const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
-            const aPositionLoc = this.imgctx.getAttribLocation(this.program, "a_position");
-            const aTexCoordLoc = this.imgctx.getAttribLocation(this.program, "a_texCoord");
-            this.imgctx.vertexAttribPointer(aPositionLoc, 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
-            this.imgctx.enableVertexAttribArray(aPositionLoc);
-            this.imgctx.vertexAttribPointer(aTexCoordLoc, 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
-            this.imgctx.enableVertexAttribArray(aTexCoordLoc);
+                this.indices = new Uint16Array([
+                    0, 1, 2,  // First triangle
+                    2, 1, 3   // Second triangle
+                ]);
+                const indexBuffer = this.imgctx.createBuffer();
+                this.imgctx.bindBuffer(this.imgctx.ELEMENT_ARRAY_BUFFER, indexBuffer);
+                this.imgctx.bufferData(this.imgctx.ELEMENT_ARRAY_BUFFER, this.indices, this.imgctx.STATIC_DRAW);
 
-            const texture = this.imgctx.createTexture();
-            this.imgctx.bindTexture(this.imgctx.TEXTURE_2D, texture);
-            this.imgctx.texImage2D(this.imgctx.TEXTURE_2D, 0, this.imgctx.RGBA, this.imgctx.RGBA, this.imgctx.UNSIGNED_BYTE, this.image);
-            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_S, this.imgctx.CLAMP_TO_EDGE);
-            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_T, this.imgctx.CLAMP_TO_EDGE);
-            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MIN_FILTER, this.imgctx.LINEAR);
-            this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MAG_FILTER, this.imgctx.LINEAR);
+                // Define how to read the `positions` buffer for each attribute
+                const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
+                const aPositionLoc = this.imgctx.getAttribLocation(this.program, "a_position");
+                const aTexCoordLoc = this.imgctx.getAttribLocation(this.program, "a_texCoord");
+                this.imgctx.vertexAttribPointer(aPositionLoc, 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
+                this.imgctx.enableVertexAttribArray(aPositionLoc);
+                this.imgctx.vertexAttribPointer(aTexCoordLoc, 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
+                this.imgctx.enableVertexAttribArray(aTexCoordLoc);
 
-            window.requestAnimationFrame(this.firstFrame.bind(this));
-        };
+                const texture = this.imgctx.createTexture();
+                this.imgctx.bindTexture(this.imgctx.TEXTURE_2D, texture);
+                this.imgctx.texImage2D(this.imgctx.TEXTURE_2D, 0, this.imgctx.RGBA, this.imgctx.RGBA, this.imgctx.UNSIGNED_BYTE, this.image);
+                this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_S, this.imgctx.CLAMP_TO_EDGE);
+                this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_WRAP_T, this.imgctx.CLAMP_TO_EDGE);
+                this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MIN_FILTER, this.imgctx.LINEAR);
+                this.imgctx.texParameteri(this.imgctx.TEXTURE_2D, this.imgctx.TEXTURE_MAG_FILTER, this.imgctx.LINEAR);
+
+                window.requestAnimationFrame(this.firstFrame.bind(this));
+                resolve([this.image.width, this.image.height]);
+            };
+        });
     }
 
     private firstFrame(ts) {
@@ -408,6 +405,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         const uTranslationLoc = this.imgctx.getUniformLocation(this.program, "u_translation");
         this.imgctx.uniform2f(uTranslationLoc, this.pos.x, this.pos.y);
+
+        const uScaleLoc = this.imgctx.getUniformLocation(this.program, "u_scale");
+        this.imgctx.uniform2f(uScaleLoc, this.tabletop.zoom, this.tabletop.zoom);
 
         this.imgctx.drawElements(this.imgctx.TRIANGLES, this.indices.length, this.imgctx.UNSIGNED_SHORT, 0);
 
