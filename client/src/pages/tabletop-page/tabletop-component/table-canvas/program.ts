@@ -9,6 +9,12 @@ export class Program {
     }
     private vs:WebGLShader;
     private fs:WebGLShader;
+    private verticies: Float32Array;
+    private indices: Uint16Array;
+    private buffers: {
+        [key:string]: WebGLBuffer;
+    };
+    private texture: WebGLTexture;
 
     constructor(gl: WebGLRenderingContext){
         this.vs = undefined;
@@ -17,6 +23,52 @@ export class Program {
         this.uniforms = {};
         this.attributes = {};
         this.program = undefined;
+        this.verticies = undefined;
+        this.indices = undefined;
+        this.buffers = {};
+        this.texture = undefined;
+    }
+
+    public create_texture() {
+        this.texture = this.gl.createTexture();
+        return this;
+    }
+
+    public get_texture() {
+        if (this.texture === undefined) {
+            throw new Error("Failed to get texture. Call create_texture() first.");
+        }
+        return this.texture;
+    }
+
+    public get_indices(): Uint16Array {
+        return this.indices;
+    }
+
+    public set_indices(indices: Uint16Array) {
+        this.indices = indices;
+        return this;
+    }
+
+    public set_verticies(verts: Float32Array) {
+        this.verticies = verts;
+        return this;
+    }
+
+    public get_verticies(): Float32Array {
+        return this.verticies;
+    }
+
+    public create_buffer(key:string) {
+        this.buffers[key] = this.gl.createBuffer();
+        return this;
+    }
+
+    public get_buffer(key:string):WebGLBuffer {
+        if (!(key in this.buffers)) {
+            throw new Error("Failed to get buffer. Call create_buffer(key) first.");
+        }
+        return this.buffers[key];
     }
 
     public add_vertex_shader(source:string) {
