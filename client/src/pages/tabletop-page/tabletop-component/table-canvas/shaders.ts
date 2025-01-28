@@ -36,14 +36,11 @@ void main() {
 
 export const grid_vert_shader =
 `#version 300 es
-in vec4 a_position;
-out vec2 v_uv;
+
+in vec2 a_position;
 
 void main() {
-    gl_Position = a_position;
-
-    // normalize device coords [-1, 1] to UV coords
-    v_uv = a_position.xy * 0.5 + 0.5;
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
 `;
 
@@ -51,33 +48,36 @@ export const grid_frag_shader =
 `#version 300 es
 precision highp float;
 
-uniform float u_spacing;
 uniform vec2 u_resolution;
-uniform vec2 u_origin;
+uniform float u_scale;
+uniform float u_spacing;
+uniform vec2 u_translation;
 uniform vec4 u_color;
 
-in vec2 v_uv;
-out vec4 fragColor;
+out vec4 outColor;
 
 void main() {
-    // convert UV to screen space
-    vec2 screenPos = v_uv * u_resolution;
-    screenPos.x -= + u_origin.x;
-    screenPos.y += + u_origin.y;
+    vec2 pixelPos = gl_FragCoord.xy - 0.5;
+    pixelPos.x -= u_translation.x;
+    pixelPos.y += u_translation.y;
 
-    float gridX = mod(screenPos.x, u_spacing);
-    float gridY = mod(screenPos.y, u_spacing);
+    vec2 worldPos = pixelPos / u_scale;
 
-    float lineWidth = 1.0;
-    float horizontalLine = step(gridX, lineWidth);
-    float verticalLine = step(gridY, lineWidth);
+    vec2 modPos = mod(worldPos, u_spacing);
+    vec2 cellCoord = modPos / u_spacing;
+    float distX = min(cellCoord.x, 1.0 - cellCoord.x);
+    float distY = min(cellCoord.y, 1.0 - cellCoord.y);
 
-    float grid = max(horizontalLine, verticalLine);
+    float thickness = 0.02;
+    float edgeSize = 0.02;  // tweak for sharper/softer edges
+    float edge0 = thickness - edgeSize;
+    float edge1 = thickness + edgeSize;
 
-    if (grid > 0.0) {
-        fragColor = u_color; // line
-    } else {
-        fragColor = vec4(0.0, 0.0, 0.0, 0.0); // bg
-    }
+    float alphaX = 1.0 - smoothstep(edge0, edge1, distX);
+    float alphaY = 1.0 - smoothstep(edge0, edge1, distY);
+    float line = max(alphaX, alphaY);
+
+    vec4 baseColor = vec4(0.0, 0.0, 0.0, 0.0);
+    outColor = mix(baseColor, u_color, line);
 }
 `;

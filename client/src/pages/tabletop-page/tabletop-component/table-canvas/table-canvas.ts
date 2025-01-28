@@ -247,13 +247,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             .add_vertex_shader(grid_vert_shader)
             .add_fragment_shader(grid_frag_shader)
             .build()
-            .build_uniforms(["u_resolution", "u_spacing", "u_origin", "u_color"])
+            .build_uniforms(["u_resolution", "u_spacing", "u_translation", "u_color", "u_scale"])
             .build_attributes(["a_position"])
             .set_verticies(new Float32Array([
-                -1, -1,
-                1, -1,
-                -1, 1,
-                1, 1,
+                -1.0, -1.0,
+                3.0, -1.0,
+                -1.0, 3.0
             ]))
             .create_buffer("verticies");
     }
@@ -375,13 +374,14 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.vertexAttribPointer(this.gridProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
 
         // draw
-        this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
         this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.canvas.width, this.canvas.height);
-        this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
-        const [r,g,b,a] = this.hex_to_rgbaf("#000000FF"); // temp
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
+        this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
+        this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
+        const [r,g,b,a] = this.hex_to_rgbaf("#FFFFFFFF"); // temp
         this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), r,g,b,a);
-        //this.gl.uniform2f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
-        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 3);
+        this.gl.bindVertexArray(null);
     }
 
     private drawImage() {
