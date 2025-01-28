@@ -4,6 +4,7 @@ import { subscribe } from "@codewithkyle/pubsub";
 import room from "room";
 import TabeltopComponent from "../tabletop-component";
 import { send } from "~controllers/ws";
+import { Program } from "./program";
 
 type Point = {
     x: number,
@@ -68,7 +69,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private updateGrid: boolean;
     private updateFog: boolean;
     private indices: Uint16Array;
-    private program: WebGLProgram;
+    private imgProgram: Program;
+    private gridProgram: Program;
     private time: number;
     private pos: {
         x: number,
@@ -298,45 +300,21 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
         this.updateGrid = false;
     }
 
-    private compileShader(gl, source, type) {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            console.error("Error compiling shader:", gl.getShaderInfoLog(shader));
-            gl.deleteShader(shader);
-            return null;
-        }
-
-        return shader;
-    }
-
-    private createProgram(gl: WebGL2RenderingContext, vertexShader, fragmentShader) {
-        const program = gl.createProgram();
-        gl.attachShader(program, vertexShader);
-        gl.attachShader(program, fragmentShader);
-        gl.linkProgram(program);
-
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.error("Error linking program:", gl.getProgramInfoLog(program));
-            gl.deleteProgram(program);
-            return null;
-        }
-
-        return program;
-    }
-
     public load(imageSrc: string): Promise<Array<number>> {
         return new Promise((resolve) => {
             this.w = window.innerWidth;
             this.h = window.innerHeight;
 
-            const vertexShader = this.compileShader(this.imgctx, vsSource, this.imgctx.VERTEX_SHADER);
-            const fragmentShader = this.compileShader(this.imgctx, fsSource, this.imgctx.FRAGMENT_SHADER);
-            this.program = this.createProgram(this.imgctx, vertexShader, fragmentShader);
+            if (imageSrc == null) {
+                resolve([0,0]);
+            }
 
-            this.imgctx.useProgram(this.program);
+            this.imgProgram = new Program(this.imgctx)
+                                .add_vertex_shader(vsSource)
+                                .add_fragment_shader(fsSource)
+                                .build()
+                                .build_uniforms(["u_resolution", "u_scale", "u_translation"])
+                                .build_attributes(["a_position", "a_texCoord"]);
 
             this.image = new Image();
             this.image.crossOrigin = "anonymous";
@@ -345,6 +323,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.pos.x = (window.innerWidth * 0.5) - (this.image.width * 0.5);
                 this.pos.y = ((window.innerHeight - 28) * 0.5) - (this.image.height * 0.5);
 
+                this.imgctx.useProgram(this.imgProgram.get_program());
                 const positions = new Float32Array([
                     0, 0, 0.0, 0.0, // top-left
                     this.image.width, 0, 1.0, 0.0, // top-right
@@ -365,12 +344,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
                 // Define how to read the `positions` buffer for each attribute
                 const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
-                const aPositionLoc = this.imgctx.getAttribLocation(this.program, "a_position");
-                const aTexCoordLoc = this.imgctx.getAttribLocation(this.program, "a_texCoord");
-                this.imgctx.vertexAttribPointer(aPositionLoc, 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
-                this.imgctx.enableVertexAttribArray(aPositionLoc);
-                this.imgctx.vertexAttribPointer(aTexCoordLoc, 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
-                this.imgctx.enableVertexAttribArray(aTexCoordLoc);
+                this.imgctx.vertexAttribPointer(this.imgProgram.get_attribute("a_position"), 2, this.imgctx.FLOAT, false, stride, 0);        // x, y
+                this.imgctx.enableVertexAttribArray(this.imgProgram.get_attribute("a_position"));
+                this.imgctx.vertexAttribPointer(this.imgProgram.get_attribute("a_texCoord"), 2, this.imgctx.FLOAT, false, stride, 2 * 4);   // u, v
+                this.imgctx.enableVertexAttribArray(this.imgProgram.get_attribute("a_texCoord"));
 
                 const texture = this.imgctx.createTexture();
                 this.imgctx.bindTexture(this.imgctx.TEXTURE_2D, texture);
@@ -400,15 +377,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         if (!this.image) return;
 
-        const uResolutionLoc = this.imgctx.getUniformLocation(this.program, "u_resolution");
-        this.imgctx.uniform2f(uResolutionLoc, this.canvas.width, this.canvas.height);
-
-        const uTranslationLoc = this.imgctx.getUniformLocation(this.program, "u_translation");
-        this.imgctx.uniform2f(uTranslationLoc, this.pos.x, this.pos.y);
-
-        const uScaleLoc = this.imgctx.getUniformLocation(this.program, "u_scale");
-        this.imgctx.uniform2f(uScaleLoc, this.tabletop.zoom, this.tabletop.zoom);
-
+        this.imgctx.useProgram(this.imgProgram.get_program());
+        this.imgctx.uniform2f(this.imgProgram.get_uniform("u_resolution"), this.canvas.width, this.canvas.height);
+        this.imgctx.uniform2f(this.imgProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
+        this.imgctx.uniform2f(this.imgProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
         this.imgctx.drawElements(this.imgctx.TRIANGLES, this.indices.length, this.imgctx.UNSIGNED_SHORT, 0);
 
         window.requestAnimationFrame(this.nextFrame.bind(this));
