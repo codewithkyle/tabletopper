@@ -38,9 +38,11 @@ export const grid_vert_shader =
 `#version 300 es
 
 in vec2 a_position;
+out vec2 v_uv;
 
 void main() {
     gl_Position = vec4(a_position, 0.0, 1.0);
+    v_uv = a_position;
 }
 `;
 
@@ -48,8 +50,10 @@ export const grid_frag_shader =
 `#version 300 es
 precision highp float;
 
+in vec2 v_uv;
+
 uniform vec2 u_resolution;
-uniform float u_scale;
+uniform vec2 u_scale;
 uniform float u_spacing;
 uniform vec2 u_translation;
 uniform vec4 u_color;
@@ -57,27 +61,20 @@ uniform vec4 u_color;
 out vec4 outColor;
 
 void main() {
-    vec2 pixelPos = gl_FragCoord.xy - 0.5;
+    vec2 pixelPos = 0.5 * (v_uv + 1.0) * u_resolution;
     pixelPos.x -= u_translation.x;
     pixelPos.y += u_translation.y;
 
-    vec2 worldPos = pixelPos / u_scale;
+    float x = mod(pixelPos.x, u_spacing * u_scale.x);
+    float y = mod(pixelPos.y, u_spacing * u_scale.y);
 
-    vec2 modPos = mod(worldPos, u_spacing);
-    vec2 cellCoord = modPos / u_spacing;
-    float distX = min(cellCoord.x, 1.0 - cellCoord.x);
-    float distY = min(cellCoord.y, 1.0 - cellCoord.y);
+    bool onVerticalLine = (x <= 1.0);
+    bool onHorizontalLine = (y <= 1.0);
 
-    float thickness = 0.02;
-    float edgeSize = 0.02;  // tweak for sharper/softer edges
-    float edge0 = thickness - edgeSize;
-    float edge1 = thickness + edgeSize;
-
-    float alphaX = 1.0 - smoothstep(edge0, edge1, distX);
-    float alphaY = 1.0 - smoothstep(edge0, edge1, distY);
-    float line = max(alphaX, alphaY);
-
-    vec4 baseColor = vec4(0.0, 0.0, 0.0, 0.0);
-    outColor = mix(baseColor, u_color, line);
+    if (onVerticalLine || onHorizontalLine) {
+        outColor = u_color;
+    } else {
+        outColor = vec4(0.0, 0.0, 0.0, 0.0);
+    }
 }
 `;

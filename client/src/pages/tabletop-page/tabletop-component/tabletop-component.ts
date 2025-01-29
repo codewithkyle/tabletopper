@@ -38,8 +38,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         this.doodleCanvas = new DoodleCanvas();
         this.moving = false;
         this.measuring = false;
-        this.x = window.innerWidth * 0.5;
-        this.y = (window.innerHeight - 28) * 0.5;
+        this.x = Math.round(window.innerWidth * 0.5);
+        this.y = Math.round((window.innerHeight - 28) * 0.5);
         this.zoom = 1;
         this.mode = "move";
         this.model = {
@@ -89,8 +89,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             const bounds = el.getBoundingClientRect();
             const diffX = window.innerWidth * 0.5 - bounds.x;
             const diffY = window.innerHeight * 0.5 - bounds.y;
-            this.x = this.x + diffX;
-            this.y = this.y + diffY;
+            this.x = Math.round(this.x + diffX);
+            this.y = Math.round(this.y + diffY);
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
             publish("tabletop", {
                 type: "move",
@@ -116,8 +116,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         });
         window.addEventListener("tabletop:view:reset", () => {
             this.moving = false;
-            this.x = ((window.innerWidth * 0.5) - (this.imgWidth * 0.5) * this.zoom);
-            this.y = (((window.innerHeight - 28) * 0.5) - (this.imgHeight * 0.5) * this.zoom);
+            this.x = Math.round(((window.innerWidth * 0.5) - (this.imgWidth * 0.5) * this.zoom));
+            this.y = Math.round((((window.innerHeight - 28) * 0.5) - (this.imgHeight * 0.5) * this.zoom));
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
             publish("tabletop", {
                 type: "move",
@@ -236,8 +236,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             }
         }
         this.zoom = data.zoom;
-        this.x = data.x - data.ratio * (data.x - this.x);
-        this.y = data.y - data.ratio * (data.y - this.y);
+        this.x = Math.round(data.x - data.ratio * (data.x - this.x));
+        this.y = Math.round(data.y - data.ratio * (data.y - this.y));
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
         sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
         publish("tabletop", {
@@ -296,8 +296,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.moving) {
             const deltaX = this.lastX - x;
             const deltaY = this.lastY - y;
-            this.x -= deltaX;
-            this.y -= deltaY;
+            this.x = Math.round(this.x - deltaX);
+            this.y = Math.round(this.y - deltaY);
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
             this.lastX = x;
             this.lastY = y;
@@ -366,8 +366,8 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             const [w, h] = await this.canvas.load(this.img);
             //this.vfxCanvas.render(this.img);
             //this.doodleCanvas.render(this.img);
-            this.x = (window.innerWidth * 0.5) - (w * 0.5);
-            this.y = ((window.innerHeight - 28) * 0.5) - (h * 0.5);
+            this.x = Math.round((window.innerWidth * 0.5) - (w * 0.5));
+            this.y = Math.round(((window.innerHeight - 28) * 0.5) - (h * 0.5));
             this.imgWidth = w;
             this.imgHeight = h;
         }
