@@ -1,5 +1,5 @@
 export class Program {
-    private gl: WebGLRenderingContext;
+    private gl: WebGL2RenderingContext;
     private program: WebGLProgram;
     private uniforms: {
         [key:string]: WebGLUniformLocation;
@@ -15,8 +15,9 @@ export class Program {
         [key:string]: WebGLBuffer;
     };
     private texture: WebGLTexture;
+    private vao: WebGLVertexArrayObject;
 
-    constructor(gl: WebGLRenderingContext){
+    constructor(gl: WebGL2RenderingContext){
         this.vs = undefined;
         this.fs = undefined;
         this.gl = gl;
@@ -27,6 +28,16 @@ export class Program {
         this.indices = undefined;
         this.buffers = {};
         this.texture = undefined;
+        this.vao = undefined;
+    }
+
+    public create_vao() {
+        this.vao = this.gl.createVertexArray();
+        return this;
+    }
+
+    public get_vao() {
+        return this.vao;
     }
 
     public create_texture() {

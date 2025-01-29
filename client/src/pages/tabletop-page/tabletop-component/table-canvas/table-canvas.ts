@@ -19,11 +19,8 @@ type FogOfWarShape = {
 interface ITableCanvas { }
 export default class TableCanvas extends SuperComponent<ITableCanvas> {
     private canvas: HTMLCanvasElement;
-    private fogCanvas: HTMLCanvasElement;
-    private gridCanvas: HTMLCanvasElement;
     private fogctx: CanvasRenderingContext2D;
     private gl: WebGL2RenderingContext;
-    private gridctx: CanvasRenderingContext2D;
     private renderGrid: boolean;
     private gridSize: number;
     private fogOfWar: boolean;
@@ -41,10 +38,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         x: number,
         y: number,
     };
-    private lastMousePos: {
-        x: number,
-        y: number,
-    };
     private doMove: boolean;
 
     constructor() {
@@ -55,24 +48,13 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             x: 0,
             y: 0,
         };
-        this.lastMousePos = undefined;
         this.doMove = false;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        //this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
-        //this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
-
-        //this.fogctx = this.fogCanvas.getContext("2d");
-        //this.fogctx.imageSmoothingEnabled = false;
-
         this.gl = this.canvas.getContext("webgl2");
         this.imgProgram = undefined;
         this.gridProgram = undefined;
-
-        //this.gridctx = this.gridCanvas.getContext("2d");
-        //this.gridctx.imageSmoothingEnabled = false;
-
         this.tabletop = document.querySelector("tabletop-component");
         this.renderGrid = false;
         this.gridSize = 32;
@@ -114,10 +96,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             case "zoom":
                 this.pos.x = data.x;
                 this.pos.y = data.y;
+                this.doMove = true;
                 break;
             case "move":
                 this.pos.x = data.x;
                 this.pos.y = data.y;
+                this.doMove = true;
                 break;
             default:
                 break;
@@ -225,25 +209,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         }
     }
 
-    private renderFogOfWar() {
-        try {
-            if (!this.fogOfWar || !this.updateFog) return;
-            if (room.isGM) {
-                this.fogctx.globalAlpha = 0.6;
-            }
-            let color = "#fafafa"
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                color = "#09090b"
-            }
-            this.fogctx.fillStyle = color;
-            this.fogctx.fillRect(0, 0, this.w, this.h);
-            this.revealShapes();
-        } catch (e) {
-            console.error("Fog of war render error:", e);
-        }
-        this.updateFog = false;
-    }
-
     private buildGridLinesProgram() {
         this.gridProgram = new Program(this.gl)
             .add_vertex_shader(grid_vert_shader)
@@ -257,34 +222,18 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 -1, +1,
                 +1, +1
             ]))
-            .create_buffer("verticies");
-    }
+            .create_buffer("verticies")
+            .create_vao();
+        this.gl.useProgram(this.gridProgram.get_program());
+        this.gl.bindVertexArray(this.gridProgram.get_vao());
 
-    private renderGridLines() {
-        try {
-            if (!this.renderGrid || !this.updateGrid) return;
-            const columns = Math.ceil(this.w / this.gridSize);
-            const rows = Math.ceil(this.h / this.gridSize);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gridProgram.get_buffer("verticies"));
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.gridProgram.get_verticies(), this.gl.STATIC_DRAW);
 
-            this.gridctx.strokeStyle = "rgb(0,0,0)";
-            for (let i = 0; i < columns; i++) {
-                const x = i * this.gridSize;
-                this.gridctx.beginPath();
-                this.gridctx.moveTo(x, 0);
-                this.gridctx.lineTo(x, this.h);
-                this.gridctx.stroke();
-            }
-            for (let i = 0; i < rows; i++) {
-                const y = i * this.gridSize;
-                this.gridctx.beginPath();
-                this.gridctx.moveTo(0, y);
-                this.gridctx.lineTo(this.w, y);
-                this.gridctx.stroke();
-            }
-        } catch (e) {
-            console.error("Grid line render error:", e);
-        }
-        this.updateGrid = false;
+        this.gl.enableVertexAttribArray(this.gridProgram.get_attribute("a_position"));
+        this.gl.vertexAttribPointer(this.gridProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
+
+        this.gl.bindVertexArray(null);
     }
 
     public load(imageSrc: string): Promise<Array<number>> {
@@ -319,8 +268,34 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                     ]))
                     .create_buffer("verticies")
                     .create_buffer("indices")
-                    .create_texture();
+                    .create_texture()
+                    .create_vao();
 
+                this.gl.useProgram(this.imgProgram.get_program());
+
+                this.gl.bindVertexArray(this.imgProgram.get_vao());
+
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.imgProgram.get_buffer("verticies"));
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, this.imgProgram.get_verticies(), this.gl.STATIC_DRAW);
+
+                const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+                this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);
+                this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_position"));
+                this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);
+                this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_texCoord"));
+
+                this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_buffer("indices"));
+                this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_indices(), this.gl.STATIC_DRAW);
+
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
+                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
+                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+                this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                this.gl.generateMipmap(this.gl.TEXTURE_2D);
+
+                this.doMove = true;
+
+                this.gl.bindVertexArray(null);
                 window.requestAnimationFrame(this.firstFrame.bind(this));
                 return resolve([this.image.width, this.image.height]);
             };
@@ -335,6 +310,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     private nextFrame(ts) {
         const dt = (ts - this.time) * 0.001;
         this.time = ts;
+
+        if (!this.updateFog && !this.updateGrid && !this.doMove) {
+            return window.requestAnimationFrame(this.nextFrame.bind(this));
+        }
 
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.clearDepth(1.0);
@@ -355,6 +334,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.drawGrid();
         }
 
+        this.updateFog = false;
+        this.updateGrid = false;
+        this.doMove = false;
         window.requestAnimationFrame(this.nextFrame.bind(this));
     }
 
@@ -363,24 +345,17 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             throw new Error("Render error: missing grid program.");
         }
         this.gl.useProgram(this.gridProgram.get_program());
+        this.gl.bindVertexArray(this.gridProgram.get_vao());
 
-        const vao = this.gl.createVertexArray();
-        this.gl.bindVertexArray(vao);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gridProgram.get_buffer("verticies"));
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.gridProgram.get_verticies(), this.gl.STATIC_DRAW);
-
-        this.gl.enableVertexAttribArray(this.gridProgram.get_attribute("a_position"));
-        this.gl.vertexAttribPointer(this.gridProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
-
-        // draw
         this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
         const [r,g,b,a] = this.hex_to_rgbaf("#FFFFFFFF"); // temp
         this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), r,g,b,a);
+
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+        this.gl.bindVertexArray(null);
     }
 
     private drawImage() {
@@ -388,32 +363,15 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             throw new Error("Render error: missing image program.");
         }
         this.gl.useProgram(this.imgProgram.get_program());
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.imgProgram.get_buffer("verticies"));
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.imgProgram.get_verticies(), this.gl.STATIC_DRAW);
-
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_buffer("indices"));
-        this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_indices(), this.gl.STATIC_DRAW);
-
-        // Define how to read the `positions` buffer for each attribute
-        const stride = 4 * Float32Array.BYTES_PER_ELEMENT; // 4 values per vertex (x, y, u, v)
-        this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);        // x, y
-        this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_position"));
-        this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);   // u, v
-        this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_texCoord"));
+        this.gl.bindVertexArray(this.imgProgram.get_vao());
 
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-
-        // draw
         this.gl.uniform2f(this.imgProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.imgProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
         this.gl.uniform2f(this.imgProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
+
         this.gl.drawElements(this.gl.TRIANGLES, this.imgProgram.get_indices().length, this.gl.UNSIGNED_SHORT, 0);
+        this.gl.bindVertexArray(null);
     }
 
     private hex_to_rgbaf(hex: string): Array<number> {
