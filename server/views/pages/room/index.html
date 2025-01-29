@@ -96,7 +96,7 @@
     {% endif %}
 </mini-tool-bar>
 <tabletop-settings
-    x-data="{ open: false, cellSize: 32, renderGrid: false, cellDistance: 5 }"
+    x-data="{ open: false, cellSize: 32, renderGrid: false, cellDistance: 5, gridSettings: false, gridOffsetX: 0, gridOffsetY: 0, gridColor: '#000000FF' }"
     x-on:show-tabletop-settings.window="open = true"
     x-on:keydown.escape.window="open = false"
     x-show="open"

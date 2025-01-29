@@ -53,6 +53,7 @@ precision highp float;
 uniform vec2 u_origin;      // The line's origin in top‐left coords
 uniform vec2 u_resolution;  // (width, height) of the screen
 uniform float u_spacing;    // grid spacing
+uniform vec2 u_offset;
 uniform float u_scale;
 uniform vec4 u_color;
 
@@ -74,8 +75,8 @@ void main() {
     float cellSize = u_spacing * u_scale;
 
     // Compare the fragment's coordinate to the origin
-    float distX = mod((worldX - u_origin.x), cellSize);
-    float distY = mod((worldY - u_origin.y), cellSize);
+    float distX = mod((worldX - u_origin.x - u_offset.x), cellSize);
+    float distY = mod((worldY - u_origin.y - u_offset.y), cellSize);
 
     bool onVertical = distX < 1.0;
     bool onHorizontal = distY < 1.0;

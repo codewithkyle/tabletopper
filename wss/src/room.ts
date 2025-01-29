@@ -24,6 +24,8 @@ class Room {
     private renderGrid: boolean;
     private fogOfWar: boolean;
     private dmgOverlay: boolean;
+    private gridColor: string;
+    private gridOffset: Array<number>;
     private turnCounter: number;
     private pawns: Pawn[];
     private initiative: Array<Pawn>;
@@ -55,6 +57,8 @@ class Room {
         this.activeInitiative = null;
         this.playerImages = {};
         this.fogOfWarShapes = [];
+        this.gridColor = "#000000FF";
+        this.gridOffset = [0,0];
 
         console.log(`Room ${this.code} created by ${ws.id}`);
         gm.send(ws, "room:create", this.code);
@@ -238,13 +242,15 @@ class Room {
         });
     }
 
-    public updateMap({ cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay }){
+    public updateMap({ gridColor, gridOffset, cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay }){
         this.cellSize = cellSize;
         this.renderGrid = renderGrid;
         this.cellDistance = cellDistance;
         this.fogOfWar = prefillFog;
         this.dmgOverlay = dmgOverlay;
-        this.broadcast("room:tabletop:map:update", { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
+        this.gridColor = gridColor;
+        this.gridOffset = gridOffset;
+        this.broadcast("room:tabletop:map:update", { gridColor, gridOffset, cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay });
     }
 
     public clearMap(){
@@ -510,7 +516,9 @@ class Room {
             const cellDistance = this.cellDistance;
             const fogOfWar = this.fogOfWar;
             const dmgOverlay = this.dmgOverlay;
-            gm.send(ws, "room:tabletop:map:update", { cellSize, renderGrid, cellDistance, fogOfWar, dmgOverlay });
+            const gridColor = this.gridColor;
+            const gridOffset = this.gridOffset;
+            gm.send(ws, "room:tabletop:map:update", { gridColor, gridOffset, cellSize, renderGrid, cellDistance, fogOfWar, dmgOverlay });
             gm.send(ws, "room:tabletop:fog:sync", {
                 fogOfWarShapes: this.fogOfWarShapes,
                 fogOfWar: this.fogOfWar,

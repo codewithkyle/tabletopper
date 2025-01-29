@@ -23,6 +23,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     private gl: WebGL2RenderingContext;
     private renderGrid: boolean;
     private gridSize: number;
+    private gridOffset: Array<number>;
+    private gridColor: Array<number>;
     private fogOfWar: boolean;
     private w: number;
     private h: number;
@@ -156,6 +158,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 this.renderGrid = data.renderGrid;
                 this.gridSize = data.cellSize;
                 this.fogOfWar = data.prefillFog;
+                this.gridColor = this.hex_to_rgbaf(data.gridColor);
+                this.gridOffset = data.gridOffset;
                 this.updateGrid = true;
                 this.updateFog = true;
                 break;
@@ -214,7 +218,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             .add_vertex_shader(grid_vert_shader)
             .add_fragment_shader(grid_frag_shader)
             .build()
-            .build_uniforms(["u_resolution", "u_spacing", "u_origin", "u_color", "u_scale"])
+            .build_uniforms(["u_resolution", "u_spacing", "u_origin", "u_color", "u_scale", "u_offset"])
             .build_attributes(["a_position"])
             .set_verticies(new Float32Array([
                 -1, -1,
@@ -240,6 +244,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         return new Promise((resolve) => {
             if (imageSrc == null) {
                 this.imgProgram = undefined;
+                this.image = null;
                 return resolve([0, 0]);
             }
 
@@ -357,10 +362,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
         this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_offset"), this.gridOffset[0], this.gridOffset[1]);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
-        const [r,g,b,a] = this.hex_to_rgbaf("#FFFFFFFF"); // temp
-        this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), r,g,b,a);
+        this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), this.gridColor[0], this.gridColor[1], this.gridColor[2], this.gridColor[3]);
 
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
         this.gl.bindVertexArray(null);
