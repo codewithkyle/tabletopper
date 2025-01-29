@@ -110,12 +110,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         const type = data?.type ?? "";
         switch (type) {
             case "zoom":
-                console.log(data.x, data.y);
                 this.pos.x = data.x;
                 this.pos.y = data.y;
                 break;
             case "move":
-                console.log(data.x, data.y);
                 this.pos.x = data.x;
                 this.pos.y = data.y;
                 break;
@@ -249,12 +247,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             .add_vertex_shader(grid_vert_shader)
             .add_fragment_shader(grid_frag_shader)
             .build()
-            .build_uniforms(["u_resolution", "u_spacing", "u_translation", "u_color", "u_scale"])
+            .build_uniforms(["u_resolution", "u_spacing", "u_origin", "u_color", "u_scale"])
             .build_attributes(["a_position"])
             .set_verticies(new Float32Array([
                 -1, -1,
-                -1, +1,
-                +1, -1,
                 +1, -1,
                 -1, +1,
                 +1, +1
@@ -369,6 +365,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         }
         this.gl.useProgram(this.gridProgram.get_program());
 
+        const vao = this.gl.createVertexArray();
+        this.gl.bindVertexArray(vao);
+
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gridProgram.get_buffer("verticies"));
         this.gl.bufferData(this.gl.ARRAY_BUFFER, this.gridProgram.get_verticies(), this.gl.STATIC_DRAW);
 
@@ -377,12 +376,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
         // draw
         this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.canvas.width, this.canvas.height);
-        this.gl.uniform2f(this.gridProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
-        this.gl.uniform2f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
+        this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
         const [r,g,b,a] = this.hex_to_rgbaf("#FFFFFFFF"); // temp
         this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), r,g,b,a);
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }
 
     private drawImage() {
