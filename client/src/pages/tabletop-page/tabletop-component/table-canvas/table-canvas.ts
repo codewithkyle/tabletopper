@@ -49,8 +49,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
     constructor() {
         super();
-        this.w = 0;
-        this.h = 0;
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
         this.pos = {
             x: 0,
             y: 0,
@@ -95,6 +95,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         window.addEventListener("resize", this.debounce(() => {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+            this.w = window.innerWidth;
+            this.h = window.innerHeight;
             this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         }, 150));
     }
@@ -287,9 +289,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
     public load(imageSrc: string): Promise<Array<number>> {
         return new Promise((resolve) => {
-            this.w = window.innerWidth;
-            this.h = window.innerHeight;
-
             if (imageSrc == null) {
                 this.imgProgram = undefined;
                 return resolve([0, 0]);
@@ -299,8 +298,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.image.crossOrigin = "anonymous";
             this.image.src = imageSrc;
             this.image.onload = () => {
-                this.pos.x = (window.innerWidth * 0.5) - (this.image.width * 0.5);
-                this.pos.y = ((window.innerHeight - 28) * 0.5) - (this.image.height * 0.5);
+                this.pos.x = (this.w * 0.5) - (this.image.width * 0.5);
+                this.pos.y = ((this.h - 28) * 0.5) - (this.image.height * 0.5);
 
                 this.imgProgram = new Program(this.gl)
                     .add_vertex_shader(map_vert_shader)
@@ -375,7 +374,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.vertexAttribPointer(this.gridProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
 
         // draw
-        this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.canvas.width, this.canvas.height);
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
         this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
@@ -411,7 +410,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
 
         // draw
-        this.gl.uniform2f(this.imgProgram.get_uniform("u_resolution"), this.canvas.width, this.canvas.height);
+        this.gl.uniform2f(this.imgProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.imgProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
         this.gl.uniform2f(this.imgProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
         this.gl.drawElements(this.gl.TRIANGLES, this.imgProgram.get_indices().length, this.gl.UNSIGNED_SHORT, 0);
