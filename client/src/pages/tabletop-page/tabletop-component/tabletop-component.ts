@@ -22,7 +22,9 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     private canvas: TableCanvas;
     private vfxCanvas: VFXCanvas;
     private doodleCanvas: DoodleCanvas;
-    private img: HTMLImageElement;
+    private img: string;
+    private imgWidth: number;
+    private imgHeight: number;
     private isNewImage: boolean;
     private mode: "move" | "measure" | "lock";
     private startPos: Array<number>;
@@ -30,14 +32,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     constructor() {
         super();
-        this.img = new Image();
+        this.img = null;
         this.canvas = new TableCanvas();
         this.vfxCanvas = new VFXCanvas();
         this.doodleCanvas = new DoodleCanvas();
         this.moving = false;
         this.measuring = false;
-        this.x = window.innerWidth * 0.5;
-        this.y = (window.innerHeight - 28) * 0.5;
+        this.x = (window.innerWidth * 0.5);
+        this.y = ((window.innerHeight - 28) * 0.5);
         this.zoom = 1;
         this.mode = "move";
         this.model = {
@@ -87,9 +89,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             const bounds = el.getBoundingClientRect();
             const diffX = window.innerWidth * 0.5 - bounds.x;
             const diffY = window.innerHeight * 0.5 - bounds.y;
-            this.x = this.x + diffX;
-            this.y = this.y + diffY;
+            this.x = (this.x + diffX);
+            this.y = (this.y + diffY);
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
+            publish("tabletop", {
+                type: "move",
+                x: this.x,
+                y: this.y,
+            });
         }
     }
 
@@ -109,9 +116,14 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         });
         window.addEventListener("tabletop:view:reset", () => {
             this.moving = false;
-            this.x = window.innerWidth * 0.5;
-            this.y = (window.innerHeight - 28) * 0.5;
+            this.x = (((window.innerWidth * 0.5) - (this.imgWidth * 0.5) * this.zoom));
+            this.y = ((((window.innerHeight - 28) * 0.5) - (this.imgHeight * 0.5) * this.zoom));
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
+            publish("tabletop", {
+                type: "move",
+                x: this.x,
+                y: this.y,
+            });
         });
         window.addEventListener("tabletop:view:zoom", (e: CustomEvent) => {
             const { zoom } = e.detail;
@@ -120,10 +132,42 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             }
         });
         window.addEventListener("tabletop:view:zoom:in", () => {
-            this.doZoom({ zoom: this.zoom + 0.1, x: null, y: null, ratio: null });
+            let delta = -114;
+            let sign = Math.sign(delta);
+            let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
+            let multiplier = 1 - sign * deltaAdjustedSpeed;
+            let zoom = this.zoom * multiplier;
+            const data = {
+                zoom: zoom,
+                x: window.innerWidth * 0.5,
+                y: (window.innerHeight - 28) * 0.5,
+                delta: delta,
+                ratio: multiplier,
+            };
+            this.moving = false;
+            if (this.zoom !== data.zoom) {
+                this.doZoom(data);
+            }
+            //this.doZoom({ zoom: this.zoom + 0.1, x: 0, y: 0, ratio: null });
         });
         window.addEventListener("tabletop:view:zoom:out", () => {
-            this.doZoom({ zoom: this.zoom - 0.1, x: null, y: null, ratio: null });
+            let delta = 114;
+            let sign = Math.sign(delta);
+            let deltaAdjustedSpeed = Math.min(0.25, Math.abs(0.25 * delta / 128));
+            let multiplier = 1 - sign * deltaAdjustedSpeed;
+            let zoom = this.zoom * multiplier;
+            const data = {
+                zoom: zoom,
+                x: window.innerWidth * 0.5,
+                y: (window.innerHeight - 28) * 0.5,
+                delta: delta,
+                ratio: multiplier,
+            };
+            this.moving = false;
+            if (this.zoom !== data.zoom) {
+                this.doZoom(data);
+            }
+            //this.doZoom({ zoom: this.zoom - 0.1, x: 0, y: 0, ratio: null });
         });
         window.addEventListener("tabletop:mode", (e: CustomEvent) => {
             const { mode } = e.detail;
@@ -170,33 +214,39 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
     }
 
     private doZoom(data) {
+        if (data.zoom > 2 || data.zoom < 0.1) {
+            return;
+        }
         if (data.x === null) {
             data.x = window.innerWidth * .5;
         }
         if (data.y === null) {
             data.y = window.innerHeight * .5;
         }
-        if (!data?.ratio) {
+        if (!(data?.ratio)) {
             if (data.zoom < this.zoom) {
-                data.ratio = 0.8046875;
+                data.ratio = 0.777;
             }
             else if (data.zoom > this.zoom) {
-                data.ratio = 1.1953125;
+                data.ratio = 1.22;
             }
             else {
+                console.log("no ratio");
                 data.ratio = 0;
             }
         }
         this.zoom = data.zoom;
-        if (this.zoom > 2) {
-            this.zoom = 2;
-        } else if (this.zoom < 0.1) {
-            this.zoom = 0.1;
-        }
-        this.x = data.x - data.ratio * (data.x - this.x);
-        this.y = data.y - data.ratio * (data.y - this.y);
+        this.x = (data.x - data.ratio * (data.x - this.x));
+        this.y = (data.y - data.ratio * (data.y - this.y));
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
         sessionStorage.setItem("zoom", this.zoom.toFixed(2).toString());
+        publish("tabletop", {
+            type: "zoom",
+            zoom: this.zoom,
+            x: this.x,
+            y: this.y,
+            ratio: data.ratio,
+        });
     }
 
     private handleWindowDown: EventListener = (e: MouseEvent | TouchEvent) => {
@@ -246,11 +296,16 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         if (this.moving) {
             const deltaX = this.lastX - x;
             const deltaY = this.lastY - y;
-            this.x -= deltaX;
-            this.y -= deltaY;
+            this.x = (this.x - deltaX);
+            this.y = (this.y - deltaY);
             this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
             this.lastX = x;
             this.lastY = y;
+            publish("tabletop", {
+                type: "move",
+                x: this.x,
+                y: this.y,
+            });
         }
         else if (this.measuring) {
             const currentPos = [x, y];
@@ -293,14 +348,13 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
 
     override async render() {
         if (this.model.map) {
-            this.img = new Image();
-            this.img.src = this.model.map;
+            this.img = this.model.map;
         } else {
             this.img = null;
-            this.canvas.load(this.img);
+            this.canvas.load(null);
         }
         if (!this.canvas?.isConnected) {
-            this.appendChild(this.canvas);
+            this.parentElement.appendChild(this.canvas);
         }
         if (!this.vfxCanvas?.isConnected) {
             this.appendChild(this.vfxCanvas);
@@ -309,13 +363,13 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
             this.appendChild(this.doodleCanvas);
         }
         if (this.img) {
-            this.img.onload = () => {
-                this.canvas.load(this.img);
-                this.vfxCanvas.render(this.img);
-                this.doodleCanvas.render(this.img);
-                this.x = window.innerWidth * 0.5;
-                this.y = (window.innerHeight - 28) * 0.5;
-            }
+            const [w, h] = await this.canvas.load(this.img);
+            this.x = ((window.innerWidth * 0.5) - (w * 0.5));
+            this.y = (((window.innerHeight - 28) * 0.5) - (h * 0.5));
+            this.imgWidth = w;
+            this.imgHeight = h;
+            this.vfxCanvas.render(w, h);
+            this.doodleCanvas.render(w, h);
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }

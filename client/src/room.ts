@@ -25,6 +25,8 @@ class Room {
     public dmgOverlay: boolean;
     public activeInitiative: string | null;
     private hasLogOn: boolean;
+    private gridColor: string;
+    private gridOffset: Array<number>;
 
     constructor() {
         this.uid = "";
@@ -39,6 +41,8 @@ class Room {
         this.dmgOverlay = false;
         this.activeInitiative = null;
         this.hasLogOn = false;
+        this.gridColor = "#000000FF";
+        this.gridOffset = [0,0];
         subscribe("socket", this.inbox.bind(this));
         this.init();
     }
@@ -51,6 +55,8 @@ class Room {
                 this.cellDistance = data.cellDistance;
                 this.prefillFog = data.prefillFog;
                 this.dmgOverlay = data.dmgOverlay;
+                this.gridColor = data.gridColor;
+                this.gridOffset = data.gridOffset;
                 break;
             case "room:sync:players":
                 this.players = data;
@@ -153,8 +159,8 @@ class Room {
             send("room:tabletop:map:load", id);
         });
         window.addEventListener("tabletop:update", (e: CustomEvent) => {
-            const { cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay } = e.detail;
-            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance), prefillFog, dmgOverlay });
+            const { gridColor, gridOffset, cellSize, renderGrid, cellDistance, prefillFog, dmgOverlay } = e.detail;
+            send("room:tabletop:map:update", { cellSize: parseInt(cellSize), renderGrid, cellDistance: parseInt(cellDistance), prefillFog, dmgOverlay, gridColor, gridOffset });
         });
         window.addEventListener("tabletop:spawn-pawns", () => {
             send("room:tabletop:spawn:players");

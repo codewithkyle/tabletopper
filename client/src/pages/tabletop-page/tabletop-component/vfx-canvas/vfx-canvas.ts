@@ -67,10 +67,10 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
                     const pawnY = parseInt(bleedingPawns[i].dataset.y);
                     const pawnW = parseInt(bleedingPawns[i].dataset.w);
                     const pawnH = parseInt(bleedingPawns[i].dataset.h);
-                    const centerX = this.w * 0.5;
-                    const centerY = this.h * 0.5;
-                    const x = Math.round(centerX + pawnX);
-                    const y = Math.round(centerY + pawnY)
+                    //const centerX = this.w * 0.5;
+                    //const centerY = this.h * 0.5;
+                    const x = pawnX;
+                    const y = pawnY;
                     const pos = [
                         this.randomInt((x - (pawnW * 0.25)), (x + (pawnW * 0.25))),
                         this.randomInt((y - (pawnH * 0.25)), (y + (pawnH * 0.25)))
@@ -90,10 +90,10 @@ export default class VFXCanvas extends SuperComponent<IVFXCanvas>{
     }
 
     // @ts-ignore
-    override render(image:HTMLImageElement): void {
-        if (!image) return;
-        this.w = image.width;
-        this.h = image.height;
+    override render(w:number, h:number): void {
+        if (w == 0 || h == 0) return;
+        this.w = w;
+        this.h = h;
         this.canvas.width = this.w;
         this.canvas.height = this.h;
         this.canvas.style.width = `${this.w}px`;

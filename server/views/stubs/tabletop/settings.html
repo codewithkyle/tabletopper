@@ -1,4 +1,7 @@
-<div class="w-full p-2" grid="columns 1 gap-1.5">
+<div 
+    class="w-full p-2" 
+    grid="columns 1 gap-1.5"
+>
     <div class="w-full" grid="columns 2 gap-1.5" style="place-items: end;">
         <number-input-component
             data-name="cell-size"
@@ -18,15 +21,57 @@
             x-on:input="$data.cellDistance = $event.detail.value"
         ></number-input-component>
     </div>
-    <lightswitch-component 
-        data-name="render-grid"
-        data-enabled-label="Visible"
-        data-disabled-label="Hidden"
-        data-label="Show grid"
-        :data-enabled="$data.renderGrid"
-        x-on:change="$data.renderGrid = $event.detail.enabled"
+    <div class="w-full" flex="items-center row nowrap justify-between">
+        <lightswitch-component 
+            data-name="render-grid"
+            data-enabled-label="Visible"
+            data-disabled-label="Hidden"
+            data-label="Show grid"
+            :data-enabled="$data.renderGrid"
+            x-on:change="$data.renderGrid = $event.detail.enabled"
+        ></lightswitch-component>
+        <button
+            x-show="$data.renderGrid"
+            class="bttn"
+            kind="text"
+            color="grey"
+            icon="center"
+            x-on:click="$data.gridSettings = !$data.gridSettings;"
+        >
+            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-settings"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
+        </button>
+    </div>
+    <div
+        x-show="$data.gridSettings && $data.renderGrid"
     >
-    </lightswitch-component>
+        <div class="w-full mb-1.5" grid="columns 2 gap-1.5" style="place-items: end;">
+            <number-input-component
+                data-name="grid-offset-x"
+                data-label="Grid Offset X"
+                data-instructions="Units in pixels."
+                data-icon='<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-expand"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 4v16" /><path d="M14 10l2 2l-2 2" /></svg>'
+                data-min="0"
+                :data-value="$data.gridOffsetX"
+                x-on:input="$data.gridOffsetX = $event.detail.value"
+            ></number-input-component>
+            <number-input-component
+                data-name="grid-offset-y"
+                data-label="Grid Offset Y"
+                data-instructions="Units in pixels."
+                data-icon='<svg style="transform:rotate(90deg);" xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-layout-sidebar-left-expand"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M9 4v16" /><path d="M14 10l2 2l-2 2" /></svg>'
+                data-min="0"
+                :data-value="$data.gridOffsetY"
+                x-on:input="$data.gridOffsetY = $event.detail.value"
+            ></number-input-component>
+        </div>
+        <input-component
+            data-name="grid-color"
+            data-label="Grid Color"
+            data-instructions="Supports eight-value HEX colors."
+            :data-value="$data.gridColor"
+            x-on:input="$data.gridColor = $event.detail.value"
+        ></input-component>
+    </div>
     <lightswitch-component 
         data-name="prefill-fog"
         data-enabled-label="Yes"
@@ -60,7 +105,7 @@
             sfx="button"
             kind="solid"
             color="success"
-            x-on:click="open = false; $dispatch('tabletop:update', { cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked, cellDistance: document.querySelector(`[name='cell-distance']`).value, prefillFog: document.querySelector(`[name='prefill-fog']`).checked, dmgOverlay: document.querySelector(`[name='dmg-overlay']`).checked });"
+            x-on:click="open = false; $dispatch('tabletop:update', { gridOffset: [+document.querySelector(`[name='grid-offset-x']`).value, +document.querySelector(`[name='grid-offset-x']`).value], gridColor: document.querySelector(`[name='grid-color']`).value, cellSize: document.querySelector(`[name='cell-size']`).value, renderGrid: document.querySelector(`[name='render-grid']`).checked, cellDistance: document.querySelector(`[name='cell-distance']`).value, prefillFog: document.querySelector(`[name='prefill-fog']`).checked, dmgOverlay: document.querySelector(`[name='dmg-overlay']`).checked });"
         >Save</button>
     </div>
 </div>

@@ -110,7 +110,6 @@ export default class FogBrush extends SuperComponent<IFogBrush> {
             line.setAttribute('stroke', 'yellow');
             line.setAttribute('stroke-width', "1");
             this.polyPreviewEl.appendChild(line);
-            console.log("line", line);
         }
     }
 

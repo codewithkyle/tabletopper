@@ -1,9 +1,14 @@
 import SuperComponent from "@codewithkyle/supercomponent";
 import env from "~brixi/controllers/env";
 import { subscribe } from "@codewithkyle/pubsub";
-import room from "room";
 import TabeltopComponent from "../tabletop-component";
 import { send } from "~controllers/ws";
+import { Program } from "./program";
+import { map_frag_shader, map_vert_shader } from "./map-shader";
+import { grid_frag_shader, grid_vert_shader } from "./grid-shader";
+import { fog_composite_frag_shader, fog_composite_vert_shader, fog_mask_frag_shader, fog_mask_vert_shader } from "./fog-shader";
+import room from "room";
+import earcut from 'https://cdn.jsdelivr.net/npm/earcut/+esm';
 
 type Point = {
     x: number,
@@ -15,15 +20,14 @@ type FogOfWarShape = {
 }
 
 interface ITableCanvas { }
-export default class TableCanvas extends SuperComponent<ITableCanvas>{
+export default class TableCanvas extends SuperComponent<ITableCanvas> {
     private canvas: HTMLCanvasElement;
-    private fogCanvas: HTMLCanvasElement;
-    private gridCanvas: HTMLCanvasElement;
     private fogctx: CanvasRenderingContext2D;
-    private imgctx: CanvasRenderingContext2D;
-    private gridctx: CanvasRenderingContext2D;
+    private gl: WebGL2RenderingContext;
     private renderGrid: boolean;
     private gridSize: number;
+    private gridOffset: Array<number>;
+    private gridColor: Array<number>;
     private fogOfWar: boolean;
     private w: number;
     private h: number;
@@ -32,20 +36,42 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
     private image: HTMLImageElement;
     private updateGrid: boolean;
     private updateFog: boolean;
+    private imgProgram: Program;
+    private gridProgram: Program;
+    private maskProgram: Program;
+    private fogProgram: Program;
+    private time: number;
+    private pos: {
+        x: number,
+        y: number,
+
+    };
+    private doMove: boolean;
+    private buildingFog: boolean;
+    private loadingImage: boolean;
+    private lastFogCount: number;
+    private animationId: any;
 
     constructor() {
         super();
-        this.w = 0;
-        this.h = 0;
+        this.animationId = null;
+        this.lastFogCount = 0;
+        this.buildingFog = false;
+        this.loadingImage = false;
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
+        this.pos = {
+            x: 0,
+            y: 0,
+        };
+        this.doMove = false;
         this.canvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.fogCanvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.gridCanvas = document.createElement("canvas") as HTMLCanvasElement;
-        this.fogctx = this.fogCanvas.getContext("2d");
-        this.fogctx.imageSmoothingEnabled = false;
-        this.imgctx = this.canvas.getContext("2d");
-        this.imgctx.imageSmoothingEnabled = false;
-        this.gridctx = this.gridCanvas.getContext("2d");
-        this.gridctx.imageSmoothingEnabled = false;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.gl = this.canvas.getContext("webgl2");
+        this.imgProgram = undefined;
+        this.gridProgram = undefined;
+        this.maskProgram = undefined;
         this.tabletop = document.querySelector("tabletop-component");
         this.renderGrid = false;
         this.gridSize = 32;
@@ -57,29 +83,56 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
 
         subscribe("socket", this.inbox.bind(this));
         subscribe("fog", this.fogInbox.bind(this));
+        subscribe("tabletop", this.tableInbox.bind(this));
+
+        this.buildGridLinesProgram();
     }
 
     override async connected() {
         await env.css(["table-canvas"]);
         this.appendChild(this.canvas);
+        window.addEventListener("resize", this.debounce(() => {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+            this.w = window.innerWidth;
+            this.h = window.innerHeight;
+            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+        }, 150));
     }
 
     public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
-        const canvas = this.getBoundingClientRect();
-        const x = Math.round(clientX - canvas.left) / this.tabletop.zoom;
-        const y = Math.round(clientY - canvas.top) / this.tabletop.zoom;
+        const x = Math.round(clientX - this.pos.x) / this.tabletop.zoom;
+        const y = Math.round(clientY - this.pos.y) / this.tabletop.zoom;
         return [x, y];
+    }
+
+    private tableInbox(data) {
+        const type = data?.type ?? "";
+        switch (type) {
+            case "zoom":
+                this.pos.x = data.x;
+                this.pos.y = data.y;
+                this.doMove = true;
+                break;
+            case "move":
+                this.pos.x = data.x;
+                this.pos.y = data.y;
+                this.doMove = true;
+                break;
+            default:
+                break;
+        }
     }
 
     private fogInbox({ type, points }) {
         const convertedPoints = [];
-        for (let i = 0; i < points.length; i++){
+        for (let i = 0; i < points.length; i++) {
             const [x, y] = this.convertViewportToTabletopPosition(points[i].x, points[i].y);
             convertedPoints.push({ x, y });
         }
         switch (type) {
             case "rect":
-                const newRect:FogOfWarShape = {
+                const newRect: FogOfWarShape = {
                     type: "rect",
                     points: convertedPoints,
                 };
@@ -87,7 +140,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.sync(newRect);
                 break;
             case "poly":
-                const newPoly:FogOfWarShape = {
+                const newPoly: FogOfWarShape = {
                     type: "poly",
                     points: convertedPoints,
                 };
@@ -105,215 +158,526 @@ export default class TableCanvas extends SuperComponent<ITableCanvas>{
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes.push(data.fogOfWarShapes);
                 this.updateFog = true;
-                this.render();
                 break;
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
+                this.lastFogCount = -1;
                 this.updateFog = true;
-                this.render();
+                if (this.fogOfWar) {
+                    this.buildFogProgram();
+                } else {
+                    this.fogProgram = undefined;
+                    this.maskProgram = undefined;
+                }
                 break;
             case "room:tabletop:clear":
                 this.fogOfWarShapes = [];
+                this.lastFogCount = 0;
+                this.imgProgram = undefined;
+                this.image = null;
+                this.maskProgram = undefined;
+                this.fogProgram = undefined;
                 this.updateFog = true;
-                this.render();
                 break;
             case "room:tabletop:map:update":
                 this.renderGrid = data.renderGrid;
                 this.gridSize = data.cellSize;
                 this.fogOfWar = data.prefillFog;
+                this.gridColor = this.hex_to_rgbaf(data.gridColor);
+                this.gridOffset = data.gridOffset;
                 this.updateGrid = true;
                 this.updateFog = true;
-                this.render();
+                if (this.fogOfWar) {
+                    this.buildFogProgram();
+                } else {
+                    this.fogProgram = undefined;
+                    this.maskProgram = undefined;
+                }
                 break;
             default:
                 break;
         }
     }
 
-    private sync(shape:FogOfWarShape) {
+    private sync(shape: FogOfWarShape) {
         send("room:tabletop:fog:add", shape);
     }
 
-    private revealShapes() {
-        try {
-            this.fogctx.globalCompositeOperation = "destination-out";
-            this.fogctx.globalAlpha = 1.0;
-            this.fogctx.fillStyle = "white";
-            for (let i = 0; i < this.fogOfWarShapes.length; i++) {
-                switch (this.fogOfWarShapes[i].type){
-                    case "poly":
-                        try {
-                            this.fogctx.beginPath();
-                            this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
-                            for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++){
-                                this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
-                            }
-                            this.fogctx.closePath();
-                            this.fogctx.fill();
-                        } catch (e) {
-                            console.error("Reveal poly error:", e);
-                        }
-                        break;
-                    case "rect":
-                        try {
-                            const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
-                            const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
-                            this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
-                            this.fogctx.fill();
-                        } catch (e) {
-                            console.error("Reveal rect error:", e);
-                        }
-                        break;
-                    default:
-                        console.error("How did you get here?", this.fogOfWarShapes[i]);
-                        break;
-                }
-            }
-            this.fogctx.globalCompositeOperation = "source-over";
-        } catch (e) {
-            console.error("Reveal shapes render error:", e);
+    private buildFogTexture() {
+        if (this.loadingImage || !this.image) {
+            console.error("Cannot build fog texture without map image.");
+            return;
+        } else if (this.maskProgram === undefined) {
+            console.error("Cannot build fog texture without fog of war shader programs.");
+            return;
         }
+
+        this.gl.useProgram(this.maskProgram.get_program());
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.maskProgram.get_fbo());
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
+
+        this.gl.texImage2D(
+            this.gl.TEXTURE_2D,
+            0, // level
+            this.gl.RGBA,
+            this.image.width,
+            this.image.height,
+            0, // border
+            this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE,
+            null
+        );
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D,
+            this.maskProgram.get_texture(),
+            0
+        );
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 
-    private renderFogOfWar() {
-        try {
-            if (!this.fogOfWar || !this.updateFog) return;
-            if (room.isGM) {
-                this.fogctx.globalAlpha = 0.6;
-            }
-            let color = "#fafafa"
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                color = "#09090b"
-            }
-            this.fogctx.fillStyle = color;
-            this.fogctx.fillRect(0, 0, this.w, this.h);
-            this.revealShapes();
-        } catch (e) {
-            console.error("Fog of war render error:", e);
+    private buildFogProgram() {
+        if (!this.image || this.loadingImage || this.buildingFog) return;
+        this.buildingFog = true;
+
+        if (this.maskProgram === undefined) {
+            this.maskProgram = new Program(this.gl)
+                .add_vertex_shader(fog_mask_vert_shader)
+                .add_fragment_shader(fog_mask_frag_shader)
+                .build()
+                .create_buffer("verticies")
+                .build_attributes(["a_position"])
+                .create_texture()
+                .create_fbo();
+
+            this.buildFogTexture();
         }
-        this.updateFog = false;
+
+        if (this.fogProgram === undefined) {
+            this.fogProgram = new Program(this.gl)
+                    .add_vertex_shader(fog_composite_vert_shader)
+                    .add_fragment_shader(fog_composite_frag_shader)
+                    .build()
+                    .build_uniforms(["u_image", "u_mask", "u_resolution", "u_scale", "u_translation", "u_color", "u_isGM"])
+                    .build_attributes(["a_position", "a_texCoord"])
+                    .set_verticies(new Float32Array([
+                        0, 0, 0.0, 0.0, // top-left
+                        this.image.width, 0, 1.0, 0.0, // top-right
+                        0, this.image.height, 0.0, 1.0, // bottom-left
+                        this.image.width, this.image.height, 1.0, 1.0 // bottom-right
+                    ]))
+                    .set_indices(new Uint16Array([
+                        0, 1, 2,  // First triangle
+                        2, 1, 3   // Second triangle
+                    ]))
+                    .create_buffer("verticies")
+                    .create_buffer("indices")
+                    .create_vao();
+
+            this.gl.useProgram(this.fogProgram.get_program());
+
+            this.gl.bindVertexArray(this.fogProgram.get_vao());
+
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fogProgram.get_buffer("verticies"));
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, this.fogProgram.get_verticies(), this.gl.STATIC_DRAW);
+
+            const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+            this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);
+            this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_position"));
+            this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);
+            this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_texCoord"));
+
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_buffer("indices"));
+            this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_indices(), this.gl.STATIC_DRAW);
+
+            this.gl.bindVertexArray(null);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        }
+        this.buildingFog = false;
     }
 
-    private renderGridLines(){
-        try {
-            if (!this.renderGrid || !this.updateGrid) return;
-            const columns = Math.ceil(this.w / this.gridSize);
-            const rows = Math.ceil(this.h / this.gridSize);
+    private buildGridLinesProgram() {
+        this.gridProgram = new Program(this.gl)
+            .add_vertex_shader(grid_vert_shader)
+            .add_fragment_shader(grid_frag_shader)
+            .build()
+            .build_uniforms(["u_resolution", "u_spacing", "u_origin", "u_color", "u_scale", "u_offset"])
+            .build_attributes(["a_position"])
+            .set_verticies(new Float32Array([
+                -1, -1,
+                +1, -1,
+                -1, +1,
+                +1, +1
+            ]))
+            .create_buffer("verticies")
+            .create_vao();
+        this.gl.useProgram(this.gridProgram.get_program());
+        this.gl.bindVertexArray(this.gridProgram.get_vao());
 
-            this.gridctx.strokeStyle = "rgb(0,0,0)";
-            for (let i = 0; i < columns; i++) {
-                const x = i * this.gridSize;
-                this.gridctx.beginPath();
-                this.gridctx.moveTo(x, 0);
-                this.gridctx.lineTo(x, this.h);
-                this.gridctx.stroke();
-            }
-            for (let i = 0; i < rows; i++) {
-                const y = i * this.gridSize;
-                this.gridctx.beginPath();
-                this.gridctx.moveTo(0, y);
-                this.gridctx.lineTo(this.w, y);
-                this.gridctx.stroke();
-            }
-        } catch (e) {
-            console.error("Grid line render error:", e);
-        }
-        this.updateGrid = false;
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gridProgram.get_buffer("verticies"));
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.gridProgram.get_verticies(), this.gl.STATIC_DRAW);
+
+        this.gl.enableVertexAttribArray(this.gridProgram.get_attribute("a_position"));
+        this.gl.vertexAttribPointer(this.gridProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
+
+        this.gl.bindVertexArray(null);
     }
 
-    public load(image: HTMLImageElement) {
-        if (!image) {
-            this.w = 0;
-            this.h = 0;
+    public load(imageSrc: string): Promise<Array<number>> {
+        return new Promise((resolve) => {
+            this.loadingImage = true;
+            this.imgProgram = undefined;
+            this.maskProgram = undefined;
+            this.fogProgram = undefined;
             this.image = null;
-            this.updateGrid = true;
-            this.updateFog = true;
+            if (this.animationId) window.cancelAnimationFrame(this.animationId);
+            this.forceClear();
+            this.gl = this.canvas.getContext("webgl2");
 
-            this.canvas.width = this.w;
-            this.canvas.height = this.h;
-            this.canvas.style.width = `0px`;
-            this.canvas.style.height = `0px`;
+            if (imageSrc == null) {
+                this.loadingImage = false;
+                return resolve([0, 0]);
+            }
 
-            this.fogCanvas.width = this.w;
-            this.fogCanvas.height = this.h;
-            this.fogCanvas.style.width = `0px`;
-            this.fogCanvas.style.height = `0px`;
+            this.image = new Image();
+            this.image.crossOrigin = "anonymous";
+            this.image.src = imageSrc;
+            this.image.onload = () => {
+                this.pos.x = (this.w * 0.5) - (this.image.width * 0.5);
+                this.pos.y = ((this.h - 28) * 0.5) - (this.image.height * 0.5);
 
-            this.gridCanvas.width = this.w;
-            this.gridCanvas.height = this.h;
-            this.gridCanvas.style.width = `0px`;
-            this.gridCanvas.style.height = `0px`;
-        } else {
-            this.w = image.width;
-            this.h = image.height;
-            this.image = image;
-            this.updateGrid = true;
-            this.updateFog = true;
+                this.imgProgram = new Program(this.gl)
+                    .add_vertex_shader(map_vert_shader)
+                    .add_fragment_shader(map_frag_shader)
+                    .build()
+                    .build_uniforms(["u_resolution", "u_scale", "u_translation"])
+                    .build_attributes(["a_position", "a_texCoord"])
+                    .set_verticies(new Float32Array([
+                        0, 0, 0.0, 0.0, // top-left
+                        this.image.width, 0, 1.0, 0.0, // top-right
+                        0, this.image.height, 0.0, 1.0, // bottom-left
+                        this.image.width, this.image.height, 1.0, 1.0 // bottom-right
+                    ]))
+                    .set_indices(new Uint16Array([
+                        0, 1, 2,  // First triangle
+                        2, 1, 3   // Second triangle
+                    ]))
+                    .create_buffer("verticies")
+                    .create_buffer("indices")
+                    .create_texture()
+                    .create_vao()
+                    .create_fbo();
 
-            this.canvas.width = this.w;
-            this.canvas.height = this.h;
-            this.canvas.style.width = `${image.width}px`;
-            this.canvas.style.height = `${image.height}px`;
+                this.gl.useProgram(this.imgProgram.get_program());
 
-            this.fogCanvas.width = this.w;
-            this.fogCanvas.height = this.h;
-            this.fogCanvas.style.width = `${image.width}px`;
-            this.fogCanvas.style.height = `${image.height}px`;
+                this.gl.bindVertexArray(this.imgProgram.get_vao());
 
-            this.gridCanvas.width = this.w;
-            this.gridCanvas.height = this.h;
-            this.gridCanvas.style.width = `${image.width}px`;
-            this.gridCanvas.style.height = `${image.height}px`;
-        }
-        this.render();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.imgProgram.get_buffer("verticies"));
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, this.imgProgram.get_verticies(), this.gl.STATIC_DRAW);
+
+                const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+                this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);
+                this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_position"));
+                this.gl.vertexAttribPointer(this.imgProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);
+                this.gl.enableVertexAttribArray(this.imgProgram.get_attribute("a_texCoord"));
+
+                this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_buffer("indices"));
+                this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_indices(), this.gl.STATIC_DRAW);
+
+                this.gl.activeTexture(this.gl.TEXTURE0);
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
+                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
+
+                if ((this.image.width % 2) === 0 && (this.image.height % 2) === 0) {
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                    this.gl.generateMipmap(this.gl.TEXTURE_2D);
+                } else {
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                }
+
+                this.gl.bindVertexArray(null);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+
+                this.loadingImage = false;
+
+                this.buildFogProgram();
+
+                this.doMove = true;
+                this.animationId = window.requestAnimationFrame(this.firstFrame.bind(this));
+                return resolve([this.image.width, this.image.height]);
+            };
+        });
     }
 
-    override render(): void {
-        try {
-            this.imgctx.clearRect(0, 0, this.w, this.h);
-            if (this.updateFog) this.fogctx.clearRect(0, 0, this.w, this.h);
-            if (this.updateGrid) this.gridctx.clearRect(0, 0, this.w, this.h);
-            
-            if (!this.image) return;
+    private forceClear() {
+        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl = null;
+    }
 
-            // Other
-            this.renderGridLines();
-            this.renderFogOfWar();
+    private firstFrame(ts) {
+        this.time = ts;
+        this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
+    }
 
-            // Always draw map first
-            this.imgctx.drawImage(
-                this.image,
-                0, 0, this.w, this.h
-            );
-           
-            if (this.renderGridLines) {
-                this.imgctx.drawImage(
-                    this.gridCanvas,
-                    0, 0,
-                    this.w, this.h
-                );
-            }
+    private nextFrame(ts) {
+        const dt = (ts - this.time) * 0.001;
+        this.time = ts;
 
-            // Always draw fog last
-            if (this.renderFogOfWar) {
-                this.imgctx.drawImage(
-                    this.fogCanvas,
-                    0, 0,
-                    this.w, this.h
-                );
-            }
-        } catch (e) {
-            console.error("Render error:", e);
-            console.groupCollapsed();
-            console.log("Update fog", this.updateFog);
-            console.log("Update grid", this.updateGrid);
-            console.log("Image", this.image);
-            console.log("Fog shapes", this.fogOfWarShapes);
-            console.log("Fog ctx", this.fogctx);
-            console.log("Grid ctx", this.gridctx);
-            console.groupEnd();
+        if (!this.updateFog && !this.updateGrid && !this.doMove) {
+            this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
+            return;
         }
+
+        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clearDepth(1.0);
+
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.enable(this.gl.BLEND);
+
+        this.gl.depthFunc(this.gl.LEQUAL);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+        if (!this.image || this.loadingImage) return;
+
+        this.drawImage();
+
+        if (this.fogOfWar) {
+            this.drawFog();
+        }
+        if (this.renderGrid) {
+            this.drawGrid();
+        }
+
+        this.lastFogCount = this.fogOfWarShapes.length;
+        this.updateFog = false;
+        this.updateGrid = false;
+        this.doMove = false;
+        this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
+    }
+
+    private buildFogMask() {
+        this.gl.useProgram(this.maskProgram.get_program());
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.maskProgram.get_fbo());
+        this.gl.viewport(0, 0, this.image.width, this.image.height);
+        this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+        //if (this.lastFogCount === this.fogOfWarShapes.length) {
+            //return;
+        //}
+
+        // Mask
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.maskProgram.get_buffer("verticies"));
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
+
+        for (let shape of this.fogOfWarShapes) {
+            let vertices = [];
+
+            switch(shape.type){
+                case "rect":
+                    {
+                        const p0 = shape.points[0];
+                        const p1 = shape.points[1];
+
+                        // Compute min and max for x and y so we cover the rectangle regardless of order.
+                        const xMin = Math.min(p0.x, p1.x);
+                        const xMax = Math.max(p0.x, p1.x);
+                        const yMin = Math.min(p0.y, p1.y);
+                        const yMax = Math.max(p0.y, p1.y);
+
+                        // Convert the four corners to clip space:
+                        // We create a quad using two triangles (or a TRIANGLE_STRIP)
+                        const bl = this.world_to_clip(xMin, yMin, this.image.width, this.image.height); // bottom-left
+                        const tl = this.world_to_clip(xMin, yMax, this.image.width, this.image.height); // top-left
+                        const br = this.world_to_clip(xMax, yMin, this.image.width, this.image.height); // bottom-right
+                        const tr = this.world_to_clip(xMax, yMax, this.image.width, this.image.height); // top-right
+
+                        // Create an array of vertices (using TRIANGLE_STRIP order):
+                        vertices = [
+                            bl[0], bl[1],
+                            tl[0], tl[1],
+                            br[0], br[1],
+                            tr[0], tr[1],
+                        ];
+                    }
+                    break;
+                case "poly":
+                    {
+                        const flatVertices = [];
+                        shape.points.forEach(p => {
+                        const clip = this.world_to_clip(p.x, p.y, this.image.width, this.image.height);
+                            flatVertices.push(clip[0], clip[1]);
+                        });
+
+                        // Triangulate the polygon using earcut.
+                        // Since there are no holes, the second parameter is an empty array.
+                        const indices = earcut(flatVertices, /* holeIndices */ []);
+
+                        // Now, create a vertices array that lists triangles:
+                        // (You can either use indices with an ELEMENT_ARRAY_BUFFER or expand them.)
+                        let verticesTriangles = [];
+                            indices.forEach(idx => {
+                            verticesTriangles.push(flatVertices[2 * idx], flatVertices[2 * idx + 1]);
+                        });
+
+                        vertices = verticesTriangles;
+                    }
+                    break;
+            }
+
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.STATIC_DRAW);
+
+            this.gl.enableVertexAttribArray(this.maskProgram.get_attribute("a_position"));
+            this.gl.vertexAttribPointer(
+                this.maskProgram.get_attribute("a_position"),
+                2,
+                this.gl.FLOAT,
+                false,
+                0,
+                0
+            );
+
+            switch(shape.type) {
+                case "rect":
+                    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+                    break;
+                case "poly":
+                    this.gl.drawArrays(this.gl.TRIANGLES, 0, vertices.length / 2);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // reset
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        this.gl.viewport(0, 0, this.w, this.h);
+    }
+
+    private drawFog() {
+        if (this.maskProgram === undefined || this.fogProgram === undefined) {
+            throw new Error("Render error: missing fog or mask program.");
+        }
+
+        this.buildFogMask();
+
+        this.gl.useProgram(this.fogProgram.get_program());
+        this.gl.uniform2f(this.fogProgram.get_uniform("u_resolution"), this.w, this.h);
+        this.gl.uniform2f(this.fogProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
+        this.gl.uniform2f(this.fogProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
+        let color = "#fafafaFF"
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            color = "#09090bFF"
+        }
+        const [r,g,b,a] = this.hex_to_rgbaf(color);
+        this.gl.uniform4f(this.fogProgram.get_uniform("u_color"), r, g, b, a);
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_isGM"), room.isGM ? 1 : 0);
+
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_image"), 0);
+
+        this.gl.activeTexture(this.gl.TEXTURE1);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_mask"), 1);
+
+        this.gl.bindVertexArray(this.fogProgram.get_vao());
+        this.gl.drawElements(this.gl.TRIANGLES, this.fogProgram.get_indices().length, this.gl.UNSIGNED_SHORT, 0);
+
+        this.gl.bindVertexArray(null);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+    }
+
+    private drawGrid() {
+        if (this.gridProgram === undefined) {
+            throw new Error("Render error: missing grid program.");
+        }
+        this.gl.useProgram(this.gridProgram.get_program());
+        this.gl.bindVertexArray(this.gridProgram.get_vao());
+
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_resolution"), this.w, this.h);
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_origin"), this.pos.x, this.pos.y);
+        this.gl.uniform2f(this.gridProgram.get_uniform("u_offset"), this.gridOffset[0], this.gridOffset[1]);
+        this.gl.uniform1f(this.gridProgram.get_uniform("u_spacing"), this.gridSize);
+        this.gl.uniform1f(this.gridProgram.get_uniform("u_scale"), this.tabletop.zoom);
+        this.gl.uniform4f(this.gridProgram.get_uniform("u_color"), this.gridColor[0], this.gridColor[1], this.gridColor[2], this.gridColor[3]);
+
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+        this.gl.bindVertexArray(null);
+    }
+
+    private drawImage() {
+        if (this.imgProgram === undefined) {
+            throw new Error("Render error: missing image program.");
+        }
+        this.gl.useProgram(this.imgProgram.get_program());
+        this.gl.bindVertexArray(this.imgProgram.get_vao());
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
+        this.gl.uniform2f(this.imgProgram.get_uniform("u_resolution"), this.w, this.h);
+        this.gl.uniform2f(this.imgProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
+        this.gl.uniform2f(this.imgProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
+
+        this.gl.drawElements(this.gl.TRIANGLES, this.imgProgram.get_indices().length, this.gl.UNSIGNED_SHORT, 0);
+
+        this.gl.bindVertexArray(null);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+    }
+
+    private hex_to_rgbaf(hex: string): Array<number> {
+        if (hex.indexOf("#") == 0) {
+            hex = hex.substring(1, 9);
+        }
+        if (hex.length < 8) {
+            throw new Error("Malformed HEX color provided.");
+        }
+        return [
+            +Math.max(0, Math.min(1, parseInt(hex.substring(0, 2), 16) / 255)).toFixed(1),
+            +Math.max(0, Math.min(1, parseInt(hex.substring(2, 4), 16) / 255)).toFixed(1),
+            +Math.max(0, Math.min(1, parseInt(hex.substring(4, 6), 16) / 255)).toFixed(1),
+            +Math.max(0, Math.min(1, parseInt(hex.substring(6, 8), 16) / 255)).toFixed(1),
+        ];
+    }
+
+    private hex_to_rgbai(hex: string): Array<number> {
+        if (hex.indexOf("#") == 0) {
+            hex = hex.substring(1, 9);
+        }
+        if (hex.length < 8) {
+            throw new Error("Malformed HEX color provided.");
+        }
+        return [
+            Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16))),
+            Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16))),
+            Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16))),
+            Math.max(0, Math.min(255, parseInt(hex.substring(6, 8), 16))),
+        ];
+    }
+
+    private world_to_clip(x, y, w, h) {
+        const clipX = (x / w) * 2 - 1;
+        const clipY = (y / h) * 2 - 1;
+        return [clipX, clipY];
     }
 }
 env.bind("table-canvas", TableCanvas);
