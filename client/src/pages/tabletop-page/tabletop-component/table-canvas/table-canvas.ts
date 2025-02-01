@@ -7,6 +7,7 @@ import { Program } from "./program";
 import { map_frag_shader, map_vert_shader } from "./map-shader";
 import { grid_frag_shader, grid_vert_shader } from "./grid-shader";
 import { fog_composite_frag_shader, fog_composite_vert_shader, fog_mask_frag_shader, fog_mask_vert_shader } from "./fog-shader";
+import room from "room";
 
 type Point = {
     x: number,
@@ -294,7 +295,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                     .add_vertex_shader(fog_composite_vert_shader)
                     .add_fragment_shader(fog_composite_frag_shader)
                     .build()
-                    .build_uniforms(["u_image", "u_mask", "u_resolution", "u_scale", "u_translation"])
+                    .build_uniforms(["u_image", "u_mask", "u_resolution", "u_scale", "u_translation", "u_color", "u_isGM"])
                     .build_attributes(["a_position", "a_texCoord"])
                     .set_verticies(new Float32Array([
                         0, 0, 0.0, 0.0, // top-left
@@ -578,6 +579,13 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.uniform2f(this.fogProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
+        let color = "#fafafaFF"
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            color = "#09090bFF"
+        }
+        const [r,g,b,a] = this.hex_to_rgbaf(color);
+        this.gl.uniform4f(this.fogProgram.get_uniform("u_color"), r, g, b, a);
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_isGM"), room.isGM ? 1 : 0);
 
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());

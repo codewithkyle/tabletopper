@@ -54,6 +54,8 @@ in vec2 v_texCoord;
 // The two texture uniforms: one for the custom image and one for the mask.
 uniform sampler2D u_image;
 uniform sampler2D u_mask;
+uniform vec4 u_color;
+uniform int u_isGM;
 
 // Output color of the fragment.
 out vec4 fragColor;
@@ -71,7 +73,11 @@ void main() {
     if(maskValue > 0.5) {
         fragColor = imageColor; // Reveal the image where the mask is white.
     } else {
-        fragColor = vec4(0.0, 0.0, 0.0, 1.0); // Otherwise, output black.
+        if (u_isGM == 1) {
+            fragColor = mix(imageColor, u_color, 0.5); // Otherwise, output black.
+        } else {
+            fragColor = u_color;
+        }
     }
 }
 
