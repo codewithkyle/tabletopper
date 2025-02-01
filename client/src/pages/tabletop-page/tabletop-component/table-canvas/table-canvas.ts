@@ -6,7 +6,7 @@ import { send } from "~controllers/ws";
 import { Program } from "./program";
 import { map_frag_shader, map_vert_shader } from "./map-shader";
 import { grid_frag_shader, grid_vert_shader } from "./grid-shader";
-import { fog_frag_shader, fog_mask_frag_shader, fog_mask_vert_shader, fog_vert_shader } from "./fog-shader";
+import { fog_composite_frag_shader, fog_composite_vert_shader, fog_mask_frag_shader, fog_mask_vert_shader } from "./fog-shader";
 
 type Point = {
     x: number,
@@ -90,9 +90,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     }
 
     public convertViewportToTabletopPosition(clientX: number, clientY: number): Array<number> {
-        const canvas = this.getBoundingClientRect();
-        const x = Math.round(clientX - canvas.left) / this.tabletop.zoom;
-        const y = Math.round(clientY - canvas.top) / this.tabletop.zoom;
+        const x = Math.round(clientX - this.pos.x) / this.tabletop.zoom;
+        const y = Math.round(clientY - this.pos.y) / this.tabletop.zoom;
         return [x, y];
     }
 
@@ -292,10 +291,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
         if (this.fogProgram === undefined) {
             this.fogProgram = new Program(this.gl)
-                    .add_vertex_shader(map_vert_shader)
-                    .add_fragment_shader(map_frag_shader)
+                    .add_vertex_shader(fog_composite_vert_shader)
+                    .add_fragment_shader(fog_composite_frag_shader)
                     .build()
-                    .build_uniforms(["u_resolution", "u_scale", "u_translation"])
+                    .build_uniforms(["u_image", "u_mask", "u_resolution", "u_scale", "u_translation"])
                     .build_attributes(["a_position", "a_texCoord"])
                     .set_verticies(new Float32Array([
                         0, 0, 0.0, 0.0, // top-left
@@ -309,8 +308,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                     ]))
                     .create_buffer("verticies")
                     .create_buffer("indices")
-                    .create_vao()
-                    .create_fbo();
+                    .create_vao();
 
                 this.gl.useProgram(this.fogProgram.get_program());
 
@@ -328,19 +326,19 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_buffer("indices"));
                 this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_indices(), this.gl.STATIC_DRAW);
 
-                this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
-                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
+                //this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
+                //this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
 
-                if ((this.image.width % 2) === 0 && (this.image.height % 2) === 0) {
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-                    this.gl.generateMipmap(this.gl.TEXTURE_2D);
-                } else {
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-                }
+                //if ((this.image.width % 2) === 0 && (this.image.height % 2) === 0) {
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                    //this.gl.generateMipmap(this.gl.TEXTURE_2D);
+                //} else {
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                //}
 
                 this.gl.bindVertexArray(null);
         }
@@ -385,8 +383,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.image.crossOrigin = "anonymous";
             this.image.src = imageSrc;
             this.image.onload = () => {
-                //this.pos.x = (this.w * 0.5) - (this.image.width * 0.5);
-                //this.pos.y = ((this.h - 28) * 0.5) - (this.image.height * 0.5);
+                this.pos.x = (this.w * 0.5) - (this.image.width * 0.5);
+                this.pos.y = ((this.h - 28) * 0.5) - (this.image.height * 0.5);
 
                 this.imgProgram = new Program(this.gl)
                     .add_vertex_shader(map_vert_shader)
@@ -503,7 +501,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.useProgram(this.maskProgram.get_program());
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.maskProgram.get_fbo());
         this.gl.viewport(0, 0, this.image.width, this.image.height);
-        this.gl.clearColor(1.0, 0.0, 0.0, 0.25);
+        this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         // Mask
@@ -540,7 +538,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                             br[0], br[1],
                             tr[0], tr[1],
                         ];
-                        console.log(vertices);
                     }
                     break;
                 defaut:
@@ -578,13 +575,19 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             throw new Error("Render error: missing fog program.");
         }
         this.gl.useProgram(this.fogProgram.get_program());
-        this.gl.bindVertexArray(this.fogProgram.get_vao());
-
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
         this.gl.uniform2f(this.fogProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
 
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_image"), 0);
+
+        this.gl.activeTexture(this.gl.TEXTURE1);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
+        this.gl.uniform1i(this.fogProgram.get_uniform("u_mask"), 1);
+
+        this.gl.bindVertexArray(this.fogProgram.get_vao());
         this.gl.drawElements(this.gl.TRIANGLES, this.fogProgram.get_indices().length, this.gl.UNSIGNED_SHORT, 0);
 
         this.gl.bindVertexArray(null);
