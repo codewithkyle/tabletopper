@@ -364,12 +364,12 @@ export default class TabeltopComponent extends SuperComponent<ITabletopComponent
         }
         if (this.img) {
             const [w, h] = await this.canvas.load(this.img);
-            //this.vfxCanvas.render(this.img);
-            //this.doodleCanvas.render(this.img);
             this.x = ((window.innerWidth * 0.5) - (w * 0.5));
             this.y = (((window.innerHeight - 28) * 0.5) - (h * 0.5));
             this.imgWidth = w;
             this.imgHeight = h;
+            this.vfxCanvas.render(w, h);
+            this.doodleCanvas.render(w, h);
         }
         this.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.x}, ${this.y})`;
     }

@@ -126,8 +126,8 @@ export default class DoodleCanvas extends SuperComponent<IDoodleCanvas>{
     }
 
     // @ts-ignore
-    override render(image: HTMLImageElement): void {
-        if (!image) {
+    override render(w:number, h:number): void {
+        if (w == 0 || h == 0) {
             this.w = 0;
             this.h = 0;
             this.canvas.width = this.w;
@@ -135,12 +135,12 @@ export default class DoodleCanvas extends SuperComponent<IDoodleCanvas>{
             this.canvas.style.width = `0px`;
             this.canvas.style.height = `0px`;
         } else {
-            this.w = image.width;
-            this.h = image.height;
+            this.w = w;
+            this.h = h;
             this.canvas.width = this.w;
             this.canvas.height = this.h;
-            this.canvas.style.width = `${image.width}px`;
-            this.canvas.style.height = `${image.height}px`;
+            this.canvas.style.width = `${w}px`;
+            this.canvas.style.height = `${h}px`;
         }
         this.renderDoodles();
     }
