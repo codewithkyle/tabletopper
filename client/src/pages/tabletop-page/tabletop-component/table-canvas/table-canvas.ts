@@ -8,6 +8,7 @@ import { map_frag_shader, map_vert_shader } from "./map-shader";
 import { grid_frag_shader, grid_vert_shader } from "./grid-shader";
 import { fog_composite_frag_shader, fog_composite_vert_shader, fog_mask_frag_shader, fog_mask_vert_shader } from "./fog-shader";
 import room from "room";
+import earcut from 'https://cdn.jsdelivr.net/npm/earcut/+esm';
 
 type Point = {
     x: number,
@@ -43,11 +44,20 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     private pos: {
         x: number,
         y: number,
+
     };
     private doMove: boolean;
+    private buildingFog: boolean;
+    private loadingImage: boolean;
+    private lastFogCount: number;
+    private animationId: any;
 
     constructor() {
         super();
+        this.animationId = null;
+        this.lastFogCount = 0;
+        this.buildingFog = false;
+        this.loadingImage = false;
         this.w = window.innerWidth;
         this.h = window.innerHeight;
         this.pos = {
@@ -152,14 +162,22 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             case "room:tabletop:fog:sync":
                 this.fogOfWar = data.fogOfWar;
                 this.fogOfWarShapes = data.fogOfWarShapes;
+                this.lastFogCount = -1;
                 this.updateFog = true;
                 if (this.fogOfWar) {
                     this.buildFogProgram();
+                } else {
+                    this.fogProgram = undefined;
+                    this.maskProgram = undefined;
                 }
                 break;
             case "room:tabletop:clear":
                 this.fogOfWarShapes = [];
+                this.lastFogCount = 0;
+                this.imgProgram = undefined;
+                this.image = null;
                 this.maskProgram = undefined;
+                this.fogProgram = undefined;
                 this.updateFog = true;
                 break;
             case "room:tabletop:map:update":
@@ -172,6 +190,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 this.updateFog = true;
                 if (this.fogOfWar) {
                     this.buildFogProgram();
+                } else {
+                    this.fogProgram = undefined;
+                    this.maskProgram = undefined;
                 }
                 break;
             default:
@@ -183,49 +204,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         send("room:tabletop:fog:add", shape);
     }
 
-    private revealShapes() {
-        try {
-            this.fogctx.globalCompositeOperation = "destination-out";
-            this.fogctx.globalAlpha = 1.0;
-            this.fogctx.fillStyle = "white";
-            for (let i = 0; i < this.fogOfWarShapes.length; i++) {
-                switch (this.fogOfWarShapes[i].type) {
-                    case "poly":
-                        try {
-                            this.fogctx.beginPath();
-                            this.fogctx.moveTo(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y);
-                            for (let p = 1; p < this.fogOfWarShapes[i].points.length; p++) {
-                                this.fogctx.lineTo(this.fogOfWarShapes[i].points[p].x, this.fogOfWarShapes[i].points[p].y);
-                            }
-                            this.fogctx.closePath();
-                            this.fogctx.fill();
-                        } catch (e) {
-                            console.error("Reveal poly error:", e);
-                        }
-                        break;
-                    case "rect":
-                        try {
-                            const width = this.fogOfWarShapes[i].points[1].x - this.fogOfWarShapes[i].points[0].x;
-                            const height = this.fogOfWarShapes[i].points[1].y - this.fogOfWarShapes[i].points[0].y
-                            this.fogctx.rect(this.fogOfWarShapes[i].points[0].x, this.fogOfWarShapes[i].points[0].y, width, height);
-                            this.fogctx.fill();
-                        } catch (e) {
-                            console.error("Reveal rect error:", e);
-                        }
-                        break;
-                    default:
-                        console.error("How did you get here?", this.fogOfWarShapes[i]);
-                        break;
-                }
-            }
-            this.fogctx.globalCompositeOperation = "source-over";
-        } catch (e) {
-            console.error("Reveal shapes render error:", e);
-        }
-    }
-
     private buildFogTexture() {
-        if (!this.image) {
+        if (this.loadingImage || !this.image) {
             console.error("Cannot build fog texture without map image.");
             return;
         } else if (this.maskProgram === undefined) {
@@ -266,6 +246,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     }
 
     private buildFogProgram() {
+        if (!this.image || this.loadingImage || this.buildingFog) return;
+        this.buildingFog = true;
+
         if (this.maskProgram === undefined) {
             this.maskProgram = new Program(this.gl)
                 .add_vertex_shader(fog_mask_vert_shader)
@@ -275,17 +258,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 .build_attributes(["a_position"])
                 .create_texture()
                 .create_fbo();
-
-            //this.gl.useProgram(this.maskProgram.get_program());
-            //this.gl.bindVertexArray(this.maskProgram.get_vao());
-
-            //this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.maskProgram.get_buffer("verticies"));
-            //this.gl.bufferData(this.gl.ARRAY_BUFFER, this.maskProgram.get_verticies(), this.gl.STATIC_DRAW);
-
-            //this.gl.enableVertexAttribArray(this.maskProgram.get_attribute("a_position"));
-            //this.gl.vertexAttribPointer(this.maskProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, 0, 0);
-
-            //this.gl.bindVertexArray(null);
 
             this.buildFogTexture();
         }
@@ -311,38 +283,26 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                     .create_buffer("indices")
                     .create_vao();
 
-                this.gl.useProgram(this.fogProgram.get_program());
+            this.gl.useProgram(this.fogProgram.get_program());
 
-                this.gl.bindVertexArray(this.fogProgram.get_vao());
+            this.gl.bindVertexArray(this.fogProgram.get_vao());
 
-                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fogProgram.get_buffer("verticies"));
-                this.gl.bufferData(this.gl.ARRAY_BUFFER, this.fogProgram.get_verticies(), this.gl.STATIC_DRAW);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.fogProgram.get_buffer("verticies"));
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, this.fogProgram.get_verticies(), this.gl.STATIC_DRAW);
 
-                const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
-                this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);
-                this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_position"));
-                this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);
-                this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_texCoord"));
+            const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+            this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_position"), 2, this.gl.FLOAT, false, stride, 0);
+            this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_position"));
+            this.gl.vertexAttribPointer(this.fogProgram.get_attribute("a_texCoord"), 2, this.gl.FLOAT, false, stride, 2 * 4);
+            this.gl.enableVertexAttribArray(this.fogProgram.get_attribute("a_texCoord"));
 
-                this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_buffer("indices"));
-                this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_indices(), this.gl.STATIC_DRAW);
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_buffer("indices"));
+            this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.fogProgram.get_indices(), this.gl.STATIC_DRAW);
 
-                //this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
-                //this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
-
-                //if ((this.image.width % 2) === 0 && (this.image.height % 2) === 0) {
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-                    //this.gl.generateMipmap(this.gl.TEXTURE_2D);
-                //} else {
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-                    //this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-                //}
-
-                this.gl.bindVertexArray(null);
+            this.gl.bindVertexArray(null);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         }
+        this.buildingFog = false;
     }
 
     private buildGridLinesProgram() {
@@ -374,9 +334,17 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
     public load(imageSrc: string): Promise<Array<number>> {
         return new Promise((resolve) => {
+            this.loadingImage = true;
+            this.imgProgram = undefined;
+            this.maskProgram = undefined;
+            this.fogProgram = undefined;
+            this.image = null;
+            if (this.animationId) window.cancelAnimationFrame(this.animationId);
+            this.forceClear();
+            this.gl = this.canvas.getContext("webgl2");
+
             if (imageSrc == null) {
-                this.imgProgram = undefined;
-                this.image = null;
+                this.loadingImage = false;
                 return resolve([0, 0]);
             }
 
@@ -425,6 +393,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_buffer("indices"));
                 this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.imgProgram.get_indices(), this.gl.STATIC_DRAW);
 
+                this.gl.activeTexture(this.gl.TEXTURE0);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
                 this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
 
@@ -440,21 +409,29 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 }
 
                 this.gl.bindVertexArray(null);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
 
-                if (this.fogOfWar) {
-                    this.buildFogProgram();
-                }
+                this.loadingImage = false;
+
+                this.buildFogProgram();
 
                 this.doMove = true;
-                window.requestAnimationFrame(this.firstFrame.bind(this));
+                this.animationId = window.requestAnimationFrame(this.firstFrame.bind(this));
                 return resolve([this.image.width, this.image.height]);
             };
         });
     }
 
+    private forceClear() {
+        this.gl.clearColor(0, 0, 0, 0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+        this.gl = null;
+    }
+
     private firstFrame(ts) {
         this.time = ts;
-        window.requestAnimationFrame(this.nextFrame.bind(this));
+        this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
     }
 
     private nextFrame(ts) {
@@ -462,7 +439,8 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.time = ts;
 
         if (!this.updateFog && !this.updateGrid && !this.doMove) {
-            return window.requestAnimationFrame(this.nextFrame.bind(this));
+            this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
+            return;
         }
 
         this.gl.clearColor(0, 0, 0, 0);
@@ -476,8 +454,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        if (!this.image) return;
-
+        if (!this.image || this.loadingImage) return;
 
         this.drawImage();
 
@@ -488,25 +465,25 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.drawGrid();
         }
 
-
+        this.lastFogCount = this.fogOfWarShapes.length;
         this.updateFog = false;
         this.updateGrid = false;
         this.doMove = false;
-        window.requestAnimationFrame(this.nextFrame.bind(this));
+        this.animationId = window.requestAnimationFrame(this.nextFrame.bind(this));
     }
 
-    private drawFog() {
-        if (this.maskProgram === undefined) {
-            throw new Error("Render error: missing fog or mask program.");
-        }
+    private buildFogMask() {
         this.gl.useProgram(this.maskProgram.get_program());
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.maskProgram.get_fbo());
         this.gl.viewport(0, 0, this.image.width, this.image.height);
         this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
+        //if (this.lastFogCount === this.fogOfWarShapes.length) {
+            //return;
+        //}
+
         // Mask
-        //this.gl.bindVertexArray(this.maskProgram.get_vao());
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.maskProgram.get_buffer("verticies"));
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
 
@@ -541,7 +518,27 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                         ];
                     }
                     break;
-                defaut:
+                case "poly":
+                    {
+                        const flatVertices = [];
+                        shape.points.forEach(p => {
+                        const clip = this.world_to_clip(p.x, p.y, this.image.width, this.image.height);
+                            flatVertices.push(clip[0], clip[1]);
+                        });
+
+                        // Triangulate the polygon using earcut.
+                        // Since there are no holes, the second parameter is an empty array.
+                        const indices = earcut(flatVertices, /* holeIndices */ []);
+
+                        // Now, create a vertices array that lists triangles:
+                        // (You can either use indices with an ELEMENT_ARRAY_BUFFER or expand them.)
+                        let verticesTriangles = [];
+                            indices.forEach(idx => {
+                            verticesTriangles.push(flatVertices[2 * idx], flatVertices[2 * idx + 1]);
+                        });
+
+                        vertices = verticesTriangles;
+                    }
                     break;
             }
 
@@ -561,6 +558,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 case "rect":
                     this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
                     break;
+                case "poly":
+                    this.gl.drawArrays(this.gl.TRIANGLES, 0, vertices.length / 2);
+                    break;
                 default:
                     break;
             }
@@ -571,10 +571,15 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
         this.gl.viewport(0, 0, this.w, this.h);
+    }
 
-        if (this.fogProgram === undefined) {
-            throw new Error("Render error: missing fog program.");
+    private drawFog() {
+        if (this.maskProgram === undefined || this.fogProgram === undefined) {
+            throw new Error("Render error: missing fog or mask program.");
         }
+
+        this.buildFogMask();
+
         this.gl.useProgram(this.fogProgram.get_program());
         this.gl.uniform2f(this.fogProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
