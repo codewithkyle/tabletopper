@@ -397,10 +397,18 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
                 this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
 
-                if ((this.image.width % 2) === 0 && (this.image.height % 2) === 0) {
+                if (this.isPowerOfTwo(this.image.width) && this.isPowerOfTwo(this.image.height)) {
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
                     this.gl.generateMipmap(this.gl.TEXTURE_2D);
+
+                    const error = this.gl.getError();
+                    if (error !== this.gl.NO_ERROR) {
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+                    }
                 } else {
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
@@ -678,6 +686,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         const clipX = (x / w) * 2 - 1;
         const clipY = (y / h) * 2 - 1;
         return [clipX, clipY];
+    }
+    
+    private isPowerOfTwo(value) {
+        return (value & (value - 1)) === 0;  // Check if the value is a power of 2
     }
 }
 env.bind("table-canvas", TableCanvas);
