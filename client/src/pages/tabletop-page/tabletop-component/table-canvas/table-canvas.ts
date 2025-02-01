@@ -352,8 +352,31 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.image.crossOrigin = "anonymous";
             this.image.src = imageSrc;
             this.image.onload = () => {
-                this.pos.x = (this.w * 0.5) - (this.image.width * 0.5);
-                this.pos.y = ((this.h - 28) * 0.5) - (this.image.height * 0.5);
+
+                let canvas = null;
+                let width = this.image.width;
+                let height = this.image.height;
+                if (this.image.height > 8000 || this.image.width > 8000) {
+                    console.log("too big, doing resize");
+                    const scaleFactor = 8000 / Math.max(this.image.width, this.image.height);
+                    width = Math.floor(this.image.width * scaleFactor);
+                    height = Math.floor(this.image.height * scaleFactor);
+
+                    canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(this.image, 0, 0, width, height);
+
+                    console.log("switched to canvas", width, height);
+
+                    this.image.width = width;
+                    this.image.height = height;
+                }
+
+                this.pos.x = (this.w * 0.5) - (width * 0.5);
+                this.pos.y = ((this.h - 28) * 0.5) - (height * 0.5);
 
                 this.imgProgram = new Program(this.gl)
                     .add_vertex_shader(map_vert_shader)
@@ -363,9 +386,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                     .build_attributes(["a_position", "a_texCoord"])
                     .set_verticies(new Float32Array([
                         0, 0, 0.0, 0.0, // top-left
-                        this.image.width, 0, 1.0, 0.0, // top-right
-                        0, this.image.height, 0.0, 1.0, // bottom-left
-                        this.image.width, this.image.height, 1.0, 1.0 // bottom-right
+                        width, 0, 1.0, 0.0, // top-right
+                        0, height, 0.0, 1.0, // bottom-left
+                        width, height, 1.0, 1.0 // bottom-right
                     ]))
                     .set_indices(new Uint16Array([
                         0, 1, 2,  // First triangle
@@ -395,9 +418,9 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
                 this.gl.activeTexture(this.gl.TEXTURE0);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.imgProgram.get_texture());
-                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.image);
+                this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas || this.image);
 
-                if (this.isPowerOfTwo(this.image.width) && this.isPowerOfTwo(this.image.height)) {
+                if (this.isPowerOfTwo(width) && this.isPowerOfTwo(height)) {
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_NEAREST);
                     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
                     this.gl.generateMipmap(this.gl.TEXTURE_2D);
@@ -426,7 +449,7 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
                 this.doMove = true;
                 this.animationId = window.requestAnimationFrame(this.firstFrame.bind(this));
-                return resolve([this.image.width, this.image.height]);
+                return resolve([width, height]);
             };
         });
     }
