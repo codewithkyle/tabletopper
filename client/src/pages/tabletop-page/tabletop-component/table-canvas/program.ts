@@ -16,6 +16,7 @@ export class Program {
     };
     private texture: WebGLTexture;
     private vao: WebGLVertexArrayObject;
+    private fbo: WebGLFramebuffer;
 
     constructor(gl: WebGL2RenderingContext){
         this.vs = undefined;
@@ -29,6 +30,16 @@ export class Program {
         this.buffers = {};
         this.texture = undefined;
         this.vao = undefined;
+        this.fbo = undefined;
+    }
+
+    public create_fbo() {
+        this.fbo = this.gl.createFramebuffer();
+        return this;
+    }
+
+    public get_fbo() {
+        return this.fbo;
     }
 
     public create_vao() {
