@@ -357,7 +357,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                 let width = this.image.width;
                 let height = this.image.height;
                 if (this.image.height > 8000 || this.image.width > 8000) {
-                    console.log("too big, doing resize");
                     const scaleFactor = 8000 / Math.max(this.image.width, this.image.height);
                     width = Math.floor(this.image.width * scaleFactor);
                     height = Math.floor(this.image.height * scaleFactor);
@@ -368,8 +367,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
 
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(this.image, 0, 0, width, height);
-
-                    console.log("switched to canvas", width, height);
 
                     this.image.width = width;
                     this.image.height = height;
@@ -496,7 +493,6 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
             this.drawGrid();
         }
 
-        this.lastFogCount = this.fogOfWarShapes.length;
         this.updateFog = false;
         this.updateGrid = false;
         this.doMove = false;
@@ -504,20 +500,17 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
     }
 
     private buildFogMask() {
+        if (this.lastFogCount === this.fogOfWarShapes.length) return;
+
         this.gl.useProgram(this.maskProgram.get_program());
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.maskProgram.get_fbo());
         this.gl.viewport(0, 0, this.image.width, this.image.height);
         this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-
-        //if (this.lastFogCount === this.fogOfWarShapes.length) {
-            //return;
-        //}
-
-        // Mask
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.maskProgram.get_buffer("verticies"));
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.maskProgram.get_texture());
-
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.maskProgram.get_buffer("verticies"));
+        // Mask
+        let allVertices = [];
         for (let shape of this.fogOfWarShapes) {
             let vertices = [];
 
@@ -540,13 +533,10 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                         const br = this.world_to_clip(xMax, yMin, this.image.width, this.image.height); // bottom-right
                         const tr = this.world_to_clip(xMax, yMax, this.image.width, this.image.height); // top-right
 
-                        // Create an array of vertices (using TRIANGLE_STRIP order):
-                        vertices = [
-                            bl[0], bl[1],
-                            tl[0], tl[1],
-                            br[0], br[1],
-                            tr[0], tr[1],
-                        ];
+                        vertices.push(
+                            bl[0], bl[1], br[0], br[1], tr[0], tr[1],  // Triangle 1
+                            bl[0], bl[1], tr[0], tr[1], tl[0], tl[1]   // Triangle 2
+                        );
                     }
                     break;
                 case "poly":
@@ -557,45 +547,31 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
                             flatVertices.push(clip[0], clip[1]);
                         });
 
-                        // Triangulate the polygon using earcut.
-                        // Since there are no holes, the second parameter is an empty array.
-                        const indices = earcut(flatVertices, /* holeIndices */ []);
-
-                        // Now, create a vertices array that lists triangles:
-                        // (You can either use indices with an ELEMENT_ARRAY_BUFFER or expand them.)
-                        let verticesTriangles = [];
-                            indices.forEach(idx => {
-                            verticesTriangles.push(flatVertices[2 * idx], flatVertices[2 * idx + 1]);
-                        });
-
-                        vertices = verticesTriangles;
+                        const indices = earcut(flatVertices);
+                        for (let i = 0; i < indices.length; i++) {
+                            const idx = indices[i];
+                            vertices.push(flatVertices[2 * idx], flatVertices[2 * idx + 1]);
+                        }
                     }
                     break;
             }
 
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.STATIC_DRAW);
-
-            this.gl.enableVertexAttribArray(this.maskProgram.get_attribute("a_position"));
-            this.gl.vertexAttribPointer(
-                this.maskProgram.get_attribute("a_position"),
-                2,
-                this.gl.FLOAT,
-                false,
-                0,
-                0
-            );
-
-            switch(shape.type) {
-                case "rect":
-                    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-                    break;
-                case "poly":
-                    this.gl.drawArrays(this.gl.TRIANGLES, 0, vertices.length / 2);
-                    break;
-                default:
-                    break;
-            }
+            allVertices.push(...vertices);
         }
+
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(allVertices), this.gl.STATIC_DRAW);
+
+        this.gl.enableVertexAttribArray(this.maskProgram.get_attribute("a_position"));
+        this.gl.vertexAttribPointer(
+            this.maskProgram.get_attribute("a_position"),
+            2,
+            this.gl.FLOAT,
+            false,
+            0,
+            0
+        );
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, allVertices.length / 2);
+        this.lastFogCount = this.fogOfWarShapes.length;
 
         // reset
         this.gl.bindTexture(this.gl.TEXTURE_2D, null);
