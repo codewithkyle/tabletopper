@@ -591,11 +591,12 @@ export default class TableCanvas extends SuperComponent<ITableCanvas> {
         this.gl.uniform2f(this.fogProgram.get_uniform("u_resolution"), this.w, this.h);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_translation"), this.pos.x, this.pos.y);
         this.gl.uniform2f(this.fogProgram.get_uniform("u_scale"), this.tabletop.zoom, this.tabletop.zoom);
-        let color = "#fafafaFF"
+        let r = 0.98, g = 0.98, b = 0.98, a = 1;
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            color = "#09090bFF"
+            r = 0.0;
+            g = 0.0;
+            b = 0.0;
         }
-        const [r,g,b,a] = this.hex_to_rgbaf(color);
         this.gl.uniform4f(this.fogProgram.get_uniform("u_color"), r, g, b, a);
         this.gl.uniform1i(this.fogProgram.get_uniform("u_isGM"), room.isGM ? 1 : 0);
 
