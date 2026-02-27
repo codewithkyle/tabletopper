@@ -1,0 +1,18 @@
+-- migrate:up
+CREATE TABLE IF NOT EXISTS rooms (
+    id  BINARY(16) PRIMARY KEY NOT NULL,
+    owner_id BINARY(16) NOT NULL,
+
+    code VARCHAR(4) NOT NULL,
+    is_open TINYINT(1) NOT NULL DEFAULT 1,
+    is_locked TINYINT(1) NOT NULL DEFAULT 0,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    closed_at DATETIME NULL,
+
+    UNIQUE KEY ux_rooms_code_open (code, is_open)
+);
+
+-- migrate:down
+DROP TABLE IF EXISTS rooms;
