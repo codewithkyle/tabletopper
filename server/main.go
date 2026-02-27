@@ -2,238 +2,97 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"main/models"
-	"math"
+	"errors"
+	"log/slog"
+	"net/http"
 	"os"
-	"strconv"
-	"strings"
+	"os/signal"
+	"syscall"
 	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/charmbracelet/log"
-	"github.com/clerkinc/clerk-sdk-go/clerk"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/template/django/v3"
-	"github.com/google/uuid"
 )
 
-var ctx = context.Background()
-
-func CalculateModifier(base int) string {
-	modifier := math.Floor(float64(base-10) / 2)
-	modifierStr := strconv.Itoa(int(modifier))
-	if modifier >= 0 {
-		return "+" + modifierStr
-	} else {
-		return modifierStr
-	}
-}
-
-func CalculateProficiencyBonus(cr int) string {
-	if cr >= 0 && cr <= 4 {
-		return "+2"
-	} else if cr >= 5 && cr <= 8 {
-		return "+3"
-	} else if cr >= 9 && cr <= 12 {
-		return "+4"
-	} else if cr >= 13 && cr <= 16 {
-		return "+5"
-	} else if cr >= 17 && cr <= 20 {
-		return "+6"
-	} else if cr >= 21 && cr <= 24 {
-		return "+7"
-	} else if cr >= 26 && cr <= 28 {
-		return "+8"
-	} else {
-		return "+9"
-	}
-}
-
 func main() {
-	client, err := clerk.NewClient(os.Getenv("CLERK_API_KEY"))
-	if err != nil {
-		log.Fatalf("failed to create Clerk client: %v", err)
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
+		w.Write([]byte("OK"))
+	})
+
+	// NOTE: static files
+	mux.Handle(
+		"/css/", 
+		http.StripPrefix(
+			"/css/", 
+			http.FileServer(http.Dir("./css")),
+		),
+	)
+	mux.Handle(
+		"/js/", 
+		http.StripPrefix(
+			"/js/", 
+			http.FileServer(http.Dir("./js")),
+		),
+	)
+	mux.Handle(
+		"/static/", 
+		http.StripPrefix(
+			"/static/", 
+			http.FileServer(http.Dir("./static")),
+		),
+	)
+	mux.Handle(
+		"/audio/", 
+		http.StripPrefix(
+			"/audio/", 
+			http.FileServer(http.Dir("./audio")),
+		),
+	)
+	mux.Handle(
+		"/images/", 
+		http.StripPrefix(
+			"/images/", 
+			http.FileServer(http.Dir("./images")),
+		),
+	)
+
+	server := &http.Server{
+		Addr: ":3000",
+		Handler: mux,
+		ReadTimeout: 5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout: 60 * time.Second,
 	}
 
-	engine := django.New("./views", ".html")
-	engine.AddFunc("CalculateModifier", CalculateModifier)
-	engine.AddFunc("CalculateProficiencyBonus", CalculateProficiencyBonus)
-	app := fiber.New(fiber.Config{
-		Views:             engine,
-		BodyLimit:         1024 * 1024 * 100,
-		StreamRequestBody: true,
-	})
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("Listening on :3000")
+		errCh <- server.ListenAndServe()
+	}()
 
-	app.Static("/css", "./public/css")
-	app.Static("/js", "./public/js")
-	app.Static("/static", "./public/static")
-	app.Static("/audio", "./public/audio")
-	app.Static("/images", "./public/images")
-	app.Static("/service-worker.js", "./public/service-worker.js")
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		var user models.User
-		//user, _ := GetSession(c, rdb)
-		return c.Render("pages/homepage/index", fiber.Map{
-			"User": user,
-		}, "layouts/main")
-	})
-	app.Get("/stub/home/join", func(c *fiber.Ctx) error {
-		return c.Render("stubs/home/join", fiber.Map{})
-	})
-
-	app.Get("/tos", func(c *fiber.Ctx) error {
-		return c.Render("pages/tos/index", fiber.Map{}, "layouts/main")
-	})
-	app.Get("/privacy", func(c *fiber.Ctx) error {
-		return c.Render("pages/privacy-policy/index", fiber.Map{}, "layouts/main")
-	})
-
-	app.Get("/user/verify", func(c *fiber.Ctx) error {
-		var user models.User
-		//user, err := GetSession(c, rdb)
-		//if err != nil {
-			//return c.SendStatus(500)
-		//}
-		if user.Id == "" {
-			return c.SendStatus(401)
-		}
-		return c.SendStatus(200)
-	})
-
-	app.Get("/logout", func(c *fiber.Ctx) error {
-		sessionId := c.Cookies("session_id", "")
-		if sessionId == "" {
-			return c.Redirect("/")
-		}
-		//err := rdb.Del(ctx, "session:"+sessionId).Err()
-		//if err != nil {
-			//log.Error("Failed to delete session from Redis: " + err.Error())
-			//return c.SendStatus(500)
-		//}
-		c.ClearCookie("session_id")
-		return c.Redirect("/")
-	})
-	app.Get("/sign-in", func(c *fiber.Ctx) error {
-		return c.Render("pages/sign-in/index", fiber.Map{
-			"Styles": []string{
-				"/css/homepage.css",
-			},
-		}, "layouts/main")
-	})
-	app.Get("/sign-up", func(c *fiber.Ctx) error {
-		return c.Render("pages/sign-up/index", fiber.Map{
-			"Styles": []string{
-				"/css/homepage.css",
-			},
-		}, "layouts/main")
-	})
-	app.Get("/authorize", func(c *fiber.Ctx) error {
-		token := c.Cookies("__session", "")
-		if token == "" {
-			log.Error("No token found in cookie")
-			return c.Redirect("/sign-in")
-		}
-		sessClaims, err := client.VerifyToken(token)
-		if err != nil {
-			log.Error("Failed to verify token: " + err.Error() + " - " + token)
-			return c.Redirect("/sign-in")
-		}
-		user, err := client.Users().Read(sessClaims.Claims.Subject)
-		if err != nil {
-			log.Error("Failed to read user: " + err.Error())
-			return c.Redirect("/sign-in")
-		}
-		user.ProfileImageURL
-
-		email := ""
-		if len(user.EmailAddresses) > 0 {
-			email = user.EmailAddresses[0].EmailAddress
-		}
-
-		username := ""
-		if user.Username != nil {
-			username = *user.Username
-		} else {
-			username = strings.Trim(user.ID, "user_")
-		}
-
-		customUser := models.User{
-			Id:       user.ID,
-			Username: username,
-			Email:    email,
-			Avatar:   user.ProfileImageURL,
-		}
-		sessionId := uuid.New().String()
-		sessionId = strings.ReplaceAll(sessionId, "-", "")
-		expires := time.Now().Add(168 * time.Hour) // 7 days
-
-		marshalledSession, err := json.Marshal(customUser)
-		err = rdb.Set(ctx, "session:"+sessionId, marshalledSession, 168*time.Hour).Err()
-		if err != nil {
-			log.Error("Failed to set session in Redis: " + err.Error())
-			return c.SendStatus(500)
-		}
-
-		c.Cookie(&fiber.Cookie{
-			Name:     "session_id",
-			Value:    sessionId,
-			Expires:  expires,
-			Secure:   os.Getenv("ENV") == "production",
-			HTTPOnly: true,
-			SameSite: "Strict",
-		})
-
-		return c.Redirect("/")
-	})
-
-	RoomRoutes(app, rdb)
-
-	app.Get("/*", func(c *fiber.Ctx) error {
-		return c.Redirect("/")
-	})
-
-	log.Fatal(app.Listen(":3000"))
-}
-
-func GetSession(c *fiber.Ctx, rdb *redis.Client) (models.User, error) {
-	sessionId := c.Cookies("session_id", "")
-	if sessionId == "" {
-		return models.User{}, nil
+	select {
+		case _ = <-sigCh:
+			slog.Info("Shutting down")
+		case err := <-errCh:
+			if !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("Server error", "err", err)
+				os.Exit(1)
+			}
+			slog.Info("Shutting down")
+			return
 	}
 
-	marshalledSession, err := rdb.Get(ctx, "session:"+sessionId).Result()
-	if err != nil {
-		log.Error("Failed to get session from Redis: " + err.Error())
-		return models.User{}, err
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		slog.Error("Graceful shutdown failed; forcing closed", "err", err)
+		_ = server.Close()
+		os.Exit(1)
 	}
 
-	var customUser models.User
-	err = json.Unmarshal([]byte(marshalledSession), &customUser)
-	if err != nil {
-		log.Error("Failed to unmarshal session from Redis: " + err.Error())
-		return models.User{}, err
-	}
-
-	return customUser, nil
-}
-
-func CreateSpacesClient() *s3.S3 {
-	key := os.Getenv("SPACES_KEY")
-	secret := os.Getenv("SPACES_SECRET")
-
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(key, secret, ""),
-		Endpoint:         aws.String("https://nyc3.digitaloceanspaces.com"),
-		Region:           aws.String("us-east-1"),
-		S3ForcePathStyle: aws.Bool(false),
-	}
-
-	newSession := session.New(s3Config)
-	s3Client := s3.New(newSession)
-	return s3Client
+	slog.Info("Server shutdown complete")
+	os.Exit(0)
 }
