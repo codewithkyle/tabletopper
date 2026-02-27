@@ -19,7 +19,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/django/v3"
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 )
 
 var ctx = context.Background()
@@ -59,11 +58,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create Clerk client: %v", err)
 	}
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_SERVER"),
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
-	})
 
 	engine := django.New("./views", ".html")
 	engine.AddFunc("CalculateModifier", CalculateModifier)
@@ -82,7 +76,8 @@ func main() {
 	app.Static("/service-worker.js", "./public/service-worker.js")
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		user, _ := GetSession(c, rdb)
+		var user models.User
+		//user, _ := GetSession(c, rdb)
 		return c.Render("pages/homepage/index", fiber.Map{
 			"User": user,
 		}, "layouts/main")
@@ -99,10 +94,11 @@ func main() {
 	})
 
 	app.Get("/user/verify", func(c *fiber.Ctx) error {
-		user, err := GetSession(c, rdb)
-		if err != nil {
-			return c.SendStatus(500)
-		}
+		var user models.User
+		//user, err := GetSession(c, rdb)
+		//if err != nil {
+			//return c.SendStatus(500)
+		//}
 		if user.Id == "" {
 			return c.SendStatus(401)
 		}
@@ -114,11 +110,11 @@ func main() {
 		if sessionId == "" {
 			return c.Redirect("/")
 		}
-		err := rdb.Del(ctx, "session:"+sessionId).Err()
-		if err != nil {
-			log.Error("Failed to delete session from Redis: " + err.Error())
-			return c.SendStatus(500)
-		}
+		//err := rdb.Del(ctx, "session:"+sessionId).Err()
+		//if err != nil {
+			//log.Error("Failed to delete session from Redis: " + err.Error())
+			//return c.SendStatus(500)
+		//}
 		c.ClearCookie("session_id")
 		return c.Redirect("/")
 	})
@@ -152,6 +148,7 @@ func main() {
 			log.Error("Failed to read user: " + err.Error())
 			return c.Redirect("/sign-in")
 		}
+		user.ProfileImageURL
 
 		email := ""
 		if len(user.EmailAddresses) > 0 {
