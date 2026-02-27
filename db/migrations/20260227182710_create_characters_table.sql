@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS characters (
     saving_throws JSON NOT NULL,
     features JSON NOT NULL,
     weapons JSON NOT NULL,
+    spell_slots JSON NOT NULL,
+    resources JSON NOT NULL,
+
     notes TEXT NOT NULL,
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
