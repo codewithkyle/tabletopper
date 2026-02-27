@@ -1,22 +1,22 @@
 module main
 
-go 1.21.1
+go 1.25.0
 
 require (
+	github.com/a-h/templ v0.3.977
+	github.com/aws/aws-sdk-go v1.48.4
 	github.com/charmbracelet/log v0.3.0
 	github.com/clerkinc/clerk-sdk-go v1.48.4
 	github.com/gofiber/fiber/v2 v2.51.0
 	github.com/gofiber/template/django/v3 v3.1.7
 	github.com/google/uuid v1.4.0
-	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.3.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/aws/aws-sdk-go v1.48.4 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/charmbracelet/lipgloss v0.9.1 // indirect
@@ -43,5 +43,5 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 )
