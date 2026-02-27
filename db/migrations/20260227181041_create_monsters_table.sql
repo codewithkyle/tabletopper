@@ -14,18 +14,18 @@ CREATE TABLE IF NOT EXISTS monsters (
     hp INT NOT NULL,
     hit_dice VARCHAR(64) NOT NULL,
 
-    `str` INT NOT NULL,
-    dex INT NOT NULL,
-    `con` INT NOT NULL,
-    `int` INT NOT NULL,
-    wis INT NOT NULL,
-    cha INT NOT NULL,
+    `str` TINYINT UNSIGNED NOT NULL,
+    dex TINYINT UNSIGNED NOT NULL,
+    `con` TINYINT UNSIGNED NOT NULL,
+    `int` TINYINT UNSIGNED NOT NULL,
+    wis TINYINT UNSIGNED NOT NULL,
+    cha TINYINT UNSIGNED NOT NULL,
 
-    languages VARCHAR(512) NOT NULL,
-    cr INT NOT NULL,
-    xp INT NOT NULL,
+    languages VARCHAR(255) NOT NULL,
+    cr VARCHAR(4) NOT NULL,
+    xp INT UNSIGNED NOT NULL,
 
-    speed VARCHAR(255) NOT NULL,
+    speed VARCHAR(128) NOT NULL,
 
     vulnerabilities VARCHAR(512) NOT NULL,
     resistances VARCHAR(512) NOT NULL,
