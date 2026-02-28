@@ -31,6 +31,16 @@ func main() {
 		pages.Homepage(session).Render(r.Context(), w)
 	})
 
+	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request){
+		var s session.UserSession
+		pages.TOS(s).Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/privacy", func(w http.ResponseWriter, r *http.Request){
+		var s session.UserSession
+		pages.PrivacyPolicy(s).Render(r.Context(), w)
+	})
+
 	// NOTE: static files
 	mux.Handle(
 		"/css/", 
