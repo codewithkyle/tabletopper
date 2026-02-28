@@ -7,9 +7,9 @@ import (
 
 var privacyPolicySettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
 	Title: "Privacy Policy | Tabletopper",
+	Session: session.UserSession{},
 }
-templ PrivacyPolicy(session session.UserSession) {
-	{{ privacyPolicySettings.Session = session }}
+templ PrivacyPolicy() {
 	{{ privacyPolicySettings.Content = privacyPolicyContent() }}
 	@layouts.Base(privacyPolicySettings)
 }

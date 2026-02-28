@@ -18,27 +18,38 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
+		// NOTE: required because the "/" route is the catch-all
+		if r.URL.Path != "/" {
+			slog.Warn("404 Not Found", "path", r.URL.Path)
+			http.NotFoundHandler().ServeHTTP(w, r)
+			return
+		}
+
 		db, err := db.Connect()
 		if err != nil {
-			// TODO: handle DB error
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
 		}
 
 		session, err := session.GetUserSessionFromCookie(r, db)
 		if err != nil {
-			// TODO: handle DB error
+			if err != http.ErrNoCookie {
+				http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			}
 		}
 
 		pages.Homepage(session).Render(r.Context(), w)
 	})
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request){
-		var s session.UserSession
-		pages.TOS(s).Render(r.Context(), w)
+		pages.TOS().Render(r.Context(), w)
 	})
 
 	mux.HandleFunc("/privacy", func(w http.ResponseWriter, r *http.Request){
-		var s session.UserSession
-		pages.PrivacyPolicy(s).Render(r.Context(), w)
+		pages.PrivacyPolicy().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request){
+		pages.ServerError().Render(r.Context(), w)
 	})
 
 	// NOTE: static files

@@ -7,9 +7,9 @@ import (
 
 var tosSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
 	Title: "Terms of Service | Tabletopper",
+	Session: session.UserSession{},
 }
-templ TOS(session session.UserSession) {
-	{{ tosSettings.Session = session }}
+templ TOS() {
 	{{ tosSettings.Content = tosContent() }}
 	@layouts.Base(tosSettings)
 }

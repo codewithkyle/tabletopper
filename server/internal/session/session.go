@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"main/internal/queries"
 	"net/http"
 
@@ -26,6 +27,7 @@ func GetUserSessionFromCookie(r *http.Request, db *sql.DB) (UserSession, error) 
 		if err == http.ErrNoCookie {
 			return session, err
 		}
+		slog.Error("Failed to get user session from cookie", "error", err)
 		return session, err
 	}
 
@@ -36,6 +38,7 @@ func GetUserSessionFromCookie(r *http.Request, db *sql.DB) (UserSession, error) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return session, nil
 		}
+		slog.Error("Failed to get user session from DB", "error", err)
 		return session, err
 	}
 

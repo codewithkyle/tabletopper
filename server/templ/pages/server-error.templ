@@ -1,0 +1,32 @@
+package pages
+
+import (
+	"main/internal/session"
+	"main/templ/layouts"
+)
+
+var serverErrorSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
+	Title: "Server Error | Tabletopper",
+	Session: session.UserSession{},
+}
+templ ServerError() {
+	{{ serverErrorSettings.Content = serverErrorContent() }}
+	@layouts.Base(serverErrorSettings)
+}
+
+templ serverErrorContent() {
+	<div style="max-height: calc(100vh - 4rem);backdrop-filter: blur(8px);max-width: calc(100vw - 4rem);" class="bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
+	    <div class="px-2 pt-1.75 pb-1">
+		<h1 class="font-grey-900 dark:font-grey-100 mb-1.5 font-2xl font-bold block">Server Error</h1>
+		<p class="block mb-1">Something went wrong on the server. If this continues to happen <a class="link" href="https://github.com/codewithkyle/tabletopper/issues" target="_blank">submit an issue.</a></p>
+	    </div>
+	    <div flex="justify-end items-center row nowrap" class="p-1 bg-grey-100 dark:bg-grey-950/60 border-t-1 border-t-solid border-t-grey-200 dark:border-t-grey-800">
+		<a
+		    class="bttn" 
+		    kind="solid" 
+		    color="grey"
+		    href="/"
+		>Go Home</a>
+	    </div>
+	</div>
+}
