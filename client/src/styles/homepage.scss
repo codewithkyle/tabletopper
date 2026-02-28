@@ -22,6 +22,10 @@ home-page {
         animation: fadeIn forwards 600ms 300ms var(--ease-in);
     }
 
+    #user-badge {
+        margin-top: -1rem;
+    }
+
     .actions {
         button-component {
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
