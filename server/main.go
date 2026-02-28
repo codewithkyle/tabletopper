@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	db "main/internal/database"
+	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/pages"
 	"net/http"
@@ -12,9 +14,18 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/clerkinc/clerk-sdk-go/clerk"
+	"github.com/oklog/ulid/v2"
 )
 
 func main() {
+	client, err := clerk.NewClient(os.Getenv("CLERK_API_KEY"))
+	if err != nil {
+		slog.Error("failed to create Clerk client", "error", err)
+		os.Exit(1)
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -25,15 +36,19 @@ func main() {
 			return
 		}
 
+		ctx := context.Background()
+
 		db, err := db.Connect()
 		if err != nil {
 			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
 		}
 
-		session, err := session.GetUserSessionFromCookie(r, db)
+		session, err := session.GetUserSessionFromCookie(r, db, ctx)
 		if err != nil {
-			if err != http.ErrNoCookie {
+			if !errors.Is(err, http.ErrNoCookie) {
 				http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+				return
 			}
 		}
 
@@ -50,6 +65,126 @@ func main() {
 
 	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
 		pages.ServerError().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/sign-in", func(w http.ResponseWriter, r *http.Request) {
+		pages.SignIn().Render(r.Context(), w)
+	})
+	mux.HandleFunc("/sign-up", func(w http.ResponseWriter, r *http.Request) {
+		pages.SignUp().Render(r.Context(), w)
+	})
+
+	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.Background()
+		db, err := db.Connect()
+		if err != nil {
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+		err = session.Logout(r, w, db, ctx)
+		if err != nil {
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	})
+
+	mux.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("__session")
+		if err != nil {
+			slog.Error("Failed to get user session from cookie", "error", err)
+			http.Redirect(w, r, "/sign-in?next=authorize", http.StatusTemporaryRedirect)
+			return
+		}
+		if cookie.Value == "" {
+			slog.Error("No token found in cookie")
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+
+		sessClaims, err := client.VerifyToken(cookie.Value)
+		if err != nil {
+			slog.Error("Failed to verify token", "error", err)
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+		user, err := client.Users().Read(sessClaims.Claims.Subject)
+		if err != nil {
+			slog.Error("Failed to read Clerk user", "error", err)
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+
+		db, err := db.Connect()
+		if err != nil {
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+		ctx := context.Background()
+		q := queries.New(db)
+
+		s := session.New()
+		s.ProfileImageURL = "/images/default-avatar.webp"
+		result, err := q.GetUserByClerkID(ctx, user.ID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				slog.Info("Someone signed up!", "clerkId", user.ID)
+				id := ulid.Make()
+				s.UserId = id
+				if len(user.ProfileImageURL) > 0 {
+					err = q.CreateUserWithAvatar(ctx, queries.CreateUserWithAvatarParams{
+						ID:              id[:],
+						Username:        *user.Username,
+						ClerkID:         user.ID,
+						ProfileImageUrl: user.ProfileImageURL,
+					})
+					if err != nil {
+						slog.Error("Failed to create user", "error", err)
+						http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+						return
+					}
+				} else {
+					err = q.CreateUser(ctx, queries.CreateUserParams{
+						ID:       id[:],
+						Username: *user.Username,
+						ClerkID:  user.ID,
+					})
+					if err != nil {
+						slog.Error("Failed to create user", "error", err)
+						http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+						return
+					}
+				}
+			} else {
+				slog.Error("DB error when querying user by Clerk ID", "error", err)
+				http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+				return
+			}
+		} else {
+			slog.Info("Found existing user")
+			s.UserId = ulid.ULID(result.ID)
+			s.ProfileImageURL = result.ProfileImageUrl
+			s.Username = result.Username
+		}
+
+		if len(*user.Username) > 0 {
+			s.Username = *user.Username
+		}
+		if len(user.ProfileImageURL) > 0 {
+			s.ProfileImageURL = user.ProfileImageURL
+		}
+
+		err = s.CreateSession(db, ctx)
+		if err != nil {
+			slog.Error("Failed to create session", "error", err)
+			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			return
+		}
+
+		s.SetCookie(w)
+		slog.Info("New session started", "name", s.Username)
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
 
 	// NOTE: static files
