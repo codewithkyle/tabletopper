@@ -17,7 +17,7 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// NOTE: required because the "/" route is the catch-all
 		if r.URL.Path != "/" {
 			slog.Warn("404 Not Found", "path", r.URL.Path)
@@ -40,61 +40,61 @@ func main() {
 		pages.Homepage(session).Render(r.Context(), w)
 	})
 
-	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request){
+	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)
 	})
 
-	mux.HandleFunc("/privacy", func(w http.ResponseWriter, r *http.Request){
+	mux.HandleFunc("/privacy", func(w http.ResponseWriter, r *http.Request) {
 		pages.PrivacyPolicy().Render(r.Context(), w)
 	})
 
-	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request){
+	mux.HandleFunc("/error", func(w http.ResponseWriter, r *http.Request) {
 		pages.ServerError().Render(r.Context(), w)
 	})
 
 	// NOTE: static files
 	mux.Handle(
-		"/css/", 
+		"/css/",
 		http.StripPrefix(
-			"/css/", 
+			"/css/",
 			http.FileServer(http.Dir("./public/css")),
 		),
 	)
 	mux.Handle(
-		"/js/", 
+		"/js/",
 		http.StripPrefix(
-			"/js/", 
+			"/js/",
 			http.FileServer(http.Dir("./public/js")),
 		),
 	)
 	mux.Handle(
-		"/static/", 
+		"/static/",
 		http.StripPrefix(
-			"/static/", 
+			"/static/",
 			http.FileServer(http.Dir("./public/static")),
 		),
 	)
 	mux.Handle(
-		"/audio/", 
+		"/audio/",
 		http.StripPrefix(
-			"/audio/", 
+			"/audio/",
 			http.FileServer(http.Dir("./public/audio")),
 		),
 	)
 	mux.Handle(
-		"/images/", 
+		"/images/",
 		http.StripPrefix(
-			"/images/", 
+			"/images/",
 			http.FileServer(http.Dir("./public/images")),
 		),
 	)
 
 	server := &http.Server{
-		Addr: ":3000",
-		Handler: mux,
-		ReadTimeout: 5 * time.Second,
+		Addr:         ":3000",
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		IdleTimeout: 60 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	errCh := make(chan error, 1)
@@ -107,15 +107,15 @@ func main() {
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
 	select {
-		case _ = <-sigCh:
-			slog.Info("Shutting down")
-		case err := <-errCh:
-			if !errors.Is(err, http.ErrServerClosed) {
-				slog.Error("Server error", "err", err)
-				os.Exit(1)
-			}
-			slog.Info("Shutting down")
-			return
+	case _ = <-sigCh:
+		slog.Info("Shutting down")
+	case err := <-errCh:
+		if !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Server error", "err", err)
+			os.Exit(1)
+		}
+		slog.Info("Shutting down")
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

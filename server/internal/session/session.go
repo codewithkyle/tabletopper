@@ -12,11 +12,11 @@ import (
 )
 
 type UserSession struct {
-	Id         ulid.ULID
-	UserId     ulid.ULID
-	CharacterId ulid.ULID
-	RoomId ulid.ULID
-	Username string
+	Id              ulid.ULID
+	UserId          ulid.ULID
+	CharacterId     ulid.ULID
+	RoomId          ulid.ULID
+	Username        string
 	ProfileImageURL string
 }
 
