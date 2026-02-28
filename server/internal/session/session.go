@@ -80,7 +80,8 @@ func (s *UserSession) CreateSession(db *sql.DB, ctx context.Context) error {
 	if _, err := rand.Read(s.Hash); err != nil {
 		return err
 	}
-	s.ExpiresAt = time.Now().Add(3 * 24 * time.Hour)
+	//s.ExpiresAt = time.Now().Add(3 * 24 * time.Hour)
+	s.ExpiresAt = time.Now().Add(1 * time.Hour)
 	err := q.StartSession(ctx, queries.StartSessionParams{
 		ID:              s.Id[:],
 		Username:        s.Username,

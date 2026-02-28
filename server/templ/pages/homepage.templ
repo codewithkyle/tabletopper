@@ -16,13 +16,10 @@ templ Homepage(session session.UserSession) {
 }
 
 templ homepageContent(session session.UserSession) {
-	<home-page class="p-2 max-w-full">
-		<div class="w-full max-w-1024 menu text-center">
-			<h1>Tabletopper</h1>
-			if !session.UserId.IsZero() {
-				<p class="mb-1 font-white font-xl">Welcome <span class="font-primary-300">{ session.Username }</span>!</p>
-			}
-			if session.UserId.IsZero() {
+	if session.UserId.IsZero() {
+		<home-page class="p-2 max-w-full">
+			<div class="w-full max-w-1024 menu text-center">
+				<h1 style="font-size:9rem;" class="mb-3">Tabletopper</h1>
 				<div class="actions w-full" flex="row nowrap items-center justify-center">
 					<a
 						href="/sign-in"
@@ -37,68 +34,97 @@ templ homepageContent(session session.UserSession) {
 						Log in to contine
 					</a>
 				</div>
-			}
-		</div>
-		<div class="fixed b-0 x-center mb-0.25">
-			<a
-				href="https://github.com/codewithkyle/tabletopper"
-				class="bttn"
-				kind="text"
-				color="white"
-				icon="center"
-				tooltip="Source Code"
-				shape="round"
-				target="_blank"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"></path></svg>
-			</a>
-			<a
-				href="https://github.com/users/codewithkyle/projects/5/views/1"
-				class="bttn"
-				kind="text"
-				color="white"
-				icon="center"
-				tooltip="Project Roadmap"
-				shape="round"
-				target="_blank"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 4l6 0"></path><path d="M14 4l6 0"></path><path d="M4 8m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path><path d="M14 8m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path></svg>
-			</a>
-			<a
-				href="/tos"
-				class="bttn"
-				kind="text"
-				color="white"
-				icon="center"
-				tooltip="Terms of Service"
-				shape="round"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M13 10l7.383 7.418c.823 .82 .823 2.148 0 2.967a2.11 2.11 0 0 1 -2.976 0l-7.407 -7.385"></path><path d="M6 9l4 4"></path><path d="M13 10l-4 -4"></path><path d="M3 21h7"></path><path d="M6.793 15.793l-3.586 -3.586a1 1 0 0 1 0 -1.414l2.293 -2.293l.5 .5l3 -3l-.5 -.5l2.293 -2.293a1 1 0 0 1 1.414 0l3.586 3.586a1 1 0 0 1 0 1.414l-2.293 2.293l-.5 -.5l-3 3l.5 .5l-2.293 2.293a1 1 0 0 1 -1.414 0z"></path></svg>
-			</a>
-			<a
-				href="/privacy"
-				class="bttn"
-				kind="text"
-				color="white"
-				icon="center"
-				tooltip="Privacy Policy"
-				shape="round"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 11h18"></path><path d="M5 11v-4a3 3 0 0 1 3 -3h8a3 3 0 0 1 3 3v4"></path><path d="M7 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M17 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M10 17h4"></path></svg>
-			</a>
-			if !session.UserId.IsZero() {
-				<a
-					href="/logout"
-					class="bttn"
-					kind="text"
-					color="white"
-					icon="center"
-					tooltip="Logout"
-					shape="round"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"></path><path d="M15 12h-12l3 -3"></path><path d="M6 15l-3 -3"></path></svg>
-				</a>
-			}
-		</div>
-	</home-page>
+			</div>
+			@footer()
+		</home-page>
+	} else {
+		<home-page class="pl-3 pt-2 pr-2 w-screen h-screen t-0 l-0" style="inset:0;">
+			<div class="w-full" flex="row nowrap justify-between items-center">
+				<h1 style="font-size:6rem;">Tabletopper</h1>
+				<div id="user-badge" class="bg-grey-900/60 py-0.5 px-0.75" flex="row nowrap items-center" style="backdrop-filter:blur(8px);border-radius:9999px;overflow:hidden;">
+					<img class="mr-0.75" style="overflow:hidden;width:48px;height:48px;border-radius:24px;" src={ session.ProfileImageURL }/>
+					<p class="inline-block mr-2 font-xs font-medium">
+						Welcome
+						<br/>
+						<span class="inline-block mt-0.25 font-primary-300 font-lg font-bold">{ session.Username }</span>
+					</p>
+					<a
+						href="/logout"
+						class="bttn"
+						kind="text"
+						color="white"
+						icon="center"
+						tooltip="Logout"
+						shape="round"
+						size="large"
+						sfx="button"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"></path><path d="M15 12h-12l3 -3"></path><path d="M6 15l-3 -3"></path></svg>
+					</a>
+				</div>
+			</div>
+			<nav>
+				<a sfx="button" href="/host">Host Game</a>
+				<a sfx="button" href="/join">Join Game</a>
+				<a sfx="button" href="/characters">Characters</a>
+				<a sfx="button" href="/assets">Manage Assets</a>
+			</nav>
+			@footer()
+		</home-page>
+	}
+}
+
+templ footer() {
+	<div class="fixed b-0 x-center mb-0.25">
+		<a
+			href="https://github.com/codewithkyle/tabletopper"
+			class="bttn"
+			kind="text"
+			color="white"
+			icon="center"
+			tooltip="Source Code"
+			shape="round"
+			target="_blank"
+			sfx="button"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"></path></svg>
+		</a>
+		<a
+			href="https://github.com/users/codewithkyle/projects/5/views/1"
+			class="bttn"
+			kind="text"
+			color="white"
+			icon="center"
+			tooltip="Project Roadmap"
+			shape="round"
+			target="_blank"
+			sfx="button"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 4l6 0"></path><path d="M14 4l6 0"></path><path d="M4 8m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path><path d="M14 8m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z"></path></svg>
+		</a>
+		<a
+			href="/tos"
+			class="bttn"
+			kind="text"
+			color="white"
+			icon="center"
+			tooltip="Terms of Service"
+			shape="round"
+			sfx="button"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M13 10l7.383 7.418c.823 .82 .823 2.148 0 2.967a2.11 2.11 0 0 1 -2.976 0l-7.407 -7.385"></path><path d="M6 9l4 4"></path><path d="M13 10l-4 -4"></path><path d="M3 21h7"></path><path d="M6.793 15.793l-3.586 -3.586a1 1 0 0 1 0 -1.414l2.293 -2.293l.5 .5l3 -3l-.5 -.5l2.293 -2.293a1 1 0 0 1 1.414 0l3.586 3.586a1 1 0 0 1 0 1.414l-2.293 2.293l-.5 -.5l-3 3l.5 .5l-2.293 2.293a1 1 0 0 1 -1.414 0z"></path></svg>
+		</a>
+		<a
+			href="/privacy"
+			class="bttn"
+			kind="text"
+			color="white"
+			icon="center"
+			tooltip="Privacy Policy"
+			shape="round"
+			sfx="button"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 11h18"></path><path d="M5 11v-4a3 3 0 0 1 3 -3h8a3 3 0 0 1 3 3v4"></path><path d="M7 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M17 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M10 17h4"></path></svg>
+		</a>
+	</div>
 }

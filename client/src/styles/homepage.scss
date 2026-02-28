@@ -1,35 +1,68 @@
-home-page{
+home-page {
     display: inline-block;
     position: relative;
 
-    .menu{
-        h1{
-            font-size: 4rem;
-            font-family: "Lobster";
-            font-weight: var(--font-bold);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            color: var(--white);
-            animation: fadeIn forwards 600ms 300ms var(--ease-in);
-            opacity: 0;
-            margin-bottom: 3rem;
+    h1 {
+        font-family: "Lobster";
+        font-weight: var(--font-bold);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        color: var(--white);
+        animation: fadeIn forwards 600ms 300ms var(--ease-in);
+        opacity: 0;
 
-            @media (min-width: 768px){
-                font-size: 10rem;
-            }
+        @media (min-width: 768px) {
+            font-size: 10rem;
         }
+    }
 
-        .actions{
-            opacity: 0;
-            animation: fadeIn forwards 600ms 300ms var(--ease-in);
+    #user-badge {
+        opacity: 0;
+        animation: fadeIn forwards 600ms 300ms var(--ease-in);
+    }
 
-            button-component{
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            }
+    .actions {
+        opacity: 0;
+        animation: fadeIn forwards 600ms 300ms var(--ease-in);
+
+        button-component {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
         }
     }
 
     .join,
-    .character{
+    .character {
         animation: fadeIn forwards 600ms 0ms var(--ease-in);
+    }
+
+    nav {
+        display: inline-block;
+        margin-top: 10vh;
+        padding-left: 1rem;
+
+        &:hover,
+        &:focus-within {
+            a {
+                color: var(--grey-300);
+                opacity: 0.87;
+            }
+        }
+
+        a {
+            display: block;
+            margin-bottom: 1.5rem;
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #fff;
+            opacity: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            transition: all 150ms var(--ease-in-out);
+
+            &:hover,
+            &:focus-visible {
+                color: #fff !important;
+                opacity: 1;
+                text-shadow: 0 0px 4px rgba(255, 255, 255, 0.1);
+            }
+        }
     }
 }
