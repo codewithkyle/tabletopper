@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -24,7 +25,7 @@ require (
 	github.com/flosch/pongo2/v6 v6.0.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/gofiber/template v1.8.2 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -37,6 +38,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
+	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.50.0 // indirect

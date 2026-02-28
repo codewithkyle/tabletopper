@@ -1,4 +1,4 @@
 .env
 /tmp
-templ/*_templ.go
+templ/**/*_templ.go
 internal/queries/

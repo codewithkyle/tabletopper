@@ -1,0 +1,77 @@
+package layouts
+
+import "main/internal/session"
+
+type BaseTemplateSettings struct {
+    Title string
+    Content templ.Component
+    Session session.UserSession
+}
+
+templ Base(settings BaseTemplateSettings) {
+    <!DOCTYPE html>
+    <html>
+        <head hx-head="append">
+            <title>{ settings.Title }</title>
+
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+
+            <link rel="stylesheet" href="/css/core.css">
+            <link rel="stylesheet" href="/css/normalize.css">
+            <link rel="stylesheet" href="/css/brixi.css">
+            <link rel="stylesheet" href="/css/bootstrap.css">
+
+            <link rel="stylesheet" href="/css/animations.css">
+            <link rel="stylesheet" href="/css/snackbar.css">
+            <link rel="stylesheet" href="/css/notifications.css">
+            <link rel="stylesheet" href="/css/button.css">
+            <link rel="stylesheet" href="/css/input.css">
+            <link rel="stylesheet" href="/css/homepage.css">
+            <link rel="stylesheet" href="/css/tooltip.css">
+
+            <script defer src="/static/htmx.min.js"></script>
+            <script defer src="/static/alpine.min.js"></script>
+            <script type="module" src="/js/bootstrap.js"></script>
+            <script type="module" src="/js/tooltipper.js"></script>
+
+            <style>[x-cloak] { display: none !important; }</style>
+        </head>
+        <body hx-ext="preload,response-targets,head-support">
+            <img id="wood-img" src="/images/background.jpg" width="1920" loading="lazy" draggable="false" onload="this.style.opacity = '1';">
+            <main class="w-full h-full" flex="justify-center items-center column wrap">
+                @settings.Content
+            </main>
+            <modal-element
+                x-data="{ show: false, confirmLabel:'', cancelLabel:'', heading:'', message:'', uid:'' }"
+                x-cloak
+                x-show="show"
+                x-on:show-confirm-modal.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; confirmLabel = $event.detail.confirmLabel; cancelLabel = $event.detail.cancelLabel; show = true;"
+            >
+                <modal-background></modal-background>
+                <modal-content class="p-6 w-lg">
+                    <h4 
+                        class="block text-lg font-semibold text-grey-800 dark:text-grey-100 mb-3"
+                        x-text="heading"
+                    ></h4>
+                    <p 
+                        class="block text-grey-700 dark:text-grey-400 mb-6"
+                        x-text="message"
+                    ></p>
+                    <div class="w-full flex flex-row flex-nowrap items-center justify-end">
+                        <button 
+                            class="bttn -outline mr-2"
+                            x-text="cancelLabel"
+                            x-on:click="$dispatch('confirm-modal:cancel', uid); show = false;"
+                        >Close</button>
+                        <button 
+                            class="bttn -outline -alt"
+                            x-text="confirmLabel"
+                            x-on:click="$dispatch('confirm-modal:confirm', uid); show = false;"
+                        ></button>
+                    </div>
+                </modal-content>
+            </modal-element>
+        </body>
+    </html>
+}

@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	db "main/internal/database"
+	"main/internal/session"
+	"main/templ/pages"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,7 +18,17 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
-		w.Write([]byte("OK"))
+		db, err := db.Connect()
+		if err != nil {
+			// TODO: handle DB error
+		}
+
+		session, err := session.GetUserSessionFromCookie(r, db)
+		if err != nil {
+			// TODO: handle DB error
+		}
+
+		pages.Homepage(session).Render(r.Context(), w)
 	})
 
 	// NOTE: static files
@@ -23,35 +36,35 @@ func main() {
 		"/css/", 
 		http.StripPrefix(
 			"/css/", 
-			http.FileServer(http.Dir("./css")),
+			http.FileServer(http.Dir("./public/css")),
 		),
 	)
 	mux.Handle(
 		"/js/", 
 		http.StripPrefix(
 			"/js/", 
-			http.FileServer(http.Dir("./js")),
+			http.FileServer(http.Dir("./public/js")),
 		),
 	)
 	mux.Handle(
 		"/static/", 
 		http.StripPrefix(
 			"/static/", 
-			http.FileServer(http.Dir("./static")),
+			http.FileServer(http.Dir("./public/static")),
 		),
 	)
 	mux.Handle(
 		"/audio/", 
 		http.StripPrefix(
 			"/audio/", 
-			http.FileServer(http.Dir("./audio")),
+			http.FileServer(http.Dir("./public/audio")),
 		),
 	)
 	mux.Handle(
 		"/images/", 
 		http.StripPrefix(
 			"/images/", 
-			http.FileServer(http.Dir("./images")),
+			http.FileServer(http.Dir("./public/images")),
 		),
 	)
 

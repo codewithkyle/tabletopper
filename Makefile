@@ -1,4 +1,4 @@
-.PHONY: db templ sqlc client run
+.PHONY: db sqlc templ client run
 
 run: db templ sqlc client
 	docker compose up --build

@@ -1,8 +1,8 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS characters (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    owner_id BINARY(16) NOT NULL,
-    asset_id BINARY(16) NULL,
+    id VARBINARY(16) NOT NULL PRIMARY KEY,
+    owner_id VARBINARY(16) NOT NULL,
+    asset_id VARBINARY(16) NULL,
 
     name VARCHAR(128) NOT NULL,
 

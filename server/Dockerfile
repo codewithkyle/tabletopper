@@ -22,8 +22,6 @@ WORKDIR /root/
 # Step 9: Copy the Go binary from the builder stage
 COPY --from=builder /app/tabletopper .
 
-COPY ./server/views ./views
-
 COPY ./client/public ./public
 
 # Step 10: Expose the port that the app will run on

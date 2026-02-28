@@ -1,8 +1,8 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS spells (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    owner_id BINARY(16) NOT NULL,
-    character_id BINARY(16) NOT NULL,
+    id VARBINARY(16) NOT NULL PRIMARY KEY,
+    owner_id VARBINARY(16) NOT NULL,
+    character_id VARBINARY(16) NOT NULL,
 
     level TINYINT UNSIGNED NOT NULL, -- 0..9 (cantrips = 0)
     name VARCHAR(128) NOT NULL,

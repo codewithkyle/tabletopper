@@ -1,9 +1,9 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS rooms (
-    id  BINARY(16) PRIMARY KEY NOT NULL,
-    owner_id BINARY(16) NOT NULL,
+    id  VARBINARY(16) PRIMARY KEY NOT NULL,
+    owner_id VARBINARY(16) NOT NULL,
 
-    code VARCHAR(4) NOT NULL,
+    code CHAR(4) CHARACTER SET ascii NOT NULL,
     is_open TINYINT(1) NOT NULL DEFAULT 1,
     is_locked TINYINT(1) NOT NULL DEFAULT 0,
 

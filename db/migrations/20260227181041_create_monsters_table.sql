@@ -1,8 +1,8 @@
 -- migrate:up
 CREATE TABLE IF NOT EXISTS monsters (
-    id BINARY(16) NOT NULL PRIMARY KEY,
-    owner_id BINARY(16) NOT NULL,
-    asset_id BINARY(16) NOT NULL,
+    id VARBINARY(16) NOT NULL PRIMARY KEY,
+    owner_id VARBINARY(16) NOT NULL,
+    asset_id VARBINARY(16) NOT NULL,
 
     name VARCHAR(255) NOT NULL,
     size VARCHAR(32) NOT NULL,
