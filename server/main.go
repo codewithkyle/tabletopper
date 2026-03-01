@@ -61,6 +61,7 @@ func main() {
 	mux.HandleFunc("POST /characters", controllers.NewCharacterForm)
 	mux.HandleFunc("/characters/{id}/edit", controllers.CharacterPage)
 	mux.HandleFunc("POST /characters/{id}", controllers.EditCharacterForm)
+	mux.HandleFunc("DELETE /characters/{id}/delete", controllers.DeleteCharacter)
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)

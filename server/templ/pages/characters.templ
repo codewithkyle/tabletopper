@@ -18,16 +18,26 @@ templ Characters(session session.UserSession, characters []queries.GetCharacters
 }
 
 templ Character(character queries.GetCharactersRow) {
-	<div style="backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
+	<character-card style="backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
 		<p>{ character.Name }</p>
 		<a
 			href={ "/characters/" + ulid.ULID(character.ID).String() + "/edit" }
 			class="bttn"
-			kind="outline"
+			kind="text"
 			color="white"
 			sfx="button"
 		>Edit</a>
-	</div>
+		<button
+			hx-confirm={"You are about to delete your character " + character.Name + "? This action cannot be undone."}
+			hx-delete={ "/characters/" + ulid.ULID(character.ID).String() + "/delete" }
+			hx-target="closest character-card"
+			hx-swap="delete"
+			class="bttn"
+			kind="text"
+			color="danger"
+			sfx="button"
+		>Delete</button>
+	</character-card>
 }
 
 templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {

@@ -19,6 +19,43 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		return
+	}
+	uid, err := ulid.Parse(id)
+	if err != nil {
+		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		return
+	}
+
+	q := queries.New(db)
+	err = q.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
+		ID:      uid[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()

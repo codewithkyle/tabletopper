@@ -21,6 +21,7 @@ templ Base(settings BaseTemplateSettings) {
             <link rel="stylesheet" href="/css/normalize.css">
             <link rel="stylesheet" href="/css/brixi.css">
             <link rel="stylesheet" href="/css/bootstrap.css">
+            <link rel="stylesheet" href="/css/modal-element.css">
 
             <link rel="stylesheet" href="/css/animations.css">
             <link rel="stylesheet" href="/css/snackbar.css">
@@ -44,6 +45,7 @@ templ Base(settings BaseTemplateSettings) {
             <script defer src="/static/alpine.min.js"></script>
             <script type="module" src="/js/bootstrap.js"></script>
             <script type="module" src="/js/tooltipper.js"></script>
+            <script type="module" src="/js/confirm-modal.js"></script>
 
             <script type="module" src="/js/lightswitch.js"></script>
             <script type="module" src="/js/select.js"></script>
@@ -68,23 +70,27 @@ templ Base(settings BaseTemplateSettings) {
                 x-on:show-confirm-modal.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; confirmLabel = $event.detail.confirmLabel; cancelLabel = $event.detail.cancelLabel; show = true;"
             >
                 <modal-background></modal-background>
-                <modal-content class="p-6 w-lg">
+                <modal-content class="p-1.5">
                     <h4 
-                        class="block text-lg font-semibold text-grey-800 dark:text-grey-100 mb-3"
+                        class="block font-lg font-semibold font-grey-800 dark:font-grey-100 mb-0.75"
                         x-text="heading"
                     ></h4>
                     <p 
-                        class="block text-grey-700 dark:text-grey-400 mb-6"
+                        class="block font-grey-700 dark:font-grey-400 mb-1.5"
                         x-text="message"
                     ></p>
-                    <div class="w-full flex flex-row flex-nowrap items-center justify-end">
+                    <div class="w-full" flex="row nowrap items-center justify-end">
                         <button 
-                            class="bttn -outline mr-2"
+                            class="bttn mr-0.5"
+                            color="grey"
+                            kind="solid"
                             x-text="cancelLabel"
                             x-on:click="$dispatch('confirm-modal:cancel', uid); show = false;"
                         >Close</button>
                         <button 
-                            class="bttn -outline -alt"
+                            class="bttn"
+                            color="danger"
+                            kind="solid"
                             x-text="confirmLabel"
                             x-on:click="$dispatch('confirm-modal:confirm', uid); show = false;"
                         ></button>

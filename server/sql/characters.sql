@@ -7,6 +7,10 @@ ORDER BY created_at DESC;
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;
 
+-- name: DeleteCharacterByIDAndOwner :exec
+DELETE FROM characters
+WHERE id = ? AND owner_id = ?;
+
 -- name: CreateCharacter :exec
 INSERT INTO characters (
     id,
