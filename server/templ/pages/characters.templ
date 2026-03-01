@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"github.com/oklog/ulid/v2"
 	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/layouts"
@@ -14,6 +15,19 @@ templ Characters(session session.UserSession, characters []queries.GetCharacters
 	{{ charactersSettings.Session = session }}
 	{{ charactersSettings.Content = charactersContent(session, characters) }}
 	@layouts.Base(charactersSettings)
+}
+
+templ Character(character queries.GetCharactersRow) {
+	<div style="backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
+		<p>{ character.Name }</p>
+		<a
+			href={ "/characters/" + ulid.ULID(character.ID).String() }
+			class="bttn"
+			kind="outline"
+			color="white"
+			sfx="button"
+		>Edit</a>
+	</div>
 }
 
 templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {
@@ -35,6 +49,12 @@ templ charactersContent(session session.UserSession, characters []queries.GetCha
 		</div>
 		if len(characters) == 0 {
 			<p style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);margin-top:42vh;" class="text-center block w-full">Looks like you don't have any characters yet. <a sfx="button" class="link" href="/characters/new">Create one.</a></p>
+		} else {
+			<div class="w-full" grid="cols 1 gap-1.5">
+				for _, character := range characters {
+					@Character(character)
+				}
+			</div>
 		}
 	</character-selector>
 }
