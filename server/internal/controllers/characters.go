@@ -19,6 +19,58 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+func CharacterPage(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		return
+	}
+	uid := ulid.MustParse(id)
+
+	q := queries.New(db)
+	// TODO: query character by uid, session.UserId
+
+	pages.Character(session, results).Render(r.Context(), w)
+}
+
+func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		return
+	}
+	uid := ulid.MustParse(id)
+
+	q := queries.New(db)
+	// TODO: update character by uid, session.UserId
+
+	http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+}
+
 func CharactersPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
