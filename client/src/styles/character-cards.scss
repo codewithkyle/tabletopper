@@ -1,0 +1,279 @@
+character-selector.character-roster-shell {
+    --roster-panel: hsl(43 53% 95% / 0.87);
+    --roster-panel-border: hsl(31 29% 61% / 0.85);
+    --roster-ink: #2f2418;
+    --roster-muted: #6f5c47;
+    --roster-rule: hsl(33 34% 62% / 0.87);
+    --roster-accent: #f7e3c5;
+    --roster-shadow: 0 22px 40px hsl(25 38% 16% / 0.25);
+
+    display: block;
+    min-height: 100dvh;
+    color: var(--roster-ink);
+    color-scheme: light;
+
+    .character-roster-frame {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        padding: 1rem;
+        overflow: auto;
+        display: grid;
+        align-content: start;
+        gap: 1rem;
+    }
+
+    .character-roster-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding: 0.25rem 0.25rem 0.75rem;
+        border-bottom: 2px solid var(--roster-rule);
+    }
+
+    .character-roster-heading {
+        margin: 0.15rem 0 0;
+        font-family: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
+        color: var(--roster-accent);
+        font-size: clamp(1.45rem, 2.4vw, 2.05rem);
+        line-height: 1;
+    }
+
+    .character-roster-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem;
+    }
+
+    character-card.character-roster-card {
+        border: 1px solid hsl(31 28% 58% / 0.85);
+        backdrop-filter: blur(8px);
+        border-radius: 0.5rem;
+        background: var(--roster-panel);
+        padding: 1rem;
+        box-shadow: 0 10px 18px hsl(25 22% 26% / 0.12);
+        display: grid;
+        gap: 1rem;
+    }
+
+    .character-roster-hero {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.65rem;
+        align-items: center;
+    }
+
+    .character-roster-avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 999px;
+        border: 2px solid hsl(26 45% 35% / 0.35);
+        background:
+            radial-gradient(circle at 30% 20%, hsl(44 66% 92%), hsl(37 34% 74%));
+        display: grid;
+        place-items: center;
+        font-family: "Cinzel", "Iowan Old Style", serif;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: hsl(24 38% 28%);
+    }
+
+    .character-roster-avatar-linked {
+        border-color: hsl(143 50% 33% / 0.5);
+        box-shadow: 0 0 0 3px hsl(143 40% 50% / 0.14);
+    }
+
+    .character-roster-name {
+        margin: 0;
+        font-family: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
+        color: #684f35;
+        font-size: 1.22rem;
+        line-height: 1.05;
+
+        @media (prefers-color-scheme: dark) {
+            color: var(--roster-accent);
+        }
+    }
+
+    .character-roster-subtitle {
+        margin: 0.18rem 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.42rem;
+        flex-wrap: wrap;
+        color: var(--roster-muted);
+        font-size: 0.83rem;
+        font-weight: 600;
+    }
+
+    .character-roster-sep {
+        color: hsl(28 24% 44% / 0.55);
+    }
+
+    .character-roster-tags {
+        text-transform: capitalize;
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .character-roster-tag {
+        display: inline-flex;
+        align-items: center;
+        height: 1.55rem;
+        border-radius: 999px;
+        border: 1px solid hsl(32 26% 61% / 0.8);
+        background: hsl(45 43% 95% / 0.9);
+        color: hsl(30 32% 31%);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        padding: 0 0.62rem;
+    }
+
+    .character-roster-stats {
+        border-top: 1px solid hsl(33 28% 66% / 0.7);
+        border-bottom: 1px solid hsl(33 28% 66% / 0.7);
+        padding: 0.6rem 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .character-roster-stat {
+        display: grid;
+        gap: 0.1rem;
+        align-content: start;
+
+        strong {
+            font-size: 1rem;
+            color: hsl(23 40% 22%);
+            font-weight: 800;
+            line-height: 1.1;
+        }
+    }
+
+    .character-roster-stat-label {
+        color: var(--roster-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.66rem;
+        font-weight: 700;
+    }
+
+    .character-roster-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .character-roster-meta {
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: hsl(28 32% 33% / 0.85);
+        font-weight: 700;
+    }
+
+    .character-roster-actions {
+        display: flex;
+        gap: 0.35rem;
+    }
+
+    .character-roster-empty {
+        width: min(560px, 100%);
+        margin: min(14vh, 7rem) auto 0;
+        border: 1px solid var(--roster-panel-border);
+        border-radius: 0.62rem;
+        background: hsl(43 49% 95% / 0.92);
+        box-shadow: 0 12px 24px hsl(26 24% 23% / 0.16);
+        padding: 1.1rem;
+        text-align: center;
+    }
+
+    .character-roster-empty-title {
+        margin: 0;
+        color: var(--roster-accent);
+        font-family: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: 1.18rem;
+    }
+
+    .character-roster-empty-copy {
+        margin: 0.45rem 0 0.7rem;
+        color: var(--roster-muted);
+        font-size: 1rem;
+    }
+
+    @media (max-width: 700px) {
+        padding: 0.6rem;
+
+        .character-roster-frame {
+            padding: 0.7rem;
+        }
+
+        .character-roster-header {
+            align-items: stretch;
+
+            .bttn {
+                width: 100%;
+            }
+        }
+
+        .character-roster-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .character-roster-actions {
+            width: 100%;
+
+            .bttn {
+                flex: 1;
+            }
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        --roster-panel: hsl(220 11% 19% / 0.87);
+        --roster-panel-border: hsl(31 20% 35% / 0.85);
+        --roster-ink: #e7d7bc;
+        --roster-muted: #b59e7e;
+        --roster-shadow: 0 24px 42px hsl(0 0% 0% / 0.25);
+        color-scheme: dark;
+
+        character-card.character-roster-card {
+            border-color: hsl(30 20% 37% / 0.9);
+            box-shadow: 0 12px 24px hsl(0 0% 0% / 0.25);
+        }
+
+        .character-roster-avatar {
+            border-color: hsl(35 32% 55% / 0.42);
+            background: radial-gradient(circle at 30% 20%, hsl(34 24% 35%), hsl(31 22% 25%));
+            color: hsl(41 56% 80%);
+        }
+
+        .character-roster-tag {
+            border-color: hsl(33 24% 43% / 0.88);
+            background: hsl(220 10% 22% / 0.95);
+            color: hsl(36 46% 74%);
+        }
+
+        .character-roster-stats {
+            border-top-color: hsl(34 19% 42% / 0.8);
+            border-bottom-color: hsl(34 19% 42% / 0.8);
+        }
+
+        .character-roster-stat strong {
+            color: hsl(39 62% 78%);
+        }
+
+        .character-roster-empty {
+            border-color: var(--roster-panel-border);
+            background: hsl(220 10% 21% / 0.95);
+            box-shadow: 0 16px 30px hsl(0 0% 0% / 0.32);
+        }
+    }
+}

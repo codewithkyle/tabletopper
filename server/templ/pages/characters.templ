@@ -1,14 +1,76 @@
 package pages
 
 import (
+	"database/sql"
+	"fmt"
 	"github.com/oklog/ulid/v2"
 	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/layouts"
+	"strings"
 )
 
 var charactersSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
 	Title: "Characters | Tabletopper",
+}
+
+func characterValueOrFallback(value sql.NullString, fallback string) string {
+	if !value.Valid {
+		return fallback
+	}
+
+	trimmed := strings.TrimSpace(value.String)
+	if trimmed == "" {
+		return fallback
+	}
+
+	return trimmed
+}
+
+func characterInitial(name string) string {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "?"
+	}
+
+	runes := []rune(trimmed)
+	if len(runes) == 0 {
+		return "?"
+	}
+
+	return strings.ToUpper(string(runes[0]))
+}
+
+func signedNumber(value int) string {
+	if value > 0 {
+		return fmt.Sprintf("+%d", value)
+	}
+
+	return fmt.Sprintf("%d", value)
+}
+
+func formatCharacterSize(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "Medium"
+	}
+
+	runes := []rune(strings.ToLower(trimmed))
+	if len(runes) == 0 {
+		return "Medium"
+	}
+
+	runes[0] = []rune(strings.ToUpper(string(runes[0])))[0]
+	return string(runes)
+}
+
+func characterSpeedOrFallback(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "30 ft."
+	}
+
+	return trimmed
 }
 
 templ Characters(session session.UserSession, characters []queries.GetCharactersRow) {
@@ -18,53 +80,109 @@ templ Characters(session session.UserSession, characters []queries.GetCharacters
 }
 
 templ Character(character queries.GetCharactersRow) {
-	<character-card style="backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
-		<p>{ character.Name }</p>
-		<a
-			href={ "/characters/" + ulid.ULID(character.ID).String() + "/edit" }
-			class="bttn"
-			kind="text"
-			color="white"
-			sfx="button"
-		>Edit</a>
-		<button
-			hx-confirm={"You are about to delete your character " + character.Name + "? This action cannot be undone."}
-			hx-delete={ "/characters/" + ulid.ULID(character.ID).String() + "/delete" }
-			hx-target="closest character-card"
-			hx-swap="delete"
-			class="bttn"
-			kind="text"
-			color="danger"
-			sfx="button"
-		>Delete</button>
+	<character-card class="character-roster-card">
+		<div class="character-roster-hero">
+			if character.AssetID.Valid {
+				<div class="character-roster-avatar character-roster-avatar-linked" aria-label="Portrait linked">
+					<span>{ characterInitial(character.Name) }</span>
+				</div>
+			} else {
+				<div class="character-roster-avatar" aria-label="No portrait yet">
+					<span>{ characterInitial(character.Name) }</span>
+				</div>
+			}
+			<div class="character-roster-title-block">
+				<h2 class="character-roster-name">{ character.Name }</h2>
+				<p class="character-roster-subtitle">
+					<span>Lvl { fmt.Sprintf("%d", character.Level) }</span>
+					<span class="character-roster-sep">|</span>
+					<span>{ characterValueOrFallback(character.Classes, "Class Unknown") }</span>
+				</p>
+			</div>
+		</div>
+
+		<div class="character-roster-tags">
+			<span class="character-roster-tag">{ characterValueOrFallback(character.Race, "Unknown Lineage") }</span>
+			<span class="character-roster-tag">{ characterValueOrFallback(character.Background, "No Background") }</span>
+			<span class="character-roster-tag">{ characterValueOrFallback(character.Alignment, "Unaligned") }</span>
+			<span class="character-roster-tag">{ formatCharacterSize(character.Size) }</span>
+		</div>
+
+		<div class="character-roster-stats">
+			<div class="character-roster-stat">
+				<span class="character-roster-stat-label">Armor Class</span>
+				<strong>{ fmt.Sprintf("%d", character.Ac) }</strong>
+			</div>
+			<div class="character-roster-stat">
+				<span class="character-roster-stat-label">Hit Points</span>
+				<strong>{ fmt.Sprintf("%d / %d", character.CurrentHp, character.MaxHp) }</strong>
+			</div>
+			<div class="character-roster-stat">
+				<span class="character-roster-stat-label">Proficiency</span>
+				<strong>{ signedNumber(int(character.ProficiencyBonus)) }</strong>
+			</div>
+			<div class="character-roster-stat">
+				<span class="character-roster-stat-label">Speed</span>
+				<strong>{ characterSpeedOrFallback(character.Speed) }</strong>
+			</div>
+		</div>
+
+		<div class="character-roster-footer">
+			<div class="character-roster-meta"></div>
+			<div class="character-roster-actions">
+				<a
+					href={ "/characters/" + ulid.ULID(character.ID).String() + "/edit" }
+					class="bttn"
+					kind="text"
+					color="grey"
+					sfx="button"
+				>Edit</a>
+				<button
+					hx-confirm={"You are about to delete your character " + character.Name + "? This action cannot be undone."}
+					hx-delete={ "/characters/" + ulid.ULID(character.ID).String() + "/delete" }
+					hx-target="closest character-card"
+					hx-swap="delete"
+					class="bttn"
+					kind="text"
+					color="danger"
+					sfx="button"
+				>Delete</button>
+			</div>
+		</div>
 	</character-card>
 }
 
 templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {
-	<character-selector class="block relative w-screen h-screen p-2">
-		<div class="w-full mb-4" flex="row nowrap items-center justify-between">
-			<h1 style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);" class="font-4xl font-bold font-lobster">Characters</h1>
-			<a
-				href="/characters/new"
-				class="bttn"
-				kind="outline"
-				color="white"
-				size="large"
-				sfx="button"
-				icon="left"
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
-				New character
-			</a>
-		</div>
-		if len(characters) == 0 {
-			<p style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);margin-top:42vh;" class="text-center block w-full">Looks like you don't have any characters yet. <a sfx="button" class="link" href="/characters/new">Create one.</a></p>
-		} else {
-			<div class="w-full" grid="cols 1 gap-1.5">
-				for _, character := range characters {
-					@Character(character)
-				}
-			</div>
-		}
+	<character-selector class="character-roster-shell block relative w-screen h-screen p-1">
+		<section class="character-roster-frame">
+			<header class="character-roster-header">
+				<h1 class="character-roster-heading">Characters</h1>
+				<a
+					href="/characters/new"
+					class="bttn"
+					kind="solid"
+					color="primary"
+					sfx="button"
+					icon="left"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
+					New character
+				</a>
+			</header>
+
+			if len(characters) == 0 {
+				<div class="character-roster-empty">
+					<p class="character-roster-empty-title">No heroes in your roster yet.</p>
+					<p class="character-roster-empty-copy">Create your first character sheet and start tracking your party roster.</p>
+					<a sfx="button" class="link" href="/characters/new">Create a character</a>
+				</div>
+			} else {
+				<div class="character-roster-grid">
+					for _, character := range characters {
+						@Character(character)
+					}
+				</div>
+			}
+		</section>
 	</character-selector>
 }

@@ -1,5 +1,21 @@
 -- name: GetCharacters :many
-SELECT id, name, level, race, classes, ac, current_hp, asset_id FROM characters
+SELECT
+    id,
+    name,
+    level,
+    xp,
+    race,
+    classes,
+    background,
+    alignment,
+    size,
+    ac,
+    max_hp,
+    current_hp,
+    proficiency_bonus,
+    speed,
+    asset_id
+FROM characters
 WHERE owner_id = ?
 ORDER BY created_at DESC;
 
