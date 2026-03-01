@@ -56,6 +56,10 @@ func main() {
 		pages.Homepage(session).Render(r.Context(), w)
 	})
 
+	mux.HandleFunc("/characters", controllers.CharactersPage)
+	mux.HandleFunc("/characters/new", controllers.NewCharacterPage)
+	mux.HandleFunc("POST /characters", controllers.NewCharacterForm)
+
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)
 	})
@@ -187,9 +191,6 @@ func main() {
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
-
-	mux.HandleFunc("/characters", controllers.CharactersPage)
-	mux.HandleFunc("/characters/new", controllers.NewCharacterPage)
 
 	// NOTE: static files
 	mux.Handle(

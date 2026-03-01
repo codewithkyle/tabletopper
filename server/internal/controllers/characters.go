@@ -56,3 +56,21 @@ func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
 
 	pages.NewCharacter(session).Render(r.Context(), w)
 }
+
+func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+			return
+		}
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+}
