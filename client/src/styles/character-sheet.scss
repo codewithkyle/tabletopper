@@ -1,0 +1,255 @@
+
+character-editor.character-sheet-shell {
+    --sheet-bg: #f4efe2;
+    --sheet-panel: #fdfaf2;
+    --sheet-ink: #2f2418;
+    --sheet-muted: #7c6a53;
+    --sheet-rule: #d8ccb8;
+    --sheet-accent: #7a3f23;
+    --sheet-shadow: 0 18px 36px hsl(24 35% 18% / 0.28);
+
+    display: block;
+    min-height: 100dvh;
+    color: var(--sheet-ink);
+    color-scheme: light;
+
+    .character-sheet-form {
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .character-sheet-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.6rem 0.5rem;
+    }
+
+    .sheet-kicker {
+        margin: 0;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 0.66rem;
+        color: hsl(28 44% 30% / 0.85);
+        font-weight: 600;
+    }
+
+    .sheet-title {
+        margin: 0.12rem 0 0;
+        color: #fff9ea;
+        font-family: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
+        font-size: clamp(1.5rem, 2.2vw, 2.15rem);
+        line-height: 1.1;
+        text-shadow: 0 2px 10px hsl(20 50% 9% / 0.5);
+    }
+
+    .sheet-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .character-sheet-paper {
+        min-height: 0;
+        background:
+            linear-gradient(180deg, hsl(44 58% 96% / 0.93), hsl(43 46% 90% / 0.96));
+        border: 1px solid hsl(35 28% 65% / 0.9);
+        border-radius: 0.55rem;
+        box-shadow: var(--sheet-shadow);
+        overflow: hidden;
+    }
+
+    .character-sheet-scroll {
+        height: 100%;
+        overflow: auto;
+        padding: 0.8rem;
+        display: grid;
+        gap: 0.8rem;
+        background-image:
+            linear-gradient(hsl(37 35% 79% / 0.34) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(37 35% 79% / 0.22) 1px, transparent 1px);
+        background-size: 100% 28px, 28px 100%;
+    }
+
+    .sheet-section {
+        padding: 0.65rem;
+        border: 1px solid var(--sheet-rule);
+        border-radius: 0.5rem;
+        background: hsl(44 44% 96% / 0.9);
+        box-shadow: 0 1px 0 hsl(40 60% 99% / 0.75) inset;
+        display: grid;
+        gap: 0.6rem;
+    }
+
+    .sheet-section-header {
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid hsl(25 45% 32% / 0.18);
+        padding-bottom: 0.45rem;
+
+        h2 {
+            margin: 0;
+            color: var(--sheet-accent);
+            font-size: 0.82rem;
+            line-height: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            font-weight: 700;
+            font-family: "Spectral SC", "Book Antiqua", serif;
+        }
+    }
+
+    .sheet-grid {
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .sheet-grid-identity {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sheet-grid-abilities {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .sheet-grid-core {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sheet-grid-training {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sheet-span-2 {
+        grid-column: span 2;
+    }
+
+    .sheet-dual-columns {
+        display: grid;
+        gap: 0.8rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sheet-column {
+        display: grid;
+        gap: 0.8rem;
+        align-content: start;
+    }
+
+    input-component,
+    number-input-component,
+    select-component,
+    skills-table,
+    saving-throws-table,
+    monster-info-table,
+    spell-slots-table {
+        display: block;
+    }
+
+    skills-table h4,
+    saving-throws-table h4,
+    monster-info-table h4,
+    spell-slots-table h4 {
+        margin: 0;
+        color: var(--sheet-muted);
+        font-size: 0.71rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+    }
+
+    @media (max-width: 1160px) {
+        .sheet-grid-abilities {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 900px) {
+        .sheet-grid-identity,
+        .sheet-grid-core,
+        .sheet-grid-training,
+        .sheet-dual-columns {
+            grid-template-columns: 1fr;
+        }
+
+        .sheet-span-2 {
+            grid-column: auto;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .character-sheet-header {
+            align-items: stretch;
+        }
+
+        .sheet-actions {
+            width: 100%;
+
+            .bttn {
+                flex: 1;
+            }
+        }
+
+        .character-sheet-scroll {
+            padding: 0.6rem;
+        }
+
+        .sheet-grid-abilities {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        --sheet-bg: #1c1d21;
+        --sheet-panel: #22242a;
+        --sheet-ink: #e9ddc9;
+        --sheet-muted: #b4a289;
+        --sheet-rule: #4f463b;
+        --sheet-accent: #f4c486;
+        --sheet-shadow: 0 20px 38px hsl(0 0% 0% / 0.5);
+        color-scheme: dark;
+
+        .sheet-kicker {
+            color: hsl(36 65% 74% / 0.9);
+        }
+
+        .sheet-title {
+            color: #f7e3c5;
+            text-shadow: 0 2px 12px hsl(0 0% 0% / 0.62);
+        }
+
+        .character-sheet-paper {
+            background:
+                linear-gradient(180deg, hsl(220 12% 20% / 0.95), hsl(220 12% 16% / 0.96));
+            border-color: hsl(30 22% 34% / 0.95);
+            box-shadow: var(--sheet-shadow);
+        }
+
+        .character-sheet-scroll {
+            background-image:
+                linear-gradient(hsl(34 22% 34% / 0.18) 1px, transparent 1px),
+                linear-gradient(90deg, hsl(34 20% 36% / 0.15) 1px, transparent 1px);
+        }
+
+        .sheet-section {
+            background: hsl(222 12% 18% / 0.92);
+            border-color: var(--sheet-rule);
+            box-shadow: 0 1px 0 hsl(36 20% 30% / 0.35) inset;
+        }
+
+        .sheet-section-header {
+            border-bottom-color: hsl(33 36% 62% / 0.25);
+        }
+
+        skills-table h4,
+        saving-throws-table h4,
+        monster-info-table h4,
+        spell-slots-table h4 {
+            color: var(--sheet-muted);
+        }
+    }
+}

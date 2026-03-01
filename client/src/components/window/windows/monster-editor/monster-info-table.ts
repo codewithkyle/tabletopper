@@ -82,8 +82,11 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
     }
 
     override render(): void {
+        const heading = typeof this.model.label === "string" ? this.model.label.trim() : "";
         const view = html`
-            <h4 class="block w-full font-medium font-sm font-grey-800 dark:font-grey-300 pl-0.125">${unsafeHTML(this.model.label)}</h4>
+            ${heading
+                ? html`<h4 class="block w-full font-medium font-sm font-grey-800 dark:font-grey-300 pl-0.125">${unsafeHTML(heading)}</h4>`
+                : null}
             ${this.model.rows.map((row, index) => {
             return html`
                     <table-row data-index="{{ index }}">

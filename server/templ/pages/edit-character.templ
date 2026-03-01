@@ -16,18 +16,19 @@ templ EditCharacter(session session.UserSession, data EditCharacterPageData) {
 }
 
 templ editCharacterContent(data EditCharacterPageData) {
-	<character-editor class="block relative w-screen h-screen p-2">
-		<form style="gap:2rem;" flex="col wrap" class="w-full h-full" method="POST" action={ data.FormAction } hx-post={ data.FormAction } hx-target-4*="#new-character-form-errors" hx-swap="outerHTML">
-			<div class="w-full" flex="row nowrap items-center justify-between">
-				<h1 style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);" class="font-4xl font-bold font-lobster">Edit Character</h1>
-				<div flex="row nowrap items-center">
+	<character-editor class="character-sheet-shell block relative w-screen h-screen p-1">
+		<form class="character-sheet-form w-full h-full" method="POST" action={ data.FormAction } hx-post={ data.FormAction } hx-target-4*="#new-character-form-errors" hx-swap="outerHTML">
+			<div class="character-sheet-header">
+				<div>
+					<h1 class="sheet-title">Edit Character</h1>
+				</div>
+				<div class="sheet-actions">
 					<a
 						href="/characters"
 						type="button"
 						class="bttn mr-0.5"
-						kind="outline"
-						color="white"
-						size="large"
+						kind="solid"
+						color="grey"
 						sfx="button"
 					>
 						Back
@@ -35,53 +36,40 @@ templ editCharacterContent(data EditCharacterPageData) {
 					<button
 						type="submit"
 						class="bttn"
-						kind="outline"
-						color="white"
-						size="large"
+						kind="solid"
+						color="success"
 						sfx="button"
 					>
 						Save character
 					</button>
 				</div>
 			</div>
-			<div style="height:calc(100% - 6rem);overflow-y:scroll;flex:1;backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
+			<div class="character-sheet-paper">
 				@NewCharacterFormErrors([]string{})
-				<div class="p-2">
-					<div class="w-full" grid="columns 1 gap-1.5">
-						<h2 class="block font-bold font-xl">Basics</h2>
-						<input-component
-							data-name="name"
-							data-label="Name"
-							data-required="true"
-							data-value={ data.Name }
-						></input-component>
-						<div class="w-full" grid="columns 2 gap-1.5">
-							<input-component
-								data-name="race"
-								data-label="Race"
-								data-required="true"
-								data-placeholder="Human"
-								data-value={ data.Race }
-							></input-component>
-							<input-component
-								data-name="background"
-								data-label="Background"
-								data-value={ data.Background }
-							></input-component>
+				<div class="character-sheet-scroll">
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Identity</h2>
+						</div>
+						<div class="sheet-grid sheet-grid-identity">
+							<div class="sheet-span-2">
+								<input-component data-name="name" data-label="Character Name" data-required="true" data-value={ data.Name }></input-component>
+							</div>
 							<input-component
 								data-name="classes"
-								data-label="Classes"
+								data-label="Class & Level Notes"
 								data-required="true"
 								data-placeholder="Cleric 3, Fighter 1"
 								data-value={ data.Classes }
 							></input-component>
-							<select-component
-								data-name="size"
-								data-label="Size"
+							<input-component data-name="background" data-label="Background" data-value={ data.Background }></input-component>
+							<input-component
+								data-name="race"
+								data-label="Species / Race"
 								data-required="true"
-								data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
-								data-value={ data.Size }
-							></select-component>
+								data-placeholder="Human"
+								data-value={ data.Race }
+							></input-component>
 							<select-component
 								data-name="alignment"
 								data-label="Alignment"
@@ -89,152 +77,127 @@ templ editCharacterContent(data EditCharacterPageData) {
 								data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
 								data-value={ data.Alignment }
 							></select-component>
-							<number-input-component
-								data-name="xp"
-								data-label="XP"
+							<select-component
+								data-name="size"
+								data-label="Size"
 								data-required="true"
-								data-value={ data.Xp }
-							></number-input-component>
+								data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+								data-value={ data.Size }
+							></select-component>
 						</div>
-						<input-component
-							data-name="languages"
-							data-label="Languages"
-							data-value={ data.Languages }
-						></input-component>
-						<input-component
-							data-name="proficiencies"
-							data-label="Proficiencies"
-							data-required="true"
-							data-placeholder="Medium armor, thieves tools"
-							data-value={ data.Proficiencies }
-						></input-component>
-						<h2 class="block pt-1.5 font-bold font-xl">Stats</h2>
-						<div class="w-full" grid="columns 3 gap-1.5">
-							<number-input-component
-								data-name="str"
-								data-label="Strength"
-								data-required="true"
-								data-value={ data.Str }
-							></number-input-component>
-							<number-input-component
-								data-name="dex"
-								data-label="Dexterity"
-								data-required="true"
-								data-value={ data.Dex }
-							></number-input-component>
-							<number-input-component
-								data-name="con"
-								data-label="Constitution"
-								data-required="true"
-								data-value={ data.Con }
-							></number-input-component>
-							<number-input-component
-								data-name="int"
-								data-label="Intelligence"
-								data-required="true"
-								data-value={ data.Int }
-							></number-input-component>
-							<number-input-component
-								data-name="wis"
-								data-label="Wisdom"
-								data-required="true"
-								data-value={ data.Wis }
-							></number-input-component>
-							<number-input-component
-								data-name="cha"
-								data-label="Charisma"
-								data-required="true"
-								data-value={ data.Cha }
-							></number-input-component>
+					</section>
+
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Abilities</h2>
 						</div>
-						<skills-table
-							data-name="skills"
-							data-label="Skills"
-							data-values={ data.SkillsJSON }
-						></skills-table>
-						<monster-info-table
-							data-name="features"
-							data-label="Features and Traits"
-							data-add-label="Add Feature or Trait"
-							data-rows={ data.FeaturesJSON }
-						></monster-info-table>
-						<h2 class="block pt-1.5 font-bold font-xl">Combat</h2>
-						<div class="w-full" grid="columns 3 gap-1.5">
-							<number-input-component
-								data-name="ac"
-								data-label="Armor Class"
-								data-required="true"
-								data-value={ data.Ac }
-							></number-input-component>
+						<div class="sheet-grid sheet-grid-abilities">
+							<number-input-component data-name="str" data-label="Strength" data-required="true" data-value={ data.Str }></number-input-component>
+							<number-input-component data-name="dex" data-label="Dexterity" data-required="true" data-value={ data.Dex }></number-input-component>
+							<number-input-component data-name="con" data-label="Constitution" data-required="true" data-value={ data.Con }></number-input-component>
+							<number-input-component data-name="int" data-label="Intelligence" data-required="true" data-value={ data.Int }></number-input-component>
+							<number-input-component data-name="wis" data-label="Wisdom" data-required="true" data-value={ data.Wis }></number-input-component>
+							<number-input-component data-name="cha" data-label="Charisma" data-required="true" data-value={ data.Cha }></number-input-component>
+						</div>
+					</section>
+
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Core Stats</h2>
+						</div>
+						<div class="sheet-grid sheet-grid-core">
+							<number-input-component data-name="xp" data-label="Experience" data-required="true" data-value={ data.Xp }></number-input-component>
+							<input-component data-name="speed" data-label="Speed" data-value={ data.Speed }></input-component>
+							<number-input-component data-name="ac" data-label="Armor Class" data-required="true" data-value={ data.Ac }></number-input-component>
+							<number-input-component data-name="initiative_bonus" data-label="Initiative Bonus" data-required="true" data-value={ data.InitiativeBonus }></number-input-component>
+							<number-input-component data-name="max_hp" data-label="Hit Point Maximum" data-required="true" data-value={ data.MaxHP }></number-input-component>
+							<number-input-component data-name="current_hp" data-label="Current Hit Points" data-required="true" data-value={ data.CurrentHP }></number-input-component>
+							<number-input-component data-name="temp_hp" data-label="Temporary Hit Points" data-required="true" data-value={ data.TempHP }></number-input-component>
+							<number-input-component data-name="spell_save_dc" data-label="Spell Save DC" data-required="true" data-value={ data.SpellSaveDC }></number-input-component>
+							<number-input-component data-name="spell_atk_bonus" data-label="Spell Attack Bonus" data-required="true" data-value={ data.SpellAtkBonus }></number-input-component>
+						</div>
+					</section>
+
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Proficiencies & Training</h2>
+						</div>
+						<div class="sheet-grid sheet-grid-training">
+							<input-component data-name="languages" data-label="Languages" data-value={ data.Languages }></input-component>
 							<input-component
-								data-name="speed"
-								data-label="Speed"
-								data-value={ data.Speed }
+								data-name="proficiencies"
+								data-label="Other Proficiencies"
+								data-required="true"
+								data-placeholder="Medium armor, thieves tools"
+								data-value={ data.Proficiencies }
 							></input-component>
-							<number-input-component
-								data-name="initiative_bonus"
-								data-label="Initiative Bonus"
-								data-required="true"
-								data-value={ data.InitiativeBonus }
-							></number-input-component>
-							<number-input-component
-								data-name="max_hp"
-								data-label="Max Hit Points"
-								data-required="true"
-								data-value={ data.MaxHP }
-							></number-input-component>
-							<number-input-component
-								data-name="current_hp"
-								data-label="Hit Points"
-								data-required="true"
-								data-value={ data.CurrentHP }
-							></number-input-component>
-							<number-input-component
-								data-name="temp_hp"
-								data-label="Temp Hit Points"
-								data-required="true"
-								data-value={ data.TempHP }
-							></number-input-component>
 						</div>
-						<saving-throws-table
-							data-name="saving_throws"
-							data-label="Saving Throws"
-							data-values={ data.SavingThrowsJSON }
-						></saving-throws-table>
-						<monster-info-table
-							data-name="weapons"
-							data-label="Equipment"
-							data-add-label="Add Equipment"
-							data-rows={ data.WeaponsJSON }
-						></monster-info-table>
+					</section>
+
+					<div class="sheet-dual-columns">
+						<div class="sheet-column">
+							<section class="sheet-section">
+								<div class="sheet-section-header">
+									<h2>Saving Throws</h2>
+								</div>
+								<saving-throws-table data-name="saving_throws" data-label="" data-values={ data.SavingThrowsJSON }></saving-throws-table>
+							</section>
+							<section class="sheet-section">
+								<div class="sheet-section-header">
+									<h2>Skills</h2>
+								</div>
+								<skills-table data-name="skills" data-label="" data-values={ data.SkillsJSON }></skills-table>
+							</section>
+						</div>
+						<div class="sheet-column">
+							<section class="sheet-section">
+								<div class="sheet-section-header">
+									<h2>Features & Traits</h2>
+								</div>
+								<monster-info-table
+									data-name="features"
+									data-label=""
+									data-add-label="Add Feature or Trait"
+									data-rows={ data.FeaturesJSON }
+								></monster-info-table>
+							</section>
+							<section class="sheet-section">
+								<div class="sheet-section-header">
+									<h2>Equipment</h2>
+								</div>
+								<monster-info-table
+									data-name="weapons"
+									data-label=""
+									data-add-label="Add Equipment"
+									data-rows={ data.WeaponsJSON }
+								></monster-info-table>
+							</section>
+						</div>
+					</div>
+
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Resources</h2>
+						</div>
 						<monster-info-table
 							data-name="resources"
-							data-label="Resources"
+							data-label=""
 							data-add-label="Add Resource"
 							data-rows={ data.ResourcesJSON }
 						></monster-info-table>
-						<h2 class="block pt-1.5 font-bold font-xl">Spellcasting</h2>
-						<div class="w-full" grid="columns 2 gap-1.5">
-							<number-input-component
-								data-name="spell_save_dc"
-								data-label="Spell Save"
-								data-required="true"
-								data-value={ data.SpellSaveDC }
-							></number-input-component>
-							<number-input-component
-								data-name="spell_atk_bonus"
-								data-label="Spell Attack Bonus"
-								data-required="true"
-								data-value={ data.SpellAtkBonus }
-							></number-input-component>
+					</section>
+
+					<section class="sheet-section">
+						<div class="sheet-section-header">
+							<h2>Spellcasting</h2>
 						</div>
 						<spell-slots-table
 							data-name="spells"
-							data-label="Spells"
+							data-label=""
 							data-add-label="Add Spell"
 							data-levels={ data.SpellSlotsJSON }
 						></spell-slots-table>
-					</div>
+					</section>
 				</div>
 			</div>
 		</form>
