@@ -105,6 +105,7 @@ select-component,
         flex: 1;
         text-overflow: ellipsis;
         overflow: hidden;
+        background: var(--white);
         line-height: 36px;
         padding: 0 calc(1rem + 36px) 0 0.5rem;
         color: var(--grey-800);
