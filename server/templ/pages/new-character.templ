@@ -15,212 +15,245 @@ templ NewCharacter(session session.UserSession) {
 	@layouts.Base(newCharacterSettings)
 }
 
-templ newCharacterContent(session session.UserSession) {
-	<character-editor style="gap:2rem;" class="block relative w-screen h-screen p-2" flex="col wrap">
-		<div class="w-full" flex="row nowrap items-center justify-between">
-			<h1 style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);" class="font-4xl font-bold font-lobster">New Character</h1>
-			<button
-				class="bttn"
-				kind="outline"
-				color="white"
-				size="large"
-				sfx="button"
-			>
-				Save character
-			</button>
-		</div>
-		<div style="height:calc(100% - 6rem);overflow-y:scroll;flex:1;backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
-			<div class="p-2">
-				<div class="w-full" grid="columns 1 gap-1.5">
-					<h2 class="block font-bold font-xl">Basics</h2>
-					<input-component
-						data-name="name"
-						data-label="Name"
-						data-required="true"
-						data-value=""
-					></input-component>
-					<div class="w-full" grid="columns 2 gap-1.5">
-						<input-component
-							data-name="race"
-							data-label="Race"
-							data-required="true"
-							data-placeholder="Human"
-							data-value=""
-						></input-component>
-						<input-component
-							data-name="background"
-							data-label="Background"
-							data-required="true"
-							data-value=""
-						></input-component>
-						<input-component
-							data-name="classes"
-							data-label="Classes"
-							data-required="true"
-							data-placeholder="Cleric 3, Fighter 1"
-							data-value=""
-						></input-component>
-						<select-component
-							data-name="size"
-							data-label="Size"
-							data-required="true"
-							data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
-							data-value="medium"
-						></select-component>
-						<select-component
-							data-name="alignment"
-							data-label="Alignment"
-							data-required="true"
-							data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
-							data-value="Unaligned"
-						></select-component>
-						<number-input-component
-							data-name="xp"
-							data-label="XP"
-							data-required="true"
-							data-value="0"
-						></number-input-component>
-					</div>
-					<input-component
-						data-name="languages"
-						data-label="Languages"
-						data-value="Common"
-					></input-component>
-					<input-component
-						data-name="proficiencies"
-						data-label="Proficiencies"
-						data-required="true"
-						data-placeholder="Medium armor, thieves tools"
-						data-value=""
-					></input-component>
-					<h2 class="block pt-1.5 font-bold font-xl">Stats</h2>
-					<div class="w-full" grid="columns 3 gap-1.5">
-						<number-input-component
-							data-name="str"
-							data-label="Strength"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="dex"
-							data-label="Dexterity"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="con"
-							data-label="Constitution"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="int"
-							data-label="Intelligence"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="wis"
-							data-label="Wisdom"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="cha"
-							data-label="Charisma"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-					</div>
-					<skills-table
-						data-name="skills"
-						data-label="Skills"
-						data-values="{}"
-					></skills-table>
-					<monster-info-table
-						data-name="features"
-						data-label="Features and Traits"
-						data-add-label="Add Feature or Trait"
-						data-rows="[]"
-					></monster-info-table>
-					<h2 class="block pt-1.5 font-bold font-xl">Combat</h2>
-					<div class="w-full" grid="columns 3 gap-1.5">
-						<number-input-component
-							data-name="ac"
-							data-label="Armor Class"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<input-component
-							data-name="speed"
-							data-label="Speed"
-							data-value="30 ft."
-						></input-component>
-						<number-input-component
-							data-name="initiative_bonus"
-							data-label="Initiative Bonus"
-							data-required="true"
-							data-value="0"
-						></number-input-component>
-						<number-input-component
-							data-name="max_hp"
-							data-label="Max Hit Points"
-							data-required="true"
-							data-value="1"
-						></number-input-component>
-						<number-input-component
-							data-name="current_hp"
-							data-label="Hit Points"
-							data-required="true"
-							data-value="1"
-						></number-input-component>
-						<number-input-component
-							data-name="temp_hp"
-							data-label="Temp Hit Points"
-							data-required="true"
-							data-value="0"
-						></number-input-component>
-					</div>
-					<saving-throws-table
-						data-name="saving_throws"
-						data-label="Saving Throws"
-						data-values="{}"
-					></saving-throws-table>
-					<monster-info-table
-						data-name="weapons"
-						data-label="Equipment"
-						data-add-label="Add Equipment"
-						data-rows="[]"
-					></monster-info-table>
-					<monster-info-table
-						data-name="resources"
-						data-label="Resources"
-						data-add-label="Add Resource"
-						data-rows="[]"
-					></monster-info-table>
-					<h2 class="block pt-1.5 font-bold font-xl">Spellcasting</h2>
-					<div class="w-full" grid="columns 2 gap-1.5">
-						<number-input-component
-							data-name="spell_save_dc"
-							data-label="Spell Save"
-							data-required="true"
-							data-value="10"
-						></number-input-component>
-						<number-input-component
-							data-name="spell_atk_bonus"
-							data-label="Spell Attack Bonus"
-							data-required="true"
-							data-value="0"
-						></number-input-component>
-					</div>
-					<spell-slots-table
-						data-name="spells"
-						data-label="Spells"
-						data-add-label="Add Spell"
-						data-levels="{}"
-					></spell-slots-table>
-				</div>
+templ NewCharacterFormErrors(messages []string) {
+	if len(messages) > 0 {
+		<div id="new-character-form-errors" class="w-full p-2">
+			<div class="p-2 radius-0.5 border-1 border-solid border-danger-400 font-danger-700 dark:font-danger-400">
+				<p class="font-semibold mb-1">Could not save character:</p>
+				<ul class="pl-1">
+					for _, message := range messages {
+						<li>&#8226; { message }</li>
+					}
+				</ul>
 			</div>
 		</div>
+	} else {
+		<div id="new-character-form-errors"></div>
+	}
+}
+
+templ newCharacterContent(session session.UserSession) {
+	<character-editor class="block relative w-screen h-screen p-2">
+		<form style="gap:2rem;" flex="col wrap" class="w-full h-full" method="POST" action="/characters" hx-post="/characters" hx-target-4*="#new-character-form-errors" hx-swap="outerHTML">
+			<div class="w-full" flex="row nowrap items-center justify-between">
+				<h1 style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);" class="font-4xl font-bold font-lobster">New Character</h1>
+				<div flex="row nowrap items-center">
+					<a
+						href="/characters"
+						type="button"
+						class="bttn mr-0.5"
+						kind="outline"
+						color="white"
+						size="large"
+						sfx="button"
+					>
+						Back
+					</a>
+					<button
+						type="submit"
+						class="bttn"
+						kind="outline"
+						color="white"
+						size="large"
+						sfx="button"
+					>
+						Save character
+					</button>
+				</div>
+			</div>
+			<div style="height:calc(100% - 6rem);overflow-y:scroll;flex:1;backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
+				@NewCharacterFormErrors([]string{})
+				<div class="p-2">
+					<div class="w-full" grid="columns 1 gap-1.5">
+						<h2 class="block font-bold font-xl">Basics</h2>
+						<input-component
+							data-name="name"
+							data-label="Name"
+							data-required="true"
+							data-value=""
+						></input-component>
+						<div class="w-full" grid="columns 2 gap-1.5">
+							<input-component
+								data-name="race"
+								data-label="Race"
+								data-required="true"
+								data-placeholder="Human"
+								data-value=""
+							></input-component>
+							<input-component
+								data-name="background"
+								data-label="Background"
+								data-value=""
+							></input-component>
+							<input-component
+								data-name="classes"
+								data-label="Classes"
+								data-required="true"
+								data-placeholder="Cleric 3, Fighter 1"
+								data-value=""
+							></input-component>
+							<select-component
+								data-name="size"
+								data-label="Size"
+								data-required="true"
+								data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
+								data-value="medium"
+							></select-component>
+							<select-component
+								data-name="alignment"
+								data-label="Alignment"
+								data-required="true"
+								data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
+								data-value="Unaligned"
+							></select-component>
+							<number-input-component
+								data-name="xp"
+								data-label="XP"
+								data-required="true"
+								data-value="0"
+							></number-input-component>
+						</div>
+						<input-component
+							data-name="languages"
+							data-label="Languages"
+							data-value="Common"
+						></input-component>
+						<input-component
+							data-name="proficiencies"
+							data-label="Proficiencies"
+							data-required="true"
+							data-placeholder="Medium armor, thieves tools"
+							data-value=""
+						></input-component>
+						<h2 class="block pt-1.5 font-bold font-xl">Stats</h2>
+						<div class="w-full" grid="columns 3 gap-1.5">
+							<number-input-component
+								data-name="str"
+								data-label="Strength"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="dex"
+								data-label="Dexterity"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="con"
+								data-label="Constitution"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="int"
+								data-label="Intelligence"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="wis"
+								data-label="Wisdom"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="cha"
+								data-label="Charisma"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+						</div>
+						<skills-table
+							data-name="skills"
+							data-label="Skills"
+							data-values="{}"
+						></skills-table>
+						<monster-info-table
+							data-name="features"
+							data-label="Features and Traits"
+							data-add-label="Add Feature or Trait"
+							data-rows="[]"
+						></monster-info-table>
+						<h2 class="block pt-1.5 font-bold font-xl">Combat</h2>
+						<div class="w-full" grid="columns 3 gap-1.5">
+							<number-input-component
+								data-name="ac"
+								data-label="Armor Class"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<input-component
+								data-name="speed"
+								data-label="Speed"
+								data-value="30 ft."
+							></input-component>
+							<number-input-component
+								data-name="initiative_bonus"
+								data-label="Initiative Bonus"
+								data-required="true"
+								data-value="0"
+							></number-input-component>
+							<number-input-component
+								data-name="max_hp"
+								data-label="Max Hit Points"
+								data-required="true"
+								data-value="1"
+							></number-input-component>
+							<number-input-component
+								data-name="current_hp"
+								data-label="Hit Points"
+								data-required="true"
+								data-value="1"
+							></number-input-component>
+							<number-input-component
+								data-name="temp_hp"
+								data-label="Temp Hit Points"
+								data-required="true"
+								data-value="0"
+							></number-input-component>
+						</div>
+						<saving-throws-table
+							data-name="saving_throws"
+							data-label="Saving Throws"
+							data-values="{}"
+						></saving-throws-table>
+						<monster-info-table
+							data-name="weapons"
+							data-label="Equipment"
+							data-add-label="Add Equipment"
+							data-rows="[]"
+						></monster-info-table>
+						<monster-info-table
+							data-name="resources"
+							data-label="Resources"
+							data-add-label="Add Resource"
+							data-rows="[]"
+						></monster-info-table>
+						<h2 class="block pt-1.5 font-bold font-xl">Spellcasting</h2>
+						<div class="w-full" grid="columns 2 gap-1.5">
+							<number-input-component
+								data-name="spell_save_dc"
+								data-label="Spell Save"
+								data-required="true"
+								data-value="10"
+							></number-input-component>
+							<number-input-component
+								data-name="spell_atk_bonus"
+								data-label="Spell Attack Bonus"
+								data-required="true"
+								data-value="0"
+							></number-input-component>
+						</div>
+						<spell-slots-table
+							data-name="spells"
+							data-label="Spells"
+							data-add-label="Add Spell"
+							data-levels="{}"
+						></spell-slots-table>
+					</div>
+				</div>
+			</div>
+		</form>
 	</character-editor>
 }
