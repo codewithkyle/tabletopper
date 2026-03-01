@@ -5,7 +5,6 @@ character-selector.character-roster-shell {
     --roster-muted: #6f5c47;
     --roster-rule: hsl(33 34% 62% / 0.87);
     --roster-accent: #f7e3c5;
-    --roster-shadow: 0 22px 40px hsl(25 38% 16% / 0.25);
 
     display: block;
     min-height: 100dvh;
@@ -241,7 +240,6 @@ character-selector.character-roster-shell {
         --roster-panel-border: hsl(31 20% 35% / 0.85);
         --roster-ink: #e7d7bc;
         --roster-muted: #b59e7e;
-        --roster-shadow: 0 24px 42px hsl(0 0% 0% / 0.25);
         color-scheme: dark;
 
         character-card.character-roster-card {
