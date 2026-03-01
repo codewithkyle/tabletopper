@@ -35,6 +35,12 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
     override async connected() {
         await env.css(["monster-info-table", "button"]);
         const settings = parseDataset(this.dataset, this.model);
+        settings.rows = Array.isArray(settings.rows)
+            ? settings.rows.map((row) => ({
+                  name: typeof row?.name === "string" ? row.name : "",
+                  value: typeof row?.value === "string" ? row.value : "",
+              }))
+            : [];
         this.set(settings);
     }
 

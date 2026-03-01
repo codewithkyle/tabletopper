@@ -76,8 +76,11 @@ class SkillsTable extends SuperComponent<ISkillsTableModel> {
     override async connected() {
         await env.css(["skills-table"]);
         const settings = parseDataset(this.dataset, this.model);
-        // ensure values is an object
-        settings.values = settings.values ?? {};
+        const maybeValues = settings.values;
+        settings.values =
+            maybeValues && typeof maybeValues === "object" && !Array.isArray(maybeValues)
+                ? maybeValues
+                : {};
         this.set(settings);
     }
 

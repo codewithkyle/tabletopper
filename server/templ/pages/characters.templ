@@ -21,7 +21,7 @@ templ Character(character queries.GetCharactersRow) {
 	<div style="backdrop-filter: blur(8px);" class="w-full bg-white font-grey-700 dark:font-grey-300 dark:bg-grey-900/87 border-1 border-solid border-grey-300 dark:border-grey-800 shadow-black-sm radius-0.5">
 		<p>{ character.Name }</p>
 		<a
-			href={ "/characters/" + ulid.ULID(character.ID).String() }
+			href={ "/characters/" + ulid.ULID(character.ID).String() + "/edit" }
 			class="bttn"
 			kind="outline"
 			color="white"

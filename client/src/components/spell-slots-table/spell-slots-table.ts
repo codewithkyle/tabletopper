@@ -100,12 +100,16 @@ class SpellSlotsTable extends SuperComponent<ISpellSlotsTableModel> {
     override async connected() {
         await env.css(["spell-slots-table"]);
         const settings = parseDataset(this.dataset, this.model);
+        const incomingLevels =
+            settings.levels && typeof settings.levels === "object" && !Array.isArray(settings.levels)
+                ? settings.levels
+                : {};
 
         // Ensure levels object exists and contains 0..9 (merge defaults).
         const merged: ISpellSlotsTableModel = {
             ...this.model,
             ...settings,
-            levels: { ...(this.model.levels || {}), ...(settings.levels || {}) },
+            levels: { ...(this.model.levels || {}), ...incomingLevels },
         };
 
         LEVELS.forEach((lvl) => {
@@ -115,7 +119,21 @@ class SpellSlotsTable extends SuperComponent<ISpellSlotsTableModel> {
                 level: lvl,
                 slots: clampInt(existing?.slots ?? 0),
                 used: clampInt(existing?.used ?? 0),
-                spells: Array.isArray(existing?.spells) ? existing.spells : [],
+                spells: Array.isArray(existing?.spells)
+                    ? existing.spells.map((spell) => ({
+                          name: typeof spell?.name === "string" ? spell.name : "",
+                          components: typeof spell?.components === "string" ? spell.components : "",
+                          school:
+                              typeof spell?.school === "string" &&
+                              SCHOOLS.includes(spell.school as SpellSchool)
+                                  ? (spell.school as SpellSchool)
+                                  : "Evocation",
+                          castingTime: typeof spell?.castingTime === "string" ? spell.castingTime : "",
+                          range: typeof spell?.range === "string" ? spell.range : "",
+                          duration: typeof spell?.duration === "string" ? spell.duration : "",
+                          text: typeof spell?.text === "string" ? spell.text : "",
+                      }))
+                    : [],
             };
         });
 

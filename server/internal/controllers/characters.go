@@ -37,12 +37,29 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
 		return
 	}
-	uid := ulid.MustParse(id)
+	uid, err := ulid.Parse(id)
+	if err != nil {
+		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		return
+	}
 
 	q := queries.New(db)
-	// TODO: query character by uid, session.UserId
+	character, err := q.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
+		ID:      uid[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Redirect(w, r, "/characters", http.StatusSeeOther)
+			return
+		}
 
-	pages.Character(session, results).Render(r.Context(), w)
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	data := characterToEditPageData(id, character)
+	pages.EditCharacter(session, data).Render(r.Context(), w)
 }
 
 func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
@@ -63,12 +80,100 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
 		return
 	}
-	uid := ulid.MustParse(id)
+	uid, err := ulid.Parse(id)
+	if err != nil {
+		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		if isHTMXRequest(r) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
+			return
+		}
+
+		http.Redirect(w, r, "/characters/"+id, http.StatusSeeOther)
+		return
+	}
+
+	formInput, validationErrors, err := buildCharacterFormInput(r)
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if len(validationErrors) > 0 {
+		if isHTMXRequest(r) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
+			return
+		}
+
+		http.Redirect(w, r, "/characters/"+id, http.StatusSeeOther)
+		return
+	}
 
 	q := queries.New(db)
-	// TODO: update character by uid, session.UserId
+	result, err := q.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
+		Name:             formInput.Name,
+		Level:            formInput.Level,
+		Xp:               formInput.XP,
+		Race:             formInput.Race,
+		Background:       formInput.Background,
+		Alignment:        formInput.Alignment,
+		Classes:          formInput.Classes,
+		Size:             formInput.Size,
+		Ac:               formInput.AC,
+		MaxHp:            formInput.MaxHP,
+		CurrentHp:        formInput.CurrentHP,
+		ProficiencyBonus: formInput.ProficiencyBonus,
+		TempHp:           formInput.TempHP,
+		Speed:            formInput.Speed,
+		InitiativeBonus:  formInput.InitiativeBonus,
+		SpellSaveDc:      formInput.SpellSaveDC,
+		SpellAtkBonus:    formInput.SpellAtkBonus,
+		Str:              formInput.Str,
+		Dex:              formInput.Dex,
+		Con:              formInput.Con,
+		Int:              formInput.Int,
+		Wis:              formInput.Wis,
+		Cha:              formInput.Cha,
+		Languages:        formInput.Languages,
+		Proficiencies:    formInput.Proficiencies,
+		Skills:           formInput.Skills,
+		SavingThrows:     formInput.SavingThrows,
+		Features:         formInput.Features,
+		Weapons:          formInput.Weapons,
+		SpellSlots:       formInput.SpellSlots,
+		Resources:        formInput.Resources,
+		ID:               uid[:],
+		OwnerID:          session.UserId[:],
+	})
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
 
-	http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if rowsAffected == 0 {
+		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		return
+	}
+
+	if isHTMXRequest(r) {
+		w.Header().Set("HX-Redirect", "/characters")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Redirect(w, r, "/characters", http.StatusSeeOther)
 }
 
 func CharactersPage(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +240,111 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	formInput, validationErrors, err := buildCharacterFormInput(r)
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if len(validationErrors) > 0 {
+		if isHTMXRequest(r) {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
+			return
+		}
+
+		http.Redirect(w, r, "/characters/new", http.StatusSeeOther)
+		return
+	}
+
+	q := queries.New(db)
+	id := ulid.Make()
+	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
+		ID:               id[:],
+		OwnerID:          session.UserId[:],
+		AssetID:          sql.NullString{},
+		Name:             formInput.Name,
+		Level:            formInput.Level,
+		Xp:               formInput.XP,
+		Race:             formInput.Race,
+		Background:       formInput.Background,
+		Alignment:        formInput.Alignment,
+		Classes:          formInput.Classes,
+		Size:             formInput.Size,
+		Ac:               formInput.AC,
+		MaxHp:            formInput.MaxHP,
+		CurrentHp:        formInput.CurrentHP,
+		ProficiencyBonus: formInput.ProficiencyBonus,
+		TempHp:           formInput.TempHP,
+		Speed:            formInput.Speed,
+		InitiativeBonus:  formInput.InitiativeBonus,
+		SpellSaveDc:      formInput.SpellSaveDC,
+		SpellAtkBonus:    formInput.SpellAtkBonus,
+		Str:              formInput.Str,
+		Dex:              formInput.Dex,
+		Con:              formInput.Con,
+		Int:              formInput.Int,
+		Wis:              formInput.Wis,
+		Cha:              formInput.Cha,
+		Languages:        formInput.Languages,
+		Proficiencies:    formInput.Proficiencies,
+		Skills:           formInput.Skills,
+		SavingThrows:     formInput.SavingThrows,
+		Features:         formInput.Features,
+		Weapons:          formInput.Weapons,
+		SpellSlots:       formInput.SpellSlots,
+		Resources:        formInput.Resources,
+		Notes:            "",
+	})
+	if err != nil {
+		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if isHTMXRequest(r) {
+		w.Header().Set("HX-Redirect", "/characters")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Redirect(w, r, "/characters", http.StatusSeeOther)
+}
+
+type characterFormInput struct {
+	Name             string
+	Level            uint8
+	XP               uint32
+	Race             sql.NullString
+	Background       sql.NullString
+	Alignment        sql.NullString
+	Classes          sql.NullString
+	Size             string
+	AC               uint16
+	MaxHP            uint16
+	CurrentHP        uint16
+	ProficiencyBonus uint16
+	TempHP           uint16
+	Speed            string
+	InitiativeBonus  int16
+	SpellSaveDC      uint16
+	SpellAtkBonus    int16
+	Str              uint8
+	Dex              uint8
+	Con              uint8
+	Int              uint8
+	Wis              uint8
+	Cha              uint8
+	Languages        string
+	Proficiencies    string
+	Skills           json.RawMessage
+	SavingThrows     json.RawMessage
+	Features         json.RawMessage
+	Weapons          json.RawMessage
+	SpellSlots       json.RawMessage
+	Resources        json.RawMessage
+}
+
+func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, error) {
 	validationErrors := make([]string, 0)
 
 	name := strings.TrimSpace(r.PostFormValue("name"))
@@ -217,15 +427,34 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		validationErrors = append(validationErrors, "Spell attack bonus must be between -32768 and 32767.")
 	}
 
-	if len(validationErrors) > 0 {
-		if isHTMXRequest(r) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
-			return
-		}
+	rawSkills, err := marshalSkillsPayload(r)
+	if err != nil {
+		return characterFormInput{}, nil, err
+	}
 
-		http.Redirect(w, r, "/characters/new", http.StatusSeeOther)
-		return
+	rawSavingThrows, err := marshalSavingThrowsPayload(r)
+	if err != nil {
+		return characterFormInput{}, nil, err
+	}
+
+	rawFeatures, err := marshalInfoRowsPayload(r, "features")
+	if err != nil {
+		return characterFormInput{}, nil, err
+	}
+
+	rawWeapons, err := marshalInfoRowsPayload(r, "weapons")
+	if err != nil {
+		return characterFormInput{}, nil, err
+	}
+
+	rawResources, err := marshalInfoRowsPayload(r, "resources")
+	if err != nil {
+		return characterFormInput{}, nil, err
+	}
+
+	rawSpellSlots, err := marshalSpellSlotsPayload(r)
+	if err != nil {
+		return characterFormInput{}, nil, err
 	}
 
 	level := helpers.CalculateCharacterLevelFromXP(xp)
@@ -243,67 +472,23 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 
 	proficiencies := strings.TrimSpace(r.PostFormValue("proficiencies"))
 
-	rawSkills, err := marshalSkillsPayload(r)
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-	slog.Info("TEST", "skills", rawSkills)
-
-	rawSavingThrows, err := marshalSavingThrowsPayload(r)
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-
-	rawFeatures, err := marshalInfoRowsPayload(r, "features")
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-	slog.Info("TEST", "feats", rawFeatures)
-
-	rawWeapons, err := marshalInfoRowsPayload(r, "weapons")
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-
-	rawResources, err := marshalInfoRowsPayload(r, "resources")
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-
-	rawSpellSlots, err := marshalSpellSlotsPayload(r)
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-	slog.Info("TEST", "spells", rawSpellSlots)
-
-	q := queries.New(db)
-	id := ulid.Make()
-	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
-		ID:               id[:],
-		OwnerID:          session.UserId[:],
-		AssetID:          sql.NullString{},
+	return characterFormInput{
 		Name:             name,
 		Level:            level,
-		Xp:               xp,
+		XP:               xp,
 		Race:             nullableString(r.PostFormValue("race")),
 		Background:       nullableString(r.PostFormValue("background")),
 		Alignment:        nullableString(r.PostFormValue("alignment")),
 		Classes:          nullableString(r.PostFormValue("classes")),
 		Size:             size,
-		Ac:               ac,
-		MaxHp:            maxHP,
-		CurrentHp:        currentHP,
+		AC:               ac,
+		MaxHP:            maxHP,
+		CurrentHP:        currentHP,
 		ProficiencyBonus: proficiencyBonus,
-		TempHp:           tempHP,
+		TempHP:           tempHP,
 		Speed:            speed,
 		InitiativeBonus:  initiativeBonus,
-		SpellSaveDc:      spellSaveDC,
+		SpellSaveDC:      spellSaveDC,
 		SpellAtkBonus:    spellAtkBonus,
 		Str:              strVal,
 		Dex:              dexVal,
@@ -319,20 +504,131 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Weapons:          rawWeapons,
 		SpellSlots:       rawSpellSlots,
 		Resources:        rawResources,
-		Notes:            "",
-	})
+	}, validationErrors, nil
+}
+
+func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
+	return pages.EditCharacterPageData{
+		FormAction:       "/characters/" + id,
+		Name:             character.Name,
+		Race:             nullStringValue(character.Race),
+		Background:       nullStringValue(character.Background),
+		Classes:          nullStringValue(character.Classes),
+		Size:             fallbackString(strings.TrimSpace(character.Size), "medium"),
+		Alignment:        fallbackString(nullStringValue(character.Alignment), "unaliged"),
+		Xp:               strconv.FormatUint(uint64(character.Xp), 10),
+		Languages:        fallbackString(strings.TrimSpace(character.Languages), "Common"),
+		Proficiencies:    strings.TrimSpace(character.Proficiencies),
+		Str:              strconv.FormatUint(uint64(character.Str), 10),
+		Dex:              strconv.FormatUint(uint64(character.Dex), 10),
+		Con:              strconv.FormatUint(uint64(character.Con), 10),
+		Int:              strconv.FormatUint(uint64(character.Int), 10),
+		Wis:              strconv.FormatUint(uint64(character.Wis), 10),
+		Cha:              strconv.FormatUint(uint64(character.Cha), 10),
+		Ac:               strconv.FormatUint(uint64(character.Ac), 10),
+		Speed:            fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
+		InitiativeBonus:  strconv.FormatInt(int64(character.InitiativeBonus), 10),
+		MaxHP:            strconv.FormatUint(uint64(character.MaxHp), 10),
+		CurrentHP:        strconv.FormatUint(uint64(character.CurrentHp), 10),
+		TempHP:           strconv.FormatUint(uint64(character.TempHp), 10),
+		SpellSaveDC:      strconv.FormatUint(uint64(character.SpellSaveDc), 10),
+		SpellAtkBonus:    strconv.FormatInt(int64(character.SpellAtkBonus), 10),
+		SkillsJSON:       normalizeJSONObjectJSON(character.Skills),
+		SavingThrowsJSON: normalizeJSONObjectJSON(character.SavingThrows),
+		FeaturesJSON:     normalizeInfoRowsJSON(character.Features),
+		WeaponsJSON:      normalizeInfoRowsJSON(character.Weapons),
+		ResourcesJSON:    normalizeInfoRowsJSON(character.Resources),
+		SpellSlotsJSON:   normalizeSpellSlotsJSON(character.SpellSlots),
+	}
+}
+
+func nullStringValue(value sql.NullString) string {
+	if !value.Valid {
+		return ""
+	}
+
+	return strings.TrimSpace(value.String)
+}
+
+func fallbackString(value, fallback string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return fallback
+	}
+
+	return trimmed
+}
+
+func normalizeJSONObjectJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return "{}"
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		slog.Warn("invalid JSON object payload; defaulting", "error", err)
+		return "{}"
+	}
+
+	if payload == nil {
+		payload = map[string]any{}
+	}
+
+	normalized, err := json.Marshal(payload)
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
+		slog.Warn("failed to normalize JSON object payload; defaulting", "error", err)
+		return "{}"
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Redirect", "/characters")
-		w.WriteHeader(http.StatusOK)
-		return
+	return string(normalized)
+}
+
+func normalizeInfoRowsJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return "[]"
 	}
 
-	http.Redirect(w, r, "/characters", http.StatusSeeOther)
+	var rows []infoRow
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		slog.Warn("invalid info rows payload; defaulting", "error", err)
+		return "[]"
+	}
+
+	if rows == nil {
+		rows = make([]infoRow, 0)
+	}
+
+	normalized, err := json.Marshal(rows)
+	if err != nil {
+		slog.Warn("failed to normalize info rows payload; defaulting", "error", err)
+		return "[]"
+	}
+
+	return string(normalized)
+}
+
+func normalizeSpellSlotsJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return "{}"
+	}
+
+	var payload map[string]spellLevelPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		slog.Warn("invalid spell slots payload; defaulting", "error", err)
+		return "{}"
+	}
+
+	if payload == nil {
+		payload = map[string]spellLevelPayload{}
+	}
+
+	normalized, err := json.Marshal(payload)
+	if err != nil {
+		slog.Warn("failed to normalize spell slots payload; defaulting", "error", err)
+		return "{}"
+	}
+
+	return string(normalized)
 }
 
 func isHTMXRequest(r *http.Request) bool {

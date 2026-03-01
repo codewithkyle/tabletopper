@@ -57,9 +57,9 @@ func main() {
 	})
 
 	mux.HandleFunc("/characters", controllers.CharactersPage)
-	mux.HandleFunc("/characters/new", controllers.NewCharacterPage)
+	mux.HandleFunc("GET /characters/new", controllers.NewCharacterPage)
 	mux.HandleFunc("POST /characters", controllers.NewCharacterForm)
-	mux.HandleFunc("/characters/{id}", controllers.CharacterPage)
+	mux.HandleFunc("/characters/{id}/edit", controllers.CharacterPage)
 	mux.HandleFunc("POST /characters/{id}", controllers.EditCharacterForm)
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
