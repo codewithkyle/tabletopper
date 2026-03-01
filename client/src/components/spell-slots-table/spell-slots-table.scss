@@ -1,0 +1,223 @@
+spell-slots-table{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+
+    levels-grid{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    spell-level{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+        padding: 0.5rem;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+            color: var(--grey-300);
+        }
+    }
+
+    level-header{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-bottom: 0.5rem;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+        }
+
+        .title{
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+
+            .lvl{
+                padding-top: 0.5rem;
+                padding-left: 1rem;
+                font-weight: var(--font-medium);
+                font-size: var(--font-md);
+                color: var(--grey-800);
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-300);
+                }
+            }
+        }
+
+        .slots{
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+
+            label{
+                display: grid;
+                gap: 0.25rem;
+
+                .k{
+                    font-size: var(--font-xs);
+                    color: var(--grey-600);
+
+                    @media (prefers-color-scheme: dark) {
+                        color: var(--grey-400);
+                    }
+                }
+            }
+        }
+    }
+
+    spells-list{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    spell-card{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+        padding: 0.5rem;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+        }
+    }
+
+    /* shared input styles (mirrors your pattern) */
+    input,
+    textarea,
+    select{
+        background: transparent;
+        display: block;
+        min-height: 36px;
+        font-size: var(--font-sm);
+        line-height: 1.375;
+        color: var(--grey-800);
+        width: 100%;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+
+        @media (prefers-color-scheme: dark) {
+            color: var(--grey-300);
+            border-color: var(--grey-700);
+            background-color: hsl(var(--white-hsl) / 0.05);
+
+            &:focus{
+                background-color: transparent;
+            }
+        }
+    }
+
+    textarea{
+        padding: 0.5rem;
+        resize: vertical;
+    }
+
+    input,
+    select{
+        padding: 0 0.5rem;
+    }
+
+    spell-top{
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        width: 100%;
+
+        .name{
+            flex: 1;
+            input{
+                font-weight: var(--font-medium);
+                color: var(--grey-700);
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-300);
+                }
+            }
+        }
+
+        button.delete{
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 0.25rem;
+            border: 1px solid var(--grey-300);
+            transition: all 150ms var(--ease-in-out);
+            color: var(--grey-700);
+
+            &:hover,
+            &:focus-visible{
+                color: var(--danger-700);
+            }
+
+            &:active{
+                color: var(--danger-800);
+            }
+
+            @media (prefers-color-scheme: dark) {
+                border-color: var(--grey-700);
+                color: var(--grey-300);
+                background-color: hsl(var(--white-hsl) / 0.05);
+
+                &:hover,
+                &:focus-visible{
+                    color: var(--danger-400);
+                    background-color: hsl(var(--danger-400-hsl) / 0.05);
+                }
+
+                &:active{
+                    color: var(--danger-400);
+                    background-color: hsl(var(--danger-400-hsl) / 0.1);
+                }
+            }
+
+            svg{
+                width: 14px;
+                height: 14px;
+            }
+        }
+    }
+
+    spell-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+
+        @media (max-width: 640px) {
+            grid-template-columns: 1fr;
+        }
+
+        label{
+            display: grid;
+            gap: 0.25rem;
+
+            .k{
+                font-size: var(--font-xs);
+                color: var(--grey-600);
+
+                @media (prefers-color-scheme: dark) {
+                    color: var(--grey-400);
+                }
+            }
+        }
+
+        label.full{
+            grid-column: 1 / -1;
+        }
+    }
+}

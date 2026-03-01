@@ -1,0 +1,79 @@
+saving-throws-table{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+
+    saves-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    save-row{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        width: 100%;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+        padding: 0.5rem;
+
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--grey-700);
+            color: var(--grey-300);
+        }
+    }
+
+    save-name{
+        display: flex;
+        flex-flow: column nowrap;
+        gap: 0.125rem;
+        min-width: 0;
+
+        .label{
+            font-size: var(--font-sm);
+            font-weight: var(--font-medium);
+            color: var(--grey-800);
+
+            @media (prefers-color-scheme: dark) {
+                color: var(--grey-300);
+            }
+        }
+
+        .meta{
+            font-size: var(--font-xs);
+            color: var(--grey-600);
+
+            @media (prefers-color-scheme: dark) {
+                color: var(--grey-400);
+            }
+        }
+    }
+
+    input.bonus{
+        background: transparent;
+        display: block;
+        min-height: 36px;
+        width: 56px;
+        text-align: right;
+        font-size: var(--font-sm);
+        line-height: 1.375;
+        color: var(--grey-800);
+        padding: 0 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--grey-300);
+
+        @media (prefers-color-scheme: dark) {
+            color: var(--grey-300);
+            border-color: var(--grey-700);
+            background-color: hsl(var(--white-hsl) / 0.05);
+
+            &:focus{
+                background-color: transparent;
+            }
+        }
+    }
+}

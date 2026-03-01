@@ -33,7 +33,7 @@ class MonsterInfoTable extends SuperComponent<IMonsterInfoTable>{
     }
 
     override async connected() {
-        await env.css(["monster-info-table", "buttons"]);
+        await env.css(["monster-info-table", "button"]);
         const settings = parseDataset(this.dataset, this.model);
         this.set(settings);
     }

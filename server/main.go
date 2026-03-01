@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"main/internal/controllers"
 	db "main/internal/database"
 	"main/internal/queries"
 	"main/internal/session"
@@ -186,6 +187,9 @@ func main() {
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	})
+
+	mux.HandleFunc("/characters", controllers.CharactersPage)
+	mux.HandleFunc("/characters/new", controllers.NewCharacterPage)
 
 	// NOTE: static files
 	mux.Handle(

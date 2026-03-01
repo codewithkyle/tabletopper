@@ -1,0 +1,40 @@
+package pages
+
+import (
+	"main/internal/queries"
+	"main/internal/session"
+	"main/templ/layouts"
+)
+
+var charactersSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
+	Title: "Characters | Tabletopper",
+}
+
+templ Characters(session session.UserSession, characters []queries.GetCharactersRow) {
+	{{ charactersSettings.Session = session }}
+	{{ charactersSettings.Content = charactersContent(session, characters) }}
+	@layouts.Base(charactersSettings)
+}
+
+templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {
+	<character-selector class="block relative w-screen h-screen p-2">
+		<div class="w-full mb-4" flex="row nowrap items-center justify-between">
+			<h1 style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);" class="font-4xl font-bold font-lobster">Characters</h1>
+			<a
+				href="/characters/new"
+				class="bttn"
+				kind="outline"
+				color="white"
+				size="large"
+				sfx="button"
+				icon="left"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
+				New character
+			</a>
+		</div>
+		if len(characters) == 0 {
+			<p style="text-shadow:0 2px 4px rgba(0, 0, 0, 0.3);margin-top:42vh;" class="text-center block w-full">Looks like you don't have any characters yet. <a sfx="button" class="link" href="/characters/new">Create one.</a></p>
+		}
+	</character-selector>
+}
