@@ -40,7 +40,7 @@ character-editor.character-sheet-shell {
 
     .sheet-title {
         margin: 0.12rem 0 0;
-        color: #fff9ea;
+        color: #7a3f23;
         font-family: "Cinzel", "Iowan Old Style", "Palatino Linotype", serif;
         font-size: clamp(1.5rem, 2.2vw, 2.15rem);
         line-height: 1.1;
@@ -50,39 +50,29 @@ character-editor.character-sheet-shell {
     .sheet-actions {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 1rem;
     }
 
     .character-sheet-paper {
         min-height: 0;
-        background:
-            linear-gradient(180deg, hsl(44 58% 96% / 0.93), hsl(43 46% 90% / 0.96));
-        border: 1px solid hsl(35 28% 65% / 0.9);
-        border-radius: 0.55rem;
-        box-shadow: var(--sheet-shadow);
         overflow: hidden;
     }
 
     .character-sheet-scroll {
         height: 100%;
         overflow: auto;
-        padding: 0.8rem;
         display: grid;
-        gap: 0.8rem;
-        background-image:
-            linear-gradient(hsl(37 35% 79% / 0.34) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(37 35% 79% / 0.22) 1px, transparent 1px);
-        background-size: 100% 28px, 28px 100%;
+        gap: 1rem;
     }
 
     .sheet-section {
-        padding: 0.65rem;
+        padding: 1rem;
         border: 1px solid var(--sheet-rule);
         border-radius: 0.5rem;
         background: hsl(44 44% 96% / 0.9);
-        box-shadow: 0 1px 0 hsl(40 60% 99% / 0.75) inset;
+        box-shadow: 0 1px 0 hsla(40,60%,99%,.75) inset, 0 1px 4px hsla(40,60%,35%,.25);
         display: grid;
-        gap: 0.6rem;
+        gap: 1rem;
     }
 
     .sheet-section-header {
@@ -105,7 +95,7 @@ character-editor.character-sheet-shell {
 
     .sheet-grid {
         display: grid;
-        gap: 0.55rem;
+        gap: 1rem;
     }
 
     .sheet-grid-identity {
@@ -194,10 +184,6 @@ character-editor.character-sheet-shell {
             }
         }
 
-        .character-sheet-scroll {
-            padding: 0.6rem;
-        }
-
         .sheet-grid-abilities {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -222,23 +208,10 @@ character-editor.character-sheet-shell {
             text-shadow: 0 2px 12px hsl(0 0% 0% / 0.62);
         }
 
-        .character-sheet-paper {
-            background:
-                linear-gradient(180deg, hsl(220 12% 20% / 0.95), hsl(220 12% 16% / 0.96));
-            border-color: hsl(30 22% 34% / 0.95);
-            box-shadow: var(--sheet-shadow);
-        }
-
-        .character-sheet-scroll {
-            background-image:
-                linear-gradient(hsl(34 22% 34% / 0.18) 1px, transparent 1px),
-                linear-gradient(90deg, hsl(34 20% 36% / 0.15) 1px, transparent 1px);
-        }
-
         .sheet-section {
             background: hsl(222 12% 18% / 0.92);
             border-color: var(--sheet-rule);
-            box-shadow: 0 1px 0 hsl(36 20% 30% / 0.35) inset;
+            box-shadow: 0 1px 0 hsla(36,20%,30%,.35) inset,0 1px 4px hsla(36,20%,50%,.15);
         }
 
         .sheet-section-header {

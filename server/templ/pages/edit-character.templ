@@ -16,7 +16,7 @@ templ EditCharacter(session session.UserSession, data EditCharacterPageData) {
 }
 
 templ editCharacterContent(data EditCharacterPageData) {
-	<character-editor class="character-sheet-shell block relative w-screen h-screen p-1">
+	<character-editor class="character-sheet-shell block relative w-screen h-screen pt-1 px-1">
 		<form class="character-sheet-form w-full h-full" method="POST" action={ data.FormAction } hx-post={ data.FormAction } hx-target-4*="#new-character-form-errors" hx-swap="outerHTML">
 			<div class="character-sheet-header">
 				<div>
@@ -26,7 +26,7 @@ templ editCharacterContent(data EditCharacterPageData) {
 					<a
 						href="/characters"
 						type="button"
-						class="bttn mr-0.5"
+						class="bttn"
 						kind="solid"
 						color="grey"
 						sfx="button"

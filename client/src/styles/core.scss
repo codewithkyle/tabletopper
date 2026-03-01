@@ -17,11 +17,32 @@ body{
     height: 100vh;
     position: relative;
     overflow: hidden;
-    color: var(--grey-700);
+    color: #2f2418;
+    background: linear-gradient(180deg, hsl(44 58% 96% / 0.93), hsl(43 46% 90% / 0.96));
 
     @media (prefers-color-scheme: dark){
-        background-color: #000;
-        color: var(--grey-300);
+        background:
+                linear-gradient(180deg, hsl(220 12% 20% / 0.95), hsl(220 12% 16% / 0.96));
+        color: #e9ddc9;
+    }
+
+    &::before {
+        content:'';
+        position:fixed;
+        top:0;
+        left:0;
+        width:100vw;
+        height:100vh;
+        background-size: 100% 28px, 28px 100%;
+        background-image:
+            linear-gradient(hsl(37 35% 79% / 0.34) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(37 35% 79% / 0.22) 1px, transparent 1px);
+
+        @media (prefers-color-scheme: dark) {
+            background-image:
+                linear-gradient(hsl(34 22% 34% / 0.18) 1px, transparent 1px),
+                linear-gradient(90deg, hsl(34 20% 36% / 0.15) 1px, transparent 1px);
+        }
     }
 }
 
