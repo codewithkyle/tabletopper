@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS assets (
     owner_id VARBINARY(16) NOT NULL,
 
     file_path VARCHAR(1024) NOT NULL, -- Cloudflare R2 path relative to the user's directory
-    type TINYINT UNSIGNED NOT NULL DEFAULT 0, -- 0:map, 1:pawn, 2:token, 3:music
+    type TINYINT UNSIGNED NOT NULL DEFAULT 0, -- 0:map, 1:avatar, 2:token, 3:music
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

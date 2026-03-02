@@ -299,7 +299,7 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
 		ID:               id[:],
 		OwnerID:          session.UserId[:],
-		AssetID:          sql.NullString{},
+		AssetID:          []byte(nil),
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		Xp:               formInput.XP,

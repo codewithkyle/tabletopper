@@ -63,6 +63,9 @@ func main() {
 	mux.HandleFunc("POST /characters/{id}", controllers.EditCharacterForm)
 	mux.HandleFunc("DELETE /characters/{id}/delete", controllers.DeleteCharacter)
 
+	mux.HandleFunc("POST /assets/characters/{id}", controllers.UploadCharacterAvatar)
+	mux.HandleFunc("GET /assets/images/{id}", controllers.GetImage)
+
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)
 	})

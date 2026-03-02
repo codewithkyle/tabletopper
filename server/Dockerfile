@@ -1,31 +1,30 @@
-# Step 1: Use an official Go image to build the Go application
+# Step 1: Build
 FROM golang:1.25-alpine AS builder
 
-# Step 2: Set the working directory inside the container
 WORKDIR /app
 
-# Step 3: Copy the Go modules and dependencies
-COPY ./server/. ./
+# Native deps for CGO + libwebp
+RUN apk add --no-cache build-base libwebp-dev
 
-# Step 4: Download necessary Go dependencies
+COPY ./server/go.mod ./server/go.sum ./
 RUN go mod download
 
-# Step 6: Build the Go application
-RUN go build -ldflags="-s -w" -o tabletopper .
+# copy the rest of the source
+COPY ./server/. ./
 
-# Step 7: Create a small image to run the application
+# Build with CGO enabled
+ENV CGO_ENABLED=1
+RUN go build -o tabletopper .
+
+# Step 2: Run
 FROM alpine:latest
 
-# Step 8: Set the working directory in the final image
+# libwebp runtime libs are usually needed when dynamically linked
+RUN apk add --no-cache libwebp
+
 WORKDIR /root/
-
-# Step 9: Copy the Go binary from the builder stage
 COPY --from=builder /app/tabletopper .
-
 COPY ./client/public ./public
 
-# Step 10: Expose the port that the app will run on
 EXPOSE 3000
-
-# Step 11: Command to run the Go app
 CMD ["./tabletopper"]

@@ -88,14 +88,14 @@ templ Base(settings BaseTemplateSettings) {
                             color="grey"
                             kind="solid"
                             x-text="cancelLabel"
-                            x-on:click="$dispatch('confirm-modal:cancel', uid); show = false;"
+                            x-on:click="show = false; $dispatch('confirm-modal:cancel', uid);"
                         >Close</button>
                         <button 
                             class="bttn"
                             color="danger"
                             kind="solid"
                             x-text="confirmLabel"
-                            x-on:click="$dispatch('confirm-modal:confirm', uid); show = false;"
+                            x-on:click="show = false; $dispatch('confirm-modal:confirm', uid);"
                         ></button>
                     </div>
                 </modal-content>

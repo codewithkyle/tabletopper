@@ -103,3 +103,8 @@ SET
     spell_slots = ?,
     resources = ?
 WHERE id = ? AND owner_id = ?;
+
+-- name: UpdateCharacterAvatar :exec
+UPDATE characters
+SET asset_id = ?
+WHERE id = ? AND owner_id = ?;

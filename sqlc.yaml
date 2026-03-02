@@ -7,3 +7,7 @@ sql:
       go:
         package: "queries"
         out: "./server/internal/queries"
+        overrides:
+          - column: characters.asset_id
+            go_type:
+              type: "[]byte"
