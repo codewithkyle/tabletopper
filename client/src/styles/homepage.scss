@@ -6,7 +6,7 @@ home-page {
         font-size: 9rem;
         font-family: "Lobster";
         font-weight: var(--font-bold);
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        text-shadow: var(--sheet-text-shadow);
         color: var(--white);
 
         @media (min-width: 768px) {
@@ -24,6 +24,15 @@ home-page {
 
     #user-badge {
         margin-top: -1rem;
+        padding: 0.5rem 0.75rem;
+        display: flex;
+        flex-flow: row nowrap;
+        align-items: center;
+        backdrop-filter: blur(var(--panel-blur));
+        border-radius:9999px;
+        background-color: var(--panel-bg);
+        border: 1px solid var(--sheet-rule);
+        box-shadow: var(--panel-shadow);
     }
 
     .actions {
@@ -44,12 +53,12 @@ home-page {
             font-weight: bold;
             color: #fff;
             opacity: 1;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            text-shadow: var(--sheet-text-shadow);
             transition: all 150ms var(--ease-in-out);
 
             &:hover,
             &:focus-visible {
-                color: var(--primary-100);
+                color: var(--primary-400);
 
                 @media (prefers-color-scheme: dark) {
                     color: var(--primary-300);

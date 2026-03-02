@@ -41,7 +41,7 @@ templ homepageContent(session session.UserSession) {
 		<home-page class="pl-3 pt-2 pr-4 w-screen h-screen t-0 l-0" style="inset:0;">
 			<div class="w-full" flex="row nowrap justify-between items-center">
 				<h1>Tabletopper</h1>
-				<div id="user-badge" class="bg-grey-900/60 py-0.5 px-0.75" flex="row nowrap items-center" style="backdrop-filter:blur(8px);border-radius:9999px;overflow:hidden;">
+				<div id="user-badge">
 					<img class="mr-0.75" style="overflow:hidden;width:48px;height:48px;border-radius:24px;" src={ session.ProfileImageURL }/>
 					<p class="inline-block mr-2 font-xs font-medium">
 						Welcome
@@ -52,7 +52,7 @@ templ homepageContent(session session.UserSession) {
 						href="/logout"
 						class="bttn"
 						kind="text"
-						color="white"
+						color="grey"
 						icon="center"
 						tooltip="Logout"
 						shape="round"

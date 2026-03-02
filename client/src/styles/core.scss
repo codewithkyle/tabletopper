@@ -7,6 +7,25 @@ html{
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+
+    --sheet-ink: #2f2418;
+    --sheet-muted: #7c6a53;
+    --sheet-rule: #d8ccb8;
+    --sheet-accent: #7a3f23;
+    --panel-bg: rgba(249, 247, 240, 0.87);
+    --panel-shadow: rgba(254, 253, 251, 0.75) 0px 1px 0px inset, rgba(143, 107, 36, 0.25) 0px 1px 4px;
+    --panel-blur: 8px;
+    --sheet-text-shadow: rgba(143, 107, 36, 0.1) 0px 0px 12px, rgba(143, 107, 36, 0.45) 0px 2px 6px;
+
+    @media (prefers-color-scheme: dark) {
+        --sheet-ink: #e9ddc9;
+        --sheet-muted: #b4a289;
+        --sheet-rule: #4f463b;
+        --sheet-accent: #f4c486;
+        --panel-bg: rgba(40, 44, 51, 0.87);
+        --panel-shadow: rgba(92, 80, 61, 0.35) 0px 1px 0px inset, rgba(153, 133, 102, 0.15) 0px 1px 4px;
+        --sheet-text-shadow: rgba(153, 133, 102, 0.1) 0px 0px 12px, rgba(153, 133, 102, 0.3) 0px 2px 6px;
+    }
 }
 
 body{
@@ -17,13 +36,12 @@ body{
     height: 100vh;
     position: relative;
     overflow: hidden;
-    color: #2f2418;
+    color: var(--sheet-ink);
     background: linear-gradient(180deg, hsl(44 58% 96% / 0.93), hsl(43 46% 90% / 0.96));
 
     @media (prefers-color-scheme: dark){
         background:
                 linear-gradient(180deg, hsl(220 12% 20% / 0.95), hsl(220 12% 16% / 0.96));
-        color: #e9ddc9;
     }
 
     &::before {

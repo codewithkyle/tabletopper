@@ -18,11 +18,10 @@ skills-table{
         gap: 0.5rem;
         width: 100%;
         border-radius: 0.25rem;
-        border: 1px solid var(--grey-300);
+        border: 1px solid var(--sheet-rule);
         padding: 0.5rem;
 
         @media (prefers-color-scheme: dark) {
-            border-color: var(--grey-700);
             color: var(--grey-300);
         }
     }
@@ -54,7 +53,7 @@ skills-table{
     }
 
     input.bonus{
-        background: transparent;
+        background-color: var(--white);
         display: block;
         min-height: 36px;
         width: 56px;

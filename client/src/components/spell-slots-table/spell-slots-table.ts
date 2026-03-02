@@ -212,6 +212,150 @@ class SpellSlotsTable extends SuperComponent<ISpellSlotsTableModel> {
         this.set(updated, true);
     };
 
+    renderSpellLevels(level, lvl) {
+        if (level.spells.length == 0) {
+            return "";
+        }
+        return html`
+            <spells-list>
+                ${level.spells.map((spell, index) => {
+                    const base = `${this.model.name}-level-${lvl}-spell-${index}`;
+                    return html`
+                        <spell-card>
+                            <spell-top>
+                                <div class="name">
+                                    <input
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        type="text"
+                                        required
+                                        placeholder="Spell name"
+                                        name="${base}-name"
+                                        .value="${spell.name}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="name"
+                                        @input=${this.updateSpellField}
+                                    />
+                                </div>
+
+                                <button
+                                    class="delete"
+                                    type="button"
+                                    aria-label="Delete ${spell.name || "spell"}"
+                                    tooltip
+                                    data-level="${lvl}"
+                                    data-index="${index}"
+                                    @click=${this.deleteSpell}
+                                >
+                                    <svg aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                                        <path fill="currentColor" d="M296 432h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zm-160 0h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zM440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h24v368a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V96h24a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zM384 464a16 16 0 0 1-16 16H80a16 16 0 0 1-16-16V96h320zm-168-32h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8z"></path>
+                                    </svg>
+                                </button>
+                            </spell-top>
+
+                            <spell-grid>
+                                <label class="full">
+                                    <span class="k">Components</span>
+                                    <input
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        type="text"
+                                        placeholder="V, S, M (a bit of sponge)"
+                                        name="${base}-components"
+                                        .value="${spell.components}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="components"
+                                        @input=${this.updateSpellField}
+                                    />
+                                </label>
+
+                                <label>
+                                    <span class="k">School</span>
+                                    <select
+                                        name="${base}-school"
+                                        .value="${spell.school}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="school"
+                                        @change=${this.updateSpellField}
+                                    >
+                                        ${SCHOOLS.map((s) => html`<option value="${s}">${s}</option>`)}
+                                    </select>
+                                </label>
+
+                                <label>
+                                    <span class="k">Cast Time</span>
+                                    <input
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        type="text"
+                                        placeholder="Action"
+                                        name="${base}-castingTime"
+                                        .value="${spell.castingTime}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="castingTime"
+                                        @input=${this.updateSpellField}
+                                    />
+                                </label>
+
+                                <label>
+                                    <span class="k">Range</span>
+                                    <input
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        type="text"
+                                        placeholder="150 feet"
+                                        name="${base}-range"
+                                        .value="${spell.range}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="range"
+                                        @input=${this.updateSpellField}
+                                    />
+                                </label>
+
+                                <label>
+                                    <span class="k">Duration</span>
+                                    <input
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        type="text"
+                                        placeholder="Instantaneous"
+                                        name="${base}-duration"
+                                        .value="${spell.duration}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="duration"
+                                        @input=${this.updateSpellField}
+                                    />
+                                </label>
+
+                                <label class="full">
+                                    <span class="k">Spell Text</span>
+                                    <textarea
+                                        @keydown=${this.noopEvent}
+                                        @keyup=${this.noopEvent}
+                                        rows="5"
+                                        placeholder="Describe the spell..."
+                                        name="${base}-text"
+                                        .value="${spell.text}"
+                                        data-level="${lvl}"
+                                        data-index="${index}"
+                                        data-field="text"
+                                        @input=${this.updateSpellField}
+                                    >${spell.text}</textarea>
+                                </label>
+                            </spell-grid>
+                        </spell-card>
+                    `;
+                })}
+            </spells-list>
+        `;
+    }
+
     override render(): void {
         const heading = typeof this.model.label === "string" ? this.model.label.trim() : "";
         const view = html`
@@ -266,145 +410,8 @@ class SpellSlotsTable extends SuperComponent<ISpellSlotsTableModel> {
                                         />
                                     </label>
                                 </div>
-                            </level-header>
-
-                            <spells-list>
-                                ${level.spells.map((spell, index) => {
-                                    const base = `${this.model.name}-level-${lvl}-spell-${index}`;
-                                    return html`
-                                        <spell-card>
-                                            <spell-top>
-                                                <div class="name">
-                                                    <input
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        type="text"
-                                                        required
-                                                        placeholder="Spell name"
-                                                        name="${base}-name"
-                                                        .value="${spell.name}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="name"
-                                                        @input=${this.updateSpellField}
-                                                    />
-                                                </div>
-
-                                                <button
-                                                    class="delete"
-                                                    type="button"
-                                                    aria-label="Delete ${spell.name || "spell"}"
-                                                    tooltip
-                                                    data-level="${lvl}"
-                                                    data-index="${index}"
-                                                    @click=${this.deleteSpell}
-                                                >
-                                                    <svg aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                                                        <path fill="currentColor" d="M296 432h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zm-160 0h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zM440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h24v368a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V96h24a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zM384 464a16 16 0 0 1-16 16H80a16 16 0 0 1-16-16V96h320zm-168-32h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8z"></path>
-                                                    </svg>
-                                                </button>
-                                            </spell-top>
-
-                                            <spell-grid>
-                                                <label class="full">
-                                                    <span class="k">Components</span>
-                                                    <input
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        type="text"
-                                                        placeholder="V, S, M (a bit of sponge)"
-                                                        name="${base}-components"
-                                                        .value="${spell.components}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="components"
-                                                        @input=${this.updateSpellField}
-                                                    />
-                                                </label>
-
-                                                <label>
-                                                    <span class="k">School</span>
-                                                    <select
-                                                        name="${base}-school"
-                                                        .value="${spell.school}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="school"
-                                                        @change=${this.updateSpellField}
-                                                    >
-                                                        ${SCHOOLS.map((s) => html`<option value="${s}">${s}</option>`)}
-                                                    </select>
-                                                </label>
-
-                                                <label>
-                                                    <span class="k">Cast Time</span>
-                                                    <input
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        type="text"
-                                                        placeholder="Action"
-                                                        name="${base}-castingTime"
-                                                        .value="${spell.castingTime}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="castingTime"
-                                                        @input=${this.updateSpellField}
-                                                    />
-                                                </label>
-
-                                                <label>
-                                                    <span class="k">Range</span>
-                                                    <input
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        type="text"
-                                                        placeholder="150 feet"
-                                                        name="${base}-range"
-                                                        .value="${spell.range}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="range"
-                                                        @input=${this.updateSpellField}
-                                                    />
-                                                </label>
-
-                                                <label>
-                                                    <span class="k">Duration</span>
-                                                    <input
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        type="text"
-                                                        placeholder="Instantaneous"
-                                                        name="${base}-duration"
-                                                        .value="${spell.duration}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="duration"
-                                                        @input=${this.updateSpellField}
-                                                    />
-                                                </label>
-
-                                                <label class="full">
-                                                    <span class="k">Spell Text</span>
-                                                    <textarea
-                                                        @keydown=${this.noopEvent}
-                                                        @keyup=${this.noopEvent}
-                                                        rows="5"
-                                                        placeholder="Describe the spell..."
-                                                        name="${base}-text"
-                                                        .value="${spell.text}"
-                                                        data-level="${lvl}"
-                                                        data-index="${index}"
-                                                        data-field="text"
-                                                        @input=${this.updateSpellField}
-                                                    >${spell.text}</textarea>
-                                                </label>
-                                            </spell-grid>
-                                        </spell-card>
-                                    `;
-                                })}
-                            </spells-list>
-
+                            </level-header> 
+                            ${this.renderSpellLevels(level, lvl)}
                             <button
                                 type="button"
                                 class="bttn"

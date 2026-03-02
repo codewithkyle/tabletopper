@@ -159,7 +159,7 @@ select-component,
         overflow: hidden;
         border: var(--input-border);
         background-color: var(--white);
-        box-shadow: var(--bevel);
+        box-shadow: none;
         transition: all 80ms var(--ease-in-out);
         outline-offset: 0;
 

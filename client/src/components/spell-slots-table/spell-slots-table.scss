@@ -7,22 +7,17 @@ spell-slots-table{
     levels-grid{
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.75rem;
+        gap: 1rem;
         width: 100%;
     }
 
     spell-level{
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.5rem;
+        gap: 1rem;
         border-radius: 0.25rem;
-        border: 1px solid var(--grey-300);
-        padding: 0.5rem;
-
-        @media (prefers-color-scheme: dark) {
-            border-color: var(--grey-700);
-            color: var(--grey-300);
-        }
+        border: 1px solid var(--sheet-rule);
+        padding: 1rem;
     }
 
     level-header{
@@ -43,10 +38,11 @@ spell-slots-table{
 
             .lvl{
                 padding-top: 0.5rem;
-                padding-left: 1rem;
-                font-weight: var(--font-medium);
+                padding-left: 0.25rem;
+                font-weight: var(--font-bold);
                 font-size: var(--font-md);
-                color: var(--grey-800);
+                color: var(--sheet-accent);
+                font-family: var(--font-serif);
 
                 @media (prefers-color-scheme: dark) {
                     color: var(--grey-300);
@@ -85,21 +81,17 @@ spell-slots-table{
     spell-card{
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.5rem;
+        gap: 1rem;
         border-radius: 0.25rem;
-        border: 1px solid var(--grey-300);
-        padding: 0.5rem;
-
-        @media (prefers-color-scheme: dark) {
-            border-color: var(--grey-700);
-        }
+        border: 1px solid var(--sheet-rule);
+        padding: 1rem;
     }
 
     /* shared input styles (mirrors your pattern) */
     input,
     textarea,
     select{
-        background: transparent;
+        background-color: var(--white);
         display: block;
         min-height: 36px;
         font-size: var(--font-sm);
@@ -196,7 +188,7 @@ spell-slots-table{
     spell-grid{
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
+        gap: 1rem;
 
         @media (max-width: 640px) {
             grid-template-columns: 1fr;

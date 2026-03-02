@@ -761,7 +761,7 @@ button-component {
 
         &[dull] {
             color: var(--grey-700);
-            border-color: var(--grey-200);
+            border-color: var(--grey-300);
 
             @media (prefers-color-scheme: dark) {
                 border-color: var(--grey-600);
@@ -808,7 +808,7 @@ button-component {
                 &:hover,
                 &:focus-visible {
                     color: var(--warning-700);
-                    border-color: var(--warning-200);
+                    border-color: var(--warning-300);
 
                     @media (prefers-color-scheme: dark) {
                         color: var(--warning-400);
@@ -824,7 +824,7 @@ button-component {
                 &:hover,
                 &:focus-visible {
                     color: var(--success-700);
-                    border-color: var(--success-200);
+                    border-color: var(--success-300);
 
                     @media (prefers-color-scheme: dark) {
                         color: var(--success-400);
@@ -844,7 +844,7 @@ button-component {
 
         &[color="grey"] {
             color: var(--grey-700);
-            border-color: var(--grey-200);
+            border-color: var(--grey-300);
 
             &::before {
                 background-color: var(--grey-500);
@@ -895,7 +895,7 @@ button-component {
 
         &[color="success"]:not([dull]) {
             color: var(--success-700);
-            border-color: var(--success-200);
+            border-color: var(--success-300);
 
             &::before {
                 background-color: var(--success-500);
@@ -912,7 +912,7 @@ button-component {
 
         &[color="warning"]:not([dull]) {
             color: var(--warning-700);
-            border-color: var(--warning-200);
+            border-color: var(--warning-300);
 
             &::before {
                 background-color: var(--warning-500);

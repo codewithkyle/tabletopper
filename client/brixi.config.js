@@ -7,8 +7,8 @@ module.exports = {
         units: "rem",
         families: {
             lobster: "'Lobster', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Cantarell, 'Helvetica Neue', sans-serif",
-            "sans-serif": "'Rubik', Ubuntu, 'Open Sans', 'Noto Sans', Roboto, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Cantarell, 'Helvetica Neue', sans-serif",
-            serif: "Georgia, Cambria, 'Times New Roman', Times, serif",
+            "sans-serif": "'Rubik, Ubuntu, 'Open Sans', 'Noto Sans', Roboto, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Cantarell, 'Helvetica Neue', sans-serif",
+            serif: "'Cinzel', 'Iowan Old Style', 'Palatino Linotype', seri",
             mono: "Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         },
         weights: {

@@ -157,7 +157,7 @@
         border: var(--input-border);
         background-color: var(--white);
         transition: all 80ms var(--ease-in-out);
-        box-shadow: 0 1px 1px hsl(var(--black-hsl) / 0.1);
+        box-shadow: none;
         outline-offset: 0;
 
         &:focus-within {
