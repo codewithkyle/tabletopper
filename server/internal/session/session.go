@@ -51,9 +51,6 @@ func GetUserSessionFromCookie(r *http.Request, db *sql.DB, ctx context.Context) 
 	q := queries.New(db)
 	result, err := q.GetSession(ctx, hash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return session, nil
-		}
 		slog.Error("Failed to get user session from DB", "error", err)
 		return session, err
 	}

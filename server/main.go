@@ -45,13 +45,7 @@ func main() {
 			return
 		}
 
-		session, err := session.GetUserSessionFromCookie(r, db, ctx)
-		if err != nil {
-			if !errors.Is(err, http.ErrNoCookie) {
-				http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-				return
-			}
-		}
+		session, _ := session.GetUserSessionFromCookie(r, db, ctx)
 
 		pages.Homepage(session).Render(r.Context(), w)
 	})
