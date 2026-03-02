@@ -15,7 +15,7 @@ html{
     --panel-bg: rgba(249, 247, 240, 0.87);
     --panel-shadow: rgba(254, 253, 251, 0.75) 0px 1px 0px inset, rgba(143, 107, 36, 0.25) 0px 1px 4px;
     --panel-blur: 8px;
-    --sheet-text-shadow: rgba(143, 107, 36, 0.1) 0px 0px 12px, rgba(143, 107, 36, 0.45) 0px 2px 6px;
+    --sheet-text-shadow: rgba(143, 107, 36, 0.15) 0px 0px 12px,rgba(143, 107, 36, 0.2) 0px 2px 4px;
 
     @media (prefers-color-scheme: dark) {
         --sheet-ink: #e9ddc9;

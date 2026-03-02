@@ -73,11 +73,13 @@ templ Base(settings BaseTemplateSettings) {
                 <modal-background></modal-background>
                 <modal-content class="p-1.5">
                     <h4 
-                        class="block font-lg font-semibold font-grey-800 dark:font-grey-100 mb-0.75"
+                        class="block font-lg font-semibold mb-0.75"
+                        style="color: var(--sheet-accent);"
                         x-text="heading"
                     ></h4>
                     <p 
-                        class="block font-grey-700 dark:font-grey-400 mb-1.5"
+                        class="block mb-1.5"
+                        style="color: var(--sheet-ink);"
                         x-text="message"
                     ></p>
                     <div class="w-full" flex="row nowrap items-center justify-end">
