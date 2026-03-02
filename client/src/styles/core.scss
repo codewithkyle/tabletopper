@@ -26,6 +26,12 @@ html{
         --panel-shadow: rgba(92, 80, 61, 0.35) 0px 1px 0px inset, rgba(153, 133, 102, 0.15) 0px 1px 4px;
         --sheet-text-shadow: rgba(153, 133, 102, 0.1) 0px 0px 12px, rgba(153, 133, 102, 0.3) 0px 2px 6px;
     }
+
+    &[state="loading"] {
+        * {
+            cursor: loading !important;
+        }
+    }
 }
 
 body{
