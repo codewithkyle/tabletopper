@@ -1,17 +1,17 @@
-skills-table{
+skills-table {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.5rem;
     width: 100%;
 
-    skills-grid{
+    skills-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
         gap: 0.5rem;
         width: 100%;
     }
 
-    skill-row{
+    skill-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -26,13 +26,13 @@ skills-table{
         }
     }
 
-    skill-name{
+    skill-name {
         display: flex;
         flex-flow: column nowrap;
         gap: 0.125rem;
         min-width: 0;
 
-        .label{
+        .label {
             font-size: var(--font-sm);
             font-weight: var(--font-medium);
             color: var(--grey-800);
@@ -42,7 +42,7 @@ skills-table{
             }
         }
 
-        .ability{
+        .ability {
             font-size: var(--font-xs);
             color: var(--grey-600);
 
@@ -52,7 +52,7 @@ skills-table{
         }
     }
 
-    input.bonus{
+    input.bonus {
         background-color: var(--white);
         display: block;
         min-height: 36px;
@@ -65,12 +65,24 @@ skills-table{
         border-radius: 0.25rem;
         border: 1px solid var(--grey-300);
 
+        &:focus-within {
+            outline: var(--focus-ring);
+            outline-offset: 5px;
+            transition: outline-offset 80ms var(--ease-in-out);
+
+            @media (prefers-color-scheme: dark) {
+                border-color: var(--primary-400);
+                outline: none;
+                box-shadow: 0 0 0 5px hsl(var(--primary-400-hsl) / 0.1);
+            }
+        }
+
         @media (prefers-color-scheme: dark) {
             color: var(--grey-300);
             border-color: var(--grey-700);
             background-color: hsl(var(--white-hsl) / 0.05);
 
-            &:focus{
+            &:focus {
                 background-color: transparent;
             }
         }

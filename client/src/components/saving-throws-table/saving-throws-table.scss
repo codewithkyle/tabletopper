@@ -65,6 +65,18 @@ saving-throws-table{
         border-radius: 0.25rem;
         border: 1px solid var(--grey-300);
 
+        &:focus-within {
+            outline: var(--focus-ring);
+            outline-offset: 5px;
+            transition: outline-offset 80ms var(--ease-in-out);
+
+            @media (prefers-color-scheme: dark) {
+                border-color: var(--primary-400);
+                outline: none;
+                box-shadow: 0 0 0 5px hsl(var(--primary-400-hsl) / 0.1);
+            }
+        }
+
         @media (prefers-color-scheme: dark) {
             color: var(--grey-300);
             border-color: var(--grey-700);
