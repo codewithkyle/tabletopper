@@ -123,7 +123,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//filename := header.Filename
+	filename := header.Filename
 	assetId := ulid.Make()
 	filepath, err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes())
 	if err != nil {
@@ -134,9 +134,11 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
-		ID: assetId[:],
-		OwnerID: session.UserId[:],
+		ID:       assetId[:],
+		OwnerID:  session.UserId[:],
 		FilePath: filepath,
+		FileName: filename,
+		Name:     filename,
 	})
 	if err != nil {
 		slog.Error("Failed to insert character avatar into DB", "error", err, "file", filepath)
@@ -145,7 +147,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = q.UpdateCharacterAvatar(ctx, queries.UpdateCharacterAvatarParams{
-		ID: characterId[:],
+		ID:      characterId[:],
 		OwnerID: session.UserId[:],
 		AssetID: assetId[:],
 	})
