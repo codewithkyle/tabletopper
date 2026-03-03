@@ -15,9 +15,9 @@ home-page {
     }
 
     #user-badge,
-    nav,
     h1,
-    .actions {
+    .actions,
+    nav a {
         opacity: 0;
         animation: fadeIn forwards 600ms 300ms var(--ease-in);
     }
@@ -52,7 +52,6 @@ home-page {
             font-size: 3.5rem;
             font-weight: bold;
             color: var(--sheet-accent);
-            opacity: 1;
             transition: all 150ms var(--ease-in-out);
 
             &:hover,

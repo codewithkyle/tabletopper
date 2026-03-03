@@ -2,6 +2,8 @@ character-selector.character-roster-shell {
     display: block;
     min-height: 100dvh;
     color: var(--sheet-ink);
+    opacity: 0;
+    animation: fadeIn forwards 600ms 300ms var(--ease-in);
 
     .character-roster-frame {
         width: 100%;

@@ -79,7 +79,7 @@ templ Characters(session session.UserSession, characters []queries.GetCharacters
 	@layouts.Base(charactersSettings)
 }
 
-templ Character(character queries.GetCharactersRow) {
+templ Character(character queries.GetCharactersRow, i int) {
 	<character-card class="character-roster-card">
 		<div class="character-roster-hero">
 			if len(character.AssetID) > 0 {
@@ -216,8 +216,8 @@ templ charactersContent(session session.UserSession, characters []queries.GetCha
 				</div>
 			} else {
 				<div class="character-roster-grid">
-					for _, character := range characters {
-						@Character(character)
+					for i, character := range characters {
+						@Character(character, i)
 					}
 				</div>
 			}

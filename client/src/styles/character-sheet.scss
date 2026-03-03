@@ -1,8 +1,9 @@
-
 character-editor.character-sheet-shell {
     display: block;
     min-height: 100dvh;
     color: var(--sheet-ink);
+    opacity: 0;
+    animation: fadeIn forwards 600ms 300ms var(--ease-in);
 
     .character-sheet-form {
         height: 100%;
@@ -132,6 +133,7 @@ character-editor.character-sheet-shell {
     }
 
     @media (max-width: 900px) {
+
         .sheet-grid-identity,
         .sheet-grid-core,
         .sheet-grid-training,
@@ -162,7 +164,8 @@ character-editor.character-sheet-shell {
         }
     }
 
-    @media (prefers-color-scheme: dark) { 
+    @media (prefers-color-scheme: dark) {
+
         skills-table h4,
         saving-throws-table h4,
         monster-info-table h4,
