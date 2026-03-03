@@ -55,6 +55,18 @@ func NewR2Client(ctx context.Context) (*Client, error) {
 	return &Client{s3: s3Client, bucket: cfg.Bucket}, nil
 }
 
+func (c *Client) DeleteObject(ctx context.Context, key string) error {
+	if key == "" {
+		return errors.New("key is empty")
+	}
+
+	_, err := c.s3.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	return err
+}
+
 func (c *Client) ReadBytes(ctx context.Context, key string) ([]byte, error) {
 	if key == "" {
 		return nil, errors.New("key is empty")

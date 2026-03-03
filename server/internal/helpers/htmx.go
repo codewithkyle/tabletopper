@@ -46,7 +46,7 @@ func HTMXRedirect(w http.ResponseWriter, path string) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func HTMXRefresh(w http.ResponseWriter, r *http.Request, path string) {
+func HTMXRefresh(w http.ResponseWriter) {
 	w.Header().Set(
 		"HX-Refresh",
 		"true",

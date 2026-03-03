@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	db "main/internal/database"
 	"main/internal/helpers"
 	"main/internal/queries"
+	"main/internal/services"
 	"main/internal/session"
 	"main/templ/pages"
 	"net/http"
@@ -44,6 +46,25 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := queries.New(db)
+	asset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
+		ID: uid[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("Failed to query character asset", "error", err)
+			helpers.HTMXServerError(w)
+			return
+		}
+	}
+	if len(asset.FilePath) > 0 {
+		err = services.DeleteImage(ctx, asset.FilePath)
+		if err != nil {
+			helpers.HTMXServerError(w)
+			return
+		}
+	}
+
 	err = q.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
 		ID:      uid[:],
 		OwnerID: session.UserId[:],
@@ -53,6 +74,7 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	helpers.HTMXToast(w, asset.Name+" has been deleted.")
 	w.WriteHeader(http.StatusOK)
 }
 

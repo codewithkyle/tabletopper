@@ -15,7 +15,8 @@ toaster-component output {
     background-color: var(--panel-bg);
     box-shadow: var(--panel-shadow);
     color: var(--sheet-accent);
-    max-inline-size: min(25ch, 90vw);
+    max-inline-size: 25vw;
+    inline-size: max-content;
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     animation: fade-in 0.3s ease, slide-in 0.3s ease, fade-out 0.3s 4.4s ease;

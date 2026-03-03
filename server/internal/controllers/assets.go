@@ -3,6 +3,8 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"errors"
 	"image"
 	"io"
 	"log/slog"
@@ -143,6 +145,25 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := queries.New(db)
+	oldAsset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
+		ID:      characterId[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("Failed to get old character asset", "error", err)
+			helpers.HTMXServerError(w)
+			return
+		}
+	} else {
+		err = services.DeleteImage(ctx, oldAsset.FilePath)
+		if err != nil {
+			slog.Error("Failed to delete old asset from R2", "error", err, "file_path", oldAsset.FilePath)
+			helpers.HTMXServerError(w)
+			return
+		}
+	}
+
 	err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
 		ID:       assetId[:],
 		OwnerID:  session.UserId[:],
@@ -167,6 +188,6 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("HX-Refresh", "true")
-	w.WriteHeader(http.StatusOK)
+	helpers.HTMXToast(w, "Updated avatar for "+oldAsset.Name)
+	helpers.HTMXRefresh(w)
 }

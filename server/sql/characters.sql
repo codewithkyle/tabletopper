@@ -23,6 +23,11 @@ ORDER BY created_at DESC;
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;
 
+-- name: GetCharacterAssetByIDAndOwner :one
+SELECT c.name, c.asset_id, a.file_path FROM characters c
+JOIN assets a ON a.id = c.asset_id
+WHERE c.id = ? AND c.owner_id = ?;
+
 -- name: DeleteCharacterByIDAndOwner :exec
 DELETE FROM characters
 WHERE id = ? AND owner_id = ?;

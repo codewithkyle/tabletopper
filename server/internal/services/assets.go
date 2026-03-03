@@ -6,6 +6,15 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+func DeleteImage(ctx context.Context, key string) error {
+	client, err := NewR2Client(ctx)
+	if err != nil {
+		return err
+	}
+	err = client.DeleteObject(ctx, key)
+	return err
+}
+
 func GetImage(ctx context.Context, key string) ([]byte, error) {
 	client, err := NewR2Client(ctx)
 	if err != nil {
