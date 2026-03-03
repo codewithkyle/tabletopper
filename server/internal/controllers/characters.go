@@ -23,23 +23,23 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.HTMXRedirect(w, "/sign-in")
 		return
 	}
 
 	id := r.PathValue("id")
 	if id == "" {
-		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		helpers.HTMXServerError(w)
 		return
 	}
 
@@ -49,7 +49,7 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		OwnerID: session.UserId[:],
 	})
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 
@@ -60,23 +60,23 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w, r)
 		return
 	}
 
 	id := r.PathValue("id")
 	if id == "" {
-		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		helpers.Redirect(w, r, "/characters")
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		helpers.Redirect(w, r, "/characters")
 		return
 	}
 
@@ -87,11 +87,10 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.Redirect(w, r, "/characters", http.StatusSeeOther)
+			helpers.Redirect(w, r, "/characters")
 			return
 		}
-
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
@@ -103,57 +102,47 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w, r)
 		return
 	}
 
 	id := r.PathValue("id")
 	if id == "" {
-		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		helpers.Redirect(w, r, "/characters")
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		helpers.Redirect(w, r, "/characters")
 		return
 	}
 
 	err = r.ParseForm()
 	if err != nil {
-		if isHTMXRequest(r) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
-			return
-		}
-
-		http.Redirect(w, r, "/characters/"+id, http.StatusSeeOther)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
 		return
 	}
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
 	if len(validationErrors) > 0 {
-		if isHTMXRequest(r) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
-			return
-		}
-
-		http.Redirect(w, r, "/characters/"+id, http.StatusSeeOther)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
 		return
 	}
 
 	q := queries.New(db)
-	result, err := q.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
+	_, err = q.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		Xp:               formInput.XP,
@@ -189,47 +178,33 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		OwnerID:          session.UserId[:],
 	})
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if rowsAffected == 0 {
-		http.Redirect(w, r, "/characters", http.StatusSeeOther)
-		return
-	}
-
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Redirect", "/characters")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	http.Redirect(w, r, "/characters", http.StatusSeeOther)
+	msg := formInput.Name+" has been updated."
+	slog.Info(msg)
+	helpers.HTMXToast(w, msg)
+	helpers.HTMXRedirect(w, "/characters")
 }
 
 func CharactersPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w, r)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w, r)
 		return
 	}
 
 	q := queries.New(db)
 	results, err := q.GetCharacters(ctx, session.UserId[:])
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w,r)
 		return
 	}
 
@@ -240,12 +215,12 @@ func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w,r)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w,r)
 		return
 	}
 
@@ -256,41 +231,31 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w,r)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w,r)
 		return
 	}
 
 	err = r.ParseForm()
 	if err != nil {
-		if isHTMXRequest(r) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
-			return
-		}
-
-		http.Redirect(w, r, "/characters/new", http.StatusSeeOther)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
 		return
 	}
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w,r)
 		return
 	}
 
 	if len(validationErrors) > 0 {
-		if isHTMXRequest(r) {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
-			return
-		}
-
-		http.Redirect(w, r, "/characters/new", http.StatusSeeOther)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
 		return
 	}
 
@@ -334,17 +299,12 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Notes:            "",
 	})
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.RedirectToError(w,r)
 		return
 	}
 
-	if isHTMXRequest(r) {
-		w.Header().Set("HX-Redirect", "/characters")
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	http.Redirect(w, r, "/characters", http.StatusSeeOther)
+	helpers.HTMXToast(w, formInput.Name+" has been created.")
+	helpers.HTMXRedirect(w, "/characters")
 }
 
 type characterFormInput struct {
@@ -666,10 +626,6 @@ func normalizeSpellSlotsJSON(raw json.RawMessage) string {
 	}
 
 	return string(normalized)
-}
-
-func isHTMXRequest(r *http.Request) bool {
-	return strings.EqualFold(r.Header.Get("HX-Request"), "true")
 }
 
 func nullableString(value string) sql.NullString {

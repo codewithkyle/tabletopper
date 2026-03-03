@@ -12,9 +12,9 @@ toaster-component {
     pointer-events: none;
 }
 toaster-component output {
-    background-color: var(--grey-950);
-    box-shadow: var(--shadow-black-sm);
-    color: var(--white);
+    background-color: var(--panel-bg);
+    box-shadow: var(--panel-shadow);
+    color: var(--sheet-accent);
     max-inline-size: min(25ch, 90vw);
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
@@ -25,13 +25,8 @@ toaster-component output {
     pointer-events: all;
     transition: all 150ms var(--ease-in-out);
     cursor: pointer;
-    border: 1px solid var(--grey-900);
-
-    @media (prefers-color-scheme: dark) {
-        background-color: hsl(var(--grey-900-hsl) / 0.87);
-        border-color: var(--grey-800);
-        backdrop-filter: blur(8px);
-    }
+    border: 1px solid var(--sheet-rule);
+    backdrop-filter: blur(var(--panel-blur));
 
     &:active {
         transform: scale(0.95);

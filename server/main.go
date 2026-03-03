@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"main/internal/controllers"
 	db "main/internal/database"
+	"main/internal/helpers"
 	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/pages"
@@ -41,7 +42,7 @@ func main() {
 
 		db, err := db.Connect()
 		if err != nil {
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 
@@ -83,46 +84,46 @@ func main() {
 		ctx := context.Background()
 		db, err := db.Connect()
 		if err != nil {
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 		err = session.Logout(r, w, db, ctx)
 		if err != nil {
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		helpers.Redirect(w, r, "/")
 	})
 
 	mux.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("__session")
 		if err != nil {
 			slog.Error("Failed to get user session from cookie", "error", err)
-			http.Redirect(w, r, "/sign-in?next=authorize", http.StatusTemporaryRedirect)
+			helpers.Redirect(w, r, "/sign-in?next=authorize")
 			return
 		}
 		if cookie.Value == "" {
 			slog.Error("No token found in cookie")
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 
 		sessClaims, err := client.VerifyToken(cookie.Value)
 		if err != nil {
 			slog.Error("Failed to verify token", "error", err)
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 		user, err := client.Users().Read(sessClaims.Claims.Subject)
 		if err != nil {
 			slog.Error("Failed to read Clerk user", "error", err)
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 
 		db, err := db.Connect()
 		if err != nil {
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 		ctx := context.Background()
@@ -145,7 +146,7 @@ func main() {
 					})
 					if err != nil {
 						slog.Error("Failed to create user", "error", err)
-						http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+						helpers.RedirectToError(w, r)
 						return
 					}
 				} else {
@@ -156,17 +157,16 @@ func main() {
 					})
 					if err != nil {
 						slog.Error("Failed to create user", "error", err)
-						http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+						helpers.RedirectToError(w, r)
 						return
 					}
 				}
 			} else {
 				slog.Error("DB error when querying user by Clerk ID", "error", err)
-				http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+				helpers.RedirectToError(w, r)
 				return
 			}
 		} else {
-			slog.Info("Found existing user")
 			s.UserId = ulid.ULID(result.ID)
 			s.ProfileImageURL = result.ProfileImageUrl
 			s.Username = result.Username
@@ -182,14 +182,12 @@ func main() {
 		err = s.CreateSession(db, ctx)
 		if err != nil {
 			slog.Error("Failed to create session", "error", err)
-			http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+			helpers.RedirectToError(w, r)
 			return
 		}
 
 		s.SetCookie(w)
-		slog.Info("New session started", "name", s.Username)
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		helpers.Redirect(w, r, "/")
 	})
 
 	// NOTE: static files

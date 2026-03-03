@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	db "main/internal/database"
+	"main/internal/helpers"
 	"main/internal/queries"
 	"main/internal/services"
 	"main/internal/session"
@@ -28,31 +29,39 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		http.NotFoundHandler().ServeHTTP(w, r)
+		return
+	}
+
+	_, err = session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 
 	id := r.PathValue("id")
 	if id == "" {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 	assetId, err := ulid.Parse(id)
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		slog.Error("Failed to parse asset ID", "error", err)
+		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 
 	q := queries.New(db)
 	result, err := q.GetImage(ctx, assetId[:])
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 
 	data, err := services.GetImage(ctx, result.FilePath)
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		slog.Error("Failed to get image from R2", "error", err)
+		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 
@@ -66,36 +75,37 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	db, err := db.Connect()
 	if err != nil {
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	session, err := session.GetUserSessionFromCookie(r, db, ctx)
 	if err != nil {
-		http.Redirect(w, r, "/sign-in", http.StatusTemporaryRedirect)
+		helpers.RedirectToSignIn(w, r)
 		return
 	}
 
 	id := r.PathValue("id")
 	if id == "" {
-		http.Redirect(w, r, "/characters", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	characterId, err := ulid.Parse(id)
 	if err != nil {
-		http.Redirect(w, r, "/characters", http.StatusSeeOther)
+		helpers.HTMXServerError(w)
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
-		http.Error(w, "invalid multipart form", http.StatusBadRequest)
+		slog.Error("Failed to parse multipart form", "error", err)
+		helpers.HTMXServerError(w)
 		return
 	}
 
 	file, header, err := r.FormFile("avatar")
 	if err != nil {
 		slog.Error("Failed to get avatar from form", "error", err)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	defer file.Close()
@@ -104,7 +114,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	switch ct {
 	case "image/png", "image/jpeg", "image/webp":
 	default:
-		http.Error(w, "unsupported image type", http.StatusUnsupportedMediaType)
+		helpers.HTMXCustomError(w, "Unsupported Image Type", "Only PNG, JPEG, and WEBP images are allowed. Refresh the page and try again.", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -112,14 +122,14 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	src, _, err := image.Decode(limited)
 	if err != nil {
 		slog.Error("Failed to decode image", "error", err)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 	resized := imaging.Fill(src, avatarSize, avatarSize, imaging.Center, imaging.Lanczos)
 	var out bytes.Buffer
 	if err := webp.Encode(&out, resized, &webp.Options{Quality: float32(outQuality)}); err != nil {
 		slog.Error("Failed to encode image as webp", "error", err)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 
@@ -128,7 +138,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	filepath, err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes())
 	if err != nil {
 		slog.Error("Failed to upload character avatar", "error", err)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 
@@ -142,7 +152,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("Failed to insert character avatar into DB", "error", err, "file", filepath)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 
@@ -153,7 +163,7 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("Failed to update character avatar", "error", err, "file", filepath)
-		http.Redirect(w, r, "/error", http.StatusTemporaryRedirect)
+		helpers.HTMXServerError(w)
 		return
 	}
 

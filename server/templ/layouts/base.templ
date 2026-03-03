@@ -28,6 +28,7 @@ templ Base(settings BaseTemplateSettings) {
 			<link rel="stylesheet" href="/css/input.css"/>
 			<link rel="stylesheet" href="/css/homepage.css"/>
 			<link rel="stylesheet" href="/css/tooltip.css"/>
+			<link rel="stylesheet" href="/css/toast.css"/>
 			<link rel="stylesheet" href="/css/link.css"/>
 			<link rel="stylesheet" href="/css/skeletons.css"/>
 			<link rel="stylesheet" href="/css/input.css"/>
@@ -97,6 +98,34 @@ templ Base(settings BaseTemplateSettings) {
 							x-text="confirmLabel"
 							x-on:click="show = false; $dispatch('confirm-modal:confirm', uid);"
 						></button>
+					</div>
+				</modal-content>
+			</modal-element>
+			<modal-element
+				x-data="{ show: false, heading:'', message:'', uid:'' }"
+				x-cloak
+				x-show="show"
+				x-on:alert.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; show = true;"
+			>
+				<modal-background></modal-background>
+				<modal-content class="p-1.5">
+					<h4
+						class="block font-lg font-semibold mb-0.75"
+						style="color: var(--sheet-accent);"
+						x-text="heading"
+					></h4>
+					<p
+						class="block mb-1.5"
+						style="color: var(--sheet-ink);"
+						x-text="message"
+					></p>
+					<div class="w-full" flex="row nowrap items-center justify-end">
+						<button
+							class="bttn"
+							color="grey"
+							kind="solid"
+							x-on:click="show = false;"
+						>Close</button>
 					</div>
 				</modal-content>
 			</modal-element>

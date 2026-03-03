@@ -51,7 +51,7 @@ character-selector.character-roster-shell {
     .character-roster-hero {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
-        gap: 0.65rem;
+        gap: 1rem;
         align-items: center;
     }
 
