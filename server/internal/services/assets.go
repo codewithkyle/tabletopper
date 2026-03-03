@@ -46,3 +46,31 @@ func UploadAvatar(ctx context.Context, userId ulid.ULID, assetId ulid.ULID, body
 	}
 	return key, nil
 }
+
+func UploadMap(ctx context.Context, userId ulid.ULID, assetId ulid.ULID, body []byte, previewBody []byte) (string, string, error) {
+	client, err := NewR2Client(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	key := "users/"+userId.String()+"/maps/"+assetId.String()
+	err = client.UploadBytes(
+		ctx,
+		key,
+		body,
+		"image/webp",
+	)
+	if err != nil {
+		return "", "", err
+	}
+	previewKey := "users/"+userId.String()+"/maps/preview-"+assetId.String()
+	err = client.UploadBytes(
+		ctx,
+		previewKey,
+		previewBody,
+		"image/webp",
+	)
+	if err != nil {
+		return key, "", err
+	}
+	return key, previewKey, nil
+}

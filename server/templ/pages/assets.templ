@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"github.com/oklog/ulid/v2"
+	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/layouts"
 )
@@ -9,13 +11,13 @@ var assetsSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
 	Title: "Assets Manager | Tabletopper",
 }
 
-templ MapAssets(session session.UserSession) {
+templ MapAssets(session session.UserSession, maps []queries.GetUserMapsRow) {
 	{{ assetsSettings.Session = session }}
-	{{ assetsSettings.Content = mapAssetsContent(session) }}
+	{{ assetsSettings.Content = mapAssetsContent(session, maps) }}
 	@layouts.Base(assetsSettings)
 }
 
-templ mapAssetsContent(session session.UserSession) {
+templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRow) {
 	<assets-page class="block relative w-screen h-screen p-1">
 		<header>
 			<h1>Asset Manager</h1>
@@ -30,37 +32,64 @@ templ mapAssetsContent(session session.UserSession) {
 				>
 					Back
 				</a>
+				<label
+					for="map-upload"
+					sfx="button"
+					class="bttn relative"
+					kind="solid"
+					color="primary"
+					icon="left"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
+					Upload map
+					<input
+						id="map-upload"
+						type="file"
+						name="map"
+						accept="image/png, image/jpeg, image/webp"
+						required
+						hx-post="/assets/maps"
+						hx-swap="none"
+						hx-encoding="multipart/form-data"
+					/>
+				</label>
 			</div>
 		</header>
 		<section>
-			for _ = range 10 {
+			for _, m := range maps {
 				<asset-card>
-					<img src="#">
-					<input type="text" value="Example Map">
+					if m.PreviewPath.Valid {
+						<img src={ "/assets/images/" + ulid.ULID(m.ID).String() + "/preview" }/>
+					}
+					<input type="text" value={ m.Name }/>
 					<div style="gap:0.5rem;" flex="row nowrap items-center space-between">
 						<div style="flex:1;">
-							<code class="max-w-full">example-map.png</code>
+							<code class="max-w-full">{ m.FileName }</code>
 						</div>
 						<div flex="row nowram items-center">
-						<button
-							tooltip="Replace"
-							class="bttn"
-							kind="text"
-							color="grey"
-							icon="center"
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-replace"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 2h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z" /><path d="M20 14h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z" /><path d="M16.707 2.293a1 1 0 0 1 .083 1.32l-.083 .094l-1.293 1.293h3.586a3 3 0 0 1 2.995 2.824l.005 .176v3a1 1 0 0 1 -1.993 .117l-.007 -.117v-3a1 1 0 0 0 -.883 -.993l-.117 -.007h-3.585l1.292 1.293a1 1 0 0 1 -1.32 1.497l-.094 -.083l-3 -3a.98 .98 0 0 1 -.28 -.872l.036 -.146l.04 -.104c.058 -.126 .14 -.24 .245 -.334l2.959 -2.958a1 1 0 0 1 1.414 0z" /><path d="M3 12a1 1 0 0 1 .993 .883l.007 .117v3a1 1 0 0 0 .883 .993l.117 .007h3.585l-1.292 -1.293a1 1 0 0 1 -.083 -1.32l.083 -.094a1 1 0 0 1 1.32 -.083l.094 .083l3 3a.98 .98 0 0 1 .28 .872l-.036 .146l-.04 .104a1.02 1.02 0 0 1 -.245 .334l-2.959 2.958a1 1 0 0 1 -1.497 -1.32l.083 -.094l1.291 -1.293h-3.584a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-3a1 1 0 0 1 1 -1z" /></svg>
-						</button>
-						<button
-							tooltip="Delete"
-							class="bttn"
-							dull
-							kind="text"
-							color="danger"
-							icon="center"
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-trash-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 6a1 1 0 0 1 .117 1.993l-.117 .007h-.081l-.919 11a3 3 0 0 1 -2.824 2.995l-.176 .005h-8c-1.598 0 -2.904 -1.249 -2.992 -2.75l-.005 -.167l-.923 -11.083h-.08a1 1 0 0 1 -.117 -1.993l.117 -.007h16zm-9.489 5.14a1 1 0 0 0 -1.218 1.567l1.292 1.293l-1.292 1.293l-.083 .094a1 1 0 0 0 1.497 1.32l1.293 -1.292l1.293 1.292l.094 .083a1 1 0 0 0 1.32 -1.497l-1.292 -1.293l1.292 -1.293l.083 -.094a1 1 0 0 0 -1.497 -1.32l-1.293 1.292l-1.293 -1.292l-.094 -.083z" /><path d="M14 2a2 2 0 0 1 2 2a1 1 0 0 1 -1.993 .117l-.007 -.117h-4l-.007 .117a1 1 0 0 1 -1.993 -.117a2 2 0 0 1 1.85 -1.995l.15 -.005h4z" /></svg>
-						</button>
+							<button
+								tooltip="Replace"
+								class="bttn"
+								kind="text"
+								color="grey"
+								icon="center"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-replace"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 2h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M20 14h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M16.707 2.293a1 1 0 0 1 .083 1.32l-.083 .094l-1.293 1.293h3.586a3 3 0 0 1 2.995 2.824l.005 .176v3a1 1 0 0 1 -1.993 .117l-.007 -.117v-3a1 1 0 0 0 -.883 -.993l-.117 -.007h-3.585l1.292 1.293a1 1 0 0 1 -1.32 1.497l-.094 -.083l-3 -3a.98 .98 0 0 1 -.28 -.872l.036 -.146l.04 -.104c.058 -.126 .14 -.24 .245 -.334l2.959 -2.958a1 1 0 0 1 1.414 0z"></path><path d="M3 12a1 1 0 0 1 .993 .883l.007 .117v3a1 1 0 0 0 .883 .993l.117 .007h3.585l-1.292 -1.293a1 1 0 0 1 -.083 -1.32l.083 -.094a1 1 0 0 1 1.32 -.083l.094 .083l3 3a.98 .98 0 0 1 .28 .872l-.036 .146l-.04 .104a1.02 1.02 0 0 1 -.245 .334l-2.959 2.958a1 1 0 0 1 -1.497 -1.32l.083 -.094l1.291 -1.293h-3.584a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-3a1 1 0 0 1 1 -1z"></path></svg>
+							</button>
+							<button
+								tooltip="Delete"
+								class="bttn"
+								dull
+								kind="text"
+								color="danger"
+								icon="center"
+								hx-confirm={ "You are about to delete your your map " + m.Name + ". This action cannot be undone." }
+								hx-delete={ "/assets/maps/" + ulid.ULID(m.ID).String() }
+								hx-target="closest asset-card"
+								hx-swap="delete"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-trash-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 6a1 1 0 0 1 .117 1.993l-.117 .007h-.081l-.919 11a3 3 0 0 1 -2.824 2.995l-.176 .005h-8c-1.598 0 -2.904 -1.249 -2.992 -2.75l-.005 -.167l-.923 -11.083h-.08a1 1 0 0 1 -.117 -1.993l.117 -.007h16zm-9.489 5.14a1 1 0 0 0 -1.218 1.567l1.292 1.293l-1.292 1.293l-.083 .094a1 1 0 0 0 1.497 1.32l1.293 -1.292l1.293 1.292l.094 .083a1 1 0 0 0 1.32 -1.497l-1.292 -1.293l1.292 -1.293l.083 -.094a1 1 0 0 0 -1.497 -1.32l-1.293 1.292l-1.293 -1.292l-.094 -.083z"></path><path d="M14 2a2 2 0 0 1 2 2a1 1 0 0 1 -1.993 .117l-.007 -.117h-4l-.007 .117a1 1 0 0 1 -1.993 -.117a2 2 0 0 1 1.85 -1.995l.15 -.005h4z"></path></svg>
+							</button>
 						</div>
 					</div>
 				</asset-card>

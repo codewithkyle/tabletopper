@@ -166,7 +166,7 @@ templ Character(character queries.GetCharactersRow, i int) {
 					sfx="button"
 				>Edit</a>
 				<button
-					hx-confirm={ "You are about to delete your character " + character.Name + "? This action cannot be undone." }
+					hx-confirm={ "You are about to delete your character " + character.Name + ". This action cannot be undone." }
 					hx-delete={ "/characters/" + ulid.ULID(character.ID).String() + "/delete" }
 					hx-target="closest character-card"
 					hx-swap="delete"

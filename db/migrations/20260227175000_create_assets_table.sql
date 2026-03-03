@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS assets (
     owner_id VARBINARY(16) NOT NULL,
 
     file_path VARCHAR(1024) NOT NULL, -- Cloudflare R2 path relative to the user's directory
+    preview_path VARCHAR(1024) NULL,
     type TINYINT UNSIGNED NOT NULL DEFAULT 0, -- 0:map, 1:avatar, 2:token, 3:music
     file_name VARCHAR(512) NOT NULL, -- the uploaded file name
     name VARCHAR(255) NOT NULL, -- custom label/name; default to file_name

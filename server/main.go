@@ -59,9 +59,12 @@ func main() {
 	mux.HandleFunc("DELETE /characters/{id}/delete", controllers.DeleteCharacter)
 
 	mux.HandleFunc("/assets", controllers.AssetsPage)
-	mux.HandleFunc("/assets/maps", controllers.MapAssetsPage)
+	mux.HandleFunc("GET /assets/maps", controllers.MapAssetsPage)
+	mux.HandleFunc("POST /assets/maps", controllers.UploadMap)
+	mux.HandleFunc("DELETE /assets/maps/{id}", controllers.DeleteMap)
 	mux.HandleFunc("POST /assets/characters/{id}", controllers.UploadCharacterAvatar)
 	mux.HandleFunc("GET /assets/images/{id}", controllers.GetImage)
+	mux.HandleFunc("GET /assets/images/{id}/preview", controllers.GetImagePreview)
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)
