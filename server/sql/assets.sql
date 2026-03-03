@@ -16,6 +16,11 @@ INSERT INTO assets
 (id, owner_id, file_path, preview_path, type, file_name, name)
 VALUES (?, ?, ?, ?, 0, ?, ?);
 
+-- name: UpdateMap :exec
+UPDATE assets 
+SET file_name = ?
+WHERE id = ? AND owner_id = ?;
+
 -- name: GetUserMaps :many
 SELECT id, file_path, preview_path, file_name, name
 FROM assets

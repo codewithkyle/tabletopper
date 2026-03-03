@@ -423,3 +423,97 @@ func DeleteMap(w http.ResponseWriter, r *http.Request) {
 
 	helpers.HTMXToast(w, result.Name+" deleted.")
 }
+
+func ReplaceMap(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		helpers.HTMXServerError(w)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		helpers.HTMXRedirect(w, "/sign-in")
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		helpers.HTMXServerError(w)
+		return
+	}
+	assetId, err := ulid.Parse(id)
+	if err != nil {
+		slog.Error("Failed to parse asset ID", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
+		slog.Error("Failed to parse multipart form", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	file, header, err := r.FormFile("map")
+	if err != nil {
+		slog.Error("Failed to get map from form", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+	defer file.Close()
+
+	ct := header.Header.Get("Content-Type")
+	switch ct {
+	case "image/png", "image/jpeg", "image/webp":
+	default:
+		helpers.HTMXCustomError(w, "Unsupported Image Type", "Only PNG, JPEG, and WEBP images are allowed. Refresh the page and try again.", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	filename := header.Filename
+
+	limited := io.LimitReader(file, maxUploadBytes)
+	src, _, err := image.Decode(limited)
+	if err != nil {
+		slog.Error("Failed to decode image", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+	resized := imaging.Fill(src, mapPreviewSize, mapPreviewSize, imaging.Center, imaging.Lanczos)
+	var resizedOut bytes.Buffer
+	if err := webp.Encode(&resizedOut, resized, &webp.Options{Quality: float32(outQuality)}); err != nil {
+		slog.Error("Failed to encode preview image as webp", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+	var fullOut bytes.Buffer
+	if err := webp.Encode(&fullOut, src, &webp.Options{Quality: float32(outQuality)}); err != nil {
+		slog.Error("Failed to encode full image as webp", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	_, _, err = services.UploadMap(ctx, session.UserId, assetId, resizedOut.Bytes(), fullOut.Bytes())
+	if err != nil {
+		slog.Error("Failed to upload map", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	q := queries.New(db)
+	err = q.UpdateMap(ctx, queries.UpdateMapParams{
+		ID:          assetId[:],
+		OwnerID:     session.UserId[:],
+		FileName:    filename,
+	})
+	if err != nil {
+		slog.Error("Failed to update map", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	helpers.HTMXToast(w, filename+" uploaded.")
+	helpers.HTMXRefresh(w)
+}
