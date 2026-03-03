@@ -180,6 +180,16 @@ button-component {
         width: 36px;
         height: 36px;
         padding: 0 !important;
+
+        &[size="slim"]{
+            width: 24px;
+            height: 24px;
+
+            svg {
+                width: 16px !important;
+                height: 16px !important;
+            }
+        }
     }
 
     &[icon="right"] {

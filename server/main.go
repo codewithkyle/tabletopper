@@ -58,6 +58,8 @@ func main() {
 	mux.HandleFunc("POST /characters/{id}", controllers.EditCharacterForm)
 	mux.HandleFunc("DELETE /characters/{id}/delete", controllers.DeleteCharacter)
 
+	mux.HandleFunc("/assets", controllers.AssetsPage)
+	mux.HandleFunc("/assets/maps", controllers.MapAssetsPage)
 	mux.HandleFunc("POST /assets/characters/{id}", controllers.UploadCharacterAvatar)
 	mux.HandleFunc("GET /assets/images/{id}", controllers.GetImage)
 

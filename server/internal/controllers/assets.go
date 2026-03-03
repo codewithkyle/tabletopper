@@ -13,6 +13,7 @@ import (
 	"main/internal/queries"
 	"main/internal/services"
 	"main/internal/session"
+	"main/templ/pages"
 	"net/http"
 	"strconv"
 
@@ -26,6 +27,27 @@ const (
 	avatarSize     = 96
 	outQuality     = 75
 )
+
+func MapAssetsPage(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		helpers.RedirectToError(w,r)
+		return
+	}
+
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		helpers.RedirectToSignIn(w, r)
+		return
+	}
+
+	pages.MapAssets(session).Render(r.Context(), w)
+}
+
+func AssetsPage(w http.ResponseWriter, r *http.Request) {
+	helpers.Redirect(w,r,"/assets/maps")
+}
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
