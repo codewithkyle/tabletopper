@@ -21,6 +21,11 @@ UPDATE assets
 SET file_name = ?
 WHERE id = ? AND owner_id = ?;
 
+-- name: UpdateAssetName :exec
+UPDATE assets 
+SET name = ?
+WHERE id = ? AND owner_id = ?;
+
 -- name: GetUserMaps :many
 SELECT id, file_path, preview_path, file_name, name
 FROM assets

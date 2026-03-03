@@ -63,6 +63,7 @@ func main() {
 	mux.HandleFunc("POST /assets/maps", controllers.UploadMap)
 	mux.HandleFunc("DELETE /assets/maps/{id}", controllers.DeleteMap)
 	mux.HandleFunc("POST /assets/maps/{id}", controllers.ReplaceMap)
+	mux.HandleFunc("PATCH /assets/maps/{id}/name", controllers.ReplaceMapName)
 
 	mux.HandleFunc("POST /assets/characters/{id}", controllers.UploadCharacterAvatar)
 	mux.HandleFunc("GET /assets/images/{id}", controllers.GetImage)

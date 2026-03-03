@@ -355,7 +355,14 @@ func UploadMap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.HTMXToast(w, filename+" uploaded.")
-	helpers.HTMXRefresh(w)
+	newMap := queries.GetUserMapsRow{
+		ID: assetId[:],
+		FilePath: fullPath,
+		PreviewPath: sql.NullString{Valid: true, String: previewPath},
+		FileName: filename,
+		Name: filename,
+	}
+	pages.MapCard(newMap).Render(r.Context(), w)
 }
 
 func DeleteMap(w http.ResponseWriter, r *http.Request) {
@@ -504,9 +511,9 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	err = q.UpdateMap(ctx, queries.UpdateMapParams{
-		ID:          assetId[:],
-		OwnerID:     session.UserId[:],
-		FileName:    filename,
+		ID:       assetId[:],
+		OwnerID:  session.UserId[:],
+		FileName: filename,
 	})
 	if err != nil {
 		slog.Error("Failed to update map", "error", err)
@@ -516,4 +523,49 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 
 	helpers.HTMXToast(w, filename+" uploaded.")
 	helpers.HTMXRefresh(w)
+}
+
+func ReplaceMapName(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	db, err := db.Connect()
+	if err != nil {
+		helpers.HTMXServerError(w)
+		return
+	}
+	session, err := session.GetUserSessionFromCookie(r, db, ctx)
+	if err != nil {
+		helpers.HTMXRedirect(w, "/sign-in")
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		helpers.HTMXServerError(w)
+		return
+	}
+	assetId, err := ulid.Parse(id)
+	if err != nil {
+		slog.Error("Failed to parse asset ID", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	newName := r.FormValue("map-name")
+	if len(newName) == 0 {
+		newName = "Untitled"
+	}
+
+	q := queries.New(db)
+	err = q.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
+		ID:      assetId[:],
+		OwnerID: session.UserId[:],
+		Name:    newName,
+	})
+	if err != nil {
+		slog.Error("Failed to update map name", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+
+	helpers.HTMXToast(w, newName+" updated.")
 }
