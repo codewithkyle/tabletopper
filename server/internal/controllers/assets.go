@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"errors"
 	"image"
 	"io"
 	"log/slog"
@@ -217,6 +216,20 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 
 	filename := header.Filename
 	assetId := ulid.Make()
+	q := queries.New(db)
+	oldAsset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
+		ID:      characterId[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		slog.Error("Failed to get old character asset", "error", err)
+		helpers.HTMXServerError(w)
+		return
+	}
+	if len(oldAsset.AssetID) > 0 {
+		assetId = ulid.ULID(oldAsset.AssetID)
+	}
+
 	filepath, err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes())
 	if err != nil {
 		slog.Error("Failed to upload character avatar", "error", err)
@@ -224,48 +237,41 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	q := queries.New(db)
-	oldAsset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
-		ID:      characterId[:],
-		OwnerID: session.UserId[:],
-	})
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			slog.Error("Failed to get old character asset", "error", err)
+	if len(oldAsset.AssetID) == 0 {
+		err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
+			ID:       assetId[:],
+			OwnerID:  session.UserId[:],
+			FilePath: filepath,
+			FileName: filename,
+			Name:     filename,
+		})
+		if err != nil {
+			slog.Error("Failed to insert character avatar into DB", "error", err, "file", filepath)
+			helpers.HTMXServerError(w)
+			return
+		}
+
+		err = q.UpdateCharacterAvatar(ctx, queries.UpdateCharacterAvatarParams{
+			ID:      characterId[:],
+			OwnerID: session.UserId[:],
+			AssetID: assetId[:],
+		})
+		if err != nil {
+			slog.Error("Failed to update character avatar", "error", err, "file", filepath)
 			helpers.HTMXServerError(w)
 			return
 		}
 	} else {
-		err = services.DeleteImage(ctx, oldAsset.FilePath)
+		err := q.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
+			ID: assetId[:],
+			OwnerID: session.UserId[:],
+			FileName: filename,
+		})
 		if err != nil {
-			slog.Error("Failed to delete old asset from R2", "error", err, "file_path", oldAsset.FilePath)
+			slog.Error("Failed to update avatar asset", "error", err, "file", filepath)
 			helpers.HTMXServerError(w)
 			return
 		}
-	}
-
-	err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
-		ID:       assetId[:],
-		OwnerID:  session.UserId[:],
-		FilePath: filepath,
-		FileName: filename,
-		Name:     filename,
-	})
-	if err != nil {
-		slog.Error("Failed to insert character avatar into DB", "error", err, "file", filepath)
-		helpers.HTMXServerError(w)
-		return
-	}
-
-	err = q.UpdateCharacterAvatar(ctx, queries.UpdateCharacterAvatarParams{
-		ID:      characterId[:],
-		OwnerID: session.UserId[:],
-		AssetID: assetId[:],
-	})
-	if err != nil {
-		slog.Error("Failed to update character avatar", "error", err, "file", filepath)
-		helpers.HTMXServerError(w)
-		return
 	}
 
 	helpers.HTMXToast(w, "Updated avatar for "+oldAsset.Name)
@@ -356,11 +362,11 @@ func UploadMap(w http.ResponseWriter, r *http.Request) {
 
 	helpers.HTMXToast(w, filename+" uploaded.")
 	newMap := queries.GetUserMapsRow{
-		ID: assetId[:],
-		FilePath: fullPath,
+		ID:          assetId[:],
+		FilePath:    fullPath,
 		PreviewPath: sql.NullString{Valid: true, String: previewPath},
-		FileName: filename,
-		Name: filename,
+		FileName:    filename,
+		Name:        filename,
 	}
 	pages.MapCard(newMap).Render(r.Context(), w)
 }
@@ -510,7 +516,7 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := queries.New(db)
-	err = q.UpdateMap(ctx, queries.UpdateMapParams{
+	err = q.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
 		ID:       assetId[:],
 		OwnerID:  session.UserId[:],
 		FileName: filename,

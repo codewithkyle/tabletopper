@@ -57,8 +57,8 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if len(asset.FilePath) > 0 {
-		err = services.DeleteImage(ctx, asset.FilePath)
+	if asset.FilePath.Valid {
+		err = services.DeleteImage(ctx, asset.FilePath.String)
 		if err != nil {
 			helpers.HTMXServerError(w)
 			return
