@@ -275,7 +275,35 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.HTMXToast(w, "Updated avatar for "+oldAsset.Name)
-	helpers.HTMXRefresh(w)
+
+	characterRecord, err := q.GetCharacter(ctx, queries.GetCharacterParams{
+		ID: characterId[:],
+		OwnerID: session.UserId[:],
+	})
+	if err != nil {
+		slog.Error("Failed to get character after update", "error", err, "file", filepath)
+		helpers.HTMXRedirect(w, "/characters")
+		return
+	}
+
+	character := queries.GetCharactersRow{
+		AssetID: characterRecord.AssetID,
+		Speed: characterRecord.Speed,
+		ProficiencyBonus: characterRecord.ProficiencyBonus,
+		CurrentHp: characterRecord.CurrentHp,
+		MaxHp: characterRecord.MaxHp,
+		Ac: characterRecord.Ac,
+		Size: characterRecord.Size,
+		Alignment: characterRecord.Alignment,
+		ID: characterRecord.ID,
+		Name: characterRecord.Name,
+		Level: characterRecord.Level,
+		Xp: characterRecord.Xp,
+		Race: characterRecord.Race,
+		Classes: characterRecord.Classes,
+		Background: characterRecord.Background,
+	}
+	pages.Character(character).Render(r.Context(), w)
 }
 
 func UploadMap(w http.ResponseWriter, r *http.Request) {

@@ -19,6 +19,26 @@ FROM characters
 WHERE owner_id = ?
 ORDER BY created_at DESC;
 
+-- name: GetCharacter :one
+SELECT
+    id,
+    name,
+    level,
+    xp,
+    race,
+    classes,
+    background,
+    alignment,
+    size,
+    ac,
+    max_hp,
+    current_hp,
+    proficiency_bonus,
+    speed,
+    asset_id
+FROM characters
+WHERE owner_id = ? AND id = ?;
+
 -- name: GetCharacterByIDAndOwner :one
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;

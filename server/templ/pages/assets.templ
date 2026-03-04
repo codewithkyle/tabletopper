@@ -5,6 +5,8 @@ import (
 	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/layouts"
+	"time"
+	"strconv"
 )
 
 var assetsSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
@@ -20,7 +22,7 @@ templ MapAssets(session session.UserSession, maps []queries.GetUserMapsRow) {
 templ MapCard(m queries.GetUserMapsRow) {
 	<asset-card>
 		if m.PreviewPath.Valid {
-			<img src={ "/assets/images/" + ulid.ULID(m.ID).String() + "/preview" }/>
+			<img src={ "/assets/images/" + ulid.ULID(m.ID).String() + "/preview?t="+strconv.FormatInt(time.Now().Unix(),10) }/>
 		}
 		<input
 			type="text"
