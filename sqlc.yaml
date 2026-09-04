@@ -8,47 +8,26 @@ sql:
         package: "queries"
         out: "./server/internal/queries"
         overrides:
-          # NOTE: every VARBINARY(16) column holds a ULID. Mapping them to
-          # ulid.ULID moves the length check into Scan, so a malformed value
-          # surfaces as a query error rather than a panic when converting a
-          # short slice to [16]byte. NULL scans to the zero ULID.
-          # sessions.hash is VARBINARY(32) of random bytes and stays []byte.
-          - column: users.id
+          # NOTE: every VARBINARY(16) column in this schema holds a ULID, and
+          # they are all named id or <thing>_id. Matching on the name keeps new
+          # tables covered without touching this file. sessions.hash is excluded
+          # by naming rather than by luck -- it is not an *_id.
+          #
+          # A non-ULID column matching one of these names needs its own entry
+          # ABOVE the wildcards: sqlc takes the first match, not the most
+          # specific one.
+          - column: "*.id"
             go_type: &ulid
               import: "github.com/oklog/ulid/v2"
               package: "ulid"
               type: "ULID"
-          - column: sessions.id
+          - column: "*.user_id"
             go_type: *ulid
-          - column: sessions.user_id
+          - column: "*.owner_id"
             go_type: *ulid
-          - column: sessions.character_id
+          - column: "*.asset_id"
             go_type: *ulid
-          - column: sessions.room_id
+          - column: "*.character_id"
             go_type: *ulid
-          - column: assets.id
-            go_type: *ulid
-          - column: assets.owner_id
-            go_type: *ulid
-          - column: rooms.id
-            go_type: *ulid
-          - column: rooms.owner_id
-            go_type: *ulid
-          - column: monsters.id
-            go_type: *ulid
-          - column: monsters.owner_id
-            go_type: *ulid
-          - column: monsters.asset_id
-            go_type: *ulid
-          - column: characters.id
-            go_type: *ulid
-          - column: characters.owner_id
-            go_type: *ulid
-          - column: characters.asset_id
-            go_type: *ulid
-          - column: spells.id
-            go_type: *ulid
-          - column: spells.owner_id
-            go_type: *ulid
-          - column: spells.character_id
+          - column: "*.room_id"
             go_type: *ulid
