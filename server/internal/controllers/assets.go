@@ -29,21 +29,12 @@ const (
 )
 
 func MapAssetsPage(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w, r)
-		return
-	}
-
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	q := queries.New(db)
-	maps, err := q.GetUserMaps(ctx, session.UserId[:])
+	maps, err := q.GetUserMaps(ctx, session.UserId)
 	if err != nil {
 		helpers.RedirectToError(w, r)
 		return
@@ -57,18 +48,8 @@ func AssetsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImagePreview(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		http.NotFoundHandler().ServeHTTP(w, r)
-		return
-	}
-
-	_, err = session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		http.NotFoundHandler().ServeHTTP(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -83,13 +64,13 @@ func GetImagePreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := queries.New(db)
-	result, err := q.GetImage(ctx, assetId[:])
+	result, err := q.GetImage(ctx, assetId)
 	if err != nil {
 		http.NotFoundHandler().ServeHTTP(w, r)
 		return
 	}
 	file_path := result.FilePath
-	if !result.PreviewPath.Valid {
+	if result.PreviewPath.Valid {
 		file_path = result.PreviewPath.String
 	}
 
@@ -107,18 +88,8 @@ func GetImagePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		http.NotFoundHandler().ServeHTTP(w, r)
-		return
-	}
-
-	_, err = session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		http.NotFoundHandler().ServeHTTP(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -133,7 +104,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	q := queries.New(db)
-	result, err := q.GetImage(ctx, assetId[:])
+	result, err := q.GetImage(ctx, assetId)
 	if err != nil {
 		http.NotFoundHandler().ServeHTTP(w, r)
 		return
@@ -153,17 +124,9 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -218,57 +181,64 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	assetId := ulid.Make()
 	q := queries.New(db)
 	oldAsset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
-		ID:      characterId[:],
-		OwnerID: session.UserId[:],
+		ID:      characterId,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		slog.Error("Failed to get old character asset", "error", err)
 		helpers.HTMXServerError(w)
 		return
 	}
-	if len(oldAsset.AssetID) > 0 {
-		assetId = ulid.ULID(oldAsset.AssetID)
-	}
 
-	filepath, err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes())
-	if err != nil {
-		slog.Error("Failed to upload character avatar", "error", err)
-		helpers.HTMXServerError(w)
-		return
-	}
+	if !oldAsset.AssetID.IsZero() {
+		// NOTE: replacing overwrites the existing key, so nothing can be orphaned
+		assetId = oldAsset.AssetID
 
-	if len(oldAsset.AssetID) == 0 {
-		err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
-			ID:       assetId[:],
-			OwnerID:  session.UserId[:],
-			FilePath: filepath,
-			FileName: filename,
-			Name:     filename,
-		})
-		if err != nil {
-			slog.Error("Failed to insert character avatar into DB", "error", err, "file", filepath)
+		if err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes()); err != nil {
+			slog.Error("Failed to upload character avatar", "error", err)
 			helpers.HTMXServerError(w)
 			return
 		}
 
-		err = q.UpdateCharacterAvatar(ctx, queries.UpdateCharacterAvatarParams{
-			ID:      characterId[:],
-			OwnerID: session.UserId[:],
-			AssetID: assetId[:],
-		})
-		if err != nil {
-			slog.Error("Failed to update character avatar", "error", err, "file", filepath)
+		if err := q.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
+			ID:       assetId,
+			OwnerID:  session.UserId,
+			FileName: filename,
+		}); err != nil {
+			slog.Error("Failed to update avatar asset", "error", err)
 			helpers.HTMXServerError(w)
 			return
 		}
 	} else {
-		err := q.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
-			ID: assetId[:],
-			OwnerID: session.UserId[:],
+		// NOTE: the row is the ledger for what lives in R2, so it is written
+		// first and rolled back if the upload never lands
+		err = q.InsertAvatar(ctx, queries.InsertAvatarParams{
+			ID:       assetId,
+			OwnerID:  session.UserId,
+			FilePath: services.AvatarKey(session.UserId, assetId),
 			FileName: filename,
+			Name:     filename,
 		})
 		if err != nil {
-			slog.Error("Failed to update avatar asset", "error", err, "file", filepath)
+			slog.Error("Failed to insert character avatar into DB", "error", err)
+			helpers.HTMXServerError(w)
+			return
+		}
+
+		if err := services.UploadAvatar(ctx, session.UserId, assetId, out.Bytes()); err != nil {
+			slog.Error("Failed to upload character avatar", "error", err)
+			discardAvatar(ctx, q, session.UserId, assetId)
+			helpers.HTMXServerError(w)
+			return
+		}
+
+		if err := q.UpdateCharacterAvatar(ctx, queries.UpdateCharacterAvatarParams{
+			ID:      characterId,
+			OwnerID: session.UserId,
+			AssetID: assetId,
+		}); err != nil {
+			slog.Error("Failed to update character avatar", "error", err)
+			discardAvatar(ctx, q, session.UserId, assetId)
 			helpers.HTMXServerError(w)
 			return
 		}
@@ -277,11 +247,11 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	helpers.HTMXToast(w, "Updated avatar for "+oldAsset.Name)
 
 	characterRecord, err := q.GetCharacter(ctx, queries.GetCharacterParams{
-		ID: characterId[:],
-		OwnerID: session.UserId[:],
+		ID: characterId,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
-		slog.Error("Failed to get character after update", "error", err, "file", filepath)
+		slog.Error("Failed to get character after update", "error", err, "assetId", assetId.String())
 		helpers.HTMXRedirect(w, "/characters")
 		return
 	}
@@ -307,17 +277,9 @@ func UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 }
 
 func UploadMap(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.HTMXRedirect(w, "/sign-in")
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
@@ -366,17 +328,14 @@ func UploadMap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	assetId := ulid.Make()
-	fullPath, previewPath, err := services.UploadMap(ctx, session.UserId, assetId, resizedOut.Bytes(), fullOut.Bytes())
-	if err != nil {
-		slog.Error("Failed to upload map", "error", err)
-		helpers.HTMXServerError(w)
-		return
-	}
+	fullPath, previewPath := services.MapKeys(session.UserId, assetId)
 
+	// NOTE: the row is the ledger for what lives in R2, so it is written first
+	// and rolled back if the upload never lands
 	q := queries.New(db)
 	err = q.InsertMap(ctx, queries.InsertMapParams{
-		ID:          assetId[:],
-		OwnerID:     session.UserId[:],
+		ID:          assetId,
+		OwnerID:     session.UserId,
 		FilePath:    fullPath,
 		PreviewPath: sql.NullString{Valid: true, String: previewPath},
 		FileName:    filename,
@@ -388,9 +347,16 @@ func UploadMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := services.UploadMap(ctx, session.UserId, assetId, fullOut.Bytes(), resizedOut.Bytes()); err != nil {
+		slog.Error("Failed to upload map", "error", err)
+		discardMap(ctx, q, session.UserId, assetId)
+		helpers.HTMXServerError(w)
+		return
+	}
+
 	helpers.HTMXToast(w, filename+" uploaded.")
 	newMap := queries.GetUserMapsRow{
-		ID:          assetId[:],
+		ID:          assetId,
 		FilePath:    fullPath,
 		PreviewPath: sql.NullString{Valid: true, String: previewPath},
 		FileName:    filename,
@@ -400,18 +366,9 @@ func UploadMap(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteMap(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -427,8 +384,8 @@ func DeleteMap(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	result, err := q.GetUserImage(ctx, queries.GetUserImageParams{
-		ID:      assetId[:],
-		OwnerID: session.UserId[:],
+		ID:      assetId,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		slog.Error("Failed to query user's image", "error", err)
@@ -453,8 +410,8 @@ func DeleteMap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = q.DeleteUsersAsset(ctx, queries.DeleteUsersAssetParams{
-		ID:      assetId[:],
-		OwnerID: session.UserId[:],
+		ID:      assetId,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		slog.Error("Failed to delete asset from DB", "error", err)
@@ -466,17 +423,9 @@ func DeleteMap(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReplaceMap(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.HTMXRedirect(w, "/sign-in")
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -536,7 +485,8 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _, err = services.UploadMap(ctx, session.UserId, assetId, resizedOut.Bytes(), fullOut.Bytes())
+	// NOTE: replacing overwrites the existing keys, so nothing can be orphaned
+	err = services.UploadMap(ctx, session.UserId, assetId, fullOut.Bytes(), resizedOut.Bytes())
 	if err != nil {
 		slog.Error("Failed to upload map", "error", err)
 		helpers.HTMXServerError(w)
@@ -545,8 +495,8 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	err = q.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
-		ID:       assetId[:],
-		OwnerID:  session.UserId[:],
+		ID:       assetId,
+		OwnerID:  session.UserId,
 		FileName: filename,
 	})
 	if err != nil {
@@ -560,17 +510,9 @@ func ReplaceMap(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReplaceMapName(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.HTMXRedirect(w, "/sign-in")
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -591,8 +533,8 @@ func ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	err = q.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
-		ID:      assetId[:],
-		OwnerID: session.UserId[:],
+		ID:      assetId,
+		OwnerID: session.UserId,
 		Name:    newName,
 	})
 	if err != nil {
@@ -602,4 +544,41 @@ func ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.HTMXToast(w, newName+" updated.")
+}
+
+// discardMap rolls back a map upload that failed after its row was written. The
+// row is only dropped once R2 confirms the objects are gone, so a cleanup
+// failure leaves the row behind as the record that they may still exist.
+func discardMap(ctx context.Context, q *queries.Queries, userId ulid.ULID, assetId ulid.ULID) {
+	cleanupCtx, cancel := services.CleanupContext(ctx)
+	defer cancel()
+
+	if err := services.DeleteMapObjects(cleanupCtx, userId, assetId); err != nil {
+		slog.Error("Failed to clean up map objects; leaving the asset row behind", "error", err, "assetId", assetId.String())
+		return
+	}
+	if err := q.DeleteUsersAsset(cleanupCtx, queries.DeleteUsersAssetParams{
+		ID:      assetId,
+		OwnerID: userId,
+	}); err != nil {
+		slog.Error("Failed to delete asset row after cleaning up its objects", "error", err, "assetId", assetId.String())
+	}
+}
+
+// discardAvatar rolls back an avatar upload that failed after its row was
+// written, on the same terms as discardMap.
+func discardAvatar(ctx context.Context, q *queries.Queries, userId ulid.ULID, assetId ulid.ULID) {
+	cleanupCtx, cancel := services.CleanupContext(ctx)
+	defer cancel()
+
+	if err := services.DeleteImage(cleanupCtx, services.AvatarKey(userId, assetId)); err != nil {
+		slog.Error("Failed to clean up avatar object; leaving the asset row behind", "error", err, "assetId", assetId.String())
+		return
+	}
+	if err := q.DeleteUsersAsset(cleanupCtx, queries.DeleteUsersAssetParams{
+		ID:      assetId,
+		OwnerID: userId,
+	}); err != nil {
+		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetId", assetId.String())
+	}
 }

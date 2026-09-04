@@ -8,6 +8,7 @@ import (
 	"main/internal/controllers"
 	db "main/internal/database"
 	"main/internal/helpers"
+	"main/internal/middleware"
 	"main/internal/queries"
 	"main/internal/session"
 	"main/templ/pages"
@@ -28,9 +29,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := db.Init(); err != nil {
+		os.Exit(1)
+	}
+
+	cleanupCtx, stopCleanup := context.WithCancel(context.Background())
+	defer stopCleanup()
+	session.StartCleanup(cleanupCtx, db.Get())
+
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", middleware.OptionalSession(func(w http.ResponseWriter, r *http.Request) {
 		// NOTE: required because the "/" route is the catch-all
 		if r.URL.Path != "/" {
 			slog.Warn("404 Not Found", "path", r.URL.Path)
@@ -38,36 +47,26 @@ func main() {
 			return
 		}
 
-		ctx := context.Background()
+		pages.Homepage(session.FromContext(r.Context())).Render(r.Context(), w)
+	}))
 
-		db, err := db.Connect()
-		if err != nil {
-			helpers.RedirectToError(w, r)
-			return
-		}
+	mux.HandleFunc("/characters", middleware.RequireSession(controllers.CharactersPage))
+	mux.HandleFunc("GET /characters/new", middleware.RequireSession(controllers.NewCharacterPage))
+	mux.HandleFunc("POST /characters", middleware.RequireSession(controllers.NewCharacterForm))
+	mux.HandleFunc("/characters/{id}/edit", middleware.RequireSession(controllers.CharacterPage))
+	mux.HandleFunc("POST /characters/{id}", middleware.RequireSession(controllers.EditCharacterForm))
+	mux.HandleFunc("DELETE /characters/{id}/delete", middleware.RequireSession(controllers.DeleteCharacter))
 
-		session, _ := session.GetUserSessionFromCookie(r, db, ctx)
+	mux.HandleFunc("/assets", middleware.RequireSession(controllers.AssetsPage))
+	mux.HandleFunc("GET /assets/maps", middleware.RequireSession(controllers.MapAssetsPage))
+	mux.HandleFunc("POST /assets/maps", middleware.RequireSession(controllers.UploadMap))
+	mux.HandleFunc("DELETE /assets/maps/{id}", middleware.RequireSession(controllers.DeleteMap))
+	mux.HandleFunc("POST /assets/maps/{id}", middleware.RequireSession(controllers.ReplaceMap))
+	mux.HandleFunc("PATCH /assets/maps/{id}/name", middleware.RequireSession(controllers.ReplaceMapName))
 
-		pages.Homepage(session).Render(r.Context(), w)
-	})
-
-	mux.HandleFunc("/characters", controllers.CharactersPage)
-	mux.HandleFunc("GET /characters/new", controllers.NewCharacterPage)
-	mux.HandleFunc("POST /characters", controllers.NewCharacterForm)
-	mux.HandleFunc("/characters/{id}/edit", controllers.CharacterPage)
-	mux.HandleFunc("POST /characters/{id}", controllers.EditCharacterForm)
-	mux.HandleFunc("DELETE /characters/{id}/delete", controllers.DeleteCharacter)
-
-	mux.HandleFunc("/assets", controllers.AssetsPage)
-	mux.HandleFunc("GET /assets/maps", controllers.MapAssetsPage)
-	mux.HandleFunc("POST /assets/maps", controllers.UploadMap)
-	mux.HandleFunc("DELETE /assets/maps/{id}", controllers.DeleteMap)
-	mux.HandleFunc("POST /assets/maps/{id}", controllers.ReplaceMap)
-	mux.HandleFunc("PATCH /assets/maps/{id}/name", controllers.ReplaceMapName)
-
-	mux.HandleFunc("POST /assets/characters/{id}", controllers.UploadCharacterAvatar)
-	mux.HandleFunc("GET /assets/images/{id}", controllers.GetImage)
-	mux.HandleFunc("GET /assets/images/{id}/preview", controllers.GetImagePreview)
+	mux.HandleFunc("POST /assets/characters/{id}", middleware.RequireSession(controllers.UploadCharacterAvatar))
+	mux.HandleFunc("GET /assets/images/{id}", middleware.RequireSessionOr404(controllers.GetImage))
+	mux.HandleFunc("GET /assets/images/{id}/preview", middleware.RequireSessionOr404(controllers.GetImagePreview))
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)
@@ -89,14 +88,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
-		db, err := db.Connect()
-		if err != nil {
-			helpers.RedirectToError(w, r)
-			return
-		}
-		err = session.Logout(r, w, db, ctx)
-		if err != nil {
+		if err := session.Logout(r, w, db.Get()); err != nil {
 			helpers.RedirectToError(w, r)
 			return
 		}
@@ -129,13 +121,8 @@ func main() {
 			return
 		}
 
-		db, err := db.Connect()
-		if err != nil {
-			helpers.RedirectToError(w, r)
-			return
-		}
-		ctx := context.Background()
-		q := queries.New(db)
+		ctx := r.Context()
+		q := queries.New(db.Get())
 
 		s := session.New()
 		s.ProfileImageURL = "/images/default-avatar.webp"
@@ -147,7 +134,7 @@ func main() {
 				s.UserId = id
 				if len(user.ProfileImageURL) > 0 {
 					err = q.CreateUserWithAvatar(ctx, queries.CreateUserWithAvatarParams{
-						ID:              id[:],
+						ID:              id,
 						Username:        *user.Username,
 						ClerkID:         user.ID,
 						ProfileImageUrl: user.ProfileImageURL,
@@ -159,7 +146,7 @@ func main() {
 					}
 				} else {
 					err = q.CreateUser(ctx, queries.CreateUserParams{
-						ID:       id[:],
+						ID:       id,
 						Username: *user.Username,
 						ClerkID:  user.ID,
 					})
@@ -175,7 +162,7 @@ func main() {
 				return
 			}
 		} else {
-			s.UserId = ulid.ULID(result.ID)
+			s.UserId = result.ID
 			s.ProfileImageURL = result.ProfileImageUrl
 			s.Username = result.Username
 		}
@@ -187,7 +174,7 @@ func main() {
 			s.ProfileImageURL = user.ProfileImageURL
 		}
 
-		err = s.CreateSession(db, ctx)
+		err = s.CreateSession(db.Get(), ctx)
 		if err != nil {
 			slog.Error("Failed to create session", "error", err)
 			helpers.RedirectToError(w, r)
@@ -258,11 +245,17 @@ func main() {
 	case err := <-errCh:
 		if !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("Server error", "err", err)
+			stopCleanup()
+			_ = db.Close()
 			os.Exit(1)
 		}
 		slog.Info("Shutting down")
+		stopCleanup()
+		_ = db.Close()
 		return
 	}
+
+	stopCleanup()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -270,7 +263,12 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("Graceful shutdown failed; forcing closed", "err", err)
 		_ = server.Close()
+		_ = db.Close()
 		os.Exit(1)
+	}
+
+	if err := db.Close(); err != nil {
+		slog.Error("Failed to close DB pool", "err", err)
 	}
 
 	slog.Info("Server shutdown complete")

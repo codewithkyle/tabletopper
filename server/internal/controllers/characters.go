@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -22,17 +21,9 @@ import (
 )
 
 func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.HTMXServerError(w)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.HTMXRedirect(w, "/sign-in")
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -47,8 +38,8 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	asset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
-		ID: uid[:],
-		OwnerID: session.UserId[:],
+		ID: uid,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -66,8 +57,8 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = q.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
-		ID:      uid[:],
-		OwnerID: session.UserId[:],
+		ID:      uid,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		helpers.HTMXServerError(w)
@@ -79,17 +70,9 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 }
 
 func CharacterPage(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w, r)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -104,8 +87,8 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	character, err := q.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
-		ID:      uid[:],
-		OwnerID: session.UserId[:],
+		ID:      uid,
+		OwnerID: session.UserId,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -121,17 +104,9 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w, r)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
@@ -196,8 +171,8 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Weapons:          formInput.Weapons,
 		SpellSlots:       formInput.SpellSlots,
 		Resources:        formInput.Resources,
-		ID:               uid[:],
-		OwnerID:          session.UserId[:],
+		ID:               uid,
+		OwnerID:          session.UserId,
 	})
 	if err != nil {
 		helpers.RedirectToError(w, r)
@@ -211,20 +186,12 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func CharactersPage(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w, r)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w, r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
 	q := queries.New(db)
-	results, err := q.GetCharacters(ctx, session.UserId[:])
+	results, err := q.GetCharacters(ctx, session.UserId)
 	if err != nil {
 		helpers.RedirectToError(w,r)
 		return
@@ -234,36 +201,15 @@ func CharactersPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w,r)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w,r)
-		return
-	}
-
-	pages.NewCharacter(session).Render(r.Context(), w)
+	pages.NewCharacter(session.FromContext(r.Context())).Render(r.Context(), w)
 }
 
 func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	db, err := db.Connect()
-	if err != nil {
-		helpers.RedirectToError(w,r)
-		return
-	}
-	session, err := session.GetUserSessionFromCookie(r, db, ctx)
-	if err != nil {
-		helpers.RedirectToSignIn(w,r)
-		return
-	}
+	ctx := r.Context()
+	db := db.Get()
+	session := session.FromContext(ctx)
 
-	err = r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
 		return
@@ -284,9 +230,9 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	q := queries.New(db)
 	id := ulid.Make()
 	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
-		ID:               id[:],
-		OwnerID:          session.UserId[:],
-		AssetID:          []byte(nil),
+		ID:               id,
+		OwnerID:          session.UserId,
+		AssetID:          ulid.ULID{},
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		Xp:               formInput.XP,
