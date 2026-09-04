@@ -1,0 +1,142 @@
+/* Tailwind entry stylesheet.
+   Source lives here, outside public/; the build output lands in
+   server/public/css/app.css, which is what the Dockerfile copies. */
+
+/* source(none) disables Tailwind's automatic file discovery. Without it
+   Tailwind walks up to the git root and scans client/ -- the legacy SPA,
+   which is full of Brixi class names that would bloat this build with
+   utilities nothing on the server renders. Sources are declared below. */
+@import "tailwindcss" source(none);
+
+/* DaisyUI 5.7.28, vendored in css/vendor/. The standalone Tailwind binary
+   bundles Node's runtime but not any npm packages, so `@plugin "daisyui"`
+   cannot resolve -- the plugin has to be a real file on disk. These two are
+   the prebuilt bundles from the DaisyUI release (MIT), which is DaisyUI's
+   documented path for the standalone CLI. Vendoring them keeps this repo
+   free of node_modules and pins the version byte-for-byte.
+   daisyui-theme.js is unused until Phase 3 defines the custom theme. */
+/* themes: false turns off DaisyUI's built-in light/dark. They ship enabled by
+   default as `light --default` and `dark --prefersdark` -- exactly the two
+   slots the custom themes below claim, so leaving them on would mean two
+   competing :where(:root) blocks. */
+/* exclude drops four component groups whose class names this app already owns
+   and styles itself: .input and .select are emitted by the lit-html components
+   in public/js, .label by skills-table/saving-throws-table, .link by link.css.
+   All four are layered, so app CSS wins on any property it sets -- but DaisyUI
+   also sets properties the app CSS does not (display:inline-flex on .input is
+   the bad one: it collapses the label-above-field layout). Measured with a
+   headless render of the character sheet.
+   These come back in Phase 5, when those components become DaisyUI components. */
+@plugin "./vendor/daisyui.js" {
+  themes: false;
+  exclude: input, select, label, link;
+}
+
+/* templ is not a format Tailwind auto-detects, so point it at the source.
+   Scan .templ, not the generated _templ.go -- the latter is gitignored. */
+@source "../templ/**/*.templ";
+
+/* The lit-html components emit class strings client-side, so their classes
+   never appear in a template. They are still real usages until Phase 5
+   replaces these components with server-rendered markup. */
+@source "../public/js/**/*.js";
+
+/* ---------------------------------------------------------------------------
+   Theme
+
+   Ported from the hand-built tokens in public/css/core.css. Those stay put --
+   the app's own stylesheets read them directly, and Phase 4/5 removes those
+   call sites gradually. This block is the DaisyUI-side mirror, so components
+   rendered by DaisyUI land on the same palette.
+
+   Light is `default`, dark is `prefersdark`. There is no theme toggle in the
+   app -- core.css switches purely on prefers-color-scheme -- and those two
+   flags reproduce that exactly: `:where(:root)` for light, and
+   `@media (prefers-color-scheme: dark) :root:not([data-theme])` for dark.
+
+   --depth and --noise are 0 on purpose. They add DaisyUI's glossy bevel and
+   grain to buttons and cards, which fights the flat parchment panels
+   (--panel-shadow / --panel-blur) the sheet already uses.
+   --------------------------------------------------------------------------- */
+
+@plugin "./vendor/daisyui-theme.js" {
+  name: "tabletopper";
+  default: true;
+  color-scheme: light;
+
+  /* base-100 is --panel-bg, and it is deliberately translucent: DaisyUI
+     surfaces (card, modal-box, dropdown) should sit on the parchment the way
+     .sheet-section already does. body keeps its own gradient, which is what
+     shows through. */
+  --color-base-100: rgba(249, 247, 240, 0.87);
+  --color-base-200: #f2ecdd;
+  --color-base-300: #d8ccb8;            /* --sheet-rule */
+  --color-base-content: #2f2418;        /* --sheet-ink */
+
+  --color-primary: #7a3f23;             /* --sheet-accent */
+  --color-primary-content: #fdf8ef;
+  --color-secondary: #8f6b24;           /* the gold inside --panel-shadow */
+  --color-secondary-content: #fdf8ef;
+  --color-accent: #1d4ed8;              /* brixi primary-700 == .link's color */
+  --color-accent-content: #eff6ff;
+  --color-neutral: #3f3f46;             /* brixi grey-700 */
+  --color-neutral-content: #e4e4e7;     /* brixi grey-200 */
+
+  --color-info: #2563eb;                /* brixi primary-600 */
+  --color-info-content: #eff6ff;
+  --color-success: #047857;             /* brixi success-700 */
+  --color-success-content: #ecfdf5;
+  --color-warning: #b45309;             /* brixi warning-700 */
+  --color-warning-content: #fffbeb;
+  --color-error: #be123c;               /* brixi danger-700 */
+  --color-error-content: #fff1f2;
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;              /* inputs/buttons across the sheet */
+  --radius-box: 0.5rem;                 /* == brixi radius-0.5 */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "./vendor/daisyui-theme.js" {
+  name: "tabletopper-dark";
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: rgba(40, 44, 51, 0.87);
+  --color-base-200: #23272e;
+  /* NOT --sheet-rule here: its dark value is a translucent gold meant for
+     1px borders, which is unusable as a surface fill. */
+  --color-base-300: #3a3f47;
+  --color-base-content: #e9ddc9;        /* --sheet-ink (dark) */
+
+  --color-primary: #f4c486;             /* --sheet-accent (dark) */
+  --color-primary-content: #2f2418;
+  --color-secondary: #d8b98a;
+  --color-secondary-content: #2f2418;
+  --color-accent: #93c5fd;              /* brixi primary-300 == .link, dark */
+  --color-accent-content: #172554;
+  --color-neutral: #3f3f46;
+  --color-neutral-content: #e4e4e7;
+
+  --color-info: #60a5fa;                /* brixi primary-400 */
+  --color-info-content: #172554;
+  --color-success: #34d399;             /* brixi success-400 */
+  --color-success-content: #022c22;
+  --color-warning: #fbbf24;             /* brixi warning-400 */
+  --color-warning-content: #451a03;
+  --color-error: #fb7185;               /* brixi danger-400 */
+  --color-error-content: #4c0519;
+
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}

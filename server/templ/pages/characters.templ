@@ -183,15 +183,15 @@ templ Character(character queries.GetCharactersRow) {
 }
 
 templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {
-	<character-selector class="character-roster-shell block relative w-screen h-screen p-1">
+	<character-selector class="character-roster-shell block relative w-screen h-screen p-4">
 		<section class="character-roster-frame">
 			<header class="character-roster-header">
 				<h1 class="character-roster-heading">Characters</h1>
-				<div flex="row nowrap items-center">
+				<div class="flex flex-row flex-nowrap items-center">
 					<a
 						href="/"
 						type="button"
-						class="bttn mr-1"
+						class="bttn mr-4"
 						kind="solid"
 						color="grey"
 						sfx="button"

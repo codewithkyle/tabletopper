@@ -32,11 +32,11 @@ templ MapCard(m queries.GetUserMapsRow) {
 			hx-patch={ "/assets/maps/" + m.ID.String() + "/name" }
 			hx-swap="none"
 		/>
-		<div style="gap:0.5rem;" flex="row nowrap items-center space-between">
+		<div style="gap:0.5rem;" class="flex flex-row flex-nowrap items-center justify-between">
 			<div style="flex:1;">
 				<code class="max-w-full">{ m.FileName }</code>
 			</div>
-			<div flex="row nowram items-center">
+			<div class="flex flex-row items-center">
 				<label
 					for={ "map-replace-" + m.ID.String() }
 					sfx="button"
@@ -78,14 +78,14 @@ templ MapCard(m queries.GetUserMapsRow) {
 }
 
 templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRow) {
-	<assets-page class="block relative w-screen h-screen p-1">
+	<assets-page class="block relative w-screen h-screen p-4">
 		<header>
 			<h1>Asset Manager</h1>
-			<div flex="row nowrap items-center">
+			<div class="flex flex-row flex-nowrap items-center">
 				<a
 					href="/"
 					type="button"
-					class="bttn mr-1"
+					class="bttn mr-4"
 					kind="solid"
 					color="grey"
 					sfx="button"

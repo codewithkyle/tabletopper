@@ -17,10 +17,10 @@ templ NewCharacter(session session.UserSession) {
 
 templ NewCharacterFormErrors(messages []string) {
 	if len(messages) > 0 {
-		<div id="new-character-form-errors" class="w-full p-2">
-			<div class="p-2 radius-0.5 border-1 border-solid border-danger-400 font-danger-700 dark:font-danger-400">
-				<p class="font-semibold mb-1">Could not save character:</p>
-				<ul class="pl-1">
+		<div id="new-character-form-errors" class="w-full p-8">
+			<div class="p-8 rounded-lg border border-solid border-rose-400 text-rose-700 dark:text-rose-400">
+				<p class="font-semibold mb-4">Could not save character:</p>
+				<ul class="pl-4">
 					for _, message := range messages {
 						<li>&#8226; { message }</li>
 					}
@@ -33,7 +33,7 @@ templ NewCharacterFormErrors(messages []string) {
 }
 
 templ newCharacterContent(session session.UserSession) {
-	<character-editor class="character-sheet-shell block relative w-screen h-screen px-1 pt-1">
+	<character-editor class="character-sheet-shell block relative w-screen h-screen px-4 pt-4">
 		<form class="character-sheet-form w-full h-full" hx-post="/characters" hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
 			<div class="character-sheet-header">
 				<div>

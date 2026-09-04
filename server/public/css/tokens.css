@@ -1,0 +1,100 @@
+/* ---------------------------------------------------------------------------
+ * Brixi design tokens -- the surviving 5KB of a 420KB stylesheet.
+ *
+ * brixi.css was deleted in Phase 4, but 24 of this app's own stylesheets read
+ * these 62 custom properties through var(). Deleting the file without them
+ * would not have broken loudly: every one of those var() reads would resolve
+ * to nothing and the declaration would fall back to its initial value --
+ * buttons losing every colour, inputs losing their borders, table text going
+ * black. So the tokens are lifted out verbatim and the framework is dropped.
+ *
+ * Verbatim is deliberate. Nothing here is re-themed; this file exists to make
+ * the deletion of brixi.css a no-op visually. Re-theming happens in Phase 5,
+ * as each component that reads these is replaced by a DaisyUI one -- at which
+ * point the corresponding block here is deleted too, and this file with it.
+ *
+ * All values were :root declarations in brixi.css with no dark-mode variants,
+ * so this is a flat copy. Transitively closed: --focus-ring and --input-border
+ * reference other tokens in this file and nothing outside it.
+ *
+ * Do not add to this file. New tokens belong in the DaisyUI theme in
+ * server/css/app.css.
+ * ------------------------------------------------------------------------ */
+
+:root {
+	/* Typography */
+	--font-bold: 700;
+	--font-md: 1.125rem;
+	--font-medium: 500;
+	--font-sans-serif: 'Rubik',Ubuntu,'Open Sans','Noto Sans',Roboto,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Cantarell,'Helvetica Neue',sans-serif;
+	--font-serif: Georgia,Cambria,'Times New Roman',Times,serif;
+	--font-sm: 0.875rem;
+	--font-xs: 0.75rem;
+
+	/* Greys */
+	--grey-200: #E4E4E7;
+	--grey-300: #D4D4D8;
+	--grey-400: #A1A1AA;
+	--grey-400-hsl: 240 5% 65%;
+	--grey-50: #FAFAFA;
+	--grey-500: #71717A;
+	--grey-500-hsl: 240 4% 46%;
+	--grey-600: #52525B;
+	--grey-700: #3F3F46;
+	--grey-800: #27272A;
+	--grey-900: #18181B;
+	--grey-900-hsl: 240 6% 10%;
+	--grey-950: #09090b;
+	--white: #ffffff;
+	--white-hsl: 0 0% 100%;
+
+	/* Primary (blue) */
+	--primary-200: #BFDBFE;
+	--primary-300: #93C5FD;
+	--primary-400: #60A5FA;
+	--primary-400-hsl: 213 94% 68%;
+	--primary-500: #3B82F6;
+	--primary-500-hsl: 217 91% 60%;
+	--primary-600: #2563EB;
+	--primary-700: #1D4ED8;
+	--primary-800: #1E40AF;
+
+	/* Danger (rose) */
+	--danger-200: #FECDD3;
+	--danger-300-hsl: 353 96% 82%;
+	--danger-400: #FB7185;
+	--danger-400-hsl: 351 95% 71%;
+	--danger-50: #FFF1F2;
+	--danger-500: #F43F5E;
+	--danger-500-hsl: 350 89% 60%;
+	--danger-700: #BE123C;
+	--danger-800: #9F1239;
+
+	/* Success (emerald) */
+	--success-200: #A7F3D0;
+	--success-300: #6EE7B7;
+	--success-400: #34D399;
+	--success-400-hsl: 158 64% 52%;
+	--success-500: #10B981;
+	--success-500-hsl: 160 84% 39%;
+	--success-700: #047857;
+
+	/* Warning (amber) */
+	--warning-200: #FDE68A;
+	--warning-300: #FCD34D;
+	--warning-300-hsl: 46 97% 65%;
+	--warning-400: #FBBF24;
+	--warning-500: #F59E0B;
+	--warning-500-hsl: 38 92% 50%;
+	--warning-700: #B45309;
+
+	/* Easings, shadows, focus */
+	--bevel: 0 1px 0 hsl(0deg 0% 0% / 0.1);
+	--button-shadow: 0px 1px 2px -1px rgba(0, 0, 0, 0.09),inset 0px -1px 0px 1px rgba(0, 0, 0, 0.06);
+	--ease-in: cubic-bezier(0.0, 0.0, 0.2, 1);
+	--ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+	--focus-ring: 1px auto var(--primary-500);
+	--focus-ring-offset: 5px;
+	--input-border: 1px solid var(--grey-300);
+	--shadow-black-md: 0px 2px 2px hsl(0deg 0% 0% / 0.1),0px 4px 4px hsl(0deg 0% 0% / 0.1),0px 6px 6px hsl(0deg 0% 0% / 0.1);
+}

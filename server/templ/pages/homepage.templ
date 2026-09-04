@@ -17,10 +17,10 @@ templ Homepage(session session.UserSession) {
 
 templ homepageContent(session session.UserSession) {
 	if session.UserId.IsZero() {
-		<home-page class="p-2 max-w-full">
-			<div class="w-full max-w-1024 menu text-center">
-				<h1 class="mb-3">Tabletopper</h1>
-				<div class="actions w-full" flex="row nowrap items-center justify-center">
+		<home-page class="p-8 max-w-full">
+			<div class="w-full max-w-[1024px] text-center">
+				<h1 class="mb-12">Tabletopper</h1>
+				<div class="actions w-full flex flex-row flex-nowrap items-center justify-center">
 					<a
 						href="/sign-in"
 						class="bttn"
@@ -38,15 +38,15 @@ templ homepageContent(session session.UserSession) {
 			@footer()
 		</home-page>
 	} else {
-		<home-page class="pl-3 pt-2 pr-4 w-screen h-screen t-0 l-0" style="inset:0;">
-			<div class="w-full" flex="row nowrap justify-between items-center">
+		<home-page class="pl-12 pt-8 pr-16 w-screen h-screen top-0 left-0" style="inset:0;">
+			<div class="w-full flex flex-row flex-nowrap items-center justify-between">
 				<h1>Tabletopper</h1>
 				<div id="user-badge">
-					<img class="mr-0.75" style="overflow:hidden;width:48px;height:48px;border-radius:24px;" src={ session.ProfileImageURL }/>
-					<p class="inline-block mr-2 font-xs font-medium">
+					<img class="mr-3" style="overflow:hidden;width:48px;height:48px;border-radius:24px;" src={ session.ProfileImageURL }/>
+					<p class="inline-block mr-8 text-xs font-medium">
 						Welcome
 						<br/>
-						<span class="inline-block mt-0.25 font-primary-300 font-lg font-bold">{ session.Username }</span>
+						<span class="inline-block mt-1 text-blue-300 text-xl font-bold">{ session.Username }</span>
 					</p>
 					<a
 						href="/logout"
@@ -76,7 +76,7 @@ templ homepageContent(session session.UserSession) {
 }
 
 templ footer() {
-	<div class="fixed b-0 x-center mb-0.25">
+	<div class="fixed bottom-0 left-1/2 -translate-x-1/2 mb-1">
 		<a
 			href="https://github.com/codewithkyle/tabletopper"
 			class="bttn"

@@ -1,5 +1,5 @@
 import l from"./supercomponent.js";import{html as r,render as u}from"./lit-html.js";import{unsafeHTML as m}from"./unsafe-html.js";import i from"./env.js";import{parseDataset as v}from"./general.js";const d=[{key:"str",label:"Strength"},{key:"dex",label:"Dexterity"},{key:"con",label:"Constitution"},{key:"int",label:"Intelligence"},{key:"wis",label:"Wisdom"},{key:"cha",label:"Charisma"}];class p extends l{constructor(){super();this.noopEvent=e=>{e.stopImmediatePropagation()};this.updateBonus=e=>{const s=e.currentTarget,o=s.dataset.key,t=s.value.trim(),n=t===""?0:Number(t),a=this.get();a.values={...a.values||{}},a.values[o]=Number.isFinite(n)?n:0,this.set(a,!0)};this.model={label:"Saving Throws",name:"saves",values:{}}}static get observedAttributes(){return["data-label","data-name","data-values"]}async connected(){await i.css(["saving-throws-table"]);const e=v(this.dataset,this.model);e.values=e.values??{},this.set(e)}render(){const e=this.model.values||{},s=typeof this.model.label=="string"?this.model.label.trim():"",o=r`
-            ${s?r`<h4 class="block w-full font-medium font-sm font-grey-800 dark:font-grey-300 pl-0.125">
+            ${s?r`<h4 class="block w-full font-medium text-sm text-zinc-800 dark:text-zinc-300 pl-0.5">
                       ${m(s)}
                   </h4>`:null}
 
