@@ -24,7 +24,7 @@ RUN apk add --no-cache libwebp
 
 WORKDIR /root/
 COPY --from=builder /app/tabletopper .
-COPY ./client/public ./public
+COPY ./server/public ./public
 
 EXPOSE 3000
 CMD ["./tabletopper"]

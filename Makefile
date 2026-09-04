@@ -1,6 +1,6 @@
-.PHONY: db sqlc templ client run
+.PHONY: db sqlc templ run
 
-run: db templ sqlc client
+run: db templ sqlc
 	docker compose up --build
 
 db:
@@ -11,6 +11,3 @@ templ:
 
 sqlc:
 	sqlc generate
-
-client:
-	npm run build --prefix ./client

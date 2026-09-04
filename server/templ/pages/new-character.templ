@@ -34,7 +34,7 @@ templ NewCharacterFormErrors(messages []string) {
 
 templ newCharacterContent(session session.UserSession) {
 	<character-editor class="character-sheet-shell block relative w-screen h-screen px-1 pt-1">
-		<form class="character-sheet-form w-full h-full" hx-post="/characters" hx-target-4*="#new-character-form-errors" hx-swap="outerHTML">
+		<form class="character-sheet-form w-full h-full" hx-post="/characters" hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
 			<div class="character-sheet-header">
 				<div>
 					<h1 class="sheet-title">New Character</h1>
