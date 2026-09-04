@@ -521,6 +521,52 @@ templ generate / go build / go vet / go test ./...     all clean
   delete-confirm modal, and toasts on a redirecting response.
 
 
+## CSS sources — recovered after Phase 4
+
+`server/public/css/*.css` were all minified single-line files with no nesting.
+They are **build output**: `client/` runs `cssmonster` (a Sass wrapper) over
+`client/src/styles/*.scss` into `client/public/css/`, and the rewrite's detach
+step copied those outputs into `server/public/`. Sass compiles nesting away, so
+the flat minified files were never editable source.
+
+9 of the 25 still had a source. Verified against a fresh `sass` compile: **no
+content drift** — every difference was minifier cosmetics (`600ms`→`.6s`, quote
+stripping, selector reordering), with identical rule counts in all 9.
+
+Those 9 moved to `server/css/app/*.css`, renamed from `.scss`. A scan for
+Sass-only features across all 13 sources found **none** — no variables, mixins,
+`@extend`, loops, `//` comments or `&`-concatenation. Only nesting and `@media`,
+both native CSS. So the rename is the whole conversion.
+
+They build with the Tailwind binary already vendored for Phase 1: Lightning CSS
+compiles native nesting and minifies, so this drops Node, Sass and cssmonster
+without adding anything. `make css` now builds `server/css/app/*.css` →
+`server/public/css/*.css` via a pattern rule (incremental) alongside the
+Tailwind entry. Verified byte-for-byte semantically identical to what was
+being served.
+
+**Deliberately not bundled into `app.css`.** A single `@import`ed output would
+cut 9 `<link>` tags, but `app.css` is linked first, so everything inside it
+would move ahead of the 16 remaining stylesheets. `character-sheet.css` and
+`character-cards.css` are currently *last* and rely on it — that is what makes
+the parchment styling win. Bundling is safe only once those 16 are gone.
+
+### The 16 with no source
+
+`button` `input` `link` `select` `toast` `tooltip` `skeletons` `snackbar`
+`notifications` `monster-info-table` `skills-table` `saving-throws-table`
+`spell-slots-table` `normalize` (+ generated `app`, hand-written `tokens`).
+Their SCSS is not in `client/src/styles`, not in `node_modules`, and not
+produced by `build/bundle.js`. For these the minified file *is* the source.
+Left alone deliberately: Phase 5 replaces most of them with DaisyUI.
+`normalize.css` is the npm package plus a hand-appended preflight tail, and now
+carries the `@layer base` wrapper from Phase 4.
+
+Still in `client/src/styles`, for features not yet rewritten:
+`conditions-menu` `mini-tool-bar` `quick-spawn` `user-menu`.
+
+---
+
 ## Phase 5 — DEFERRED
 
 **SSR the client-rendered components.**
