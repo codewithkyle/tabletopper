@@ -533,19 +533,55 @@ the flat minified files were never editable source.
 content drift** — every difference was minifier cosmetics (`600ms`→`.6s`, quote
 stripping, selector reordering), with identical rule counts in all 9.
 
-Those 9 moved to `server/css/app/*.css`, renamed from `.scss`. A scan for
-Sass-only features across all 13 sources found **none** — no variables, mixins,
-`@extend`, loops, `//` comments or `&`-concatenation. Only nesting and `@media`,
-both native CSS. So the rename is the whole conversion.
+Those 9 were restored from `.scss`, renamed to `.css`. A scan for Sass-only
+features across all 13 sources found **none** — no variables, mixins,
+`@extend`, loops, `//` comments or `&`-concatenation. Only nesting and
+`@media`, both native CSS. So the rename is the whole conversion, and it drops
+Node, Sass and cssmonster without adding anything.
 
-They build with the Tailwind binary already vendored for Phase 1: Lightning CSS
-compiles native nesting and minifies, so this drops Node, Sass and cssmonster
-without adding anything. `make css` now builds `server/css/app/*.css` →
-`server/public/css/*.css` via a pattern rule (incremental) alongside the
-Tailwind entry. Verified byte-for-byte semantically identical to what was
-being served.
+### No build step, and no minification
 
-**Deliberately not bundled into `app.css`.** A single `@import`ed output would
+They briefly lived in `server/css/app/` behind a Makefile pattern rule that
+minified them into `server/public/css/`. That split is gone: **the 9 sit in
+`server/public/css/` and are served exactly as authored.**
+
+The src→out split only ever existed because Sass demanded it — `.scss` is not
+CSS, so a source directory was mandatory. These files are valid CSS that
+browsers run directly, so the pipeline was compiling nesting for nothing while
+leaving the tree in two inconsistent halves: 9 files edited in `server/css/app`,
+the other 16 edited in `server/public/css`, with nothing marking which was
+which. Both copies were committed, so a one-line change produced two diffs, one
+of them an unreadable blob.
+
+Minification does not pay for that. Measured across the 9:
+
+| | raw | gzip |
+|---|---|---|
+| authored | 22,920 | 6,449 |
+| minified | 18,742 | 5,745 |
+| saved | 4,178 | **704** |
+
+704 bytes, spread over 9 files, on a page that opens 25 stylesheet
+connections. Production is behind Cloudflare, which Brotli-compresses CSS at
+the edge by default — that is the ~6× win (141KB → ~21KB across the whole
+directory) and it needs no build step. (Cloudflare's Auto Minify was retired in
+August 2024, for this exact reason, so there is no minify rule to set.)
+
+`app.css` is now the **only** generated file in `server/public/css`, and it is
+built unminified for the same reason: it is committed, so a readable 1,704-line
+diff showing which utilities appeared or vanished is worth more than the 863
+gzipped bytes minifying would save.
+
+The one thing the compile step did buy: lowering nesting for older engines.
+Several files nest bare element selectors without `&`, which is the *relaxed*
+syntax — Chrome 120 / Safari 17.2 / Firefox 117, Dec 2023. Accepted.
+
+Verified with a headless A/B of the old minified file against the authored
+source on identical markup: every computed property identical, including the
+rules nested two levels inside `character-editor.character-sheet-shell` and
+inside `@media (prefers-color-scheme: dark)`.
+
+**Deliberately not bundled into `app.css`.** A single `@import`ed bundle would
 cut 9 `<link>` tags, but `app.css` is linked first, so everything inside it
 would move ahead of the 16 remaining stylesheets. `character-sheet.css` and
 `character-cards.css` are currently *last* and rely on it — that is what makes

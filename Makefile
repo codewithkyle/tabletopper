@@ -15,22 +15,17 @@ sqlc:
 # Tailwind is a standalone binary (no Node). It is gitignored -- see the
 # pinned download command in PLAN.md if build/bin/tailwindcss is missing.
 #
-# Two kinds of CSS are built with it:
-#   server/css/app.css      -- the Tailwind + DaisyUI entry point
-#   server/css/app/*.css    -- this app's own stylesheets, hand-written with
-#                              native CSS nesting. Formerly SCSS built by
-#                              cssmonster in client/; the same binary compiles
-#                              the nesting away, so no Node and no Sass.
-# Everything else in server/public/css is hand-maintained with no source:
-# the component CSS whose SCSS was lost, plus normalize.css and tokens.css.
-APP_CSS_SRC := $(wildcard server/css/app/*.css)
-APP_CSS_OUT := $(patsubst server/css/app/%.css,server/public/css/%.css,$(APP_CSS_SRC))
-
-css: $(APP_CSS_OUT)
-	./build/bin/tailwindcss -i ./server/css/app.css -o ./server/public/css/app.css --minify
-
-server/public/css/%.css: server/css/app/%.css
-	@./build/bin/tailwindcss -i $< -o $@ --minify
+# It builds exactly one file: server/public/css/app.css, from the entry point
+# server/css/app.css (Tailwind + the vendored DaisyUI plugin and themes).
+# Every other stylesheet in server/public/css is hand-written and served as
+# authored -- no source dir, no build step. They use native CSS nesting, which
+# browsers run directly.
+#
+# Nothing here is minified on purpose. Cloudflare Brotli-compresses CSS at the
+# edge, which is worth ~6x what minifying is; minifying first would buy under a
+# kilobyte and cost readable diffs on app.css, which is committed.
+css:
+	./build/bin/tailwindcss -i ./server/css/app.css -o ./server/public/css/app.css
 
 css-watch:
 	./build/bin/tailwindcss -i ./server/css/app.css -o ./server/public/css/app.css --watch
