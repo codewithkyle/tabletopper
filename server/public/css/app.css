@@ -859,6 +859,91 @@
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
   }
+  @layer daisyui.l1.l2.l3 {
+    .stack {
+      display: inline-grid;
+      grid-template-columns: 3px 4px 1fr 4px 3px;
+      grid-template-rows: 3px 4px 1fr 4px 3px;
+    }
+    .stack > * {
+      height: 100%;
+      width: 100%;
+    }
+    .stack > *:nth-child(n + 2) {
+      width: 100%;
+      opacity: 70%;
+    }
+    .stack > *:nth-child(2) {
+      z-index: 2;
+      opacity: 90%;
+    }
+    .stack > *:nth-child(1) {
+      z-index: 3;
+      width: 100%;
+    }
+  }
+  @layer daisyui.l1.l2 {
+    :is(:is(.stack), .stack.stack-bottom) > * {
+      grid-column: 3 / 4;
+      grid-row: 3 / 6;
+    }
+    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(2) {
+      grid-column: 2 / 5;
+      grid-row: 2 / 5;
+    }
+    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(1) {
+      grid-column: 1 / 6;
+      grid-row: 1 / 4;
+    }
+    :is(:is(.stack), .stack.stack-bottom) > * {
+      grid-column: 3 / 4;
+      grid-row: 3 / 6;
+    }
+    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(2) {
+      grid-column: 2 / 5;
+      grid-row: 2 / 5;
+    }
+    :is(:is(.stack), .stack.stack-bottom) > *:nth-child(1) {
+      grid-column: 1 / 6;
+      grid-row: 1 / 4;
+    }
+    .stack.stack-top > * {
+      grid-column: 3 / 4;
+      grid-row: 1 / 4;
+    }
+    .stack.stack-top > *:nth-child(2) {
+      grid-column: 2 / 5;
+      grid-row: 2 / 5;
+    }
+    .stack.stack-top > *:nth-child(1) {
+      grid-column: 1 / 6;
+      grid-row: 3 / 6;
+    }
+    .stack.stack-start > * {
+      grid-column: 1 / 4;
+      grid-row: 3 / 4;
+    }
+    .stack.stack-start > *:nth-child(2) {
+      grid-column: 2 / 5;
+      grid-row: 2 / 5;
+    }
+    .stack.stack-start > *:nth-child(1) {
+      grid-column: 3 / 6;
+      grid-row: 1 / 6;
+    }
+    .stack.stack-end > * {
+      grid-column: 3 / 6;
+      grid-row: 3 / 4;
+    }
+    .stack.stack-end > *:nth-child(2) {
+      grid-column: 2 / 5;
+      grid-row: 2 / 5;
+    }
+    .stack.stack-end > *:nth-child(1) {
+      grid-column: 1 / 4;
+      grid-row: 1 / 6;
+    }
+  }
   .mt-1 {
     margin-top: var(--spacing);
   }
@@ -992,9 +1077,6 @@
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
-  .transform {
-    transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
   }
   .resize {
     resize: both;
@@ -1456,26 +1538,6 @@
   inherits: false;
   initial-value: 0;
 }
-@property --tw-rotate-x {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-rotate-y {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-rotate-z {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-skew-x {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-skew-y {
-  syntax: "*";
-  inherits: false;
-}
 @property --tw-border-style {
   syntax: "*";
   inherits: false;
@@ -1654,11 +1716,6 @@
       --tw-translate-x: 0;
       --tw-translate-y: 0;
       --tw-translate-z: 0;
-      --tw-rotate-x: initial;
-      --tw-rotate-y: initial;
-      --tw-rotate-z: initial;
-      --tw-skew-x: initial;
-      --tw-skew-y: initial;
       --tw-border-style: solid;
       --tw-font-weight: initial;
       --tw-shadow: 0 0 #0000;

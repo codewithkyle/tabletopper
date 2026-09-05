@@ -208,13 +208,6 @@ func main() {
 		),
 	)
 	mux.Handle(
-		"/audio/",
-		http.StripPrefix(
-			"/audio/",
-			http.FileServer(http.Dir("./public/audio")),
-		),
-	)
-	mux.Handle(
 		"/images/",
 		http.StripPrefix(
 			"/images/",

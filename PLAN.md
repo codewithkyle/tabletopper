@@ -589,17 +589,101 @@ the parchment styling win. Bundling is safe only once those 16 are gone.
 
 ### The 16 with no source
 
-`button` `input` `link` `select` `toast` `tooltip` `skeletons` `snackbar`
-`notifications` `monster-info-table` `skills-table` `saving-throws-table`
-`spell-slots-table` `normalize` (+ generated `app`, hand-written `tokens`).
-Their SCSS is not in `client/src/styles`, not in `node_modules`, and not
-produced by `build/bundle.js`. For these the minified file *is* the source.
-Left alone deliberately: Phase 5 replaces most of them with DaisyUI.
-`normalize.css` is the npm package plus a hand-appended preflight tail, and now
-carries the `@layer base` wrapper from Phase 4.
+`button` `input` `link` `select` `toast` `tooltip` `monster-info-table`
+`skills-table` `saving-throws-table` `spell-slots-table` `normalize`
+(+ generated `app`, hand-written `tokens`). Their SCSS is not in
+`client/src/styles`, not in `node_modules`, and not produced by
+`build/bundle.js`. For these the minified file *is* the source. Left alone
+deliberately: Phase 5 replaces most of them with DaisyUI. `normalize.css` is the
+npm package plus a hand-appended preflight tail, and now carries the
+`@layer base` wrapper from Phase 4.
+
+Three others in this group -- `skeletons` `snackbar` `notifications` -- were
+deleted outright in the pre-Phase-5 purge below.
 
 Still in `client/src/styles`, for features not yet rewritten:
 `conditions-menu` `mini-tool-bar` `quick-spawn` `user-menu`.
+
+---
+
+## Pre-Phase-5 purge -- dead assets removed
+
+An audit of `server/public/` against `server/templ/` before starting Phase 5.
+Every stylesheet and script was linked from `base.templ`, and all 26 JS files
+were reachable through the import graph -- so nothing was dead by *loading*.
+These were dead by never matching anything.
+
+**Deleted:**
+
+| | files | bytes |
+|---|---|---|
+| CSS | `skeletons` `notifications` `snackbar` | 9,874 |
+| JS | `notifications` `snackbar` `bootstrap` `soundscape` | 12,542 |
+| images | `background.jpg` + `blood-1..5.png` | 936,231 |
+| audio | all 11 `.wav` | 2,590,074 |
+
+`server/public` went from 3.86MB to 314KB -- 24 files, 3.55MB.
+
+### Why they were dead
+
+`skeletons.css` styled `.skeleton`, which appears in **zero** markup -- the only
+hit repo-wide was its own `<link>` tag.
+
+The notification stack was unreachable. `notifications-component` and
+`snackbar-component` are only created by `alerts.alert/success/warn/error()` and
+`alerts.snackbar()`, and the sole caller of those was `bootstrap.js` -- a
+service-worker registration for `/service-worker.js`, **a file that does not
+exist in this repo**, importing `/static/service-worker-assets.js`, which also
+does not exist. On `tabletopper.app` it awaited a promise that only settles
+inside `serviceWorker.ready`, so a failed registration hung it permanently.
+
+The server never triggers that path anyway. `internal/helpers/htmx.go` sends
+exactly two events: `alert`, caught by the Alpine `<modal-element>` in
+`base.templ` (not by `notifications.js`), and `flash:toast`, caught by
+`notif.js` -> `toaster.js` -> `toast.css`. That chain is live and untouched.
+
+### Audio, and the sfx attributes
+
+`soundscape.load()` eagerly fetched all 11 WAVs on every page load -- 2.59MB.
+Only three had a `.play()` call site (`mouseover`, `mouseclick` from
+`sfx="button"`, and `error` from input validation); the other eight were
+unreachable, including `activate` `deactivate` `camera`, which had no call site
+at all. Rather than keep the 375KB that was live, the whole subsystem was
+dropped: sound gets rebuilt from scratch later as a first-class sound/music
+library.
+
+The 24 `sfx="button"` attributes went with it -- 19 on their own line, 5 inline
+in the homepage `<nav>`, across `homepage` `characters` `assets`
+`new-character` `edit-character`. Nothing reads `sfx` now; the new library will
+define its own convention rather than inherit Brixi's.
+
+### Consequential edits
+
+- `alerts.js` rewritten as a toast-only facade (1,888 -> 714 bytes). Keeping it
+  as a facade meant `input.js` and `notif.js` needed no edits.
+- `input-base.js` and `select.js`: removed the `soundscape` import and its lone
+  `play("error")` call. Both import bindings were verified to have exactly one
+  member access before removal.
+- `main.go`: dropped the `/audio/` static route.
+- `base.templ`: dropped 3 `<link>` and 1 `<script>`.
+
+Verified: every `/css/ /js/ /static/ /images/` URL referenced in templ, JS or Go
+resolves to a file that exists; all 22 remaining modules parse as ESM; and all
+10 script entry points import cleanly under a stubbed DOM -- full graph
+resolved, no undefined bindings. `templ generate`, `go build`, `go vet`,
+`go test` and `make css` all clean.
+
+### Not purged (Tier 2) -- folded into Phase 5 instead
+
+Dead fragments inside files that are still live: `#wood-img` and
+`@keyframes spinner` in `bootstrap.css` (nothing else in that file but
+`overscroll-behavior-x`); `context-menu` in `core.css`; `fadeIn60` and
+`fadePopIn` in `animations.css`; `.actions button-component` in `homepage.css`;
+and in `button.css` both the dead `button-component` half of its
+`.bttn,button-component` selector and 6 unused variants
+(`[color=warning] [kind=dashed] [shape=pill] [shape=sharp] [size=slim]
+[icon=right]`). `button.css` and `homepage.css` get rewritten against DaisyUI
+anyway.
 
 ---
 

@@ -39,7 +39,6 @@ templ MapCard(m queries.GetUserMapsRow) {
 			<div class="flex flex-row items-center">
 				<label
 					for={ "map-replace-" + m.ID.String() }
-					sfx="button"
 					tooltip="Replace"
 					class="bttn"
 					kind="text"
@@ -88,13 +87,11 @@ templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRo
 					class="bttn mr-4"
 					kind="solid"
 					color="grey"
-					sfx="button"
 				>
 					Back
 				</a>
 				<label
 					for="map-upload"
-					sfx="button"
 					class="bttn relative"
 					kind="solid"
 					color="primary"
