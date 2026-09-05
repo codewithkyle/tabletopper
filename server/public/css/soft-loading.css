@@ -1,3 +1,9 @@
+/* Both ::before rules carried `box-shadow: 0 0 3px var(--loading-bar-shadow)`.
+   Nothing anywhere has ever defined that variable, so both declarations were
+   invalid at computed-value time and the bars have never had a glow. Not a
+   Brixi token and not caused by the migration -- found in phase 8 while
+   counting what was left, removed in phase 9. Same failure mode as
+   --font-sans-serif and --font-snug before it. */
 :root {
 	--loading-bar: #51b1f6;
 	--loading-bar-background: #163b52;
@@ -56,7 +62,6 @@ soft-loading transition-bar-one {
 soft-loading transition-bar-one::before {
 	content: "";
 	background-color: var(--loading-bar);
-	box-shadow: 0 0 3px var(--loading-bar-shadow);
 	display: inline-block;
 	position: absolute;
 	width: 100%;
@@ -73,7 +78,6 @@ soft-loading transition-bar-two {
 soft-loading transition-bar-two::before {
 	content: "";
 	background-color: var(--loading-bar);
-	box-shadow: 0 0 3px var(--loading-bar-shadow);
 	display: inline-block;
 	position: absolute;
 	width: 100%;

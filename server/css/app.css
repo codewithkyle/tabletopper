@@ -93,6 +93,23 @@
   --border: 2px;
 }
 
+/* Rubik, loaded by the @import at the top of core.css.
+
+   This was `body { font-family: var(--font-sans-serif) }` in core.css, reading a
+   Brixi token out of tokens.css. Deleting tokens.css would not have broken
+   loudly: the read becomes invalid at computed-value time, body falls back to
+   inheriting html, and html is preflight's `var(--default-font-family)` --
+   which resolves through --font-sans to DaisyUI's system stack. Rubik would
+   have disappeared from the whole app with nothing logged.
+
+   Declaring it here overrides DaisyUI's --font-sans (verified in the build, not
+   assumed -- ours has to win a three-way cascade against the plugin), so
+   preflight applies Rubik to html and everything inherits it. It also makes the
+   font-sans utility mean what it says, which the core.css version did not. */
+@theme {
+  --font-sans: "Rubik", Ubuntu, "Open Sans", "Noto Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, "Helvetica Neue", sans-serif;
+}
+
 /* templ is not a format Tailwind auto-detects, so point it at the source.
    Scan .templ, not the generated _templ.go -- the latter is gitignored.
 
@@ -109,8 +126,16 @@
    count, and check that anything new is something the markup actually uses. */
 @source "../templ/**/*.templ";
 
-/* The lit-html components left in public/js emit class strings client-side, so
-   their classes never appear in a template. Those are still real usages until
-   the four table components (phases 5-8 in PLAN.md) are server-rendered; this
-   line goes with the last of them. */
-@source "../public/js/**/*.js";
+/* public/js is no longer scanned. It was, because the lit-html components emitted
+   class strings client-side and those classes never appeared in a template -- so
+   the directory held real usages. All four are server-rendered as of phase 8 and
+   the runtime is deleted, so every remaining word in there is incidental.
+
+   Removing the line cost 9,197 B and sixteen selectors, none of which any markup
+   used: .alert, .toast, .status, .loading, .indicator, .static, .ease-out and a
+   full .modal implementation with seven variants. DaisyUI was emitting a modal
+   because confirm-modal.js and alerts.js say the word; the real one in
+   base.templ is <modal-element> plus utilities and touches none of it.
+
+   That is the note above running in reverse, and it is the largest single move
+   the stylesheet has made in either direction. */

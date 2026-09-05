@@ -1,5 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Lobster&family=Rubik:wght@300;400;500;600;700;800;900&display=swap');
 
+/* The last hand-written stylesheet that is not a single component's.
+   bootstrap.css and animations.css were folded in here in phase 9 -- between
+   them they were down to two overscroll rules and one keyframe once their dead
+   parts (#wood-img, @keyframes spinner, fadeIn60, fadePopIn) were removed, and
+   two <link>s for that is not worth the round trips. */
+
 html{
     font-size: 100%;
     position: relative;
@@ -7,6 +13,7 @@ html{
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    overscroll-behavior-x: none;
 
     /* No app colour tokens live here any more. The frosted panel that used to
        be --panel-bg/-blur/-shadow is now a class string --
@@ -16,23 +23,26 @@ html{
        by toaster.js at runtime and so has no element to hang utilities on.
 
        What remains below is layout and the desk itself, which does still read
-       the DaisyUI base ramp. */
+       the DaisyUI base ramp.
 
-
-    &[state="loading"] {
-        * {
-            cursor: loading !important;
-        }
-    }
+       There was a `&[state="loading"] * { cursor: loading !important }` block
+       here. `loading` is not a cursor keyword, so it had never applied;
+       soft-loading.css does the working version three lines from its own
+       [state="loading"] selector. Removed in phase 9. */
 }
 
 body{
-    font-family: var(--font-sans-serif);
     display: block;
     width: 100vw;
     height: 100vh;
     position: relative;
     overflow: hidden;
+    overscroll-behavior-x: none;
+
+    /* font-family was `var(--font-sans-serif)`, a Brixi token. It moved to
+       --font-sans in the @theme block of server/css/app.css when tokens.css was
+       deleted -- see the note there for why leaving it would have lost Rubik
+       silently. Preflight applies it to html and this inherits. */
 
     /* Desk and grid paper, as layers of one background rather than a desk here
        and a grid on a fixed ::before.
@@ -81,17 +91,19 @@ body{
     box-sizing: border-box;
 }
 
-.htmx-indicator{
-    opacity:0;
-    transition: opacity 300ms var(--ease-in);
-}
-.htmx-request .htmx-indicator{
-    opacity:1
-}
-.htmx-request.htmx-indicator{
-    opacity:1
-}
+/* From animations.css. Referenced as an arbitrary animation value --
+   `animate-[fadeIn_600ms_300ms_ease-out_forwards]` -- on the homepage heading
+   and the four page roots. fadeIn60 and fadePopIn were in that file too and
+   nothing referenced either; they were not folded in.
 
-context-menu {
-    z-index: 9999 !important;
+   The `ease-out` in those class names is the CSS keyword inside an animation
+   shorthand, not Tailwind's --ease-out token, so it does not depend on that
+   variable being emitted. It no longer is -- see app.css. */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
