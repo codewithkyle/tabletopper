@@ -7,12 +7,13 @@ import (
 	"testing"
 )
 
-// NOTE: a request without a session cookie short-circuits before the DB pool is
-// touched, so these cases need no database.
+// NOTE: a request without a session cookie short-circuits before the store's
+// queries are touched, so these cases need no database behind it.
+var auth = Auth{Sessions: session.NewStore(nil, false)}
 
 func TestRequireSessionRedirectsWithoutCookie(t *testing.T) {
 	called := false
-	h := RequireSession(func(w http.ResponseWriter, r *http.Request) { called = true })
+	h := auth.RequireSession(func(w http.ResponseWriter, r *http.Request) { called = true })
 
 	rec := httptest.NewRecorder()
 	h(rec, httptest.NewRequest(http.MethodGet, "/characters", nil))
@@ -29,7 +30,7 @@ func TestRequireSessionRedirectsWithoutCookie(t *testing.T) {
 }
 
 func TestRequireSessionUsesHXRedirectForHTMX(t *testing.T) {
-	h := RequireSession(func(w http.ResponseWriter, r *http.Request) {
+	h := auth.RequireSession(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler ran without a session")
 	})
 
@@ -47,7 +48,7 @@ func TestRequireSessionUsesHXRedirectForHTMX(t *testing.T) {
 }
 
 func TestRequireSessionOr404WithoutCookie(t *testing.T) {
-	h := RequireSessionOr404(func(w http.ResponseWriter, r *http.Request) {
+	h := auth.RequireSessionOr404(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler ran without a session")
 	})
 
@@ -61,7 +62,7 @@ func TestRequireSessionOr404WithoutCookie(t *testing.T) {
 
 func TestOptionalSessionContinuesWithoutCookie(t *testing.T) {
 	called := false
-	h := OptionalSession(func(w http.ResponseWriter, r *http.Request) {
+	h := auth.OptionalSession(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		if s := session.FromContext(r.Context()); !s.UserID.IsZero() {
 			t.Errorf("UserID = %v, want the zero value for a logged out visitor", s.UserID)

@@ -107,7 +107,7 @@ templ Character(character queries.GetCharactersRow) {
 								name="avatar"
 								accept="image/png, image/jpeg, image/webp"
 								required
-								hx-post={ "/assets/characters/" + character.ID.String() }
+								hx-post={ "/characters/" + character.ID.String() + "/avatar" }
 								hx-target="closest character-card"
 								hx-swap="outerHTML"
 								hx-encoding="multipart/form-data"
@@ -130,7 +130,7 @@ templ Character(character queries.GetCharactersRow) {
 								name="avatar"
 								accept="image/png, image/jpeg, image/webp"
 								required
-								hx-post={ "/assets/characters/" + character.ID.String() }
+								hx-post={ "/characters/" + character.ID.String() + "/avatar" }
 								hx-swap="none"
 								hx-encoding="multipart/form-data"
 							/>
@@ -177,7 +177,7 @@ templ Character(character queries.GetCharactersRow) {
 				>Edit</a>
 				<button
 					hx-confirm={ "You are about to delete your character " + character.Name + ". This action cannot be undone." }
-					hx-delete={ "/characters/" + character.ID.String() + "/delete" }
+					hx-delete={ "/characters/" + character.ID.String() }
 					hx-target="closest character-card"
 					hx-swap="delete"
 					class="btn btn-soft btn-error max-[700px]:flex-1"

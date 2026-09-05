@@ -1,16 +1,17 @@
+// Package session is the login session: the row in the sessions table, the
+// cookie that names it, and the sliding expiry that ties the two together.
 package session
 
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
 	"errors"
-	"log/slog"
+	"fmt"
 	"net/http"
-	"os"
-	"tabletopper/internal/queries"
 	"time"
+
+	"tabletopper/internal/queries"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -28,8 +29,12 @@ const (
 	// refreshInterval throttles how often an active session is written back to
 	// the DB. Requests arriving inside the interval do no work.
 	refreshInterval = time.Hour
+
+	cookieName = "session_id"
 )
 
+// UserSession is one login. It is plain data: the Store is what reads and
+// writes it.
 type UserSession struct {
 	ID              ulid.ULID
 	UserID          ulid.ULID
@@ -42,68 +47,76 @@ type UserSession struct {
 	ExpiresAt       time.Time
 }
 
-func New() *UserSession {
-	s := UserSession{}
-	s.ID = ulid.Make()
-	return &s
+// Store reads and writes sessions and the cookie that names them. It is the
+// only code that touches either, so the row and the cookie cannot drift.
+type Store struct {
+	q      *queries.Queries
+	secure bool
 }
 
-func GetUserSessionFromCookie(r *http.Request, db *sql.DB) (UserSession, error) {
-	session := UserSession{}
-	cookie, err := r.Cookie("session_id")
+// NewStore returns a Store over q. secure sets the cookie's Secure flag and
+// should be false only for local development over plain HTTP.
+func NewStore(q *queries.Queries, secure bool) *Store {
+	return &Store{q: q, secure: secure}
+}
+
+// FromRequest loads the session the request's cookie names. A request with
+// no cookie returns http.ErrNoCookie before the database is touched.
+func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
+	cookie, err := r.Cookie(cookieName)
 	if err != nil {
-		if errors.Is(err, http.ErrNoCookie) {
-			return session, err
-		}
-		slog.Error("Failed to get user session from cookie", "error", err)
-		return session, err
+		return UserSession{}, err
 	}
 
-	hash, err := DecodeHash(cookie.Value)
+	hash, err := decodeHash(cookie.Value)
 	if err != nil {
-		slog.Error("Failed to decode hash", "error", err)
-		return session, err
+		return UserSession{}, fmt.Errorf("session: decode cookie: %w", err)
 	}
 
-	q := queries.New(db)
-	result, err := q.GetSession(r.Context(), hash)
+	row, err := s.q.GetSession(r.Context(), hash)
 	if err != nil {
-		slog.Error("Failed to get user session from DB", "error", err)
-		return session, err
+		return UserSession{}, fmt.Errorf("session: load: %w", err)
 	}
 
 	// NOTE: a malformed ULID fails in Scan above, so these are already
 	// length-checked; a NULL character_id or room_id arrives as a nil pointer
-	session.Hash = hash
-	session.CreatedAt = result.CreatedAt
-	session.ID = result.ID
-	session.UserID = result.UserID
-	session.Username = result.Username
-	session.ProfileImageURL = result.ProfileImageURL
-	session.CharacterID = result.CharacterID
-	session.RoomID = result.RoomID
-
-	return session, nil
+	return UserSession{
+		ID:              row.ID,
+		UserID:          row.UserID,
+		CharacterID:     row.CharacterID,
+		RoomID:          row.RoomID,
+		Username:        row.Username,
+		ProfileImageURL: row.ProfileImageURL,
+		Hash:            hash,
+		CreatedAt:       row.CreatedAt,
+	}, nil
 }
 
-func (s *UserSession) CreateSession(db *sql.DB, ctx context.Context) error {
-	q := queries.New(db)
-	s.Hash = make([]byte, 32)
-	if _, err := rand.Read(s.Hash); err != nil {
-		return err
+// Create starts a session for u and sets its cookie. u carries the user in:
+// UserID, Username and ProfileImageURL must be set. The ID, token and
+// timestamps are filled in here.
+func (s *Store) Create(ctx context.Context, w http.ResponseWriter, u *UserSession) error {
+	u.ID = ulid.Make()
+	u.Hash = make([]byte, 32)
+	if _, err := rand.Read(u.Hash); err != nil {
+		return fmt.Errorf("session: token: %w", err)
 	}
-	s.ExpiresAt = time.Now().Add(IdleWindow)
-	err := q.StartSession(ctx, queries.StartSessionParams{
-		ID:              s.ID,
-		Username:        s.Username,
-		ProfileImageURL: s.ProfileImageURL,
-		UserID:          s.UserID,
-		ExpiresAt:       s.ExpiresAt,
-		Hash:            s.Hash,
+	u.CreatedAt = time.Now()
+	u.ExpiresAt = u.CreatedAt.Add(IdleWindow)
+
+	err := s.q.StartSession(ctx, queries.StartSessionParams{
+		ID:              u.ID,
+		Hash:            u.Hash,
+		Username:        u.Username,
+		ProfileImageURL: u.ProfileImageURL,
+		UserID:          u.UserID,
+		ExpiresAt:       u.ExpiresAt,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("session: insert: %w", err)
 	}
+
+	s.setCookie(w, u)
 	return nil
 }
 
@@ -125,24 +138,23 @@ func nextExpiry(now time.Time, createdAt time.Time) time.Time {
 //
 // The cookie has to be re-issued alongside the row: leaving it on its original
 // Expires would have the browser drop it while the session was still live.
-func (s *UserSession) Refresh(r *http.Request, w http.ResponseWriter, db *sql.DB) error {
+func (s *Store) Refresh(ctx context.Context, w http.ResponseWriter, u *UserSession) error {
 	now := time.Now()
-	expiresAt := nextExpiry(now, s.CreatedAt)
+	expiresAt := nextExpiry(now, u.CreatedAt)
 
-	q := queries.New(db)
-	result, err := q.RefreshSession(r.Context(), queries.RefreshSessionParams{
+	result, err := s.q.RefreshSession(ctx, queries.RefreshSessionParams{
 		ExpiresAt:      expiresAt,
-		Hash:           s.Hash,
+		Hash:           u.Hash,
 		RefreshCutoff:  now.Add(-refreshInterval),
 		LifetimeCutoff: now.Add(-MaxLifetime),
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("session: refresh: %w", err)
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("session: refresh: %w", err)
 	}
 	if rows == 0 {
 		// NOTE: throttled, or the session has hit MaxLifetime and is being
@@ -150,79 +162,55 @@ func (s *UserSession) Refresh(r *http.Request, w http.ResponseWriter, db *sql.DB
 		return nil
 	}
 
-	s.ExpiresAt = expiresAt
-	s.SetCookie(w)
+	u.ExpiresAt = expiresAt
+	s.setCookie(w, u)
 	return nil
 }
 
-func (s UserSession) EncodeHash() string {
-	return base64.RawURLEncoding.EncodeToString(s.Hash)
-}
-
-func DecodeHash(hash string) ([]byte, error) {
-	raw, err := base64.RawURLEncoding.DecodeString(hash)
+// Logout ends the session the request's cookie names and clears the cookie.
+// A request with no cookie is already logged out and is not an error.
+func (s *Store) Logout(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie(cookieName)
 	if err != nil {
-		return []byte{}, err
-	}
-	return raw, nil
-}
-
-// secureCookies reports whether the session cookie should carry the Secure
-// flag. Only an explicit development ENV opts out, so a missing or misspelled
-// value fails closed.
-func secureCookies() bool {
-	switch os.Getenv("ENV") {
-	case "development", "dev", "local":
-		return false
-	default:
-		return true
-	}
-}
-
-func (s UserSession) SetCookie(w http.ResponseWriter) {
-	hash := s.EncodeHash()
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    hash,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   secureCookies(),
-		SameSite: http.SameSiteLaxMode,
-		Expires:  s.ExpiresAt,
-	})
-}
-
-func Logout(r *http.Request, w http.ResponseWriter, db *sql.DB) error {
-	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		if err == http.ErrNoCookie {
+		if errors.Is(err, http.ErrNoCookie) {
 			return nil
 		}
 		return err
 	}
 
-	hash, err := DecodeHash(cookie.Value)
+	hash, err := decodeHash(cookie.Value)
 	if err != nil {
-		slog.Error("Failed to decode hash", "error", err)
-		return err
+		return fmt.Errorf("session: decode cookie: %w", err)
 	}
 
-	q := queries.New(db)
-	err = q.EndSession(r.Context(), hash)
-	if err != nil {
-		slog.Error("Failed to end session in DB", "error", err)
-		return err
+	if err := s.q.EndSession(r.Context(), hash); err != nil {
+		return fmt.Errorf("session: end: %w", err)
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
+		Name:     cookieName,
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   secureCookies(),
+		Secure:   s.secure,
 		SameSite: http.SameSiteLaxMode,
 	})
-
 	return nil
+}
+
+func (s *Store) setCookie(w http.ResponseWriter, u *UserSession) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     cookieName,
+		Value:    base64.RawURLEncoding.EncodeToString(u.Hash),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   s.secure,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  u.ExpiresAt,
+	})
+}
+
+func decodeHash(value string) ([]byte, error) {
+	return base64.RawURLEncoding.DecodeString(value)
 }

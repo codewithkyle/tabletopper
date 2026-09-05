@@ -2,11 +2,9 @@ package middleware
 
 import (
 	"log/slog"
-
 	"net/http"
-	db "tabletopper/internal/database"
-	"tabletopper/internal/helpers"
-	"tabletopper/internal/session"
+
+	"tabletopper/internal/htmx"
 )
 
 // Fragment is the contract for everything mounted under /fragment/: a GET whose
@@ -23,21 +21,21 @@ import (
 // is a piece of a page and is worthless on its own, so it must never be indexed
 // as a document or replayed from a cache into a page it was not rendered for.
 // Setting them here is what keeps that from being a per-handler chore.
-func Fragment(next http.HandlerFunc) http.HandlerFunc {
+func (m Auth) Fragment(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Robots-Tag", "noindex")
 
-		s, err := session.GetUserSessionFromCookie(r, db.Get())
+		s, err := m.Sessions.FromRequest(r)
 		if err != nil {
-			helpers.HTMXRedirect(w, "/sign-in")
+			htmx.Redirect(w, "/sign-in")
 			return
 		}
 
 		// Refreshed, unlike RequireSessionOr404: a fragment is fetched when the
 		// user acts, which can be a long time after the page load that would
 		// have slid the expiry forward.
-		refresh(&s, r, w)
+		m.refresh(w, r, &s)
 		next(w, withSession(r, s))
 	}
 }

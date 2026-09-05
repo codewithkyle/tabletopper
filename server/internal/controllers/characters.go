@@ -8,136 +8,128 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	db "tabletopper/internal/database"
-	"tabletopper/internal/helpers"
+	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
-	"tabletopper/internal/services"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
 
-func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
+func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	db := db.Get()
-	session := session.FromContext(ctx)
+	sess := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
-		helpers.HTMXServerError(w)
+		htmx.ServerError(w)
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		helpers.HTMXServerError(w)
+		htmx.ServerError(w)
 		return
 	}
 
-	q := queries.New(db)
-	asset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
+	asset, err := a.Queries.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
 		ID:      uid,
-		OwnerID: session.UserID,
+		OwnerID: sess.UserID,
 	})
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			slog.Error("Failed to query character asset", "error", err)
-			helpers.HTMXServerError(w)
+			htmx.ServerError(w)
 			return
 		}
 	}
 	if asset.FilePath.Valid {
-		err = services.DeleteImage(ctx, asset.FilePath.String)
+		err = a.Storage.Delete(ctx, asset.FilePath.String)
 		if err != nil {
-			helpers.HTMXServerError(w)
+			htmx.ServerError(w)
 			return
 		}
 	}
 
-	err = q.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
+	err = a.Queries.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
 		ID:      uid,
-		OwnerID: session.UserID,
+		OwnerID: sess.UserID,
 	})
 	if err != nil {
-		helpers.HTMXServerError(w)
+		htmx.ServerError(w)
 		return
 	}
 
-	helpers.HTMXToast(w, asset.Name+" has been deleted.")
+	htmx.Toast(w, asset.Name+" has been deleted.")
 	w.WriteHeader(http.StatusOK)
 }
 
-func CharacterPage(w http.ResponseWriter, r *http.Request) {
+func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	db := db.Get()
-	session := session.FromContext(ctx)
+	sess := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
-		helpers.Redirect(w, r, "/characters")
+		redirect(w, r, "/characters")
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		helpers.Redirect(w, r, "/characters")
+		redirect(w, r, "/characters")
 		return
 	}
 
-	q := queries.New(db)
-	character, err := q.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
+	character, err := a.Queries.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
 		ID:      uid,
-		OwnerID: session.UserID,
+		OwnerID: sess.UserID,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
-			helpers.Redirect(w, r, "/characters")
+			redirect(w, r, "/characters")
 			return
 		}
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
 	data := characterToEditPageData(id, character)
-	pages.EditCharacter(data).Render(r.Context(), w)
+	render(w, r, pages.EditCharacter(data))
 }
 
-func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
+func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	db := db.Get()
-	session := session.FromContext(ctx)
+	sess := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
-		helpers.Redirect(w, r, "/characters")
+		redirect(w, r, "/characters")
 		return
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
-		helpers.Redirect(w, r, "/characters")
+		redirect(w, r, "/characters")
 		return
 	}
 
 	err = r.ParseForm()
 	if err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
+		render(w, r, pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}))
 		return
 	}
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
 	if len(validationErrors) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
+		render(w, r, pages.NewCharacterFormErrors(validationErrors))
 		return
 	}
 
-	q := queries.New(db)
-	_, err = q.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
+	_, err = a.Queries.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		XP:               formInput.XP,
@@ -170,36 +162,34 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		SpellSlots:       formInput.SpellSlots,
 		Resources:        formInput.Resources,
 		ID:               uid,
-		OwnerID:          session.UserID,
+		OwnerID:          sess.UserID,
 	})
 	if err != nil {
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
 	msg := formInput.Name + " has been updated."
 	slog.Info(msg)
-	helpers.HTMXToast(w, msg)
-	helpers.HTMXRedirect(w, "/characters")
+	htmx.Toast(w, msg)
+	htmx.Redirect(w, "/characters")
 }
 
-func CharactersPage(w http.ResponseWriter, r *http.Request) {
+func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	db := db.Get()
-	session := session.FromContext(ctx)
+	sess := session.FromContext(ctx)
 
-	q := queries.New(db)
-	results, err := q.GetCharacters(ctx, session.UserID)
+	results, err := a.Queries.GetCharacters(ctx, sess.UserID)
 	if err != nil {
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
-	pages.Characters(results).Render(r.Context(), w)
+	render(w, r, pages.Characters(results))
 }
 
-func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
-	pages.NewCharacter().Render(r.Context(), w)
+func (a *App) NewCharacterPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.NewCharacter())
 }
 
 // InfoRowFragment serves one blank repeater row to the add buttons on the
@@ -215,7 +205,7 @@ func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
 // noindex headers every /fragment/ route owes its caller. The markup is not
 // secret -- it holds nothing but empty fields -- but an unauthenticated
 // endpoint here would be surface for no reason.
-func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
+func (a *App) InfoRowFragment(w http.ResponseWriter, r *http.Request) {
 	field := r.URL.Query().Get("field")
 	if !pages.IsInfoRowField(field) {
 		slog.Warn("unknown info row field requested", "field", field)
@@ -228,9 +218,7 @@ func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := pages.InfoRowFragment(field).Render(r.Context(), w); err != nil {
-		slog.Error("Failed to render info row fragment", "error", err)
-	}
+	render(w, r, pages.InfoRowFragment(field))
 }
 
 // SpellCardFragment serves one blank spell card to a level's add button, the
@@ -242,7 +230,7 @@ func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
 // It is bounded to the ten levels that exist rather than trusted -- it lands in
 // every field name on the card, so an unchecked value would put arbitrary keys
 // into the next post.
-func SpellCardFragment(w http.ResponseWriter, r *http.Request) {
+func (a *App) SpellCardFragment(w http.ResponseWriter, r *http.Request) {
 	level, err := strconv.Atoi(r.URL.Query().Get("level"))
 	if err != nil || level < 0 || level > 9 {
 		slog.Warn("invalid spell level requested", "level", r.URL.Query().Get("level"))
@@ -251,39 +239,35 @@ func SpellCardFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := pages.SpellCardFragment(level).Render(r.Context(), w); err != nil {
-		slog.Error("Failed to render spell card fragment", "error", err)
-	}
+	render(w, r, pages.SpellCardFragment(level))
 }
 
-func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
+func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	db := db.Get()
-	session := session.FromContext(ctx)
+	sess := session.FromContext(ctx)
 
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}).Render(r.Context(), w)
+		render(w, r, pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}))
 		return
 	}
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
 	if len(validationErrors) > 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		pages.NewCharacterFormErrors(validationErrors).Render(r.Context(), w)
+		render(w, r, pages.NewCharacterFormErrors(validationErrors))
 		return
 	}
 
-	q := queries.New(db)
 	id := ulid.Make()
-	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
+	err = a.Queries.CreateCharacter(ctx, queries.CreateCharacterParams{
 		ID:               id,
-		OwnerID:          session.UserID,
+		OwnerID:          sess.UserID,
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		XP:               formInput.XP,
@@ -318,12 +302,12 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Notes:            "",
 	})
 	if err != nil {
-		helpers.RedirectToError(w, r)
+		redirectToError(w, r)
 		return
 	}
 
-	helpers.HTMXToast(w, formInput.Name+" has been created.")
-	helpers.HTMXRedirect(w, "/characters")
+	htmx.Toast(w, formInput.Name+" has been created.")
+	htmx.Redirect(w, "/characters")
 }
 
 type characterFormInput struct {
@@ -473,8 +457,8 @@ func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, err
 		return characterFormInput{}, nil, err
 	}
 
-	level := helpers.CalculateCharacterLevelFromXP(xp)
-	proficiencyBonus := helpers.CalculateCharacterProficiencyBonus(level)
+	level := levelFromXP(xp)
+	proficiencyBonus := proficiencyBonusForLevel(level)
 
 	speed := strings.TrimSpace(r.PostFormValue("speed"))
 	if speed == "" {

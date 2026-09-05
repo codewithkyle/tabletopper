@@ -1,31 +1,24 @@
-package db
+// Package database opens the MySQL connection pool. It owns the pool
+// settings and the fail-fast ping; the pool itself is handed to whoever
+// needs it rather than kept here.
+package database
 
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"log/slog"
-	"os"
+	"fmt"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var pool *sql.DB
-
-// Init opens the shared connection pool. It must be called once during startup,
-// before any call to Get.
-func Init() error {
-	dsn := os.Getenv("DSN")
-	if len(dsn) == 0 {
-		slog.Error("Failed to connect to DB", "error", "envrionment variable DSN cannot be empty")
-		return errors.New("envrionment variable DSN cannot be empty")
-	}
-
+// Open returns a connection pool for dsn that has answered a ping. sql.Open
+// is lazy, so without the ping a bad DSN would surface on the first query
+// instead of at startup.
+func Open(ctx context.Context, dsn string) (*sql.DB, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		slog.Error("Failed to connect to DB", "error", err)
-		return err
+		return nil, fmt.Errorf("database: open: %w", err)
 	}
 
 	db.SetMaxOpenConns(25)
@@ -33,28 +26,12 @@ func Init() error {
 	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetConnMaxIdleTime(2 * time.Minute)
 
-	// NOTE: sql.Open is lazy, so ping to fail fast on a bad DSN
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		slog.Error("Failed to ping DB", "error", err)
+	if err := db.PingContext(pingCtx); err != nil {
 		_ = db.Close()
-		return err
+		return nil, fmt.Errorf("database: ping: %w", err)
 	}
 
-	pool = db
-	return nil
-}
-
-// Get returns the shared connection pool opened by Init.
-func Get() *sql.DB {
-	return pool
-}
-
-// Close shuts down the shared connection pool.
-func Close() error {
-	if pool == nil {
-		return nil
-	}
-	return pool.Close()
+	return db, nil
 }

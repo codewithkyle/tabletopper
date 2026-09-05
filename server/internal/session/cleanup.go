@@ -2,11 +2,8 @@ package session
 
 import (
 	"context"
-	"database/sql"
 	"log/slog"
 	"time"
-
-	"tabletopper/internal/queries"
 )
 
 const (
@@ -18,15 +15,15 @@ const (
 	cleanupGrace = 24 * time.Hour
 )
 
-// StartCleanup sweeps expired sessions until ctx is cancelled. It also clears
-// the rows left behind by repeat logins, since /authorize inserts a new session
-// every time it runs.
-func StartCleanup(ctx context.Context, db *sql.DB) {
+// StartCleanup sweeps expired sessions in the background until ctx is
+// cancelled. It also clears the rows left behind by repeat logins, since
+// /authorize inserts a new session every time it runs.
+func (s *Store) StartCleanup(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(cleanupInterval)
 		defer ticker.Stop()
 
-		deleteExpired(ctx, db)
+		s.deleteExpired(ctx)
 
 		for {
 			select {
@@ -34,15 +31,14 @@ func StartCleanup(ctx context.Context, db *sql.DB) {
 				slog.Info("Session cleanup stopped")
 				return
 			case <-ticker.C:
-				deleteExpired(ctx, db)
+				s.deleteExpired(ctx)
 			}
 		}
 	}()
 }
 
-func deleteExpired(ctx context.Context, db *sql.DB) {
-	q := queries.New(db)
-	result, err := q.DeleteExpiredSessions(ctx, time.Now().Add(-cleanupGrace))
+func (s *Store) deleteExpired(ctx context.Context) {
+	result, err := s.q.DeleteExpiredSessions(ctx, time.Now().Add(-cleanupGrace))
 	if err != nil {
 		if ctx.Err() != nil {
 			return

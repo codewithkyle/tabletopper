@@ -16,7 +16,7 @@ import (
 // header is there -- a 303 would be followed by fetch() and the sign-in page
 // swapped into whatever target the caller named.
 func TestFragmentRedirectsWithoutTheHTMXHeader(t *testing.T) {
-	h := Fragment(func(w http.ResponseWriter, r *http.Request) {
+	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler ran without a session")
 	})
 
@@ -37,7 +37,7 @@ func TestFragmentRedirectsWithoutTheHTMXHeader(t *testing.T) {
 // Both headers are set before the session is looked at, so they are on the
 // response even when the fragment is never rendered.
 func TestFragmentSetsNoStoreAndNoIndex(t *testing.T) {
-	h := Fragment(func(w http.ResponseWriter, r *http.Request) {})
+	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {})
 
 	rec := httptest.NewRecorder()
 	h(rec, httptest.NewRequest(http.MethodGet, "/fragment/character/spell-card", nil))
