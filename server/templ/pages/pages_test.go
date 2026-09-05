@@ -1034,3 +1034,50 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 		})
 	}
 }
+
+// A prepared spell shows the start of its text, clamped to two lines, and
+// expands in place to the rest.
+//
+// The clamp is visual only -- the whole description is in the DOM either way --
+// so expanding costs no request, and a spell whose text runs to a paragraph does
+// not push the next one off the panel. It is a <details>, not a title attribute,
+// because this sheet gets read on a tablet at a table and a native tooltip has
+// nothing to hover.
+func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	const long = "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame."
+
+	var buf bytes.Buffer
+	groups := []PreparedSpellGroup{{Level: 3, Name: "Level 3", Spells: []Spell{
+		{ID: testSpellID, Level: 3, Name: "Fireball", CastingTime: "Action", Description: long},
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVS4", Level: 3, Name: "Counterspell", CastingTime: "Reaction"},
+	}}}
+	if err := preparedSpells(id, groups).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	// One disclosure, for the one spell that has text. A spell with none gets no
+	// control at all rather than an empty one that opens onto nothing.
+	if got := strings.Count(body, "<details"); got != 1 {
+		t.Errorf("disclosures = %d, want 1 -- only Fireball has text", got)
+	}
+
+	for _, want := range []string{"line-clamp-2", "group-open:line-clamp-none", "cursor-pointer"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the description is missing %s\n%s", want, body)
+		}
+	}
+
+	// THE WHOLE TEXT IS THERE, not an excerpt cut in Go. The two-line limit is
+	// CSS, so expanding shows the rest without asking the server for it -- and a
+	// truncation done here would have made the expansion a lie.
+	if !strings.Contains(body, long) {
+		t.Errorf("the description was truncated before it reached the markup\n%s", body)
+	}
+
+	// Newlines in a spell's text survive, the way they do on the inventory rows.
+	if !strings.Contains(body, "whitespace-pre-line") {
+		t.Errorf("the description collapses its line breaks\n%s", body)
+	}
+}

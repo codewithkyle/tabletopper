@@ -19,6 +19,11 @@ templ preparedSpells(characterID string, groups []PreparedSpellGroup) {
 								if meta != "" {
 									<p class="mt-1 text-sm text-base-content/75">{ meta }</p>
 								}
+								if spell.Description != "" {
+									<details class="group mt-2">
+										<summary class="line-clamp-2 cursor-pointer whitespace-pre-line text-sm text-base-content/75 transition-colors duration-150 group-open:line-clamp-none hover:text-base-content">{ spell.Description }</summary>
+									</details>
+								}
 							</li>
 						}
 					</ul>

@@ -2227,6 +2227,12 @@
       --cardtitle-fs: 1.375rem;
     }
   }
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
   .block {
     display: block;
   }
@@ -2983,6 +2989,12 @@
     .aura:has( > .btn,  > .input,  > .select) {
       --aura-radius: var(--radius-field);
     }
+  }
+  .group-open\:line-clamp-none:is(:where(.group):is([open], :popover-open, :open) *) {
+    overflow: visible;
+    display: block;
+    -webkit-box-orient: horizontal;
+    -webkit-line-clamp: unset;
   }
   .peer-user-invalid\:block:is(:where(.peer):user-invalid ~ *) {
     display: block;
