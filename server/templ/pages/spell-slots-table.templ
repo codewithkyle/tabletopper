@@ -136,7 +136,7 @@ templ spellLevelBlock(level SpellLevel) {
 		</div>
 		<button
 			type="button"
-			class="btn btn-ghost btn-warning"
+			class="btn btn-soft btn-warning"
 			hx-get={ "/characters/fragments/spell-card?level=" + strconv.Itoa(level.Level) }
 			hx-target={ "#" + spellCardsID(level.Level) }
 			hx-swap="append"

@@ -76,7 +76,7 @@ templ infoRowsTable(field string, rows []InfoRow) {
 		</div>
 		<button
 			type="button"
-			class="btn btn-ghost btn-warning"
+			class="btn btn-soft btn-warning"
 			hx-get={ "/characters/fragments/info-row?field=" + field }
 			hx-target={ "#rows-" + field }
 			hx-swap="append"
