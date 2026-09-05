@@ -97,31 +97,16 @@ templ editCharacterContent(data EditCharacterPageData) {
 						</div>
 						<div class="grid content-start gap-4">
 							@sheetSection("Features & Traits") {
-								<monster-info-table
-									data-name="features"
-									data-label=""
-									data-add-label="Add Feature or Trait"
-									data-rows={ data.FeaturesJSON }
-								></monster-info-table>
+								@infoRowsTable("features", data.Features)
 							}
 							@sheetSection("Equipment") {
-								<monster-info-table
-									data-name="weapons"
-									data-label=""
-									data-add-label="Add Equipment"
-									data-rows={ data.WeaponsJSON }
-								></monster-info-table>
+								@infoRowsTable("weapons", data.Weapons)
 							}
 						</div>
 					</div>
 
 					@sheetSection("Resources") {
-						<monster-info-table
-							data-name="resources"
-							data-label=""
-							data-add-label="Add Resource"
-							data-rows={ data.ResourcesJSON }
-						></monster-info-table>
+						@infoRowsTable("resources", data.Resources)
 					}
 
 					@sheetSection("Spellcasting") {

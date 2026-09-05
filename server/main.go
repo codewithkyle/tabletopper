@@ -56,6 +56,7 @@ func main() {
 	mux.HandleFunc("/characters/{id}/edit", middleware.RequireSession(controllers.CharacterPage))
 	mux.HandleFunc("POST /characters/{id}", middleware.RequireSession(controllers.EditCharacterForm))
 	mux.HandleFunc("DELETE /characters/{id}/delete", middleware.RequireSession(controllers.DeleteCharacter))
+	mux.HandleFunc("GET /characters/fragments/info-row", middleware.RequireSession(controllers.InfoRowFragment))
 
 	mux.HandleFunc("/assets", middleware.RequireSession(controllers.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", middleware.RequireSession(controllers.MapAssetsPage))

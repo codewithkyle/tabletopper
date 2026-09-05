@@ -114,31 +114,16 @@ templ newCharacterContent(session session.UserSession) {
 						</div>
 						<div class="grid content-start gap-4">
 							@sheetSection("Features & Traits") {
-								<monster-info-table
-									data-name="features"
-									data-label=""
-									data-add-label="Add Feature or Trait"
-									data-rows="[]"
-								></monster-info-table>
+								@infoRowsTable("features", nil)
 							}
 							@sheetSection("Equipment") {
-								<monster-info-table
-									data-name="weapons"
-									data-label=""
-									data-add-label="Add Equipment"
-									data-rows="[]"
-								></monster-info-table>
+								@infoRowsTable("weapons", nil)
 							}
 						</div>
 					</div>
 
 					@sheetSection("Resources") {
-						<monster-info-table
-							data-name="resources"
-							data-label=""
-							data-add-label="Add Resource"
-							data-rows="[]"
-						></monster-info-table>
+						@infoRowsTable("resources", nil)
 					}
 
 					@sheetSection("Spellcasting") {

@@ -204,6 +204,32 @@ func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
 	pages.NewCharacter(session.FromContext(r.Context())).Render(r.Context(), w)
 }
 
+// InfoRowFragment serves one blank repeater row to the add buttons on the
+// character forms. It is the whole server side of the add-row mechanic: no
+// database, no session data in the response, just the same templ component the
+// initial page render uses, so a row is defined in exactly one place.
+//
+// The field prefix decides the name attributes the row emits, so it is checked
+// against the three known repeaters rather than trusted. An unknown prefix is a
+// 404 and not a row carrying arbitrary field names.
+//
+// Behind RequireSession like every other character route. The markup is not
+// secret -- it holds nothing but empty fields -- but an unauthenticated
+// endpoint here would be surface for no reason.
+func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
+	field := r.URL.Query().Get("field")
+	if !pages.IsInfoRowField(field) {
+		slog.Warn("unknown info row field requested", "field", field)
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := pages.InfoRowFragment(field).Render(r.Context(), w); err != nil {
+		slog.Error("Failed to render info row fragment", "error", err)
+	}
+}
+
 func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := db.Get()
@@ -500,9 +526,9 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		SpellAtkBonus:    strconv.FormatInt(int64(character.SpellAtkBonus), 10),
 		Skills:           parseStatBonuses(character.Skills),
 		SavingThrows:     parseStatBonuses(character.SavingThrows),
-		FeaturesJSON:     normalizeInfoRowsJSON(character.Features),
-		WeaponsJSON:      normalizeInfoRowsJSON(character.Weapons),
-		ResourcesJSON:    normalizeInfoRowsJSON(character.Resources),
+		Features:         parseInfoRows(character.Features),
+		Weapons:          parseInfoRows(character.Weapons),
+		Resources:        parseInfoRows(character.Resources),
 		SpellSlotsJSON:   normalizeSpellSlotsJSON(character.SpellSlots),
 	}
 }
@@ -555,28 +581,30 @@ func parseStatBonuses(raw json.RawMessage) map[string]int {
 	return bonuses
 }
 
-func normalizeInfoRowsJSON(raw json.RawMessage) string {
+// parseInfoRows unmarshals a stored `[{"name": ..., "value": ...}]` column into
+// the slice the templates range over. It replaced normalizeInfoRowsJSON, which
+// re-marshalled the same rows back into a string for a data-rows attribute so
+// monster-info-table.js could parse them a second time in the browser.
+//
+// A malformed column yields an empty slice and a warning, which is what the old
+// function did and what the component did on top of it -- the repeater renders
+// with no rows and the add button still works, rather than the page failing.
+func parseInfoRows(raw json.RawMessage) []pages.InfoRow {
+	rows := []pages.InfoRow{}
 	if len(raw) == 0 {
-		return "[]"
+		return rows
 	}
 
-	var rows []infoRow
 	if err := json.Unmarshal(raw, &rows); err != nil {
 		slog.Warn("invalid info rows payload; defaulting", "error", err)
-		return "[]"
+		return []pages.InfoRow{}
 	}
 
 	if rows == nil {
-		rows = make([]infoRow, 0)
+		rows = []pages.InfoRow{}
 	}
 
-	normalized, err := json.Marshal(rows)
-	if err != nil {
-		slog.Warn("failed to normalize info rows payload; defaulting", "error", err)
-		return "[]"
-	}
-
-	return string(normalized)
+	return rows
 }
 
 func normalizeSpellSlotsJSON(raw json.RawMessage) string {

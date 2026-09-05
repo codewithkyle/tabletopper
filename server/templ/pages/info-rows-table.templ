@@ -1,0 +1,144 @@
+package pages
+
+// The three repeaters on the character sheet -- features, equipment and
+// resources -- are one component rendered three times, replacing the three
+// <monster-info-table> instances and the 3,177 B of JS behind them.
+//
+// The form is the only model. monster-info-table.js kept a parallel array in
+// memory and re-rendered the whole block on every keystroke (updateName,
+// updateDesc) purely to keep that array current; nothing read it except the
+// next render. Server-rendered rows plus native fields make all of it dead.
+//
+// THE WIRE FORMAT NEEDS NO INDEX. marshalInfoRowsPayload zips
+// PostForm["features-name"] against PostForm["features-value"] in document
+// order, so every row emits the same two field names. Both operations are
+// stateless as a result:
+//
+//   add     -- hx-get returns one blank row, appended to the rows element.
+//              It comes from the same infoRow component the initial render
+//              uses, so a row is defined in exactly one place.
+//   delete  -- $el.closest('[data-info-row]').remove(). No request, no
+//              renumbering, nothing the server has to be told.
+//
+// htmx 4 makes the add button safe inside the character form with no opt-out
+// attributes. Two behaviours carry that, both read out of
+// public/static/htmx.min.js rather than assumed:
+//
+//   - config.implicitInheritance is false. The form's own hx-swap="outerHTML"
+//     does not reach a nested button, so adding a row appends to the rows
+//     element instead of replacing the entire form.
+//   - for GET and DELETE htmx serialises a form only when the trigger IS the
+//     form: `i ? (t.matches("form") ? t : null) : (t.form || t.closest("form"))`.
+//     A button inside one contributes nothing, so the add request is a bare URL
+//     and not the whole character sheet as a query string.
+//
+// x-data on the wrapper exists only to open an Alpine scope for the delete
+// buttons. Alpine's MutationObserver initialises rows htmx adds later, so
+// nothing has to re-bind once a new row arrives.
+
+// InfoRow is one name/description pair. The json tags are the shape already in
+// the database column, so parseInfoRows unmarshals a stored blob straight into
+// a slice of these -- the browser is no longer handed JSON to parse.
+type InfoRow struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// infoRowKind is the vocabulary that differs between the three, keyed by the
+// form field prefix each one owns. Keying off the prefix rather than passing
+// the words in means the fragment route can rebuild an identical row knowing
+// only ?field=, and gives the handler an allowlist to validate against: a
+// prefix that is not in here never reaches a name attribute.
+type infoRowKind struct {
+	AddLabel  string
+	ItemLabel string
+}
+
+var infoRowKinds = map[string]infoRowKind{
+	"features":  {AddLabel: "Add Feature or Trait", ItemLabel: "feature"},
+	"weapons":   {AddLabel: "Add Equipment", ItemLabel: "equipment"},
+	"resources": {AddLabel: "Add Resource", ItemLabel: "resource"},
+}
+
+// IsInfoRowField reports whether a field prefix names one of the repeaters.
+// The fragment handler calls it before rendering anything.
+func IsInfoRowField(field string) bool {
+	_, ok := infoRowKinds[field]
+	return ok
+}
+
+templ infoRowsTable(field string, rows []InfoRow) {
+	<div class="grid w-full gap-3" x-data>
+		<div id={ "rows-" + field } class="grid gap-3">
+			for _, row := range rows {
+				@infoRow(field, row)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-dash btn-warning"
+			hx-get={ "/characters/fragments/info-row?field=" + field }
+			hx-target={ "#rows-" + field }
+			hx-swap="append"
+		>
+			{ infoRowKinds[field].AddLabel }
+		</button>
+	</div>
+}
+
+// InfoRowFragment is the add-row response: one blank row and nothing else, no
+// layout around it. The same component serves the initial render above, which
+// is the whole point of going through the server for this -- a client-side
+// clone would need the row to exist twice.
+templ InfoRowFragment(field string) {
+	@infoRow(field, InfoRow{})
+}
+
+// The shell is the fused card monster-info-table.css drew by hand: one bordered
+// box, the name and its delete button sharing a top row over a full-width
+// description. DaisyUI's ghost variants are what make that composition rather
+// than an override -- .input-ghost and .textarea-ghost set border-color to
+// transparent and box-shadow to none, so the fields sit inside the wrapper's
+// border instead of drawing a second one, and focus reads as a base-100 fill.
+// rounded-none stops their own radius from cutting the wrapper's corners.
+//
+// w-full for the reason noted in form-field.templ: .input and .textarea are
+// both clamp(3rem, 20rem, 100%) and would otherwise stop short in a wide cell.
+//
+// NO `required` HERE, unlike the fields in form-field.templ. marshalInfoRowsPayload
+// drops a row whose name and description are both empty, but the required
+// attributes monster-info-table.js emitted made that guard unreachable: htmx 4
+// validates before posting, so an accidental blank row blocked the save rather
+// than being ignored. An optional repeater whose rows are individually
+// mandatory is not a coherent contract, and "I added a row by mistake and now
+// I cannot save" is a dead end. Dropping the attribute is what lets the guard
+// that already exists do its job.
+templ infoRow(field string, row InfoRow) {
+	<div data-info-row="true" class="overflow-hidden rounded-field border-2 border-base-300">
+		<div class="flex items-stretch border-b-2 border-base-300">
+			<input
+				name={ field + "-name" }
+				type="text"
+				class="input input-ghost w-full min-w-0 flex-1 rounded-none font-medium"
+				value={ row.Name }
+				placeholder="Name"
+			/>
+			<button
+				type="button"
+				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error"
+				aria-label={ "Delete " + infoRowKinds[field].ItemLabel }
+				x-on:click="$el.closest('[data-info-row]').remove()"
+			>
+				<svg class="size-3.5" aria-hidden="true" focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+					<path fill="currentColor" d="M296 432h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zm-160 0h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8zM440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h24v368a48 48 0 0 0 48 48h288a48 48 0 0 0 48-48V96h24a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zM384 464a16 16 0 0 1-16 16H80a16 16 0 0 1-16-16V96h320zm-168-32h16a8 8 0 0 0 8-8V152a8 8 0 0 0-8-8h-16a8 8 0 0 0-8 8v272a8 8 0 0 0 8 8z"></path>
+				</svg>
+			</button>
+		</div>
+		<textarea
+			name={ field + "-value" }
+			class="textarea textarea-ghost w-full rounded-none"
+			rows="4"
+			placeholder="Description"
+		>{ row.Value }</textarea>
+	</div>
+}

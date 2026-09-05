@@ -5,19 +5,19 @@ The last leg of the Brixi teardown. When it lands, `tokens.css` is deleted, the
 runtime is gone from `server/public/js`. The middle of those three is done: the
 list emptied in Phase 6.
 
-Two components are left — `monster-info-table` (Phase 7) and `spell-slots-table`
-(Phase 8) — plus the cleanup in Phase 9.
+One component is left — `spell-slots-table` (Phase 8) — plus the cleanup in
+Phase 9.
 
 **Scope:** the seven interactive elements on the character sheet, plus `.link`.
 Everything else in `server/public/css` is already on DaisyUI tokens.
 
-| | at plan time | now (after Phase 6) | after |
+| | at plan time | now (after Phase 7) | after |
 |---|---|---|---|
-| stylesheet `<link>`s in `base.templ` | 15 | **10** | **7** |
-| `<script>`s in `base.templ` | 12 † | **7** | **5** † |
-| Brixi token reads | 234 | **66** | **0** |
-| CSS deleted | — | 16,396 B across 5 files | **27,062 B** across 8 files |
-| JS deleted | — | 18,918 B across 6 modules | **48,194 B** across 15 modules |
+| stylesheet `<link>`s in `base.templ` | 15 | **9** | **7** |
+| `<script>`s in `base.templ` | 12 † | **6** | **5** † |
+| Brixi token reads | 234 | **41** | **0** |
+| CSS deleted | — | 18,820 B across 6 files | **27,062 B** across 8 files |
+| JS deleted | — | 22,095 B across 7 modules | **48,194 B** across 15 modules |
 | JS surviving | — | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
 
 † Counted from `base.templ`; the original figures of 13 and 6 were off by one
@@ -60,8 +60,11 @@ parses everything with `r.PostFormValue("name")` / `r.PostForm["features-name"]`
 — it has never known these were custom elements. The lit-html components render
 real `<input name=…>` into light DOM, so the wire format is already plain
 `application/x-www-form-urlencoded`. Replacing them with server-rendered
-`<input>` changes nothing the handler sees. Only Phase 7 (spells) proposes a
-controller change, and it is optional.
+`<input>` changes nothing the handler sees. That held through Phase 6. Phases 7
+and 8 are the exception: not because the wire format moved — Phase 7's did not —
+but because deleting the client components meant deleting the JSON round trip
+that fed them, and because the add-row fragment needs a route. Neither touches
+`marshalInfoRowsPayload`.
 
 **Nine of the ten `data-*` options are dead.** `input.js` supports `icon`,
 `instructions`, `datalist`, `readOnly`, `autofocus`, `disabled`, `maxlength`,
@@ -473,34 +476,117 @@ so it is a regression check rather than a new risk.
 
 ---
 
-## Phase 7 — features / equipment / resources  (`monster-info-table`)
+## Phase 7 — features / equipment / resources  (`monster-info-table`)  ✅ done
 
-Three instances of one repeater: a name `<input>` + description `<textarea>` per
-row, an add button, a delete button per row.
+Three instances of one repeater — a name `<input>` plus a description
+`<textarea>` per row, an add button, a delete button per row.
 
-**The wire format needs no index.** Go zips `PostForm["features-name"]` against
-`PostForm["features-value"]` in document order, so every row emits the *same*
-two field names. That makes both operations trivial:
+**Landed:** `templ/pages/info-rows-table.templ` (`InfoRow`, `infoRowsTable`,
+`infoRow`, and the exported `InfoRowFragment`), `controllers.InfoRowFragment`
+and the route it answers on. `FeaturesJSON` / `WeaponsJSON` / `ResourcesJSON`
+became `Features` / `Weapons` / `Resources` `[]InfoRow`. Deleted
+`public/css/monster-info-table.css` (2,424 B, 25 Brixi reads),
+`public/js/monster-info-table.js` (3,177 B), and both tags.
 
-- **add row** — `hx-get="/characters/fragments/info-row?field=features"`,
-  `hx-swap="beforeend"`, `hx-target` the rows container. One new route, one
-  handler, one templ component shared with the initial server render.
-- **delete row** — no server involved:
-  `x-on:click="$el.closest('[data-info-row]').remove()"`. Alpine is already
-  loaded for the modals.
+**The double parse is gone.** `normalizeInfoRowsJSON` unmarshalled the stored
+column, re-marshalled it into a string, and handed it to the browser in a
+`data-rows` attribute so `monster-info-table.js` could parse it a second time.
+`parseInfoRows` replaces the whole loop: one unmarshal, straight into the slice
+the template ranges over.
 
-**Do:** `infoRowsTable` + `infoRow` components; `FeaturesJSON`/`WeaponsJSON`/
-`ResourcesJSON` become `[]InfoRow`. Delete `public/css/monster-info-table.css`
-(25 Brixi reads), `public/js/monster-info-table.js`, and both tags. The
-`btn btn-dash btn-warning` add button and the delete icon carry over as-is —
-they are already DaisyUI.
+### The add-row mechanic (D6, resolved: htmx)
 
-The textarea gets `class="textarea w-full"`; DaisyUI's `.textarea` has the same
-20rem clamp as `.input` (D3).
+The only genuinely dynamic operation is *add*. Delete is `.remove()`, edit is a
+native field, and the initial render is the server's. So the question was only
+ever where a new row's markup comes from, and there were two real answers: a
+fragment route, or a `<template>` cloned client-side.
 
-**Test:** add three rows, fill two, delete the middle one, save. The blank row
-should be dropped by the existing `name == "" && value == ""` guard, and the two
-survivors should come back in order.
+**htmx won on Phase 8, not on Phase 7.** For info rows a clone is exactly
+correct with no fixup, because the field names carry no index. The spell card's
+names embed the level, so a clone needs either ten copies of a seven-field card
+in the page or a `__LEVEL__` placeholder rewritten in JS — client-side name
+mangling, un-greppable, and the same class of logic being deleted. A route takes
+`?level=N` instead. One mechanism across both phases beat the locally best one
+in each.
+
+```
+GET /characters/fragments/info-row?field=features   → @infoRow("features", InfoRow{})
+```
+
+behind `RequireSession`, returning bare markup with no layout. The same `infoRow`
+component serves the initial render, so **a row is defined in exactly one place**
+— which is the entire reason to pay a round trip for this.
+
+`field` is checked against the three known repeaters before anything renders. It
+decides the `name` attributes the row emits, so an unvalidated prefix would be a
+reflection into the wire format; an unknown one is a 404.
+
+**Two htmx 4 behaviours make the add button safe inside the character form, and
+both were read out of `public/static/htmx.min.js` rather than assumed:**
+
+- `config.implicitInheritance` is `false`. The form's own `hx-swap="outerHTML"`
+  does not reach a nested button. Under htmx 1/2 inheritance rules it would
+  have, and the first added row would have replaced the entire form.
+- For GET and DELETE, htmx serialises a form only when the trigger **is** the
+  form: `i ? (t.matches("form") ? t : null) : (t.form || t.closest("form"))`. A
+  button inside one contributes nothing, so the add request is a bare URL and
+  not the whole character sheet as a query string.
+
+Delete needs no route: `x-on:click="$el.closest('[data-info-row]').remove()"`,
+with an empty `x-data` on the wrapper to open a scope. Alpine's MutationObserver
+initialises rows htmx appends later, so nothing re-binds after an add.
+
+### `required` was dropped, and it fixed a real dead end
+
+`marshalInfoRowsPayload` drops a row whose name and description are both empty —
+but `monster-info-table.js` put `required` on both fields, and htmx 4 validates
+before posting. **That guard was unreachable.** Adding a row and leaving it blank
+did not get it ignored; it blocked the save until you deleted the row. The test
+written for this phase before it was built would have failed against the old
+component for that reason.
+
+An optional repeater whose rows are individually mandatory is not a coherent
+contract, so the attribute is gone and the guard that already existed does the
+job. Verified end to end: with a blank row present the form reports
+`checkValidity() === true`, the blank pair is submitted, and
+`marshalInfoRowsPayload` drops it. A row blank on *one* side still survives — a
+name with no description is kept, which is the pre-existing behaviour.
+
+### Markup
+
+The shell is the fused card `monster-info-table.css` drew by hand: one bordered
+box, the name and its delete button sharing a top row over a full-width
+description. **DaisyUI's ghost variants are what make that a composition rather
+than an override** — `.input-ghost` and `.textarea-ghost` set `border-color` to
+transparent and `box-shadow` to none, so the fields sit inside the wrapper's
+border instead of drawing a second one. `rounded-none` stops their own radius
+from cutting the wrapper's corners; `w-full` for the 20rem clamp (D3).
+
+Nothing had to be forced. `resize: vertical` on the textarea, which the old
+stylesheet set explicitly, already computes that way. Focus is a 2px outline
+*plus* a `base-100` fill in both themes — measured, and visible in both, which
+was the one thing worth checking about a borderless field.
+
+**Selector diff: +5,971 B, nothing removed.** `.textarea` and its states
+(3,630 B) are a component group this app had never used; `.input-ghost` /
+`.textarea-ghost` are 458 B; the rest is six utilities the markup uses
+(`border-s-2`, `rounded-none`, `size-3.5`, `items-stretch`, `text-base-content/70`,
+two `hover:` pairs). Deleting `monster-info-table.js` removed no selectors —
+`spell-slots-table.js` still supplies every word it did, including the dead
+`<h4>`'s `text-[0.71rem]` and `tracking-[0.08em]`, exactly as Phase 6 predicted.
+
+**First phase since Phase 4 with no prose leak.** Not luck — the comments were
+written against the known-dangerous vocabulary and diffed after.
+
+**Test — run, and it passes.** Against the real templ components, the real
+handler and the real htmx/Alpine bundles: start with 2 rows, add 3, fill two of
+them, delete the middle added row and one original, and read the form back with
+`FormData`. Result at every one of 320 / 375 / 480 / 560 / 760 / 900 / 1000 /
+1280 in both themes: 5 rows after the adds, 3 after the deletes, `features-name`
+and `features-value` zipping to the correct three pairs **in document order**,
+zero `required` attributes, zero row overflow, no page overflow, and the name
+field and delete button both 40px. The save-and-reload round trip against a real
+database is still the user's, same as Phases 5 and 6.
 
 ---
 
@@ -510,28 +596,41 @@ survivors should come back in order.
 Brixi reads. Ten level groups, each with slots/used number fields and a list of
 spell cards; each card has 7 fields including a `<select>` of the 8 schools.
 
-Field names *are* indexed here: `spells-level-3-spell-0-name`. Two ways forward:
+Field names *are* indexed here: `spells-level-3-spell-0-name`. **Decided:
+order-based (was Option B), reversing this plan's earlier recommendation.**
 
-**Option A — keep the wire format.** `marshalSpellSlotsPayload` sorts by index
-and drops all-empty spells, so **indices only need to be unique and increasing;
-gaps are fine.** That means deleting a row needs no renumbering, and adding one
-just needs a monotonically increasing counter, which the add-row `hx-get` can
-carry as a query param. No controller change.
+The plan originally recommended keeping the indexed format on the grounds that it
+isolates the risk to the templates. That reasoning does not survive contact with
+the add-row mechanic chosen in Phase 7. Indexed names need a monotonic counter,
+and with a fragment route the *client* has to tell the server which index to use
+— so the client is tracking state again, which is the thing being removed. A
+query param the client computes **is** client-side state.
 
-**Option B — make spells order-based like Phase 7.** Every card in a level emits
-the same field names (`spells-level-3-name`, `-components`, …) and Go zips seven
-parallel slices. This deletes `spellEntryFieldPattern`, the nested
-`map[int]map[int]*spellPayload`, and the `sort.Ints` — the parser gets
-*simpler* — and the client becomes fully stateless. Costs a controller change
-and a careful test.
+Order-based, every card in a level emits the same field names
+(`spells-level-3-name`, `-components`, …) and Go zips seven parallel slices per
+level, exactly as `marshalInfoRowsPayload` does today. The fragment URL then
+carries only `?level=N`, which is static markup. It also deletes
+`spellEntryFieldPattern`, the nested `map[int]map[int]*spellPayload` and the
+`sort.Ints`: **the parser gets smaller.**
 
-**Recommend Option A for the first pass** (isolates the risk to the templates),
-with Option B as a follow-up once the markup is settled.
+One honest cost. With parallel slices a field that fails to submit desynchronises
+everything after it in that level, where indices would degrade to one empty
+field. Nothing in these forms can be omitted — text fields, textareas and selects
+always submit, and the school picker has no empty option — but a checkbox or a
+conditional `disabled` added later would break it. Worth knowing this is the same
+bet the info rows have been making in production all along.
 
 **Do:** `spellSlotsTable` / `spellLevel` / `spellCard` components; one add-spell
-route per the Phase 7 pattern; `SpellSlotsJSON` becomes `[]SpellLevel`. Delete
-`public/css/spell-slots-table.css`, `public/js/spell-slots-table.js`, and both
-tags. The school dropdown reuses `selectField` from Phase 4.
+route per the Phase 7 pattern (`GET /characters/fragments/spell-card?level=N`,
+allowlist 0–9, behind `RequireSession`); `SpellSlotsJSON` becomes
+`[]SpellLevel`. Delete `public/css/spell-slots-table.css`,
+`public/js/spell-slots-table.js`, and both tags. The school picker reuses
+`selectField` from Phase 4.
+
+Two constraints from the old component to carry over: `spell-slots-table.js`
+clamps slots and used to 0–99 client-side where the Go parser only clamps
+negatives and `used <= slots`, so the number fields want `min="0" max="99"`; and
+it defaults a new spell's school to Evocation.
 
 Also: `spell-slots-table.css` is the one table sheet with `.lvl` styling and its
 own `prefers-color-scheme` block already partially unwound in the card
@@ -644,6 +743,13 @@ one of these five was found by the selector diff, none changed a line of markup,
 and none would have shown up in review. **Diff after editing a comment, not just
 after editing markup.**
 
+- Phase 7 leaked nothing, which is the first clean phase since this was found.
+  Worth recording as method rather than luck: the dangerous vocabulary is
+  *whatever DaisyUI names that this build does not already emit*, and that set is
+  checkable in one command against the previous selector snapshot. Words already
+  in the file — `card`, `link`, `label`, `select`, `alert`, `modal` — are free to
+  write; `list`, `stat`, `table`, `tab`, `menu` and the rest are not.
+
 **So for every remaining phase: diff the emitted selectors, not the byte count,**
 and check that anything new is something the markup actually uses. Rewording a
 comment is usually the whole fix; `exclude:` is there for the cases where it is
@@ -657,6 +763,11 @@ not. Noted in `css/app.css` above the `@source` line as well.
   looking at Phase 2.
 - **D5** — how to fix `.validator-hint` under caramellatte (2.55:1). Three
   options above; recommend deciding in Phase 2 with a real error on screen.
-- **D6** — htmx fragments vs Alpine `x-for` for the two repeaters. Recommend htmx.
-- **Phase 8** — keep the indexed spell wire format (A) or move to order-based (B).
-  Recommend A first, B as a follow-up.
+- ~~**D6** — htmx fragments vs Alpine `x-for` for the two repeaters.~~ **Resolved
+  in Phase 7: htmx fragment route.** `x-for` was never really in it — it puts the
+  row in the page twice, once in templ and once in Alpine syntax, which is the
+  lit-html duplication in a different dialect. The real contest was against a
+  `<template>` clone, and htmx won on Phase 8's indexed card, not on Phase 7.
+- ~~**Phase 8** — keep the indexed spell wire format (A) or move to
+  order-based (B).~~ **Resolved: order-based.** Reasoning in Phase 8 above; the
+  short version is that indices need a counter and a counter is client state.
