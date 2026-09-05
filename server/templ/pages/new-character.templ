@@ -66,20 +66,8 @@ templ newCharacterContent(session session.UserSession) {
 							@textField("classes", "Class & Level Notes", "", "Cleric 3, Fighter 1", true)
 							@textField("background", "Background", "", "", false)
 							@textField("race", "Species / Race", "", "Human", true)
-							<select-component
-								data-name="alignment"
-								data-label="Alignment"
-								data-required="true"
-								data-options='[{"label":"Unaligned","value":"unaliged"},{"label":"Any Alignment","value":"any alignment"},{"label":"Lawful Good","value":"lawful good"},{"label":"Neutral Good","value":"neutral good"},{"label":"Chaotic Good","value":"chaotic good"},{"label":"Lawful Neutral","value":"lawful neutral"},{"label":"Neutral","value":"neutral"},{"label":"Chaotic Neutral","value":"chaotic neutral"},{"label":"Lawful Evil","value":"lawful evil"},{"label":"Neutral Evil","value":"neutral evil"},{"label":"Chaotic Evil","value":"chaotic evil"},{"label":"Any Neutral Alignment","value":"any neutral alignment"},{"label":"Any Good Alignment","value":"any good alignment"},{"label":"Any Chaotic Alignment","value":"any chaotic alignment"},{"label":"Any Lawful Alignment","value":"any lawful alignment"},{"label":"Any Non-Good Alignment","value":"any non-good alignment"}]'
-								data-value="Unaligned"
-							></select-component>
-							<select-component
-								data-name="size"
-								data-label="Size"
-								data-required="true"
-								data-options='[{"label":"Tiny","value":"tiny"},{"label":"Small","value":"small"},{"label":"Medium","value":"medium"},{"label":"Large","value":"large"},{"label":"Huge","value":"huge"},{"label":"Gargantuan","value":"gargantuan"}]'
-								data-value="medium"
-							></select-component>
+							@selectField("alignment", "Alignment", alignmentOptions, defaultAlignment, true)
+							@selectField("size", "Size", sizeOptions, defaultSize, true)
 						</div>
 					}
 

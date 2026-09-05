@@ -36,12 +36,11 @@
    deferred list. It does set --noise: 1 where silk and coffee both set 0 --
    that is a faint grain on .btn and .alert, light mode only. */
 /* exclude drops the component groups whose class names this app still owns and
-   styles itself: .select is emitted by the lit-html select component in
-   public/js, .label by skills-table/saving-throws-table. They are layered, so
-   app CSS wins on any property it sets -- but DaisyUI also sets properties the
-   app CSS does not (display:inline-flex is the bad one: on a wrapper element it
-   collapses the label-above-field layout). Measured with a headless render of
-   the character sheet.
+   styles itself. One name is left: .label, the key cell in skills-table and
+   saving-throws-table. Those sheets are layered, so their rules win on any
+   property they set -- but DaisyUI also sets properties they do not, and
+   white-space: nowrap on an 18-row grid of skill names is the one that would
+   show. Measured with a headless render of the character sheet.
 
    Each name leaves this list in the phase that retires the markup owning it;
    see PLAN.md.
@@ -57,10 +56,16 @@
    lit-html number field was still on the page would have put DaisyUI's
    height:2.5rem, border, padding-inline and background on an element holding a
    label plus a 36px input. The text and number fields are one class name, not
-   two, so they migrate together. */
+   two, so they migrate together.
+
+   `select` left in phase 4 with select.css and select.js. Nothing else had to
+   move with it: the only other <select> in the app is the spell school picker
+   inside spell-slots-table, which is a bare element styled by
+   `spell-slots-table select` and never carried the class. DaisyUI emits no bare
+   `select` selector of its own, so un-excluding the group cannot reach it. */
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
-  exclude: select, label;
+  exclude: label;
 }
 
 /* coffee ships --border: 1px, caramellatte 2px, so a bordered card changed
@@ -79,10 +84,23 @@
 }
 
 /* templ is not a format Tailwind auto-detects, so point it at the source.
-   Scan .templ, not the generated _templ.go -- the latter is gitignored. */
+   Scan .templ, not the generated _templ.go -- the latter is gitignored.
+
+   Be aware of what "scan" means here: Tailwind extracts candidates from every
+   word in the file, not from class attributes. Go keywords and prose in
+   comments count. `for _, o := range options` is why .range is in this build --
+   15 rules for a slider the app does not have -- and a comment in
+   form-field.templ that used the words "dropdown" and "list" was worth 6 KB
+   until it was reworded. Deleting a scanned .js file can shrink the output for
+   the same reason: input.js and select.js each had a handleBlur, which is where
+   .blur came from.
+
+   So when a phase adds CSS, diff the emitted selectors, not just the byte
+   count, and check that anything new is something the markup actually uses. */
 @source "../templ/**/*.templ";
 
-/* The lit-html components emit class strings client-side, so their classes
-   never appear in a template. They are still real usages until Phase 5
-   replaces these components with server-rendered markup. */
+/* The lit-html components left in public/js emit class strings client-side, so
+   their classes never appear in a template. Those are still real usages until
+   the four table components (phases 5-8 in PLAN.md) are server-rendered; this
+   line goes with the last of them. */
 @source "../public/js/**/*.js";

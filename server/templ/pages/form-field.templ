@@ -10,8 +10,9 @@ package pages
 // semantics (it only matches once the user has interacted or submitted) and
 // costs no JavaScript.
 //
-// .validator-hint is `visibility: hidden`, not `display: none`, so it reserves
-// its line and the field does not jump when an error appears.
+// .validator-hint keeps its line when there is no error to show: DaisyUI turns
+// it off with `visibility`, not with `display`. So nothing jumps when one
+// appears.
 //
 // The wrapper is a <div class="fieldset"> rather than a real <fieldset>:
 // normalize gives fieldset `padding: .35em .75em .625em`, and DaisyUI's
@@ -62,5 +63,41 @@ templ numberField(name string, label string, value string, required bool) {
 			required?={ required }
 		/>
 		<p class="validator-hint">Enter a number from 0 to 9999.</p>
+	</div>
+}
+
+// selectField is the same .fieldset / .fieldset-legend shell as the two above,
+// with DaisyUI's .select in place of .input. Both are 2.5rem tall and read the
+// same --input-color, so a picker sits on the same baseline as the text field
+// beside it in the Identity grid.
+//
+// DaisyUI draws the chevron itself, as two linear-gradients in background-image
+// pinned to the trailing edge, and reserves 1.75rem of end padding for them. So
+// the <i class="selector"> SVG select.js used to append, and the absolute
+// positioning that placed it, are both gone -- and with them the reason
+// select.css needed position:relative on the wrapper.
+//
+// No .validator here, unlike the text and number fields. `required` on a <select>
+// is only violated when the selected option's value is empty, and neither set
+// has such an entry: the browser lands on the first one, so these two can
+// never be :user-invalid. select.js's validate() had the same blind spot (it
+// tested value === "" against a value that was never empty). A .validator-hint
+// under these would be markup that can never reveal itself, so it is not
+// rendered. `required` stays on the element as the honest declaration it is.
+//
+// w-full for the same reason as the inputs: .select is clamp(3rem, 20rem, 100%).
+templ selectField(name string, label string, options []Option, value string, required bool) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<select
+			id={ name }
+			name={ name }
+			class="select w-full"
+			required?={ required }
+		>
+			for _, option := range options {
+				<option value={ option.Value } selected?={ option.Value == value }>{ option.Label }</option>
+			}
+		</select>
 	</div>
 }

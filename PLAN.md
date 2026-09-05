@@ -7,14 +7,18 @@ runtime is gone from `server/public/js`.
 **Scope:** the seven interactive elements on the character sheet, plus `.link`.
 Everything else in `server/public/css` is already on DaisyUI tokens.
 
-| | today | after |
-|---|---|---|
-| stylesheet `<link>`s in `base.templ` | 15 | **7** |
-| `<script>`s in `base.templ` | 13 | **6** |
-| Brixi token reads | 234 | **0** |
-| CSS deleted | — | **27,062 B** across 8 files |
-| JS deleted | — | **48,194 B** across 15 modules |
-| JS surviving | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
+| | at plan time | now (after Phase 4) | after |
+|---|---|---|---|
+| stylesheet `<link>`s in `base.templ` | 15 | **12** | **7** |
+| `<script>`s in `base.templ` | 12 † | **9** | **5** † |
+| Brixi token reads | 234 | **104** | **0** |
+| CSS deleted | — | 13,022 B across 3 files | **27,062 B** across 8 files |
+| JS deleted | — | 13,367 B across 4 modules | **48,194 B** across 15 modules |
+| JS surviving | — | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
+
+† Counted from `base.templ`; the original figures of 13 and 6 were off by one
+each. `alerts`, `toaster`, `env` and `uuid` survive as ES module imports of
+`notif.js`, not as their own `<script>` tags.
 
 ---
 
@@ -25,16 +29,19 @@ Everything else in `server/public/css` is already on DaisyUI tokens.
 ```css
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
-  exclude: input, select, label, link;
+  exclude: input, select, label, link;   /* now just: label */
 }
 ```
 
-Those four names are excluded because this app already owns those class names —
-`.input` is added at runtime by `input.js` (`this.classList.add("input")`),
+Those four names were excluded because this app already owns those class names —
+`.input` was added at runtime by `input.js` (`this.classList.add("input")`),
 `.select` by `select.css`, `.label` by the two `<span class="label">`s in the
 skills and saving-throws tables, `.link` by `link.css`. While a name sits in
 `exclude`, DaisyUI emits **no CSS at all** for it, so the old and new worlds
 cannot collide.
+
+`link` left in Phase 1, `input` in Phase 2, `select` in Phase 4. Only `label` is
+still on the list; it goes in Phase 6.
 
 Each phase below removes exactly one name from that list, in step with the
 markup that owned it. Nothing needs a big-bang cutover, and every phase is
@@ -208,99 +215,101 @@ remove `link` from `exclude`.
 
 ---
 
-## Phase 2 — text input  (`input-component` → `<input class="input">`)
+## Phase 2 — text and number input  ✅ done (`b29a939`)
 
-The big one for establishing the pattern. 14 usages across `new-character.templ`
-and `edit-character.templ`.
+**Phase 3 was folded into this one.** The plan had text fields land here and the
+28 number fields land in Phase 3, but that split is not possible: `number-input.js`
+also ran `classList.add("input")` on its wrapper. Un-excluding `input` while any
+lit-html number field was still on the page would have put DaisyUI's
+`height: 2.5rem`, border, `padding-inline` and background on an element holding a
+label *plus* a 36px input. `.input` is one class name shared by two components, so
+they had to migrate together: **42 fields, not 14.**
 
-**New templ component**, `templ/pages/form-field.templ`:
+**Landed:** `templ/pages/form-field.templ` with `textField` and `numberField`.
+`input` left `exclude`. Deleted `public/css/input.css` (6,207 B, 62 Brixi reads),
+`public/js/input.js`, `input-base.js`, `number-input.js`, and their tags.
 
-```templ
-templ textField(name, label, value, placeholder string, required bool) {
-	<div>
-		<label class="label mb-1" for={ name }>{ label }</label>
-		<input
-			id={ name }
-			name={ name }
-			type="text"
-			class="input validator w-full"
-			value={ value }
-			placeholder={ placeholder }
-			required?={ required }
-		/>
-		<p class="validator-hint">This field is required.</p>
-	</div>
-}
-```
+**Departure from D2 — the field shell is `.fieldset` / `.fieldset-legend`, not
+`<label class="label">`.** Better on three counts:
 
-**Do:**
-- Replace all 14 `<input-component>` with `@textField(...)`.
-- Remove `input` **and `label`** from `exclude` (D2 needs `.label`).
-- Delete `public/css/input.css` (6,207 B, 62 Brixi reads) and its `<link>`.
-- Delete `public/js/input.js` and `public/js/input-base.js`, and its `<script>`.
-- Add the `.label` 75% override from D2 to `core.css`.
+- **`label` stayed in `exclude`**, so the interim `white-space: nowrap` wobble
+  this section used to warn about never happened. It now belongs to Phase 6,
+  which is where `label` actually leaves the list.
+- **No contrast override was needed.** `.fieldset-legend` is full `base-content`
+  (8.51 / 7.14). D2's `.label` at 75% measures 4.68 / **4.36** — the coffee
+  figure was originally recorded as 4.57, and on re-measurement it is *below*
+  4.5. That override would have shipped a fail.
+- The accessible name still comes from a real `<label for>`. DaisyUI's own docs
+  put a `<legend>` there, which would have left the input unnamed.
 
-**Known interim wobble:** un-excluding `label` in this phase makes DaisyUI's
-`.label` apply to the `<span class="label">` in the skills and saving-throws
-tables until Phases 5–6 remove them. Of the properties DaisyUI sets, `color` is
-overridden by the unlayered table CSS, and `display: inline-flex` is blockified
-away by the flex parent — so the only live effect is `white-space: nowrap` on
-skill and save names. Worth a glance at "Animal Handling" in the 3-column grid
-while testing; it is temporary either way.
+The wrapper is `<div class="fieldset">`, not a real `<fieldset>`: normalize gives
+fieldset `padding: .35em .75em .625em` and DaisyUI's `.fieldset` only overrides
+the block axis, so a real one would inset every field from its grid cell.
 
-**Also fixed here:** `input.js` calls `env.css(["input","button","toast"])`, and
-`button.css` was deleted in the card migration — so every page with a text field
-currently fires a 404 for `/css/button.css`. It resolves through the `onerror`
-handler, so nothing breaks; it just dies with the component.
+**Validation is zero JavaScript.** `.validator` + `:user-invalid` replaces three
+`IDLING → ERROR → DISABLED` state machines with the same timing. `.validator-hint`
+is turned off with `visibility`, not `display`, so it reserves its line and
+**nothing jumps** when an error appears — strictly better than the old behaviour,
+which rendered the `<p>` only in the ERROR state and so did shift.
 
-**Test:** create a character. Leave "Character Name" blank and submit — the
-validator hint should appear and the border should go error-coloured, without
-the page reloading. Confirm the saved values round-trip on the edit page.
+**Left as-is, on purpose:** every number field carries `max="9999"`, inherited
+unchanged from `number-input.js`'s defaults — **including XP**, where a level-8
+character needs 34,000. That ceiling predates this migration; the only thing that
+changed is that the hint now says so out loud. Worth its own fix, not a silent
+widening of scope inside a markup migration.
+
+Also cleared: `input.js` called `env.css(["input","button","toast"])` and
+`button.css` was deleted in the card migration, so every page with a text field
+was firing a 404 for `/css/button.css`. It died with the component.
 
 ---
 
-## Phase 3 — number input  (`number-input-component` → `<input type="number">`)
+## Phase 4 — select  ✅ done
 
-28 usages — the six ability scores plus nine core stats, on both pages. Same
-component shape as Phase 2 with `type="number"` and `min`/`max`/`step`.
+4 usages: Alignment and Size, on both pages. The `data-options` JSON blob —
+duplicated verbatim in all four tags — is now two Go slices in
+`templ/pages/character-options.go`, ranged over at render time.
 
-The JS enforced `min: 0, max: 9999` and coerced with
-`value.replace(/[^\d\.\-]/g, "")`. Native `type="number"` + `min`/`max` +
-`.validator` covers all of it, and the browser's own spinners replace the
-hand-built ones.
+**Landed:** `selectField(name, label string, options []Option, value string,
+required bool)` in `form-field.templ`, same `.fieldset` / `.fieldset-legend`
+shell as the text and number fields with `.select` in place of `.input`. Both
+are 2.5rem tall and read the same `--input-color`, so a picker sits on the same
+baseline as the text field beside it. `select` left `exclude`. Deleted
+`public/css/select.css` (6,324 B, 56 Brixi reads), `public/js/select.js`, and
+their tags.
 
-`--depth: 1` on caramellatte gives `.input` an inset shadow; DaisyUI also nudges
-`::-webkit-inner-spin-button` by `-10px`. Worth eyeballing on the 6-across
-ability grid where the fields are narrowest.
+**The chevron is DaisyUI's**, two linear-gradients in `background-image` pinned
+to the trailing edge with 1.75rem of end padding reserved for them. So the
+`<i class="selector">` SVG and the absolute positioning that placed it are gone.
+It draws in `currentColor` — full `base-content` — where Brixi's was
+`--grey-400` on white: **2.56 → 9.14 caramellatte / 6.72 coffee**, from well
+under the 3.0 non-text threshold to comfortably over it.
 
-**Do:** add `numberField(...)`, replace all 28, delete `public/js/number-input.js`
-and its `<script>`. No stylesheet to delete — it shared `input.css`, already gone.
+**No `.validator` on these two.** `required` on a `<select>` is only violated
+when the selected option's value is empty, and neither list has such an entry —
+the browser lands on the first one, so these can never be `:user-invalid`.
+`select.js`'s `validate()` had the same blind spot (it tested `value === ""`
+against a value that was never empty). A `.validator-hint` here would be markup
+that can never reveal itself. `required` stays on the element as the honest
+declaration it is.
 
-**Test:** the abilities row at desktop, at `max-[1160px]` (3-col) and at
-`max-[640px]` (2-col). Type letters into an ability score; type `-5`; submit.
+**Nothing else had to move with `select`.** The only other `<select>` in the app
+is the spell-school picker inside `spell-slots-table`, which is a bare element
+styled by `spell-slots-table select` and never carried the class; DaisyUI emits
+no bare `select` selector of its own. Verified by selector diff.
 
----
-
-## Phase 4 — select  (`select-component` → `<select class="select">`)
-
-4 usages: Alignment and Size, on both pages. `data-options` is a JSON blob
-parsed client-side; server-rendered it becomes a Go slice ranged over in templ.
-
-DaisyUI's `.select` **draws its own chevron** as a `background-image` of two
-linear-gradients, so the `<i class="selector">` SVG and its positioning rules
-all go. `padding-inline-end: 1.75rem` reserves the space.
-
-**Do:**
-- A `selectField(name, label string, options []Option, value string, required bool)`
-  component; move the 16-entry alignment list and the 6-entry size list into Go
-  (`templ/pages/character-options.go`) so both pages share one source.
-- Remove `select` from `exclude`.
-- Delete `public/css/select.css` (6,324 B, 56 Brixi reads) and its `<link>`.
-- Delete `public/js/select.js` and its `<script>`.
+**Note — the alignment typo is the wire format.** "Unaligned" has value
+`unaliged`. That string is in the alignment column of every character row and
+`characterToEditPageData` falls back to it, so it was kept. Correcting it is a
+data migration, not a template change. Two related pre-existing behaviours,
+preserved for parity: the new-character form used to pass `data-value="Unaligned"`,
+which matched no option and fell through to the first entry (the same one), and a
+stored alignment outside the 16-entry list selects nothing and silently saves as
+"Unaligned" on the next submit.
 
 **Test:** both dropdowns on both pages; confirm the edit page pre-selects the
-saved value (this is where a server-rendered `selected` attribute replaces the
-JS `?selected=${...}` binding — the most likely place for a bug).
+saved value — this is where a server-rendered `selected` attribute replaces the
+JS `?selected=${...}` binding, the most likely place for a bug.
 
 ---
 
@@ -334,8 +343,9 @@ Mechanically identical to Phase 5 with 18 rows instead of 6, a 3-column grid,
 and an ability abbreviation instead of a stat abbreviation. Prefix
 `skills-`; `marshalSkillsPayload` unchanged.
 
-**This phase retires the last `<span class="label">`**, which closes out the
-interim `white-space: nowrap` wobble noted in Phase 2.
+**This phase retires the last `<span class="label">`**, and is where `label`
+finally leaves `exclude` — Phase 2 ended up not needing it, so the interim
+`white-space: nowrap` wobble lands here rather than three phases earlier.
 
 **Do:** `skillsTable` component, delete `public/css/skills-table.css`,
 `public/js/skills-table.js`, and both tags.
@@ -474,7 +484,7 @@ desk (`#FEEDD7` caramellatte, `#1F161E` coffee).
 |---|---|---|---|
 | field text — base-content on base-100 | 9.18 | 6.71 | 4.5 |
 | `.label` @60% (DaisyUI default) | **3.26** | **3.39** | 4.5 |
-| `.label` @75% (D2 fix) | 4.68 | 4.57 | 4.5 |
+| `.label` @75% (D2, **not used** — see Phase 2) | 4.68 | **4.36** | 4.5 |
 | `fieldset-legend` — base-content on panel | 8.51 | 7.14 | 4.5 |
 | placeholder — base-content @50% | 2.67 | 2.69 | 4.5 † |
 | field border @20% (DaisyUI default) | **1.43** | **1.44** | 3.0 |
@@ -484,6 +494,28 @@ desk (`#FEEDD7` caramellatte, `#1F161E` coffee).
 
 † Placeholders are exempt from AA as non-essential text, and DaisyUI's 50% is
 its documented default. Noted for completeness, not flagged as a defect.
+
+## A hazard found in Phase 4 — Tailwind scans words, not class attributes
+
+`@source "../templ/**/*.templ"` means Tailwind extracts a class candidate from
+**every word in the file**. Go keywords and English prose in comments count.
+
+- `for _, o := range options` is why **`.range` is in this build** — 9 rules for
+  a slider the app does not have. Unavoidable while `range` is a Go keyword.
+- A comment in `form-field.templ` that used the words "dropdown" and "list" was
+  worth **6,166 bytes** (30 rules of `.dropdown`, `.list`, `.menu`, `.inline`)
+  until it was reworded. That is 5.6% of the file, for two words of prose.
+- It runs the other way too: deleting a scanned `.js` file can *shrink* the
+  output. `input.js` and `select.js` each had a `handleBlur`, which is the only
+  reason `.blur` — and the ten `@property --tw-*` filter registrations it pulls
+  in — were ever emitted.
+
+**So for every remaining phase: diff the emitted selectors, not the byte count,**
+and check that anything new is something the markup actually uses. Rewording a
+comment is usually the whole fix; `exclude:` is there for the cases where it is
+not. Noted in `css/app.css` above the `@source` line as well.
+
+---
 
 ## Open decisions
 
