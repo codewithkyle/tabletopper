@@ -6,7 +6,7 @@
 //
 // Alpine's $dispatch sets bubbles, so it reaches the window listener below
 // from anywhere on the page; plain dispatchEvent on window works the same.
-// Accepted detail keys: url (required), method (default GET), values, size.
+// Accepted detail keys: url (required) and size -- that is the whole surface.
 //
 // The content is server-rendered and its actions are ordinary htmx -- because
 // htmx performs the swap itself, hx-* attributes inside the response are
@@ -50,7 +50,7 @@ const FRAGMENT_PREFIX = "/fragment/";
 // ctx is the same trick notif.js uses to pair its loading tickets: htmx hands
 // the identical object to every event of one request.
 let current = null;
-let lastRequest = null;
+let lastUrl = null;
 
 // Exactly one of the three is visible. The attribute rather than a class
 // because preflight's [hidden] carries !important, so it wins over the display
@@ -61,20 +61,24 @@ function show(el) {
     body.hidden = el !== body;
 }
 
-function load(request) {
-    lastRequest = request;
+// GET is not a default here, it is the only option. A /fragment/ route is a
+// GET that returns partial HTML and nothing else, so a method or a body on the
+// opening fetch has nowhere to land: the subtree catch-all in main.go takes any
+// other verb and answers 404. Posting belongs to the actions inside the fetched
+// markup, and those are ordinary hx-* attributes carried by the fragment.
+function load(url) {
+    lastUrl = url;
     current = null;
     show(loadingEl);
     body.replaceChildren();
 
-    htmx.ajax(request.method ?? "GET", request.url, {
+    htmx.ajax("GET", url, {
         target: body,
         // Naming the dialog as the source puts every event for this fetch on
         // the dialog itself. That is how the listeners below tell the content
         // load apart from requests the content makes once it has landed --
         // those bubble through the dialog too, but with their own target.
         source: dialog,
-        values: request.values,
     });
 }
 
@@ -95,7 +99,7 @@ window.addEventListener("modal:open", (e) => {
     }
     box.style.maxWidth = SIZES[e.detail.size] ?? SIZES.md;
     openDialog(dialog);
-    load(e.detail);
+    load(url);
 });
 
 // The dismissal signal for server-driven flows: a form in the modal posts,
@@ -107,8 +111,8 @@ window.addEventListener("modal:close", () => {
 });
 
 retryEl.addEventListener("click", () => {
-    if (lastRequest) {
-        load(lastRequest);
+    if (lastUrl) {
+        load(lastUrl);
     }
 });
 
