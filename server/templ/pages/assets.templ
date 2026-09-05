@@ -40,10 +40,7 @@ templ MapCard(m queries.GetUserMapsRow) {
 				<div class="tooltip" data-tip="Replace">
 					<label
 						for={ "map-replace-" + m.ID.String() }
-						class="bttn"
-						kind="text"
-						color="grey"
-						icon="center"
+						class="btn btn-ghost btn-square"
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-replace"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 2h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M20 14h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M16.707 2.293a1 1 0 0 1 .083 1.32l-.083 .094l-1.293 1.293h3.586a3 3 0 0 1 2.995 2.824l.005 .176v3a1 1 0 0 1 -1.993 .117l-.007 -.117v-3a1 1 0 0 0 -.883 -.993l-.117 -.007h-3.585l1.292 1.293a1 1 0 0 1 -1.32 1.497l-.094 -.083l-3 -3a.98 .98 0 0 1 -.28 -.872l.036 -.146l.04 -.104c.058 -.126 .14 -.24 .245 -.334l2.959 -2.958a1 1 0 0 1 1.414 0z"></path><path d="M3 12a1 1 0 0 1 .993 .883l.007 .117v3a1 1 0 0 0 .883 .993l.117 .007h3.585l-1.292 -1.293a1 1 0 0 1 -.083 -1.32l.083 -.094a1 1 0 0 1 1.32 -.083l.094 .083l3 3a.98 .98 0 0 1 .28 .872l-.036 .146l-.04 .104a1.02 1.02 0 0 1 -.245 .334l-2.959 2.958a1 1 0 0 1 -1.497 -1.32l.083 -.094l1.291 -1.293h-3.584a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-3a1 1 0 0 1 1 -1z"></path></svg>
 						<input
@@ -60,11 +57,7 @@ templ MapCard(m queries.GetUserMapsRow) {
 				</div>
 				<div class="tooltip" data-tip="Delete">
 					<button
-						class="bttn"
-						dull
-						kind="text"
-						color="danger"
-						icon="center"
+						class="btn btn-soft btn-error btn-square"
 						hx-confirm={ "You are about to delete your your map " + m.Name + ". This action cannot be undone." }
 						hx-delete={ "/assets/maps/" + m.ID.String() }
 						hx-target="closest asset-card"
@@ -86,18 +79,13 @@ templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRo
 				<a
 					href="/"
 					type="button"
-					class="bttn mr-4"
-					kind="solid"
-					color="grey"
+					class="btn mr-4"
 				>
 					Back
 				</a>
 				<label
 					for="map-upload"
-					class="bttn relative"
-					kind="solid"
-					color="primary"
-					icon="left"
+					class="btn btn-primary relative"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
 					Upload map

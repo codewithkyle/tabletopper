@@ -244,7 +244,7 @@ character-selector.character-roster-shell {
         .character-roster-header {
             align-items: stretch;
 
-            .bttn {
+            .btn {
                 width: 100%;
             }
         }
@@ -256,7 +256,7 @@ character-selector.character-roster-shell {
         .character-roster-actions {
             width: 100%;
 
-            .bttn {
+            .btn {
                 flex: 1;
             }
         }

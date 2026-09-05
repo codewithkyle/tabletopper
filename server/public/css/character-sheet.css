@@ -154,7 +154,7 @@ character-editor.character-sheet-shell {
         .sheet-actions {
             width: 100%;
 
-            .bttn {
+            .btn {
                 flex: 1;
             }
         }

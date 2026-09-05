@@ -158,18 +158,14 @@ templ Character(character queries.GetCharactersRow) {
 			<div class="character-roster-actions">
 				<a
 					href={ "/characters/" + character.ID.String() + "/edit" }
-					class="bttn"
-					kind="text"
-					color="grey"
+					class="btn btn-ghost"
 				>Edit</a>
 				<button
 					hx-confirm={ "You are about to delete your character " + character.Name + ". This action cannot be undone." }
 					hx-delete={ "/characters/" + character.ID.String() + "/delete" }
 					hx-target="closest character-card"
 					hx-swap="delete"
-					class="bttn"
-					kind="text"
-					color="danger"
+					class="btn btn-ghost btn-error"
 				>Delete</button>
 			</div>
 		</div>
@@ -185,18 +181,13 @@ templ charactersContent(session session.UserSession, characters []queries.GetCha
 					<a
 						href="/"
 						type="button"
-						class="bttn mr-4"
-						kind="solid"
-						color="grey"
+						class="btn mr-4"
 					>
 						Back
 					</a>
 					<a
 						href="/characters/new"
-						class="bttn"
-						kind="solid"
-						color="primary"
-						icon="left"
+						class="btn btn-primary"
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
 						New character

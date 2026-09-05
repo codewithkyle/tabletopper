@@ -185,10 +185,7 @@ import h from"./supercomponent.js";import{html as p,render as g}from"./lit-html.
                             ${this.renderSpellLevels(l,t)}
                             <button
                                 type="button"
-                                class="bttn"
-                                kind="dashed"
-                                dull
-                                color="warning"
+                                class="btn btn-dash btn-warning"
                                 data-level="${t}"
                                 @click=${this.addSpell}
                             >

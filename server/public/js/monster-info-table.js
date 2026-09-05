@@ -11,5 +11,5 @@ import r from"./supercomponent.js";import{html as s,render as i}from"./lit-html.
                         <textarea @keydown=${this.noopEvent} @keyup=${this.noopEvent} .value="${n.value}" name="${this.model.name}-value" required placeholder="Description" rows="4" @input=${this.updateDesc} data-index="${a}">${n.value}</textarea>
                     </table-row>
                 `)}
-            <button type="button" class="bttn" kind="dashed" dull color="warning" @click=${this.addRow}>${this.model.addLabel}</button>
+            <button type="button" class="btn btn-dash btn-warning" @click=${this.addRow}>${this.model.addLabel}</button>
         `;i(t,this)}}o.bind("monster-info-table",m);
