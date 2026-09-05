@@ -1,0 +1,77 @@
+package pages
+
+// The content of the new-character dialog: one question, asked once.
+// Creation used to be a page carrying the whole sheet behind a Save button --
+// the last place in the app that held unsaved work. It is now a name and a
+// redirect to the editor, which saves each panel as it is edited. So this
+// fragment has one field, and the thing it creates is a row the editor can
+// fill in rather than a finished character.
+//
+// NewCharacterPanel names the error block. It is a constant because it appears
+// three times -- the block's own id, this form's two targeting attributes -- and
+// once more in the handler that renders the block on a rejection. A typo in any
+// one of them fails silently: the reply would land nowhere and the dialog would
+// sit there looking like nothing had happened.
+const NewCharacterPanel = "new-character"
+
+// The 422 needs a route of its own. base.templ configures noSwap for the whole
+// 4xx range, so a rejected name would otherwise replace nothing at all. htmx
+// tests the exact code against those entries before it looks for an hx-status
+// override, which is why "422" misses the "4xx" entry and finds this. The
+// editor's panels carry the same attribute for the same reason.
+//
+// Both replies land on the error block rather than on the form, and that is
+// deliberate: replacing the form would discard the name the user just typed
+// unless the handler echoed it back, and there is no reason to make the handler
+// responsible for redrawing a field it did not change.
+//
+// A successful create answers with HX-Redirect and no body, so nothing lands
+// here at all -- the navigation takes the dialog with it.
+//
+// `required` is safe on this field even though form-validity.js suppresses the
+// browser's own bubble. htmx validates a form before posting it and abandons
+// the request when the form is invalid, which on a single deliberate press
+// could have meant a button that does nothing and says nothing -- but textField
+// carries DaisyUI's .validator, so an empty name explains itself underneath the
+// field with no request and no script.
+//
+// Close dispatches modal:close rather than submitting a <form method="dialog">,
+// which is what every other dialog in the app closes with. It cannot use one
+// here: this button sits inside the form that posts the name, and a form does
+// not nest. The event is the same one the shell already listens for, so the
+// dialog closes the same way whether a person presses this or a handler asks
+// for it with an HX-Trigger.
+//
+// There is no placeholder on the field. A placeholder is for a format that
+// needs demonstrating -- "Cleric 3, Fighter 1" earns one, a name does not, and
+// an example name in a box asking for a name reads as a value already filled in.
+//
+// There is no maxlength here. It would cap typing without ever explaining why,
+// and the column's 128 characters are enforced in the handler, which can say so
+// in words. Adding the attribute would also mean a new parameter on textField
+// and a change at every one of its call sites, for a constraint that is already
+// checked where it matters.
+templ NewCharacterFragment() {
+	{{ errorBlock := "#errors-" + NewCharacterPanel }}
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">New Character</h3>
+		<form
+			class="grid gap-4"
+			hx-post="/characters"
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(NewCharacterPanel, []string{})
+			@textField("name", "Character Name", "", "", true)
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Create character</button>
+			</div>
+		</form>
+	</div>
+}

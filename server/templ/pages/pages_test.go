@@ -18,9 +18,9 @@ import (
 // layout now takes its title and body per call; this keeps it that way.
 func TestPagesRenderConcurrently(t *testing.T) {
 	pages := map[string]func() error{
-		"homepage":      func() error { return render(Homepage(session.UserSession{})) },
-		"characters":    func() error { return render(Characters([]queries.Character{})) },
-		"new-character": func() error { return render(NewCharacter()) },
+		"homepage":               func() error { return render(Homepage(session.UserSession{})) },
+		"characters":             func() error { return render(Characters([]queries.Character{})) },
+		"new-character-fragment": func() error { return render(NewCharacterFragment()) },
 		"edit-character": func() error {
 			return render(EditCharacter(EditCharacterPageData{SpellLevels: EmptySpellLevels()}))
 		},
@@ -118,12 +118,15 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 				t.Errorf("posting forms = %d, want %d (one per panel, and none around them)", got, len(page.panels))
 			}
 
-			// Base renders the three modal dialogs, each holding a
-			// method="dialog" form that closes it. Those plus the panels are
-			// every form on the page, so an extra one would mean something
-			// still wraps the sheet.
-			if got := strings.Count(markup, "<form"); got != len(page.panels)+3 {
-				t.Errorf("forms = %d, want %d", got, len(page.panels)+3)
+			// Base renders three modal dialogs holding four method="dialog"
+			// forms between them: one each in the alert and confirm dialogs, and
+			// two in the content modal, whose loading and error states carry a
+			// Close apiece now that the shell has no corner ✕. Those plus the
+			// panels are every form on the page, so an extra one would mean
+			// something still wraps the sheet.
+			const closingForms = 4
+			if got := strings.Count(markup, "<form"); got != len(page.panels)+closingForms {
+				t.Errorf("forms = %d, want %d", got, len(page.panels)+closingForms)
 			}
 
 			// The debounce is what makes typing one save rather than one per
@@ -154,5 +157,60 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 				t.Errorf("the current tab is not %s", page.current)
 			}
 		})
+	}
+}
+
+// The new-character dialog. Its three targeting attributes have to agree with
+// the id of the block they aim at, and a disagreement is invisible: the reply
+// lands nowhere and the dialog sits there looking like the button is broken. So
+// the exact string is pinned rather than its shape.
+//
+// The 422 override is pinned for the same reason at one remove. base.templ puts
+// the whole 4xx range in noSwap, so without it a rejected name would replace
+// nothing -- the form would post, the server would answer, and the user would
+// see no difference.
+func TestNewCharacterFragmentIsOneQuestion(t *testing.T) {
+	var buf bytes.Buffer
+	if err := NewCharacterFragment().Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	for _, want := range []string{
+		`hx-post="/characters"`,
+		`hx-target="#errors-new-character"`,
+		`hx-status:422="target:#errors-new-character,swap:outerHTML"`,
+		`id="errors-new-character"`,
+		`name="name"`,
+		"required",
+		`type="submit"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("fragment is missing %s\n%s", want, body)
+		}
+	}
+
+	if forms := strings.Count(body, "<form"); forms != 1 {
+		t.Errorf("fragment has %d forms, want 1", forms)
+	}
+
+	// The dialog carries its own way out. The shell has no corner control to
+	// fall back on, so a fragment that forgets this leaves Escape as the only
+	// exit -- which looks like a dialog that will not close.
+	if !strings.Contains(body, "modal:close") {
+		t.Errorf("fragment has no Close button\n%s", body)
+	}
+
+	// A name needs no worked example, and one in the box reads as a value that
+	// is already there.
+	if strings.Contains(body, "placeholder=") {
+		t.Errorf("the name field has a placeholder\n%s", body)
+	}
+
+	// One field, deliberately. The dialog asks for a name and sends the user to
+	// a page built to hold everything else; a second control here is the start
+	// of rebuilding the create page inside a 24rem box.
+	if inputs := strings.Count(body, "<input"); inputs != 1 {
+		t.Errorf("fragment has %d inputs, want 1", inputs)
 	}
 }

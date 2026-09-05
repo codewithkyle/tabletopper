@@ -28,7 +28,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /error", app.ServerError)
 
 	mux.HandleFunc("GET /characters", auth.RequireSession(app.CharactersPage))
-	mux.HandleFunc("GET /characters/new", auth.RequireSession(app.NewCharacterPage))
+	// Creation has no page. It is a dialog on the characters page carrying one
+	// field, served by the fragment route below; this takes the name it collects
+	// and redirects to the editor, which saves the rest as it is filled in.
 	mux.HandleFunc("POST /characters", auth.RequireSession(app.NewCharacterForm))
 	// The editor is two pages, one per tab. Autosave is what makes them pages
 	// rather than sections of one: nothing is ever held unsaved, so moving
@@ -83,6 +85,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	//
 	// middleware.Fragment carries the contract that follows from that; see it
 	// for what a fragment owes its caller.
+	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/info-row", auth.Fragment(app.InfoRowFragment))
 	mux.HandleFunc("GET /fragment/character/spell-card", auth.Fragment(app.SpellCardFragment))
 

@@ -52,7 +52,9 @@ templ textField(name string, label string, value string, placeholder string, req
 			type="text"
 			class="input validator peer w-full"
 			value={ value }
-			placeholder={ placeholder }
+			if placeholder != "" {
+				placeholder={ placeholder }
+			}
 			required?={ required }
 		/>
 		if required {

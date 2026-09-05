@@ -63,6 +63,11 @@ All three are `<dialog>` elements rendered once in `server/templ/layouts/base.te
 opened with `showModal()`. Clicking outside never dismisses them; every dialog ships its
 own close control.
 
+**That control is always a labelled `Close` button beside the affirmative action. Never a
+corner ✕.** Close comes first, the affirmative action second: `Close` / `Confirm`,
+`Close` / `Retry`, `Close` / `Create character`. Escape works as well — the browser gives
+it to any dialog opened with `showModal()` — but it is never the only way out.
+
 Buttons inside any dialog — including inside a fragment loaded into the content modal —
 are solid `btn`. No `btn-ghost`, no `btn-soft`. Neutral buttons carry `border-base-content/50`.
 
@@ -124,10 +129,20 @@ Or from markup, with `hx-on:`:
   dialog stays shut.
 - `size` is optional: `sm` 24rem, `md` 32rem (default), `lg` 42rem, `xl` 56rem.
   These four are the whole set.
-- The modal fetches with `GET` and swaps the response into its body. Loading, error and
-  retry states are handled by the shell. The shell also supplies the ✕.
-- The fragment brings its own heading and its own actions, as ordinary `hx-*` attributes.
-  They are processed on arrival — never call `htmx.process()`.
+- The modal fetches with `GET` and swaps the response into its body. The shell handles the
+  loading, error and retry states, and each of those carries its own `Close`. It supplies
+  nothing to the fragment.
+- Once the fragment lands, the shell moves focus to its first control, so a dialog asking
+  one question puts the caret in the field.
+- The fragment brings its own heading, its own actions and its own `Close`, as ordinary
+  `hx-*` attributes. They are processed on arrival — never call `htmx.process()`.
+- A `Close` inside the fragment's own `<form>` cannot be a `<form method="dialog">`, because
+  forms do not nest. Dispatch the event instead:
+
+  ```html
+  <button type="button" class="btn border-base-content/50"
+    hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))">Close</button>
+  ```
 - A form inside the modal posts to its normal resource URL. On failure, re-render the form
   with its errors and say nothing else; the modal stays open. On success, dismiss it with
   an `HX-Trigger` of `{"modal:close": true}` — add a helper to `internal/htmx` to send it,

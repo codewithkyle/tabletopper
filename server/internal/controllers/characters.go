@@ -151,10 +151,6 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Characters(results))
 }
 
-func (a *App) NewCharacterPage(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.NewCharacter())
-}
-
 // InfoRowFragment serves one blank repeater row to the add buttons on the
 // character forms. It is the whole server side of the add-row mechanic: no
 // database, no session data in the response, just the same templ component the
@@ -205,65 +201,60 @@ func (a *App) SpellCardFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.SpellCardFragment(level))
 }
 
+// The column is varchar(128), and MySQL counts characters there rather than
+// bytes. So does this: len() on the string would reject a name of 90 accented
+// letters that the database would have taken without complaint.
+const characterNameLimit = 128
+
+// NewCharacterForm creates a character from a name and sends the browser to the
+// editor. This is the whole of creation now -- every other column is answered by
+// the statement or by the schema, and the sheet is filled in afterwards a panel
+// at a time by a page that saves as you go.
+//
+// It reads one field, and reads it here rather than through buildIdentityInput.
+// That builder also requires `size`, which the dialog does not carry and should
+// not grow a control for: a second question in a one-question dialog invites a
+// third.
+//
+// The reply on success is a redirect with no body, so nothing lands back in the
+// dialog -- the navigation takes it away. The toast still arrives, on the page
+// after this one: toast.js parks a message in sessionStorage when the same
+// response also carries HX-Redirect, because a message shown a moment before a
+// navigation is never read.
+// NewCharacterFragment serves the content of the new-character dialog: a
+// heading, one field and a button. Like the other two fragments it reaches no
+// database and carries nothing from the session, because the form it returns is
+// the same for every user -- but it stays behind auth.Fragment all the same,
+// since an unauthenticated route here would be surface for no reason.
+func (a *App) NewCharacterFragment(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.NewCharacterFragment())
+}
+
 func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
 	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}))
+		rejectNewCharacter(w, r, "The submitted form data could not be read.")
 		return
 	}
 
-	formInput, validationErrors, err := buildCharacterFormInput(r)
-	if err != nil {
-		slog.Error("Failed to read character form", "error", err)
-		htmx.ServerError(w)
+	name := strings.TrimSpace(r.PostFormValue("name"))
+	switch {
+	case name == "":
+		rejectNewCharacter(w, r, "Name is required.")
 		return
-	}
-
-	if len(validationErrors) > 0 {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, pages.NewCharacterFormErrors(validationErrors))
+	case len([]rune(name)) > characterNameLimit:
+		rejectNewCharacter(w, r, "Name must be 128 characters or fewer.")
 		return
 	}
 
 	id := ulid.Make()
-	err = a.Queries.CreateCharacter(ctx, queries.CreateCharacterParams{
-		ID:               id,
-		OwnerID:          sess.UserID,
-		Name:             formInput.Name,
-		Level:            formInput.Level,
-		XP:               formInput.XP,
-		Race:             formInput.Race,
-		Background:       formInput.Background,
-		Alignment:        formInput.Alignment,
-		Classes:          formInput.Classes,
-		Size:             formInput.Size,
-		AC:               formInput.AC,
-		MaxHP:            formInput.MaxHP,
-		CurrentHP:        formInput.CurrentHP,
-		ProficiencyBonus: formInput.ProficiencyBonus,
-		TempHP:           formInput.TempHP,
-		Speed:            formInput.Speed,
-		InitiativeBonus:  formInput.InitiativeBonus,
-		SpellSaveDC:      formInput.SpellSaveDC,
-		SpellAtkBonus:    formInput.SpellAtkBonus,
-		Str:              formInput.Str,
-		Dex:              formInput.Dex,
-		Con:              formInput.Con,
-		Int:              formInput.Int,
-		Wis:              formInput.Wis,
-		Cha:              formInput.Cha,
-		Languages:        formInput.Languages,
-		Proficiencies:    formInput.Proficiencies,
-		Skills:           formInput.Skills,
-		SavingThrows:     formInput.SavingThrows,
-		Features:         formInput.Features,
-		Weapons:          formInput.Weapons,
-		SpellSlots:       formInput.SpellSlots,
-		Resources:        formInput.Resources,
-		Notes:            "",
+	err := a.Queries.CreateCharacterFromName(ctx, queries.CreateCharacterFromNameParams{
+		ID:      id,
+		OwnerID: sess.UserID,
+		Name:    name,
 	})
 	if err != nil {
 		slog.Error("Failed to create character", "error", err)
@@ -271,131 +262,19 @@ func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx.Toast(w, formInput.Name+" has been created.")
-	htmx.Redirect(w, "/characters")
+	htmx.Toast(w, name+" has been created.")
+	htmx.Redirect(w, "/characters/"+id.String()+"/edit")
 }
 
-type characterFormInput struct {
-	Name             string
-	Level            uint8
-	XP               uint32
-	Race             sql.NullString
-	Background       sql.NullString
-	Alignment        sql.NullString
-	Classes          sql.NullString
-	Size             string
-	AC               uint16
-	MaxHP            uint16
-	CurrentHP        uint16
-	ProficiencyBonus uint16
-	TempHP           uint16
-	Speed            string
-	InitiativeBonus  int16
-	SpellSaveDC      uint16
-	SpellAtkBonus    int16
-	Str              uint8
-	Dex              uint8
-	Con              uint8
-	Int              uint8
-	Wis              uint8
-	Cha              uint8
-	Languages        string
-	Proficiencies    string
-	Skills           json.RawMessage
-	SavingThrows     json.RawMessage
-	Features         json.RawMessage
-	Weapons          json.RawMessage
-	SpellSlots       json.RawMessage
-	Resources        json.RawMessage
-}
-
-// buildCharacterFormInput reads the whole sheet, for the one form that still
-// posts the whole sheet: creation. It is composed out of the same four panel
-// builders the autosaving editor uses (see character-panels.go), so a value the
-// create form accepts is a value a panel save accepts and each rule has one
-// definition.
-//
-// It is not reachable from a panel save, and must not become so. Every field it
-// reads has a fallback rather than an error on empty, which is correct for a
-// post carrying all of them and silently destructive for a post carrying one
-// panel's worth.
-func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, error) {
-	validationErrors := make([]string, 0)
-
-	identity, identityErrors := buildIdentityInput(r)
-	validationErrors = append(validationErrors, identityErrors...)
-
-	abilities, abilityErrors := buildAbilitiesInput(r)
-	validationErrors = append(validationErrors, abilityErrors...)
-
-	coreStats, coreStatErrors := buildCoreStatsInput(r)
-	validationErrors = append(validationErrors, coreStatErrors...)
-
-	proficiencies := buildProficienciesInput(r)
-
-	rawSkills, err := marshalBonusesPayload(r, "skills")
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	rawSavingThrows, err := marshalBonusesPayload(r, "saving_throws")
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	rawFeatures, err := marshalInfoRowsPayload(r, "features")
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	rawWeapons, err := marshalInfoRowsPayload(r, "weapons")
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	rawResources, err := marshalInfoRowsPayload(r, "resources")
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	rawSpellSlots, err := marshalSpellSlotsPayload(r)
-	if err != nil {
-		return characterFormInput{}, nil, err
-	}
-
-	return characterFormInput{
-		Name:             identity.Name,
-		Level:            coreStats.Level,
-		XP:               coreStats.XP,
-		Race:             identity.Race,
-		Background:       identity.Background,
-		Alignment:        identity.Alignment,
-		Classes:          identity.Classes,
-		Size:             identity.Size,
-		AC:               coreStats.AC,
-		MaxHP:            coreStats.MaxHP,
-		CurrentHP:        coreStats.CurrentHP,
-		ProficiencyBonus: coreStats.ProficiencyBonus,
-		TempHP:           coreStats.TempHP,
-		Speed:            coreStats.Speed,
-		InitiativeBonus:  coreStats.InitiativeBonus,
-		SpellSaveDC:      coreStats.SpellSaveDC,
-		SpellAtkBonus:    coreStats.SpellAtkBonus,
-		Str:              abilities.Str,
-		Dex:              abilities.Dex,
-		Con:              abilities.Con,
-		Int:              abilities.Int,
-		Wis:              abilities.Wis,
-		Cha:              abilities.Cha,
-		Languages:        proficiencies.Languages,
-		Proficiencies:    proficiencies.Proficiencies,
-		Skills:           rawSkills,
-		SavingThrows:     rawSavingThrows,
-		Features:         rawFeatures,
-		Weapons:          rawWeapons,
-		SpellSlots:       rawSpellSlots,
-		Resources:        rawResources,
-	}, validationErrors, nil
+// rejectNewCharacter answers with the dialog's error block under a 422, which is
+// the one code the form has an hx-status route for -- every other 4xx is in the
+// noSwap list and would leave the dialog showing nothing new. The form is left
+// alone, so the name the user typed is still in the field when the message
+// appears above it.
+func rejectNewCharacter(w http.ResponseWriter, r *http.Request, message string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	render(w, r, pages.PanelFormErrors(pages.NewCharacterPanel, []string{message}))
 }
 
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
@@ -405,8 +284,8 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Race:            nullStringValue(character.Race),
 		Background:      nullStringValue(character.Background),
 		Classes:         nullStringValue(character.Classes),
-		Size:            fallbackString(strings.TrimSpace(character.Size), "medium"),
-		Alignment:       fallbackString(nullStringValue(character.Alignment), "unaligned"),
+		Size:            fallbackString(strings.TrimSpace(character.Size), pages.DefaultSize),
+		Alignment:       fallbackString(nullStringValue(character.Alignment), pages.DefaultAlignment),
 		XP:              strconv.FormatUint(uint64(character.XP), 10),
 		Languages:       fallbackString(strings.TrimSpace(character.Languages), "Common"),
 		Proficiencies:   strings.TrimSpace(character.Proficiencies),

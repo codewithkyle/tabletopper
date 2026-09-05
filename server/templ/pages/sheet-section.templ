@@ -1,13 +1,14 @@
 package pages
 
-// The panel the character sheet is built out of. Two components, one surface:
-// sheetSection for the create form, which is one <form> and cannot nest more,
-// and savingPanel for the editor, where the panel IS the form.
+// The panel the character sheet is built out of. There used to be two of these,
+// because creation was a page carrying every panel inside a single <form> and a
+// form cannot nest another one. Creation is now a name in a dialog, so the only
+// panel left is the editor's, where the panel IS the form.
 //
 // It was .sheet-section in character-sheet.css; as a DaisyUI card the surface is
-// a class string rather than a rule, and repeating that string across twenty
-// call sites would be worse than the stylesheet was. So it is a constant, named
-// once and worn by both.
+// a class string rather than a rule, and repeating that string across ten call
+// sites would be worse than the stylesheet was. So it stays a constant even
+// though one component now wears it.
 
 const sheetSurface = "card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm"
 
@@ -54,15 +55,6 @@ templ savingPanel(title string, action string, panel string) {
 			{ children... }
 		</div>
 	</form>
-}
-
-templ sheetSection(title string) {
-	<section class={ sheetSurface }>
-		<div class="card-body gap-4 p-4">
-			@sheetHeading(title)
-			{ children... }
-		</div>
-	</section>
 }
 
 templ sheetHeading(title string) {

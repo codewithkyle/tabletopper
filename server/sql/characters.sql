@@ -20,45 +20,58 @@ WHERE c.id = ? AND c.owner_id = ?;
 DELETE FROM characters
 WHERE id = ? AND owner_id = ?;
 
--- name: CreateCharacter :exec
+-- CreateCharacterFromName is the whole of character creation. The modal asks for
+-- a name and nothing else; every other column is answered here or by the
+-- schema, and the sheet is filled in afterwards by the editor, which autosaves.
+--
+-- Three parameters is the point of it. A statement that took the sheet would be
+-- a second wide writer, and the reason there is not one is written at the top of
+-- the panel updates below. Creation cannot drift into that shape without growing
+-- a parameter, which is what the params-shape test refuses.
+--
+-- The literals are the thirteen NOT NULL columns the schema has no DEFAULT for
+-- plus spell_save_dc, which has one that disagrees. Its default is 0 and the old
+-- create form started it at 10; naming it keeps a new character where it was.
+-- The rest -- level, xp, size, ac, max_hp, current_hp, proficiency_bonus,
+-- temp_hp, initiative_bonus, spell_atk_bonus -- have DEFAULTs that already match
+-- what that form produced, so they are left to the table.
+--
+-- The blobs go in empty rather than pre-shaped. parseStatBonuses, parseInfoRows
+-- and parseSpellLevels each return their empty shape for a blob that carries
+-- nothing, and parseSpellLevels builds all ten levels regardless, so a fresh
+-- sheet reads back exactly as the blank form used to render.
+--
+-- race, background, alignment and classes are nullable and stay NULL;
+-- characterToEditPageData already renders that as its fallback text.
+
+-- name: CreateCharacterFromName :exec
 INSERT INTO characters (
     id,
     owner_id,
-    asset_id,
     name,
-    level,
-    xp,
-    race,
-    background,
-    alignment,
-    classes,
-    size,
-    ac,
-    max_hp,
-    current_hp,
-    proficiency_bonus,
-    temp_hp,
-    speed,
-    initiative_bonus,
-    spell_save_dc,
-    spell_atk_bonus,
     `str`,
     dex,
     `con`,
     `int`,
     wis,
     cha,
+    speed,
     languages,
     proficiencies,
+    notes,
     skills,
     saving_throws,
     features,
     weapons,
     spell_slots,
     resources,
-    notes
+    spell_save_dc
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?,
+    10, 10, 10, 10, 10, 10,
+    '30 ft.', '', '', '',
+    '{}', '{}', '[]', '[]', '{}', '[]',
+    10
 );
 
 -- name: UpdateCharacterAvatar :exec

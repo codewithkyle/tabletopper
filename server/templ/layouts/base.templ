@@ -54,9 +54,10 @@ templ Base(title string) {
 			// None of them carry DaisyUI's <form class="modal-backdrop">, so a
 			// click outside the box does nothing. Dismissing has to be
 			// deliberate, which means every dialog owes the user a close control
-			// it renders itself -- the two below have a labelled button, and the
-			// content modal has a corner ✕ in the shell so a fetched fragment
-			// cannot forget one.
+			// it renders itself. In this app that control is always a labelled
+			// Close sitting beside the affirmative action, never a corner ✕: the
+			// two below are built that way, the content modal's own states are,
+			// and a fragment loaded into it is expected to be.
 			//
 			// Every button in a dialog is solid; no ghost, no soft. Those are for
 			// buttons sitting on the page, where the surface behind them carries
@@ -117,23 +118,40 @@ templ alertModal() {
 // a utility named only in a script would never be emitted.
 templ contentModal() {
 	<dialog id="content-modal" class="modal backdrop-blur-[4px]">
-		<div class="modal-box relative border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm" data-modal-box>
-			// htmx 4 returns early on a DIALOG method, so this form closes the
-			// dialog without ever becoming a request.
-			<form method="dialog">
-				<button class="btn btn-sm btn-circle border-base-content/50 absolute top-4 right-4" aria-label="Close">✕</button>
-			</form>
-			<div class="flex min-h-32 items-center justify-center" data-modal-loading>
-				<span class="loading loading-spinner loading-lg"></span>
+		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm" data-modal-box>
+			// Both states below close through <form method="dialog">, which htmx
+			// 4 returns early on, so the button never becomes a request.
+			//
+			// Each carries its own Close because the shell has no corner control
+			// to fall back on. Escape works, as it does on any dialog opened with
+			// showModal(), but a dialog in this app does not lean on it: the way
+			// out is always a button you can see.
+			<div data-modal-loading>
+				<div class="flex min-h-32 items-center justify-center">
+					<span class="loading loading-spinner loading-lg"></span>
+				</div>
+				<form method="dialog" class="modal-action">
+					<button class="btn border-base-content/50">Close</button>
+				</form>
 			</div>
-			<div class="min-h-32 content-center text-center" data-modal-error hidden>
-				<h4 class="mb-3 block text-xl font-semibold">Couldn't load that</h4>
-				<p class="mb-6 block">The server didn't return the content. Try again in a moment.</p>
-				<button class="btn border-base-content/50" data-modal-retry>Retry</button>
+			<div data-modal-error hidden>
+				<div class="min-h-32 content-center text-center">
+					<h4 class="mb-3 block text-xl font-semibold">Couldn't load that</h4>
+					<p class="block">The server didn't return the content. Try again in a moment.</p>
+				</div>
+				// Retry is the affirmative action here, so Close sits to its left
+				// exactly as it does beside Confirm above. It is outside the form
+				// because it must not close the dialog.
+				<div class="modal-action">
+					<form method="dialog">
+						<button class="btn border-base-content/50">Close</button>
+					</form>
+					<button class="btn btn-primary" data-modal-retry>Retry</button>
+				</div>
 			</div>
-			// Where the fetched markup lands. Fragments bring their own heading
-			// and their own actions; the ✕ above is the floor, not the whole
-			// contract.
+			// Where the fetched markup lands. A fragment brings its own heading
+			// and its own actions, Close among them -- nothing here supplies one
+			// on its behalf.
 			<div data-modal-body hidden></div>
 		</div>
 	</dialog>

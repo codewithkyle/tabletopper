@@ -62,6 +62,17 @@ function show(el) {
     body.hidden = el !== body;
 }
 
+// showModal() hands focus to the first focusable thing in the dialog, and while
+// the fetch is in flight that is the Close button of the loading state -- which
+// this then hides, dropping focus to the dialog itself. So focus follows the
+// content in: the first control of the fetched fragment takes it, which for a
+// dialog asking one question is the field it is asking in.
+function focusContent() {
+    body
+        .querySelector("input:not([type=hidden]), select, textarea, button, a[href]")
+        ?.focus();
+}
+
 // GET is not a default here, it is the only option. A /fragment/ route is a
 // GET that returns partial HTML and nothing else, so a method or a body on the
 // opening fetch has nowhere to land: the subtree catch-all in routes.go takes any
@@ -144,14 +155,23 @@ dialog.addEventListener("htmx:finally:request", (e) => {
     // config in base.templ covers both ranges; without this branch the spinner
     // would run until the next navigation.
     const status = e.detail.ctx.response?.status;
-    show(status !== undefined && status < 400 ? body : errorEl);
+    const loaded = status !== undefined && status < 400;
+    show(loaded ? body : errorEl);
+    if (loaded) {
+        focusContent();
+    }
 });
 
-// Reset on the way out, but leave the content alone: .modal-box fades over
-// 0.3s after close() and clearing it here would empty the box mid-fade.
-// load() clears it on the way back in, which is the only moment it matters.
+// NOTHING VISIBLE IS RESET HERE. .modal-box fades for 0.3s after close(), so
+// anything this handler changes is changed while the box is still on screen and
+// the user watches it happen: clearing the content would empty the box mid-fade,
+// and clearing the width made a 24rem dialog jump to the 32rem default and widen
+// as it faded out.
+//
+// Neither needs undoing anyway, because both are set on the way in -- load()
+// replaces the content, and the modal:open handler always assigns a width rather
+// than only assigning one when a size was asked for.
 dialog.addEventListener("close", () => {
     // Any load still in flight belongs to the modal that just closed.
     current = null;
-    box.style.maxWidth = "";
 });

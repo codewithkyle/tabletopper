@@ -11,14 +11,19 @@ package controllers
 // every ability score, 1 over max_hp and current_hp, and empty JSON over all
 // six blobs, and follow it with a toast saying it saved.
 //
-// buildCharacterFormInput is exactly such a reader, and it is why creation
-// still has one: the create form carries every field. No handler here calls it,
-// and no two panels share a statement.
+// NO READER IN THIS PACKAGE IS WIDE ENOUGH TO DO THAT, and that is now a
+// property of the code rather than a rule to remember. There was one while
+// creation was a page carrying the whole sheet behind a Save button. Creation is
+// a name in a dialog now, and the statement it runs takes three values, so the
+// only writes that reach a character are the ten below -- each naming its own
+// columns -- and an insert that cannot carry a column at all.
 //
-// The panel builders are the other half of that: buildCharacterFormInput is
-// composed out of the same four functions the panel handlers use, so a value
-// the create form accepts is a value a panel save accepts, and there is one
-// definition of each rule rather than two that drift.
+// TestCreateCannotCarrySheetData is what holds that shut: a fourth value would
+// have to appear in the statement and in the generated params, and it asserts
+// against both.
+//
+// The panel builders are the other half. One per panel, reading only what its
+// panel renders, so each rule has a single definition.
 
 import (
 	"database/sql"
@@ -312,8 +317,9 @@ func (a *App) SaveCharacterSpells(w http.ResponseWriter, r *http.Request) {
 // THE PANEL BUILDERS.
 //
 // One per panel, each reading only the fields its panel renders and returning
-// only the errors those fields can raise. buildCharacterFormInput composes all
-// four, so the create form and the panel saves share every rule.
+// only the errors those fields can raise. Nothing composes them into a reader of
+// the whole sheet; that was the create page's, and a character is created from a
+// name now.
 
 type identityInput struct {
 	Name       string

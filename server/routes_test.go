@@ -41,12 +41,17 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/rows/features", "POST /characters/{id}/rows/{field}"},
 		{http.MethodGet, "/characters/" + id + "/edit", "GET /characters/{id}/edit"},
 		{http.MethodGet, "/characters/" + id + "/edit/spells", "GET /characters/{id}/edit/spells"},
+		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
 		{http.MethodGet, "/fragment/character/spell-card", "GET /fragment/character/spell-card"},
-		// Neither is a panel, so both fall to the catch-all rather than one of
-		// the above. The first was the whole-sheet save, which the panels
-		// replaced; nothing should still answer it.
+		// None of these is a route any more, so all three fall to the catch-all
+		// rather than to one of the above. The first two were the whole-sheet
+		// save, which the panels replaced. The third was the create page, which
+		// the dialog replaced -- and it is the one most likely to be re-added by
+		// accident, because "/characters/new" and "/characters/{id}/edit" look
+		// like a matched pair.
 		{http.MethodPost, "/characters/" + id + "/rows", "/"},
 		{http.MethodPost, "/characters/" + id, "/"},
+		{http.MethodGet, "/characters/new", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
 		if pattern != c.want {

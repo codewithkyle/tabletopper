@@ -42,10 +42,18 @@ var sizeOptions = []Option{
 	{Label: "Gargantuan", Value: "gargantuan"},
 }
 
-// The values the new-character form starts on. Both match the fallback
-// characterToEditPageData uses when the stored column is empty, so a character
-// saved straight from the blank form round-trips to the same selection.
+// DefaultAlignment and DefaultSize are what the editor selects when the stored
+// column has nothing in it. Alignment reaches that state on every new character,
+// because creation writes a name and leaves the column NULL. Size does not --
+// the schema defaults it -- but the fallback is kept for a row written before
+// that default, or around it.
+//
+// Exported so characterToEditPageData can apply them, the way DefaultSpellSchool
+// already is. That is what keeps each one next to the list it has to be a member
+// of: a fallback outside the options renders a picker with nothing selected, and
+// "unaligned" was stored as "unaliged" until the migration of 2026-09-05
+// corrected every row.
 const (
-	defaultAlignment = "unaligned"
-	defaultSize      = "medium"
+	DefaultAlignment = "unaligned"
+	DefaultSize      = "medium"
 )
