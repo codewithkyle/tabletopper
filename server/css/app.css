@@ -16,19 +16,25 @@
    free of node_modules and pins the version byte-for-byte.
    daisyui-theme.js is unused while the built-in themes are taken as-is; it
    is kept because overriding a built-in theme goes through it. */
-/* silk and coffee are DaisyUI built-ins, taken unmodified. --default puts silk
-   under `:where(:root)`; --prefersdark puts coffee under
+/* caramellatte and coffee are DaisyUI built-ins, taken unmodified. --default
+   puts caramellatte under `:where(:root)`; --prefersdark puts coffee under
    `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }`, so the
    active theme follows the OS with no JS and no flash. The :not() guard means
    an explicit data-theme would win, if a manual toggle is ever added.
 
    These replace the hand-built "tabletopper" pair, which mirrored the tokens in
-   core.css. Nothing in public/css reads DaisyUI's --color-* -- every sheet
-   reads either the Brixi tokens (tokens.css) or the parchment tokens
-   (core.css) -- so today this governs only DaisyUI-rendered components. The two
-   palettes diverge as Phase 5 moves components across; silk's radius/depth and
-   opaque base-100 are known departures, to be reconciled then rather than
-   pre-emptively patched here. */
+   core.css. The page background in core.css reads --color-base-100/200/300 and
+   --color-base-content directly, so the desk, the grid and the panel surface
+   follow the theme with no dark-mode override of their own. The rest of
+   public/css still reads the Brixi tokens (tokens.css) or the parchment ink
+   tokens (core.css) and diverges as Phase 5 moves components across.
+
+   caramellatte replaced silk because its base ramp carries real warmth
+   (chroma 0.016-0.123 against silk's 0.0035-0.0081), which puts it in the same
+   family as coffee instead of reading as neutral grey next to it. Its
+   radius/depth/border match silk's exactly, so it changes nothing on the
+   deferred list. It does set --noise: 1 where silk and coffee both set 0 --
+   that is a faint grain on .btn and .alert, light mode only. */
 /* exclude drops four component groups whose class names this app already owns
    and styles itself: .input and .select are emitted by the lit-html components
    in public/js, .label by skills-table/saving-throws-table, .link by link.css.
@@ -38,7 +44,7 @@
    headless render of the character sheet.
    These come back in Phase 5, when those components become DaisyUI components. */
 @plugin "./vendor/daisyui.js" {
-  themes: silk --default, coffee --prefersdark;
+  themes: caramellatte --default, coffee --prefersdark;
   exclude: input, select, label, link;
 }
 

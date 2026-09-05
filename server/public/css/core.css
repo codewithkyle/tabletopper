@@ -14,21 +14,29 @@ html{
     --sheet-accent: #7a3f23;
     --sheet-text-shadow: rgba(143, 107, 36, 0.15) 0px 0px 12px,rgba(143, 107, 36, 0.2) 0px 2px 4px;
 
-    /* The frosted panel that floats over the gridded desk below. Elevation is
-       panel (base-100) over desk (base-300), and that ordering holds in both
-       themes because DaisyUI's base ramp always runs from the theme's own
-       surface colour toward its own depth -- so the panel is the lighter
-       surface under silk and under coffee alike, with no polarity flip to
-       hand-tune. That is the whole reason these can be token-driven and carry
-       no dark-mode override below.
+    /* The frosted panel that sits on the desk below. The desk is base-100 --
+       the page surface every DaisyUI component is built against -- so the
+       panel takes base-200, DaisyUI's own "one step of elevation" shade. That
+       ordering is polarity-safe: the base ramp always runs from the theme's
+       surface toward its depth, so the panel is one step deeper under
+       caramellatte and under coffee alike, with nothing to hand-tune and no
+       dark-mode override below.
+
+       Fill separation is deliberately slight (1.08 under caramellatte, 1.06
+       under coffee). The real separator is texture, not luminance: the desk
+       carries the grid, the panel's backdrop-filter blurs it to a soft wash,
+       and the edge between crisp rules and blurred ones is what reads. Fill,
+       border and shadow are supporting signals. If the cards ever look too
+       flat, base-300 here takes fill separation to 1.24 / 1.16.
 
        The shadow is two soft drops rather than the old bevel-plus-drop. A top
-       inset highlight needs a colour lighter than base-100, and no token is:
-       measured, the old bevel came out at 1.01 against the panel in both
-       themes, i.e. invisible. Two drops separate the panel honestly, and
-       because base-content is light under coffee the same declaration reads as
-       a warm halo there -- which is what the old dark override did by hand. */
-    --panel-bg: color-mix(in oklab, var(--color-base-100) 87%, transparent);
+       inset highlight needs a colour lighter than the panel's own surface, and
+       no token is: measured, the old bevel came out at 1.01 against the panel
+       in both themes, i.e. invisible. Two drops separate the panel honestly,
+       and because base-content is light under coffee the same declaration
+       reads as a warm halo there -- which is what the old dark override did by
+       hand. */
+    --panel-bg: color-mix(in oklab, var(--color-base-200) 87%, transparent);
     --panel-blur: 8px;
     --panel-shadow:
         0 1px 2px color-mix(in oklab, var(--color-base-content) 12%, transparent),
@@ -58,8 +66,8 @@ body{
     overflow: hidden;
     color: var(--sheet-ink);
 
-    /* Desk and grid paper, as three layers of one background rather than a desk
-       here and a grid on a fixed ::before.
+    /* Desk and grid paper, as layers of one background rather than a desk here
+       and a grid on a fixed ::before.
 
        The pseudo-element was the reason the grid drew on top of the cards. A
        fixed ::before is a positioned box, so it paints with the positioned
@@ -75,39 +83,30 @@ body{
        overflow:hidden and never scrolls, so its background box is exactly the
        viewport the fixed overlay used to cover.
 
-       Layers paint first-listed on top, so: horizontal rules, vertical rules,
-       then the desk beneath both. */
-    background-color: var(--color-base-300);
+       Layers paint first-listed on top: horizontal rules over vertical rules,
+       both over the flat desk in background-color. */
+
+    /* The desk is base-100 -- the same surface DaisyUI paints on :root and the
+       one every component is built against. .btn-soft, for one, is literally
+       `color-mix(btn-color 8%, base-100)`, so a soft button on any other desk
+       shade shows up as a patch of the wrong lightness. Matching base-100 here
+       is what makes those components sit correctly on the page.
+
+       Flat, not a gradient: at these token distances a base-100 -> base-200
+       fade is about one lightness point, invisible. The grid supplies the
+       depth the gradient used to. */
+    background-color: var(--color-base-100);
+
+    /* Grid paper, 28px squares. The lines are base-content at low alpha rather
+       than a fixed tan so they stay legible whichever way the theme's polarity
+       runs: rust on cream under caramellatte, warm tan on near-black under
+       coffee -- 1.23 and 1.15 against the desk in both. Horizontals are
+       stronger than verticals; that asymmetry is what makes it read as ruled
+       paper rather than a wire mesh. */
     background-image:
-        /* Grid paper, 28px squares. The lines are base-content at low alpha
-           rather than a fixed tan so they stay legible whichever way the
-           theme's polarity runs: graphite on paper under silk, warm tan on
-           dark under coffee. Horizontals are stronger than verticals -- that
-           asymmetry is what makes it read as ruled paper, not a wire mesh. */
         linear-gradient(color-mix(in oklab, var(--color-base-content) 12%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 8%, transparent) 1px, transparent 1px),
-        /* The desk. One declaration serves both themes: DaisyUI redefines the
-           base ramp under prefers-color-scheme, so this is a soft warm grey
-           under silk and near-black plum under coffee with no media query.
-
-           Anchored on base-300, the darkest base token, because base-100
-           belongs to the panels on top and the gap between them is the only
-           thing separating the two surfaces. Measured: base-300 puts the panel
-           at 1.19-1.21 against the desk under silk and 1.14-1.15 under coffee,
-           where base-200 gives 1.06 in both. So the gradient runs between
-           base-300 and a 12% lean toward base-200 -- enough for a top-lit
-           page, small enough that panels keep their separation at every scroll
-           position, and polarity-safe since it only ever moves toward the
-           theme's own lighter surface.
-
-           Opaque, which the old parchment gradient was not; it covers the
-           base-100 DaisyUI paints on :root, and html is overflow:hidden so
-           that paint was only ever visible behind this anyway. */
-        linear-gradient(
-            180deg,
-            color-mix(in oklab, var(--color-base-300) 88%, var(--color-base-200)),
-            var(--color-base-300));
-    background-size: 100% 28px, 28px 100%, 100% 100%;
+        linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 8%, transparent) 1px, transparent 1px);
+    background-size: 100% 28px, 28px 100%;
 }
 
 *{
