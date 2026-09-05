@@ -42,6 +42,8 @@
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
+    --color-panel: var(--panel-bg);
+    --color-hint: var(--hint-color);
   }
 }
 @layer base {
@@ -1934,6 +1936,9 @@
   .grid {
     display: grid;
   }
+  .hidden {
+    display: none;
+  }
   .inline-block {
     display: inline-block;
   }
@@ -2252,12 +2257,6 @@
   .bg-base-200 {
     background-color: var(--color-base-200);
   }
-  .bg-base-200\/85 {
-    background-color: var(--color-base-200);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-base-200) 85%, transparent);
-    }
-  }
   .bg-base-300 {
     background-color: var(--color-base-300);
   }
@@ -2265,6 +2264,12 @@
     background-color: color-mix(in srgb, #000 40%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-black) 40%, transparent);
+    }
+  }
+  .bg-panel\/85 {
+    background-color: var(--color-panel);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-panel) 85%, transparent);
     }
   }
   .bg-transparent {
@@ -2277,16 +2282,6 @@
     background-color: var(--color-zinc-100);
   }
   @layer daisyui.l1.l2.l3 {
-    .btn-dash {
-      --btn-bg: #0000;
-      color: var(--btn-rest-fg, var(--btn-color, var(--color-base-content)));
-      --btn-border: var(--btn-color, var(--color-base-content));
-      --btn-border-style: solid;
-      background-image: none;
-      --btn-inset: 0 0 0 0 oklch(0% 0 0/0);
-      --btn-shadow: 0 0 0 0 oklch(0% 0 0/0);
-      --btn-border-style: dashed;
-    }
     .btn-outline {
       --btn-bg: #0000;
       color: var(--btn-rest-fg, var(--btn-color, var(--color-base-content)));
@@ -2521,6 +2516,9 @@
       color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
     }
   }
+  .text-hint {
+    color: var(--color-hint);
+  }
   .text-primary {
     color: var(--color-primary);
   }
@@ -2657,6 +2655,9 @@
       --aura-radius: var(--radius-field);
     }
   }
+  .peer-user-invalid\:block:is(:where(.peer):user-invalid ~ *) {
+    display: block;
+  }
   @media (hover: hover) {
     .hover\:border-base-content\/15:hover {
       border-color: var(--color-base-content);
@@ -2701,8 +2702,14 @@
   .focus\:px-2:focus {
     padding-inline: calc(var(--spacing) * 2);
   }
+  .focus\:-outline-offset-2:focus {
+    outline-offset: calc(2px * -1);
+  }
   .focus-visible\:text-primary:focus-visible {
     color: var(--color-primary);
+  }
+  .focus-visible\:-outline-offset-2:focus-visible {
+    outline-offset: calc(2px * -1);
   }
   @media (width < 1160px) {
     .max-\[1160px\]\:grid-cols-3 {
@@ -3110,6 +3117,8 @@
       --border: 2px;
       --depth: 0;
       --noise: 0;
+      --panel-bg: var(--color-base-200);
+      --hint-color: var(--color-error);
     }
   }
   :root:has(input.theme-controller[value="coffee"]:checked),[data-theme="coffee"] {
@@ -3142,6 +3151,41 @@
     --border: 2px;
     --depth: 0;
     --noise: 0;
+    --panel-bg: var(--color-base-200);
+    --hint-color: var(--color-error);
+  }
+  :where(:root),:root:has(input.theme-controller[value="caramellatte"]:checked),[data-theme="caramellatte"] {
+    color-scheme: light;
+    --color-base-100: oklch(98% 0.016 73.684);
+    --color-base-200: oklch(95% 0.038 75.164);
+    --color-base-300: oklch(90% 0.076 70.697);
+    --color-base-content: oklch(40% 0.123 38.172);
+    --color-primary: oklch(0% 0 0);
+    --color-primary-content: oklch(100% 0 0);
+    --color-secondary: oklch(22.45% 0.075 37.85);
+    --color-secondary-content: oklch(90% 0.076 70.697);
+    --color-accent: oklch(46.44% 0.111 37.85);
+    --color-accent-content: oklch(90% 0.076 70.697);
+    --color-neutral: oklch(55% 0.195 38.402);
+    --color-neutral-content: oklch(98% 0.016 73.684);
+    --color-info: oklch(42% 0.199 265.638);
+    --color-info-content: oklch(90% 0.076 70.697);
+    --color-success: oklch(43% 0.095 166.913);
+    --color-success-content: oklch(90% 0.076 70.697);
+    --color-warning: oklch(82% 0.189 84.429);
+    --color-warning-content: oklch(41% 0.112 45.904);
+    --color-error: oklch(70% 0.191 22.216);
+    --color-error-content: oklch(39% 0.141 25.723);
+    --radius-selector: 2rem;
+    --radius-field: 0.5rem;
+    --radius-box: 1rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 2px;
+    --depth: 1;
+    --noise: 1;
+    --panel-bg: var(--color-base-100);
+    --hint-color: var(--color-error-content);
   }
 }
 @property --tw-translate-x {

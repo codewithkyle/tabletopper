@@ -76,7 +76,7 @@ templ infoRowsTable(field string, rows []InfoRow) {
 		</div>
 		<button
 			type="button"
-			class="btn btn-dash btn-warning"
+			class="btn btn-ghost btn-warning"
 			hx-get={ "/characters/fragments/info-row?field=" + field }
 			hx-target={ "#rows-" + field }
 			hx-swap="append"
@@ -105,6 +105,18 @@ templ InfoRowFragment(field string) {
 // w-full for the reason noted in form-field.templ: .input and .textarea are
 // both clamp(3rem, 20rem, 100%) and would otherwise stop short in a wide cell.
 //
+// focus:-outline-offset-2 on all three children is what makes focus legible
+// inside this box. DaisyUI focuses .input/.textarea/.btn with
+// a 2px solid stroke at a positive 2px offset, drawn *outside* the element,
+// and the wrapper needs overflow-hidden to clip the children's square corners to
+// its own rounded-field. So the wrapper was clipping that box, and because
+// each field is flush against an edge only the interior runs of it survived:
+// the name input showed a bottom and right rule, the description showed a top
+// rule, and the delete button read as one abnormally heavy edge. Pulling the
+// offset negative draws the same box just inside each field's border box, where
+// nothing clips it, and keeps a real focus cue on every control rather than
+// dropping the property to hide the symptom.
+//
 // NO `required` HERE, unlike the fields in form-field.templ. marshalInfoRowsPayload
 // drops a row whose name and description are both empty, but the required
 // attributes monster-info-table.js emitted made that guard unreachable: htmx 4
@@ -119,13 +131,13 @@ templ infoRow(field string, row InfoRow) {
 			<input
 				name={ field + "-name" }
 				type="text"
-				class="input input-ghost w-full min-w-0 flex-1 rounded-none font-medium"
+				class="input input-ghost w-full min-w-0 flex-1 rounded-none font-medium focus:-outline-offset-2"
 				value={ row.Name }
 				placeholder="Name"
 			/>
 			<button
 				type="button"
-				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error"
+				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2"
 				aria-label={ "Delete " + infoRowKinds[field].ItemLabel }
 				x-on:click="$el.closest('[data-info-row]').remove()"
 			>
@@ -134,7 +146,7 @@ templ infoRow(field string, row InfoRow) {
 		</div>
 		<textarea
 			name={ field + "-value" }
-			class="textarea textarea-ghost w-full rounded-none"
+			class="textarea textarea-ghost w-full rounded-none focus:-outline-offset-2"
 			rows="4"
 			placeholder="Description"
 		>{ row.Value }</textarea>

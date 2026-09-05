@@ -3,7 +3,11 @@
 // dropRequest must be called, or the element's request queue stalls.
 const pendingConfirms = {};
 
-document.body.addEventListener("htmx:confirm", (e) => {
+// On `document` for the same reason notif.js is -- htmx dispatches to document
+// whenever the requesting element is detached, and those never reach body. The
+// element is still connected at confirm time, so this one is consistency rather
+// than a fix, but the rule is easier to keep than the exception.
+document.addEventListener("htmx:confirm", (e) => {
     // NOTE: htmx 4 moved the triggering element and the hx-confirm message onto
     // the request ctx; the old detail.elt and detail.question are gone.
     const elt = e.detail?.ctx?.sourceElement;

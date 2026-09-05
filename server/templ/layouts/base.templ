@@ -47,7 +47,7 @@ templ Base(settings BaseTemplateSettings) {
 				x-on:show-confirm-modal.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; confirmLabel = $event.detail.confirmLabel; cancelLabel = $event.detail.cancelLabel; show = true;"
 			>
 				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
-				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-base-200/85 p-6 shadow-sm backdrop-blur-sm">
+				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-panel/85 p-6 shadow-sm backdrop-blur-sm">
 					<h4
 						class="block text-xl font-semibold mb-3"
 						x-text="heading"
@@ -78,7 +78,7 @@ templ Base(settings BaseTemplateSettings) {
 				x-on:alert.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; show = true;"
 			>
 				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
-				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-base-200/85 p-6 shadow-sm backdrop-blur-sm">
+				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-panel/85 p-6 shadow-sm backdrop-blur-sm">
 					<h4
 						class="block text-xl font-semibold mb-3"
 						x-text="heading"

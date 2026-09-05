@@ -27,6 +27,22 @@ package pages
 // w-full is not optional: DaisyUI sizes .input at `clamp(3rem, 20rem, 100%)`,
 // so a field in a cell wider than 20rem would otherwise stop short of it.
 
+// .validator-hint is `visibility: hidden` in DaisyUI, which keeps the element in
+// flow so nothing shifts when an error appears. That reserved line is 0.75rem of
+// text plus a 0.5rem margin under *every* field, and stacked with the grid's own
+// gap-4 it put roughly 2.6rem between form rows -- the sheet read as far more
+// spaced out than it is dense.
+//
+// `hidden peer-user-invalid:block` collapses the element instead, so a row costs
+// only what it displays. The trade is that a row grows when its error appears
+// and pushes the rows below it down. That is the conventional behaviour and it
+// only happens on an actual violation, which is worth more than permanently
+// spending a line per field against it.
+//
+// DaisyUI's own `.validator:user-invalid ~ .validator-hint` rule still supplies
+// the `visibility` flip and the error colour; only `display` is ours, which is
+// why the input keeps `validator` and gains `peer` rather than swapping one for
+// the other.
 templ textField(name string, label string, value string, placeholder string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -34,13 +50,13 @@ templ textField(name string, label string, value string, placeholder string, req
 			id={ name }
 			name={ name }
 			type="text"
-			class="input validator w-full"
+			class="input validator peer w-full"
 			value={ value }
 			placeholder={ placeholder }
 			required?={ required }
 		/>
 		if required {
-			<p class="validator-hint">This field is required.</p>
+			<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
 		}
 	</div>
 }
@@ -58,14 +74,14 @@ templ numberField(name string, label string, value string, required bool) {
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input validator w-full"
+			class="input validator peer w-full"
 			value={ value }
 			min="0"
 			max="9999"
 			step="1"
 			required?={ required }
 		/>
-		<p class="validator-hint">Enter a number from 0 to 9999.</p>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
 	</div>
 }
 

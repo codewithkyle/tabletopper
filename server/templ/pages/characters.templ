@@ -81,7 +81,7 @@ templ Characters(session session.UserSession, characters []queries.GetCharacters
 }
 
 templ Character(character queries.GetCharactersRow) {
-	<character-card class="card card-border border-base-300 bg-base-200/85 shadow-sm backdrop-blur-sm">
+	<character-card class="card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
 		<div class="card-body gap-4 p-4">
 			<div class="flex items-center gap-4">
 				if !character.AssetID.IsZero() {
@@ -167,14 +167,14 @@ templ Character(character queries.GetCharactersRow) {
 			<div class="card-actions justify-end">
 				<a
 					href={ "/characters/" + character.ID.String() + "/edit" }
-					class="btn btn-ghost max-[700px]:flex-1"
+					class="btn btn-soft max-[700px]:flex-1"
 				>Edit</a>
 				<button
 					hx-confirm={ "You are about to delete your character " + character.Name + ". This action cannot be undone." }
 					hx-delete={ "/characters/" + character.ID.String() + "/delete" }
 					hx-target="closest character-card"
 					hx-swap="delete"
-					class="btn btn-ghost btn-error max-[700px]:flex-1"
+					class="btn btn-soft btn-error max-[700px]:flex-1"
 				>Delete</button>
 			</div>
 		</div>
@@ -204,7 +204,7 @@ templ charactersContent(session session.UserSession, characters []queries.GetCha
 				</div>
 			</header>
 			if len(characters) == 0 {
-				<div class="card card-border mx-auto mt-[min(14vh,7rem)] border-base-300 bg-base-200/85 text-center shadow-sm backdrop-blur-sm">
+				<div class="card card-border mx-auto mt-[min(14vh,7rem)] border-base-300 bg-panel/85 text-center shadow-sm backdrop-blur-sm">
 					<div class="card-body p-8">
 						<p class="m-0 font-serif text-2xl">No heroes in your roster yet.</p>
 						<p class="m-0 mt-4 text-base-content/75">Create your first character sheet <strong>before</strong> your session.</p>

@@ -91,6 +91,37 @@
   name: "coffee";
   prefersdark: true;
   --border: 2px;
+  --panel-bg: var(--color-base-200);
+  --hint-color: var(--color-error);
+}
+
+/* --panel-bg is the elevated surface: cards, sheet sections, the modal, the
+   user badge. It is not a DaisyUI token; the plugin passes an unrecognised
+   custom property straight through into the theme block, which is the whole
+   reason it is declared here instead of by hand. Doing it this way means the
+   value lands in every selector DaisyUI generates for a theme -- `:where(:root)`,
+   `[data-theme=…]`, and the `:root:not([data-theme])` inside the
+   prefers-color-scheme media query -- so an explicit theme and an OS-driven one
+   both get it, with no selector list of ours to keep in sync.
+
+   Light mode is base-100, the same shade as the desk. DaisyUI's convention is
+   base-200 for elevation, but caramellatte's base-200 is dark enough that
+   .validator-hint's --color-error over it measures below 4.5:1. Flattening the
+   panel to base-100 fixes the contrast rather than working around it, and the
+   panel still reads as a panel: it keeps its base-300 border, its shadow, and
+   the backdrop-blur that separates it from the grid paper behind.
+
+   Dark mode keeps base-200, which is *darker* than coffee's base-100 desk, so
+   elevation there is a recess and the error text has room to begin with.
+
+   Overriding --color-base-200 globally would have been the shorter route and
+   the wrong one: DaisyUI builds .btn's default background out of it, so light
+   mode would have lost the distinction between a button and the page. */
+@plugin "./vendor/daisyui-theme.js" {
+  name: "caramellatte";
+  default: true;
+  --panel-bg: var(--color-base-100);
+  --hint-color: var(--color-error-content);
 }
 
 /* Rubik, loaded by the @import at the top of core.css.
@@ -106,6 +137,41 @@
    assumed -- ours has to win a three-way cascade against the plugin), so
    preflight applies Rubik to html and everything inherits it. It also makes the
    font-sans utility mean what it says, which the core.css version did not. */
+/* Exposes --panel-bg to Tailwind as a colour, so the panels can say
+   `bg-panel/85` and get the opacity modifier for free. Like every @theme
+   variable this is emitted only because a generated utility references it --
+   see the note on the deleted js @source below for what that dependency cost
+   once already. Here the utility and the variable are added together and the
+   panels are the only consumer, so if bg-panel ever stops being used the token
+   goes with it and nothing is left reading a name that is gone. */
+@theme {
+  --color-panel: var(--panel-bg);
+}
+
+/* --hint-color is the field-error text on .validator-hint, and it has to be
+   picked per theme because --color-error is a *fill* colour, sized for a badge
+   or a button, not for small text on a pale surface.
+
+   Measured against the panel, rasterised through a canvas so the browser does
+   the oklch conversion:
+
+     caramellatte  --color-error          rgb(255, 98, 102)   2.75 : 1   fails
+     caramellatte  --color-error-content  rgb(128,  21,  24)  9.70 : 1   passes
+     coffee        --color-error          rgb(252, 149, 129)  8.16 : 1   passes
+     coffee        --color-error-content  rgb( 21,   8,   6)  1.12 : 1   fails
+
+   So each theme takes whichever of its own error pair is the readable one
+   against its own panel: the dark ink in light mode, the light coral in dark.
+   -content is nominally "foreground on an error fill" rather than on base, but
+   it is the only red DaisyUI ships per theme that is built to be read rather
+   than filled with, and both readings land far the right side of 4.5:1.
+
+   Flattening the panel to base-100 was not what fixed this -- on its own it
+   moved caramellatte from 2.56 to 2.75. */
+@theme {
+  --color-hint: var(--hint-color);
+}
+
 @theme {
   --font-sans: "Rubik", Ubuntu, "Open Sans", "Noto Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, "Helvetica Neue", sans-serif;
 }
