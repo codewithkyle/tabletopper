@@ -48,6 +48,21 @@
   exclude: input, select, label, link;
 }
 
+/* coffee ships --border: 1px, caramellatte 2px, so a bordered card changed
+   thickness with the OS theme. Pinned to 2px in both.
+
+   Overriding a built-in theme goes through daisyui-theme.js -- that is what
+   the plugin file above is kept for. It re-emits the named theme as a full
+   token block later in @layer base, so the properties named here win on
+   cascade order and everything unnamed is inherited from the built-in. The
+   prefersdark flag has to be repeated or the block would lose its media
+   query. */
+@plugin "./vendor/daisyui-theme.js" {
+  name: "coffee";
+  prefersdark: true;
+  --border: 2px;
+}
+
 /* templ is not a format Tailwind auto-detects, so point it at the source.
    Scan .templ, not the generated _templ.go -- the latter is gitignored. */
 @source "../templ/**/*.templ";

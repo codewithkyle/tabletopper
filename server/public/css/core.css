@@ -8,47 +8,16 @@ html{
     height: 100vh;
     overflow: hidden;
 
-    --sheet-ink: #2f2418;
-    --sheet-muted: #7c6a53;
-    --sheet-rule: #d8ccb8;
-    --sheet-accent: #7a3f23;
-    --sheet-text-shadow: rgba(143, 107, 36, 0.15) 0px 0px 12px,rgba(143, 107, 36, 0.2) 0px 2px 4px;
+    /* No app colour tokens live here any more. The frosted panel that used to
+       be --panel-bg/-blur/-shadow is now a class string --
+       `bg-base-200/85 backdrop-blur-sm shadow-sm` on a DaisyUI card -- and the
+       ink tokens resolved to base-content and base-300. The one place the
+       recipe is still written out as CSS is toast.css, whose markup is built
+       by toaster.js at runtime and so has no element to hang utilities on.
 
-    /* The frosted panel that sits on the desk below. The desk is base-100 --
-       the page surface every DaisyUI component is built against -- so the
-       panel takes base-200, DaisyUI's own "one step of elevation" shade. That
-       ordering is polarity-safe: the base ramp always runs from the theme's
-       surface toward its depth, so the panel is one step deeper under
-       caramellatte and under coffee alike, with nothing to hand-tune and no
-       dark-mode override below.
+       What remains below is layout and the desk itself, which does still read
+       the DaisyUI base ramp. */
 
-       Fill separation is deliberately slight (1.08 under caramellatte, 1.06
-       under coffee). The real separator is texture, not luminance: the desk
-       carries the grid, the panel's backdrop-filter blurs it to a soft wash,
-       and the edge between crisp rules and blurred ones is what reads. Fill,
-       border and shadow are supporting signals. If the cards ever look too
-       flat, base-300 here takes fill separation to 1.24 / 1.16.
-
-       The shadow is two soft drops rather than the old bevel-plus-drop. A top
-       inset highlight needs a colour lighter than the panel's own surface, and
-       no token is: measured, the old bevel came out at 1.01 against the panel
-       in both themes, i.e. invisible. Two drops separate the panel honestly,
-       and because base-content is light under coffee the same declaration
-       reads as a warm halo there -- which is what the old dark override did by
-       hand. */
-    --panel-bg: color-mix(in oklab, var(--color-base-200) 87%, transparent);
-    --panel-blur: 8px;
-    --panel-shadow:
-        0 1px 2px color-mix(in oklab, var(--color-base-content) 12%, transparent),
-        0 4px 12px color-mix(in oklab, var(--color-base-content) 14%, transparent);
-
-    @media (prefers-color-scheme: dark) {
-        --sheet-ink: #e9ddc9;
-        --sheet-muted: #b4a289;
-        --sheet-rule: hsl(33.82deg 83.33% 74.12% / 0.3);
-        --sheet-accent: #f4c486;
-        --sheet-text-shadow: rgba(153, 133, 102, 0.1) 0px 0px 12px, rgba(153, 133, 102, 0.3) 0px 2px 6px;
-    }
 
     &[state="loading"] {
         * {
@@ -64,7 +33,6 @@ body{
     height: 100vh;
     position: relative;
     overflow: hidden;
-    color: var(--sheet-ink);
 
     /* Desk and grid paper, as layers of one background rather than a desk here
        and a grid on a fixed ::before.

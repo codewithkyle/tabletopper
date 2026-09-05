@@ -26,11 +26,8 @@ templ Base(settings BaseTemplateSettings) {
 			<link rel="stylesheet" href="/css/tokens.css"/>
 			<link rel="stylesheet" href="/css/soft-loading.css"/>
 			<link rel="stylesheet" href="/css/bootstrap.css"/>
-			<link rel="stylesheet" href="/css/modal-element.css"/>
 			<link rel="stylesheet" href="/css/animations.css"/>
 			<link rel="stylesheet" href="/css/input.css"/>
-			<link rel="stylesheet" href="/css/homepage.css"/>
-			<link rel="stylesheet" href="/css/assets-page.css"/>
 			<link rel="stylesheet" href="/css/toast.css"/>
 			<link rel="stylesheet" href="/css/link.css"/>
 			<link rel="stylesheet" href="/css/select.css"/>
@@ -38,8 +35,6 @@ templ Base(settings BaseTemplateSettings) {
 			<link rel="stylesheet" href="/css/skills-table.css"/>
 			<link rel="stylesheet" href="/css/saving-throws-table.css"/>
 			<link rel="stylesheet" href="/css/spell-slots-table.css"/>
-			<link rel="stylesheet" href="/css/character-sheet.css"/>
-			<link rel="stylesheet" href="/css/character-cards.css"/>
 			<script defer src="/static/htmx.min.js"></script>
 			<script defer src="/static/hx-head.min.js"></script>
 			<script defer src="/static/alpine.min.js"></script>
@@ -63,21 +58,20 @@ templ Base(settings BaseTemplateSettings) {
 				@settings.Content
 			</main>
 			<modal-element
+				class="fixed top-0 left-0 z-[9000] flex h-screen w-screen flex-col content-center justify-center"
 				x-data="{ show: false, confirmLabel:'', cancelLabel:'', heading:'', message:'', uid:'' }"
 				x-cloak
 				x-show="show"
 				x-on:show-confirm-modal.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; confirmLabel = $event.detail.confirmLabel; cancelLabel = $event.detail.cancelLabel; show = true;"
 			>
-				<modal-background></modal-background>
-				<modal-content class="p-6">
+				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
+				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-base-200/85 p-6 shadow-sm backdrop-blur-sm">
 					<h4
 						class="block text-xl font-semibold mb-3"
-						style="color: var(--sheet-accent);"
 						x-text="heading"
 					></h4>
 					<p
 						class="block mb-6"
-						style="color: var(--sheet-ink);"
 						x-text="message"
 					></p>
 					<div class="w-full flex flex-row flex-nowrap items-center justify-end">
@@ -95,21 +89,20 @@ templ Base(settings BaseTemplateSettings) {
 				</modal-content>
 			</modal-element>
 			<modal-element
+				class="fixed top-0 left-0 z-[9000] flex h-screen w-screen flex-col content-center justify-center"
 				x-data="{ show: false, heading:'', message:'', uid:'' }"
 				x-cloak
 				x-show="show"
 				x-on:alert.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; show = true;"
 			>
-				<modal-background></modal-background>
-				<modal-content class="p-6">
+				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
+				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-base-200/85 p-6 shadow-sm backdrop-blur-sm">
 					<h4
 						class="block text-xl font-semibold mb-3"
-						style="color: var(--sheet-accent);"
 						x-text="heading"
 					></h4>
 					<p
 						class="block mb-6"
-						style="color: var(--sheet-ink);"
 						x-text="message"
 					></p>
 					<div class="w-full flex flex-row flex-nowrap items-center justify-end">

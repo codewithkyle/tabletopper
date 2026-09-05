@@ -19,11 +19,12 @@ templ MapAssets(session session.UserSession, maps []queries.GetUserMapsRow) {
 }
 
 templ MapCard(m queries.GetUserMapsRow) {
-	<asset-card>
+	<asset-card class="card card-border mb-auto border-base-300 bg-base-200/85 p-4 shadow-sm backdrop-blur-sm">
 		if m.PreviewPath.Valid {
-			<img src={ "/assets/images/" + m.ID.String() + "/preview?t="+strconv.FormatInt(time.Now().Unix(),10) }/>
+			<img class="mb-2 block aspect-square w-full overflow-hidden rounded object-cover" src={ "/assets/images/" + m.ID.String() + "/preview?t="+strconv.FormatInt(time.Now().Unix(),10) }/>
 		}
 		<input
+			class="mb-1 block h-9 w-full truncate rounded border border-transparent bg-transparent font-serif text-2xl transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2"
 			type="text"
 			value={ m.Name }
 			name="map-name"
@@ -32,9 +33,9 @@ templ MapCard(m queries.GetUserMapsRow) {
 			hx-patch={ "/assets/maps/" + m.ID.String() + "/name" }
 			hx-swap="none"
 		/>
-		<div style="gap:0.5rem;" class="flex flex-row flex-nowrap items-center justify-between">
-			<div style="flex:1;">
-				<code class="max-w-full">{ m.FileName }</code>
+		<div class="flex flex-row flex-nowrap items-center justify-between gap-2">
+			<div class="min-w-0 flex-1">
+				<code class="mr-auto inline-block h-6 max-w-full flex-1 overflow-hidden rounded border-2 border-base-300 bg-base-100 px-1 text-xs leading-6 text-ellipsis whitespace-nowrap">{ m.FileName }</code>
 			</div>
 			<div class="flex flex-row items-center">
 				<div class="tooltip" data-tip="Replace">
@@ -44,6 +45,7 @@ templ MapCard(m queries.GetUserMapsRow) {
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-replace"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 2h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M20 14h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M16.707 2.293a1 1 0 0 1 .083 1.32l-.083 .094l-1.293 1.293h3.586a3 3 0 0 1 2.995 2.824l.005 .176v3a1 1 0 0 1 -1.993 .117l-.007 -.117v-3a1 1 0 0 0 -.883 -.993l-.117 -.007h-3.585l1.292 1.293a1 1 0 0 1 -1.32 1.497l-.094 -.083l-3 -3a.98 .98 0 0 1 -.28 -.872l.036 -.146l.04 -.104c.058 -.126 .14 -.24 .245 -.334l2.959 -2.958a1 1 0 0 1 1.414 0z"></path><path d="M3 12a1 1 0 0 1 .993 .883l.007 .117v3a1 1 0 0 0 .883 .993l.117 .007h3.585l-1.292 -1.293a1 1 0 0 1 -.083 -1.32l.083 -.094a1 1 0 0 1 1.32 -.083l.094 .083l3 3a.98 .98 0 0 1 .28 .872l-.036 .146l-.04 .104a1.02 1.02 0 0 1 -.245 .334l-2.959 2.958a1 1 0 0 1 -1.497 -1.32l.083 -.094l1.291 -1.293h-3.584a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-3a1 1 0 0 1 1 -1z"></path></svg>
 						<input
+							class="absolute top-0 left-0 h-0 w-0 opacity-0"
 							id={ "map-replace-" + m.ID.String() }
 							type="file"
 							name="map"
@@ -72,9 +74,9 @@ templ MapCard(m queries.GetUserMapsRow) {
 }
 
 templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRow) {
-	<assets-page class="block relative w-screen h-screen p-4">
-		<header>
-			<h1>Asset Manager</h1>
+	<assets-page class="relative block h-screen min-h-dvh w-screen p-4">
+		<header class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3">
+			<h1 class="mt-0.5 mb-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
 			<div class="flex flex-row flex-nowrap items-center">
 				<a
 					href="/"
@@ -90,6 +92,7 @@ templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRo
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
 					Upload map
 					<input
+						class="absolute top-0 left-0 h-0 w-0 opacity-0"
 						id="map-upload"
 						type="file"
 						name="map"
@@ -103,7 +106,7 @@ templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRo
 				</label>
 			</div>
 		</header>
-		<section id="maps">
+		<section id="maps" class="grid max-h-[90%] min-h-0 w-full grid-cols-5 gap-4 overflow-y-auto">
 			for _, m := range maps {
 				@MapCard(m)
 			}

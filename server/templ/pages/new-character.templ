@@ -33,37 +33,34 @@ templ NewCharacterFormErrors(messages []string) {
 }
 
 templ newCharacterContent(session session.UserSession) {
-	<character-editor class="character-sheet-shell block relative w-screen h-screen px-4 pt-4">
-		<form class="character-sheet-form w-full h-full" hx-post="/characters" hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
-			<div class="character-sheet-header">
+	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<form class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3" hx-post="/characters" hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
+			<div class="flex flex-wrap items-end justify-between gap-3 p-2 max-[640px]:items-stretch">
 				<div>
-					<h1 class="sheet-title">New Character</h1>
+					<h1 class="mt-0.5 mb-0 font-serif text-[2rem] leading-tight">New Character</h1>
 				</div>
-				<div class="sheet-actions">
+				<div class="flex items-center gap-4 max-[640px]:w-full">
 					<a
 						href="/characters"
 						type="button"
-						class="btn"
+						class="btn max-[640px]:flex-1"
 					>
 						Back
 					</a>
 					<button
 						type="submit"
-						class="btn btn-success"
+						class="btn btn-success max-[640px]:flex-1"
 					>
 						Save character
 					</button>
 				</div>
 			</div>
-			<div class="character-sheet-paper">
+			<div class="min-h-0 overflow-hidden">
 				@NewCharacterFormErrors([]string{})
-				<div class="character-sheet-scroll">
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Identity</h2>
-						</div>
-						<div class="sheet-grid sheet-grid-identity">
-							<div class="sheet-span-2">
+				<div class="grid h-full gap-4 overflow-auto pb-4">
+					@sheetSection("Identity") {
+						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+							<div class="col-span-2 max-[900px]:col-auto">
 								<input-component
 									data-name="name"
 									data-label="Character Name"
@@ -105,13 +102,10 @@ templ newCharacterContent(session session.UserSession) {
 								data-value="medium"
 							></select-component>
 						</div>
-					</section>
+					}
 
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Abilities</h2>
-						</div>
-						<div class="sheet-grid sheet-grid-abilities">
+					@sheetSection("Abilities") {
+						<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
 							<number-input-component data-name="str" data-label="Strength" data-required="true" data-value="10"></number-input-component>
 							<number-input-component data-name="dex" data-label="Dexterity" data-required="true" data-value="10"></number-input-component>
 							<number-input-component data-name="con" data-label="Constitution" data-required="true" data-value="10"></number-input-component>
@@ -119,13 +113,10 @@ templ newCharacterContent(session session.UserSession) {
 							<number-input-component data-name="wis" data-label="Wisdom" data-required="true" data-value="10"></number-input-component>
 							<number-input-component data-name="cha" data-label="Charisma" data-required="true" data-value="10"></number-input-component>
 						</div>
-					</section>
+					}
 
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Core Stats</h2>
-						</div>
-						<div class="sheet-grid sheet-grid-core">
+					@sheetSection("Core Stats") {
+						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
 							<number-input-component data-name="xp" data-label="Experience" data-required="true" data-value="0"></number-input-component>
 							<input-component data-name="speed" data-label="Speed" data-value="30 ft."></input-component>
 							<number-input-component data-name="ac" data-label="Armor Class" data-required="true" data-value="10"></number-input-component>
@@ -136,13 +127,10 @@ templ newCharacterContent(session session.UserSession) {
 							<number-input-component data-name="spell_save_dc" data-label="Spell Save DC" data-required="true" data-value="10"></number-input-component>
 							<number-input-component data-name="spell_atk_bonus" data-label="Spell Attack Bonus" data-required="true" data-value="0"></number-input-component>
 						</div>
-					</section>
+					}
 
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Proficiencies & Training</h2>
-						</div>
-						<div class="sheet-grid sheet-grid-training">
+					@sheetSection("Proficiencies & Training") {
+						<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 							<input-component data-name="languages" data-label="Languages" data-value="Common"></input-component>
 							<input-component
 								data-name="proficiencies"
@@ -152,72 +140,54 @@ templ newCharacterContent(session session.UserSession) {
 								data-value=""
 							></input-component>
 						</div>
-					</section>
+					}
 
-					<div class="sheet-dual-columns">
-						<div class="sheet-column">
-							<section class="sheet-section">
-								<div class="sheet-section-header">
-									<h2>Saving Throws</h2>
-								</div>
+					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+						<div class="grid content-start gap-4">
+							@sheetSection("Saving Throws") {
 								<saving-throws-table data-name="saving_throws" data-label="" data-values="{}"></saving-throws-table>
-							</section>
-							<section class="sheet-section">
-								<div class="sheet-section-header">
-									<h2>Skills</h2>
-								</div>
+							}
+							@sheetSection("Skills") {
 								<skills-table data-name="skills" data-label="" data-values="{}"></skills-table>
-							</section>
+							}
 						</div>
-						<div class="sheet-column">
-							<section class="sheet-section">
-								<div class="sheet-section-header">
-									<h2>Features & Traits</h2>
-								</div>
+						<div class="grid content-start gap-4">
+							@sheetSection("Features & Traits") {
 								<monster-info-table
 									data-name="features"
 									data-label=""
 									data-add-label="Add Feature or Trait"
 									data-rows="[]"
 								></monster-info-table>
-							</section>
-							<section class="sheet-section">
-								<div class="sheet-section-header">
-									<h2>Equipment</h2>
-								</div>
+							}
+							@sheetSection("Equipment") {
 								<monster-info-table
 									data-name="weapons"
 									data-label=""
 									data-add-label="Add Equipment"
 									data-rows="[]"
 								></monster-info-table>
-							</section>
+							}
 						</div>
 					</div>
 
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Resources</h2>
-						</div>
+					@sheetSection("Resources") {
 						<monster-info-table
 							data-name="resources"
 							data-label=""
 							data-add-label="Add Resource"
 							data-rows="[]"
 						></monster-info-table>
-					</section>
+					}
 
-					<section class="sheet-section">
-						<div class="sheet-section-header">
-							<h2>Spellcasting</h2>
-						</div>
+					@sheetSection("Spellcasting") {
 						<spell-slots-table
 							data-name="spells"
 							data-label=""
 							data-add-label="Add Spell"
 							data-levels="{}"
 						></spell-slots-table>
-					</section>
+					}
 				</div>
 			</div>
 		</form>

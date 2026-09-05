@@ -138,7 +138,7 @@ import h from"./supercomponent.js";import{html as p,render as g}from"./lit-html.
                     `})}
             </spells-list>
         `}render(){const s=typeof this.model.label=="string"?this.model.label.trim():"",e=p`
-            ${s?p`<h4 class="block w-full font-medium text-sm text-zinc-800 dark:text-zinc-300 pl-0.5">
+            ${s?p`<h4 class="m-0 block w-full pl-0.5 text-[0.71rem] font-bold tracking-[0.08em] uppercase text-base-content/75">
                       ${$(s)}
                   </h4>`:null}
 

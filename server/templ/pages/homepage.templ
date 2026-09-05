@@ -17,10 +17,10 @@ templ Homepage(session session.UserSession) {
 
 templ homepageContent(session session.UserSession) {
 	if session.UserId.IsZero() {
-		<home-page class="p-8 max-w-full">
+		<home-page class="relative inline-block max-w-full p-8">
 			<div class="w-full max-w-[1024px] text-center">
-				<h1 class="mb-12">Tabletopper</h1>
-				<div class="actions w-full flex flex-row flex-nowrap items-center justify-center">
+				<h1 class="mb-12 font-[Lobster] text-[10rem] font-bold text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">Tabletopper</h1>
+				<div class="flex w-full flex-row flex-nowrap items-center justify-center opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 					<a
 						href="/sign-in"
 						class="btn btn-outline btn-lg"
@@ -33,15 +33,15 @@ templ homepageContent(session session.UserSession) {
 			@footer()
 		</home-page>
 	} else {
-		<home-page class="pl-12 pt-8 pr-16 w-screen h-screen top-0 left-0" style="inset:0;">
+		<home-page class="relative inline-block inset-0 h-screen w-screen pt-8 pr-16 pl-12">
 			<div class="w-full flex flex-row flex-nowrap items-center justify-between">
-				<h1>Tabletopper</h1>
-				<div id="user-badge">
-					<img class="mr-3" style="overflow:hidden;width:48px;height:48px;border-radius:24px;" src={ session.ProfileImageURL }/>
+				<h1 class="font-[Lobster] text-[10rem] font-bold text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">Tabletopper</h1>
+				<div id="user-badge" class="-mt-4 flex flex-row flex-nowrap items-center rounded-full border-2 border-base-300 bg-base-200/85 px-3 py-2 shadow-sm backdrop-blur-sm opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+					<img class="mr-3 size-12 overflow-hidden rounded-full" src={ session.ProfileImageURL }/>
 					<p class="inline-block mr-8 text-xs font-medium">
 						Welcome
 						<br/>
-						<span class="inline-block mt-1 text-blue-300 text-xl font-bold">{ session.Username }</span>
+						<span class="mt-1 inline-block text-xl font-bold text-primary">{ session.Username }</span>
 					</p>
 					<div class="tooltip" data-tip="Logout">
 						<a
@@ -53,12 +53,12 @@ templ homepageContent(session session.UserSession) {
 					</div>
 				</div>
 			</div>
-			<nav>
-				<a style="animation-delay:350ms;" href="/host">Host Game</a>
-				<a style="animation-delay:400ms;" href="/join">Join Game</a>
-				<a style="animation-delay:450ms;" href="/characters">Characters</a>
-				<a style="animation-delay:500ms;" href="/assets/maps">Manage Assets</a>
-				<a style="animation-delay:550ms;" href="/monsters">Monster Manual</a>
+			<nav class="mt-[4vh] inline-block pl-4">
+				<a class="[animation-delay:350ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/host">Host Game</a>
+				<a class="[animation-delay:400ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/join">Join Game</a>
+				<a class="[animation-delay:450ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/characters">Characters</a>
+				<a class="[animation-delay:500ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/assets/maps">Manage Assets</a>
+				<a class="[animation-delay:550ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/monsters">Monster Manual</a>
 			</nav>
 			@footer()
 		</home-page>
