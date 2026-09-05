@@ -76,19 +76,48 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, character.Name+" has been deleted.")
 }
 
+// The editor's two pages. Both need the same character loaded and mapped the
+// same way, and differ only in which panels they render, so the work is in
+// loadCharacterForEdit and these are the two ways out of it.
+//
+// characterToEditPageData builds the whole struct for both. A spells page that
+// reads only SpellLevels is not worth a second mapper -- the row is already in
+// memory and the unused fields cost a few string conversions.
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
+	data, ok := a.loadCharacterForEdit(w, r)
+	if !ok {
+		return
+	}
+
+	render(w, r, pages.EditCharacter(data))
+}
+
+func (a *App) CharacterSpellsPage(w http.ResponseWriter, r *http.Request) {
+	data, ok := a.loadCharacterForEdit(w, r)
+	if !ok {
+		return
+	}
+
+	render(w, r, pages.EditCharacterSpells(data))
+}
+
+// loadCharacterForEdit answers a page request, so every failure is a redirect
+// rather than an alert: nothing is open yet to show one in. A character that is
+// not this user's and one that never existed are the same miss, because the
+// query is scoped to the owner.
+func (a *App) loadCharacterForEdit(w http.ResponseWriter, r *http.Request) (pages.EditCharacterPageData, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
 		redirect(w, r, "/characters")
-		return
+		return pages.EditCharacterPageData{}, false
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
 		redirect(w, r, "/characters")
-		return
+		return pages.EditCharacterPageData{}, false
 	}
 
 	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
@@ -97,97 +126,15 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		redirect(w, r, "/characters")
-		return
+		return pages.EditCharacterPageData{}, false
 	}
 	if err != nil {
 		slog.Error("Failed to load character", "error", err)
 		redirectToError(w, r)
-		return
+		return pages.EditCharacterPageData{}, false
 	}
 
-	data := characterToEditPageData(id, character)
-	render(w, r, pages.EditCharacter(data))
-}
-
-func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-
-	characterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "character")
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}))
-		return
-	}
-
-	formInput, validationErrors, err := buildCharacterFormInput(r)
-	if err != nil {
-		slog.Error("Failed to read character form", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if len(validationErrors) > 0 {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		render(w, r, pages.NewCharacterFormErrors(validationErrors))
-		return
-	}
-
-	result, err := a.Queries.UpdateCharacter(ctx, queries.UpdateCharacterParams{
-		Name:             formInput.Name,
-		Level:            formInput.Level,
-		XP:               formInput.XP,
-		Race:             formInput.Race,
-		Background:       formInput.Background,
-		Alignment:        formInput.Alignment,
-		Classes:          formInput.Classes,
-		Size:             formInput.Size,
-		AC:               formInput.AC,
-		MaxHP:            formInput.MaxHP,
-		CurrentHP:        formInput.CurrentHP,
-		ProficiencyBonus: formInput.ProficiencyBonus,
-		TempHP:           formInput.TempHP,
-		Speed:            formInput.Speed,
-		InitiativeBonus:  formInput.InitiativeBonus,
-		SpellSaveDC:      formInput.SpellSaveDC,
-		SpellAtkBonus:    formInput.SpellAtkBonus,
-		Str:              formInput.Str,
-		Dex:              formInput.Dex,
-		Con:              formInput.Con,
-		Int:              formInput.Int,
-		Wis:              formInput.Wis,
-		Cha:              formInput.Cha,
-		Languages:        formInput.Languages,
-		Proficiencies:    formInput.Proficiencies,
-		Skills:           formInput.Skills,
-		SavingThrows:     formInput.SavingThrows,
-		Features:         formInput.Features,
-		Weapons:          formInput.Weapons,
-		SpellSlots:       formInput.SpellSlots,
-		Resources:        formInput.Resources,
-		ID:               characterID,
-		OwnerID:          sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to update character", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-	// Found-rows semantics (see database.Open), so zero means the id is not
-	// this user's rather than that nothing changed.
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "character")
-		return
-	}
-
-	slog.Info("Character updated", "characterID", characterID.String())
-	htmx.Toast(w, formInput.Name+" has been updated.")
-	htmx.Redirect(w, "/characters")
+	return characterToEditPageData(id, character), true
 }
 
 func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
@@ -362,95 +309,36 @@ type characterFormInput struct {
 	Resources        json.RawMessage
 }
 
+// buildCharacterFormInput reads the whole sheet, for the one form that still
+// posts the whole sheet: creation. It is composed out of the same four panel
+// builders the autosaving editor uses (see character-panels.go), so a value the
+// create form accepts is a value a panel save accepts and each rule has one
+// definition.
+//
+// It is not reachable from a panel save, and must not become so. Every field it
+// reads has a fallback rather than an error on empty, which is correct for a
+// post carrying all of them and silently destructive for a post carrying one
+// panel's worth.
 func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, error) {
 	validationErrors := make([]string, 0)
 
-	name := strings.TrimSpace(r.PostFormValue("name"))
-	if name == "" {
-		validationErrors = append(validationErrors, "Name is required.")
-	}
+	identity, identityErrors := buildIdentityInput(r)
+	validationErrors = append(validationErrors, identityErrors...)
 
-	size := strings.TrimSpace(r.PostFormValue("size"))
-	if size == "" {
-		validationErrors = append(validationErrors, "Size is required.")
-	}
+	abilities, abilityErrors := buildAbilitiesInput(r)
+	validationErrors = append(validationErrors, abilityErrors...)
 
-	xp, xpErr := parseUint32(r.PostFormValue("xp"), 0)
-	if xpErr != nil {
-		validationErrors = append(validationErrors, "XP must be a valid non-negative number.")
-	}
+	coreStats, coreStatErrors := buildCoreStatsInput(r)
+	validationErrors = append(validationErrors, coreStatErrors...)
 
-	strVal, strErr := parseUint8(r.PostFormValue("str"), 10)
-	if strErr != nil {
-		validationErrors = append(validationErrors, "Strength must be between 0 and 255.")
-	}
+	proficiencies := buildProficienciesInput(r)
 
-	dexVal, dexErr := parseUint8(r.PostFormValue("dex"), 10)
-	if dexErr != nil {
-		validationErrors = append(validationErrors, "Dexterity must be between 0 and 255.")
-	}
-
-	conVal, conErr := parseUint8(r.PostFormValue("con"), 10)
-	if conErr != nil {
-		validationErrors = append(validationErrors, "Constitution must be between 0 and 255.")
-	}
-
-	intVal, intErr := parseUint8(r.PostFormValue("int"), 10)
-	if intErr != nil {
-		validationErrors = append(validationErrors, "Intelligence must be between 0 and 255.")
-	}
-
-	wisVal, wisErr := parseUint8(r.PostFormValue("wis"), 10)
-	if wisErr != nil {
-		validationErrors = append(validationErrors, "Wisdom must be between 0 and 255.")
-	}
-
-	chaVal, chaErr := parseUint8(r.PostFormValue("cha"), 10)
-	if chaErr != nil {
-		validationErrors = append(validationErrors, "Charisma must be between 0 and 255.")
-	}
-
-	ac, acErr := parseUint16(r.PostFormValue("ac"), 10)
-	if acErr != nil {
-		validationErrors = append(validationErrors, "Armor class must be between 0 and 65535.")
-	}
-
-	maxHP, maxHPErr := parseUint16(r.PostFormValue("max_hp"), 1)
-	if maxHPErr != nil {
-		validationErrors = append(validationErrors, "Max hit points must be between 0 and 65535.")
-	}
-
-	currentHP, currentHPErr := parseUint16(r.PostFormValue("current_hp"), 1)
-	if currentHPErr != nil {
-		validationErrors = append(validationErrors, "Hit points must be between 0 and 65535.")
-	}
-
-	tempHP, tempHPErr := parseUint16(r.PostFormValue("temp_hp"), 0)
-	if tempHPErr != nil {
-		validationErrors = append(validationErrors, "Temp hit points must be between 0 and 65535.")
-	}
-
-	initiativeBonus, initiativeErr := parseInt16(r.PostFormValue("initiative_bonus"), 0)
-	if initiativeErr != nil {
-		validationErrors = append(validationErrors, "Initiative bonus must be between -32768 and 32767.")
-	}
-
-	spellSaveDC, spellSaveErr := parseUint16(r.PostFormValue("spell_save_dc"), 10)
-	if spellSaveErr != nil {
-		validationErrors = append(validationErrors, "Spell save DC must be between 0 and 65535.")
-	}
-
-	spellAtkBonus, spellAtkErr := parseInt16(r.PostFormValue("spell_atk_bonus"), 0)
-	if spellAtkErr != nil {
-		validationErrors = append(validationErrors, "Spell attack bonus must be between -32768 and 32767.")
-	}
-
-	rawSkills, err := marshalSkillsPayload(r)
+	rawSkills, err := marshalBonusesPayload(r, "skills")
 	if err != nil {
 		return characterFormInput{}, nil, err
 	}
 
-	rawSavingThrows, err := marshalSavingThrowsPayload(r)
+	rawSavingThrows, err := marshalBonusesPayload(r, "saving_throws")
 	if err != nil {
 		return characterFormInput{}, nil, err
 	}
@@ -475,47 +363,32 @@ func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, err
 		return characterFormInput{}, nil, err
 	}
 
-	level := levelFromXP(xp)
-	proficiencyBonus := proficiencyBonusForLevel(level)
-
-	speed := strings.TrimSpace(r.PostFormValue("speed"))
-	if speed == "" {
-		speed = "30 ft."
-	}
-
-	languages := strings.TrimSpace(r.PostFormValue("languages"))
-	if languages == "" {
-		languages = "Common"
-	}
-
-	proficiencies := strings.TrimSpace(r.PostFormValue("proficiencies"))
-
 	return characterFormInput{
-		Name:             name,
-		Level:            level,
-		XP:               xp,
-		Race:             nullableString(r.PostFormValue("race")),
-		Background:       nullableString(r.PostFormValue("background")),
-		Alignment:        nullableString(r.PostFormValue("alignment")),
-		Classes:          nullableString(r.PostFormValue("classes")),
-		Size:             size,
-		AC:               ac,
-		MaxHP:            maxHP,
-		CurrentHP:        currentHP,
-		ProficiencyBonus: proficiencyBonus,
-		TempHP:           tempHP,
-		Speed:            speed,
-		InitiativeBonus:  initiativeBonus,
-		SpellSaveDC:      spellSaveDC,
-		SpellAtkBonus:    spellAtkBonus,
-		Str:              strVal,
-		Dex:              dexVal,
-		Con:              conVal,
-		Int:              intVal,
-		Wis:              wisVal,
-		Cha:              chaVal,
-		Languages:        languages,
-		Proficiencies:    proficiencies,
+		Name:             identity.Name,
+		Level:            coreStats.Level,
+		XP:               coreStats.XP,
+		Race:             identity.Race,
+		Background:       identity.Background,
+		Alignment:        identity.Alignment,
+		Classes:          identity.Classes,
+		Size:             identity.Size,
+		AC:               coreStats.AC,
+		MaxHP:            coreStats.MaxHP,
+		CurrentHP:        coreStats.CurrentHP,
+		ProficiencyBonus: coreStats.ProficiencyBonus,
+		TempHP:           coreStats.TempHP,
+		Speed:            coreStats.Speed,
+		InitiativeBonus:  coreStats.InitiativeBonus,
+		SpellSaveDC:      coreStats.SpellSaveDC,
+		SpellAtkBonus:    coreStats.SpellAtkBonus,
+		Str:              abilities.Str,
+		Dex:              abilities.Dex,
+		Con:              abilities.Con,
+		Int:              abilities.Int,
+		Wis:              abilities.Wis,
+		Cha:              abilities.Cha,
+		Languages:        proficiencies.Languages,
+		Proficiencies:    proficiencies.Proficiencies,
 		Skills:           rawSkills,
 		SavingThrows:     rawSavingThrows,
 		Features:         rawFeatures,
@@ -527,7 +400,7 @@ func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, err
 
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
 	return pages.EditCharacterPageData{
-		FormAction:      "/characters/" + id,
+		CharacterID:     id,
 		Name:            character.Name,
 		Race:            nullStringValue(character.Race),
 		Background:      nullStringValue(character.Background),
@@ -587,8 +460,8 @@ func fallbackString(value, fallback string) string {
 // validity but still reports it as the value, so a fractional bonus could reach
 // the column and would fail a map[string]int unmarshal outright -- defaulting
 // every one of the six to 0. Truncating the one bad entry is the smaller loss,
-// and it is what the form does with it on the next save anyway (Atoi fails on
-// "2.5" and marshalSavingThrowsPayload falls back to 0).
+// and it is what the form does with it on the next save anyway (parseBonus
+// fails on "2.5" and falls back to 0).
 func parseStatBonuses(raw json.RawMessage) map[string]int {
 	bonuses := map[string]int{}
 	if len(raw) == 0 {
@@ -751,6 +624,18 @@ func parseUint8(value string, fallback uint8) (uint8, error) {
 	return uint8(parsed), nil
 }
 
+// parseBonus reads one cell of a bonus grid. Unparseable is 0 rather than an
+// error: the inputs are type=number with a step, so a browser cannot submit
+// anything else, and the value is one of twenty-four on the panel.
+func parseBonus(value string) int {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return 0
+	}
+
+	return parsed
+}
+
 func parseInt16(value string, fallback int16) (int16, error) {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -763,62 +648,6 @@ func parseInt16(value string, fallback int16) (int16, error) {
 	}
 
 	return int16(parsed), nil
-}
-
-func marshalSkillsPayload(r *http.Request) (json.RawMessage, error) {
-	values := map[string]int{}
-	for key, formValues := range r.PostForm {
-		if !strings.HasPrefix(key, "skills-") {
-			continue
-		}
-
-		skillKey := strings.TrimPrefix(key, "skills-")
-		if skillKey == "" || len(formValues) == 0 {
-			continue
-		}
-
-		parsed, err := strconv.Atoi(strings.TrimSpace(formValues[0]))
-		if err != nil {
-			parsed = 0
-		}
-
-		values[skillKey] = parsed
-	}
-
-	payload, err := json.Marshal(values)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.RawMessage(payload), nil
-}
-
-func marshalSavingThrowsPayload(r *http.Request) (json.RawMessage, error) {
-	values := map[string]int{}
-	for key, formValues := range r.PostForm {
-		if !strings.HasPrefix(key, "saving_throws-") {
-			continue
-		}
-
-		saveKey := strings.TrimPrefix(key, "saving_throws-")
-		if saveKey == "" || len(formValues) == 0 {
-			continue
-		}
-
-		parsed, err := strconv.Atoi(strings.TrimSpace(formValues[0]))
-		if err != nil {
-			parsed = 0
-		}
-
-		values[saveKey] = parsed
-	}
-
-	payload, err := json.Marshal(values)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.RawMessage(payload), nil
 }
 
 type infoRow struct {

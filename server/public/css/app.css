@@ -2101,6 +2101,9 @@
   .mr-auto {
     margin-right: auto;
   }
+  .-mb-0\.5 {
+    margin-bottom: calc(var(--spacing) * -0.5);
+  }
   .mb-0 {
     margin-bottom: 0px;
   }
@@ -2359,6 +2362,9 @@
   .grid-cols-6 {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
+  .grid-rows-\[auto_auto_minmax\(0\,1fr\)\] {
+    grid-template-rows: auto auto minmax(0,1fr);
+  }
   .grid-rows-\[auto_minmax\(0\,1fr\)\] {
     grid-template-rows: auto minmax(0,1fr);
   }
@@ -2524,6 +2530,15 @@
       border-color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
     }
   }
+  .border-error\/60 {
+    border-color: var(--color-error);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-error) 60%, transparent);
+    }
+  }
+  .border-primary {
+    border-color: var(--color-primary);
+  }
   .border-rose-400 {
     border-color: var(--color-rose-400);
   }
@@ -2656,6 +2671,9 @@
   .pr-16 {
     padding-right: calc(var(--spacing) * 16);
   }
+  .pb-0 {
+    padding-bottom: 0px;
+  }
   .pb-2 {
     padding-bottom: calc(var(--spacing) * 2);
   }
@@ -2781,6 +2799,12 @@
       color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
     }
   }
+  .text-base-content\/60 {
+    color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+    }
+  }
   .text-base-content\/70 {
     color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
@@ -2792,6 +2816,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
     }
+  }
+  .text-error {
+    color: var(--color-error);
   }
   .text-hint {
     color: var(--color-hint);
@@ -2936,6 +2963,14 @@
         border-color: color-mix(in oklab, var(--color-base-content) 15%, transparent);
       }
     }
+    .hover\:border-base-content\/30:hover {
+      border-color: var(--color-base-content);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:border-base-content\/30:hover {
+        border-color: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+      }
+    }
     .hover\:bg-base-content\/5:hover {
       background-color: var(--color-base-content);
     }
@@ -2954,6 +2989,9 @@
     }
     .hover\:px-2:hover {
       padding-inline: calc(var(--spacing) * 2);
+    }
+    .hover\:text-base-content:hover {
+      color: var(--color-base-content);
     }
     .hover\:text-error:hover {
       color: var(--color-error);

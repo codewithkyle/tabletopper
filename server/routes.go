@@ -30,10 +30,33 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /characters", auth.RequireSession(app.CharactersPage))
 	mux.HandleFunc("GET /characters/new", auth.RequireSession(app.NewCharacterPage))
 	mux.HandleFunc("POST /characters", auth.RequireSession(app.NewCharacterForm))
+	// The editor is two pages, one per tab. Autosave is what makes them pages
+	// rather than sections of one: nothing is ever held unsaved, so moving
+	// between them loses nothing and each can be linked and reloaded.
 	mux.HandleFunc("GET /characters/{id}/edit", auth.RequireSession(app.CharacterPage))
-	mux.HandleFunc("POST /characters/{id}", auth.RequireSession(app.EditCharacterForm))
+	mux.HandleFunc("GET /characters/{id}/edit/spells", auth.RequireSession(app.CharacterSpellsPage))
 	mux.HandleFunc("DELETE /characters/{id}", auth.RequireSession(app.DeleteCharacter))
 	mux.HandleFunc("POST /characters/{id}/avatar", auth.RequireSession(app.UploadCharacterAvatar))
+
+	// The character editor autosaves a panel at a time. Each of these owns a
+	// disjoint set of columns and writes only those; none of them shares a
+	// handler or a query with POST /characters/{id}, which writes all 31 and
+	// would fill the absent ones with defaults.
+	//
+	// Mutations, so they keep resource URLs and stay off /fragment/ -- the
+	// prefix names a representation, and none of these returns one. The reply
+	// is a toast and a 204.
+	//
+	// The last two take the panel name from the path because the grids and the
+	// repeaters differ only in a field prefix and a column. Both handlers match
+	// that segment against an allowlist before it reaches a query.
+	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
+	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
+	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
+	mux.HandleFunc("POST /characters/{id}/proficiencies", auth.RequireSession(app.SaveCharacterProficiencies))
+	mux.HandleFunc("POST /characters/{id}/spells", auth.RequireSession(app.SaveCharacterSpells))
+	mux.HandleFunc("POST /characters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveCharacterBonuses))
+	mux.HandleFunc("POST /characters/{id}/rows/{field}", auth.RequireSession(app.SaveCharacterRows))
 
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))

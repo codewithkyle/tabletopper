@@ -1,7 +1,9 @@
 package pages
 
+// CharacterID is the ULID as a string, and it is the only thing the editor
+// needs to build a URL: every panel posts to /characters/<id>/<panel>.
 type EditCharacterPageData struct {
-	FormAction      string
+	CharacterID     string
 	Name            string
 	Race            string
 	Background      string

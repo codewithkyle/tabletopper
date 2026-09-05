@@ -2,16 +2,41 @@ package pages
 
 import "tabletopper/templ/layouts"
 
+// The editor is two pages over one character. Spellcasting is its own, because
+// it is ten level blocks holding any number of cards each and was most of the
+// sheet's height on its own; everything else stays together.
+//
+// They are pages and not hidden sections. Each panel saves itself as the user
+// types, so nothing is ever held unsaved and a navigation costs nothing -- which
+// is what lets the split be two URLs that can be linked, bookmarked and
+// reloaded, rather than one enormous document with halves shown and hidden in
+// the browser.
 templ EditCharacter(data EditCharacterPageData) {
 	@layouts.Base("Character Editor | Tabletopper") {
-		@editCharacterContent(data)
+		@editCharacterShell(data, characterTabMain) {
+			@characterPanels(data)
+		}
 	}
 }
 
-templ editCharacterContent(data EditCharacterPageData) {
+templ EditCharacterSpells(data EditCharacterPageData) {
+	@layouts.Base("Spells | Tabletopper") {
+		@editCharacterShell(data, characterTabSpells) {
+			@savingPanel("Spellcasting", "/characters/"+data.CharacterID+"/spells", "spells") {
+				@spellSlotsTable(data.SpellLevels)
+			}
+		}
+	}
+}
+
+// The frame both pages share: the heading, the way back to the roster, the
+// section links and a scrolling well for whichever panels the page brought.
+// Three rows, the last one taking the remaining height and scrolling inside it,
+// so the heading and the links stay put while the sheet moves under them.
+templ editCharacterShell(data EditCharacterPageData, active string) {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
-		<form class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3" hx-post={ data.FormAction } hx-status:422="target:#new-character-form-errors,swap:outerHTML" hx-swap="none">
-			<div class="flex flex-wrap items-end justify-between gap-3 p-2 max-[640px]:items-stretch">
+		<div class="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
+			<div class="flex flex-wrap items-end justify-between gap-3 p-2 pb-0 max-[640px]:items-stretch">
 				<div>
 					<h1 class="mt-0.5 mb-0 font-serif text-[2rem] leading-tight">Edit Character</h1>
 				</div>
@@ -22,84 +47,81 @@ templ editCharacterContent(data EditCharacterPageData) {
 					>
 						Back
 					</a>
-					<button
-						type="submit"
-						class="btn btn-success max-[640px]:flex-1"
-					>
-						Save character
-					</button>
 				</div>
 			</div>
-			<div class="min-h-0 overflow-hidden">
-				@NewCharacterFormErrors([]string{})
-				<div class="grid h-full gap-4 overflow-auto pb-4">
-					@sheetSection("Identity") {
-						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-							<div class="col-span-2 max-[900px]:col-auto">
-								@textField("name", "Character Name", data.Name, "", true)
-							</div>
-							@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", true)
-							@textField("background", "Background", data.Background, "", false)
-							@textField("race", "Species / Race", data.Race, "Human", true)
-							@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
-							@selectField("size", "Size", sizeOptions, data.Size, true)
-						</div>
-					}
-					@sheetSection("Abilities") {
-						<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
-							@numberField("str", "Strength", data.Str, true)
-							@numberField("dex", "Dexterity", data.Dex, true)
-							@numberField("con", "Constitution", data.Con, true)
-							@numberField("int", "Intelligence", data.Int, true)
-							@numberField("wis", "Wisdom", data.Wis, true)
-							@numberField("cha", "Charisma", data.Cha, true)
-						</div>
-					}
-					@sheetSection("Core Stats") {
-						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-							@numberField("xp", "Experience", data.XP, true)
-							@textField("speed", "Speed", data.Speed, "", false)
-							@numberField("ac", "Armor Class", data.AC, true)
-							@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
-							@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
-							@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
-							@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
-							@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
-							@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
-						</div>
-					}
-					@sheetSection("Proficiencies & Training") {
-						<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-							@textField("languages", "Languages", data.Languages, "", false)
-							@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", true)
-						</div>
-					}
-					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-						<div class="grid content-start gap-4">
-							@sheetSection("Saving Throws") {
-								@savingThrowsTable(data.SavingThrows)
-							}
-							@sheetSection("Skills") {
-								@skillsTable(data.Skills)
-							}
-						</div>
-						<div class="grid content-start gap-4">
-							@sheetSection("Features & Traits") {
-								@infoRowsTable("features", data.Features)
-							}
-							@sheetSection("Equipment") {
-								@infoRowsTable("weapons", data.Weapons)
-							}
-						</div>
-					</div>
-					@sheetSection("Resources") {
-						@infoRowsTable("resources", data.Resources)
-					}
-					@sheetSection("Spellcasting") {
-						@spellSlotsTable(data.SpellLevels)
-					}
-				</div>
+			@characterTabs(data.CharacterID, active)
+			<div class="grid min-h-0 content-start gap-4 overflow-auto pb-4">
+				{ children... }
 			</div>
-		</form>
+		</div>
 	</character-editor>
+}
+
+// Nine panels, nine forms, nine routes. Forms do not nest, which is why there is
+// none around them, and it is also what keeps each write narrow: a panel posts
+// only its own fields and the handler behind it names only its own columns.
+templ characterPanels(data EditCharacterPageData) {
+	{{ base := "/characters/" + data.CharacterID }}
+	@savingPanel("Identity", base+"/identity", "identity") {
+		<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+			<div class="col-span-2 max-[900px]:col-auto">
+				@textField("name", "Character Name", data.Name, "", true)
+			</div>
+			@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", true)
+			@textField("background", "Background", data.Background, "", false)
+			@textField("race", "Species / Race", data.Race, "Human", true)
+			@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
+			@selectField("size", "Size", sizeOptions, data.Size, true)
+		</div>
+	}
+	@savingPanel("Abilities", base+"/abilities", "abilities") {
+		<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
+			@numberField("str", "Strength", data.Str, true)
+			@numberField("dex", "Dexterity", data.Dex, true)
+			@numberField("con", "Constitution", data.Con, true)
+			@numberField("int", "Intelligence", data.Int, true)
+			@numberField("wis", "Wisdom", data.Wis, true)
+			@numberField("cha", "Charisma", data.Cha, true)
+		</div>
+	}
+	@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
+		<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+			@numberField("xp", "Experience", data.XP, true)
+			@textField("speed", "Speed", data.Speed, "", false)
+			@numberField("ac", "Armor Class", data.AC, true)
+			@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
+			@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
+			@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
+			@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
+			@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
+			@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
+		</div>
+	}
+	@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
+		<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+			@textField("languages", "Languages", data.Languages, "", false)
+			@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", true)
+		</div>
+	}
+	<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+		<div class="grid content-start gap-4">
+			@savingPanel("Saving Throws", base+"/bonuses/saving_throws", "saving_throws") {
+				@savingThrowsTable(data.SavingThrows)
+			}
+			@savingPanel("Skills", base+"/bonuses/skills", "skills") {
+				@skillsTable(data.Skills)
+			}
+		</div>
+		<div class="grid content-start gap-4">
+			@savingPanel("Features & Traits", base+"/rows/features", "features") {
+				@infoRowsTable("features", data.Features)
+			}
+			@savingPanel("Equipment", base+"/rows/weapons", "weapons") {
+				@infoRowsTable("weapons", data.Weapons)
+			}
+		</div>
+	</div>
+	@savingPanel("Resources", base+"/rows/resources", "resources") {
+		@infoRowsTable("resources", data.Resources)
+	}
 }

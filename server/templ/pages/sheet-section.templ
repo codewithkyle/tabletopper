@@ -1,17 +1,72 @@
 package pages
 
-// sheetSection is the panel the character sheet is built out of -- ten of them
-// per page, twice over (new and edit). It was .sheet-section in
-// character-sheet.css; as a DaisyUI card the surface is a class string rather
-// than a rule, and repeating that string twenty times would be worse than the
-// stylesheet was. So it lives here once.
-templ sheetSection(title string) {
-	<section class="card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+// The panel the character sheet is built out of. Two components, one surface:
+// sheetSection for the create form, which is one <form> and cannot nest more,
+// and savingPanel for the editor, where the panel IS the form.
+//
+// It was .sheet-section in character-sheet.css; as a DaisyUI card the surface is
+// a class string rather than a rule, and repeating that string across twenty
+// call sites would be worse than the stylesheet was. So it is a constant, named
+// once and worn by both.
+
+const sheetSurface = "card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm"
+
+// PANEL AUTOSAVE, in three attributes.
+//
+//	input delay:1s      the debounce. `input` bubbles from every control in the
+//	                    panel and the delay modifier resets one timer held on the
+//	                    trigger spec, so filling in nine fields with a single
+//	                    pause at the end is a single request rather than nine.
+//	                    It covers
+//	                    selects, checkboxes and textareas too, which is why
+//	                    `change` is not also listed -- both would fire for one
+//	                    edit to a text field, and the panel would save twice.
+//	repeater:changed    dispatched by repeater.js after it removes a row, with no
+//	                    delay of its own. See the note there.
+//
+// `changed` is deliberately absent. It is an element-level modifier: htmx keeps
+// a WeakMap of the listening element's `.value` and drops the event when it has
+// not moved. A form has no `.value`, so on a panel it would compare undefined
+// against undefined, find no change and never fire at all.
+const panelTrigger = "input delay:1s, repeater:changed"
+
+// Both replies land on the panel's error block, which is why the form targets it
+// rather than swapping nothing. A save that succeeded renders it empty, and that
+// is what clears an error the previous save put there -- with hx-swap="none" the
+// message would outlive the mistake and sit over a panel that has since saved.
+//
+// The 422 needs its own route because base.templ configures noSwap for 4xx.
+// htmx tests the exact code against those entries before it looks for an
+// hx-status override, so "422" misses the "4xx" entry, finds this, and swaps;
+// every other 4xx and 5xx matches an entry first and leaves the page alone.
+templ savingPanel(title string, action string, panel string) {
+	<form
+		class={ sheetSurface }
+		hx-post={ action }
+		hx-trigger={ panelTrigger }
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
 		<div class="card-body gap-4 p-4">
-			<header class="flex items-center border-b-2 border-base-300 pb-2">
-				<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase">{ title }</h2>
-			</header>
+			@sheetHeading(title)
+			@PanelFormErrors(panel, []string{})
+			{ children... }
+		</div>
+	</form>
+}
+
+templ sheetSection(title string) {
+	<section class={ sheetSurface }>
+		<div class="card-body gap-4 p-4">
+			@sheetHeading(title)
 			{ children... }
 		</div>
 	</section>
+}
+
+templ sheetHeading(title string) {
+	<header class="flex items-center border-b-2 border-base-300 pb-2">
+		<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase">{ title }</h2>
+	</header>
 }
