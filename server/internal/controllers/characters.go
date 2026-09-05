@@ -533,7 +533,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Background:      nullStringValue(character.Background),
 		Classes:         nullStringValue(character.Classes),
 		Size:            fallbackString(strings.TrimSpace(character.Size), "medium"),
-		Alignment:       fallbackString(nullStringValue(character.Alignment), "unaliged"),
+		Alignment:       fallbackString(nullStringValue(character.Alignment), "unaligned"),
 		XP:              strconv.FormatUint(uint64(character.XP), 10),
 		Languages:       fallbackString(strings.TrimSpace(character.Languages), "Common"),
 		Proficiencies:   strings.TrimSpace(character.Proficiencies),

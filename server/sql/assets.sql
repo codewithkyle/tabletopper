@@ -6,25 +6,25 @@
 -- name: InsertAvatar :exec
 INSERT INTO assets
 (id, owner_id, file_path, type, file_name, name)
-VALUES (?, ?, ?, 1, ?, ?);
+VALUES (?, ?, ?, 'avatar', ?, ?);
 
 -- name: InsertMap :exec
 INSERT INTO assets
 (id, owner_id, file_path, preview_path, type, file_name, name)
-VALUES (?, ?, ?, ?, 0, ?, ?);
+VALUES (?, ?, ?, ?, 'map', ?, ?);
 
 -- name: GetImage :one
 SELECT id, file_path, preview_path, updated_at FROM assets
-WHERE id = ? AND type IN (0, 1, 2);
+WHERE id = ? AND type IN ('map', 'avatar', 'token');
 
 -- name: GetMaps :many
 SELECT * FROM assets
-WHERE owner_id = ? AND type = 0
+WHERE owner_id = ? AND type = 'map'
 ORDER BY created_at DESC;
 
 -- name: GetMap :one
 SELECT * FROM assets
-WHERE id = ? AND owner_id = ? AND type = 0;
+WHERE id = ? AND owner_id = ? AND type = 'map';
 
 -- updated_at is set explicitly: ON UPDATE CURRENT_TIMESTAMP only fires when
 -- a value changes, and re-uploading a file under its old name changes none.

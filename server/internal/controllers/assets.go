@@ -343,6 +343,7 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 		OwnerID:     sess.UserID,
 		FilePath:    fullPath,
 		PreviewPath: sql.NullString{Valid: true, String: previewPath},
+		Type:        queries.AssetsTypeMap,
 		FileName:    filename,
 		Name:        filename,
 		CreatedAt:   now,

@@ -11,12 +11,11 @@ type Option struct {
 // new-character.templ and edit-character.templ and parsed client-side by
 // select.js; now they are one Go slice each, ranged over at render time.
 //
-// NOTE: the "Unaligned" value is spelled "unaliged". That typo is the value
-// stored in the alignment column of every character row created so far, and
-// characterToEditPageData falls back to the same string, so it is the wire
-// format -- not a slip to fix here. Correcting it means a data migration.
+// The "Unaligned" value was stored as "unaliged" until the migration of
+// 2026-09-05 corrected every row; characterToEditPageData falls back to the
+// same spelling, so the two have to move together.
 var alignmentOptions = []Option{
-	{Label: "Unaligned", Value: "unaliged"},
+	{Label: "Unaligned", Value: "unaligned"},
 	{Label: "Any Alignment", Value: "any alignment"},
 	{Label: "Lawful Good", Value: "lawful good"},
 	{Label: "Neutral Good", Value: "neutral good"},
@@ -47,6 +46,6 @@ var sizeOptions = []Option{
 // characterToEditPageData uses when the stored column is empty, so a character
 // saved straight from the blank form round-trips to the same selection.
 const (
-	defaultAlignment = "unaliged"
+	defaultAlignment = "unaligned"
 	defaultSize      = "medium"
 )
