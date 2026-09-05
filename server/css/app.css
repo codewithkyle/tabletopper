@@ -36,11 +36,11 @@
    deferred list. It does set --noise: 1 where silk and coffee both set 0 --
    that is a faint grain on .btn and .alert, light mode only. */
 /* exclude drops the component groups whose class names this app still owns and
-   styles itself. One name is left: .label, the key cell in skills-table and
-   saving-throws-table. Those sheets are layered, so their rules win on any
-   property they set -- but DaisyUI also sets properties they do not, and
-   white-space: nowrap on an 18-row grid of skill names is the one that would
-   show. Measured with a headless render of the character sheet.
+   styles itself. One name is left: .label, the key cell in skills-table. That
+   sheet is layered, so its rules win on any property it sets -- but DaisyUI also
+   sets properties it does not, and white-space: nowrap on an 18-row grid of
+   skill names is the one that would show. Measured with a headless render of
+   the character sheet.
 
    Each name leaves this list in the phase that retires the markup owning it;
    see PLAN.md.
@@ -62,7 +62,11 @@
    move with it: the only other <select> in the app is the spell school picker
    inside spell-slots-table, which is a bare element styled by
    `spell-slots-table select` and never carried the class. DaisyUI emits no bare
-   `select` selector of its own, so un-excluding the group cannot reach it. */
+   `select` selector of its own, so un-excluding the group cannot reach it.
+
+   Phase 5 (saving throws) took no name off this list. Its <span class="label">
+   was the stat name, and it is now a plain <label> carrying utilities, so the
+   only .label left on the page is the one in skills-table. */
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
   exclude: label;

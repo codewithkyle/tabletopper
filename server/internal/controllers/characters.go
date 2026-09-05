@@ -499,7 +499,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		SpellSaveDC:      strconv.FormatUint(uint64(character.SpellSaveDc), 10),
 		SpellAtkBonus:    strconv.FormatInt(int64(character.SpellAtkBonus), 10),
 		SkillsJSON:       normalizeJSONObjectJSON(character.Skills),
-		SavingThrowsJSON: normalizeJSONObjectJSON(character.SavingThrows),
+		SavingThrows:     parseStatBonuses(character.SavingThrows),
 		FeaturesJSON:     normalizeInfoRowsJSON(character.Features),
 		WeaponsJSON:      normalizeInfoRowsJSON(character.Weapons),
 		ResourcesJSON:    normalizeInfoRowsJSON(character.Resources),
@@ -546,6 +546,36 @@ func normalizeJSONObjectJSON(raw json.RawMessage) string {
 	}
 
 	return string(normalized)
+}
+
+// parseStatBonuses unmarshals one of the `{"str": 2, "dex": 0, ...}` blobs into a
+// map the templates can range over, rather than handing the JSON to the browser
+// for a component to parse. normalizeJSONObjectJSON, which did that, is still
+// the path for skills until phase 6 retires that component too.
+//
+// Decoded as float64, not int: type=number with step="1" rejects a decimal on
+// validity but still reports it as the value, so a fractional bonus could reach
+// the column and would fail a map[string]int unmarshal outright -- defaulting
+// every one of the six to 0. Truncating the one bad entry is the smaller loss,
+// and it is what the form does with it on the next save anyway (Atoi fails on
+// "2.5" and marshalSavingThrowsPayload falls back to 0).
+func parseStatBonuses(raw json.RawMessage) map[string]int {
+	bonuses := map[string]int{}
+	if len(raw) == 0 {
+		return bonuses
+	}
+
+	var payload map[string]float64
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		slog.Warn("invalid stat bonus payload; defaulting", "error", err)
+		return bonuses
+	}
+
+	for key, value := range payload {
+		bonuses[key] = int(value)
+	}
+
+	return bonuses
 }
 
 func normalizeInfoRowsJSON(raw json.RawMessage) string {

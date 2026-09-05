@@ -195,6 +195,9 @@
   }
 }
 @layer utilities {
+  .\@container {
+    container-type: inline-size;
+  }
   @layer daisyui.l1.l2.l3 {
     .modal {
       pointer-events: none;
@@ -2102,6 +2105,9 @@
   .cursor-pointer {
     cursor: pointer;
   }
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2150,6 +2156,9 @@
   .justify-end {
     justify-content: flex-end;
   }
+  .gap-0\.5 {
+    gap: calc(var(--spacing) * 0.5);
+  }
   .gap-1 {
     gap: var(--spacing);
   }
@@ -2187,6 +2196,9 @@
   }
   .rounded-box {
     border-radius: var(--radius-box);
+  }
+  .rounded-field {
+    border-radius: var(--radius-field);
   }
   .rounded-full {
     border-radius: calc(infinity * 1px);
@@ -2398,6 +2410,9 @@
   .text-center {
     text-align: center;
   }
+  .text-right {
+    text-align: right;
+  }
   .font-\[Lobster\] {
     font-family: Lobster;
   }
@@ -2574,6 +2589,15 @@
     transition-timing-function: var(--ease-out);
   }
   @layer daisyui.l1.l2 {
+    .input-sm {
+      --in-size-mul: 8;
+      --font-size-min: 0.75rem;
+      --spin-my: -2;
+    }
+    .floating-label:has(.input-sm) {
+      --top-mul: 4;
+      --font-size: 0.75rem;
+    }
     .btn-error {
       --btn-color: var(--color-error);
       --btn-fg: var(--color-error-content);
@@ -2724,6 +2748,16 @@
     }
     .max-\[640px\]\:items-stretch {
       align-items: stretch;
+    }
+  }
+  @container (width >= 22rem) {
+    .\@\[22rem\]\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @container (width >= 33rem) {
+    .\@\[33rem\]\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   @media (prefers-color-scheme: dark) {

@@ -106,7 +106,7 @@ templ newCharacterContent(session session.UserSession) {
 					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 						<div class="grid content-start gap-4">
 							@sheetSection("Saving Throws") {
-								<saving-throws-table data-name="saving_throws" data-label="" data-values="{}"></saving-throws-table>
+								@savingThrowsTable(nil)
 							}
 							@sheetSection("Skills") {
 								<skills-table data-name="skills" data-label="" data-values="{}"></skills-table>

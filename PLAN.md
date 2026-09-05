@@ -7,13 +7,13 @@ runtime is gone from `server/public/js`.
 **Scope:** the seven interactive elements on the character sheet, plus `.link`.
 Everything else in `server/public/css` is already on DaisyUI tokens.
 
-| | at plan time | now (after Phase 4) | after |
+| | at plan time | now (after Phase 5) | after |
 |---|---|---|---|
-| stylesheet `<link>`s in `base.templ` | 15 | **12** | **7** |
-| `<script>`s in `base.templ` | 12 † | **9** | **5** † |
-| Brixi token reads | 234 | **104** | **0** |
-| CSS deleted | — | 13,022 B across 3 files | **27,062 B** across 8 files |
-| JS deleted | — | 13,367 B across 4 modules | **48,194 B** across 15 modules |
+| stylesheet `<link>`s in `base.templ` | 15 | **11** | **7** |
+| `<script>`s in `base.templ` | 12 † | **8** | **5** † |
+| Brixi token reads | 234 | **85** | **0** |
+| CSS deleted | — | 14,751 B across 4 files | **27,062 B** across 8 files |
+| JS deleted | — | 15,769 B across 5 modules | **48,194 B** across 15 modules |
 | JS surviving | — | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
 
 † Counted from `base.templ`; the original figures of 13 and 6 were off by one
@@ -43,8 +43,10 @@ cannot collide.
 `link` left in Phase 1, `input` in Phase 2, `select` in Phase 4. Only `label` is
 still on the list; it goes in Phase 6.
 
-Each phase below removes exactly one name from that list, in step with the
-markup that owned it. Nothing needs a big-bang cutover, and every phase is
+Most phases below remove exactly one name from that list, in step with the
+markup that owned it. Phase 5 is the exception and removed none: the
+`<span class="label">` it retired was one of the two owners of `.label`, not the
+last, so `skills-table` now holds the name on its own until Phase 6. Nothing needs a big-bang cutover, and every phase is
 independently testable and independently revertible.
 
 **The server needs almost no changes for Phases 1–6.** The Go controller already
@@ -313,27 +315,85 @@ JS `?selected=${...}` binding, the most likely place for a bug.
 
 ---
 
-## Phase 5 — saving throws  (`saving-throws-table`)
+## Phase 5 — saving throws  (`saving-throws-table`)  ✅ done
 
 **The first table, and the easiest thing in this document.** Six rows, fixed
-list, no add, no delete, no reordering. The entire component is a `for` loop
-over a constant.
+list, no add, no delete, no reordering — the whole component is a `for` over a
+constant.
 
-Field names are `saving_throws-str` … `saving_throws-cha`; the Go side
-(`marshalSavingThrowsPayload`) scans `PostForm` for the `saving_throws-` prefix,
-so nothing server-side changes.
+**Landed:** `templ/pages/saving-throws-table.templ`, holding the six-entry
+`savingThrows` slice (the const array from the top of the JS) and the
+`savingThrowsTable(bonuses map[string]int)` component. `SavingThrowsJSON string`
+on `EditCharacterPageData` became `SavingThrows map[string]int`; the blob is
+unmarshalled by `parseStatBonuses` in the controller instead of being handed to
+the browser. Deleted `public/css/saving-throws-table.css` (1,729 B, 19 Brixi
+reads), `public/js/saving-throws-table.js` (2,402 B), and both tags.
 
-`SavingThrowsJSON string` on `EditCharacterPageData` becomes
-`SavingThrows map[string]int` — the JSON blob stops being a transport to the
-browser and gets unmarshalled in the controller instead.
+Field names are unchanged (`saving_throws-str` … `-cha`), so
+`marshalSavingThrowsPayload` and the rest of the server were untouched — as
+predicted. The `<h4>` was dead code on the server and was not ported.
 
-**Do:** a `savingThrowsTable` templ component; row is
-`<div class="flex items-center justify-between gap-2 rounded border-2 border-base-300 p-2">`
-with the name/abbr stack and a `<input type="number" class="input input-sm w-14 text-right">`.
-Delete `public/css/saving-throws-table.css` (19 Brixi reads),
-`public/js/saving-throws-table.js`, and both tags from `base.templ`.
+**No name left `exclude`.** The stat name was the sheet's other
+`<span class="label">`; it is now a plain `<label>` carrying utilities, so
+`skills-table` is the sole owner of `.label` until Phase 6.
 
-**Test:** set a few bonuses, save, reload the edit page, confirm they persist.
+**Departure — the grid is a container query, not viewport breakpoints, and this
+is the one real finding of the phase.** The panel is a cell of the sheet's
+two-column layout, which collapses at 900px, so the panel is *wider* at 899px
+than at 901px. No viewport breakpoint can express that. The old sheet declared
+three columns unconditionally and clipped stat names in every narrow case;
+measured against the real markup at three widths:
+
+| sheet width | panel | old rule (`grid-cols-3`) | now |
+|---|---|---|---|
+| 1440 | 660px | 3 cols, 0 names clipped | 3 cols, 0 clipped |
+| 1000 | 440px | 3 cols, **5 of 6 clipped** | 2 cols, 0 clipped |
+| 900 | 390px | 3 cols, **6 of 6 clipped** | 2 cols, 0 clipped |
+| 375 | 307px | 3 cols, **6 of 6 clipped** | 1 col, 0 clipped |
+
+`@container` with `@[22rem]` / `@[33rem]` thresholds — the widths at which a cell
+still holds "Constitution" at `text-sm` beside the 3.5rem field — is one
+monotonic rule with no band to get wrong. Verified by headless render at 320,
+375, 414, 480, 640, 900, 1000, 1160 and 1440: three columns wide, two in the
+middle, one on a phone, nothing clipped and nothing overflowing anywhere. Worth
+knowing for Phase 6, which has the same panel and eighteen longer names.
+
+**Two smaller departures from the sketch above:**
+
+- `rounded-field`, not `rounded`. It is the theme's field radius (0.5rem in both
+  themes) rather than a hardcoded 0.25rem, and it matches the field sitting
+  inside the row.
+- **No `.validator`, and no `min`/`max`** — both carried over from the component
+  this replaces. A saving throw bonus is signed, so there is no floor to declare;
+  with no constraint to violate the only rule left is `step="1"`, whose one
+  failure mode is a typed decimal. Wiring `.validator` for that buys a red border
+  with nowhere to put a hint, and paints six `:user-valid` green borders across a
+  tight grid for the normal case. The text and number fields carry it because
+  they have `required`/`min`/`max` and room for a line of text.
+
+**`parseStatBonuses` decodes `float64`, not `int`.** `type=number step="1"`
+rejects a decimal on *validity* but still reports it as the value, so a
+fractional bonus can reach the column — and it would fail a `map[string]int`
+unmarshal outright, defaulting all six to 0. Truncating the one bad entry is the
+smaller loss, and it is what the form already does with it on the next save
+(`Atoi` fails on `"2.5"` and `marshalSavingThrowsPayload` falls back to 0).
+`normalizeJSONObjectJSON` stays, still the path for skills until Phase 6.
+
+**Selector diff: +740 B, nothing removed.** Everything added is a class the
+markup uses — `input-sm`, `rounded-field`, `text-right`, `gap-0.5`,
+`grid-cols-1`, `@container` and the two `@[…]:grid-cols-*` variants — plus one
+byproduct, `.floating-label:has(.input-sm)`, which ships with `.input-sm`.
+
+Nothing was *removed* by deleting the JS, which is worth flagging for Phase 6:
+`skills-table.js` still carries the identical `text-base-content/75`,
+`text-[0.71rem]` and `tracking-[0.08em]` from its own dead `<h4>`, so those
+classes only actually leave the build when that file does.
+
+**Test:** the layout is verified above at nine widths in both themes. The
+save-and-reload round trip still wants a run against a real database — set a few
+bonuses (including a negative one), save, reload the edit page. The wire format
+is byte-identical to what the lit-html component posted, so this is a regression
+check rather than a new risk.
 
 ---
 
@@ -509,6 +569,14 @@ its documented default. Noted for completeness, not flagged as a defect.
   output. `input.js` and `select.js` each had a `handleBlur`, which is the only
   reason `.blur` — and the ten `@property --tw-*` filter registrations it pulls
   in — were ever emitted.
+- Phase 5 stepped on it twice, in comments both times. Explaining the query
+  variant it uses cost **336 B** — the variant's name minus its `@` is also a
+  Tailwind utility, and while the `@`-prefixed spelling in a class attribute is
+  extracted whole and is harmless, the bare word in English is not. The rewrite
+  of that comment — a note warning about *this exact trap*, which named
+  "dropdown" and "list" to cite the example above — cost **8,590 B**. Both were
+  caught by the selector diff and reworded away before landing; neither would
+  have shown up in review, and neither changed a line of markup.
 
 **So for every remaining phase: diff the emitted selectors, not the byte count,**
 and check that anything new is something the markup actually uses. Rewording a
