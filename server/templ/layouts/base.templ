@@ -28,8 +28,9 @@ templ Base(settings BaseTemplateSettings) {
 			<script defer src="/static/hx-head.min.js"></script>
 			<script defer src="/static/alpine.min.js"></script>
 			<script type="module" src="/js/confirm-modal.js"></script>
+			<script type="module" src="/js/alert-modal.js"></script>
+			<script type="module" src="/js/content-modal.js"></script>
 			<script type="module" src="/js/notif.js"></script>
-			<style>[x-cloak] { display: none !important; }</style>
 		</head>
 		<body>
 			<soft-loading>
@@ -39,62 +40,97 @@ templ Base(settings BaseTemplateSettings) {
 			<main class="w-full h-full flex flex-col flex-wrap items-center justify-center">
 				@settings.Content
 			</main>
-			<modal-element
-				class="fixed top-0 left-0 z-[9000] flex h-screen w-screen flex-col content-center justify-center"
-				x-data="{ show: false, confirmLabel:'', cancelLabel:'', heading:'', message:'', uid:'' }"
-				x-cloak
-				x-show="show"
-				x-on:show-confirm-modal.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; confirmLabel = $event.detail.confirmLabel; cancelLabel = $event.detail.cancelLabel; show = true;"
-			>
-				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
-				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-panel/85 p-6 shadow-sm backdrop-blur-sm">
-					<h4
-						class="block text-xl font-semibold mb-3"
-						x-text="heading"
-					></h4>
-					<p
-						class="block mb-6"
-						x-text="message"
-					></p>
-					<div class="w-full flex flex-row flex-nowrap items-center justify-end">
-						<button
-							class="btn mr-2"
-							x-text="cancelLabel"
-							x-on:click="show = false; $dispatch('confirm-modal:cancel', uid);"
-						>Close</button>
-						<button
-							class="btn btn-error"
-							x-text="confirmLabel"
-							x-on:click="show = false; $dispatch('confirm-modal:confirm', uid);"
-						></button>
-					</div>
-				</modal-content>
-			</modal-element>
-			<modal-element
-				class="fixed top-0 left-0 z-[9000] flex h-screen w-screen flex-col content-center justify-center"
-				x-data="{ show: false, heading:'', message:'', uid:'' }"
-				x-cloak
-				x-show="show"
-				x-on:alert.window="uid = $event.detail.uid; heading = $event.detail.heading; message = $event.detail.message; show = true;"
-			>
-				<modal-background class="absolute top-0 left-0 h-full w-full bg-black/40 backdrop-blur-[4px]"></modal-background>
-				<modal-content class="relative m-auto inline-block max-h-screen max-w-screen overflow-y-auto rounded-box border-2 border-base-300 bg-panel/85 p-6 shadow-sm backdrop-blur-sm">
-					<h4
-						class="block text-xl font-semibold mb-3"
-						x-text="heading"
-					></h4>
-					<p
-						class="block mb-6"
-						x-text="message"
-					></p>
-					<div class="w-full flex flex-row flex-nowrap items-center justify-end">
-						<button
-							class="btn"
-							x-on:click="show = false;"
-						>Close</button>
-					</div>
-				</modal-content>
-			</modal-element>
+			// Three dialogs, rendered once here and opened with showModal() so
+			// the browser supplies the top layer, the focus trap, Escape and
+			// the inert background. DaisyUI hides ::backdrop and paints the dim
+			// on .modal itself, which is why backdrop-blur-[4px] is on the
+			// <dialog> and not on a child; the page scroll lock comes from its
+			// rootscrolllock base module keying off .modal[open].
+			//
+			// None of them carry DaisyUI's <form class="modal-backdrop">, so a
+			// click outside the box does nothing. Dismissing has to be
+			// deliberate, which means every dialog owes the user a close control
+			// it renders itself -- the two below have a labelled button, and the
+			// content modal has a corner ✕ in the shell so a fetched fragment
+			// cannot forget one.
+			//
+			// Every button in a dialog is solid; no ghost, no soft. Those are for
+			// buttons sitting on the page, where the surface behind them carries
+			// the affordance. A dialog is already a raised surface, so a
+			// low-emphasis button on it reads as decoration. Fragments loaded
+			// into the content modal follow the same rule.
+			//
+			// The neutral ones need border-base-content/50 to hold that up.
+			// DaisyUI's .btn fills with base-200, and bg-panel/85 resolves to
+			// rgb(26,18,25) under coffee against the button's rgb(30,21,29) --
+			// 1.03:1, so the fill disappears into the panel and a solid button
+			// reads as the ghost one it replaced. The border is its only edge
+			// under that theme. btn-error is exempt: its hue carries it in both.
+			@confirmModal()
+			@alertModal()
+			@contentModal()
 		</body>
 	</html>
+}
+
+// The panel treatment repeated on each .modal-box below is the one the old
+// <modal-content> carried. .modal-box sets base-100 itself, so bg-panel/85 only
+// wins because utilities are a later cascade layer than the DaisyUI plugin.
+templ confirmModal() {
+	<dialog id="confirm-modal" class="modal backdrop-blur-[4px]" aria-labelledby="confirm-modal-heading">
+		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+			<h4 id="confirm-modal-heading" class="mb-3 block text-xl font-semibold" data-modal-heading></h4>
+			<p class="block" data-modal-message></p>
+			// Both buttons submit this form, which closes the dialog and records
+			// which one was pressed in returnValue. confirm-modal.js reads it in
+			// the close handler; Escape leaves it empty, which reads as a cancel.
+			//
+			// Cancel is first so it takes the autofocus showModal() would
+			// otherwise hand to the destructive button, and so Enter picks it.
+			<form method="dialog" class="modal-action">
+				<button class="btn border-base-content/50" value="cancel" autofocus data-modal-cancel>Close</button>
+				<button class="btn btn-error" value="confirm" data-modal-confirm>Confirm</button>
+			</form>
+		</div>
+	</dialog>
+}
+
+templ alertModal() {
+	<dialog id="alert-modal" class="modal backdrop-blur-[4px]" aria-labelledby="alert-modal-heading">
+		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+			<h4 id="alert-modal-heading" class="mb-3 block text-xl font-semibold" data-modal-heading></h4>
+			<p class="block" data-modal-message></p>
+			<form method="dialog" class="modal-action">
+				<button class="btn border-base-content/50" autofocus>Close</button>
+			</form>
+		</div>
+	</dialog>
+}
+
+// The shell for content-modal.js. Everything inside it is rendered up front and
+// the module only toggles [hidden], so no class name has to be written in
+// JavaScript. That matters here because public/js is not a Tailwind @source, so
+// a utility named only in a script would never be emitted.
+templ contentModal() {
+	<dialog id="content-modal" class="modal backdrop-blur-[4px]">
+		<div class="modal-box relative border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm" data-modal-box>
+			// htmx 4 returns early on a DIALOG method, so this form closes the
+			// dialog without ever becoming a request.
+			<form method="dialog">
+				<button class="btn btn-sm btn-circle border-base-content/50 absolute top-4 right-4" aria-label="Close">✕</button>
+			</form>
+			<div class="flex min-h-32 items-center justify-center" data-modal-loading>
+				<span class="loading loading-spinner loading-lg"></span>
+			</div>
+			<div class="min-h-32 content-center text-center" data-modal-error hidden>
+				<h4 class="mb-3 block text-xl font-semibold">Couldn't load that</h4>
+				<p class="mb-6 block">The server didn't return the content. Try again in a moment.</p>
+				<button class="btn border-base-content/50" data-modal-retry>Retry</button>
+			</div>
+			// Where the fetched markup lands. Fragments bring their own heading
+			// and their own actions; the ✕ above is the floor, not the whole
+			// contract.
+			<div data-modal-body hidden></div>
+		</div>
+	</dialog>
 }
