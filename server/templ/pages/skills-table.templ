@@ -1,0 +1,51 @@
+package pages
+
+// The eighteen skills and the ability each keys off, in the order the sheet has
+// always listed them -- alphabetical by name, which is also how the printed
+// character sheet orders them. Const array from the top of skills-table.js.
+var skills = []bonusEntry{
+	{Key: "acrobatics", Abbr: "DEX", Label: "Acrobatics"},
+	{Key: "animal_handling", Abbr: "WIS", Label: "Animal Handling"},
+	{Key: "arcana", Abbr: "INT", Label: "Arcana"},
+	{Key: "athletics", Abbr: "STR", Label: "Athletics"},
+	{Key: "deception", Abbr: "CHA", Label: "Deception"},
+	{Key: "history", Abbr: "INT", Label: "History"},
+	{Key: "insight", Abbr: "WIS", Label: "Insight"},
+	{Key: "intimidation", Abbr: "CHA", Label: "Intimidation"},
+	{Key: "investigation", Abbr: "INT", Label: "Investigation"},
+	{Key: "medicine", Abbr: "WIS", Label: "Medicine"},
+	{Key: "nature", Abbr: "INT", Label: "Nature"},
+	{Key: "perception", Abbr: "WIS", Label: "Perception"},
+	{Key: "performance", Abbr: "CHA", Label: "Performance"},
+	{Key: "persuasion", Abbr: "CHA", Label: "Persuasion"},
+	{Key: "religion", Abbr: "INT", Label: "Religion"},
+	{Key: "sleight_of_hand", Abbr: "DEX", Label: "Sleight of Hand"},
+	{Key: "stealth", Abbr: "DEX", Label: "Stealth"},
+	{Key: "survival", Abbr: "WIS", Label: "Survival"},
+}
+
+// skillsTable is savingThrowsTable with eighteen rows instead of six, and the
+// ability a skill keys off printed where the saving throws print their own
+// abbreviation. Field names
+// are `skills-acrobatics` .. `skills-survival`, unchanged: marshalSkillsPayload
+// scans PostForm for the `skills-` prefix, so the wire format is the same one
+// skills-table.js emitted and the controller needed no change. A nil map is the
+// new-character case; every lookup misses and renders 0.
+//
+// Sized against the panel for the same reason savingThrowsTable is -- see the
+// long note there. The thresholds are wider by one rem each because the names
+// are longer: "Investigation" is the worst case at 13 characters with nowhere to
+// break, against "Constitution" at 12. The two-word names are not the binding
+// constraint even though they are longer still; "Animal Handling" and "Sleight
+// of Hand" wrap at the space and cost their grid row a second line, which is the
+// behaviour the sheet has always had. Thresholds verified by measuring every
+// name at every step.
+templ skillsTable(bonuses map[string]int) {
+	<div class="@container">
+		<div class="grid grid-cols-1 gap-2 @[23rem]:grid-cols-2 @[35rem]:grid-cols-3">
+			for _, skill := range skills {
+				@bonusRow("skills-"+skill.Key, skill.Label, skill.Abbr, bonuses[skill.Key])
+			}
+		</div>
+	</div>
+}

@@ -92,7 +92,7 @@ templ editCharacterContent(data EditCharacterPageData) {
 								@savingThrowsTable(data.SavingThrows)
 							}
 							@sheetSection("Skills") {
-								<skills-table data-name="skills" data-label="" data-values={ data.SkillsJSON }></skills-table>
+								@skillsTable(data.Skills)
 							}
 						</div>
 						<div class="grid content-start gap-4">

@@ -35,15 +35,12 @@
    radius/depth/border match silk's exactly, so it changes nothing on the
    deferred list. It does set --noise: 1 where silk and coffee both set 0 --
    that is a faint grain on .btn and .alert, light mode only. */
-/* exclude drops the component groups whose class names this app still owns and
-   styles itself. One name is left: .label, the key cell in skills-table. That
-   sheet is layered, so its rules win on any property it sets -- but DaisyUI also
-   sets properties it does not, and white-space: nowrap on an 18-row grid of
-   skill names is the one that would show. Measured with a headless render of
-   the character sheet.
+/* exclude dropped the component groups whose class names this app owned and
+   styled itself. The list is empty as of phase 6 and every name is back in the
+   build; what follows is the record of why each one was ever on it, kept because
+   the reasons are the argument for the mechanic rather than for the names.
 
-   Each name leaves this list in the phase that retires the markup owning it;
-   see PLAN.md.
+   Each name left in the phase that retired the markup owning it; see PLAN.md.
 
    `link` left in phase 1 along with link.css -- DaisyUI's .link sets only
    text-decoration and a focus ring, no colour, so the one <a class="link"> on
@@ -65,11 +62,20 @@
    `select` selector of its own, so un-excluding the group cannot reach it.
 
    Phase 5 (saving throws) took no name off this list. Its <span class="label">
-   was the stat name, and it is now a plain <label> carrying utilities, so the
-   only .label left on the page is the one in skills-table. */
+   was the stat name, and it became a plain <label> carrying utilities -- which
+   left skills-table holding .label on its own.
+
+   `label` left last, in phase 6 with skills.css and skills.js. It is the only
+   one of the four that bought no collision fix on the way out: nothing carries
+   class="label" any more, so the 3,233 B DaisyUI now emits for the group is
+   inert. It is emitted at all because "label" is a word this codebase says
+   constantly -- data-label, `label string`, save.Label -- and the scanner reads
+   words, not class attributes. Kept anyway rather than leaving the name
+   excluded forever: exclude is a collision rail, not a tree-shaker, and a
+   <span class="label"> written later against DaisyUI's own documented shape
+   should work rather than silently do nothing. */
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
-  exclude: label;
 }
 
 /* coffee ships --border: 1px, caramellatte 2px, so a bordered card changed

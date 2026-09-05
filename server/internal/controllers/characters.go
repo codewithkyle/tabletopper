@@ -498,7 +498,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		TempHP:           strconv.FormatUint(uint64(character.TempHp), 10),
 		SpellSaveDC:      strconv.FormatUint(uint64(character.SpellSaveDc), 10),
 		SpellAtkBonus:    strconv.FormatInt(int64(character.SpellAtkBonus), 10),
-		SkillsJSON:       normalizeJSONObjectJSON(character.Skills),
+		Skills:           parseStatBonuses(character.Skills),
 		SavingThrows:     parseStatBonuses(character.SavingThrows),
 		FeaturesJSON:     normalizeInfoRowsJSON(character.Features),
 		WeaponsJSON:      normalizeInfoRowsJSON(character.Weapons),
@@ -524,34 +524,11 @@ func fallbackString(value, fallback string) string {
 	return trimmed
 }
 
-func normalizeJSONObjectJSON(raw json.RawMessage) string {
-	if len(raw) == 0 {
-		return "{}"
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		slog.Warn("invalid JSON object payload; defaulting", "error", err)
-		return "{}"
-	}
-
-	if payload == nil {
-		payload = map[string]any{}
-	}
-
-	normalized, err := json.Marshal(payload)
-	if err != nil {
-		slog.Warn("failed to normalize JSON object payload; defaulting", "error", err)
-		return "{}"
-	}
-
-	return string(normalized)
-}
-
 // parseStatBonuses unmarshals one of the `{"str": 2, "dex": 0, ...}` blobs into a
 // map the templates can range over, rather than handing the JSON to the browser
-// for a component to parse. normalizeJSONObjectJSON, which did that, is still
-// the path for skills until phase 6 retires that component too.
+// for a component to parse. It serves both bonus grids -- saving throws and
+// skills -- and replaced normalizeJSONObjectJSON, which did the handing-over and
+// went with the second of them.
 //
 // Decoded as float64, not int: type=number with step="1" rejects a decimal on
 // validity but still reports it as the value, so a fractional bonus could reach

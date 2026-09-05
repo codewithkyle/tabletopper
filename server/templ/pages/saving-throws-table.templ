@@ -1,18 +1,9 @@
 package pages
 
-import "strconv"
-
-// The six saving throws, in the order the sheet has always listed them. This
-// was a const array at the top of saving-throws-table.js; the component is a
-// `for` over it and nothing else -- fixed list, no add, no delete, no
-// reordering.
-type savingThrow struct {
-	Key   string
-	Abbr  string
-	Label string
-}
-
-var savingThrows = []savingThrow{
+// The six saving throws, in the order the sheet has always listed them. This was
+// a const array at the top of saving-throws-table.js; the component is a `for`
+// over it and nothing else -- fixed list, no add, no delete, no reordering.
+var savingThrows = []bonusEntry{
 	{Key: "str", Abbr: "STR", Label: "Strength"},
 	{Key: "dex", Abbr: "DEX", Label: "Dexterity"},
 	{Key: "con", Abbr: "CON", Label: "Constitution"},
@@ -37,8 +28,9 @@ var savingThrows = []savingThrow{
 // 900px (full width) and above ~1160px (half of a wide page) and overflows in
 // the band between, where the panel is half of a narrow page. Measured the other
 // way there is one monotonic rule and no band to get wrong. The thresholds are
-// the widths at which a cell still holds "Constitution" at text-sm beside the
-// 3.5rem field.
+// the widths at which a cell still holds "Constitution" -- the longest name here
+// with nowhere to break -- at text-sm beside the 3.5rem field. skillsTable has
+// the same shape and its own thresholds, because its names are longer.
 //
 // Read the paragraph above and note what it never says: the name of the query
 // variant used below. Tailwind's word scanner reads comments, and that word is
@@ -52,31 +44,7 @@ templ savingThrowsTable(bonuses map[string]int) {
 	<div class="@container">
 		<div class="grid grid-cols-1 gap-2 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">
 			for _, save := range savingThrows {
-				{{ field := "saving_throws-" + save.Key }}
-				<div class="flex items-center justify-between gap-2 rounded-field border-2 border-base-300 p-2">
-					<span class="flex min-w-0 flex-col gap-0.5">
-						<label class="text-sm font-medium" for={ field }>{ save.Label }</label>
-						<span class="text-xs font-semibold tracking-wider text-base-content/75">{ save.Abbr }</span>
-					</span>
-					// No min/max and no .validator, both carried over from the
-					// component this replaces. A saving throw bonus is signed, so
-					// there is no floor to declare; and with no constraint to
-					// violate the only rule left is step="1", whose one failure
-					// mode is a typed decimal. Wiring .validator for that would
-					// buy a red border with nowhere to put a hint, and would paint
-					// six :user-valid green borders across a tight grid for the
-					// normal case. The text and number fields carry it because
-					// they have required/min/max and room for a line of text.
-					<input
-						id={ field }
-						name={ field }
-						type="number"
-						inputmode="numeric"
-						step="1"
-						class="input input-sm w-14 text-right"
-						value={ strconv.Itoa(bonuses[save.Key]) }
-					/>
-				</div>
+				@bonusRow("saving_throws-"+save.Key, save.Label, save.Abbr, bonuses[save.Key])
 			}
 		</div>
 	</div>

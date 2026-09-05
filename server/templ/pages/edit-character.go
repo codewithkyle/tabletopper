@@ -25,7 +25,7 @@ type EditCharacterPageData struct {
 	TempHP           string
 	SpellSaveDC      string
 	SpellAtkBonus    string
-	SkillsJSON       string
+	Skills           map[string]int
 	SavingThrows     map[string]int
 	FeaturesJSON     string
 	WeaponsJSON      string

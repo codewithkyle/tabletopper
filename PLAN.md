@@ -2,18 +2,22 @@
 
 The last leg of the Brixi teardown. When it lands, `tokens.css` is deleted, the
 `exclude:` list in `server/css/app.css` is empty, and the lit-html component
-runtime is gone from `server/public/js`.
+runtime is gone from `server/public/js`. The middle of those three is done: the
+list emptied in Phase 6.
+
+Two components are left — `monster-info-table` (Phase 7) and `spell-slots-table`
+(Phase 8) — plus the cleanup in Phase 9.
 
 **Scope:** the seven interactive elements on the character sheet, plus `.link`.
 Everything else in `server/public/css` is already on DaisyUI tokens.
 
-| | at plan time | now (after Phase 5) | after |
+| | at plan time | now (after Phase 6) | after |
 |---|---|---|---|
-| stylesheet `<link>`s in `base.templ` | 15 | **11** | **7** |
-| `<script>`s in `base.templ` | 12 † | **8** | **5** † |
-| Brixi token reads | 234 | **85** | **0** |
-| CSS deleted | — | 14,751 B across 4 files | **27,062 B** across 8 files |
-| JS deleted | — | 15,769 B across 5 modules | **48,194 B** across 15 modules |
+| stylesheet `<link>`s in `base.templ` | 15 | **10** | **7** |
+| `<script>`s in `base.templ` | 12 † | **7** | **5** † |
+| Brixi token reads | 234 | **66** | **0** |
+| CSS deleted | — | 16,396 B across 5 files | **27,062 B** across 8 files |
+| JS deleted | — | 18,918 B across 6 modules | **48,194 B** across 15 modules |
 | JS surviving | — | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
 
 † Counted from `base.templ`; the original figures of 13 and 6 were off by one
@@ -40,13 +44,15 @@ skills and saving-throws tables, `.link` by `link.css`. While a name sits in
 `exclude`, DaisyUI emits **no CSS at all** for it, so the old and new worlds
 cannot collide.
 
-`link` left in Phase 1, `input` in Phase 2, `select` in Phase 4. Only `label` is
-still on the list; it goes in Phase 6.
+`link` left in Phase 1, `input` in Phase 2, `select` in Phase 4 and `label` in
+Phase 6. **The list is now empty and the safety rail is spent** — Phases 7 and 8
+have no name left to hide behind, because the components they retire never owned
+a DaisyUI class name in the first place.
 
-Most phases below remove exactly one name from that list, in step with the
-markup that owned it. Phase 5 is the exception and removed none: the
-`<span class="label">` it retired was one of the two owners of `.label`, not the
-last, so `skills-table` now holds the name on its own until Phase 6. Nothing needs a big-bang cutover, and every phase is
+Most phases removed exactly one name, in step with the markup that owned it.
+Phase 5 was the exception and removed none: the `<span class="label">` it
+retired was one of the *two* owners of `.label`, so `skills-table` held the name
+alone until Phase 6 took it. Nothing needs a big-bang cutover, and every phase is
 independently testable and independently revertible.
 
 **The server needs almost no changes for Phases 1–6.** The Go controller already
@@ -397,25 +403,73 @@ check rather than a new risk.
 
 ---
 
-## Phase 6 — skills  (`skills-table`)
+## Phase 6 — skills  (`skills-table`)  ✅ done
 
-Mechanically identical to Phase 5 with 18 rows instead of 6, a 3-column grid,
-and an ability abbreviation instead of a stat abbreviation. Prefix
-`skills-`; `marshalSkillsPayload` unchanged.
+Mechanically identical to Phase 5 with 18 rows instead of 6 and the keying
+ability where the saving throws print their own abbreviation. Prefix `skills-`;
+`marshalSkillsPayload` unchanged.
 
-**This phase retires the last `<span class="label">`**, and is where `label`
-finally leaves `exclude` — Phase 2 ended up not needing it, so the interim
-`white-space: nowrap` wobble lands here rather than three phases earlier.
+**Landed:** `templ/pages/skills-table.templ` (the 18-entry slice and
+`skillsTable`), and — because Phase 5's row markup would otherwise have been
+copied verbatim — `templ/pages/bonus-row.templ`, which now holds the row for
+both grids. `SkillsJSON string` became `Skills map[string]int`, fed by the
+`parseStatBonuses` written in Phase 5. Deleted `public/css/skills-table.css`
+(1,645 B, 19 Brixi reads), `public/js/skills-table.js` (3,149 B), and both tags.
 
-**Do:** `skillsTable` component, delete `public/css/skills-table.css`,
-`public/js/skills-table.js`, and both tags.
+**Extracting the row was the right call and is worth carrying into Phase 7.**
+Two tables, one row definition, two stylesheets that were byte-identical apart
+from the element names — that duplication is precisely what server-rendered
+markup is supposed to end. Each table now supplies only its entries and its own
+grid; everything else, including the reasoning about `.validator` and the
+contrast of the abbreviation, lives in one comment instead of two.
 
-Note: the `<h4>` heading in both table components is dead code on the server —
-every call site passes `data-label=""`, so the falsy branch renders `null`. It
-does not need porting.
+**`normalizeJSONObjectJSON` is deleted.** Skills was its last caller.
 
-**Test:** the 3-column grid at each breakpoint; confirm long names like
-"Animal Handling" and "Sleight of Hand" wrap rather than overflow.
+**`label` left `exclude`, and the list is now empty.** This is the one name of
+the four that bought no collision fix on the way out: nothing carries
+`class="label"` any more, so the 3,233 B DaisyUI emits for the group is inert.
+It is emitted at all only because "label" is a word this codebase says
+constantly — `data-label`, `label string`, `save.Label` — and the scanner reads
+words, not class attributes. Kept anyway: `exclude` is a collision rail, not a
+tree-shaker, and a `<span class="label">` written later against DaisyUI's own
+documented shape should work rather than silently do nothing. Flagging it
+because it is the whole cost of the phase and it is reversible in one line.
+
+Incidentally this confirms **D2's measurement**: `.label` resolves to
+`color-mix(in oklab, currentcolor 60%, transparent)` under `@supports`, exactly
+the 3.26 / 3.39 the table below records. Phase 2 was right not to adopt it.
+
+**Thresholds are wider than Phase 5's, and measured.** `@[23rem]` / `@[35rem]`
+against saving throws' `@[22rem]` / `@[33rem]`, because "Investigation" is 13
+characters with nowhere to break against "Constitution" at 12 — 89.0px at
+`text-sm`, in Rubik, confirmed loaded in the harness rather than a fallback.
+Rerunning skills at the *saving-throws* thresholds clips "Investigation" and
+"Performance" at a 528px panel, which is what the extra rem buys. The 3-column
+threshold sits 18px above the widest measured failure.
+
+**The two-word names wrap, as the test above asked.** At a 572px panel (3
+columns) "Animal Handling" and "Sleight of Hand" take a second line and their
+grid row grows to match; nothing clips and nothing overflows. Wrapping is also
+the *compact* outcome — dropping to 2 columns to avoid it would trade two taller
+rows for three extra ones.
+
+Verified across 320 / 375 / 414 / 480 / 560 / 596 / 610 / 624 / 640 / 900 /
+1000 / 1160 / 1280 / 1440 in both themes: **zero clipped labels and zero
+overflowing rows at every width, in both grids.**
+
+**Selector diff: +3,493 B, nothing removed.** The two new `@[…]` thresholds and
+the five `.label` rules; 3,233 B of that is `.label`. Three prose leaks were
+caught and reworded away first — see the hazard note below.
+
+Note: the `<h4>` heading was dead code on the server (`data-label=""` at every
+call site) and was not ported. Phase 5 guessed its classes would leave the build
+with `skills-table.js`; they do not — `monster-info-table.js` and
+`spell-slots-table.js` carry the same dead `<h4>`, so `text-[0.71rem]` and
+`tracking-[0.08em]` survive until **Phase 8**.
+
+**Test:** the grid is verified above. The save-and-reload round trip still wants
+a run against a real database, same as Phase 5 — the wire format is unchanged,
+so it is a regression check rather than a new risk.
 
 ---
 
@@ -526,8 +580,10 @@ Effectively invisible, but it is a real change and this is where it happens.
   entire component runtime, now unreferenced.
 - `env.js` survives (`notif.js` needs it) but its `css()` lazy-loader becomes
   dead code; strip it.
-- The `exclude:` list in `app.css` is now empty — delete the line and the
-  comment block above it that explains why it existed.
+- ~~The `exclude:` list in `app.css`~~ — **done in Phase 6.** The line is gone;
+  the comment block above it was kept and rewritten as the record of why each of
+  the four names was ever on the list, since the reasons are the argument for the
+  mechanic rather than for the names.
 
 **Test:** every page. Specifically confirm body text is still Rubik and headings
 are still the serif — those are the two things that fail silently.
@@ -574,9 +630,19 @@ its documented default. Noted for completeness, not flagged as a defect.
   Tailwind utility, and while the `@`-prefixed spelling in a class attribute is
   extracted whole and is harmless, the bare word in English is not. The rewrite
   of that comment — a note warning about *this exact trap*, which named
-  "dropdown" and "list" to cite the example above — cost **8,590 B**. Both were
-  caught by the selector diff and reworded away before landing; neither would
-  have shown up in review, and neither changed a line of markup.
+  "dropdown" and "list" to cite the example above — cost **8,590 B**.
+- Phase 6 stepped on it three more times, for **3,765 B**: "the exclude list in
+  css/app.css" (`.list`, 2,402 B) and "the stat abbreviation" (`.stat`,
+  1,363 B), plus a repeat of the same "dropdown"/"list" sentence.
+
+**A boundary rule worth knowing, found while bisecting those:** the punctuation
+after the word decides it. `fixed list,` costs nothing and `their list and`
+costs 2,402 B — a trailing comma keeps the word from being a candidate, a
+trailing space does not. So the same word is safe or expensive depending on
+where it falls in the sentence, which makes this impossible to eyeball. Every
+one of these five was found by the selector diff, none changed a line of markup,
+and none would have shown up in review. **Diff after editing a comment, not just
+after editing markup.**
 
 **So for every remaining phase: diff the emitted selectors, not the byte count,**
 and check that anything new is something the markup actually uses. Rewording a
