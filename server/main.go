@@ -56,8 +56,6 @@ func main() {
 	mux.HandleFunc("/characters/{id}/edit", middleware.RequireSession(controllers.CharacterPage))
 	mux.HandleFunc("POST /characters/{id}", middleware.RequireSession(controllers.EditCharacterForm))
 	mux.HandleFunc("DELETE /characters/{id}/delete", middleware.RequireSession(controllers.DeleteCharacter))
-	mux.HandleFunc("GET /characters/fragments/info-row", middleware.RequireSession(controllers.InfoRowFragment))
-	mux.HandleFunc("GET /characters/fragments/spell-card", middleware.RequireSession(controllers.SpellCardFragment))
 
 	mux.HandleFunc("/assets", middleware.RequireSession(controllers.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", middleware.RequireSession(controllers.MapAssetsPage))
@@ -69,6 +67,29 @@ func main() {
 	mux.HandleFunc("POST /assets/characters/{id}", middleware.RequireSession(controllers.UploadCharacterAvatar))
 	mux.HandleFunc("GET /assets/images/{id}", middleware.RequireSessionOr404(controllers.GetImage))
 	mux.HandleFunc("GET /assets/images/{id}/preview", middleware.RequireSessionOr404(controllers.GetImagePreview))
+
+	// Every route below returns partial HTML for a swap into a page that is
+	// already open, and the prefix is the only thing that says so. Nothing else
+	// does: an hx-get attribute is visible at the call site but not here, and a
+	// handler returning a <div> looks exactly like one returning a <html>.
+	//
+	// The rule is deliberately narrow -- a /fragment/ route is a GET that
+	// returns partial HTML, and nothing else. Mutations keep their resource
+	// URLs, because POST /fragment/characters would claim the created character
+	// lives under /fragment when the path names the resource and the prefix only
+	// names the representation. It is also a GET-shaped problem to begin with:
+	// only a GET gets bookmarked, linked, crawled or typed into an address bar,
+	// which is where confusing a fragment for a page actually costs something.
+	//
+	// middleware.Fragment carries the contract that follows from that; see it
+	// for what a fragment owes its caller.
+	mux.HandleFunc("GET /fragment/character/info-row", middleware.Fragment(controllers.InfoRowFragment))
+	mux.HandleFunc("GET /fragment/character/spell-card", middleware.Fragment(controllers.SpellCardFragment))
+
+	// Subtree pattern, so it takes any /fragment/ path the two above did not.
+	// Without it these fall to the catch-all on "/" and answer with Go's
+	// plain-text 404 page, which is a page-shaped reply to a fragment request.
+	mux.HandleFunc("/fragment/", middleware.FragmentNotFound)
 
 	mux.HandleFunc("/tos", func(w http.ResponseWriter, r *http.Request) {
 		pages.TOS().Render(r.Context(), w)

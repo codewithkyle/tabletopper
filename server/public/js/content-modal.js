@@ -2,7 +2,7 @@
 // "modal:open" event carrying a URL and it fetches that URL through htmx and
 // swaps the response into the dialog:
 //
-//     $dispatch('modal:open', { url: '/characters/new', size: 'lg' })
+//     $dispatch('modal:open', { url: '/fragment/character/new', size: 'lg' })
 //
 // Alpine's $dispatch sets bubbles, so it reaches the window listener below
 // from anywhere on the page; plain dispatchEvent on window works the same.
@@ -28,6 +28,18 @@ const retryEl = dialog.querySelector("[data-modal-retry]");
 // that default (.modal-box is max-width: 32rem), so an event with no size
 // behaves exactly as it would without this.
 const SIZES = { sm: "24rem", md: "32rem", lg: "42rem", xl: "56rem" };
+
+// Every load has to name a /fragment/ route, and the modal checks rather than
+// trusting the caller. This is the only place in the app that takes a URL as
+// data -- the detail of an event any component can fire -- so without the check
+// a dispatch naming a page URL swaps a whole <html> document into a <div>
+// inside .modal-box, and the wreckage reads as a styling bug rather than a
+// wrong URL. The prefix is what makes "is this a page or a piece of one?"
+// answerable here at all; see the fragment block in main.go.
+//
+// Comparing against a leading slash rules out an absolute or protocol-relative
+// URL for free: "//elsewhere.example/fragment/x" does not start with it.
+const FRAGMENT_PREFIX = "/fragment/";
 
 // The ctx of the fetch whose content the dialog is currently expecting.
 //
@@ -67,8 +79,18 @@ function load(request) {
 }
 
 window.addEventListener("modal:open", (e) => {
-    if (!e.detail?.url) {
+    const url = e.detail?.url;
+    if (!url) {
         console.error("modal:open fired without a url", e.detail);
+        return;
+    }
+    // Refused before openDialog, so a bad dispatch leaves the dialog shut
+    // rather than opening it onto a spinner that never resolves.
+    if (!url.startsWith(FRAGMENT_PREFIX)) {
+        console.error(
+            `modal:open needs a ${FRAGMENT_PREFIX} url, refusing:`,
+            url,
+        );
         return;
     }
     box.style.maxWidth = SIZES[e.detail.size] ?? SIZES.md;

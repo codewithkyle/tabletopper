@@ -211,14 +211,19 @@ func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
 // against the three known repeaters rather than trusted. An unknown prefix is a
 // 404 and not a row carrying arbitrary field names.
 //
-// Behind RequireSession like every other character route. The markup is not
+// Behind middleware.Fragment, which is RequireSession plus the no-store and
+// noindex headers every /fragment/ route owes its caller. The markup is not
 // secret -- it holds nothing but empty fields -- but an unauthenticated
 // endpoint here would be surface for no reason.
 func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
 	field := r.URL.Query().Get("field")
 	if !pages.IsInfoRowField(field) {
 		slog.Warn("unknown info row field requested", "field", field)
-		http.NotFound(w, r)
+		// Status only. http.NotFound would write Go's plain-text 404 page into
+		// a response the caller is going to swap, and a fragment route should
+		// never hand back something page-shaped. noSwap covers 4xx, so htmx
+		// leaves the target alone either way -- this is about the contract.
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
@@ -241,7 +246,7 @@ func SpellCardFragment(w http.ResponseWriter, r *http.Request) {
 	level, err := strconv.Atoi(r.URL.Query().Get("level"))
 	if err != nil || level < 0 || level > 9 {
 		slog.Warn("invalid spell level requested", "level", r.URL.Query().Get("level"))
-		http.NotFound(w, r)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
