@@ -110,12 +110,7 @@ templ editCharacterContent(data EditCharacterPageData) {
 					}
 
 					@sheetSection("Spellcasting") {
-						<spell-slots-table
-							data-name="spells"
-							data-label=""
-							data-add-label="Add Spell"
-							data-levels={ data.SpellSlotsJSON }
-						></spell-slots-table>
+						@spellSlotsTable(data.SpellLevels)
 					}
 				</div>
 			</div>

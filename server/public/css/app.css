@@ -1888,6 +1888,9 @@
   .col-span-2 {
     grid-column: span 2 / span 2;
   }
+  .col-span-full {
+    grid-column: 1 / -1;
+  }
   .m-0 {
     margin: 0px;
   }
@@ -2267,6 +2270,9 @@
   }
   .w-14 {
     width: calc(var(--spacing) * 14);
+  }
+  .w-16 {
+    width: calc(var(--spacing) * 16);
   }
   .w-full {
     width: 100%;
@@ -2658,9 +2664,6 @@
   .pb-4 {
     padding-bottom: calc(var(--spacing) * 4);
   }
-  .pl-0\.5 {
-    padding-left: calc(var(--spacing) * 0.5);
-  }
   .pl-1 {
     padding-left: var(--spacing);
   }
@@ -2708,9 +2711,6 @@
       font-size: 0.75rem;
     }
   }
-  .text-\[0\.71rem\] {
-    font-size: 0.71rem;
-  }
   .text-\[0\.82rem\] {
     font-size: 0.82rem;
   }
@@ -2753,10 +2753,6 @@
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
-  }
-  .tracking-\[0\.08em\] {
-    --tw-tracking: 0.08em;
-    letter-spacing: 0.08em;
   }
   .tracking-\[0\.09em\] {
     --tw-tracking: 0.09em;
@@ -3037,6 +3033,11 @@
   }
   @container (width >= 23rem) {
     .\@\[23rem\]\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @container (width >= 32rem) {
+    .\@\[32rem\]\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }

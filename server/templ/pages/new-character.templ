@@ -127,12 +127,7 @@ templ newCharacterContent(session session.UserSession) {
 					}
 
 					@sheetSection("Spellcasting") {
-						<spell-slots-table
-							data-name="spells"
-							data-label=""
-							data-add-label="Add Spell"
-							data-levels="{}"
-						></spell-slots-table>
+						@spellSlotsTable(EmptySpellLevels())
 					}
 				</div>
 			</div>

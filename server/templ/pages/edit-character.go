@@ -30,5 +30,5 @@ type EditCharacterPageData struct {
 	Features         []InfoRow
 	Weapons          []InfoRow
 	Resources        []InfoRow
-	SpellSlotsJSON   string
+	SpellLevels      []SpellLevel
 }

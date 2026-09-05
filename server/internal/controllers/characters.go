@@ -12,8 +12,6 @@ import (
 	"main/internal/session"
 	"main/templ/pages"
 	"net/http"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -227,6 +225,29 @@ func InfoRowFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := pages.InfoRowFragment(field).Render(r.Context(), w); err != nil {
 		slog.Error("Failed to render info row fragment", "error", err)
+	}
+}
+
+// SpellCardFragment serves one blank spell card to a level's add button, the
+// Phase 8 counterpart of InfoRowFragment above.
+//
+// `level` is the only thing the client sends, and it is the whole reason the
+// spell wire format moved off per-spell indices: an index would have to be a
+// counter the client keeps, where a level is a constant baked into the button.
+// It is bounded to the ten levels that exist rather than trusted -- it lands in
+// every field name on the card, so an unchecked value would put arbitrary keys
+// into the next post.
+func SpellCardFragment(w http.ResponseWriter, r *http.Request) {
+	level, err := strconv.Atoi(r.URL.Query().Get("level"))
+	if err != nil || level < 0 || level > 9 {
+		slog.Warn("invalid spell level requested", "level", r.URL.Query().Get("level"))
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := pages.SpellCardFragment(level).Render(r.Context(), w); err != nil {
+		slog.Error("Failed to render spell card fragment", "error", err)
 	}
 }
 
@@ -529,7 +550,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Features:         parseInfoRows(character.Features),
 		Weapons:          parseInfoRows(character.Weapons),
 		Resources:        parseInfoRows(character.Resources),
-		SpellSlotsJSON:   normalizeSpellSlotsJSON(character.SpellSlots),
+		SpellLevels:      parseSpellLevels(character.SpellSlots),
 	}
 }
 
@@ -607,28 +628,70 @@ func parseInfoRows(raw json.RawMessage) []pages.InfoRow {
 	return rows
 }
 
-func normalizeSpellSlotsJSON(raw json.RawMessage) string {
-	if len(raw) == 0 {
-		return "{}"
+// parseSpellLevels unmarshals the stored `{"0": {...}, "1": {...}}` column into
+// the ten ordered blocks the templates range over. It replaced
+// normalizeSpellSlotsJSON, which re-marshalled the same map into a string for a
+// data-levels attribute so spell-slots-table.js could parse it again and do this
+// same filling-in client-side.
+//
+// The column is keyed by level as a string and may be missing levels, so the
+// ten are built here rather than trusted from storage. Clamping mirrors the
+// write path: 0-99 for each counter, used never above slots. An unrecognised
+// school falls back to the default, which is what the component did on load --
+// it is the only place a legacy row can carry a value the picker cannot show.
+func parseSpellLevels(raw json.RawMessage) []pages.SpellLevel {
+	stored := map[string]pages.SpellLevel{}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &stored); err != nil {
+			slog.Warn("invalid spell slots payload; defaulting", "error", err)
+			stored = map[string]pages.SpellLevel{}
+		}
 	}
 
-	var payload map[string]spellLevelPayload
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		slog.Warn("invalid spell slots payload; defaulting", "error", err)
-		return "{}"
+	levels := make([]pages.SpellLevel, 0, 10)
+	for level := 0; level <= 9; level++ {
+		entry := stored[strconv.Itoa(level)]
+		entry.Level = level
+		entry.Slots = clampSpellCount(entry.Slots)
+		entry.Used = clampSpellCount(entry.Used)
+		if entry.Used > entry.Slots {
+			entry.Used = entry.Slots
+		}
+
+		if entry.Spells == nil {
+			entry.Spells = []pages.Spell{}
+		}
+		for i := range entry.Spells {
+			entry.Spells[i].School = pages.NormalizeSpellSchool(entry.Spells[i].School)
+		}
+
+		levels = append(levels, entry)
 	}
 
-	if payload == nil {
-		payload = map[string]spellLevelPayload{}
+	return levels
+}
+
+// clampSpellCount holds a slot counter to the 0-99 spell-slots-table.js enforced
+// as you typed. The fields carry min="0" max="99", so reaching this with an
+// out-of-range value means the post did not come from the form.
+func clampSpellCount(value int) int {
+	if value < 0 {
+		return 0
+	}
+	if value > 99 {
+		return 99
 	}
 
-	normalized, err := json.Marshal(payload)
+	return value
+}
+
+func parseSpellCount(value string) int {
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
 	if err != nil {
-		slog.Warn("failed to normalize spell slots payload; defaulting", "error", err)
-		return "{}"
+		return 0
 	}
 
-	return string(normalized)
+	return clampSpellCount(parsed)
 }
 
 func nullableString(value string) sql.NullString {
@@ -802,115 +865,40 @@ type spellLevelPayload struct {
 	Spells []spellPayload `json:"spells"`
 }
 
-var spellSlotFieldPattern = regexp.MustCompile(`^spells-level-(\d+)-(slots|used)$`)
-var spellEntryFieldPattern = regexp.MustCompile(`^spells-level-(\d+)-spell-(\d+)-(name|components|school|castingTime|range|duration|text)$`)
-
+// marshalSpellSlotsPayload reads the spellcasting section back off the form.
+//
+// The names are order-based as of Phase 8: every card in a level posts the same
+// seven keys, so PostForm["spells-level-3-name"] is that level's spell names in
+// document order and the seven slices zip. Deleting a card removes its entry
+// from all seven at once and adding one appends to all seven, so nothing has to
+// renumber and no index has to be tracked anywhere.
+//
+// That replaced two regexes, a map[int]map[int]*spellPayload and a sort.Ints:
+// the indexed format allowed gaps, which meant collecting spells into a sparse
+// map and sorting the keys to recover document order. Reading the slices gives
+// that order directly.
+//
+// The `-slots` and `-used` keys are per-level singletons and are unchanged. They
+// cannot collide with the seven card keys -- none of those is named slots or
+// used -- which is why the level prefix is safe to share.
 func marshalSpellSlotsPayload(r *http.Request) (json.RawMessage, error) {
-	levels := map[string]*spellLevelPayload{}
-	spellMap := map[int]map[int]*spellPayload{}
-
-	for i := 0; i <= 9; i++ {
-		key := strconv.Itoa(i)
-		levels[key] = &spellLevelPayload{
-			Level:  i,
-			Slots:  0,
-			Used:   0,
-			Spells: []spellPayload{},
-		}
-		spellMap[i] = map[int]*spellPayload{}
-	}
-
-	for key, formValues := range r.PostForm {
-		if len(formValues) == 0 {
-			continue
-		}
-
-		value := strings.TrimSpace(formValues[0])
-
-		if slotMatch := spellSlotFieldPattern.FindStringSubmatch(key); len(slotMatch) == 3 {
-			level, err := strconv.Atoi(slotMatch[1])
-			if err != nil || level < 0 || level > 9 {
-				continue
-			}
-
-			parsed, err := strconv.Atoi(value)
-			if err != nil {
-				parsed = 0
-			}
-
-			if parsed < 0 {
-				parsed = 0
-			}
-
-			entry := levels[strconv.Itoa(level)]
-			if slotMatch[2] == "slots" {
-				entry.Slots = parsed
-			} else {
-				entry.Used = parsed
-			}
-
-			continue
-		}
-
-		if spellMatch := spellEntryFieldPattern.FindStringSubmatch(key); len(spellMatch) == 4 {
-			level, err := strconv.Atoi(spellMatch[1])
-			if err != nil || level < 0 || level > 9 {
-				continue
-			}
-
-			index, err := strconv.Atoi(spellMatch[2])
-			if err != nil || index < 0 {
-				continue
-			}
-
-			field := spellMatch[3]
-			if spellMap[level][index] == nil {
-				spellMap[level][index] = &spellPayload{}
-			}
-
-			spell := spellMap[level][index]
-			switch field {
-			case "name":
-				spell.Name = value
-			case "components":
-				spell.Components = value
-			case "school":
-				spell.School = value
-			case "castingTime":
-				spell.CastingTime = value
-			case "range":
-				spell.Range = value
-			case "duration":
-				spell.Duration = value
-			case "text":
-				spell.Text = value
-			}
-		}
-	}
+	levels := map[string]spellLevelPayload{}
 
 	for level := 0; level <= 9; level++ {
-		entry := levels[strconv.Itoa(level)]
-		if entry.Used > entry.Slots {
-			entry.Used = entry.Slots
+		key := strconv.Itoa(level)
+		prefix := "spells-level-" + key
+
+		slots := parseSpellCount(r.PostFormValue(prefix + "-slots"))
+		used := parseSpellCount(r.PostFormValue(prefix + "-used"))
+		if used > slots {
+			used = slots
 		}
 
-		indexes := make([]int, 0, len(spellMap[level]))
-		for index := range spellMap[level] {
-			indexes = append(indexes, index)
-		}
-
-		sort.Ints(indexes)
-		for _, index := range indexes {
-			spell := spellMap[level][index]
-			if spell == nil {
-				continue
-			}
-
-			if spell.Name == "" && spell.Components == "" && spell.School == "" && spell.CastingTime == "" && spell.Range == "" && spell.Duration == "" && spell.Text == "" {
-				continue
-			}
-
-			entry.Spells = append(entry.Spells, *spell)
+		levels[key] = spellLevelPayload{
+			Level:  level,
+			Slots:  slots,
+			Used:   used,
+			Spells: zipSpellPayloads(r, prefix),
 		}
 	}
 
@@ -920,4 +908,53 @@ func marshalSpellSlotsPayload(r *http.Request) (json.RawMessage, error) {
 	}
 
 	return json.RawMessage(payload), nil
+}
+
+// zipSpellPayloads pairs one level's seven slices by position, stopping at the
+// shortest so a truncated post cannot index out of range.
+//
+// THE EMPTY-CARD GUARD DELIBERATELY IGNORES SCHOOL. The picker has no empty
+// option, so every card posts one -- which meant the old guard's
+// `spell.School == ""` was never true and a blank card was always stored. It was
+// unreachable for a second reason too: the name carried `required`, so a blank
+// card blocked the save outright rather than being dropped. Both are gone as of
+// Phase 8, and a card now counts as empty when everything the user could
+// actually have typed is empty. The school is a default, not an answer.
+func zipSpellPayloads(r *http.Request, prefix string) []spellPayload {
+	names := r.PostForm[prefix+"-name"]
+	components := r.PostForm[prefix+"-components"]
+	schools := r.PostForm[prefix+"-school"]
+	castingTimes := r.PostForm[prefix+"-castingTime"]
+	ranges := r.PostForm[prefix+"-range"]
+	durations := r.PostForm[prefix+"-duration"]
+	texts := r.PostForm[prefix+"-text"]
+
+	count := len(names)
+	for _, other := range [][]string{components, schools, castingTimes, ranges, durations, texts} {
+		if len(other) < count {
+			count = len(other)
+		}
+	}
+
+	spells := make([]spellPayload, 0, count)
+	for i := 0; i < count; i++ {
+		spell := spellPayload{
+			Name:        strings.TrimSpace(names[i]),
+			Components:  strings.TrimSpace(components[i]),
+			School:      pages.NormalizeSpellSchool(strings.TrimSpace(schools[i])),
+			CastingTime: strings.TrimSpace(castingTimes[i]),
+			Range:       strings.TrimSpace(ranges[i]),
+			Duration:    strings.TrimSpace(durations[i]),
+			Text:        strings.TrimSpace(texts[i]),
+		}
+
+		if spell.Name == "" && spell.Components == "" && spell.CastingTime == "" &&
+			spell.Range == "" && spell.Duration == "" && spell.Text == "" {
+			continue
+		}
+
+		spells = append(spells, spell)
+	}
+
+	return spells
 }

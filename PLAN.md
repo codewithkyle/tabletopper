@@ -5,19 +5,21 @@ The last leg of the Brixi teardown. When it lands, `tokens.css` is deleted, the
 runtime is gone from `server/public/js`. The middle of those three is done: the
 list emptied in Phase 6.
 
-One component is left — `spell-slots-table` (Phase 8) — plus the cleanup in
-Phase 9.
+**All four components are now server-rendered.** Only the Phase 9 cleanup is
+left: `tokens.css`, the lit-html runtime, and the three Brixi reads that survive
+in `core.css` and `bootstrap.css`. The `<script>` count is already at its target
+— everything still in `base.templ` stays.
 
 **Scope:** the seven interactive elements on the character sheet, plus `.link`.
 Everything else in `server/public/css` is already on DaisyUI tokens.
 
-| | at plan time | now (after Phase 7) | after |
+| | at plan time | now (after Phase 8) | after |
 |---|---|---|---|
-| stylesheet `<link>`s in `base.templ` | 15 | **9** | **7** |
-| `<script>`s in `base.templ` | 12 † | **6** | **5** † |
-| Brixi token reads | 234 | **41** | **0** |
-| CSS deleted | — | 18,820 B across 6 files | **27,062 B** across 8 files |
-| JS deleted | — | 22,095 B across 7 modules | **48,194 B** across 15 modules |
+| stylesheet `<link>`s in `base.templ` | 15 | **8** | **7** |
+| `<script>`s in `base.templ` | 12 † | **5** | **5** † |
+| Brixi token reads | 234 | **3** | **0** |
+| CSS deleted | — | 23,558 B across 7 files | **27,062 B** across 8 files |
+| JS deleted | — | 35,931 B across 8 modules | **48,194 B** across 15 modules |
 | JS surviving | — | — | 9,344 B (`notif` · `alerts` · `toaster` · `env` · `confirm-modal` · `uuid`) |
 
 † Counted from `base.templ`; the original figures of 13 and 6 were off by one
@@ -590,55 +592,131 @@ database is still the user's, same as Phases 5 and 6.
 
 ---
 
-## Phase 8 — spellcasting  (`spell-slots-table`)
+## Phase 8 — spellcasting  (`spell-slots-table`)  ✅ done
 
 **The largest component in the app** — 13,836 B of JS and 4,738 B of CSS, 38
-Brixi reads. Ten level groups, each with slots/used number fields and a list of
-spell cards; each card has 7 fields including a `<select>` of the 8 schools.
+Brixi reads. Ten level blocks, each with slots/used counters and any number of
+spell cards; each card has seven fields including a picker of the eight schools.
 
-Field names *are* indexed here: `spells-level-3-spell-0-name`. **Decided:
-order-based (was Option B), reversing this plan's earlier recommendation.**
+**Landed:** `templ/pages/spell-slots-table.templ` (`Spell`, `SpellLevel`, the
+schools, `spellSlotsTable` / `spellLevelBlock` / `spellCard` and the exported
+`SpellCardFragment`), `controllers.SpellCardFragment` and its route, and
+`templ/pages/icons.templ` — both repeaters put the identical 1.2 KB trash path in
+their delete buttons, so it moved out for the same reason `bonusRow` did in Phase
+6. `SpellSlotsJSON string` became `SpellLevels []SpellLevel`. Deleted
+`public/css/spell-slots-table.css`, `public/js/spell-slots-table.js`, and both
+tags.
 
-The plan originally recommended keeping the indexed format on the grounds that it
-isolates the risk to the templates. That reasoning does not survive contact with
-the add-row mechanic chosen in Phase 7. Indexed names need a monotonic counter,
-and with a fragment route the *client* has to tell the server which index to use
-— so the client is tracking state again, which is the thing being removed. A
-query param the client computes **is** client-side state.
+### The wire format moved, and the parser got smaller
 
-Order-based, every card in a level emits the same field names
-(`spells-level-3-name`, `-components`, …) and Go zips seven parallel slices per
-level, exactly as `marshalInfoRowsPayload` does today. The fragment URL then
-carries only `?level=N`, which is static markup. It also deletes
-`spellEntryFieldPattern`, the nested `map[int]map[int]*spellPayload` and the
-`sort.Ints`: **the parser gets smaller.**
+Order-based as decided: `spells-level-3-spell-0-name` became
+`spells-level-3-name`, every card in a level posting the same seven keys.
+`marshalSpellSlotsPayload` now reads seven parallel slices per level and zips
+them; `zipSpellPayloads` stops at the shortest so a truncated post cannot index
+out of range.
 
-One honest cost. With parallel slices a field that fails to submit desynchronises
-everything after it in that level, where indices would degrade to one empty
-field. Nothing in these forms can be omitted — text fields, textareas and selects
-always submit, and the school picker has no empty option — but a checkbox or a
-conditional `disabled` added later would break it. Worth knowing this is the same
-bet the info rows have been making in production all along.
+Gone with it: **both regexes, the `map[int]map[int]*spellPayload`, and the
+`sort.Ints`.** Those existed only because the indexed format allowed gaps —
+spells had to be collected into a sparse map and the keys sorted to recover
+document order. Reading the slices gives that order directly. `regexp` and `sort`
+are no longer imported by the controller at all.
 
-**Do:** `spellSlotsTable` / `spellLevel` / `spellCard` components; one add-spell
-route per the Phase 7 pattern (`GET /characters/fragments/spell-card?level=N`,
-allowlist 0–9, behind `RequireSession`); `SpellSlotsJSON` becomes
-`[]SpellLevel`. Delete `public/css/spell-slots-table.css`,
-`public/js/spell-slots-table.js`, and both tags. The school picker reuses
-`selectField` from Phase 4.
+The `-slots` / `-used` keys are per-level singletons and did not change. They
+cannot collide with the seven card keys, since none of those is named `slots` or
+`used`, which is what makes the level prefix safe to share.
 
-Two constraints from the old component to carry over: `spell-slots-table.js`
-clamps slots and used to 0–99 client-side where the Go parser only clamps
-negatives and `used <= slots`, so the number fields want `min="0" max="99"`; and
-it defaults a new spell's school to Evocation.
+**The stored column did not change.** Only the form field names did. Verified
+against a hand-written pre-Phase-8 blob: it reads back with every spell intact,
+missing levels filled in, and an over-range `slots: 120` clamped — so existing
+characters need no migration. A full render → post → parse round trip is stable
+across all ten levels.
 
-Also: `spell-slots-table.css` is the one table sheet with `.lvl` styling and its
-own `prefers-color-scheme` block already partially unwound in the card
-migration — check nothing depends on the leftovers before deleting.
+### Two guards that could never fire
 
-**Test:** the whole spellcasting section end to end. Add spells at levels 0, 3
-and 9; delete a middle one at level 3; set slots > used and used > slots (the
-parser clamps `used` to `slots`); save; reload.
+`normalizeSpellSlotsJSON` did what `normalizeInfoRowsJSON` did — unmarshal,
+re-marshal to a string, hand it to the browser to parse again — and
+`parseSpellLevels` replaces it with one unmarshal plus the level filling-in the
+component used to do on load.
+
+More interesting is the **drop-the-blank-card guard, which was unreachable for
+two independent reasons.** It tested `spell.School == ""`, but the picker has no
+empty option, so every card has always posted a school; and the name carried
+`required`, so a blank card blocked the save outright rather than being dropped.
+Exactly the Phase 7 finding, twice over. `required` is gone, and the guard now
+ignores school — a card is empty when everything the user could actually have
+*typed* is empty. The school is a default, not an answer.
+
+### Why these fields do not reuse `form-field.templ`
+
+A consequence of order-based names that lands in the templates rather than the
+controller: **the field name is no longer unique, so it cannot be the id.**
+`textField` and `selectField` are built on `for`/`id`, and three cards at level 3
+would give three elements `id="spells-level-3-components"`. The card fields
+associate their text by wrapping the control in a `<label>` instead — which is
+what the lit-html component did, and is the honest cost of the wire format
+decision.
+
+They also carry no `.validator`, for the reason that kept it off the bonus rows:
+these fields have no constraint, so the only state it could ever paint is
+`:user-valid`, which sets `--input-color` to success. Five green borders per card
+is not a validation affordance.
+
+Related, and left alone deliberately: `textField` puts `.validator` on
+non-required fields too, where it can likewise only ever paint green — Background,
+Speed and Languages on the Identity panel. Making the class conditional on
+`required` is a one-line change and would make `.validator` and `.validator-hint`
+appear together or not at all, but it is a visual change to shipped Phase 4 work
+and not Phase 8's to make.
+
+### Markup
+
+The card keeps the shape the stylesheet drew: name and delete button on a top
+row, then a two-column grid with Components and Spell Text spanning both.
+`col-span-full` rather than a prefixed span, since it is correct at one column
+and at two. The grid switches on the card's own width (`@[32rem]`) rather than
+the viewport's `max-width: 640px` — the panel is full width here so the viewport
+rule would pass its tests, but Phases 5 and 6 established that panel width is not
+a monotonic function of viewport width on this sheet, and the element query is
+right for the same reason.
+
+`min="0" max="99"` on the counters reproduces the clamp the component applied as
+you typed; the browser now reports an out-of-range value instead of silently
+rewriting the field, and the controller clamps again on save regardless.
+
+The custom chevron `<i class="selector">` and its absolute positioning are gone —
+DaisyUI's `.select` draws its own, as Phase 4 noted it would.
+
+One fix on inspection: the level heading was bottom-aligned against the taller
+counter group, which left a gap above it. The original centred it, and so does
+this.
+
+**Selector diff: +31 B net, and three selectors removed.** Added
+`.@[32rem]:grid-cols-2`, `.col-span-full` and `.w-16`, all used by the markup.
+Removed `.pl-0.5`, `.text-[0.71rem]` and `.tracking-[0.08em]` — the dead `<h4>`
+that every one of these components carried and none of them rendered, which Phase
+6 predicted would survive exactly until here. **The largest component in the app
+cost 31 bytes of CSS**, because Phases 2 through 7 had already paid for every
+class name its replacement needed.
+
+**Test — run, and it passes.** Against the real components, the real handler and
+the real htmx/Alpine bundles: add spells at levels 0, 3 and 9, fill the new
+level-3 cards, delete a *middle* card at level 3, and read the form back. The
+three survivors zip in document order with school and range still attached to the
+right card — which is the specific thing order-based names could get wrong.
+At 320 / 375 / 480 / 560 / 640 / 760 in both themes and, with real window sizes
+rather than a clamp, at 900 / 1100 / 1280 / 1440 / 1920: ten level blocks, no
+card overflow, no page overflow, zero `required`, the column switch landing
+between a 500px and a 620px card. A blank card does not block the save; `used`
+of 150 does, via `max`.
+
+Server side, verified directly: the zip preserves order through a middle delete,
+`used` clamps to `slots`, counters clamp to 0–99, the blank card is dropped, an
+unknown school falls back to Evocation, and a truncated post stops at the
+shortest slice instead of panicking.
+
+The save-and-reload round trip against a real database is still the user's, but
+it is now the *only* unverified step — the parse, the post and the re-parse are
+covered above.
 
 ---
 
@@ -674,6 +752,11 @@ Effectively invisible, but it is a real change and this is where it happens.
 **Then delete:**
 
 - `public/css/tokens.css` and its `<link>` — Brixi is gone.
+- `@source "../public/js/**/*.js"` in `server/css/app.css`. It was there for the
+  lit-html components, which emitted class strings the templates never contained;
+  all four are server-rendered as of Phase 8, so the line goes with the runtime
+  below. Expect the selector diff to *shrink* when it does — that is the hazard
+  note's third bullet, at scale.
 - `public/js/`: `supercomponent.js`, `component.js`, `lit-html.js`,
   `unsafe-html.js`, `directive-d639fc45.js`, `general.js`, `cache.js` — the
   entire component runtime, now unreferenced.
@@ -683,6 +766,17 @@ Effectively invisible, but it is a real change and this is where it happens.
   the comment block above it was kept and rewritten as the record of why each of
   the four names was ever on the list, since the reasons are the argument for the
   mechanic rather than for the names.
+
+**One more silent read, found in Phase 8 while counting what was left:**
+`soft-loading.css` reads `var(--loading-bar-shadow)` twice and nothing anywhere
+defines it, so both `box-shadow` declarations have always been invalid at
+computed-value time and the bars have never had a shadow. Not a Brixi token and
+not caused by any of this — but it is the same failure mode as the
+`--font-sans-serif` item above, and this is the phase that is looking at these
+files. Either define it or drop the declarations.
+
+(`toast.css` has a comment about `var(--font-snug)`, a token that never existed
+either. That one was already found and removed; the note is the record of it.)
 
 **Test:** every page. Specifically confirm body text is still Rubik and headings
 are still the serif — those are the two things that fail silently.
@@ -743,7 +837,11 @@ one of these five was found by the selector diff, none changed a line of markup,
 and none would have shown up in review. **Diff after editing a comment, not just
 after editing markup.**
 
-- Phase 7 leaked nothing, which is the first clean phase since this was found.
+- Phases 7 and 8 leaked nothing. Phase 8 ran the mechanic in reverse instead:
+  deleting `spell-slots-table.js` **removed** `.pl-0.5`, `.text-[0.71rem]` and
+  `.tracking-[0.08em]`, the classes of a heading none of the four components ever
+  rendered. Phase 6 predicted exactly that and named this phase.
+- Phase 7 leaked nothing, which was the first clean phase since this was found.
   Worth recording as method rather than luck: the dangerous vocabulary is
   *whatever DaisyUI names that this build does not already emit*, and that set is
   checkable in one command against the previous selector snapshot. Words already
