@@ -9,7 +9,9 @@ templ EditCharacterSpellLevel(data SpellLevelPageData) {
 			@spellLevelTabs(data.CharacterID, data.Level)
 			@sheetPanel(SpellLevelName(data.Level)) {
 				if data.Level > 0 {
-					@spellSlotsForm(data.CharacterID, data.Current)
+					@spellSlotsForm(data.CharacterID, data.Current) {
+						<span class="font-serif text-base leading-none font-bold">Spell slots</span>
+					}
 				}
 				<div id="spell-rows" class="grid gap-3">
 					for _, spell := range data.Spells {

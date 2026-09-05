@@ -4,11 +4,13 @@ import "strconv"
 
 templ spellLevelTabs(characterID string, active int) {
 	{{ base := "/characters/" + characterID + "/edit/spells/" }}
-	<nav class="flex gap-1 overflow-x-auto border-b-2 border-base-300 px-2" aria-label="Spell levels">
-		for level := 0; level <= MaxSpellLevel; level++ {
-			@spellLevelTabLink(base+strconv.Itoa(level), SpellLevelTab(level), active == level)
-		}
-	</nav>
+	<div class="overflow-x-auto">
+		<nav class="flex w-max min-w-full gap-1 border-b-2 border-base-300 px-2" aria-label="Spell levels">
+			for level := 0; level <= MaxSpellLevel; level++ {
+				@spellLevelTabLink(base+strconv.Itoa(level), SpellLevelTab(level), active == level)
+			}
+		</nav>
+	</div>
 }
 
 templ spellLevelTabLink(href string, name string, current bool) {
@@ -16,12 +18,12 @@ templ spellLevelTabLink(href string, name string, current bool) {
 		<a
 			href={ href }
 			aria-current="page"
-			class="-mb-0.5 shrink-0 border-b-2 border-primary px-3 py-2 text-sm font-semibold"
+			class="-mb-0.5 shrink-0 border-b-2 border-primary px-3 py-2 text-sm font-semibold transition-colors duration-150"
 		>{ name }</a>
 	} else {
 		<a
 			href={ href }
-			class="-mb-0.5 shrink-0 border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-base-content/60 hover:border-base-content/30 hover:text-base-content"
+			class="-mb-0.5 shrink-0 border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
 		>{ name }</a>
 	}
 }

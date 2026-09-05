@@ -141,6 +141,68 @@ func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID
 	return counters, true
 }
 
+// loadSpellLevels reads all ten levels for the Spell Slots panel on the
+// Character tab: every level's counters, and how many spells each one holds.
+//
+// Two queries rather than a join. A character with no slot rows and no spells is
+// the normal state of a fighter, and there is no join that produces ten rows of
+// zeroes from two empty results -- MySQL has no FULL OUTER JOIN, and the levels
+// missing from each side are not the same levels. The loop below says it in Go
+// for the cost of one extra round trip.
+func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
+	ctx := r.Context()
+
+	slots, err := a.Queries.ListSpellSlots(ctx, queries.ListSpellSlotsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		slog.Error("Failed to load spell slots", "error", err)
+		redirectToError(w, r)
+		return nil, false
+	}
+
+	counts, err := a.Queries.CountSpellsByLevel(ctx, queries.CountSpellsByLevelParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		slog.Error("Failed to count spells by level", "error", err)
+		redirectToError(w, r)
+		return nil, false
+	}
+
+	return mergeSpellLevels(slots, counts), true
+}
+
+// mergeSpellLevels builds all ten levels from however few rows the two queries
+// returned. Neither table seeds anything, so a level nobody has touched appears
+// in neither result and reads here as the zeroes it would have held.
+func mergeSpellLevels(slots []queries.SpellSlot, counts []queries.CountSpellsByLevelRow) []pages.SpellLevel {
+	counters := make(map[uint8]queries.SpellSlot, len(slots))
+	for _, row := range slots {
+		counters[row.Level] = row
+	}
+
+	totals := make(map[uint8]int64, len(counts))
+	for _, row := range counts {
+		totals[row.Level] = row.Total
+	}
+
+	levels := make([]pages.SpellLevel, 0, pages.MaxSpellLevel+1)
+	for level := 0; level <= pages.MaxSpellLevel; level++ {
+		counter := counters[uint8(level)]
+		levels = append(levels, pages.SpellLevel{
+			Level: level,
+			Slots: strconv.FormatUint(uint64(counter.Slots), 10),
+			Used:  strconv.FormatUint(uint64(counter.Used), 10),
+			Count: int(totals[uint8(level)]),
+		})
+	}
+
+	return levels
+}
+
 // AddSpell creates an empty spell at a level and answers with it. The level is
 // the only thing that comes from the client, and it comes from the URL of the
 // page the button is on rather than from a field.

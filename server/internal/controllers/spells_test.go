@@ -459,33 +459,74 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// A level nobody has given a count has no row in spell_slots -- nothing seeds
-// the table -- so the read has to answer ErrNoRows with zeroes rather than with
-// a failure. Cantrips never ask at all.
-func TestSpellSlotsReadIsScopedAndSingular(t *testing.T) {
+// The counters are read two ways on purpose, and each shape has one caller. A
+// level page shows one level, so it asks for one row and reads sql.ErrNoRows as
+// the zeroes an unseeded level would have held. The Spell Slots panel on the
+// Character tab shows all ten, because managing slots across levels is the whole
+// reason it is there.
+func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	body := string(source)
-	if strings.Contains(body, "-- name: CountSpellsByLevel") {
-		t.Error("CountSpellsByLevel is still here, and nothing counts spells any more")
-	}
-	if strings.Contains(body, "-- name: ListSpellSlots") {
-		t.Error("ListSpellSlots is still here, and no page renders more than one level")
+
+	statement := func(name string) string {
+		start := strings.Index(body, "-- name: "+name)
+		if start < 0 {
+			t.Fatalf("no %s query", name)
+		}
+		out := body[start:]
+		if end := strings.Index(out[1:], "-- name:"); end >= 0 {
+			out = out[:end+1]
+		}
+		return out
 	}
 
-	start := strings.Index(body, "-- name: GetSpellSlots")
-	if start < 0 {
-		t.Fatal("no GetSpellSlots query")
+	if got := statement("GetSpellSlots"); !strings.Contains(got, "level = ?") {
+		t.Errorf("GetSpellSlots is not one level:\n%s", got)
 	}
-	statement := body[start:]
-	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
-		statement = statement[:end+1]
+	if got := statement("ListSpellSlots"); strings.Contains(got, "level = ?") {
+		t.Errorf("ListSpellSlots is filtered to one level:\n%s", got)
 	}
-	if !strings.Contains(statement, "level = ?") {
-		t.Errorf("the counters are not read one level at a time:\n%s", statement)
+	if got := statement("ListSpellSlots"); !strings.Contains(got, "ORDER BY level") {
+		t.Errorf("ListSpellSlots is not in level order:\n%s", got)
+	}
+	if got := statement("CountSpellsByLevel"); !strings.Contains(got, "GROUP BY level") {
+		t.Errorf("CountSpellsByLevel does not group in SQL:\n%s", got)
+	}
+}
+
+// Ten levels always render, from however few rows came back. Neither table seeds
+// anything -- a character that has never cast a spell has no rows in either --
+// so a panel that trusted the query results would show a handful of levels and
+// no way to give the rest a slot count.
+func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
+	levels := mergeSpellLevels(
+		[]queries.SpellSlot{{Level: 3, Slots: 4, Used: 1}},
+		[]queries.CountSpellsByLevelRow{{Level: 0, Total: 5}, {Level: 3, Total: 2}},
+	)
+
+	if len(levels) != 10 {
+		t.Fatalf("levels = %d, want 10", len(levels))
+	}
+	for i, level := range levels {
+		if level.Level != i {
+			t.Errorf("levels[%d] is level %d -- the slice is not in level order", i, level.Level)
+		}
+	}
+
+	if got := levels[3]; got.Slots != "4" || got.Used != "1" || got.Count != 2 {
+		t.Errorf("level 3 = %+v, want slots 4, used 1, count 2", got)
+	}
+	if got := levels[0]; got.Count != 5 {
+		t.Errorf("cantrips count = %d, want 5", got.Count)
+	}
+	// A level with no row in either result is zeroes, not a gap.
+	for _, level := range []int{1, 2, 4, 5, 6, 7, 8, 9} {
+		if got := levels[level]; got.Slots != "0" || got.Used != "0" || got.Count != 0 {
+			t.Errorf("untouched level %d = %+v, want zeroes", level, got)
+		}
 	}
 }
 

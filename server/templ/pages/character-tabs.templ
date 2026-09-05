@@ -20,12 +20,12 @@ templ characterTabLink(href string, name string, current bool) {
 		<a
 			href={ href }
 			aria-current="page"
-			class="-mb-0.5 border-b-2 border-primary px-4 py-2 font-semibold"
+			class="-mb-0.5 border-b-2 border-primary px-4 py-2 font-semibold transition-colors duration-150"
 		>{ name }</a>
 	} else {
 		<a
 			href={ href }
-			class="-mb-0.5 border-b-2 border-transparent px-4 py-2 font-semibold text-base-content/60 hover:border-base-content/30 hover:text-base-content"
+			class="-mb-0.5 border-b-2 border-transparent px-4 py-2 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
 		>{ name }</a>
 	}
 }

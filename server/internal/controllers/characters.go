@@ -80,15 +80,21 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 // characters row itself -- the other two tabs are views of the inventory and
 // spells tables and take their own page data.
 //
-// It is also the only editor page that reads other tables. Equipment is a view
-// of the inventory rows ticked as equipped and Prepared Spells is a view of the
-// spell rows ticked as prepared -- so a character's gear and their spells are
-// written down once, on the tabs that own them, and read here rather than typed
-// in twice.
+// It is also the only editor page that reads other tables, and it reads four of
+// them. Equipment is the inventory rows ticked as equipped and Prepared Spells
+// is the spell rows ticked as prepared -- both views, so a character's gear and
+// their spells are written down once, on the tabs that own them, and read here
+// rather than typed in twice. Only the ticked rows are fetched, by queries that
+// filter in SQL: the page shows three of forty and has no use for the rest.
 //
-// Only the ticked rows are fetched, by two queries that filter in SQL. The page
-// shows three of forty and has no use for the rest; the inventory and spells
-// pages load everything because that is what they are for.
+// Spell Slots is not a view. It is ten small forms writing the spell_slots
+// table, and it is here rather than on the spells tab because resetting `used`
+// after a long rest touches nine levels at once -- the one thing a page per
+// level cannot do.
+//
+// Five queries, then, for a page that used to be one row. Each is an indexed
+// lookup returning at most a handful of rows, and the alternative to the last
+// two is a FULL OUTER JOIN that MySQL does not have.
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -118,9 +124,15 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	levels, ok := a.loadSpellLevels(w, r, characterID, sess.UserID)
+	if !ok {
+		return
+	}
+
 	data := characterToEditPageData(characterID.String(), character)
 	data.Equipped = inventoryPageItems(equipped)
 	data.Prepared = preparedSpellGroups(prepared)
+	data.SpellSlots = levels
 
 	render(w, r, pages.EditCharacter(data))
 }

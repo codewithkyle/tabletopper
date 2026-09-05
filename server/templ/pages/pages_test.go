@@ -840,4 +840,197 @@ func TestCharacterPageRendersBothTickedViews(t *testing.T) {
 			t.Errorf("the Character page is missing %q", want)
 		}
 	}
+
+	// Prepared Spells sits in its own row below the four panels above it, beside
+	// Spell Slots -- not stacked under Equipment, where a list that can run to
+	// twenty spells pushed the right column past the left one.
+	prepared := strings.Index(body, "Prepared Spells")
+	equipment := strings.Index(body, "Equipment")
+	slots := strings.Index(body, "Spell Slots")
+	if !(equipment < prepared && prepared < slots) {
+		t.Errorf("panel order is Equipment %d, Prepared %d, Slots %d", equipment, prepared, slots)
+	}
+}
+
+// testSpellLevels is the ten-level summary the Spell Slots panel is handed,
+// which the controller builds from however few rows the two queries returned.
+func testSpellLevels() []SpellLevel {
+	levels := make([]SpellLevel, 0, MaxSpellLevel+1)
+	for level := 0; level <= MaxSpellLevel; level++ {
+		levels = append(levels, SpellLevel{Level: level, Slots: "0", Used: "0"})
+	}
+
+	return levels
+}
+
+// The Spell Slots panel is one little form per level in use, sitting on the
+// Character tab beside Prepared Spells. It is the one editable thing on that
+// page that does not write a characters column, and the reason it is there is
+// the long rest: resetting `used` across several levels is one screen here and
+// one page load each on the level pages.
+//
+// LEVELS THE CHARACTER HAS NOTHING AT ARE NOT HERE. A level with no slots and no
+// spells is a row of zeroes and two inputs nobody will touch; it comes back from
+// its own page, where the counters always render.
+func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	levels := testSpellLevels()
+	levels[0].Count = 5
+	levels[1].Slots = "4"
+	levels[2].Slots = "3"
+	levels[3].Slots = "2"
+	levels[3].Used = "1"
+	levels[3].Count = 2
+	inUse := []int{0, 1, 2, 3}
+	unused := []int{4, 5, 6, 7, 8, 9}
+
+	var buf bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: id, SpellSlots: levels}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	// Three forms, not four: cantrips are in use but have no slots in the rules,
+	// so level 0 gets a link and the word Unlimited where the counters would be.
+	for _, level := range []int{1, 2, 3} {
+		want := `hx-post="/characters/` + id + `/spells/slots/` + strconv.Itoa(level) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("level %d has no slot form posting to %s", level, want)
+		}
+	}
+	if strings.Contains(body, "/spells/slots/0") {
+		t.Error("cantrips carry a slot form")
+	}
+	if !strings.Contains(body, "Unlimited") {
+		t.Errorf("cantrips do not say why they have no counters\n%s", body)
+	}
+
+	// Seven saving panels plus three slot forms plus Base's own, and nothing
+	// wrapping them. Forms do not nest, so a slot form inside a savingPanel
+	// would post neither.
+	const panels = 7
+	if got := strings.Count(body, "<form"); got != panels+3+closingForms {
+		t.Errorf("forms = %d, want %d", got, panels+3+closingForms)
+	}
+
+	// Every level in use links to its own page, so the panel is also how you get
+	// to a level without going through the tab strip.
+	for _, level := range inUse {
+		want := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("level %d is in use and not linked from the panel", level)
+		}
+	}
+	for _, level := range unused {
+		want := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
+		if strings.Contains(body, want) {
+			t.Errorf("level %d has nothing at it and is on the panel", level)
+		}
+	}
+
+	// The count reads as a sentence, because it sits next to two counters that
+	// are also numbers. A level that is here for its slots alone still says it
+	// holds nothing.
+	for _, want := range []string{"5 spells", "2 spells", "No spells"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the panel is missing %q", want)
+		}
+	}
+}
+
+// Which levels are in use is a display decision and nothing else reads it, so it
+// is worth pinning on its own rather than only through a rendered page.
+func TestActiveSpellLevelsKeepsWhatIsInUse(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		level SpellLevel
+		keep  bool
+	}{
+		{"nothing at all", SpellLevel{Level: 4, Slots: "0", Used: "0"}, false},
+		{"slots set", SpellLevel{Level: 4, Slots: "2", Used: "0"}, true},
+		{"every slot spent", SpellLevel{Level: 4, Slots: "2", Used: "2"}, true},
+		{"spells but no slots", SpellLevel{Level: 0, Slots: "0", Used: "0", Count: 3}, true},
+		// used without slots cannot be written -- SaveSpellSlots caps used at
+		// slots -- but if it ever were, hiding the level would strand it.
+		{"used without slots", SpellLevel{Level: 4, Slots: "0", Used: "1"}, true},
+	} {
+		got := activeSpellLevels([]SpellLevel{c.level})
+		if kept := len(got) == 1; kept != c.keep {
+			t.Errorf("%s: kept = %v, want %v", c.name, kept, c.keep)
+		}
+	}
+
+	if got := activeSpellLevels(testSpellLevels()); len(got) != 0 {
+		t.Errorf("a character with nothing anywhere keeps %d levels, want 0", len(got))
+	}
+}
+
+// With every level empty there is no list at all, only a line saying where the
+// first one comes from -- otherwise a fighter's sheet carries a blank box.
+//
+// Cantrips are the case worth its own row here: a character whose only
+// spellcasting is a cantrip has a list with no form in it, because level 0 has
+// no counters. Counting forms would call that an empty panel. So the empty state
+// is the thing asserted, and the levels linked are asserted beside it -- the
+// empty state carries a link of its own, and matching on hrefs alone would call
+// it a list.
+func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	const emptyState = "No spell levels in use yet"
+
+	for _, c := range []struct {
+		name  string
+		build func() []SpellLevel
+		shown []int
+	}{
+		{"nothing at all", testSpellLevels, nil},
+		{"one cantrip", func() []SpellLevel {
+			l := testSpellLevels()
+			l[0].Count = 1
+			return l
+		}, []int{0}},
+		{"a spell at a level with no slots", func() []SpellLevel {
+			l := testSpellLevels()
+			l[2].Count = 1
+			return l
+		}, []int{2}},
+		{"one slot", func() []SpellLevel {
+			l := testSpellLevels()
+			l[1].Slots = "2"
+			return l
+		}, []int{1}},
+		{"a slot already spent", func() []SpellLevel {
+			l := testSpellLevels()
+			l[1].Used = "1"
+			return l
+		}, []int{1}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := spellSlotsOverview(id, c.build()).Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			body := buf.String()
+
+			empty := strings.Contains(body, emptyState)
+			if empty != (len(c.shown) == 0) {
+				t.Errorf("empty state = %v, want %v\n%s", empty, len(c.shown) == 0, body)
+			}
+
+			shown := map[int]bool{}
+			for _, level := range c.shown {
+				shown[level] = true
+			}
+			for level := 0; level <= MaxSpellLevel; level++ {
+				href := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
+				// The empty state points at cantrips, which is the way to the
+				// first slot count -- so level 0 is expected there too.
+				want := shown[level] || (empty && level == 0)
+				if got := strings.Contains(body, href); got != want {
+					t.Errorf("level %d linked = %v, want %v\n%s", level, got, want, body)
+				}
+			}
+		})
+	}
 }

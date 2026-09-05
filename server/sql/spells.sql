@@ -24,6 +24,15 @@ SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND is_prepared = TRUE
 ORDER BY level, id;
 
+-- name: CountSpellsByLevel :many
+-- Feeds the Spell Slots panel on the Character tab, which says how many spells
+-- each level holds beside the counters for it. Levels with no spells are absent
+-- from the result; ten rows render regardless and a missing level counts zero.
+SELECT level, COUNT(*) AS total FROM spells
+WHERE character_id = ? AND owner_id = ?
+GROUP BY level
+ORDER BY level;
+
 -- name: InsertSpell :execresult
 -- FOUR COLUMNS AND NO MORE. Every other column has a schema default, so an add
 -- has nowhere to put spell data even if a caller tried to supply some -- the
@@ -67,6 +76,18 @@ WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;
 -- name: DeleteSpell :execresult
 DELETE FROM spells
 WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;
+
+-- name: ListSpellSlots :many
+-- Every level's counters at once, for the Spell Slots panel. It is the whole
+-- reason that panel exists: resetting `used` after a long rest touches nine
+-- levels, and doing it a page at a time was nine page loads.
+--
+-- Nothing seeds this table, so a character who has never set a count has no rows
+-- here at all. Ten levels render regardless and the missing ones read as the
+-- zeroes they would have held.
+SELECT * FROM spell_slots
+WHERE character_id = ? AND owner_id = ?
+ORDER BY level;
 
 -- name: GetSpellSlots :one
 -- One level's counters. Nothing seeds this table -- a row appears the first time

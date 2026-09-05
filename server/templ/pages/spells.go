@@ -44,13 +44,22 @@ type Spell struct {
 // carries a CHECK that agrees.
 const MaxSpellLevel = 9
 
-// SpellLevel is one level's slot counters. Only the level being shown has them
-// -- the tab strip is ten static labels and needs no data at all -- so a page
-// carries exactly one of these, and cantrips carry none.
+// SpellLevel is one level's slot counters, plus how many spells it holds.
+//
+// Two things carry these and they want different amounts. A level page carries
+// exactly one, for the level it is showing, and never reads Count -- the tab
+// strip above it is ten static labels that need no data at all. The Spell Slots
+// panel on the Character tab carries all ten and reads everything, because
+// managing slots across levels is the one thing a per-level page cannot do.
+//
+// Count is an int rather than a string because it is compared before it is
+// printed: an empty level says so in words rather than with a 0 sitting beside
+// two counters that are also numbers.
 type SpellLevel struct {
 	Level int
 	Slots string
 	Used  string
+	Count int
 }
 
 // SpellLevelPageData backs /edit/spells/{level}.
@@ -173,6 +182,46 @@ func preparedSpellName(spell Spell) string {
 	}
 
 	return spell.Name
+}
+
+// spellCountLabel is what a level says beside its counters. It reads as a
+// sentence rather than a number because the number would sit next to Slots and
+// Used, and a third bare integer there invites the wrong reading.
+func spellCountLabel(count int) string {
+	switch count {
+	case 0:
+		return "No spells"
+	case 1:
+		return "1 spell"
+	default:
+		return strconv.Itoa(count) + " spells"
+	}
+}
+
+// activeSpellLevels drops the levels a character has nothing at. A level with no
+// slots and no spells is a row of zeroes and two inputs nobody is going to
+// touch, and a wizard who has never cast above 5th does not need four of those
+// on their sheet.
+//
+// Used is in the test as well as Slots, even though SaveSpellSlots caps used at
+// slots and a level with no slots therefore has none spent. It costs nothing and
+// it means no arrangement of the two can hide a number somebody typed.
+//
+// A hidden level comes back from its own page: the level tab strip is always ten
+// and a level page always renders its counters, so the way to give level 4 its
+// first slot is to open level 4 -- which is where you would go to add a spell to
+// it anyway.
+func activeSpellLevels(levels []SpellLevel) []SpellLevel {
+	active := make([]SpellLevel, 0, len(levels))
+	for _, level := range levels {
+		if level.Count == 0 && level.Slots == "0" && level.Used == "0" {
+			continue
+		}
+
+		active = append(active, level)
+	}
+
+	return active
 }
 
 // spellRowName covers the row that was added before it was named, which is every

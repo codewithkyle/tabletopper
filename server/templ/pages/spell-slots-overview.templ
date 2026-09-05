@@ -1,0 +1,45 @@
+package pages
+
+import "strconv"
+
+templ spellSlotsOverview(characterID string, levels []SpellLevel) {
+	{{ active := activeSpellLevels(levels) }}
+	if len(active) == 0 {
+		<p class="text-base-content/75">
+			No spell levels in use yet. Set a slot count or add a spell on
+			<a href={ "/characters/" + characterID + "/edit/spells/0" } class="link">a level's page</a>
+			and it appears here.
+		</p>
+	} else {
+		<div class="grid w-full gap-3">
+			for _, level := range active {
+				@spellLevelSummary(characterID, level)
+			}
+		</div>
+	}
+}
+
+templ spellLevelSummary(characterID string, level SpellLevel) {
+	if level.Level == 0 {
+		<div class="rounded-field border-2 border-base-300 p-3">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				@spellLevelHeading(characterID, level)
+				<span class="text-sm text-base-content/60">Unlimited</span>
+			</div>
+		</div>
+	} else {
+		@spellSlotsForm(characterID, level) {
+			@spellLevelHeading(characterID, level)
+		}
+	}
+}
+
+templ spellLevelHeading(characterID string, level SpellLevel) {
+	<span class="flex min-w-0 flex-col gap-1">
+		<a
+			href={ "/characters/" + characterID + "/edit/spells/" + strconv.Itoa(level.Level) }
+			class="link font-serif text-base leading-none font-bold"
+		>{ SpellLevelName(level.Level) }</a>
+		<span class="text-xs font-semibold text-base-content/75">{ spellCountLabel(level.Count) }</span>
+	</span>
+}

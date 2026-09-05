@@ -38,4 +38,8 @@ type EditCharacterPageData struct {
 	// read-only beside Equipment. Same shape and same reason: written down once
 	// on the tab that owns it, read here.
 	Prepared []PreparedSpellGroup
+	// SpellSlots is all ten levels, for the panel beside Prepared Spells. It is
+	// the only editable thing on this page that does not write a characters
+	// column -- each level is its own little form posting to its own level.
+	SpellSlots []SpellLevel
 }

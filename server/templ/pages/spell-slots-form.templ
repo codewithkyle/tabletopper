@@ -15,8 +15,8 @@ templ spellSlotsForm(characterID string, level SpellLevel) {
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
 	>
 		@PanelFormErrors(panel, []string{})
-		<div class="flex flex-wrap items-end justify-between gap-3">
-			<span class="font-serif text-base leading-none font-bold">Spell slots</span>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			{ children... }
 			<div class="flex items-end gap-2">
 				@spellCountField("slots", "Slots", level.Slots)
 				@spellCountField("used", "Used", level.Used)
