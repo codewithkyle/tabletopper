@@ -3,30 +3,13 @@ package pages
 import "strconv"
 import "tabletopper/templ/layouts"
 
-templ EditCharacterSpells(data SpellsOverviewPageData) {
-	@layouts.Base("Spells | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabSpells) {
-			@spellLevelTabs(data.CharacterID, spellsOverviewTab, data.Levels)
-			@sheetPanel("Spell Slots") {
-				<div class="grid gap-3">
-					for _, level := range data.Levels {
-						@spellLevelSummary(data.CharacterID, level)
-					}
-				</div>
-			}
-		}
-	}
-}
-
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
 	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
 		@editCharacterShell(data.CharacterID, characterTabSpells) {
-			@spellLevelTabs(data.CharacterID, data.Level, data.Levels)
+			@spellLevelTabs(data.CharacterID, data.Level)
 			@sheetPanel(SpellLevelName(data.Level)) {
 				if data.Level > 0 {
-					@spellSlotsForm(data.CharacterID, data.Current) {
-						<span class="font-serif text-base leading-none font-bold">Spell slots</span>
-					}
+					@spellSlotsForm(data.CharacterID, data.Current)
 				}
 				<div id="spell-rows" class="grid gap-3">
 					for _, spell := range data.Spells {

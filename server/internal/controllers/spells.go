@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -40,41 +41,32 @@ const (
 	// The counters are TINYINT UNSIGNED, so the column stops at 255. 99 is what
 	// the inputs declare with max="99" and what the old JSON path clamped to.
 	spellSlotLimit = 99
-
-	maxSpellLevel = 9
 )
 
-// CharacterSpellsPage is the overview: ten levels, their slot counters and their
-// spell counts, and nothing else.
+// CharacterSpellsRedirect is all that is left of /edit/spells. The spells tab
+// opens on cantrips and there is no index above the levels, so this exists only
+// so a bookmark or a stale tab href lands on a page instead of the catch-all
+// 404.
 //
-// It exists because splitting the levels into pages turned the most common
-// spellcasting action there is -- resetting every `used` counter after a long
-// rest -- into nine page loads. Each row here is its own form posting to its own
-// level, so the reset is one screen and one row written per save.
-func (a *App) CharacterSpellsPage(w http.ResponseWriter, r *http.Request) {
-	sess := session.FromContext(r.Context())
-
-	_, characterID, ok := a.loadCharacter(w, r)
-	if !ok {
+// The id is parsed and printed back rather than passed through, so the Location
+// it builds can only be a canonical ULID. It reads no database: a character that
+// is not this user's is caught by the page it redirects to, and doing it twice
+// would mean two queries to answer a request that renders nothing.
+func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
+	characterID, err := ulid.Parse(r.PathValue("id"))
+	if err != nil {
+		redirect(w, r, "/characters")
 		return
 	}
 
-	levels, ok := a.loadSpellLevels(w, r, characterID, sess.UserID)
-	if !ok {
-		return
-	}
-
-	render(w, r, pages.EditCharacterSpells(pages.SpellsOverviewPageData{
-		CharacterID: characterID.String(),
-		Levels:      levels,
-	}))
+	redirect(w, r, "/characters/"+characterID.String()+"/edit/spells/0")
 }
 
 // CharacterSpellLevelPage is one level's spells.
 //
-// A level that is not one of the ten sends the browser to the overview rather
-// than to /characters. The character is real -- loadCharacter has already said
-// so -- and only the last segment is wrong, so the page one step up is the
+// A level that is not one of the ten sends the browser to cantrips rather than
+// to /characters. The character is real -- loadCharacter has already said so --
+// and only the last segment is wrong, so the first page of the section is the
 // answer, not the character list.
 func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -87,13 +79,18 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 
 	level, valid := parseSpellLevel(r.PathValue("level"))
 	if !valid {
-		redirect(w, r, "/characters/"+characterID.String()+"/edit/spells")
+		redirect(w, r, "/characters/"+characterID.String()+"/edit/spells/0")
 		return
 	}
 
-	levels, ok := a.loadSpellLevels(w, r, characterID, sess.UserID)
-	if !ok {
-		return
+	// Cantrips have no slots, so their page renders no counters and asks for
+	// none. That is one query saved on the page the Spells tab opens.
+	var counters pages.SpellLevel
+	if level > 0 {
+		var ok bool
+		if counters, ok = a.loadSpellSlots(w, r, characterID, sess.UserID, level); !ok {
+			return
+		}
 	}
 
 	rows, err := a.Queries.ListSpellsAtLevel(ctx, queries.ListSpellsAtLevelParams{
@@ -110,75 +107,38 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.EditCharacterSpellLevel(pages.SpellLevelPageData{
 		CharacterID: characterID.String(),
 		Level:       int(level),
-		// Indexed rather than searched, because mergeSpellLevels built this
-		// slice two lines ago with exactly ten entries in level order. The
-		// template is handed the entry instead of the slice and the index, so
-		// nothing outside this package depends on that.
-		Current: levels[level],
-		Levels:  levels,
-		Spells:  spellPageRows(rows),
+		Current:     counters,
+		Spells:      spellPageRows(rows),
 	}))
 }
 
-// loadSpellLevels reads the ten-level summary both spells pages need: the
-// counters for the overview, and the counts for the tab strip that renders on
-// every one of them.
+// loadSpellSlots reads one level's counters.
 //
-// Two queries rather than a join. A character with no slot rows and no spells is
-// the normal state of a fighter, and an outer join to produce ten rows of zeroes
-// would be a more expensive way to say what the loop below says.
-func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
-	ctx := r.Context()
+// Nothing seeds spell_slots, so a level nobody has given a count has no row, and
+// ErrNoRows is the zeroes it would have held rather than a failure. That is the
+// property the table was designed around; it used to be spelled as a list of
+// however many rows existed, back when one page rendered all ten levels.
+func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID, level uint8) (pages.SpellLevel, bool) {
+	counters := pages.SpellLevel{Level: int(level), Slots: "0", Used: "0"}
 
-	slots, err := a.Queries.ListSpellSlots(ctx, queries.ListSpellSlotsParams{
+	row, err := a.Queries.GetSpellSlots(r.Context(), queries.GetSpellSlotsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
+		Level:       level,
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return counters, true
+	}
 	if err != nil {
-		slog.Error("Failed to load spell slots", "error", err)
+		slog.Error("Failed to load spell slots", "error", err, "level", level)
 		redirectToError(w, r)
-		return nil, false
+		return pages.SpellLevel{}, false
 	}
 
-	counts, err := a.Queries.CountSpellsByLevel(ctx, queries.CountSpellsByLevelParams{
-		CharacterID: characterID,
-		OwnerID:     ownerID,
-	})
-	if err != nil {
-		slog.Error("Failed to count spells by level", "error", err)
-		redirectToError(w, r)
-		return nil, false
-	}
+	counters.Slots = strconv.FormatUint(uint64(row.Slots), 10)
+	counters.Used = strconv.FormatUint(uint64(row.Used), 10)
 
-	return mergeSpellLevels(slots, counts), true
-}
-
-// mergeSpellLevels builds all ten levels from however few rows the two queries
-// returned. Neither table seeds anything, so a level nobody has touched appears
-// in neither result and reads here as the zeroes it would have held.
-func mergeSpellLevels(slots []queries.SpellSlot, counts []queries.CountSpellsByLevelRow) []pages.SpellLevel {
-	counters := make(map[uint8]queries.SpellSlot, len(slots))
-	for _, row := range slots {
-		counters[row.Level] = row
-	}
-
-	totals := make(map[uint8]int64, len(counts))
-	for _, row := range counts {
-		totals[row.Level] = row.Total
-	}
-
-	levels := make([]pages.SpellLevel, 0, maxSpellLevel+1)
-	for level := 0; level <= maxSpellLevel; level++ {
-		counter := counters[uint8(level)]
-		levels = append(levels, pages.SpellLevel{
-			Level: level,
-			Slots: strconv.FormatUint(uint64(counter.Slots), 10),
-			Used:  strconv.FormatUint(uint64(counter.Used), 10),
-			Count: int(totals[uint8(level)]),
-		})
-	}
-
-	return levels
+	return counters, true
 }
 
 // AddSpell creates an empty spell at a level and answers with it. The level is
@@ -334,9 +294,9 @@ func (a *App) DeleteSpell(w http.ResponseWriter, r *http.Request) {
 }
 
 // SaveSpellSlots writes one level's counters. Cantrips are excluded rather than
-// stored as zeroes: they have no slots in the rules, the overview renders them
-// as Unlimited with no form at all, and a route that accepted level 0 would be
-// accepting something no page can send.
+// stored as zeroes: they have no slots in the rules, the cantrips page renders
+// no counters at all, and a route that accepted level 0 would be accepting
+// something no page can send.
 func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -502,7 +462,7 @@ func parseSlotCount(raw string) uint8 {
 // can be interpolated into a panel id: what comes out is a number from 0 to 9.
 func parseSpellLevel(raw string) (uint8, bool) {
 	level, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 8)
-	if err != nil || level > maxSpellLevel {
+	if err != nil || level > pages.MaxSpellLevel {
 		return 0, false
 	}
 
@@ -548,7 +508,7 @@ func spellRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
 // statement that dropped the ordering would not fail here; it would quietly
 // render Level 3 twice.
 func preparedSpellGroups(rows []queries.Spell) []pages.PreparedSpellGroup {
-	groups := make([]pages.PreparedSpellGroup, 0, maxSpellLevel+1)
+	groups := make([]pages.PreparedSpellGroup, 0, pages.MaxSpellLevel+1)
 	for _, row := range rows {
 		spell := spellPageRow(row)
 		if last := len(groups) - 1; last >= 0 && groups[last].Level == spell.Level {

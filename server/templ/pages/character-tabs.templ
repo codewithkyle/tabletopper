@@ -5,7 +5,7 @@ templ characterTabs(characterID string, active string) {
 	<nav class="flex gap-1 border-b-2 border-base-300 px-2" aria-label="Character sheet sections">
 		@characterTabLink(base, "Character", active == characterTabMain)
 		@characterTabLink(base+"/inventory", "Inventory", active == characterTabInventory)
-		@characterTabLink(base+"/spells", "Spells", active == characterTabSpells)
+		@characterTabLink(base+"/spells/0", "Spells", active == characterTabSpells)
 	</nav>
 }
 

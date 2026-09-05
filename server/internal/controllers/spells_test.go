@@ -459,36 +459,33 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// Ten levels always render, from however few rows came back. Neither table seeds
-// anything -- a character that has never cast a spell has no rows in either --
-// so a page that trusted the query results would show a handful of levels and no
-// way to reach the rest.
-func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
-	levels := mergeSpellLevels(
-		[]queries.SpellSlot{{Level: 3, Slots: 4, Used: 1}},
-		[]queries.CountSpellsByLevelRow{{Level: 0, Total: 5}, {Level: 3, Total: 2}},
-	)
-
-	if len(levels) != 10 {
-		t.Fatalf("levels = %d, want 10", len(levels))
-	}
-	for i, level := range levels {
-		if level.Level != i {
-			t.Errorf("levels[%d] is level %d -- the slice is not in level order", i, level.Level)
-		}
+// A level nobody has given a count has no row in spell_slots -- nothing seeds
+// the table -- so the read has to answer ErrNoRows with zeroes rather than with
+// a failure. Cantrips never ask at all.
+func TestSpellSlotsReadIsScopedAndSingular(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
+	if err != nil {
+		t.Fatalf("cannot read the queries: %v", err)
 	}
 
-	if got := levels[3]; got.Slots != "4" || got.Used != "1" || got.Count != 2 {
-		t.Errorf("level 3 = %+v, want slots 4, used 1, count 2", got)
+	body := string(source)
+	if strings.Contains(body, "-- name: CountSpellsByLevel") {
+		t.Error("CountSpellsByLevel is still here, and nothing counts spells any more")
 	}
-	if got := levels[0]; got.Count != 5 {
-		t.Errorf("cantrips count = %d, want 5", got.Count)
+	if strings.Contains(body, "-- name: ListSpellSlots") {
+		t.Error("ListSpellSlots is still here, and no page renders more than one level")
 	}
-	// A level with no row in either result is zeroes, not a gap.
-	for _, level := range []int{1, 2, 4, 5, 6, 7, 8, 9} {
-		if got := levels[level]; got.Slots != "0" || got.Used != "0" || got.Count != 0 {
-			t.Errorf("untouched level %d = %+v, want zeroes", level, got)
-		}
+
+	start := strings.Index(body, "-- name: GetSpellSlots")
+	if start < 0 {
+		t.Fatal("no GetSpellSlots query")
+	}
+	statement := body[start:]
+	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
+		statement = statement[:end+1]
+	}
+	if !strings.Contains(statement, "level = ?") {
+		t.Errorf("the counters are not read one level at a time:\n%s", statement)
 	}
 }
 
@@ -638,5 +635,43 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 	}
 	if !strings.Contains(statement, "ORDER BY level") {
 		t.Errorf("the prepared view is not ordered by level:\n%s", statement)
+	}
+}
+
+// /edit/spells is not a page. The Spells tab points straight at cantrips, and
+// this route exists so a bookmark or a stale href lands there rather than on the
+// catch-all 404.
+func TestSpellsRootRedirectsToCantrips(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
+	r.SetPathValue("id", testCharacterID.String())
+	rec := httptest.NewRecorder()
+	app.CharacterSpellsRedirect(rec, r)
+
+	if want := "/characters/" + testCharacterID.String() + "/edit/spells/0"; rec.Header().Get("Location") != want {
+		t.Errorf("Location = %q, want %q", rec.Header().Get("Location"), want)
+	}
+	// It reads nothing. The page it redirects to asks whether the character is
+	// this user's, and asking twice would mean two queries to answer a request
+	// that renders nothing.
+	if len(db.calls) != 0 {
+		t.Errorf("ran %d statements, want 0", len(db.calls))
+	}
+}
+
+// An id that is not a ULID cannot reach the Location header. It is printed back
+// from the parsed value rather than passed through, so the redirect can only
+// ever name a canonical ULID.
+func TestSpellsRootWillNotRedirectToAnUnparsedID(t *testing.T) {
+	app, _ := newPanelApp(1)
+
+	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
+	r.SetPathValue("id", "https://elsewhere.example/")
+	rec := httptest.NewRecorder()
+	app.CharacterSpellsRedirect(rec, r)
+
+	if got := rec.Header().Get("Location"); got != "/characters" {
+		t.Errorf("Location = %q, want /characters", got)
 	}
 }

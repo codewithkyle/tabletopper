@@ -5,13 +5,18 @@ import (
 	"strings"
 )
 
-// The spells tab, which is a set of pages rather than one.
+// The spells tab, which is ten pages rather than one.
 //
 // Spellcasting used to be a single panel holding all ten levels stacked, each
 // level a bordered section, each spell inside it a card with seven fields open
 // at once. It was correct and unreadable. The levels are pages now, linked by
 // the sub-nav below the character tabs, and a spell shows what you scan for with
 // the rest behind a disclosure.
+//
+// There is no index page above them. The Spells tab opens on cantrips, which is
+// where a level-1 caster's whole spell list lives, and the level strip is how
+// you get anywhere else -- an index would have been one more click in front of
+// the page everybody wants.
 //
 // Fields are strings for the same reason EditCharacterPageData's are: the
 // controller does every conversion once, and the template does none.
@@ -34,49 +39,31 @@ type Spell struct {
 	Prepared     bool
 }
 
-// SpellLevel is one level's counters and its spell count: everything both spells
-// pages need to know about a level they are not currently showing. The overview
-// renders ten of them and the tab strip reads all ten on every page.
-//
-// Count is an int rather than a string because it is compared before it is
-// printed -- a level with no spells shows no number at all.
+// MaxSpellLevel is nine, and this is the only place that says so. The tab strip
+// counts to it, the controller bounds the {level} segment by it, and the column
+// carries a CHECK that agrees.
+const MaxSpellLevel = 9
+
+// SpellLevel is one level's slot counters. Only the level being shown has them
+// -- the tab strip is ten static labels and needs no data at all -- so a page
+// carries exactly one of these, and cantrips carry none.
 type SpellLevel struct {
 	Level int
 	Slots string
 	Used  string
-	Count int
-}
-
-// SpellsOverviewPageData backs /edit/spells, which is the ten slot counters and
-// nothing else.
-//
-// The overview exists because splitting the levels into pages made the most
-// common spellcasting action -- resetting every `used` counter after a long rest
-// -- into nine page loads. Here it is one screen.
-type SpellsOverviewPageData struct {
-	CharacterID string
-	Levels      []SpellLevel
 }
 
 // SpellLevelPageData backs /edit/spells/{level}.
 //
-// Levels is the whole ten regardless, because the tab strip renders on every
-// page. Current is this page's entry out of that slice, picked by the controller
-// that built it rather than indexed out of it here -- the slice happens to be
-// ordered and complete, and a template that relied on that would break quietly
-// the first time it was not.
+// Current is this level's slot counters, and it is the zero value on the
+// cantrips page: cantrips have no slots, so nothing renders them and nothing
+// reads them.
 type SpellLevelPageData struct {
 	CharacterID string
 	Level       int
 	Current     SpellLevel
-	Levels      []SpellLevel
 	Spells      []Spell
 }
-
-// spellsOverviewTab is the active-tab value for the overview, which has no
-// level of its own. Any number outside 0-9 would do; -1 is the one that cannot
-// be mistaken for a level.
-const spellsOverviewTab = -1
 
 var spellSchools = []string{
 	"Abjuration",
@@ -186,20 +173,6 @@ func preparedSpellName(spell Spell) string {
 	}
 
 	return spell.Name
-}
-
-// spellCountLabel is the count under a level's link on the overview. It reads as
-// a sentence rather than a number because the number sits beside a slot counter
-// that is also a number, and "3" next to "Slots 4" invites the wrong reading.
-func spellCountLabel(count int) string {
-	switch count {
-	case 0:
-		return "No spells"
-	case 1:
-		return "1 spell"
-	default:
-		return strconv.Itoa(count) + " spells"
-	}
 }
 
 // spellRowName covers the row that was added before it was named, which is every

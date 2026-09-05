@@ -40,7 +40,11 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/bonuses/skills", "POST /characters/{id}/bonuses/{kind}"},
 		{http.MethodPost, "/characters/" + id + "/features", "POST /characters/{id}/features"},
 		{http.MethodGet, "/characters/" + id + "/edit", "GET /characters/{id}/edit"},
+		// The bare path is still a route, but it is a redirect to cantrips
+		// rather than a page -- there is no index above the levels, and a
+		// bookmark to it should land somewhere.
 		{http.MethodGet, "/characters/" + id + "/edit/spells", "GET /characters/{id}/edit/spells"},
+		{http.MethodGet, "/characters/" + id + "/edit/spells/0", "GET /characters/{id}/edit/spells/{level}"},
 		{http.MethodGet, "/characters/" + id + "/edit/spells/3", "GET /characters/{id}/edit/spells/{level}"},
 		{http.MethodGet, "/characters/" + id + "/edit/inventory", "GET /characters/{id}/edit/inventory"},
 		// The collection and the member have to stay apart. They differ by one

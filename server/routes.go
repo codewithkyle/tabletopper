@@ -33,16 +33,20 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// and redirects to the editor, which saves the rest as it is filled in.
 	mux.HandleFunc("POST /characters", auth.RequireSession(app.NewCharacterForm))
 	// The editor is a page per tab, and twelve of them, because the spells tab
-	// is an overview plus one page per level. Autosave is what makes them pages
-	// rather than sections of one: nothing is ever held unsaved, so moving
-	// between them loses nothing and each can be linked and reloaded.
+	// is one page per level. Autosave is what makes them pages rather than
+	// sections of one: nothing is ever held unsaved, so moving between them
+	// loses nothing and each can be linked and reloaded.
 	//
-	// {level} is bounded to 0-9 before it reaches a query. On these two page
-	// routes a level outside that is a redirect to the overview rather than a
-	// 404 -- the character is real and only the last segment is wrong.
+	// The bare /edit/spells is not one of them. The tab points straight at
+	// cantrips and there is no index above the levels; that route is a redirect
+	// so a bookmark to it still lands somewhere.
+	//
+	// {level} is bounded to 0-9 before it reaches a query, and a level outside
+	// that is a redirect to cantrips rather than a 404 -- the character is real
+	// and only the last segment is wrong.
 	mux.HandleFunc("GET /characters/{id}/edit", auth.RequireSession(app.CharacterPage))
 	mux.HandleFunc("GET /characters/{id}/edit/inventory", auth.RequireSession(app.CharacterInventoryPage))
-	mux.HandleFunc("GET /characters/{id}/edit/spells", auth.RequireSession(app.CharacterSpellsPage))
+	mux.HandleFunc("GET /characters/{id}/edit/spells", auth.RequireSession(app.CharacterSpellsRedirect))
 	mux.HandleFunc("GET /characters/{id}/edit/spells/{level}", auth.RequireSession(app.CharacterSpellLevelPage))
 	mux.HandleFunc("DELETE /characters/{id}", auth.RequireSession(app.DeleteCharacter))
 	mux.HandleFunc("POST /characters/{id}/avatar", auth.RequireSession(app.UploadCharacterAvatar))

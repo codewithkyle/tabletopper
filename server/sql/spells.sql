@@ -24,15 +24,6 @@ SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND is_prepared = TRUE
 ORDER BY level, id;
 
--- name: CountSpellsByLevel :many
--- Feeds the level tabs, which carry a count so an empty level is quiet without
--- being hidden. Levels with no spells are absent from the result; ten tabs
--- render regardless and a missing level counts zero.
-SELECT level, COUNT(*) AS total FROM spells
-WHERE character_id = ? AND owner_id = ?
-GROUP BY level
-ORDER BY level;
-
 -- name: InsertSpell :execresult
 -- FOUR COLUMNS AND NO MORE. Every other column has a schema default, so an add
 -- has nowhere to put spell data even if a caller tried to supply some -- the
@@ -77,13 +68,13 @@ WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;
 DELETE FROM spells
 WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;
 
--- name: ListSpellSlots :many
--- Ten levels always render. A character that has never set a slot count has no
--- rows here at all, and the missing ones read as the zeroes they would have
--- held, so nothing has to seed them.
+-- name: GetSpellSlots :one
+-- One level's counters. Nothing seeds this table -- a row appears the first time
+-- a level is given a count -- so a level nobody has touched has no row at all,
+-- and the handler reads sql.ErrNoRows as the zeroes it would have held. Cantrips
+-- never reach this: they have no slots, so their page asks nothing.
 SELECT * FROM spell_slots
-WHERE character_id = ? AND owner_id = ?
-ORDER BY level;
+WHERE character_id = ? AND owner_id = ? AND level = ?;
 
 -- name: UpsertSpellSlots :execresult
 -- The one statement in the schema that is an upsert, because (character_id,

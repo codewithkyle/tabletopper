@@ -2,41 +2,26 @@ package pages
 
 import "strconv"
 
-templ spellLevelTabs(characterID string, active int, levels []SpellLevel) {
-	{{ base := "/characters/" + characterID + "/edit/spells" }}
+templ spellLevelTabs(characterID string, active int) {
+	{{ base := "/characters/" + characterID + "/edit/spells/" }}
 	<nav class="flex gap-1 overflow-x-auto border-b-2 border-base-300 px-2" aria-label="Spell levels">
-		@spellLevelTabLink(base, "Overview", 0, active == spellsOverviewTab)
-		for _, level := range levels {
-			@spellLevelTabLink(base+"/"+strconv.Itoa(level.Level), SpellLevelTab(level.Level), level.Count, active == level.Level)
+		for level := 0; level <= MaxSpellLevel; level++ {
+			@spellLevelTabLink(base+strconv.Itoa(level), SpellLevelTab(level), active == level)
 		}
 	</nav>
 }
 
-templ spellLevelTabLink(href string, name string, count int, current bool) {
+templ spellLevelTabLink(href string, name string, current bool) {
 	if current {
 		<a
 			href={ href }
 			aria-current="page"
-			class="-mb-0.5 flex shrink-0 items-center gap-1.5 border-b-2 border-primary px-3 py-2 text-sm font-semibold"
-		>
-			<span>{ name }</span>
-			@spellLevelTabCount(count)
-		</a>
+			class="-mb-0.5 shrink-0 border-b-2 border-primary px-3 py-2 text-sm font-semibold"
+		>{ name }</a>
 	} else {
 		<a
 			href={ href }
-			class="-mb-0.5 flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-base-content/60 hover:border-base-content/30 hover:text-base-content"
-		>
-			<span>{ name }</span>
-			@spellLevelTabCount(count)
-		</a>
-	}
-}
-
-templ spellLevelTabCount(count int) {
-	if count > 0 {
-		<span class="rounded-full bg-base-300 px-1.5 py-0.5 text-xs leading-none font-semibold text-base-content/75">
-			{ strconv.Itoa(count) }
-		</span>
+			class="-mb-0.5 shrink-0 border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-base-content/60 hover:border-base-content/30 hover:text-base-content"
+		>{ name }</a>
 	}
 }

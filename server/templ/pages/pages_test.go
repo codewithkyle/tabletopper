@@ -32,11 +32,8 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"edit-character": func() error {
 			return render(EditCharacter(EditCharacterPageData{}))
 		},
-		"edit-character-spells": func() error {
-			return render(EditCharacterSpells(SpellsOverviewPageData{Levels: testSpellLevels()}))
-		},
 		"edit-character-spell-level": func() error {
-			return render(EditCharacterSpellLevel(SpellLevelPageData{Level: 3, Current: testSpellLevels()[3], Levels: testSpellLevels()}))
+			return render(EditCharacterSpellLevel(SpellLevelPageData{Level: 3, Current: SpellLevel{Level: 3, Slots: "4", Used: "1"}}))
 		},
 		"edit-character-inventory": func() error { return render(EditCharacterInventory(InventoryPageData{})) },
 		"assets":                   func() error { return render(MapAssets([]queries.Asset{})) },
@@ -128,16 +125,20 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 	assertCharacterTabs(t, markup, base+"/edit")
 }
 
-// Every tab is reachable from every editor page, and exactly one link in the
-// character nav is marked current. The spells pages carry a second nav with a
-// current link of its own, so this counts links rather than attributes.
+// Every tab is reachable from every editor page, and the one you are on is
+// marked current. The spells pages carry a second nav with a current link of
+// their own, so this checks the links it expects rather than counting
+// attributes.
+//
+// The Spells tab points at cantrips, not at a bare /edit/spells. There is no
+// index above the levels, and a tab aimed at one would 302 on every click.
 func assertCharacterTabs(t *testing.T, markup string, current string) {
 	t.Helper()
 
 	base := strings.TrimSuffix(current, "/edit")
 	base = strings.SplitN(base, "/edit/", 2)[0]
 
-	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells"} {
+	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells/0"} {
 		if !strings.Contains(markup, `href="`+href+`"`) {
 			t.Errorf("no way to reach %s from here", href)
 		}
@@ -151,15 +152,10 @@ func assertCharacterTabs(t *testing.T, markup string, current string) {
 	}
 }
 
-// testSpellLevels is the ten-level summary every spells page is handed, which
-// the controller builds from however few rows the two queries returned.
-func testSpellLevels() []SpellLevel {
-	levels := make([]SpellLevel, 0, 10)
-	for level := 0; level <= 9; level++ {
-		levels = append(levels, SpellLevel{Level: level, Slots: "0", Used: "0"})
-	}
-
-	return levels
+// testSpellCounters is one level's slot counters, which is all a spells page
+// carries about levels now.
+func testSpellCounters(level int) SpellLevel {
+	return SpellLevel{Level: level, Slots: "0", Used: "0"}
 }
 
 // The new-character dialog. Its three targeting attributes have to agree with
@@ -542,61 +538,99 @@ func TestAnUnnamedSpellOpensItsOwnDetails(t *testing.T) {
 	}
 }
 
-// The overview is nine slot forms and a link per level. It is the reason the
-// split is survivable: resetting `used` after a long rest happens here in one
-// screen rather than across nine pages.
-func TestSpellsOverviewIsOneFormPerLevelWithSlots(t *testing.T) {
+// THERE IS NO SPELLS INDEX. The tab opens on cantrips, which is where a level-1
+// caster's entire spell list lives, and the level strip is how you reach
+// anything else. A link to the bare /edit/spells would be a redirect on every
+// click, so nothing renders one.
+func TestNothingLinksToASpellsIndex(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-	levels := testSpellLevels()
-	levels[3].Count = 2
-	levels[3].Slots = "4"
-	levels[3].Used = "1"
+	for _, page := range []struct {
+		name   string
+		render func() templ.Component
+	}{
+		{"character", func() templ.Component {
+			return EditCharacter(EditCharacterPageData{CharacterID: characterID})
+		}},
+		{"cantrips", func() templ.Component {
+			return EditCharacterSpellLevel(SpellLevelPageData{CharacterID: characterID, Level: 0, Current: testSpellCounters(0)})
+		}},
+		{"level 3", func() templ.Component {
+			return EditCharacterSpellLevel(SpellLevelPageData{CharacterID: characterID, Level: 3, Current: testSpellCounters(3)})
+		}},
+		{"inventory", func() templ.Component {
+			return EditCharacterInventory(InventoryPageData{CharacterID: characterID})
+		}},
+	} {
+		t.Run(page.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := page.render().Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			body := buf.String()
+
+			// The closing quote is load-bearing: every level href starts with
+			// this string.
+			if strings.Contains(body, `href="/characters/`+characterID+`/edit/spells"`) {
+				t.Errorf("%s links to a spells index\n%s", page.name, body)
+			}
+			if want := `href="/characters/` + characterID + `/edit/spells/0"`; !strings.Contains(body, want) {
+				t.Errorf("%s has no way into the spells tab", page.name)
+			}
+		})
+	}
+}
+
+// The level strip is ten tabs and nothing else. Every level is one click away
+// from every other, which is what a stack of ten sections was trying to be.
+//
+// THE TABS ARE STATIC LABELS. They carry a level and a link and no data, which
+// is why spellLevelTabs takes no slice: nothing about a level the page is not
+// showing has to be read to render them.
+func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
 	var buf bytes.Buffer
-	data := SpellsOverviewPageData{CharacterID: characterID, Levels: levels}
-	if err := EditCharacterSpells(data).Render(context.Background(), &buf); err != nil {
+	data := SpellLevelPageData{
+		CharacterID: characterID,
+		Level:       3,
+		Current:     testSpellCounters(3),
+		Spells: []Spell{
+			{ID: testSpellID, Level: 3, Name: "Fireball", School: DefaultSpellSchool},
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS3", Level: 3, Name: "Counterspell", School: "Abjuration"},
+		},
+	}
+	if err := EditCharacterSpellLevel(data).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	body := buf.String()
 
-	// Nine, not ten. Cantrips have no slots in the rules, so level 0 gets a link
-	// and the word Unlimited where the counters would be.
-	if got := strings.Count(body, "<form"); got != 9+closingForms {
-		t.Errorf("forms = %d, want %d", got, 9+closingForms)
-	}
-	for level := 1; level <= 9; level++ {
-		want := `hx-post="/characters/` + characterID + `/spells/slots/` + strconv.Itoa(level) + `"`
-		if !strings.Contains(body, want) {
-			t.Errorf("level %d has no slot form posting to %s", level, want)
-		}
-	}
-	if strings.Contains(body, "/spells/slots/0") {
-		t.Errorf("cantrips carry a slot form\n%s", body)
-	}
-	if !strings.Contains(body, "Unlimited") {
-		t.Errorf("cantrips do not say why they have no counters\n%s", body)
-	}
-
-	// Every level is one click away, which is what makes ten tabs better than
-	// ten stacked sections rather than merely different.
-	for level := 0; level <= 9; level++ {
+	for level := 0; level <= MaxSpellLevel; level++ {
 		want := `href="/characters/` + characterID + `/edit/spells/` + strconv.Itoa(level) + `"`
 		if !strings.Contains(body, want) {
-			t.Errorf("no way to reach level %d from the overview", level)
+			t.Errorf("no way to reach level %d", level)
 		}
 	}
-
-	// A level with spells says how many; an empty one says so in words rather
-	// than with a 0 sitting next to a slot counter that is also a number.
-	if !strings.Contains(body, "2 spells") {
-		t.Errorf("the overview does not count a level's spells\n%s", body)
-	}
-	if !strings.Contains(body, "No spells") {
-		t.Errorf("an empty level does not say it is empty\n%s", body)
+	if strings.Contains(body, "Overview") {
+		t.Errorf("the level strip still carries an Overview tab\n%s", body)
 	}
 
-	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells")
+	// No count badge. The page renders two spells at this level and the tab
+	// says nothing about them -- the label is the level and only the level.
+	tabs := body[strings.Index(body, `aria-label="Spell levels"`):]
+	tabs = tabs[:strings.Index(tabs, "</nav>")]
+	for _, digit := range []string{">2<", ">0<"} {
+		if strings.Contains(tabs, digit) {
+			t.Errorf("the level tabs carry a count: %s\n%s", digit, tabs)
+		}
+	}
+	// The labels themselves survive that check because none of them is a bare
+	// digit -- 3rd, not 3.
+	for _, want := range []string{">Cantrips<", ">1st<", ">3rd<", ">9th<"} {
+		if !strings.Contains(tabs, want) {
+			t.Errorf("the level tabs are missing %s\n%s", want, tabs)
+		}
+	}
 }
 
 // A level page carries its own counters, its own rows and an add button aimed at
@@ -605,12 +639,10 @@ func TestSpellsOverviewIsOneFormPerLevelWithSlots(t *testing.T) {
 func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-	levels := testSpellLevels()
 	data := SpellLevelPageData{
 		CharacterID: characterID,
 		Level:       3,
-		Current:     levels[3],
-		Levels:      levels,
+		Current:     testSpellCounters(3),
 		Spells: []Spell{
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Level: 3, Name: "Fireball", School: DefaultSpellSchool},
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Level: 3, Name: "Counterspell", School: "Abjuration"},
@@ -655,7 +687,7 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 
 	// Both navs mark where you are: the character tabs say Spells, the level
 	// tabs say which level.
-	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells")
+	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells/0")
 	if want := `href="/characters/` + characterID + `/edit/spells/3" aria-current="page"`; !strings.Contains(body, want) {
 		t.Errorf("the level tabs do not mark level 3 as current\n%s", body)
 	}
@@ -667,12 +699,10 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 func TestCantripsPageHasNoSlotCounters(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-	levels := testSpellLevels()
 	data := SpellLevelPageData{
 		CharacterID: characterID,
 		Level:       0,
-		Current:     levels[0],
-		Levels:      levels,
+		Current:     testSpellCounters(0),
 		Spells:      []Spell{{ID: testSpellID, Level: 0, Name: "Fire Bolt", School: DefaultSpellSchool}},
 	}
 
@@ -754,7 +784,9 @@ func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
 	}
 	body := buf.String()
 
-	if want := `href="/characters/` + characterID + `/edit/spells"`; !strings.Contains(body, want) {
+	// Cantrips, not a bare /edit/spells -- there is no index above the levels,
+	// and pointing an empty state at a redirect is a click nobody needs.
+	if want := `href="/characters/` + characterID + `/edit/spells/0"`; !strings.Contains(body, want) {
 		t.Errorf("the empty state does not point at %s\n%s", want, body)
 	}
 	if !strings.Contains(body, "Prepared") {

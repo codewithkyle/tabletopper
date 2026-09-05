@@ -4,7 +4,7 @@ templ preparedSpells(characterID string, groups []PreparedSpellGroup) {
 	if len(groups) == 0 {
 		<p class="text-base-content/75">
 			Nothing is prepared yet. Tick <span class="font-medium">Prepared</span> on anything in
-			<a href={ "/characters/" + characterID + "/edit/spells" } class="link">your spells</a>.
+			<a href={ "/characters/" + characterID + "/edit/spells/0" } class="link">your spells</a>.
 		</p>
 	} else {
 		<div class="grid w-full gap-4">
