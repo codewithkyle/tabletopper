@@ -14,11 +14,20 @@ func (a *App) Homepage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) SignIn(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.SignIn())
+	render(w, r, pages.SignIn(a.clerkFrontend()))
 }
 
 func (a *App) SignUp(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.SignUp())
+	render(w, r, pages.SignUp(a.clerkFrontend()))
+}
+
+// clerkFrontend is the browser-side Clerk configuration. The script is
+// clerk-js 4, served from the instance's own frontend API as Clerk documents.
+func (a *App) clerkFrontend() pages.ClerkFrontend {
+	return pages.ClerkFrontend{
+		PublishableKey: a.Config.ClerkPublishableKey,
+		ScriptURL:      a.Config.ClerkFrontendAPI + "/npm/@clerk/clerk-js@4/dist/clerk.browser.js",
+	}
 }
 
 func (a *App) TOS(w http.ResponseWriter, r *http.Request) {

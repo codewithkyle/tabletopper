@@ -4,56 +4,35 @@ import "tabletopper/templ/layouts"
 
 templ PrivacyPolicy() {
 	@layouts.Base("Privacy Policy | Tabletopper") {
-		@privacyPolicyContent()
-	}
-}
-
-templ privacyPolicyContent() {
-	<div style="overflow-y:scroll;max-height: calc(100vh - 4rem);backdrop-filter: blur(8px);max-width: calc(100vw - 4rem);" class="bg-white text-zinc-700 dark:text-zinc-300 dark:bg-zinc-900/87 border border-solid border-zinc-300 dark:border-zinc-800 shadow-sm rounded-lg">
-		<div class="px-8 pt-7 pb-4">
-			<h1 class="text-zinc-900 dark:text-zinc-100 text-[2rem] font-bold block">Privacy Policy</h1>
-			<p class="block mb-4">
-				Last Updated: 2023-11-30
-			</p>
-			<p class="block mb-4">Tabletopper ("we," "us," or "our") operates the website located at <a href="/">https://tabletopper.app/</a> (the "Website"). This Privacy Policy outlines our practices regarding the collection, use, and disclosure of personal information we receive from users of the Website.</p>
-			<p class="block mb-12">By using the Website, you consent to the practices described in this Privacy Policy. If you do not agree to this Privacy Policy, please do not use the Website.</p>
-			<h2 class="text-zinc-100 block mb-4 text-xl font-medium">What Personal Information Do We Collect?</h2>
-			<p class="block mb-4">We may collect the following types of information from users of the Website:</p>
-			<p class="block mb-4">
-				<strong>Personal Information:</strong> We may collect personally identifiable information, such as your name, email address, and other information you provide to us when filling out forms or otherwise using the Website.
-			</p>
-			<p class="block mb-4">
-				<strong>Cookies:</strong> We may use cookies and similar technologies to track your identity on the Website. You may disable cookies in your browser settings, but doing so may limit your ability to use the Website.
-			</p>
-			<p class="block mb-12">
-				<strong>Log Data:</strong> We may also receive information about your use of the Website from our servers or third parties, such as the time and date of your visit, the pages you visit, and your IP address.
-			</p>
-			<h2 class="text-zinc-100 block mb-4 text-xl font-medium">How Do We Use Your Personal Information?</h2>
-			<p class="block mb-4">We may use your personal information to:</p>
-			<ul class="block mb-12">
-				<li style="list-style-type: disc;">Provide you with the Website and its contents;</li>
-				<li style="list-style-type: disc;">Respond to your requests, inquiries, comments, and suggestions;</li>
-				<li style="list-style-type: disc;">Send you technical notices, updates, security alerts, information regarding changes to our policies, and support and administrative messages;</li>
-				<li style="list-style-type: disc;">Prevent and address fraud, breach of policies or terms, and threats or harm;</li>
-				<li style="list-style-type: disc;">Monitor and analyze trends, usage, and activities;</li>
-				<li style="list-style-type: disc;">Conduct research, including focus groups and surveys;</li>
-				<li style="list-style-type: disc;">Improve the Website or our products and services;</li>
-				<li style="list-style-type: disc;">Personalize the Website content or features; and </li>
-				<li style="list-style-type: disc;">Enable you to share content with users you designate;</li>
+		@documentCard("Privacy Policy", "/", "Close") {
+			<p class="mb-4">Last Updated: 2023-11-30</p>
+			<p class="mb-4">Tabletopper ("we," "us," or "our") operates the website located at <a class="link" href="/">https://tabletopper.app/</a> (the "Website"). This Privacy Policy outlines our practices regarding the collection, use, and disclosure of personal information we receive from users of the Website.</p>
+			<p class="mb-8">By using the Website, you consent to the practices described in this Privacy Policy. If you do not agree to this Privacy Policy, please do not use the Website.</p>
+			@documentHeading("What Personal Information Do We Collect?")
+			<p class="mb-4">We may collect the following types of information from users of the Website:</p>
+			<p class="mb-4"><strong>Personal Information:</strong> We may collect personally identifiable information, such as your name, email address, and other information you provide to us when filling out forms or otherwise using the Website.</p>
+			<p class="mb-4"><strong>Cookies:</strong> We may use cookies and similar technologies to track your identity on the Website. You may disable cookies in your browser settings, but doing so may limit your ability to use the Website.</p>
+			<p class="mb-8"><strong>Log Data:</strong> We may also receive information about your use of the Website from our servers or third parties, such as the time and date of your visit, the pages you visit, and your IP address.</p>
+			@documentHeading("How Do We Use Your Personal Information?")
+			<p class="mb-4">We may use your personal information to:</p>
+			<ul class="mb-8 list-disc pl-6">
+				<li>Provide you with the Website and its contents;</li>
+				<li>Respond to your requests, inquiries, comments, and suggestions;</li>
+				<li>Send you technical notices, updates, security alerts, information regarding changes to our policies, and support and administrative messages;</li>
+				<li>Prevent and address fraud, breach of policies or terms, and threats or harm;</li>
+				<li>Monitor and analyze trends, usage, and activities;</li>
+				<li>Conduct research, including focus groups and surveys;</li>
+				<li>Improve the Website or our products and services;</li>
+				<li>Personalize the Website content or features; and</li>
+				<li>Enable you to share content with users you designate;</li>
 			</ul>
-			<h2 class="text-zinc-100 block mb-4 text-xl font-medium">How Do We Share Your Personal Information?</h2>
-			<p class="block mb-4">We do not sell, trade, or otherwise transfer your personal information to outside parties unless we provide you with advance notice, or as required by law.</p>
-			<p class="block mb-12">This does not include website hosting partners and other parties who assist us in operating the Website, conducting our business, or servicing you, so long as those parties agree to keep this information confidential. We may also release your information when we believe release is appropriate to comply with the law, enforce our site policies, or protect ours or others' rights, property, or safety.</p>
-			<h2 class="text-zinc-100 block mb-4 text-xl font-medium">How Do We Protect Your Personal Information?</h2>
-			<p class="block mb-12">We take reasonable measures to protect your personal information from unauthorized access, use, or disclosure. However, please be aware that no data transmission over the internet or security system can be guaranteed to be 100% secure.</p>
-			<h2 class="text-zinc-100 block mb-4 text-xl font-medium">Changes to This Privacy Policy</h2>
-			<p class="block">We may update this Privacy Policy from time to time to reflect changes to our practices or for other operational, legal, or regulatory reasons. We will notify you of any material changes by posting the new Privacy Policy on this page.</p>
-		</div>
-		<div class="p-4 bg-zinc-100 dark:bg-zinc-950/60 border-t border-solid border-t-zinc-200 dark:border-t-zinc-800 flex flex-row flex-nowrap items-center justify-end">
-			<a
-				class="btn"
-				href="/"
-			>Close</a>
-		</div>
-	</div>
+			@documentHeading("How Do We Share Your Personal Information?")
+			<p class="mb-4">We do not sell, trade, or otherwise transfer your personal information to outside parties unless we provide you with advance notice, or as required by law.</p>
+			<p class="mb-8">This does not include website hosting partners and other parties who assist us in operating the Website, conducting our business, or servicing you, so long as those parties agree to keep this information confidential. We may also release your information when we believe release is appropriate to comply with the law, enforce our site policies, or protect ours or others' rights, property, or safety.</p>
+			@documentHeading("How Do We Protect Your Personal Information?")
+			<p class="mb-8">We take reasonable measures to protect your personal information from unauthorized access, use, or disclosure. However, please be aware that no data transmission over the internet or security system can be guaranteed to be 100% secure.</p>
+			@documentHeading("Changes to This Privacy Policy")
+			<p>We may update this Privacy Policy from time to time to reflect changes to our practices or for other operational, legal, or regulatory reasons. We will notify you of any material changes by posting the new Privacy Policy on this page.</p>
+		}
+	}
 }

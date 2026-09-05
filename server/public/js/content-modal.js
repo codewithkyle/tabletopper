@@ -2,11 +2,12 @@
 // "modal:open" event carrying a URL and it fetches that URL through htmx and
 // swaps the response into the dialog:
 //
-//     $dispatch('modal:open', { url: '/fragment/character/new', size: 'lg' })
+//     window.dispatchEvent(new CustomEvent("modal:open", {
+//         detail: { url: "/fragment/character/new", size: "lg" },
+//     }));
 //
-// Alpine's $dispatch sets bubbles, so it reaches the window listener below
-// from anywhere on the page; plain dispatchEvent on window works the same.
-// Accepted detail keys: url (required) and size -- that is the whole surface.
+// Dispatching on an element works too if the event bubbles. Accepted detail
+// keys: url (required) and size -- that is the whole surface.
 //
 // The content is server-rendered and its actions are ordinary htmx -- because
 // htmx performs the swap itself, hx-* attributes inside the response are

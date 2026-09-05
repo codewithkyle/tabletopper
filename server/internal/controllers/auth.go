@@ -21,9 +21,12 @@ const defaultAvatarURL = "/images/default-avatar.webp"
 // Clerk's own session cookie, finds or creates our user row, and starts one
 // of our sessions.
 func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
+	// No Clerk cookie means the browser has not been through Clerk's UI yet,
+	// or clerk-js has not run to set it. The sign-in page loads clerk-js and
+	// comes straight back here once a Clerk session exists.
 	cookie, err := r.Cookie("__session")
 	if err != nil || cookie.Value == "" {
-		redirect(w, r, "/sign-in?next=authorize")
+		redirect(w, r, "/sign-in")
 		return
 	}
 

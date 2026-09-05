@@ -21,7 +21,7 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"characters":    func() error { return render(Characters([]queries.Character{})) },
 		"new-character": func() error { return render(NewCharacter()) },
 		"assets":        func() error { return render(MapAssets([]queries.Asset{})) },
-		"sign-in":       func() error { return render(SignIn()) },
+		"sign-in":       func() error { return render(SignIn(ClerkFrontend{})) },
 		"tos":           func() error { return render(TOS()) },
 	}
 

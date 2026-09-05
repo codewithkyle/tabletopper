@@ -17,8 +17,9 @@ package pages
 //   add     -- hx-get returns one blank row, appended to the rows element.
 //              It comes from the same infoRow component the initial render
 //              uses, so a row is defined in exactly one place.
-//   delete  -- $el.closest('[data-info-row]').remove(). No request, no
-//              renumbering, nothing the server has to be told.
+//   delete  -- the button names the row with data-remove-closest and
+//              repeater.js removes it. No request, no renumbering, nothing
+//              the server has to be told.
 //
 // htmx 4 makes the add button safe inside the character form with no opt-out
 // attributes. Two behaviours carry that, both read out of
@@ -32,9 +33,8 @@ package pages
 //     A button inside one contributes nothing, so the add request is a bare URL
 //     and not the whole character sheet as a query string.
 //
-// x-data on the wrapper exists only to open an Alpine scope for the delete
-// buttons. Alpine's MutationObserver initialises rows htmx adds later, so
-// nothing has to re-bind once a new row arrives.
+// repeater.js listens on document, so a row htmx appends later is covered
+// without anything re-binding.
 
 // InfoRow is one name/description pair. The json tags are the shape already in
 // the database column, so parseInfoRows unmarshals a stored blob straight into
@@ -68,7 +68,7 @@ func IsInfoRowField(field string) bool {
 }
 
 templ infoRowsTable(field string, rows []InfoRow) {
-	<div class="grid w-full gap-3" x-data>
+	<div class="grid w-full gap-3">
 		<div id={ "rows-" + field } class="grid gap-3">
 			for _, row := range rows {
 				@infoRow(field, row)
@@ -139,7 +139,7 @@ templ infoRow(field string, row InfoRow) {
 				type="button"
 				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2"
 				aria-label={ "Delete " + infoRowKinds[field].ItemLabel }
-				x-on:click="$el.closest('[data-info-row]').remove()"
+				data-remove-closest="[data-info-row]"
 			>
 				@trashIcon()
 			</button>

@@ -112,7 +112,7 @@ func spellCardsID(level int) string {
 }
 
 templ spellSlotsTable(levels []SpellLevel) {
-	<div class="grid w-full gap-4" x-data>
+	<div class="grid w-full gap-4">
 		for _, level := range levels {
 			@spellLevelBlock(level)
 		}
@@ -185,7 +185,7 @@ templ spellCard(level int, spell Spell) {
 				type="button"
 				class="btn btn-square shrink-0 text-base-content/70 hover:bg-error/10 hover:text-error"
 				aria-label={ "Delete " + SpellLevelName(level) + " spell" }
-				x-on:click="$el.closest('[data-spell-card]').remove()"
+				data-remove-closest="[data-spell-card]"
 			>
 				@trashIcon()
 			</button>

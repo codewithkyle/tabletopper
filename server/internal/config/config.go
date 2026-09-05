@@ -22,6 +22,12 @@ type Config struct {
 	DSN         string
 	ClerkAPIKey string
 
+	// ClerkPublishableKey and ClerkFrontendAPI are what the browser needs to
+	// load Clerk's sign-in UI: the key is public by design, and the frontend
+	// API is the instance's origin, e.g. https://clerk.example.com.
+	ClerkPublishableKey string
+	ClerkFrontendAPI    string
+
 	R2AccountID       string
 	R2AccessKeyID     string
 	R2SecretAccessKey string
@@ -32,14 +38,16 @@ type Config struct {
 // missing in one error rather than the first one.
 func Load() (Config, error) {
 	cfg := Config{
-		Env:               os.Getenv("ENV"),
-		Addr:              os.Getenv("ADDR"),
-		DSN:               os.Getenv("DSN"),
-		ClerkAPIKey:       os.Getenv("CLERK_API_KEY"),
-		R2AccountID:       os.Getenv("R2_ACCOUNT_ID"),
-		R2AccessKeyID:     os.Getenv("R2_ACCESS_KEY_ID"),
-		R2SecretAccessKey: os.Getenv("R2_SECRET_ACCESS_KEY"),
-		R2Bucket:          os.Getenv("R2_BUCKET"),
+		Env:                 os.Getenv("ENV"),
+		Addr:                os.Getenv("ADDR"),
+		DSN:                 os.Getenv("DSN"),
+		ClerkAPIKey:         os.Getenv("CLERK_API_KEY"),
+		ClerkPublishableKey: os.Getenv("CLERK_PUBLISHABLE_KEY"),
+		ClerkFrontendAPI:    strings.TrimRight(os.Getenv("CLERK_FRONTEND_API"), "/"),
+		R2AccountID:         os.Getenv("R2_ACCOUNT_ID"),
+		R2AccessKeyID:       os.Getenv("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey:   os.Getenv("R2_SECRET_ACCESS_KEY"),
+		R2Bucket:            os.Getenv("R2_BUCKET"),
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = ":3000"
@@ -48,6 +56,8 @@ func Load() (Config, error) {
 	required := []struct{ name, value string }{
 		{"DSN", cfg.DSN},
 		{"CLERK_API_KEY", cfg.ClerkAPIKey},
+		{"CLERK_PUBLISHABLE_KEY", cfg.ClerkPublishableKey},
+		{"CLERK_FRONTEND_API", cfg.ClerkFrontendAPI},
 		{"R2_ACCOUNT_ID", cfg.R2AccountID},
 		{"R2_ACCESS_KEY_ID", cfg.R2AccessKeyID},
 		{"R2_SECRET_ACCESS_KEY", cfg.R2SecretAccessKey},

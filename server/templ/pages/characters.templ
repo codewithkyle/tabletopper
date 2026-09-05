@@ -1,71 +1,11 @@
 package pages
 
 import (
-	"database/sql"
 	"fmt"
-	"strings"
+	"strconv"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/layouts"
 )
-
-func characterValueOrFallback(value sql.NullString, fallback string) string {
-	if !value.Valid {
-		return fallback
-	}
-
-	trimmed := strings.TrimSpace(value.String)
-	if trimmed == "" {
-		return fallback
-	}
-
-	return trimmed
-}
-
-func characterInitial(name string) string {
-	trimmed := strings.TrimSpace(name)
-	if trimmed == "" {
-		return "?"
-	}
-
-	runes := []rune(trimmed)
-	if len(runes) == 0 {
-		return "?"
-	}
-
-	return strings.ToUpper(string(runes[0]))
-}
-
-func signedNumber(value int) string {
-	if value > 0 {
-		return fmt.Sprintf("+%d", value)
-	}
-
-	return fmt.Sprintf("%d", value)
-}
-
-func formatCharacterSize(value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return "Medium"
-	}
-
-	runes := []rune(strings.ToLower(trimmed))
-	if len(runes) == 0 {
-		return "Medium"
-	}
-
-	runes[0] = []rune(strings.ToUpper(string(runes[0])))[0]
-	return string(runes)
-}
-
-func characterSpeedOrFallback(value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return "30 ft."
-	}
-
-	return trimmed
-}
 
 templ Characters(characters []queries.Character) {
 	@layouts.Base("Characters | Tabletopper") {
@@ -97,7 +37,7 @@ templ Character(character queries.Character) {
 							</div>
 						</div>
 						<label aria-label="Replace character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-base-300 bg-base-200 shadow-sm" data-tip="Replace avatar" for={ "avatar-" + character.ID.String() }>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a1 1 0 0 1 -1 1h-1a1 1 0 0 0 -1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1 -1v-1a1 1 0 0 1 2 0v1a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3h1a1 1 0 0 1 1 1"></path><path d="M14.596 5.011l4.392 4.392l-6.28 6.303a1 1 0 0 1 -.708 .294h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 .294 -.708zm6.496 -2.103a3.097 3.097 0 0 1 .165 4.203l-.164 .18l-.693 .694l-4.387 -4.387l.695 -.69a3.1 3.1 0 0 1 4.384 0"></path></svg>
+							@pencilIcon()
 							<input
 								class="absolute h-0 w-0 opacity-0"
 								id={ "avatar-" + character.ID.String() }
@@ -120,7 +60,7 @@ templ Character(character queries.Character) {
 							</div>
 						</div>
 						<label aria-label="Upload character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-base-300 bg-base-200 shadow-sm" data-tip="Upload avatar" for={ "avatar-" + character.ID.String() }>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="h-3 w-3"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a1 1 0 0 1 -1 1h-1a1 1 0 0 0 -1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1 -1v-1a1 1 0 0 1 2 0v1a3 3 0 0 1 -3 3h-9a3 3 0 0 1 -3 -3v-9a3 3 0 0 1 3 -3h1a1 1 0 0 1 1 1"></path><path d="M14.596 5.011l4.392 4.392l-6.28 6.303a1 1 0 0 1 -.708 .294h-3a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 .294 -.708zm6.496 -2.103a3.097 3.097 0 0 1 .165 4.203l-.164 .18l-.693 .694l-4.387 -4.387l.695 -.69a3.1 3.1 0 0 1 4.384 0"></path></svg>
+							@pencilIcon()
 							<input
 								class="absolute h-0 w-0 opacity-0"
 								id={ "avatar-" + character.ID.String() }
@@ -139,7 +79,7 @@ templ Character(character queries.Character) {
 				<div class="min-w-0">
 					<h2 class="card-title font-serif text-xl leading-none">{ character.Name }</h2>
 					<p class="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-base-content/75">
-						<span>Lvl { fmt.Sprintf("%d", character.Level) }</span>
+						<span>Lvl { strconv.Itoa(int(character.Level)) }</span>
 						<span class="text-base-content/40">|</span>
 						<span>{ characterValueOrFallback(character.Classes, "Class Unknown") }</span>
 					</p>
@@ -154,7 +94,7 @@ templ Character(character queries.Character) {
 			<div class="grid grid-cols-2 gap-4 border-y-2 border-base-300 py-4 pl-1">
 				<div class="grid content-start gap-1">
 					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Armor Class</span>
-					<strong class="text-base leading-tight font-extrabold">{ fmt.Sprintf("%d", character.AC) }</strong>
+					<strong class="text-base leading-tight font-extrabold">{ strconv.Itoa(int(character.AC)) }</strong>
 				</div>
 				<div class="grid content-start gap-1">
 					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Hit Points</span>
@@ -194,7 +134,6 @@ templ charactersContent(characters []queries.Character) {
 				<div class="flex flex-row flex-nowrap items-center max-[700px]:w-full">
 					<a
 						href="/"
-						type="button"
 						class="btn mr-4 max-[700px]:flex-1"
 					>
 						Back

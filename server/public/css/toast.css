@@ -1,6 +1,6 @@
 /* The toast surface, matching the cards: base-200 at 87% over the page,
    two soft drops, a base-300 hairline. Written out rather than read from
-   --panel-* because those tokens are gone -- toaster.js builds this markup
+   --panel-* because those tokens are gone -- toast.js builds this markup
    at runtime, so there is no element here to hang utilities on.
    line-height was var(--font-snug), a token that never existed in
    tokens.css, so it had been resolving to normal.
