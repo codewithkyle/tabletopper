@@ -18,7 +18,7 @@ import "strconv"
 // number to use -- a query param the client computes is client-side state, which
 // is the thing this migration removes. Without the index the add URL carries
 // only `?level=N`, which is markup, and the parser loses its two regexes, its
-// nested map and its sort. See PLAN.md for the trade this makes.
+// nested map and its sort.
 //
 // One consequence lands here rather than in the controller: with names no longer
 // unique, a name cannot be an id, so the fields below associate their text by

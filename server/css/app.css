@@ -40,7 +40,7 @@
    build; what follows is the record of why each one was ever on it, kept because
    the reasons are the argument for the mechanic rather than for the names.
 
-   Each name left in the phase that retired the markup owning it; see PLAN.md.
+   Each name left in the phase that retired the markup owning it.
 
    `link` left in phase 1 along with link.css -- DaisyUI's .link sets only
    text-decoration and a focus ring, no colour, so the one <a class="link"> on
@@ -200,8 +200,10 @@
    Removing the line cost 9,197 B and sixteen selectors, none of which any markup
    used: .alert, .toast, .status, .loading, .indicator, .static, .ease-out and a
    full .modal implementation with seven variants. DaisyUI was emitting a modal
-   because confirm-modal.js and alerts.js say the word; the real one in
-   base.templ is <modal-element> plus utilities and touches none of it.
+   because confirm-modal.js and alert-modal.js say the word, and no markup
+   asked for one. The three <dialog class="modal"> elements base.templ grew
+   later put .modal, .modal-box, .modal-action and .loading back in the build
+   on their own -- named by a template, which is the mechanic working.
 
    That is the note above running in reverse, and it is the largest single move
    the stylesheet has made in either direction. */

@@ -12,8 +12,13 @@ templ:
 sqlc:
 	sqlc generate
 
-# Tailwind is a standalone binary (no Node). It is gitignored -- see the
-# pinned download command in PLAN.md if build/bin/tailwindcss is missing.
+# Tailwind is a standalone binary (no Node). It is gitignored; if
+# build/bin/tailwindcss is missing, fetch the pinned version with:
+#
+#   mkdir -p build/bin
+#   curl -sL -o build/bin/tailwindcss \
+#     https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64
+#   chmod +x build/bin/tailwindcss
 #
 # It builds exactly one file: server/public/css/app.css, from the entry point
 # server/css/app.css (Tailwind + the vendored DaisyUI plugin and themes).

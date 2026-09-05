@@ -15,7 +15,7 @@ const DEFAULT_MESSAGE =
 // There is one dialog, so there is at most one unsettled confirm.
 let pending = null;
 
-// On `document` for the same reason notif.js is -- htmx dispatches to document
+// On `document` for the same reason loading.js is -- htmx dispatches to document
 // whenever the requesting element is detached, and those never reach body. The
 // element is still connected at confirm time, so this one is consistency
 // rather than a fix, but the rule is easier to keep than the exception.

@@ -36,7 +36,7 @@ const SIZES = { sm: "24rem", md: "32rem", lg: "42rem", xl: "56rem" };
 // a dispatch naming a page URL swaps a whole <html> document into a <div>
 // inside .modal-box, and the wreckage reads as a styling bug rather than a
 // wrong URL. The prefix is what makes "is this a page or a piece of one?"
-// answerable here at all; see the fragment block in main.go.
+// answerable here at all; see the fragment block in routes.go.
 //
 // Comparing against a leading slash rules out an absolute or protocol-relative
 // URL for free: "//elsewhere.example/fragment/x" does not start with it.
@@ -48,7 +48,7 @@ const FRAGMENT_PREFIX = "/fragment/";
 // here names the same source, so a load started while another is in flight is
 // queued rather than cancelled -- closing and reopening during a slow fetch
 // would otherwise land the first response in the second modal. Comparing the
-// ctx is the same trick notif.js uses to pair its loading tickets: htmx hands
+// ctx is the same trick loading.js uses to pair its loading tickets: htmx hands
 // the identical object to every event of one request.
 let current = null;
 let lastUrl = null;
@@ -64,7 +64,7 @@ function show(el) {
 
 // GET is not a default here, it is the only option. A /fragment/ route is a
 // GET that returns partial HTML and nothing else, so a method or a body on the
-// opening fetch has nowhere to land: the subtree catch-all in main.go takes any
+// opening fetch has nowhere to land: the subtree catch-all in routes.go takes any
 // other verb and answers 404. Posting belongs to the actions inside the fetched
 // markup, and those are ordinary hx-* attributes carried by the fragment.
 function load(url) {

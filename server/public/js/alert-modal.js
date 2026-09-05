@@ -1,5 +1,5 @@
 // The <dialog id="alert-modal"> in the base layout, driven entirely by the
-// server: internal/helpers/htmx.go writes an "alert" HX-Trigger on the error
+// server: internal/htmx writes an "alert" HX-Trigger on the error
 // responses, and htmx dispatches it here.
 //
 // Deliberately a separate dialog from the confirm one rather than a second

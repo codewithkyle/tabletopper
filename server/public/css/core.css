@@ -20,7 +20,7 @@ html{
        `bg-base-200/85 backdrop-blur-sm shadow-sm` on a DaisyUI card -- and the
        ink tokens resolved to base-content and base-300. The one place the
        recipe is still written out as CSS is toast.css, whose markup is built
-       by toaster.js at runtime and so has no element to hang utilities on.
+       by toast.js at runtime and so has no element to hang utilities on.
 
        What remains below is layout and the desk itself, which does still read
        the DaisyUI base ramp.
