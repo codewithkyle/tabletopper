@@ -263,6 +263,12 @@ func TestInventoryRowIsItsOwnForm(t *testing.T) {
 // means unticked. That is only true while the row renders every control on every
 // render: a variant that dropped the checkbox would silently unequip an item on
 // its next autosave, and nothing on the server could tell.
+//
+// THE DISCLOSURE IS WHY THIS NEEDS SAYING TWICE. The checkbox and the
+// description live inside a <details>, which is CLOSED and not ABSENT -- a
+// collapsed <details> keeps its contents in the DOM and the form still submits
+// them. A row that rendered its details only when open would unequip every item
+// on the first keystroke after a page load.
 func TestInventoryRowAlwaysRendersEveryControl(t *testing.T) {
 	for _, item := range []InventoryItem{
 		{ID: testItemID},
@@ -1079,5 +1085,29 @@ func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 	// Newlines in a spell's text survive, the way they do on the inventory rows.
 	if !strings.Contains(body, "whitespace-pre-line") {
 		t.Errorf("the description collapses its line breaks\n%s", body)
+	}
+}
+
+// A row arrives from the add button with nothing in it, so it opens its own
+// disclosure -- the spell rows do the same, and adding armour usually means
+// ticking Equipped in the same breath. A row that already has a name stays shut,
+// which is the whole point of the collapse.
+func TestAnUnnamedItemOpensItsOwnDetails(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		open bool
+	}{
+		{"", true},
+		{"Longsword", false},
+	} {
+		var buf bytes.Buffer
+		item := InventoryItem{ID: testItemID, Name: c.name, Quantity: "1"}
+		if err := InventoryRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", item).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+
+		if open := strings.Contains(buf.String(), "<details open"); open != c.open {
+			t.Errorf("name=%q: details open=%v, want %v", c.name, open, c.open)
+		}
 	}
 }

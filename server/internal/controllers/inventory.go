@@ -245,8 +245,14 @@ type inventoryInput struct {
 // the panel handlers are built to avoid -- a reader treating "not sent" as a
 // value. It is safe only because the row form renders all six controls together,
 // so a post that omits `equipped` really is an unticked box rather than a
-// partial form. That is a property of the markup, not of this function, which is
-// why there is a test pinning it.
+// partial form.
+//
+// Two of those six sit inside a <details> now. That is fine, and it is fine for
+// a reason worth writing down: a collapsed <details> keeps its contents in the
+// DOM and the form submits them, so closed is not absent. A row that rendered
+// its disclosure only when open would unequip every item on its next autosave
+// and this function could not tell. That is a property of the markup, not of
+// this function, which is why there is a test pinning it.
 func buildInventoryInput(r *http.Request) (inventoryInput, []string) {
 	var problems []string
 

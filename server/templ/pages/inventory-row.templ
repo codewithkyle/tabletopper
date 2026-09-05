@@ -59,26 +59,31 @@ templ InventoryRow(characterID string, item InventoryItem) {
 				/>
 			</label>
 		</div>
-		<label class="fieldset">
-			<span class="fieldset-legend">Description</span>
-			<textarea
-				name="description"
-				class="textarea w-full"
-				rows="3"
-				placeholder="What it does, and anything worth reading mid-session."
-			>{ item.Description }</textarea>
-		</label>
-		<div class="flex flex-wrap items-center justify-between gap-3">
-			<label class="flex cursor-pointer items-center gap-2">
-				<input
-					name="equipped"
-					type="checkbox"
-					value="1"
-					class="checkbox"
-					checked?={ item.Equipped }
-				/>
-				<span class="font-medium">Equipped</span>
-			</label>
+		<details open?={ item.Name == "" }>
+			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
+			<div class="mt-3 grid gap-3">
+				<label class="fieldset">
+					<span class="fieldset-legend">Description</span>
+					<textarea
+						name="description"
+						class="textarea w-full"
+						rows="3"
+						placeholder="What it does, and anything worth reading mid-session."
+					>{ item.Description }</textarea>
+				</label>
+				<label class="flex w-fit cursor-pointer items-center gap-2">
+					<input
+						name="equipped"
+						type="checkbox"
+						value="1"
+						class="checkbox"
+						checked?={ item.Equipped }
+					/>
+					<span class="font-medium">Equipped</span>
+				</label>
+			</div>
+		</details>
+		<div class="flex justify-end">
 			<button
 				type="button"
 				class="btn btn-soft btn-error btn-sm"
