@@ -20,10 +20,10 @@ import h from"./supercomponent.js";import{html as p,render as g}from"./lit-html.
                                 </div>
 
                                 <button
-                                    class="delete"
+                                    class="delete tooltip"
                                     type="button"
                                     aria-label="Delete ${t.name||"spell"}"
-                                    tooltip
+                                    data-tip="Delete ${t.name||"spell"}"
                                     data-level="${e}"
                                     data-index="${l}"
                                     @click=${this.deleteSpell}
