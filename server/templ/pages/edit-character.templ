@@ -10,7 +10,7 @@ templ EditCharacter(data EditCharacterPageData) {
 
 templ editCharacterContent(data EditCharacterPageData) {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
-		<form class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3" hx-post={ data.FormAction } hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
+		<form class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3" hx-post={ data.FormAction } hx-status:422="target:#new-character-form-errors,swap:outerHTML" hx-swap="none">
 			<div class="flex flex-wrap items-end justify-between gap-3 p-2 max-[640px]:items-stretch">
 				<div>
 					<h1 class="mt-0.5 mb-0 font-serif text-[2rem] leading-tight">Edit Character</h1>

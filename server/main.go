@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/database"
@@ -18,8 +19,6 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
-
-	"github.com/clerkinc/clerk-sdk-go/clerk"
 )
 
 func main() {
@@ -62,11 +61,6 @@ func run() error {
 		return err
 	}
 
-	clerkClient, err := clerk.NewClient(cfg.ClerkAPIKey)
-	if err != nil {
-		return fmt.Errorf("clerk: %w", err)
-	}
-
 	q := queries.New(pool)
 	sessions := session.NewStore(q, !cfg.Development())
 	sessions.StartCleanup(ctx)
@@ -74,7 +68,7 @@ func run() error {
 	app := &controllers.App{
 		Queries:  q,
 		Storage:  store,
-		Clerk:    clerkClient,
+		Clerk:    clerkauth.New(cfg.ClerkAPIKey),
 		Sessions: sessions,
 		Config:   cfg,
 	}

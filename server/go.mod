@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.10
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.2
 	github.com/chai2010/webp v1.4.0
-	github.com/clerkinc/clerk-sdk-go v1.49.1
+	github.com/clerk/clerk-sdk-go/v2 v2.7.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/oklog/ulid/v2 v2.1.1
@@ -32,7 +32,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7 // indirect
 	github.com/aws/smithy-go v1.24.1 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
-	golang.org/x/crypto v0.1.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 )

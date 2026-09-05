@@ -7,19 +7,19 @@ import (
 	"log/slog"
 	"net/http"
 
+	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 
 	"github.com/a-h/templ"
-	"github.com/clerkinc/clerk-sdk-go/clerk"
 )
 
 type App struct {
 	Queries  *queries.Queries
 	Storage  *storage.Client
-	Clerk    clerk.Client
+	Clerk    *clerkauth.Client
 	Sessions *session.Store
 	Config   config.Config
 }

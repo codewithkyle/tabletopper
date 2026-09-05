@@ -3,11 +3,9 @@ package pages
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/layouts"
-	"time"
 )
 
 func characterValueOrFallback(value sql.NullString, fallback string) string {
@@ -69,7 +67,7 @@ func characterSpeedOrFallback(value string) string {
 	return trimmed
 }
 
-templ Characters(characters []queries.GetCharactersRow) {
+templ Characters(characters []queries.Character) {
 	@layouts.Base("Characters | Tabletopper") {
 		@charactersContent(characters)
 	}
@@ -86,7 +84,7 @@ templ Characters(characters []queries.GetCharactersRow) {
 // about 4px further in, so the old offset pushed the badge out past the
 // portrait with a wedge of nothing behind it. -1 puts its middle back on
 // the arc.
-templ Character(character queries.GetCharactersRow) {
+templ Character(character queries.Character) {
 	<character-card class="card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
 		<div class="card-body gap-4 p-4">
 			<div class="flex items-center gap-4">
@@ -95,7 +93,7 @@ templ Character(character queries.GetCharactersRow) {
 						<div class="avatar avatar-placeholder rounded-full border-2 border-base-300">
 							<div class="relative w-14 rounded-full bg-base-300 text-base-content">
 								<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
-								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + character.AssetID.String() + "?t=" + strconv.FormatInt(time.Now().Unix(), 10) } alt={ character.Name + " avatar" }/>
+								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + character.AssetID.String() } alt={ character.Name + " avatar" }/>
 							</div>
 						</div>
 						<label aria-label="Replace character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-base-300 bg-base-200 shadow-sm" data-tip="Replace avatar" for={ "avatar-" + character.ID.String() }>
@@ -131,7 +129,8 @@ templ Character(character queries.GetCharactersRow) {
 								accept="image/png, image/jpeg, image/webp"
 								required
 								hx-post={ "/characters/" + character.ID.String() + "/avatar" }
-								hx-swap="none"
+								hx-target="closest character-card"
+								hx-swap="outerHTML"
 								hx-encoding="multipart/form-data"
 							/>
 						</label>
@@ -187,7 +186,7 @@ templ Character(character queries.GetCharactersRow) {
 	</character-card>
 }
 
-templ charactersContent(characters []queries.GetCharactersRow) {
+templ charactersContent(characters []queries.Character) {
 	<character-selector class="relative block h-screen min-h-dvh w-screen p-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards] max-[700px]:p-2.5">
 		<section class="grid h-full min-h-0 w-full content-start gap-4 overflow-auto max-[700px]:p-3">
 			<header class="flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3 max-[700px]:items-stretch">

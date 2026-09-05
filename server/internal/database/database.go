@@ -9,14 +9,25 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 )
 
 // Open returns a connection pool for dsn that has answered a ping. sql.Open
 // is lazy, so without the ping a bad DSN would surface on the first query
 // instead of at startup.
 func Open(ctx context.Context, dsn string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", dsn)
+	cfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("database: parse DSN: %w", err)
+	}
+
+	// RowsAffected reports the rows an UPDATE matched rather than the rows it
+	// changed. Handlers use it to tell "not yours" from "nothing to change":
+	// a save that found its row but altered no column still counts as found.
+	// Set here rather than in the DSN so it cannot be forgotten.
+	cfg.ClientFoundRows = true
+
+	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
 		return nil, fmt.Errorf("database: open: %w", err)
 	}

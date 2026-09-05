@@ -16,51 +16,64 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+// DeleteCharacter removes the character, its avatar object and the avatar's
+// asset row. Object first, rows after: the rows are the record that an
+// object may exist, so they go only once R2 has confirmed it is gone. A
+// failure to drop the asset row after the character is gone is logged and
+// not reported, because the user's request has been honoured.
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	id := r.PathValue("id")
-	if id == "" {
-		htmx.ServerError(w)
+	characterID, err := ulid.Parse(r.PathValue("id"))
+	if err != nil {
+		htmx.NotFound(w, "character")
 		return
 	}
-	uid, err := ulid.Parse(id)
+
+	character, err := a.Queries.GetCharacterAsset(ctx, queries.GetCharacterAssetParams{
+		ID:      characterID,
+		OwnerID: sess.UserID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "character")
+		return
+	}
 	if err != nil {
+		slog.Error("Failed to query character asset", "error", err)
 		htmx.ServerError(w)
 		return
 	}
 
-	asset, err := a.Queries.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
-		ID:      uid,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			slog.Error("Failed to query character asset", "error", err)
+	if character.FilePath.Valid {
+		if err := a.Storage.Delete(ctx, character.FilePath.String); err != nil {
+			slog.Error("Failed to delete avatar object", "error", err)
 			htmx.ServerError(w)
 			return
 		}
 	}
-	if asset.FilePath.Valid {
-		err = a.Storage.Delete(ctx, asset.FilePath.String)
+
+	err = a.Queries.DeleteCharacter(ctx, queries.DeleteCharacterParams{
+		ID:      characterID,
+		OwnerID: sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to delete character", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	if character.AssetID != nil {
+		err := a.Queries.DeleteAsset(ctx, queries.DeleteAssetParams{
+			ID:      *character.AssetID,
+			OwnerID: sess.UserID,
+		})
 		if err != nil {
-			htmx.ServerError(w)
-			return
+			slog.Error("Failed to delete avatar asset row; leaving it behind", "error", err, "assetID", character.AssetID.String())
 		}
 	}
 
-	err = a.Queries.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
-		ID:      uid,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		htmx.ServerError(w)
-		return
-	}
-
-	htmx.Toast(w, asset.Name+" has been deleted.")
-	w.WriteHeader(http.StatusOK)
+	htmx.Toast(w, character.Name+" has been deleted.")
 }
 
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
@@ -78,15 +91,16 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	character, err := a.Queries.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
+	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
 		ID:      uid,
 		OwnerID: sess.UserID,
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		redirect(w, r, "/characters")
+		return
+	}
 	if err != nil {
-		if err == sql.ErrNoRows {
-			redirect(w, r, "/characters")
-			return
-		}
+		slog.Error("Failed to load character", "error", err)
 		redirectToError(w, r)
 		return
 	}
@@ -99,19 +113,13 @@ func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	id := r.PathValue("id")
-	if id == "" {
-		redirect(w, r, "/characters")
-		return
-	}
-	uid, err := ulid.Parse(id)
+	characterID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
-		redirect(w, r, "/characters")
+		htmx.NotFound(w, "character")
 		return
 	}
 
-	err = r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		render(w, r, pages.NewCharacterFormErrors([]string{"The submitted form data could not be read."}))
 		return
@@ -119,7 +127,8 @@ func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		redirectToError(w, r)
+		slog.Error("Failed to read character form", "error", err)
+		htmx.ServerError(w)
 		return
 	}
 
@@ -129,7 +138,7 @@ func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = a.Queries.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
+	result, err := a.Queries.UpdateCharacter(ctx, queries.UpdateCharacterParams{
 		Name:             formInput.Name,
 		Level:            formInput.Level,
 		XP:               formInput.XP,
@@ -161,17 +170,23 @@ func (a *App) EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Weapons:          formInput.Weapons,
 		SpellSlots:       formInput.SpellSlots,
 		Resources:        formInput.Resources,
-		ID:               uid,
+		ID:               characterID,
 		OwnerID:          sess.UserID,
 	})
 	if err != nil {
-		redirectToError(w, r)
+		slog.Error("Failed to update character", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	// Found-rows semantics (see database.Open), so zero means the id is not
+	// this user's rather than that nothing changed.
+	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
+		htmx.NotFound(w, "character")
 		return
 	}
 
-	msg := formInput.Name + " has been updated."
-	slog.Info(msg)
-	htmx.Toast(w, msg)
+	slog.Info("Character updated", "characterID", characterID.String())
+	htmx.Toast(w, formInput.Name+" has been updated.")
 	htmx.Redirect(w, "/characters")
 }
 
@@ -181,6 +196,7 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 
 	results, err := a.Queries.GetCharacters(ctx, sess.UserID)
 	if err != nil {
+		slog.Error("Failed to load characters", "error", err)
 		redirectToError(w, r)
 		return
 	}
@@ -254,7 +270,8 @@ func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		redirectToError(w, r)
+		slog.Error("Failed to read character form", "error", err)
+		htmx.ServerError(w)
 		return
 	}
 
@@ -302,7 +319,8 @@ func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Notes:            "",
 	})
 	if err != nil {
-		redirectToError(w, r)
+		slog.Error("Failed to create character", "error", err)
+		htmx.ServerError(w)
 		return
 	}
 

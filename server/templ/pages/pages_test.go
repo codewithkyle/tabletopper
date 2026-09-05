@@ -18,9 +18,9 @@ import (
 func TestPagesRenderConcurrently(t *testing.T) {
 	pages := map[string]func() error{
 		"homepage":      func() error { return render(Homepage(session.UserSession{})) },
-		"characters":    func() error { return render(Characters([]queries.GetCharactersRow{})) },
+		"characters":    func() error { return render(Characters([]queries.Character{})) },
 		"new-character": func() error { return render(NewCharacter()) },
-		"assets":        func() error { return render(MapAssets([]queries.GetUserMapsRow{})) },
+		"assets":        func() error { return render(MapAssets([]queries.Asset{})) },
 		"sign-in":       func() error { return render(SignIn()) },
 		"tos":           func() error { return render(TOS()) },
 	}

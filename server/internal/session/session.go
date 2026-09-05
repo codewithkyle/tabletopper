@@ -5,6 +5,7 @@ package session
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -35,6 +36,11 @@ const (
 
 // UserSession is one login. It is plain data: the Store is what reads and
 // writes it.
+//
+// The browser holds a random token and the row holds its SHA-256, so a read
+// of the sessions table cannot mint a cookie. Hash is the stored side and is
+// what every query keys on; the token itself lives only in the cookie and,
+// while a request is in flight, in the unexported field below.
 type UserSession struct {
 	ID              ulid.ULID
 	UserID          ulid.ULID
@@ -45,6 +51,8 @@ type UserSession struct {
 	Hash            []byte
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
+
+	token []byte
 }
 
 // Store reads and writes sessions and the cookie that names them. It is the
@@ -68,10 +76,11 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		return UserSession{}, err
 	}
 
-	hash, err := decodeHash(cookie.Value)
+	token, err := base64.RawURLEncoding.DecodeString(cookie.Value)
 	if err != nil {
 		return UserSession{}, fmt.Errorf("session: decode cookie: %w", err)
 	}
+	hash := hashToken(token)
 
 	row, err := s.q.GetSession(r.Context(), hash)
 	if err != nil {
@@ -89,6 +98,7 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		ProfileImageURL: row.ProfileImageURL,
 		Hash:            hash,
 		CreatedAt:       row.CreatedAt,
+		token:           token,
 	}, nil
 }
 
@@ -97,10 +107,11 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 // timestamps are filled in here.
 func (s *Store) Create(ctx context.Context, w http.ResponseWriter, u *UserSession) error {
 	u.ID = ulid.Make()
-	u.Hash = make([]byte, 32)
-	if _, err := rand.Read(u.Hash); err != nil {
+	u.token = make([]byte, 32)
+	if _, err := rand.Read(u.token); err != nil {
 		return fmt.Errorf("session: token: %w", err)
 	}
+	u.Hash = hashToken(u.token)
 	u.CreatedAt = time.Now()
 	u.ExpiresAt = u.CreatedAt.Add(IdleWindow)
 
@@ -178,12 +189,12 @@ func (s *Store) Logout(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	hash, err := decodeHash(cookie.Value)
+	token, err := base64.RawURLEncoding.DecodeString(cookie.Value)
 	if err != nil {
 		return fmt.Errorf("session: decode cookie: %w", err)
 	}
 
-	if err := s.q.EndSession(r.Context(), hash); err != nil {
+	if err := s.q.EndSession(r.Context(), hashToken(token)); err != nil {
 		return fmt.Errorf("session: end: %w", err)
 	}
 
@@ -202,7 +213,7 @@ func (s *Store) Logout(w http.ResponseWriter, r *http.Request) error {
 func (s *Store) setCookie(w http.ResponseWriter, u *UserSession) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
-		Value:    base64.RawURLEncoding.EncodeToString(u.Hash),
+		Value:    base64.RawURLEncoding.EncodeToString(u.token),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   s.secure,
@@ -211,6 +222,9 @@ func (s *Store) setCookie(w http.ResponseWriter, u *UserSession) {
 	})
 }
 
-func decodeHash(value string) ([]byte, error) {
-	return base64.RawURLEncoding.DecodeString(value)
+// hashToken is the one-way step between the cookie and the row. SHA-256 is
+// enough here: the token is 32 random bytes, so there is nothing to guess.
+func hashToken(token []byte) []byte {
+	sum := sha256.Sum256(token)
+	return sum[:]
 }

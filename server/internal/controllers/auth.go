@@ -12,9 +12,9 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// defaultAvatarURL is what a user without a Clerk profile image gets. It is
-// also the column default in the schema; this copy is for the session, which
-// is built before the row is read back.
+// defaultAvatarURL is what a user without a picture of their own gets. It is
+// also the column default in the schema; this copy is for the row and the
+// session, which are written with an explicit value.
 const defaultAvatarURL = "/images/default-avatar.webp"
 
 // Authorize is where Clerk hands a signed-in browser back to us. It verifies
@@ -22,60 +22,40 @@ const defaultAvatarURL = "/images/default-avatar.webp"
 // of our sessions.
 func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("__session")
-	if err != nil {
-		slog.Error("Failed to get Clerk session cookie", "error", err)
+	if err != nil || cookie.Value == "" {
 		redirect(w, r, "/sign-in?next=authorize")
 		return
 	}
-	if cookie.Value == "" {
-		slog.Error("Clerk session cookie is empty")
-		redirectToError(w, r)
-		return
-	}
-
-	claims, err := a.Clerk.VerifyToken(cookie.Value)
-	if err != nil {
-		slog.Error("Failed to verify Clerk token", "error", err)
-		redirectToError(w, r)
-		return
-	}
-	user, err := a.Clerk.Users().Read(claims.Claims.Subject)
-	if err != nil {
-		slog.Error("Failed to read Clerk user", "error", err)
-		redirectToError(w, r)
-		return
-	}
-
-	// NOTE: Clerk models the username as a pointer because a user who signed
-	// up through an OAuth provider may not have one yet
-	username := ""
-	if user.Username != nil {
-		username = *user.Username
-	}
 
 	ctx := r.Context()
-	sess := session.UserSession{ProfileImageURL: defaultAvatarURL}
+	identity, err := a.Clerk.Authenticate(ctx, cookie.Value)
+	if err != nil {
+		slog.Error("Failed to authenticate with Clerk", "error", err)
+		redirectToError(w, r)
+		return
+	}
 
-	row, err := a.Queries.GetUserByClerkID(ctx, user.ID)
+	// Clerk is the source of truth for the profile; the row only remembers
+	// what Clerk said last time, so it fills in where Clerk had nothing.
+	sess := session.UserSession{
+		Username:        identity.Username,
+		ProfileImageURL: identity.ImageURL,
+	}
+
+	row, err := a.Queries.GetUserByClerkID(ctx, identity.ClerkID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		slog.Info("Someone signed up!", "clerkID", user.ID)
-		id := ulid.Make()
-		sess.UserID = id
-		if user.ProfileImageURL != "" {
-			err = a.Queries.CreateUserWithAvatar(ctx, queries.CreateUserWithAvatarParams{
-				ID:              id,
-				Username:        username,
-				ClerkID:         user.ID,
-				ProfileImageURL: user.ProfileImageURL,
-			})
-		} else {
-			err = a.Queries.CreateUser(ctx, queries.CreateUserParams{
-				ID:       id,
-				Username: username,
-				ClerkID:  user.ID,
-			})
+		slog.Info("New user signed up", "clerkID", identity.ClerkID)
+		sess.UserID = ulid.Make()
+		if sess.ProfileImageURL == "" {
+			sess.ProfileImageURL = defaultAvatarURL
 		}
+		err := a.Queries.CreateUser(ctx, queries.CreateUserParams{
+			ID:              sess.UserID,
+			Username:        sess.Username,
+			ClerkID:         identity.ClerkID,
+			ProfileImageURL: sess.ProfileImageURL,
+		})
 		if err != nil {
 			slog.Error("Failed to create user", "error", err)
 			redirectToError(w, r)
@@ -87,17 +67,12 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		sess.UserID = row.ID
-		sess.ProfileImageURL = row.ProfileImageURL
-		sess.Username = row.Username
-	}
-
-	// Clerk is the source of truth for the profile, so what it says now wins
-	// over what the row remembers.
-	if username != "" {
-		sess.Username = username
-	}
-	if user.ProfileImageURL != "" {
-		sess.ProfileImageURL = user.ProfileImageURL
+		if sess.Username == "" {
+			sess.Username = row.Username
+		}
+		if sess.ProfileImageURL == "" {
+			sess.ProfileImageURL = row.ProfileImageURL
+		}
 	}
 
 	if err := a.Sessions.Create(ctx, w, &sess); err != nil {

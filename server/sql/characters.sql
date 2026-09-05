@@ -1,54 +1,22 @@
+-- Every query here is scoped to the owner. A character id from someone else's
+-- roster matches nothing, so a handler never has to check ownership after
+-- the fact: no row means not yours or not there, and both answer 404.
+
 -- name: GetCharacters :many
-SELECT
-    id,
-    name,
-    level,
-    xp,
-    race,
-    classes,
-    background,
-    alignment,
-    size,
-    ac,
-    max_hp,
-    current_hp,
-    proficiency_bonus,
-    speed,
-    asset_id
-FROM characters
+SELECT * FROM characters
 WHERE owner_id = ?
 ORDER BY created_at DESC;
 
 -- name: GetCharacter :one
-SELECT
-    id,
-    name,
-    level,
-    xp,
-    race,
-    classes,
-    background,
-    alignment,
-    size,
-    ac,
-    max_hp,
-    current_hp,
-    proficiency_bonus,
-    speed,
-    asset_id
-FROM characters
-WHERE owner_id = ? AND id = ?;
-
--- name: GetCharacterByIDAndOwner :one
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;
 
--- name: GetCharacterAssetByIDAndOwner :one
+-- name: GetCharacterAsset :one
 SELECT c.name, c.asset_id, a.file_path FROM characters c
 LEFT JOIN assets a ON a.id = c.asset_id
 WHERE c.id = ? AND c.owner_id = ?;
 
--- name: DeleteCharacterByIDAndOwner :exec
+-- name: DeleteCharacter :exec
 DELETE FROM characters
 WHERE id = ? AND owner_id = ?;
 
@@ -93,7 +61,11 @@ INSERT INTO characters (
     ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
--- name: UpdateCharacterByIDAndOwner :execresult
+-- UpdateCharacter is :execresult so the handler can tell a character that is
+-- not the caller's (no row matched, answer 404) from one that saved. The pool
+-- is opened with found-rows semantics, so a save that changed nothing still
+-- counts as matched.
+-- name: UpdateCharacter :execresult
 UPDATE characters
 SET
     name = ?,

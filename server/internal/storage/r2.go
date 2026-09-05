@@ -70,10 +70,11 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 	return err
 }
 
-// Get reads one object into memory.
-func (c *Client) Get(ctx context.Context, key string) ([]byte, error) {
+// Get opens one object for reading. The caller owns the body and must close
+// it. size is the object's length, or -1 when R2 did not say.
+func (c *Client) Get(ctx context.Context, key string) (body io.ReadCloser, size int64, err error) {
 	if key == "" {
-		return nil, errors.New("storage: empty key")
+		return nil, -1, errors.New("storage: empty key")
 	}
 
 	out, err := c.s3.GetObject(ctx, &s3.GetObjectInput{
@@ -81,11 +82,14 @@ func (c *Client) Get(ctx context.Context, key string) ([]byte, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
-	defer out.Body.Close()
 
-	return io.ReadAll(out.Body)
+	size = -1
+	if out.ContentLength != nil {
+		size = *out.ContentLength
+	}
+	return out.Body, size, nil
 }
 
 // Put writes body to key, overwriting whatever was there.
