@@ -1,14 +1,15 @@
 package pages
 
 import (
-	"main/internal/session"
-	"main/templ/layouts"
+	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 )
 
 var serverErrorSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Server Error | Tabletopper",
+	Title:   "Server Error | Tabletopper",
 	Session: session.UserSession{},
 }
+
 templ ServerError() {
 	{{ serverErrorSettings.Content = serverErrorContent() }}
 	@layouts.Base(serverErrorSettings)
@@ -16,15 +17,15 @@ templ ServerError() {
 
 templ serverErrorContent() {
 	<div style="max-height: calc(100vh - 4rem);backdrop-filter: blur(8px);max-width: calc(100vw - 4rem);" class="bg-white text-zinc-700 dark:text-zinc-300 dark:bg-zinc-900/87 border border-solid border-zinc-300 dark:border-zinc-800 shadow-sm rounded-lg">
-	    <div class="px-8 pt-7 pb-4">
-		<h1 class="text-zinc-900 dark:text-zinc-100 mb-6 text-[2rem] font-bold block">Server Error</h1>
-		<p class="block mb-4">Something went wrong on the server. If this continues to happen <a class="link" href="https://github.com/codewithkyle/tabletopper/issues" target="_blank">submit an issue.</a></p>
-	    </div>
-	    <div class="p-4 bg-zinc-100 dark:bg-zinc-950/60 border-t border-solid border-t-zinc-200 dark:border-t-zinc-800 flex flex-row flex-nowrap items-center justify-end">
-		<a
-		    class="btn"  
-		    href="/"
-		>Go Home</a>
-	    </div>
+		<div class="px-8 pt-7 pb-4">
+			<h1 class="text-zinc-900 dark:text-zinc-100 mb-6 text-[2rem] font-bold block">Server Error</h1>
+			<p class="block mb-4">Something went wrong on the server. If this continues to happen <a class="link" href="https://github.com/codewithkyle/tabletopper/issues" target="_blank">submit an issue.</a></p>
+		</div>
+		<div class="p-4 bg-zinc-100 dark:bg-zinc-950/60 border-t border-solid border-t-zinc-200 dark:border-t-zinc-800 flex flex-row flex-nowrap items-center justify-end">
+			<a
+				class="btn"
+				href="/"
+			>Go Home</a>
+		</div>
 	</div>
 }

@@ -1,4 +1,4 @@
-module main
+module tabletopper
 
 go 1.25.0
 

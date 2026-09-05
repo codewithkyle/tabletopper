@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	db "main/internal/database"
-	"main/internal/helpers"
-	"main/internal/queries"
-	"main/internal/services"
-	"main/internal/session"
-	"main/templ/pages"
 	"net/http"
 	"strconv"
 	"strings"
+	db "tabletopper/internal/database"
+	"tabletopper/internal/helpers"
+	"tabletopper/internal/queries"
+	"tabletopper/internal/services"
+	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -36,8 +36,8 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 
 	q := queries.New(db)
 	asset, err := q.GetCharacterAssetByIDAndOwner(ctx, queries.GetCharacterAssetByIDAndOwnerParams{
-		ID: uid,
-		OwnerID: session.UserId,
+		ID:      uid,
+		OwnerID: session.UserID,
 	})
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
@@ -56,7 +56,7 @@ func DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 
 	err = q.DeleteCharacterByIDAndOwner(ctx, queries.DeleteCharacterByIDAndOwnerParams{
 		ID:      uid,
-		OwnerID: session.UserId,
+		OwnerID: session.UserID,
 	})
 	if err != nil {
 		helpers.HTMXServerError(w)
@@ -86,7 +86,7 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 	q := queries.New(db)
 	character, err := q.GetCharacterByIDAndOwner(ctx, queries.GetCharacterByIDAndOwnerParams{
 		ID:      uid,
-		OwnerID: session.UserId,
+		OwnerID: session.UserID,
 	})
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -140,20 +140,20 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 	_, err = q.UpdateCharacterByIDAndOwner(ctx, queries.UpdateCharacterByIDAndOwnerParams{
 		Name:             formInput.Name,
 		Level:            formInput.Level,
-		Xp:               formInput.XP,
+		XP:               formInput.XP,
 		Race:             formInput.Race,
 		Background:       formInput.Background,
 		Alignment:        formInput.Alignment,
 		Classes:          formInput.Classes,
 		Size:             formInput.Size,
-		Ac:               formInput.AC,
-		MaxHp:            formInput.MaxHP,
-		CurrentHp:        formInput.CurrentHP,
+		AC:               formInput.AC,
+		MaxHP:            formInput.MaxHP,
+		CurrentHP:        formInput.CurrentHP,
 		ProficiencyBonus: formInput.ProficiencyBonus,
-		TempHp:           formInput.TempHP,
+		TempHP:           formInput.TempHP,
 		Speed:            formInput.Speed,
 		InitiativeBonus:  formInput.InitiativeBonus,
-		SpellSaveDc:      formInput.SpellSaveDC,
+		SpellSaveDC:      formInput.SpellSaveDC,
 		SpellAtkBonus:    formInput.SpellAtkBonus,
 		Str:              formInput.Str,
 		Dex:              formInput.Dex,
@@ -170,14 +170,14 @@ func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
 		SpellSlots:       formInput.SpellSlots,
 		Resources:        formInput.Resources,
 		ID:               uid,
-		OwnerID:          session.UserId,
+		OwnerID:          session.UserID,
 	})
 	if err != nil {
 		helpers.RedirectToError(w, r)
 		return
 	}
 
-	msg := formInput.Name+" has been updated."
+	msg := formInput.Name + " has been updated."
 	slog.Info(msg)
 	helpers.HTMXToast(w, msg)
 	helpers.HTMXRedirect(w, "/characters")
@@ -189,9 +189,9 @@ func CharactersPage(w http.ResponseWriter, r *http.Request) {
 	session := session.FromContext(ctx)
 
 	q := queries.New(db)
-	results, err := q.GetCharacters(ctx, session.UserId)
+	results, err := q.GetCharacters(ctx, session.UserID)
 	if err != nil {
-		helpers.RedirectToError(w,r)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
@@ -269,7 +269,7 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 
 	formInput, validationErrors, err := buildCharacterFormInput(r)
 	if err != nil {
-		helpers.RedirectToError(w,r)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
@@ -283,24 +283,23 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	id := ulid.Make()
 	err = q.CreateCharacter(ctx, queries.CreateCharacterParams{
 		ID:               id,
-		OwnerID:          session.UserId,
-		AssetID:          ulid.ULID{},
+		OwnerID:          session.UserID,
 		Name:             formInput.Name,
 		Level:            formInput.Level,
-		Xp:               formInput.XP,
+		XP:               formInput.XP,
 		Race:             formInput.Race,
 		Background:       formInput.Background,
 		Alignment:        formInput.Alignment,
 		Classes:          formInput.Classes,
 		Size:             formInput.Size,
-		Ac:               formInput.AC,
-		MaxHp:            formInput.MaxHP,
-		CurrentHp:        formInput.CurrentHP,
+		AC:               formInput.AC,
+		MaxHP:            formInput.MaxHP,
+		CurrentHP:        formInput.CurrentHP,
 		ProficiencyBonus: formInput.ProficiencyBonus,
-		TempHp:           formInput.TempHP,
+		TempHP:           formInput.TempHP,
 		Speed:            formInput.Speed,
 		InitiativeBonus:  formInput.InitiativeBonus,
-		SpellSaveDc:      formInput.SpellSaveDC,
+		SpellSaveDC:      formInput.SpellSaveDC,
 		SpellAtkBonus:    formInput.SpellAtkBonus,
 		Str:              formInput.Str,
 		Dex:              formInput.Dex,
@@ -319,7 +318,7 @@ func NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 		Notes:            "",
 	})
 	if err != nil {
-		helpers.RedirectToError(w,r)
+		helpers.RedirectToError(w, r)
 		return
 	}
 
@@ -526,36 +525,36 @@ func buildCharacterFormInput(r *http.Request) (characterFormInput, []string, err
 
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
 	return pages.EditCharacterPageData{
-		FormAction:       "/characters/" + id,
-		Name:             character.Name,
-		Race:             nullStringValue(character.Race),
-		Background:       nullStringValue(character.Background),
-		Classes:          nullStringValue(character.Classes),
-		Size:             fallbackString(strings.TrimSpace(character.Size), "medium"),
-		Alignment:        fallbackString(nullStringValue(character.Alignment), "unaliged"),
-		Xp:               strconv.FormatUint(uint64(character.Xp), 10),
-		Languages:        fallbackString(strings.TrimSpace(character.Languages), "Common"),
-		Proficiencies:    strings.TrimSpace(character.Proficiencies),
-		Str:              strconv.FormatUint(uint64(character.Str), 10),
-		Dex:              strconv.FormatUint(uint64(character.Dex), 10),
-		Con:              strconv.FormatUint(uint64(character.Con), 10),
-		Int:              strconv.FormatUint(uint64(character.Int), 10),
-		Wis:              strconv.FormatUint(uint64(character.Wis), 10),
-		Cha:              strconv.FormatUint(uint64(character.Cha), 10),
-		Ac:               strconv.FormatUint(uint64(character.Ac), 10),
-		Speed:            fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
-		InitiativeBonus:  strconv.FormatInt(int64(character.InitiativeBonus), 10),
-		MaxHP:            strconv.FormatUint(uint64(character.MaxHp), 10),
-		CurrentHP:        strconv.FormatUint(uint64(character.CurrentHp), 10),
-		TempHP:           strconv.FormatUint(uint64(character.TempHp), 10),
-		SpellSaveDC:      strconv.FormatUint(uint64(character.SpellSaveDc), 10),
-		SpellAtkBonus:    strconv.FormatInt(int64(character.SpellAtkBonus), 10),
-		Skills:           parseStatBonuses(character.Skills),
-		SavingThrows:     parseStatBonuses(character.SavingThrows),
-		Features:         parseInfoRows(character.Features),
-		Weapons:          parseInfoRows(character.Weapons),
-		Resources:        parseInfoRows(character.Resources),
-		SpellLevels:      parseSpellLevels(character.SpellSlots),
+		FormAction:      "/characters/" + id,
+		Name:            character.Name,
+		Race:            nullStringValue(character.Race),
+		Background:      nullStringValue(character.Background),
+		Classes:         nullStringValue(character.Classes),
+		Size:            fallbackString(strings.TrimSpace(character.Size), "medium"),
+		Alignment:       fallbackString(nullStringValue(character.Alignment), "unaliged"),
+		XP:              strconv.FormatUint(uint64(character.XP), 10),
+		Languages:       fallbackString(strings.TrimSpace(character.Languages), "Common"),
+		Proficiencies:   strings.TrimSpace(character.Proficiencies),
+		Str:             strconv.FormatUint(uint64(character.Str), 10),
+		Dex:             strconv.FormatUint(uint64(character.Dex), 10),
+		Con:             strconv.FormatUint(uint64(character.Con), 10),
+		Int:             strconv.FormatUint(uint64(character.Int), 10),
+		Wis:             strconv.FormatUint(uint64(character.Wis), 10),
+		Cha:             strconv.FormatUint(uint64(character.Cha), 10),
+		AC:              strconv.FormatUint(uint64(character.AC), 10),
+		Speed:           fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
+		InitiativeBonus: strconv.FormatInt(int64(character.InitiativeBonus), 10),
+		MaxHP:           strconv.FormatUint(uint64(character.MaxHP), 10),
+		CurrentHP:       strconv.FormatUint(uint64(character.CurrentHP), 10),
+		TempHP:          strconv.FormatUint(uint64(character.TempHP), 10),
+		SpellSaveDC:     strconv.FormatUint(uint64(character.SpellSaveDC), 10),
+		SpellAtkBonus:   strconv.FormatInt(int64(character.SpellAtkBonus), 10),
+		Skills:          parseStatBonuses(character.Skills),
+		SavingThrows:    parseStatBonuses(character.SavingThrows),
+		Features:        parseInfoRows(character.Features),
+		Weapons:         parseInfoRows(character.Weapons),
+		Resources:       parseInfoRows(character.Resources),
+		SpellLevels:     parseSpellLevels(character.SpellSlots),
 	}
 }
 

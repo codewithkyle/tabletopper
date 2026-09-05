@@ -5,17 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
-	"main/internal/controllers"
-	db "main/internal/database"
-	"main/internal/helpers"
-	"main/internal/middleware"
-	"main/internal/queries"
-	"main/internal/session"
-	"main/templ/pages"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"tabletopper/internal/controllers"
+	db "tabletopper/internal/database"
+	"tabletopper/internal/helpers"
+	"tabletopper/internal/middleware"
+	"tabletopper/internal/queries"
+	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 	"time"
 
 	"github.com/clerkinc/clerk-sdk-go/clerk"
@@ -154,13 +154,13 @@ func main() {
 			if errors.Is(err, sql.ErrNoRows) {
 				slog.Info("Someone signed up!", "clerkId", user.ID)
 				id := ulid.Make()
-				s.UserId = id
+				s.UserID = id
 				if len(user.ProfileImageURL) > 0 {
 					err = q.CreateUserWithAvatar(ctx, queries.CreateUserWithAvatarParams{
 						ID:              id,
 						Username:        *user.Username,
 						ClerkID:         user.ID,
-						ProfileImageUrl: user.ProfileImageURL,
+						ProfileImageURL: user.ProfileImageURL,
 					})
 					if err != nil {
 						slog.Error("Failed to create user", "error", err)
@@ -185,8 +185,8 @@ func main() {
 				return
 			}
 		} else {
-			s.UserId = result.ID
-			s.ProfileImageURL = result.ProfileImageUrl
+			s.UserID = result.ID
+			s.ProfileImageURL = result.ProfileImageURL
 			s.Username = result.Username
 		}
 

@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"main/internal/queries"
+	"tabletopper/internal/queries"
 )
 
 const (

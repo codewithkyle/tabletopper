@@ -11,14 +11,14 @@ import (
 const cleanupTimeout = 15 * time.Second
 
 // MapKeys returns the R2 keys holding a map's full-size image and its preview.
-func MapKeys(userId ulid.ULID, assetId ulid.ULID) (string, string) {
-	base := "users/" + userId.String() + "/maps/"
-	return base + assetId.String(), base + "preview-" + assetId.String()
+func MapKeys(userID ulid.ULID, assetID ulid.ULID) (string, string) {
+	base := "users/" + userID.String() + "/maps/"
+	return base + assetID.String(), base + "preview-" + assetID.String()
 }
 
 // AvatarKey returns the R2 key holding a character's avatar.
-func AvatarKey(userId ulid.ULID, assetId ulid.ULID) string {
-	return "users/" + userId.String() + "/avatars/" + assetId.String()
+func AvatarKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/avatars/" + assetID.String()
 }
 
 // CleanupContext detaches from the request so a compensating delete still runs
@@ -52,22 +52,22 @@ func GetImage(ctx context.Context, key string) ([]byte, error) {
 
 // UploadAvatar writes a character avatar to the key returned by AvatarKey. The
 // asset row must already exist so a failure here can be cleaned up.
-func UploadAvatar(ctx context.Context, userId ulid.ULID, assetId ulid.ULID, body []byte) error {
+func UploadAvatar(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
 	client, err := NewR2Client(ctx)
 	if err != nil {
 		return err
 	}
-	return client.UploadBytes(ctx, AvatarKey(userId, assetId), body, "image/webp")
+	return client.UploadBytes(ctx, AvatarKey(userID, assetID), body, "image/webp")
 }
 
 // UploadMap writes a map's full-size image and preview to the keys returned by
 // MapKeys. The asset row must already exist so a failure here can be cleaned up.
-func UploadMap(ctx context.Context, userId ulid.ULID, assetId ulid.ULID, full []byte, preview []byte) error {
+func UploadMap(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, full []byte, preview []byte) error {
 	client, err := NewR2Client(ctx)
 	if err != nil {
 		return err
 	}
-	fullKey, previewKey := MapKeys(userId, assetId)
+	fullKey, previewKey := MapKeys(userID, assetID)
 	if err := client.UploadBytes(ctx, fullKey, full, "image/webp"); err != nil {
 		return err
 	}
@@ -76,12 +76,12 @@ func UploadMap(ctx context.Context, userId ulid.ULID, assetId ulid.ULID, full []
 
 // DeleteMapObjects removes both of a map's objects. Deleting a key that was
 // never written succeeds, so this is safe after a partially completed upload.
-func DeleteMapObjects(ctx context.Context, userId ulid.ULID, assetId ulid.ULID) error {
+func DeleteMapObjects(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) error {
 	client, err := NewR2Client(ctx)
 	if err != nil {
 		return err
 	}
-	fullKey, previewKey := MapKeys(userId, assetId)
+	fullKey, previewKey := MapKeys(userID, assetID)
 	if err := client.DeleteObject(ctx, fullKey); err != nil {
 		return err
 	}

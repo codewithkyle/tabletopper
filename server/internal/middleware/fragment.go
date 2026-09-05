@@ -3,10 +3,10 @@ package middleware
 import (
 	"log/slog"
 
-	db "main/internal/database"
-	"main/internal/helpers"
-	"main/internal/session"
 	"net/http"
+	db "tabletopper/internal/database"
+	"tabletopper/internal/helpers"
+	"tabletopper/internal/session"
 )
 
 // Fragment is the contract for everything mounted under /fragment/: a GET whose

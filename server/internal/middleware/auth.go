@@ -3,10 +3,10 @@ package middleware
 import (
 	"log/slog"
 
-	db "main/internal/database"
-	"main/internal/helpers"
-	"main/internal/session"
 	"net/http"
+	db "tabletopper/internal/database"
+	"tabletopper/internal/helpers"
+	"tabletopper/internal/session"
 )
 
 // RequireSession loads the user session and stashes it on the request context,

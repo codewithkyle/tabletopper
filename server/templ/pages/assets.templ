@@ -1,11 +1,11 @@
 package pages
 
 import (
-	"main/internal/queries"
-	"main/internal/session"
-	"main/templ/layouts"
-	"time"
 	"strconv"
+	"tabletopper/internal/queries"
+	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
+	"time"
 )
 
 var assetsSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
@@ -21,7 +21,7 @@ templ MapAssets(session session.UserSession, maps []queries.GetUserMapsRow) {
 templ MapCard(m queries.GetUserMapsRow) {
 	<asset-card class="card card-border mb-auto border-base-300 bg-panel/85 p-4 shadow-sm backdrop-blur-sm">
 		if m.PreviewPath.Valid {
-			<img class="mb-2 block aspect-square w-full overflow-hidden rounded object-cover" src={ "/assets/images/" + m.ID.String() + "/preview?t="+strconv.FormatInt(time.Now().Unix(),10) }/>
+			<img class="mb-2 block aspect-square w-full overflow-hidden rounded object-cover" src={ "/assets/images/" + m.ID.String() + "/preview?t=" + strconv.FormatInt(time.Now().Unix(), 10) }/>
 		}
 		<input
 			class="mb-1 block h-9 w-full truncate rounded border border-transparent bg-transparent font-serif text-2xl transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2"

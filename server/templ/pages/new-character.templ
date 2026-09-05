@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"main/internal/session"
-	"main/templ/layouts"
+	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 )
 
 var newCharacterSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
@@ -70,7 +70,6 @@ templ newCharacterContent(session session.UserSession) {
 							@selectField("size", "Size", sizeOptions, defaultSize, true)
 						</div>
 					}
-
 					@sheetSection("Abilities") {
 						<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
 							@numberField("str", "Strength", "10", true)
@@ -81,7 +80,6 @@ templ newCharacterContent(session session.UserSession) {
 							@numberField("cha", "Charisma", "10", true)
 						</div>
 					}
-
 					@sheetSection("Core Stats") {
 						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
 							@numberField("xp", "Experience", "0", true)
@@ -95,14 +93,12 @@ templ newCharacterContent(session session.UserSession) {
 							@numberField("spell_atk_bonus", "Spell Attack Bonus", "0", true)
 						</div>
 					}
-
 					@sheetSection("Proficiencies & Training") {
 						<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 							@textField("languages", "Languages", "Common", "", false)
 							@textField("proficiencies", "Other Proficiencies", "", "Medium armor, thieves tools", true)
 						</div>
 					}
-
 					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 						<div class="grid content-start gap-4">
 							@sheetSection("Saving Throws") {
@@ -121,11 +117,9 @@ templ newCharacterContent(session session.UserSession) {
 							}
 						</div>
 					</div>
-
 					@sheetSection("Resources") {
 						@infoRowsTable("resources", nil)
 					}
-
 					@sheetSection("Spellcasting") {
 						@spellSlotsTable(EmptySpellLevels())
 					}

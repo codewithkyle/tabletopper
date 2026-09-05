@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"main/internal/session"
 	"net/http"
 	"net/http/httptest"
+	"tabletopper/internal/session"
 	"testing"
 )
 
@@ -63,8 +63,8 @@ func TestOptionalSessionContinuesWithoutCookie(t *testing.T) {
 	called := false
 	h := OptionalSession(func(w http.ResponseWriter, r *http.Request) {
 		called = true
-		if s := session.FromContext(r.Context()); !s.UserId.IsZero() {
-			t.Errorf("UserId = %v, want the zero value for a logged out visitor", s.UserId)
+		if s := session.FromContext(r.Context()); !s.UserID.IsZero() {
+			t.Errorf("UserID = %v, want the zero value for a logged out visitor", s.UserID)
 		}
 	})
 

@@ -7,9 +7,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"log/slog"
-	"main/internal/queries"
 	"net/http"
 	"os"
+	"tabletopper/internal/queries"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -31,10 +31,10 @@ const (
 )
 
 type UserSession struct {
-	Id              ulid.ULID
-	UserId          ulid.ULID
-	CharacterId     ulid.ULID
-	RoomId          ulid.ULID
+	ID              ulid.ULID
+	UserID          ulid.ULID
+	CharacterID     *ulid.ULID
+	RoomID          *ulid.ULID
 	Username        string
 	ProfileImageURL string
 	Hash            []byte
@@ -44,7 +44,7 @@ type UserSession struct {
 
 func New() *UserSession {
 	s := UserSession{}
-	s.Id = ulid.Make()
+	s.ID = ulid.Make()
 	return &s
 }
 
@@ -73,15 +73,15 @@ func GetUserSessionFromCookie(r *http.Request, db *sql.DB) (UserSession, error) 
 	}
 
 	// NOTE: a malformed ULID fails in Scan above, so these are already
-	// length-checked; a NULL character_id or room_id arrives as the zero value
+	// length-checked; a NULL character_id or room_id arrives as a nil pointer
 	session.Hash = hash
 	session.CreatedAt = result.CreatedAt
-	session.Id = result.ID
-	session.UserId = result.UserID
+	session.ID = result.ID
+	session.UserID = result.UserID
 	session.Username = result.Username
-	session.ProfileImageURL = result.ProfileImageUrl
-	session.CharacterId = result.CharacterID
-	session.RoomId = result.RoomID
+	session.ProfileImageURL = result.ProfileImageURL
+	session.CharacterID = result.CharacterID
+	session.RoomID = result.RoomID
 
 	return session, nil
 }
@@ -94,10 +94,10 @@ func (s *UserSession) CreateSession(db *sql.DB, ctx context.Context) error {
 	}
 	s.ExpiresAt = time.Now().Add(IdleWindow)
 	err := q.StartSession(ctx, queries.StartSessionParams{
-		ID:              s.Id,
+		ID:              s.ID,
 		Username:        s.Username,
-		ProfileImageUrl: s.ProfileImageURL,
-		UserID:          s.UserId,
+		ProfileImageURL: s.ProfileImageURL,
+		UserID:          s.UserID,
 		ExpiresAt:       s.ExpiresAt,
 		Hash:            s.Hash,
 	})

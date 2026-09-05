@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"main/internal/session"
-	"main/templ/layouts"
+	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 )
 
 var editCharacterSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
@@ -53,7 +53,6 @@ templ editCharacterContent(data EditCharacterPageData) {
 							@selectField("size", "Size", sizeOptions, data.Size, true)
 						</div>
 					}
-
 					@sheetSection("Abilities") {
 						<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
 							@numberField("str", "Strength", data.Str, true)
@@ -64,12 +63,11 @@ templ editCharacterContent(data EditCharacterPageData) {
 							@numberField("cha", "Charisma", data.Cha, true)
 						</div>
 					}
-
 					@sheetSection("Core Stats") {
 						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-							@numberField("xp", "Experience", data.Xp, true)
+							@numberField("xp", "Experience", data.XP, true)
 							@textField("speed", "Speed", data.Speed, "", false)
-							@numberField("ac", "Armor Class", data.Ac, true)
+							@numberField("ac", "Armor Class", data.AC, true)
 							@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
 							@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
 							@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
@@ -78,14 +76,12 @@ templ editCharacterContent(data EditCharacterPageData) {
 							@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
 						</div>
 					}
-
 					@sheetSection("Proficiencies & Training") {
 						<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 							@textField("languages", "Languages", data.Languages, "", false)
 							@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", true)
 						</div>
 					}
-
 					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 						<div class="grid content-start gap-4">
 							@sheetSection("Saving Throws") {
@@ -104,11 +100,9 @@ templ editCharacterContent(data EditCharacterPageData) {
 							}
 						</div>
 					</div>
-
 					@sheetSection("Resources") {
 						@infoRowsTable("resources", data.Resources)
 					}
-
 					@sheetSection("Spellcasting") {
 						@spellSlotsTable(data.SpellLevels)
 					}

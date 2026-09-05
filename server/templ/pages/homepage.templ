@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"main/internal/session"
-	"main/templ/layouts"
+	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 )
 
 var homepageSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
@@ -16,7 +16,7 @@ templ Homepage(session session.UserSession) {
 }
 
 templ homepageContent(session session.UserSession) {
-	if session.UserId.IsZero() {
+	if session.UserID.IsZero() {
 		<home-page class="relative inline-block max-w-full p-8">
 			<div class="w-full max-w-[1024px] text-center">
 				<h1 class="mb-12 font-[Lobster] text-[10rem] font-bold text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">Tabletopper</h1>
