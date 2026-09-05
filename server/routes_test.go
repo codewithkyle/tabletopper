@@ -37,11 +37,11 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/avatar", "POST /characters/{id}/avatar"},
 		{http.MethodPost, "/characters/" + id + "/identity", "POST /characters/{id}/identity"},
 		{http.MethodPost, "/characters/" + id + "/core-stats", "POST /characters/{id}/core-stats"},
-		{http.MethodPost, "/characters/" + id + "/spells", "POST /characters/{id}/spells"},
 		{http.MethodPost, "/characters/" + id + "/bonuses/skills", "POST /characters/{id}/bonuses/{kind}"},
 		{http.MethodPost, "/characters/" + id + "/features", "POST /characters/{id}/features"},
 		{http.MethodGet, "/characters/" + id + "/edit", "GET /characters/{id}/edit"},
 		{http.MethodGet, "/characters/" + id + "/edit/spells", "GET /characters/{id}/edit/spells"},
+		{http.MethodGet, "/characters/" + id + "/edit/spells/3", "GET /characters/{id}/edit/spells/{level}"},
 		{http.MethodGet, "/characters/" + id + "/edit/inventory", "GET /characters/{id}/edit/inventory"},
 		// The collection and the member have to stay apart. They differ by one
 		// segment, and getting them confused would send an add to the save
@@ -49,8 +49,17 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/inventory", "POST /characters/{id}/inventory"},
 		{http.MethodPost, "/characters/" + id + "/inventory/" + item, "POST /characters/{id}/inventory/{itemId}"},
 		{http.MethodDelete, "/characters/" + id + "/inventory/" + item, "DELETE /characters/{id}/inventory/{itemId}"},
+		// Spells are the same collection-and-member pair with the level in
+		// between. THE FIRST OF THESE IS THE ONE THAT MATTERS: "slots" and a
+		// level occupy the same position, and the mux is being trusted to
+		// prefer the literal. If it ever stopped, every slot save would arrive
+		// at AddSpell with a level of "slots" and 404 -- which looks like a save
+		// that quietly did nothing rather than like a routing bug.
+		{http.MethodPost, "/characters/" + id + "/spells/slots/3", "POST /characters/{id}/spells/slots/{level}"},
+		{http.MethodPost, "/characters/" + id + "/spells/3", "POST /characters/{id}/spells/{level}"},
+		{http.MethodPost, "/characters/" + id + "/spells/3/" + item, "POST /characters/{id}/spells/{level}/{spellId}"},
+		{http.MethodDelete, "/characters/" + id + "/spells/3/" + item, "DELETE /characters/{id}/spells/{level}/{spellId}"},
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
-		{http.MethodGet, "/fragment/character/spell-card", "GET /fragment/character/spell-card"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		// None of these is a route any more, so all three fall to the catch-all
 		// rather than to one of the above. The first two were the whole-sheet
@@ -61,6 +70,10 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/rows", "/"},
 		{http.MethodPost, "/characters/" + id, "/"},
 		{http.MethodGet, "/characters/new", "/"},
+		// The whole-sheet spells save, which held all ten levels in one JSON
+		// column. Every spell route carries a level now, so the bare collection
+		// is a miss.
+		{http.MethodPost, "/characters/" + id + "/spells", "/"},
 		// Inventory rows are edited through the collection above, not through a
 		// GET of their own -- there is no representation of a single item to
 		// fetch, so this is a miss rather than a route waiting to be written.
@@ -76,6 +89,9 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// which is the difference between a 404 shaped like a page and one
 		// shaped like nothing.
 		{http.MethodGet, "/fragment/character/info-row", "/fragment/"},
+		// And the blank-spell-card fragment. Adding a spell is a POST that
+		// answers with the row it created, so there is nothing left to GET.
+		{http.MethodGet, "/fragment/character/spell-card", "/fragment/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
 		if pattern != c.want {

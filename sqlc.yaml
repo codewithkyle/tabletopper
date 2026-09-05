@@ -12,20 +12,29 @@ sql:
         # matches the hand-written structs that mirror it.
         initialisms: ["id", "url", "dc", "ac", "hp", "xp"]
         overrides:
-          # inventory.character_id is NOT NULL and must not be a pointer, which
-          # needs saying here because the wildcard further down would make it one
-          # anyway. `nullable: true` on an override does NOT restrict that rule
-          # to nullable columns -- sqlc takes the first entry whose column
-          # pattern matches the name and stops. spells.character_id is the
-          # proof: NOT NULL in the schema, *ulid.ULID in models.go. A nil there
-          # fails at runtime writing NULL into a NOT NULL column instead of
-          # failing to compile, so a NOT NULL *_id sharing a name with one of the
-          # nullable rules needs its own entry up here, ahead of them.
+          # THE FIRST MATCH WINS, AND `nullable: true` DOES NOT NARROW IT.
+          # sqlc walks this list, takes the first entry whose column pattern
+          # matches the name, and stops. The flag on the wildcards further down
+          # does not restrict them to nullable columns, so a NOT NULL column
+          # called character_id, asset_id or room_id picks up the pointer type
+          # meant for the nullable ones unless it is named up here first.
+          #
+          # A nil pointer there writes SQL NULL into a NOT NULL column, which
+          # fails at runtime rather than failing to compile.
+          #
+          # The three below are the NOT NULL *_id columns that collide with a
+          # wildcard, less one: monsters.asset_id is NOT NULL and still resolves
+          # to *ulid.ULID. Nothing queries monsters, so nothing has ever held
+          # that pointer; it needs an entry here the day something does.
           - column: "inventory.character_id"
             go_type: &ulid
               import: "github.com/oklog/ulid/v2"
               package: "ulid"
               type: "ULID"
+          - column: "spells.character_id"
+            go_type: *ulid
+          - column: "spell_slots.character_id"
+            go_type: *ulid
           # DECIMAL comes back as a string by default. float64 is what lets an
           # unweighed item render blank as `weight == 0` rather than a comparison
           # against "0.00"; the column keeps the two-place rounding either way.
@@ -38,9 +47,10 @@ sql:
           #
           # The three below hand back *ulid.ULID, where a nil pointer reads and
           # writes as SQL NULL and a zero-valued ulid.ULID would have written
-          # sixteen zero bytes instead. characters.asset_id and rooms.character_id
-          # want that. spells.character_id gets it too and does not want it --
-          # see the entry at the top for why, and for what to do about a new one.
+          # sixteen zero bytes instead. characters.asset_id, sessions.character_id
+          # and sessions.room_id are the columns that want that. Every other
+          # column these patterns reach does not, which is what the entries at
+          # the top of the list are for.
           - column: "*.asset_id"
             nullable: true
             go_type: &nullable_ulid

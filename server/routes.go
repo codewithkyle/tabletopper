@@ -32,12 +32,18 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// field, served by the fragment route below; this takes the name it collects
 	// and redirects to the editor, which saves the rest as it is filled in.
 	mux.HandleFunc("POST /characters", auth.RequireSession(app.NewCharacterForm))
-	// The editor is three pages, one per tab. Autosave is what makes them pages
+	// The editor is a page per tab, and twelve of them, because the spells tab
+	// is an overview plus one page per level. Autosave is what makes them pages
 	// rather than sections of one: nothing is ever held unsaved, so moving
 	// between them loses nothing and each can be linked and reloaded.
+	//
+	// {level} is bounded to 0-9 before it reaches a query. On these two page
+	// routes a level outside that is a redirect to the overview rather than a
+	// 404 -- the character is real and only the last segment is wrong.
 	mux.HandleFunc("GET /characters/{id}/edit", auth.RequireSession(app.CharacterPage))
 	mux.HandleFunc("GET /characters/{id}/edit/inventory", auth.RequireSession(app.CharacterInventoryPage))
 	mux.HandleFunc("GET /characters/{id}/edit/spells", auth.RequireSession(app.CharacterSpellsPage))
+	mux.HandleFunc("GET /characters/{id}/edit/spells/{level}", auth.RequireSession(app.CharacterSpellLevelPage))
 	mux.HandleFunc("DELETE /characters/{id}", auth.RequireSession(app.DeleteCharacter))
 	mux.HandleFunc("POST /characters/{id}/avatar", auth.RequireSession(app.UploadCharacterAvatar))
 
@@ -54,14 +60,13 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// Only the bonuses route takes its panel name from the path, because the
 	// skills and saving-throw grids differ in a field prefix and a column and in
 	// nothing else. The handler matches that segment against an allowlist before
-	// it reaches a query. The repeaters were the same shape until inventory
-	// replaced two of the three, and a parameter with one legal value is worse
-	// than no parameter -- so Features is a route that names itself.
+	// it reaches a query. The repeaters were the same shape until inventory and
+	// spells replaced three of the four, and a parameter with one legal value is
+	// worse than no parameter -- so Features is a route that names itself.
 	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
 	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
 	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
 	mux.HandleFunc("POST /characters/{id}/proficiencies", auth.RequireSession(app.SaveCharacterProficiencies))
-	mux.HandleFunc("POST /characters/{id}/spells", auth.RequireSession(app.SaveCharacterSpells))
 	mux.HandleFunc("POST /characters/{id}/features", auth.RequireSession(app.SaveCharacterFeatures))
 	mux.HandleFunc("POST /characters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveCharacterBonuses))
 
@@ -82,6 +87,25 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/inventory", auth.RequireSession(app.AddInventoryItem))
 	mux.HandleFunc("POST /characters/{id}/inventory/{itemId}", auth.RequireSession(app.SaveInventoryItem))
 	mux.HandleFunc("DELETE /characters/{id}/inventory/{itemId}", auth.RequireSession(app.DeleteInventoryItem))
+
+	// Spells are the same shape as inventory -- a collection and a member per
+	// row -- with the level carried in the path. It is there because a spell
+	// cannot change level, so it identifies the row as much as the id does, and
+	// because /spells/{spellId} and /spells/{level} are the same pattern to the
+	// mux and one of them had to grow a segment.
+	//
+	// slots is a literal in the first position, so /spells/slots/{level} matches
+	// a strict subset of /spells/{level}/{spellId} and the mux takes the more
+	// specific of the two without a conflict. No level is ever the word slots:
+	// parseSpellLevel only returns for 0 through 9.
+	//
+	// The counters are their own route rather than a field on the level page,
+	// because the overview renders all ten and each is its own form. One handler
+	// serves both pages, and a save writes one row.
+	mux.HandleFunc("POST /characters/{id}/spells/slots/{level}", auth.RequireSession(app.SaveSpellSlots))
+	mux.HandleFunc("POST /characters/{id}/spells/{level}", auth.RequireSession(app.AddSpell))
+	mux.HandleFunc("POST /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.SaveSpell))
+	mux.HandleFunc("DELETE /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.DeleteSpell))
 
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
@@ -110,7 +134,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// for what a fragment owes its caller.
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
-	mux.HandleFunc("GET /fragment/character/spell-card", auth.Fragment(app.SpellCardFragment))
 
 	// Subtree pattern, so it takes any /fragment/ path the three above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's

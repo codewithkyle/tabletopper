@@ -76,21 +76,19 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, character.Name+" has been deleted.")
 }
 
-// The editor's two pages. Both need the same character loaded and mapped the
-// same way, and differ only in which panels they render, so the work is in
-// loadCharacterForEdit and these are the two ways out of it.
+// CharacterPage is the Character tab, and the only page that renders the
+// characters row itself -- the other two tabs are views of the inventory and
+// spells tables and take their own page data.
 //
-// characterToEditPageData builds the whole struct for both. A spells page that
-// reads only SpellLevels is not worth a second mapper -- the row is already in
-// memory and the unused fields cost a few string conversions.
-// CharacterPage is the only editor page that reads a second table. Equipment on
-// it is a view of the inventory rows ticked as equipped, which is what replaced
-// the repeater over the weapons column -- so a character's gear is written down
-// once and read in two places rather than typed in twice.
+// It is also the only editor page that reads other tables. Equipment is a view
+// of the inventory rows ticked as equipped and Prepared Spells is a view of the
+// spell rows ticked as prepared -- so a character's gear and their spells are
+// written down once, on the tabs that own them, and read here rather than typed
+// in twice.
 //
-// Only the equipped rows are fetched. The page shows three of forty and has no
-// use for the rest; the inventory page loads the whole thing because that is
-// what it is for.
+// Only the ticked rows are fetched, by two queries that filter in SQL. The page
+// shows three of forty and has no use for the rest; the inventory and spells
+// pages load everything because that is what they are for.
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -110,19 +108,21 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := characterToEditPageData(characterID.String(), character)
-	data.Equipped = inventoryPageItems(equipped)
-
-	render(w, r, pages.EditCharacter(data))
-}
-
-func (a *App) CharacterSpellsPage(w http.ResponseWriter, r *http.Request) {
-	character, characterID, ok := a.loadCharacter(w, r)
-	if !ok {
+	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to load prepared spells", "error", err)
+		redirectToError(w, r)
 		return
 	}
 
-	render(w, r, pages.EditCharacterSpells(characterToEditPageData(characterID.String(), character)))
+	data := characterToEditPageData(characterID.String(), character)
+	data.Equipped = inventoryPageItems(equipped)
+	data.Prepared = preparedSpellGroups(prepared)
+
+	render(w, r, pages.EditCharacter(data))
 }
 
 // loadCharacter is the ownership gate every editor page goes through, and the
@@ -200,27 +200,6 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 func (a *App) FeatureRowFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.FeatureRowFragment())
-}
-
-// SpellCardFragment serves one blank spell card to a level's add button, the
-// counterpart of FeatureRowFragment above.
-//
-// `level` is the only thing the client sends, and it is the whole reason the
-// spell wire format moved off per-spell indices: an index would have to be a
-// counter the client keeps, where a level is a constant baked into the button.
-// It is bounded to the ten levels that exist rather than trusted -- it lands in
-// every field name on the card, so an unchecked value would put arbitrary keys
-// into the next post.
-func (a *App) SpellCardFragment(w http.ResponseWriter, r *http.Request) {
-	level, err := strconv.Atoi(r.URL.Query().Get("level"))
-	if err != nil || level < 0 || level > 9 {
-		slog.Warn("invalid spell level requested", "level", r.URL.Query().Get("level"))
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.SpellCardFragment(level))
 }
 
 // The column is varchar(128), and MySQL counts characters there rather than
@@ -328,7 +307,6 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Skills:          parseStatBonuses(character.Skills),
 		SavingThrows:    parseStatBonuses(character.SavingThrows),
 		Features:        parseFeatures(character.Features),
-		SpellLevels:     parseSpellLevels(character.SpellSlots),
 	}
 }
 
@@ -404,72 +382,6 @@ func parseFeatures(raw json.RawMessage) []pages.Feature {
 	}
 
 	return rows
-}
-
-// parseSpellLevels unmarshals the stored `{"0": {...}, "1": {...}}` column into
-// the ten ordered blocks the templates range over. It replaced
-// normalizeSpellSlotsJSON, which re-marshalled the same map into a string for a
-// data-levels attribute so spell-slots-table.js could parse it again and do this
-// same filling-in client-side.
-//
-// The column is keyed by level as a string and may be missing levels, so the
-// ten are built here rather than trusted from storage. Clamping mirrors the
-// write path: 0-99 for each counter, used never above slots. An unrecognised
-// school falls back to the default, which is what the component did on load --
-// it is the only place a legacy row can carry a value the picker cannot show.
-func parseSpellLevels(raw json.RawMessage) []pages.SpellLevel {
-	stored := map[string]pages.SpellLevel{}
-	if len(raw) > 0 {
-		if err := json.Unmarshal(raw, &stored); err != nil {
-			slog.Warn("invalid spell slots payload; defaulting", "error", err)
-			stored = map[string]pages.SpellLevel{}
-		}
-	}
-
-	levels := make([]pages.SpellLevel, 0, 10)
-	for level := 0; level <= 9; level++ {
-		entry := stored[strconv.Itoa(level)]
-		entry.Level = level
-		entry.Slots = clampSpellCount(entry.Slots)
-		entry.Used = clampSpellCount(entry.Used)
-		if entry.Used > entry.Slots {
-			entry.Used = entry.Slots
-		}
-
-		if entry.Spells == nil {
-			entry.Spells = []pages.Spell{}
-		}
-		for i := range entry.Spells {
-			entry.Spells[i].School = pages.NormalizeSpellSchool(entry.Spells[i].School)
-		}
-
-		levels = append(levels, entry)
-	}
-
-	return levels
-}
-
-// clampSpellCount holds a slot counter to the 0-99 spell-slots-table.js enforced
-// as you typed. The fields carry min="0" max="99", so reaching this with an
-// out-of-range value means the post did not come from the form.
-func clampSpellCount(value int) int {
-	if value < 0 {
-		return 0
-	}
-	if value > 99 {
-		return 99
-	}
-
-	return value
-}
-
-func parseSpellCount(value string) int {
-	parsed, err := strconv.Atoi(strings.TrimSpace(value))
-	if err != nil {
-		return 0
-	}
-
-	return clampSpellCount(parsed)
 }
 
 func nullableString(value string) sql.NullString {
@@ -580,115 +492,4 @@ func marshalFeatureRowsPayload(r *http.Request) (json.RawMessage, error) {
 	}
 
 	return json.RawMessage(payload), nil
-}
-
-type spellPayload struct {
-	Name        string `json:"name"`
-	Components  string `json:"components"`
-	School      string `json:"school"`
-	CastingTime string `json:"castingTime"`
-	Range       string `json:"range"`
-	Duration    string `json:"duration"`
-	Text        string `json:"text"`
-}
-
-type spellLevelPayload struct {
-	Level  int            `json:"level"`
-	Slots  int            `json:"slots"`
-	Used   int            `json:"used"`
-	Spells []spellPayload `json:"spells"`
-}
-
-// marshalSpellSlotsPayload reads the spellcasting section back off the form.
-//
-// The names are order-based as of Phase 8: every card in a level posts the same
-// seven keys, so PostForm["spells-level-3-name"] is that level's spell names in
-// document order and the seven slices zip. Deleting a card removes its entry
-// from all seven at once and adding one appends to all seven, so nothing has to
-// renumber and no index has to be tracked anywhere.
-//
-// That replaced two regexes, a map[int]map[int]*spellPayload and a sort.Ints:
-// the indexed format allowed gaps, which meant collecting spells into a sparse
-// map and sorting the keys to recover document order. Reading the slices gives
-// that order directly.
-//
-// The `-slots` and `-used` keys are per-level singletons and are unchanged. They
-// cannot collide with the seven card keys -- none of those is named slots or
-// used -- which is why the level prefix is safe to share.
-func marshalSpellSlotsPayload(r *http.Request) (json.RawMessage, error) {
-	levels := map[string]spellLevelPayload{}
-
-	for level := 0; level <= 9; level++ {
-		key := strconv.Itoa(level)
-		prefix := "spells-level-" + key
-
-		slots := parseSpellCount(r.PostFormValue(prefix + "-slots"))
-		used := parseSpellCount(r.PostFormValue(prefix + "-used"))
-		if used > slots {
-			used = slots
-		}
-
-		levels[key] = spellLevelPayload{
-			Level:  level,
-			Slots:  slots,
-			Used:   used,
-			Spells: zipSpellPayloads(r, prefix),
-		}
-	}
-
-	payload, err := json.Marshal(levels)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.RawMessage(payload), nil
-}
-
-// zipSpellPayloads pairs one level's seven slices by position, stopping at the
-// shortest so a truncated post cannot index out of range.
-//
-// THE EMPTY-CARD GUARD DELIBERATELY IGNORES SCHOOL. The picker has no empty
-// option, so every card posts one -- which meant the old guard's
-// `spell.School == ""` was never true and a blank card was always stored. It was
-// unreachable for a second reason too: the name carried `required`, so a blank
-// card blocked the save outright rather than being dropped. Both are gone as of
-// Phase 8, and a card now counts as empty when everything the user could
-// actually have typed is empty. The school is a default, not an answer.
-func zipSpellPayloads(r *http.Request, prefix string) []spellPayload {
-	names := r.PostForm[prefix+"-name"]
-	components := r.PostForm[prefix+"-components"]
-	schools := r.PostForm[prefix+"-school"]
-	castingTimes := r.PostForm[prefix+"-castingTime"]
-	ranges := r.PostForm[prefix+"-range"]
-	durations := r.PostForm[prefix+"-duration"]
-	texts := r.PostForm[prefix+"-text"]
-
-	count := len(names)
-	for _, other := range [][]string{components, schools, castingTimes, ranges, durations, texts} {
-		if len(other) < count {
-			count = len(other)
-		}
-	}
-
-	spells := make([]spellPayload, 0, count)
-	for i := 0; i < count; i++ {
-		spell := spellPayload{
-			Name:        strings.TrimSpace(names[i]),
-			Components:  strings.TrimSpace(components[i]),
-			School:      pages.NormalizeSpellSchool(strings.TrimSpace(schools[i])),
-			CastingTime: strings.TrimSpace(castingTimes[i]),
-			Range:       strings.TrimSpace(ranges[i]),
-			Duration:    strings.TrimSpace(durations[i]),
-			Text:        strings.TrimSpace(texts[i]),
-		}
-
-		if spell.Name == "" && spell.Components == "" && spell.CastingTime == "" &&
-			spell.Range == "" && spell.Duration == "" && spell.Text == "" {
-			continue
-		}
-
-		spells = append(spells, spell)
-	}
-
-	return spells
 }

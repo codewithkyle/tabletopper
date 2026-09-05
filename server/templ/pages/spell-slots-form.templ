@@ -1,0 +1,67 @@
+package pages
+
+import "strconv"
+
+templ spellSlotsForm(characterID string, level SpellLevel) {
+	{{ action := "/characters/" + characterID + "/spells/slots/" + strconv.Itoa(level.Level) }}
+	{{ panel := SpellSlotsPanel(level.Level) }}
+	<form
+		data-spell-slots="true"
+		class="rounded-field border-2 border-base-300 p-3"
+		hx-post={ action }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(panel, []string{})
+		<div class="flex flex-wrap items-end justify-between gap-3">
+			{ children... }
+			<div class="flex items-end gap-2">
+				@spellCountField("slots", "Slots", level.Slots)
+				@spellCountField("used", "Used", level.Used)
+			</div>
+		</div>
+	</form>
+}
+
+templ spellCountField(name string, label string, value string) {
+	<label class="fieldset">
+		<span class="fieldset-legend">{ label }</span>
+		<input
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			step="1"
+			min="0"
+			max="99"
+			class="input input-sm w-16 text-right"
+			value={ value }
+		/>
+	</label>
+}
+
+templ spellLevelHeading(characterID string, level SpellLevel) {
+	<span class="flex min-w-0 flex-col gap-1">
+		<a
+			href={ "/characters/" + characterID + "/edit/spells/" + strconv.Itoa(level.Level) }
+			class="link font-serif text-base leading-none font-bold"
+		>{ SpellLevelName(level.Level) }</a>
+		<span class="text-xs font-semibold text-base-content/75">{ spellCountLabel(level.Count) }</span>
+	</span>
+}
+
+templ spellLevelSummary(characterID string, level SpellLevel) {
+	if level.Level == 0 {
+		<div class="rounded-field border-2 border-base-300 p-3">
+			<div class="flex flex-wrap items-center justify-between gap-3">
+				@spellLevelHeading(characterID, level)
+				<span class="text-sm text-base-content/60">Unlimited</span>
+			</div>
+		</div>
+	} else {
+		@spellSlotsForm(characterID, level) {
+			@spellLevelHeading(characterID, level)
+		}
+	}
+}

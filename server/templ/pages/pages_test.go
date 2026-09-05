@@ -3,6 +3,7 @@ package pages
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -29,10 +30,13 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"characters":             func() error { return render(Characters([]queries.Character{})) },
 		"new-character-fragment": func() error { return render(NewCharacterFragment()) },
 		"edit-character": func() error {
-			return render(EditCharacter(EditCharacterPageData{SpellLevels: EmptySpellLevels()}))
+			return render(EditCharacter(EditCharacterPageData{}))
 		},
 		"edit-character-spells": func() error {
-			return render(EditCharacterSpells(EditCharacterPageData{SpellLevels: EmptySpellLevels()}))
+			return render(EditCharacterSpells(SpellsOverviewPageData{Levels: testSpellLevels()}))
+		},
+		"edit-character-spell-level": func() error {
+			return render(EditCharacterSpellLevel(SpellLevelPageData{Level: 3, Current: testSpellLevels()[3], Levels: testSpellLevels()}))
 		},
 		"edit-character-inventory": func() error { return render(EditCharacterInventory(InventoryPageData{})) },
 		"assets":                   func() error { return render(MapAssets([]queries.Asset{})) },
@@ -60,105 +64,102 @@ func render(c templ.Component) error {
 	return c.Render(context.Background(), &buf)
 }
 
-// The editor is two pages. Each renders one form per panel it carries, posting
-// to its own route as the user types -- so this pins the routes, the debounce,
-// the split itself, and the absence of anything to press.
+// The Character tab renders one form per panel, each posting to its own route as
+// the user types -- so this pins the routes, the debounce, and the absence of
+// anything to press. It used to run over both editor pages; the spells tab is
+// not a panel page any more and has tests of its own below.
 func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + id
 
-	for _, page := range []struct {
-		name    string
-		render  func(EditCharacterPageData) templ.Component
-		panels  map[string]string
-		absent  string
-		current string
-	}{
-		{
-			name:   "character",
-			render: EditCharacter,
-			panels: map[string]string{
-				"identity":      base + "/identity",
-				"abilities":     base + "/abilities",
-				"core-stats":    base + "/core-stats",
-				"proficiencies": base + "/proficiencies",
-				"saving_throws": base + "/bonuses/saving_throws",
-				"skills":        base + "/bonuses/skills",
-				"features":      base + "/features",
-			},
-			absent:  base + "/spells",
-			current: base + "/edit",
-		},
-		{
-			name:    "spells",
-			render:  EditCharacterSpells,
-			panels:  map[string]string{"spells": base + "/spells"},
-			absent:  base + "/identity",
-			current: base + "/edit/spells",
-		},
-	} {
-		t.Run(page.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			data := EditCharacterPageData{CharacterID: id, SpellLevels: EmptySpellLevels()}
-			if err := page.render(data).Render(context.Background(), &buf); err != nil {
-				t.Fatalf("render: %v", err)
-			}
-			markup := buf.String()
-
-			for panel, action := range page.panels {
-				if want := `hx-post="` + action + `"`; !strings.Contains(markup, want) {
-					t.Errorf("no panel posts to %s", action)
-				}
-				if want := `id="errors-` + panel + `"`; !strings.Contains(markup, want) {
-					t.Errorf("panel %q has no error block to swap into", panel)
-				}
-			}
-
-			// The split is the point: a panel belonging to the other page must
-			// not be here, or both pages would write the same columns.
-			if strings.Contains(markup, `hx-post="`+page.absent+`"`) {
-				t.Errorf("%s carries a panel that belongs to the other page", page.name)
-			}
-
-			if got := strings.Count(markup, "hx-post="); got != len(page.panels) {
-				t.Errorf("posting forms = %d, want %d (one per panel, and none around them)", got, len(page.panels))
-			}
-
-			// The panels plus Base's own are every form on the page, so an
-			// extra one would mean something still wraps the sheet.
-			if got := strings.Count(markup, "<form"); got != len(page.panels)+closingForms {
-				t.Errorf("forms = %d, want %d", got, len(page.panels)+closingForms)
-			}
-
-			// The debounce is what makes typing one save rather than one per
-			// keystroke.
-			if got := strings.Count(markup, `hx-trigger="input delay:1s, repeater:changed"`); got != len(page.panels) {
-				t.Errorf("debounced panels = %d, want %d", got, len(page.panels))
-			}
-
-			// Nothing to press: the panels save themselves.
-			if strings.Contains(markup, `type="submit"`) {
-				t.Error("the editor still renders a submit button")
-			}
-
-			// Every tab is reachable from every page, and exactly the one you
-			// are on is marked current.
-			for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells"} {
-				if !strings.Contains(markup, `href="`+href+`"`) {
-					t.Errorf("no way to reach %s from here", href)
-				}
-			}
-			if got := strings.Count(markup, `aria-current="page"`); got != 1 {
-				t.Errorf("current tabs = %d, want exactly 1", got)
-			}
-			// Matched on the attribute rather than the class string, so
-			// restyling the links does not break the test. The closing quote is
-			// load-bearing: the Character href is a prefix of the other two.
-			if want := `href="` + page.current + `" aria-current="page"`; !strings.Contains(markup, want) {
-				t.Errorf("the current tab is not %s", page.current)
-			}
-		})
+	panels := map[string]string{
+		"identity":      base + "/identity",
+		"abilities":     base + "/abilities",
+		"core-stats":    base + "/core-stats",
+		"proficiencies": base + "/proficiencies",
+		"saving_throws": base + "/bonuses/saving_throws",
+		"skills":        base + "/bonuses/skills",
+		"features":      base + "/features",
 	}
+
+	var buf bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: id}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for panel, action := range panels {
+		if want := `hx-post="` + action + `"`; !strings.Contains(markup, want) {
+			t.Errorf("no panel posts to %s", action)
+		}
+		if want := `id="errors-` + panel + `"`; !strings.Contains(markup, want) {
+			t.Errorf("panel %q has no error block to swap into", panel)
+		}
+	}
+
+	// The split is the point: spellcasting belongs to the other tab, and a
+	// panel here would write columns that page also writes.
+	for _, absent := range []string{base + "/spells", base + "/spells/slots/1"} {
+		if strings.Contains(markup, `hx-post="`+absent+`"`) {
+			t.Errorf("the Character tab carries %s, which belongs to the spells pages", absent)
+		}
+	}
+
+	if got := strings.Count(markup, "hx-post="); got != len(panels) {
+		t.Errorf("posting forms = %d, want %d (one per panel, and none around them)", got, len(panels))
+	}
+
+	// The panels plus Base's own are every form on the page, so an extra one
+	// would mean something still wraps the sheet.
+	if got := strings.Count(markup, "<form"); got != len(panels)+closingForms {
+		t.Errorf("forms = %d, want %d", got, len(panels)+closingForms)
+	}
+
+	// The debounce is what makes typing one save rather than one per keystroke.
+	if got := strings.Count(markup, `hx-trigger="input delay:1s, repeater:changed"`); got != len(panels) {
+		t.Errorf("debounced panels = %d, want %d", got, len(panels))
+	}
+
+	// Nothing to press: the panels save themselves.
+	if strings.Contains(markup, `type="submit"`) {
+		t.Error("the editor still renders a submit button")
+	}
+
+	assertCharacterTabs(t, markup, base+"/edit")
+}
+
+// Every tab is reachable from every editor page, and exactly one link in the
+// character nav is marked current. The spells pages carry a second nav with a
+// current link of its own, so this counts links rather than attributes.
+func assertCharacterTabs(t *testing.T, markup string, current string) {
+	t.Helper()
+
+	base := strings.TrimSuffix(current, "/edit")
+	base = strings.SplitN(base, "/edit/", 2)[0]
+
+	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells"} {
+		if !strings.Contains(markup, `href="`+href+`"`) {
+			t.Errorf("no way to reach %s from here", href)
+		}
+	}
+
+	// Matched on the attribute rather than the class string, so restyling the
+	// links does not break the test. The closing quote is load-bearing: the
+	// Character href is a prefix of the other two.
+	if want := `href="` + current + `" aria-current="page"`; !strings.Contains(markup, want) {
+		t.Errorf("the current tab is not %s", current)
+	}
+}
+
+// testSpellLevels is the ten-level summary every spells page is handed, which
+// the controller builds from however few rows the two queries returned.
+func testSpellLevels() []SpellLevel {
+	levels := make([]SpellLevel, 0, 10)
+	for level := 0; level <= 9; level++ {
+		levels = append(levels, SpellLevel{Level: level, Slots: "0", Used: "0"})
+	}
+
+	return levels
 }
 
 // The new-character dialog. Its three targeting attributes have to agree with
@@ -405,7 +406,6 @@ func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 	var buf bytes.Buffer
 	data := EditCharacterPageData{
 		CharacterID: id,
-		SpellLevels: EmptySpellLevels(),
 		Equipped:    []InventoryItem{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Chain Mail", Quantity: "1"}},
 	}
 	if err := EditCharacter(data).Render(context.Background(), &buf); err != nil {
@@ -422,5 +422,390 @@ func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 	// And the replacement is actually wired up, not just absent.
 	if !strings.Contains(body, "Chain Mail") {
 		t.Errorf("the equipped rows are not rendered on the page\n%s", body)
+	}
+}
+
+const (
+	testSpellID    = "01BX5ZZKBKACTAV9WEVGEMMVS0"
+	testSpellPanel = "errors-spell-" + testSpellID
+)
+
+// The spell row, which is the inventory row's shape at a different table. Its
+// three targeting attributes have to agree with the id of the block they aim at,
+// and a disagreement is silent: the reply lands nowhere and the row looks like
+// it is not saving. So the exact strings are pinned.
+func TestSpellRowIsItsOwnForm(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	base := "/characters/" + characterID + "/spells/3/" + testSpellID
+
+	var buf bytes.Buffer
+	spell := Spell{ID: testSpellID, Level: 3, Name: "Fireball", School: "Evocation", CastingTime: "Action"}
+	if err := SpellRow(characterID, spell).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	for _, want := range []string{
+		`hx-post="` + base + `"`,
+		`hx-trigger="input delay:1s"`,
+		`hx-target="#` + testSpellPanel + `"`,
+		`hx-status:422="target:#` + testSpellPanel + `,swap:outerHTML"`,
+		`id="` + testSpellPanel + `"`,
+		`hx-delete="` + base + `"`,
+		`hx-swap="delete"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("row is missing %s\n%s", want, body)
+		}
+	}
+
+	if forms := strings.Count(body, "<form"); forms != 1 {
+		t.Errorf("row has %d forms, want 1 -- the row IS the form", forms)
+	}
+
+	// Nothing to press. The row saves itself, and the one button on it deletes.
+	if strings.Contains(body, `type="submit"`) {
+		t.Error("the row renders a submit button")
+	}
+
+	// The level is in the URL and nowhere else. A spell cannot move between
+	// levels, so UpdateSpell does not name the column and no control offers it.
+	if strings.Contains(body, `name="level"`) {
+		t.Errorf("the row renders a level control\n%s", body)
+	}
+}
+
+// ALL EIGHT CONTROLS, ALWAYS. buildSpellInput reads `prepared` from whether the
+// field arrived, because an unchecked box posts nothing -- so a post without it
+// means unticked. That is only true while the row renders every control on every
+// render: a variant that dropped the checkbox would silently unprepare a spell
+// on its next autosave, and nothing on the server could tell.
+//
+// The disclosure is why this needs saying twice. Five of the eight sit inside a
+// <details>, which is closed for a named spell -- closed, not absent. A row that
+// rendered its details only when open would post five empty strings on every
+// save and wipe the spell.
+func TestSpellRowAlwaysRendersEveryControl(t *testing.T) {
+	for _, spell := range []Spell{
+		{ID: testSpellID, Level: 1, School: DefaultSpellSchool},
+		{
+			ID: testSpellID, Level: 1, Name: "Shield", School: "Abjuration",
+			CastingTime: "Reaction", CastingRange: "Self", Duration: "1 round",
+			Components: "V, S", Description: "+5 AC", Prepared: true,
+		},
+	} {
+		var buf bytes.Buffer
+		if err := SpellRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", spell).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		body := buf.String()
+
+		for _, name := range []string{
+			"name", "school", "components", "casting_time",
+			"casting_range", "duration", "description", "prepared",
+		} {
+			if !strings.Contains(body, `name="`+name+`"`) {
+				t.Errorf("prepared=%v: no control named %q\n%s", spell.Prepared, name, body)
+			}
+		}
+		if !strings.Contains(body, `type="checkbox"`) {
+			t.Errorf("prepared=%v: the prepared control is not a checkbox", spell.Prepared)
+		}
+		if checked := strings.Contains(body, "checked"); checked != spell.Prepared {
+			t.Errorf("prepared=%v but checked=%v", spell.Prepared, checked)
+		}
+	}
+}
+
+// A row arrives from the add button with nothing in it, and the five fields
+// worth filling in are behind the disclosure. So a nameless row opens itself and
+// a named one stays shut, which is the whole of the density fix: the level pages
+// split ten sections into ten pages, and this is what keeps one page from being
+// eight tall cards.
+func TestAnUnnamedSpellOpensItsOwnDetails(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		open bool
+	}{
+		{"", true},
+		{"Fireball", false},
+	} {
+		var buf bytes.Buffer
+		spell := Spell{ID: testSpellID, Level: 1, Name: c.name, School: DefaultSpellSchool}
+		if err := SpellRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", spell).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+
+		if open := strings.Contains(buf.String(), "<details open"); open != c.open {
+			t.Errorf("name=%q: details open=%v, want %v", c.name, open, c.open)
+		}
+	}
+}
+
+// The overview is nine slot forms and a link per level. It is the reason the
+// split is survivable: resetting `used` after a long rest happens here in one
+// screen rather than across nine pages.
+func TestSpellsOverviewIsOneFormPerLevelWithSlots(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	levels := testSpellLevels()
+	levels[3].Count = 2
+	levels[3].Slots = "4"
+	levels[3].Used = "1"
+
+	var buf bytes.Buffer
+	data := SpellsOverviewPageData{CharacterID: characterID, Levels: levels}
+	if err := EditCharacterSpells(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	// Nine, not ten. Cantrips have no slots in the rules, so level 0 gets a link
+	// and the word Unlimited where the counters would be.
+	if got := strings.Count(body, "<form"); got != 9+closingForms {
+		t.Errorf("forms = %d, want %d", got, 9+closingForms)
+	}
+	for level := 1; level <= 9; level++ {
+		want := `hx-post="/characters/` + characterID + `/spells/slots/` + strconv.Itoa(level) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("level %d has no slot form posting to %s", level, want)
+		}
+	}
+	if strings.Contains(body, "/spells/slots/0") {
+		t.Errorf("cantrips carry a slot form\n%s", body)
+	}
+	if !strings.Contains(body, "Unlimited") {
+		t.Errorf("cantrips do not say why they have no counters\n%s", body)
+	}
+
+	// Every level is one click away, which is what makes ten tabs better than
+	// ten stacked sections rather than merely different.
+	for level := 0; level <= 9; level++ {
+		want := `href="/characters/` + characterID + `/edit/spells/` + strconv.Itoa(level) + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("no way to reach level %d from the overview", level)
+		}
+	}
+
+	// A level with spells says how many; an empty one says so in words rather
+	// than with a 0 sitting next to a slot counter that is also a number.
+	if !strings.Contains(body, "2 spells") {
+		t.Errorf("the overview does not count a level's spells\n%s", body)
+	}
+	if !strings.Contains(body, "No spells") {
+		t.Errorf("an empty level does not say it is empty\n%s", body)
+	}
+
+	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells")
+}
+
+// A level page carries its own counters, its own rows and an add button aimed at
+// its own collection. Getting the level wrong in any of the three would write to
+// a level the user is not looking at.
+func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	levels := testSpellLevels()
+	data := SpellLevelPageData{
+		CharacterID: characterID,
+		Level:       3,
+		Current:     levels[3],
+		Levels:      levels,
+		Spells: []Spell{
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Level: 3, Name: "Fireball", School: DefaultSpellSchool},
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Level: 3, Name: "Counterspell", School: "Abjuration"},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := EditCharacterSpellLevel(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	// Two spell rows plus this level's counters, and nothing wrapping them.
+	if got := strings.Count(body, "<form"); got != len(data.Spells)+1+closingForms {
+		t.Errorf("forms = %d, want %d", got, len(data.Spells)+1+closingForms)
+	}
+
+	for _, want := range []string{
+		`hx-post="/characters/` + characterID + `/spells/slots/3"`,
+		`hx-post="/characters/` + characterID + `/spells/3"`,
+		`hx-target="#spell-rows"`,
+		`hx-swap="append"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the level page is missing %s\n%s", want, body)
+		}
+	}
+	for _, spell := range data.Spells {
+		want := `hx-post="/characters/` + characterID + `/spells/3/` + spell.ID + `"`
+		if !strings.Contains(body, want) {
+			t.Errorf("%s does not save to %s", spell.Name, want)
+		}
+	}
+
+	// No other level's counters are reachable from here -- that is what the
+	// overview is for, and a stray form would write a level off screen.
+	for _, level := range []string{"1", "2", "4", "9"} {
+		if strings.Contains(body, "/spells/slots/"+level+`"`) {
+			t.Errorf("the level 3 page carries level %s's counters", level)
+		}
+	}
+
+	// Both navs mark where you are: the character tabs say Spells, the level
+	// tabs say which level.
+	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells")
+	if want := `href="/characters/` + characterID + `/edit/spells/3" aria-current="page"`; !strings.Contains(body, want) {
+		t.Errorf("the level tabs do not mark level 3 as current\n%s", body)
+	}
+}
+
+// Cantrips are a level page with no counters, because they have no slots. The
+// route that would write them refuses level 0 as well; this is the half of that
+// which the user can see.
+func TestCantripsPageHasNoSlotCounters(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	levels := testSpellLevels()
+	data := SpellLevelPageData{
+		CharacterID: characterID,
+		Level:       0,
+		Current:     levels[0],
+		Levels:      levels,
+		Spells:      []Spell{{ID: testSpellID, Level: 0, Name: "Fire Bolt", School: DefaultSpellSchool}},
+	}
+
+	var buf bytes.Buffer
+	if err := EditCharacterSpellLevel(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	if got := strings.Count(body, "<form"); got != len(data.Spells)+closingForms {
+		t.Errorf("forms = %d, want %d -- cantrips have no slot form", got, len(data.Spells)+closingForms)
+	}
+	for _, gone := range []string{`name="slots"`, `name="used"`, "/spells/slots/"} {
+		if strings.Contains(body, gone) {
+			t.Errorf("the cantrips page carries %s\n%s", gone, body)
+		}
+	}
+	if !strings.Contains(body, "Cantrips") {
+		t.Errorf("the cantrips page does not name itself\n%s", body)
+	}
+}
+
+// Prepared Spells on the Character page is a view of rows the spells table owns,
+// exactly as Equipment is a view of the inventory rows. It must not become a
+// form: the page's form count is asserted above as one per saving panel, and a
+// control here would post to a route that expects a level in its path.
+func TestPreparedSpellsIsAViewAndNotAForm(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	groups := []PreparedSpellGroup{
+		{Level: 0, Name: "Cantrips", Spells: []Spell{
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Level: 0, Name: "Fire Bolt", CastingTime: "Action", CastingRange: "120 feet"},
+		}},
+		{Level: 3, Name: "Level 3", Spells: []Spell{
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Level: 3, Name: "Fireball", CastingTime: "Action", CastingRange: "150 feet", Duration: "Instantaneous"},
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS2", Level: 3, Name: ""},
+		}},
+	}
+	if err := preparedSpells(characterID, groups).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	for _, forbidden := range []string{"<form", "<input", "<textarea", "<select", "hx-post", "hx-delete"} {
+		if strings.Contains(body, forbidden) {
+			t.Errorf("the prepared view carries %s\n%s", forbidden, body)
+		}
+	}
+
+	for _, want := range []string{"Cantrips", "Level 3", "Fire Bolt", "Fireball"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the prepared view is missing %q\n%s", want, body)
+		}
+	}
+
+	// The meta line is the three things worth knowing before casting. The spell
+	// text is not among them -- ten paragraphs here would be the wall the level
+	// pages exist to remove.
+	if !strings.Contains(body, "Action \u00b7 150 feet \u00b7 Instantaneous") {
+		t.Errorf("the meta line is not rendered\n%s", body)
+	}
+
+	// A spell can be ticked before it is named, and an empty entry on the sheet
+	// reads as a rendering fault rather than an unfinished row.
+	if !strings.Contains(body, "Unnamed spell") {
+		t.Errorf("an unnamed prepared row renders as nothing\n%s", body)
+	}
+}
+
+// With nothing prepared the panel has to say where preparing happens, or it is
+// an empty box on a page that gives no hint the spells pages exist.
+func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	if err := preparedSpells(characterID, nil).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	if want := `href="/characters/` + characterID + `/edit/spells"`; !strings.Contains(body, want) {
+		t.Errorf("the empty state does not point at %s\n%s", want, body)
+	}
+	if !strings.Contains(body, "Prepared") {
+		t.Errorf("the empty state does not name the control that fills it\n%s", body)
+	}
+}
+
+// A spell with nothing filled in but its name gets a name and no separator, not
+// a line of stray middle dots.
+func TestSpellMetaLineSkipsWhatIsNotThere(t *testing.T) {
+	for _, c := range []struct {
+		spell Spell
+		want  string
+	}{
+		{Spell{}, ""},
+		{Spell{CastingTime: "Action"}, "Action"},
+		{Spell{CastingTime: "Action", Duration: "1 minute"}, "Action · 1 minute"},
+		{Spell{CastingRange: "Self"}, "Self"},
+		{
+			Spell{CastingTime: "1 hour", CastingRange: "Touch", Duration: "8 hours"},
+			"1 hour · Touch · 8 hours",
+		},
+	} {
+		if got := spellMetaLine(c.spell); got != c.want {
+			t.Errorf("meta line = %q, want %q", got, c.want)
+		}
+	}
+}
+
+// Both read-only views are on the Character page and wired to real data, not
+// merely present. Each is the only place its table's rows surface outside the
+// tab that owns them.
+func TestCharacterPageRendersBothTickedViews(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	data := EditCharacterPageData{
+		CharacterID: id,
+		Equipped:    []InventoryItem{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Chain Mail", Quantity: "1"}},
+		Prepared: []PreparedSpellGroup{{Level: 1, Name: "Level 1", Spells: []Spell{
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Level: 1, Name: "Cure Wounds", CastingTime: "Action"},
+		}}},
+	}
+	if err := EditCharacter(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	for _, want := range []string{"Equipment", "Chain Mail", "Prepared Spells", "Cure Wounds", "Level 1"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the Character page is missing %q", want)
+		}
 	}
 }

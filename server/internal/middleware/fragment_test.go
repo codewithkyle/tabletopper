@@ -40,7 +40,7 @@ func TestFragmentSetsNoStoreAndNoIndex(t *testing.T) {
 	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {})
 
 	rec := httptest.NewRecorder()
-	h(rec, httptest.NewRequest(http.MethodGet, "/fragment/character/spell-card", nil))
+	h(rec, httptest.NewRequest(http.MethodGet, "/fragment/character/feature-row", nil))
 
 	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
 		t.Errorf("Cache-Control = %q, want %q", got, "no-store")

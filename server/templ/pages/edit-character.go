@@ -30,9 +30,12 @@ type EditCharacterPageData struct {
 	Skills          map[string]int
 	SavingThrows    map[string]int
 	Features        []Feature
-	SpellLevels     []SpellLevel
 	// Equipped is the inventory rows ticked as equipped, rendered read-only on
 	// the Character page. It is the only thing on that page that does not come
 	// off the characters row, and the only thing on it with no form around it.
 	Equipped []InventoryItem
+	// Prepared is the spells ticked as prepared, grouped by level and rendered
+	// read-only beside Equipment. Same shape and same reason: written down once
+	// on the tab that owns it, read here.
+	Prepared []PreparedSpellGroup
 }

@@ -36,10 +36,12 @@ WHERE id = ? AND owner_id = ?;
 -- temp_hp, initiative_bonus, spell_atk_bonus -- have DEFAULTs that already match
 -- what that form produced, so they are left to the table.
 --
--- The blobs go in empty rather than pre-shaped. parseStatBonuses, parseInfoRows
--- and parseSpellLevels each return their empty shape for a blob that carries
--- nothing, and parseSpellLevels builds all ten levels regardless, so a fresh
--- sheet reads back exactly as the blank form used to render.
+-- The blobs go in empty rather than pre-shaped. parseStatBonuses and
+-- parseFeatures each return their empty shape for a blob that carries nothing,
+-- so a fresh sheet reads back exactly as the blank form renders. Spell slots are
+-- not among them any more: they are rows in their own table, created the first
+-- time a level is given a count, and a character that has never cast anything
+-- has none.
 --
 -- race, background, alignment and classes are nullable and stay NULL;
 -- characterToEditPageData already renders that as its fallback text.
@@ -62,13 +64,12 @@ INSERT INTO characters (
     skills,
     saving_throws,
     features,
-    spell_slots,
     spell_save_dc
 ) VALUES (
     ?, ?, ?,
     10, 10, 10, 10, 10, 10,
     '30 ft.', '', '', '',
-    '{}', '{}', '[]', '{}',
+    '{}', '{}', '[]',
     10
 );
 
@@ -159,9 +160,4 @@ WHERE id = ? AND owner_id = ?;
 -- name: UpdateCharacterFeatures :execresult
 UPDATE characters
 SET features = ?
-WHERE id = ? AND owner_id = ?;
-
--- name: UpdateCharacterSpellSlots :execresult
-UPDATE characters
-SET spell_slots = ?
 WHERE id = ? AND owner_id = ?;

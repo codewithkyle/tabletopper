@@ -136,16 +136,16 @@ func TestCreateCannotCarrySheetData(t *testing.T) {
 	app, db := newPanelApp(1)
 
 	sheet := url.Values{
-		"name":                {"Ferdinand"},
-		"str":                 {"18"},
-		"dex":                 {"18"},
-		"max_hp":              {"99"},
-		"xp":                  {"355000"},
-		"speed":               {"60 ft."},
-		"languages":           {"Common, Draconic"},
-		"features-name":       {"Second Wind"},
-		"features-value":      {"Once per rest"},
-		"spells-level-1-name": {"Shield"},
+		"name":           {"Ferdinand"},
+		"str":            {"18"},
+		"dex":            {"18"},
+		"max_hp":         {"99"},
+		"xp":             {"355000"},
+		"speed":          {"60 ft."},
+		"languages":      {"Common, Draconic"},
+		"features-name":  {"Second Wind"},
+		"features-value": {"Once per rest"},
+		"spell_save_dc":  {"19"},
 	}
 	rec := panelPost(t, db, app.NewCharacterForm, sheet, nil)
 

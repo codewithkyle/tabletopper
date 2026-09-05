@@ -1,0 +1,119 @@
+package pages
+
+import "strconv"
+
+templ SpellRow(characterID string, spell Spell) {
+	{{ action := "/characters/" + characterID + "/spells/" + strconv.Itoa(spell.Level) + "/" + spell.ID }}
+	{{ panel := SpellRowPanel(spell.ID) }}
+	<form
+		data-spell-row="true"
+		class="@container grid gap-3 rounded-field border-2 border-base-300 p-3"
+		hx-post={ action }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(panel, []string{})
+		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_10rem]">
+			<label class="fieldset">
+				<span class="fieldset-legend">Spell</span>
+				<input
+					name="name"
+					type="text"
+					class="input w-full font-medium"
+					value={ spell.Name }
+					placeholder="Fireball"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Cast Time</span>
+				<input
+					name="casting_time"
+					type="text"
+					class="input w-full"
+					value={ spell.CastingTime }
+					placeholder="Action"
+				/>
+			</label>
+		</div>
+		<details open?={ spell.Name == "" }>
+			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 hover:text-base-content">Details</summary>
+			<div class="mt-3 grid grid-cols-1 gap-3 @[38rem]:grid-cols-3">
+				<label class="fieldset">
+					<span class="fieldset-legend">School</span>
+					<select name="school" class="select w-full">
+						for _, school := range spellSchools {
+							<option value={ school } selected?={ school == spell.School }>{ school }</option>
+						}
+					</select>
+				</label>
+				<label class="fieldset">
+					<span class="fieldset-legend">Range</span>
+					<input
+						name="casting_range"
+						type="text"
+						class="input w-full"
+						value={ spell.CastingRange }
+						placeholder="150 feet"
+					/>
+				</label>
+				<label class="fieldset">
+					<span class="fieldset-legend">Duration</span>
+					<input
+						name="duration"
+						type="text"
+						class="input w-full"
+						value={ spell.Duration }
+						placeholder="Instantaneous"
+					/>
+				</label>
+				<div class="@[38rem]:col-span-full">
+					<label class="fieldset">
+						<span class="fieldset-legend">Components</span>
+						<input
+							name="components"
+							type="text"
+							class="input w-full"
+							value={ spell.Components }
+							placeholder="V, S, M (a bit of sponge)"
+						/>
+					</label>
+				</div>
+				<div class="@[38rem]:col-span-full">
+					<label class="fieldset">
+						<span class="fieldset-legend">Spell Text</span>
+						<textarea
+							name="description"
+							class="textarea w-full"
+							rows="5"
+							placeholder="What it does, and anything worth reading mid-session."
+						>{ spell.Description }</textarea>
+					</label>
+				</div>
+			</div>
+		</details>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<label class="flex cursor-pointer items-center gap-2">
+				<input
+					name="prepared"
+					type="checkbox"
+					value="1"
+					class="checkbox"
+					checked?={ spell.Prepared }
+				/>
+				<span class="font-medium">Prepared</span>
+			</label>
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				aria-label={ "Delete " + spellRowName(spell) }
+				hx-delete={ action }
+				hx-target="closest form"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
+}

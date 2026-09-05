@@ -1,6 +1,7 @@
-// The delete buttons on the character sheet's repeaters -- info rows and
-// spell cards. A button carrying data-remove-closest names the ancestor to
-// remove:
+// The delete buttons on the character sheet's repeaters. There is one repeater
+// left -- Features & Traits; inventory and spells are real tables now and their
+// rows delete themselves with hx-delete. A button carrying data-remove-closest
+// names the ancestor to remove:
 //
 //     <button type="button" data-remove-closest="[data-feature-row]">
 //

@@ -264,37 +264,6 @@ func (a *App) SaveCharacterFeatures(w http.ResponseWriter, r *http.Request) {
 	finishPanel(w, r, pages.FeaturesPanel, "Features", result, err)
 }
 
-// SaveCharacterSpells writes all ten levels on every save, because the column
-// is one JSON object holding all ten and marshalSpellSlotsPayload rebuilds it
-// from the post. The whole spellcasting section is therefore one panel and one
-// form, not ten.
-func (a *App) SaveCharacterSpells(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-
-	characterID, ok := panelCharacterID(w, r)
-	if !ok {
-		return
-	}
-	if !parsePanelForm(w, r, "spells") {
-		return
-	}
-
-	payload, err := marshalSpellSlotsPayload(r)
-	if err != nil {
-		slog.Error("Failed to encode spell slots", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	result, err := a.Queries.UpdateCharacterSpellSlots(ctx, queries.UpdateCharacterSpellSlotsParams{
-		SpellSlots: payload,
-		ID:         characterID,
-		OwnerID:    sess.UserID,
-	})
-	finishPanel(w, r, "spells", "Spells", result, err)
-}
-
 // THE PANEL BUILDERS.
 //
 // One per panel, each reading only the fields its panel renders and returning

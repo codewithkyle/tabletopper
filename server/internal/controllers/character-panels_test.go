@@ -166,7 +166,7 @@ func TestIdentityPanelWritesOnlyIdentityColumns(t *testing.T) {
 		t.Errorf("columns written = %v, want %v", got, want)
 	}
 
-	for _, forbidden := range []string{"str", "dex", "con", "int", "wis", "cha", "max_hp", "current_hp", "ac", "xp", "level", "skills", "saving_throws", "features", "spell_slots"} {
+	for _, forbidden := range []string{"str", "dex", "con", "int", "wis", "cha", "max_hp", "current_hp", "ac", "xp", "level", "skills", "saving_throws", "features"} {
 		for _, column := range got {
 			if column == forbidden {
 				t.Errorf("identity save touched %q", forbidden)
@@ -234,12 +234,6 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures },
 			form:    url.Values{"features-name": {"Favored Enemy"}, "features-value": {"Undead"}},
 			want:    []string{"features"},
-		},
-		{
-			name:    "spells",
-			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterSpells },
-			form:    url.Values{"spells-level-1-slots": {"4"}, "spells-level-1-used": {"1"}},
-			want:    []string{"spell_slots"},
 		},
 	}
 
@@ -319,7 +313,6 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAbilities }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterProficiencies }},
-		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterSpells }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures }},

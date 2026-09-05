@@ -56,10 +56,12 @@
    two, so they migrate together.
 
    `select` left in phase 4 with select.css and select.js. Nothing else had to
-   move with it: the only other <select> in the app is the spell school picker
-   inside spell-slots-table, which is a bare element styled by
-   `spell-slots-table select` and never carried the class. DaisyUI emits no bare
-   `select` selector of its own, so un-excluding the group cannot reach it.
+   move with it: the only other <select> in the app was the spell school picker
+   inside spell-slots-table, a bare element styled by `spell-slots-table select`
+   that never carried the class. DaisyUI emits no bare `select` selector of its
+   own, so un-excluding the group could not reach it. That component is gone --
+   the spell rows that replaced it carry class="select" like every other picker
+   -- so the question no longer arises.
 
    Phase 5 (saving throws) took no name off this list. Its <span class="label">
    was the stat name, and it became a plain <label> carrying utilities -- which

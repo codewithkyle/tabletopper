@@ -10,16 +10,6 @@ templ EditCharacter(data EditCharacterPageData) {
 	}
 }
 
-templ EditCharacterSpells(data EditCharacterPageData) {
-	@layouts.Base("Spells | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabSpells) {
-			@savingPanel("Spellcasting", "/characters/"+data.CharacterID+"/spells", "spells") {
-				@spellSlotsTable(data.SpellLevels)
-			}
-		}
-	}
-}
-
 templ editCharacterShell(characterID string, active string) {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
@@ -102,6 +92,9 @@ templ characterPanels(data EditCharacterPageData) {
 			}
 			@sheetPanel("Equipment") {
 				@equippedItems(data.CharacterID, data.Equipped)
+			}
+			@sheetPanel("Prepared Spells") {
+				@preparedSpells(data.CharacterID, data.Prepared)
 			}
 		</div>
 	</div>
