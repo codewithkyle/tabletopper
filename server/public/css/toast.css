@@ -3,5 +3,12 @@
    --panel-* because those tokens are gone -- toaster.js builds this markup
    at runtime, so there is no element here to hang utilities on.
    line-height was var(--font-snug), a token that never existed in
-   tokens.css, so it had been resolving to normal. */
-toaster-component{position:fixed;z-index:2000;width:300px;bottom:0;left:0;padding:0 0 1rem 1rem;display:grid;justify-content:start;justify-items:center;gap:.5rem;pointer-events:none}toaster-component output{background-color:color-mix(in oklab, var(--color-base-200) 87%, transparent);box-shadow:0 1px 2px color-mix(in oklab, var(--color-base-content) 12%, transparent),0 4px 12px color-mix(in oklab, var(--color-base-content) 14%, transparent);color:var(--color-base-content);max-inline-size:25vw;inline-size:max-content;padding:.75rem 1rem;border-radius:.5rem;animation:fade-in .3s ease,slide-in .3s ease,fade-out .3s 4.4s ease;animation-fill-mode:forwards;font-size:.875rem;line-height:1.375;pointer-events:all;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer;border:var(--border,2px) solid var(--color-base-300);backdrop-filter:blur(8px)}toaster-component output:active{transform:scale(.95);box-shadow:none;opacity:.6}@keyframes fade-in{from{opacity:0}}@keyframes fade-out{to{opacity:0}}@keyframes slide-in{from{transform:translateY(1rem)}}
+   tokens.css, so it had been resolving to normal.
+
+   The drop shadows are flat black, not base-content. base-content is the ink
+   colour, which inverts with the theme -- under coffee it is a bright tan,
+   oklch(72.354% 0.092 79.129), so the toast was casting a cream-coloured glow
+   upward instead of a shadow. A shadow is light being blocked, so it does not
+   follow the palette; the cards get the same treatment for free because
+   Tailwind's shadow-sm is already black at low alpha. */
+toaster-component{position:fixed;z-index:2000;width:300px;bottom:0;left:0;padding:0 0 1rem 1rem;display:grid;justify-content:start;justify-items:center;gap:.5rem;pointer-events:none}toaster-component output{background-color:color-mix(in oklab, var(--color-base-200) 87%, transparent);box-shadow:0 1px 2px rgb(0 0 0 / 12%),0 4px 12px rgb(0 0 0 / 14%);color:var(--color-base-content);max-inline-size:25vw;inline-size:max-content;padding:.75rem 1rem;border-radius:.5rem;animation:fade-in .3s ease,slide-in .3s ease,fade-out .3s 4.4s ease;animation-fill-mode:forwards;font-size:.875rem;line-height:1.375;pointer-events:all;transition:all 150ms cubic-bezier(.4,0,.2,1);cursor:pointer;border:var(--border,2px) solid var(--color-base-300);backdrop-filter:blur(8px)}toaster-component output:active{transform:scale(.95);box-shadow:none;opacity:.6}@keyframes fade-in{from{opacity:0}}@keyframes fade-out{to{opacity:0}}@keyframes slide-in{from{transform:translateY(1rem)}}

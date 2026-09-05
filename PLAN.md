@@ -272,9 +272,13 @@ they had to migrate together: **42 fields, not 14.**
 - The accessible name still comes from a real `<label for>`. DaisyUI's own docs
   put a `<legend>` there, which would have left the input unnamed.
 
-The wrapper is `<div class="fieldset">`, not a real `<fieldset>`: normalize gives
-fieldset `padding: .35em .75em .625em` and DaisyUI's `.fieldset` only overrides
-the block axis, so a real one would inset every field from its grid cell.
+The wrapper is `<div class="fieldset">`, not a real `<fieldset>`. The stated
+reason was that normalize gives fieldset `padding: .35em .75em .625em` while
+DaisyUI's `.fieldset` only overrides the block axis, so a real one would inset
+every field from its grid cell. That reason was false the whole time —
+normalize.css had been parsing to zero rules since `c6d62f0`, see the cleanup
+pass below — but the div stays regardless, because the semantic argument
+(a single labelled control is not a group) is the one that actually holds.
 
 **Validation is zero JavaScript.** `.validator` + `:user-invalid` replaces three
 `IDLING → ERROR → DISABLED` state machines with the same timing. `.validator-hint`
@@ -1016,6 +1020,103 @@ comment is usually the whole fix; `exclude:` is there for the cases where it is
 not. Noted in `css/app.css` above the `@source` line as well.
 
 ---
+
+## Post-migration cleanup ✅
+
+A verification pass over the four claims the migration was supposed to deliver:
+Brixi gone, custom CSS migrated where it could be, lit-html gone, build stable.
+Three held. The fourth turned up something that had been hiding in plain sight
+for the entire migration.
+
+### The verification, first
+
+- **Brixi tokens: zero.** All 62 custom properties `tokens.css` used to define,
+  checked against comment-stripped live source. No reads, no definitions.
+- **Class names: 276** extracted from real `class="…"` attributes, all but nine
+  resolve in the emitted CSS. The nine are eight `icon-tabler-*` identity classes
+  that ship inside the Tabler SVG markup and are styled by attributes, plus one
+  false positive my extractor pulled out of a `//` comment.
+- **`customElements.define`: zero.** Every lit-html mention is a comment. The
+  surviving custom *tags* are unregistered semantic elements, and each has a
+  resolved display — page roots carry `block`/`inline-block`, the two `*-card`
+  tags get `display:flex` from DaisyUI's `.card`, `modal-background` is
+  blockified by `absolute`.
+- **Undefined `var()` reads: zero**, using the comment-stripping sweep from
+  Phase 9.
+- **`make css` is reproducible** and the committed output matches its source.
+
+### `normalize.css` had been dead since `c6d62f0`
+
+The plan flagged it as redundant with Tailwind's preflight and called out one
+rule preflight does *not* have — `*,::after,::before{position:relative}`, which
+makes every element a containing block. The recommendation was to delete it.
+
+Deleting it changed nothing. Not "nothing visible" — **nothing at all**: six
+pages × two themes, every element's `getBoundingClientRect` and computed
+`position`/`line-height`/`box-sizing`/`cursor`/`outline-width`, pixel-identical
+with the file and without it.
+
+The reason is in the comment header this migration added when it wrapped the
+file in `@layer base`:
+
+```
+   .fixed, .absolute, .flex and every text-*/font-* class. Brixi hid this
+```
+
+`text-*/font-*` contains `*/`. It closes the comment 318 bytes in. Everything
+after it — the rest of the prose, then `@layer base {` and the entire reset —
+is parsed as one bogus qualified rule and dropped. Confirmed through the CSSOM
+rather than by reading: the file as shipped reports **0 top-level rules**; the
+same bytes with a space inserted (`text-* / font-*`) report 1.
+
+Which means:
+
+- The `*{position:relative}` hazard was never active.
+- `line-height` has been preflight's 1.5 all along, not normalize's 1.15.
+- The app has been running on Tailwind preflight alone since `c6d62f0` — which
+  is exactly the end state the cleanup was aiming for. It just got there by
+  accident, eleven commits early, and nobody noticed because *it was the right
+  answer*. A reset that does nothing is invisible when the framework underneath
+  it already does the job.
+
+The file is deleted and its `<link>` is gone; head is down to **four**
+stylesheets. The `<div class="fieldset">` note in Phase 2 has been corrected,
+since it cited normalize's fieldset padding as its reason.
+
+### The two colour changes
+
+**`soft-loading.css` now reads the theme.** `#51b1f6` on `#163b52` were the last
+hardcoded colours in the app, a blue pair matching neither theme. Now
+`--color-primary` on `--color-base-300`: black on light tan under caramellatte,
+warm tan on near-black under coffee. Verified in-browser in both.
+
+Reading DaisyUI theme tokens here is safe in the way Phase 9 warned reading a
+*Tailwind* theme token is not — the `--color-*` set is emitted per theme
+unconditionally rather than tree-shaken to whatever utilities the scanner
+happened to generate.
+
+**`toast.css` casts a black shadow.** It was `color-mix(… var(--color-base-content) 12% …)`,
+and base-content is the *ink* colour, which inverts with the theme. Under coffee
+that is `oklch(72.354% 0.092 79.129)` — a bright tan — so the toast was throwing
+a cream-coloured glow upward instead of a shadow. Now flat `rgb(0 0 0 / 12%)`,
+which is what Tailwind's `shadow-sm` on the cards was already doing. A shadow is
+light being blocked; it does not follow the palette.
+
+`toast.css` otherwise stays as-is. It could be replaced by DaisyUI `toast`/`alert`
+classes applied from `toaster.js`, but it looks right and works, so it keeps its
+1.5 KB.
+
+### One more hazard for the list
+
+- **A `*/` inside a CSS comment kills the rest of the file, silently.** Prose
+  about class-name globs is the way to write one by accident: `text-*/font-*`,
+  `.btn-*/.badge-*`. There is no error anywhere — the stylesheet loads 200, the
+  bytes are all there, and the CSSOM reports zero rules. This is the same family
+  as the silent `var()` failures, and it cost more: a 2.8 KB stylesheet that had
+  been inert for the whole migration while both the code and this document went
+  on citing its rules as live. If a hand-written stylesheet's behaviour ever
+  seems absent rather than wrong, check `document.styleSheets[i].cssRules.length`
+  before checking anything else.
 
 ## Open decisions
 

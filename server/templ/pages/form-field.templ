@@ -14,10 +14,13 @@ package pages
 // it off with `visibility`, not with `display`. So nothing jumps when one
 // appears.
 //
-// The wrapper is a <div class="fieldset"> rather than a real <fieldset>:
-// normalize gives fieldset `padding: .35em .75em .625em`, and DaisyUI's
-// .fieldset only overrides the block axis, so a real one would inset the field
-// from its grid cell. A single labelled control is not a group either -- the
+// The wrapper is a <div class="fieldset"> rather than a real <fieldset>. The
+// original reason was normalize.css giving fieldset `padding: .35em .75em
+// .625em` while DaisyUI's .fieldset only overrides the block axis, so a real
+// one would inset the field from its grid cell. normalize.css is gone as of the
+// cleanup pass and Tailwind's preflight zeroes fieldset padding, so that
+// specific hazard has lifted -- but the div stays, because the semantic reason
+// is the stronger one. A single labelled control is not a group -- the
 // accessible name comes from <label for>, which is why the text above the field
 // is a <label> carrying .fieldset-legend and not a <legend>.
 //

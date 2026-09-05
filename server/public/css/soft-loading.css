@@ -4,9 +4,24 @@
    Brixi token and not caused by the migration -- found in phase 8 while
    counting what was left, removed in phase 9. Same failure mode as
    --font-sans-serif and --font-snug before it. */
+/* The bar and its track were #51b1f6 on #163b52 -- the last two hardcoded
+   colours in the app, a blue pair left over from the old palette that matched
+   neither theme. Now the DaisyUI ramp, so the bar follows caramellatte/coffee
+   like everything else.
+
+   primary for the indicator is the conventional progress mapping and is what
+   DaisyUI's own .progress-primary does; base-300 for the track keeps it a rail
+   rather than a stripe. Contrast holds both ways round: caramellatte's primary
+   is oklch(0% 0 0) on a 90% track, coffee's is oklch(72%) on a 16% track.
+
+   Reading DaisyUI theme tokens here is safe in a way that reading a Tailwind
+   theme token would not be -- see the note in server/css/app.css. The
+   --color-* set is emitted per theme unconditionally, not tree-shaken to the
+   utilities the markup happens to use, which is why core.css and toast.css can
+   read the same ramp. */
 :root {
-	--loading-bar: #51b1f6;
-	--loading-bar-background: #163b52;
+	--loading-bar: var(--color-primary);
+	--loading-bar-background: var(--color-base-300);
 }
 soft-loading {
 	width: 100vw;
