@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
-
-var serverErrorSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title:   "Server Error | Tabletopper",
-	Session: session.UserSession{},
-}
+import "tabletopper/templ/layouts"
 
 templ ServerError() {
-	{{ serverErrorSettings.Content = serverErrorContent() }}
-	@layouts.Base(serverErrorSettings)
+	@layouts.Base("Server Error | Tabletopper") {
+		@serverErrorContent()
+	}
 }
 
 templ serverErrorContent() {

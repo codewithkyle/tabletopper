@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
+import "tabletopper/templ/layouts"
 
-var newCharacterSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Character Editor | Tabletopper",
-}
-
-templ NewCharacter(session session.UserSession) {
-	{{ newCharacterSettings.Session = session }}
-	{{ newCharacterSettings.Content = newCharacterContent(session) }}
-	@layouts.Base(newCharacterSettings)
+templ NewCharacter() {
+	@layouts.Base("Character Editor | Tabletopper") {
+		@newCharacterContent()
+	}
 }
 
 templ NewCharacterFormErrors(messages []string) {
@@ -32,7 +25,7 @@ templ NewCharacterFormErrors(messages []string) {
 	}
 }
 
-templ newCharacterContent(session session.UserSession) {
+templ newCharacterContent() {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<form class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)] gap-3" hx-post="/characters" hx-status:422="target:#new-character-form-errors" hx-swap="outerHTML">
 			<div class="flex flex-wrap items-end justify-between gap-3 p-2 max-[640px]:items-stretch">

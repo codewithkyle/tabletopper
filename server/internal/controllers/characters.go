@@ -98,7 +98,7 @@ func CharacterPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := characterToEditPageData(id, character)
-	pages.EditCharacter(session, data).Render(r.Context(), w)
+	pages.EditCharacter(data).Render(r.Context(), w)
 }
 
 func EditCharacterForm(w http.ResponseWriter, r *http.Request) {
@@ -195,11 +195,11 @@ func CharactersPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages.Characters(session, results).Render(r.Context(), w)
+	pages.Characters(results).Render(r.Context(), w)
 }
 
 func NewCharacterPage(w http.ResponseWriter, r *http.Request) {
-	pages.NewCharacter(session.FromContext(r.Context())).Render(r.Context(), w)
+	pages.NewCharacter().Render(r.Context(), w)
 }
 
 // InfoRowFragment serves one blank repeater row to the add buttons on the

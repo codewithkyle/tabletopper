@@ -6,14 +6,9 @@ import (
 	"strconv"
 	"strings"
 	"tabletopper/internal/queries"
-	"tabletopper/internal/session"
 	"tabletopper/templ/layouts"
 	"time"
 )
-
-var charactersSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Characters | Tabletopper",
-}
 
 func characterValueOrFallback(value sql.NullString, fallback string) string {
 	if !value.Valid {
@@ -74,10 +69,10 @@ func characterSpeedOrFallback(value string) string {
 	return trimmed
 }
 
-templ Characters(session session.UserSession, characters []queries.GetCharactersRow) {
-	{{ charactersSettings.Session = session }}
-	{{ charactersSettings.Content = charactersContent(session, characters) }}
-	@layouts.Base(charactersSettings)
+templ Characters(characters []queries.GetCharactersRow) {
+	@layouts.Base("Characters | Tabletopper") {
+		@charactersContent(characters)
+	}
 }
 
 // The portrait is a circle. DaisyUI 5 ships no radius on .avatar -- its own
@@ -192,7 +187,7 @@ templ Character(character queries.GetCharactersRow) {
 	</character-card>
 }
 
-templ charactersContent(session session.UserSession, characters []queries.GetCharactersRow) {
+templ charactersContent(characters []queries.GetCharactersRow) {
 	<character-selector class="relative block h-screen min-h-dvh w-screen p-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards] max-[700px]:p-2.5">
 		<section class="grid h-full min-h-0 w-full content-start gap-4 overflow-auto max-[700px]:p-3">
 			<header class="flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3 max-[700px]:items-stretch">

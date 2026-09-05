@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
+import "tabletopper/templ/layouts"
 
-var editCharacterSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Character Editor | Tabletopper",
-}
-
-templ EditCharacter(session session.UserSession, data EditCharacterPageData) {
-	{{ editCharacterSettings.Session = session }}
-	{{ editCharacterSettings.Content = editCharacterContent(data) }}
-	@layouts.Base(editCharacterSettings)
+templ EditCharacter(data EditCharacterPageData) {
+	@layouts.Base("Character Editor | Tabletopper") {
+		@editCharacterContent(data)
+	}
 }
 
 templ editCharacterContent(data EditCharacterPageData) {

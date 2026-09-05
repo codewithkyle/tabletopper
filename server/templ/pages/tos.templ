@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
-
-var tosSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title:   "Terms of Service | Tabletopper",
-	Session: session.UserSession{},
-}
+import "tabletopper/templ/layouts"
 
 templ TOS() {
-	{{ tosSettings.Content = tosContent() }}
-	@layouts.Base(tosSettings)
+	@layouts.Base("Terms of Service | Tabletopper") {
+		@tosContent()
+	}
 }
 
 templ tosContent() {

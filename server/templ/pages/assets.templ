@@ -3,19 +3,14 @@ package pages
 import (
 	"strconv"
 	"tabletopper/internal/queries"
-	"tabletopper/internal/session"
 	"tabletopper/templ/layouts"
 	"time"
 )
 
-var assetsSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Assets Manager | Tabletopper",
-}
-
-templ MapAssets(session session.UserSession, maps []queries.GetUserMapsRow) {
-	{{ assetsSettings.Session = session }}
-	{{ assetsSettings.Content = mapAssetsContent(session, maps) }}
-	@layouts.Base(assetsSettings)
+templ MapAssets(maps []queries.GetUserMapsRow) {
+	@layouts.Base("Assets Manager | Tabletopper") {
+		@mapAssetsContent(maps)
+	}
 }
 
 templ MapCard(m queries.GetUserMapsRow) {
@@ -73,7 +68,7 @@ templ MapCard(m queries.GetUserMapsRow) {
 	</asset-card>
 }
 
-templ mapAssetsContent(session session.UserSession, maps []queries.GetUserMapsRow) {
+templ mapAssetsContent(maps []queries.GetUserMapsRow) {
 	<assets-page class="relative block h-screen min-h-dvh w-screen p-4">
 		<header class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3">
 			<h1 class="mt-0.5 mb-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>

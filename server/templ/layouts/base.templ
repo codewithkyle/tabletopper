@@ -1,18 +1,21 @@
 package layouts
 
-import "tabletopper/internal/session"
-
-type BaseTemplateSettings struct {
-	Title   string
-	Content templ.Component
-	Session session.UserSession
-}
-
-templ Base(settings BaseTemplateSettings) {
+// Base is the document shell every page renders into. A page hands it a title
+// and its body as children:
+//
+//	@layouts.Base("Characters | Tabletopper") {
+//		@charactersContent(characters)
+//	}
+//
+// It used to take a settings struct that every page kept in a package-level
+// variable and assigned into per request, so two concurrent requests for the
+// same page raced on the same struct. Children are the templ idiom for a
+// layout and carry nothing between renders.
+templ Base(title string) {
 	<!DOCTYPE html>
 	<html>
 		<head hx-head="append">
-			<title>{ settings.Title }</title>
+			<title>{ title }</title>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			// NOTE: htmx 4 swaps error responses by default. Ours are header-only
@@ -38,7 +41,7 @@ templ Base(settings BaseTemplateSettings) {
 				<transition-bar-two></transition-bar-two>
 			</soft-loading>
 			<main class="w-full h-full flex flex-col flex-wrap items-center justify-center">
-				@settings.Content
+				{ children... }
 			</main>
 			// Three dialogs, rendered once here and opened with showModal() so
 			// the browser supplies the top layer, the focus trap, Escape and

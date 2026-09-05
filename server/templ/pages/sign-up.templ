@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
-
-var signUpSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title:   "Sign Up | Tabletopper",
-	Session: session.UserSession{},
-}
+import "tabletopper/templ/layouts"
 
 templ SignUp() {
-	{{ signUpSettings.Content = signUpContent() }}
-	@layouts.Base(signUpSettings)
+	@layouts.Base("Sign Up | Tabletopper") {
+		@signUpContent()
+	}
 }
 
 templ signUpContent() {

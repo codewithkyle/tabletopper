@@ -1,18 +1,11 @@
 package pages
 
-import (
-	"tabletopper/internal/session"
-	"tabletopper/templ/layouts"
-)
-
-var privacyPolicySettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title:   "Privacy Policy | Tabletopper",
-	Session: session.UserSession{},
-}
+import "tabletopper/templ/layouts"
 
 templ PrivacyPolicy() {
-	{{ privacyPolicySettings.Content = privacyPolicyContent() }}
-	@layouts.Base(privacyPolicySettings)
+	@layouts.Base("Privacy Policy | Tabletopper") {
+		@privacyPolicyContent()
+	}
 }
 
 templ privacyPolicyContent() {

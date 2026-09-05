@@ -40,7 +40,7 @@ func MapAssetsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pages.MapAssets(session, maps).Render(r.Context(), w)
+	pages.MapAssets(maps).Render(r.Context(), w)
 }
 
 func AssetsPage(w http.ResponseWriter, r *http.Request) {

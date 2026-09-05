@@ -5,14 +5,10 @@ import (
 	"tabletopper/templ/layouts"
 )
 
-var homepageSettings layouts.BaseTemplateSettings = layouts.BaseTemplateSettings{
-	Title: "Tabletopper",
-}
-
 templ Homepage(session session.UserSession) {
-	{{ homepageSettings.Session = session }}
-	{{ homepageSettings.Content = homepageContent(session) }}
-	@layouts.Base(homepageSettings)
+	@layouts.Base("Tabletopper") {
+		@homepageContent(session)
+	}
 }
 
 templ homepageContent(session session.UserSession) {
