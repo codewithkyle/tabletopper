@@ -1,0 +1,93 @@
+package pages
+
+templ InventoryRow(characterID string, item InventoryItem) {
+	{{ action := "/characters/" + characterID + "/inventory/" + item.ID }}
+	{{ panel := InventoryRowPanel(item.ID) }}
+	<form
+		data-inventory-row="true"
+		class="@container grid gap-3 rounded-field border-2 border-base-300 p-3"
+		hx-post={ action }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(panel, []string{})
+		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_5rem_7rem_6rem]">
+			<label class="fieldset">
+				<span class="fieldset-legend">Item</span>
+				<input
+					name="name"
+					type="text"
+					class="input w-full font-medium"
+					value={ item.Name }
+					placeholder="Longsword"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Qty</span>
+				<input
+					name="quantity"
+					type="number"
+					inputmode="numeric"
+					step="1"
+					min="0"
+					class="input w-full text-right"
+					value={ item.Quantity }
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Value</span>
+				<input
+					name="value"
+					type="text"
+					class="input w-full"
+					value={ item.Value }
+					placeholder="15 gp"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Weight</span>
+				<input
+					name="weight"
+					type="number"
+					inputmode="decimal"
+					step="any"
+					min="0"
+					class="input w-full text-right"
+					value={ item.Weight }
+				/>
+			</label>
+		</div>
+		<label class="fieldset">
+			<span class="fieldset-legend">Description</span>
+			<textarea
+				name="description"
+				class="textarea w-full"
+				rows="3"
+				placeholder="What it does, and anything worth reading mid-session."
+			>{ item.Description }</textarea>
+		</label>
+		<div class="flex flex-wrap items-center justify-between gap-3">
+			<label class="flex cursor-pointer items-center gap-2">
+				<input
+					name="equipped"
+					type="checkbox"
+					value="1"
+					class="checkbox"
+					checked?={ item.Equipped }
+				/>
+				<span class="font-medium">Equipped</span>
+			</label>
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				hx-delete={ action }
+				hx-target="closest form"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
+}

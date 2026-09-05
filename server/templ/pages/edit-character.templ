@@ -2,18 +2,9 @@ package pages
 
 import "tabletopper/templ/layouts"
 
-// The editor is two pages over one character. Spellcasting is its own, because
-// it is ten level blocks holding any number of cards each and was most of the
-// sheet's height on its own; everything else stays together.
-//
-// They are pages and not hidden sections. Each panel saves itself as the user
-// types, so nothing is ever held unsaved and a navigation costs nothing -- which
-// is what lets the split be two URLs that can be linked, bookmarked and
-// reloaded, rather than one enormous document with halves shown and hidden in
-// the browser.
 templ EditCharacter(data EditCharacterPageData) {
 	@layouts.Base("Character Editor | Tabletopper") {
-		@editCharacterShell(data, characterTabMain) {
+		@editCharacterShell(data.CharacterID, characterTabMain) {
 			@characterPanels(data)
 		}
 	}
@@ -21,7 +12,7 @@ templ EditCharacter(data EditCharacterPageData) {
 
 templ EditCharacterSpells(data EditCharacterPageData) {
 	@layouts.Base("Spells | Tabletopper") {
-		@editCharacterShell(data, characterTabSpells) {
+		@editCharacterShell(data.CharacterID, characterTabSpells) {
 			@savingPanel("Spellcasting", "/characters/"+data.CharacterID+"/spells", "spells") {
 				@spellSlotsTable(data.SpellLevels)
 			}
@@ -29,11 +20,7 @@ templ EditCharacterSpells(data EditCharacterPageData) {
 	}
 }
 
-// The frame both pages share: the heading, the way back to the roster, the
-// section links and a scrolling well for whichever panels the page brought.
-// Three rows, the last one taking the remaining height and scrolling inside it,
-// so the heading and the links stay put while the sheet moves under them.
-templ editCharacterShell(data EditCharacterPageData, active string) {
+templ editCharacterShell(characterID string, active string) {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
 			<div class="flex flex-wrap items-end justify-between gap-3 p-2 pb-0 max-[640px]:items-stretch">
@@ -49,7 +36,7 @@ templ editCharacterShell(data EditCharacterPageData, active string) {
 					</a>
 				</div>
 			</div>
-			@characterTabs(data.CharacterID, active)
+			@characterTabs(characterID, active)
 			<div class="grid min-h-0 content-start gap-4 overflow-auto pb-4">
 				{ children... }
 			</div>
@@ -57,9 +44,6 @@ templ editCharacterShell(data EditCharacterPageData, active string) {
 	</character-editor>
 }
 
-// Nine panels, nine forms, nine routes. Forms do not nest, which is why there is
-// none around them, and it is also what keeps each write narrow: a panel posts
-// only its own fields and the handler behind it names only its own columns.
 templ characterPanels(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
 	@savingPanel("Identity", base+"/identity", "identity") {
@@ -113,15 +97,12 @@ templ characterPanels(data EditCharacterPageData) {
 			}
 		</div>
 		<div class="grid content-start gap-4">
-			@savingPanel("Features & Traits", base+"/rows/features", "features") {
-				@infoRowsTable("features", data.Features)
+			@savingPanel("Features & Traits", base+"/features", FeaturesPanel) {
+				@featuresTable(data.Features)
 			}
-			@savingPanel("Equipment", base+"/rows/weapons", "weapons") {
-				@infoRowsTable("weapons", data.Weapons)
+			@sheetPanel("Equipment") {
+				@equippedItems(data.CharacterID, data.Equipped)
 			}
 		</div>
 	</div>
-	@savingPanel("Resources", base+"/rows/resources", "resources") {
-		@infoRowsTable("resources", data.Resources)
-	}
 }

@@ -1,8 +1,5 @@
 package pages
 
-// The six saving throws, in the order the sheet has always listed them. This was
-// a const array at the top of saving-throws-table.js; the component is a `for`
-// over it and nothing else -- fixed list, no add, no delete, no reordering.
 var savingThrows = []bonusEntry{
 	{Key: "str", Abbr: "STR", Label: "Strength"},
 	{Key: "dex", Abbr: "DEX", Label: "Dexterity"},
@@ -12,34 +9,6 @@ var savingThrows = []bonusEntry{
 	{Key: "cha", Abbr: "CHA", Label: "Charisma"},
 }
 
-// savingThrowsTable renders the six bonus fields. Field names are
-// `saving_throws-str` .. `saving_throws-cha`, unchanged: marshalSavingThrowsPayload
-// scans PostForm for the `saving_throws-` prefix, so the wire format is the same
-// one saving-throws-table.js emitted and the controller needed no change.
-//
-// A nil map is the new-character case -- every lookup misses and renders 0,
-// which is what the blank form wants and what the lit-html component did with
-// data-values="{}".
-//
-// The grid measures the panel it sits in rather than the viewport, and that is
-// deliberate. This panel is one cell of the sheet's two-column layout, which
-// collapses to a single column at 900px -- so the panel is *wider* at 899px than
-// at 901px. A viewport breakpoint cannot express that: three across fits below
-// 900px (full width) and above ~1160px (half of a wide page) and overflows in
-// the band between, where the panel is half of a narrow page. Measured the other
-// way there is one monotonic rule and no band to get wrong. The thresholds are
-// the widths at which a cell still holds "Constitution" -- the longest name here
-// with nowhere to break -- at text-sm beside the 3.5rem field. skillsTable has
-// the same shape and its own thresholds, because its names are longer.
-//
-// Read the paragraph above and note what it never says: the name of the query
-// variant used below. Tailwind's word scanner reads comments, and that word is
-// also one of its own utilities -- writing it here emits 336 B of a class
-// nothing renders, while the `@`-prefixed spelling in the markup is extracted
-// whole and is safe. Naming a DaisyUI component is the costly version of the
-// same trap; this paragraph named two in its first draft and was worth 8,590 B.
-// See the warning over @source in css/app.css, and compare the emitted selectors
-// after editing either comment.
 templ savingThrowsTable(bonuses map[string]int) {
 	<div class="@container">
 		<div class="grid grid-cols-1 gap-2 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">

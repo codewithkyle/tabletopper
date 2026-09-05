@@ -40,18 +40,18 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// bonusPanels and infoRowPanels are the allowlists for the two handlers that
-// take the panel name from the URL. A segment that is not a key here never
-// reaches a query or a field-name prefix. The value is the word the toast says.
+// bonusPanels is the allowlist for the one handler left that takes its panel
+// name from the URL. A segment that is not a key here never reaches a query or a
+// field-name prefix. The value is the word the toast says, which is why this is
+// a map and not a set: `saving_throws` is the wire format and "Saving throws" is
+// the sentence.
+//
+// The repeaters had a second one of these until inventory replaced two of the
+// three. One key is not an allowlist, so Features now has its own route and its
+// own handler, and the word it says is written in that handler.
 var bonusPanels = map[string]string{
 	"skills":        "Skills",
 	"saving_throws": "Saving throws",
-}
-
-var infoRowPanels = map[string]string{
-	"features":  "Features",
-	"weapons":   "Equipment",
-	"resources": "Resources",
 }
 
 func (a *App) SaveCharacterIdentity(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +195,7 @@ func (a *App) SaveCharacterBonuses(w http.ResponseWriter, r *http.Request) {
 	kind := r.PathValue("kind")
 	label, ok := bonusPanels[kind]
 	if !ok {
-		unknownPanel(w, "bonus panel", kind)
+		unknownBonusKind(w, kind)
 		return
 	}
 	if !parsePanelForm(w, r, kind) {
@@ -227,13 +227,17 @@ func (a *App) SaveCharacterBonuses(w http.ResponseWriter, r *http.Request) {
 	finishPanel(w, r, kind, label, result, err)
 }
 
-// SaveCharacterRows serves the three repeaters. The whole repeater posts, not
-// the row that changed: the wire format carries no index and the controller
-// zips parallel slices in document order, so the set of rows in the request is
-// the set of rows that will exist. That is also what makes deletion work --
-// repeater.js removes the row from the DOM and the next post simply does not
-// contain it.
-func (a *App) SaveCharacterRows(w http.ResponseWriter, r *http.Request) {
+// SaveCharacterFeatures is the last repeater. The whole panel posts, not the row
+// that changed: the wire format carries no index and this zips parallel slices
+// in document order, so the set of rows in the request is the set of rows that
+// will exist. That is also what makes deletion work -- repeater.js removes the
+// row from the DOM and the next post simply does not contain it.
+//
+// It used to be SaveCharacterRows, taking the repeater's name from the path and
+// looking it up in an allowlist, because Equipment and Resources came through
+// here too. Inventory replaced both, and a path parameter with one legal value
+// is a lookup that can only fail by accident.
+func (a *App) SaveCharacterFeatures(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
@@ -241,46 +245,23 @@ func (a *App) SaveCharacterRows(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-
-	field := r.PathValue("field")
-	label, ok := infoRowPanels[field]
-	if !ok {
-		unknownPanel(w, "repeater", field)
-		return
-	}
-	if !parsePanelForm(w, r, field) {
+	if !parsePanelForm(w, r, pages.FeaturesPanel) {
 		return
 	}
 
-	payload, err := marshalInfoRowsPayload(r, field)
+	payload, err := marshalFeatureRowsPayload(r)
 	if err != nil {
-		slog.Error("Failed to encode info rows", "field", field, "error", err)
+		slog.Error("Failed to encode feature rows", "error", err)
 		htmx.ServerError(w)
 		return
 	}
 
-	var result sql.Result
-	switch field {
-	case "features":
-		result, err = a.Queries.UpdateCharacterFeatures(ctx, queries.UpdateCharacterFeaturesParams{
-			Features: payload,
-			ID:       characterID,
-			OwnerID:  sess.UserID,
-		})
-	case "weapons":
-		result, err = a.Queries.UpdateCharacterWeapons(ctx, queries.UpdateCharacterWeaponsParams{
-			Weapons: payload,
-			ID:      characterID,
-			OwnerID: sess.UserID,
-		})
-	case "resources":
-		result, err = a.Queries.UpdateCharacterResources(ctx, queries.UpdateCharacterResourcesParams{
-			Resources: payload,
-			ID:        characterID,
-			OwnerID:   sess.UserID,
-		})
-	}
-	finishPanel(w, r, field, label, result, err)
+	result, err := a.Queries.UpdateCharacterFeatures(ctx, queries.UpdateCharacterFeaturesParams{
+		Features: payload,
+		ID:       characterID,
+		OwnerID:  sess.UserID,
+	})
+	finishPanel(w, r, pages.FeaturesPanel, "Features", result, err)
 }
 
 // SaveCharacterSpells writes all ten levels on every save, because the column
@@ -535,12 +516,15 @@ func renderPanelBlock(w http.ResponseWriter, r *http.Request, panel string, mess
 	render(w, r, pages.PanelFormErrors(panel, messages))
 }
 
-// unknownPanel answers a URL segment that is not in one of the two allowlists.
+// unknownBonusKind answers a {kind} segment that is not in bonusPanels. It took
+// the name of the allowlist as an argument while the repeaters had one too; that
+// went with them.
+//
 // Only a hand-built request reaches it -- every segment the editor sends is a
 // constant in a template -- so the message says the page is wrong rather than
 // the character is gone.
-func unknownPanel(w http.ResponseWriter, kind string, value string) {
-	slog.Warn("unknown character panel requested", "kind", kind, "value", value)
+func unknownBonusKind(w http.ResponseWriter, kind string) {
+	slog.Warn("unknown character bonus kind requested", "kind", kind)
 	htmx.Error(w, "Not Found", "That part of the character sheet does not exist. Refresh the page and try again.", http.StatusNotFound)
 }
 
@@ -550,8 +534,9 @@ func unknownPanel(w http.ResponseWriter, kind string, value string) {
 //
 // A save that lands answers with the toast and a cleared error block. label is
 // the panel's name in prose, for the toast, and panel is its field prefix, for
-// the block's id; they differ where the wire format and the sheet disagree, as
-// with weapons and Equipment.
+// the block's id. Both are needed because the two disagree wherever the wire
+// format is not a sentence: the saving throws panel is `saving_throws` in every
+// id and field name and "Saving throws" in the message the user reads.
 func finishPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error) {
 	if err != nil {
 		slog.Error("Failed to save character panel", "panel", panel, "error", err)

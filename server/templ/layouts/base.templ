@@ -1,16 +1,5 @@
 package layouts
 
-// Base is the document shell every page renders into. A page hands it a title
-// and its body as children:
-//
-//	@layouts.Base("Characters | Tabletopper") {
-//		@charactersContent(characters)
-//	}
-//
-// It used to take a settings struct that every page kept in a package-level
-// variable and assigned into per request, so two concurrent requests for the
-// same page raced on the same struct. Children are the templ idiom for a
-// layout and carry nothing between renders.
 templ Base(title string) {
 	<!DOCTYPE html>
 	<html>
@@ -18,10 +7,6 @@ templ Base(title string) {
 			<title>{ title }</title>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			// NOTE: htmx 4 swaps error responses by default. Ours are header-only
-			// (HX-Trigger alerts) with an empty body, so swapping one would wipe
-			// the target. 422 is exempt: those carry real form-error markup and
-			// are routed by hx-status:422 on the character forms.
 			<meta name="htmx-config" content={ `{"noSwap":[204,304,"4xx","5xx"]}` }/>
 			<link rel="stylesheet" href="/css/app.css"/>
 			<link rel="stylesheet" href="/css/core.css"/>
@@ -44,33 +29,6 @@ templ Base(title string) {
 			<main class="w-full h-full flex flex-col flex-wrap items-center justify-center">
 				{ children... }
 			</main>
-			// Three dialogs, rendered once here and opened with showModal() so
-			// the browser supplies the top layer, the focus trap, Escape and
-			// the inert background. DaisyUI hides ::backdrop and paints the dim
-			// on .modal itself, which is why backdrop-blur-[4px] is on the
-			// <dialog> and not on a child; the page scroll lock comes from its
-			// rootscrolllock base module keying off .modal[open].
-			//
-			// None of them carry DaisyUI's <form class="modal-backdrop">, so a
-			// click outside the box does nothing. Dismissing has to be
-			// deliberate, which means every dialog owes the user a close control
-			// it renders itself. In this app that control is always a labelled
-			// Close sitting beside the affirmative action, never a corner ✕: the
-			// two below are built that way, the content modal's own states are,
-			// and a fragment loaded into it is expected to be.
-			//
-			// Every button in a dialog is solid; no ghost, no soft. Those are for
-			// buttons sitting on the page, where the surface behind them carries
-			// the affordance. A dialog is already a raised surface, so a
-			// low-emphasis button on it reads as decoration. Fragments loaded
-			// into the content modal follow the same rule.
-			//
-			// The neutral ones need border-base-content/50 to hold that up.
-			// DaisyUI's .btn fills with base-200, and bg-panel/85 resolves to
-			// rgb(26,18,25) under coffee against the button's rgb(30,21,29) --
-			// 1.03:1, so the fill disappears into the panel and a solid button
-			// reads as the ghost one it replaced. The border is its only edge
-			// under that theme. btn-error is exempt: its hue carries it in both.
 			@confirmModal()
 			@alertModal()
 			@contentModal()
@@ -78,20 +36,11 @@ templ Base(title string) {
 	</html>
 }
 
-// The panel treatment repeated on each .modal-box below is the one the old
-// <modal-content> carried. .modal-box sets base-100 itself, so bg-panel/85 only
-// wins because utilities are a later cascade layer than the DaisyUI plugin.
 templ confirmModal() {
 	<dialog id="confirm-modal" class="modal backdrop-blur-[4px]" aria-labelledby="confirm-modal-heading">
 		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
 			<h4 id="confirm-modal-heading" class="mb-3 block text-xl font-semibold" data-modal-heading></h4>
 			<p class="block" data-modal-message></p>
-			// Both buttons submit this form, which closes the dialog and records
-			// which one was pressed in returnValue. confirm-modal.js reads it in
-			// the close handler; Escape leaves it empty, which reads as a cancel.
-			//
-			// Cancel is first so it takes the autofocus showModal() would
-			// otherwise hand to the destructive button, and so Enter picks it.
 			<form method="dialog" class="modal-action">
 				<button class="btn border-base-content/50" value="cancel" autofocus data-modal-cancel>Close</button>
 				<button class="btn btn-error" value="confirm" data-modal-confirm>Confirm</button>
@@ -112,20 +61,9 @@ templ alertModal() {
 	</dialog>
 }
 
-// The shell for content-modal.js. Everything inside it is rendered up front and
-// the module only toggles [hidden], so no class name has to be written in
-// JavaScript. That matters here because public/js is not a Tailwind @source, so
-// a utility named only in a script would never be emitted.
 templ contentModal() {
 	<dialog id="content-modal" class="modal backdrop-blur-[4px]">
 		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm" data-modal-box>
-			// Both states below close through <form method="dialog">, which htmx
-			// 4 returns early on, so the button never becomes a request.
-			//
-			// Each carries its own Close because the shell has no corner control
-			// to fall back on. Escape works, as it does on any dialog opened with
-			// showModal(), but a dialog in this app does not lean on it: the way
-			// out is always a button you can see.
 			<div data-modal-loading>
 				<div class="flex min-h-32 items-center justify-center">
 					<span class="loading loading-spinner loading-lg"></span>
@@ -139,9 +77,6 @@ templ contentModal() {
 					<h4 class="mb-3 block text-xl font-semibold">Couldn't load that</h4>
 					<p class="block">The server didn't return the content. Try again in a moment.</p>
 				</div>
-				// Retry is the affirmative action here, so Close sits to its left
-				// exactly as it does beside Confirm above. It is outside the form
-				// because it must not close the dialog.
 				<div class="modal-action">
 					<form method="dialog">
 						<button class="btn border-base-content/50">Close</button>
@@ -149,9 +84,6 @@ templ contentModal() {
 					<button class="btn btn-primary" data-modal-retry>Retry</button>
 				</div>
 			</div>
-			// Where the fetched markup lands. A fragment brings its own heading
-			// and its own actions, Close among them -- nothing here supplies one
-			// on its behalf.
 			<div data-modal-body hidden></div>
 		</div>
 	</dialog>

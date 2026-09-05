@@ -1,13 +1,5 @@
 package pages
 
-// documentCard is the panel the legal pages and the error page share: a
-// title, a scrolling body, and one action along the bottom edge. It sits on
-// the same card treatment as everything else, so it follows the theme; the
-// three pages used to carry their own grey palette with a light-mode heading
-// colour that was near-white on white.
-//
-// The body scrolls, not the card: the card is capped just inside the
-// viewport and the body takes what is left after the action bar.
 templ documentCard(title string, actionHref string, actionLabel string) {
 	<div class="card card-border max-h-[calc(100vh-4rem)] max-w-[calc(100vw-4rem)] border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
 		<div class="card-body min-h-0 gap-0 overflow-y-auto p-8">

@@ -2,32 +2,6 @@ package pages
 
 import "strconv"
 
-// The spellcasting section: ten level blocks, each with its own slot counters
-// and any number of spell cards. This replaces `spell-slots-table`, at 13,836 B
-// of JS and 4,738 B of CSS the largest component in the app.
-//
-// THE WIRE FORMAT MOVED, and it is the only phase in this migration where it
-// did. Field names used to carry a per-spell index --
-// `spells-level-3-spell-0-name` -- and now carry only the level:
-// `spells-level-3-name`. Every card in a level emits the same seven names and
-// the controller zips seven parallel slices in document order, exactly as the
-// info rows have always worked.
-//
-// The reason is the add-card mechanic, not tidiness. An index needs a counter,
-// and with a fragment route the *client* would have to tell the server which
-// number to use -- a query param the client computes is client-side state, which
-// is the thing this migration removes. Without the index the add URL carries
-// only `?level=N`, which is markup, and the parser loses its two regexes, its
-// nested map and its sort.
-//
-// One consequence lands here rather than in the controller: with names no longer
-// unique, a name cannot be an id, so the fields below associate their text by
-// wrapping the control in a <label> instead of pointing at it with `for`. That
-// is why these do not reuse textField/selectField from form-field.templ, which
-// are built on `for`/`id` -- and it is what the lit-html component did too.
-
-// Spell is one card. The json tags are the shape already in the spell_slots
-// column, camelCase included.
 type Spell struct {
 	Name        string `json:"name"`
 	Components  string `json:"components"`
@@ -38,8 +12,6 @@ type Spell struct {
 	Text        string `json:"text"`
 }
 
-// SpellLevel is one of the ten blocks. Slots and Used are the counters in its
-// header; Spells is what the add button appends to.
 type SpellLevel struct {
 	Level  int     `json:"level"`
 	Slots  int     `json:"slots"`
@@ -47,9 +19,6 @@ type SpellLevel struct {
 	Spells []Spell `json:"spells"`
 }
 
-// The eight schools of magic, from the top of spell-slots-table.js. The picker
-// below and the controller's normalisation both read this, so there is one
-// copy rather than the two the JS/Go split used to imply.
 var spellSchools = []string{
 	"Abjuration",
 	"Conjuration",
@@ -61,13 +30,8 @@ var spellSchools = []string{
 	"Transmutation",
 }
 
-// DefaultSpellSchool is what a new card starts on and what an unrecognised
-// stored value falls back to -- both behaviours carried over from the component.
 const DefaultSpellSchool = "Evocation"
 
-// NormalizeSpellSchool maps anything outside the eight schools onto the default.
-// The picker cannot produce such a value, so this guards stored rows and posts
-// that did not come from the form.
 func NormalizeSpellSchool(value string) string {
 	for _, school := range spellSchools {
 		if school == value {
@@ -78,7 +42,6 @@ func NormalizeSpellSchool(value string) string {
 	return DefaultSpellSchool
 }
 
-// SpellLevelName is the heading: level 0 is Cantrips, the rest are numbered.
 func SpellLevelName(level int) string {
 	if level == 0 {
 		return "Cantrips"
@@ -87,10 +50,6 @@ func SpellLevelName(level int) string {
 	return "Level " + strconv.Itoa(level)
 }
 
-// EmptySpellLevels is the new-character case: ten blocks, no slots, no cards.
-// The ten always render -- that is what the component did, and a sheet where
-// level 6 only appears once you have a level 6 spell is harder to fill in, not
-// easier.
 func EmptySpellLevels() []SpellLevel {
 	levels := make([]SpellLevel, 0, 10)
 	for level := 0; level <= 9; level++ {
@@ -104,9 +63,6 @@ func spellLevelPrefix(level int) string {
 	return "spells-level-" + strconv.Itoa(level)
 }
 
-// spellCardsID is the hx-target for a level's add button. It is deliberately
-// not one of the field names: ids and names are separate namespaces, but a
-// reader should not have to know that to be sure this is unambiguous.
 func spellCardsID(level int) string {
 	return "spell-cards-" + strconv.Itoa(level)
 }
@@ -146,30 +102,10 @@ templ spellLevelBlock(level SpellLevel) {
 	</section>
 }
 
-// SpellCardFragment is the add-card response: one blank card at the given level
-// and nothing else. The same spellCard component serves the initial render, so
-// a card is defined in exactly one place.
 templ SpellCardFragment(level int) {
 	@spellCard(level, Spell{School: DefaultSpellSchool})
 }
 
-// The card keeps the shape spell-slots-table.css drew: the name and its delete
-// button on a top row, then a two-column grid of the short fields with
-// Components and Spell Text spanning both.
-//
-// The grid switches on the card's own width rather than the viewport's. The old
-// rule was `@media (max-width: 640px)`, which happens to be close here because
-// the Spellcasting panel is full width -- but the two bonus grids showed in
-// Phases 5 and 6 that panel width is not a monotonic function of viewport width
-// on this sheet, and a query against the element is right for the same reason
-// there even when the viewport version would pass its tests.
-//
-// col-span-full rather than a prefixed span: it is correct at one column and at
-// two, so the full-width fields need no variant of their own.
-//
-// No `required` on the name, for the reason given in info-rows-table.templ. The
-// component put it there, which made the parser's drop-the-blank-card guard
-// unreachable and turned an accidentally added card into a blocked save.
 templ spellCard(level int, spell Spell) {
 	{{ prefix := spellLevelPrefix(level) }}
 	<article data-spell-card="true" class="grid gap-4 rounded-field border-2 border-base-300 p-4">
@@ -222,10 +158,6 @@ templ spellCard(level int, spell Spell) {
 	</article>
 }
 
-// The short text fields of a card. No .validator: these carry no constraint, so
-// the only state it could ever paint is :user-valid, which sets --input-color to
-// success -- a green border on every field the user has touched, five of them
-// per card. The same reasoning kept it off the bonus rows in Phase 5.
 templ spellTextField(name string, label string, value string, placeholder string) {
 	<label class="fieldset">
 		<span class="fieldset-legend">{ label }</span>
@@ -239,9 +171,6 @@ templ spellTextField(name string, label string, value string, placeholder string
 	</label>
 }
 
-// Slots and Used. min/max reproduce the 0-99 the component clamped to as you
-// typed; the browser now reports a value outside it instead of silently
-// rewriting the field, and the controller clamps again on save either way.
 templ spellCountField(name string, label string, value int) {
 	<label class="fieldset">
 		<span class="fieldset-legend">{ label }</span>

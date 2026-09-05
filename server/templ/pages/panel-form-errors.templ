@@ -1,20 +1,5 @@
 package pages
 
-// PanelFormErrors is the error block for one autosaving panel on the character
-// editor. Each panel targets its own by id -- `hx-status:422="target:#errors-
-// identity,swap:outerHTML"` -- so a failure lands above the fields that caused
-// it instead of at the top of a page the user may have scrolled away from.
-//
-// The empty branch renders the element anyway. It is what both replies replace,
-// so it has to exist before the first error and has to survive being replaced by
-// a clean response after the last one.
-//
-// panel is the form field prefix the panel owns -- "identity", "abilities",
-// "skills" -- and is never user input: the handlers match it against a known
-// set before rendering anything.
-//
-// Colours are the theme's semantic error token rather than a fixed palette
-// step, so the block reads correctly under every theme without a dark: variant.
 templ PanelFormErrors(panel string, messages []string) {
 	if len(messages) > 0 {
 		<div id={ "errors-" + panel } class="mb-4 rounded-field border-2 border-error/60 p-4 text-error">

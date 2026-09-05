@@ -1,42 +1,18 @@
 package pages
 
-// The editor's two pages, and the way between them.
-//
-// These are links to separate URLs, not an in-page widget, so the markup is
-// navigation and says so: a <nav>, anchors, and aria-current on the one you are
-// already looking at. The ARIA pattern for a section switcher is deliberately
-// not used. It promises a composite widget -- arrow-key movement between the
-// controls, each one owning a panel in the same document through aria-controls
-// -- and none of that is true here. Claiming the role would describe a control
-// that does not exist.
-//
-// Autosave is what makes leaving a page safe, and it is the whole reason this
-// can be two documents rather than one with hidden halves. Nothing is held
-// unsaved, so there is nothing to lose by navigating.
-//
-// THE STYLING IS UTILITIES AND NOT THE DAISYUI COMPONENT, which is the one
-// place this file departs from the rest of the sheet. That component is defined
-// as a family -- the bordered, boxed and lifted variants, five sizes, a content
-// pane and a disabled state -- and Tailwind emits the whole of it the moment any
-// member is named. Four classes were wanted and 19.3 kB arrived, nearly all of
-// it markup this app will never render. The dozen utilities below draw the same
-// thing for a few hundred bytes, and all but two were already in the build.
-//
-// The negative margin is what makes the active link read as part of the rule
-// under it: the nav draws a 2px border along its bottom edge and each link
-// draws its own, so pulling the links down by exactly that much lays one over
-// the other instead of stacking them into a 4px stripe.
 templ characterTabs(characterID string, active string) {
 	{{ base := "/characters/" + characterID + "/edit" }}
 	<nav class="flex gap-1 border-b-2 border-base-300 px-2" aria-label="Character sheet sections">
 		@characterTabLink(base, "Character", active == characterTabMain)
+		@characterTabLink(base+"/inventory", "Inventory", active == characterTabInventory)
 		@characterTabLink(base+"/spells", "Spells", active == characterTabSpells)
 	</nav>
 }
 
 const (
-	characterTabMain   = "character"
-	characterTabSpells = "spells"
+	characterTabMain      = "character"
+	characterTabInventory = "inventory"
+	characterTabSpells    = "spells"
 )
 
 templ characterTabLink(href string, name string, current bool) {

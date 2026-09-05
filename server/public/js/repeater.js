@@ -2,7 +2,7 @@
 // spell cards. A button carrying data-remove-closest names the ancestor to
 // remove:
 //
-//     <button type="button" data-remove-closest="[data-info-row]">
+//     <button type="button" data-remove-closest="[data-feature-row]">
 //
 // One delegated listener rather than a handler per button, so rows htmx
 // appends later are covered without anything re-binding. This is all that

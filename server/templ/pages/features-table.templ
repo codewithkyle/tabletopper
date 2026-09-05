@@ -1,0 +1,59 @@
+package pages
+
+const FeaturesPanel = "features"
+
+type Feature struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+templ featuresTable(rows []Feature) {
+	<div class="grid w-full gap-3">
+		<div id={ "rows-" + FeaturesPanel } class="grid gap-3">
+			for _, row := range rows {
+				@featureRow(row)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-soft btn-warning"
+			hx-get="/fragment/character/feature-row"
+			hx-target={ "#rows-" + FeaturesPanel }
+			hx-swap="append"
+		>
+			Add Feature or Trait
+		</button>
+	</div>
+}
+
+templ FeatureRowFragment() {
+	@featureRow(Feature{})
+}
+
+templ featureRow(row Feature) {
+	<div data-feature-row="true" class="overflow-hidden rounded-field border-2 border-base-300">
+		<div class="flex items-stretch border-b-2 border-base-300">
+			<input
+				name={ FeaturesPanel + "-name" }
+				type="text"
+				class="input input-ghost w-full min-w-0 flex-1 rounded-none font-medium focus:-outline-offset-2"
+				value={ row.Name }
+				placeholder="Name"
+			/>
+			<button
+				type="button"
+				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2"
+				aria-label="Delete feature"
+				data-remove-closest="[data-feature-row]"
+			>
+				@trashIcon()
+			</button>
+		</div>
+		<textarea
+			name={ FeaturesPanel + "-value" }
+			class="textarea textarea-ghost w-full rounded-none focus:-outline-offset-2"
+			rows="4"
+			placeholder="Description"
+		>{ row.Value }</textarea>
+	</div>
+}

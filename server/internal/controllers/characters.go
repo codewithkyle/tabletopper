@@ -83,41 +83,71 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 // characterToEditPageData builds the whole struct for both. A spells page that
 // reads only SpellLevels is not worth a second mapper -- the row is already in
 // memory and the unused fields cost a few string conversions.
+// CharacterPage is the only editor page that reads a second table. Equipment on
+// it is a view of the inventory rows ticked as equipped, which is what replaced
+// the repeater over the weapons column -- so a character's gear is written down
+// once and read in two places rather than typed in twice.
+//
+// Only the equipped rows are fetched. The page shows three of forty and has no
+// use for the rest; the inventory page loads the whole thing because that is
+// what it is for.
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
-	data, ok := a.loadCharacterForEdit(w, r)
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
+
+	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to load equipped inventory", "error", err)
+		redirectToError(w, r)
+		return
+	}
+
+	data := characterToEditPageData(characterID.String(), character)
+	data.Equipped = inventoryPageItems(equipped)
 
 	render(w, r, pages.EditCharacter(data))
 }
 
 func (a *App) CharacterSpellsPage(w http.ResponseWriter, r *http.Request) {
-	data, ok := a.loadCharacterForEdit(w, r)
+	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
 
-	render(w, r, pages.EditCharacterSpells(data))
+	render(w, r, pages.EditCharacterSpells(characterToEditPageData(characterID.String(), character)))
 }
 
-// loadCharacterForEdit answers a page request, so every failure is a redirect
-// rather than an alert: nothing is open yet to show one in. A character that is
-// not this user's and one that never existed are the same miss, because the
-// query is scoped to the owner.
-func (a *App) loadCharacterForEdit(w http.ResponseWriter, r *http.Request) (pages.EditCharacterPageData, bool) {
+// loadCharacter is the ownership gate every editor page goes through, and the
+// only one: a page that asked the question a second way would answer a miss
+// differently sooner or later. Every failure is a redirect rather than an alert,
+// because this answers a page request and nothing is open yet to show an alert
+// in. A character that is not this user's and one that never existed are the
+// same miss, because the query is scoped to the owner.
+//
+// The parsed id comes back with the row. Two of the three pages go on to query
+// the inventory table with it, and would otherwise have to parse the path a
+// second time for a value this function already had.
+func (a *App) loadCharacter(w http.ResponseWriter, r *http.Request) (queries.Character, ulid.ULID, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
 	id := r.PathValue("id")
 	if id == "" {
 		redirect(w, r, "/characters")
-		return pages.EditCharacterPageData{}, false
+		return queries.Character{}, ulid.ULID{}, false
 	}
 	uid, err := ulid.Parse(id)
 	if err != nil {
 		redirect(w, r, "/characters")
-		return pages.EditCharacterPageData{}, false
+		return queries.Character{}, ulid.ULID{}, false
 	}
 
 	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
@@ -126,15 +156,15 @@ func (a *App) loadCharacterForEdit(w http.ResponseWriter, r *http.Request) (page
 	})
 	if errors.Is(err, sql.ErrNoRows) {
 		redirect(w, r, "/characters")
-		return pages.EditCharacterPageData{}, false
+		return queries.Character{}, ulid.ULID{}, false
 	}
 	if err != nil {
 		slog.Error("Failed to load character", "error", err)
 		redirectToError(w, r)
-		return pages.EditCharacterPageData{}, false
+		return queries.Character{}, ulid.ULID{}, false
 	}
 
-	return characterToEditPageData(id, character), true
+	return character, uid, true
 }
 
 func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
@@ -151,37 +181,29 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Characters(results))
 }
 
-// InfoRowFragment serves one blank repeater row to the add buttons on the
-// character forms. It is the whole server side of the add-row mechanic: no
+// FeatureRowFragment serves one blank repeater row to the add button on the
+// Features panel. It is the whole server side of the add-row mechanic: no
 // database, no session data in the response, just the same templ component the
 // initial page render uses, so a row is defined in exactly one place.
 //
-// The field prefix decides the name attributes the row emits, so it is checked
-// against the three known repeaters rather than trusted. An unknown prefix is a
-// 404 and not a row carrying arbitrary field names.
+// IT TAKES NOTHING, which is the point of the route being named after what it
+// serves. It used to read a ?field= that decided the name attributes on the row
+// it returned, and so had to check that value against an allowlist before
+// rendering -- an unvalidated one would have put arbitrary field names into the
+// next post. There is one repeater now, the row's field names are constants, and
+// a parameter that cannot vary cannot be wrong.
 //
 // Behind middleware.Fragment, which is RequireSession plus the no-store and
 // noindex headers every /fragment/ route owes its caller. The markup is not
 // secret -- it holds nothing but empty fields -- but an unauthenticated
 // endpoint here would be surface for no reason.
-func (a *App) InfoRowFragment(w http.ResponseWriter, r *http.Request) {
-	field := r.URL.Query().Get("field")
-	if !pages.IsInfoRowField(field) {
-		slog.Warn("unknown info row field requested", "field", field)
-		// Status only. http.NotFound would write Go's plain-text 404 page into
-		// a response the caller is going to swap, and a fragment route should
-		// never hand back something page-shaped. noSwap covers 4xx, so htmx
-		// leaves the target alone either way -- this is about the contract.
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
+func (a *App) FeatureRowFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.InfoRowFragment(field))
+	render(w, r, pages.FeatureRowFragment())
 }
 
 // SpellCardFragment serves one blank spell card to a level's add button, the
-// Phase 8 counterpart of InfoRowFragment above.
+// counterpart of FeatureRowFragment above.
 //
 // `level` is the only thing the client sends, and it is the whole reason the
 // spell wire format moved off per-spell indices: an index would have to be a
@@ -305,9 +327,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		SpellAtkBonus:   strconv.FormatInt(int64(character.SpellAtkBonus), 10),
 		Skills:          parseStatBonuses(character.Skills),
 		SavingThrows:    parseStatBonuses(character.SavingThrows),
-		Features:        parseInfoRows(character.Features),
-		Weapons:         parseInfoRows(character.Weapons),
-		Resources:       parseInfoRows(character.Resources),
+		Features:        parseFeatures(character.Features),
 		SpellLevels:     parseSpellLevels(character.SpellSlots),
 	}
 }
@@ -360,7 +380,7 @@ func parseStatBonuses(raw json.RawMessage) map[string]int {
 	return bonuses
 }
 
-// parseInfoRows unmarshals a stored `[{"name": ..., "value": ...}]` column into
+// parseFeatures unmarshals a stored `[{"name": ..., "value": ...}]` column into
 // the slice the templates range over. It replaced normalizeInfoRowsJSON, which
 // re-marshalled the same rows back into a string for a data-rows attribute so
 // monster-info-table.js could parse them a second time in the browser.
@@ -368,19 +388,19 @@ func parseStatBonuses(raw json.RawMessage) map[string]int {
 // A malformed column yields an empty slice and a warning, which is what the old
 // function did and what the component did on top of it -- the repeater renders
 // with no rows and the add button still works, rather than the page failing.
-func parseInfoRows(raw json.RawMessage) []pages.InfoRow {
-	rows := []pages.InfoRow{}
+func parseFeatures(raw json.RawMessage) []pages.Feature {
+	rows := []pages.Feature{}
 	if len(raw) == 0 {
 		return rows
 	}
 
 	if err := json.Unmarshal(raw, &rows); err != nil {
 		slog.Warn("invalid info rows payload; defaulting", "error", err)
-		return []pages.InfoRow{}
+		return []pages.Feature{}
 	}
 
 	if rows == nil {
-		rows = []pages.InfoRow{}
+		rows = []pages.Feature{}
 	}
 
 	return rows
@@ -529,15 +549,15 @@ func parseInt16(value string, fallback int16) (int16, error) {
 	return int16(parsed), nil
 }
 
-type infoRow struct {
+type featurePayload struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
-func marshalInfoRowsPayload(r *http.Request, field string) (json.RawMessage, error) {
-	names := r.PostForm[field+"-name"]
-	values := r.PostForm[field+"-value"]
-	rows := make([]infoRow, 0)
+func marshalFeatureRowsPayload(r *http.Request) (json.RawMessage, error) {
+	names := r.PostForm[pages.FeaturesPanel+"-name"]
+	values := r.PostForm[pages.FeaturesPanel+"-value"]
+	rows := make([]featurePayload, 0)
 
 	count := len(names)
 	if len(values) < count {
@@ -551,7 +571,7 @@ func marshalInfoRowsPayload(r *http.Request, field string) (json.RawMessage, err
 			continue
 		}
 
-		rows = append(rows, infoRow{Name: name, Value: value})
+		rows = append(rows, featurePayload{Name: name, Value: value})
 	}
 
 	payload, err := json.Marshal(rows)

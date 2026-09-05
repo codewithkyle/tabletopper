@@ -1,0 +1,26 @@
+package pages
+
+templ equippedItems(characterID string, items []InventoryItem) {
+	if len(items) == 0 {
+		<p class="text-base-content/75">
+			Nothing is equipped yet. Tick <span class="font-medium">Equipped</span> on anything in
+			<a href={ "/characters/" + characterID + "/edit/inventory" } class="link">your inventory</a>.
+		</p>
+	} else {
+		<ul class="grid w-full gap-3">
+			for _, item := range items {
+				<li class="rounded-field border-2 border-base-300 p-3">
+					<p class="flex flex-wrap items-baseline justify-between gap-x-3 font-medium">
+						<span>{ equippedItemName(item) }</span>
+						if item.Quantity != "1" {
+							<span class="text-sm font-semibold text-base-content/75">&#215; { item.Quantity }</span>
+						}
+					</p>
+					if item.Description != "" {
+						<p class="mt-2 whitespace-pre-line text-base-content/75">{ item.Description }</p>
+					}
+				</li>
+			}
+		</ul>
+	}
+}

@@ -166,7 +166,7 @@ func TestIdentityPanelWritesOnlyIdentityColumns(t *testing.T) {
 		t.Errorf("columns written = %v, want %v", got, want)
 	}
 
-	for _, forbidden := range []string{"str", "dex", "con", "int", "wis", "cha", "max_hp", "current_hp", "ac", "xp", "level", "skills", "saving_throws", "features", "weapons", "resources", "spell_slots"} {
+	for _, forbidden := range []string{"str", "dex", "con", "int", "wis", "cha", "max_hp", "current_hp", "ac", "xp", "level", "skills", "saving_throws", "features", "spell_slots"} {
 		for _, column := range got {
 			if column == forbidden {
 				t.Errorf("identity save touched %q", forbidden)
@@ -230,25 +230,10 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 			want:       []string{"saving_throws"},
 		},
 		{
-			name:       "features",
-			handler:    func(a *App) http.HandlerFunc { return a.SaveCharacterRows },
-			form:       url.Values{"features-name": {"Favored Enemy"}, "features-value": {"Undead"}},
-			pathValues: map[string]string{"field": "features"},
-			want:       []string{"features"},
-		},
-		{
-			name:       "equipment",
-			handler:    func(a *App) http.HandlerFunc { return a.SaveCharacterRows },
-			form:       url.Values{"weapons-name": {"Longbow"}, "weapons-value": {"1d8 piercing"}},
-			pathValues: map[string]string{"field": "weapons"},
-			want:       []string{"weapons"},
-		},
-		{
-			name:       "resources",
-			handler:    func(a *App) http.HandlerFunc { return a.SaveCharacterRows },
-			form:       url.Values{"resources-name": {"Rations"}, "resources-value": {"5"}},
-			pathValues: map[string]string{"field": "resources"},
-			want:       []string{"resources"},
+			name:    "features",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures },
+			form:    url.Values{"features-name": {"Favored Enemy"}, "features-value": {"Undead"}},
+			want:    []string{"features"},
 		},
 		{
 			name:    "spells",
@@ -337,9 +322,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterSpells }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
-		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterRows }, pathValues: map[string]string{"field": "features"}},
-		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterRows }, pathValues: map[string]string{"field": "weapons"}},
-		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterRows }, pathValues: map[string]string{"field": "resources"}},
+		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures }},
 	}
 
 	for _, panel := range panels {
@@ -399,31 +382,21 @@ func TestCoreStatsDerivesLevelAndProficiencyFromXP(t *testing.T) {
 	}
 }
 
-func TestPanelRejectsUnknownPathSegment(t *testing.T) {
-	for _, c := range []struct {
-		name       string
-		handler    func(*App) http.HandlerFunc
-		pathValues map[string]string
-	}{
-		{"bonuses", func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, map[string]string{"kind": "spell_slots"}},
-		{"rows", func(a *App) http.HandlerFunc { return a.SaveCharacterRows }, map[string]string{"field": "notes"}},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			app, db := newPanelApp(1)
+// Bonuses is the only panel left that takes its name from the path, and the
+// segment decides both a column and a field-name prefix -- so an unchecked value
+// would reach a query. The repeaters were tested here too until inventory left
+// one of them, which now has a route of its own and no segment to get wrong.
+func TestBonusPanelRejectsAnUnknownKind(t *testing.T) {
+	app, db := newPanelApp(1)
 
-			pathValues := map[string]string{"id": testCharacterID.String()}
-			for key, value := range c.pathValues {
-				pathValues[key] = value
-			}
+	rec := panelPost(t, db, app.SaveCharacterBonuses, url.Values{},
+		map[string]string{"id": testCharacterID.String(), "kind": "spell_slots"})
 
-			rec := panelPost(t, db, c.handler(app), url.Values{}, pathValues)
-			if rec.Code != http.StatusNotFound {
-				t.Errorf("status = %d, want 404", rec.Code)
-			}
-			if len(db.calls) != 0 {
-				t.Errorf("an unknown segment reached the database: %q", db.calls[0].query)
-			}
-		})
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+	if len(db.calls) != 0 {
+		t.Errorf("an unknown segment reached the database: %q", db.calls[0].query)
 	}
 }
 
@@ -482,10 +455,10 @@ func TestPanelValidationFailsBeforeTheWrite(t *testing.T) {
 func TestRepeaterSaveReplacesTheWholeColumn(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	panelPost(t, db, app.SaveCharacterRows, url.Values{
+	panelPost(t, db, app.SaveCharacterFeatures, url.Values{
 		"features-name":  {"Favored Enemy"},
 		"features-value": {"Undead"},
-	}, map[string]string{"id": testCharacterID.String(), "field": "features"})
+	}, map[string]string{"id": testCharacterID.String()})
 
 	call := db.only(t)
 	var rows []map[string]string
@@ -538,4 +511,40 @@ func TestSuccessfulSaveClearsAnEarlierPanelError(t *testing.T) {
 		t.Errorf("the error survived a successful save: %q", accepted.Body.String())
 	}
 	assertSavedToast(t, accepted, "identity", "Identity saved.")
+}
+
+// The add-row fragment reads nothing off the request. It used to take a ?field=
+// that decided the name attributes on the row it handed back, which is why it
+// had to check that value against an allowlist -- an unvalidated one would have
+// put arbitrary field names into the next post. There is one repeater now, so
+// the parameter is gone; this pins that a leftover one cannot change the answer.
+func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	for _, query := range []string{"", "?field=weapons", "?field=notes"} {
+		r := httptest.NewRequest(http.MethodGet, "/fragment/character/feature-row"+query, nil)
+		r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+		rec := httptest.NewRecorder()
+		app.FeatureRowFragment(rec, r)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%q: status = %d, want %d", query, rec.Code, http.StatusOK)
+		}
+		body := rec.Body.String()
+		for _, want := range []string{`name="features-name"`, `name="features-value"`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%q: row is missing %s\n%s", query, want, body)
+			}
+		}
+		for _, forbidden := range []string{"weapons", "notes"} {
+			if strings.Contains(body, forbidden) {
+				t.Errorf("%q: the query reached the markup (%s)\n%s", query, forbidden, body)
+			}
+		}
+	}
+
+	// A blank row is the same for every user and every character.
+	if len(db.calls) != 0 {
+		t.Errorf("ran %d statements, want 0", len(db.calls))
+	}
 }

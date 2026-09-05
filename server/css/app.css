@@ -180,13 +180,22 @@
    Scan .templ, not the generated _templ.go -- the latter is gitignored.
 
    Be aware of what "scan" means here: Tailwind extracts candidates from every
-   word in the file, not from class attributes. Go keywords and prose in
-   comments count. `for _, o := range options` is why .range is in this build --
-   15 rules for a slider the app does not have -- and a comment in
-   form-field.templ that used the words "dropdown" and "list" was worth 6 KB
-   until it was reworded. Deleting a scanned .js file can shrink the output for
-   the same reason: input.js and select.js each had a handleBlur, which is where
-   .blur came from.
+   word in the file, not from class attributes. Go keywords and prose count
+   equally.
+
+   Prose could be dealt with, and was: comments in .templ files are banned
+   outright. Rewording them one at a time did not hold -- a comment in
+   form-field.templ using the words "dropdown" and "list" was worth 6 KB until
+   someone noticed, and "the inventory table", "swap", "status" and "stack" all
+   did it again later. Deleting all 643 comment lines took .table, .tabs, .list,
+   .status, .swap, .stack and .modal-backdrop out of the build. Deleting a
+   scanned .js file shrinks the output the same way: input.js and select.js each
+   had a handleBlur, which is where .blur came from.
+
+   Go code cannot be dealt with, because the code IS the markup.
+   `for _, o := range options` is why .range is in this build -- 14 rules for a
+   slider the app does not have. That is the residue, and it is why the check
+   below is a habit and not a one-off.
 
    So when a phase adds CSS, diff the emitted selectors, not just the byte
    count, and check that anything new is something the markup actually uses. */

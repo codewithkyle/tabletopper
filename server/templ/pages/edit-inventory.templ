@@ -1,0 +1,26 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ EditCharacterInventory(data InventoryPageData) {
+	@layouts.Base("Inventory | Tabletopper") {
+		@editCharacterShell(data.CharacterID, characterTabInventory) {
+			@sheetPanel("Inventory") {
+				<div id="inventory-items" class="grid gap-3">
+					for _, item := range data.Items {
+						@InventoryRow(data.CharacterID, item)
+					}
+				</div>
+				<button
+					type="button"
+					class="btn btn-soft btn-warning"
+					hx-post={ "/characters/" + data.CharacterID + "/inventory" }
+					hx-target="#inventory-items"
+					hx-swap="append"
+				>
+					Add Item
+				</button>
+			}
+		}
+	}
+}

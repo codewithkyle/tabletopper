@@ -1,48 +1,5 @@
 package pages
 
-// Field wrappers for the character sheet forms.
-//
-// The shape is DaisyUI's: .fieldset is the grid that stacks label / control /
-// hint, .fieldset-legend is the label above it, .input is the control, and
-// .validator wires the control's own constraint validation to both the border
-// colour and the sibling .validator-hint. That replaces the IDLING -> ERROR
-// state machine the lit-html components ran on blur; :user-invalid has the same
-// semantics (it only matches once the user has interacted or submitted) and
-// costs no JavaScript.
-//
-// .validator-hint keeps its line when there is no error to show: DaisyUI turns
-// it off with `visibility`, not with `display`. So nothing jumps when one
-// appears.
-//
-// The wrapper is a <div class="fieldset"> rather than a real <fieldset>. The
-// original reason was normalize.css giving fieldset `padding: .35em .75em
-// .625em` while DaisyUI's .fieldset only overrides the block axis, so a real
-// one would inset the field from its grid cell. normalize.css is gone as of the
-// cleanup pass and Tailwind's preflight zeroes fieldset padding, so that
-// specific hazard has lifted -- but the div stays, because the semantic reason
-// is the stronger one. A single labelled control is not a group -- the
-// accessible name comes from <label for>, which is why the text above the field
-// is a <label> carrying .fieldset-legend and not a <legend>.
-//
-// w-full is not optional: DaisyUI sizes .input at `clamp(3rem, 20rem, 100%)`,
-// so a field in a cell wider than 20rem would otherwise stop short of it.
-
-// .validator-hint is `visibility: hidden` in DaisyUI, which keeps the element in
-// flow so nothing shifts when an error appears. That reserved line is 0.75rem of
-// text plus a 0.5rem margin under *every* field, and stacked with the grid's own
-// gap-4 it put roughly 2.6rem between form rows -- the sheet read as far more
-// spaced out than it is dense.
-//
-// `hidden peer-user-invalid:block` collapses the element instead, so a row costs
-// only what it displays. The trade is that a row grows when its error appears
-// and pushes the rows below it down. That is the conventional behaviour and it
-// only happens on an actual violation, which is worth more than permanently
-// spending a line per field against it.
-//
-// DaisyUI's own `.validator:user-invalid ~ .validator-hint` rule still supplies
-// the `visibility` flip and the error colour; only `display` is ours, which is
-// why the input keeps `validator` and gains `peer` rather than swapping one for
-// the other.
 templ textField(name string, label string, value string, placeholder string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -63,11 +20,6 @@ templ textField(name string, label string, value string, placeholder string, req
 	</div>
 }
 
-// min/max/step carry over from number-input.js, which put min="0" max="9999"
-// step="1" on every instance -- so negative values were already rejected before
-// this migration. The hint has to cover the range violation as well as the
-// empty-required one, which is why it is always rendered here and only rendered
-// for required fields above.
 templ numberField(name string, label string, value string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -87,26 +39,6 @@ templ numberField(name string, label string, value string, required bool) {
 	</div>
 }
 
-// selectField is the same .fieldset / .fieldset-legend shell as the two above,
-// with DaisyUI's .select in place of .input. Both are 2.5rem tall and read the
-// same --input-color, so a picker sits on the same baseline as the text field
-// beside it in the Identity grid.
-//
-// DaisyUI draws the chevron itself, as two linear-gradients in background-image
-// pinned to the trailing edge, and reserves 1.75rem of end padding for them. So
-// the <i class="selector"> SVG select.js used to append, and the absolute
-// positioning that placed it, are both gone -- and with them the reason
-// select.css needed position:relative on the wrapper.
-//
-// No .validator here, unlike the text and number fields. `required` on a <select>
-// is only violated when the selected option's value is empty, and neither set
-// has such an entry: the browser lands on the first one, so these two can
-// never be :user-invalid. select.js's validate() had the same blind spot (it
-// tested value === "" against a value that was never empty). A .validator-hint
-// under these would be markup that can never reveal itself, so it is not
-// rendered. `required` stays on the element as the honest declaration it is.
-//
-// w-full for the same reason as the inputs: .select is clamp(3rem, 20rem, 100%).
 templ selectField(name string, label string, options []Option, value string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>

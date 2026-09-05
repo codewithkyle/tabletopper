@@ -13,17 +13,6 @@ templ Characters(characters []queries.Character) {
 	}
 }
 
-// The portrait is a circle. DaisyUI 5 ships no radius on .avatar -- its own
-// examples hang one on the inner div as a utility -- so rounded-full goes on
-// both elements here: the inner div carries the overflow clip that shapes the
-// picture, and the .avatar wrapper carries the 2px stroke, which would
-// otherwise stay a square drawn around a round portrait.
-//
-// The corner badge moved with it, from -1.5 to -1. On a 56px square the
-// diagonal meets the edge at the corner; on a 56px circle it meets the arc
-// about 4px further in, so the old offset pushed the badge out past the
-// portrait with a wedge of nothing behind it. -1 puts its middle back on
-// the arc.
 templ Character(character queries.Character) {
 	<character-card class="card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
 		<div class="card-body gap-4 p-4">

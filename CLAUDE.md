@@ -24,6 +24,49 @@ describe is finished.
 Write what the comment needs into the comment. If a command belongs in a comment, inline
 the command. A comment that cannot stand on its own does not belong in the code.
 
+### Never write a comment in a `.templ` file
+
+Not a `//` line, not an HTML comment, not a doc block above a component. The rule is
+absolute, and it is absolute because the damage is silent.
+
+`server/css/app.css` imports Tailwind with `source(none)`, which disables automatic file
+discovery, and then declares exactly one source:
+
+```css
+@source "../templ/**/*.templ";
+```
+
+Tailwind reads those files as text, not as markup, and takes a class-name candidate from
+anything word-shaped it finds — comments included. Any bare lowercase word that happens to
+be a DaisyUI component name emits that component's whole family into
+`server/public/css/app.css`. Measured, not assumed: the line `// probe stack` added to a
+`.go` file changes the build by 0 bytes; the same line added to a `.templ` file adds 14
+selectors and 1,953 bytes.
+
+Words that have already done it here: `tab`, `table`, `list`, `status`, `swap`, `stack`,
+`modal-backdrop`. Prose is where they turn up, because prose is where you write ordinary
+English. Nothing fails when it happens — `templ fmt` is happy, `make check` is green, the
+page renders correctly, and the only symptom is a stylesheet that quietly grew.
+
+**Reasoning about a component goes in the Go that renders or reads it** — the handler in
+`server/internal/controllers`, or the page-data type in `server/templ/pages/*.go`. Neither
+is scanned. What cannot find a home there is not written down.
+
+The ban closes the prose vector, not the whole hole. A `.templ` file still contains Go, and
+Go is scanned too: `for _, option := range options` is why `.range` is in the build — 14
+rules for a slider this app does not have. That one cannot be fixed, because the loop is
+the markup. It is why the check below stays a habit rather than a one-off.
+
+After changing anything under `server/templ`, check what the build gained:
+
+```sh
+cp server/public/css/app.css /tmp/app.before.css && make css
+diff <(grep -oE '^\s*\.[^ {,:]+' /tmp/app.before.css | sort -u) \
+     <(grep -oE '^\s*\.[^ {,:]+' server/public/css/app.css | sort -u)
+```
+
+Every added selector should be one you can point at in the markup you just wrote.
+
 ## HTMX fragment routes
 
 **Every route that returns partial HTML MUST be mounted under `/fragment/`.**
@@ -32,8 +75,12 @@ the command. A comment that cannot stand on its own does not belong in the code.
 - Register it in `server/routes.go` behind `auth.Fragment(...)`, never `auth.RequireSession(...)`.
 - Mutations keep their resource URLs. `POST /fragment/...`, `DELETE /fragment/...` and
   every other verb are forbidden — the subtree catch-all answers them with a 404.
-- Never mount a full-page route under `/fragment/`. Never return partial HTML from a
-  route outside it.
+- Never mount a full-page route under `/fragment/`.
+- A route outside `/fragment/` returns partial HTML only when it is a mutation answering
+  with the row it just created or changed: `POST /assets/maps` replies with the new map
+  card, and adding an inventory item replies with that item's row. The alternative is a
+  POST that returns nothing followed by a GET to fetch what it made. The prefix marks
+  GET-shaped representations, which are the ones that get linked, bookmarked and crawled.
 - Handlers set `Content-Type: text/html; charset=utf-8` and render the same templ
   component the full page render uses. A fragment is never a second copy of markup.
 - Validate every query parameter against a known set. A bad value is

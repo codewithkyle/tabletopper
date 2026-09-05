@@ -29,8 +29,10 @@ type EditCharacterPageData struct {
 	SpellAtkBonus   string
 	Skills          map[string]int
 	SavingThrows    map[string]int
-	Features        []InfoRow
-	Weapons         []InfoRow
-	Resources       []InfoRow
+	Features        []Feature
 	SpellLevels     []SpellLevel
+	// Equipped is the inventory rows ticked as equipped, rendered read-only on
+	// the Character page. It is the only thing on that page that does not come
+	// off the characters row, and the only thing on it with no form around it.
+	Equipped []InventoryItem
 }

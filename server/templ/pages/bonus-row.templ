@@ -2,40 +2,12 @@ package pages
 
 import "strconv"
 
-// bonusEntry is one row of a bonus grid: the suffix that makes the form field
-// name, the three-letter abbreviation printed under the name, and the name.
 type bonusEntry struct {
 	Key   string
 	Abbr  string
 	Label string
 }
 
-// bonusRow is the row shared by the saving throws and skills grids. The two
-// tables were separate components with byte-identical row markup and two copies
-// of the same stylesheet, which is exactly the duplication the move to
-// server-rendered markup is meant to remove -- so the row is defined once here
-// and the tables supply only their entries and their own grid.
-//
-// The stack is a real <label for> plus a plain <span>, not the <span class="label">
-// the lit-html components used. That span was the last thing in the app holding
-// DaisyUI's .label class name, and retiring it is what emptied the exclusions in
-// css/app.css. The <label> also buys an accessible name and a click target that
-// the aria-label it replaces did not.
-//
-// The abbreviation is text-base-content/75, the muted standard already used on
-// the character cards. On the sheet's bg-panel/85 panel that measures 4.68
-// caramellatte / 4.57 coffee against 4.5 for AA. Worth knowing it is close: over
-// one of the desk's grid rules the coffee figure falls to 4.49, which is where
-// the 4.36 recorded against D2 in phase 2 came from. Full base-content would be
-// 7.14 but flattens the hierarchy the old sheet had between name and ability.
-//
-// No min/max and no .validator, both carried over from the components this
-// replaces. A bonus is signed, so there is no floor to declare; with no
-// constraint to violate the only rule left is step="1", whose one failure mode
-// is a typed decimal. Wiring .validator for that would buy a red border with
-// nowhere to put a hint, and would paint a :user-valid green border on every
-// filled field across a tight grid for the normal case. The text and number
-// fields carry it because they have required/min/max and room for a line of text.
 templ bonusRow(field string, label string, abbr string, value int) {
 	<div class="flex items-center justify-between gap-2 rounded-field border-2 border-base-300 p-2">
 		<span class="flex min-w-0 flex-col gap-0.5">
