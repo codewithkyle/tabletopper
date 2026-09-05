@@ -35,17 +35,32 @@
    radius/depth/border match silk's exactly, so it changes nothing on the
    deferred list. It does set --noise: 1 where silk and coffee both set 0 --
    that is a faint grain on .btn and .alert, light mode only. */
-/* exclude drops four component groups whose class names this app already owns
-   and styles itself: .input and .select are emitted by the lit-html components
-   in public/js, .label by skills-table/saving-throws-table, .link by link.css.
-   All four are layered, so app CSS wins on any property it sets -- but DaisyUI
-   also sets properties the app CSS does not (display:inline-flex on .input is
-   the bad one: it collapses the label-above-field layout). Measured with a
-   headless render of the character sheet.
-   These come back in Phase 5, when those components become DaisyUI components. */
+/* exclude drops the component groups whose class names this app still owns and
+   styles itself: .select is emitted by the lit-html select component in
+   public/js, .label by skills-table/saving-throws-table. They are layered, so
+   app CSS wins on any property it sets -- but DaisyUI also sets properties the
+   app CSS does not (display:inline-flex is the bad one: on a wrapper element it
+   collapses the label-above-field layout). Measured with a headless render of
+   the character sheet.
+
+   Each name leaves this list in the phase that retires the markup owning it;
+   see PLAN.md.
+
+   `link` left in phase 1 along with link.css -- DaisyUI's .link sets only
+   text-decoration and a focus ring, no colour, so the one <a class="link"> on
+   the server-error page now inherits its surrounding text colour instead of
+   link.css's Brixi blue.
+
+   `input` left in phase 2 with input.css, input.js, input-base.js and
+   number-input.js. That group had to go all at once: number-input.js also did
+   classList.add("input") on its wrapper, so un-excluding .input while any
+   lit-html number field was still on the page would have put DaisyUI's
+   height:2.5rem, border, padding-inline and background on an element holding a
+   label plus a 36px input. The text and number fields are one class name, not
+   two, so they migrate together. */
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
-  exclude: input, select, label, link;
+  exclude: select, label;
 }
 
 /* coffee ships --border: 1px, caramellatte 2px, so a bordered card changed

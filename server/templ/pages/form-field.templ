@@ -1,0 +1,66 @@
+package pages
+
+// Field wrappers for the character sheet forms.
+//
+// The shape is DaisyUI's: .fieldset is the grid that stacks label / control /
+// hint, .fieldset-legend is the label above it, .input is the control, and
+// .validator wires the control's own constraint validation to both the border
+// colour and the sibling .validator-hint. That replaces the IDLING -> ERROR
+// state machine the lit-html components ran on blur; :user-invalid has the same
+// semantics (it only matches once the user has interacted or submitted) and
+// costs no JavaScript.
+//
+// .validator-hint is `visibility: hidden`, not `display: none`, so it reserves
+// its line and the field does not jump when an error appears.
+//
+// The wrapper is a <div class="fieldset"> rather than a real <fieldset>:
+// normalize gives fieldset `padding: .35em .75em .625em`, and DaisyUI's
+// .fieldset only overrides the block axis, so a real one would inset the field
+// from its grid cell. A single labelled control is not a group either -- the
+// accessible name comes from <label for>, which is why the text above the field
+// is a <label> carrying .fieldset-legend and not a <legend>.
+//
+// w-full is not optional: DaisyUI sizes .input at `clamp(3rem, 20rem, 100%)`,
+// so a field in a cell wider than 20rem would otherwise stop short of it.
+
+templ textField(name string, label string, value string, placeholder string, required bool) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="text"
+			class="input validator w-full"
+			value={ value }
+			placeholder={ placeholder }
+			required?={ required }
+		/>
+		if required {
+			<p class="validator-hint">This field is required.</p>
+		}
+	</div>
+}
+
+// min/max/step carry over from number-input.js, which put min="0" max="9999"
+// step="1" on every instance -- so negative values were already rejected before
+// this migration. The hint has to cover the range violation as well as the
+// empty-required one, which is why it is always rendered here and only rendered
+// for required fields above.
+templ numberField(name string, label string, value string, required bool) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input validator w-full"
+			value={ value }
+			min="0"
+			max="9999"
+			step="1"
+			required?={ required }
+		/>
+		<p class="validator-hint">Enter a number from 0 to 9999.</p>
+	</div>
+}

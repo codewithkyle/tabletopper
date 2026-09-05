@@ -61,32 +61,11 @@ templ newCharacterContent(session session.UserSession) {
 					@sheetSection("Identity") {
 						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
 							<div class="col-span-2 max-[900px]:col-auto">
-								<input-component
-									data-name="name"
-									data-label="Character Name"
-									data-required="true"
-									data-value=""
-								></input-component>
+								@textField("name", "Character Name", "", "", true)
 							</div>
-							<input-component
-								data-name="classes"
-								data-label="Class & Level Notes"
-								data-required="true"
-								data-placeholder="Cleric 3, Fighter 1"
-								data-value=""
-							></input-component>
-							<input-component
-								data-name="background"
-								data-label="Background"
-								data-value=""
-							></input-component>
-							<input-component
-								data-name="race"
-								data-label="Species / Race"
-								data-required="true"
-								data-placeholder="Human"
-								data-value=""
-							></input-component>
+							@textField("classes", "Class & Level Notes", "", "Cleric 3, Fighter 1", true)
+							@textField("background", "Background", "", "", false)
+							@textField("race", "Species / Race", "", "Human", true)
 							<select-component
 								data-name="alignment"
 								data-label="Alignment"
@@ -106,39 +85,33 @@ templ newCharacterContent(session session.UserSession) {
 
 					@sheetSection("Abilities") {
 						<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
-							<number-input-component data-name="str" data-label="Strength" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="dex" data-label="Dexterity" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="con" data-label="Constitution" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="int" data-label="Intelligence" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="wis" data-label="Wisdom" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="cha" data-label="Charisma" data-required="true" data-value="10"></number-input-component>
+							@numberField("str", "Strength", "10", true)
+							@numberField("dex", "Dexterity", "10", true)
+							@numberField("con", "Constitution", "10", true)
+							@numberField("int", "Intelligence", "10", true)
+							@numberField("wis", "Wisdom", "10", true)
+							@numberField("cha", "Charisma", "10", true)
 						</div>
 					}
 
 					@sheetSection("Core Stats") {
 						<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-							<number-input-component data-name="xp" data-label="Experience" data-required="true" data-value="0"></number-input-component>
-							<input-component data-name="speed" data-label="Speed" data-value="30 ft."></input-component>
-							<number-input-component data-name="ac" data-label="Armor Class" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="initiative_bonus" data-label="Initiative Bonus" data-required="true" data-value="0"></number-input-component>
-							<number-input-component data-name="max_hp" data-label="Hit Point Maximum" data-required="true" data-value="1"></number-input-component>
-							<number-input-component data-name="current_hp" data-label="Current Hit Points" data-required="true" data-value="1"></number-input-component>
-							<number-input-component data-name="temp_hp" data-label="Temporary Hit Points" data-required="true" data-value="0"></number-input-component>
-							<number-input-component data-name="spell_save_dc" data-label="Spell Save DC" data-required="true" data-value="10"></number-input-component>
-							<number-input-component data-name="spell_atk_bonus" data-label="Spell Attack Bonus" data-required="true" data-value="0"></number-input-component>
+							@numberField("xp", "Experience", "0", true)
+							@textField("speed", "Speed", "30 ft.", "", false)
+							@numberField("ac", "Armor Class", "10", true)
+							@numberField("initiative_bonus", "Initiative Bonus", "0", true)
+							@numberField("max_hp", "Hit Point Maximum", "1", true)
+							@numberField("current_hp", "Current Hit Points", "1", true)
+							@numberField("temp_hp", "Temporary Hit Points", "0", true)
+							@numberField("spell_save_dc", "Spell Save DC", "10", true)
+							@numberField("spell_atk_bonus", "Spell Attack Bonus", "0", true)
 						</div>
 					}
 
 					@sheetSection("Proficiencies & Training") {
 						<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-							<input-component data-name="languages" data-label="Languages" data-value="Common"></input-component>
-							<input-component
-								data-name="proficiencies"
-								data-label="Other Proficiencies"
-								data-required="true"
-								data-placeholder="Medium armor, thieves tools"
-								data-value=""
-							></input-component>
+							@textField("languages", "Languages", "Common", "", false)
+							@textField("proficiencies", "Other Proficiencies", "", "Medium armor, thieves tools", true)
 						</div>
 					}
 
