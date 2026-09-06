@@ -2793,9 +2793,9 @@
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
   @layer daisyui.l1.l2 {
-    .badge-sm {
-      --size: calc(var(--size-selector, 0.25rem) * 5);
-      font-size: 0.75rem;
+    .badge-md {
+      --size: calc(var(--size-selector, 0.25rem) * 6);
+      font-size: 0.875rem;
     }
   }
   .text-\[0\.82rem\] {
@@ -2981,6 +2981,10 @@
       --btn-color: var(--color-warning);
       --btn-fg: var(--color-warning-content);
       --btn-soft-bg: initial;
+    }
+    .badge-neutral {
+      --badge-color: var(--color-neutral);
+      --badge-fg: var(--color-neutral-content);
     }
   }
   .select-none {
