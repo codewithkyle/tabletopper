@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -9,6 +8,7 @@ import (
 	"image"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,12 +22,13 @@ import (
 	_ "image/png"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/tiling"
 	"tabletopper/templ/pages"
 
-	"github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
@@ -41,8 +42,6 @@ const (
 	// fits, and nothing in the app renders larger than that.
 	maxUploadPixels = 40_000_000
 	avatarSize      = 96
-	mapPreviewSize  = 256
-	outQuality      = 75
 )
 
 func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
@@ -141,22 +140,82 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 	}
 }
 
-// readImageUpload pulls one image out of a multipart form. It writes the
-// response itself when something is wrong with the upload, so a caller only
-// has to stop: the false return means "already answered".
+// openImageUpload pulls one image out of a multipart form and checks it from
+// its header alone. It writes the response itself when something is wrong with
+// the upload, so a caller only has to stop: the false return means "already
+// answered". The caller owns the file, which is rewound to the start, and must
+// close it.
 //
-// THE FILE IS READ TWICE, HEADER FIRST, and that pass is what makes the size
-// refusable. image.DecodeConfig reads the dimensions and stops, so an upload
-// declaring more pixels than the budget is answered before a decoder has
-// allocated anything; a check after the decode would be a check made from
-// inside the allocation it was meant to prevent. multipart.File is an
-// io.Seeker, so the second pass starts from the beginning again.
+// THE HEADER PASS IS WHAT MAKES THE SIZE REFUSABLE. image.DecodeConfig reads
+// the dimensions and stops, so an upload declaring more pixels than the budget
+// is answered before a decoder has allocated anything; a check after the decode
+// would be a check made from inside the allocation it was meant to prevent.
+// multipart.File is an io.Seeker, so whatever the caller does next starts from
+// the beginning again.
+//
+// THE DIMENSIONS ARE CHECKED AND THEN THROWN AWAY. They are the ones in the
+// file, and an EXIF rotation tag means those are not the ones the image is
+// actually laid out over -- so they are fine for refusing a canvas that is too
+// large and wrong for anything that has to be stored.
 //
 // The format comes from that header pass rather than from the Content-Type the
 // browser claimed. imaging registers GIF, BMP and TIFF decoders as a side
 // effect of importing it, so decoding alone is not the allowlist --
 // DecodeConfig uses the same registered decoders as Decode, so the name it
-// reports is the one the allowlist means.
+// reports is the one the allowlist means. It is also what the content type
+// returned here is built from, for the same reason.
+func openImageUpload(w http.ResponseWriter, r *http.Request, field string) (multipart.File, string, string, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			htmx.Error(w, "Upload Too Large", "Images must be 8 MiB or smaller.", http.StatusRequestEntityTooLarge)
+			return nil, "", "", false
+		}
+		slog.Error("Failed to parse multipart form", "error", err)
+		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
+		return nil, "", "", false
+	}
+
+	file, header, err := r.FormFile(field)
+	if err != nil {
+		slog.Error("Failed to get upload from form", "field", field, "error", err)
+		htmx.Error(w, "Upload Failed", "No image was attached. Refresh the page and try again.", http.StatusBadRequest)
+		return nil, "", "", false
+	}
+	defer file.Close()
+
+	cfg, format, err := image.DecodeConfig(file)
+	if err != nil {
+		slog.Warn("Failed to read upload header", "field", field, "error", err)
+		unsupportedImage(w)
+		return nil, "", "", false
+	}
+	switch format {
+	case "png", "jpeg", "webp":
+	default:
+		unsupportedImage(w)
+		return nil, "", "", false
+	}
+	// int64, so the multiplication cannot wrap on a declared canvas large
+	// enough to try -- the whole point of this check is a header nobody sane
+	// wrote.
+	if int64(cfg.Width)*int64(cfg.Height) > maxUploadPixels {
+		htmx.Error(w, "Image Too Large", "Images must be 40 megapixels or fewer.", http.StatusRequestEntityTooLarge)
+		return nil, "", "", false
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		slog.Error("Failed to rewind upload after reading its header", "field", field, "error", err)
+		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
+		return nil, "", "", false
+	}
+
+	return file, header.Filename, "image/" + format, true
+}
+
+// readImageUpload validates an upload and decodes it. It is what every path
+// that resizes, crops or re-encodes an image uses.
 //
 // THE DECODE IS IMAGING'S RATHER THAN image.Decode, for the orientation tag. A
 // photograph taken on a phone records its rotation in EXIF and stores the
@@ -165,51 +224,11 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 // applies the tag to a JPEG and leaves every other format untouched. It returns
 // no format name, which is the other reason the name comes from the header.
 func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (image.Image, string, bool) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
-	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
-		var tooLarge *http.MaxBytesError
-		if errors.As(err, &tooLarge) {
-			htmx.Error(w, "Upload Too Large", "Images must be 8 MiB or smaller.", http.StatusRequestEntityTooLarge)
-			return nil, "", false
-		}
-		slog.Error("Failed to parse multipart form", "error", err)
-		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
-		return nil, "", false
-	}
-
-	file, header, err := r.FormFile(field)
-	if err != nil {
-		slog.Error("Failed to get upload from form", "field", field, "error", err)
-		htmx.Error(w, "Upload Failed", "No image was attached. Refresh the page and try again.", http.StatusBadRequest)
+	file, filename, _, ok := openImageUpload(w, r, field)
+	if !ok {
 		return nil, "", false
 	}
 	defer file.Close()
-
-	cfg, format, err := image.DecodeConfig(file)
-	if err != nil {
-		slog.Warn("Failed to read upload header", "field", field, "error", err)
-		unsupportedImage(w)
-		return nil, "", false
-	}
-	switch format {
-	case "png", "jpeg", "webp":
-	default:
-		unsupportedImage(w)
-		return nil, "", false
-	}
-	// int64, so the multiplication cannot wrap on a declared canvas large
-	// enough to try -- the whole point of this check is a header nobody sane
-	// wrote.
-	if int64(cfg.Width)*int64(cfg.Height) > maxUploadPixels {
-		htmx.Error(w, "Image Too Large", "Images must be 40 megapixels or fewer.", http.StatusRequestEntityTooLarge)
-		return nil, "", false
-	}
-
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		slog.Error("Failed to rewind upload after reading its header", "field", field, "error", err)
-		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
-		return nil, "", false
-	}
 
 	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
 	if err != nil {
@@ -218,24 +237,36 @@ func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (imag
 		return nil, "", false
 	}
 
-	return src, header.Filename, true
+	return src, filename, true
+}
+
+// readImageBytes validates an upload and hands back the bytes exactly as they
+// arrived, along with what the header said they are.
+//
+// A MAP IS NEVER DECODED IN A REQUEST. The header pass has already refused a
+// canvas larger than the cap, which is the check that matters, and decoding a
+// hundred-megapixel image to re-encode it would put half a gigabyte and most of
+// a minute inside a handler. The bytes are stored as they came and the tiling
+// worker is what decodes them, once, later.
+func readImageBytes(w http.ResponseWriter, r *http.Request, field string) ([]byte, string, string, bool) {
+	file, filename, contentType, ok := openImageUpload(w, r, field)
+	if !ok {
+		return nil, "", "", false
+	}
+	defer file.Close()
+
+	body, err := io.ReadAll(file)
+	if err != nil {
+		slog.Error("Failed to read upload", "field", field, "error", err)
+		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
+		return nil, "", "", false
+	}
+
+	return body, filename, contentType, true
 }
 
 func unsupportedImage(w http.ResponseWriter) {
 	htmx.Error(w, "Unsupported Image Type", "Only PNG, JPEG, and WEBP images are allowed. Refresh the page and try again.", http.StatusUnsupportedMediaType)
-}
-
-// square crops and scales img to a size-by-size square, centred.
-func square(img image.Image, size int) image.Image {
-	return imaging.Fill(img, size, size, imaging.Center, imaging.Lanczos)
-}
-
-func encodeWebP(img image.Image) ([]byte, error) {
-	var out bytes.Buffer
-	if err := webp.Encode(&out, img, &webp.Options{Quality: outQuality}); err != nil {
-		return nil, err
-	}
-	return out.Bytes(), nil
 }
 
 func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +283,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	avatar, err := encodeWebP(square(src, avatarSize))
+	avatar, err := images.EncodeWebP(images.Square(src, avatarSize))
 	if err != nil {
 		slog.Error("Failed to encode avatar as webp", "error", err)
 		htmx.ServerError(w)
@@ -342,39 +373,33 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Character(updated))
 }
 
+// UploadMap stores a map and queues it for tiling. It does not decode it, does
+// not re-encode it and does not build its preview: all three moved to the
+// tiling worker, which is the only thing in the app that ever holds a
+// hundred-megapixel image in memory. What is left is a header check, a row and
+// a PUT of the bytes that arrived.
 func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	src, filename, ok := readImageUpload(w, r, "map")
+	original, filename, contentType, ok := readImageBytes(w, r, "map")
 	if !ok {
-		return
-	}
-	preview, err := encodeWebP(square(src, mapPreviewSize))
-	if err != nil {
-		slog.Error("Failed to encode map preview as webp", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-	full, err := encodeWebP(src)
-	if err != nil {
-		slog.Error("Failed to encode map as webp", "error", err)
-		htmx.ServerError(w)
 		return
 	}
 
 	assetID := ulid.Make()
-	fullPath, previewPath := storage.MapKeys(sess.UserID, assetID)
+	originalPath := storage.MapOriginalKey(sess.UserID, assetID)
+	tileSize := sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}
 
 	// NOTE: the row is the ledger for what lives in R2, so it is written first
 	// and rolled back if the upload never lands
-	err = a.Queries.InsertMap(ctx, queries.InsertMapParams{
-		ID:          assetID,
-		OwnerID:     sess.UserID,
-		FilePath:    fullPath,
-		PreviewPath: sql.NullString{Valid: true, String: previewPath},
-		FileName:    filename,
-		Name:        filename,
+	err := a.Queries.InsertMap(ctx, queries.InsertMapParams{
+		ID:       assetID,
+		OwnerID:  sess.UserID,
+		FilePath: originalPath,
+		FileName: filename,
+		Name:     filename,
+		TileSize: tileSize,
 	})
 	if err != nil {
 		slog.Error("Failed to insert map", "error", err)
@@ -382,7 +407,7 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Storage.UploadMap(ctx, sess.UserID, assetID, full, preview); err != nil {
+	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, original, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
 		a.discardMap(ctx, sess.UserID, assetID)
 		htmx.ServerError(w)
@@ -392,15 +417,16 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, filename+" uploaded.")
 	now := time.Now()
 	render(w, r, pages.MapCard(queries.Asset{
-		ID:          assetID,
-		OwnerID:     sess.UserID,
-		FilePath:    fullPath,
-		PreviewPath: sql.NullString{Valid: true, String: previewPath},
-		Type:        queries.AssetsTypeMap,
-		FileName:    filename,
-		Name:        filename,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:        assetID,
+		OwnerID:   sess.UserID,
+		FilePath:  originalPath,
+		Type:      queries.AssetsTypeMap,
+		FileName:  filename,
+		Name:      filename,
+		TileSize:  tileSize,
+		TileState: queries.NullAssetsTileState{AssetsTileState: queries.AssetsTileStatePending, Valid: true},
+		CreatedAt: now,
+		UpdatedAt: now,
 	}))
 }
 
@@ -429,8 +455,10 @@ func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Objects first, row last: the row is the record that objects may exist,
-	// so it goes only once R2 has confirmed they are gone.
-	if err := a.Storage.DeleteMapObjects(ctx, sess.UserID, assetID); err != nil {
+	// so it goes only once R2 has confirmed they are gone. One prefix is the
+	// whole map -- the original and every generation of its pyramid, including
+	// one a worker is part way through writing.
+	if err := a.Storage.DeletePrefix(ctx, storage.MapPrefix(sess.UserID, assetID)); err != nil {
 		slog.Error("Failed to delete map objects", "error", err)
 		htmx.ServerError(w)
 		return
@@ -476,37 +504,31 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, filename, ok := readImageUpload(w, r, "map")
+	original, filename, contentType, ok := readImageBytes(w, r, "map")
 	if !ok {
 		return
 	}
-	preview, err := encodeWebP(square(src, mapPreviewSize))
-	if err != nil {
-		slog.Error("Failed to encode map preview as webp", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-	full, err := encodeWebP(src)
-	if err != nil {
-		slog.Error("Failed to encode map as webp", "error", err)
-		htmx.ServerError(w)
-		return
-	}
 
-	// NOTE: replacing overwrites the existing keys, so nothing can be orphaned
-	if err := a.Storage.UploadMap(ctx, sess.UserID, assetID, full, preview); err != nil {
+	// THE ORIGINAL IS OVERWRITTEN AND NOTHING ELSE IS TOUCHED. Its key is
+	// fixed, so replacing it orphans nothing; the tiles are the opposite --
+	// they are never overwritten, only superseded. The pyramid that is serving
+	// goes on serving under the generation tile_gen names, and the worker
+	// deletes it only once it has a whole new one to put in its place. So
+	// there is no window here in which the map has no tiles, and nothing to
+	// clean up if this request fails halfway.
+	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, original, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
 		htmx.ServerError(w)
 		return
 	}
 
-	err = a.Queries.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
+	_, err = a.Queries.RequeueMapForTiling(ctx, queries.RequeueMapForTilingParams{
 		ID:       assetID,
 		OwnerID:  sess.UserID,
 		FileName: filename,
 	})
 	if err != nil {
-		slog.Error("Failed to update map", "error", err)
+		slog.Error("Failed to requeue map for tiling", "error", err)
 		htmx.ServerError(w)
 		return
 	}
@@ -522,6 +544,54 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		htmx.Refresh(w)
 		return
 	}
+	render(w, r, pages.MapCard(m))
+}
+
+// RetryMapTiling puts a map whose tiling gave up back in the queue. It is the
+// button behind a card that failed, and it answers with that card, which is now
+// a card that is waiting.
+//
+// IT IS A MUTATION AT A RESOURCE URL rather than a fragment route, and it
+// returns the row it just changed -- the alternative is a POST that answers
+// with nothing followed by a GET to fetch what it did.
+func (a *App) RetryMapTiling(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	assetID, err := ulid.Parse(r.PathValue("id"))
+	if err != nil {
+		htmx.NotFound(w, "map")
+		return
+	}
+
+	// The update is conditional on the row still being failed, and its result
+	// is deliberately not read: a button pressed twice, or pressed on a card
+	// that a background retry already picked up, changes nothing and is not an
+	// error. What the owner gets back either way is the row as it now stands.
+	_, err = a.Queries.RetryMapTiling(ctx, queries.RetryMapTilingParams{
+		ID:      assetID,
+		OwnerID: sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to retry map tiling", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{
+		ID:      assetID,
+		OwnerID: sess.UserID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "map")
+		return
+	}
+	if err != nil {
+		slog.Error("Failed to load map after retry", "error", err, "assetID", assetID.String())
+		htmx.ServerError(w)
+		return
+	}
+
 	render(w, r, pages.MapCard(m))
 }
 
@@ -561,7 +631,7 @@ func (a *App) discardMap(ctx context.Context, userID ulid.ULID, assetID ulid.ULI
 	cleanupCtx, cancel := storage.CleanupContext(ctx)
 	defer cancel()
 
-	if err := a.Storage.DeleteMapObjects(cleanupCtx, userID, assetID); err != nil {
+	if err := a.Storage.DeletePrefix(cleanupCtx, storage.MapPrefix(userID, assetID)); err != nil {
 		slog.Error("Failed to clean up map objects; leaving the asset row behind", "error", err, "assetID", assetID.String())
 		return
 	}

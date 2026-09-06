@@ -239,6 +239,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("DELETE /assets/maps/{id}", auth.RequireSession(app.DeleteMap))
 	mux.HandleFunc("POST /assets/maps/{id}", auth.RequireSession(app.ReplaceMap))
 	mux.HandleFunc("PATCH /assets/maps/{id}/name", auth.RequireSession(app.ReplaceMapName))
+	mux.HandleFunc("POST /assets/maps/{id}/tiles", auth.RequireSession(app.RetryMapTiling))
 
 	mux.HandleFunc("GET /assets/images/{id}", auth.RequireSessionOr404(app.GetImage))
 	mux.HandleFunc("GET /assets/images/{id}/preview", auth.RequireSessionOr404(app.GetImagePreview))

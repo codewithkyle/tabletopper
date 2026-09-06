@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
@@ -109,7 +110,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 	// CountJournalImages for the GROUP BY that makes that true, and for why a
 	// count of zero would otherwise be indistinguishable from a stranger's
 	// entry.
-	images, err := a.Queries.CountJournalImages(ctx, queries.CountJournalImagesParams{
+	held, err := a.Queries.CountJournalImages(ctx, queries.CountJournalImagesParams{
 		ID:          entryID,
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
@@ -127,7 +128,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 	// exists so a folder of photographs dropped on the editor at once is
 	// refused rather than stored; nothing downstream depends on the number, so
 	// a count read outside a transaction is the right amount of care for it.
-	if images >= journalImageLimit {
+	if held >= journalImageLimit {
 		htmx.Error(w, "Too Many Images", "An entry can hold 40 images. Remove one to add another.", http.StatusUnprocessableEntity)
 		return
 	}
@@ -139,7 +140,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 	// Fit scales down to the box and hands back a copy unchanged when the
 	// image already fits, so a screenshot narrower than the column is never
 	// resampled and nothing is ever enlarged.
-	encoded, err := encodeWebP(imaging.Fit(src, journalImageEdge, journalImageEdge, imaging.Lanczos))
+	encoded, err := images.EncodeWebP(imaging.Fit(src, journalImageEdge, journalImageEdge, imaging.Lanczos))
 	if err != nil {
 		slog.Error("Failed to encode journal image as webp", "error", err)
 		htmx.ServerError(w)

@@ -20,6 +20,7 @@ import (
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 	"tabletopper/internal/sweep"
+	"tabletopper/internal/tiling"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func run() error {
 	}
 
 	// ctx ends on SIGINT or SIGTERM. Everything long-lived hangs off it: the
-	// three sweepers stop, and the server drains.
+	// three sweepers and the map tiler stop, and the server drains.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -67,6 +68,7 @@ func run() error {
 	sessions.StartCleanup(ctx)
 	sweep.JournalImages(ctx, q, store)
 	sweep.ExpiredShares(ctx, q)
+	tiling.Maps(ctx, q, store)
 
 	app := &controllers.App{
 		Queries:  q,

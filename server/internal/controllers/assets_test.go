@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/binary"
 	"hash/crc32"
 	"mime/multipart"
@@ -9,6 +10,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"tabletopper/internal/queries"
+	"tabletopper/internal/session"
+	"tabletopper/internal/storage"
+	"tabletopper/internal/tiling"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // pngHeader builds a PNG that is a signature and an IHDR chunk and nothing
@@ -90,6 +98,148 @@ func TestReadImageUploadRefusesOverThePixelBudget(t *testing.T) {
 			// It answered the request itself, which is what ok=false promises.
 			if !strings.Contains(rec.Header().Get("HX-Trigger"), "alert") {
 				t.Errorf("no alert in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
+			}
+		})
+	}
+}
+
+// THE MAP PATH DOES NOT DECODE, and this is the pair that proves it. The
+// fixture is the same header-and-nothing-else PNG the test above feeds to
+// readImageUpload, which answers 415 because there is nothing there to decode.
+// readImageBytes accepts it, because it never asks: the header pass is the
+// whole of the validation, and what comes back is the file as it arrived.
+func TestReadImageBytesDoesNotDecode(t *testing.T) {
+	fixture := pngHeader(100, 100)
+
+	rec := httptest.NewRecorder()
+	body, filename, contentType, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map")
+
+	if !ok {
+		t.Fatalf("readImageBytes refused a valid header with status %d", rec.Code)
+	}
+	if !bytes.Equal(body, fixture) {
+		t.Errorf("read %d bytes, want the %d that were uploaded", len(body), len(fixture))
+	}
+	if filename != "huge.png" {
+		t.Errorf("filename = %q, want %q", filename, "huge.png")
+	}
+	// The multipart part was written as application/octet-stream, so this can
+	// only have come from the header pass.
+	if contentType != "image/png" {
+		t.Errorf("contentType = %q, want %q -- it must come from the header, not the browser", contentType, "image/png")
+	}
+}
+
+// The budget is refused on the way through the same header pass, so the map
+// path is no more willing to take a 400-megapixel canvas than the avatar path
+// is -- it just refuses it without ever holding one.
+func TestReadImageBytesRefusesOverThePixelBudget(t *testing.T) {
+	rec := httptest.NewRecorder()
+
+	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map"); ok {
+		t.Fatal("readImageBytes accepted a canvas over the budget")
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+}
+
+// THE ROW GOES BEFORE THE OBJECT, and the nil Storage on this App is what
+// proves it: R2 is not reachable from here at all, so a handler that uploaded
+// first would have panicked before any statement was recorded. What is asserted
+// beyond the order is the shape of the row a map is now born with -- the
+// original's key, the size to tile it at, and no preview, because there is
+// nothing to preview until the worker has built something.
+func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
+	db := &recordingDB{err: errNoRowsToGive}
+	app := &App{Queries: queries.New(db)}
+
+	r := uploadRequest(t, "map", pngHeader(100, 100))
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	rec := httptest.NewRecorder()
+
+	app.UploadMap(rec, r)
+
+	if len(db.calls) != 1 {
+		t.Fatalf("ran %d statements, want 1", len(db.calls))
+	}
+	insert := db.calls[0]
+	if !strings.Contains(insert.query, "INSERT INTO assets") {
+		t.Fatalf("the first statement is not the insert: %q", insert.query)
+	}
+	if !strings.Contains(insert.query, "'pending'") {
+		t.Errorf("a map is not inserted pending, so nothing would ever tile it: %q", insert.query)
+	}
+	if strings.Contains(insert.query, "preview_path") {
+		t.Errorf("the insert names a preview that does not exist yet: %q", insert.query)
+	}
+
+	if len(insert.args) != 6 {
+		t.Fatalf("the insert takes %d arguments, want 6", len(insert.args))
+	}
+	assetID, ok := insert.args[0].(ulid.ULID)
+	if !ok {
+		t.Fatalf("the first argument is %T, want a ULID", insert.args[0])
+	}
+	if want := storage.MapOriginalKey(testOwnerID, assetID); insert.args[2] != want {
+		t.Errorf("file_path = %v, want the original's key %q", insert.args[2], want)
+	}
+	if want := (sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}); insert.args[5] != want {
+		t.Errorf("tile_size = %v, want %v", insert.args[5], want)
+	}
+}
+
+// The retry is owner-scoped and conditional on the row having failed, so a
+// button pressed twice cannot re-queue a job that is already running and a
+// stranger's id cannot re-queue anything at all.
+func TestRetryMapTilingIsScopedAndConditional(t *testing.T) {
+	db := &recordingDB{err: errNoRowsToGive}
+	app := &App{Queries: queries.New(db)}
+
+	r := httptest.NewRequest(http.MethodPost, "/assets/maps/x/tiles", nil)
+	r.SetPathValue("id", testAssetID.String())
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	rec := httptest.NewRecorder()
+
+	app.RetryMapTiling(rec, r)
+
+	if len(db.calls) != 1 {
+		t.Fatalf("ran %d statements, want 1", len(db.calls))
+	}
+	retry := db.calls[0]
+	for _, want := range []string{"owner_id = ?", "tile_state = 'failed'", "tile_attempts = 0"} {
+		if !strings.Contains(retry.query, want) {
+			t.Errorf("the retry does not contain %q: %q", want, retry.query)
+		}
+	}
+	if len(retry.args) != 2 || retry.args[0] != testAssetID || retry.args[1] != testOwnerID {
+		t.Errorf("the retry ran with %v, want the asset and the session's owner", retry.args)
+	}
+}
+
+// An id that does not parse never becomes a statement, on either of the two
+// map routes that take one and answer through the alert header.
+func TestMapRoutesRejectUnparseableIDs(t *testing.T) {
+	for name, handler := range map[string]func(*App) http.HandlerFunc{
+		"retry":  func(a *App) http.HandlerFunc { return a.RetryMapTiling },
+		"delete": func(a *App) http.HandlerFunc { return a.DeleteMap },
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &recordingDB{}
+			app := &App{Queries: queries.New(db)}
+
+			r := httptest.NewRequest(http.MethodPost, "/assets/maps/x", nil)
+			r.SetPathValue("id", "not-a-ulid")
+			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+			rec := httptest.NewRecorder()
+
+			handler(app)(rec, r)
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+			}
+			if len(db.calls) != 0 {
+				t.Errorf("ran %d statements, want 0", len(db.calls))
 			}
 		})
 	}

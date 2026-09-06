@@ -11,14 +11,7 @@ import (
 // cleanupTimeout bounds a compensating delete after a failed upload.
 const cleanupTimeout = 15 * time.Second
 
-// MapKeys returns the keys holding a map's full-size image and its preview, in
-// the flat layout the upload path still writes.
-func MapKeys(userID ulid.ULID, assetID ulid.ULID) (full string, preview string) {
-	base := "users/" + userID.String() + "/maps/"
-	return base + assetID.String(), base + "preview-" + assetID.String()
-}
-
-// A tiled map is a directory rather than a pair of keys, because it is a
+// A map is a directory rather than a pair of keys, because it is a tile
 // pyramid rather than one image:
 //
 //	users/{userID}/maps/{assetID}/original
@@ -103,22 +96,14 @@ func (c *Client) UploadJournalImage(ctx context.Context, userID ulid.ULID, asset
 	return c.Put(ctx, JournalImageKey(userID, assetID), body, "image/webp")
 }
 
-// UploadMap writes a map's full-size image and preview to the keys returned by
-// MapKeys. The asset row must already exist so a failure here can be cleaned up.
-func (c *Client) UploadMap(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, full []byte, preview []byte) error {
-	fullKey, previewKey := MapKeys(userID, assetID)
-	if err := c.Put(ctx, fullKey, full, "image/webp"); err != nil {
-		return err
-	}
-	return c.Put(ctx, previewKey, preview, "image/webp")
-}
-
-// DeleteMapObjects removes both of a map's objects. Deleting a key that was
-// never written succeeds, so this is safe after a partially completed upload.
-func (c *Client) DeleteMapObjects(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) error {
-	fullKey, previewKey := MapKeys(userID, assetID)
-	if err := c.Delete(ctx, fullKey); err != nil {
-		return err
-	}
-	return c.Delete(ctx, previewKey)
+// UploadMapOriginal writes a map's file as it was uploaded, at the key that
+// belongs to the map rather than to any of its generations. The asset row must
+// already exist so a failure here can be cleaned up.
+//
+// contentType is what the upload's header said it is, not image/webp: this is
+// the one stored image that is never re-encoded, and it is a PNG or a JPEG as
+// often as not. Nothing serves it -- the image routes answer image/webp -- so
+// the type is here for whoever is looking in the bucket.
+func (c *Client) UploadMapOriginal(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte, contentType string) error {
+	return c.Put(ctx, MapOriginalKey(userID, assetID), body, contentType)
 }
