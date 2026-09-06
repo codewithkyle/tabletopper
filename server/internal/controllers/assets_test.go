@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
+	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -44,8 +48,9 @@ func pngHeader(width, height uint32) []byte {
 	return binary.BigEndian.AppendUint32(out, crc32.ChecksumIEEE(chunk))
 }
 
-// uploadRequest posts content as one multipart file under field.
-func uploadRequest(t *testing.T, field string, content []byte) *http.Request {
+// uploadBody wraps content as one multipart file under field, and returns the
+// bytes and the Content-Type that describes them.
+func uploadBody(t *testing.T, field string, content []byte) ([]byte, string) {
 	t.Helper()
 
 	var body bytes.Buffer
@@ -61,10 +66,36 @@ func uploadRequest(t *testing.T, field string, content []byte) *http.Request {
 		t.Fatalf("closing the form: %v", err)
 	}
 
-	r := httptest.NewRequest(http.MethodPost, "/assets/maps", &body)
-	r.Header.Set("Content-Type", form.FormDataContentType())
+	return body.Bytes(), form.FormDataContentType()
+}
+
+// uploadRequest posts content as one multipart file under field.
+func uploadRequest(t *testing.T, field string, content []byte) *http.Request {
+	t.Helper()
+
+	body, contentType := uploadBody(t, field, content)
+	r := httptest.NewRequest(http.MethodPost, "/assets/maps", bytes.NewReader(body))
+	r.Header.Set("Content-Type", contentType)
 
 	return r
+}
+
+// deadlineRecorder is a ResponseRecorder that answers the two methods
+// http.ResponseController looks for. httptest's does not, so without this every
+// upload test would run the path where extending the deadline failed -- which
+// is the one path a real request must never take -- and would say nothing about
+// whether it was extended.
+type deadlineRecorder struct {
+	*httptest.ResponseRecorder
+	read  time.Time
+	write time.Time
+}
+
+func (d *deadlineRecorder) SetReadDeadline(at time.Time) error  { d.read = at; return nil }
+func (d *deadlineRecorder) SetWriteDeadline(at time.Time) error { d.write = at; return nil }
+
+func newRecorder() *deadlineRecorder {
+	return &deadlineRecorder{ResponseRecorder: httptest.NewRecorder()}
 }
 
 // THE REFUSAL HAPPENS BEFORE THE DECODE, and the pair of cases is what proves
@@ -86,10 +117,10 @@ func TestReadImageUploadRefusesOverThePixelBudget(t *testing.T) {
 		{name: "within the budget", width: 100, height: 100, status: http.StatusUnsupportedMediaType},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			rec := httptest.NewRecorder()
+			rec := newRecorder()
 			r := uploadRequest(t, "map", pngHeader(c.width, c.height))
 
-			if _, _, ok := readImageUpload(rec, r, "map"); ok {
+			if _, _, ok := readImageUpload(rec, r, "map", imageLimits); ok {
 				t.Fatal("readImageUpload accepted a file with no pixels in it")
 			}
 			if rec.Code != c.status {
@@ -111,8 +142,8 @@ func TestReadImageUploadRefusesOverThePixelBudget(t *testing.T) {
 func TestReadImageBytesDoesNotDecode(t *testing.T) {
 	fixture := pngHeader(100, 100)
 
-	rec := httptest.NewRecorder()
-	body, filename, contentType, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map")
+	rec := newRecorder()
+	body, filename, contentType, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map", mapLimits)
 
 	if !ok {
 		t.Fatalf("readImageBytes refused a valid header with status %d", rec.Code)
@@ -134,9 +165,9 @@ func TestReadImageBytesDoesNotDecode(t *testing.T) {
 // path is no more willing to take a 400-megapixel canvas than the avatar path
 // is -- it just refuses it without ever holding one.
 func TestReadImageBytesRefusesOverThePixelBudget(t *testing.T) {
-	rec := httptest.NewRecorder()
+	rec := newRecorder()
 
-	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map"); ok {
+	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map", mapLimits); ok {
 		t.Fatal("readImageBytes accepted a canvas over the budget")
 	}
 	if rec.Code != http.StatusRequestEntityTooLarge {
@@ -156,7 +187,7 @@ func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
 
 	r := uploadRequest(t, "map", pngHeader(100, 100))
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-	rec := httptest.NewRecorder()
+	rec := newRecorder()
 
 	app.UploadMap(rec, r)
 
@@ -243,4 +274,180 @@ func TestMapRoutesRejectUnparseableIDs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// AN UPLOAD LIFTS BOTH OF ITS OWN DEADLINES, and both is the point. The server
+// sets five seconds to read and ten to write, and the write deadline runs from
+// when the request's headers arrived rather than from when the handler answers
+// -- so an upload that took a minute would read to completion and then fail to
+// reply, which is the harder of the two to work out from the outside.
+func TestAnUploadExtendsBothOfItsDeadlines(t *testing.T) {
+	rec := newRecorder()
+	before := time.Now()
+
+	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(100, 100)), "map", mapLimits); !ok {
+		t.Fatal("the upload was refused")
+	}
+
+	if rec.read.Sub(before) < uploadReadDeadline {
+		t.Errorf("the read deadline was extended by %v, want at least %v", rec.read.Sub(before), uploadReadDeadline)
+	}
+	if !rec.write.After(rec.read) {
+		t.Errorf("the write deadline is %v and the read deadline %v; a request that uses its whole read budget could not answer", rec.write, rec.read)
+	}
+}
+
+// THE MAP THIS WHOLE ARRANGEMENT EXISTS FOR IS 108 MEGAPIXELS, and the old
+// single cap of 40 refused it outright. It is accepted now on the path that
+// never decodes it, and still refused on the paths that do -- which is what
+// keeps half a gigabyte of decoded avatar out of a request handler.
+func TestTheMapCapTakesWhatTheDecodedCapCannot(t *testing.T) {
+	const width, height = 12000, 9000
+
+	rec := newRecorder()
+	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(width, height)), "map", mapLimits); !ok {
+		t.Errorf("a %dx%d map was refused with status %d", width, height, rec.Code)
+	}
+
+	rec = newRecorder()
+	if _, _, ok := readImageUpload(rec, uploadRequest(t, "map", pngHeader(width, height)), "map", imageLimits); ok {
+		t.Errorf("a %dx%d image was accepted on the path that decodes it", width, height)
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+
+	// Past the map's own cap it is refused there too, with a message that
+	// names the cap it was given rather than one written into the string.
+	rec = newRecorder()
+	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map", mapLimits); ok {
+		t.Error("a 400-megapixel map was accepted")
+	}
+	if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, "150 megapixels") {
+		t.Errorf("the alert does not name the map cap: %q", alert)
+	}
+}
+
+// http.MaxBytesReader is what enforces the byte cap, not the argument to
+// ParseMultipartForm -- which is only how much is held in memory before the
+// body spills to a temp file, and which is deliberately much smaller than the
+// cap so that one upload is not a 128 MB heap allocation.
+func TestTheByteCapIsEnforcedByMaxBytesReader(t *testing.T) {
+	if multipartMemory >= maxMapBytes {
+		t.Fatalf("multipartMemory is %d and the map cap %d; the buffer is meant to be the smaller of the two", multipartMemory, maxMapBytes)
+	}
+
+	rec := newRecorder()
+	oversized := make([]byte, maxUploadBytes+(1<<20))
+
+	if _, _, ok := readImageUpload(rec, uploadRequest(t, "avatar", oversized), "avatar", imageLimits); ok {
+		t.Fatal("a file over the byte cap was accepted")
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
+	}
+	if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, "8 MiB") {
+		t.Errorf("the alert does not name the cap it was given: %q", alert)
+	}
+}
+
+// The globals this test's server runs with. They are a twentieth of the real
+// ones so the test takes a second rather than half a minute; what is being
+// shown is that the extension beats them, which does not depend on the numbers.
+const (
+	testReadTimeout  = 500 * time.Millisecond
+	testWriteTimeout = 1 * time.Second
+	testUploadSpan   = 2 * time.Second
+)
+
+// dribble runs handler on a real server with real timeouts and posts body to it
+// slowly enough to exceed both, returning the raw response.
+func dribble(t *testing.T, handler http.HandlerFunc, body []byte, contentType string) string {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listening: %v", err)
+	}
+	server := &http.Server{
+		Handler:      handler,
+		ReadTimeout:  testReadTimeout,
+		WriteTimeout: testWriteTimeout,
+	}
+	go server.Serve(listener)
+	defer server.Close()
+
+	conn, err := net.Dial("tcp", listener.Addr().String())
+	if err != nil {
+		t.Fatalf("dialling: %v", err)
+	}
+	defer conn.Close()
+
+	fmt.Fprintf(conn, "POST /assets/maps HTTP/1.1\r\nHost: test\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n", contentType, len(body))
+
+	const chunks = 4
+	go func() {
+		size := (len(body) + chunks - 1) / chunks
+		for start := 0; start < len(body); start += size {
+			time.Sleep(testUploadSpan / chunks)
+			if _, err := conn.Write(body[start:min(start+size, len(body))]); err != nil {
+				return
+			}
+		}
+	}()
+
+	if err := conn.SetReadDeadline(time.Now().Add(testUploadSpan + 10*time.Second)); err != nil {
+		t.Fatalf("setting the client deadline: %v", err)
+	}
+	// A read timeout on the server closes the connection, so the client sees a
+	// reset rather than a reply. That is a failure to answer like any other
+	// and is reported as one rather than ending the test.
+	response, err := io.ReadAll(conn)
+	if err != nil {
+		return string(response) + "\n[the connection went away: " + err.Error() + "]"
+	}
+	return string(response)
+}
+
+// A REAL SERVER, ITS REAL GLOBAL TIMEOUTS, AND A CLIENT SLOWER THAN BOTH.
+// Everything else here asserts against a recorder, which can only show that a
+// deadline was asked for; this is what shows that asking works -- that a
+// deadline set from inside the handler overrides the one the server had already
+// established, for the body it has not finished reading and for the response it
+// has not started writing.
+//
+// The control is the same server and the same slow client with a handler that
+// does not ask. It has to fail, or the test proves nothing about the one that
+// does.
+func TestASlowUploadOutlivesTheServerTimeouts(t *testing.T) {
+	fixture := pngHeader(100, 100)
+	body, contentType := uploadBody(t, "map", fixture)
+
+	t.Run("without extending", func(t *testing.T) {
+		got := dribble(t, func(w http.ResponseWriter, r *http.Request) {
+			if _, err := io.Copy(io.Discard, r.Body); err != nil {
+				fmt.Fprint(w, "the body was cut off")
+				return
+			}
+			fmt.Fprint(w, "read the whole body")
+		}, body, contentType)
+
+		if strings.Contains(got, "read the whole body") {
+			t.Errorf("the server's read timeout did not bite, so this proves nothing: %q", got)
+		}
+	})
+
+	t.Run("through the upload path", func(t *testing.T) {
+		got := dribble(t, func(w http.ResponseWriter, r *http.Request) {
+			read, _, _, ok := readImageBytes(w, r, "map", mapLimits)
+			if !ok {
+				return
+			}
+			fmt.Fprintf(w, "read %d bytes", len(read))
+		}, body, contentType)
+
+		if want := fmt.Sprintf("read %d bytes", len(fixture)); !strings.Contains(got, want) {
+			t.Errorf("the upload did not survive the server's timeouts: %q", got)
+		}
+	})
 }

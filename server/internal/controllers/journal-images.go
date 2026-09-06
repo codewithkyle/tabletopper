@@ -133,7 +133,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, filename, ok := readImageUpload(w, r, "image")
+	src, filename, ok := readImageUpload(w, r, "image", imageLimits)
 	if !ok {
 		return
 	}

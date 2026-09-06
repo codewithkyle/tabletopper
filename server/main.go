@@ -79,6 +79,15 @@ func run() error {
 	}
 	auth := middleware.Auth{Sessions: sessions}
 
+	// THE UPLOAD ROUTES LIFT THESE PER REQUEST rather than the numbers here
+	// being relaxed for everything. ReadTimeout covers the whole body and not
+	// just the headers, and WriteTimeout runs from when the headers were read
+	// rather than from when the handler answers, so at these values a large
+	// upload cannot be received and, if it were, could not be replied to. A
+	// handler that expects one extends both of its own deadlines through an
+	// http.ResponseController, which overrides what these established; every
+	// other route keeps five seconds, which is what stops a connection being
+	// held open on a body nobody is sending.
 	server := &http.Server{
 		Addr:         cfg.Addr,
 		Handler:      routes(app, auth),

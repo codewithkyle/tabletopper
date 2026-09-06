@@ -34,15 +34,101 @@ import (
 )
 
 const (
-	maxUploadBytes = 8 << 20 // 8 MiB
-	// maxUploadPixels bounds what those bytes decode to, which the byte cap
-	// does not: an 8 MiB PNG can declare a 20,000 by 20,000 canvas and expand
-	// to 1.6 GB. Forty megapixels is roughly 160 MB of NRGBA, which is one
-	// upload in flight. It is a cap and not a target -- an 8,000 by 5,000 map
-	// fits, and nothing in the app renders larger than that.
+	// maxUploadBytes and maxUploadPixels bound an image that is decoded inside
+	// the request: an avatar, or a picture pasted into a journal entry.
+	//
+	// The byte cap is what a person may send. The pixel cap is what those
+	// bytes are allowed to expand to, which the byte cap does not bound at
+	// all: an 8 MiB PNG can declare a 20,000 by 20,000 canvas and decode to
+	// 1.6 GB. Forty megapixels is roughly 160 MB of NRGBA, which is one
+	// upload in flight.
+	maxUploadBytes  = 8 << 20 // 8 MiB
 	maxUploadPixels = 40_000_000
-	avatarSize      = 96
+
+	// maxMapBytes and maxMapPixels are a map's, and they are larger by an
+	// order of magnitude for one reason: A MAP IS NEVER DECODED IN A REQUEST.
+	// The header pass refuses an oversized canvas and the bytes go to R2
+	// exactly as they arrived, so what these bound is a transfer rather than
+	// an allocation. 12,000 by 9,000 -- the size this whole tiling
+	// arrangement exists for -- is 108 megapixels, which the old cap refused
+	// outright.
+	//
+	// The pixel cap is the tiling worker's memory ceiling instead. It decodes
+	// one map at a time and peaks at roughly five bytes per pixel, so 150
+	// megapixels is about 750 MB the box has to have.
+	//
+	// THE TWO PAIRS ARE SEPARATE BECAUSE ONE SHARED CAP WOULD UNDO THE WHOLE
+	// POINT: it would let an avatar upload decode 150 megapixels inside a
+	// handler, which is the half a gigabyte that was just moved out of the
+	// request path.
+	maxMapBytes  = 128 << 20 // 128 MiB
+	maxMapPixels = 150_000_000
+
+	// multipartMemory is how much of a form is held in memory before the rest
+	// spills to a temp file.
+	//
+	// IT IS NOT THE CAP, though ParseMultipartForm's argument reads like it
+	// wants one -- passing maxMapBytes would be a 128 MB heap allocation for
+	// a single upload. http.MaxBytesReader is what enforces the cap; this
+	// only decides where the bytes live on the way through. Past it the body
+	// is a file in the container's /tmp for the life of the request, so there
+	// has to be room for one there.
+	multipartMemory = 32 << 20 // 32 MiB
+
+	// uploadReadDeadline is how long a request has to deliver an upload, and
+	// uploadWriteDeadline is that plus room to answer it.
+	//
+	// THE SERVER'S GLOBAL TIMEOUTS ARE A BANDWIDTH FLOOR. ReadTimeout covers
+	// the body and not just the headers, so five seconds for 128 MiB is a
+	// demand for 200 Mbps. WriteTimeout blocks it just as hard and far less
+	// obviously: net/http sets that deadline when the request headers are
+	// read, as an absolute time, so a sixty-second upload reads to completion
+	// and then cannot write its response.
+	//
+	// Both are lifted per request rather than globally, so every other route
+	// keeps the five seconds that stop a connection being held open on a body
+	// nobody is sending. Ten minutes covers 128 MiB at around 2 Mbps.
+	uploadReadDeadline  = 10 * time.Minute
+	uploadWriteDeadline = uploadReadDeadline + 30*time.Second
+
+	avatarSize = 96
 )
+
+// uploadLimits is what one kind of upload is allowed to be. There are two.
+type uploadLimits struct {
+	bytes  int64
+	pixels int64
+}
+
+var (
+	// imageLimits is for anything this process decodes; mapLimits for the one
+	// thing it does not.
+	imageLimits = uploadLimits{bytes: maxUploadBytes, pixels: maxUploadPixels}
+	mapLimits   = uploadLimits{bytes: maxMapBytes, pixels: maxMapPixels}
+)
+
+// extendUploadDeadlines gives one request longer than the server's global
+// timeouts allow.
+//
+// A deadline set through the ResponseController overrides the one ReadTimeout
+// or WriteTimeout established when the request began, which is what makes this
+// work without touching either global. It has to happen before the body is
+// read: a deadline set after it has already passed does not extend anything.
+func extendUploadDeadlines(w http.ResponseWriter) {
+	now := time.Now()
+	controller := http.NewResponseController(w)
+
+	// A failure here leaves the server's deadlines in place, so a large
+	// upload is about to be cut off mid-body with nothing else to explain it.
+	// It means something between here and net/http wrapped the ResponseWriter
+	// without an Unwrap method.
+	if err := controller.SetReadDeadline(now.Add(uploadReadDeadline)); err != nil {
+		slog.Error("Failed to extend the upload read deadline", "error", err)
+	}
+	if err := controller.SetWriteDeadline(now.Add(uploadWriteDeadline)); err != nil {
+		slog.Error("Failed to extend the upload write deadline", "error", err)
+	}
+}
 
 func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/assets/maps")
@@ -164,12 +250,14 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 // DecodeConfig uses the same registered decoders as Decode, so the name it
 // reports is the one the allowlist means. It is also what the content type
 // returned here is built from, for the same reason.
-func openImageUpload(w http.ResponseWriter, r *http.Request, field string) (multipart.File, string, string, bool) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
-	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
+func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (multipart.File, string, string, bool) {
+	extendUploadDeadlines(w)
+
+	r.Body = http.MaxBytesReader(w, r.Body, limits.bytes)
+	if err := r.ParseMultipartForm(multipartMemory); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) {
-			htmx.Error(w, "Upload Too Large", "Images must be 8 MiB or smaller.", http.StatusRequestEntityTooLarge)
+			htmx.Error(w, "Upload Too Large", fmt.Sprintf("Images must be %d MiB or smaller.", limits.bytes>>20), http.StatusRequestEntityTooLarge)
 			return nil, "", "", false
 		}
 		slog.Error("Failed to parse multipart form", "error", err)
@@ -200,8 +288,8 @@ func openImageUpload(w http.ResponseWriter, r *http.Request, field string) (mult
 	// int64, so the multiplication cannot wrap on a declared canvas large
 	// enough to try -- the whole point of this check is a header nobody sane
 	// wrote.
-	if int64(cfg.Width)*int64(cfg.Height) > maxUploadPixels {
-		htmx.Error(w, "Image Too Large", "Images must be 40 megapixels or fewer.", http.StatusRequestEntityTooLarge)
+	if int64(cfg.Width)*int64(cfg.Height) > limits.pixels {
+		htmx.Error(w, "Image Too Large", fmt.Sprintf("Images must be %d megapixels or fewer.", limits.pixels/1_000_000), http.StatusRequestEntityTooLarge)
 		return nil, "", "", false
 	}
 
@@ -223,8 +311,8 @@ func openImageUpload(w http.ResponseWriter, r *http.Request, field string) (mult
 // stored on its side and there is nothing in the app to turn it back. imaging
 // applies the tag to a JPEG and leaves every other format untouched. It returns
 // no format name, which is the other reason the name comes from the header.
-func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (image.Image, string, bool) {
-	file, filename, _, ok := openImageUpload(w, r, field)
+func readImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (image.Image, string, bool) {
+	file, filename, _, ok := openImageUpload(w, r, field, limits)
 	if !ok {
 		return nil, "", false
 	}
@@ -248,8 +336,8 @@ func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (imag
 // hundred-megapixel image to re-encode it would put half a gigabyte and most of
 // a minute inside a handler. The bytes are stored as they came and the tiling
 // worker is what decodes them, once, later.
-func readImageBytes(w http.ResponseWriter, r *http.Request, field string) ([]byte, string, string, bool) {
-	file, filename, contentType, ok := openImageUpload(w, r, field)
+func readImageBytes(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) ([]byte, string, string, bool) {
+	file, filename, contentType, ok := openImageUpload(w, r, field, limits)
 	if !ok {
 		return nil, "", "", false
 	}
@@ -279,7 +367,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, filename, ok := readImageUpload(w, r, "avatar")
+	src, filename, ok := readImageUpload(w, r, "avatar", imageLimits)
 	if !ok {
 		return
 	}
@@ -382,7 +470,7 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	original, filename, contentType, ok := readImageBytes(w, r, "map")
+	original, filename, contentType, ok := readImageBytes(w, r, "map", mapLimits)
 	if !ok {
 		return
 	}
@@ -504,7 +592,7 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	original, filename, contentType, ok := readImageBytes(w, r, "map")
+	original, filename, contentType, ok := readImageBytes(w, r, "map", mapLimits)
 	if !ok {
 		return
 	}
