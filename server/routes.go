@@ -95,6 +95,14 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/inventory/{itemId}", auth.RequireSession(app.SaveInventoryItem))
 	mux.HandleFunc("DELETE /characters/{id}/inventory/{itemId}", auth.RequireSession(app.DeleteInventoryItem))
 
+	// Attacks are the same shape as inventory -- a collection and a member,
+	// because the row is the unit of work -- and differ in where they are read:
+	// these rows are edited on the Character tab itself rather than on a tab of
+	// their own, so there is no page route above them.
+	mux.HandleFunc("POST /characters/{id}/attacks", auth.RequireSession(app.AddAttack))
+	mux.HandleFunc("POST /characters/{id}/attacks/{attackId}", auth.RequireSession(app.SaveAttack))
+	mux.HandleFunc("DELETE /characters/{id}/attacks/{attackId}", auth.RequireSession(app.DeleteAttack))
+
 	// Spells are the same shape as inventory -- a collection and a member per
 	// row -- with the level carried in the path. It is there because a spell
 	// cannot change level, so it identifies the row as much as the id does, and

@@ -145,9 +145,6 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 		Speed:            input.Speed,
 		AC:               input.AC,
 		InitiativeBonus:  input.InitiativeBonus,
-		MaxHP:            input.MaxHP,
-		CurrentHP:        input.CurrentHP,
-		TempHP:           input.TempHP,
 		SpellSaveDC:      input.SpellSaveDC,
 		SpellAtkBonus:    input.SpellAtkBonus,
 		ID:               characterID,
@@ -156,16 +153,17 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 	finishPanel(w, r, "core-stats", "Core stats", result, err)
 }
 
-// SaveCharacterVitals owns the half of the sheet that changes during a fight.
-// It is not part of core-stats for two reasons: that panel recomputes level and
+// SaveCharacterVitals owns the half of the sheet that changes during a fight:
+// the hit points, what restores them, and what happens when they run out. It is
+// not part of core-stats for two reasons -- that panel recomputes level and
 // proficiency from xp on every save, which has no business happening because
-// somebody ticked a death save, and these six are the columns most likely to be
+// somebody ticked a death save, and these nine are the columns most likely to be
 // written from a phone in the middle of a turn.
 //
 // TWO OF ITS CONTROLS ARE CHECKBOXES, which post nothing at all when they are
 // not ticked, so this handler reads a value out of an absence -- the shape the
 // rest of the panel handlers exist to avoid. It is safe here for the same
-// reason it is safe in buildInventoryInput: the panel renders all six controls
+// reason it is safe in buildInventoryInput: the panel renders all nine controls
 // together and posts as one form, so a missing field really is an unticked box
 // rather than a partial request. A test pins that the panel keeps rendering
 // them.
@@ -188,6 +186,9 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := a.Queries.UpdateCharacterVitals(ctx, queries.UpdateCharacterVitalsParams{
+		MaxHP:              input.MaxHP,
+		CurrentHP:          input.CurrentHP,
+		TempHP:             input.TempHP,
 		HitDice:            input.HitDice,
 		HitDiceSpent:       input.HitDiceSpent,
 		DeathSaveSuccesses: input.DeathSaveSuccesses,
@@ -457,9 +458,6 @@ type coreStatsInput struct {
 	Speed            string
 	AC               uint16
 	InitiativeBonus  int16
-	MaxHP            uint16
-	CurrentHP        uint16
-	TempHP           uint16
 	SpellSaveDC      uint16
 	SpellAtkBonus    int16
 }
@@ -475,21 +473,6 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	ac, err := parseUint16(r.PostFormValue("ac"), 10)
 	if err != nil {
 		validationErrors = append(validationErrors, "Armor class must be between 0 and 65535.")
-	}
-
-	maxHP, err := parseUint16(r.PostFormValue("max_hp"), 1)
-	if err != nil {
-		validationErrors = append(validationErrors, "Max hit points must be between 0 and 65535.")
-	}
-
-	currentHP, err := parseUint16(r.PostFormValue("current_hp"), 1)
-	if err != nil {
-		validationErrors = append(validationErrors, "Hit points must be between 0 and 65535.")
-	}
-
-	tempHP, err := parseUint16(r.PostFormValue("temp_hp"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Temp hit points must be between 0 and 65535.")
 	}
 
 	initiativeBonus, err := parseInt16(r.PostFormValue("initiative_bonus"), 0)
@@ -521,15 +504,15 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 		Speed:            speed,
 		AC:               ac,
 		InitiativeBonus:  initiativeBonus,
-		MaxHP:            maxHP,
-		CurrentHP:        currentHP,
-		TempHP:           tempHP,
 		SpellSaveDC:      spellSaveDC,
 		SpellAtkBonus:    spellAtkBonus,
 	}, validationErrors
 }
 
 type vitalsInput struct {
+	MaxHP              uint16
+	CurrentHP          uint16
+	TempHP             uint16
 	HitDice            string
 	HitDiceSpent       uint8
 	DeathSaveSuccesses uint8
@@ -545,6 +528,21 @@ type vitalsInput struct {
 // is worth having.
 func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	validationErrors := make([]string, 0)
+
+	maxHP, err := parseUint16(r.PostFormValue("max_hp"), 1)
+	if err != nil {
+		validationErrors = append(validationErrors, "Max hit points must be between 0 and 65535.")
+	}
+
+	currentHP, err := parseUint16(r.PostFormValue("current_hp"), 1)
+	if err != nil {
+		validationErrors = append(validationErrors, "Hit points must be between 0 and 65535.")
+	}
+
+	tempHP, err := parseUint16(r.PostFormValue("temp_hp"), 0)
+	if err != nil {
+		validationErrors = append(validationErrors, "Temp hit points must be between 0 and 65535.")
+	}
 
 	hitDice := strings.TrimSpace(r.PostFormValue("hit_dice"))
 	if len([]rune(hitDice)) > characterWordLimit {
@@ -574,6 +572,9 @@ func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	}
 
 	return vitalsInput{
+		MaxHP:              maxHP,
+		CurrentHP:          currentHP,
+		TempHP:             tempHP,
 		HitDice:            hitDice,
 		HitDiceSpent:       spent,
 		DeathSaveSuccesses: successes,

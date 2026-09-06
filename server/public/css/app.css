@@ -3482,11 +3482,17 @@
     .\@\[38rem\]\:col-span-full {
       grid-column: 1 / -1;
     }
+    .\@\[38rem\]\:w-48 {
+      width: calc(var(--spacing) * 48);
+    }
     .\@\[38rem\]\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_5rem_7rem_6rem\] {
       grid-template-columns: minmax(0,1fr) 5rem 7rem 6rem;
+    }
+    .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_6rem_8rem_10rem\] {
+      grid-template-columns: minmax(0,1fr) 6rem 8rem 10rem;
     }
     .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_10rem\] {
       grid-template-columns: minmax(0,1fr) 10rem;

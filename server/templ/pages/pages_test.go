@@ -3,6 +3,7 @@ package pages
 import (
 	"bytes"
 	"context"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -129,8 +130,12 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 		}
 	}
 
-	if got := strings.Count(markup, "hx-post="); got != len(panels) {
-		t.Errorf("posting forms = %d, want %d (one per panel, and none around them)", got, len(panels))
+	// One per panel, plus the Add Attack button. That button is the only
+	// hx-post on this page that is not a panel saving itself, and it is not a
+	// form -- attack rows are, and this render has none, the way it has no
+	// spell slot forms.
+	if got := strings.Count(markup, "hx-post="); got != len(panels)+1 {
+		t.Errorf("posting elements = %d, want %d (one per panel, plus Add Attack)", got, len(panels)+1)
 	}
 
 	// The panels plus Base's own are every form on the page, so an extra one
@@ -1655,5 +1660,136 @@ func TestDeathSaveBubblesRenderWhatIsStored(t *testing.T) {
 				t.Errorf("ticked boxes = %d, want %d", got, c.want)
 			}
 		})
+	}
+}
+
+const testAttackRowID = "01BX5ZZKBKACTAV9WEVGEMMVS0"
+
+// An attack row is its own form posting to its own URL, the way an inventory row
+// is. The panel it lives in is a sheetPanel and saves nothing itself, so if this
+// stopped being a form the rows would silently stop saving.
+func TestAttackRowIsItsOwnForm(t *testing.T) {
+	const character = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	action := "/characters/" + character + "/attacks/" + testAttackRowID
+
+	var buf bytes.Buffer
+	if err := AttackRow(character, Attack{ID: testAttackRowID}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, want := range []string{
+		`hx-post="` + action + `"`,
+		`hx-delete="` + action + `"`,
+		`id="errors-` + AttackRowPanel(testAttackRowID) + `"`,
+		`hx-trigger="input delay:1s"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the row is missing %s", want)
+		}
+	}
+
+	// The delete removes the row it is inside. Anything else would drop a
+	// different attack off the page than the one the database dropped.
+	if !strings.Contains(markup, `hx-target="closest form"`) || !strings.Contains(markup, `hx-swap="delete"`) {
+		t.Errorf("the delete does not swap out its own row:\n%s", markup)
+	}
+}
+
+// SaveAttack reads six fields and writes six columns, which is only safe while
+// the form carries all six -- the parse helpers answer a missing field with an
+// empty string rather than an error, so a row that stopped rendering its notes
+// would quietly erase them on the next keystroke.
+func TestAttackRowAlwaysRendersEveryControl(t *testing.T) {
+	var buf bytes.Buffer
+	if err := AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: testAttackRowID}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, control := range []string{"name", "attack_bonus", "damage", "damage_type", "mastery", "notes"} {
+		if !strings.Contains(markup, `name="`+control+`"`) {
+			t.Errorf("the row does not render %q, so a save would blank the column", control)
+		}
+	}
+}
+
+// THE ROW USES NO id ON ITS FIELDS, and that is the whole reason it does not
+// reuse textField and selectField: those set id={ name }, and a page rendering
+// four attacks would carry four elements called id="damage". Clicking a label
+// would then focus the first row's field whichever row was clicked.
+func TestTwoAttackRowsShareNoElementID(t *testing.T) {
+	var buf bytes.Buffer
+	for _, id := range []string{testAttackRowID, "01BX5ZZKBKACTAV9WEVGEMMVS3"} {
+		if err := AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: id}).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+	}
+
+	seen := map[string]bool{}
+	for _, match := range regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(buf.String(), -1) {
+		if seen[match[1]] {
+			t.Errorf("two attack rows both render id=%q", match[1])
+		}
+		seen[match[1]] = true
+	}
+}
+
+// A fresh row opens its own details, so the mastery and notes it was added for
+// are in front of whoever pressed Add rather than behind a disclosure they have
+// to find. A named row stays shut.
+func TestAnUnnamedAttackOpensItsOwnDetails(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		row  Attack
+		open bool
+	}{
+		{"a row that was just added", Attack{ID: testAttackRowID}, true},
+		{"a row with a name", Attack{ID: testAttackRowID, Name: "Longsword"}, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", c.row).Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			if got := strings.Contains(buf.String(), "<details open"); got != c.open {
+				t.Errorf("details open = %v, want %v", got, c.open)
+			}
+		})
+	}
+}
+
+// Both selects are closed sets from the rules, and the normalisers in
+// attacks.go are the same lists read the other way round. A member added to one
+// and not the other would either render an option the server refuses or accept a
+// value the sheet cannot show.
+func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
+	// Thirteen damage types and eight mastery properties, each with the empty
+	// member the sheet needs for a row that has neither.
+	if got := len(damageTypeOptions); got != 14 {
+		t.Errorf("damage types = %d, want 14", got)
+	}
+	if got := len(masteryOptions); got != 9 {
+		t.Errorf("mastery properties = %d, want 9", got)
+	}
+
+	for _, options := range [][]Option{damageTypeOptions, masteryOptions} {
+		if options[0].Value != "" {
+			t.Errorf("the first option is %q, want the empty one: most rows have neither", options[0].Value)
+		}
+		for _, option := range options {
+			if normalizeChoice(option.Value, options) != option.Value {
+				t.Errorf("the select offers %q and the normaliser refuses it", option.Value)
+			}
+		}
+	}
+
+	// And the two lists are not interchangeable, which is what would happen if
+	// one normaliser were pointed at the other list.
+	if NormalizeMastery("Slashing") != "" {
+		t.Error("a damage type passes as a mastery property")
+	}
+	if NormalizeDamageType("Topple") != "" {
+		t.Error("a mastery property passes as a damage type")
 	}
 }

@@ -119,6 +119,11 @@ WHERE id = ? AND owner_id = ?;
 -- they are recomputed in the handler and written here in the same statement.
 -- Splitting them out would leave a window where a row's level disagreed with its
 -- xp.
+--
+-- The three hit point columns were here until the vitals panel existed to take
+-- them. They belong beside the death saves and the hit dice, which are the other
+-- numbers that move when a character is hurt, rather than beside the speed and
+-- the experience, which are not.
 -- name: UpdateCharacterCoreStats :execresult
 UPDATE characters
 SET
@@ -128,9 +133,6 @@ SET
     speed = ?,
     ac = ?,
     initiative_bonus = ?,
-    max_hp = ?,
-    current_hp = ?,
-    temp_hp = ?,
     spell_save_dc = ?,
     spell_atk_bonus = ?
 WHERE id = ? AND owner_id = ?;
@@ -143,14 +145,21 @@ SET
 WHERE id = ? AND owner_id = ?;
 
 -- Vitals is the counterpart to core stats: the numbers on that panel describe
--- what a character is, and these six describe how the last fight went. They are
+-- what a character is, and these nine describe how the last fight went. They are
 -- split for that reason and for a mechanical one -- core stats derives level and
 -- proficiency from xp on every save, and nothing here should be recomputed by a
 -- player ticking a death save.
+--
+-- The hit points lead because they are what the panel is opened for. They also
+-- explain the rest of it: a character reaches the death saves by running out of
+-- them and gets some back by spending a hit die.
 
 -- name: UpdateCharacterVitals :execresult
 UPDATE characters
 SET
+    max_hp = ?,
+    current_hp = ?,
+    temp_hp = ?,
     hit_dice = ?,
     hit_dice_spent = ?,
     death_save_successes = ?,

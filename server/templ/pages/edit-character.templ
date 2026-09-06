@@ -73,13 +73,13 @@ templ characterPanels(data EditCharacterPageData) {
 			@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
 			@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
 			@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
-			@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
-			@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
-			@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
 		</div>
 	}
 	@savingPanel("Vitals", base+"/vitals", "vitals") {
 		<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+			@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
+			@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
+			@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
 			@wordField("hit_dice", "Hit Dice", data.HitDice, "3d8")
 			@countField("hit_dice_spent", "Hit Dice Spent", data.HitDiceSpent, HitDiceSpentLimit)
 			@countField("exhaustion", "Exhaustion", data.Exhaustion, ExhaustionLimit)
@@ -87,6 +87,9 @@ templ characterPanels(data EditCharacterPageData) {
 			@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
 			@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
 		</div>
+	}
+	@sheetPanel("Attacks") {
+		@attacksTable(data.CharacterID, data.Attacks)
 	}
 	@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
 		<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">

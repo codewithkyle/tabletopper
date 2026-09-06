@@ -179,6 +179,13 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 		return fmt.Errorf("inventory: %w", err)
 	}
 
+	if err := a.Queries.DeleteCharacterAttacks(ctx, queries.DeleteCharacterAttacksParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("attacks: %w", err)
+	}
+
 	if err := a.Queries.DeleteCharacterSpells(ctx, queries.DeleteCharacterSpellsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
@@ -207,19 +214,23 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 // characters row itself -- the other two tabs are views of the inventory and
 // spells tables and take their own page data.
 //
-// It is also the only editor page that reads other tables, and it reads four of
+// It is also the only editor page that reads other tables, and it reads five of
 // them. Equipment is the inventory rows ticked as equipped and Prepared Spells
 // is the spell rows ticked as prepared -- both views, so a character's gear and
 // their spells are written down once, on the tabs that own them, and read here
 // rather than typed in twice. Only the ticked rows are fetched, by queries that
 // filter in SQL: the page shows three of forty and has no use for the rest.
 //
+// Attacks is neither of those. It is the whole table, and it is editable here,
+// because attacks have no tab of their own -- see the top of attacks.go for why
+// they do not.
+//
 // Spell Slots is not a view. It is ten small forms writing the spell_slots
 // table, and it is here rather than on the spells tab because resetting `used`
 // after a long rest touches nine levels at once -- the one thing a page per
 // level cannot do.
 //
-// Five queries, then, for a page that used to be one row. Each is an indexed
+// Six queries, then, for a page that used to be one row. Each is an indexed
 // lookup returning at most a handful of rows, and the alternative to the last
 // two is a FULL OUTER JOIN that MySQL does not have.
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
@@ -241,6 +252,16 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to load attacks", "error", err)
+		redirectToError(w, r)
+		return
+	}
+
 	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
@@ -257,6 +278,7 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := characterToEditPageData(characterID.String(), character)
+	data.Attacks = attackPageRows(attacks)
 	data.Equipped = inventoryPageItems(equipped)
 	data.Prepared = preparedSpellGroups(prepared)
 	data.SpellSlots = levels

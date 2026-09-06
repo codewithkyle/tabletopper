@@ -1,0 +1,110 @@
+package pages
+
+templ AttackRow(characterID string, attack Attack) {
+	{{ action := "/characters/" + characterID + "/attacks/" + attack.ID }}
+	{{ panel := AttackRowPanel(attack.ID) }}
+	<form
+		data-attack-row="true"
+		class="@container grid gap-3 rounded-field border-2 border-base-300 p-3"
+		hx-post={ action }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(panel, []string{})
+		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_6rem_8rem_10rem]">
+			<label class="fieldset">
+				<span class="fieldset-legend">Attack</span>
+				<input
+					name="name"
+					type="text"
+					class="input w-full font-medium"
+					value={ attack.Name }
+					placeholder="Longsword"
+					maxlength="128"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">ATK/DC</span>
+				<input
+					name="attack_bonus"
+					type="text"
+					class="input w-full text-right"
+					value={ attack.Bonus }
+					placeholder="+7"
+					maxlength="32"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Damage</span>
+				<input
+					name="damage"
+					type="text"
+					class="input w-full text-right"
+					value={ attack.Damage }
+					placeholder="1d8+3"
+					maxlength="64"
+				/>
+			</label>
+			<label class="fieldset">
+				<span class="fieldset-legend">Type</span>
+				<select name="damage_type" class="select w-full">
+					for _, option := range damageTypeOptions {
+						<option value={ option.Value } selected?={ option.Value == attack.DamageType }>{ option.Label }</option>
+					}
+				</select>
+			</label>
+		</div>
+		<details open?={ attack.Name == "" }>
+			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
+			<div class="mt-3 grid gap-3">
+				<label class="fieldset">
+					<span class="fieldset-legend">Mastery</span>
+					<select name="mastery" class="select w-full @[38rem]:w-48">
+						for _, option := range masteryOptions {
+							<option value={ option.Value } selected?={ option.Value == attack.Mastery }>{ option.Label }</option>
+						}
+					</select>
+				</label>
+				<label class="fieldset">
+					<span class="fieldset-legend">Notes</span>
+					<textarea
+						name="notes"
+						class="textarea w-full"
+						rows="2"
+						placeholder="Reach, thrown 20/60, and anything worth reading mid-turn."
+					>{ attack.Notes }</textarea>
+				</label>
+			</div>
+		</details>
+		<div class="flex justify-end">
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				hx-delete={ action }
+				hx-target="closest form"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
+}
+
+templ attacksTable(characterID string, attacks []Attack) {
+	<div id="attack-rows" class="grid gap-3">
+		for _, attack := range attacks {
+			@AttackRow(characterID, attack)
+		}
+	</div>
+	<button
+		type="button"
+		class="btn btn-soft btn-warning"
+		hx-post={ "/characters/" + characterID + "/attacks" }
+		hx-target="#attack-rows"
+		hx-swap="append"
+	>
+		Add Attack
+	</button>
+}

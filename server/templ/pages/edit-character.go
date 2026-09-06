@@ -60,6 +60,12 @@ type EditCharacterPageData struct {
 	Skills             map[string]int
 	SavingThrows       map[string]int
 	Features           []Feature
+	// Attacks is the attacks table, rendered on this page as rows that are each
+	// their own form. It is the one editable thing here that is not a panel and
+	// not on a tab of its own: inventory and spells earned their own pages by
+	// being long, and a character has three or four attacks that they read every
+	// round of every fight.
+	Attacks []Attack
 	// Equipped is the inventory rows ticked as equipped, rendered read-only on
 	// the Character page. It is the only thing on that page that does not come
 	// off the characters row, and the only thing on it with no form around it.

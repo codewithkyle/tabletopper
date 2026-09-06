@@ -221,8 +221,8 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 		{
 			name:    "core stats",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats },
-			form:    url.Values{"xp": {"6500"}, "ac": {"17"}, "max_hp": {"44"}, "current_hp": {"44"}, "temp_hp": {"0"}, "speed": {"30 ft."}, "initiative_bonus": {"2"}, "spell_save_dc": {"14"}, "spell_atk_bonus": {"6"}},
-			want:    []string{"ac", "current_hp", "initiative_bonus", "level", "max_hp", "proficiency_bonus", "speed", "spell_atk_bonus", "spell_save_dc", "temp_hp", "xp"},
+			form:    url.Values{"xp": {"6500"}, "ac": {"17"}, "speed": {"30 ft."}, "initiative_bonus": {"2"}, "spell_save_dc": {"14"}, "spell_atk_bonus": {"6"}},
+			want:    []string{"ac", "initiative_bonus", "level", "proficiency_bonus", "speed", "spell_atk_bonus", "spell_save_dc", "xp"},
 		},
 		{
 			name:    "proficiencies",
@@ -253,8 +253,8 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 		{
 			name:    "vitals",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals },
-			form:    url.Values{"hit_dice": {"3d8"}, "hit_dice_spent": {"1"}, "death_save_successes": {"1", "1"}, "exhaustion": {"2"}, "heroic_inspiration": {"1"}},
-			want:    []string{"death_save_failures", "death_save_successes", "exhaustion", "heroic_inspiration", "hit_dice", "hit_dice_spent"},
+			form:    url.Values{"max_hp": {"44"}, "current_hp": {"18"}, "temp_hp": {"0"}, "hit_dice": {"3d8"}, "hit_dice_spent": {"1"}, "death_save_successes": {"1", "1"}, "exhaustion": {"2"}, "heroic_inspiration": {"1"}},
+			want:    []string{"current_hp", "death_save_failures", "death_save_successes", "exhaustion", "heroic_inspiration", "hit_dice", "hit_dice_spent", "max_hp", "temp_hp"},
 		},
 		{
 			name:    "personality",
@@ -738,38 +738,56 @@ func TestVitalsRefusesAValueOutsideTheRules(t *testing.T) {
 // shape every other panel handler is built to avoid. What makes it safe is that
 // the panel posts all six together; these pin both readings of that.
 func TestVitalsReadsItsCheckboxesFromWhatArrived(t *testing.T) {
-	// The statement names its columns in the order the query does, so the args
-	// are hit_dice, spent, successes, failures, inspiration, exhaustion.
-	const successes, failures, inspiration = 2, 3, 4
-
 	app, db := newPanelApp(1)
 	panelPost(t, db, app.SaveCharacterVitals, url.Values{
+		"max_hp": {"44"}, "current_hp": {"0"}, "temp_hp": {"0"},
 		"hit_dice": {"3d8"}, "hit_dice_spent": {"0"}, "exhaustion": {"0"},
 		"death_save_successes": {"1", "1"},
 	}, map[string]string{"id": testCharacterID.String()})
 
-	args := db.only(t).args
-	if got := args[successes]; got != uint8(2) {
+	call := db.only(t)
+	if got := writtenValue(t, call, "death_save_successes"); got != uint8(2) {
 		t.Errorf("death save successes = %v, want 2: two boxes came back ticked", got)
 	}
-	if got := args[failures]; got != uint8(0) {
+	if got := writtenValue(t, call, "death_save_failures"); got != uint8(0) {
 		t.Errorf("death save failures = %v, want 0: no box came back", got)
 	}
-	if got := args[inspiration]; got != false {
+	if got := writtenValue(t, call, "heroic_inspiration"); got != false {
 		t.Errorf("heroic inspiration = %v, want false: the box came back unticked", got)
 	}
 
 	app, db = newPanelApp(1)
 	panelPost(t, db, app.SaveCharacterVitals, url.Values{
+		"max_hp": {"44"}, "current_hp": {"0"}, "temp_hp": {"0"},
 		"hit_dice": {"3d8"}, "hit_dice_spent": {"0"}, "exhaustion": {"0"},
 		"death_save_failures": {"1", "1", "1"}, "heroic_inspiration": {"1"},
 	}, map[string]string{"id": testCharacterID.String()})
 
-	args = db.only(t).args
-	if got := args[failures]; got != uint8(3) {
+	call = db.only(t)
+	if got := writtenValue(t, call, "death_save_failures"); got != uint8(3) {
 		t.Errorf("death save failures = %v, want 3", got)
 	}
-	if got := args[inspiration]; got != true {
+	if got := writtenValue(t, call, "heroic_inspiration"); got != true {
 		t.Errorf("heroic inspiration = %v, want true", got)
 	}
+}
+
+// writtenValue pulls one column's value out of a recorded UPDATE by name. sqlc
+// binds the SET values in the order the statement names them, so the column's
+// position in the SET clause is its argument's position -- which means a test
+// can ask for "heroic_inspiration" rather than counting to it, and a column
+// inserted ahead of it does not silently repoint the assertion at its
+// neighbour. That is not hypothetical: moving the hit points into this panel
+// shifted every index by three.
+func writtenValue(t *testing.T, call recordedCall, column string) any {
+	t.Helper()
+
+	for i, name := range setColumns(t, call.query) {
+		if name == column {
+			return call.args[i]
+		}
+	}
+
+	t.Fatalf("the statement does not write %q:\n%s", column, call.query)
+	return nil
 }
