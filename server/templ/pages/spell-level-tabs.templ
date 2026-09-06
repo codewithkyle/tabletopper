@@ -5,7 +5,7 @@ import "strconv"
 templ spellLevelTabs(characterID string, active int) {
 	{{ base := "/characters/" + characterID + "/edit/spells/" }}
 	<div class="overflow-x-auto">
-		<nav class="flex w-max min-w-full gap-1 border-b border-base-300 px-2" aria-label="Spell levels">
+		<nav class={ barGutter + " flex w-max min-w-full gap-1 py-2" } aria-label="Spell levels">
 			for level := 0; level <= MaxSpellLevel; level++ {
 				@spellLevelTabLink(base+strconv.Itoa(level), SpellLevelTab(level), active == level)
 			}
@@ -18,12 +18,12 @@ templ spellLevelTabLink(href string, name string, current bool) {
 		<a
 			href={ href }
 			aria-current="page"
-			class="-mb-px shrink-0 border-b-2 border-primary px-3 py-2 text-sm font-semibold transition-colors duration-150"
+			class={ tabGutter + " shrink-0 rounded-field bg-base-content/15 py-1.5 text-sm font-bold transition-colors duration-150" }
 		>{ name }</a>
 	} else {
 		<a
 			href={ href }
-			class="-mb-px shrink-0 border-b-2 border-transparent px-3 py-2 text-sm font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
+			class={ tabGutter + " shrink-0 rounded-field py-1.5 text-sm font-semibold text-base-content/60 transition-colors duration-150 hover:bg-base-content/10 hover:text-base-content" }
 		>{ name }</a>
 	}
 }

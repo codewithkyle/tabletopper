@@ -12,6 +12,27 @@ package pages
 // total would be correct until any of the other two saved; a computed one is
 // correct on every page load, and DerivedValues carries it to the ones already
 // on screen.
+// EVERY ONE OF THEM RENDERS THROUGH ONE COMPONENT, derivedValue in
+// bonus-row.templ, and that is a rule rather than a convenience. The refresh
+// swaps each value in by id with hx-swap-oob, which replaces the whole element
+// -- so the shape the page draws and the shape DerivedValues draws have to be
+// the same shape, or a save quietly restyles half the sheet. One component
+// cannot disagree with itself.
+//
+// It is a filled readout box and not a bare number because a bare number does
+// not belong to anything. The ability modifier was a 40px right-aligned span
+// after the score input: "+3" ended up thirty pixels from the input it came
+// from and twelve from the next ability's box, so it read as a label for the
+// wrong column. The box is 44px minimum, centred, and stretches to the height
+// of the controls beside it, which pairs it with its input and gives the bonus
+// rows an edge to end on.
+//
+// The fill is base-content/10, one step deeper than the base-content/5 of the
+// rows these sit in. That keeps it inside the elevation scale rather than
+// beside it: a readout is recessed further than the row holding it, and it
+// carries no border, because a border is what the inputs next to it use to say
+// they can be typed in.
+
 type Derived struct {
 	StrMod string
 	DexMod string

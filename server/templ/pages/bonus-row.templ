@@ -30,7 +30,7 @@ templ bonusRow(grid string, row BonusRow) {
 templ derivedValue(id string, value string, oob bool) {
 	<span
 		id={ id }
-		class="w-10 shrink-0 text-right text-base font-extrabold tabular-nums"
+		class="flex min-w-11 shrink-0 items-center justify-center self-stretch rounded-field bg-base-content/10 px-2 py-1 text-base font-extrabold tabular-nums"
 		if oob {
 			hx-swap-oob="true"
 		}

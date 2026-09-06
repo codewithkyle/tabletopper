@@ -1919,9 +1919,6 @@
   .top-0 {
     top: 0px;
   }
-  .top-4 {
-    top: calc(var(--spacing) * 4);
-  }
   .-right-1 {
     right: calc(var(--spacing) * -1);
   }
@@ -2596,9 +2593,6 @@
   .w-6 {
     width: calc(var(--spacing) * 6);
   }
-  .w-10 {
-    width: calc(var(--spacing) * 10);
-  }
   .w-11 {
     width: calc(var(--spacing) * 11);
   }
@@ -2646,6 +2640,9 @@
   }
   .min-w-0 {
     min-width: 0px;
+  }
+  .min-w-11 {
+    min-width: calc(var(--spacing) * 11);
   }
   .min-w-18 {
     min-width: calc(var(--spacing) * 18);
@@ -2806,6 +2803,9 @@
   .gap-y-3 {
     row-gap: calc(var(--spacing) * 3);
   }
+  .self-stretch {
+    align-self: stretch;
+  }
   .truncate {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2850,6 +2850,10 @@
   .border-s {
     border-inline-start-style: var(--tw-border-style);
     border-inline-start-width: 1px;
+  }
+  .border-t {
+    border-top-style: var(--tw-border-style);
+    border-top-width: 1px;
   }
   .border-b {
     border-bottom-style: var(--tw-border-style);
@@ -2932,6 +2936,18 @@
     background-color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-base-content) 5%, transparent);
+    }
+  }
+  .bg-base-content\/10 {
+    background-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    }
+  }
+  .bg-base-content\/15 {
+    background-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-base-content) 15%, transparent);
     }
   }
   .bg-panel\/85 {
@@ -3041,6 +3057,9 @@
   }
   .py-1 {
     padding-block: var(--spacing);
+  }
+  .py-1\.5 {
+    padding-block: calc(var(--spacing) * 1.5);
   }
   .py-2 {
     padding-block: calc(var(--spacing) * 2);
@@ -3413,6 +3432,14 @@
     @supports (color: color-mix(in lab, red, red)) {
       .hover\:bg-base-content\/5:hover {
         background-color: color-mix(in oklab, var(--color-base-content) 5%, transparent);
+      }
+    }
+    .hover\:bg-base-content\/10:hover {
+      background-color: var(--color-base-content);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-base-content\/10:hover {
+        background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
       }
     }
     .hover\:bg-error\/10:hover {

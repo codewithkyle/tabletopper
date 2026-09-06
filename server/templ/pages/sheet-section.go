@@ -25,6 +25,16 @@ type shellLayout struct {
 	// know the debounce is working. The button is not a second save path -- it
 	// posts the same form to the same route -- it is the one that answers.
 	Actions templ.Component
+
+	// SubNav is a second row of tabs, docked under the character tabs inside
+	// the bar. The spells tab is the only page with one: eleven levels that are
+	// eleven pages, which is a navigation control and so belongs in the page
+	// chrome rather than at the top of the content it navigates.
+	//
+	// It used to render as the first thing in the scrolling column, which put a
+	// row of bare links and a rule directly on the grid paper -- the same thing
+	// the character tabs did before the bar existed, and just as hard to read.
+	SubNav templ.Component
 }
 
 // panelFormID is the id a savingPanel's form carries, so a control OUTSIDE the
@@ -61,7 +71,14 @@ func panelFormID(panel string) string {
 // L2, inset -- surfaceInset. Everything that sits INSIDE a panel: bonus rows,
 // attack rows, inventory rows, spell rows, the spell-slot and prepared-spell
 // lists, equipped items, feature rows, journal cards, and the two derived
-// readouts. A fill at 5% of base-content, no border, no shadow.
+// readout strips. A fill at 5% of base-content, no border, no shadow.
+//
+// L3, readout -- derivedValue in bonus-row.templ, and the spell level pill in
+// spell-level-tabs.templ. A fill at 10% of base-content, one step deeper than
+// the L2 it sits in, still no border and no shadow. It is the level a computed
+// number is drawn at, and the level a selected segment is drawn at, which is
+// the same statement both times: this is set, not typed. See Derived in
+// derived.go for why every one of those numbers goes through one component.
 //
 // L2 IS THE POINT OF THE SCALE. Every one of those used to carry the same
 // `rounded-field border-2 border-base-300` as the panel around it, so a row in

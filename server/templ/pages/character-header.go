@@ -2,6 +2,20 @@ package pages
 
 import "strings"
 
+// THE BAR'S TWO NAV ROWS SHARE ONE GUTTER, which is what barGutter and
+// tabGutter in character-bar.templ are for. The character tabs sit above the
+// spell levels, so their labels line up in a column down the left of the bar --
+// and they only line up because the row's page gutter and the link's own
+// padding are the same on both. They were not: the levels used px-3 against the
+// tabs' px-4, which put the word "Cantrips" four pixels left of the word
+// "Character" directly above it. Four pixels is too small to see and too big to
+// look right.
+//
+// Both consts live in a .templ file for the reason surfacePanel does -- Tailwind
+// scans templ/**/*.templ and nothing else, so a class name written in Go is
+// never emitted -- and both are read by three files, which is why the number is
+// written once.
+
 // CharacterHeader is what the bar across the top of every editor tab renders.
 //
 // IT IS ON ALL FIVE TAB PAGES BECAUSE THE BAR IS, and the bar is because the

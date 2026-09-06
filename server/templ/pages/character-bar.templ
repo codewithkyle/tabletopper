@@ -1,5 +1,9 @@
 package pages
 
+const barGutter = "px-6 max-[900px]:px-4"
+
+const tabGutter = "px-4"
+
 templ appBar() {
 	<header class="sticky top-0 z-20 border-b border-base-300 bg-panel/85 backdrop-blur-sm">
 		{ children... }
@@ -8,7 +12,7 @@ templ appBar() {
 
 templ characterBar(characterID string, header CharacterHeader, active string, layout shellLayout) {
 	@appBar() {
-		<div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 pt-3 pb-2 max-[900px]:px-4">
+		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 pt-3 pb-2" }>
 			@characterBarFigure(header, false)
 			@characterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
@@ -19,6 +23,11 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 			</div>
 		</div>
 		@characterTabs(characterID, active)
+		if layout.SubNav != nil {
+			<div class="border-t border-base-300 bg-base-content/5">
+				@layout.SubNav
+			</div>
+		}
 	}
 }
 

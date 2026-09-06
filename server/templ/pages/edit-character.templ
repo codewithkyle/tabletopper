@@ -28,7 +28,7 @@ templ editCharacterShell(characterID string, header CharacterHeader, active stri
 templ characterPanels(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
 	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 max-[1280px]:grid-cols-1">
-		<div class="sticky top-4 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 max-[1280px]:static max-[1280px]:max-h-none max-[1280px]:pb-0">
+		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 max-[1280px]:static max-[1280px]:max-h-none max-[1280px]:pb-0">
 			@savingPanel("Abilities", base+"/abilities", "abilities") {
 				<div class="@container">
 					<div class="grid grid-cols-2 gap-3 @[20rem]:grid-cols-3 @[52rem]:grid-cols-6">
@@ -68,11 +68,11 @@ templ characterPanels(data EditCharacterPageData) {
 					@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
 				</div>
 				<div class={ surfaceInset + " flex flex-wrap items-center gap-x-8 gap-y-2 p-3" }>
-					<span class="flex items-baseline gap-3">
+					<span class="flex items-center gap-3">
 						<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
 						@derivedValue("spell-save-dc", data.Derived.SpellSaveDC, false)
 					</span>
-					<span class="flex items-baseline gap-3">
+					<span class="flex items-center gap-3">
 						<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Attack</span>
 						@derivedValue("spell-attack-bonus", data.Derived.SpellAttackBonus, false)
 					</span>

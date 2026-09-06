@@ -1859,6 +1859,95 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 	}
 }
 
+// AND EVERY ONE OF THEM COMES BACK LOOKING THE WAY IT LEFT. hx-swap-oob="true"
+// replaces the element, not its contents, so the refresh does not update a
+// number inside a box -- it supplies a new box. If the page draws a derived
+// value one way and DerivedValues draws it another, the sheet is correct until
+// the first save and then quietly restyled, on the panels the save touched and
+// nowhere else.
+//
+// Today that cannot happen, because both renders go through derivedValue. This
+// is what says it has to stay that way: it fails the moment a second component
+// starts drawing one of these ids.
+func TestTheRefreshDrawsEveryDerivedValueTheWayThePageDid(t *testing.T) {
+	derived := testDerivedValues()
+
+	var page bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived}).Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	var block bytes.Buffer
+	if err := DerivedValues(derived).Render(context.Background(), &block); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	shapes := regexp.MustCompile(`id="([^"]+)" class="([^"]+)"`)
+	onThePage := map[string]string{}
+	for _, match := range shapes.FindAllStringSubmatch(page.String(), -1) {
+		onThePage[match[1]] = match[2]
+	}
+
+	refreshed := shapes.FindAllStringSubmatch(block.String(), -1)
+	if len(refreshed) == 0 {
+		t.Fatal("read no shapes out of the refresh")
+	}
+	for _, match := range refreshed {
+		id, class := match[1], match[2]
+		was, ok := onThePage[id]
+		if !ok {
+			t.Errorf("the refresh swaps #%s, which the page does not render", id)
+			continue
+		}
+		if was != class {
+			t.Errorf("#%s is drawn as %q on the page and %q by the refresh", id, was, class)
+		}
+	}
+}
+
+// Both navs render inside the bar, which is what keeps either of them off the
+// grid paper.
+//
+// The spell level strip was the last thing still doing it: eleven links and a
+// rule, rendered as the first child of the scrolling column, sitting straight
+// on the desk exactly the way the character tabs did before the bar existed.
+// It is a shellLayout.SubNav now, docked under the character tabs.
+//
+// Asserted by position rather than by class, because the failure is structural
+// -- the markup is identical either way, and the only difference is which side
+// of the bar's closing tag it lands on. The bar is the first <header> a page
+// renders; every later one is a panel heading.
+func TestBothNavsRenderInsideTheBar(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	page := EditCharacterSpellLevel(SpellLevelPageData{
+		CharacterID: id,
+		Header:      testCharacterHeader(),
+		Level:       3,
+		Current:     SpellLevel{Level: 3, Slots: "2", Used: "1"},
+	})
+	if err := page.Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	rendered := buf.String()
+
+	barCloses := strings.Index(rendered, "</header>")
+	if barCloses < 0 {
+		t.Fatal("the page renders no bar at all")
+	}
+
+	for _, nav := range []string{`aria-label="Character sheet sections"`, `aria-label="Spell levels"`} {
+		at := strings.Index(rendered, nav)
+		if at < 0 {
+			t.Errorf("%s is not on the page", nav)
+			continue
+		}
+		if at > barCloses {
+			t.Errorf("%s renders below the bar, which puts it on the grid paper", nav)
+		}
+	}
+}
+
 // THE ELEVATION SCALE, asserted as the one string it removed.
 //
 // Every surface in this app used to carry `border-2 border-base-300`: the
