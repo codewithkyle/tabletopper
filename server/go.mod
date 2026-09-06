@@ -15,6 +15,7 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.43.0
+	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	golang.org/x/text v0.31.0
 )
 
@@ -36,5 +37,4 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.7 // indirect
 	github.com/aws/smithy-go v1.24.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 )
