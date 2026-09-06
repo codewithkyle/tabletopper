@@ -28,6 +28,32 @@ import "strings"
 // link went into the chat window. So they are "Share character" and "Share
 // entry" everywhere, rather than only on the page where both appear: a label
 // that changes depending on what else is on screen is a label nobody can learn.
+//
+// BOTH SHARE BUTTONS COLLAPSE TO THEIR ICON UNDER 640PX, and they are the only
+// two in the bar that do. Below that width the action row goes full-width and
+// its buttons split it with flex-1, which is fine for the two the other tabs
+// have -- but the journal entry page has four, and "Share character", "Share
+// entry" and "Save" dividing a phone's width between them wraps every one of
+// them onto two lines.
+//
+// THE TWO THAT GIVE UP THEIR WORDS ARE THE TWO SHARES, and the line is what the
+// button is for rather than which page it is on. Back is navigation and Save is
+// the reason the entry page exists; sharing is the thing you came to do on
+// neither. They are also the two with a real icon -- the three linked circles
+// are the one glyph here that reads as its verb without a caption. So the row
+// under 640px is two flex-1 buttons with words and two 40px squares, rather
+// than four half-width buttons with none of them legible.
+//
+// A COLLAPSED PAIR STILL HAS TO BE TELLABLE APART, which is why the labels stay
+// "Share character" and "Share entry" rather than shortening to fit: the words
+// are what the accessibility tree reads out, and two buttons announced as
+// "Share" side by side is exactly the coin toss the naming above avoids.
+//
+// THE LABEL IS HIDDEN AND NOT REMOVED. sr-only takes it out of the layout and
+// leaves it in the accessibility tree, so each button keeps its name -- an icon
+// button with no text and no aria-label is announced as "button" and nothing
+// else. It is sr-only rather than an aria-label on the button so there is one
+// copy of the words rather than two that can drift apart.
 
 // CharacterHeader is what the bar across the top of every editor tab renders.
 //

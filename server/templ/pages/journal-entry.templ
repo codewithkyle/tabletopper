@@ -78,11 +78,11 @@ templ journalEntryActions(data JournalEntryPageData) {
 templ journalShareButton(characterID string, entryID string) {
 	<button
 		type="button"
-		class="btn max-[640px]:flex-1"
+		class="btn shrink-0 max-[640px]:px-3"
 		data-modal-open={ journalShareDialogURL(characterID, entryID) }
 	>
 		@shareIcon()
-		Share entry
+		<span class="max-[640px]:sr-only">Share entry</span>
 	</button>
 }
 

@@ -87,10 +87,10 @@ templ characterBarChips(header CharacterHeader, oob bool) {
 templ characterShareButton(characterID string) {
 	<button
 		type="button"
-		class="btn max-[640px]:flex-1"
+		class="btn shrink-0 max-[640px]:px-3"
 		data-modal-open={ characterShareDialogURL(characterID) }
 	>
 		@shareIcon()
-		Share character
+		<span class="max-[640px]:sr-only">Share character</span>
 	</button>
 }

@@ -3553,11 +3553,25 @@
     }
   }
   @media (width < 640px) {
+    .max-\[640px\]\:sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border-width: 0;
+    }
     .max-\[640px\]\:w-full {
       width: 100%;
     }
     .max-\[640px\]\:flex-1 {
       flex: 1;
+    }
+    .max-\[640px\]\:px-3 {
+      padding-inline: calc(var(--spacing) * 3);
     }
   }
   @container (width >= 20rem) {

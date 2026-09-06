@@ -195,6 +195,37 @@ func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
 	}
 }
 
+// Both share buttons collapse to their icon under 640px, where the journal entry
+// page's bar holds four of them.
+//
+// THE LABELS ARE HIDDEN AND NOT REMOVED, which is the whole of what this checks:
+// sr-only takes the words out of the layout and leaves them in the accessibility
+// tree, while `hidden` or deleting them would leave two adjacent buttons
+// announced as "button" and nothing else -- and the entry page has both, so the
+// names are also the only thing telling them apart once the words are gone.
+func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
+	body := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{
+		CharacterID: "C", EntryID: "E",
+	}))
+
+	for _, label := range []string{"Share character", "Share entry"} {
+		if !strings.Contains(body, `class="max-[640px]:sr-only">`+label+`<`) {
+			t.Errorf("%q is not hidden with sr-only:\n%s", label, body)
+		}
+		if strings.Contains(body, `max-[640px]:hidden">`+label+`<`) {
+			t.Errorf("%q is hidden from assistive technology too:\n%s", label, body)
+		}
+	}
+
+	// The two words-bearing buttons keep their words: Back is navigation and
+	// Save is what the entry page is for.
+	for _, kept := range []string{">Back<", ">Save<"} {
+		if !strings.Contains(body, kept) {
+			t.Errorf("the bar lost %s:\n%s", kept, body)
+		}
+	}
+}
+
 // The character's Share button is on the bar rather than on a page, which is
 // what puts it on all five editor tabs without any of them naming it. Losing
 // that is losing the button from four pages at once, and nothing else would
