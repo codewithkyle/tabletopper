@@ -15,6 +15,7 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.43.0
+	golang.org/x/text v0.31.0
 )
 
 require (

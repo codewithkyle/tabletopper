@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/markdown"
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/internal/snippet"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -42,10 +44,15 @@ import (
 // The search term is capped at the title's length for no deeper reason than
 // that nothing longer is a search. The box carries the same number as a
 // maxlength, so the cap is reachable only by a request nobody's browser made.
+//
+// journalSnippetRadius is how much of the entry a search result shows either
+// side of the term. Enough for the clause the term sits in, short enough that
+// two of them and a title still fit the two lines the card clamps to.
 const (
-	journalTitleLimit  = 255
-	journalBodyLimit   = 262144
-	journalSearchLimit = 255
+	journalTitleLimit    = 255
+	journalBodyLimit     = 262144
+	journalSearchLimit   = 255
+	journalSnippetRadius = 60
 )
 
 func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
@@ -474,15 +481,33 @@ func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 }
 
 // journalEntries reads one character's list, filtered when there is a term to
-// filter by. Both branches select the same four columns in the same order and
-// build the same rows, so the caller cannot tell a search from a list and does
-// not need to.
+// filter by. Both branches build the same rows, so the caller cannot tell a
+// search from a list and does not need to -- the search branch fills one more
+// field, and it is the field a list has nothing to put in.
 //
 // AN EMPTY TERM TAKES THE UNFILTERED QUERY rather than searching for "%%",
 // which would match every row and be the same answer. The difference is what
 // gets read to produce it: the list query never names body, and the search one
-// has to scan it. Clearing the box is the common case -- it happens at the end
-// of every search -- and it should cost what the page load costs.
+// reads it. Clearing the box is the common case -- it happens at the end of
+// every search -- and it should cost what the page load costs.
+//
+// THE SQL DECIDES THE CANDIDATES AND THIS DECIDES THE RESULTS. LIKE runs
+// against stored markdown, so it matches text that is in the entry without ever
+// being on the page: every entry holding a picture matches `assets`, because
+// that word is in the URL the markdown carries. So a row survives only if the
+// term is in what a reader sees -- the projected body, or the title, which is a
+// plain column and always visible. Two things follow, and both are wanted:
+// every result can show the reader why it matched, and matching on the plumbing
+// stops happening.
+//
+// THE ROWS THIS DROPS WERE ALREADY WRONG. It narrows what the box returns
+// against what it returned before, which is the point rather than a cost --
+// there was no way to act on those hits anyway, because opening the entry to
+// look for the term would not have found it either.
+//
+// A TITLE MATCH IS A RESULT WITH NO SNIPPET, deliberately. The term is in the
+// heading of the card, an inch above where the line would go, and repeating it
+// underneath would be the same words twice.
 func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID, term string) ([]pages.JournalEntry, error) {
 	p := session.FromContext(ctx).Prefs
 
@@ -514,7 +539,17 @@ func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID
 
 	entries := make([]pages.JournalEntry, 0, len(rows))
 	for _, row := range rows {
-		entries = append(entries, journalPageEntry(p, row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
+		entry := journalPageEntry(p, row.ID, row.Title, row.CreatedAt, row.UpdatedAt)
+
+		hit, found := snippet.Find(markdown.PlainText(row.Body), term, journalSnippetRadius)
+		if found {
+			entry.Snippet = pages.JournalSnippet{Before: hit.Before, Match: hit.Match, After: hit.After}
+		}
+		if !found && !snippet.Contains(row.Title, term) {
+			continue
+		}
+
+		entries = append(entries, entry)
 	}
 
 	return entries, nil

@@ -20,6 +20,32 @@ type JournalEntry struct {
 	// field, which the writer would then have to delete before typing.
 	Created Timestamp
 	Updated Timestamp
+	// Snippet is the line of the entry that matched the search, and is the
+	// zero value on the unfiltered list -- which has no term to match and no
+	// body read to match it against. The card renders the line only when
+	// Snippet.Match is set, so an entry that matched on its title alone shows
+	// no second line: the term is already visible in the title above it.
+	Snippet JournalSnippet
+}
+
+// JournalSnippet is one search hit, split around the term.
+//
+// THREE PLAIN STRINGS RATHER THAN ONE STRING OF HTML, and the <mark> is written
+// in the markup around them. A journal body is the least trusted text in the
+// app -- see internal/markdown for what rendering one safely takes -- and the
+// snippet is cut straight out of it with none of that machinery in the way. As
+// three fields it is escaped by templ like every other value on the page, and
+// the only way to get markup out of a snippet is to write markup into the
+// template. Building `before + "<mark>" + hit + "</mark>" + after` here would
+// have made this the second string in the app rendered raw, for a decoration.
+//
+// Match carries the text as the writer typed it rather than as it was searched
+// for, so a search for `beornegar` marks `Béornegar`. Before and After bring
+// their own ellipses when the window cut the line.
+type JournalSnippet struct {
+	Before string
+	Match  string
+	After  string
 }
 
 // Timestamp is one date in the two forms the markup needs: ISO for the machine

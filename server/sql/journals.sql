@@ -30,8 +30,23 @@ WHERE character_id = ? AND owner_id = ?
 ORDER BY updated_at DESC, id DESC;
 
 -- name: SearchCharacterJournals :many
--- The search box above the list. Same columns and same order as the list above,
--- so a filtered list and an unfiltered one are the same list.
+-- The search box above the list. Same order as the list above, so a filtered
+-- list and an unfiltered one are the same list, and one column more.
+--
+-- THIS IS THE ONE LIST READ THAT CARRIES A BODY, and ListCharacterJournals
+-- above still does not. A result has to be able to show why it matched -- the
+-- WHERE already searches the body, so without this an entry comes back for a
+-- word that appears nowhere in its title and the reader is told only that it is
+-- a hit. The body is read for the rows this character has and no others, and it
+-- is the same text the LIKE has already scanned to decide they match, so what
+-- it adds is the transfer rather than the scan.
+--
+-- IT IS AFFORDABLE BECAUSE THE SEARCH DOMAIN IS ONE CHARACTER'S JOURNAL AND
+-- ALWAYS WILL BE. A campaign running weekly for three years is around 150
+-- entries; at the few kilobytes each one is, that is a read of well under a
+-- megabyte behind idx_journals_character. Should an entry count ever arrive
+-- that this is wrong for, the answer is a LIMIT on this statement -- a search
+-- box wants one anyway -- rather than anything larger.
 --
 -- NO FULLTEXT INDEX, AND NOT BECAUSE ONE HAS NOT BEEN GOT ROUND TO. Four
 -- reasons, and the first is the one that would still hold if the others were
@@ -65,6 +80,14 @@ ORDER BY updated_at DESC, id DESC;
 -- LIKE stops being the right answer when one character holds thousands of
 -- entries. Should that day come the index is an ALTER on a table of megabytes.
 --
+-- THE MATCH HERE IS THE CANDIDATE FILTER AND NOT THE ANSWER. It runs against
+-- stored markdown, so it matches text no reader ever sees -- an entry holding a
+-- picture comes back for the word `assets`, because that is in the URL behind
+-- it. internal/snippet re-checks every row against the entry's visible text and
+-- drops the ones that only matched the plumbing, which is also what produces
+-- the snippet. Narrowing here instead would mean teaching MySQL what markdown
+-- is.
+--
 -- THE TERM IS A PATTERN, NOT A WORD, and the caller escapes it. `%` and `_` are
 -- wildcards to LIKE, both are ordinary characters to a person typing, and an
 -- unescaped `%` here matches every entry the character has.
@@ -72,7 +95,7 @@ ORDER BY updated_at DESC, id DESC;
 -- The table is utf8mb4_0900_ai_ci, so LIKE is already case- and
 -- accent-insensitive. Wrapping either side in LOWER() would add nothing and
 -- would only make the comparison harder to read.
-SELECT id, title, created_at, updated_at FROM journals
+SELECT id, title, body, created_at, updated_at FROM journals
 WHERE character_id = sqlc.arg(character_id) AND owner_id = sqlc.arg(owner_id)
     AND (title LIKE sqlc.arg(term) OR body LIKE sqlc.arg(term))
 ORDER BY updated_at DESC, id DESC;

@@ -28,6 +28,7 @@ package markdown
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -141,4 +142,65 @@ func (imageTransformer) Transform(doc *ast.Document, _ text.Reader, ctx parser.C
 			}
 		}
 	}
+}
+
+// PlainText projects one journal body onto the words a reader actually sees. It
+// is what the search snippets are cut from, and what decides a search result is
+// real -- see internal/snippet.
+//
+// IT IS THE SAME PARSE Render RUNS, not a pass of regular expressions over the
+// source. The difference is the whole point: a link is `[Thistlewick](/assets/
+// images/01J...)` in the markdown and the word `Thistlewick` on the page, so a
+// projection that does not understand the syntax would report the storage URL
+// as something the writer wrote. Structure is dropped by taking only the text
+// nodes -- heading markers, list bullets, emphasis marks and table pipes are
+// never text nodes to begin with, so none of them has to be recognised and
+// stripped.
+//
+// WHAT IS LEFT OUT IS WHAT IS NOT READ. Link and image destinations are
+// attributes rather than children and do not survive; raw HTML does not either,
+// which matches the renderer dropping it. Alt text and code blocks do survive:
+// both are words somebody typed on purpose, and a term found only in a code
+// block should still find its entry.
+//
+// Runs of whitespace collapse to one space, so a phrase written across a soft
+// line break is still one phrase to search -- and so a snippet is a line rather
+// than a piece of a paragraph's shape.
+//
+// The transformer Render relies on reads its ImageSource out of the parse
+// context and does nothing without one, so parsing here leaves images alone.
+func PlainText(body string) string {
+	source := []byte(body)
+	doc := md.Parser().Parse(text.NewReader(source), parser.WithContext(parser.NewContext()))
+
+	var out strings.Builder
+	_ = ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			if node.Type() == ast.TypeBlock {
+				out.WriteByte('\n')
+			}
+
+			return ast.WalkContinue, nil
+		}
+
+		switch node := node.(type) {
+		case *ast.Text:
+			out.Write(node.Segment.Value(source))
+			if node.SoftLineBreak() || node.HardLineBreak() {
+				out.WriteByte('\n')
+			}
+		case *ast.String:
+			out.Write(node.Value)
+		case *ast.FencedCodeBlock, *ast.CodeBlock:
+			lines := node.Lines()
+			for i := 0; i < lines.Len(); i++ {
+				line := lines.At(i)
+				out.Write(line.Value(source))
+			}
+		}
+
+		return ast.WalkContinue, nil
+	})
+
+	return strings.Join(strings.Fields(out.String()), " ")
 }

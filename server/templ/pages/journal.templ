@@ -59,8 +59,11 @@ templ journalEntryCard(characterID string, entry JournalEntry) {
 	{{ href := "/characters/" + characterID + "/edit/journal/" + entry.ID }}
 	{{ action := "/characters/" + characterID + "/journal/" + entry.ID }}
 	<article class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
-		<div class="grid gap-1">
+		<div class="grid min-w-0 flex-1 gap-1">
 			<a href={ href } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
+			if entry.Snippet.Match != "" {
+				<p class="line-clamp-2 text-sm text-base-content/70">{ entry.Snippet.Before }<mark class="rounded-sm bg-warning/30 px-0.5 text-base-content">{ entry.Snippet.Match }</mark>{ entry.Snippet.After }</p>
+			}
 			<p class="flex flex-wrap gap-x-4 text-sm text-base-content/70">
 				<span>
 					Written&nbsp;

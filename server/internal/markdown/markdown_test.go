@@ -171,3 +171,88 @@ func TestAnEmptyBodyRendersNothing(t *testing.T) {
 		t.Errorf("an empty entry rendered %q", out)
 	}
 }
+
+// The projection's whole reason for existing. A link is its label on the page
+// and its destination in the source, and searching the source means an entry
+// holding a picture matches the word `assets` because that is in the storage
+// URL behind it -- a hit the reader cannot see and cannot act on.
+func TestALinkContributesItsLabelAndNotItsDestination(t *testing.T) {
+	out := markdown.PlainText("We met [Thistlewick](/assets/images/01J7ZK) in the market.")
+
+	if !strings.Contains(out, "Thistlewick") {
+		t.Errorf("the link's label was lost\n%q", out)
+	}
+	if strings.Contains(out, "assets") || strings.Contains(out, "01J7ZK") {
+		t.Errorf("the link's destination survived into the text\n%q", out)
+	}
+}
+
+// The same for a picture: the alt text is words somebody typed and the
+// destination is plumbing.
+func TestAnImageContributesItsAltTextAndNotItsDestination(t *testing.T) {
+	out := markdown.PlainText("![a portrait of Béornegar](/characters/C/journal/E/images/A)")
+
+	if out != "a portrait of Béornegar" {
+		t.Errorf("PlainText = %q", out)
+	}
+}
+
+// Structure is dropped by never being text in the first place, so nothing has
+// to recognise a heading marker or a bullet to remove one.
+func TestTheMarkupItselfIsNotText(t *testing.T) {
+	out := markdown.PlainText("# Session 12\n\n- one **bold** item\n- ~~struck~~ through\n\n> quoted")
+
+	for _, gone := range []string{"#", "*", "~", ">", "-"} {
+		if strings.Contains(out, gone) {
+			t.Errorf("the marker %q survived\n%q", gone, out)
+		}
+	}
+	for _, kept := range []string{"Session 12", "bold", "struck", "quoted"} {
+		if !strings.Contains(out, kept) {
+			t.Errorf("the word %q was lost\n%q", kept, out)
+		}
+	}
+}
+
+// Raw HTML is not text because the renderer does not render it -- goldmark
+// writes it out as a comment. A term found only there is a term nobody can see.
+func TestRawHTMLIsNotText(t *testing.T) {
+	out := markdown.PlainText("<div>hidden</div>\n\nvisible")
+
+	if strings.Contains(out, "hidden") {
+		t.Errorf("raw HTML survived into the text\n%q", out)
+	}
+	if !strings.Contains(out, "visible") {
+		t.Errorf("the prose beside it was lost\n%q", out)
+	}
+}
+
+// A code block is words somebody typed on purpose, so a term found only in one
+// should still find its entry. It is the case that decides a walk of the text
+// nodes alone is not enough -- a fenced block holds its content in Lines()
+// rather than in children.
+func TestACodeBlockIsText(t *testing.T) {
+	if out := markdown.PlainText("Before.\n\n```\nthe passphrase is marigold\n```"); !strings.Contains(out, "marigold") {
+		t.Errorf("the code block's content was lost\n%q", out)
+	}
+}
+
+// Whitespace collapses, so a phrase written across a wrapped line is still one
+// phrase to search for -- and so a snippet is a line rather than a piece of a
+// paragraph's shape.
+func TestWhitespaceCollapsesToSingleSpaces(t *testing.T) {
+	out := markdown.PlainText("the market\nsquare\n\nand the guards")
+
+	if !strings.Contains(out, "the market square") {
+		t.Errorf("a phrase across a soft break did not join up\n%q", out)
+	}
+	if strings.ContainsAny(out, "\n\t") || strings.Contains(out, "  ") {
+		t.Errorf("whitespace was left uncollapsed\n%q", out)
+	}
+}
+
+func TestAnEmptyBodyProjectsToNothing(t *testing.T) {
+	if out := markdown.PlainText(""); out != "" {
+		t.Errorf("an empty entry projected to %q", out)
+	}
+}
