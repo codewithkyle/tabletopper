@@ -58,7 +58,7 @@ templ characterPanels(data EditCharacterPageData) {
 			@selectField("spellcasting_ability", "Spellcasting Ability", spellcastingAbilityOptions, data.SpellcastingAbility, true)
 			@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
 		</div>
-		<div class="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-field border-2 border-base-300 p-3">
+		<div class={ surfaceInset + " flex flex-wrap items-center gap-x-8 gap-y-2 p-3" }>
 			<span class="flex items-baseline gap-3">
 				<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
 				@derivedValue("spell-save-dc", data.Derived.SpellSaveDC, false)

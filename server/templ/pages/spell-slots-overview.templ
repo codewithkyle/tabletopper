@@ -21,7 +21,7 @@ templ spellSlotsOverview(characterID string, levels []SpellLevel) {
 
 templ spellLevelSummary(characterID string, level SpellLevel) {
 	if level.Level == 0 {
-		<div class="rounded-field border-2 border-base-300 p-3">
+		<div class={ surfaceInset + " p-3" }>
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				@spellLevelHeading(characterID, level)
 				<span class="text-sm text-base-content/60">Unlimited</span>

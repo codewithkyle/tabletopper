@@ -14,18 +14,18 @@ templ Characters(characters []queries.Character) {
 }
 
 templ Character(character queries.Character) {
-	<character-card class="card card-border border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+	<character-card class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
 			<div class="flex items-center gap-4">
 				if character.AssetID != nil {
 					<div class="relative shrink-0" aria-label="Portrait linked">
-						<div class="avatar avatar-placeholder rounded-full border-2 border-base-300">
+						<div class="avatar avatar-placeholder rounded-full border border-base-300">
 							<div class="relative w-14 rounded-full bg-base-300 text-base-content">
 								<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
 								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + character.AssetID.String() } alt={ character.Name + " avatar" }/>
 							</div>
 						</div>
-						<label aria-label="Replace character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-base-300 bg-base-200 shadow-sm" data-tip="Replace avatar" for={ "avatar-" + character.ID.String() }>
+						<label aria-label="Replace character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm" data-tip="Replace avatar" for={ "avatar-" + character.ID.String() }>
 							@pencilIcon()
 							<input
 								class="absolute h-0 w-0 opacity-0"
@@ -43,12 +43,12 @@ templ Character(character queries.Character) {
 					</div>
 				} else {
 					<div class="relative shrink-0" aria-label="No portrait yet">
-						<div class="avatar avatar-placeholder rounded-full border-2 border-base-300">
+						<div class="avatar avatar-placeholder rounded-full border border-base-300">
 							<div class="w-14 rounded-full bg-base-300 text-base-content">
 								<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
 							</div>
 						</div>
-						<label aria-label="Upload character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-base-300 bg-base-200 shadow-sm" data-tip="Upload avatar" for={ "avatar-" + character.ID.String() }>
+						<label aria-label="Upload character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm" data-tip="Upload avatar" for={ "avatar-" + character.ID.String() }>
 							@pencilIcon()
 							<input
 								class="absolute h-0 w-0 opacity-0"
@@ -80,7 +80,7 @@ templ Character(character queries.Character) {
 				<span class="badge badge-neutral badge-md">{ characterValueOrFallback(character.Alignment, "Unaligned") }</span>
 				<span class="badge badge-neutral badge-md">{ formatCharacterSize(character.Size) }</span>
 			</div>
-			<div class="grid grid-cols-2 gap-4 border-y-2 border-base-300 py-4 pl-1">
+			<div class={ surfaceInset + " grid grid-cols-2 gap-4 p-3" }>
 				<div class="grid content-start gap-1">
 					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Armor Class</span>
 					<strong class="text-base leading-tight font-extrabold">{ strconv.Itoa(int(character.AC)) }</strong>
@@ -141,7 +141,7 @@ templ charactersContent(characters []queries.Character) {
 			}
 			<section class="grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 max-[700px]:px-4">
 				if len(characters) == 0 {
-					<div class="card card-border mx-auto mt-[min(14vh,7rem)] border-base-300 bg-panel/85 text-center shadow-sm backdrop-blur-sm">
+					<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] text-center" }>
 						<div class="card-body p-8">
 							<p class="m-0 font-serif text-2xl">No heroes in your roster yet.</p>
 							<p class="m-0 mt-4 text-base-content/75">Create your first character sheet <strong>before</strong> your session.</p>

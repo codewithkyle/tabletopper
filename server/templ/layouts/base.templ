@@ -44,7 +44,7 @@ templ Base(title string, scripts ...string) {
 
 templ confirmModal() {
 	<dialog id="confirm-modal" class="modal backdrop-blur-[4px]" aria-labelledby="confirm-modal-heading">
-		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+		<div class="modal-box border border-base-300 bg-panel/85 shadow-panel backdrop-blur-sm">
 			<h4 id="confirm-modal-heading" class="mb-3 block text-xl font-semibold" data-modal-heading></h4>
 			<p class="block" data-modal-message></p>
 			<form method="dialog" class="modal-action">
@@ -57,7 +57,7 @@ templ confirmModal() {
 
 templ alertModal() {
 	<dialog id="alert-modal" class="modal backdrop-blur-[4px]" aria-labelledby="alert-modal-heading">
-		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+		<div class="modal-box border border-base-300 bg-panel/85 shadow-panel backdrop-blur-sm">
 			<h4 id="alert-modal-heading" class="mb-3 block text-xl font-semibold" data-modal-heading></h4>
 			<p class="block" data-modal-message></p>
 			<form method="dialog" class="modal-action">
@@ -69,7 +69,7 @@ templ alertModal() {
 
 templ contentModal() {
 	<dialog id="content-modal" class="modal backdrop-blur-[4px]">
-		<div class="modal-box border-2 border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm" data-modal-box>
+		<div class="modal-box border border-base-300 bg-panel/85 shadow-panel backdrop-blur-sm" data-modal-box>
 			<div data-modal-loading>
 				<div class="flex min-h-32 items-center justify-center">
 					<span class="loading loading-spinner loading-lg"></span>

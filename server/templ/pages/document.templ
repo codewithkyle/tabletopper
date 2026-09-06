@@ -1,12 +1,12 @@
 package pages
 
 templ documentCard(title string, actionHref string, actionLabel string) {
-	<div class="card card-border max-h-[calc(100vh-4rem)] max-w-[calc(100vw-4rem)] border-base-300 bg-panel/85 shadow-sm backdrop-blur-sm">
+	<div class={ sheetSurface + " max-h-[calc(100vh-4rem)] max-w-[calc(100vw-4rem)]" }>
 		<div class="card-body min-h-0 gap-0 overflow-y-auto p-8">
 			<h1 class="card-title mb-6 font-serif text-[2rem]">{ title }</h1>
 			{ children... }
 		</div>
-		<div class="card-actions justify-end border-t-2 border-base-300 bg-base-200/60 p-4">
+		<div class="card-actions justify-end bg-base-200/60 p-4">
 			<a class="btn border-base-content/50" href={ actionHref }>{ actionLabel }</a>
 		</div>
 	</div>

@@ -58,7 +58,7 @@ templ journalEntryList(data JournalPageData) {
 templ journalEntryCard(characterID string, entry JournalEntry) {
 	{{ href := "/characters/" + characterID + "/edit/journal/" + entry.ID }}
 	{{ action := "/characters/" + characterID + "/journal/" + entry.ID }}
-	<article class="flex flex-wrap items-center justify-between gap-3 rounded-field border-2 border-base-300 p-3">
+	<article class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
 		<div class="grid gap-1">
 			<a href={ href } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
 			<p class="flex flex-wrap gap-x-4 text-sm text-base-content/70">

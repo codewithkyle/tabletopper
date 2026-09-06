@@ -23,7 +23,7 @@ var skills = []BonusEntry{
 
 templ skillsTable(rows []BonusRow, passivePerception string) {
 	<div class="@container grid gap-3">
-		<p class="flex items-baseline justify-between gap-3 rounded-field border-2 border-base-300 px-3 py-2">
+		<p class={ surfaceInset + " flex items-baseline justify-between gap-3 px-3 py-2" }>
 			<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Passive Perception</span>
 			@derivedValue("passive-perception", passivePerception, false)
 		</p>

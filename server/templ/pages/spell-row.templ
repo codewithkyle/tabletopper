@@ -7,7 +7,7 @@ templ SpellRow(characterID string, spell Spell) {
 	{{ panel := SpellRowPanel(spell.ID) }}
 	<form
 		data-spell-row="true"
-		class="@container grid gap-3 rounded-field border-2 border-base-300 p-3"
+		class={ surfaceInset + " @container grid gap-3 p-3" }
 		hx-post={ action }
 		hx-trigger="input delay:1s"
 		hx-target={ "#errors-" + panel }

@@ -13,6 +13,7 @@ import (
 	"tabletopper/internal/session"
 
 	"github.com/a-h/templ"
+	"github.com/oklog/ulid/v2"
 )
 
 // Base renders three modal dialogs holding four method="dialog" forms between
@@ -1850,6 +1851,74 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 	// them into themselves.
 	if strings.Contains(page.String(), "hx-swap-oob") {
 		t.Error("the page renders a derived value already marked out-of-band")
+	}
+}
+
+// THE ELEVATION SCALE, asserted as the one string it removed.
+//
+// Every surface in this app used to carry `border-2 border-base-300`: the
+// panels, and then again every row inside them -- bonus rows, attack rows,
+// inventory rows, spell rows, feature rows, journal cards, the two derived
+// readouts. A row was drawn on the same plane as the panel holding it, which is
+// why nothing read as containing anything.
+//
+// Panels are a hairline plus --shadow-panel now (surfacePanel) and the things
+// inside them are a fill with no border at all (surfaceInset), so the recipe
+// below should appear nowhere. It is asserted as a string because that is how
+// it would come back: by being copied off a neighbouring component into a new
+// one, where it would look right in isolation and flatten the panel it landed
+// in.
+//
+// The pattern covers the directional forms too -- border-b-2, border-y-2,
+// border-s-2 -- because those were the other half of it. A 2px base-300 rule
+// under a heading, between two halves of a row, or around a stat block is the
+// same weight doing the same flattening, just on one edge instead of four.
+//
+// border-2 with any OTHER colour is still fine and still used: the error blocks
+// are deliberately louder than anything around them, and the tab underline is
+// 2px of primary because it is a position indicator rather than a container. It
+// is the pairing with base-300 -- the panel border, on something that is not a
+// panel -- that the scale replaced.
+var panelBorder = regexp.MustCompile(`border(-[a-z])?-2 border-base-300`)
+
+func TestNothingWearsThePanelBorderAnyMore(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	for name, page := range map[string]templ.Component{
+		"character": EditCharacter(EditCharacterPageData{
+			CharacterID: id,
+			Header:      testCharacterHeader(),
+			Derived:     testDerivedValues(),
+			Features:    []Feature{{Name: "Pact of the Blade"}},
+			Attacks:     []Attack{{ID: id, Name: "Pact Blade"}},
+			Equipped:    []InventoryItem{{ID: id, Name: "Studded Leather", Quantity: "1"}},
+			Prepared:    []PreparedSpellGroup{{Level: 1, Name: "1st Level", Spells: []Spell{{ID: id, Name: "Hex"}}}},
+			SpellSlots:  []SpellLevel{{Level: 1, Slots: "2", Used: "1", Count: 1}},
+		}),
+		"inventory": EditCharacterInventory(InventoryPageData{
+			CharacterID: id, Header: testCharacterHeader(),
+			Items: []InventoryItem{{ID: id, Name: "Rope", Quantity: "1"}},
+		}),
+		"spells": EditCharacterSpellLevel(SpellLevelPageData{
+			CharacterID: id, Header: testCharacterHeader(), Level: 1,
+			Current: SpellLevel{Level: 1, Slots: "2", Used: "1"},
+			Spells:  []Spell{{ID: id, Level: 1, Name: "Hex"}},
+		}),
+		"journal": EditCharacterJournal(JournalPageData{
+			CharacterID: id, Header: testCharacterHeader(),
+			Entries: []JournalEntry{testJournalEntry()},
+		}),
+		"roster": Characters([]queries.Character{{ID: ulid.MustParse(id), Name: "Vashti"}}),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := page.Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			if match := panelBorder.FindString(buf.String()); match != "" {
+				t.Errorf("something on this page still wears %q, the old panel border, which flattens whatever it sits in", match)
+			}
+		})
 	}
 }
 

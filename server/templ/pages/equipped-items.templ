@@ -9,7 +9,7 @@ templ equippedItems(characterID string, items []InventoryItem) {
 	} else {
 		<ul class="grid w-full gap-3">
 			for _, item := range items {
-				<li class="rounded-field border-2 border-base-300 p-3">
+				<li class={ surfaceInset + " p-3" }>
 					<p class="flex flex-wrap items-baseline justify-between gap-x-3 font-medium">
 						<span>{ equippedItemName(item) }</span>
 						if item.Quantity != "1" {

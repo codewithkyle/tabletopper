@@ -12,7 +12,7 @@ templ MapAssets(maps []queries.Asset) {
 }
 
 templ MapCard(m queries.Asset) {
-	<asset-card class="card card-border mb-auto border-base-300 bg-panel/85 p-4 shadow-sm backdrop-blur-sm">
+	<asset-card class={ sheetSurface + " mb-auto p-4" }>
 		if m.PreviewPath.Valid {
 			<img class="mb-2 block aspect-square w-full overflow-hidden rounded object-cover" src={ "/assets/images/" + m.ID.String() + "/preview" }/>
 		}
@@ -28,7 +28,7 @@ templ MapCard(m queries.Asset) {
 		/>
 		<div class="flex flex-row flex-nowrap items-center justify-between gap-2">
 			<div class="min-w-0 flex-1">
-				<code class="mr-auto inline-block h-6 max-w-full flex-1 overflow-hidden rounded border-2 border-base-300 bg-base-100 px-1 text-xs leading-6 text-ellipsis whitespace-nowrap">{ m.FileName }</code>
+				<code class="mr-auto inline-block h-6 max-w-full flex-1 overflow-hidden rounded bg-base-content/5 px-1 text-xs leading-6 text-ellipsis whitespace-nowrap">{ m.FileName }</code>
 			</div>
 			<div class="flex flex-row items-center gap-1">
 				<div class="tooltip" data-tip="Replace">

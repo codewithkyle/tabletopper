@@ -31,8 +31,8 @@ templ FeatureRowFragment() {
 }
 
 templ featureRow(row Feature) {
-	<div data-feature-row="true" class="overflow-hidden rounded-field border-2 border-base-300">
-		<div class="flex items-stretch border-b-2 border-base-300">
+	<div data-feature-row="true" class={ surfaceInset + " overflow-hidden" }>
+		<div class="flex items-stretch border-b border-base-300">
 			<input
 				name={ FeaturesPanel + "-name" }
 				type="text"
@@ -42,7 +42,7 @@ templ featureRow(row Feature) {
 			/>
 			<button
 				type="button"
-				class="btn btn-ghost btn-square rounded-none border-s-2 border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2"
+				class="btn btn-ghost btn-square rounded-none border-s border-base-300 text-base-content/70 hover:bg-error/10 hover:text-error focus-visible:-outline-offset-2"
 				aria-label="Delete feature"
 				data-remove-closest="[data-feature-row]"
 			>

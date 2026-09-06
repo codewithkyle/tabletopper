@@ -95,6 +95,8 @@
   --border: 2px;
   --panel-bg: var(--color-base-200);
   --hint-color: var(--color-error);
+  --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.45);
+  --panel-shadow-lift: 0 12px 32px -16px rgb(0 0 0 / 0.8);
 }
 
 /* --panel-bg is the elevated surface: cards, sheet sections, the modal, the
@@ -124,6 +126,8 @@
   default: true;
   --panel-bg: var(--color-base-100);
   --hint-color: var(--color-error-content);
+  --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.05);
+  --panel-shadow-lift: 0 10px 26px -14px rgb(0 0 0 / 0.16);
 }
 
 /* Rubik, loaded by the @import at the top of core.css.
@@ -148,6 +152,39 @@
    goes with it and nothing is left reading a name that is gone. */
 @theme {
   --color-panel: var(--panel-bg);
+}
+
+/* --panel-shadow is the drop shadow that makes a panel read as sitting above
+   the desk rather than being drawn on it, and like --panel-bg it is declared
+   per theme through the plugin above -- for the same reason, and with a bigger
+   gap between the two answers.
+
+   A shadow is a darkening, so how much of one is legible depends entirely on
+   what it falls on. caramellatte's desk is cream: 5% black on the contact edge
+   and 16% on the wide falloff is already a visible lift, and the 45%/80% the
+   dark theme needs would look like soot. coffee's desk is near-black, where
+   those light values do nothing at all -- the panel there is base-200, which is
+   DARKER than the base-100 desk, so the surface itself gives no lift and the
+   shadow is doing all of the work on its own.
+
+   Two layers in both, because one cannot do both jobs: a tight 1-2px shadow at
+   the contact edge, which is what reads as a physical seam, and a wide
+   negative-spread falloff, which is what reads as height. A single mid-sized
+   shadow reads as neither and just looks blurry.
+
+   This replaces shadow-sm, which is Tailwind's 0 1px 2px rgb(0 0 0 / 0.05) --
+   the first of those two layers, at the light theme's strength, on both.
+
+   THE TWO LAYERS ARE TWO PROPERTIES BECAUSE ONE WITH A COMMA IN IT DOES NOT
+   SURVIVE THE PLUGIN. A declaration inside an @plugin block is read as an
+   option, and `a, b` there comes out as two separate declarations of the same
+   property rather than one two-layer value -- so the second silently won and
+   every panel got the falloff with no contact edge. It builds, it renders, and
+   the only symptom is a shadow that looks blurry instead of seated. They are
+   composed back into one value below, where the comma is in ordinary CSS and
+   means what it says. */
+@theme {
+  --shadow-panel: var(--panel-shadow-edge), var(--panel-shadow-lift);
 }
 
 /* --hint-color is the field-error text on .validator-hint, and it has to be

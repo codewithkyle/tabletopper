@@ -2,7 +2,7 @@ package pages
 
 templ bonusRow(grid string, row BonusRow) {
 	{{ field := grid + "-" + row.Key }}
-	<div class="flex items-center gap-2 rounded-field border-2 border-base-300 p-2">
+	<div class={ surfaceInset + " flex items-center gap-2 p-2" }>
 		<span class="flex min-w-0 flex-1 flex-col gap-0.5">
 			<span class="truncate text-sm font-medium">{ row.Label }</span>
 			<span class="text-xs font-semibold tracking-wider text-base-content/75">{ row.Abbr }</span>
