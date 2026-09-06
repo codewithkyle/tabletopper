@@ -186,10 +186,18 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /share/{token}/avatar", app.GetShareAvatar)
 	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
 
-	// The account settings save. Four columns on the users row, no path
+	// The account settings saves. Four columns on the users row, no path
 	// parameter, and no id anywhere: the only account a session can change is
 	// its own, so naming one in the URL would create a way to ask for another.
+	//
+	// The welcome pair are separate routes rather than one route reading which
+	// button was pressed, because they do different things to different columns
+	// and only one of them reads the form. A single handler branching on a
+	// submit value would have to be trusted not to write the pickers on the
+	// path that means "I did not answer these".
 	mux.HandleFunc("POST /account/settings", auth.RequireSession(app.SaveAccountSettings))
+	mux.HandleFunc("POST /account/welcome", auth.RequireSession(app.CompleteOnboarding))
+	mux.HandleFunc("POST /account/welcome/skip", auth.RequireSession(app.DismissOnboarding))
 
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
@@ -234,6 +242,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// request -- so there is nothing here to validate and nothing a caller
 	// could ask for that is not their own.
 	mux.HandleFunc("GET /fragment/account/settings", auth.Fragment(app.AccountSettingsFragment))
+	// The welcome dialog, which the homepage opens by itself for an account
+	// that has never answered it. Nothing links here and nothing needs to: the
+	// signal is a column, so the page decides rather than the URL.
+	mux.HandleFunc("GET /fragment/account/welcome", auth.Fragment(app.AccountWelcomeFragment))
 
 	// Subtree pattern, so it takes any /fragment/ path the five above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's

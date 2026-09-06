@@ -68,6 +68,15 @@ type UserSession struct {
 	// second write to keep in step with the first.
 	Prefs prefs.Preferences
 
+	// Onboarded is false while this account has never answered the welcome
+	// dialog, which is what opens it on the homepage.
+	//
+	// It is the boolean and not the timestamp because nothing renders "when".
+	// The column holds the instant, and this is the only question anything asks
+	// of it -- carrying the time as well would put a nullable field on the
+	// session that every reader would have to remember not to use.
+	Onboarded bool
+
 	token []byte
 }
 
@@ -120,7 +129,8 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 			string(row.DateFormat),
 			string(row.TimeFormat),
 		),
-		token: token,
+		Onboarded: row.OnboardedAt.Valid,
+		token:     token,
 	}, nil
 }
 

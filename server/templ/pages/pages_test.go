@@ -57,6 +57,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"account-settings-fragment": func() error {
 			return render(AccountSettingsFragment(testAccountSettings()))
 		},
+		"account-welcome-fragment": func() error {
+			return render(AccountWelcomeFragment(testAccountSettings()))
+		},
 		"assets":  func() error { return render(MapAssets([]queries.Asset{})) },
 		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
 		"tos":     func() error { return render(TOS()) },

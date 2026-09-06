@@ -294,3 +294,57 @@ func TestTheDefaultsAreWhatWasAgreed(t *testing.T) {
 		t.Errorf("the default rendering %q does not spell its month", text)
 	}
 }
+
+// AN ALIAS HAS TO NAME THE SAME PLACE AS THE ZONE IT HANGS OFF, or the welcome
+// dialog would preselect the wrong city for whoever it matched -- silently, and
+// only for readers in that one country.
+//
+// Checked by behaviour rather than by trusting the pair: both names are loaded
+// and asked what the offset is on either side of a DST boundary, which is what
+// makes a copy-paste slip between two neighbouring zones fail here.
+func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
+	seen := map[string]string{}
+
+	for _, group := range ZoneGroups {
+		for _, z := range group.Zones {
+			if z.Alias == "" {
+				continue
+			}
+
+			if _, offered := zones[z.Alias]; offered {
+				t.Errorf("%q is both an alias of %q and an offered zone in its own right", z.Alias, z.Name)
+			}
+			if other, dup := seen[z.Alias]; dup {
+				t.Errorf("alias %q hangs off both %q and %q", z.Alias, other, z.Name)
+			}
+			seen[z.Alias] = z.Name
+
+			old, err := time.LoadLocation(z.Alias)
+			if err != nil {
+				t.Errorf("alias %q does not resolve: %v", z.Alias, err)
+				continue
+			}
+			current, ok := zone(z.Name)
+			if !ok {
+				t.Errorf("zone %q does not resolve", z.Name)
+				continue
+			}
+
+			for _, at := range []time.Time{summer, winter} {
+				_, want := at.In(current).Zone()
+				_, got := at.In(old).Zone()
+				if got != want {
+					t.Errorf("%q and its alias %q disagree at %s: %d vs %d seconds",
+						z.Name, z.Alias, at, want, got)
+				}
+			}
+		}
+	}
+
+	// The five are measured, not assumed -- see the comment in zones.go. If a
+	// Go release changes what tzdata carries, this says so rather than the
+	// detection quietly missing a country.
+	if len(seen) != 5 {
+		t.Errorf("%d aliases, want the 5 that ICU still canonicalises", len(seen))
+	}
+}

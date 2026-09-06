@@ -12,10 +12,7 @@ templ AccountSettingsFragment(data AccountSettingsData) {
 			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
 		>
 			@PanelFormErrors(AccountSettingsPanel, []string{})
-			@selectField("theme", "Theme", data.Themes, data.Theme, true)
-			@zoneField(data.Zones, data.Zone)
-			@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
-			@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
+			@accountSettingsFields(data)
 			<div class="modal-action">
 				<button
 					type="button"
@@ -28,14 +25,56 @@ templ AccountSettingsFragment(data AccountSettingsData) {
 	</div>
 }
 
-templ zoneField(groups []OptionGroup, value string) {
+templ AccountWelcomeFragment(data AccountSettingsData) {
+	{{ errorBlock := "#errors-" + AccountWelcomePanel }}
+	<div id={ accountWelcomeID } class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Welcome to Tabletopper</h3>
+		<p class="m-0 text-base-content/75">Your account is ready. Tell us where you are and how you like your dates, and everything in the app will read the way you expect. You can change all of this later from the gear at the bottom of the home page.</p>
+		<form
+			class="grid gap-4"
+			hx-post="/account/welcome"
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(AccountWelcomePanel, []string{})
+			<zone-detect class="contents">
+				@accountSettingsFields(data)
+			</zone-detect>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-post="/account/welcome/skip"
+					hx-swap="none"
+				>Not now</button>
+				<button type="submit" class="btn btn-primary">Save and get started</button>
+			</div>
+		</form>
+	</div>
+}
+
+templ accountSettingsFields(data AccountSettingsData) {
+	@selectField("theme", "Theme", data.Themes, data.Theme, true)
+	@zoneField(data.Zones, data.Zone)
+	@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
+	@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
+}
+
+templ zoneField(groups []ZoneGroup, value string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for="timezone">Time zone</label>
 		<select id="timezone" name="timezone" class="select w-full" required>
 			for _, group := range groups {
 				<optgroup label={ group.Label }>
-					for _, option := range group.Options {
-						<option value={ option.Value } selected?={ option.Value == value }>{ option.Label }</option>
+					for _, zone := range group.Zones {
+						<option
+							value={ zone.Value }
+							if zone.Alias != "" {
+								data-alias={ zone.Alias }
+							}
+							selected?={ zone.Value == value }
+						>{ zone.Label }</option>
 					}
 				</optgroup>
 			}

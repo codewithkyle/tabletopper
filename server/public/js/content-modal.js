@@ -202,3 +202,34 @@ dialog.addEventListener("close", () => {
     // Any load still in flight belongs to the modal that just closed.
     current = null;
 });
+
+// A page can also ask for the modal the moment it loads:
+//
+//     <div hidden data-modal-autoopen="/fragment/account/welcome"></div>
+//
+// which is how the welcome dialog opens for an account that has never answered
+// it. THE SERVER DECIDES, not the URL: the marker is rendered only when the
+// users row says so, which is what makes the question survive a reload, a
+// second device, and a reader who pressed Escape the first time. The obvious
+// alternative -- a #welcome hash read here -- is never sent to the server, so
+// it is gone the moment the browser navigates.
+//
+// Not delegated and not repeated: this fires once, for the first marker in the
+// document, because a page that opens two dialogs at load is a page with a bug.
+// Module scripts are deferred, so the document is parsed by the time this runs.
+//
+// IT IS THE LAST THING IN THIS FILE AND THAT IS LOAD-BEARING. The dispatch is
+// synchronous, so written any earlier than the modal:open listener above it
+// fires into a document that is not listening yet: nothing opens, nothing is
+// logged, and the one page that needed it is the only place it shows.
+const autoOpen = document.querySelector("[data-modal-autoopen]");
+if (autoOpen) {
+    window.dispatchEvent(
+        new CustomEvent("modal:open", {
+            detail: {
+                url: autoOpen.dataset.modalAutoopen,
+                size: autoOpen.dataset.modalSize,
+            },
+        }),
+    );
+}

@@ -223,10 +223,25 @@ func TestTheDialogIsBuiltFromTheStoredSettings(t *testing.T) {
 	if len(data.Zones) == 0 {
 		t.Fatal("no zone groups")
 	}
+	aliases := 0
 	for _, group := range data.Zones {
-		if group.Label == "" || len(group.Options) == 0 {
+		if group.Label == "" || len(group.Zones) == 0 {
 			t.Errorf("empty zone group %#v", group)
 		}
+		for _, zone := range group.Zones {
+			if zone.Value == "" || zone.Label == "" {
+				t.Errorf("incomplete zone option %#v", zone)
+			}
+			if zone.Alias != "" {
+				aliases++
+			}
+		}
+	}
+	// The aliases have to survive the trip into the page data, or the welcome
+	// dialog's detection silently misses every reader whose browser still
+	// reports the pre-rename spelling.
+	if aliases == 0 {
+		t.Error("no zone carries its older IANA spelling into the markup")
 	}
 }
 
@@ -295,4 +310,114 @@ func equalStrings(got, want []string) bool {
 		}
 	}
 	return true
+}
+
+func welcomePost(t *testing.T, db *recordingDB, path string, form url.Values, handler func(*App, http.ResponseWriter, *http.Request)) *httptest.ResponseRecorder {
+	t.Helper()
+
+	app := &App{Queries: queries.New(db)}
+
+	r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+
+	rec := httptest.NewRecorder()
+	handler(app, rec, r)
+
+	return rec
+}
+
+// THE SETTINGS AND THE STAMP GO IN ONE STATEMENT. Two would leave a window in
+// which the answer landed and the account was still marked unset up, and the
+// next page load would reopen the welcome dialog over the choice just made.
+func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	rec := welcomePost(t, db, "/account/welcome", settingsForm(),
+		func(a *App, w http.ResponseWriter, r *http.Request) { a.CompleteOnboarding(w, r) })
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200\n%s", rec.Code, rec.Body.String())
+	}
+	if len(db.calls) != 1 {
+		t.Fatalf("statements run = %d, want 1", len(db.calls))
+	}
+
+	want := []string{"theme", "timezone", "date_format", "time_format", "onboarded_at"}
+	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
+		t.Errorf("wrote %v, want %v", got, want)
+	}
+	// COALESCE, so a second answer keeps the first stamp rather than moving it.
+	if !strings.Contains(db.calls[0].query, "COALESCE(onboarded_at") {
+		t.Errorf("the stamp is not preserved across a re-answer:\n%s", db.calls[0].query)
+	}
+}
+
+// The welcome dialog validates exactly as the settings dialog does, because it
+// is the same four pickers. A rejected form writes nothing -- and crucially
+// leaves the account unstamped, so the question is asked again rather than
+// being silently closed on a value that never landed.
+func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	form := settingsForm()
+	form.Set("date_format", "DD/MM/YYYY")
+	rec := welcomePost(t, db, "/account/welcome", form,
+		func(a *App, w http.ResponseWriter, r *http.Request) { a.CompleteOnboarding(w, r) })
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", rec.Code)
+	}
+	if len(db.calls) != 0 {
+		t.Errorf("statements run = %d, want 0", len(db.calls))
+	}
+	if !strings.Contains(rec.Body.String(), "errors-account-welcome") {
+		t.Errorf("the reply is not the welcome dialog's error block\n%s", rec.Body.String())
+	}
+}
+
+// "NOT NOW" READS NO FORM. The button sits inside the welcome form and htmx may
+// send its values along; storing them would turn pickers the reader explicitly
+// declined -- including a zone the browser guessed for them -- into their saved
+// answer. The statement takes one argument, and it is the account's own id.
+func TestNotNowStampsTheAccountAndStoresNothingElse(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	// A form that would be perfectly valid, to prove it is ignored rather than
+	// merely absent.
+	form := settingsForm()
+	form.Set("theme", "light")
+	rec := welcomePost(t, db, "/account/welcome/skip", form,
+		func(a *App, w http.ResponseWriter, r *http.Request) { a.DismissOnboarding(w, r) })
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if len(db.calls) != 1 {
+		t.Fatalf("statements run = %d, want 1", len(db.calls))
+	}
+
+	call := db.calls[0]
+	if got := setColumns(t, call.query); !equalStrings(got, []string{"onboarded_at"}) {
+		t.Errorf("wrote %v, want only the stamp", got)
+	}
+	if len(call.args) != 1 || call.args[0] != testOwnerID {
+		t.Errorf("args = %v, want just the session's own id", call.args)
+	}
+
+	// It closes and hands over: this dialog is not coming back, so the toast is
+	// the only chance to say where the settings went.
+	trigger := rec.Header().Get("HX-Trigger")
+	for _, want := range []string{"modal:close", "flash:toast"} {
+		if !strings.Contains(trigger, want) {
+			t.Errorf("HX-Trigger %q missing %s", trigger, want)
+		}
+	}
+	if !strings.Contains(trigger, "gear") {
+		t.Errorf("the toast does not say where to find the settings: %q", trigger)
+	}
+	// Nothing changed, so nothing is repainted.
+	if strings.Contains(trigger, "theme:change") {
+		t.Errorf("a dismissal repainted the page: %q", trigger)
+	}
 }

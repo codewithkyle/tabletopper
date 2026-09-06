@@ -17,16 +17,49 @@ const accountSettingsID = "account-settings"
 // handler builds the same block on a rejected save.
 const AccountSettingsPanel = "account-settings"
 
-// OptionGroup is a labelled run of options inside one select.
+// The welcome dialog: the same four pickers behind a different message, a
+// different pair of buttons and a different route.
 //
-// ONE PICKER NEEDS THIS AND THE OTHER THREE DO NOT. Theme, date format and
-// clock offer three, five and two entries; zones offer about fifty, and fifty
-// flat entries is a list nobody scans. Grouping them by region means a reader
-// finds their continent first and their city inside it, which is the only
-// affordance a plain <select> has to give.
-type OptionGroup struct {
-	Label   string
-	Options []Option
+// IT IS A SECOND WRAPPER AND NOT A SECOND COPY. accountSettingsFields is the
+// pickers, and both dialogs call it -- a fragment is never a second copy of
+// markup, and four selects that drifted apart would be four places for the
+// stored value to stop being the selected one.
+//
+// What differs is everything around them: this one explains why it is asking,
+// its save also stamps the account as set up, and its Close says "Not now" and
+// posts, so a reader who does not care can end the asking deliberately.
+// Escape still closes without posting, which means "ask me again" -- that is
+// the whole dismissal design, and it is why the stamp lives in a column rather
+// than in the URL that opened this.
+const (
+	accountWelcomeID    = "account-welcome"
+	AccountWelcomePanel = "account-welcome"
+)
+
+// ZoneGroup is one <optgroup> of the time zone picker, and ZoneOption is one
+// city in it.
+//
+// ONE PICKER NEEDS GROUPING AND THE OTHER THREE DO NOT. Theme, date format and
+// clock offer three, five and two entries; zones offer eighty, and eighty flat
+// entries is a list nobody scans. Grouping them by region means a reader finds
+// their continent first and their city inside it, which is the only affordance
+// a plain <select> has to give.
+//
+// IT ALSO NEEDS A THIRD FIELD, which is why these are not the plain Option the
+// other three use. Alias is the zone's older IANA spelling, rendered onto the
+// <option> so the welcome dialog's browser detection matches either -- several
+// zones still come back from Intl under the name they had before they were
+// renamed. Nothing is ever stored under an alias; it exists only so the right
+// option gets selected.
+type ZoneGroup struct {
+	Label string
+	Zones []ZoneOption
+}
+
+type ZoneOption struct {
+	Value string
+	Label string
+	Alias string
 }
 
 // AccountSettingsData is the dialog: each picker's options, and the value
@@ -50,7 +83,7 @@ type AccountSettingsData struct {
 	Themes []Option
 	Theme  string
 
-	Zones []OptionGroup
+	Zones []ZoneGroup
 	Zone  string
 
 	DateFormats []Option

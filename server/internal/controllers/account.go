@@ -80,10 +80,96 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx.Theme(w, updated.Theme.Palette())
+	announceSettings(w, r, pages.AccountSettingsPanel, updated, "Settings saved.")
+}
+
+// AccountWelcomeFragment is the same four pickers behind a welcome message,
+// opened by the homepage for an account that has never answered it.
+//
+// IT IS OFFERED THE DEFAULTS, because that is what the row holds -- and the
+// zone picker inside it is wrapped in <zone-detect>, which preselects the
+// browser's own zone if this app offers it. That is the browser detection this
+// project turned down for the read path, and it is right here for the reason it
+// was wrong there: nothing is stored until the reader presses Save, so it is a
+// suggestion sitting in a control they are already looking at rather than a
+// guess written behind their back.
+func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
+	p := session.FromContext(r.Context()).Prefs
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(p, time.Now())))
+}
+
+// CompleteOnboarding is the welcome dialog's Save. It writes the same four
+// columns SaveAccountSettings does and stamps the account as set up, in ONE
+// statement -- two would have a window in which the settings landed and the
+// stamp did not, and the dialog would reopen over the answer just given.
+func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	if !parsePanelForm(w, r, pages.AccountWelcomePanel) {
+		return
+	}
+
+	updated, problems := accountSettingsInput(r)
+	if len(problems) > 0 {
+		renderPanelBlock(w, r, pages.AccountWelcomePanel, problems)
+		return
+	}
+
+	err := a.Queries.CompleteOnboarding(ctx, queries.CompleteOnboardingParams{
+		ID:         sess.UserID,
+		Theme:      queries.UsersTheme(updated.Theme),
+		Timezone:   updated.Timezone,
+		DateFormat: queries.UsersDateFormat(updated.DateFormat),
+		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
+	})
+	if err != nil {
+		slog.Error("Failed to complete onboarding", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	announceSettings(w, r, pages.AccountWelcomePanel, updated, "You are all set.")
+}
+
+// DismissOnboarding is "Not now": the account is stamped and keeps every
+// default, so the dialog stops opening.
+//
+// IT READS NO FORM AT ALL. The button sits inside the welcome form and htmx may
+// well send its values along; storing them would mean the pickers the reader
+// declined to answer got saved anyway, and a preselected zone they never looked
+// at would become their choice.
+//
+// ESCAPE IS NOT THIS. Closing the dialog any other way posts nothing and leaves
+// the column NULL, so the next visit asks again -- which is the right default
+// for somebody who has not answered. This button is how a reader who does not
+// want to answer says so once.
+func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
+	sess := session.FromContext(r.Context())
+
+	if err := a.Queries.DismissOnboarding(r.Context(), sess.UserID); err != nil {
+		slog.Error("Failed to dismiss onboarding", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	// The toast is the handover: the dialog is not coming back, so this is the
+	// one chance to say where the settings went.
 	htmx.CloseModal(w)
-	htmx.Toast(w, "Settings saved.")
-	renderPanelBlock(w, r, pages.AccountSettingsPanel, nil)
+	htmx.Toast(w, "No problem. The gear at the bottom of this page has these settings whenever you want them.")
+	w.WriteHeader(http.StatusOK)
+}
+
+// announceSettings is the reply both saves share: repaint, dismiss, say so, and
+// clear the error block. The block is not busywork -- the form targets it, so
+// rendering it empty is what clears a complaint the previous attempt left.
+func announceSettings(w http.ResponseWriter, r *http.Request, panel string, p prefs.Preferences, message string) {
+	htmx.Theme(w, p.Theme.Palette())
+	htmx.CloseModal(w)
+	htmx.Toast(w, message)
+	renderPanelBlock(w, r, panel, nil)
 }
 
 // accountSettingsInput reads the four fields and reports what it could not
@@ -149,11 +235,15 @@ func accountSettingsData(p prefs.Preferences, now time.Time) pages.AccountSettin
 	}
 
 	for _, group := range prefs.ZoneGroups {
-		options := make([]pages.Option, 0, len(group.Zones))
+		zones := make([]pages.ZoneOption, 0, len(group.Zones))
 		for _, zone := range group.Zones {
-			options = append(options, pages.Option{Value: zone.Name, Label: zone.Label})
+			zones = append(zones, pages.ZoneOption{
+				Value: zone.Name,
+				Label: zone.Label,
+				Alias: zone.Alias,
+			})
 		}
-		data.Zones = append(data.Zones, pages.OptionGroup{Label: group.Region, Options: options})
+		data.Zones = append(data.Zones, pages.ZoneGroup{Label: group.Region, Zones: zones})
 	}
 
 	for _, format := range prefs.DateFormats() {

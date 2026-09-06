@@ -1,6 +1,6 @@
 -- name: GetSession :one
 SELECT s.id, s.username, s.profile_image_url, s.user_id, s.character_id, s.room_id, s.created_at,
-       u.theme, u.timezone, u.date_format, u.time_format
+       u.theme, u.timezone, u.date_format, u.time_format, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 WHERE s.expires_at > NOW() AND s.hash = ?;

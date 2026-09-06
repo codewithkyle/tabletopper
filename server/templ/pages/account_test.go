@@ -22,11 +22,12 @@ func testAccountSettings() AccountSettingsData {
 			{Value: "dark", Label: "Dark"},
 		},
 		Theme: "dark",
-		Zones: []OptionGroup{
-			{Label: "Universal", Options: []Option{{Value: "UTC", Label: "UTC"}}},
-			{Label: "Americas", Options: []Option{
+		Zones: []ZoneGroup{
+			{Label: "Universal", Zones: []ZoneOption{{Value: "UTC", Label: "UTC"}}},
+			{Label: "Americas", Zones: []ZoneOption{
 				{Value: "America/New_York", Label: "New York"},
 				{Value: "America/Chicago", Label: "Chicago"},
+				{Value: "America/Argentina/Buenos_Aires", Label: "Buenos Aires", Alias: "America/Buenos_Aires"},
 			}},
 		},
 		Zone: "America/Chicago",
@@ -224,4 +225,137 @@ func renderHomepageWithTheme(t *testing.T, theme prefs.Theme) string {
 		UserID: ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
 		Prefs:  prefs.Preferences{Theme: theme},
 	})
+}
+
+func renderWelcome(t *testing.T) string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	if err := AccountWelcomeFragment(testAccountSettings()).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	return buf.String()
+}
+
+// THE TWO DIALOGS SHARE THEIR PICKERS RATHER THAN EACH HAVING FOUR. This is the
+// assertion behind that: every field and every option present in one is present
+// in the other, so a change to the settings form cannot leave the welcome form
+// rendering last week's markup.
+func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
+	settings := collapseWhitespace(renderSettings(t))
+	welcome := collapseWhitespace(renderWelcome(t))
+
+	for _, want := range []string{
+		`name="theme"`,
+		`name="timezone"`,
+		`name="date_format"`,
+		`name="time_format"`,
+		`<optgroup label="Americas">`,
+		`<option value="dark" selected>Dark</option>`,
+		`<option value="America/Chicago" selected>Chicago</option>`,
+		`<option value="iso" selected>2026-09-06</option>`,
+		`<option value="24h" selected>24-hour (14:04)</option>`,
+	} {
+		if !strings.Contains(settings, want) {
+			t.Errorf("the settings dialog is missing %s", want)
+		}
+		if !strings.Contains(welcome, want) {
+			t.Errorf("the welcome dialog is missing %s", want)
+		}
+	}
+}
+
+// The older IANA spelling has to reach the markup, because the detector in the
+// browser is what reads it, and it is the only thing standing between a reader
+// in India and a silent miss: their engine reports Asia/Calcutta for the option
+// this app calls Asia/Kolkata.
+//
+// It is rendered only where there is one, so the attribute's presence means
+// something rather than being an empty string on eighty options.
+func TestAZonesOlderNameIsRenderedBesideIt(t *testing.T) {
+	markup := collapseWhitespace(renderWelcome(t))
+
+	if !strings.Contains(markup, `data-alias="America/Buenos_Aires"`) {
+		t.Errorf("the alias did not reach the markup\n%s", markup)
+	}
+	// It is a hint for the picker, never a value to store.
+	if strings.Contains(markup, `value="America/Buenos_Aires"`) {
+		t.Errorf("an alias is offered as a storable value\n%s", markup)
+	}
+	if got := strings.Count(markup, "data-alias"); got != 1 {
+		t.Errorf("%d options carry an alias, want only the one that has one\n%s", got, markup)
+	}
+}
+
+// The zone suggestion belongs to the dialog where nothing has been chosen yet.
+// In the settings dialog the reader has already answered, and quietly moving
+// their picker to whatever machine they happened to open the app on would
+// overwrite a real choice with a guess.
+func TestOnlyTheWelcomeDialogGuessesTheZone(t *testing.T) {
+	if !strings.Contains(renderWelcome(t), "<zone-detect") {
+		t.Errorf("the welcome dialog does not offer a detected zone\n%s", renderWelcome(t))
+	}
+	if strings.Contains(renderSettings(t), "zone-detect") {
+		t.Errorf("the settings dialog would overwrite a stored zone with a guess\n%s", renderSettings(t))
+	}
+}
+
+// Its two actions are different routes, and Close comes first like every other
+// dialog. "Not now" posts, because that is what ends the asking; Escape does
+// not, which is what leaves it to be asked again.
+func TestTheWelcomeDialogsTwoActions(t *testing.T) {
+	markup := renderWelcome(t)
+
+	notNow := strings.Index(markup, ">Not now<")
+	save := strings.Index(markup, ">Save and get started<")
+	switch {
+	case notNow < 0:
+		t.Fatalf("no way to decline\n%s", markup)
+	case save < 0:
+		t.Fatalf("no affirmative action\n%s", markup)
+	case notNow > save:
+		t.Errorf("the close control comes after the affirmative action\n%s", markup)
+	}
+
+	if !strings.Contains(markup, `hx-post="/account/welcome"`) {
+		t.Errorf("the form does not post to /account/welcome\n%s", markup)
+	}
+	if !strings.Contains(markup, `hx-post="/account/welcome/skip"`) {
+		t.Errorf("Not now does not post the dismissal\n%s", markup)
+	}
+	// Not a submit, or declining would send the pickers it is declining.
+	if !strings.Contains(markup, `type="button"`) {
+		t.Errorf("Not now submits the form\n%s", markup)
+	}
+	if !strings.Contains(markup, `id="errors-account-welcome"`) {
+		t.Errorf("no error block of its own\n%s", markup)
+	}
+}
+
+// THE QUESTION IS ASKED BY THE SERVER, FROM A COLUMN. A URL fragment would be
+// the cheap version and it is never sent to the server, so it would be gone the
+// moment the browser navigated -- and someone who pressed Escape in the first
+// ten seconds of their account would never be asked again.
+func TestTheWelcomeOpensItselfOnlyForAnAccountThatHasNotAnswered(t *testing.T) {
+	newAccount := renderHomepage(t, session.UserSession{
+		UserID: ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
+	})
+	if !strings.Contains(newAccount, `data-modal-autoopen="/fragment/account/welcome"`) {
+		t.Errorf("a new account is not asked\n%s", newAccount)
+	}
+
+	answered := renderHomepage(t, session.UserSession{
+		UserID:    ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
+		Onboarded: true,
+	})
+	if strings.Contains(answered, "data-modal-autoopen") {
+		t.Errorf("an account that has answered is asked again\n%s", answered)
+	}
+
+	// A stranger has no account to set up, and the fragment behind this is
+	// behind a session anyway.
+	if strings.Contains(renderHomepage(t, session.UserSession{}), "data-modal-autoopen") {
+		t.Errorf("the signed-out homepage opens a welcome dialog")
+	}
 }

@@ -1,7 +1,35 @@
-.PHONY: db sqlc templ css css-watch js run check fmt fmt-check vet test
+.PHONY: db reset sqlc templ css css-watch js run check fmt fmt-check vet test
 
 run: db templ sqlc css js
 	docker compose up --build
+
+# Nuke the local database and come back up from nothing. `docker compose down -v`
+# drops the db_data volume MySQL keeps its files in, so the next `make db`
+# re-applies every migration against an empty schema rather than against the
+# rows that were there.
+#
+# THIS DELETES EVERY LOCAL ROW, your own account included -- which is usually
+# the point. Signing in again writes a fresh users row, and a fresh row has
+# never answered the welcome dialog, so the onboarding flow runs.
+#
+# IT DOES NOT TOUCH R2, and cannot usefully be made to. The bucket is remote and
+# may be shared, and the assets rows that name its objects are in the database
+# this just dropped -- so whatever it held is now unreachable, and the hourly
+# sweeper cannot collect it either, because the sweep finds objects by reading
+# those same rows. Clear the bucket by hand if the orphans matter.
+#
+# The prompt is here because `reset` and `run` are one keystroke apart and one
+# of them is not recoverable. `make reset FORCE=1` skips it. Reading from a
+# closed stdin fails the comparison, so a non-interactive run aborts rather
+# than proceeding.
+reset:
+	@if [ -z "$(FORCE)" ]; then \
+		printf 'This deletes every row in the local database. Type "nuke" to continue: '; \
+		read answer; \
+		[ "$$answer" = "nuke" ] || { echo "Aborted; nothing was deleted."; exit 1; }; \
+	fi
+	docker compose down -v
+	$(MAKE)
 
 db:
 	./build/migrate.sh

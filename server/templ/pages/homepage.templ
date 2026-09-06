@@ -6,7 +6,7 @@ import (
 )
 
 templ Homepage(session session.UserSession) {
-	@layouts.Base("Tabletopper") {
+	@layouts.Base("Tabletopper", "/js/zone-detect.js") {
 		@homepageContent(session)
 	}
 }
@@ -49,6 +49,9 @@ templ homepageContent(session session.UserSession) {
 					</div>
 				</div>
 			</div>
+			if !session.Onboarded {
+				<div hidden data-modal-autoopen="/fragment/account/welcome"></div>
+			}
 			<nav class="mt-[4vh] inline-block pl-4">
 				<a class="[animation-delay:350ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/host">Host Game</a>
 				<a class="[animation-delay:400ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/join">Join Game</a>
