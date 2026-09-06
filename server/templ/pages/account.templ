@@ -29,7 +29,7 @@ templ AccountWelcomeFragment(data AccountSettingsData) {
 	{{ errorBlock := "#errors-" + AccountWelcomePanel }}
 	<div id={ accountWelcomeID } class="grid gap-4">
 		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Welcome to Tabletopper</h3>
-		<p class="m-0 text-base-content/75">Your account is ready. Tell us where you are and how you like your dates, and everything in the app will read the way you expect. You can change all of this later from the gear at the bottom of the home page.</p>
+		<p class="m-0 text-base-content/75">Your account is ready. Before diving into everything Tabletopper has to offer, let's get your preferences set up. You can change all of this later from the gear at the bottom of the home page at any time.</p>
 		<form
 			class="grid gap-4"
 			hx-post="/account/welcome"
