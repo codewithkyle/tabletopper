@@ -17,9 +17,32 @@
    leave a document whose headings, paragraphs and bullets are all the same
    undifferentiated block. */
 
+/* The panel's error block is a flex item in a gap-4 column, so an empty one
+   costs a whole 1rem of dead space between the panel heading and the title
+   field -- the block is 0px tall and the gaps either side of it are not. This
+   is visual only: htmx still swaps the element, and a block with a message in
+   it is not :empty and comes back. */
+#errors-journal:empty {
+    display: none;
+}
+
+/* THE MOUNT IS ABSOLUTELY POSITIONED BY THE PAGE, and that is what makes the
+   panel's height independent of how much has been written. An absolutely
+   positioned box contributes nothing to its parent's content size, so a
+   thousand lines of entry cannot grow the row, the card body, the card or the
+   page -- they scroll inside this box instead. Sizing it by grid stretch
+   instead looked identical when the entry was short and pushed the panel off
+   the bottom of the screen when it was not: every box between here and
+   character-editor has to decline to grow for that to work, and one flex item
+   with an automatic minimum size is enough to break the chain.
+
+   The positioning lives in the markup rather than here because the read view
+   will share this class for its typography and will be a block in a normal
+   page flow. What this file owns is what the text looks like and the fact that
+   it scrolls. */
 .journal-body {
     display: block;
-    min-height: 24rem;
+    line-height: 1.45;
     overflow-y: auto;
     padding: 0.75rem;
     border: var(--border) solid var(--color-base-300);
@@ -30,7 +53,7 @@
        above carries the state instead, because the ring would be drawn around
        the text rather than around the box the writer is typing in. */
     & .tiptap {
-        min-height: 22rem;
+        min-height: 100%;
         outline: none;
     }
 
@@ -50,7 +73,7 @@
 
     & > :first-child { margin-top: 0; }
 
-    & p { margin: 0 0 0.75rem; line-height: 1.6; }
+    & p { margin: 0 0 0.75rem; }
 
     & ul,
     & ol { margin: 0 0 0.75rem; padding-left: 1.5rem; }
@@ -107,8 +130,13 @@
 /* The toolbar's active state is an attribute, not a class, and that is the
    point: public/js is not a Tailwind source, so a class name set from
    journal-editor.js would never be emitted. aria-pressed is what a toggle
-   button owes a screen reader anyway, so styling it costs nothing extra. */
+   button owes a screen reader anyway, so styling it costs nothing extra.
+
+   The buttons are .btn-soft, whose background is a low-alpha mix of its colour
+   into the surface. Pressed is the same mix at full strength plus the weight,
+   so the state reads without a border -- these carry none. */
 [data-journal-toolbar] [aria-pressed="true"] {
     background-color: var(--color-base-300);
-    border-color: var(--color-base-content);
+    color: var(--color-base-content);
+    font-weight: 700;
 }

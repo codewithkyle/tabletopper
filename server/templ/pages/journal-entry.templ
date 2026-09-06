@@ -3,9 +3,10 @@ package pages
 import "tabletopper/templ/layouts"
 
 templ EditCharacterJournalEntry(data JournalEntryPageData) {
+	{{ action := "/characters/" + data.CharacterID + "/journal/" + data.EntryID }}
 	@layouts.Base("Journal | Tabletopper", "/static/journal-editor.js") {
-		@editCharacterShell(data.CharacterID, characterTabJournal) {
-			@savingPanel("Entry", "/characters/"+data.CharacterID+"/journal/"+data.EntryID, JournalEntryPanel) {
+		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{Fill: true, Actions: journalSaveButton(action)}) {
+			@savingPanel("Entry", action, JournalEntryPanel) {
 				<div class="fieldset">
 					<label class="fieldset-legend" for="title">Title</label>
 					<input
@@ -17,7 +18,7 @@ templ EditCharacterJournalEntry(data JournalEntryPageData) {
 						placeholder="The road to Phandalin"
 					/>
 				</div>
-				<div data-journal-editor class="grid gap-2">
+				<div data-journal-editor class="grid min-h-0 grow grid-rows-[auto_minmax(0,1fr)] gap-2">
 					<div
 						data-journal-toolbar
 						role="toolbar"
@@ -38,14 +39,16 @@ templ EditCharacterJournalEntry(data JournalEntryPageData) {
 							<option value="4">Heading 4</option>
 						</select>
 					</div>
-					<div data-journal-mount class="journal-body" hidden></div>
-					<textarea
-						name="body"
-						data-journal-body
-						class="textarea min-h-96 w-full font-mono"
-						rows="24"
-						placeholder="What happened, and what you want to remember about it."
-					>{ data.Body }</textarea>
+					<div class="relative min-h-0">
+						<div data-journal-mount class="journal-body absolute inset-0" hidden></div>
+						<textarea
+							name="body"
+							data-journal-body
+							class="textarea absolute inset-0 h-full w-full resize-none font-mono"
+							rows="24"
+							placeholder="What happened, and what you want to remember about it."
+						>{ data.Body }</textarea>
+					</div>
 				</div>
 			}
 		}
@@ -55,8 +58,21 @@ templ EditCharacterJournalEntry(data JournalEntryPageData) {
 templ journalToolbarButton(mark string, label string) {
 	<button
 		type="button"
-		class="btn btn-sm border-base-content/50"
+		class="btn btn-soft btn-sm"
 		data-journal-mark={ mark }
 		aria-pressed="false"
 	>{ label }</button>
+}
+
+templ journalSaveButton(action string) {
+	<button
+		type="button"
+		class="btn btn-primary max-[640px]:flex-1"
+		hx-post={ action }
+		hx-include={ "#" + panelFormID(JournalEntryPanel) }
+		hx-vals={ `{"announce":"1"}` }
+		hx-target={ "#errors-" + JournalEntryPanel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + JournalEntryPanel + ",swap:outerHTML" }
+	>Save</button>
 }

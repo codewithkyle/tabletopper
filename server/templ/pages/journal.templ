@@ -4,7 +4,7 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabJournal) {
+		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{}) {
 			@sheetPanel("Journal") {
 				<div id="journal-entries" class="grid gap-3">
 					for _, entry := range data.Entries {

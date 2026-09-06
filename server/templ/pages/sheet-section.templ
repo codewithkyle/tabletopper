@@ -6,6 +6,7 @@ const panelTrigger = "input delay:1s, repeater:changed"
 
 templ savingPanel(title string, action string, panel string) {
 	<form
+		id={ panelFormID(panel) }
 		class={ sheetSurface }
 		hx-post={ action }
 		hx-trigger={ panelTrigger }

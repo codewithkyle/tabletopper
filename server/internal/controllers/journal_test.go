@@ -94,6 +94,32 @@ func TestSaveJournalEntryIsSilent(t *testing.T) {
 	}
 }
 
+// The Save button's post is the debounce's post plus one field, and the field is
+// the whole difference: the same statement runs and the reply carries a toast.
+//
+// The pair of these is the contract. A save that announced itself either way
+// would bury a writing session in toasts; one that never announced would leave
+// the button looking like it did nothing.
+func TestAnAnnouncedSaveToasts(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	form := journalForm()
+	form.Set("announce", "1")
+	rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, form, testEntryID.String())
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry saved.") {
+		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
+	}
+
+	// One statement, and the same one: the button is not a second save path.
+	if !strings.Contains(db.only(t).query, "UPDATE journals") {
+		t.Errorf("the announced save ran something else")
+	}
+}
+
 // Both limits are refused with a message rather than reaching the driver. MySQL
 // runs strict, so an overlong value comes back as an error and would surface as
 // a 500 on a field the writer was entitled to overfill.

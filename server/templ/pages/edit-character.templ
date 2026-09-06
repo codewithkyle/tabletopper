@@ -4,13 +4,13 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacter(data EditCharacterPageData) {
 	@layouts.Base("Character Editor | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabMain) {
+		@editCharacterShell(data.CharacterID, characterTabMain, shellLayout{}) {
 			@characterPanels(data)
 		}
 	}
 }
 
-templ editCharacterShell(characterID string, active string) {
+templ editCharacterShell(characterID string, active string, layout shellLayout) {
 	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
 			<div class="flex flex-wrap items-end justify-between gap-3 p-2 pb-0 max-[640px]:items-stretch">
@@ -24,10 +24,17 @@ templ editCharacterShell(characterID string, active string) {
 					>
 						Back
 					</a>
+					if layout.Actions != nil {
+						@layout.Actions
+					}
 				</div>
 			</div>
 			@characterTabs(characterID, active)
-			<div class="grid min-h-0 content-start gap-4 overflow-auto pb-4">
+			{{ content := "grid min-h-0 content-start gap-4 overflow-auto pb-4" }}
+			if layout.Fill {
+				{{ content = "grid min-h-0 grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden pb-4" }}
+			}
+			<div class={ content }>
 				{ children... }
 			</div>
 		</div>

@@ -1183,6 +1183,52 @@ func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 	assertCharacterTabs(t, markup, "/characters/"+characterID+"/edit/journal")
 }
 
+// The Save button is not a second save path. It posts the SAME form to the SAME
+// route as the debounce, from outside the form -- which is what hx-include is
+// for, and why savingPanel gives every panel form an id. Getting that selector
+// wrong is the dangerous failure here: the request would go out with no title
+// and no body and blank the entry, so the id and the include are pinned
+// together.
+//
+// It exists because the autosave is deliberately silent (see
+// finishJournalEntry), and `announce` is what asks the server to say so. The
+// debounce never sends that field.
+func TestJournalSaveButtonPostsTheSameForm(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	err := EditCharacterJournalEntry(JournalEntryPageData{
+		CharacterID: characterID,
+		EntryID:     testEntryID,
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	action := "/characters/" + characterID + "/journal/" + testEntryID
+	for _, want := range []string{
+		`<form id="panel-journal"`,
+		`hx-include="#panel-journal"`,
+		`hx-vals="{&#34;announce&#34;:&#34;1&#34;}"`,
+		`hx-post="` + action + `"`,
+		`hx-target="#errors-journal"`,
+		`>Save</button>`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("missing %s\n%s", want, markup)
+		}
+	}
+
+	// Beside Back, in the page header, and after it -- neutral first and the
+	// affirmative action second, the order every dialog in the app uses.
+	back := strings.Index(markup, ">Back</a>")
+	save := strings.Index(markup, ">Save</button>")
+	if back < 0 || save < back {
+		t.Errorf("Save is not beside Back in the header\n%s", markup)
+	}
+}
+
 // EVERY TOOLBAR BUTTON IS type="button". The toolbar sits inside the autosaving
 // form, and a bare <button> there is a submit -- so one missing attribute turns
 // "make this bold" into a full-page post to the save route.

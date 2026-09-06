@@ -2303,9 +2303,6 @@
   .min-h-32 {
     min-height: calc(var(--spacing) * 32);
   }
-  .min-h-96 {
-    min-height: calc(var(--spacing) * 96);
-  }
   .min-h-dvh {
     min-height: 100dvh;
   }
@@ -2362,6 +2359,9 @@
   .shrink-0 {
     flex-shrink: 0;
   }
+  .grow {
+    flex-grow: 1;
+  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -2392,6 +2392,9 @@
   .cursor-pointer {
     cursor: pointer;
   }
+  .resize-none {
+    resize: none;
+  }
   .list-disc {
     list-style-type: disc;
   }
@@ -2412,6 +2415,12 @@
   }
   .grid-rows-\[auto_auto_minmax\(0\,1fr\)\] {
     grid-template-rows: auto auto minmax(0,1fr);
+  }
+  .grid-rows-\[auto_minmax\(0\,1fr\)\] {
+    grid-template-rows: auto minmax(0,1fr);
+  }
+  .grid-rows-\[minmax\(0\,1fr\)\] {
+    grid-template-rows: minmax(0,1fr);
   }
   .flex-col {
     flex-direction: column;

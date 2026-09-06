@@ -185,7 +185,13 @@ func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	finishJournalEntry(w, r, result, err)
+	// `announce` arrives only from the Save button in the page header, which
+	// carries it in hx-vals; the debounce on the form never sends it. Reading a
+	// field the form does not render is the shape the panel handlers avoid, and
+	// it is safe here for the one reason that matters: absent means silent,
+	// which is the behaviour the autosave wants, and the worst a misread can do
+	// is a missing or an extra toast.
+	finishJournalEntry(w, r, result, err, r.PostFormValue("announce") != "")
 }
 
 // DeleteJournalEntry drops one row. The reply carries no body, and it MUST be a
@@ -224,17 +230,22 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, "Entry deleted.")
 }
 
-// finishJournalEntry is finishInventoryRow with the toast taken out, and the
-// missing line is the whole reason it is its own function.
+// finishJournalEntry is finishInventoryRow with the toast made conditional, and
+// that condition is the whole reason it is its own function.
 //
 // An inventory field is a few words and a save there is an event worth
 // announcing. A journal save is a pause between two sentences, and toast.js
 // stacks its messages for five seconds each -- so a writing session would end
 // with a column of "Entry saved." down the side of the page and the writer's own
-// prose behind it. Silence is the correct report for a save nobody asked for;
-// the error block still speaks when a save fails, and the delete still toasts,
-// because that one is a button press.
-func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error) {
+// prose behind it. Silence is the correct report for a save nobody asked for.
+//
+// A SAVE SOMEONE ASKED FOR IS DIFFERENT, and it is why the Save button exists at
+// all: the entry was always being saved, and a writer with nothing to read that
+// from has to take it on faith. So the button posts the same form to the same
+// route and asks to be told, and this is where being told happens -- after the
+// write, on the response that carries it, rather than from the client guessing
+// off a status code.
+func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error, announce bool) {
 	if err != nil {
 		slog.Error("Failed to save journal entry", "error", err)
 		htmx.ServerError(w)
@@ -247,6 +258,10 @@ func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Resul
 	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
 		htmx.NotFound(w, "journal entry")
 		return
+	}
+
+	if announce {
+		htmx.Toast(w, "Entry saved.")
 	}
 
 	renderPanelBlock(w, r, pages.JournalEntryPanel, nil)

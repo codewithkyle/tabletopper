@@ -5,7 +5,7 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
 	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabSpells) {
+		@editCharacterShell(data.CharacterID, characterTabSpells, shellLayout{}) {
 			@spellLevelTabs(data.CharacterID, data.Level)
 			@sheetPanel(SpellLevelName(data.Level)) {
 				if data.Level > 0 {
