@@ -3,6 +3,8 @@ package pages
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -1805,8 +1807,11 @@ func testDerivedValues() Derived {
 	for _, entry := range SkillEntries() {
 		d.Skills = append(d.Skills, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
 	}
+	// No Abbr on a saving throw, because the controller does not send one --
+	// see governingAbbr. A fixture that sent one would render a row the app
+	// cannot produce.
 	for _, entry := range SavingThrowEntries() {
-		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
+		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
 	}
 
 	return d
@@ -2045,5 +2050,33 @@ func TestEveryBonusRowPostsBothOfItsHalves(t *testing.T) {
 				t.Errorf("the %s row does not carry %s", entry.Key, want)
 			}
 		}
+	}
+}
+
+// THE TWO THEMES MUST AGREE ON --border, and the only way to notice they do not
+// is to switch the OS between light and dark and watch every input, button and
+// checkbox change thickness. DaisyUI ships coffee at 1px and caramellatte at
+// 2px, so the agreement is something css/app.css asserts rather than something
+// the themes come with -- which means a DaisyUI upgrade, or somebody tuning one
+// theme, can break it without touching a line of Go.
+//
+// Read from the source stylesheet rather than the build, because the built file
+// also carries DaisyUI's own two declarations, which are overridden on cascade
+// order and are supposed to disagree.
+//
+// The pattern is anchored to the start of a line so it matches declarations and
+// not the comment above them, which says "--border: 1px" while explaining why.
+func TestBothThemesPinTheSameBorderWidth(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("..", "..", "css", "app.css"))
+	if err != nil {
+		t.Fatalf("read app.css: %v", err)
+	}
+
+	matches := regexp.MustCompile(`(?m)^\s*--border:\s*([^;]+);`).FindAllStringSubmatch(string(source), -1)
+	if len(matches) != 2 {
+		t.Fatalf("app.css declares --border %d times, want one per theme", len(matches))
+	}
+	if matches[0][1] != matches[1][1] {
+		t.Errorf("the themes pin --border to %q and %q, so every control changes thickness with the OS theme", matches[0][1], matches[1][1])
 	}
 }

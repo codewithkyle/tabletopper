@@ -150,7 +150,7 @@ func bonusRows(entries []pages.BonusEntry, misc map[string]int, states map[strin
 		rows = append(rows, pages.BonusRow{
 			Key:         entry.Key,
 			Label:       entry.Label,
-			Abbr:        entry.Abbr,
+			Abbr:        governingAbbr(entry),
 			Proficiency: state,
 			Misc:        strconv.Itoa(misc[entry.Key]),
 			Total:       pages.SignedNumber(total),
@@ -158,6 +158,29 @@ func bonusRows(entries []pages.BonusEntry, misc map[string]int, states map[strin
 	}
 
 	return rows
+}
+
+// governingAbbr is the ability a row keys off, printed under its name -- and it
+// is empty when that ability IS the row.
+//
+// The abbreviation earns its place on a skill: Acrobatics reads DEX, and which
+// ability a skill runs on is the thing you have to know and cannot infer. On a
+// saving throw it was the label abbreviated, set directly under the label --
+// "Strength" over "STR" -- which is six wasted rows in a column where every row
+// costs height.
+//
+// IT IS DERIVED RATHER THAN SWITCHED ON THE GRID. Saving throws are the grid
+// where Ability and Key are the same word, and they are that way by
+// construction rather than by coincidence; a homebrew save keyed off a
+// different ability would want its abbreviation back, and would get it here
+// without anybody adding a case for it. See BonusEntry for why those two are
+// separate fields at all.
+func governingAbbr(entry pages.BonusEntry) string {
+	if entry.Ability == entry.Key {
+		return ""
+	}
+
+	return entry.Abbr
 }
 
 // skillTotal reads one computed row back out, for passive perception. It parses

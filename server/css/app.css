@@ -80,8 +80,19 @@
   themes: caramellatte --default, coffee --prefersdark;
 }
 
-/* coffee ships --border: 1px, caramellatte 2px, so a bordered card changed
-   thickness with the OS theme. Pinned to 2px in both.
+/* coffee ships --border: 1px and caramellatte 2px, so a bordered component
+   changed thickness with the OS theme. Both are pinned to 1px, and both are
+   named even though coffee's built-in already agrees -- the property being
+   asserted is that the two themes match, and leaving one to a default would
+   put that at the mercy of a DaisyUI upgrade.
+
+   IT WAS PINNED AT 2px UNTIL THE PANELS STOPPED READING IT. --border is what
+   .card-border, .input, .select, .textarea, .btn, .badge and .checkbox all
+   build their borders out of, and while the sheet panels were card-border it
+   was the panel weight that set the number. The panels are a 1px hairline plus
+   --shadow-panel now (see surfacePanel in templ/pages/sheet-section.templ), and
+   2px controls inside a 1px panel put the heaviest line in the layout around
+   the input rather than around the thing containing it.
 
    Overriding a built-in theme goes through daisyui-theme.js -- that is what
    the plugin file above is kept for. It re-emits the named theme as a full
@@ -92,7 +103,7 @@
 @plugin "./vendor/daisyui-theme.js" {
   name: "coffee";
   prefersdark: true;
-  --border: 2px;
+  --border: 1px;
   --panel-bg: var(--color-base-200);
   --hint-color: var(--color-error);
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.45);
@@ -124,6 +135,7 @@
 @plugin "./vendor/daisyui-theme.js" {
   name: "caramellatte";
   default: true;
+  --border: 1px;
   --panel-bg: var(--color-base-100);
   --hint-color: var(--color-error-content);
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.05);

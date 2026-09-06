@@ -58,6 +58,11 @@ type BonusEntry struct {
 
 // BonusRow is one row already computed, for the markup. Misc is a string like
 // every other input value on the page; Total is not an input at all.
+//
+// Abbr is EMPTY on every saving throw and set on every skill, and the markup
+// prints it only when it is set. It is the ability the row keys off, which is
+// worth saying under Acrobatics and is not worth saying under Strength -- see
+// governingAbbr in the controller, which is what decides.
 type BonusRow struct {
 	Key         string
 	Label       string

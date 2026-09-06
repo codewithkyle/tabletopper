@@ -1068,3 +1068,27 @@ func TestEveryCharacterPanelRefreshesThePage(t *testing.T) {
 		})
 	}
 }
+
+// A row prints the ability it keys off only when that ability is not the row
+// itself. Acrobatics reads DEX, which is the thing about a skill you cannot
+// work out from its name; Strength read STR, which is its own name shortened,
+// set on a second line under it.
+func TestOnlySkillsPrintTheAbilityTheyKeyOff(t *testing.T) {
+	derived := characterDerived(testCharacter())
+
+	for _, c := range []struct{ key, want string }{
+		{key: "acrobatics", want: "DEX"},
+		{key: "arcana", want: "INT"},
+		{key: "athletics", want: "STR"},
+	} {
+		if got := derivedRow(t, derived.Skills, c.key).Abbr; got != c.want {
+			t.Errorf("skill %s prints %q, want %q", c.key, got, c.want)
+		}
+	}
+
+	for _, key := range []string{"str", "dex", "con", "int", "wis", "cha"} {
+		if got := derivedRow(t, derived.SavingThrows, key).Abbr; got != "" {
+			t.Errorf("saving throw %s prints %q under its own name", key, got)
+		}
+	}
+}
