@@ -33,6 +33,7 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 
 	id := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	item := "01BX5ZZKBKACTAV9WEVGEMMVS0"
+	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
 	for _, c := range []struct{ method, path, want string }{
 		{http.MethodPost, "/characters/" + id + "/avatar", "POST /characters/{id}/avatar"},
 		{http.MethodPost, "/characters/" + id + "/identity", "POST /characters/{id}/identity"},
@@ -74,6 +75,18 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/journal", "POST /characters/{id}/journal"},
 		{http.MethodPost, "/characters/" + id + "/journal/" + item, "POST /characters/{id}/journal/{entryId}"},
 		{http.MethodDelete, "/characters/" + id + "/journal/" + item, "DELETE /characters/{id}/journal/{entryId}"},
+		// An entry's images hang off the member as a sub-collection, so the
+		// upload and the entry's own save differ by one segment and the serve
+		// route sits two below the member. The mux is being trusted to keep
+		// POST .../journal/{entryId} and POST .../journal/{entryId}/images
+		// apart -- confusing them would send an upload to SaveJournalEntry,
+		// which would read no title and no body off a multipart form and blank
+		// the entry the image was going into.
+		{http.MethodPost, "/characters/" + id + "/journal/" + item + "/images", "POST /characters/{id}/journal/{entryId}/images"},
+		{http.MethodGet, "/characters/" + id + "/journal/" + item + "/images/" + asset, "GET /characters/{id}/journal/{entryId}/images/{assetId}"},
+		// The sub-collection has no GET of its own: an entry's images are
+		// listed by the markdown that references them, not by a route.
+		{http.MethodGet, "/characters/" + id + "/journal/" + item + "/images", "/"},
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},

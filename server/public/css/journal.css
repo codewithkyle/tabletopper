@@ -125,6 +125,43 @@
         border: 0;
         border-top: 2px solid var(--color-base-300);
     }
+
+    /* An image is a block with a bottom margin, which is to say it sits in the
+       paragraph rhythm: the markdown that produces one is `![](src)` on a line
+       of its own, so it is a block in the document and should read as one.
+       max-width with an automatic height is what keeps a 1600px picture inside
+       a narrower column without distorting it -- the server fits every upload
+       to that long edge and stores no second size, so the browser does the
+       last bit of scaling. */
+    & img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 0 0.75rem;
+        border-radius: var(--radius-field);
+    }
+
+    /* ProseMirror puts this class on a selected block node, which for an image
+       is the only way to see that it is selected -- there is no text cursor
+       inside one. It is not a Tailwind concern: this file is hand-written and
+       the class comes from the editor rather than from any markup. */
+    & img.ProseMirror-selectednode {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+}
+
+/* An upload in flight. Busy is an attribute for the reason pressed is one:
+   public/js is not a Tailwind source, so a class name set from
+   journal-editor.js would never be emitted -- and aria-busy is what the root
+   owes a screen reader while it is waiting anyway.
+
+   The cursor is the whole of the feedback, deliberately. Nothing is inserted
+   into the document until the server has answered, because a placeholder would
+   be a node markdown cannot express and the one-second debounce would either
+   serialise it into the entry or throw it away. */
+[data-journal-editor][aria-busy="true"] .journal-body {
+    cursor: progress;
 }
 
 /* The toolbar's active state is an attribute, not a class, and that is the

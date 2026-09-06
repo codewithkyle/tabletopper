@@ -16,11 +16,22 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// DeleteCharacter removes the character, its avatar object and the avatar's
-// asset row. Object first, rows after: the rows are the record that an
+// DeleteCharacter removes the character, its journal, its avatar object and the
+// avatar's asset row. Object first, rows after: the rows are the record that an
 // object may exist, so they go only once R2 has confirmed it is gone. A
 // failure to drop the asset row after the character is gone is logged and
 // not reported, because the user's request has been honoured.
+//
+// THE JOURNAL GOES FIRST, AND ITS IMAGES ARE HANDED TO THE SWEEPER. There are
+// no foreign keys in this schema, so nothing cascades and every table has to be
+// named here. Detaching the images rather than deleting them is what keeps this
+// a handful of statements for a character with a long journal: an entry with
+// forty pictures costs the same as an empty one, and internal/sweep deletes the
+// objects a day later.
+//
+// Inventory, spells and spell_slots rows are still left behind. That is a known
+// gap rather than a decision, and the two statements below are the pattern to
+// follow when it is closed.
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -41,6 +52,36 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("Failed to query character asset", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	// BEFORE DeleteCharacterJournals, because it finds the images through the
+	// journals rows that statement removes -- and both before the character
+	// row goes, which is the ordering that matters if one of them fails.
+	// Nothing cascades in this schema, so a journal left behind by a character
+	// that is already gone is unreachable: no page can open it, and no later
+	// delete will ever retry it. Going the other way round risks the smaller
+	// failure instead -- a character still listed whose journal is empty --
+	// which the reader can clear by deleting it again.
+	//
+	// So either error stops here rather than carrying on.
+	err = a.Queries.DetachCharacterJournalImages(ctx, queries.DetachCharacterJournalImagesParams{
+		OwnerID:     sess.UserID,
+		CharacterID: characterID,
+	})
+	if err != nil {
+		slog.Error("Failed to detach character journal images", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	err = a.Queries.DeleteCharacterJournals(ctx, queries.DeleteCharacterJournalsParams{
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to delete character journals", "error", err)
 		htmx.ServerError(w)
 		return
 	}

@@ -107,3 +107,106 @@ WHERE id = ? AND character_id = ? AND owner_id = ?;
 -- name: DeleteJournalEntry :execresult
 DELETE FROM journals
 WHERE id = ? AND character_id = ? AND owner_id = ?;
+
+-- THE JOURNAL IMAGE STATEMENTS BEGIN HERE. An image is a row in assets with
+-- type = 'journal', and every statement below is scoped by every id it has, the
+-- same rule the entry statements above follow: the asset id, the entry id and
+-- the character id all arrive in a URL and none of them is trusted, and the
+-- owner comes from the session.
+--
+-- REMOVAL IS DETACHMENT. Nothing here deletes an object or a row in a request:
+-- an image the body no longer references has detached_at set, and the sweeper
+-- deletes it a day later. That keeps every delete one fast statement whatever
+-- the image count, and gives an undo a day to land on an image that is still
+-- there.
+
+-- name: CountJournalImages :one
+-- The upload's ownership check and its cap in one statement. GROUP BY is what
+-- makes a miss a miss: without it an entry that is not this user's returns one
+-- row with a count of zero, which is indistinguishable from an empty entry.
+-- With it, no matching journal is no row, and the handler reads ErrNoRows as
+-- 404. Detached images count -- they still occupy the bucket until swept.
+SELECT COUNT(a.id) AS images
+FROM journals j
+LEFT JOIN assets a ON a.journal_id = j.id AND a.type = 'journal'
+WHERE j.id = ? AND j.character_id = ? AND j.owner_id = ?
+GROUP BY j.id;
+
+-- name: InsertJournalImage :exec
+-- Born detached: detached_at is NOW() at insert and the first save whose body
+-- carries the image's URL clears it. An upload the writer never saved -- tab
+-- closed inside the debounce -- is swept a day later with nothing to undo.
+INSERT INTO assets (id, owner_id, journal_id, file_path, type, file_name, name, detached_at)
+VALUES (?, ?, ?, ?, 'journal', ?, ?, NOW());
+
+-- name: GetJournalImage :one
+-- The serve route. Every id in the URL is in the WHERE, plus the owner from the
+-- session. No detached_at condition: a detached image still serves until the
+-- sweeper takes it, which is what lets an undo find it.
+--
+-- THIS IS THE JOURNAL IMAGE READ, AND GetImage IN assets.sql IS NOT. That query
+-- is unscoped on purpose and lists the types it serves; journal is not among
+-- them and must never be.
+SELECT a.file_path
+FROM assets a
+JOIN journals j ON j.id = a.journal_id
+WHERE a.id = sqlc.arg(asset_id) AND a.type = 'journal'
+    AND j.id = sqlc.arg(entry_id) AND j.character_id = sqlc.arg(character_id)
+    AND j.owner_id = sqlc.arg(owner_id);
+
+-- name: ListJournalImageStates :many
+-- What a save reads to reconcile: every image the entry owns and whether it is
+-- currently attached. At most a few dozen rows by idx_assets_journal.
+SELECT id, detached_at FROM assets
+WHERE journal_id = ? AND owner_id = ? AND type = 'journal';
+
+-- name: AttachJournalImage :exec
+UPDATE assets SET detached_at = NULL
+WHERE id = ? AND owner_id = ? AND type = 'journal';
+
+-- name: DetachJournalImage :exec
+UPDATE assets SET detached_at = NOW()
+WHERE id = ? AND owner_id = ? AND type = 'journal' AND detached_at IS NULL;
+
+-- name: DetachJournalImages :exec
+-- Deleting an entry. The rows outlive the entry by a day; the serve route joins
+-- to journals, so they stop serving the moment the entry row is gone.
+UPDATE assets SET detached_at = NOW()
+WHERE journal_id = ? AND owner_id = ? AND type = 'journal' AND detached_at IS NULL;
+
+-- name: DetachCharacterJournalImages :exec
+-- Deleting a character. Runs BEFORE DeleteCharacterJournals, because it finds
+-- the images through the journals rows that statement removes.
+--
+-- EVERY COLUMN IS QUALIFIED, and it has to be: both tables carry owner_id and
+-- both are in scope inside the subquery, so a bare one is ambiguous and sqlc
+-- refuses to generate. Naming owner_id the same on both sides of the boundary
+-- is deliberate -- it yields one OwnerID field bound to both, where two
+-- positional ? would have given OwnerID and OwnerID_2.
+UPDATE assets SET detached_at = NOW()
+WHERE assets.owner_id = sqlc.arg(owner_id) AND assets.type = 'journal' AND assets.detached_at IS NULL
+    AND assets.journal_id IN (
+        SELECT journals.id FROM journals
+        WHERE journals.character_id = sqlc.arg(character_id) AND journals.owner_id = sqlc.arg(owner_id)
+    );
+
+-- name: DeleteCharacterJournals :exec
+DELETE FROM journals
+WHERE character_id = ? AND owner_id = ?;
+
+-- name: ListSweepableJournalImages :many
+-- One batch for the sweeper. Ordered oldest first so a backlog drains in the
+-- order it was made; the literal LIMIT is the batch size and the sweeper loops
+-- until a batch comes back short.
+SELECT id, file_path FROM assets
+WHERE type = 'journal' AND detached_at IS NOT NULL AND detached_at < sqlc.arg(cutoff)
+ORDER BY detached_at
+LIMIT 100;
+
+-- name: DeleteSweptJournalImage :execresult
+-- Conditional on still being detached past the cutoff, so a save that
+-- re-attached the image between the sweeper's read and this delete keeps the
+-- row. The object is already gone by then -- see the sweeper for why that
+-- window is accepted.
+DELETE FROM assets
+WHERE id = ? AND type = 'journal' AND detached_at IS NOT NULL AND detached_at < sqlc.arg(cutoff);

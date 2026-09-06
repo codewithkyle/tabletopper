@@ -21,6 +21,12 @@ func AvatarKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/avatars/" + assetID.String()
 }
 
+// JournalImageKey returns the key holding one journal image. There is no
+// preview: the image is served at the size it was stored.
+func JournalImageKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/journals/" + assetID.String()
+}
+
 // CleanupContext detaches from the request so a compensating delete still runs
 // when the upload failed because the client disconnected.
 func CleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -31,6 +37,12 @@ func CleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
 // asset row must already exist so a failure here can be cleaned up.
 func (c *Client) UploadAvatar(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
 	return c.Put(ctx, AvatarKey(userID, assetID), body, "image/webp")
+}
+
+// UploadJournalImage writes one journal image. The asset row must already
+// exist so a failure here can be cleaned up.
+func (c *Client) UploadJournalImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
+	return c.Put(ctx, JournalImageKey(userID, assetID), body, "image/webp")
 }
 
 // UploadMap writes a map's full-size image and preview to the keys returned by

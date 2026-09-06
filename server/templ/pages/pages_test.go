@@ -1265,6 +1265,48 @@ func TestJournalToolbarCannotSubmitTheForm(t *testing.T) {
 	}
 }
 
+// THE UPLOAD URL IS THE SAVE URL WITH /images ON THE END, and it is rendered
+// once, here, onto the editor root. journal-editor.js reads it off the dataset
+// rather than building it from ids of its own, so this attribute is the whole
+// contract: lose it and every paste posts to undefined.
+//
+// The button is data-journal-upload and NOT data-journal-mark. The editor sets
+// a pressed state on everything carrying the latter, and an upload button has
+// none to report -- the count above is 6 for that reason and would be 7 if the
+// attribute were shared.
+func TestJournalEditorCarriesItsUploadURL(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	err := EditCharacterJournalEntry(JournalEntryPageData{
+		CharacterID: characterID,
+		EntryID:     testEntryID,
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	want := `data-journal-images="/characters/` + characterID + `/journal/` + testEntryID + `/images"`
+	if !strings.Contains(markup, want) {
+		t.Errorf("missing %s\n%s", want, markup)
+	}
+
+	// The button is the affordance; the input is hidden because a bare file
+	// input cannot be styled into the toolbar, and it carries the accept list
+	// so the picker filters before the server has to refuse.
+	if !strings.Contains(markup, "data-journal-upload") {
+		t.Errorf("no upload button\n%s", markup)
+	}
+	if !strings.Contains(markup, `accept="image/png, image/jpeg, image/webp"`) {
+		t.Errorf("the file input does not filter the picker\n%s", markup)
+	}
+	if strings.Contains(markup, `data-journal-upload data-journal-mark`) ||
+		strings.Contains(markup, `data-journal-mark data-journal-upload`) {
+		t.Errorf("the upload button reports a pressed state it does not have\n%s", markup)
+	}
+}
+
 // Close comes first and the affirmative action second, in every dialog in the
 // app, and the fragment loaded into the shared modal has to carry its own --
 // the shell supplies nothing to what it fetches.

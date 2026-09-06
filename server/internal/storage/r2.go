@@ -16,6 +16,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type Config struct {
@@ -68,6 +69,53 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 		Key:    aws.String(key),
 	})
 	return err
+}
+
+// deleteBatchSize is how many keys go in one DeleteObjects call. It is the S3
+// limit rather than a tuning choice.
+const deleteBatchSize = 1000
+
+// DeleteMany removes any number of objects, a thousand at a time. An empty list
+// is a no-op with no network round trip.
+//
+// A KEY THAT COULD NOT BE DELETED COMES BACK INSIDE A 200, in the response's
+// Errors rather than as an error, so the response is checked and the first
+// failure is returned. The caller is expected to keep every row in the batch
+// and retry the whole batch, which is safe because deleting a key that is
+// already gone succeeds.
+func (c *Client) DeleteMany(ctx context.Context, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	objects := make([]types.ObjectIdentifier, 0, len(keys))
+	for _, key := range keys {
+		if key == "" {
+			return errors.New("storage: empty key")
+		}
+		objects = append(objects, types.ObjectIdentifier{Key: aws.String(key)})
+	}
+
+	for start := 0; start < len(objects); start += deleteBatchSize {
+		out, err := c.s3.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(c.bucket),
+			// Quiet, so the reply carries the failures and nothing else --
+			// a thousand successful deletes have nothing to report.
+			Delete: &types.Delete{
+				Objects: objects[start:min(start+deleteBatchSize, len(objects))],
+				Quiet:   aws.Bool(true),
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if len(out.Errors) > 0 {
+			failed := out.Errors[0]
+			return fmt.Errorf("storage: delete %q: %s", aws.ToString(failed.Key), aws.ToString(failed.Message))
+		}
+	}
+
+	return nil
 }
 
 // Get opens one object for reading. The caller owns the body and must close

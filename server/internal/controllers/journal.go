@@ -167,6 +167,21 @@ func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// THE ONLY PAGE IN THE APP THAT SENDS A CSP, and it sends one line of it.
+	// The entry body is markdown the writer typed, an image in it is an <img>
+	// the editor renders, and every legitimate one is served by this origin --
+	// so a remote URL in there can only have got in by being typed into the
+	// textarea fallback or pasted as HTML the editor did not catch. Refusing to
+	// load it makes that a broken image rather than a request telling a third
+	// party which of this user's entries was open and when.
+	//
+	// It is the backstop rather than the rule: foreign URLs are stripped when a
+	// read view renders, and the read view will have to send this header too.
+	// img-src alone, because nothing else about this page is being constrained
+	// here and a default-src would be a policy for the whole app written in the
+	// one handler that needed a line of it.
+	w.Header().Set("Content-Security-Policy", "img-src 'self'")
+
 	render(w, r, pages.EditCharacterJournalEntry(pages.JournalEntryPageData{
 		CharacterID: characterID.String(),
 		EntryID:     entry.ID.String(),
@@ -255,7 +270,9 @@ func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 	// it is safe here for the one reason that matters: absent means silent,
 	// which is the behaviour the autosave wants, and the worst a misread can do
 	// is a missing or an extra toast.
-	finishJournalEntry(w, r, result, err, r.PostFormValue("announce") != "")
+	finishJournalEntry(w, r, result, err, r.PostFormValue("announce") != "", func() {
+		a.reconcileJournalImages(ctx, characterID, entryID, sess.UserID, input.Body)
+	})
 }
 
 // DeleteJournalEntry drops one row. The reply carries no body, and it MUST be a
@@ -263,6 +280,11 @@ func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 // swap to "none", which overrides the hx-swap="delete" on the button and leaves
 // the entry sitting on screen after the database has dropped it. Every other
 // delete in the app is the same shape for the same reason.
+//
+// THE ENTRY'S IMAGES ARE DETACHED, NOT DELETED, and that is two statements
+// rather than one plus a loop over R2. An entry holding forty pictures deletes
+// in the same time as an entry holding none, the sweeper takes the objects a
+// day later, and until it does an undo still finds them.
 func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -273,6 +295,22 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	entryID, ok := journalEntryID(w, r)
 	if !ok {
+		return
+	}
+
+	// FIRST, because it finds the images through journal_id and the row that
+	// column points at is about to be gone. The statement is scoped by the
+	// owner, so it matches nothing on a stranger's entry and the delete's zero
+	// rows is still what answers them. If the delete fails after this, the next
+	// save of the entry re-attaches whatever it still references -- the order
+	// heals itself in the direction that matters.
+	err := a.Queries.DetachJournalImages(ctx, queries.DetachJournalImagesParams{
+		JournalID: &entryID,
+		OwnerID:   sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to detach journal images", "error", err)
+		htmx.ServerError(w)
 		return
 	}
 
@@ -309,7 +347,13 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 // route and asks to be told, and this is where being told happens -- after the
 // write, on the response that carries it, rather than from the client guessing
 // off a status code.
-func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error, announce bool) {
+//
+// saved runs once the write is known to have landed and before anything is put
+// on the response. It is the entry's images being reconciled against the body
+// that was just stored, and it is a parameter rather than a line in the caller
+// because the check that guards it is here: an entry deleted in another tab
+// matched nothing, has no body to reconcile against, and gets the 404 below.
+func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error, announce bool, saved func()) {
 	if err != nil {
 		slog.Error("Failed to save journal entry", "error", err)
 		htmx.ServerError(w)
@@ -323,6 +367,8 @@ func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Resul
 		htmx.NotFound(w, "journal entry")
 		return
 	}
+
+	saved()
 
 	if announce {
 		htmx.Toast(w, "Entry saved.")

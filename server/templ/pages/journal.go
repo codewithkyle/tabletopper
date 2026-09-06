@@ -76,6 +76,29 @@ const journalEntriesID = "journal-entries"
 // reaches the browser inside a textarea and only there -- templ escapes the
 // text of one, so the entry arrives as data. Inlining it into a <script> block
 // instead would make every entry a script-injection vector.
+//
+// THESE TWO IDS BUILD ONE MORE URL THAN THE FORM POSTS TO. The page renders the
+// entry's save action, and data-journal-images on the editor root is that
+// action with /images on the end; journal-editor.js reads the upload URL from
+// there rather than building it, so the character and the entry are joined into
+// a path in one place. It is the same reasoning that keeps the save action out
+// of the JavaScript.
+//
+// Two controls stand in front of it in the toolbar. The button is the
+// affordance and the file input beside it is hidden, because a bare file input
+// cannot be styled to sit in a row of buttons; the button clicks the input, and
+// the input's accept list is what makes the picker offer the three formats the
+// server takes rather than offer everything and be refused afterwards.
+//
+// The button carries data-journal-upload and not data-journal-mark, and the
+// difference is not cosmetic: the editor sets a pressed state on every element
+// carrying data-journal-mark, and an upload button has no state to report.
+// Sharing the attribute would leave it reporting aria-pressed="false" for a
+// control that toggles nothing.
+//
+// NEITHER CONTROL IS LOAD-BEARING. Most pictures arrive by paste or by drop,
+// which the editor takes off the document itself, so a page that rendered
+// neither would lose a button rather than the feature.
 type JournalEntryPageData struct {
 	CharacterID string
 	EntryID     string

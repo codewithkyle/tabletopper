@@ -66,6 +66,13 @@ sql:
           - column: "*.room_id"
             nullable: true
             go_type: *nullable_ulid
+          # assets.journal_id is NULL for every type but journal, and a nil
+          # pointer is what reads and writes that NULL. It matches none of the
+          # wildcards below -- they name id, user_id, owner_id, asset_id,
+          # character_id and room_id -- so without this it would come back as
+          # []byte.
+          - column: "assets.journal_id"
+            go_type: *nullable_ulid
           - column: "*.id"
             go_type: *ulid
           - column: "*.user_id"

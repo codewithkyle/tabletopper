@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
-	// Uploads are decoded with image.Decode, which only knows the formats
-	// that registered themselves. PNG and JPEG are registered here rather
-	// than relied on from a dependency's imports; webp registers itself in
-	// the chai2010 package below.
+	// Uploads are read with image.DecodeConfig and decoded by imaging, and
+	// both know only the formats that registered themselves. PNG and JPEG
+	// are registered here rather than relied on from a dependency's
+	// imports; webp registers itself in the chai2010 package below.
 	_ "image/jpeg"
 	_ "image/png"
 
@@ -34,9 +34,15 @@ import (
 
 const (
 	maxUploadBytes = 8 << 20 // 8 MiB
-	avatarSize     = 96
-	mapPreviewSize = 256
-	outQuality     = 75
+	// maxUploadPixels bounds what those bytes decode to, which the byte cap
+	// does not: an 8 MiB PNG can declare a 20,000 by 20,000 canvas and expand
+	// to 1.6 GB. Forty megapixels is roughly 160 MB of NRGBA, which is one
+	// upload in flight. It is a cap and not a target -- an 8,000 by 5,000 map
+	// fits, and nothing in the app renders larger than that.
+	maxUploadPixels = 40_000_000
+	avatarSize      = 96
+	mapPreviewSize  = 256
+	outQuality      = 75
 )
 
 func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
@@ -68,12 +74,12 @@ func (a *App) GetImagePreview(w http.ResponseWriter, r *http.Request) {
 	a.serveImage(w, r, true)
 }
 
-// serveImage streams the object rather than buffering it, and answers a
-// conditional request from the row alone. The ETag is the asset id plus
-// updated_at, which every write to an asset bumps, so a browser that has the
-// current bytes gets a 304 without R2 being asked. Cache-Control is no-cache,
-// not no-store: the browser keeps the bytes, it just has to ask first, which
-// is what lets a replaced avatar show up on the next paint at the same URL.
+// serveImage answers a conditional request from the row alone. The ETag is the
+// asset id plus updated_at, which every write to an asset bumps, so a browser
+// that has the current bytes gets a 304 without R2 being asked. Cache-Control
+// is no-cache, not no-store: the browser keeps the bytes, it just has to ask
+// first, which is what lets a replaced avatar show up on the next paint at the
+// same URL.
 func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 	ctx := r.Context()
 
@@ -97,15 +103,26 @@ func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 		key = asset.PreviewPath.String
 	}
 
-	etag := fmt.Sprintf(`"%s-%d"`, assetID, asset.UpdatedAt.Unix())
 	w.Header().Set("Cache-Control", "private, no-cache")
+	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, assetID, asset.UpdatedAt.Unix()))
+}
+
+// streamImage answers a conditional request from the ETag it is given and
+// otherwise streams the object out of R2 rather than buffering it. Both image
+// routes end here.
+//
+// THE CALLER SETS Cache-Control BEFORE CALLING, because it is the one header
+// the two disagree on: an avatar or a map can be replaced at its URL and has to
+// be revalidated, and a journal image cannot be and never is. The ETag is the
+// caller's for the same reason.
+func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, etag string) {
 	w.Header().Set("ETag", etag)
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
 
-	body, size, err := a.Storage.Get(ctx, key)
+	body, size, err := a.Storage.Get(r.Context(), key)
 	if err != nil {
 		slog.Error("Failed to get image from R2", "error", err, "key", key)
 		http.NotFound(w, r)
@@ -128,9 +145,25 @@ func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 // response itself when something is wrong with the upload, so a caller only
 // has to stop: the false return means "already answered".
 //
-// The format comes from what actually decoded, not from the Content-Type the
+// THE FILE IS READ TWICE, HEADER FIRST, and that pass is what makes the size
+// refusable. image.DecodeConfig reads the dimensions and stops, so an upload
+// declaring more pixels than the budget is answered before a decoder has
+// allocated anything; a check after the decode would be a check made from
+// inside the allocation it was meant to prevent. multipart.File is an
+// io.Seeker, so the second pass starts from the beginning again.
+//
+// The format comes from that header pass rather than from the Content-Type the
 // browser claimed. imaging registers GIF, BMP and TIFF decoders as a side
-// effect of importing it, so decoding alone is not the allowlist.
+// effect of importing it, so decoding alone is not the allowlist --
+// DecodeConfig uses the same registered decoders as Decode, so the name it
+// reports is the one the allowlist means.
+//
+// THE DECODE IS IMAGING'S RATHER THAN image.Decode, for the orientation tag. A
+// photograph taken on a phone records its rotation in EXIF and stores the
+// pixels unrotated; image.Decode ignores the tag, so the picture would be
+// stored on its side and there is nothing in the app to turn it back. imaging
+// applies the tag to a JPEG and leaves every other format untouched. It returns
+// no format name, which is the other reason the name comes from the header.
 func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (image.Image, string, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
@@ -152,15 +185,35 @@ func readImageUpload(w http.ResponseWriter, r *http.Request, field string) (imag
 	}
 	defer file.Close()
 
-	src, format, err := image.Decode(file)
+	cfg, format, err := image.DecodeConfig(file)
 	if err != nil {
-		slog.Warn("Failed to decode upload", "field", field, "error", err)
+		slog.Warn("Failed to read upload header", "field", field, "error", err)
 		unsupportedImage(w)
 		return nil, "", false
 	}
 	switch format {
 	case "png", "jpeg", "webp":
 	default:
+		unsupportedImage(w)
+		return nil, "", false
+	}
+	// int64, so the multiplication cannot wrap on a declared canvas large
+	// enough to try -- the whole point of this check is a header nobody sane
+	// wrote.
+	if int64(cfg.Width)*int64(cfg.Height) > maxUploadPixels {
+		htmx.Error(w, "Image Too Large", "Images must be 40 megapixels or fewer.", http.StatusRequestEntityTooLarge)
+		return nil, "", false
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		slog.Error("Failed to rewind upload after reading its header", "field", field, "error", err)
+		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
+		return nil, "", false
+	}
+
+	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
+	if err != nil {
+		slog.Warn("Failed to decode upload", "field", field, "error", err)
 		unsupportedImage(w)
 		return nil, "", false
 	}

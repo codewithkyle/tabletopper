@@ -131,6 +131,23 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}", auth.RequireSession(app.SaveJournalEntry))
 	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}", auth.RequireSession(app.DeleteJournalEntry))
 
+	// An entry's images: a sub-collection of the member above, and the only
+	// image pair in the app that is scoped to something narrower than the
+	// account. Both carry the character and the entry so the serve route can
+	// check every id against the row rather than trust it.
+	//
+	// THE UPLOAD IS NOT AN HTMX ROUTE. It answers the editor's own fetch with a
+	// 201 and a Location header, because its caller is inserting a node in the
+	// document rather than swapping markup -- see internal/controllers/
+	// journal-images.go. It is still a mutation with a resource URL, so it is
+	// here and not under /fragment/.
+	//
+	// The serve route is RequireSessionOr404 like the two under /assets/images,
+	// for the same reason: a redirect to the sign-in page renders as a broken
+	// image rather than as a sign-in page.
+	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/images", auth.RequireSession(app.UploadJournalImage))
+	mux.HandleFunc("GET /characters/{id}/journal/{entryId}/images/{assetId}", auth.RequireSessionOr404(app.GetJournalImage))
+
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))

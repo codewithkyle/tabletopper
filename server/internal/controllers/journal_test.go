@@ -53,7 +53,13 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	call := db.only(t)
+	// TWO STATEMENTS NOW, and the write is the first of them: the save
+	// reconciles the entry's images afterwards. That one is asserted in
+	// journal-images_test.go; here it is only in the way.
+	if len(db.calls) != 2 {
+		t.Fatalf("statements run = %d, want 2", len(db.calls))
+	}
+	call := db.calls[0]
 	if !strings.Contains(call.query, "UPDATE journals") {
 		t.Fatalf("did not update journals:\n%s", call.query)
 	}
@@ -114,9 +120,13 @@ func TestAnAnnouncedSaveToasts(t *testing.T) {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
 
-	// One statement, and the same one: the button is not a second save path.
-	if !strings.Contains(db.only(t).query, "UPDATE journals") {
-		t.Errorf("the announced save ran something else")
+	// The same two statements in the same order: the button is not a second
+	// save path, it is the debounce's post with one more field on it.
+	if len(db.calls) != 2 {
+		t.Fatalf("statements run = %d, want 2", len(db.calls))
+	}
+	if !strings.Contains(db.calls[0].query, "UPDATE journals") {
+		t.Errorf("the announced save ran something else:\n%s", db.calls[0].query)
 	}
 }
 
@@ -172,8 +182,9 @@ func TestJournalTitleIsMeasuredInCharacters(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if len(db.calls) != 1 {
-		t.Errorf("ran %d statements, want 1", len(db.calls))
+	// The write and the reconciliation that follows it.
+	if len(db.calls) != 2 {
+		t.Errorf("ran %d statements, want 2", len(db.calls))
 	}
 }
 
@@ -186,7 +197,7 @@ func TestJournalBodyIsStoredUntrimmed(t *testing.T) {
 	const body = "    fireball\n\nand then we ran.\n"
 	journalRequest(t, app.SaveJournalEntry, http.MethodPost, url.Values{"title": {"x"}, "body": {body}}, testEntryID.String())
 
-	call := db.only(t)
+	call := db.calls[0]
 	if got, ok := call.args[1].(string); !ok || got != body {
 		t.Errorf("body = %q, want %q", call.args[1], body)
 	}
@@ -260,8 +271,14 @@ func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry deleted.") {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
-	if !strings.Contains(db.only(t).query, "DELETE FROM journals") {
-		t.Errorf("did not delete from journals")
+	// Two statements: the images are detached first, then the entry goes. The
+	// order is asserted in journal-images_test.go; what matters here is that
+	// the delete is still one of them and still last.
+	if len(db.calls) != 2 {
+		t.Fatalf("statements run = %d, want 2", len(db.calls))
+	}
+	if !strings.Contains(db.calls[1].query, "DELETE FROM journals") {
+		t.Errorf("did not delete from journals:\n%s", db.calls[1].query)
 	}
 }
 
