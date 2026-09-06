@@ -71,7 +71,18 @@ const (
 // nothing else the owner has. A URL of /assets/images/{id} could not be scoped
 // to anything narrower than the whole account.
 func journalImagePath(characterID, entryID, assetID ulid.ULID) string {
-	return "/characters/" + characterID.String() + "/journal/" + entryID.String() + "/images/" + assetID.String()
+	return journalImagePrefix(characterID, entryID) + assetID.String()
+}
+
+// journalImagePrefix is everything in that path up to the asset id, and it is
+// split out because the share render reads these URLs as well as writing them:
+// an image the shared page can serve is one whose destination starts with this
+// and ends in a ULID, and every other destination in the body is foreign and
+// dropped. Cutting a known prefix is exact where a pattern would not be -- it
+// answers "is this THIS entry's picture?", so another entry's image, and the
+// owner's own avatar, are as foreign here as a tracking pixel.
+func journalImagePrefix(characterID, entryID ulid.ULID) string {
+	return "/characters/" + characterID.String() + "/journal/" + entryID.String() + "/images/"
 }
 
 // UploadJournalImage stores one image for one entry and answers with its URL.

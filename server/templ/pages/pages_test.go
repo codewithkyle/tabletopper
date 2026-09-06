@@ -46,9 +46,17 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"journal-entries-fragment": func() error {
 			return render(JournalEntriesFragment(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
 		},
-		"assets":  func() error { return render(MapAssets([]queries.Asset{})) },
-		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":     func() error { return render(TOS()) },
+		"journal-share-fragment": func() error {
+			return render(JournalShareFragment(JournalShareData{}))
+		},
+		"shared-journal-entry": func() error {
+			return render(SharedJournalEntry(SharedJournalData{}))
+		},
+		"share-locked":      func() error { return render(ShareLocked(ShareLockedData{})) },
+		"share-unavailable": func() error { return render(ShareUnavailable()) },
+		"assets":            func() error { return render(MapAssets([]queries.Asset{})) },
+		"sign-in":           func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":               func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup

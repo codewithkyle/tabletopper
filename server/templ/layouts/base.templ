@@ -22,6 +22,7 @@ templ Base(title string, scripts ...string) {
 			<script type="module" src="/js/alert-modal.js"></script>
 			<script type="module" src="/js/content-modal.js"></script>
 			<script type="module" src="/js/local-time.js"></script>
+			<script type="module" src="/js/share-link.js"></script>
 			for _, src := range scripts {
 				<script type="module" src={ src }></script>
 			}

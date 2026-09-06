@@ -256,22 +256,35 @@ func TestSaveThatMatchedNothingDoesNotReconcile(t *testing.T) {
 	}
 }
 
-// THE DETACH RUNS FIRST, and the order is the test. It finds the images through
-// journal_id, so after the entry row is gone it would match nothing and forty
-// objects would sit in the bucket with no row pointing at them and no sweep
-// that would ever find them.
-func TestDeleteJournalEntryDetachesBeforeDeleting(t *testing.T) {
+// THE ENTRY ROW GOES LAST, and the order above it is the test. The share is
+// revoked first so that every way this request can stop short leaves the entry
+// less exposed than it was rather than more -- a link outliving its entry would
+// be the other way round. The detach is second because it finds the images
+// through journal_id: after the entry row is gone it would match nothing, and
+// forty objects would sit in the bucket with no row pointing at them and no
+// sweep that would ever find them.
+func TestDeleteJournalEntryRevokesAndDetachesBeforeDeleting(t *testing.T) {
 	app, db := newPanelApp(1)
 
 	journalRequest(t, app.DeleteJournalEntry, http.MethodDelete, nil, testEntryID.String())
 
-	if len(db.calls) != 2 {
-		t.Fatalf("statements run = %d, want 2", len(db.calls))
+	if len(db.calls) != 3 {
+		t.Fatalf("statements run = %d, want 3", len(db.calls))
 	}
 
-	detach := db.calls[0]
+	revoke := db.calls[0]
+	if !strings.Contains(revoke.query, "DELETE FROM shares") {
+		t.Fatalf("the first statement is not the revoke:\n%s", revoke.query)
+	}
+	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
+		if got, ok := revoke.args[i].(ulid.ULID); !ok || got != want {
+			t.Errorf("revoke arg %d = %v, want %v", i, revoke.args[i], want)
+		}
+	}
+
+	detach := db.calls[1]
 	if !strings.Contains(detach.query, "UPDATE assets") || !strings.Contains(detach.query, "detached_at") {
-		t.Fatalf("the first statement is not the detach:\n%s", detach.query)
+		t.Fatalf("the second statement is not the detach:\n%s", detach.query)
 	}
 	if entry, ok := detach.args[0].(*ulid.ULID); !ok || entry == nil || *entry != testEntryID {
 		t.Errorf("detach scoped to entry %v, want %v", detach.args[0], testEntryID)
@@ -280,9 +293,9 @@ func TestDeleteJournalEntryDetachesBeforeDeleting(t *testing.T) {
 		t.Errorf("detach scoped to owner %v, want %v", detach.args[1], testOwnerID)
 	}
 
-	del := db.calls[1]
+	del := db.calls[2]
 	if !strings.Contains(del.query, "DELETE FROM journals") {
-		t.Fatalf("the second statement is not the delete:\n%s", del.query)
+		t.Fatalf("the third statement is not the delete:\n%s", del.query)
 	}
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
 		if got, ok := del.args[i].(ulid.ULID); !ok || got != want {

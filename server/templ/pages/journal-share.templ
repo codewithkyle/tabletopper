@@ -1,0 +1,133 @@
+package pages
+
+templ JournalShareFragment(data JournalShareData) {
+	<div id={ journalShareID } class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Share this entry</h3>
+		if data.Link != "" {
+			@journalShareLink(data)
+		} else {
+			@journalShareForm(data)
+		}
+	</div>
+}
+
+templ journalShareForm(data JournalShareData) {
+	{{ errorBlock := "#errors-" + JournalSharePanel }}
+	<form
+		class="grid gap-4"
+		hx-post={ "/characters/" + data.CharacterID + "/journal/" + data.EntryID + "/share" }
+		hx-target={ "#" + journalShareID }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(JournalSharePanel, []string{})
+		<p class="m-0 text-base-content/75">Anyone with the link can read this entry. It stays in step with the entry, so later edits show up for them too.</p>
+		<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
+			<input
+				id="share-expiry"
+				name="expiry"
+				type="checkbox"
+				class="toggle peer col-start-2 row-start-1"
+			/>
+			<label class="col-start-1 row-start-1 font-medium" for="share-expiry">Set an expiry</label>
+			<div class="col-span-2 hidden peer-checked:grid">
+				<label class="fieldset-legend" for="share-days">Days until it stops working</label>
+				<input
+					id="share-days"
+					name="days"
+					type="number"
+					inputmode="numeric"
+					class="input w-full"
+					value={ ShareDefaultDays }
+					min="1"
+					max="365"
+					step="1"
+				/>
+			</div>
+		</div>
+		<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
+			<input
+				id="share-protect"
+				name="protect"
+				type="checkbox"
+				class="toggle peer col-start-2 row-start-1"
+			/>
+			<label class="col-start-1 row-start-1 font-medium" for="share-protect">Require a password</label>
+			<div class="col-span-2 hidden peer-checked:grid">
+				<label class="fieldset-legend" for="share-password">Password</label>
+				<input
+					id="share-password"
+					name="password"
+					type="password"
+					class="input w-full"
+					autocomplete="new-password"
+					minlength="6"
+					maxlength="72"
+				/>
+			</div>
+		</div>
+		<div class="modal-action">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button type="submit" class="btn btn-primary">Create link</button>
+		</div>
+	</form>
+}
+
+templ journalShareLink(data JournalShareData) {
+	<div class="grid gap-4">
+		<div class="fieldset">
+			<label class="fieldset-legend" for="share-link">Link</label>
+			<div class="join w-full">
+				<input
+					id="share-link"
+					type="text"
+					class="input join-item w-full font-mono text-sm"
+					value={ data.Link }
+					readonly
+					data-share-link
+				/>
+				<button type="button" class="btn join-item border-base-content/50" data-share-copy>
+					<span data-share-copy-idle>Copy</span>
+					<span data-share-copy-done hidden>Copied</span>
+				</button>
+			</div>
+		</div>
+		<ul class="m-0 grid gap-1 text-base-content/75">
+			if data.Expired {
+				<li class="text-error">This link expired and no longer opens. Revoke it and make a new one.</li>
+			} else if data.Expires.ISO != "" {
+				<li>
+					Expires&nbsp;
+					<local-time>
+						<time datetime={ data.Expires.ISO }>{ data.Expires.Text }</time>
+					</local-time>
+				</li>
+			} else {
+				<li>Never expires.</li>
+			}
+			if data.Protected {
+				<li>A password is required to open it.</li>
+			} else {
+				<li>No password: anyone with the link can read the entry.</li>
+			}
+		</ul>
+		<div class="modal-action">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button
+				type="button"
+				class="btn btn-error"
+				hx-delete={ "/characters/" + data.CharacterID + "/journal/" + data.EntryID + "/share" }
+				hx-target={ "#" + journalShareID }
+				hx-swap="outerHTML"
+			>Revoke link</button>
+		</div>
+	</div>
+}

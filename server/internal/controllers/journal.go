@@ -298,8 +298,27 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIRST, because it finds the images through journal_id and the row that
-	// column points at is about to be gone. The statement is scoped by the
+	// THE LINK GOES BEFORE THE ENTRY DOES. Deleting the row is the whole of
+	// revoking, and doing it first means every ordering here fails closed: if
+	// the delete below never runs, the entry survives with nothing pointing at
+	// it from outside, which is strictly less exposure than it had. The other
+	// way round would leave a live link over a deleted entry for as long as it
+	// took someone to try again.
+	//
+	// Zero rows is the ordinary case -- most entries are never shared -- so
+	// nothing is read from the result.
+	if _, err := a.Queries.DeleteJournalShare(ctx, queries.DeleteJournalShareParams{
+		EntryID:     entryID,
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	}); err != nil {
+		slog.Error("Failed to revoke journal share", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	// Then the images, because they are found through journal_id and the row
+	// that column points at is about to be gone. The statement is scoped by the
 	// owner, so it matches nothing on a stranger's entry and the delete's zero
 	// rows is still what answers them. If the delete fails after this, the next
 	// save of the entry re-attaches whatever it still references -- the order

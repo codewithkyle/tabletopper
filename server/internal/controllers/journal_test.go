@@ -271,14 +271,14 @@ func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry deleted.") {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
-	// Two statements: the images are detached first, then the entry goes. The
-	// order is asserted in journal-images_test.go; what matters here is that
-	// the delete is still one of them and still last.
-	if len(db.calls) != 2 {
-		t.Fatalf("statements run = %d, want 2", len(db.calls))
+	// Three statements: the share is revoked, the images are detached, then
+	// the entry goes. The order is asserted in journal-images_test.go; what
+	// matters here is that the delete is still one of them and still last.
+	if len(db.calls) != 3 {
+		t.Fatalf("statements run = %d, want 3", len(db.calls))
 	}
-	if !strings.Contains(db.calls[1].query, "DELETE FROM journals") {
-		t.Errorf("did not delete from journals:\n%s", db.calls[1].query)
+	if !strings.Contains(db.calls[2].query, "DELETE FROM journals") {
+		t.Errorf("did not delete from journals:\n%s", db.calls[2].query)
 	}
 }
 

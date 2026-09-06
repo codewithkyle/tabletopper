@@ -1,0 +1,24 @@
+package layouts
+
+templ Share(title string) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>{ title }</title>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex, nofollow"/>
+			<meta name="referrer" content="no-referrer"/>
+			<link rel="stylesheet" href="/css/app.css"/>
+			<link rel="stylesheet" href="/css/core.css"/>
+			<link rel="stylesheet" href="/css/journal.css"/>
+		</head>
+		<body>
+			<main class="h-full w-full overflow-auto">
+				<div class="mx-auto grid w-full max-w-3xl content-start gap-4 p-4 max-[700px]:p-2.5">
+					{ children... }
+				</div>
+			</main>
+		</body>
+	</html>
+}

@@ -1,0 +1,82 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ SharedJournalEntry(data SharedJournalData) {
+	@layouts.Share(ShareTitle(data.Title)) {
+		@sharedCharacterBanner(data.Character)
+		<article class={ sheetSurface }>
+			<div class="card-body gap-4 p-6 max-[700px]:p-4">
+				<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-tight">{ shareEntryTitle(data.Title) }</h1>
+				<div class="journal-body border-0 bg-transparent p-0">
+					@templ.Raw(data.Body)
+				</div>
+			</div>
+		</article>
+	}
+}
+
+templ ShareLocked(data ShareLockedData) {
+	@layouts.Share("Protected entry | Tabletopper") {
+		<div class={ sheetSurface, "mx-auto mt-[min(14vh,7rem)] w-full max-w-sm" }>
+			<div class="card-body gap-4 p-6">
+				<h1 class="m-0 font-serif text-2xl leading-none">Password required</h1>
+				<p class="m-0 text-base-content/75">This entry was shared with a password. Ask whoever sent you the link.</p>
+				<form method="post" action={ data.Action } class="grid gap-4">
+					if data.Problem != "" {
+						<p class="m-0 rounded-field border-2 border-error/60 p-3 text-error">{ data.Problem }</p>
+					}
+					<div class="fieldset">
+						<label class="fieldset-legend" for="password">Password</label>
+						<input
+							id="password"
+							name="password"
+							type="password"
+							class="input w-full"
+							autocomplete="current-password"
+							maxlength="72"
+							required
+							autofocus
+						/>
+					</div>
+					<button type="submit" class="btn btn-primary">Open entry</button>
+				</form>
+			</div>
+		</div>
+	}
+}
+
+templ ShareUnavailable() {
+	@layouts.Share("Link unavailable | Tabletopper") {
+		<div class={ sheetSurface, "mx-auto mt-[min(14vh,7rem)] w-full max-w-md text-center" }>
+			<div class="card-body gap-4 p-8">
+				<h1 class="m-0 font-serif text-2xl leading-none">This link is no longer available</h1>
+				<p class="m-0 text-base-content/75">It may have expired, or whoever shared it has revoked it.</p>
+			</div>
+		</div>
+	}
+}
+
+templ sharedCharacterBanner(character SharedCharacter) {
+	<header class={ sheetSurface }>
+		<div class="card-body flex-row flex-wrap items-center gap-4 p-4">
+			<div class="avatar avatar-placeholder shrink-0 rounded-full border-2 border-base-300">
+				<div class="relative w-14 rounded-full bg-base-300 text-base-content">
+					<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
+					if character.Avatar != "" {
+						<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ character.Avatar } alt=""/>
+					}
+				</div>
+			</div>
+			<div class="min-w-0">
+				<h2 class="m-0 font-serif text-xl leading-none">{ character.Name }</h2>
+				<p class="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-base-content/75">
+					<span>Lvl { character.Level }</span>
+					<span class="text-base-content/40">|</span>
+					<span>{ character.Classes }</span>
+				</p>
+			</div>
+			<span class="badge badge-neutral badge-md ml-auto capitalize">{ character.Race }</span>
+		</div>
+	</header>
+}

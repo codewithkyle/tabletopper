@@ -94,6 +94,33 @@ function load(url) {
     });
 }
 
+// A control can also ask for the modal declaratively:
+//
+//     <button data-modal-open="/fragment/character/journal-share?..." data-modal-size="lg">
+//
+// which dispatches exactly the event below and adds nothing to its detail. It
+// exists because templ reads hx-on: as an event handler and accepts only a
+// templ.ComponentScript there, so a URL computed from page data cannot be
+// written inline the way a literal one can. An absent data-modal-size is an
+// undefined size, which the handler already reads as the default.
+//
+// Delegated on the document, because a trigger can itself arrive in a swap.
+document.addEventListener("click", (e) => {
+    const trigger = e.target.closest("[data-modal-open]");
+    if (!trigger) {
+        return;
+    }
+
+    window.dispatchEvent(
+        new CustomEvent("modal:open", {
+            detail: {
+                url: trigger.dataset.modalOpen,
+                size: trigger.dataset.modalSize,
+            },
+        }),
+    );
+});
+
 window.addEventListener("modal:open", (e) => {
     const url = e.detail?.url;
     if (!url) {

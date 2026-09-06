@@ -143,8 +143,15 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 //
 // THE FIRST TWO ARE ORDERED AND THE REST ARE NOT. The image delete finds its
 // rows through the journals table, so emptying that table first would leave
-// every picture behind with nothing pointing at it. The other three are
+// every picture behind with nothing pointing at it. The other four are
 // independent and run in the order they were written.
+//
+// The shares are among the independent ones only because the column is
+// denormalised. Every link this character handed out names it directly, so they
+// go in one statement whether or not the journals they point at are still
+// there -- which is the reason shares.character_id exists at all; reaching them
+// through journals would have meant a subquery against a table this request
+// empties two statements earlier.
 //
 // The first failure stops the purge and is returned wrapped, so the log names
 // the table rather than only the driver error -- which of these failed is the
@@ -184,6 +191,13 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("spell slots: %w", err)
+	}
+
+	if err := a.Queries.DeleteCharacterShares(ctx, queries.DeleteCharacterSharesParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("shares: %w", err)
 	}
 
 	return nil

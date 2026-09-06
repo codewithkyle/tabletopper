@@ -22,10 +22,15 @@ sql:
           # A nil pointer there writes SQL NULL into a NOT NULL column, which
           # fails at runtime rather than failing to compile.
           #
-          # The four below are the NOT NULL *_id columns that collide with a
+          # The five below are the NOT NULL *_id columns that collide with a
           # wildcard, less one: monsters.asset_id is NOT NULL and still resolves
           # to *ulid.ULID. Nothing queries monsters, so nothing has ever held
           # that pointer; it needs an entry here the day something does.
+          #
+          # shares.resource_id is here for the opposite reason: it collides with
+          # no wildcard at all -- they name id, user_id, owner_id, asset_id,
+          # character_id and room_id -- so without an entry it would come back
+          # as []byte rather than as the ULID it holds.
           - column: "inventory.character_id"
             go_type: &ulid
               import: "github.com/oklog/ulid/v2"
@@ -36,6 +41,10 @@ sql:
           - column: "spell_slots.character_id"
             go_type: *ulid
           - column: "journals.character_id"
+            go_type: *ulid
+          - column: "shares.character_id"
+            go_type: *ulid
+          - column: "shares.resource_id"
             go_type: *ulid
           # DECIMAL comes back as a string by default. float64 is what lets an
           # unweighed item render blank as `weight == 0` rather than a comparison

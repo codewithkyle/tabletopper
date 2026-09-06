@@ -148,6 +148,44 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/images", auth.RequireSession(app.UploadJournalImage))
 	mux.HandleFunc("GET /characters/{id}/journal/{entryId}/images/{assetId}", auth.RequireSessionOr404(app.GetJournalImage))
 
+	// Sharing one entry: the owner's two mutations here, and the reader's four
+	// routes below.
+	//
+	// The create and the revoke keep the entry's resource URL and stay off
+	// /fragment/, like every other mutation. Both answer with the share dialog
+	// in whatever state the entry is now in, which is the exception the
+	// fragment rules name -- a mutation replying with the thing it just made or
+	// changed. The GET that opens that dialog is a fragment and is registered
+	// with the rest of them further down.
+	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.CreateJournalShare))
+	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.RevokeJournalShare))
+
+	// THE ONLY ROUTES IN THE APP BEHIND NO MIDDLEWARE AT ALL. Not
+	// RequireSession, not OptionalSession, not even to slide an expiry: a
+	// shared link has to behave identically for a stranger and for the owner
+	// reading their own, and a wrapper that looked for a session would be a
+	// difference between the two waiting to become a bug. The token in the
+	// path is the whole authorisation, and internal/share is what checks it.
+	//
+	// The POST is the password gate and is the one mutation in this block --
+	// which is why /share/ is not and could not be a /fragment/ prefix. It is a
+	// plain form post answered with a 303, because the share layout loads no
+	// JavaScript and a gate that needs a script does not open without one.
+	//
+	// The two image routes exist because the page's pictures have to come from
+	// somewhere a signed-out reader can reach, and they are separate routes
+	// rather than a relaxation of /characters/{id}/journal/... so that route
+	// stays exactly as private as it is. Both are gated by the same cookie the
+	// page is: a password on the page with open images would be a locked door
+	// beside an open window.
+	//
+	// The avatar route takes no id. A share names one character and a character
+	// has one portrait, so there is nothing in the path to tamper with.
+	mux.HandleFunc("GET /share/{token}", app.SharePage)
+	mux.HandleFunc("POST /share/{token}", app.UnlockShare)
+	mux.HandleFunc("GET /share/{token}/avatar", app.GetShareAvatar)
+	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
+
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
@@ -182,8 +220,12 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// sends it. The search stays a GET returning the same component the page
 	// renders, which is exactly what this prefix is for.
 	mux.HandleFunc("GET /fragment/character/journal-entries", auth.Fragment(app.JournalEntriesFragment))
+	// The share dialog, in whichever of its two states the entry is in. It
+	// reads both ids from the query string and neither from a path, because
+	// this is not the entry's URL -- it is a dialog about the entry.
+	mux.HandleFunc("GET /fragment/character/journal-share", auth.Fragment(app.JournalShareFragment))
 
-	// Subtree pattern, so it takes any /fragment/ path the three above did not.
+	// Subtree pattern, so it takes any /fragment/ path the four above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's
 	// plain-text 404 page, which is a page-shaped reply to a fragment request.
 	mux.HandleFunc("/fragment/", middleware.FragmentNotFound)
