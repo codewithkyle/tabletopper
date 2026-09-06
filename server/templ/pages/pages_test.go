@@ -1853,6 +1853,91 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 	}
 }
 
+// testCharacterHeader is a full bar: a name, a subtitle and all six readings.
+func testCharacterHeader() CharacterHeader {
+	return CharacterHeader{
+		Name:        "Vashti Emberlane",
+		Subtitle:    "Tiefling \u00b7 Warlock 5 \u00b7 Soldier \u00b7 Chaotic Good",
+		AC:          "15",
+		CurrentHP:   "31",
+		MaxHP:       "38",
+		Speed:       "30 ft.",
+		Initiative:  "+3",
+		Proficiency: "+3",
+		Passive:     "13",
+	}
+}
+
+// The bar refreshes the same way the derived values do and fails the same way if
+// it drifts -- see TestEveryDerivedValueHasATargetOnThePage for what a missing
+// id costs, which is nothing anybody sees until a name stops updating.
+func TestTheBarRefreshHasATargetOnThePage(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	header := testCharacterHeader()
+
+	var page bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: id, Header: header}).Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	var block bytes.Buffer
+	if err := CharacterBarValues(header).Render(context.Background(), &block); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
+
+	// The figure -- portrait, name and subtitle -- and the strip of readings.
+	// They are two swaps rather than one because the actions sit between them
+	// in the bar, and a wrapper around both would have to contain those too.
+	if len(ids) != 2 {
+		t.Fatalf("the refresh carries %d blocks, want 2", len(ids))
+	}
+	for _, match := range ids {
+		if !strings.Contains(page.String(), `id="`+match[1]+`"`) {
+			t.Errorf("the refresh swaps #%s, which the page does not render", match[1])
+		}
+	}
+
+	if got := strings.Count(block.String(), `hx-swap-oob="true"`); got != len(ids) {
+		t.Errorf("%d of %d refreshed blocks are out-of-band", got, len(ids))
+	}
+}
+
+// Every editor tab says whose sheet is open. The bar used to read "Edit
+// Character" on all five, and the name was on the page exactly once -- as the
+// value of the Identity panel's first input, which the other four tabs do not
+// render at all.
+func TestEveryEditorTabSaysWhoseSheetItIs(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	header := testCharacterHeader()
+
+	for name, page := range map[string]templ.Component{
+		"character": EditCharacter(EditCharacterPageData{CharacterID: id, Header: header}),
+		"inventory": EditCharacterInventory(InventoryPageData{CharacterID: id, Header: header}),
+		"spells":    EditCharacterSpellLevel(SpellLevelPageData{CharacterID: id, Header: header}),
+		"journal":   EditCharacterJournal(JournalPageData{CharacterID: id, Header: header}),
+		"entry":     EditCharacterJournalEntry(JournalEntryPageData{CharacterID: id, Header: header}),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := page.Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			rendered := buf.String()
+
+			if !strings.Contains(rendered, header.Name) {
+				t.Error("the bar does not name the character")
+			}
+			if !strings.Contains(rendered, header.Subtitle) {
+				t.Error("the bar does not carry the subtitle")
+			}
+			if strings.Contains(rendered, ">Edit Character<") {
+				t.Error("the bar still heads the page with the name of the screen")
+			}
+		})
+	}
+}
+
 // The controls carry no id, for the reason the attack rows carry none: eighteen
 // skills sharing one field component would put eighteen elements called
 // id="misc" on the page. The derived spans are the exception and are the whole

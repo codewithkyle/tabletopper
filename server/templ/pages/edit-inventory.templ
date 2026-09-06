@@ -4,7 +4,7 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterInventory(data InventoryPageData) {
 	@layouts.Base("Inventory | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabInventory, shellLayout{}) {
+		@editCharacterShell(data.CharacterID, data.Header, characterTabInventory, shellLayout{}) {
 			@sheetPanel("Inventory") {
 				<div id="inventory-items" class="grid gap-3">
 					for _, item := range data.Items {

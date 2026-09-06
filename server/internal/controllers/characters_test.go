@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -222,4 +223,102 @@ func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 			t.Errorf("statement %d is scoped by %v, want the character and the owner:\n%s", i, unique, call.query)
 		}
 	}
+}
+
+// THE BAR'S INITIATIVE IS NOT THE COLUMN. initiative_bonus is what items and
+// feats add; what a player rolls is that plus their Dexterity modifier, and a
+// bar showing either half on its own would be showing a number nobody uses.
+func TestTheBarsInitiativeAddsDexterityToTheStoredBonus(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		dex   uint8
+		bonus int16
+		want  string
+	}{
+		{name: "modifier alone", dex: 16, bonus: 0, want: "+3"},
+		{name: "modifier and bonus", dex: 16, bonus: 2, want: "+5"},
+		{name: "a dump stat carries its sign", dex: 8, bonus: 0, want: "-1"},
+		{name: "they can cancel out", dex: 8, bonus: 1, want: "+0"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			character := testCharacter()
+			character.Dex = c.dex
+			character.InitiativeBonus = c.bonus
+
+			if got := characterHeader(character).Initiative; got != c.want {
+				t.Errorf("initiative = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+// The bar reads the six columns it prints, and the speed falls back the way the
+// Core Stats field does rather than rendering an empty chip.
+func TestTheBarReadsItsChipsOffTheRow(t *testing.T) {
+	character := testCharacter()
+	character.AC = 15
+	character.CurrentHP = 31
+	character.MaxHP = 38
+	character.ProficiencyBonus = 3
+
+	header := characterHeader(character)
+
+	for _, c := range []struct{ name, got, want string }{
+		{"armour class", header.AC, "15"},
+		{"current hit points", header.CurrentHP, "31"},
+		{"hit point maximum", header.MaxHP, "38"},
+		{"proficiency", header.Proficiency, "+3"},
+		{"speed falls back", header.Speed, "30 ft."},
+		{"passive perception", header.Passive, "14"},
+	} {
+		if c.got != c.want {
+			t.Errorf("%s = %q, want %q", c.name, c.got, c.want)
+		}
+	}
+}
+
+// The subtitle is what the row has, in order, and nothing standing in for what
+// it has not -- including the alignment nobody chose.
+func TestTheSubtitleOmitsWhatTheCharacterHasNot(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		race      string
+		classes   string
+		alignment string
+		want      string
+	}{
+		{
+			name: "all of it", race: "Tiefling", classes: "Warlock 5", alignment: "chaotic good",
+			want: "Tiefling · Warlock 5 · Soldier · Chaotic Good",
+		},
+		{
+			name: "unaligned is not an alignment", race: "Tiefling", classes: "Warlock 5", alignment: "unaligned",
+			want: "Tiefling · Warlock 5 · Soldier",
+		},
+		{
+			name: "a blank column leaves no gap", classes: "Warlock 5", alignment: "unaligned",
+			want: "Warlock 5 · Soldier",
+		},
+		{
+			name: "a sheet with nothing on it says nothing", want: "",
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			character := testCharacter()
+			character.Race = nullString(c.race)
+			character.Classes = nullString(c.classes)
+			character.Alignment = nullString(c.alignment)
+			if c.want != "" {
+				character.Background = nullString("Soldier")
+			}
+
+			if got := characterSubtitle(character); got != c.want {
+				t.Errorf("subtitle = %q, want %q", got, c.want)
+			}
+		})
+	}
+}
+
+func nullString(value string) sql.NullString {
+	return sql.NullString{String: value, Valid: value != ""}
 }

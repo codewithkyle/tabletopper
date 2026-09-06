@@ -39,7 +39,7 @@ func (a *App) CharacterInventoryPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	_, characterID, ok := a.loadCharacter(w, r)
+	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
@@ -56,6 +56,7 @@ func (a *App) CharacterInventoryPage(w http.ResponseWriter, r *http.Request) {
 
 	render(w, r, pages.EditCharacterInventory(pages.InventoryPageData{
 		CharacterID: characterID.String(),
+		Header:      characterHeader(character),
 		Items:       inventoryPageItems(items),
 	}))
 }

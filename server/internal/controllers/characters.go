@@ -440,8 +440,11 @@ func rejectNewCharacter(w http.ResponseWriter, r *http.Request, message string) 
 }
 
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
+	derived := characterDerived(character)
+
 	return pages.EditCharacterPageData{
 		CharacterID:         id,
+		Header:              characterHeaderFrom(character, derived),
 		Name:                character.Name,
 		Race:                nullStringValue(character.Race),
 		Background:          nullStringValue(character.Background),
@@ -469,7 +472,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		// Every computed number on the page, in one field. The two bonus grids
 		// arrive here as rows rather than as the blobs they are stored in --
 		// see characterDerived for why none of this is a column.
-		Derived: characterDerived(character),
+		Derived: derived,
 
 		// The vitals counters are formatted like every other number here. The
 		// death saves are not: they render as ticked boxes rather than into a
@@ -497,6 +500,78 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Skin:              character.Skin,
 		Hair:              character.Hair,
 	}
+}
+
+// characterHeader builds the bar for the four editor tabs that are not the
+// Character tab. Each of them already loads the characters row to check
+// ownership and used to discard it, so the bar costs those pages no query at
+// all -- only the arithmetic behind passive perception, which is map lookups
+// over two blobs the row already carries.
+//
+// The Character tab does not come through here. It has the derived values
+// already and passes them along instead, which is the only reason the split
+// below exists.
+func characterHeader(character queries.Character) pages.CharacterHeader {
+	return characterHeaderFrom(character, characterDerived(character))
+}
+
+// characterHeaderFrom is the bar for a character whose derived values are
+// already worked out.
+//
+// INITIATIVE IS COMPUTED HERE AND NOWHERE ELSE, because the bar is the only
+// thing that shows it. The Core Stats panel asks for initiative_bonus, which is
+// what items and feats add; what a player rolls is that plus their Dexterity
+// modifier, and the two are far enough apart that a sheet showing only the
+// stored one is showing the wrong number.
+func characterHeaderFrom(character queries.Character, derived pages.Derived) pages.CharacterHeader {
+	avatar := ""
+	if character.AssetID != nil {
+		avatar = character.AssetID.String()
+	}
+
+	initiative := abilityModifier(character.Dex) + int(character.InitiativeBonus)
+
+	return pages.CharacterHeader{
+		Name:        character.Name,
+		Subtitle:    characterSubtitle(character),
+		AvatarID:    avatar,
+		AC:          strconv.FormatUint(uint64(character.AC), 10),
+		CurrentHP:   strconv.FormatUint(uint64(character.CurrentHP), 10),
+		MaxHP:       strconv.FormatUint(uint64(character.MaxHP), 10),
+		Speed:       fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
+		Initiative:  pages.SignedNumber(initiative),
+		Proficiency: pages.SignedNumber(int(character.ProficiencyBonus)),
+		Passive:     derived.PassivePerception,
+	}
+}
+
+// characterSubtitle is the line under the name: species, class, background and
+// alignment, in that order, with whatever the row does not have left out rather
+// than rendered as a gap between two separators.
+//
+// UNALIGNED IS TREATED AS ABSENT. Creation leaves the column NULL and the
+// editor's picker falls back to "unaligned", so it is what every character has
+// until somebody chooses otherwise -- and a subtitle whose last word is the
+// answer nobody gave reads as a fact about the character.
+func characterSubtitle(character queries.Character) string {
+	alignment := ""
+	if value := nullStringValue(character.Alignment); value != "" && value != pages.DefaultAlignment {
+		alignment = pages.AlignmentLabel(value)
+	}
+
+	parts := make([]string, 0, 4)
+	for _, part := range []string{
+		nullStringValue(character.Race),
+		nullStringValue(character.Classes),
+		nullStringValue(character.Background),
+		alignment,
+	} {
+		if part != "" {
+			parts = append(parts, part)
+		}
+	}
+
+	return strings.Join(parts, " \u00b7 ")
 }
 
 func nullStringValue(value sql.NullString) string {

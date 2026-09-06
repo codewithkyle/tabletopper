@@ -4,7 +4,7 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
+		@editCharacterShell(data.CharacterID, data.Header, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
 			@sheetPanel("Journal") {
 				@journalSearchBox(data.CharacterID)
 				<div id={ journalEntriesID } class="grid gap-3">

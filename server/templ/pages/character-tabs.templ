@@ -2,7 +2,7 @@ package pages
 
 templ characterTabs(characterID string, active string) {
 	{{ base := "/characters/" + characterID + "/edit" }}
-	<nav class="flex gap-1 border-b-2 border-base-300 px-2" aria-label="Character sheet sections">
+	<nav class="flex gap-1 px-6 max-[900px]:px-4" aria-label="Character sheet sections">
 		@characterTabLink(base, "Character", active == characterTabMain)
 		@characterTabLink(base+"/inventory", "Inventory", active == characterTabInventory)
 		@characterTabLink(base+"/spells/0", "Spells", active == characterTabSpells)
@@ -22,12 +22,12 @@ templ characterTabLink(href string, name string, current bool) {
 		<a
 			href={ href }
 			aria-current="page"
-			class="-mb-0.5 border-b-2 border-primary px-4 py-2 font-semibold transition-colors duration-150"
+			class="-mb-px border-b-2 border-primary px-4 pt-2 pb-2.5 font-semibold transition-colors duration-150"
 		>{ name }</a>
 	} else {
 		<a
 			href={ href }
-			class="-mb-0.5 border-b-2 border-transparent px-4 py-2 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
+			class="-mb-px border-b-2 border-transparent px-4 pt-2 pb-2.5 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
 		>{ name }</a>
 	}
 }

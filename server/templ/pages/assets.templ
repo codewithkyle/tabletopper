@@ -68,41 +68,45 @@ templ MapCard(m queries.Asset) {
 }
 
 templ mapAssetsContent(maps []queries.Asset) {
-	<assets-page class="relative block h-screen min-h-dvh w-screen p-4">
-		<header class="mb-4 flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3">
-			<h1 class="mt-0.5 mb-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
-			<div class="flex flex-row flex-nowrap items-center">
-				<a
-					href="/"
-					class="btn mr-4"
-				>
-					Back
-				</a>
-				<label
-					for="map-upload"
-					class="btn btn-primary relative"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
-					Upload map
-					<input
-						class="absolute top-0 left-0 h-0 w-0 opacity-0"
-						id="map-upload"
-						type="file"
-						name="map"
-						accept="image/png, image/jpeg, image/webp"
-						required
-						hx-post="/assets/maps"
-						hx-swap="afterbegin"
-						hx-target="#maps"
-						hx-encoding="multipart/form-data"
-					/>
-				</label>
-			</div>
-		</header>
-		<section id="maps" class="grid max-h-[90%] min-h-0 w-full grid-cols-5 gap-4 overflow-y-auto">
-			for _, m := range maps {
-				@MapCard(m)
+	<assets-page class="relative block h-screen min-h-dvh w-screen">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:px-4">
+					<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
+					<div class="flex flex-row flex-nowrap items-center">
+						<a
+							href="/"
+							class="btn mr-4"
+						>
+							Back
+						</a>
+						<label
+							for="map-upload"
+							class="btn btn-primary relative"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
+							Upload map
+							<input
+								class="absolute top-0 left-0 h-0 w-0 opacity-0"
+								id="map-upload"
+								type="file"
+								name="map"
+								accept="image/png, image/jpeg, image/webp"
+								required
+								hx-post="/assets/maps"
+								hx-swap="afterbegin"
+								hx-target="#maps"
+								hx-encoding="multipart/form-data"
+							/>
+						</label>
+					</div>
+				</div>
 			}
-		</section>
+			<section id="maps" class="grid min-h-0 w-full grid-cols-5 content-start gap-4 overflow-y-auto px-6 py-4 max-[700px]:px-4">
+				for _, m := range maps {
+					@MapCard(m)
+				}
+			</section>
+		</div>
 	</assets-page>
 }

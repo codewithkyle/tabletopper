@@ -53,7 +53,12 @@ type Timestamp struct {
 // same component -- a fragment is never a second copy of markup.
 type JournalPageData struct {
 	CharacterID string
-	Entries     []JournalEntry
+	// Header is the bar across the top, which every editor tab renders and
+	// none of them owns. The four pages that are not the Character tab already
+	// load the characters row to check ownership and threw it away; this is
+	// what they do with it now.
+	Header  CharacterHeader
+	Entries []JournalEntry
 	// Query is the term the list was filtered by, and it exists because an
 	// empty list has two meanings that need two different sentences. No entries
 	// and no query is a journal nobody has written in, and the message points
@@ -104,9 +109,14 @@ const journalEntriesID = "journal-entries"
 // neither would lose a button rather than the feature.
 type JournalEntryPageData struct {
 	CharacterID string
-	EntryID     string
-	Title       string
-	Body        string
+	// Header is the bar across the top, which every editor tab renders and
+	// none of them owns. The four pages that are not the Character tab already
+	// load the characters row to check ownership and threw it away; this is
+	// what they do with it now.
+	Header  CharacterHeader
+	EntryID string
+	Title   string
+	Body    string
 }
 
 // JournalEntryPanel is the error-block id the editor form owns. It is a

@@ -82,7 +82,7 @@ func (a *App) SaveCharacterIdentity(w http.ResponseWriter, r *http.Request) {
 		ID:         characterID,
 		OwnerID:    sess.UserID,
 	})
-	finishPanel(w, r, "identity", "Identity", result, err)
+	a.finishCharacterPanel(w, r, "identity", "Identity", result, err, characterID, sess.UserID)
 }
 
 func (a *App) SaveCharacterAbilities(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +113,7 @@ func (a *App) SaveCharacterAbilities(w http.ResponseWriter, r *http.Request) {
 		ID:      characterID,
 		OwnerID: sess.UserID,
 	})
-	a.finishDerivedPanel(w, r, "abilities", "Abilities", result, err, characterID, sess.UserID)
+	a.finishCharacterPanel(w, r, "abilities", "Abilities", result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterCoreStats writes three columns the panel has no field for. level
@@ -150,7 +150,7 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 		ID:                  characterID,
 		OwnerID:             sess.UserID,
 	})
-	a.finishDerivedPanel(w, r, "core-stats", "Core stats", result, err, characterID, sess.UserID)
+	a.finishCharacterPanel(w, r, "core-stats", "Core stats", result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterVitals owns the half of the sheet that changes during a fight:
@@ -198,7 +198,7 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 		ID:                 characterID,
 		OwnerID:            sess.UserID,
 	})
-	finishPanel(w, r, "vitals", "Vitals", result, err)
+	a.finishCharacterPanel(w, r, "vitals", "Vitals", result, err, characterID, sess.UserID)
 }
 
 func (a *App) SaveCharacterProficiencies(w http.ResponseWriter, r *http.Request) {
@@ -221,7 +221,7 @@ func (a *App) SaveCharacterProficiencies(w http.ResponseWriter, r *http.Request)
 		ID:            characterID,
 		OwnerID:       sess.UserID,
 	})
-	finishPanel(w, r, "proficiencies", "Proficiencies", result, err)
+	a.finishCharacterPanel(w, r, "proficiencies", "Proficiencies", result, err, characterID, sess.UserID)
 }
 
 // The two panels nobody rolls. They are separate for the reason the queries
@@ -253,7 +253,7 @@ func (a *App) SaveCharacterPersonality(w http.ResponseWriter, r *http.Request) {
 		ID:                characterID,
 		OwnerID:           sess.UserID,
 	})
-	finishPanel(w, r, "personality", "Personality", result, err)
+	a.finishCharacterPanel(w, r, "personality", "Personality", result, err, characterID, sess.UserID)
 }
 
 func (a *App) SaveCharacterAppearance(w http.ResponseWriter, r *http.Request) {
@@ -284,7 +284,7 @@ func (a *App) SaveCharacterAppearance(w http.ResponseWriter, r *http.Request) {
 		ID:      characterID,
 		OwnerID: sess.UserID,
 	})
-	finishPanel(w, r, "appearance", "Appearance", result, err)
+	a.finishCharacterPanel(w, r, "appearance", "Appearance", result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterBonuses serves both bonus grids. They differ only in the field
@@ -334,7 +334,7 @@ func (a *App) SaveCharacterBonuses(w http.ResponseWriter, r *http.Request) {
 			OwnerID:                  sess.UserID,
 		})
 	}
-	a.finishDerivedPanel(w, r, kind, label, result, err, characterID, sess.UserID)
+	a.finishCharacterPanel(w, r, kind, label, result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterFeatures is the last repeater. The whole panel posts, not the row
@@ -371,7 +371,7 @@ func (a *App) SaveCharacterFeatures(w http.ResponseWriter, r *http.Request) {
 		ID:       characterID,
 		OwnerID:  sess.UserID,
 	})
-	finishPanel(w, r, pages.FeaturesPanel, "Features", result, err)
+	a.finishCharacterPanel(w, r, pages.FeaturesPanel, "Features", result, err, characterID, sess.UserID)
 }
 
 // THE PANEL BUILDERS.
@@ -854,21 +854,31 @@ func bonusEntriesFor(grid string) []pages.BonusEntry {
 	return pages.SavingThrowEntries()
 }
 
-// finishDerivedPanel is finishPanel for the four panels whose columns something
-// else on the page is computed from. It answers the same way and then appends
-// the derived block, whose every element carries hx-swap-oob -- so the ability
-// modifiers, both grids' totals, the passive perception and the two spell
-// numbers update on the page that is already open rather than at the next load.
+// finishCharacterPanel is the tail every panel on the character editor shares.
+// It answers the way finishPanel does and then appends two blocks of
+// hx-swap-oob elements: the derived values -- ability modifiers, both grids'
+// totals, passive perception and the two spell numbers -- and the bar across
+// the top of the page, which carries the name, the subtitle and six readings.
+// So a save updates the page that is already open rather than the next load of
+// it.
 //
 // THE CHARACTER IS READ BACK rather than recomputed from what was just posted.
-// That is what makes one refresh serve all four panels: a skills save changes
-// the skill totals, an abilities save changes every total on the sheet, and
-// neither handler knows enough on its own to say which.
+// That is what makes one refresh serve every panel: a skills save changes the
+// skill totals, an abilities save changes every total on the sheet and two
+// readings on the bar, and no handler knows enough on its own to say which.
+//
+// EVERY PANEL COMES THROUGH HERE, including the four that cannot change a
+// derived value or a reading. That is the point. The alternative is a list of
+// which panel refreshes what, kept by hand, and a panel added later that writes
+// max_hp or a name would be correct in the database and stale on the screen
+// until somebody noticed and remembered to add it. The cost of not keeping that
+// list is one indexed lookup and a few dozen span swaps on a debounce that
+// fires at most once a second.
 //
 // A read that fails is logged and dropped. The save landed, the toast is already
 // queued, and a stale readout that a reload fixes is a smaller thing to hand
 // somebody than an error over a write that worked.
-func (a *App) finishDerivedPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
+func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
 	if err != nil {
 		slog.Error("Failed to save character panel", "panel", panel, "error", err)
 		htmx.ServerError(w)
@@ -889,5 +899,7 @@ func (a *App) finishDerivedPanel(w http.ResponseWriter, r *http.Request, panel s
 		return
 	}
 
-	render(w, r, pages.DerivedValues(characterDerived(character)))
+	derived := characterDerived(character)
+	render(w, r, pages.DerivedValues(derived))
+	render(w, r, pages.CharacterBarValues(characterHeaderFrom(character, derived)))
 }

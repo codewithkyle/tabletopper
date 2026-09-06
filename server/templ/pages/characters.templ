@@ -116,41 +116,45 @@ templ Character(character queries.Character) {
 }
 
 templ charactersContent(characters []queries.Character) {
-	<character-selector class="relative block h-screen min-h-dvh w-screen p-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards] max-[700px]:p-2.5">
-		<section class="grid h-full min-h-0 w-full content-start gap-4 overflow-auto max-[700px]:p-3">
-			<header class="flex flex-wrap items-end justify-between gap-4 border-b-2 border-base-300 px-2 pt-2 pb-3 max-[700px]:items-stretch">
-				<h1 class="m-0 mt-0.5 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Characters</h1>
-				<div class="flex flex-row flex-nowrap items-center max-[700px]:w-full">
-					<a
-						href="/"
-						class="btn mr-4 max-[700px]:flex-1"
-					>
-						Back
-					</a>
-					<button
-						type="button"
-						class="btn btn-primary max-[700px]:flex-1"
-						hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/character/new', size: 'sm' } }))"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
-						New character
-					</button>
-				</div>
-			</header>
-			if len(characters) == 0 {
-				<div class="card card-border mx-auto mt-[min(14vh,7rem)] border-base-300 bg-panel/85 text-center shadow-sm backdrop-blur-sm">
-					<div class="card-body p-8">
-						<p class="m-0 font-serif text-2xl">No heroes in your roster yet.</p>
-						<p class="m-0 mt-4 text-base-content/75">Create your first character sheet <strong>before</strong> your session.</p>
+	<character-selector class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:items-stretch max-[700px]:px-4">
+					<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Characters</h1>
+					<div class="flex flex-row flex-nowrap items-center max-[700px]:w-full">
+						<a
+							href="/"
+							class="btn mr-4 max-[700px]:flex-1"
+						>
+							Back
+						</a>
+						<button
+							type="button"
+							class="btn btn-primary max-[700px]:flex-1"
+							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/character/new', size: 'sm' } }))"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
+							New character
+						</button>
 					</div>
 				</div>
-			} else {
-				<div class="grid grid-cols-2 gap-3.5 max-[700px]:grid-cols-1">
-					for _, character := range characters {
-						@Character(character)
-					}
-				</div>
 			}
-		</section>
+			<section class="grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 max-[700px]:px-4">
+				if len(characters) == 0 {
+					<div class="card card-border mx-auto mt-[min(14vh,7rem)] border-base-300 bg-panel/85 text-center shadow-sm backdrop-blur-sm">
+						<div class="card-body p-8">
+							<p class="m-0 font-serif text-2xl">No heroes in your roster yet.</p>
+							<p class="m-0 mt-4 text-base-content/75">Create your first character sheet <strong>before</strong> your session.</p>
+						</div>
+					</div>
+				} else {
+					<div class="grid grid-cols-2 gap-3.5 max-[700px]:grid-cols-1">
+						for _, character := range characters {
+							@Character(character)
+						}
+					</div>
+				}
+			</section>
+		</div>
 	</character-selector>
 }

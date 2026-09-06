@@ -69,9 +69,14 @@ type SpellLevel struct {
 // reads them.
 type SpellLevelPageData struct {
 	CharacterID string
-	Level       int
-	Current     SpellLevel
-	Spells      []Spell
+	// Header is the bar across the top, which every editor tab renders and
+	// none of them owns. The four pages that are not the Character tab already
+	// load the characters row to check ownership and threw it away; this is
+	// what they do with it now.
+	Header  CharacterHeader
+	Level   int
+	Current SpellLevel
+	Spells  []Spell
 }
 
 var spellSchools = []string{

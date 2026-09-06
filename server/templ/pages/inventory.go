@@ -38,7 +38,12 @@ type InventoryItem struct {
 // the settings struct was.
 type InventoryPageData struct {
 	CharacterID string
-	Items       []InventoryItem
+	// Header is the bar across the top, which every editor tab renders and
+	// none of them owns. The four pages that are not the Character tab already
+	// load the characters row to check ownership and threw it away; this is
+	// what they do with it now.
+	Header CharacterHeader
+	Items  []InventoryItem
 }
 
 // InventoryRowPanel is the error-block id a row owns. PanelFormErrors documents

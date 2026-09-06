@@ -4,35 +4,19 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacter(data EditCharacterPageData) {
 	@layouts.Base("Character Editor | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabMain, shellLayout{}) {
+		@editCharacterShell(data.CharacterID, data.Header, characterTabMain, shellLayout{}) {
 			@characterPanels(data)
 		}
 	}
 }
 
-templ editCharacterShell(characterID string, active string, layout shellLayout) {
-	<character-editor class="relative block h-screen min-h-dvh w-screen px-4 pt-4 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
-		<div class="grid h-full w-full grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
-			<div class="flex flex-wrap items-end justify-between gap-3 p-2 pb-0 max-[640px]:items-stretch">
-				<div>
-					<h1 class="mt-0.5 mb-0 font-serif text-[2rem] leading-tight">Edit Character</h1>
-				</div>
-				<div class="flex items-center gap-4 max-[640px]:w-full">
-					<a
-						href="/characters"
-						class="btn max-[640px]:flex-1"
-					>
-						Back
-					</a>
-					if layout.Actions != nil {
-						@layout.Actions
-					}
-				</div>
-			</div>
-			@characterTabs(characterID, active)
-			{{ content := "grid min-h-0 content-start gap-4 overflow-auto pb-4" }}
+templ editCharacterShell(characterID string, header CharacterHeader, active string, layout shellLayout) {
+	<character-editor class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@characterBar(characterID, header, active, layout)
+			{{ content := "grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 max-[900px]:px-4" }}
 			if layout.Fill {
-				{{ content = "grid min-h-0 grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden pb-4" }}
+				{{ content = "grid min-h-0 grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden px-6 py-4 max-[900px]:px-4" }}
 			}
 			<div class={ content }>
 				{ children... }

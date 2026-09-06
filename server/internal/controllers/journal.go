@@ -52,7 +52,7 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	_, characterID, ok := a.loadCharacter(w, r)
+	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
@@ -69,6 +69,7 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 
 	render(w, r, pages.EditCharacterJournal(pages.JournalPageData{
 		CharacterID: characterID.String(),
+		Header:      characterHeader(character),
 		Entries:     entries,
 	}))
 }
@@ -148,7 +149,7 @@ func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	_, characterID, ok := a.loadCharacter(w, r)
+	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
@@ -185,6 +186,7 @@ func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) 
 
 	render(w, r, pages.EditCharacterJournalEntry(pages.JournalEntryPageData{
 		CharacterID: characterID.String(),
+		Header:      characterHeader(character),
 		EntryID:     entry.ID.String(),
 		Title:       entry.Title,
 		Body:        entry.Body,

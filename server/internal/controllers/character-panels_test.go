@@ -1019,23 +1019,31 @@ func TestAnUnknownProficiencyStateBecomesNone(t *testing.T) {
 	}
 }
 
-// Only the panels something else is computed from read the character back, and
-// they all do. A panel missing from this list would save correctly and leave the
-// numbers it changed stale until the next page load.
-func TestTheDerivedPanelsRefreshAndTheOthersDoNot(t *testing.T) {
+// EVERY panel on the character editor reads the character back, and the read is
+// scoped to this user. That is what keeps the page it was saved from correct
+// without a list of which panel changes what: the derived block and the bar are
+// both rendered from the row that comes back, so a panel writing max_hp or a
+// name refreshes the readings that follow from it whether or not anybody
+// remembered it would.
+//
+// A handler missing from this list is a panel that saves correctly and leaves
+// the page stale, which is the failure this test exists to make loud.
+func TestEveryCharacterPanelRefreshesThePage(t *testing.T) {
 	for _, c := range []struct {
 		name       string
 		handler    func(*App) http.HandlerFunc
 		pathValues map[string]string
-		refreshes  bool
 	}{
-		{name: "abilities", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAbilities }, refreshes: true},
-		{name: "core stats", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats }, refreshes: true},
-		{name: "skills", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}, refreshes: true},
-		{name: "saving throws", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}, refreshes: true},
 		{name: "identity", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterIdentity }},
+		{name: "abilities", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAbilities }},
+		{name: "core stats", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats }},
 		{name: "vitals", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals }},
+		{name: "proficiencies", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterProficiencies }},
 		{name: "personality", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality }},
+		{name: "appearance", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance }},
+		{name: "features", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures }},
+		{name: "skills", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}},
+		{name: "saving throws", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
@@ -1046,11 +1054,8 @@ func TestTheDerivedPanelsRefreshAndTheOthersDoNot(t *testing.T) {
 			}
 			panelPost(t, db, c.handler(app), url.Values{"name": {"Vex"}, "size": {"medium"}}, pathValues)
 
-			if got := len(db.reads) > 0; got != c.refreshes {
-				t.Fatalf("reads the character back = %v, want %v", got, c.refreshes)
-			}
-			if !c.refreshes {
-				return
+			if len(db.reads) == 0 {
+				t.Fatal("saved without reading the character back, so the page it was saved from is now stale")
 			}
 
 			read := db.reads[0]
