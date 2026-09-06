@@ -10,13 +10,29 @@ VALUES (?, ?, ?, 'avatar', ?, ?);
 
 -- A map is inserted with nothing but its original and the size to tile it at.
 -- preview_path and every pyramid column stay NULL until the worker has built
--- something to point them at, and the row is born pending because the upload
--- request does not decode the image at all -- it stores the bytes it was given
--- and queues the work.
+-- something to point them at, because the upload request does not decode the
+-- image at all -- it stores the bytes it was given and queues the work.
+--
+-- IT IS BORN WITH NO tile_state, WHICH IS WHAT STOPS IT BEING A JOB YET. The
+-- row is written before the original is uploaded, so that no object ever
+-- exists under a key no column names; but the worker claims on
+-- tile_state = 'pending' alone, and the object it would go and read is not
+-- there until the PUT after this returns. A NULL state is a row that owns a
+-- key and nothing more. QueueMapForTiling is what turns it into work, once
+-- there is something to work on.
 -- name: InsertMap :exec
 INSERT INTO assets
-(id, owner_id, file_path, type, file_name, name, tile_size, tile_state)
-VALUES (?, ?, ?, 'map', ?, ?, ?, 'pending');
+(id, owner_id, file_path, type, file_name, name, tile_size)
+VALUES (?, ?, ?, 'map', ?, ?, ?);
+
+-- The second half of an upload: the original has landed, so the row becomes a
+-- job. Nothing reads the result -- the id is a ULID made in the request that
+-- is still running, so there is no one else who could have moved the row, and
+-- no answer this could give that the caller would act on differently.
+-- name: QueueMapForTiling :exec
+UPDATE assets
+SET tile_state = 'pending'
+WHERE id = ? AND owner_id = ? AND type = 'map';
 
 -- name: GetImage :one
 SELECT id, file_path, preview_path, updated_at FROM assets

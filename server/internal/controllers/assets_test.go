@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/binary"
 	"fmt"
@@ -198,8 +199,8 @@ func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
 	if !strings.Contains(insert.query, "INSERT INTO assets") {
 		t.Fatalf("the first statement is not the insert: %q", insert.query)
 	}
-	if !strings.Contains(insert.query, "'pending'") {
-		t.Errorf("a map is not inserted pending, so nothing would ever tile it: %q", insert.query)
+	if strings.Contains(insert.query, "tile_state") {
+		t.Errorf("the insert queues the map before its original is uploaded: %q", insert.query)
 	}
 	if strings.Contains(insert.query, "preview_path") {
 		t.Errorf("the insert names a preview that does not exist yet: %q", insert.query)
@@ -217,6 +218,45 @@ func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
 	}
 	if want := (sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}); insert.args[5] != want {
 		t.Errorf("tile_size = %v, want %v", insert.args[5], want)
+	}
+}
+
+// A map is queued for tiling by a statement of its own, and not by the insert.
+//
+// THIS IS THE RACE THAT REACHED PRODUCTION. The insert used to write
+// tile_state = 'pending' itself, which made the row a job the moment it
+// committed -- while the original it names was still going up to R2. The
+// worker looks every five seconds, so an upload that took longer than the gap
+// to the next pass got claimed with nothing to read, and the job died on a
+// missing key. Pressing retry then worked every time, because by then the PUT
+// had landed: the same row, the same key, the only difference being that the
+// object had arrived.
+//
+// The two halves are pinned together here because neither is wrong alone. The
+// insert may not write the value the claim looks for, and the claim must look
+// for the value the second statement writes; a change to either that did not
+// change the other would put the window back.
+func TestAMapIsNotAJobUntilItsOriginalHasLanded(t *testing.T) {
+	db := &recordingDB{err: errNoRowsToGive}
+	q := queries.New(db)
+
+	_ = q.InsertMap(context.Background(), queries.InsertMapParams{})
+	_ = q.QueueMapForTiling(context.Background(), queries.QueueMapForTilingParams{})
+	_, _ = q.ClaimMapForTiling(context.Background(), nil)
+
+	if len(db.calls) != 3 {
+		t.Fatalf("ran %d statements, want 3", len(db.calls))
+	}
+	insert, queue, claim := db.calls[0].query, db.calls[1].query, db.calls[2].query
+
+	if strings.Contains(insert, "tile_state") {
+		t.Errorf("the insert sets a tile state, so the row is claimable before the PUT: %q", insert)
+	}
+	if !strings.Contains(queue, "tile_state = 'pending'") {
+		t.Errorf("the queue statement does not make the row pending: %q", queue)
+	}
+	if !strings.Contains(claim, "tile_state = 'pending'") {
+		t.Errorf("the claim no longer matches on pending, so a fresh row may be claimable: %q", claim)
 	}
 }
 

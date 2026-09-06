@@ -534,8 +534,8 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 // UploadMap stores a map and queues it for tiling. It does not decode it, does
 // not re-encode it and does not build its preview: all three moved to the
 // tiling worker, which is the only thing in the app that ever holds a
-// hundred-megapixel image in memory. What is left is a header check, a row and
-// a PUT of the bytes that arrived.
+// hundred-megapixel image in memory. What is left is a header check, a row, a
+// PUT of the bytes that arrived, and queueing the work.
 func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -549,8 +549,21 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	originalPath := storage.MapOriginalKey(sess.UserID, assetID)
 	tileSize := sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}
 
-	// NOTE: the row is the ledger for what lives in R2, so it is written first
-	// and rolled back if the upload never lands
+	// THE ROW IS WRITTEN FIRST AND QUEUED LAST, and the upload goes between
+	// them. The row is the ledger for what lives in R2, so it has to exist
+	// before the object does -- that is the rule everything else here obeys,
+	// and it is why this is rolled back if the upload never lands. But a row
+	// that is pending is a job, and a job's first act is to read the original
+	// back out of the bucket. Writing 'pending' before the PUT returns leaves
+	// a window the length of the upload in which the queue holds a job whose
+	// input does not exist yet, and the worker looks every five seconds. It
+	// loses that race often enough to see: the map fails to tile with a
+	// missing key, and tiling the very same object succeeds the moment anyone
+	// presses retry, because by then the PUT has finished.
+	//
+	// So the insert leaves tile_state NULL -- an owned row naming a key, which
+	// no worker can claim -- and QueueMapForTiling below makes it work once
+	// there is something to work on. Replacing a map already had this order.
 	err := a.Queries.InsertMap(ctx, queries.InsertMapParams{
 		ID:       assetID,
 		OwnerID:  sess.UserID,
@@ -567,6 +580,20 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, original, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
+		a.discardMap(ctx, sess.UserID, assetID)
+		htmx.ServerError(w)
+		return
+	}
+
+	// The same rollback as a failed upload: a row left un-queued would be a
+	// card with an original behind it, no pyramid, and nothing that will ever
+	// build one -- so the upload did not happen rather than half happened.
+	err = a.Queries.QueueMapForTiling(ctx, queries.QueueMapForTilingParams{
+		ID:      assetID,
+		OwnerID: sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to queue map for tiling", "error", err)
 		a.discardMap(ctx, sess.UserID, assetID)
 		htmx.ServerError(w)
 		return
