@@ -1,27 +1,36 @@
 package pages
 
-import "strconv"
-
-type bonusEntry struct {
-	Key   string
-	Abbr  string
-	Label string
-}
-
-templ bonusRow(field string, label string, abbr string, value int) {
-	<div class="flex items-center justify-between gap-2 rounded-field border-2 border-base-300 p-2">
-		<span class="flex min-w-0 flex-col gap-0.5">
-			<label class="text-sm font-medium" for={ field }>{ label }</label>
-			<span class="text-xs font-semibold tracking-wider text-base-content/75">{ abbr }</span>
+templ bonusRow(grid string, row BonusRow) {
+	{{ field := grid + "-" + row.Key }}
+	<div class="flex items-center gap-2 rounded-field border-2 border-base-300 p-2">
+		<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+			<span class="truncate text-sm font-medium">{ row.Label }</span>
+			<span class="text-xs font-semibold tracking-wider text-base-content/75">{ row.Abbr }</span>
 		</span>
+		<select name={ field + "-proficiency" } aria-label={ row.Label + " proficiency" } class="select select-sm w-28">
+			for _, option := range proficiencyOptions {
+				<option value={ option.Value } selected?={ option.Value == row.Proficiency }>{ option.Label }</option>
+			}
+		</select>
 		<input
-			id={ field }
-			name={ field }
+			name={ field + "-misc" }
 			type="number"
 			inputmode="numeric"
 			step="1"
+			aria-label={ row.Label + " misc bonus" }
 			class="input input-sm w-14 text-right"
-			value={ strconv.Itoa(value) }
+			value={ row.Misc }
 		/>
+		@derivedValue("total-"+field, row.Total, false)
 	</div>
+}
+
+templ derivedValue(id string, value string, oob bool) {
+	<span
+		id={ id }
+		class="w-10 shrink-0 text-right text-base font-extrabold tabular-nums"
+		if oob {
+			hx-swap-oob="true"
+		}
+	>{ value }</span>
 }

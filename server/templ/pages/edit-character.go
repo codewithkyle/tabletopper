@@ -44,8 +44,12 @@ type EditCharacterPageData struct {
 	MaxHP             string
 	CurrentHP         string
 	TempHP            string
-	SpellSaveDC       string
-	SpellAtkBonus     string
+	// Spellcasting is an ability and a misc bonus now, not a save DC and an
+	// attack bonus. Those two were numbers the player worked out and typed in;
+	// these two are what they are worked out FROM, and Derived carries the
+	// answer back.
+	SpellcastingAbility string
+	SpellBonusMisc      string
 	// The Vitals panel, and the one group on here that is not several of the
 	// same type. The two counters render into a value attribute and so are
 	// strings like every other number on this struct; the death saves are a
@@ -57,9 +61,13 @@ type EditCharacterPageData struct {
 	DeathSaveFailures  int
 	HeroicInspiration  bool
 	Exhaustion         string
-	Skills             map[string]int
-	SavingThrows       map[string]int
 	Features           []Feature
+	// Derived is every computed number on the page: the ability modifiers, both
+	// bonus grids with their totals, the passive perception and the two spell
+	// numbers. It replaced the two map[string]int fields the bonus grids used to
+	// carry, which held a bonus somebody typed rather than one anything worked
+	// out.
+	Derived Derived
 	// Attacks is the attacks table, rendered on this page as rows that are each
 	// their own form. It is the one editable thing here that is not a panel and
 	// not on a tab of its own: inventory and spells earned their own pages by

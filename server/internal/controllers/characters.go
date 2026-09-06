@@ -441,30 +441,35 @@ func rejectNewCharacter(w http.ResponseWriter, r *http.Request, message string) 
 
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
 	return pages.EditCharacterPageData{
-		CharacterID:     id,
-		Name:            character.Name,
-		Race:            nullStringValue(character.Race),
-		Background:      nullStringValue(character.Background),
-		Classes:         nullStringValue(character.Classes),
-		Size:            fallbackString(strings.TrimSpace(character.Size), pages.DefaultSize),
-		Alignment:       fallbackString(nullStringValue(character.Alignment), pages.DefaultAlignment),
-		XP:              strconv.FormatUint(uint64(character.XP), 10),
-		Languages:       fallbackString(strings.TrimSpace(character.Languages), "Common"),
-		Proficiencies:   strings.TrimSpace(character.Proficiencies),
-		Str:             strconv.FormatUint(uint64(character.Str), 10),
-		Dex:             strconv.FormatUint(uint64(character.Dex), 10),
-		Con:             strconv.FormatUint(uint64(character.Con), 10),
-		Int:             strconv.FormatUint(uint64(character.Int), 10),
-		Wis:             strconv.FormatUint(uint64(character.Wis), 10),
-		Cha:             strconv.FormatUint(uint64(character.Cha), 10),
-		AC:              strconv.FormatUint(uint64(character.AC), 10),
-		Speed:           fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
-		InitiativeBonus: strconv.FormatInt(int64(character.InitiativeBonus), 10),
-		MaxHP:           strconv.FormatUint(uint64(character.MaxHP), 10),
-		CurrentHP:       strconv.FormatUint(uint64(character.CurrentHP), 10),
-		TempHP:          strconv.FormatUint(uint64(character.TempHP), 10),
-		SpellSaveDC:     strconv.FormatUint(uint64(character.SpellSaveDC), 10),
-		SpellAtkBonus:   strconv.FormatInt(int64(character.SpellAtkBonus), 10),
+		CharacterID:         id,
+		Name:                character.Name,
+		Race:                nullStringValue(character.Race),
+		Background:          nullStringValue(character.Background),
+		Classes:             nullStringValue(character.Classes),
+		Size:                fallbackString(strings.TrimSpace(character.Size), pages.DefaultSize),
+		Alignment:           fallbackString(nullStringValue(character.Alignment), pages.DefaultAlignment),
+		XP:                  strconv.FormatUint(uint64(character.XP), 10),
+		Languages:           fallbackString(strings.TrimSpace(character.Languages), "Common"),
+		Proficiencies:       strings.TrimSpace(character.Proficiencies),
+		Str:                 strconv.FormatUint(uint64(character.Str), 10),
+		Dex:                 strconv.FormatUint(uint64(character.Dex), 10),
+		Con:                 strconv.FormatUint(uint64(character.Con), 10),
+		Int:                 strconv.FormatUint(uint64(character.Int), 10),
+		Wis:                 strconv.FormatUint(uint64(character.Wis), 10),
+		Cha:                 strconv.FormatUint(uint64(character.Cha), 10),
+		AC:                  strconv.FormatUint(uint64(character.AC), 10),
+		Speed:               fallbackString(strings.TrimSpace(character.Speed), "30 ft."),
+		InitiativeBonus:     strconv.FormatInt(int64(character.InitiativeBonus), 10),
+		MaxHP:               strconv.FormatUint(uint64(character.MaxHP), 10),
+		CurrentHP:           strconv.FormatUint(uint64(character.CurrentHP), 10),
+		TempHP:              strconv.FormatUint(uint64(character.TempHP), 10),
+		SpellcastingAbility: pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility)),
+		SpellBonusMisc:      strconv.FormatInt(int64(character.SpellBonusMisc), 10),
+
+		// Every computed number on the page, in one field. The two bonus grids
+		// arrive here as rows rather than as the blobs they are stored in --
+		// see characterDerived for why none of this is a column.
+		Derived: characterDerived(character),
 
 		// The vitals counters are formatted like every other number here. The
 		// death saves are not: they render as ticked boxes rather than into a
@@ -475,8 +480,6 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		DeathSaveFailures:  int(character.DeathSaveFailures),
 		HeroicInspiration:  character.HeroicInspiration,
 		Exhaustion:         strconv.FormatUint(uint64(character.Exhaustion), 10),
-		Skills:             parseStatBonuses(character.Skills),
-		SavingThrows:       parseStatBonuses(character.SavingThrows),
 		Features:           parseFeatures(character.Features),
 
 		// The details columns are NOT NULL with an empty default and the
@@ -511,6 +514,30 @@ func fallbackString(value, fallback string) string {
 	}
 
 	return trimmed
+}
+
+// parseProficiencies unmarshals one of the `{"stealth": "expertise"}` blobs the
+// derivation pass added. Every value is normalised on the way in as well as on
+// the way out: the blob is only ever written by its panel, but a state this
+// package does not recognise would otherwise reach proficiencyGrant, which
+// answers anything it does not know with zero -- a silently wrong total rather
+// than an obviously missing one.
+func parseProficiencies(raw json.RawMessage) map[string]string {
+	states := map[string]string{}
+	if len(raw) == 0 {
+		return states
+	}
+
+	decoded := map[string]string{}
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return states
+	}
+
+	for key, value := range decoded {
+		states[key] = pages.NormalizeProficiency(value)
+	}
+
+	return states
 }
 
 // parseStatBonuses unmarshals one of the `{"str": 2, "dex": 0, ...}` blobs into a

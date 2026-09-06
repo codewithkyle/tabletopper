@@ -113,7 +113,7 @@ func (a *App) SaveCharacterAbilities(w http.ResponseWriter, r *http.Request) {
 		ID:      characterID,
 		OwnerID: sess.UserID,
 	})
-	finishPanel(w, r, "abilities", "Abilities", result, err)
+	a.finishDerivedPanel(w, r, "abilities", "Abilities", result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterCoreStats writes three columns the panel has no field for. level
@@ -139,18 +139,18 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := a.Queries.UpdateCharacterCoreStats(ctx, queries.UpdateCharacterCoreStatsParams{
-		XP:               input.XP,
-		Level:            input.Level,
-		ProficiencyBonus: input.ProficiencyBonus,
-		Speed:            input.Speed,
-		AC:               input.AC,
-		InitiativeBonus:  input.InitiativeBonus,
-		SpellSaveDC:      input.SpellSaveDC,
-		SpellAtkBonus:    input.SpellAtkBonus,
-		ID:               characterID,
-		OwnerID:          sess.UserID,
+		XP:                  input.XP,
+		Level:               input.Level,
+		ProficiencyBonus:    input.ProficiencyBonus,
+		Speed:               input.Speed,
+		AC:                  input.AC,
+		InitiativeBonus:     input.InitiativeBonus,
+		SpellcastingAbility: input.SpellcastingAbility,
+		SpellBonusMisc:      input.SpellBonusMisc,
+		ID:                  characterID,
+		OwnerID:             sess.UserID,
 	})
-	finishPanel(w, r, "core-stats", "Core stats", result, err)
+	a.finishDerivedPanel(w, r, "core-stats", "Core stats", result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterVitals owns the half of the sheet that changes during a fight:
@@ -310,7 +310,7 @@ func (a *App) SaveCharacterBonuses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := marshalBonusesPayload(r, kind)
+	misc, states, err := marshalBonusPayloads(r, kind)
 	if err != nil {
 		slog.Error("Failed to encode bonuses", "kind", kind, "error", err)
 		htmx.ServerError(w)
@@ -321,18 +321,20 @@ func (a *App) SaveCharacterBonuses(w http.ResponseWriter, r *http.Request) {
 	switch kind {
 	case "skills":
 		result, err = a.Queries.UpdateCharacterSkills(ctx, queries.UpdateCharacterSkillsParams{
-			Skills:  payload,
-			ID:      characterID,
-			OwnerID: sess.UserID,
+			Skills:             misc,
+			SkillProficiencies: states,
+			ID:                 characterID,
+			OwnerID:            sess.UserID,
 		})
 	case "saving_throws":
 		result, err = a.Queries.UpdateCharacterSavingThrows(ctx, queries.UpdateCharacterSavingThrowsParams{
-			SavingThrows: payload,
-			ID:           characterID,
-			OwnerID:      sess.UserID,
+			SavingThrows:             misc,
+			SavingThrowProficiencies: states,
+			ID:                       characterID,
+			OwnerID:                  sess.UserID,
 		})
 	}
-	finishPanel(w, r, kind, label, result, err)
+	a.finishDerivedPanel(w, r, kind, label, result, err, characterID, sess.UserID)
 }
 
 // SaveCharacterFeatures is the last repeater. The whole panel posts, not the row
@@ -452,14 +454,14 @@ func buildAbilitiesInput(r *http.Request) (abilitiesInput, []string) {
 }
 
 type coreStatsInput struct {
-	XP               uint32
-	Level            uint8
-	ProficiencyBonus uint16
-	Speed            string
-	AC               uint16
-	InitiativeBonus  int16
-	SpellSaveDC      uint16
-	SpellAtkBonus    int16
+	XP                  uint32
+	Level               uint8
+	ProficiencyBonus    uint16
+	Speed               string
+	AC                  uint16
+	InitiativeBonus     int16
+	SpellcastingAbility queries.CharactersSpellcastingAbility
+	SpellBonusMisc      int16
 }
 
 func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
@@ -480,14 +482,9 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 		validationErrors = append(validationErrors, "Initiative bonus must be between -32768 and 32767.")
 	}
 
-	spellSaveDC, err := parseUint16(r.PostFormValue("spell_save_dc"), 10)
+	spellBonusMisc, err := parseInt16(r.PostFormValue("spell_bonus_misc"), 0)
 	if err != nil {
-		validationErrors = append(validationErrors, "Spell save DC must be between 0 and 65535.")
-	}
-
-	spellAtkBonus, err := parseInt16(r.PostFormValue("spell_atk_bonus"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Spell attack bonus must be between -32768 and 32767.")
+		validationErrors = append(validationErrors, "Spell bonus must be between -32768 and 32767.")
 	}
 
 	speed := strings.TrimSpace(r.PostFormValue("speed"))
@@ -504,8 +501,12 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 		Speed:            speed,
 		AC:               ac,
 		InitiativeBonus:  initiativeBonus,
-		SpellSaveDC:      spellSaveDC,
-		SpellAtkBonus:    spellAtkBonus,
+		// The select's allowlist is also the column's, which is an ENUM. Sending
+		// it a value it does not hold would be a 500 rather than a rejection, so
+		// this normalises rather than validates -- there is nothing for a player
+		// to correct, because the select could not have produced it.
+		SpellcastingAbility: queries.CharactersSpellcastingAbility(pages.NormalizeSpellcastingAbility(r.PostFormValue("spellcasting_ability"))),
+		SpellBonusMisc:      spellBonusMisc,
 	}, validationErrors
 }
 
@@ -800,35 +801,93 @@ func finishPanel(w http.ResponseWriter, r *http.Request, panel string, label str
 	renderPanelBlock(w, r, panel, nil)
 }
 
-// marshalBonusesPayload builds the `{"str": 2, ...}` object one bonus grid
-// posts. field is the name prefix its inputs carry and is always one of the
-// keys in bonusPanels.
+// marshalBonusPayloads builds the two blobs one bonus grid posts: the misc
+// bonuses, `{"stealth": 2}`, and the proficiency states, `{"stealth":
+// "expertise"}`. grid is the field-name prefix its inputs carry and is always
+// one of the keys in bonusPanels.
 //
-// A value that will not parse becomes 0 rather than an error: the inputs are
-// type=number with a step, so a browser cannot submit anything else, and
-// failing a whole panel save over a field the user cannot produce would cost
-// more than it protects.
-func marshalBonusesPayload(r *http.Request, field string) (json.RawMessage, error) {
-	prefix := field + "-"
-	values := map[string]int{}
+// IT WALKS THE GRID'S OWN LIST RATHER THAN THE POSTED FORM, which is the
+// difference between this and the marshalBonusesPayload it replaced. That one
+// scanned the request for anything starting `skills-` and took whatever followed
+// as a key, so a hand-built post could put `skills-flying` in the column and the
+// sheet would carry it forever, unreachable from any control. Reading the
+// eighteen keys the grid defines means a request can only answer the questions
+// that were asked.
+//
+// A misc bonus that will not parse becomes 0 rather than an error: the inputs
+// are type=number with a step, so a browser cannot submit anything else, and
+// failing a whole panel save over a field the player cannot produce would cost
+// more than it protects. A proficiency state gets the same treatment from
+// NormalizeProficiency.
+func marshalBonusPayloads(r *http.Request, grid string) (json.RawMessage, json.RawMessage, error) {
+	entries := bonusEntriesFor(grid)
+	misc := map[string]int{}
+	states := map[string]string{}
 
-	for key, formValues := range r.PostForm {
-		if !strings.HasPrefix(key, prefix) {
-			continue
-		}
-
-		bonusKey := strings.TrimPrefix(key, prefix)
-		if bonusKey == "" || len(formValues) == 0 {
-			continue
-		}
-
-		values[bonusKey] = parseBonus(formValues[0])
+	for _, entry := range entries {
+		field := grid + "-" + entry.Key
+		misc[entry.Key] = parseBonus(r.PostFormValue(field + "-misc"))
+		states[entry.Key] = pages.NormalizeProficiency(r.PostFormValue(field + "-proficiency"))
 	}
 
-	payload, err := json.Marshal(values)
+	encodedMisc, err := json.Marshal(misc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	encodedStates, err := json.Marshal(states)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return json.RawMessage(payload), nil
+	return encodedMisc, encodedStates, nil
+}
+
+// bonusEntriesFor is the other half of bonusPanels: that map says which grid
+// names are legal and what each is called in a sentence, and this says which
+// rows each one has. The caller has already checked the name against the map, so
+// there is no third answer to give.
+func bonusEntriesFor(grid string) []pages.BonusEntry {
+	if grid == "skills" {
+		return pages.SkillEntries()
+	}
+
+	return pages.SavingThrowEntries()
+}
+
+// finishDerivedPanel is finishPanel for the four panels whose columns something
+// else on the page is computed from. It answers the same way and then appends
+// the derived block, whose every element carries hx-swap-oob -- so the ability
+// modifiers, both grids' totals, the passive perception and the two spell
+// numbers update on the page that is already open rather than at the next load.
+//
+// THE CHARACTER IS READ BACK rather than recomputed from what was just posted.
+// That is what makes one refresh serve all four panels: a skills save changes
+// the skill totals, an abilities save changes every total on the sheet, and
+// neither handler knows enough on its own to say which.
+//
+// A read that fails is logged and dropped. The save landed, the toast is already
+// queued, and a stale readout that a reload fixes is a smaller thing to hand
+// somebody than an error over a write that worked.
+func (a *App) finishDerivedPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
+	if err != nil {
+		slog.Error("Failed to save character panel", "panel", panel, "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
+		htmx.NotFound(w, "character")
+		return
+	}
+
+	htmx.Toast(w, label+" saved.")
+	renderPanelBlock(w, r, panel, nil)
+
+	character, err := a.Queries.GetCharacter(r.Context(), queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
+	if err != nil {
+		slog.Error("Failed to read back derived values", "panel", panel, "error", err)
+		return
+	}
+
+	render(w, r, pages.DerivedValues(characterDerived(character)))
 }

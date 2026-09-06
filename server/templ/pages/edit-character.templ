@@ -57,12 +57,12 @@ templ characterPanels(data EditCharacterPageData) {
 	}
 	@savingPanel("Abilities", base+"/abilities", "abilities") {
 		<div class="grid grid-cols-6 gap-4 max-[1160px]:grid-cols-3 max-[640px]:grid-cols-2">
-			@numberField("str", "Strength", data.Str, true)
-			@numberField("dex", "Dexterity", data.Dex, true)
-			@numberField("con", "Constitution", data.Con, true)
-			@numberField("int", "Intelligence", data.Int, true)
-			@numberField("wis", "Wisdom", data.Wis, true)
-			@numberField("cha", "Charisma", data.Cha, true)
+			@abilityField("str", "Strength", data.Str, data.Derived.StrMod)
+			@abilityField("dex", "Dexterity", data.Dex, data.Derived.DexMod)
+			@abilityField("con", "Constitution", data.Con, data.Derived.ConMod)
+			@abilityField("int", "Intelligence", data.Int, data.Derived.IntMod)
+			@abilityField("wis", "Wisdom", data.Wis, data.Derived.WisMod)
+			@abilityField("cha", "Charisma", data.Cha, data.Derived.ChaMod)
 		</div>
 	}
 	@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
@@ -70,9 +70,19 @@ templ characterPanels(data EditCharacterPageData) {
 			@numberField("xp", "Experience", data.XP, true)
 			@textField("speed", "Speed", data.Speed, "", false)
 			@numberField("ac", "Armor Class", data.AC, true)
-			@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
-			@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
-			@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
+			@signedNumberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus)
+			@selectField("spellcasting_ability", "Spellcasting Ability", spellcastingAbilityOptions, data.SpellcastingAbility, true)
+			@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
+		</div>
+		<div class="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-field border-2 border-base-300 p-3">
+			<span class="flex items-baseline gap-3">
+				<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
+				@derivedValue("spell-save-dc", data.Derived.SpellSaveDC, false)
+			</span>
+			<span class="flex items-baseline gap-3">
+				<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Attack</span>
+				@derivedValue("spell-attack-bonus", data.Derived.SpellAttackBonus, false)
+			</span>
 		</div>
 	}
 	@savingPanel("Vitals", base+"/vitals", "vitals") {
@@ -100,10 +110,10 @@ templ characterPanels(data EditCharacterPageData) {
 	<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 		<div class="grid content-start gap-4">
 			@savingPanel("Saving Throws", base+"/bonuses/saving_throws", "saving_throws") {
-				@savingThrowsTable(data.SavingThrows)
+				@savingThrowsTable(data.Derived.SavingThrows)
 			}
 			@savingPanel("Skills", base+"/bonuses/skills", "skills") {
-				@skillsTable(data.Skills)
+				@skillsTable(data.Derived.Skills, data.Derived.PassivePerception)
 			}
 		</div>
 		<div class="grid content-start gap-4">

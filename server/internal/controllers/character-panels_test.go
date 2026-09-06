@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -29,6 +30,12 @@ import (
 // but that it touched nothing else.
 type recordingDB struct {
 	calls []recordedCall
+	// reads is QueryRowContext only, kept apart from calls so that only(t) and
+	// every column assertion in this file still see exactly the statement their
+	// handler wrote. The four panels that refresh the derived values read the
+	// character back afterwards, and counting that read as a call would have
+	// made every one of those tests fail for a reason that is not about them.
+	reads []recordedCall
 	rows  int64
 	err   error
 }
@@ -66,8 +73,24 @@ func (d *recordingDB) QueryContext(_ context.Context, query string, args ...inte
 	return nil, errNoRowsToGive
 }
 
-func (d *recordingDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {
-	panic("not used")
+// A *sql.Row, unlike a *sql.Rows, CAN be built outside database/sql: one comes
+// back from any sql.DB, and a DB whose connector refuses to connect hands back a
+// Row that answers Scan with that refusal. So the read is recorded and then
+// fails, which is what the callers of it are written for -- finishDerivedPanel
+// logs a failed read and returns, because the save it follows has already
+// landed.
+type refusingConnector struct{}
+
+func (refusingConnector) Connect(context.Context) (driver.Conn, error) { return nil, errNoRowsToGive }
+
+func (refusingConnector) Driver() driver.Driver { return nil }
+
+var refusingDB = sql.OpenDB(refusingConnector{})
+
+func (d *recordingDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	d.reads = append(d.reads, recordedCall{query: query, args: args})
+
+	return refusingDB.QueryRowContext(ctx, query, args...)
 }
 
 type fakeResult struct{ rows int64 }
@@ -221,8 +244,8 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 		{
 			name:    "core stats",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats },
-			form:    url.Values{"xp": {"6500"}, "ac": {"17"}, "speed": {"30 ft."}, "initiative_bonus": {"2"}, "spell_save_dc": {"14"}, "spell_atk_bonus": {"6"}},
-			want:    []string{"ac", "initiative_bonus", "level", "proficiency_bonus", "speed", "spell_atk_bonus", "spell_save_dc", "xp"},
+			form:    url.Values{"xp": {"6500"}, "ac": {"17"}, "speed": {"30 ft."}, "initiative_bonus": {"2"}, "spellcasting_ability": {"wis"}, "spell_bonus_misc": {"1"}},
+			want:    []string{"ac", "initiative_bonus", "level", "proficiency_bonus", "speed", "spell_bonus_misc", "spellcasting_ability", "xp"},
 		},
 		{
 			name:    "proficiencies",
@@ -233,16 +256,16 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 		{
 			name:       "skills",
 			handler:    func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses },
-			form:       url.Values{"skills-stealth": {"7"}},
+			form:       url.Values{"skills-stealth-misc": {"2"}, "skills-stealth-proficiency": {"expertise"}},
 			pathValues: map[string]string{"kind": "skills"},
-			want:       []string{"skills"},
+			want:       []string{"skill_proficiencies", "skills"},
 		},
 		{
 			name:       "saving throws",
 			handler:    func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses },
-			form:       url.Values{"saving_throws-dex": {"5"}},
+			form:       url.Values{"saving_throws-dex-misc": {"1"}, "saving_throws-dex-proficiency": {"proficient"}},
 			pathValues: map[string]string{"kind": "saving_throws"},
-			want:       []string{"saving_throws"},
+			want:       []string{"saving_throw_proficiencies", "saving_throws"},
 		},
 		{
 			name:    "features",
@@ -790,4 +813,253 @@ func writtenValue(t *testing.T, call recordedCall, column string) any {
 
 	t.Fatalf("the statement does not write %q:\n%s", column, call.query)
 	return nil
+}
+
+// The one piece of arithmetic every other derivation starts from, and the one
+// most likely to be written the way the rules phrase it -- (score - 10) / 2 --
+// which Go truncates toward zero. The odd scores below 10 are where that shows,
+// and they are exactly the scores a dump stat lands on.
+func TestAbilityModifierMatchesTheRules(t *testing.T) {
+	for _, c := range []struct {
+		score uint8
+		want  int
+	}{
+		{1, -5}, {2, -4}, {7, -2}, {8, -1}, {9, -1}, {10, 0},
+		{11, 0}, {12, 1}, {14, 2}, {15, 2}, {20, 5}, {30, 10},
+	} {
+		if got := abilityModifier(c.score); got != c.want {
+			t.Errorf("abilityModifier(%d) = %d, want %d", c.score, got, c.want)
+		}
+	}
+}
+
+// Half proficiency rounds down, which is what the rules say and what a bard with
+// a +3 proficiency bonus gets: one, not one and a half.
+func TestProficiencyGrantRoundsHalfDown(t *testing.T) {
+	for _, c := range []struct {
+		state string
+		bonus int
+		want  int
+	}{
+		{pages.ProficiencyNone, 3, 0},
+		{pages.ProficiencyHalf, 2, 1},
+		{pages.ProficiencyHalf, 3, 1},
+		{pages.ProficiencyHalf, 5, 2},
+		{pages.ProficiencyProficient, 3, 3},
+		{pages.ProficiencyExpertise, 3, 6},
+		{"nonsense", 3, 0},
+	} {
+		if got := proficiencyGrant(c.state, c.bonus); got != c.want {
+			t.Errorf("proficiencyGrant(%q, %d) = %d, want %d", c.state, c.bonus, got, c.want)
+		}
+	}
+}
+
+// testCharacter is a level 5 rogue-shaped sheet: Dex 16 (+3), Wis 13 (+1),
+// Int 8 (-1), Cha 11 (+0), proficiency +3.
+func testCharacter() queries.Character {
+	return queries.Character{
+		Str: 15, Dex: 16, Con: 14, Int: 8, Wis: 13, Cha: 11,
+		ProficiencyBonus:         3,
+		Skills:                   json.RawMessage(`{"stealth": 2, "arcana": 1}`),
+		SkillProficiencies:       json.RawMessage(`{"stealth": "expertise", "perception": "proficient", "arcana": "half"}`),
+		SavingThrows:             json.RawMessage(`{"dex": 1}`),
+		SavingThrowProficiencies: json.RawMessage(`{"dex": "proficient"}`),
+		SpellcastingAbility:      queries.CharactersSpellcastingAbilityNone,
+	}
+}
+
+func derivedRow(t *testing.T, rows []pages.BonusRow, key string) pages.BonusRow {
+	t.Helper()
+
+	for _, row := range rows {
+		if row.Key == key {
+			return row
+		}
+	}
+	t.Fatalf("no row for %q", key)
+
+	return pages.BonusRow{}
+}
+
+// A total is the ability modifier, plus what the proficiency state grants, plus
+// the misc bonus -- and it is the whole reason the panel changed, so each of the
+// three has to be visible in the answer.
+func TestASkillTotalIsItsThreeParts(t *testing.T) {
+	derived := characterDerived(testCharacter())
+
+	for _, c := range []struct {
+		key  string
+		want string
+		why  string
+	}{
+		{"stealth", "+11", "dex +3, expertise +6, misc +2"},
+		{"perception", "+4", "wis +1, proficient +3, no misc"},
+		{"arcana", "+1", "int -1, half proficiency +1, misc +1"},
+		{"survival", "+1", "wis +1 and nothing else"},
+		{"athletics", "+2", "str +2 and nothing else"},
+		{"deception", "+0", "cha +0 and nothing else, and a zero bonus still carries its plus"},
+	} {
+		if got := derivedRow(t, derived.Skills, c.key).Total; got != c.want {
+			t.Errorf("%s = %s, want %s (%s)", c.key, got, c.want, c.why)
+		}
+	}
+
+	if got := derivedRow(t, derived.SavingThrows, "dex").Total; got != "+7" {
+		t.Errorf("dex save = %s, want +7 (dex +3, proficient +3, misc +1)", got)
+	}
+	if got := derivedRow(t, derived.SavingThrows, "int").Total; got != "-1" {
+		t.Errorf("int save = %s, want -1 (int -1 and nothing else)", got)
+	}
+
+	// The row also carries back what it was set from, or the controls would
+	// render empty on every reload.
+	stealth := derivedRow(t, derived.Skills, "stealth")
+	if stealth.Proficiency != pages.ProficiencyExpertise || stealth.Misc != "2" {
+		t.Errorf("stealth renders %q/%q, want expertise/2", stealth.Proficiency, stealth.Misc)
+	}
+}
+
+// Ten plus the perception bonus, which means it moves when the Wisdom score
+// does, when the proficiency does, and when experience crosses a level.
+func TestPassivePerceptionIsTenPlusPerception(t *testing.T) {
+	character := testCharacter()
+	if got := characterDerived(character).PassivePerception; got != "14" {
+		t.Errorf("passive perception = %s, want 14 (10 + wis +1 + proficient +3)", got)
+	}
+
+	character.Wis = 20
+	if got := characterDerived(character).PassivePerception; got != "18" {
+		t.Errorf("passive perception = %s, want 18 after the wisdom went up", got)
+	}
+}
+
+// A character who casts nothing has no spell save DC, and the 8 the arithmetic
+// would produce for one is a number a fighter would have to learn to ignore.
+func TestSpellNumbersAreDashesUntilAnAbilityIsChosen(t *testing.T) {
+	derived := characterDerived(testCharacter())
+	if derived.SpellSaveDC != "—" || derived.SpellAttackBonus != "—" {
+		t.Errorf("a non-caster reads %s / %s, want a dash for each", derived.SpellSaveDC, derived.SpellAttackBonus)
+	}
+}
+
+// And a caster's DC is always eight plus their attack bonus, which is what makes
+// one misc bonus enough to carry both.
+func TestSpellSaveDCIsEightPlusTheAttackBonus(t *testing.T) {
+	character := testCharacter()
+	character.SpellcastingAbility = "dex"
+	character.SpellBonusMisc = 1
+
+	derived := characterDerived(character)
+	if derived.SpellAttackBonus != "+7" {
+		t.Errorf("spell attack = %s, want +7 (proficiency +3, dex +3, misc +1)", derived.SpellAttackBonus)
+	}
+	if derived.SpellSaveDC != "15" {
+		t.Errorf("spell save DC = %s, want 15", derived.SpellSaveDC)
+	}
+}
+
+// The marshaller walks the grid's own list instead of scanning the request, so a
+// key nothing asked for cannot reach the column. The one it replaced took
+// whatever followed the prefix, and a row written that way would have sat in the
+// blob forever with no control able to reach it.
+func TestABonusGridStoresOnlyTheRowsItAsked(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	panelPost(t, db, app.SaveCharacterBonuses, url.Values{
+		"skills-stealth-misc":        {"2"},
+		"skills-stealth-proficiency": {"expertise"},
+		"skills-flying-misc":         {"99"},
+		"skills-flying-proficiency":  {"expertise"},
+	}, map[string]string{"id": testCharacterID.String(), "kind": "skills"})
+
+	call := db.only(t)
+	misc := map[string]int{}
+	if err := json.Unmarshal(call.args[0].(json.RawMessage), &misc); err != nil {
+		t.Fatalf("misc payload is not JSON: %v", err)
+	}
+	states := map[string]string{}
+	if err := json.Unmarshal(call.args[1].(json.RawMessage), &states); err != nil {
+		t.Fatalf("proficiency payload is not JSON: %v", err)
+	}
+
+	if _, invented := misc["flying"]; invented {
+		t.Error("a key nothing asked for reached the misc column")
+	}
+	if _, invented := states["flying"]; invented {
+		t.Error("a key nothing asked for reached the proficiency column")
+	}
+	if misc["stealth"] != 2 || states["stealth"] != pages.ProficiencyExpertise {
+		t.Errorf("stealth stored as %d/%q, want 2/expertise", misc["stealth"], states["stealth"])
+	}
+	if got := len(states); got != len(pages.SkillEntries()) {
+		t.Errorf("stored %d proficiency states, want one per skill (%d)", got, len(pages.SkillEntries()))
+	}
+	if states["athletics"] != pages.ProficiencyNone {
+		t.Errorf("a row the form did not carry stored %q, want none", states["athletics"])
+	}
+}
+
+// A proficiency state the select could not have produced is normalised rather
+// than refused, and it lands on none -- not on whatever proficiencyGrant makes
+// of an unknown word.
+func TestAnUnknownProficiencyStateBecomesNone(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	panelPost(t, db, app.SaveCharacterBonuses, url.Values{
+		"skills-stealth-proficiency": {"legendary"},
+	}, map[string]string{"id": testCharacterID.String(), "kind": "skills"})
+
+	states := map[string]string{}
+	if err := json.Unmarshal(db.only(t).args[1].(json.RawMessage), &states); err != nil {
+		t.Fatalf("proficiency payload is not JSON: %v", err)
+	}
+	if states["stealth"] != pages.ProficiencyNone {
+		t.Errorf("stealth stored as %q, want none", states["stealth"])
+	}
+}
+
+// Only the panels something else is computed from read the character back, and
+// they all do. A panel missing from this list would save correctly and leave the
+// numbers it changed stale until the next page load.
+func TestTheDerivedPanelsRefreshAndTheOthersDoNot(t *testing.T) {
+	for _, c := range []struct {
+		name       string
+		handler    func(*App) http.HandlerFunc
+		pathValues map[string]string
+		refreshes  bool
+	}{
+		{name: "abilities", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAbilities }, refreshes: true},
+		{name: "core stats", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoreStats }, refreshes: true},
+		{name: "skills", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}, refreshes: true},
+		{name: "saving throws", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}, refreshes: true},
+		{name: "identity", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterIdentity }},
+		{name: "vitals", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals }},
+		{name: "personality", handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality }},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			app, db := newPanelApp(1)
+
+			pathValues := map[string]string{"id": testCharacterID.String()}
+			for key, value := range c.pathValues {
+				pathValues[key] = value
+			}
+			panelPost(t, db, c.handler(app), url.Values{"name": {"Vex"}, "size": {"medium"}}, pathValues)
+
+			if got := len(db.reads) > 0; got != c.refreshes {
+				t.Fatalf("reads the character back = %v, want %v", got, c.refreshes)
+			}
+			if !c.refreshes {
+				return
+			}
+
+			read := db.reads[0]
+			if !strings.Contains(read.query, "FROM characters") {
+				t.Errorf("the refresh read something other than the character:\n%s", read.query)
+			}
+			if len(read.args) != 2 || read.args[0] != testCharacterID || read.args[1] != testOwnerID {
+				t.Errorf("the refresh is not scoped to this user's character: %v", read.args)
+			}
+		})
+	}
 }

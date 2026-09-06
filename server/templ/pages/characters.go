@@ -29,10 +29,20 @@ func characterInitial(name string) string {
 	return strings.ToUpper(string(first))
 }
 
-func signedNumber(value int) string {
-	if value > 0 {
+// SignedNumber prints a bonus the way a sheet does: +3, +0, -1. Exported because
+// every derived bonus on the character page is formatted in the controller and
+// arrives here as a string.
+//
+// ZERO CARRIES THE PLUS. It used to print a bare "0", which was invisible while
+// the only caller was the proficiency bonus -- that is never zero. A derived
+// bonus is zero all the time, and a column reading "+3 / 0 / -1" reads as though
+// the middle one is a different kind of number rather than a modifier that
+// happens to add nothing.
+func SignedNumber(value int) string {
+	if value >= 0 {
 		return "+" + strconv.Itoa(value)
 	}
+
 	return strconv.Itoa(value)
 }
 

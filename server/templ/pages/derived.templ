@@ -1,0 +1,19 @@
+package pages
+
+templ DerivedValues(d Derived) {
+	@derivedValue("mod-str", d.StrMod, true)
+	@derivedValue("mod-dex", d.DexMod, true)
+	@derivedValue("mod-con", d.ConMod, true)
+	@derivedValue("mod-int", d.IntMod, true)
+	@derivedValue("mod-wis", d.WisMod, true)
+	@derivedValue("mod-cha", d.ChaMod, true)
+	for _, row := range d.Skills {
+		@derivedValue("total-skills-"+row.Key, row.Total, true)
+	}
+	for _, row := range d.SavingThrows {
+		@derivedValue("total-saving_throws-"+row.Key, row.Total, true)
+	}
+	@derivedValue("passive-perception", d.PassivePerception, true)
+	@derivedValue("spell-save-dc", d.SpellSaveDC, true)
+	@derivedValue("spell-attack-bonus", d.SpellAttackBonus, true)
+}

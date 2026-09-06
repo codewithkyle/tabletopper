@@ -141,3 +141,40 @@ templ toggleField(name string, label string, checked bool) {
 		</div>
 	</div>
 }
+
+templ abilityField(name string, label string, value string, modifier string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<div class="flex items-center gap-2">
+			<input
+				id={ name }
+				name={ name }
+				type="number"
+				inputmode="numeric"
+				class="input validator peer w-full"
+				value={ value }
+				min="0"
+				max="9999"
+				step="1"
+				required
+			/>
+			@derivedValue("mod-"+name, modifier, false)
+		</div>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
+	</div>
+}
+
+templ signedNumberField(name string, label string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input w-full"
+			value={ value }
+			step="1"
+		/>
+	</div>
+}

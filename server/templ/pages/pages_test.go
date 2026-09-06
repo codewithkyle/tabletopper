@@ -1793,3 +1793,103 @@ func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
 		t.Error("a mastery property passes as a damage type")
 	}
 }
+
+// testDerivedValues is a full sheet's worth: every skill, every save, and the
+// five loose numbers.
+func testDerivedValues() Derived {
+	d := Derived{
+		StrMod: "+2", DexMod: "+3", ConMod: "+2", IntMod: "-1", WisMod: "+1", ChaMod: "-1",
+		PassivePerception: "14", SpellSaveDC: "15", SpellAttackBonus: "+7",
+	}
+	for _, entry := range SkillEntries() {
+		d.Skills = append(d.Skills, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
+	}
+	for _, entry := range SavingThrowEntries() {
+		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
+	}
+
+	return d
+}
+
+// THE ONE WAY AN OUT-OF-BAND SWAP FAILS IS SILENTLY. htmx looks up the id in the
+// document, finds nothing, and does nothing -- no error, no console line, just a
+// number that never moves. So every id the refresh swaps has to exist on the
+// page, and this is what says so.
+func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
+	derived := testDerivedValues()
+
+	var page bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived}).Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	var block bytes.Buffer
+	if err := DerivedValues(derived).Render(context.Background(), &block); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
+
+	// Six ability modifiers, eighteen skills, six saves, and the three loose
+	// numbers -- passive perception and the two spell readouts.
+	if want := 6 + len(SkillEntries()) + len(SavingThrowEntries()) + 3; len(ids) != want {
+		t.Errorf("the refresh carries %d values, want %d", len(ids), want)
+	}
+	for _, match := range ids {
+		if !strings.Contains(page.String(), `id="`+match[1]+`"`) {
+			t.Errorf("the refresh swaps #%s, which the page does not render", match[1])
+		}
+	}
+
+	// Every one of them is out-of-band, or the response would be swapped into
+	// the panel's error block instead of onto the values it names.
+	if got := strings.Count(block.String(), `hx-swap-oob="true"`); got != len(ids) {
+		t.Errorf("%d of %d refreshed values are out-of-band", got, len(ids))
+	}
+
+	// And the page's own copies are not, or the first save would try to swap
+	// them into themselves.
+	if strings.Contains(page.String(), "hx-swap-oob") {
+		t.Error("the page renders a derived value already marked out-of-band")
+	}
+}
+
+// The controls carry no id, for the reason the attack rows carry none: eighteen
+// skills sharing one field component would put eighteen elements called
+// id="misc" on the page. The derived spans are the exception and are the whole
+// point -- they are what the refresh addresses.
+func TestBonusRowsShareNoElementIDButTheirTotals(t *testing.T) {
+	var buf bytes.Buffer
+	if err := skillsTable(testDerivedValues().Skills, "14").Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	seen := map[string]bool{}
+	for _, match := range regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(buf.String(), -1) {
+		if seen[match[1]] {
+			t.Errorf("two rows both render id=%q", match[1])
+		}
+		seen[match[1]] = true
+		if !strings.HasPrefix(match[1], "total-") && match[1] != "passive-perception" {
+			t.Errorf("a bonus row renders id=%q, which is a control rather than a derived value", match[1])
+		}
+	}
+}
+
+// Each row posts the two things it stores, under names the marshaller reads back
+// by key. A row that stopped rendering one of them would save the other over a
+// state nobody changed.
+func TestEveryBonusRowPostsBothOfItsHalves(t *testing.T) {
+	var buf bytes.Buffer
+	if err := skillsTable(testDerivedValues().Skills, "14").Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, entry := range SkillEntries() {
+		for _, half := range []string{"-misc", "-proficiency"} {
+			if want := `name="skills-` + entry.Key + half + `"`; !strings.Contains(markup, want) {
+				t.Errorf("the %s row does not carry %s", entry.Key, want)
+			}
+		}
+	}
+}

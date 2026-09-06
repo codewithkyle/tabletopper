@@ -1,19 +1,19 @@
 package pages
 
-var savingThrows = []bonusEntry{
-	{Key: "str", Abbr: "STR", Label: "Strength"},
-	{Key: "dex", Abbr: "DEX", Label: "Dexterity"},
-	{Key: "con", Abbr: "CON", Label: "Constitution"},
-	{Key: "int", Abbr: "INT", Label: "Intelligence"},
-	{Key: "wis", Abbr: "WIS", Label: "Wisdom"},
-	{Key: "cha", Abbr: "CHA", Label: "Charisma"},
+var savingThrows = []BonusEntry{
+	{Key: "str", Ability: "str", Abbr: "STR", Label: "Strength"},
+	{Key: "dex", Ability: "dex", Abbr: "DEX", Label: "Dexterity"},
+	{Key: "con", Ability: "con", Abbr: "CON", Label: "Constitution"},
+	{Key: "int", Ability: "int", Abbr: "INT", Label: "Intelligence"},
+	{Key: "wis", Ability: "wis", Abbr: "WIS", Label: "Wisdom"},
+	{Key: "cha", Ability: "cha", Abbr: "CHA", Label: "Charisma"},
 }
 
-templ savingThrowsTable(bonuses map[string]int) {
+templ savingThrowsTable(rows []BonusRow) {
 	<div class="@container">
-		<div class="grid grid-cols-1 gap-2 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">
-			for _, save := range savingThrows {
-				@bonusRow("saving_throws-"+save.Key, save.Label, save.Abbr, bonuses[save.Key])
+		<div class="grid grid-cols-1 gap-2 @[44rem]:grid-cols-2">
+			for _, row := range rows {
+				@bonusRow("saving_throws", row)
 			}
 		</div>
 	</div>

@@ -1,31 +1,35 @@
 package pages
 
-var skills = []bonusEntry{
-	{Key: "acrobatics", Abbr: "DEX", Label: "Acrobatics"},
-	{Key: "animal_handling", Abbr: "WIS", Label: "Animal Handling"},
-	{Key: "arcana", Abbr: "INT", Label: "Arcana"},
-	{Key: "athletics", Abbr: "STR", Label: "Athletics"},
-	{Key: "deception", Abbr: "CHA", Label: "Deception"},
-	{Key: "history", Abbr: "INT", Label: "History"},
-	{Key: "insight", Abbr: "WIS", Label: "Insight"},
-	{Key: "intimidation", Abbr: "CHA", Label: "Intimidation"},
-	{Key: "investigation", Abbr: "INT", Label: "Investigation"},
-	{Key: "medicine", Abbr: "WIS", Label: "Medicine"},
-	{Key: "nature", Abbr: "INT", Label: "Nature"},
-	{Key: "perception", Abbr: "WIS", Label: "Perception"},
-	{Key: "performance", Abbr: "CHA", Label: "Performance"},
-	{Key: "persuasion", Abbr: "CHA", Label: "Persuasion"},
-	{Key: "religion", Abbr: "INT", Label: "Religion"},
-	{Key: "sleight_of_hand", Abbr: "DEX", Label: "Sleight of Hand"},
-	{Key: "stealth", Abbr: "DEX", Label: "Stealth"},
-	{Key: "survival", Abbr: "WIS", Label: "Survival"},
+var skills = []BonusEntry{
+	{Key: "acrobatics", Ability: "dex", Abbr: "DEX", Label: "Acrobatics"},
+	{Key: "animal_handling", Ability: "wis", Abbr: "WIS", Label: "Animal Handling"},
+	{Key: "arcana", Ability: "int", Abbr: "INT", Label: "Arcana"},
+	{Key: "athletics", Ability: "str", Abbr: "STR", Label: "Athletics"},
+	{Key: "deception", Ability: "cha", Abbr: "CHA", Label: "Deception"},
+	{Key: "history", Ability: "int", Abbr: "INT", Label: "History"},
+	{Key: "insight", Ability: "wis", Abbr: "WIS", Label: "Insight"},
+	{Key: "intimidation", Ability: "cha", Abbr: "CHA", Label: "Intimidation"},
+	{Key: "investigation", Ability: "int", Abbr: "INT", Label: "Investigation"},
+	{Key: "medicine", Ability: "wis", Abbr: "WIS", Label: "Medicine"},
+	{Key: "nature", Ability: "int", Abbr: "INT", Label: "Nature"},
+	{Key: "perception", Ability: "wis", Abbr: "WIS", Label: "Perception"},
+	{Key: "performance", Ability: "cha", Abbr: "CHA", Label: "Performance"},
+	{Key: "persuasion", Ability: "cha", Abbr: "CHA", Label: "Persuasion"},
+	{Key: "religion", Ability: "int", Abbr: "INT", Label: "Religion"},
+	{Key: "sleight_of_hand", Ability: "dex", Abbr: "DEX", Label: "Sleight of Hand"},
+	{Key: "stealth", Ability: "dex", Abbr: "DEX", Label: "Stealth"},
+	{Key: "survival", Ability: "wis", Abbr: "WIS", Label: "Survival"},
 }
 
-templ skillsTable(bonuses map[string]int) {
-	<div class="@container">
-		<div class="grid grid-cols-1 gap-2 @[23rem]:grid-cols-2 @[35rem]:grid-cols-3">
-			for _, skill := range skills {
-				@bonusRow("skills-"+skill.Key, skill.Label, skill.Abbr, bonuses[skill.Key])
+templ skillsTable(rows []BonusRow, passivePerception string) {
+	<div class="@container grid gap-3">
+		<p class="flex items-baseline justify-between gap-3 rounded-field border-2 border-base-300 px-3 py-2">
+			<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Passive Perception</span>
+			@derivedValue("passive-perception", passivePerception, false)
+		</p>
+		<div class="grid grid-cols-1 gap-2 @[44rem]:grid-cols-2">
+			for _, row := range rows {
+				@bonusRow("skills", row)
 			}
 		</div>
 	</div>

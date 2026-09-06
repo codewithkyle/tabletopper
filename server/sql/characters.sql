@@ -29,12 +29,17 @@ WHERE id = ? AND owner_id = ?;
 -- the panel updates below. Creation cannot drift into that shape without growing
 -- a parameter, which is what the params-shape test refuses.
 --
--- The literals are the twelve NOT NULL columns the schema has no DEFAULT for
--- plus spell_save_dc, which has one that disagrees. Its default is 0 and the old
--- create form started it at 10; naming it keeps a new character where it was.
+-- The literals are the twelve NOT NULL columns the schema has no DEFAULT for.
+-- spell_save_dc used to be a thirteenth, named because its default disagreed
+-- with what the old create form produced; the derivation pass dropped it, and
+-- the spellcasting columns that replaced it default to a character who casts
+-- nothing, which is the right starting point and needs no literal here.
+--
 -- The rest -- level, xp, size, ac, max_hp, current_hp, proficiency_bonus,
--- temp_hp, initiative_bonus, spell_atk_bonus -- have DEFAULTs that already match
--- what that form produced, so they are left to the table.
+-- temp_hp, initiative_bonus -- have DEFAULTs that already match what that form
+-- produced, so they are left to the table. So do the two proficiency blobs,
+-- which start as empty objects the way skills and saving_throws are written
+-- empty below.
 --
 -- The blobs go in empty rather than pre-shaped. parseStatBonuses and
 -- parseFeatures each return their empty shape for a blob that carries nothing,
@@ -62,14 +67,12 @@ INSERT INTO characters (
     proficiencies,
     skills,
     saving_throws,
-    features,
-    spell_save_dc
+    features
 ) VALUES (
     ?, ?, ?,
     10, 10, 10, 10, 10, 10,
     '30 ft.', '', '',
-    '{}', '{}', '[]',
-    10
+    '{}', '{}', '[]'
 );
 
 -- name: UpdateCharacterAvatar :exec
@@ -133,8 +136,8 @@ SET
     speed = ?,
     ac = ?,
     initiative_bonus = ?,
-    spell_save_dc = ?,
-    spell_atk_bonus = ?
+    spellcasting_ability = ?,
+    spell_bonus_misc = ?
 WHERE id = ? AND owner_id = ?;
 
 -- name: UpdateCharacterProficiencies :execresult
@@ -193,18 +196,23 @@ SET
     hair = ?
 WHERE id = ? AND owner_id = ?;
 
--- The six single-column writes below back the bonus tables and the three
--- repeaters. Each takes the JSON its panel posts, already marshalled by the
--- controller.
+-- The writes below back the bonus grids and the features repeater. Each takes
+-- the JSON its panel posts, already marshalled by the controller.
+--
+-- The two bonus grids write TWO columns each since the derivation pass: the misc
+-- bonuses they always held, and the proficiency state each row is now set from.
+-- Both come off the same form and neither means anything without the other, so
+-- splitting them across two statements would let a debounce land between them
+-- and leave a row proficient with somebody else's misc bonus.
 
 -- name: UpdateCharacterSkills :execresult
 UPDATE characters
-SET skills = ?
+SET skills = ?, skill_proficiencies = ?
 WHERE id = ? AND owner_id = ?;
 
 -- name: UpdateCharacterSavingThrows :execresult
 UPDATE characters
-SET saving_throws = ?
+SET saving_throws = ?, saving_throw_proficiencies = ?
 WHERE id = ? AND owner_id = ?;
 
 -- name: UpdateCharacterFeatures :execresult
