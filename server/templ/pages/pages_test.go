@@ -97,6 +97,7 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 		"identity":      base + "/identity",
 		"abilities":     base + "/abilities",
 		"core-stats":    base + "/core-stats",
+		"vitals":        base + "/vitals",
 		"proficiencies": base + "/proficiencies",
 		"saving_throws": base + "/bonuses/saving_throws",
 		"skills":        base + "/bonuses/skills",
@@ -938,10 +939,10 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 		t.Errorf("cantrips do not say why they have no counters\n%s", body)
 	}
 
-	// Nine saving panels plus three slot forms plus Base's own, and nothing
+	// Ten saving panels plus three slot forms plus Base's own, and nothing
 	// wrapping them. Forms do not nest, so a slot form inside a savingPanel
 	// would post neither.
-	const panels = 9
+	const panels = 10
 	if got := strings.Count(body, "<form"); got != panels+3+closingForms {
 		t.Errorf("forms = %d, want %d", got, panels+3+closingForms)
 	}
@@ -1588,4 +1589,71 @@ func TestJournalSearchFragmentIsNotASecondCopyOfTheList(t *testing.T) {
 // a test can pin the shape of a nested run of markup as one string.
 func collapseWhitespace(markup string) string {
 	return strings.Join(strings.Fields(markup), " ")
+}
+
+// SaveCharacterVitals reads three of its six values out of the absence of a
+// field, because an unticked checkbox posts nothing. That is only correct while
+// every control arrives together, which is a property of this markup rather than
+// of that handler -- so it is pinned here.
+func TestTheVitalsPanelRendersEveryControlItIsReadFrom(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	if err := EditCharacter(EditCharacterPageData{CharacterID: id}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, control := range []string{
+		"hit_dice", "hit_dice_spent", "death_save_successes",
+		"death_save_failures", "heroic_inspiration", "exhaustion",
+	} {
+		if !strings.Contains(markup, `name="`+control+`"`) {
+			t.Errorf("the vitals panel does not render %q, so a save would read it as empty", control)
+		}
+	}
+
+	// One box per death save the rules allow, in each row. The count IS the
+	// value on the wire, so a row short of a box cannot record a full three.
+	for _, row := range []string{"death_save_successes", "death_save_failures"} {
+		if got := strings.Count(markup, `name="`+row+`"`); got != DeathSaveLimit {
+			t.Errorf("%s renders %d boxes, want %d", row, got, DeathSaveLimit)
+		}
+	}
+
+	// The two counters cannot offer the browser a number the handler refuses.
+	for _, want := range []string{
+		`max="` + strconv.Itoa(HitDiceSpentLimit) + `"`,
+		`max="` + strconv.Itoa(ExhaustionLimit) + `"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("no vitals counter carries %s", want)
+		}
+	}
+}
+
+// A sheet that forgot which boxes were ticked would be worse than one with no
+// boxes: the player would tick them again and lose a death save they had.
+func TestDeathSaveBubblesRenderWhatIsStored(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	for _, c := range []struct {
+		name string
+		data EditCharacterPageData
+		want int
+	}{
+		{"nothing ticked", EditCharacterPageData{CharacterID: id}, 0},
+		{"two successes", EditCharacterPageData{CharacterID: id, DeathSaveSuccesses: 2}, 2},
+		{"dying, and inspired", EditCharacterPageData{CharacterID: id, DeathSaveSuccesses: 1, DeathSaveFailures: 2, HeroicInspiration: true}, 4},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := EditCharacter(c.data).Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			if got := strings.Count(buf.String(), " checked"); got != c.want {
+				t.Errorf("ticked boxes = %d, want %d", got, c.want)
+			}
+		})
+	}
 }

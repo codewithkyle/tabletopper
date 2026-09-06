@@ -443,9 +443,19 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		TempHP:          strconv.FormatUint(uint64(character.TempHP), 10),
 		SpellSaveDC:     strconv.FormatUint(uint64(character.SpellSaveDC), 10),
 		SpellAtkBonus:   strconv.FormatInt(int64(character.SpellAtkBonus), 10),
-		Skills:          parseStatBonuses(character.Skills),
-		SavingThrows:    parseStatBonuses(character.SavingThrows),
-		Features:        parseFeatures(character.Features),
+
+		// The vitals counters are formatted like every other number here. The
+		// death saves are not: they render as ticked boxes rather than into a
+		// value attribute, so the markup needs the count itself.
+		HitDice:            character.HitDice,
+		HitDiceSpent:       strconv.FormatUint(uint64(character.HitDiceSpent), 10),
+		DeathSaveSuccesses: int(character.DeathSaveSuccesses),
+		DeathSaveFailures:  int(character.DeathSaveFailures),
+		HeroicInspiration:  character.HeroicInspiration,
+		Exhaustion:         strconv.FormatUint(uint64(character.Exhaustion), 10),
+		Skills:             parseStatBonuses(character.Skills),
+		SavingThrows:       parseStatBonuses(character.SavingThrows),
+		Features:           parseFeatures(character.Features),
 
 		// The details columns are NOT NULL with an empty default and the
 		// builders trim what they store, so these are the only fields here that

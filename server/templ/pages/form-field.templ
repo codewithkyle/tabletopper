@@ -1,5 +1,7 @@
 package pages
 
+import "strconv"
+
 templ textField(name string, label string, value string, placeholder string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -85,5 +87,57 @@ templ wordField(name string, label string, value string, placeholder string) {
 				placeholder={ placeholder }
 			}
 		/>
+	</div>
+}
+
+templ countField(name string, label string, value string, max int) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input validator peer w-full"
+			value={ value }
+			min="0"
+			max={ strconv.Itoa(max) }
+			step="1"
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to { strconv.Itoa(max) }.</p>
+	</div>
+}
+
+templ deathSaveField(name string, label string, ticked int) {
+	<div class="fieldset">
+		<span class="fieldset-legend">{ label }</span>
+		<div class="flex items-center gap-3 py-2">
+			for i := 0; i < DeathSaveLimit; i++ {
+				<input
+					name={ name }
+					type="checkbox"
+					value="1"
+					class="checkbox"
+					aria-label={ label + " " + strconv.Itoa(i+1) }
+					checked?={ i < ticked }
+				/>
+			}
+		</div>
+	</div>
+}
+
+templ toggleField(name string, label string, checked bool) {
+	<div class="fieldset">
+		<span class="fieldset-legend">{ label }</span>
+		<div class="flex items-center py-2">
+			<input
+				name={ name }
+				type="checkbox"
+				value="1"
+				class="checkbox"
+				aria-label={ label }
+				checked?={ checked }
+			/>
+		</div>
 	</div>
 }

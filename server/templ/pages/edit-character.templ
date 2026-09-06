@@ -78,6 +78,16 @@ templ characterPanels(data EditCharacterPageData) {
 			@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
 		</div>
 	}
+	@savingPanel("Vitals", base+"/vitals", "vitals") {
+		<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+			@wordField("hit_dice", "Hit Dice", data.HitDice, "3d8")
+			@countField("hit_dice_spent", "Hit Dice Spent", data.HitDiceSpent, HitDiceSpentLimit)
+			@countField("exhaustion", "Exhaustion", data.Exhaustion, ExhaustionLimit)
+			@deathSaveField("death_save_successes", "Death Save Successes", data.DeathSaveSuccesses)
+			@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
+			@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
+		</div>
+	}
 	@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
 		<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 			@textField("languages", "Languages", data.Languages, "", false)

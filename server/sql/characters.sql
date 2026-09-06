@@ -142,6 +142,23 @@ SET
     proficiencies = ?
 WHERE id = ? AND owner_id = ?;
 
+-- Vitals is the counterpart to core stats: the numbers on that panel describe
+-- what a character is, and these six describe how the last fight went. They are
+-- split for that reason and for a mechanical one -- core stats derives level and
+-- proficiency from xp on every save, and nothing here should be recomputed by a
+-- player ticking a death save.
+
+-- name: UpdateCharacterVitals :execresult
+UPDATE characters
+SET
+    hit_dice = ?,
+    hit_dice_spent = ?,
+    death_save_successes = ?,
+    death_save_failures = ?,
+    heroic_inspiration = ?,
+    exhaustion = ?
+WHERE id = ? AND owner_id = ?;
+
 -- The two halves of the sheet nobody rolls. They are split because their inputs
 -- are: four boxes of prose, and six words. One panel of ten would have been one
 -- statement of ten, which is still narrow, but the page reads better as two and

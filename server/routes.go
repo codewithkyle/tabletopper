@@ -70,6 +70,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
 	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
 	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
+	mux.HandleFunc("POST /characters/{id}/vitals", auth.RequireSession(app.SaveCharacterVitals))
 	mux.HandleFunc("POST /characters/{id}/proficiencies", auth.RequireSession(app.SaveCharacterProficiencies))
 	mux.HandleFunc("POST /characters/{id}/personality", auth.RequireSession(app.SaveCharacterPersonality))
 	mux.HandleFunc("POST /characters/{id}/appearance", auth.RequireSession(app.SaveCharacterAppearance))

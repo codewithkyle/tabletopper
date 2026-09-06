@@ -46,9 +46,20 @@ type EditCharacterPageData struct {
 	TempHP            string
 	SpellSaveDC       string
 	SpellAtkBonus     string
-	Skills            map[string]int
-	SavingThrows      map[string]int
-	Features          []Feature
+	// The Vitals panel, and the one group on here that is not several of the
+	// same type. The two counters render into a value attribute and so are
+	// strings like every other number on this struct; the death saves are a
+	// count the markup compares against, so they stay ints; and inspiration is
+	// one bit that decides an attribute rather than fills one.
+	HitDice            string
+	HitDiceSpent       string
+	DeathSaveSuccesses int
+	DeathSaveFailures  int
+	HeroicInspiration  bool
+	Exhaustion         string
+	Skills             map[string]int
+	SavingThrows       map[string]int
+	Features           []Feature
 	// Equipped is the inventory rows ticked as equipped, rendered read-only on
 	// the Character page. It is the only thing on that page that does not come
 	// off the characters row, and the only thing on it with no form around it.

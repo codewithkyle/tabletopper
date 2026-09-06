@@ -251,6 +251,12 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 			want:    []string{"features"},
 		},
 		{
+			name:    "vitals",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals },
+			form:    url.Values{"hit_dice": {"3d8"}, "hit_dice_spent": {"1"}, "death_save_successes": {"1", "1"}, "exhaustion": {"2"}, "heroic_inspiration": {"1"}},
+			want:    []string{"death_save_failures", "death_save_successes", "exhaustion", "heroic_inspiration", "hit_dice", "hit_dice_spent"},
+		},
+		{
 			name:    "personality",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality },
 			form:    url.Values{"personality_traits": {"Quick to laugh."}, "ideals": {"Freedom."}, "bonds": {"My old company."}, "flaws": {"Locked doors."}},
@@ -342,6 +348,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures }},
+		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance }},
 	}
@@ -592,7 +599,7 @@ func TestDetailsPanelsRefuseAnOverlongValue(t *testing.T) {
 		{
 			name:    "a word past the character cap",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance },
-			form:    url.Values{"hair": {strings.Repeat("a", characterAppearanceLimit+1)}},
+			form:    url.Values{"hair": {strings.Repeat("a", characterWordLimit+1)}},
 			panel:   "appearance",
 			want:    "Hair must be 64 characters or fewer.",
 		},
@@ -626,10 +633,10 @@ func TestDetailsPanelsRefuseAnOverlongValue(t *testing.T) {
 func TestDetailCapsAreMeasuredInTheirColumnsOwnUnits(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterAppearance, url.Values{
-		"hair": {strings.Repeat("é", characterAppearanceLimit)},
+		"hair": {strings.Repeat("é", characterWordLimit)},
 	}, map[string]string{"id": testCharacterID.String()})
 	if rec.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200: %d characters fit a VARCHAR(%d) whatever they weigh", rec.Code, characterAppearanceLimit, characterAppearanceLimit)
+		t.Errorf("status = %d, want 200: %d characters fit a VARCHAR(%d) whatever they weigh", rec.Code, characterWordLimit, characterWordLimit)
 	}
 
 	app, db = newPanelApp(1)
@@ -645,12 +652,13 @@ func TestDetailCapsAreMeasuredInTheirColumnsOwnUnits(t *testing.T) {
 }
 
 // The boxes carry a maxlength and the handlers carry a cap, and the two have to
-// agree or one of them is decoration. The appearance inputs carry the column's
-// own number, so that pair is exact. The textareas carry UTF-16 code units,
-// which no encoding turns into more than three bytes each -- so a full box is
-// still short of the byte cap, and only a request nobody's browser made finds
-// it.
-func TestTheDetailBoxesCannotOutrunTheirCaps(t *testing.T) {
+// agree or one of them is decoration. Every VARCHAR(64) box on the page carries
+// the column's own number, so that pair is exact: six of them are the appearance
+// fields and the seventh is the hit dice pool. The textareas carry UTF-16 code
+// units, which no encoding turns into more than three bytes each -- so a full
+// box is still short of the byte cap, and only a request nobody's browser made
+// finds it.
+func TestTheCappedBoxesCannotOutrunTheirCaps(t *testing.T) {
 	const proseMaxlength = 1024
 
 	var buf bytes.Buffer
@@ -659,13 +667,109 @@ func TestTheDetailBoxesCannotOutrunTheirCaps(t *testing.T) {
 	}
 	markup := buf.String()
 
-	if got := strings.Count(markup, `maxlength="`+strconv.Itoa(characterAppearanceLimit)+`"`); got != 6 {
-		t.Errorf("appearance inputs carrying the column's maxlength = %d, want 6", got)
+	if got := strings.Count(markup, `maxlength="`+strconv.Itoa(characterWordLimit)+`"`); got != 7 {
+		t.Errorf("word inputs carrying the column's maxlength = %d, want 7", got)
 	}
 	if got := strings.Count(markup, `maxlength="`+strconv.Itoa(proseMaxlength)+`"`); got != 4 {
 		t.Errorf("prose boxes carrying maxlength=%d = %d, want 4", proseMaxlength, got)
 	}
 	if proseMaxlength*3 > characterProseLimit {
 		t.Errorf("a full prose box is at most %d bytes and the cap is %d: a browser can now trip it", proseMaxlength*3, characterProseLimit)
+	}
+}
+
+// The vitals bounds are rules rather than column widths, and the handler refuses
+// rather than clamps: a sheet that stored something other than what was sent
+// would be worse than one that says no. Each is also a CHECK on the table, so a
+// value slipping past here is a 500 rather than a wrong row -- these are what
+// keep the constraint unreachable.
+func TestVitalsRefusesAValueOutsideTheRules(t *testing.T) {
+	for _, c := range []struct {
+		name string
+		form url.Values
+		want string
+	}{
+		{
+			name: "a fourth death save success",
+			form: url.Values{"death_save_successes": {"1", "1", "1", "1"}},
+			want: "Death save successes must be between 0 and 3.",
+		},
+		{
+			name: "a fourth death save failure",
+			form: url.Values{"death_save_failures": {"1", "1", "1", "1"}},
+			want: "Death save failures must be between 0 and 3.",
+		},
+		{
+			name: "exhaustion past the level that kills",
+			form: url.Values{"exhaustion": {"7"}},
+			want: "Exhaustion must be between 0 and 6.",
+		},
+		{
+			name: "more hit dice spent than a character can hold",
+			form: url.Values{"hit_dice_spent": {"21"}},
+			want: "Spent hit dice must be between 0 and 20.",
+		},
+		{
+			name: "a hit dice pool wider than its column",
+			form: url.Values{"hit_dice": {strings.Repeat("d", characterWordLimit+1)}},
+			want: "Hit dice must be 64 characters or fewer.",
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			app, db := newPanelApp(1)
+
+			rec := panelPost(t, db, app.SaveCharacterVitals, c.form, map[string]string{"id": testCharacterID.String()})
+
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422", rec.Code)
+			}
+			if len(db.calls) != 0 {
+				t.Error("the value was written anyway, and the CHECK constraint is now the only thing between it and the column")
+			}
+			if body := rec.Body.String(); !strings.Contains(body, c.want) {
+				t.Errorf("body = %q, want it to carry %q", body, c.want)
+			}
+		})
+	}
+}
+
+// Three of the six controls are checkboxes, and an unticked checkbox posts
+// nothing at all -- so this handler reads values out of an absence, which is the
+// shape every other panel handler is built to avoid. What makes it safe is that
+// the panel posts all six together; these pin both readings of that.
+func TestVitalsReadsItsCheckboxesFromWhatArrived(t *testing.T) {
+	// The statement names its columns in the order the query does, so the args
+	// are hit_dice, spent, successes, failures, inspiration, exhaustion.
+	const successes, failures, inspiration = 2, 3, 4
+
+	app, db := newPanelApp(1)
+	panelPost(t, db, app.SaveCharacterVitals, url.Values{
+		"hit_dice": {"3d8"}, "hit_dice_spent": {"0"}, "exhaustion": {"0"},
+		"death_save_successes": {"1", "1"},
+	}, map[string]string{"id": testCharacterID.String()})
+
+	args := db.only(t).args
+	if got := args[successes]; got != uint8(2) {
+		t.Errorf("death save successes = %v, want 2: two boxes came back ticked", got)
+	}
+	if got := args[failures]; got != uint8(0) {
+		t.Errorf("death save failures = %v, want 0: no box came back", got)
+	}
+	if got := args[inspiration]; got != false {
+		t.Errorf("heroic inspiration = %v, want false: the box came back unticked", got)
+	}
+
+	app, db = newPanelApp(1)
+	panelPost(t, db, app.SaveCharacterVitals, url.Values{
+		"hit_dice": {"3d8"}, "hit_dice_spent": {"0"}, "exhaustion": {"0"},
+		"death_save_failures": {"1", "1", "1"}, "heroic_inspiration": {"1"},
+	}, map[string]string{"id": testCharacterID.String()})
+
+	args = db.only(t).args
+	if got := args[failures]; got != uint8(3) {
+		t.Errorf("death save failures = %v, want 3", got)
+	}
+	if got := args[inspiration]; got != true {
+		t.Errorf("heroic inspiration = %v, want true", got)
 	}
 }

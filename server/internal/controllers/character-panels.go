@@ -156,6 +156,50 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 	finishPanel(w, r, "core-stats", "Core stats", result, err)
 }
 
+// SaveCharacterVitals owns the half of the sheet that changes during a fight.
+// It is not part of core-stats for two reasons: that panel recomputes level and
+// proficiency from xp on every save, which has no business happening because
+// somebody ticked a death save, and these six are the columns most likely to be
+// written from a phone in the middle of a turn.
+//
+// TWO OF ITS CONTROLS ARE CHECKBOXES, which post nothing at all when they are
+// not ticked, so this handler reads a value out of an absence -- the shape the
+// rest of the panel handlers exist to avoid. It is safe here for the same
+// reason it is safe in buildInventoryInput: the panel renders all six controls
+// together and posts as one form, so a missing field really is an unticked box
+// rather than a partial request. A test pins that the panel keeps rendering
+// them.
+func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	if !parsePanelForm(w, r, "vitals") {
+		return
+	}
+
+	input, validationErrors := buildVitalsInput(r)
+	if len(validationErrors) > 0 {
+		renderPanelBlock(w, r, "vitals", validationErrors)
+		return
+	}
+
+	result, err := a.Queries.UpdateCharacterVitals(ctx, queries.UpdateCharacterVitalsParams{
+		HitDice:            input.HitDice,
+		HitDiceSpent:       input.HitDiceSpent,
+		DeathSaveSuccesses: input.DeathSaveSuccesses,
+		DeathSaveFailures:  input.DeathSaveFailures,
+		HeroicInspiration:  input.HeroicInspiration,
+		Exhaustion:         input.Exhaustion,
+		ID:                 characterID,
+		OwnerID:            sess.UserID,
+	})
+	finishPanel(w, r, "vitals", "Vitals", result, err)
+}
+
 func (a *App) SaveCharacterProficiencies(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -485,6 +529,75 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	}, validationErrors
 }
 
+type vitalsInput struct {
+	HitDice            string
+	HitDiceSpent       uint8
+	DeathSaveSuccesses uint8
+	DeathSaveFailures  uint8
+	HeroicInspiration  bool
+	Exhaustion         uint8
+}
+
+// Every bound here is refused rather than clamped, and refused before the write.
+// The three of them are also CHECK constraints on the table, so a value that got
+// past this function would not be stored wrong -- it would be a 500. Rejecting
+// here is what keeps that constraint unreachable, which is the only way a CHECK
+// is worth having.
+func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
+	validationErrors := make([]string, 0)
+
+	hitDice := strings.TrimSpace(r.PostFormValue("hit_dice"))
+	if len([]rune(hitDice)) > characterWordLimit {
+		validationErrors = append(validationErrors, "Hit dice must be 64 characters or fewer.")
+	}
+
+	spent, err := parseUint8(r.PostFormValue("hit_dice_spent"), 0)
+	if err != nil || spent > pages.HitDiceSpentLimit {
+		validationErrors = append(validationErrors, "Spent hit dice must be between 0 and 20.")
+		spent = 0
+	}
+
+	exhaustion, err := parseUint8(r.PostFormValue("exhaustion"), 0)
+	if err != nil || exhaustion > pages.ExhaustionLimit {
+		validationErrors = append(validationErrors, "Exhaustion must be between 0 and 6.")
+		exhaustion = 0
+	}
+
+	successes, ok := deathSaves(r, "death_save_successes")
+	if !ok {
+		validationErrors = append(validationErrors, "Death save successes must be between 0 and 3.")
+	}
+
+	failures, ok := deathSaves(r, "death_save_failures")
+	if !ok {
+		validationErrors = append(validationErrors, "Death save failures must be between 0 and 3.")
+	}
+
+	return vitalsInput{
+		HitDice:            hitDice,
+		HitDiceSpent:       spent,
+		DeathSaveSuccesses: successes,
+		DeathSaveFailures:  failures,
+		HeroicInspiration:  r.PostFormValue("heroic_inspiration") != "",
+		Exhaustion:         exhaustion,
+	}, validationErrors
+}
+
+// deathSaves counts one row of bubbles. THE COUNT IS THE VALUE: three checkboxes
+// share a name, an unticked one posts nothing, and the number on the wire is how
+// many came back -- so there is no total to keep in sync with the boxes and no
+// way for the two to disagree. A row longer than the rules allow can only come
+// from a hand-built request, and it is refused rather than truncated so that a
+// sheet never quietly saves something other than what was sent.
+func deathSaves(r *http.Request, field string) (uint8, bool) {
+	ticked := len(r.PostForm[field])
+	if ticked > pages.DeathSaveLimit {
+		return 0, false
+	}
+
+	return uint8(ticked), true
+}
+
 type proficienciesInput struct {
 	Languages     string
 	Proficiencies string
@@ -505,7 +618,9 @@ func buildProficienciesInput(r *http.Request) proficienciesInput {
 	}
 }
 
-// The caps the two details panels enforce, each in the unit its columns count.
+// The caps the details and vitals panels enforce, each in the unit its columns
+// count. characterWordLimit is the width of every VARCHAR(64) on those panels --
+// the six appearance fields and the hit dice pool.
 // MySQL runs in strict mode, so an overlong value comes back from the driver as
 // an error, and without these it would reach the player as a 500 on a box the
 // sheet invited them to fill in.
@@ -515,11 +630,15 @@ func buildProficienciesInput(r *http.Request) proficienciesInput {
 // TEXT holds 64 KB and 4 KB is already several pages of a bond, and the prose
 // boxes carry maxlength="1024" -- 1024 UTF-16 units cannot encode to more than
 // 3072 bytes, so that cap is reachable only by a request nobody's browser made.
-// The appearance inputs carry their column's 64 as a maxlength, so that one is
-// the same number in both places.
+// The word inputs carry their column's 64 as a maxlength, so that one is the
+// same number in both places.
+//
+// The vitals bounds are not here. They are rules rather than column widths, the
+// markup renders them into max attributes, and pages.DeathSaveLimit and its two
+// neighbours are where they live so that both readings come from one number.
 const (
-	characterProseLimit      = 4096
-	characterAppearanceLimit = 64
+	characterProseLimit = 4096
+	characterWordLimit  = 64
 )
 
 type personalityInput struct {
@@ -583,7 +702,7 @@ func buildAppearanceInput(r *http.Request) (appearanceInput, []string) {
 		{"hair", "Hair"},
 	} {
 		value := strings.TrimSpace(r.PostFormValue(field.Field))
-		if len([]rune(value)) > characterAppearanceLimit {
+		if len([]rune(value)) > characterWordLimit {
 			validationErrors = append(validationErrors, field.Label+" must be 64 characters or fewer.")
 			continue
 		}
