@@ -17,8 +17,15 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// The reader's half of sharing: four routes in front of no session at all.
-// journal-share.go is the owner's half, and the two share nothing but the row.
+// The reader's half of sharing: four routes in front of no session at all, and
+// the token machinery both kinds of share go through. journal-share.go and
+// character-share.go are the owners' halves, share-character.go is what a shared
+// sheet renders as, and none of them shares anything with this file but the row.
+//
+// THE GATE, THE HEADERS AND THE MISS ARE HERE ONCE FOR BOTH KINDS. A password
+// answered in one place cannot be forgotten by the next thing made shareable,
+// which is the whole reason SharePage branches at the bottom rather than the
+// top.
 //
 // THESE ARE THE ONLY HANDLERS IN THE APP THAT RUN FOR SOMEBODY THE APP HAS
 // NEVER HEARD OF, and every one of them is written from that. There is no
@@ -39,13 +46,20 @@ import (
 // one page, because telling them apart would tell whoever is guessing which
 // half of the guess was right.
 
-// SharePage renders a shared journal entry, or the password gate in front of
-// it.
+// SharePage is the one URL both kinds of share are read at: a journal entry, a
+// character sheet, or the password gate in front of either.
 //
-// THE BODY IS NOT READ UNTIL THE PASSWORD IS ANSWERED. GetShareByToken selects
-// no journal columns, and the entry is a second statement below the gate, so a
-// locked share is one the process never had the prose of -- rather than one it
-// held in memory with a branch keeping it off the wire.
+// NOTHING IS READ UNTIL THE PASSWORD IS ANSWERED. GetShareByToken selects no
+// journal and no character columns, and the branch below is the first statement
+// past the gate -- so a locked share is one the process never had the contents
+// of, rather than one it held in memory with a branch keeping it off the wire.
+// That is also why the gate is here rather than inside each branch: a question
+// asked in one place cannot be forgotten by the next kind of share added.
+//
+// THE TYPE COMES OFF THE ROW, LIKE EVERY OTHER ID THESE HANDLERS USE. There is
+// nothing in the URL that says which of the two this is, so there is nothing in
+// the URL to edit into asking for the other -- a token names a row and the row
+// decides what it opens.
 func (a *App) SharePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -71,6 +85,29 @@ func (a *App) SharePage(w http.ResponseWriter, r *http.Request) {
 		render(w, r, pages.ShareLocked(pages.ShareLockedData{Action: "/share/" + token}))
 		return
 	}
+
+	switch grant.ResourceType {
+	case queries.SharesResourceTypeJournal:
+		a.sharedJournalEntry(w, r, token, grant)
+	case queries.SharesResourceTypeCharacter:
+		a.sharedCharacterSheet(w, r, token, grant)
+	default:
+		// An enum member nothing here renders, which today is unreachable and
+		// is written down anyway: the column can gain a member in a migration
+		// without this file being opened, and the failure that would cause is
+		// a blank 200 rather than anything that announces itself. A dead link
+		// is the honest answer -- the row exists, and there is nothing this
+		// build can open it as.
+		slog.Error("Share names a resource type this build cannot render", "type", grant.ResourceType)
+		shareUnavailable(w, r)
+	}
+}
+
+// sharedJournalEntry is the page one entry's link opens. It runs past the gate
+// in SharePage and takes the grant rather than re-reading it, so the password is
+// answered exactly once per request.
+func (a *App) sharedJournalEntry(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
+	ctx := r.Context()
 
 	entry, err := a.Queries.GetSharedJournalEntry(ctx, queries.GetSharedJournalEntryParams{
 		EntryID:     grant.ResourceID,
@@ -201,6 +238,17 @@ func (a *App) GetShareImage(w http.ResponseWriter, r *http.Request) {
 
 	grant, ok := a.shareGrant(w, r, token)
 	if !ok {
+		return
+	}
+
+	// A CHARACTER SHARE HAS NO IMAGES HERE, and it is refused rather than left
+	// to miss. Its resource_id is a character id, so GetJournalImage below
+	// would match nothing and 404 anyway -- but that is a join happening to
+	// come back empty, and "no picture belongs to this share" is a rule this
+	// route should state rather than inherit. The sheet's one picture is the
+	// avatar, on its own route.
+	if grant.ResourceType != queries.SharesResourceTypeJournal {
+		http.NotFound(w, r)
 		return
 	}
 

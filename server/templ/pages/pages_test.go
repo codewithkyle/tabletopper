@@ -50,11 +50,14 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"journal-entries-fragment": func() error {
 			return render(JournalEntriesFragment(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
 		},
-		"journal-share-fragment": func() error {
-			return render(JournalShareFragment(JournalShareData{}))
+		"share-dialog": func() error {
+			return render(ShareDialog(ShareDialogData{}))
 		},
 		"shared-journal-entry": func() error {
 			return render(SharedJournalEntry(SharedJournalData{}))
+		},
+		"shared-character-page": func() error {
+			return render(SharedCharacterPage(SharedCharacterSheet{}))
 		},
 		"share-locked":      func() error { return render(ShareLocked(ShareLockedData{})) },
 		"share-unavailable": func() error { return render(ShareUnavailable()) },
@@ -851,7 +854,7 @@ func TestSpellMetaLineSkipsWhatIsNotThere(t *testing.T) {
 			"1 hour · Touch · 8 hours",
 		},
 	} {
-		if got := spellMetaLine(c.spell); got != c.want {
+		if got := SpellMetaLine(c.spell); got != c.want {
 			t.Errorf("meta line = %q, want %q", got, c.want)
 		}
 	}

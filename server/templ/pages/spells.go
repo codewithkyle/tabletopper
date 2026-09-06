@@ -163,11 +163,11 @@ type PreparedSpellGroup struct {
 	Spells []Spell
 }
 
-// spellMetaLine is what a prepared spell says under its name: the three things
+// SpellMetaLine is what a prepared spell says under its name: the three things
 // you need before deciding to cast it, and nothing you would have to scroll.
 // The spell text stays on the spells page -- ten paragraphs on the Character tab
 // would be the wall this whole rework was meant to remove.
-func spellMetaLine(spell Spell) string {
+func SpellMetaLine(spell Spell) string {
 	parts := make([]string, 0, 3)
 	for _, part := range []string{spell.CastingTime, spell.CastingRange, spell.Duration} {
 		if part != "" {
@@ -189,10 +189,10 @@ func preparedSpellName(spell Spell) string {
 	return spell.Name
 }
 
-// spellCountLabel is what a level says beside its counters. It reads as a
+// SpellCountLabel is what a level says beside its counters. It reads as a
 // sentence rather than a number because the number would sit next to Slots and
 // Used, and a third bare integer there invites the wrong reading.
-func spellCountLabel(count int) string {
+func SpellCountLabel(count int) string {
 	switch count {
 	case 0:
 		return "No spells"

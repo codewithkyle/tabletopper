@@ -1,8 +1,15 @@
--- A share is a read grant on one thing, handed out as a link. Every statement
--- an owner runs is scoped by the owner and the character as well as by the
--- thing being shared, the same rule the journal statements follow; the two
--- statements a visitor runs are scoped by the token alone, because the token
--- IS the authorisation and there is nobody signed in to check it against.
+-- A share is a read grant on one thing, handed out as a link: a journal entry
+-- or a whole character sheet. Every statement an owner runs is scoped by the
+-- owner and by the thing being shared -- and, for an entry, by the character
+-- above it as well; the two statements a visitor runs are scoped by the token
+-- alone, because the token IS the authorisation and there is nobody signed in
+-- to check it against.
+--
+-- resource_type IS IN EVERY OWNER STATEMENT and in none of the visitor's. An
+-- owner asking about a share already knows which of theirs they mean, so the
+-- type is a literal in the WHERE and a sheet's statements can never reach an
+-- entry's row; a visitor knows only a token, so the type comes back with the
+-- row and SharePage decides what to open.
 --
 -- REVOKING IS DELETING. There is no revoked_at, no is_active and no second
 -- state that can disagree with the first: a link works because its row is
@@ -49,11 +56,53 @@ DELETE FROM shares
 WHERE resource_type = 'journal' AND resource_id = sqlc.arg(entry_id)
     AND character_id = sqlc.arg(character_id) AND owner_id = sqlc.arg(owner_id);
 
--- name: DeleteCharacterShares :exec
--- Deleting a character takes every link it handed out. It reads character_id
--- directly rather than finding the rows through journals, which is what lets
--- it run in any order beside the other five deletes that request makes --
--- including after the journals themselves are gone.
+-- The three owner statements for a shared character sheet, which are the three
+-- above with one difference: the thing being shared IS the character, so
+-- resource_id and character_id hold the same id. Both are still written out,
+-- because they are read by different things -- resource_id by the unique key
+-- that makes a character's link the only one, character_id by the purge and by
+-- the test that reads the schema looking for it.
+
+-- name: GetCharacterShare :one
+-- What the sheet's share dialog asks before it renders. Like GetJournalShare it
+-- reads the row whether or not it has expired: an expired share is still a row
+-- the owner has to be shown and offered the chance to revoke.
+SELECT * FROM shares
+WHERE resource_type = 'character' AND resource_id = sqlc.arg(character_id)
+    AND owner_id = sqlc.arg(owner_id);
+
+-- name: InsertCharacterShare :execresult
+-- INSERT ... SELECT for the reason InsertJournalShare gives: taking the ids
+-- from the request would prove they are consistent with each other and nothing
+-- about whose character this is. Selecting them off the characters row means a
+-- character that is not this user's matches nothing, inserts nothing, and is
+-- read by the handler as a 404 -- with no window between the check and the
+-- write for the character to be deleted in.
+--
+-- characters.id is written into resource_id and character_id both, from the row
+-- rather than from the URL, so the two columns cannot disagree.
+INSERT INTO shares (id, owner_id, character_id, resource_type, resource_id, token, password_hash, expires_at)
+SELECT sqlc.arg(id), characters.owner_id, characters.id, 'character', characters.id,
+    sqlc.arg(token), sqlc.arg(password_hash), sqlc.arg(expires_at)
+FROM characters
+WHERE characters.id = sqlc.arg(character_id) AND characters.owner_id = sqlc.arg(owner_id);
+
+-- name: DeleteCharacterShare :execresult
+-- Revoking the sheet's link, and nothing else: resource_type pins it to the
+-- character share, so an owner revoking their sheet keeps every journal link
+-- the same character handed out. DeleteSharesForCharacter below is the one that
+-- takes them all, and it is deliberately named so the two cannot be reached for
+-- by accident.
+DELETE FROM shares
+WHERE resource_type = 'character' AND resource_id = sqlc.arg(character_id)
+    AND owner_id = sqlc.arg(owner_id);
+
+-- name: DeleteSharesForCharacter :exec
+-- Deleting a character takes every link it handed out, of every type: its own
+-- sheet and each of its entries. It reads character_id directly rather than
+-- finding the rows through journals, which is what lets it run in any order
+-- beside the other five deletes that request makes -- including after the
+-- journals themselves are gone.
 DELETE FROM shares
 WHERE character_id = ? AND owner_id = ?;
 
@@ -69,11 +118,20 @@ WHERE character_id = ? AND owner_id = ?;
 -- row and compared the time itself would be one `if` away from serving an
 -- entry the owner believed had stopped being readable.
 --
--- It selects no journal columns. The password may not have been answered yet,
--- and a body read before that gate would be a body the process had in memory
--- with nothing but a later branch keeping it off the wire.
-SELECT id, owner_id, character_id, resource_id, password_hash FROM shares
-WHERE token = sqlc.arg(token) AND resource_type = 'journal'
+-- It selects no journal columns and no character columns. The password may not
+-- have been answered yet, and anything read before that gate would be content
+-- the process had in memory with nothing but a later branch keeping it off the
+-- wire.
+--
+-- THE TYPE COMES BACK RATHER THAN GOING IN. This statement used to pin
+-- resource_type = 'journal', which made the token name one kind of thing; now
+-- the token names a row and the row says what it is, and SharePage is the one
+-- place that turns that into a page. A caller that only serves one kind checks
+-- the type it got -- see GetShareImage -- rather than asking for a share that
+-- is one and reading a miss as a dead link, which would tell a visitor holding
+-- a live character link that their link was dead.
+SELECT id, owner_id, character_id, resource_type, resource_id, password_hash FROM shares
+WHERE token = sqlc.arg(token)
     AND (expires_at IS NULL OR expires_at > NOW());
 
 -- name: GetSharedJournalEntry :one

@@ -1,6 +1,16 @@
 package layouts
 
-templ Share(title string) {
+const shareColumn = "mx-auto grid w-full content-start gap-4 p-4 max-[700px]:p-2.5"
+
+const shareColumnNarrow = shareColumn + " max-w-3xl"
+
+const shareColumnWide = shareColumn + " max-w-6xl"
+
+templ Share(title string, wide bool) {
+	{{ columnClass := shareColumnNarrow }}
+	if wide {
+		{{ columnClass = shareColumnWide }}
+	}
 	<!DOCTYPE html>
 	<html>
 		<head>
@@ -15,7 +25,7 @@ templ Share(title string) {
 		</head>
 		<body>
 			<main class="h-full w-full overflow-auto">
-				<div class="mx-auto grid w-full max-w-3xl content-start gap-4 p-4 max-[700px]:p-2.5">
+				<div class={ columnClass }>
 					{ children... }
 				</div>
 			</main>

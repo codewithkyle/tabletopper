@@ -40,6 +40,6 @@ templ spellLevelHeading(characterID string, level SpellLevel) {
 			href={ "/characters/" + characterID + "/edit/spells/" + strconv.Itoa(level.Level) }
 			class="link font-serif text-base leading-none font-bold"
 		>{ SpellLevelName(level.Level) }</a>
-		<span class="text-xs font-semibold text-base-content/75">{ spellCountLabel(level.Count) }</span>
+		<span class="text-xs font-semibold text-base-content/75">{ SpellCountLabel(level.Count) }</span>
 	</span>
 }

@@ -75,6 +75,17 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/journal", "POST /characters/{id}/journal"},
 		{http.MethodPost, "/characters/" + id + "/journal/" + item, "POST /characters/{id}/journal/{entryId}"},
 		{http.MethodDelete, "/characters/" + id + "/journal/" + item, "DELETE /characters/{id}/journal/{entryId}"},
+		// THE TWO SHARES OCCUPY THE SAME POSITION AS EACH OTHER'S SUBJECT. The
+		// sheet's is /characters/{id}/share and an entry's is the same word
+		// three segments deeper, so a sheet's revoke arriving at the entry's
+		// handler would delete a link nobody asked about -- and the two delete
+		// different rows on purpose. "share" is also a literal sitting where a
+		// panel name goes, which is the same trust in the mux the slot save
+		// above depends on.
+		{http.MethodPost, "/characters/" + id + "/share", "POST /characters/{id}/share"},
+		{http.MethodDelete, "/characters/" + id + "/share", "DELETE /characters/{id}/share"},
+		{http.MethodPost, "/characters/" + id + "/journal/" + item + "/share", "POST /characters/{id}/journal/{entryId}/share"},
+		{http.MethodDelete, "/characters/" + id + "/journal/" + item + "/share", "DELETE /characters/{id}/journal/{entryId}/share"},
 		// An entry's images hang off the member as a sub-collection, so the
 		// upload and the entry's own save differ by one segment and the serve
 		// route sits two below the member. The mux is being trusted to keep

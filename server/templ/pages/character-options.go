@@ -57,3 +57,18 @@ const (
 	DefaultAlignment = "unaligned"
 	DefaultSize      = "medium"
 )
+
+// SizeLabel turns a stored size into the word the picker shows, the way
+// AlignmentLabel does for alignment. An unrecognised value comes back empty
+// rather than as itself: the column is free text as far as MySQL is concerned,
+// and a shared sheet is not the place a value nothing wrote gets its first
+// airing.
+func SizeLabel(value string) string {
+	for _, option := range sizeOptions {
+		if option.Value == value {
+			return option.Label
+		}
+	}
+
+	return ""
+}

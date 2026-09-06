@@ -16,6 +16,19 @@ import "strings"
 // never emitted -- and both are read by three files, which is why the number is
 // written once.
 
+// THE SHARE BUTTON IS ON THE BAR AND NOT ON A PAGE, which is what puts it on all
+// five editor tabs without any of them naming it. shellLayout.Actions was the
+// other option and is where the journal entry's own Share and Save sit -- but
+// threading one button through five call sites is five places to forget it, and
+// four of them would look correct while the button was missing.
+//
+// IT IS ALSO WHY THE TWO SHARE BUTTONS SAY WHAT THEY SHARE. The journal entry
+// page carries both -- this one for the sheet, its own for the entry -- and two
+// buttons reading "Share" beside each other would be a coin toss over which
+// link went into the chat window. So they are "Share character" and "Share
+// entry" everywhere, rather than only on the page where both appear: a label
+// that changes depending on what else is on screen is a label nobody can learn.
+
 // CharacterHeader is what the bar across the top of every editor tab renders.
 //
 // IT IS ON ALL FIVE TAB PAGES BECAUSE THE BAR IS, and the bar is because the

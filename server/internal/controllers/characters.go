@@ -147,11 +147,13 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 // independent and run in the order they were written.
 //
 // The shares are among the independent ones only because the column is
-// denormalised. Every link this character handed out names it directly, so they
-// go in one statement whether or not the journals they point at are still
-// there -- which is the reason shares.character_id exists at all; reaching them
-// through journals would have meant a subquery against a table this request
-// empties two statements earlier.
+// denormalised. Every link this character handed out names it directly -- its
+// own sheet and each of its entries alike -- so they go in one statement
+// whether or not the journals they point at are still there, which is the
+// reason shares.character_id exists at all; reaching them through journals
+// would have meant a subquery against a table this request empties two
+// statements earlier, and would have missed the sheet's own link entirely,
+// since that one names no journal.
 //
 // The first failure stops the purge and is returned wrapped, so the log names
 // the table rather than only the driver error -- which of these failed is the
@@ -200,7 +202,7 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 		return fmt.Errorf("spell slots: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterShares(ctx, queries.DeleteCharacterSharesParams{
+	if err := a.Queries.DeleteSharesForCharacter(ctx, queries.DeleteSharesForCharacterParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {

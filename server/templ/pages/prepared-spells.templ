@@ -13,7 +13,7 @@ templ preparedSpells(characterID string, groups []PreparedSpellGroup) {
 					<h3 class="m-0 font-serif text-sm leading-none font-bold">{ group.Name }</h3>
 					<ul class="grid w-full gap-2">
 						for _, spell := range group.Spells {
-							{{ meta := spellMetaLine(spell) }}
+							{{ meta := SpellMetaLine(spell) }}
 							<li class={ surfaceInset + " p-3" }>
 								<p class="m-0 font-medium">{ preparedSpellName(spell) }</p>
 								if meta != "" {

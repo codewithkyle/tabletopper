@@ -5,15 +5,18 @@ import "strings"
 // The shared journal entry, as a stranger sees it: a banner naming the
 // character, the entry's title, and the entry.
 //
-// THIS IS THE ONLY PAGE IN THE APP RENDERED FOR SOMEBODY WITH NO SESSION, and
-// the type below is shaped by that. It carries what the page shows and nothing
-// else -- no ids, no character sheet, no owner -- so a field added to the
-// character row later cannot arrive here by being part of a struct that was
-// passed through. The controller reads six columns and fills six fields.
+// THE TYPE CARRIES WHAT THE PAGE SHOWS AND NOTHING ELSE -- no ids, no character
+// sheet, no owner -- so a field added to the character row later cannot arrive
+// here by being part of a struct that was passed through. The controller reads
+// six columns and fills six fields. SharedCharacterSheet makes the same promise
+// for the other shared page and keeps it a different way, because that one shows
+// most of a sheet rather than five values off it.
 //
-// There is no link back into the app, deliberately. A reader who followed a
-// link to one entry has been given one entry, and a header offering the
-// character's sheet would be offering something the share does not cover.
+// There is no link back into the app, deliberately. A reader who followed a link
+// to one entry has been given one entry, and a header offering the character's
+// sheet would be offering something the share does not cover -- which stays true
+// now that a sheet can be shared, because that is a second link with its own
+// expiry and its own password.
 
 // SharedCharacter is the banner: enough to know whose diary this is, and no
 // more of the sheet than that takes.
@@ -48,12 +51,15 @@ type SharedJournalData struct {
 	Body      string
 }
 
-// ShareLockedData is the password gate.
+// ShareLockedData is the password gate, and it is one gate for both kinds of
+// share.
 //
-// IT NAMES NOTHING. Not the character, not the entry's title, not who shared
-// it -- the password is there to keep the entry from being read by whoever
-// finds the link, and a gate that announced whose journal it was guarding
-// would have given away part of the answer before asking the question.
+// IT NAMES NOTHING. Not the character, not an entry's title, not who shared it,
+// and not even which of the two it is guarding -- the password is there to keep
+// the thing from being read by whoever finds the link, and a gate that announced
+// what it stood in front of would have given away part of the answer before
+// asking the question. That is why its wording is about a link rather than about
+// an entry: the gate cannot say, because it is not told.
 type ShareLockedData struct {
 	// Action is the URL the form posts to, which is the share's own URL. The
 	// controller supplies it rather than the template rebuilding it from a

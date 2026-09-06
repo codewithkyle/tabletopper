@@ -6,8 +6,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"tabletopper/internal/htmx"
@@ -40,15 +38,6 @@ import (
 // modal the button is sitting in, which is two <dialog>s in the top layer for a
 // loss that takes one click to undo: revoking mints nothing, destroys nothing
 // the entry needs, and the next button in the same dialog makes a new link.
-const (
-	// shareMinDays and shareMaxDays bound the expiry the form collects. The
-	// floor is a day because the box counts in days and zero of them is a link
-	// that is dead before it is pasted; the ceiling is a year because a share
-	// meant to outlast one is a share with no expiry, which the toggle already
-	// offers.
-	shareMinDays = 1
-	shareMaxDays = 365
-)
 
 // JournalShareFragment is the dialog, opened from the Share button in the entry
 // editor's header.
@@ -88,7 +77,7 @@ func (a *App) JournalShareFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.JournalShareFragment(data))
+	render(w, r, pages.ShareDialog(data))
 }
 
 // CreateJournalShare mints the link.
@@ -116,13 +105,13 @@ func (a *App) CreateJournalShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !parsePanelForm(w, r, pages.JournalSharePanel) {
+	if !parsePanelForm(w, r, pages.ShareDialogPanel) {
 		return
 	}
 
 	input, problems := buildShareInput(r)
 	if len(problems) > 0 {
-		renderPanelBlock(w, r, pages.JournalSharePanel, problems)
+		renderPanelBlock(w, r, pages.ShareDialogPanel, problems)
 		return
 	}
 
@@ -166,7 +155,7 @@ func (a *App) CreateJournalShare(w http.ResponseWriter, r *http.Request) {
 		// real failure and it is answered as one.
 		if data, readErr := a.journalShareDialog(ctx, r, characterID, entryID, sess.UserID); readErr == nil && data.Link != "" {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			render(w, r, pages.JournalShareFragment(data))
+			render(w, r, pages.ShareDialog(data))
 			return
 		}
 
@@ -191,7 +180,7 @@ func (a *App) CreateJournalShare(w http.ResponseWriter, r *http.Request) {
 
 	htmx.Toast(w, "Share link created.")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.JournalShareFragment(data))
+	render(w, r, pages.ShareDialog(data))
 }
 
 // RevokeJournalShare deletes the row, which is the whole of revoking: the link
@@ -233,20 +222,27 @@ func (a *App) RevokeJournalShare(w http.ResponseWriter, r *http.Request) {
 
 	htmx.Toast(w, "Share link revoked.")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.JournalShareFragment(pages.JournalShareData{
-		CharacterID: characterID.String(),
-		EntryID:     entryID.String(),
-	}))
+	render(w, r, pages.ShareDialog(journalShareDialogData(characterID, entryID)))
+}
+
+// journalShareDialogData is the dialog with no row behind it: the three strings
+// that say which share this is, and nothing about whether it exists yet. Every
+// state starts from here -- the form is exactly this, and the link state is this
+// with what the row says added -- so the heading, the sentence and the URL are
+// written once for all three routes.
+func journalShareDialogData(characterID, entryID ulid.ULID) pages.ShareDialogData {
+	return pages.ShareDialogData{
+		Heading: "Share this entry",
+		Blurb:   "Anyone with the link can read this entry. It stays in step with the entry, so later edits show up for them too.",
+		Action:  "/characters/" + characterID.String() + "/journal/" + entryID.String() + "/share",
+	}
 }
 
 // journalShareDialog reads whichever state the dialog is in. No row is the form
-// state, which is the zero value plus the two ids, so the miss needs no special
+// state, which is journalShareDialogData unchanged, so the miss needs no special
 // handling anywhere it is called.
-func (a *App) journalShareDialog(ctx context.Context, r *http.Request, characterID, entryID, ownerID ulid.ULID) (pages.JournalShareData, error) {
-	data := pages.JournalShareData{
-		CharacterID: characterID.String(),
-		EntryID:     entryID.String(),
-	}
+func (a *App) journalShareDialog(ctx context.Context, r *http.Request, characterID, entryID, ownerID ulid.ULID) (pages.ShareDialogData, error) {
+	data := journalShareDialogData(characterID, entryID)
 
 	row, err := a.Queries.GetJournalShare(ctx, queries.GetJournalShareParams{
 		EntryID:     entryID,
@@ -260,89 +256,5 @@ func (a *App) journalShareDialog(ctx context.Context, r *http.Request, character
 		return data, err
 	}
 
-	data.Link = shareLink(r, row.Token)
-	data.Protected = row.PasswordHash.Valid
-	if row.ExpiresAt.Valid {
-		data.Expires = journalTimestamp(session.FromContext(ctx).Prefs, row.ExpiresAt.Time)
-		// GetJournalShare deliberately does not filter on the expiry -- an
-		// expired share is still a row its owner has to be shown -- so the
-		// comparison the query skipped is made here, once, for the sentence
-		// the dialog prints.
-		data.Expired = !row.ExpiresAt.Time.After(time.Now())
-	}
-
-	return data, nil
-}
-
-// shareInput is a validated create request: how many days until the link dies,
-// zero for never, and the password, empty for none. Both toggles collapse into
-// their field's zero value, so nothing downstream has to consult a flag and a
-// value that could disagree.
-type shareInput struct {
-	Days     int
-	Password string
-}
-
-// buildShareInput reads the dialog's two toggles and the field under each.
-//
-// A TOGGLE THAT IS OFF DISCARDS THE FIELD BESIDE IT WITHOUT LOOKING AT IT. The
-// days box always posts a value -- it holds a default so that flipping the
-// toggle is a complete answer -- so reading it regardless would give every link
-// an expiry nobody asked for.
-func buildShareInput(r *http.Request) (shareInput, []string) {
-	var input shareInput
-	var problems []string
-
-	if r.PostFormValue("expiry") != "" {
-		days, err := strconv.Atoi(strings.TrimSpace(r.PostFormValue("days")))
-		if err != nil || days < shareMinDays || days > shareMaxDays {
-			problems = append(problems, "Choose between 1 and 365 days, or turn the expiry off.")
-		} else {
-			input.Days = days
-		}
-	}
-
-	if r.PostFormValue("protect") != "" {
-		// NOT TRIMMED. A password is a secret rather than a name, and a space
-		// at either end of it is a character the person who chose it typed --
-		// trimming here would silently store something they could not then
-		// type back in.
-		password := r.PostFormValue("password")
-		switch {
-		case len(password) < share.PasswordMin:
-			problems = append(problems, "A password must be at least 6 characters.")
-		case len(password) > share.PasswordMax:
-			problems = append(problems, "A password must be 72 characters or fewer.")
-		default:
-			input.Password = password
-		}
-	}
-
-	return input, problems
-}
-
-// shareLink is the absolute URL of a share, which is what the dialog puts in
-// front of someone to copy. It is the one URL in the app built with a scheme
-// and a host, because it is the only one that leaves the app: everything else
-// is a path the browser resolves against the page it is already on.
-//
-// THE HOST COMES FROM THE REQUEST, which is the only thing that knows it. There
-// is no configured base URL, and adding one would be a variable to keep in step
-// with wherever this is deployed for a value the request already carries.
-//
-// The scheme is the header the proxy in front sets, and only two values are
-// accepted from it -- it is a client-supplied header when nothing is in front,
-// and the worst a forged one can do is make a copied link say https where the
-// deployment is plain http. Falling back to the connection is what makes local
-// development produce http://localhost:3000 without configuring anything.
-func shareLink(r *http.Request, token string) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	if forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded == "http" || forwarded == "https" {
-		scheme = forwarded
-	}
-
-	return scheme + "://" + r.Host + "/share/" + token
+	return describeShare(ctx, r, data, row), nil
 }

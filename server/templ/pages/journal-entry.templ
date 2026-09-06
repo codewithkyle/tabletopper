@@ -79,10 +79,10 @@ templ journalShareButton(characterID string, entryID string) {
 	<button
 		type="button"
 		class="btn max-[640px]:flex-1"
-		data-modal-open={ shareDialogURL(characterID, entryID) }
+		data-modal-open={ journalShareDialogURL(characterID, entryID) }
 	>
 		@shareIcon()
-		Share
+		Share entry
 	</button>
 }
 

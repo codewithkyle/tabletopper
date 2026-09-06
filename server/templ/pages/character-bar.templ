@@ -17,6 +17,7 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 			@characterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
 				<a href="/characters" class="btn max-[640px]:flex-1">Back</a>
+				@characterShareButton(characterID)
 				if layout.Actions != nil {
 					@layout.Actions
 				}
@@ -81,4 +82,15 @@ templ characterBarChips(header CharacterHeader, oob bool) {
 			</div>
 		}
 	</dl>
+}
+
+templ characterShareButton(characterID string) {
+	<button
+		type="button"
+		class="btn max-[640px]:flex-1"
+		data-modal-open={ characterShareDialogURL(characterID) }
+	>
+		@shareIcon()
+		Share character
+	</button>
 }

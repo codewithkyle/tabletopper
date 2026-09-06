@@ -3,7 +3,7 @@ package pages
 import "tabletopper/templ/layouts"
 
 templ SharedJournalEntry(data SharedJournalData) {
-	@layouts.Share(ShareTitle(data.Title)) {
+	@layouts.Share(ShareTitle(data.Title), false) {
 		@sharedCharacterBanner(data.Character)
 		<article class={ sheetSurface }>
 			<div class="card-body gap-4 p-6 max-[700px]:p-4">
@@ -17,11 +17,11 @@ templ SharedJournalEntry(data SharedJournalData) {
 }
 
 templ ShareLocked(data ShareLockedData) {
-	@layouts.Share("Protected entry | Tabletopper") {
+	@layouts.Share("Protected link | Tabletopper", false) {
 		<div class={ sheetSurface, "mx-auto mt-[min(14vh,7rem)] w-full max-w-sm" }>
 			<div class="card-body gap-4 p-6">
 				<h1 class="m-0 font-serif text-2xl leading-none">Password required</h1>
-				<p class="m-0 text-base-content/75">This entry was shared with a password. Ask whoever sent you the link.</p>
+				<p class="m-0 text-base-content/75">This link was shared with a password. Ask whoever sent it to you.</p>
 				<form method="post" action={ data.Action } class="grid gap-4">
 					if data.Problem != "" {
 						<p class="m-0 rounded-field border-2 border-error/60 p-3 text-error">{ data.Problem }</p>
@@ -39,7 +39,7 @@ templ ShareLocked(data ShareLockedData) {
 							autofocus
 						/>
 					</div>
-					<button type="submit" class="btn btn-primary">Open entry</button>
+					<button type="submit" class="btn btn-primary">Unlock</button>
 				</form>
 			</div>
 		</div>
@@ -47,7 +47,7 @@ templ ShareLocked(data ShareLockedData) {
 }
 
 templ ShareUnavailable() {
-	@layouts.Share("Link unavailable | Tabletopper") {
+	@layouts.Share("Link unavailable | Tabletopper", false) {
 		<div class={ sheetSurface, "mx-auto mt-[min(14vh,7rem)] w-full max-w-md text-center" }>
 			<div class="card-body gap-4 p-8">
 				<h1 class="m-0 font-serif text-2xl leading-none">This link is no longer available</h1>

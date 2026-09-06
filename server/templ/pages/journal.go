@@ -135,18 +135,3 @@ func journalEntryTitle(entry JournalEntry) string {
 
 	return entry.Title
 }
-
-// shareDialogURL is what the Share button carries in data-modal-open, which
-// content-modal.js turns into the modal:open event every other caller
-// dispatches inline.
-//
-// IT IS AN ATTRIBUTE RATHER THAN A LINE OF SCRIPT BECAUSE IT IS COMPUTED. templ
-// reads hx-on: as an event handler and will only take a templ.ComponentScript
-// there, so a URL built from two ids cannot be written into one -- the static
-// dispatches elsewhere in the app are literals, which is why they can be.
-//
-// Neither id needs escaping: both are ULIDs the controller parsed, and 26
-// characters of Crockford base32 cannot carry a quote, an ampersand or a space.
-func shareDialogURL(characterID, entryID string) string {
-	return "/fragment/character/journal-share?character=" + characterID + "&entry=" + entryID
-}

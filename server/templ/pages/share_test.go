@@ -111,28 +111,38 @@ func TestAnUnnamedEntryStillHasATitle(t *testing.T) {
 
 // The dialog is one component in two states, and Link is what picks. Nothing
 // else decides, so the two can never both render.
+//
+// IT IS ALSO ONE COMPONENT FOR BOTH KINDS OF SHARE, so the same two states are
+// checked against an entry's action URL and a character's -- the create and the
+// revoke both come off Action, and a dialog whose revoke named a different row
+// than its create is the one mistake that shape rules out.
 func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
-	form := renderToString(t, JournalShareFragment(JournalShareData{
-		CharacterID: "C", EntryID: "E",
-	}))
-	if !strings.Contains(form, "Create link") || strings.Contains(form, "Revoke link") {
-		t.Errorf("an unshared entry did not render the form alone:\n%s", form)
-	}
-	if !strings.Contains(form, `hx-post="/characters/C/journal/E/share"`) {
-		t.Errorf("the form does not post to the entry's share route:\n%s", form)
-	}
+	for name, action := range map[string]string{
+		"journal":   "/characters/C/journal/E/share",
+		"character": "/characters/C/share",
+	} {
+		t.Run(name, func(t *testing.T) {
+			form := renderToString(t, ShareDialog(ShareDialogData{Action: action}))
+			if !strings.Contains(form, "Create link") || strings.Contains(form, "Revoke link") {
+				t.Errorf("an unshared thing did not render the form alone:\n%s", form)
+			}
+			if !strings.Contains(form, `hx-post="`+action+`"`) {
+				t.Errorf("the form does not post to the share route:\n%s", form)
+			}
 
-	link := renderToString(t, JournalShareFragment(JournalShareData{
-		CharacterID: "C", EntryID: "E", Link: "https://tabletopper.test/share/tok",
-	}))
-	if !strings.Contains(link, "Revoke link") || strings.Contains(link, "Create link") {
-		t.Errorf("a shared entry did not render the link alone:\n%s", link)
-	}
-	if !strings.Contains(link, `value="https://tabletopper.test/share/tok"`) {
-		t.Errorf("the link is not in the field to copy:\n%s", link)
-	}
-	if !strings.Contains(link, `hx-delete="/characters/C/journal/E/share"`) {
-		t.Errorf("revoke does not name the entry's share route:\n%s", link)
+			link := renderToString(t, ShareDialog(ShareDialogData{
+				Action: action, Link: "https://tabletopper.test/share/tok",
+			}))
+			if !strings.Contains(link, "Revoke link") || strings.Contains(link, "Create link") {
+				t.Errorf("a shared thing did not render the link alone:\n%s", link)
+			}
+			if !strings.Contains(link, `value="https://tabletopper.test/share/tok"`) {
+				t.Errorf("the link is not in the field to copy:\n%s", link)
+			}
+			if !strings.Contains(link, `hx-delete="`+action+`"`) {
+				t.Errorf("revoke does not name the share route:\n%s", link)
+			}
+		})
 	}
 }
 
@@ -141,25 +151,25 @@ func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 // the dialog has to say the link is dead rather than offer a URL that 404s.
 func TestTheDialogSaysWhatKindOfLinkItIs(t *testing.T) {
 	cases := map[string]struct {
-		data JournalShareData
+		data ShareDialogData
 		want string
 	}{
-		"never expires": {JournalShareData{Link: "u"}, "Never expires."},
+		"never expires": {ShareDialogData{Link: "u"}, "Never expires."},
 		"expires later": {
-			JournalShareData{Link: "u", Expires: Timestamp{ISO: "2026-09-13T00:00:00Z", Text: "13 Sep 2026"}},
+			ShareDialogData{Link: "u", Expires: Timestamp{ISO: "2026-09-13T00:00:00Z", Text: "13 Sep 2026"}},
 			"13 Sep 2026",
 		},
 		"already expired": {
-			JournalShareData{Link: "u", Expired: true, Expires: Timestamp{ISO: "2026-09-01T00:00:00Z"}},
+			ShareDialogData{Link: "u", Expired: true, Expires: Timestamp{ISO: "2026-09-01T00:00:00Z"}},
 			"expired",
 		},
-		"password":    {JournalShareData{Link: "u", Protected: true}, "password is required"},
-		"no password": {JournalShareData{Link: "u"}, "anyone with the link"},
+		"password":    {ShareDialogData{Link: "u", Protected: true}, "password is required"},
+		"no password": {ShareDialogData{Link: "u"}, "anyone with the link"},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			body := renderToString(t, JournalShareFragment(tc.data))
+			body := renderToString(t, ShareDialog(tc.data))
 			if !strings.Contains(body, tc.want) {
 				t.Errorf("wanted %q in the dialog:\n%s", tc.want, body)
 			}
@@ -175,8 +185,35 @@ func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
 		CharacterID: "C", EntryID: "E",
 	}))
 
-	want := `data-modal-open="/fragment/character/journal-share?character=C&amp;entry=E"`
-	if !strings.Contains(body, want) {
-		t.Errorf("the share button does not open the dialog:\n%s", body)
+	for _, want := range []string{
+		`data-modal-open="/fragment/character/journal-share?character=C&amp;entry=E"`,
+		`data-modal-open="/fragment/character/share?character=C"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("no share button opens %s:\n%s", want, body)
+		}
+	}
+}
+
+// The character's Share button is on the bar rather than on a page, which is
+// what puts it on all five editor tabs without any of them naming it. Losing
+// that is losing the button from four pages at once, and nothing else would
+// fail.
+func TestEveryEditorTabCarriesTheCharacterShareButton(t *testing.T) {
+	tabs := map[string]templ.Component{
+		"character": EditCharacter(EditCharacterPageData{CharacterID: "C"}),
+		"inventory": EditCharacterInventory(InventoryPageData{CharacterID: "C"}),
+		"spells":    EditCharacterSpellLevel(SpellLevelPageData{CharacterID: "C"}),
+		"journal":   EditCharacterJournal(JournalPageData{CharacterID: "C"}),
+		"entry":     EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}),
+	}
+
+	for name, page := range tabs {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, page)
+			if !strings.Contains(body, `data-modal-open="/fragment/character/share?character=C"`) {
+				t.Errorf("the %s tab has no character share button:\n%s", name, body)
+			}
+		})
 	}
 }

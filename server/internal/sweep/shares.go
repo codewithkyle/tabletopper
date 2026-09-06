@@ -17,8 +17,8 @@ const (
 	// working. Nothing depends on the row being gone -- every read already
 	// refuses an expired share -- so the only question the grace answers is
 	// what the owner sees when they open the dialog the next morning: a link
-	// that expired, which they can revoke and replace, rather than an entry
-	// that appears never to have been shared at all.
+	// that expired, which they can revoke and replace, rather than a thing that
+	// appears never to have been shared at all.
 	expiredShareGrace = 24 * time.Hour
 )
 

@@ -1,6 +1,12 @@
-// Package share is the read grant on one journal entry: the token that names
-// it in a link, the optional password that gates it, and the cookie that
-// remembers someone got past the password.
+// Package share is the read grant on one thing -- a journal entry or a whole
+// character sheet: the token that names it in a link, the optional password that
+// gates it, and the cookie that remembers someone got past the password.
+//
+// NOTHING IN HERE KNOWS WHICH KIND IT IS HOLDING, and that is why a second kind
+// of share cost this package nothing. A token is 128 bits either way, a password
+// gates a row either way, and the cookie is keyed by the token and the hash --
+// so the grant for one share cannot be replayed at another whether or not the
+// two open the same sort of page.
 //
 // A SHARE LINK IS A BEARER CREDENTIAL, which is what separates the token here
 // from every other id in this app. A ULID is unguessable enough, but it is
@@ -28,10 +34,10 @@ const (
 	// without it wrapping.
 	tokenBytes = 16
 
-	// PasswordMin is a floor rather than a policy. This gates a journal entry
-	// shared with the four people at a table, not an account, and a rule
-	// strict enough to be worth enforcing here would only be answered with a
-	// password written down beside the link.
+	// PasswordMin is a floor rather than a policy. This gates something shared
+	// with the four people at a table, not an account, and a rule strict enough
+	// to be worth enforcing here would only be answered with a password written
+	// down beside the link.
 	PasswordMin = 6
 
 	// PasswordMax is bcrypt's own limit, named rather than discovered.

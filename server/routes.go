@@ -67,6 +67,20 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// it reaches a query. The repeaters were the same shape until inventory and
 	// spells replaced three of the four, and a parameter with one legal value is
 	// worse than no parameter -- so Features is a route that names itself.
+	// Sharing the sheet: the owner's two mutations, and nothing else -- the
+	// reader's routes are the /share/ block below, which both kinds of share go
+	// through. Like the journal's pair they keep the resource's own URL and stay
+	// off /fragment/, and like them they answer with the share dialog in
+	// whatever state the character is now in, which is the exception the
+	// fragment rules name. The GET that opens that dialog is a fragment and is
+	// registered with the rest of them further down.
+	//
+	// "share" is a literal segment beside the panel names below and cannot
+	// collide with one: no panel is called share, and the mux matches literals
+	// before it matches anything else.
+	mux.HandleFunc("POST /characters/{id}/share", auth.RequireSession(app.CreateCharacterShare))
+	mux.HandleFunc("DELETE /characters/{id}/share", auth.RequireSession(app.RevokeCharacterShare))
+
 	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
 	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
 	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
@@ -171,6 +185,11 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.CreateJournalShare))
 	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.RevokeJournalShare))
 
+	// THE READER'S FOUR ROUTES, WHICH SERVE BOTH KINDS OF SHARE. A token names a
+	// row and the row says whether it opens as a journal entry or as a character
+	// sheet, so there is one URL space here and not two -- and nothing in the
+	// path that could be edited into asking for the other.
+	//
 	// THE ONLY ROUTES IN THE APP BEHIND NO MIDDLEWARE AT ALL. Not
 	// RequireSession, not OptionalSession, not even to slide an expiry: a
 	// shared link has to behave identically for a stranger and for the owner
@@ -190,8 +209,12 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// page is: a password on the page with open images would be a locked door
 	// beside an open window.
 	//
-	// The avatar route takes no id. A share names one character and a character
-	// has one portrait, so there is nothing in the path to tamper with.
+	// The images route serves a journal share only, and refuses a character one
+	// rather than letting it miss; a shared sheet's one picture is its portrait.
+	//
+	// The avatar route takes no id and serves both kinds. A share names one
+	// character and a character has one portrait, so there is nothing in the
+	// path to tamper with.
 	mux.HandleFunc("GET /share/{token}", app.SharePage)
 	mux.HandleFunc("POST /share/{token}", app.UnlockShare)
 	mux.HandleFunc("GET /share/{token}/avatar", app.GetShareAvatar)
@@ -248,6 +271,11 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// reads both ids from the query string and neither from a path, because
 	// this is not the entry's URL -- it is a dialog about the entry.
 	mux.HandleFunc("GET /fragment/character/journal-share", auth.Fragment(app.JournalShareFragment))
+	// The sheet's share dialog, which is the one above with one id instead of
+	// two. It reads the character from the query string rather than a path for
+	// the same reason: this is not the character's URL, it is a dialog about the
+	// character, and the Share button that opens it is on all five editor tabs.
+	mux.HandleFunc("GET /fragment/character/share", auth.Fragment(app.CharacterShareFragment))
 	// The account settings dialog. It reads no query parameters at all -- the
 	// four values it shows come off the session, which carries them on every
 	// request -- so there is nothing here to validate and nothing a caller

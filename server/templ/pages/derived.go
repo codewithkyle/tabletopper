@@ -78,3 +78,22 @@ func NormalizeSpellcastingAbility(value string) string {
 
 	return SpellcastingAbilityNone
 }
+
+// SpellcastingAbilityLabel turns a stored spellcasting ability into the word the
+// select shows. "none" comes back empty rather than as the word None, because
+// the only caller is the shared sheet and a panel reading "Spellcasting Ability:
+// None" is a line about a character who does not cast -- which the absence of
+// the two spell numbers beside it already says.
+func SpellcastingAbilityLabel(value string) string {
+	if value == SpellcastingAbilityNone {
+		return ""
+	}
+
+	for _, option := range spellcastingAbilityOptions {
+		if option.Value == value {
+			return option.Label
+		}
+	}
+
+	return ""
+}
