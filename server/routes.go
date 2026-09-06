@@ -241,6 +241,17 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("PATCH /assets/maps/{id}/name", auth.RequireSession(app.ReplaceMapName))
 	mux.HandleFunc("POST /assets/maps/{id}/tiles", auth.RequireSession(app.RetryMapTiling))
 
+	// One tile of one generation of one map's pyramid. It answers image/webp,
+	// so it is here beside the map it belongs to rather than under /fragment/,
+	// and it is RequireSessionOr404 like the two routes below it -- a redirect
+	// to the sign-in page renders as a broken image.
+	//
+	// THE LAST SEGMENT IS ONE WILDCARD AND NOT TWO. The URL it serves is
+	// .../{z}/{x}_{y}.webp, but a ServeMux wildcard has to be a whole path
+	// segment: writing that pattern out panics here at registration and the
+	// server does not start. The handler splits the segment.
+	mux.HandleFunc("GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}", auth.RequireSessionOr404(app.GetMapTile))
+
 	mux.HandleFunc("GET /assets/images/{id}", auth.RequireSessionOr404(app.GetImage))
 	mux.HandleFunc("GET /assets/images/{id}/preview", auth.RequireSessionOr404(app.GetImagePreview))
 
@@ -286,6 +297,17 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// that has never answered it. Nothing links here and nothing needs to: the
 	// signal is a column, so the page decides rather than the URL.
 	mux.HandleFunc("GET /fragment/account/welcome", auth.Fragment(app.AccountWelcomeFragment))
+	// One map's card, which is what a card whose tiling job has not finished
+	// asks for every couple of seconds until it has. It is the only fragment
+	// here that is fetched by a timer rather than by something the owner did,
+	// which is why the element carrying the poll also carries data-quiet: see
+	// public/js/loading.js for what that suppresses.
+	//
+	// It takes the map from the path and nothing from the query string,
+	// because this IS the card's own URL -- the one representation of it that
+	// is not the asset manager page. The two dialogs above read a query string
+	// instead precisely because they are not.
+	mux.HandleFunc("GET /fragment/assets/maps/{id}/card", auth.Fragment(app.MapCardFragment))
 
 	// Subtree pattern, so it takes any /fragment/ path the five above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's

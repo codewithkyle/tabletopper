@@ -146,3 +146,60 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
+// The map's routes, which now go three segments deeper than any other asset
+// route. Two things here are worth pinning rather than trusting.
+//
+// THE RETRY AND A TILE ARE THE SAME WORD AT THE SAME DEPTH. POST
+// /assets/maps/{id}/tiles re-queues a failed build and GET
+// .../tiles/{gen}/{z}/{tile} serves one tile of a finished one, so they differ
+// by three segments and a method and by nothing else.
+//
+// THE LAST SEGMENT IS ONE WILDCARD, so the mux checks nothing about what is in
+// it. A path with no .webp on the end still matches the pattern and is refused
+// by the handler, and this pins that division: the mux decides the shape and
+// the handler decides the contents.
+func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
+	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
+
+	id := "01BX5ZZKBKACTAV9WEVGEMMVS2"
+	gen := "01BX5ZZKBKACTAV9WEVGEMMVS3"
+	tiles := "/assets/maps/" + id + "/tiles"
+	for _, c := range []struct{ method, path, want string }{
+		{http.MethodPost, "/assets/maps", "POST /assets/maps"},
+		{http.MethodPost, "/assets/maps/" + id, "POST /assets/maps/{id}"},
+		{http.MethodDelete, "/assets/maps/" + id, "DELETE /assets/maps/{id}"},
+		{http.MethodPatch, "/assets/maps/" + id + "/name", "PATCH /assets/maps/{id}/name"},
+		{http.MethodPost, tiles, "POST /assets/maps/{id}/tiles"},
+		{http.MethodGet, tiles + "/" + gen + "/3/2_1.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
+		{http.MethodGet, tiles + "/" + gen + "/0/23_17.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
+		// The handler's job, not the mux's.
+		{http.MethodGet, tiles + "/" + gen + "/3/2_1", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
+		{http.MethodGet, tiles + "/not-a-ulid/3/2_1.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
+		// A wildcard does not match an empty segment, and it does not match two.
+		{http.MethodGet, tiles + "/" + gen + "/3/", "/"},
+		{http.MethodGet, tiles + "/" + gen + "/3/z/2_1.webp", "/"},
+		// A tile is a GET. The retry is the only thing posted under this path,
+		// and it is posted three segments higher up.
+		{http.MethodPost, tiles + "/" + gen + "/3/2_1.webp", "/"},
+		// There is no listing of a map's generations or of its tiles: a
+		// renderer computes every URL it needs from five columns on the row.
+		{http.MethodGet, tiles, "/"},
+		{http.MethodGet, tiles + "/" + gen, "/"},
+		// The card's own representation, which a card polls while its tiles
+		// are built. A GET returning partial HTML, so it is under /fragment/
+		// -- and only a GET: the subtree catch-all takes every other verb,
+		// which is what keeps the prefix meaning one thing.
+		{http.MethodGet, "/fragment/assets/maps/" + id + "/card", "GET /fragment/assets/maps/{id}/card"},
+		{http.MethodPost, "/fragment/assets/maps/" + id + "/card", "/fragment/"},
+		{http.MethodGet, "/fragment/assets/maps/" + id, "/fragment/"},
+		// The card is a fragment and the tile is not, and they must not be
+		// confused: one is markup for a swap and the other is image bytes.
+		{http.MethodGet, "/assets/maps/" + id + "/card", "/"},
+	} {
+		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
+		if pattern != c.want {
+			t.Errorf("%s %s matched %q, want %q", c.method, c.path, pattern, c.want)
+		}
+	}
+}

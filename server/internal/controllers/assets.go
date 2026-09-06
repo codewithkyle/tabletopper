@@ -145,7 +145,74 @@ func (a *App) MapAssetsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render(w, r, pages.MapAssets(maps))
+	cards := make([]pages.MapAsset, 0, len(maps))
+	for _, m := range maps {
+		cards = append(cards, mapCard(m))
+	}
+
+	render(w, r, pages.MapAssets(cards))
+}
+
+// mapCard is the assets row as the card reads it: four values out of twenty-one
+// columns, and the two that matter flattened into what the markup can ask
+// about. See MapAsset in templ/pages/assets.go for why the generation and the
+// job's state are kept apart rather than folded into one status.
+//
+// A NULL tile_state flattens to the empty string, which is neither pending nor
+// working nor failed -- so a row from before there was a tiling worker renders
+// as a card that does not poll and offers no retry, rather than as one stuck
+// waiting for a job nothing will ever run.
+func mapCard(m queries.Asset) pages.MapAsset {
+	card := pages.MapAsset{
+		ID:       m.ID.String(),
+		Name:     m.Name,
+		FileName: m.FileName,
+		State:    m.TileState.AssetsTileState,
+	}
+	if m.TileGen != nil {
+		card.Generation = m.TileGen.String()
+	}
+
+	return card
+}
+
+// MapCardFragment is the card asking what became of its map. A card whose
+// tiling job is queued or running polls this every couple of seconds and swaps
+// itself with what comes back, so the poll stops by virtue of what it is
+// answered with: a finished card carries no hx-trigger.
+//
+// It renders pages.MapCard, which is the component the page render uses. A
+// fragment is never a second copy of markup.
+//
+// A FAILURE HERE IS A BARE 404 rather than an alert. This request is a
+// background poll that the owner did not make, and an error dialog opening by
+// itself over the asset manager would be the card reporting on its own
+// housekeeping. htmx leaves the target alone on a 4xx, so the card that is
+// already on screen simply stays.
+func (a *App) MapCardFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	assetID, err := ulid.Parse(r.PathValue("id"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{
+		ID:      assetID,
+		OwnerID: sess.UserID,
+	})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("Failed to load map card", "error", err, "assetID", assetID.String())
+		}
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.MapCard(mapCard(m)))
 }
 
 // GetImage and GetImagePreview proxy an image out of R2. Both are behind
@@ -193,13 +260,13 @@ func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 }
 
 // streamImage answers a conditional request from the ETag it is given and
-// otherwise streams the object out of R2 rather than buffering it. Both image
-// routes end here.
+// otherwise streams the object out of R2 rather than buffering it. Every route
+// that serves image bytes ends here.
 //
 // THE CALLER SETS Cache-Control BEFORE CALLING, because it is the one header
-// the two disagree on: an avatar or a map can be replaced at its URL and has to
-// be revalidated, and a journal image cannot be and never is. The ETag is the
-// caller's for the same reason.
+// they disagree on: an avatar or a map preview can be replaced at its URL and
+// has to be revalidated, while a journal image and a map tile cannot be and
+// never are. The ETag is the caller's for the same reason.
 func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, etag string) {
 	w.Header().Set("ETag", etag)
 	if r.Header.Get("If-None-Match") == etag {
@@ -210,7 +277,10 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 	body, size, err := a.Storage.Get(r.Context(), key)
 	if err != nil {
 		slog.Error("Failed to get image from R2", "error", err, "key", key)
-		http.NotFound(w, r)
+		// The status and nothing else. Every caller of this function is
+		// answering an <img> or a renderer's fetch, and http.NotFound would
+		// write "404 page not found" where the bytes were meant to be.
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	defer body.Close()
@@ -502,19 +572,16 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The card is built from what was just written rather than by reading the
+	// row back: the insert above is the whole of what this map is so far, and
+	// a map with no pyramid has nothing else to show. It comes back pending,
+	// so it starts polling the moment it lands on the page.
 	htmx.Toast(w, filename+" uploaded.")
-	now := time.Now()
-	render(w, r, pages.MapCard(queries.Asset{
-		ID:        assetID,
-		OwnerID:   sess.UserID,
-		FilePath:  originalPath,
-		Type:      queries.AssetsTypeMap,
-		FileName:  filename,
-		Name:      filename,
-		TileSize:  tileSize,
-		TileState: queries.NullAssetsTileState{AssetsTileState: queries.AssetsTileStatePending, Valid: true},
-		CreatedAt: now,
-		UpdatedAt: now,
+	render(w, r, pages.MapCard(pages.MapAsset{
+		ID:       assetID.String(),
+		Name:     filename,
+		FileName: filename,
+		State:    queries.AssetsTileStatePending,
 	}))
 }
 
@@ -632,7 +699,7 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		htmx.Refresh(w)
 		return
 	}
-	render(w, r, pages.MapCard(m))
+	render(w, r, pages.MapCard(mapCard(m)))
 }
 
 // RetryMapTiling puts a map whose tiling gave up back in the queue. It is the
@@ -680,7 +747,7 @@ func (a *App) RetryMapTiling(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render(w, r, pages.MapCard(m))
+	render(w, r, pages.MapCard(mapCard(m)))
 }
 
 func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {

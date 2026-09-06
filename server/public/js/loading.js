@@ -14,6 +14,21 @@
 const inFlight = new WeakSet();
 let count = 0;
 
+// A request the user did not make does not raise the bar. The only one so far
+// is the map card polling itself while its tiles are built, which fires every
+// two seconds for as long as the job runs -- and `html[state="loading"] *` sets
+// `cursor: wait`, so counting it would put the whole asset manager under a wait
+// cursor, blinking, for a minute at a time.
+//
+// The attribute is read off the element the event was dispatched on, which is
+// the element carrying the hx-* attributes for that request. Not `closest`:
+// the poll lives on the card, and every other request on the card -- the
+// rename, the replace, the delete -- is the user acting and must still show
+// that something is happening.
+function isBackground(target) {
+    return target instanceof Element && target.hasAttribute("data-quiet");
+}
+
 function setState(state) {
     document.documentElement.setAttribute("state", state);
 }
@@ -28,7 +43,7 @@ setState("idling");
 // by bubbling, and the detached case, directly.
 document.addEventListener("htmx:before:request", (e) => {
     const ctx = e.detail?.ctx;
-    if (!ctx || inFlight.has(ctx)) {
+    if (!ctx || inFlight.has(ctx) || isBackground(e.target)) {
         return;
     }
     inFlight.add(ctx);

@@ -67,7 +67,7 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"account-welcome-fragment": func() error {
 			return render(AccountWelcomeFragment(testAccountSettings()))
 		},
-		"assets":  func() error { return render(MapAssets([]queries.Asset{})) },
+		"assets":  func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
 		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
 		"tos":     func() error { return render(TOS()) },
 	}
@@ -2170,5 +2170,201 @@ func TestBothThemesPinTheSameBorderWidth(t *testing.T) {
 	}
 	if matches[0][1] != matches[1][1] {
 		t.Errorf("the themes pin --border to %q and %q, so every control changes thickness with the OS theme", matches[0][1], matches[1][1])
+	}
+}
+
+const (
+	testMapID  = "01BX5ZZKBKACTAV9WEVGEMMVS2"
+	testMapGen = "01BX5ZZKBKACTAV9WEVGEMMVS3"
+)
+
+// testMapCard is a map that has finished tiling once and has no job running:
+// the steady state, which every other case below is a departure from.
+func testMapCard() MapAsset {
+	return MapAsset{
+		ID:         testMapID,
+		Name:       "The Sunless Citadel",
+		FileName:   "citadel.png",
+		Generation: testMapGen,
+		State:      queries.AssetsTileStateReady,
+	}
+}
+
+// markup renders one component and hands back what it wrote.
+func markup(t *testing.T, c templ.Component) string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	if err := c.Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	return buf.String()
+}
+
+// THE CARD ASKS THREE QUESTIONS AND THEY ARE NOT A SWITCH. A pyramid that is
+// serving and a job that is running are different facts about the same row, and
+// the two combinations where they disagree are the ones that matter: a map
+// being replaced is usable and polling at the same time, and a rebuild that
+// gave up is usable and retryable at the same time. A three-way status would
+// have to pick one of those to be, and either pick is a lie.
+func TestTheThreeQuestionsAMapCardAsksAreIndependent(t *testing.T) {
+	for name, c := range map[string]struct {
+		generation                 string
+		state                      queries.AssetsTileState
+		usable, polling, retryable bool
+	}{
+		"just uploaded":                   {"", queries.AssetsTileStatePending, false, true, false},
+		"being tiled for the first time":  {"", queries.AssetsTileStateWorking, false, true, false},
+		"tiled and idle":                  {testMapGen, queries.AssetsTileStateReady, true, false, false},
+		"replacement queued over a map":   {testMapGen, queries.AssetsTileStatePending, true, true, false},
+		"replacement being built":         {testMapGen, queries.AssetsTileStateWorking, true, true, false},
+		"first build gave up":             {"", queries.AssetsTileStateFailed, false, false, true},
+		"rebuild gave up over a good map": {testMapGen, queries.AssetsTileStateFailed, true, false, true},
+		"a row from before there was one": {"", "", false, false, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := MapAsset{ID: testMapID, Generation: c.generation, State: c.state}
+			if m.Usable() != c.usable {
+				t.Errorf("Usable() = %v, want %v", m.Usable(), c.usable)
+			}
+			if m.Polling() != c.polling {
+				t.Errorf("Polling() = %v, want %v", m.Polling(), c.polling)
+			}
+			if m.Retryable() != c.retryable {
+				t.Errorf("Retryable() = %v, want %v", m.Retryable(), c.retryable)
+			}
+		})
+	}
+}
+
+// THE POLL STOPS BY VIRTUE OF WHAT CAME BACK. Nothing counts ticks and nothing
+// cancels anything: a card with a job carries the attributes that fetch it
+// again, and a card without one does not, so the answer to the last poll is
+// what ends the polling.
+//
+// The trigger and the swap are pinned together because only that pair works.
+// htmx does not re-initialise an element it has already initialised, so a morph
+// -- which keeps the element rather than replacing it -- leaves a "load"
+// trigger spent and the card polls exactly once. "every" survives, because the
+// interval belongs to the element the morph kept.
+func TestOnlyACardWithAJobRunningPollsItself(t *testing.T) {
+	poll := []string{
+		`hx-get="/fragment/assets/maps/` + testMapID + `/card"`,
+		`hx-trigger="every 2s"`,
+		`hx-swap="outerMorph"`,
+		"data-quiet",
+	}
+
+	for name, c := range map[string]struct {
+		state queries.AssetsTileState
+		want  bool
+	}{
+		"queued":    {queries.AssetsTileStatePending, true},
+		"running":   {queries.AssetsTileStateWorking, true},
+		"finished":  {queries.AssetsTileStateReady, false},
+		"gave up":   {queries.AssetsTileStateFailed, false},
+		"never ran": {"", false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			card := testMapCard()
+			card.State = c.state
+			rendered := markup(t, MapCard(card))
+
+			for _, attribute := range poll {
+				if strings.Contains(rendered, attribute) != c.want {
+					t.Errorf("contains %q = %v, want %v\n%s", attribute, !c.want, c.want, rendered)
+				}
+			}
+		})
+	}
+}
+
+// A map being replaced goes on being the map it was. The old pyramid is still
+// in the bucket and still named by the row -- the worker deletes it only once
+// the new one is complete -- so hiding it while the replacement builds would
+// take a working map away for a minute in exchange for nothing.
+func TestACardBeingRebuiltStillShowsTheMapItHas(t *testing.T) {
+	card := testMapCard()
+	card.State = queries.AssetsTileStatePending
+	rendered := markup(t, MapCard(card))
+
+	if !strings.Contains(rendered, `src="/assets/images/`+testMapID+`/preview"`) {
+		t.Errorf("the card dropped its preview while a replacement builds\n%s", rendered)
+	}
+	if !strings.Contains(rendered, `hx-trigger="every 2s"`) {
+		t.Errorf("the card is not polling for the replacement\n%s", rendered)
+	}
+}
+
+// A CARD WITH NO PYRAMID POINTS AT NO IMAGE, and it has to. The preview route
+// falls back to file_path when preview_path is NULL, and file_path on a map is
+// the original -- so an <img> rendered before the first build finishes would
+// ask for a hundred-megabyte PNG and be served it under Content-Type:
+// image/webp.
+func TestACardWithNoPyramidAsksForNoPreview(t *testing.T) {
+	card := testMapCard()
+	card.Generation = ""
+	card.State = queries.AssetsTileStatePending
+
+	if rendered := markup(t, MapCard(card)); strings.Contains(rendered, "/preview") {
+		t.Errorf("the card asks for a preview that does not exist yet\n%s", rendered)
+	}
+}
+
+// The retry is the owner's, and only a card that has given up offers it. The
+// worker retries on its own a few times first; this button is what is left when
+// it has stopped, and it posts to the map's own URL rather than to a fragment
+// because it is a mutation.
+func TestOnlyACardThatGaveUpOffersARetry(t *testing.T) {
+	retry := `hx-post="/assets/maps/` + testMapID + `/tiles"`
+
+	for name, c := range map[string]struct {
+		state queries.AssetsTileState
+		want  bool
+	}{
+		"gave up":  {queries.AssetsTileStateFailed, true},
+		"queued":   {queries.AssetsTileStatePending, false},
+		"running":  {queries.AssetsTileStateWorking, false},
+		"finished": {queries.AssetsTileStateReady, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			card := testMapCard()
+			card.State = c.state
+			rendered := markup(t, MapCard(card))
+
+			if strings.Contains(rendered, retry) != c.want {
+				t.Errorf("offers the retry = %v, want %v\n%s", !c.want, c.want, rendered)
+			}
+		})
+	}
+}
+
+// THE NAME INPUT CARRIES AN ID AND THAT IS LOAD-BEARING. The card replaces
+// itself every two seconds while its map is being tiled, which is exactly when
+// its owner is most likely to be typing a name for it. htmx restores focus and
+// the caret across a swap by looking the focused element up by id afterwards,
+// and the morph matches old nodes to new ones by id -- an input with neither
+// would be rebuilt from the server's value mid-word.
+func TestTheNameInputIsIdentifiedAcrossASwap(t *testing.T) {
+	rendered := markup(t, MapCard(testMapCard()))
+
+	if !strings.Contains(rendered, `id="map-name-`+testMapID+`"`) {
+		t.Errorf("the name input has no id, so a poll would take the caret with it\n%s", rendered)
+	}
+}
+
+// The fragment the poll fetches is the card the page renders, not a second copy
+// of it. Both go through MapCard, and this is what keeps them doing so.
+func TestThePageIsMadeOfTheSameCardTheFragmentServes(t *testing.T) {
+	card := testMapCard()
+	page := markup(t, MapAssets([]MapAsset{card}))
+	fragment := markup(t, MapCard(card))
+
+	if fragment == "" {
+		t.Fatal("the card rendered nothing")
+	}
+	if !strings.Contains(page, fragment) {
+		t.Errorf("the page's card is not the one the fragment serves\ncard:\n%s\npage:\n%s", fragment, page)
 	}
 }

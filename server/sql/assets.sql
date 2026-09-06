@@ -1,7 +1,7 @@
--- Every query here is scoped to the owner except GetImage, which is the one
--- read that deliberately is not: a map or token is shown to every player at
--- the table, so any signed-in user may fetch any image by id. Ownership
--- gates the writes.
+-- Every query here is scoped to the owner except GetImage and GetMapPyramid,
+-- which deliberately are not: a map or token is shown to every player at the
+-- table, so any signed-in user may fetch any image, and any tile of any map,
+-- by id. Ownership gates the writes.
 
 -- name: InsertAvatar :exec
 INSERT INTO assets
@@ -21,6 +21,22 @@ VALUES (?, ?, ?, 'map', ?, ?, ?, 'pending');
 -- name: GetImage :one
 SELECT id, file_path, preview_path, updated_at FROM assets
 WHERE id = ? AND type IN ('map', 'avatar', 'token');
+
+-- Everything the tile route needs to decide whether a requested tile exists,
+-- and where it is. The four numbers are the pyramid's whole shape: the level
+-- count follows from max_zoom and the grid at each level follows from width,
+-- height and tile_size.
+--
+-- IT NEVER READS tile_state. The job columns and the pyramid columns are
+-- separate so that a map being re-tiled can go on serving the generation it
+-- has: tile_gen names what is in the bucket right now, and a tile request is
+-- answered from that and is indifferent to whether a worker is running.
+--
+-- owner_id comes back because it is a component of the object's key, and the
+-- request that asks for a tile has no business supplying it.
+-- name: GetMapPyramid :one
+SELECT owner_id, width, height, tile_size, max_zoom, tile_gen FROM assets
+WHERE id = ? AND type = 'map';
 
 -- name: GetMaps :many
 SELECT * FROM assets

@@ -451,3 +451,79 @@ func TestASlowUploadOutlivesTheServerTimeouts(t *testing.T) {
 		}
 	})
 }
+
+// The card fragment is one map, read as its owner. It is behind auth.Fragment
+// so there is a session to scope it to, and scoping it is what stops the poll
+// URL from being a way to read the name and file name of any map by id -- which
+// the tile route deliberately is, for a reason that does not apply here.
+func TestTheCardFragmentReadsTheOwnersOwnMap(t *testing.T) {
+	db := &recordingDB{}
+	app := &App{Queries: queries.New(db)}
+
+	r := httptest.NewRequest(http.MethodGet, "/fragment/assets/maps/x/card", nil)
+	r.SetPathValue("id", testAssetID.String())
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	rec := httptest.NewRecorder()
+
+	app.MapCardFragment(rec, r)
+
+	if len(db.reads) != 1 {
+		t.Fatalf("ran %d reads, want 1", len(db.reads))
+	}
+	read := db.reads[0]
+	if !strings.Contains(read.query, "owner_id = ?") {
+		t.Errorf("the card fragment is not scoped to its owner: %q", read.query)
+	}
+	if len(read.args) != 2 || read.args[0] != testAssetID || read.args[1] != testOwnerID {
+		t.Errorf("the read ran with %v, want the asset and the session's owner", read.args)
+	}
+}
+
+// A POLL THAT FAILS SAYS NOTHING. The request was made by a timer rather than
+// by the owner, so an alert dialog opening over the asset manager would be the
+// page reporting on housekeeping nobody asked about. htmx leaves the target
+// alone on a 4xx, so the card already on screen simply stays as it is.
+func TestAFailedCardPollIsSilent(t *testing.T) {
+	for name, id := range map[string]string{
+		"a map that is gone":    testAssetID.String(),
+		"an id that is not one": "not-a-ulid",
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &recordingDB{}
+			app := &App{Queries: queries.New(db)}
+
+			r := httptest.NewRequest(http.MethodGet, "/fragment/assets/maps/x/card", nil)
+			r.SetPathValue("id", id)
+			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+			rec := httptest.NewRecorder()
+
+			app.MapCardFragment(rec, r)
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+			}
+			if body := rec.Body.String(); body != "" {
+				t.Errorf("body = %q, want nothing at all", body)
+			}
+			if trigger := rec.Header().Get("HX-Trigger"); trigger != "" {
+				t.Errorf("HX-Trigger = %q, so a background poll opened a dialog", trigger)
+			}
+		})
+	}
+}
+
+// An id that does not parse is answered before anything is queried.
+func TestABadIDOnTheCardFragmentNeverBecomesAStatement(t *testing.T) {
+	db := &recordingDB{}
+	app := &App{Queries: queries.New(db)}
+
+	r := httptest.NewRequest(http.MethodGet, "/fragment/assets/maps/x/card", nil)
+	r.SetPathValue("id", "not-a-ulid")
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+
+	app.MapCardFragment(httptest.NewRecorder(), r)
+
+	if len(db.reads) != 0 {
+		t.Errorf("ran %d reads, want 0", len(db.reads))
+	}
+}
