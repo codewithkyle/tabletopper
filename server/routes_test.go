@@ -63,8 +63,20 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/spells/3", "POST /characters/{id}/spells/{level}"},
 		{http.MethodPost, "/characters/" + id + "/spells/3/" + item, "POST /characters/{id}/spells/{level}/{spellId}"},
 		{http.MethodDelete, "/characters/" + id + "/spells/3/" + item, "DELETE /characters/{id}/spells/{level}/{spellId}"},
+		// The journal repeats the collection-and-member pair, with the page
+		// routes one segment deeper under /edit/. The list page and the entry
+		// page differ only by that segment, and the mutations differ from both
+		// by not carrying /edit/ at all -- so a create arriving at the save
+		// handler, or a save arriving at a page, is exactly the confusion this
+		// rules out.
+		{http.MethodGet, "/characters/" + id + "/edit/journal", "GET /characters/{id}/edit/journal"},
+		{http.MethodGet, "/characters/" + id + "/edit/journal/" + item, "GET /characters/{id}/edit/journal/{entryId}"},
+		{http.MethodPost, "/characters/" + id + "/journal", "POST /characters/{id}/journal"},
+		{http.MethodPost, "/characters/" + id + "/journal/" + item, "POST /characters/{id}/journal/{entryId}"},
+		{http.MethodDelete, "/characters/" + id + "/journal/" + item, "DELETE /characters/{id}/journal/{entryId}"},
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
+		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},
 		// None of these is a route any more, so all three fall to the catch-all
 		// rather than to one of the above. The first two were the whole-sheet
 		// save, which the panels replaced. The third was the create page, which

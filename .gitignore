@@ -1,3 +1,4 @@
 .env
 db/schema.sql
 build/bin/
+node_modules

@@ -36,9 +36,16 @@ func TestPagesRenderConcurrently(t *testing.T) {
 			return render(EditCharacterSpellLevel(SpellLevelPageData{Level: 3, Current: SpellLevel{Level: 3, Slots: "4", Used: "1"}}))
 		},
 		"edit-character-inventory": func() error { return render(EditCharacterInventory(InventoryPageData{})) },
-		"assets":                   func() error { return render(MapAssets([]queries.Asset{})) },
-		"sign-in":                  func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":                      func() error { return render(TOS()) },
+		"edit-character-journal": func() error {
+			return render(EditCharacterJournal(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
+		},
+		"edit-character-journal-entry": func() error {
+			return render(EditCharacterJournalEntry(JournalEntryPageData{}))
+		},
+		"journal-link-fragment": func() error { return render(JournalLinkFragment()) },
+		"assets":                func() error { return render(MapAssets([]queries.Asset{})) },
+		"sign-in":               func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":                   func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -138,7 +145,7 @@ func assertCharacterTabs(t *testing.T, markup string, current string) {
 	base := strings.TrimSuffix(current, "/edit")
 	base = strings.SplitN(base, "/edit/", 2)[0]
 
-	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells/0"} {
+	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells/0", base + "/edit/journal"} {
 		if !strings.Contains(markup, `href="`+href+`"`) {
 			t.Errorf("no way to reach %s from here", href)
 		}
@@ -1110,4 +1117,200 @@ func TestAnUnnamedItemOpensItsOwnDetails(t *testing.T) {
 			t.Errorf("name=%q: details open=%v, want %v", c.name, open, c.open)
 		}
 	}
+}
+
+// testJournalEntry is one row of the journal list, with the two dates the
+// controller has already rendered.
+func testJournalEntry() JournalEntry {
+	return JournalEntry{
+		ID:      testEntryID,
+		Title:   "Session 12",
+		Created: Timestamp{ISO: "2026-09-05T18:04:11Z", Text: "5 Sep 2026, 18:04 UTC"},
+		Updated: Timestamp{ISO: "2026-09-06T09:30:00Z", Text: "6 Sep 2026, 09:30 UTC"},
+	}
+}
+
+const testEntryID = "01BX5ZZKBKACTAV9WEVGEMMVS1"
+
+// The journal entry page is a panel like any other: it posts itself on a
+// debounce and swaps the reply into its own error block. Its three targeting
+// attributes have to agree with the id of the block they aim at, and a
+// disagreement is silent -- the reply lands nowhere and the editor looks like it
+// is not saving -- so the exact strings are pinned, the way the inventory row's
+// are.
+//
+// THE POST GOES TO THE RESOURCE URL, NOT THE PAGE URL. The page is under /edit/
+// and the mutation is not; posting to the page would 404 on a route that only
+// answers GET.
+func TestJournalEntryPageIsASavingPanel(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	err := EditCharacterJournalEntry(JournalEntryPageData{
+		CharacterID: characterID,
+		EntryID:     testEntryID,
+		Title:       "Session 12",
+		Body:        "We went back to the marsh.",
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, want := range []string{
+		`hx-post="/characters/` + characterID + `/journal/` + testEntryID + `"`,
+		`hx-trigger="input delay:1s`,
+		`hx-target="#errors-journal"`,
+		`hx-status:422="target:#errors-journal,swap:outerHTML"`,
+		`<div id="errors-journal"></div>`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("missing %s\n%s", want, markup)
+		}
+	}
+
+	// The stored markdown reaches the browser inside the textarea and nowhere
+	// else. journal-editor.js reads its initial content from there, because
+	// templ escapes the text of a textarea -- an entry inlined into a <script>
+	// block would be a script-injection vector instead.
+	if !strings.Contains(markup, `We went back to the marsh.</textarea>`) {
+		t.Errorf("the body is not in the textarea\n%s", markup)
+	}
+	if !strings.Contains(markup, `name="body"`) || !strings.Contains(markup, `name="title"`) {
+		t.Errorf("the form does not carry both fields\n%s", markup)
+	}
+
+	assertCharacterTabs(t, markup, "/characters/"+characterID+"/edit/journal")
+}
+
+// EVERY TOOLBAR BUTTON IS type="button". The toolbar sits inside the autosaving
+// form, and a bare <button> there is a submit -- so one missing attribute turns
+// "make this bold" into a full-page post to the save route.
+//
+// The editor is additive: the toolbar starts hidden and the textarea starts
+// visible, and journal-editor.js swaps the two once it has an editor to drive.
+// With the module absent or still loading, the entry is editable as plain
+// markdown rather than not editable at all.
+func TestJournalToolbarCannotSubmitTheForm(t *testing.T) {
+	var buf bytes.Buffer
+	if err := EditCharacterJournalEntry(JournalEntryPageData{}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	buttons := strings.Count(markup, "data-journal-mark=")
+	if buttons != 6 {
+		t.Errorf("toolbar has %d buttons, want 6", buttons)
+	}
+	if got := strings.Count(markup, `type="button"`); got < buttons {
+		t.Errorf("%d buttons but only %d type=\"button\"\n%s", buttons, got, markup)
+	}
+	if !strings.Contains(markup, `data-journal-toolbar`) || !strings.Contains(markup, "hidden") {
+		t.Errorf("the toolbar is not hidden until the editor mounts\n%s", markup)
+	}
+
+	// The heading control carries no name, so the form does not post it at all
+	// and the save handler has nothing to ignore.
+	if strings.Contains(markup, `data-journal-heading name=`) || strings.Contains(markup, `name="heading"`) {
+		t.Errorf("the heading select is posted with the form\n%s", markup)
+	}
+}
+
+// Close comes first and the affirmative action second, in every dialog in the
+// app, and the fragment loaded into the shared modal has to carry its own --
+// the shell supplies nothing to what it fetches.
+//
+// The form has no hx-* of its own on purpose: there is nothing to post. The
+// data-journal-link attribute is the whole contract with journal-editor.js,
+// which fills the field and takes the submit, so losing it would leave a dialog
+// whose Insert button did nothing.
+func TestJournalLinkFragmentIsADialogWithNoRequest(t *testing.T) {
+	var buf bytes.Buffer
+	if err := JournalLinkFragment().Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	close := strings.Index(markup, ">Close<")
+	insert := strings.Index(markup, ">Insert link<")
+	switch {
+	case close < 0 || insert < 0:
+		t.Fatalf("the dialog is missing one of its buttons\n%s", markup)
+	case close > insert:
+		t.Errorf("Close comes after the affirmative action\n%s", markup)
+	}
+
+	if !strings.Contains(markup, "data-journal-link") {
+		t.Errorf("nothing identifies the form to the editor\n%s", markup)
+	}
+	for _, forbidden := range []string{"hx-post", "hx-get", "hx-trigger"} {
+		if strings.Contains(markup, forbidden) {
+			t.Errorf("the dialog posts something (%s)\n%s", forbidden, markup)
+		}
+	}
+}
+
+// Dates are rendered twice: RFC 3339 in the attribute for the machine, and the
+// server's own UTC rendering as the text for the reader.
+//
+// THE TEXT IS NOT DECORATION. It is what shows before local-time.js runs, with
+// JavaScript off, and in a test -- the module rewrites it into the reader's
+// locale and zone, which the server cannot do because it holds an instant and
+// nothing about where the reader is.
+func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	err := EditCharacterJournal(JournalPageData{
+		CharacterID: characterID,
+		Entries:     []JournalEntry{testJournalEntry()},
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	for _, want := range []string{
+		`<local-time><time datetime="2026-09-05T18:04:11Z">5 Sep 2026, 18:04 UTC</time></local-time>`,
+		`<local-time><time datetime="2026-09-06T09:30:00Z">6 Sep 2026, 09:30 UTC</time></local-time>`,
+	} {
+		if !strings.Contains(collapseWhitespace(markup), want) {
+			t.Errorf("missing %s\n%s", want, markup)
+		}
+	}
+
+	// The card links to the page and deletes through the resource URL. Those are
+	// two different paths, and swapping them would either delete nothing or
+	// navigate to a route that answers no GET.
+	if !strings.Contains(markup, `href="/characters/`+characterID+`/edit/journal/`+testEntryID+`"`) {
+		t.Errorf("the card does not link to its entry\n%s", markup)
+	}
+	if !strings.Contains(markup, `hx-delete="/characters/`+characterID+`/journal/`+testEntryID+`"`) {
+		t.Errorf("the delete does not aim at the resource URL\n%s", markup)
+	}
+	if !strings.Contains(markup, "hx-confirm=") {
+		t.Errorf("a delete with no confirmation\n%s", markup)
+	}
+}
+
+// An entry is born blank -- creation takes no fields -- so the list has to say
+// something in the space where its title goes.
+func TestJournalListNamesTheUnnamedEntry(t *testing.T) {
+	var buf bytes.Buffer
+	err := EditCharacterJournal(JournalPageData{
+		Entries: []JournalEntry{{ID: testEntryID}},
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "Untitled entry") {
+		t.Errorf("an unnamed entry renders a blank line\n%s", buf.String())
+	}
+}
+
+// collapseWhitespace flattens the indentation templ writes between elements, so
+// a test can pin the shape of a nested run of markup as one string.
+func collapseWhitespace(markup string) string {
+	return strings.Join(strings.Fields(markup), " ")
 }

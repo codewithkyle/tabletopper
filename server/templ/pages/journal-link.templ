@@ -1,0 +1,29 @@
+package pages
+
+templ JournalLinkFragment() {
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Insert Link</h3>
+		<form data-journal-link class="grid gap-4">
+			<div class="fieldset">
+				<label class="fieldset-legend" for="href">Address</label>
+				<input
+					id="href"
+					name="href"
+					type="url"
+					class="input validator peer w-full"
+					placeholder="https://example.com"
+					autocomplete="off"
+				/>
+				<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a full address, starting with https://</p>
+			</div>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Insert link</button>
+			</div>
+		</form>
+	</div>
+}

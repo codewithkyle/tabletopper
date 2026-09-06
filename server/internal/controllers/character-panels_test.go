@@ -290,12 +290,11 @@ func characterColumns(t *testing.T) []string {
 
 // Columns no panel is meant to write. The first three are the row's identity
 // and its avatar, which POST /characters/{id}/avatar owns; the timestamps are
-// the database's. notes is unused by anything yet.
+// the database's.
 var unownedColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
 	"asset_id":   true,
-	"notes":      true,
 	"created_at": true,
 	"updated_at": true,
 }
@@ -514,7 +513,7 @@ func TestSuccessfulSaveClearsAnEarlierPanelError(t *testing.T) {
 func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	for _, query := range []string{"", "?field=weapons", "?field=notes"} {
+	for _, query := range []string{"", "?field=weapons", "?field=traits"} {
 		r := httptest.NewRequest(http.MethodGet, "/fragment/character/feature-row"+query, nil)
 		r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 		rec := httptest.NewRecorder()
@@ -529,7 +528,7 @@ func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
 				t.Errorf("%q: row is missing %s\n%s", query, want, body)
 			}
 		}
-		for _, forbidden := range []string{"weapons", "notes"} {
+		for _, forbidden := range []string{"weapons", "traits"} {
 			if strings.Contains(body, forbidden) {
 				t.Errorf("%q: the query reached the markup (%s)\n%s", query, forbidden, body)
 			}

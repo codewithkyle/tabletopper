@@ -29,7 +29,7 @@ WHERE id = ? AND owner_id = ?;
 -- the panel updates below. Creation cannot drift into that shape without growing
 -- a parameter, which is what the params-shape test refuses.
 --
--- The literals are the eleven NOT NULL columns the schema has no DEFAULT for
+-- The literals are the twelve NOT NULL columns the schema has no DEFAULT for
 -- plus spell_save_dc, which has one that disagrees. Its default is 0 and the old
 -- create form started it at 10; naming it keeps a new character where it was.
 -- The rest -- level, xp, size, ac, max_hp, current_hp, proficiency_bonus,
@@ -60,7 +60,6 @@ INSERT INTO characters (
     speed,
     languages,
     proficiencies,
-    notes,
     skills,
     saving_throws,
     features,
@@ -68,7 +67,7 @@ INSERT INTO characters (
 ) VALUES (
     ?, ?, ?,
     10, 10, 10, 10, 10, 10,
-    '30 ft.', '', '', '',
+    '30 ft.', '', '',
     '{}', '{}', '[]',
     10
 );

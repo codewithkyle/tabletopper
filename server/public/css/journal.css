@@ -1,0 +1,114 @@
+/* The journal editor's content area, and the toolbar's pressed state.
+
+   HAND-WRITTEN BECAUSE TAILWIND CANNOT SEE THIS DOM. Everything inside the
+   mount is built by ProseMirror at runtime from the markdown in the entry --
+   there is no .templ file with an <h2> or a <blockquote> in it for the scanner
+   to find, so no utility for either would ever be emitted. @tailwindcss/
+   typography would be the usual answer and is npm-only; it would have to be
+   vendored the way DaisyUI was, for forty lines of CSS.
+
+   Served exactly as authored from public/css, like core.css, toast.css and
+   soft-loading.css. Native nesting, which browsers run directly.
+
+   The reset is why the element selectors below say things that look like
+   defaults. Tailwind's preflight zeroes heading and paragraph margins and
+   strips the markers off ul and ol, and that is correct everywhere else in the
+   app -- every list in a template carries its own utilities. In here it would
+   leave a document whose headings, paragraphs and bullets are all the same
+   undifferentiated block. */
+
+.journal-body {
+    display: block;
+    min-height: 24rem;
+    overflow-y: auto;
+    padding: 0.75rem;
+    border: var(--border) solid var(--color-base-300);
+    border-radius: var(--radius-field);
+    background-color: var(--color-base-100);
+
+    /* The editable element itself. Its focus ring is suppressed and the border
+       above carries the state instead, because the ring would be drawn around
+       the text rather than around the box the writer is typing in. */
+    & .tiptap {
+        min-height: 22rem;
+        outline: none;
+    }
+
+    &:focus-within {
+        border-color: var(--color-base-content);
+    }
+
+    /* Headings are sized and never numbered down. The entry title is the page's
+       only h1 and the toolbar offers h2-h4, but a pasted h1 is still modelled,
+       still saved and has to render as something. */
+    & h1 { margin: 1.25rem 0 0.5rem; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+    & h2 { margin: 1.25rem 0 0.5rem; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+    & h3 { margin: 1rem 0 0.5rem; font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
+    & h4 { margin: 1rem 0 0.5rem; font-size: 1.1rem; font-weight: 600; }
+    & h5,
+    & h6 { margin: 1rem 0 0.5rem; font-size: 1rem; font-weight: 600; }
+
+    & > :first-child { margin-top: 0; }
+
+    & p { margin: 0 0 0.75rem; line-height: 1.6; }
+
+    & ul,
+    & ol { margin: 0 0 0.75rem; padding-left: 1.5rem; }
+    & ul { list-style: disc; }
+    & ol { list-style: decimal; }
+    & li { margin: 0.15rem 0; }
+    & li > ul,
+    & li > ol { margin-bottom: 0; }
+
+    & blockquote {
+        margin: 0 0 0.75rem;
+        padding-left: 0.85rem;
+        border-left: 3px solid var(--color-base-300);
+        color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+    }
+
+    & a {
+        color: var(--color-primary);
+        text-decoration: underline;
+    }
+
+    & strong { font-weight: 700; }
+    & em { font-style: italic; }
+    & s { text-decoration: line-through; }
+
+    & code {
+        padding: 0.1em 0.3em;
+        border-radius: var(--radius-selector);
+        background-color: var(--color-base-200);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+    }
+
+    & pre {
+        margin: 0 0 0.75rem;
+        padding: 0.75rem;
+        overflow-x: auto;
+        border-radius: var(--radius-field);
+        background-color: var(--color-base-200);
+
+        & code {
+            padding: 0;
+            background-color: transparent;
+        }
+    }
+
+    & hr {
+        margin: 1.25rem 0;
+        border: 0;
+        border-top: 2px solid var(--color-base-300);
+    }
+}
+
+/* The toolbar's active state is an attribute, not a class, and that is the
+   point: public/js is not a Tailwind source, so a class name set from
+   journal-editor.js would never be emitted. aria-pressed is what a toggle
+   button owes a screen reader anyway, so styling it costs nothing extra. */
+[data-journal-toolbar] [aria-pressed="true"] {
+    background-color: var(--color-base-300);
+    border-color: var(--color-base-content);
+}

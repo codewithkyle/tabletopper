@@ -22,7 +22,7 @@ sql:
           # A nil pointer there writes SQL NULL into a NOT NULL column, which
           # fails at runtime rather than failing to compile.
           #
-          # The three below are the NOT NULL *_id columns that collide with a
+          # The four below are the NOT NULL *_id columns that collide with a
           # wildcard, less one: monsters.asset_id is NOT NULL and still resolves
           # to *ulid.ULID. Nothing queries monsters, so nothing has ever held
           # that pointer; it needs an entry here the day something does.
@@ -34,6 +34,8 @@ sql:
           - column: "spells.character_id"
             go_type: *ulid
           - column: "spell_slots.character_id"
+            go_type: *ulid
+          - column: "journals.character_id"
             go_type: *ulid
           # DECIMAL comes back as a string by default. float64 is what lets an
           # unweighed item render blank as `weight == 0` rather than a comparison

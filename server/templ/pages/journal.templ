@@ -1,0 +1,57 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ EditCharacterJournal(data JournalPageData) {
+	@layouts.Base("Journal | Tabletopper") {
+		@editCharacterShell(data.CharacterID, characterTabJournal) {
+			@sheetPanel("Journal") {
+				<div id="journal-entries" class="grid gap-3">
+					for _, entry := range data.Entries {
+						@journalEntryCard(data.CharacterID, entry)
+					}
+					if len(data.Entries) == 0 {
+						<p class="text-base-content/70">Nothing written down yet.</p>
+					}
+				</div>
+				<form method="post" action={ "/characters/" + data.CharacterID + "/journal" }>
+					<button type="submit" class="btn btn-soft btn-warning">New Entry</button>
+				</form>
+			}
+		}
+	}
+}
+
+templ journalEntryCard(characterID string, entry JournalEntry) {
+	{{ href := "/characters/" + characterID + "/edit/journal/" + entry.ID }}
+	{{ action := "/characters/" + characterID + "/journal/" + entry.ID }}
+	<article class="flex flex-wrap items-center justify-between gap-3 rounded-field border-2 border-base-300 p-3">
+		<div class="grid gap-1">
+			<a href={ href } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
+			<p class="flex flex-wrap gap-x-4 text-sm text-base-content/70">
+				<span>
+					Written&nbsp;
+					<local-time>
+						<time datetime={ entry.Created.ISO }>{ entry.Created.Text }</time>
+					</local-time>
+				</span>
+				<span>
+					Edited&nbsp;
+					<local-time>
+						<time datetime={ entry.Updated.ISO }>{ entry.Updated.Text }</time>
+					</local-time>
+				</span>
+			</p>
+		</div>
+		<button
+			type="button"
+			class="btn btn-soft btn-error btn-sm"
+			hx-confirm={ "You are about to delete " + journalEntryTitle(entry) + ". This action cannot be undone." }
+			hx-delete={ action }
+			hx-target="closest article"
+			hx-swap="delete"
+		>
+			Delete
+		</button>
+	</article>
+}

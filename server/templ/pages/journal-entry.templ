@@ -1,0 +1,62 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ EditCharacterJournalEntry(data JournalEntryPageData) {
+	@layouts.Base("Journal | Tabletopper", "/static/journal-editor.js") {
+		@editCharacterShell(data.CharacterID, characterTabJournal) {
+			@savingPanel("Entry", "/characters/"+data.CharacterID+"/journal/"+data.EntryID, JournalEntryPanel) {
+				<div class="fieldset">
+					<label class="fieldset-legend" for="title">Title</label>
+					<input
+						id="title"
+						name="title"
+						type="text"
+						class="input w-full font-medium"
+						value={ data.Title }
+						placeholder="The road to Phandalin"
+					/>
+				</div>
+				<div data-journal-editor class="grid gap-2">
+					<div
+						data-journal-toolbar
+						role="toolbar"
+						aria-label="Formatting"
+						class="flex flex-wrap items-center gap-1"
+						hidden
+					>
+						@journalToolbarButton("bold", "Bold")
+						@journalToolbarButton("italic", "Italic")
+						@journalToolbarButton("hyperlink", "Link")
+						@journalToolbarButton("blockquote", "Quote")
+						@journalToolbarButton("bulletList", "Bullets")
+						@journalToolbarButton("orderedList", "Numbers")
+						<select data-journal-heading class="select select-sm w-auto" aria-label="Text style">
+							<option value="paragraph">Paragraph</option>
+							<option value="2">Heading 2</option>
+							<option value="3">Heading 3</option>
+							<option value="4">Heading 4</option>
+						</select>
+					</div>
+					<div data-journal-mount class="journal-body" hidden></div>
+					<textarea
+						name="body"
+						data-journal-body
+						class="textarea min-h-96 w-full font-mono"
+						rows="24"
+						placeholder="What happened, and what you want to remember about it."
+					>{ data.Body }</textarea>
+				</div>
+			}
+		}
+	}
+}
+
+templ journalToolbarButton(mark string, label string) {
+	<button
+		type="button"
+		class="btn btn-sm border-base-content/50"
+		data-journal-mark={ mark }
+		aria-pressed="false"
+	>{ label }</button>
+}

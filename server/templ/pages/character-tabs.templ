@@ -6,6 +6,7 @@ templ characterTabs(characterID string, active string) {
 		@characterTabLink(base, "Character", active == characterTabMain)
 		@characterTabLink(base+"/inventory", "Inventory", active == characterTabInventory)
 		@characterTabLink(base+"/spells/0", "Spells", active == characterTabSpells)
+		@characterTabLink(base+"/journal", "Journal", active == characterTabJournal)
 	</nav>
 }
 
@@ -13,6 +14,7 @@ const (
 	characterTabMain      = "character"
 	characterTabInventory = "inventory"
 	characterTabSpells    = "spells"
+	characterTabJournal   = "journal"
 )
 
 templ characterTabLink(href string, name string, current bool) {

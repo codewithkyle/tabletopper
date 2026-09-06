@@ -1,0 +1,20 @@
+# The compose build context is the repo root, so everything here would be sent
+# to the daemon on every `make run` -- including the 237 MB legacy client tree,
+# which no stage copies and nothing in the app reads.
+#
+# server/css and server/js are build INPUTS. Their outputs -- app.css and the
+# editor bundle -- are committed under server/public, which is a different path
+# and stays in; the Go build reads neither source directory. Everything the
+# image needs is already generated before docker starts, which is why no stage
+# runs npm, esbuild, Tailwind, templ or sqlc.
+#
+# .env files never belong in a build context, even when no stage copies one into
+# the final image: anything sent to the daemon is readable from the build cache.
+.git
+client
+node_modules
+build
+db
+server/css
+server/js
+**/.env

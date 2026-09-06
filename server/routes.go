@@ -111,6 +111,23 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.SaveSpell))
 	mux.HandleFunc("DELETE /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.DeleteSpell))
 
+	// The journal is a page per entry plus the list, and its mutations are the
+	// collection-and-member pair inventory and spells already use.
+	//
+	// CREATE IS A PLAIN FORM POST. It collects nothing -- an entry is born blank
+	// and titled in the editor -- so there is no field to reject and no state to
+	// keep, and the handler answers with a 303 the browser follows into the new
+	// entry's page. Every other route here is htmx.
+	//
+	// The delete answers 200 and not 204, for the reason the inventory block
+	// above gives: noSwap lists 204, and a status in that list overrides the
+	// hx-swap="delete" on the button.
+	mux.HandleFunc("GET /characters/{id}/edit/journal", auth.RequireSession(app.CharacterJournalPage))
+	mux.HandleFunc("GET /characters/{id}/edit/journal/{entryId}", auth.RequireSession(app.CharacterJournalEntryPage))
+	mux.HandleFunc("POST /characters/{id}/journal", auth.RequireSession(app.CreateJournalEntry))
+	mux.HandleFunc("POST /characters/{id}/journal/{entryId}", auth.RequireSession(app.SaveJournalEntry))
+	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}", auth.RequireSession(app.DeleteJournalEntry))
+
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
@@ -138,6 +155,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// for what a fragment owes its caller.
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
+	mux.HandleFunc("GET /fragment/character/journal-link", auth.Fragment(app.JournalLinkFragment))
 
 	// Subtree pattern, so it takes any /fragment/ path the three above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's
