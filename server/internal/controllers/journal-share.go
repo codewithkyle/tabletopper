@@ -263,7 +263,7 @@ func (a *App) journalShareDialog(ctx context.Context, r *http.Request, character
 	data.Link = shareLink(r, row.Token)
 	data.Protected = row.PasswordHash.Valid
 	if row.ExpiresAt.Valid {
-		data.Expires = journalTimestamp(row.ExpiresAt.Time)
+		data.Expires = journalTimestamp(session.FromContext(ctx).Prefs, row.ExpiresAt.Time)
 		// GetJournalShare deliberately does not filter on the expiry -- an
 		// expired share is still a row its owner has to be shown -- so the
 		// comparison the query skipped is made here, once, for the sentence

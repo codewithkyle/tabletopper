@@ -1,7 +1,9 @@
 -- name: GetSession :one
-SELECT id, username, profile_image_url, user_id, character_id, room_id, created_at
-FROM sessions
-WHERE expires_at > NOW() AND hash = ?;
+SELECT s.id, s.username, s.profile_image_url, s.user_id, s.character_id, s.room_id, s.created_at,
+       u.theme, u.timezone, u.date_format, u.time_format
+FROM sessions s
+INNER JOIN users u ON u.id = s.user_id
+WHERE s.expires_at > NOW() AND s.hash = ?;
 
 -- name: EndSession :exec
 UPDATE sessions

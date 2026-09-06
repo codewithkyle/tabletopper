@@ -29,3 +29,38 @@
 // scrolling container has to be inside them -- the same shape every page under
 // Base uses, where the card grid rather than the document is what scrolls.
 package layouts
+
+import (
+	"context"
+
+	"tabletopper/internal/session"
+
+	"github.com/a-h/templ"
+)
+
+// themeAttrs is the data-theme attribute Base puts on <html>.
+//
+// SYSTEM RENDERS NO ATTRIBUTE AT ALL, which is what makes it work. app.css
+// registers coffee with DaisyUI's --prefersdark flag, so the plugin emits it
+// under `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }` and
+// caramellatte under `:where(:root)`. An absent attribute is therefore the OS
+// preference, live, following a switch at dusk with no JavaScript; a present
+// one outranks the media query through that :not(). None of this needs a line
+// of CSS written for it -- the guard was put there for exactly this.
+//
+// It is also why the theme is server-rendered rather than applied on load. A
+// class or attribute set by a script runs after the first paint, so the page
+// flashes the wrong palette; written into the markup, there is nothing to
+// flash.
+//
+// The context is the request's, and a request with no session -- the signed-out
+// homepage -- reads the zero value, whose theme is system. That is the right
+// answer for a stranger, and it is why this takes a context rather than an
+// argument threaded through thirteen call sites of Base.
+func themeAttrs(ctx context.Context) templ.Attributes {
+	palette := session.FromContext(ctx).Prefs.Theme.Palette()
+	if palette == "" {
+		return nil
+	}
+	return templ.Attributes{"data-theme": palette}
+}

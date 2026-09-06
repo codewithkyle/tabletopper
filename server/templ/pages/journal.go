@@ -25,16 +25,19 @@ type JournalEntry struct {
 // Timestamp is one date in the two forms the markup needs: ISO for the machine
 // and Text for the reader.
 //
-// DATES ARE LOCALISED IN THE BROWSER, and this type is the server half of that.
-// MySQL runs at +00:00 and the DSN parses times, so the controller holds a UTC
-// time.Time and knows nothing whatsoever about the reader's zone -- only the
-// browser does. So both forms are rendered here in UTC, and public/js/
-// local-time.js rewrites the visible one in the reader's own locale and zone
-// once it runs.
+// DATES ARE RENDERED ON THE SERVER, in the zone, date order and clock the
+// reader chose in their account settings -- see internal/prefs, which owns the
+// conversion, and the session that carries the four values to it. There is no
+// client-side pass over the document any more: what the server writes is what
+// stands, with JavaScript off and in a test alike.
 //
-// ISO is RFC 3339, which is the machine-readable value and the input to that
-// rewrite. Text is the server's UTC rendering: it is what shows before the
-// module runs, with JavaScript off, and in a test.
+// The two fields answer different questions and only one of them moved. ISO is
+// RFC 3339 and always UTC, because it is the instant and an instant is the same
+// everywhere; it is what a <time datetime> attribute carries. Text is the
+// rendering, and it ends in a zone abbreviation -- which matters more now than
+// it did when everything said UTC, because a bare "2:04 PM" written by the
+// server belongs to whoever set the preference rather than to whoever is
+// reading.
 type Timestamp struct {
 	ISO  string
 	Text string

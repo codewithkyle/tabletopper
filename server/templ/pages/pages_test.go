@@ -54,9 +54,12 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		},
 		"share-locked":      func() error { return render(ShareLocked(ShareLockedData{})) },
 		"share-unavailable": func() error { return render(ShareUnavailable()) },
-		"assets":            func() error { return render(MapAssets([]queries.Asset{})) },
-		"sign-in":           func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":               func() error { return render(TOS()) },
+		"account-settings-fragment": func() error {
+			return render(AccountSettingsFragment(testAccountSettings()))
+		},
+		"assets":  func() error { return render(MapAssets([]queries.Asset{})) },
+		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":     func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -1350,12 +1353,15 @@ func TestJournalLinkFragmentIsADialogWithNoRequest(t *testing.T) {
 }
 
 // Dates are rendered twice: RFC 3339 in the attribute for the machine, and the
-// server's own UTC rendering as the text for the reader.
+// reader's own rendering as the text for the person.
 //
-// THE TEXT IS NOT DECORATION. It is what shows before local-time.js runs, with
-// JavaScript off, and in a test -- the module rewrites it into the reader's
-// locale and zone, which the server cannot do because it holds an instant and
-// nothing about where the reader is.
+// BOTH HALVES ARE WRITTEN BY THE SERVER AND NEITHER IS REWRITTEN AFTERWARDS.
+// There used to be a <local-time> element around this pair and a module that
+// reformatted the text on load; the zone, date order and clock are account
+// settings now, so the server knows them and the markup is final. What this
+// asserts is that the wrapper is gone and the plain <time> carrying both halves
+// is what remains -- the element is still semantic markup worth having, and the
+// attribute is still the instant.
 func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1370,12 +1376,16 @@ func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 	markup := buf.String()
 
 	for _, want := range []string{
-		`<local-time><time datetime="2026-09-05T18:04:11Z">5 Sep 2026, 18:04 UTC</time></local-time>`,
-		`<local-time><time datetime="2026-09-06T09:30:00Z">6 Sep 2026, 09:30 UTC</time></local-time>`,
+		`<time datetime="2026-09-05T18:04:11Z">5 Sep 2026, 18:04 UTC</time>`,
+		`<time datetime="2026-09-06T09:30:00Z">6 Sep 2026, 09:30 UTC</time>`,
 	} {
 		if !strings.Contains(collapseWhitespace(markup), want) {
 			t.Errorf("missing %s\n%s", want, markup)
 		}
+	}
+
+	if strings.Contains(markup, "local-time") {
+		t.Errorf("the client-side rewrite is still in the markup\n%s", markup)
 	}
 
 	// The card links to the page and deletes through the resource URL. Those are

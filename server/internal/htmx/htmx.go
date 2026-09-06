@@ -73,3 +73,42 @@ func Refresh(w http.ResponseWriter) {
 func Toast(w http.ResponseWriter, msg string) {
 	trigger(w, map[string]any{"flash:toast": msg})
 }
+
+// CloseModal dismisses #content-modal, which is how a form inside it reports
+// that its save went through. A failure re-renders the form with its errors and
+// sends nothing, so the dialog stays open on the thing that needs fixing.
+//
+// It goes through trigger rather than setting HX-Trigger directly, because a
+// handler almost always queues a Toast beside it and a bare Set would drop
+// whichever was written first.
+func CloseModal(w http.ResponseWriter) {
+	trigger(w, map[string]any{"modal:close": true})
+}
+
+// Theme repaints the page the reader is already on after they change the
+// setting. palette is the DaisyUI theme name, or the empty string for system --
+// prefs.Theme.Palette answers both.
+//
+// This is the one thing on the settings form that cannot wait for the next
+// navigation. The theme is an attribute on <html>, rendered by the shell, and
+// the response to the save swaps a fragment inside a dialog; without this the
+// reader picks Dark, the dialog closes, and the page they are looking at stays
+// light until they click something. An HX-Refresh instead would be correct and
+// would also throw away the toast and scroll position for a setting change.
+//
+// The dates already on screen are left in the old zone and format, deliberately.
+// Rewriting them would mean re-rendering the page, which is the refresh this
+// avoids -- and unlike the theme they are not what the reader is looking at
+// while they close the dialog.
+//
+// The detail is an object rather than the bare string, which is not decoration:
+// htmx wraps a non-object trigger value as {value: ...} and passes an object
+// through as it stands, so a bare string would arrive as e.detail.value while
+// every other event this app raises reads a named field. An empty palette also
+// survives an object and would be indistinguishable from an absent one after
+// the wrap.
+func Theme(w http.ResponseWriter, palette string) {
+	trigger(w, map[string]any{
+		"theme:change": map[string]string{"palette": palette},
+	})
+}

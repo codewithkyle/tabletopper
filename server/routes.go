@@ -186,6 +186,11 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /share/{token}/avatar", app.GetShareAvatar)
 	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
 
+	// The account settings save. Four columns on the users row, no path
+	// parameter, and no id anywhere: the only account a session can change is
+	// its own, so naming one in the URL would create a way to ask for another.
+	mux.HandleFunc("POST /account/settings", auth.RequireSession(app.SaveAccountSettings))
+
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
@@ -224,8 +229,13 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// reads both ids from the query string and neither from a path, because
 	// this is not the entry's URL -- it is a dialog about the entry.
 	mux.HandleFunc("GET /fragment/character/journal-share", auth.Fragment(app.JournalShareFragment))
+	// The account settings dialog. It reads no query parameters at all -- the
+	// four values it shows come off the session, which carries them on every
+	// request -- so there is nothing here to validate and nothing a caller
+	// could ask for that is not their own.
+	mux.HandleFunc("GET /fragment/account/settings", auth.Fragment(app.AccountSettingsFragment))
 
-	// Subtree pattern, so it takes any /fragment/ path the four above did not.
+	// Subtree pattern, so it takes any /fragment/ path the five above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's
 	// plain-text 404 page, which is a page-shaped reply to a fragment request.
 	mux.HandleFunc("/fragment/", middleware.FragmentNotFound)

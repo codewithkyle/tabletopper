@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
@@ -481,6 +482,8 @@ func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 // has to scan it. Clearing the box is the common case -- it happens at the end
 // of every search -- and it should cost what the page load costs.
 func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID, term string) ([]pages.JournalEntry, error) {
+	p := session.FromContext(ctx).Prefs
+
 	if term == "" {
 		rows, err := a.Queries.ListCharacterJournals(ctx, queries.ListCharacterJournalsParams{
 			CharacterID: characterID,
@@ -492,7 +495,7 @@ func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID
 
 		entries := make([]pages.JournalEntry, 0, len(rows))
 		for _, row := range rows {
-			entries = append(entries, journalPageEntry(row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
+			entries = append(entries, journalPageEntry(p, row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
 		}
 
 		return entries, nil
@@ -509,7 +512,7 @@ func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID
 
 	entries := make([]pages.JournalEntry, 0, len(rows))
 	for _, row := range rows {
-		entries = append(entries, journalPageEntry(row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
+		entries = append(entries, journalPageEntry(p, row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
 	}
 
 	return entries, nil
@@ -533,28 +536,27 @@ func journalSearchPattern(term string) string {
 	return "%" + journalSearchWildcards.Replace(term) + "%"
 }
 
-func journalPageEntry(id ulid.ULID, title string, created, updated time.Time) pages.JournalEntry {
+func journalPageEntry(p prefs.Preferences, id ulid.ULID, title string, created, updated time.Time) pages.JournalEntry {
 	return pages.JournalEntry{
 		ID:      id.String(),
 		Title:   title,
-		Created: journalTimestamp(created),
-		Updated: journalTimestamp(updated),
+		Created: journalTimestamp(p, created),
+		Updated: journalTimestamp(p, updated),
 	}
 }
 
-// journalTimestamp renders one date twice, in UTC both times.
+// journalTimestamp renders one date twice: the instant for a machine, and the
+// reader's own rendering for a person.
 //
-// The server cannot do better than UTC and should not try: MySQL runs at +00:00
-// and the DSN parses times, so this holds an instant and nothing about where the
-// reader is. The browser is the only thing that knows that, and public/js/
-// local-time.js is what rewrites the text once it does. What is written here is
-// the RFC 3339 value that rewrite reads, and the rendering that stands until it
-// runs -- with JavaScript off, and in a test.
-func journalTimestamp(at time.Time) pages.Timestamp {
-	utc := at.UTC()
+// THE PREFERENCES COME OFF THE SESSION AND ARE NOT AN ARGUMENT THE PAGE CHOOSES.
+// MySQL runs at +00:00 and the DSN parses times, so every handler here holds a
+// UTC time.Time; what turns it into a date somebody can read is four settings
+// that belong to the request, not to the journal. This used to be the browser's
+// job -- the text said UTC and a custom element rewrote it on load -- and
+// moving it to the server is what lets the page be right before it paints and
+// right with JavaScript off.
+func journalTimestamp(p prefs.Preferences, at time.Time) pages.Timestamp {
+	iso, text := p.Format(at)
 
-	return pages.Timestamp{
-		ISO:  utc.Format(time.RFC3339),
-		Text: utc.Format("2 Jan 2006, 15:04") + " UTC",
-	}
+	return pages.Timestamp{ISO: iso, Text: text}
 }

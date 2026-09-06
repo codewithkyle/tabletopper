@@ -64,15 +64,11 @@ templ journalEntryCard(characterID string, entry JournalEntry) {
 			<p class="flex flex-wrap gap-x-4 text-sm text-base-content/70">
 				<span>
 					Written&nbsp;
-					<local-time>
-						<time datetime={ entry.Created.ISO }>{ entry.Created.Text }</time>
-					</local-time>
+					<time datetime={ entry.Created.ISO }>{ entry.Created.Text }</time>
 				</span>
 				<span>
 					Edited&nbsp;
-					<local-time>
-						<time datetime={ entry.Updated.ISO }>{ entry.Updated.Text }</time>
-					</local-time>
+					<time datetime={ entry.Updated.ISO }>{ entry.Updated.Text }</time>
 				</span>
 			</p>
 		</div>

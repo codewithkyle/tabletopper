@@ -102,9 +102,7 @@ templ journalShareLink(data JournalShareData) {
 			} else if data.Expires.ISO != "" {
 				<li>
 					Expires&nbsp;
-					<local-time>
-						<time datetime={ data.Expires.ISO }>{ data.Expires.Text }</time>
-					</local-time>
+					<time datetime={ data.Expires.ISO }>{ data.Expires.Text }</time>
 				</li>
 			} else {
 				<li>Never expires.</li>

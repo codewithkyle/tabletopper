@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
 
 	"github.com/oklog/ulid/v2"
@@ -51,6 +52,21 @@ type UserSession struct {
 	Hash            []byte
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
+
+	// Prefs is the account settings the page renders with: theme, zone, date
+	// order and clock.
+	//
+	// IT IS JOINED, NOT COPIED INTO THE ROW. Username and ProfileImageURL above
+	// are copies on the sessions row, and that is right for them -- both come
+	// from Clerk and only change when a login refreshes them. These change
+	// while the user is sitting in the app, and one user has several sessions,
+	// so a copy would mean switching to dark on a laptop and watching the phone
+	// stay light until its session expired a week later.
+	//
+	// The join is to users on its primary key, inside a lookup that already
+	// runs on every request. It is the cheapest correct answer, and there is no
+	// second write to keep in step with the first.
+	Prefs prefs.Preferences
 
 	token []byte
 }
@@ -98,7 +114,13 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		ProfileImageURL: row.ProfileImageURL,
 		Hash:            hash,
 		CreatedAt:       row.CreatedAt,
-		token:           token,
+		Prefs: prefs.New(
+			string(row.Theme),
+			row.Timezone,
+			string(row.DateFormat),
+			string(row.TimeFormat),
+		),
+		token: token,
 	}, nil
 }
 
