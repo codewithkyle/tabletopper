@@ -4,22 +4,25 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
-		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{}) {
+		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
 			@sheetPanel("Journal") {
 				<div id="journal-entries" class="grid gap-3">
 					for _, entry := range data.Entries {
 						@journalEntryCard(data.CharacterID, entry)
 					}
 					if len(data.Entries) == 0 {
-						<p class="text-base-content/70">Nothing written down yet.</p>
+						<p class="text-base-content/70">Nothing written down yet. Start one with the New Entry button above.</p>
 					}
 				</div>
-				<form method="post" action={ "/characters/" + data.CharacterID + "/journal" }>
-					<button type="submit" class="btn btn-soft btn-warning">New Entry</button>
-				</form>
 			}
 		}
 	}
+}
+
+templ journalCreateForm(characterID string) {
+	<form method="post" action={ "/characters/" + characterID + "/journal" } class="max-[640px]:flex-1">
+		<button type="submit" class="btn btn-primary w-full">New Entry</button>
+	</form>
 }
 
 templ journalEntryCard(characterID string, entry JournalEntry) {
@@ -43,15 +46,18 @@ templ journalEntryCard(characterID string, entry JournalEntry) {
 				</span>
 			</p>
 		</div>
-		<button
-			type="button"
-			class="btn btn-soft btn-error btn-sm"
-			hx-confirm={ "You are about to delete " + journalEntryTitle(entry) + ". This action cannot be undone." }
-			hx-delete={ action }
-			hx-target="closest article"
-			hx-swap="delete"
-		>
-			Delete
-		</button>
+		<div class="flex items-center gap-2">
+			<a href={ href } class="btn btn-soft btn-sm">View</a>
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				hx-confirm={ "You are about to delete " + journalEntryTitle(entry) + ". This action cannot be undone." }
+				hx-delete={ action }
+				hx-target="closest article"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</div>
 	</article>
 }

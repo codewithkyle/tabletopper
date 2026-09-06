@@ -1328,14 +1328,60 @@ func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 	// The card links to the page and deletes through the resource URL. Those are
 	// two different paths, and swapping them would either delete nothing or
 	// navigate to a route that answers no GET.
-	if !strings.Contains(markup, `href="/characters/`+characterID+`/edit/journal/`+testEntryID+`"`) {
-		t.Errorf("the card does not link to its entry\n%s", markup)
+	//
+	// TWO WAYS IN, and both are the same link: the title, for anyone who reads
+	// the list as a list, and a View button beside Delete, for anyone who reads
+	// it as a row of controls. A row whose only affordance is a destructive
+	// button is a row you can only delete.
+	href := `href="/characters/` + characterID + `/edit/journal/` + testEntryID + `"`
+	if got := strings.Count(markup, href); got != 2 {
+		t.Errorf("the entry is linked %d times, want 2 (the title and View)\n%s", got, markup)
+	}
+	if !strings.Contains(markup, `>View</a>`) {
+		t.Errorf("no View button on the card\n%s", markup)
 	}
 	if !strings.Contains(markup, `hx-delete="/characters/`+characterID+`/journal/`+testEntryID+`"`) {
 		t.Errorf("the delete does not aim at the resource URL\n%s", markup)
 	}
 	if !strings.Contains(markup, "hx-confirm=") {
 		t.Errorf("a delete with no confirmation\n%s", markup)
+	}
+}
+
+// Creation is a page-level action, so its button is in the page header beside
+// Back rather than at the bottom of the panel -- the panel is a list of what
+// exists, and the thing that makes a new one is not part of that list.
+//
+// IT IS A PLAIN FORM POST with no hx-* at all. There is no field to collect, so
+// there is nothing to reject and nothing to keep the page open for: the handler
+// inserts a blank entry and 303s into its editor, and the browser follows.
+func TestJournalCreateIsAFormPostInTheHeader(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	if err := EditCharacterJournal(JournalPageData{CharacterID: characterID}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	form := `<form method="post" action="/characters/` + characterID + `/journal"`
+	at := strings.Index(markup, form)
+	if at < 0 {
+		t.Fatalf("no create form\n%s", markup)
+	}
+	if tabs := strings.Index(markup, "<nav"); at > tabs {
+		t.Errorf("the create form is below the tabs, not in the header\n%s", markup)
+	}
+	if !strings.Contains(markup, ">New Entry</button>") {
+		t.Errorf("the create button is not labelled\n%s", markup)
+	}
+
+	// The panel holds the list and nothing that posts. Bounded at the editor
+	// element, because the base layout's three dialogs each carry a
+	// method="dialog" form of their own further down the page.
+	panel := markup[strings.Index(markup, "journal-entries"):strings.Index(markup, "</character-editor>")]
+	if strings.Contains(panel, "<form") {
+		t.Errorf("a form survives inside the panel\n%s", panel)
 	}
 }
 

@@ -12,12 +12,22 @@
 -- NEVER `SELECT *`, and never body. The list renders titles and dates; 200
 -- entries at 4 KB each is 800 KB read out of the database and thrown away.
 --
--- ULIDs sort lexicographically by creation time, so ORDER BY id DESC is newest
--- first and idx_journals_character (character_id, id) serves it without a
--- filesort.
+-- ORDERED BY updated_at, NOT BY id. A journal is a working desk rather than an
+-- archive: the entry someone edited last is the one they are still writing, and
+-- it belongs at the top even when it was created months before the ones under
+-- it. id DESC breaks the tie -- ULIDs sort lexicographically by creation time,
+-- so two entries saved in the same second still come out newest first, and the
+-- order never wobbles between two renders of the same list.
+--
+-- THERE IS NO INDEX FOR THIS SORT, deliberately. idx_journals_character finds
+-- one character's rows and MySQL sorts them in memory, which for a list of
+-- dozens is nothing. An index on (character_id, updated_at) would earn its keep
+-- only on a much longer list, and it would be rewritten on every debounced save
+-- -- updated_at is the one column that changes on every keystroke pause. That is
+-- the same trade the FULLTEXT note in the migration makes, for the same reason.
 SELECT id, title, created_at, updated_at FROM journals
 WHERE character_id = ? AND owner_id = ?
-ORDER BY id DESC;
+ORDER BY updated_at DESC, id DESC;
 
 -- name: GetJournalEntry :one
 -- The editor page, and nothing else. This is the one read that carries the body.
