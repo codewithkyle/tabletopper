@@ -3,33 +3,52 @@ package pages
 // CharacterID is the ULID as a string, and it is the only thing the editor
 // needs to build a URL: every panel posts to /characters/<id>/<panel>.
 type EditCharacterPageData struct {
-	CharacterID     string
-	Name            string
-	Race            string
-	Background      string
-	Classes         string
-	Size            string
-	Alignment       string
-	XP              string
-	Languages       string
-	Proficiencies   string
-	Str             string
-	Dex             string
-	Con             string
-	Int             string
-	Wis             string
-	Cha             string
-	AC              string
-	Speed           string
-	InitiativeBonus string
-	MaxHP           string
-	CurrentHP       string
-	TempHP          string
-	SpellSaveDC     string
-	SpellAtkBonus   string
-	Skills          map[string]int
-	SavingThrows    map[string]int
-	Features        []Feature
+	CharacterID   string
+	Name          string
+	Race          string
+	Background    string
+	Classes       string
+	Size          string
+	Alignment     string
+	XP            string
+	Languages     string
+	Proficiencies string
+	// The two details panels. They are ten plain strings and not a nested
+	// struct because every other field on here is a plain string: the template
+	// reads them the same way, and a struct would buy grouping the panel
+	// headings already give.
+	//
+	// Nothing formats them and nothing falls back. An empty box is a box the
+	// player has not filled in, which is a different thing from an empty
+	// alignment -- that one gets DefaultAlignment because a select with nothing
+	// chosen is broken, and a blank textarea is just blank.
+	PersonalityTraits string
+	Ideals            string
+	Bonds             string
+	Flaws             string
+	Age               string
+	Height            string
+	Weight            string
+	Eyes              string
+	Skin              string
+	Hair              string
+	Str               string
+	Dex               string
+	Con               string
+	Int               string
+	Wis               string
+	Cha               string
+	AC                string
+	Speed             string
+	InitiativeBonus   string
+	MaxHP             string
+	CurrentHP         string
+	TempHP            string
+	SpellSaveDC       string
+	SpellAtkBonus     string
+	Skills            map[string]int
+	SavingThrows      map[string]int
+	Features          []Feature
 	// Equipped is the inventory rows ticked as equipped, rendered read-only on
 	// the Character page. It is the only thing on that page that does not come
 	// off the characters row, and the only thing on it with no form around it.

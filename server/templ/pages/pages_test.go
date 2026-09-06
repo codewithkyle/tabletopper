@@ -101,6 +101,8 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 		"saving_throws": base + "/bonuses/saving_throws",
 		"skills":        base + "/bonuses/skills",
 		"features":      base + "/features",
+		"personality":   base + "/personality",
+		"appearance":    base + "/appearance",
 	}
 
 	var buf bytes.Buffer
@@ -936,10 +938,10 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 		t.Errorf("cantrips do not say why they have no counters\n%s", body)
 	}
 
-	// Seven saving panels plus three slot forms plus Base's own, and nothing
+	// Nine saving panels plus three slot forms plus Base's own, and nothing
 	// wrapping them. Forms do not nest, so a slot form inside a savingPanel
 	// would post neither.
-	const panels = 7
+	const panels = 9
 	if got := strings.Count(body, "<form"); got != panels+3+closingForms {
 		t.Errorf("forms = %d, want %d", got, panels+3+closingForms)
 	}

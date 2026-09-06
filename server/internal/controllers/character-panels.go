@@ -179,6 +179,69 @@ func (a *App) SaveCharacterProficiencies(w http.ResponseWriter, r *http.Request)
 	finishPanel(w, r, "proficiencies", "Proficiencies", result, err)
 }
 
+// The two panels nobody rolls. They are separate for the reason the queries
+// behind them are: four boxes of prose and six words are not one panel, and the
+// split is what lets the page put them side by side.
+func (a *App) SaveCharacterPersonality(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	if !parsePanelForm(w, r, "personality") {
+		return
+	}
+
+	input, validationErrors := buildPersonalityInput(r)
+	if len(validationErrors) > 0 {
+		renderPanelBlock(w, r, "personality", validationErrors)
+		return
+	}
+
+	result, err := a.Queries.UpdateCharacterPersonality(ctx, queries.UpdateCharacterPersonalityParams{
+		PersonalityTraits: input.PersonalityTraits,
+		Ideals:            input.Ideals,
+		Bonds:             input.Bonds,
+		Flaws:             input.Flaws,
+		ID:                characterID,
+		OwnerID:           sess.UserID,
+	})
+	finishPanel(w, r, "personality", "Personality", result, err)
+}
+
+func (a *App) SaveCharacterAppearance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	if !parsePanelForm(w, r, "appearance") {
+		return
+	}
+
+	input, validationErrors := buildAppearanceInput(r)
+	if len(validationErrors) > 0 {
+		renderPanelBlock(w, r, "appearance", validationErrors)
+		return
+	}
+
+	result, err := a.Queries.UpdateCharacterAppearance(ctx, queries.UpdateCharacterAppearanceParams{
+		Age:     input.Age,
+		Height:  input.Height,
+		Weight:  input.Weight,
+		Eyes:    input.Eyes,
+		Skin:    input.Skin,
+		Hair:    input.Hair,
+		ID:      characterID,
+		OwnerID: sess.UserID,
+	})
+	finishPanel(w, r, "appearance", "Appearance", result, err)
+}
+
 // SaveCharacterBonuses serves both bonus grids. They differ only in the field
 // prefix they emit and the column they land in, so one handler and one
 // allowlist covers them; the switch is over the query, which stays static
@@ -440,6 +503,101 @@ func buildProficienciesInput(r *http.Request) proficienciesInput {
 		Languages:     languages,
 		Proficiencies: strings.TrimSpace(r.PostFormValue("proficiencies")),
 	}
+}
+
+// The caps the two details panels enforce, each in the unit its columns count.
+// MySQL runs in strict mode, so an overlong value comes back from the driver as
+// an error, and without these it would reach the player as a 500 on a box the
+// sheet invited them to fill in.
+//
+// TEXT COUNTS BYTES AND VARCHAR COUNTS CHARACTERS, which is why one is measured
+// with len and the other with a rune count. Neither is the column's own ceiling:
+// TEXT holds 64 KB and 4 KB is already several pages of a bond, and the prose
+// boxes carry maxlength="1024" -- 1024 UTF-16 units cannot encode to more than
+// 3072 bytes, so that cap is reachable only by a request nobody's browser made.
+// The appearance inputs carry their column's 64 as a maxlength, so that one is
+// the same number in both places.
+const (
+	characterProseLimit      = 4096
+	characterAppearanceLimit = 64
+)
+
+type personalityInput struct {
+	PersonalityTraits string
+	Ideals            string
+	Bonds             string
+	Flaws             string
+}
+
+// The four read identically -- free prose, capped, never required -- so this is
+// the loop buildAbilitiesInput is rather than four copies of the same lines.
+func buildPersonalityInput(r *http.Request) (personalityInput, []string) {
+	validationErrors := make([]string, 0)
+
+	prose := map[string]string{}
+	for _, box := range []struct{ Field, Label string }{
+		{"personality_traits", "Personality Traits"},
+		{"ideals", "Ideals"},
+		{"bonds", "Bonds"},
+		{"flaws", "Flaws"},
+	} {
+		value := strings.TrimSpace(r.PostFormValue(box.Field))
+		if len(value) > characterProseLimit {
+			validationErrors = append(validationErrors, "There is too much text in "+strings.ToLower(box.Label)+". Anything that long belongs in the journal.")
+			continue
+		}
+		prose[box.Field] = value
+	}
+
+	return personalityInput{
+		PersonalityTraits: prose["personality_traits"],
+		Ideals:            prose["ideals"],
+		Bonds:             prose["bonds"],
+		Flaws:             prose["flaws"],
+	}, validationErrors
+}
+
+type appearanceInput struct {
+	Age    string
+	Height string
+	Weight string
+	Eyes   string
+	Skin   string
+	Hair   string
+}
+
+// Six words, and the same loop. None is required and none is parsed: a height
+// is "5 ft. 10 in." to one player and "178 cm" to the next, and an age that
+// reads "300, and looks 25" is a fact about the character rather than a number
+// the sheet failed to get.
+func buildAppearanceInput(r *http.Request) (appearanceInput, []string) {
+	validationErrors := make([]string, 0)
+
+	details := map[string]string{}
+	for _, field := range []struct{ Field, Label string }{
+		{"age", "Age"},
+		{"height", "Height"},
+		{"weight", "Weight"},
+		{"eyes", "Eyes"},
+		{"skin", "Skin"},
+		{"hair", "Hair"},
+	} {
+		value := strings.TrimSpace(r.PostFormValue(field.Field))
+		if len([]rune(value)) > characterAppearanceLimit {
+			validationErrors = append(validationErrors, field.Label+" must be 64 characters or fewer.")
+			continue
+		}
+		details[field.Field] = value
+	}
+
+	return appearanceInput{
+		Age:    details["age"],
+		Height: details["height"],
+		Weight: details["weight"],
+		Eyes:   details["eyes"],
+		Skin:   details["skin"],
+		Hair:   details["hair"],
+	}, validationErrors
 }
 
 // THE SHARED TAIL.

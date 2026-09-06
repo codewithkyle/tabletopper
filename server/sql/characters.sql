@@ -142,6 +142,31 @@ SET
     proficiencies = ?
 WHERE id = ? AND owner_id = ?;
 
+-- The two halves of the sheet nobody rolls. They are split because their inputs
+-- are: four boxes of prose, and six words. One panel of ten would have been one
+-- statement of ten, which is still narrow, but the page reads better as two and
+-- the split costs a query.
+
+-- name: UpdateCharacterPersonality :execresult
+UPDATE characters
+SET
+    personality_traits = ?,
+    ideals = ?,
+    bonds = ?,
+    flaws = ?
+WHERE id = ? AND owner_id = ?;
+
+-- name: UpdateCharacterAppearance :execresult
+UPDATE characters
+SET
+    age = ?,
+    height = ?,
+    weight = ?,
+    eyes = ?,
+    skin = ?,
+    hair = ?
+WHERE id = ? AND owner_id = ?;
+
 -- The six single-column writes below back the bonus tables and the three
 -- repeaters. Each takes the JSON its panel posts, already marshalled by the
 -- controller.

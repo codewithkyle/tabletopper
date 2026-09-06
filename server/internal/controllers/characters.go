@@ -446,6 +446,21 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Skills:          parseStatBonuses(character.Skills),
 		SavingThrows:    parseStatBonuses(character.SavingThrows),
 		Features:        parseFeatures(character.Features),
+
+		// The details columns are NOT NULL with an empty default and the
+		// builders trim what they store, so these are the only fields here that
+		// pass straight through -- no nullStringValue, no fallbackString, no
+		// TrimSpace. There is nothing for those to do.
+		PersonalityTraits: character.PersonalityTraits,
+		Ideals:            character.Ideals,
+		Bonds:             character.Bonds,
+		Flaws:             character.Flaws,
+		Age:               character.Age,
+		Height:            character.Height,
+		Weight:            character.Weight,
+		Eyes:              character.Eyes,
+		Skin:              character.Skin,
+		Hair:              character.Hair,
 	}
 }
 

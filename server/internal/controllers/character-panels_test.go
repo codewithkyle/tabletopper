@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -12,11 +13,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -247,6 +250,18 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 			form:    url.Values{"features-name": {"Favored Enemy"}, "features-value": {"Undead"}},
 			want:    []string{"features"},
 		},
+		{
+			name:    "personality",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality },
+			form:    url.Values{"personality_traits": {"Quick to laugh."}, "ideals": {"Freedom."}, "bonds": {"My old company."}, "flaws": {"Locked doors."}},
+			want:    []string{"bonds", "flaws", "ideals", "personality_traits"},
+		},
+		{
+			name:    "appearance",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance },
+			form:    url.Values{"age": {"27"}, "height": {"5 ft. 10 in."}, "weight": {"160 lb."}, "eyes": {"Grey"}, "skin": {"Sun-darkened"}, "hair": {"Black"}},
+			want:    []string{"age", "eyes", "hair", "height", "skin", "weight"},
+		},
 	}
 
 	for _, c := range cases {
@@ -327,6 +342,8 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "skills"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterFeatures }},
+		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality }},
+		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance }},
 	}
 
 	for _, panel := range panels {
@@ -550,5 +567,105 @@ func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
 	// A blank row is the same for every user and every character.
 	if len(db.calls) != 0 {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
+	}
+}
+
+// The details panels are the only two whose columns a valid-looking value can
+// overflow. MySQL runs in strict mode, so without the caps the driver would
+// raise on the write and the player would get a 500 for overfilling a box the
+// sheet handed them.
+func TestDetailsPanelsRefuseAnOverlongValue(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		handler func(*App) http.HandlerFunc
+		form    url.Values
+		panel   string
+		want    string
+	}{
+		{
+			name:    "prose past the byte cap",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality },
+			form:    url.Values{"bonds": {strings.Repeat("a", characterProseLimit+1)}},
+			panel:   "personality",
+			want:    "There is too much text in bonds.",
+		},
+		{
+			name:    "a word past the character cap",
+			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance },
+			form:    url.Values{"hair": {strings.Repeat("a", characterAppearanceLimit+1)}},
+			panel:   "appearance",
+			want:    "Hair must be 64 characters or fewer.",
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			app, db := newPanelApp(1)
+
+			rec := panelPost(t, db, c.handler(app), c.form, map[string]string{"id": testCharacterID.String()})
+
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422", rec.Code)
+			}
+			if len(db.calls) != 0 {
+				t.Error("an overlong value reached the column anyway")
+			}
+			body := rec.Body.String()
+			if !strings.Contains(body, c.want) {
+				t.Errorf("body = %q, want it to carry %q", body, c.want)
+			}
+			if !strings.Contains(body, `id="errors-`+c.panel+`"`) {
+				t.Errorf("422 body is not the %s error block: %q", c.panel, body)
+			}
+		})
+	}
+}
+
+// Each cap counts what its column counts, which only shows up in text that is
+// not ASCII. VARCHAR(64) holds sixty-four CHARACTERS however many bytes they
+// weigh, so a rune count is the right one there; TEXT holds BYTES, so a rune
+// count would let a multibyte value through at several times the size.
+func TestDetailCapsAreMeasuredInTheirColumnsOwnUnits(t *testing.T) {
+	app, db := newPanelApp(1)
+	rec := panelPost(t, db, app.SaveCharacterAppearance, url.Values{
+		"hair": {strings.Repeat("é", characterAppearanceLimit)},
+	}, map[string]string{"id": testCharacterID.String()})
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200: %d characters fit a VARCHAR(%d) whatever they weigh", rec.Code, characterAppearanceLimit, characterAppearanceLimit)
+	}
+
+	app, db = newPanelApp(1)
+	rec = panelPost(t, db, app.SaveCharacterPersonality, url.Values{
+		"ideals": {strings.Repeat("é", characterProseLimit)},
+	}, map[string]string{"id": testCharacterID.String()})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422: %d two-byte runes is twice the byte cap", rec.Code, characterProseLimit)
+	}
+	if len(db.calls) != 0 {
+		t.Error("a value twice the size of the cap reached the column")
+	}
+}
+
+// The boxes carry a maxlength and the handlers carry a cap, and the two have to
+// agree or one of them is decoration. The appearance inputs carry the column's
+// own number, so that pair is exact. The textareas carry UTF-16 code units,
+// which no encoding turns into more than three bytes each -- so a full box is
+// still short of the byte cap, and only a request nobody's browser made finds
+// it.
+func TestTheDetailBoxesCannotOutrunTheirCaps(t *testing.T) {
+	const proseMaxlength = 1024
+
+	var buf bytes.Buffer
+	if err := pages.EditCharacter(pages.EditCharacterPageData{CharacterID: testCharacterID.String()}).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	if got := strings.Count(markup, `maxlength="`+strconv.Itoa(characterAppearanceLimit)+`"`); got != 6 {
+		t.Errorf("appearance inputs carrying the column's maxlength = %d, want 6", got)
+	}
+	if got := strings.Count(markup, `maxlength="`+strconv.Itoa(proseMaxlength)+`"`); got != 4 {
+		t.Errorf("prose boxes carrying maxlength=%d = %d, want 4", proseMaxlength, got)
+	}
+	if proseMaxlength*3 > characterProseLimit {
+		t.Errorf("a full prose box is at most %d bytes and the cap is %d: a browser can now trip it", proseMaxlength*3, characterProseLimit)
 	}
 }

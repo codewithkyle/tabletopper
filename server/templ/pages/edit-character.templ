@@ -71,11 +71,11 @@ templ characterPanels(data EditCharacterPageData) {
 			@textField("speed", "Speed", data.Speed, "", false)
 			@numberField("ac", "Armor Class", data.AC, true)
 			@numberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus, true)
+			@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
+			@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
 			@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
 			@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
 			@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
-			@numberField("spell_save_dc", "Spell Save DC", data.SpellSaveDC, true)
-			@numberField("spell_atk_bonus", "Spell Attack Bonus", data.SpellAtkBonus, true)
 		</div>
 	}
 	@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
@@ -108,6 +108,28 @@ templ characterPanels(data EditCharacterPageData) {
 		}
 		@sheetPanel("Spell Slots") {
 			@spellSlotsOverview(data.CharacterID, data.SpellSlots)
+		}
+	</div>
+	<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+		@savingPanel("Personality", base+"/personality", "personality") {
+			<div class="grid gap-4">
+				@proseField("personality_traits", "Personality Traits", data.PersonalityTraits, "I laugh loudest when the plan is falling apart.")
+				@proseField("ideals", "Ideals", data.Ideals, "Freedom. Every chain is one worth breaking.")
+				@proseField("bonds", "Bonds", data.Bonds, "The people I served with. I would still die for them.")
+				@proseField("flaws", "Flaws", data.Flaws, "I cannot walk past a locked door.")
+			</div>
+		}
+		@savingPanel("Appearance", base+"/appearance", "appearance") {
+			<div class="@container">
+				<div class="grid grid-cols-1 gap-4 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">
+					@wordField("age", "Age", data.Age, "27")
+					@wordField("height", "Height", data.Height, "5 ft. 10 in.")
+					@wordField("weight", "Weight", data.Weight, "160 lb.")
+					@wordField("eyes", "Eyes", data.Eyes, "Grey")
+					@wordField("skin", "Skin", data.Skin, "Sun-darkened")
+					@wordField("hair", "Hair", data.Hair, "Black, close-cropped")
+				</div>
+			</div>
 		}
 	</div>
 }

@@ -54,3 +54,36 @@ templ selectField(name string, label string, options []Option, value string, req
 		</select>
 	</div>
 }
+
+templ proseField(name string, label string, value string, placeholder string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<textarea
+			id={ name }
+			name={ name }
+			class="textarea w-full"
+			rows="4"
+			maxlength="1024"
+			if placeholder != "" {
+				placeholder={ placeholder }
+			}
+		>{ value }</textarea>
+	</div>
+}
+
+templ wordField(name string, label string, value string, placeholder string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="text"
+			class="input w-full"
+			value={ value }
+			maxlength="64"
+			if placeholder != "" {
+				placeholder={ placeholder }
+			}
+		/>
+	</div>
+}
