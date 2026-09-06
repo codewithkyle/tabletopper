@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -47,8 +48,19 @@ func (d *recordingDB) PrepareContext(context.Context, string) (*sql.Stmt, error)
 	panic("not used")
 }
 
-func (d *recordingDB) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
-	panic("not used")
+// errNoRowsToGive is what every read gets back, because a *sql.Rows cannot be
+// built outside database/sql. The statement is still recorded first, and that is
+// what the read tests are about: not what came back, but what was sent -- which
+// query, and which ids scope it.
+var errNoRowsToGive = errors.New("recordingDB has no rows to give")
+
+func (d *recordingDB) QueryContext(_ context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	d.calls = append(d.calls, recordedCall{query: query, args: args})
+	if d.err != nil {
+		return nil, d.err
+	}
+
+	return nil, errNoRowsToGive
 }
 
 func (d *recordingDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {

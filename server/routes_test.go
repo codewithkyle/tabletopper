@@ -77,6 +77,13 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},
+		// The journal search. Its parameters ride in the query string, which the
+		// mux does not see, so the pattern is the bare path -- and a POST to it
+		// is not a route at all but the /fragment/ subtree's 404, which is what
+		// keeps the prefix meaning "a GET that returns partial HTML".
+		{http.MethodGet, "/fragment/character/journal-entries", "GET /fragment/character/journal-entries"},
+		{http.MethodGet, "/fragment/character/journal-entries?character=" + id + "&q=hag", "GET /fragment/character/journal-entries"},
+		{http.MethodPost, "/fragment/character/journal-entries", "/fragment/"},
 		// None of these is a route any more, so all three fall to the catch-all
 		// rather than to one of the above. The first two were the whole-sheet
 		// save, which the panels replaced. The third was the create page, which

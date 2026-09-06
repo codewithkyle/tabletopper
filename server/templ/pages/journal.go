@@ -43,10 +43,34 @@ type Timestamp struct {
 // JournalPageData is the list. It is not EditCharacterPageData for the reason
 // InventoryPageData is not: this page has no abilities, no bonuses and no spell
 // levels to supply.
+//
+// ONE TYPE SERVES THE PAGE AND THE FRAGMENT, because a filtered list and an
+// unfiltered one are the same list. The page renders it with an empty Query and
+// the search route renders it with the term it matched, and both hand it to the
+// same component -- a fragment is never a second copy of markup.
 type JournalPageData struct {
 	CharacterID string
 	Entries     []JournalEntry
+	// Query is the term the list was filtered by, and it exists because an
+	// empty list has two meanings that need two different sentences. No entries
+	// and no query is a journal nobody has written in, and the message points
+	// at the button that starts one. No entries and a query is a search that
+	// missed, and telling that reader to write something would be answering a
+	// question they did not ask.
+	Query string
 }
+
+// journalEntriesID is the list container. It is a constant because two places
+// name it -- the div, and the search box's hx-target -- and a target that has
+// drifted from its id fails silently: htmx finds nothing to swap and the box
+// simply stops working.
+//
+// THE SEARCH BOX IS OUTSIDE THAT CONTAINER, and has to be. It swaps the list on
+// every keystroke pause, and an element that replaces itself mid-type loses the
+// caret and the value with it -- the reader would get one character per swap.
+// Everything that survives a search lives above the target; only the results are
+// inside it.
+const journalEntriesID = "journal-entries"
 
 // JournalEntryPageData is the editor. Body is the stored markdown, which
 // reaches the browser inside a textarea and only there -- templ escapes the

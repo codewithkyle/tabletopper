@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -36,9 +37,14 @@ import (
 // ParseForm takes 10 MB, so neither is the ceiling here -- the cap is low
 // because the whole body is posted on every debounce, and a runaway paste should
 // be refused with a message rather than shipped over the wire once a second.
+//
+// The search term is capped at the title's length for no deeper reason than
+// that nothing longer is a search. The box carries the same number as a
+// maxlength, so the cap is reachable only by a request nobody's browser made.
 const (
-	journalTitleLimit = 255
-	journalBodyLimit  = 262144
+	journalTitleLimit  = 255
+	journalBodyLimit   = 262144
+	journalSearchLimit = 255
 )
 
 func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
@@ -50,10 +56,10 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries, err := a.Queries.ListCharacterJournals(ctx, queries.ListCharacterJournalsParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
+	// The page always renders the whole list. A ?q= on it would have to come
+	// from a bookmark, because the box never puts one there -- see the search
+	// route for why the search stays out of the URL.
+	entries, err := a.journalEntries(ctx, characterID, sess.UserID, "")
 	if err != nil {
 		slog.Error("Failed to load journal entries", "error", err)
 		redirectToError(w, r)
@@ -62,7 +68,65 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 
 	render(w, r, pages.EditCharacterJournal(pages.JournalPageData{
 		CharacterID: characterID.String(),
-		Entries:     journalPageEntries(entries),
+		Entries:     entries,
+	}))
+}
+
+// JournalEntriesFragment is the list under the search box, filtered by ?q=. It
+// is a GET returning the same component the page renders, which is what the
+// /fragment/ prefix promises.
+//
+// IT DOES NOT LOAD THE CHARACTER. Every other journal route does, because every
+// other one needs the row or needs to redirect somewhere sensible without it.
+// This one needs neither: owner_id goes into the query beside character_id, so
+// an id belonging to somebody else matches nothing and comes back as an empty
+// list. That reply is indistinguishable from an empty journal, which is the
+// point -- it says nothing about whether the character exists. A GetCharacter
+// before the search would be a second round trip to learn something the search
+// already enforces.
+//
+// THE SEARCH IS NOT IN THE URL, and hx-push-url is deliberately absent from the
+// box. htmx pushes on every swap, and the swaps here are on a 250ms debounce, so
+// pushing would file a history entry per pause in typing and leave Back walking
+// the term backwards a few characters at a time. A filter on a list is worth
+// less than a working Back button.
+//
+// A bad character id is a 404 with an empty body, not htmx.NotFound: the id came
+// off the page's own markup, so a request carrying a broken one is not a reader
+// who has lost a character and has nothing to be told.
+func (a *App) JournalEntriesFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	params := r.URL.Query()
+
+	characterID, err := ulid.Parse(params.Get("character"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Trimmed, so a term someone is still typing a space into does not stop
+	// matching, and so a box holding nothing but spaces is the whole list
+	// rather than a search for a space.
+	term := strings.TrimSpace(params.Get("q"))
+	if len([]rune(term)) > journalSearchLimit {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	entries, err := a.journalEntries(ctx, characterID, sess.UserID, term)
+	if err != nil {
+		slog.Error("Failed to search journal entries", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.JournalEntriesFragment(pages.JournalPageData{
+		CharacterID: characterID.String(),
+		Entries:     entries,
+		Query:       term,
 	}))
 }
 
@@ -341,18 +405,76 @@ func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/characters/"+characterID.String()+"/edit/journal")
 }
 
-func journalPageEntries(rows []queries.ListCharacterJournalsRow) []pages.JournalEntry {
-	entries := make([]pages.JournalEntry, 0, len(rows))
-	for _, row := range rows {
-		entries = append(entries, pages.JournalEntry{
-			ID:      row.ID.String(),
-			Title:   row.Title,
-			Created: journalTimestamp(row.CreatedAt),
-			Updated: journalTimestamp(row.UpdatedAt),
+// journalEntries reads one character's list, filtered when there is a term to
+// filter by. Both branches select the same four columns in the same order and
+// build the same rows, so the caller cannot tell a search from a list and does
+// not need to.
+//
+// AN EMPTY TERM TAKES THE UNFILTERED QUERY rather than searching for "%%",
+// which would match every row and be the same answer. The difference is what
+// gets read to produce it: the list query never names body, and the search one
+// has to scan it. Clearing the box is the common case -- it happens at the end
+// of every search -- and it should cost what the page load costs.
+func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID, term string) ([]pages.JournalEntry, error) {
+	if term == "" {
+		rows, err := a.Queries.ListCharacterJournals(ctx, queries.ListCharacterJournalsParams{
+			CharacterID: characterID,
+			OwnerID:     ownerID,
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		entries := make([]pages.JournalEntry, 0, len(rows))
+		for _, row := range rows {
+			entries = append(entries, journalPageEntry(row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
+		}
+
+		return entries, nil
 	}
 
-	return entries
+	rows, err := a.Queries.SearchCharacterJournals(ctx, queries.SearchCharacterJournalsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+		Term:        journalSearchPattern(term),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]pages.JournalEntry, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, journalPageEntry(row.ID, row.Title, row.CreatedAt, row.UpdatedAt))
+	}
+
+	return entries, nil
+}
+
+// journalSearchWildcards escapes what LIKE reads as a pattern. `%` and `_` are
+// wildcards to MySQL and ordinary punctuation to a person, and `\` is what
+// escapes them, so it has to be doubled first or escaping the other two would
+// arm it. Without this, typing a single `%` matches every entry the character
+// has and `_` quietly matches any character at all.
+//
+// MySQL's default LIKE escape is `\` and the values arrive as bound parameters,
+// so this is the only place the string is ever read as a pattern.
+var journalSearchWildcards = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
+
+// journalSearchPattern turns a term into a substring match, which is what a box
+// above a list is read as doing. Anchoring it instead -- `term%` -- would find
+// "marsh" in "marshalling" and miss it in "the marsh", and the second is the one
+// somebody searching their own prose is looking for.
+func journalSearchPattern(term string) string {
+	return "%" + journalSearchWildcards.Replace(term) + "%"
+}
+
+func journalPageEntry(id ulid.ULID, title string, created, updated time.Time) pages.JournalEntry {
+	return pages.JournalEntry{
+		ID:      id.String(),
+		Title:   title,
+		Created: journalTimestamp(created),
+		Updated: journalTimestamp(updated),
+	}
 }
 
 // journalTimestamp renders one date twice, in UTC both times.

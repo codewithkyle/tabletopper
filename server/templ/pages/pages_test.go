@@ -43,9 +43,12 @@ func TestPagesRenderConcurrently(t *testing.T) {
 			return render(EditCharacterJournalEntry(JournalEntryPageData{}))
 		},
 		"journal-link-fragment": func() error { return render(JournalLinkFragment()) },
-		"assets":                func() error { return render(MapAssets([]queries.Asset{})) },
-		"sign-in":               func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":                   func() error { return render(TOS()) },
+		"journal-entries-fragment": func() error {
+			return render(JournalEntriesFragment(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
+		},
+		"assets":  func() error { return render(MapAssets([]queries.Asset{})) },
+		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":     func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -1398,6 +1401,121 @@ func TestJournalListNamesTheUnnamedEntry(t *testing.T) {
 
 	if !strings.Contains(buf.String(), "Untitled entry") {
 		t.Errorf("an unnamed entry renders a blank line\n%s", buf.String())
+	}
+}
+
+// The box swaps the list on every pause in typing, so it cannot be inside the
+// thing it swaps: an input that replaces itself mid-type loses the caret and its
+// own value with it, and the reader gets one character per swap. This pins the
+// order -- box first, target second -- and pins the target to the id the
+// container actually carries, because a target that has drifted fails silently.
+// htmx finds nothing to swap and the box just stops working.
+func TestJournalSearchBoxSitsOutsideTheListItSwaps(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	var buf bytes.Buffer
+	err := EditCharacterJournal(JournalPageData{
+		CharacterID: characterID,
+		Entries:     []JournalEntry{testJournalEntry()},
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	markup := buf.String()
+
+	box := strings.Index(markup, `name="q"`)
+	if box < 0 {
+		t.Fatalf("no search box\n%s", markup)
+	}
+
+	container := `id="` + journalEntriesID + `"`
+	list := strings.Index(markup, container)
+	if list < 0 {
+		t.Fatalf("no list container\n%s", markup)
+	}
+	if box > list {
+		t.Errorf("the search box is inside the list it swaps\n%s", markup)
+	}
+	if got := strings.Count(markup, container); got != 1 {
+		t.Errorf("the list container id appears %d times, want 1", got)
+	}
+
+	if !strings.Contains(markup, `hx-target="#`+journalEntriesID+`"`) {
+		t.Errorf("the box does not aim at the list\n%s", markup)
+	}
+	// A GET, and under /fragment/, because the reply is part of a page that is
+	// already open. The character rides in the query string; htmx appends the
+	// box's own q beside it rather than replacing what is already there.
+	if !strings.Contains(markup, `hx-get="/fragment/character/journal-entries?character=`+characterID+`"`) {
+		t.Errorf("the box does not call the fragment route\n%s", markup)
+	}
+	// The server refuses a longer term with a 404, which is an empty reply and
+	// so a list that silently stops updating. This is what keeps that
+	// unreachable from the control that sends it.
+	if !strings.Contains(markup, `maxlength="255"`) {
+		t.Errorf("the box is not capped at the length the server accepts\n%s", markup)
+	}
+}
+
+// An empty list has two causes and they need two different sentences. Nothing
+// written is a journal to start, and the message points at the button that
+// starts one. Nothing matched is a search that missed, and telling that reader
+// to go and write something answers a question they did not ask.
+func TestJournalEmptyListDistinguishesUnwrittenFromUnmatched(t *testing.T) {
+	render := func(t *testing.T, data JournalPageData) string {
+		t.Helper()
+
+		var buf bytes.Buffer
+		if err := EditCharacterJournal(data).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+
+		return buf.String()
+	}
+
+	unwritten := render(t, JournalPageData{})
+	if !strings.Contains(unwritten, "Nothing written down yet.") {
+		t.Errorf("an empty journal does not say so\n%s", unwritten)
+	}
+
+	unmatched := render(t, JournalPageData{Query: "hag"})
+	if !strings.Contains(unmatched, `No entries match &#34;hag&#34;.`) {
+		t.Errorf("a search that missed does not say so\n%s", unmatched)
+	}
+	if strings.Contains(unmatched, "Nothing written down yet.") {
+		t.Errorf("a search that missed reads as an empty journal\n%s", unmatched)
+	}
+}
+
+// A fragment is never a second copy of markup. The search route returns the same
+// component the page renders, so a card that grows a control grows it in both
+// places at once -- and this fails the moment the two are allowed to drift,
+// because the fragment stops being a substring of the page.
+func TestJournalSearchFragmentIsNotASecondCopyOfTheList(t *testing.T) {
+	data := JournalPageData{
+		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		Entries:     []JournalEntry{testJournalEntry()},
+		Query:       "hag",
+	}
+
+	var page, fragment bytes.Buffer
+	if err := EditCharacterJournal(data).Render(context.Background(), &page); err != nil {
+		t.Fatalf("render page: %v", err)
+	}
+	if err := JournalEntriesFragment(data).Render(context.Background(), &fragment); err != nil {
+		t.Fatalf("render fragment: %v", err)
+	}
+
+	if fragment.Len() == 0 {
+		t.Fatal("the fragment rendered nothing")
+	}
+	if !strings.Contains(page.String(), fragment.String()) {
+		t.Errorf("the fragment is not the page's own list\nfragment:\n%s\npage:\n%s", fragment.String(), page.String())
+	}
+	// The fragment is what lands inside the container, so it must not bring a
+	// second one with it.
+	if strings.Contains(fragment.String(), `id="`+journalEntriesID+`"`) {
+		t.Errorf("the fragment carries the container it is swapped into\n%s", fragment.String())
 	}
 }
 

@@ -6,23 +6,53 @@ templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
 		@editCharacterShell(data.CharacterID, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
 			@sheetPanel("Journal") {
-				<div id="journal-entries" class="grid gap-3">
-					for _, entry := range data.Entries {
-						@journalEntryCard(data.CharacterID, entry)
-					}
-					if len(data.Entries) == 0 {
-						<p class="text-base-content/70">Nothing written down yet. Start one with the New Entry button above.</p>
-					}
+				@journalSearchBox(data.CharacterID)
+				<div id={ journalEntriesID } class="grid gap-3">
+					@journalEntryList(data)
 				</div>
 			}
 		}
 	}
 }
 
+templ JournalEntriesFragment(data JournalPageData) {
+	@journalEntryList(data)
+}
+
 templ journalCreateForm(characterID string) {
 	<form method="post" action={ "/characters/" + characterID + "/journal" } class="max-[640px]:flex-1">
 		<button type="submit" class="btn btn-primary w-full">New Entry</button>
 	</form>
+}
+
+templ journalSearchBox(characterID string) {
+	<input
+		type="search"
+		name="q"
+		class="input w-full"
+		placeholder="Search this journal"
+		aria-label="Search this journal"
+		aria-controls={ journalEntriesID }
+		autocomplete="off"
+		maxlength="255"
+		hx-get={ "/fragment/character/journal-entries?character=" + characterID }
+		hx-trigger="input changed delay:250ms, search"
+		hx-target={ "#" + journalEntriesID }
+		hx-swap="innerHTML"
+	/>
+}
+
+templ journalEntryList(data JournalPageData) {
+	for _, entry := range data.Entries {
+		@journalEntryCard(data.CharacterID, entry)
+	}
+	if len(data.Entries) == 0 {
+		if data.Query == "" {
+			<p class="text-base-content/70">Nothing written down yet. Start one with the New Entry button above.</p>
+		} else {
+			<p class="text-base-content/70">No entries match &#34;{ data.Query }&#34;.</p>
+		}
+	}
 }
 
 templ journalEntryCard(characterID string, entry JournalEntry) {

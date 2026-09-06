@@ -122,6 +122,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// The delete answers 200 and not 204, for the reason the inventory block
 	// above gives: noSwap lists 204, and a status in that list overrides the
 	// hx-swap="delete" on the button.
+	//
+	// Searching the list is a GET returning part of this page, so it is not here
+	// -- it is the journal-entries fragment further down.
 	mux.HandleFunc("GET /characters/{id}/edit/journal", auth.RequireSession(app.CharacterJournalPage))
 	mux.HandleFunc("GET /characters/{id}/edit/journal/{entryId}", auth.RequireSession(app.CharacterJournalEntryPage))
 	mux.HandleFunc("POST /characters/{id}/journal", auth.RequireSession(app.CreateJournalEntry))
@@ -156,6 +159,12 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
 	mux.HandleFunc("GET /fragment/character/journal-link", auth.Fragment(app.JournalLinkFragment))
+	// The journal list, filtered by ?q=. It is the one fragment here that reads
+	// parameters, and both are checked before anything is queried: the character
+	// must parse as a ULID and the term must be no longer than the box that
+	// sends it. The search stays a GET returning the same component the page
+	// renders, which is exactly what this prefix is for.
+	mux.HandleFunc("GET /fragment/character/journal-entries", auth.Fragment(app.JournalEntriesFragment))
 
 	// Subtree pattern, so it takes any /fragment/ path the three above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's

@@ -389,3 +389,117 @@ func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
+
+// journalSearch drives the search fragment the way the box does: a GET with the
+// character in the path it was rendered with and the term appended beside it.
+func journalSearch(t *testing.T, app *App, character, term string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	target := "/fragment/character/journal-entries?character=" + url.QueryEscape(character) + "&q=" + url.QueryEscape(term)
+	r := httptest.NewRequest(http.MethodGet, target, nil)
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+
+	rec := httptest.NewRecorder()
+	app.JournalEntriesFragment(rec, r)
+
+	return rec
+}
+
+// THE SEARCH IS SCOPED IN THE STATEMENT, and that is the whole of its access
+// control -- this route is the one journal handler that never loads the
+// character first. owner_id sits beside character_id in the WHERE, so a
+// character belonging to somebody else matches nothing and comes back as an
+// empty list, which is the same reply an empty journal gives. Drop the owner
+// from the statement and the route hands one user another user's journal.
+func TestJournalSearchIsScopedToTheCharacterAndTheOwner(t *testing.T) {
+	app, db := newPanelApp(0)
+
+	journalSearch(t, app, testCharacterID.String(), "hag")
+
+	call := db.only(t)
+	if !strings.Contains(call.query, "FROM journals") || !strings.Contains(call.query, "LIKE") {
+		t.Fatalf("did not run the search:\n%s", call.query)
+	}
+
+	want := []any{testCharacterID, testOwnerID, "%hag%", "%hag%"}
+	if len(call.args) != len(want) {
+		t.Fatalf("args = %v, want %v", call.args, want)
+	}
+	for i, want := range want {
+		if call.args[i] != want {
+			t.Errorf("args[%d] = %v, want %v", i, call.args[i], want)
+		}
+	}
+}
+
+// An empty box is the whole list, and it has to read the LIST query to get it.
+// Searching for "%%" would return the same rows, and would scan every body to
+// do it -- on the one path that runs most often, because clearing the box is how
+// every search ends.
+func TestAnEmptySearchReadsTheUnfilteredList(t *testing.T) {
+	for _, term := range []string{"", "   "} {
+		app, db := newPanelApp(0)
+
+		journalSearch(t, app, testCharacterID.String(), term)
+
+		call := db.only(t)
+		if strings.Contains(call.query, "LIKE") {
+			t.Errorf("a blank term %q ran a search:\n%s", term, call.query)
+		}
+		if strings.Contains(call.query, "body") {
+			t.Errorf("a blank term %q read bodies:\n%s", term, call.query)
+		}
+	}
+}
+
+// `%` and `_` are wildcards to LIKE and ordinary characters to somebody typing.
+// Unescaped, a single `%` matches every entry the character has, and `_` matches
+// any character at all -- so a search for "d_ce" would find "dice" and "dance".
+// The backslash goes first, because escaping it after the other two would arm
+// the escapes just written.
+func TestJournalSearchEscapesLikeWildcards(t *testing.T) {
+	for _, tc := range []struct{ term, want string }{
+		{"hag", "%hag%"},
+		{"100%", `%100\%%`},
+		{"d_ce", `%d\_ce%`},
+		{`C:\`, `%C:\\%`},
+		{`50%_off`, `%50\%\_off%`},
+	} {
+		if got := journalSearchPattern(tc.term); got != tc.want {
+			t.Errorf("journalSearchPattern(%q) = %q, want %q", tc.term, got, tc.want)
+		}
+	}
+}
+
+// Both parameters are checked before anything is queried. The character id comes
+// off the page's own markup and the term is capped at the box's maxlength, so
+// neither failure is reachable from the control that sends them -- which is why
+// the reply is a bare 404 rather than the alert dialog. There is no reader here
+// to tell anything to.
+func TestJournalSearchRefusesWhatTheBoxCannotSend(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		character string
+		term      string
+	}{
+		{"no character", "", "hag"},
+		{"character is not a ULID", "the-marsh", "hag"},
+		{"term is longer than the box", testCharacterID.String(), strings.Repeat("a", journalSearchLimit+1)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			app, db := newPanelApp(0)
+
+			rec := journalSearch(t, app, tc.character, tc.term)
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+			}
+			if rec.Body.Len() != 0 {
+				t.Errorf("body = %q, want empty", rec.Body.String())
+			}
+			if len(db.calls) != 0 {
+				t.Errorf("reached the database: %v", db.calls)
+			}
+		})
+	}
+}
