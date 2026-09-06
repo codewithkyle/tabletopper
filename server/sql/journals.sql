@@ -114,11 +114,18 @@ WHERE id = ? AND character_id = ? AND owner_id = ?;
 -- the character id all arrive in a URL and none of them is trusted, and the
 -- owner comes from the session.
 --
--- REMOVAL IS DETACHMENT. Nothing here deletes an object or a row in a request:
--- an image the body no longer references has detached_at set, and the sweeper
--- deletes it a day later. That keeps every delete one fast statement whatever
--- the image count, and gives an undo a day to land on an image that is still
--- there.
+-- REMOVAL IS DETACHMENT WHILE THE ENTRY IS STILL THERE. An image the body no
+-- longer references has detached_at set and the sweeper deletes it a day later,
+-- which keeps a save one statement whatever the image count and gives an undo a
+-- day to land on a picture that is still serving. Deleting the entry does the
+-- same, for the first of those reasons: forty images cost what none do, and the
+-- rows stay behind for the sweeper to find.
+--
+-- DELETING THE CHARACTER DOES NOT. That request already empties five tables and
+-- reaches R2, so there is no one-statement delete left to protect, and no entry
+-- left for an undo to land in. ListCharacterJournalImages and
+-- DeleteCharacterJournalImages at the bottom of this file take the objects and
+-- the rows in the request that asked for them.
 
 -- name: CountJournalImages :one
 -- The upload's ownership check and its cap in one statement. GROUP BY is what
@@ -174,17 +181,33 @@ WHERE id = ? AND owner_id = ? AND type = 'journal' AND detached_at IS NULL;
 UPDATE assets SET detached_at = NOW()
 WHERE journal_id = ? AND owner_id = ? AND type = 'journal' AND detached_at IS NULL;
 
--- name: DetachCharacterJournalImages :exec
--- Deleting a character. Runs BEFORE DeleteCharacterJournals, because it finds
--- the images through the journals rows that statement removes.
+-- name: ListCharacterJournalImages :many
+-- The keys the bucket is holding for one character's journal. It runs FIRST in
+-- a character delete and it has to: it finds them through the journals table,
+-- and once those rows are gone nothing is left that remembers which objects
+-- belonged to whom.
+--
+-- file_path and nothing else. The rows go by the statement below, which finds
+-- them the same way, so ids read here would only be carried to be thrown away.
+SELECT assets.file_path
+FROM assets
+JOIN journals ON journals.id = assets.journal_id
+WHERE journals.character_id = sqlc.arg(character_id) AND journals.owner_id = sqlc.arg(owner_id)
+    AND assets.type = 'journal';
+
+-- name: DeleteCharacterJournalImages :exec
+-- Deleting a character takes its pictures outright. AFTER the objects, because
+-- the row is the record that an object may exist, and BEFORE
+-- DeleteCharacterJournals, because this finds its rows through the journals
+-- table and would match nothing once that table had been emptied.
 --
 -- EVERY COLUMN IS QUALIFIED, and it has to be: both tables carry owner_id and
 -- both are in scope inside the subquery, so a bare one is ambiguous and sqlc
 -- refuses to generate. Naming owner_id the same on both sides of the boundary
 -- is deliberate -- it yields one OwnerID field bound to both, where two
 -- positional ? would have given OwnerID and OwnerID_2.
-UPDATE assets SET detached_at = NOW()
-WHERE assets.owner_id = sqlc.arg(owner_id) AND assets.type = 'journal' AND assets.detached_at IS NULL
+DELETE FROM assets
+WHERE assets.owner_id = sqlc.arg(owner_id) AND assets.type = 'journal'
     AND assets.journal_id IN (
         SELECT journals.id FROM journals
         WHERE journals.character_id = sqlc.arg(character_id) AND journals.owner_id = sqlc.arg(owner_id)

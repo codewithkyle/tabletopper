@@ -52,3 +52,12 @@ WHERE id = ? AND character_id = ? AND owner_id = ?;
 -- name: DeleteInventoryItem :execresult
 DELETE FROM inventory
 WHERE id = ? AND character_id = ? AND owner_id = ?;
+
+-- name: DeleteCharacterInventory :exec
+-- The inventory step of a character delete, and the one statement in this file
+-- with no id in it. Nothing cascades in this schema -- there are no foreign
+-- keys -- so every table that carries a character_id has to be named by the
+-- handler, and a row left behind here is unreachable: no page can open it and
+-- no later delete will ever find it.
+DELETE FROM inventory
+WHERE character_id = ? AND owner_id = ?;

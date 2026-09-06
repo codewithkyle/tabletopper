@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -16,22 +18,41 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// DeleteCharacter removes the character, its journal, its avatar object and the
-// avatar's asset row. Object first, rows after: the rows are the record that an
-// object may exist, so they go only once R2 has confirmed it is gone. A
-// failure to drop the asset row after the character is gone is logged and
-// not reported, because the user's request has been honoured.
+// DeleteCharacter empties every table that holds a row for this character,
+// deletes the objects those rows point at, and only then removes the character
+// itself.
 //
-// THE JOURNAL GOES FIRST, AND ITS IMAGES ARE HANDED TO THE SWEEPER. There are
-// no foreign keys in this schema, so nothing cascades and every table has to be
-// named here. Detaching the images rather than deleting them is what keeps this
-// a handful of statements for a character with a long journal: an entry with
-// forty pictures costs the same as an empty one, and internal/sweep deletes the
-// objects a day later.
+// NOTHING CASCADES IN THIS SCHEMA -- there are no foreign keys -- so every one
+// of those tables is named here, and a row this handler forgets is unreachable
+// the moment the character is gone: no page can open it, no later delete will
+// find it, and an asset row it forgot is a key sitting in the bucket that
+// nothing will ever ask for again. The order below is the whole of the safety.
 //
-// Inventory, spells and spell_slots rows are still left behind. That is a known
-// gap rather than a decision, and the two statements below are the pattern to
-// follow when it is closed.
+// OBJECTS BEFORE THE ROWS THAT DESCRIBE THEM. The row is the record that an
+// object may exist, so R2 goes first and the rows after; the other way round
+// leaves a bucket filling with keys nothing remembers. That is also why the
+// journal image paths are read before anything is deleted at all -- the join
+// that finds them runs through the journals table, and once those rows are gone
+// there is nothing left that knows which objects were this character's.
+//
+// ONE CLASS OF PICTURE IS NOT REACHED FROM HERE, and it belongs to the
+// sweeper. Deleting a single entry detaches its images and removes the entry
+// row, so their journal_id names a journal that is gone and the join above
+// cannot see them. They are already marked detached, which is precisely what
+// internal/sweep looks for, and it takes the object and the row within the day.
+//
+// THE CHARACTER ROW GOES LAST, and that is what makes every failure above it
+// recoverable. While it is there the roster still lists the character and
+// deleting it again re-runs the whole purge from the top: every statement is a
+// delete scoped by the character and the owner, so repeating one finds nothing
+// and succeeds, and a key already gone from R2 deletes again without complaint.
+// So each step below reports its failure and stops, and the reader gets a
+// character they can delete a second time rather than a report of a delete that
+// half happened.
+//
+// Past that row there is nothing left to find, which is why the avatar's asset
+// row -- the one step that runs after it -- is logged rather than reported: a
+// retry could not reach it, and the user's request has been honoured.
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -56,32 +77,23 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// BEFORE DeleteCharacterJournals, because it finds the images through the
-	// journals rows that statement removes -- and both before the character
-	// row goes, which is the ordering that matters if one of them fails.
-	// Nothing cascades in this schema, so a journal left behind by a character
-	// that is already gone is unreachable: no page can open it, and no later
-	// delete will ever retry it. Going the other way round risks the smaller
-	// failure instead -- a character still listed whose journal is empty --
-	// which the reader can clear by deleting it again.
-	//
-	// So either error stops here rather than carrying on.
-	err = a.Queries.DetachCharacterJournalImages(ctx, queries.DetachCharacterJournalImagesParams{
-		OwnerID:     sess.UserID,
+	// Read first, destroy after. This is the only step that has to precede the
+	// deletes rather than merely preferring to.
+	imageKeys, err := a.Queries.ListCharacterJournalImages(ctx, queries.ListCharacterJournalImagesParams{
 		CharacterID: characterID,
+		OwnerID:     sess.UserID,
 	})
 	if err != nil {
-		slog.Error("Failed to detach character journal images", "error", err)
+		slog.Error("Failed to list character journal images", "error", err)
 		htmx.ServerError(w)
 		return
 	}
 
-	err = a.Queries.DeleteCharacterJournals(ctx, queries.DeleteCharacterJournalsParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete character journals", "error", err)
+	// One call for the journal, whatever its size: DeleteMany batches, and an
+	// empty list is a no-op, so a character who never pasted a picture pays
+	// nothing for this.
+	if err := a.Storage.DeleteMany(ctx, imageKeys); err != nil {
+		slog.Error("Failed to delete journal image objects", "error", err, "count", len(imageKeys))
 		htmx.ServerError(w)
 		return
 	}
@@ -92,6 +104,12 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 			htmx.ServerError(w)
 			return
 		}
+	}
+
+	if err := a.deleteCharacterRows(ctx, characterID, sess.UserID); err != nil {
+		slog.Error("Failed to delete character rows", "error", err)
+		htmx.ServerError(w)
+		return
 	}
 
 	err = a.Queries.DeleteCharacter(ctx, queries.DeleteCharacterParams{
@@ -115,6 +133,60 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	htmx.Toast(w, character.Name+" has been deleted.")
+}
+
+// deleteCharacterRows empties every table that carries this character's rows,
+// and it is separate from the handler because the list is the point: one
+// statement per table, in one place, so a table added to the schema has an
+// obvious hole to fill. TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows
+// reads db/schema.sql and fails when one is missing.
+//
+// THE FIRST TWO ARE ORDERED AND THE REST ARE NOT. The image delete finds its
+// rows through the journals table, so emptying that table first would leave
+// every picture behind with nothing pointing at it. The other three are
+// independent and run in the order they were written.
+//
+// The first failure stops the purge and is returned wrapped, so the log names
+// the table rather than only the driver error -- which of these failed is the
+// difference between a leftover the reader can clear by deleting again and one
+// they cannot.
+func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid.ULID) error {
+	if err := a.Queries.DeleteCharacterJournalImages(ctx, queries.DeleteCharacterJournalImagesParams{
+		OwnerID:     ownerID,
+		CharacterID: characterID,
+	}); err != nil {
+		return fmt.Errorf("journal images: %w", err)
+	}
+
+	if err := a.Queries.DeleteCharacterJournals(ctx, queries.DeleteCharacterJournalsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("journals: %w", err)
+	}
+
+	if err := a.Queries.DeleteCharacterInventory(ctx, queries.DeleteCharacterInventoryParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("inventory: %w", err)
+	}
+
+	if err := a.Queries.DeleteCharacterSpells(ctx, queries.DeleteCharacterSpellsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("spells: %w", err)
+	}
+
+	if err := a.Queries.DeleteCharacterSpellSlots(ctx, queries.DeleteCharacterSpellSlotsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	}); err != nil {
+		return fmt.Errorf("spell slots: %w", err)
+	}
+
+	return nil
 }
 
 // CharacterPage is the Character tab, and the only page that renders the

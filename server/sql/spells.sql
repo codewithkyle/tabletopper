@@ -120,3 +120,16 @@ SELECT characters.id, characters.owner_id, sqlc.arg(level), sqlc.arg(slots), sql
 FROM characters
 WHERE characters.id = sqlc.arg(character_id) AND characters.owner_id = sqlc.arg(owner_id)
 ON DUPLICATE KEY UPDATE slots = sqlc.arg(slots), used = sqlc.arg(used);
+
+-- The two spell steps of a character delete. Both tables carry a character_id
+-- and nothing cascades in this schema, so both have to be named; spell_slots is
+-- separate because it is a separate table, not because it survives anything the
+-- other does not.
+
+-- name: DeleteCharacterSpells :exec
+DELETE FROM spells
+WHERE character_id = ? AND owner_id = ?;
+
+-- name: DeleteCharacterSpellSlots :exec
+DELETE FROM spell_slots
+WHERE character_id = ? AND owner_id = ?;

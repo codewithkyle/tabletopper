@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -288,37 +287,6 @@ func TestDeleteJournalEntryDetachesBeforeDeleting(t *testing.T) {
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
 		if got, ok := del.args[i].(ulid.ULID); !ok || got != want {
 			t.Errorf("delete arg %d = %v, want %v", i, del.args[i], want)
-		}
-	}
-}
-
-// DELETING A CHARACTER DETACHES ITS JOURNAL IMAGES THROUGH THE journals TABLE,
-// and that is why DeleteCharacter runs this before it empties that table. The
-// handler's order cannot be driven from here -- it opens with a :one that
-// recordingDB answers by panicking -- so what is pinned is the reason for it:
-// the statement's subquery. Rewrite it to find images some other way and the
-// ordering in DeleteCharacter stops mattering; leave it and reordering the two
-// silently orphans every picture in the character's journal.
-func TestDetachingACharactersImagesReadsTheJournalsTable(t *testing.T) {
-	app, db := newPanelApp(1)
-
-	err := app.Queries.DetachCharacterJournalImages(context.Background(), queries.DetachCharacterJournalImagesParams{
-		OwnerID:     testOwnerID,
-		CharacterID: testCharacterID,
-	})
-	if err != nil {
-		t.Fatalf("DetachCharacterJournalImages: %v", err)
-	}
-
-	call := db.only(t)
-	if !strings.Contains(call.query, "UPDATE assets") || !strings.Contains(call.query, "FROM journals") {
-		t.Fatalf("the detach does not find its rows through journals:\n%s", call.query)
-	}
-	// The owner is bound on both sides of the subquery boundary, which is what
-	// keeps one user's delete out of another user's images.
-	for i, want := range []ulid.ULID{testOwnerID, testCharacterID, testOwnerID} {
-		if got, ok := call.args[i].(ulid.ULID); !ok || got != want {
-			t.Errorf("arg %d = %v, want %v", i, call.args[i], want)
 		}
 	}
 }
