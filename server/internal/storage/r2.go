@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -112,6 +113,49 @@ func (c *Client) DeleteMany(ctx context.Context, keys []string) error {
 		if len(out.Errors) > 0 {
 			failed := out.Errors[0]
 			return fmt.Errorf("storage: delete %q: %s", aws.ToString(failed.Key), aws.ToString(failed.Message))
+		}
+	}
+
+	return nil
+}
+
+// DeletePrefix removes every object under a prefix, a page at a time. It is
+// how a whole tile pyramid goes: one list and one batch delete per thousand
+// objects rather than a call per tile.
+//
+// THE PREFIX MUST END IN "/". Without that rule a prefix is a string match
+// rather than a directory, so a caller one character short of the boundary
+// takes a sibling with it -- and the empty prefix, which is what a
+// zero-valued id builds, takes the entire bucket. Every prefix this store
+// hands out is a directory, so requiring it costs nothing and the mistake
+// cannot be made.
+//
+// ListObjectsV2 pages at a thousand keys and DeleteMany batches at a thousand,
+// so each page is exactly one delete call. A failure partway through leaves
+// what has not been reached yet; the caller retries the whole prefix, which is
+// safe because deleting a key that is already gone succeeds.
+func (c *Client) DeletePrefix(ctx context.Context, prefix string) error {
+	if prefix == "" || !strings.HasSuffix(prefix, "/") {
+		return fmt.Errorf("storage: %q is not a prefix", prefix)
+	}
+
+	pages := s3.NewListObjectsV2Paginator(c.s3, &s3.ListObjectsV2Input{
+		Bucket: aws.String(c.bucket),
+		Prefix: aws.String(prefix),
+	})
+
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+
+		keys := make([]string, 0, len(page.Contents))
+		for _, object := range page.Contents {
+			keys = append(keys, aws.ToString(object.Key))
+		}
+		if err := c.DeleteMany(ctx, keys); err != nil {
+			return err
 		}
 	}
 

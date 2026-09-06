@@ -84,6 +84,15 @@ sql:
           # []byte.
           - column: "assets.journal_id"
             go_type: *nullable_ulid
+          # assets.tile_gen and assets.tile_lease are here for the same reason:
+          # each holds a ULID naming one generation of a map's tile pyramid,
+          # each is NULL until a tiling job has something to say, and neither
+          # matches a wildcard either. Without these they would come back as
+          # []byte.
+          - column: "assets.tile_gen"
+            go_type: *nullable_ulid
+          - column: "assets.tile_lease"
+            go_type: *nullable_ulid
           - column: "*.id"
             go_type: *ulid
           - column: "*.user_id"
