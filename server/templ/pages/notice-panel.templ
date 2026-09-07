@@ -1,0 +1,12 @@
+package pages
+
+templ noticePanel(heading string) {
+	<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] max-w-md text-center" }>
+		<div class="card-body p-8">
+			<p class="m-0 font-serif text-2xl">{ heading }</p>
+			<div class="mt-4 text-base-content/75">
+				{ children... }
+			</div>
+		</div>
+	</div>
+}

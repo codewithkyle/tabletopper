@@ -37,6 +37,14 @@ type MonsterListData struct {
 	Query    string
 }
 
+// noMatch is the heading a search that found nothing gets. It is assembled here
+// rather than in the markup so the term and the sentence around it are not text
+// in a scanned file, and it goes through the same builder the asset manager's
+// four lists use -- see notice-panel.go.
+func (d MonsterListData) noMatch() string {
+	return noMatchHeading("monsters", d.Query)
+}
+
 // MonsterSummary is one monster as its card needs it, and no more of the row
 // than that. The manual lists hundreds of these and the card shows five values,
 // so it takes the five rather than the whole stat block -- which also means the

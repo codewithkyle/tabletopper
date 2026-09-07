@@ -105,21 +105,16 @@ templ assetCards(g assetGrid) {
 		{ children... }
 		<div class="col-span-full hidden only:block">
 			if g.Query == "" {
-				@assetEmptyState(g.EmptyHeading, g.EmptyBlurb)
+				@noticePanel(g.EmptyHeading) {
+					{ g.EmptyBlurb }
+				}
 			} else {
-				<p class="mt-[min(14vh,7rem)] text-center text-base-content/70">{ g.NoMatch }</p>
+				@noticePanel(g.NoMatch) {
+					{ noMatchHint }
+				}
 			}
 		</div>
 	</section>
-}
-
-templ assetEmptyState(heading string, blurb string) {
-	<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] max-w-md text-center" }>
-		<div class="card-body p-8">
-			<p class="m-0 font-serif text-2xl">{ heading }</p>
-			<p class="m-0 mt-4 text-base-content/75">{ blurb }</p>
-		</div>
-	</div>
 }
 
 templ mapUploadButton() {

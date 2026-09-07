@@ -2685,6 +2685,72 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 	}
 }
 
+// EVERY LIST IN THE APP SAYS SO THE SAME WAY WHEN IT HAS NOTHING TO SHOW, and
+// there are five of these: four asset kinds and the manual, each in two states.
+//
+// THEY WERE DRIFTING, WHICH IS WHY THIS IS ASSERTED. The two empty states were
+// near-copies of one another; the two "nothing matched" messages were bare
+// paragraphs, so one of them was left-aligned on a page whose empty state was
+// centred, and both sat straight on the grid paper with nothing behind them. A
+// message with no surface under it does not read as an empty list -- it reads as
+// a page that failed to load.
+func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
+	for name, c := range map[string]struct {
+		cards templ.Component
+		// match is the term echoed back, and is empty for a list that was
+		// never searched -- those get their own copy and must not offer to
+		// clear a search box nobody typed in.
+		match string
+	}{
+		"maps searched":     {MapCards(nil, "keep"), `No maps match "keep".`},
+		"tokens searched":   {TokenCards(nil, "wagon"), `No tokens match "wagon".`},
+		"avatars searched":  {AvatarCards(nil, "elf"), `No avatars match "elf".`},
+		"music searched":    {MusicCards(nil, "rain"), `No tracks match "rain".`},
+		"monsters searched": {MonsterCardsFragment(MonsterListData{Query: "goblin"}), `No monsters match "goblin".`},
+		"maps empty":        {MapCards(nil, ""), ""},
+		"tokens empty":      {TokenCards(nil, ""), ""},
+		"avatars empty":     {AvatarCards(nil, ""), ""},
+		"music empty":       {MusicCards(nil, ""), ""},
+		"monsters empty":    {MonsterCardsFragment(MonsterListData{}), ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.cards)
+
+			for _, want := range []string{
+				// The surface every other panel in the app is made of, so the
+				// message is legible against the grid paper behind it.
+				sheetSurface,
+				// Centred in the column the cards would have filled, and
+				// bounded so one sentence does not run the width of an
+				// ultrawide monitor.
+				"mx-auto",
+				"max-w-md",
+				"text-center",
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("the message is missing %q:\n%s", want, body)
+				}
+			}
+
+			if c.match == "" {
+				if strings.Contains(body, noMatchHint) {
+					t.Error("a list that was never searched offers to clear the search box")
+				}
+				return
+			}
+
+			// templ escapes the quotes around the term, so the comparison is
+			// against the escaped form rather than what a reader sees.
+			if want := strings.ReplaceAll(c.match, `"`, "&#34;"); !strings.Contains(body, want) {
+				t.Errorf("the term is not repeated back as %q:\n%s", c.match, body)
+			}
+			if !strings.Contains(body, noMatchHint) {
+				t.Error("the message does not say what to do about it")
+			}
+		})
+	}
+}
+
 // THE FRAGMENT IS THE SAME SECTION THE PAGE RENDERS and is not a second copy of
 // it. That is the fragment rule, and it is also what makes the swap safe: the
 // reply replaces the grid outright, so a fragment whose markup had drifted from

@@ -55,8 +55,12 @@ type assetGrid struct {
 	Query string
 
 	// EmptyHeading and EmptyBlurb are what an untouched page says. NoMatch is
-	// the whole sentence for a search that found nothing, assembled here rather
-	// than in the markup so that not one word of it is in a scanned file.
+	// the heading for a search that found nothing, assembled here rather than in
+	// the markup so that not one word of it is in a scanned file; the line under
+	// it is noMatchHint, which every list in the app shares.
+	//
+	// Both states render as the same noticePanel -- see notice-panel.go for why
+	// they are one component.
 	EmptyHeading string
 	EmptyBlurb   string
 	NoMatch      string
@@ -69,7 +73,7 @@ func mapsGrid(query string) assetGrid {
 		Query:        query,
 		EmptyHeading: "No maps yet.",
 		EmptyBlurb:   "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.",
-		NoMatch:      assetNoMatch("maps", query),
+		NoMatch:      noMatchHeading("maps", query),
 	}
 }
 
@@ -80,7 +84,7 @@ func tokensGrid(query string) assetGrid {
 		Query:        query,
 		EmptyHeading: "No tokens yet.",
 		EmptyBlurb:   "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.",
-		NoMatch:      assetNoMatch("tokens", query),
+		NoMatch:      noMatchHeading("tokens", query),
 	}
 }
 
@@ -91,7 +95,7 @@ func avatarsGrid(query string) assetGrid {
 		Query:        query,
 		EmptyHeading: "No avatars yet.",
 		EmptyBlurb:   "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.",
-		NoMatch:      assetNoMatch("avatars", query),
+		NoMatch:      noMatchHeading("avatars", query),
 	}
 }
 
@@ -102,23 +106,8 @@ func musicGrid(query string) assetGrid {
 		Query:        query,
 		EmptyHeading: "No music yet.",
 		EmptyBlurb:   "The tracks you play behind a session -- a battle, a tavern, an hour of rain. One plays at a time and loops until you stop it or pick another.",
-		NoMatch:      assetNoMatch("tracks", query),
+		NoMatch:      noMatchHeading("tracks", query),
 	}
-}
-
-// assetNoMatch is the sentence a search that found nothing gets, with the term
-// repeated back so it is obvious which search is being answered.
-//
-// The plural is passed rather than taken from the kind because one of the four
-// disagrees: the slug is "music", and "No music match" is not a sentence. A
-// track is what one of them is called everywhere else in this manager -- see
-// musicKind in internal/controllers/library-assets.go.
-func assetNoMatch(plural string, query string) string {
-	if query == "" {
-		return ""
-	}
-
-	return "No " + plural + " match \"" + query + "\"."
 }
 
 // assetSearchLabel is the search box's placeholder and its accessible name,

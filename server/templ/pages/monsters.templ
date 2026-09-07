@@ -81,14 +81,13 @@ templ monsterCards(data MonsterListData) {
 	<section id={ monsterCardsID } class="grid min-h-0 content-start gap-3.5 overflow-auto">
 		if len(data.Monsters) == 0 {
 			if data.Query == "" {
-				<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] text-center" }>
-					<div class="card-body p-8">
-						<p class="m-0 font-serif text-2xl">Nothing in your manual yet.</p>
-						<p class="m-0 mt-4 text-base-content/75">Write up what you plan to run <strong>before</strong> your session.</p>
-					</div>
-				</div>
+				@noticePanel("Nothing in your manual yet.") {
+					Write up what you plan to run <strong>before</strong> your session.
+				}
 			} else {
-				<p class="text-base-content/70">No monsters match &#34;{ data.Query }&#34;.</p>
+				@noticePanel(data.noMatch()) {
+					{ noMatchHint }
+				}
 			}
 		} else {
 			<div class="grid gap-3">
