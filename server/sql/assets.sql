@@ -1,12 +1,23 @@
 -- Every query here is scoped to the owner except GetImage and GetMapPyramid,
--- which deliberately are not: a map or token is shown to every player at the
--- table, so any signed-in user may fetch any image, and any tile of any map,
--- by id. Ownership gates the writes.
+-- which deliberately are not: a map, a token or a monster is shown to every
+-- player at the table, so any signed-in user may fetch any image, and any tile
+-- of any map, by id. Ownership gates the writes.
 
 -- name: InsertAvatar :exec
 INSERT INTO assets
 (id, owner_id, file_path, type, file_name, name)
 VALUES (?, ?, ?, 'avatar', ?, ?);
+
+-- A monster's picture, and it is its own type rather than a token: `token` is
+-- for one-off images placed on a map that belong to no monster, and this one is
+-- what the manual card, the editor bar and eventually the pawn are all drawn
+-- from. It is stored at 256 pixels rather than the avatar's 96, because a
+-- portrait is a thumbnail and a pawn is drawn on a map at whatever zoom the GM
+-- is at.
+-- name: InsertMonsterImage :exec
+INSERT INTO assets
+(id, owner_id, file_path, type, file_name, name)
+VALUES (?, ?, ?, 'monster', ?, ?);
 
 -- A map is inserted with nothing but its original and the size to tile it at.
 -- preview_path and every pyramid column stay NULL until the worker has built
@@ -34,9 +45,17 @@ UPDATE assets
 SET tile_state = 'pending'
 WHERE id = ? AND owner_id = ? AND type = 'map';
 
+-- The IN list is the whole of this statement's access rule, and every member of
+-- it is a picture any signed-in user may fetch by id. A monster's image is
+-- among them for the reason a map is: it is shown to every player at the table
+-- the moment its pawn is put down, and a table is not a list of owners.
+--
+-- `journal` IS DELIBERATELY NOT HERE. A journal image belongs to one entry of
+-- one character's diary, it is reached through the share's own reader route,
+-- and it is the one stored picture that is nobody else's business.
 -- name: GetImage :one
 SELECT id, file_path, preview_path, updated_at FROM assets
-WHERE id = ? AND type IN ('map', 'avatar', 'token');
+WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster');
 
 -- Everything the tile route needs to decide whether a requested tile exists,
 -- and where it is. The four numbers are the pyramid's whole shape: the level

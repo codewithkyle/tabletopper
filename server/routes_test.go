@@ -98,7 +98,60 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// The sub-collection has no GET of its own: an entry's images are
 		// listed by the markdown that references them, not by a route.
 		{http.MethodGet, "/characters/" + id + "/journal/" + item + "/images", "/"},
+		// THE MANUAL IS A SECOND TOP-LEVEL COLLECTION, so its three routes have
+		// to stay apart from each other the way the roster's do -- and the
+		// delete is the one that matters: DELETE /monsters/{id} and POST
+		// /monsters differ by a segment, and confusing them would send a delete
+		// to the create handler, which reads a form that is not there and
+		// answers 422 as though the name were missing.
+		{http.MethodGet, "/monsters", "GET /monsters"},
+		{http.MethodPost, "/monsters", "POST /monsters"},
+		{http.MethodDelete, "/monsters/" + id, "DELETE /monsters/{id}"},
+		{http.MethodGet, "/monsters/" + id + "/edit", "GET /monsters/{id}/edit"},
+		// The panel saves, which sit at the same depth as /edit and are told
+		// apart from it by their literals alone. A save arriving at the editor
+		// page would answer a POST with a whole page; the page arriving at a
+		// save would write a panel from a form that is not there.
+		{http.MethodPost, "/monsters/" + id + "/identity", "POST /monsters/{id}/identity"},
+		{http.MethodPost, "/monsters/" + id + "/abilities", "POST /monsters/{id}/abilities"},
+		{http.MethodPost, "/monsters/" + id + "/combat", "POST /monsters/{id}/combat"},
+		{http.MethodPost, "/monsters/" + id + "/defenses", "POST /monsters/{id}/defenses"},
+		{http.MethodPost, "/monsters/" + id + "/description", "POST /monsters/{id}/description"},
+		{http.MethodPost, "/monsters/" + id + "/bonuses/skills", "POST /monsters/{id}/bonuses/{kind}"},
+		{http.MethodPost, "/monsters/" + id + "/bonuses/saving_throws", "POST /monsters/{id}/bonuses/{kind}"},
+		// The action rows repeat the collection-and-member pair with the section
+		// in between. The collection and the member differ by one segment, and
+		// confusing them would send an add to the save handler with no actionId
+		// to parse -- which is the same trap the inventory pair sets.
+		{http.MethodPost, "/monsters/" + id + "/actions/trait", "POST /monsters/{id}/actions/{kind}"},
+		{http.MethodPost, "/monsters/" + id + "/actions/legendary_action", "POST /monsters/{id}/actions/{kind}"},
+		{http.MethodPost, "/monsters/" + id + "/actions/trait/" + item, "POST /monsters/{id}/actions/{kind}/{actionId}"},
+		{http.MethodDelete, "/monsters/" + id + "/actions/trait/" + item, "DELETE /monsters/{id}/actions/{kind}/{actionId}"},
+		// A kind the mux accepts and the allowlist does not. Which of the two
+		// refuses it matters: the pattern has to match so the handler gets to
+		// answer, rather than the request falling to the catch-all's page-shaped
+		// 404.
+		{http.MethodPost, "/monsters/" + id + "/actions/mythic_action", "POST /monsters/{id}/actions/{kind}"},
+		// A section has no GET of its own: its rows are rendered by the editor,
+		// not fetched by a route.
+		{http.MethodGet, "/monsters/" + id + "/actions/trait", "/"},
+		{http.MethodPost, "/monsters/" + id + "/image", "POST /monsters/{id}/image"},
+		// Creation has no page here either, and "/monsters/new" is the path most
+		// likely to be added by accident -- it looks like the matched pair of
+		// "/monsters/{id}/edit".
+		{http.MethodGet, "/monsters/new", "/"},
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
+		{http.MethodGet, "/fragment/monster/new", "GET /fragment/monster/new"},
+		// The manual's search, whose parameters ride in the query string. A POST
+		// to it is not a route at all but the /fragment/ subtree's 404, which is
+		// what keeps the prefix meaning "a GET that returns partial HTML".
+		{http.MethodGet, "/fragment/monster/list", "GET /fragment/monster/list"},
+		{http.MethodGet, "/fragment/monster/list?q=goblin", "GET /fragment/monster/list"},
+		{http.MethodPost, "/fragment/monster/list", "/fragment/"},
+		// The stat block dialog, whose parameters ride in the query string like
+		// the search's.
+		{http.MethodGet, "/fragment/monster/stat-block?monster=" + id, "GET /fragment/monster/stat-block"},
+		{http.MethodPost, "/fragment/monster/stat-block", "/fragment/"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},
 		// The journal search. Its parameters ride in the query string, which the

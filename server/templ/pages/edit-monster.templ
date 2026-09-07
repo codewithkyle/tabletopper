@@ -1,0 +1,152 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ EditMonster(data EditMonsterPageData) {
+	@layouts.Base("Monster Editor | Tabletopper") {
+		<monster-editor class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+			<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+				@monsterBar(data.Header)
+				<div class="grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 max-[900px]:px-4">
+					@monsterPanels(data)
+				</div>
+			</div>
+		</monster-editor>
+	}
+}
+
+templ monsterBar(header MonsterHeader) {
+	@appBar() {
+		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 py-3" }>
+			@monsterBarFigure(header, false)
+			@monsterBarChips(header, false)
+			<div class="flex items-center gap-3 max-[640px]:w-full">
+				<a href="/monsters" class="btn max-[640px]:flex-1">Back</a>
+			</div>
+		</div>
+	}
+}
+
+templ MonsterBarValues(header MonsterHeader) {
+	@monsterBarFigure(header, true)
+	@monsterBarChips(header, true)
+}
+
+templ monsterBarFigure(header MonsterHeader, oob bool) {
+	<div
+		id="monster-bar-figure"
+		class="flex min-w-0 items-center gap-3"
+		if oob {
+			hx-swap-oob="true"
+		}
+	>
+		<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
+			<div class="relative w-11 rounded-full bg-base-300 text-base-content">
+				<span class="font-serif text-lg font-bold">{ characterInitial(header.Name) }</span>
+				if header.ImageID != "" {
+					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + header.ImageID } alt={ header.Name }/>
+				}
+			</div>
+		</div>
+		<div class="min-w-0">
+			<h1 class="m-0 truncate font-serif text-2xl leading-tight">{ monsterName(header.Name) }</h1>
+			if header.Subtitle != "" {
+				<p class="m-0 mt-0.5 truncate text-xs text-base-content/65">{ header.Subtitle }</p>
+			}
+		</div>
+	</div>
+}
+
+templ monsterBarChips(header MonsterHeader, oob bool) {
+	<dl
+		id="monster-bar-chips"
+		class="m-0 ml-auto flex flex-wrap items-stretch gap-2 max-[900px]:ml-0"
+		if oob {
+			hx-swap-oob="true"
+		}
+	>
+		for _, chip := range monsterChips(header) {
+			<div class="min-w-18 rounded-field border border-base-300 bg-base-content/5 px-3 py-1 text-center">
+				<dt class="text-[0.58rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">{ chip.Label }</dt>
+				<dd class="m-0 mt-0.5 text-lg leading-tight font-extrabold tabular-nums">
+					{ chip.Value }
+					if chip.Sub != "" {
+						<span class="text-xs font-semibold text-base-content/60">{ chip.Sub }</span>
+					}
+				</dd>
+			</div>
+		}
+	</dl>
+}
+
+templ monsterPanels(data EditMonsterPageData) {
+	{{ base := "/monsters/" + data.MonsterID }}
+	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 max-[1280px]:grid-cols-1">
+		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 max-[1280px]:static max-[1280px]:max-h-none max-[1280px]:pb-0">
+			@MonsterStatBlock(data.StatBlock, false)
+		</div>
+		<div class="grid content-start gap-4">
+			@savingPanel("Identity", base+"/identity", "identity") {
+				<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+					<div class="col-span-2 max-[900px]:col-auto">
+						@textField("name", "Monster Name", data.Name, "", true)
+					</div>
+					@selectField("type", "Type", creatureTypeOptions, data.Type, true)
+					@selectField("size", "Size", sizeOptions, data.Size, true)
+					@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
+					@cappedTextField("tags", "Tags", data.Tags, "Goblinoid", MonsterTagsLimit)
+				</div>
+			}
+			@savingPanel("Abilities", base+"/abilities", "abilities") {
+				<div class="@container">
+					<div class="grid grid-cols-2 gap-3 @[20rem]:grid-cols-3 @[52rem]:grid-cols-6">
+						@abilityField("str", "Strength", data.Str, data.Derived.StrMod)
+						@abilityField("dex", "Dexterity", data.Dex, data.Derived.DexMod)
+						@abilityField("con", "Constitution", data.Con, data.Derived.ConMod)
+						@abilityField("int", "Intelligence", data.Int, data.Derived.IntMod)
+						@abilityField("wis", "Wisdom", data.Wis, data.Derived.WisMod)
+						@abilityField("cha", "Charisma", data.Cha, data.Derived.ChaMod)
+					</div>
+				</div>
+			}
+			@savingPanel("Combat", base+"/combat", "combat") {
+				<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
+					@countField("ac", "Armor Class", data.AC, MonsterACLimit)
+					@countField("hp", "Hit Points", data.HP, MonsterHPLimit)
+					@wordField("hit_dice", "Hit Dice", data.HitDice, "6d6 + 6")
+					@textField("speed", "Speed", data.Speed, "30 ft., fly 60 ft.", false)
+					@signedNumberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus)
+					@selectField("cr", "Challenge Rating", challengeRatingOptions(), data.CR, true)
+					@countField("legendary_action_uses", "Legendary Action Uses", data.LegendaryActionUses, MonsterLegendaryUsesLimit)
+					@countField("legendary_action_uses_in_lair", "Legendary Uses in Lair", data.LegendaryActionUsesInLair, MonsterLegendaryUsesLimit)
+				</div>
+			}
+			<div class="grid grid-cols-2 items-start gap-4 max-[1100px]:grid-cols-1">
+				@savingPanel("Saving Throws", base+"/bonuses/saving_throws", "saving_throws") {
+					@savingThrowsTable(data.Derived.SavingThrows)
+				}
+				@savingPanel("Skills", base+"/bonuses/skills", "skills") {
+					@skillsTable(data.Derived.Skills, data.Derived.PassivePerception)
+				}
+			</div>
+			@savingPanel("Defenses & Senses", base+"/defenses", "defenses") {
+				<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+					@cappedTextField("vulnerabilities", "Vulnerabilities", data.Vulnerabilities, "Fire", MonsterDefenseLimit)
+					@cappedTextField("resistances", "Resistances", data.Resistances, "Cold, Necrotic", MonsterDefenseLimit)
+					@cappedTextField("immunities", "Immunities", data.Immunities, "Poison; Frightened, Poisoned", MonsterDefenseLimit)
+					@cappedTextField("gear", "Gear", data.Gear, "Chain Shirt, Shortsword", MonsterDefenseLimit)
+					@cappedTextField("senses", "Senses", data.Senses, "Darkvision 60 ft.", MonsterSensesLimit)
+					@cappedTextField("languages", "Languages", data.Languages, "Common, Goblin", MonsterLanguagesLimit)
+				</div>
+			}
+			@monsterActionSections(data)
+			@savingPanel("Description", base+"/description", "description") {
+				<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+					@cappedTextField("habitat", "Habitat", data.Habitat, "Forest, Grassland, Urban", MonsterHabitatLimit)
+					@cappedTextField("treasure", "Treasure", data.Treasure, "Individual", MonsterTreasureLimit)
+				</div>
+				@proseField("description", "Notes", data.Description, "What it wants, how it fights, and what it does when the fight turns.")
+			}
+		</div>
+	</div>
+}

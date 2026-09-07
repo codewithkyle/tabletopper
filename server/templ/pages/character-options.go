@@ -58,6 +58,33 @@ const (
 	DefaultSize      = "medium"
 )
 
+// NormalizeSize and NormalizeAlignment are the allowlists behind the two
+// pickers, each answering anything it does not recognise with the column's own
+// default -- the shape NormalizeProficiency and NormalizeCreatureType have.
+//
+// THE CHARACTER SHEET DOES NOT RUN THEM AND THE STAT BLOCK DOES. A character's
+// size is checked for being present and its alignment is stored as whatever
+// arrived, because both columns are free text and predate the rule; a monster's
+// two feed a subtitle the book prints and a footprint the VTT will read, and
+// neither has anywhere to put a word that is not on the list.
+func NormalizeSize(value string) string {
+	return normalizeOption(value, sizeOptions, DefaultSize)
+}
+
+func NormalizeAlignment(value string) string {
+	return normalizeOption(value, alignmentOptions, DefaultAlignment)
+}
+
+func normalizeOption(value string, options []Option, fallback string) string {
+	for _, option := range options {
+		if option.Value == value {
+			return value
+		}
+	}
+
+	return fallback
+}
+
 // SizeLabel turns a stored size into the word the picker shows, the way
 // AlignmentLabel does for alignment. An unrecognised value comes back empty
 // rather than as itself: the column is free text as far as MySQL is concerned,

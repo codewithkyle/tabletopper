@@ -233,6 +233,60 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /account/welcome", auth.RequireSession(app.CompleteOnboarding))
 	mux.HandleFunc("POST /account/welcome/skip", auth.RequireSession(app.DismissOnboarding))
 
+	// THE MANUAL, WHICH IS THE ROSTER'S SHAPE FOR MONSTERS: a page of cards, a
+	// dialog that creates one from a name, an editor, a delete, and the picture
+	// upload that sits on the card the way the roster's avatar upload does.
+	//
+	// Creation has no page, for the reason the character's does not: it is a
+	// dialog carrying one field, served by the fragment route below, and this
+	// takes the name it collects and redirects to the editor.
+	//
+	// The delete answers 200 and not 204 -- noSwap lists 204, and a status in
+	// that list overrides the hx-swap="delete" on the button, which would leave
+	// the card on screen after the monster was gone.
+	mux.HandleFunc("GET /monsters", auth.RequireSession(app.MonstersPage))
+	mux.HandleFunc("POST /monsters", auth.RequireSession(app.NewMonsterForm))
+	mux.HandleFunc("GET /monsters/{id}/edit", auth.RequireSession(app.MonsterPage))
+	mux.HandleFunc("DELETE /monsters/{id}", auth.RequireSession(app.DeleteMonster))
+	mux.HandleFunc("POST /monsters/{id}/image", auth.RequireSession(app.UploadMonsterImage))
+
+	// The editor is ONE page and not a page per tab, because a stat block is one
+	// screen: everything a monster has fits beside the block it renders, so
+	// there is nothing to navigate between.
+	//
+	// The panels are the character sheet's shape -- each owns a disjoint set of
+	// columns and writes only those -- and mutations, so they keep resource URLs
+	// and stay off /fragment/. The reply is a toast, the panel's error block
+	// rendered empty, and the out-of-band swaps that redraw the block beside it.
+	//
+	// Only the bonuses route takes its panel name from the path, and it is the
+	// character sheet's own allowlist doing the checking, because these two
+	// grids ARE that sheet's two grids.
+	//
+	// Every literal in the third segment is distinct from every other and no
+	// wildcard sits there, so the mux has nothing to disambiguate.
+	mux.HandleFunc("POST /monsters/{id}/identity", auth.RequireSession(app.SaveMonsterIdentity))
+	mux.HandleFunc("POST /monsters/{id}/abilities", auth.RequireSession(app.SaveMonsterAbilities))
+	mux.HandleFunc("POST /monsters/{id}/combat", auth.RequireSession(app.SaveMonsterCombat))
+	mux.HandleFunc("POST /monsters/{id}/defenses", auth.RequireSession(app.SaveMonsterDefenses))
+	mux.HandleFunc("POST /monsters/{id}/description", auth.RequireSession(app.SaveMonsterDescription))
+	mux.HandleFunc("POST /monsters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveMonsterBonuses))
+
+	// The seven sections of the stat block, where the row is the unit of work
+	// rather than the panel -- the collection-and-member pair attacks and
+	// inventory already use, with the section in the path.
+	//
+	// The kind is there for the reason the spell level is: a row cannot change
+	// section, so it identifies the row as much as its id does, and it is what
+	// tells an add which of the seven containers on the page to append to. It is
+	// matched against a Go allowlist before any statement runs.
+	//
+	// "actions" is a literal at the same depth as the panel names above and
+	// collides with none of them: no panel is called actions.
+	mux.HandleFunc("POST /monsters/{id}/actions/{kind}", auth.RequireSession(app.AddMonsterAction))
+	mux.HandleFunc("POST /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.SaveMonsterAction))
+	mux.HandleFunc("DELETE /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.DeleteMonsterAction))
+
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
@@ -297,6 +351,21 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// that has never answered it. Nothing links here and nothing needs to: the
 	// signal is a column, so the page decides rather than the URL.
 	mux.HandleFunc("GET /fragment/account/welcome", auth.Fragment(app.AccountWelcomeFragment))
+	// The new-monster dialog, which is the character's with its own panel name.
+	mux.HandleFunc("GET /fragment/monster/new", auth.Fragment(app.NewMonsterFragment))
+	// The manual's grid, filtered by ?q=. It is the journal search's shape with
+	// one parameter instead of two: there is no id in this URL, because the
+	// manual is the account's rather than any character's, and the owner comes
+	// off the session. The term is checked against the name column's width
+	// before anything is queried.
+	mux.HandleFunc("GET /fragment/monster/list", auth.Fragment(app.MonsterListFragment))
+	// One monster's stat block, for the dialog the manual's View button opens.
+	// It reads the monster from the query string rather than a path because this
+	// is not the monster's URL -- it is a representation of it that something
+	// else opens, which is the same reason the two share dialogs above do it.
+	// It is also the lookup a pawn will make when the VTT exists, since a pawn
+	// holds nothing but this id and its own instance stats.
+	mux.HandleFunc("GET /fragment/monster/stat-block", auth.Fragment(app.MonsterStatBlockFragment))
 	// One map's card, which is what a card whose tiling job has not finished
 	// asks for every couple of seconds until it has. It is the only fragment
 	// here that is fetched by a timer rather than by something the owner did,

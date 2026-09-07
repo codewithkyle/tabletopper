@@ -67,6 +67,21 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"account-welcome-fragment": func() error {
 			return render(AccountWelcomeFragment(testAccountSettings()))
 		},
+		"monsters": func() error {
+			return render(Monsters(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
+		},
+		// Both empty states, because they are different markup: a manual with
+		// nothing in it points at the New Monster button, and a search that
+		// found nothing repeats the term back.
+		"monsters-empty":         func() error { return render(Monsters(MonsterListData{})) },
+		"monster-cards-fragment": func() error { return render(MonsterCardsFragment(MonsterListData{Query: "goblin"})) },
+		"new-monster-fragment":   func() error { return render(NewMonsterFragment()) },
+		"edit-monster": func() error {
+			return render(EditMonster(EditMonsterPageData{}))
+		},
+		"stat-block-fragment": func() error {
+			return render(MonsterStatBlockFragment(testStatBlock()))
+		},
 		"assets":  func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
 		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
 		"tos":     func() error { return render(TOS()) },

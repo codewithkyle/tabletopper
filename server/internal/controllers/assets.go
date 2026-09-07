@@ -92,6 +92,13 @@ const (
 	uploadWriteDeadline = uploadReadDeadline + 30*time.Second
 
 	avatarSize = 96
+
+	// A monster's picture is stored at 256 and an avatar at 96, and the
+	// difference is what each one is for. A portrait is a thumbnail on a card
+	// and in a bar, and it is never drawn any larger. A monster's picture is
+	// what its pawn will be drawn with on a map, at whatever zoom the GM is
+	// working at, so it needs pixels the card does not use.
+	monsterImageSize = 256
 )
 
 // uploadLimits is what one kind of upload is allowed to be. There are two.
@@ -531,6 +538,125 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Character(updated))
 }
 
+// UploadMonsterImage is UploadCharacterAvatar for the manual, and every part of
+// its shape is that handler's for that handler's reasons: the row is written
+// before the object because the row is the ledger for what lives in R2, a
+// failure after the row is written is rolled back by a compensating delete, and
+// a replacement is written to the SAME KEY so nothing is ever orphaned and
+// nothing needs sweeping.
+//
+// It answers with the re-rendered card, which is the mutation case the fragment
+// rules name -- a POST replying with the thing it just changed.
+//
+// The picture is an asset of type `monster` and not `token`. That member is for
+// one-off images placed on a map that belong to no monster; this one is what the
+// card, the editor bar and eventually the pawn are all drawn from.
+func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	monsterID, err := ulid.Parse(r.PathValue("id"))
+	if err != nil {
+		htmx.NotFound(w, "monster")
+		return
+	}
+
+	src, filename, ok := readImageUpload(w, r, "image", imageLimits)
+	if !ok {
+		return
+	}
+	encoded, err := images.EncodeWebP(images.Square(src, monsterImageSize))
+	if err != nil {
+		slog.Error("Failed to encode monster image as webp", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	monster, err := a.Queries.GetMonsterAsset(ctx, queries.GetMonsterAssetParams{
+		ID:      monsterID,
+		OwnerID: sess.UserID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "monster")
+		return
+	}
+	if err != nil {
+		slog.Error("Failed to get monster asset", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	if monster.AssetID != nil {
+		// Replacing overwrites the existing key, so nothing can be orphaned and
+		// the card's <img> src does not change -- which is why serveImage sends
+		// no-cache rather than no-store, and why updated_at is bumped.
+		assetID := *monster.AssetID
+		if err := a.Storage.UploadMonsterImage(ctx, sess.UserID, assetID, encoded); err != nil {
+			slog.Error("Failed to upload monster image", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+		err := a.Queries.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
+			ID:       assetID,
+			OwnerID:  sess.UserID,
+			FileName: filename,
+		})
+		if err != nil {
+			slog.Error("Failed to update monster image asset", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+	} else {
+		// The row is the ledger for what lives in R2, so it is written first
+		// and rolled back if the upload never lands.
+		assetID := ulid.Make()
+		err := a.Queries.InsertMonsterImage(ctx, queries.InsertMonsterImageParams{
+			ID:       assetID,
+			OwnerID:  sess.UserID,
+			FilePath: storage.MonsterImageKey(sess.UserID, assetID),
+			FileName: filename,
+			Name:     filename,
+		})
+		if err != nil {
+			slog.Error("Failed to insert monster image into DB", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+
+		if err := a.Storage.UploadMonsterImage(ctx, sess.UserID, assetID, encoded); err != nil {
+			slog.Error("Failed to upload monster image", "error", err)
+			a.discardMonsterImage(ctx, sess.UserID, assetID)
+			htmx.ServerError(w)
+			return
+		}
+
+		err = a.Queries.UpdateMonsterImage(ctx, queries.UpdateMonsterImageParams{
+			ID:      monsterID,
+			OwnerID: sess.UserID,
+			AssetID: &assetID,
+		})
+		if err != nil {
+			slog.Error("Failed to link image to monster", "error", err)
+			a.discardMonsterImage(ctx, sess.UserID, assetID)
+			htmx.ServerError(w)
+			return
+		}
+	}
+
+	htmx.Toast(w, "Updated image for "+monster.Name)
+
+	updated, err := a.Queries.GetMonster(ctx, queries.GetMonsterParams{
+		ID:      monsterID,
+		OwnerID: sess.UserID,
+	})
+	if err != nil {
+		slog.Error("Failed to reload monster after image update", "error", err, "monsterID", monsterID.String())
+		htmx.Redirect(w, "/monsters")
+		return
+	}
+	render(w, r, pages.MonsterCard(monsterSummary(updated)))
+}
+
 // UploadMap stores a map and queues it for tiling. It does not decode it, does
 // not re-encode it and does not build its preview: all three moved to the
 // tiling worker, which is the only thing in the app that ever holds a
@@ -823,6 +949,27 @@ func (a *App) discardMap(ctx context.Context, userID ulid.ULID, assetID ulid.ULI
 	})
 	if err != nil {
 		slog.Error("Failed to delete asset row after cleaning up its objects", "error", err, "assetID", assetID.String())
+	}
+}
+
+// discardMonsterImage rolls back a monster image upload that failed after its
+// row was written, on the same terms as discardMap: the row is only dropped once
+// R2 confirms the object is gone, so a cleanup failure leaves the row behind as
+// the record that it may still exist.
+func (a *App) discardMonsterImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
+	cleanupCtx, cancel := storage.CleanupContext(ctx)
+	defer cancel()
+
+	if err := a.Storage.Delete(cleanupCtx, storage.MonsterImageKey(userID, assetID)); err != nil {
+		slog.Error("Failed to clean up monster image object; leaving the asset row behind", "error", err, "assetID", assetID.String())
+		return
+	}
+	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
+		ID:      assetID,
+		OwnerID: userID,
+	})
+	if err != nil {
+		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetID", assetID.String())
 	}
 }
 

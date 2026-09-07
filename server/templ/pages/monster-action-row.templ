@@ -1,0 +1,79 @@
+package pages
+
+import "strconv"
+
+templ MonsterActionRow(monsterID string, action MonsterAction) {
+	{{ url := "/monsters/" + monsterID + "/actions/" + action.Kind + "/" + action.ID }}
+	{{ panel := MonsterActionRowPanel(action.ID) }}
+	<form
+		data-monster-action-row="true"
+		class={ surfaceInset + " grid gap-3 p-3" }
+		hx-post={ url }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(panel, []string{})
+		<label class="fieldset">
+			<span class="fieldset-legend">Name</span>
+			<input
+				name="name"
+				type="text"
+				class="input w-full font-medium"
+				value={ action.Name }
+				placeholder="Multiattack"
+				maxlength={ strconv.Itoa(MonsterActionNameLimit) }
+			/>
+		</label>
+		<label class="fieldset">
+			<span class="fieldset-legend">Description</span>
+			<textarea
+				name="description"
+				class="textarea w-full"
+				rows="3"
+				maxlength="1024"
+				placeholder="Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) piercing damage."
+			>{ action.Description }</textarea>
+		</label>
+		<div class="flex justify-end">
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				hx-delete={ url }
+				hx-target="closest form"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
+}
+
+templ monsterActionSections(data EditMonsterPageData) {
+	for _, section := range MonsterActionSections() {
+		@monsterActionsTable(data.MonsterID, section, data.Actions[section.Kind])
+	}
+}
+
+templ monsterActionsTable(monsterID string, section MonsterActionSection, rows []MonsterAction) {
+	@sheetPanel(section.Heading) {
+		if section.Intro != "" {
+			<p class="m-0 text-sm italic text-base-content/75">{ section.Intro }</p>
+		}
+		<div id={ monsterActionsID(section.Kind) } class="grid gap-3">
+			for _, row := range rows {
+				@MonsterActionRow(monsterID, row)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-soft btn-warning"
+			hx-post={ "/monsters/" + monsterID + "/actions/" + section.Kind }
+			hx-target={ "#" + monsterActionsID(section.Kind) }
+			hx-swap="append"
+		>
+			{ section.AddLabel() }
+		</button>
+	}
+}

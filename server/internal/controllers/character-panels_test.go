@@ -315,10 +315,10 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	}
 }
 
-// characterColumns reads the characters table out of the dumped schema. The
-// test below compares the panels against it, so a column added to the table
-// with no panel to write it fails rather than going unnoticed.
-func characterColumns(t *testing.T) []string {
+// tableColumns reads one table out of the dumped schema. The coverage tests
+// compare a set of panels against it, so a column added to a table with no panel
+// to write it fails rather than going unnoticed. Both editors read it.
+func tableColumns(t *testing.T, table string) []string {
 	t.Helper()
 
 	schema, err := os.ReadFile(filepath.Join("..", "..", "..", "db", "schema.sql"))
@@ -326,9 +326,9 @@ func characterColumns(t *testing.T) []string {
 		t.Fatalf("cannot read the schema: %v", err)
 	}
 
-	body := regexp.MustCompile("(?s)CREATE TABLE `characters` \\((.*?)\n\\) ENGINE=").FindSubmatch(schema)
+	body := regexp.MustCompile("(?s)CREATE TABLE `" + table + "` \\((.*?)\n\\) ENGINE=").FindSubmatch(schema)
 	if body == nil {
-		t.Fatal("no characters table in db/schema.sql")
+		t.Fatalf("no %s table in db/schema.sql", table)
 	}
 
 	columns := []string{}
@@ -394,7 +394,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		}
 	}
 
-	for _, column := range characterColumns(t) {
+	for _, column := range tableColumns(t, "characters") {
 		if unownedColumns[column] {
 			if covered[column] {
 				t.Errorf("column %q is not meant to be editable and a panel writes it", column)

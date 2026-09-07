@@ -1,0 +1,168 @@
+package pages
+
+import (
+	"strconv"
+	"tabletopper/templ/layouts"
+)
+
+templ Monsters(data MonsterListData) {
+	@layouts.Base("Monster Manual | Tabletopper") {
+		@monstersContent(data)
+	}
+}
+
+templ MonsterCardsFragment(data MonsterListData) {
+	@monsterCards(data)
+}
+
+templ MonsterCard(m MonsterSummary) {
+	<monster-card class={ sheetSurface }>
+		<div class="card-body gap-4 p-4">
+			<div class="flex items-center gap-4">
+				<div class="relative shrink-0">
+					<div class="avatar avatar-placeholder rounded-full border border-base-300">
+						<div class="relative w-14 rounded-full bg-base-300 text-base-content">
+							<span class="font-serif text-xl font-bold">{ characterInitial(m.Name) }</span>
+							if m.ImageID != "" {
+								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + m.ImageID } alt={ m.Name }/>
+							}
+						</div>
+					</div>
+					<label
+						aria-label={ monsterImageVerb(m) + " monster image" }
+						class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm"
+						data-tip={ monsterImageVerb(m) + " image" }
+						for={ "monster-image-" + m.ID }
+					>
+						@pencilIcon()
+						<input
+							class="absolute h-0 w-0 opacity-0"
+							id={ "monster-image-" + m.ID }
+							type="file"
+							name="image"
+							accept="image/png, image/jpeg, image/webp"
+							required
+							hx-post={ "/monsters/" + m.ID + "/image" }
+							hx-target="closest monster-card"
+							hx-swap="outerHTML"
+							hx-encoding="multipart/form-data"
+						/>
+					</label>
+				</div>
+				<div class="min-w-0">
+					<h2 class="card-title font-serif text-xl leading-none">{ m.Name }</h2>
+					<p class="mt-1 text-sm font-semibold text-base-content/75">{ m.Subtitle }</p>
+				</div>
+			</div>
+			<div class={ surfaceInset + " grid grid-cols-2 gap-4 p-3" }>
+				<div class="grid content-start gap-1">
+					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Challenge</span>
+					<strong class="text-base leading-tight font-extrabold">{ m.CR }</strong>
+				</div>
+				<div class="grid content-start gap-1">
+					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Armor Class</span>
+					<strong class="text-base leading-tight font-extrabold">{ m.AC }</strong>
+				</div>
+				<div class="grid content-start gap-1">
+					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Hit Points</span>
+					<strong class="text-base leading-tight font-extrabold">{ m.HP }</strong>
+				</div>
+				<div class="grid content-start gap-1">
+					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Speed</span>
+					<strong class="text-base leading-tight font-extrabold">{ m.Speed }</strong>
+				</div>
+			</div>
+			<div class="card-actions justify-end">
+				<button
+					type="button"
+					class="btn btn-soft max-[700px]:flex-1"
+					data-modal-open={ "/fragment/monster/stat-block?monster=" + m.ID }
+					data-modal-size="lg"
+				>View</button>
+				<a
+					href={ "/monsters/" + m.ID + "/edit" }
+					class="btn btn-soft max-[700px]:flex-1"
+				>Edit</a>
+				<button
+					hx-confirm={ "You are about to delete " + m.Name + ". This action cannot be undone." }
+					hx-delete={ "/monsters/" + m.ID }
+					hx-target="closest monster-card"
+					hx-swap="delete"
+					class="btn btn-soft btn-error max-[700px]:flex-1"
+				>Delete</button>
+			</div>
+		</div>
+	</monster-card>
+}
+
+templ monsterSearchBox() {
+	<input
+		type="search"
+		name="q"
+		class="input w-full"
+		placeholder="Search the manual"
+		aria-label="Search the manual"
+		aria-controls={ monsterCardsID }
+		autocomplete="off"
+		maxlength={ strconv.Itoa(MonsterNameLimit) }
+		hx-get="/fragment/monster/list"
+		hx-trigger="input changed delay:250ms, search"
+		hx-target={ "#" + monsterCardsID }
+		hx-swap="outerHTML"
+	/>
+}
+
+templ monsterCards(data MonsterListData) {
+	<section id={ monsterCardsID } class="grid min-h-0 content-start gap-3.5 overflow-auto">
+		if len(data.Monsters) == 0 {
+			if data.Query == "" {
+				<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] text-center" }>
+					<div class="card-body p-8">
+						<p class="m-0 font-serif text-2xl">Nothing in your manual yet.</p>
+						<p class="m-0 mt-4 text-base-content/75">Write up what you plan to run <strong>before</strong> your session.</p>
+					</div>
+				</div>
+			} else {
+				<p class="text-base-content/70">No monsters match &#34;{ data.Query }&#34;.</p>
+			}
+		} else {
+			<div class="grid grid-cols-2 gap-3.5 max-[700px]:grid-cols-1">
+				for _, m := range data.Monsters {
+					@MonsterCard(m)
+				}
+			</div>
+		}
+	</section>
+}
+
+templ monstersContent(data MonsterListData) {
+	<monster-manual class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:items-stretch max-[700px]:px-4">
+					<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Monster Manual</h1>
+					<div class="flex flex-row flex-nowrap items-center max-[700px]:w-full">
+						<a
+							href="/"
+							class="btn mr-4 max-[700px]:flex-1"
+						>
+							Back
+						</a>
+						<button
+							type="button"
+							class="btn btn-primary max-[700px]:flex-1"
+							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/monster/new', size: 'sm' } }))"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
+							New monster
+						</button>
+					</div>
+				</div>
+			}
+			<div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-4 px-6 py-4 max-[700px]:px-4">
+				@monsterSearchBox()
+				@monsterCards(data)
+			</div>
+		</div>
+	</monster-manual>
+}

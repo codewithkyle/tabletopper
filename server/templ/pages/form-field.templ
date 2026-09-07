@@ -73,6 +73,23 @@ templ proseField(name string, label string, value string, placeholder string) {
 	</div>
 }
 
+templ cappedTextField(name string, label string, value string, placeholder string, limit int) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="text"
+			class="input w-full"
+			value={ value }
+			maxlength={ strconv.Itoa(limit) }
+			if placeholder != "" {
+				placeholder={ placeholder }
+			}
+		/>
+	</div>
+}
+
 templ wordField(name string, label string, value string, placeholder string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>

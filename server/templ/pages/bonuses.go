@@ -80,14 +80,19 @@ func SkillEntries() []BonusEntry { return skills }
 
 func SavingThrowEntries() []BonusEntry { return savingThrows }
 
-// PassivePerceptionBase is the 10 a passive score is built on. It is here rather
-// than inline in the arithmetic because it is the one number in that sum that is
-// not a bonus.
-const PassivePerceptionBase = 10
+// PassiveScoreBase is the 10 a passive score is built on. It is here rather than
+// inline in the arithmetic because it is the one number in that sum that is not
+// a bonus.
+//
+// IT IS NAMED AFTER THE RULE AND NOT AFTER PERCEPTION, because two readings are
+// built on it: the passive Perception every sheet and every stat block prints,
+// and the passive initiative the 2024 stat block prints in brackets after the
+// modifier. A passive score is ten plus the modifier, whichever modifier it is.
+const PassiveScoreBase = 10
 
-// SpellSaveDCBase is the 8 a spell save DC is built on, the way
-// PassivePerceptionBase is the 10 a passive score is. Both are here so the
-// arithmetic reads as a sum of named things.
+// SpellSaveDCBase is the 8 a spell save DC is built on, the way PassiveScoreBase
+// is the 10 a passive score is. Both are here so the arithmetic reads as a sum
+// of named things.
 const SpellSaveDCBase = 8
 
 // PerceptionKey is the skill a passive perception is derived from. Naming it

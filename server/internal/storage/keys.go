@@ -78,6 +78,13 @@ func JournalImageKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/journals/" + assetID.String()
 }
 
+// MonsterImageKey returns the key holding a monster's picture. Flat like an
+// avatar and not a directory like a map: it is one image, stored at the size it
+// is served at, with no pyramid and no generation to keep apart.
+func MonsterImageKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/monsters/" + assetID.String()
+}
+
 // CleanupContext detaches from the request so a compensating delete still runs
 // when the upload failed because the client disconnected.
 func CleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
@@ -94,6 +101,13 @@ func (c *Client) UploadAvatar(ctx context.Context, userID ulid.ULID, assetID uli
 // exist so a failure here can be cleaned up.
 func (c *Client) UploadJournalImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
 	return c.Put(ctx, JournalImageKey(userID, assetID), body, "image/webp")
+}
+
+// UploadMonsterImage writes a monster's picture to the key returned by
+// MonsterImageKey. The asset row must already exist so a failure here can be
+// cleaned up.
+func (c *Client) UploadMonsterImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
+	return c.Put(ctx, MonsterImageKey(userID, assetID), body, "image/webp")
 }
 
 // UploadMapOriginal writes a map's file as it was uploaded, at the key that

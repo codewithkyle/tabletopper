@@ -1,0 +1,28 @@
+package pages
+
+const NewMonsterPanel = "new-monster"
+
+templ NewMonsterFragment() {
+	{{ errorBlock := "#errors-" + NewMonsterPanel }}
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">New Monster</h3>
+		<form
+			class="grid gap-4"
+			hx-post="/monsters"
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(NewMonsterPanel, []string{})
+			@textField("name", "Monster Name", "", "", true)
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Create monster</button>
+			</div>
+		</form>
+	</div>
+}

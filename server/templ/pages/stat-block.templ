@@ -1,0 +1,139 @@
+package pages
+
+templ MonsterStatBlock(sb StatBlock, oob bool) {
+	<article
+		id="stat-block"
+		class={ sheetSurface }
+		if oob {
+			hx-swap-oob="true"
+		}
+	>
+		<div class="card-body gap-3 p-4">
+			<header class="flex items-center gap-3">
+				<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
+					<div class="relative w-11 rounded-full bg-base-300 text-base-content">
+						<span class="font-serif text-lg font-bold">{ characterInitial(sb.Name) }</span>
+						if sb.ImageID != "" {
+							<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + sb.ImageID } alt={ sb.Name }/>
+						}
+					</div>
+				</div>
+				<div class="min-w-0">
+					<h3 class="m-0 font-serif text-2xl leading-tight">{ monsterName(sb.Name) }</h3>
+					if sb.Subtitle != "" {
+						<p class="m-0 mt-0.5 text-xs italic text-base-content/65">{ sb.Subtitle }</p>
+					}
+				</div>
+			</header>
+			<div class={ surfaceInset + " grid gap-1 p-3 text-sm" }>
+				<p class="m-0 flex flex-wrap items-baseline gap-x-4">
+					@statBlockLead("AC", sb.AC)
+					@statBlockLead("Initiative", sb.Initiative)
+				</p>
+				<p class="m-0 flex flex-wrap items-baseline gap-x-1">
+					@statBlockLead("HP", sb.HP)
+					if sb.HitDice != "" {
+						<span class="text-base-content/75">({ sb.HitDice })</span>
+					}
+				</p>
+				@statBlockLine(StatBlockEntry{Label: "Speed", Value: sb.Speed})
+			</div>
+			@statBlockAbilityGrid(sb.Abilities)
+			if len(sb.Lines) > 0 {
+				<div class="grid gap-1 text-sm">
+					for _, line := range sb.Lines {
+						@statBlockLine(line)
+					}
+				</div>
+			}
+			for _, section := range sb.Sections {
+				<section class="grid gap-2">
+					@sheetHeading(section.Heading)
+					if section.Intro != "" {
+						<p class="m-0 text-sm italic text-base-content/75">{ section.Intro }</p>
+					}
+					for _, entry := range section.Entries {
+						<p class="m-0 text-sm whitespace-pre-line">
+							if entry.Label != "" {
+								<strong class="font-bold italic">{ entry.Label + "." }</strong>
+							}
+							{ entry.Value }
+						</p>
+					}
+				</section>
+			}
+			if sb.Habitat != "" || sb.Treasure != "" {
+				<footer class="grid gap-1 border-t border-base-300 pt-3 text-sm">
+					if sb.Habitat != "" {
+						@statBlockLine(StatBlockEntry{Label: "Habitat", Value: sb.Habitat})
+					}
+					if sb.Treasure != "" {
+						@statBlockLine(StatBlockEntry{Label: "Treasure", Value: sb.Treasure})
+					}
+				</footer>
+			}
+		</div>
+	</article>
+}
+
+templ statBlockLead(label string, value string) {
+	<span class="flex items-baseline gap-1.5">
+		<span class="text-xs font-semibold tracking-wider uppercase text-base-content/65">{ label }</span>
+		<strong class="text-base font-extrabold tabular-nums">{ value }</strong>
+	</span>
+}
+
+templ statBlockLine(entry StatBlockEntry) {
+	<p class="m-0">
+		<span class="font-bold">{ entry.Label }</span>
+		{ entry.Value }
+	</p>
+}
+
+templ statBlockAbilityGrid(abilities []StatBlockAbility) {
+	{{ half := (len(abilities) + 1) / 2 }}
+	<div class="@container">
+		<div class="grid grid-cols-1 gap-x-4 gap-y-3 @[19rem]:grid-cols-2">
+			@statBlockAbilityColumn(abilities[:half])
+			@statBlockAbilityColumn(abilities[half:])
+		</div>
+	</div>
+}
+
+templ statBlockAbilityColumn(abilities []StatBlockAbility) {
+	if len(abilities) > 0 {
+		<div class="grid gap-1">
+			@statBlockAbilityHeadings()
+			for _, ability := range abilities {
+				<div class={ surfaceInset + " grid grid-cols-[2.5rem_repeat(3,minmax(0,1fr))] items-center gap-2 px-2 py-1" }>
+					<span class="text-xs font-bold tracking-wider">{ ability.Label }</span>
+					<span class="text-center text-sm font-extrabold tabular-nums">{ ability.Score }</span>
+					<span class="text-center text-sm tabular-nums">{ ability.Mod }</span>
+					<span class="text-center text-sm tabular-nums">{ ability.Save }</span>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ statBlockAbilityHeadings() {
+	<div class="grid grid-cols-[2.5rem_repeat(3,minmax(0,1fr))] items-center gap-2 px-2">
+		<span></span>
+		<span class="text-center text-[0.58rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">Score</span>
+		<span class="text-center text-[0.58rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">Mod</span>
+		<span class="text-center text-[0.58rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">Save</span>
+	</div>
+}
+
+templ MonsterStatBlockFragment(sb StatBlock) {
+	<div class="grid gap-4">
+		@MonsterStatBlock(sb, false)
+		<div class="modal-action">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+		</div>
+	</div>
+}
