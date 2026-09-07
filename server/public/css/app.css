@@ -2392,9 +2392,6 @@
   .mr-3 {
     margin-right: calc(var(--spacing) * 3);
   }
-  .mr-4 {
-    margin-right: calc(var(--spacing) * 4);
-  }
   .mr-8 {
     margin-right: calc(var(--spacing) * 8);
   }

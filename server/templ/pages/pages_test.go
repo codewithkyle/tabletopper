@@ -1266,12 +1266,68 @@ func TestJournalSaveButtonPostsTheSameForm(t *testing.T) {
 		}
 	}
 
-	// Beside Back, in the page header, and after it -- neutral first and the
-	// affirmative action second, the order every dialog in the app uses.
-	back := strings.Index(markup, ">Back</a>")
+	// Last in the page header's action row, after the neutral buttons it sits
+	// beside -- neutral first and the affirmative action second, the order every
+	// dialog in the app uses. The back link is not one of those any more; it is
+	// at the far left of the bar, ahead of the portrait.
+	export := strings.Index(markup, ">Export<")
 	save := strings.Index(markup, ">Save</button>")
-	if back < 0 || save < back {
-		t.Errorf("Save is not beside Back in the header\n%s", markup)
+	tabs := strings.Index(markup, "<nav")
+	if export < 0 || save < export || tabs < save {
+		t.Errorf("Save is not last in the header action row\n%s", markup)
+	}
+}
+
+// THE BACK LINK IS THE FIRST THING IN EVERY PAGE HEADER, and it names the page
+// it goes to. Both halves are checked here because both halves were the bug: it
+// used to sit on the right of the bar, past the readings and the share buttons,
+// and it used to say "Back" -- a direction, which is only readable by somebody
+// who remembers how they arrived.
+//
+// THE JOURNAL ENTRY IS THE ROW THIS TEST EXISTS FOR. It is the one page whose
+// parent is not the roster: an entry is a document inside the Journal tab, so
+// the page above it is the list of entries, and the tab strip cannot offer that
+// while Journal is the tab the entry is open in. See back.go.
+func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+	for name, c := range map[string]struct {
+		page  templ.Component
+		href  string
+		label string
+	}{
+		"roster":           {Characters(nil), "/", "Home"},
+		"manual":           {Monsters(MonsterListData{}), "/", "Home"},
+		"asset manager":    {MapAssets(nil), "/", "Home"},
+		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: characterID}), "/characters", "Characters"},
+		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters", "Monsters"},
+		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: characterID}), "/characters", "Characters"},
+		"journal entry": {EditCharacterJournalEntry(JournalEntryPageData{
+			CharacterID: characterID,
+			EntryID:     testEntryID,
+		}), "/characters/" + characterID + "/edit/journal", "Journal"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, c.page)
+
+			at := strings.Index(body, `<a href="`+c.href+`" class="btn shrink-0">`)
+			if at < 0 {
+				t.Fatalf("no back link to %s:\n%s", c.href, body)
+			}
+
+			// The word, after the arrow. An arrow on its own says "back" and
+			// says nothing about back to where, which is the ambiguity this
+			// replaced rather than a shorter way of writing it.
+			if !strings.Contains(body[at:], "</svg>"+c.label+"</a>") {
+				t.Errorf("the back link does not say %q:\n%s", c.label, body)
+			}
+
+			// Ahead of whatever the page leads with -- its own <h1>, or the
+			// portrait and name of the thing being edited.
+			if heading := strings.Index(body, "<h1"); heading >= 0 && at > heading {
+				t.Errorf("the back link is not first in the header:\n%s", body)
+			}
+		})
 	}
 }
 

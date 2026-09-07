@@ -30,19 +30,21 @@ import "strings"
 // that changes depending on what else is on screen is a label nobody can learn.
 //
 // BOTH SHARE BUTTONS COLLAPSE TO THEIR ICON UNDER 640PX, and they are the only
-// two in the bar that do. Below that width the action row goes full-width and
-// its buttons split it with flex-1, which is fine for the two the other tabs
-// have -- but the journal entry page has four, and "Share character", "Share
+// two in the bar that do. Below that width the action row goes full-width, and
+// the journal entry page puts three buttons in it -- "Share character", "Share
 // entry" and "Save" dividing a phone's width between them wraps every one of
 // them onto two lines.
 //
 // THE TWO THAT GIVE UP THEIR WORDS ARE THE TWO SHARES, and the line is what the
-// button is for rather than which page it is on. Back is navigation and Save is
-// the reason the entry page exists; sharing is the thing you came to do on
-// neither. They are also the two with a real icon -- the three linked circles
-// are the one glyph here that reads as its verb without a caption. So the row
-// under 640px is two flex-1 buttons with words and two 40px squares, rather
-// than four half-width buttons with none of them legible.
+// button is for rather than which page it is on. Save is the reason the entry
+// page exists; sharing is the thing you came to do on neither. They are also the
+// two with a real icon -- the three linked circles are the one glyph here that
+// reads as its verb without a caption. So the row under 640px is one button with
+// words and two 40px squares, rather than three with none of them legible.
+//
+// THE BACK LINK IS NOT IN THAT ROW AND DOES NOT COLLAPSE. It moved to the far
+// left of the bar, ahead of the portrait, and it keeps its label at every width
+// because the label is the whole of what it says -- see back.go.
 //
 // A COLLAPSED PAIR STILL HAS TO BE TELLABLE APART, which is why the labels stay
 // "Share character" and "Share entry" rather than shortening to fit: the words

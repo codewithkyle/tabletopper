@@ -18,10 +18,12 @@ templ EditMonster(data EditMonsterPageData) {
 templ monsterBar(header MonsterHeader) {
 	@appBar() {
 		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 py-3" }>
-			@monsterBarFigure(header, false)
+			<div class="flex min-w-0 items-center gap-3">
+				@backLink(monsterManualBack())
+				@monsterBarFigure(header, false)
+			</div>
 			@monsterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
-				<a href="/monsters" class="btn max-[640px]:flex-1">Back</a>
 				@monsterShareButton(header.MonsterID)
 				@monsterExportButton(header.MonsterID)
 			</div>

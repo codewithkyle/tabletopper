@@ -18,12 +18,17 @@ type shellLayout struct {
 	// than the viewport by design.
 	Fill bool
 
-	// Actions renders beside the Back button in the page header. The journal
-	// entry page puts its Save there: the entry autosaves on a debounce like
-	// every other panel, but a journal save is deliberately silent (see
-	// finishJournalEntry), and a writer who is never told anything has no way to
-	// know the debounce is working. The button is not a second save path -- it
-	// posts the same form to the same route -- it is the one that answers.
+	// Back overrides where the bar's back link goes and what it is called. The
+	// zero value is the roster; the journal entry page is the one tab that sets
+	// it, and back.go is where both halves of that are written down.
+	Back backTarget
+
+	// Actions renders at the right of the page header, opposite the back link.
+	// The journal entry page puts its Save there: the entry autosaves on a
+	// debounce like every other panel, but a journal save is deliberately silent
+	// (see finishJournalEntry), and a writer who is never told anything has no
+	// way to know the debounce is working. The button is not a second save path
+	// -- it posts the same form to the same route -- it is the one that answers.
 	Actions templ.Component
 
 	// SubNav is a second row of tabs, docked under the character tabs inside

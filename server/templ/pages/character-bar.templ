@@ -10,13 +10,22 @@ templ appBar() {
 	</header>
 }
 
+templ backLink(target backTarget) {
+	<a href={ target.Href } class="btn shrink-0">
+		@arrowLeftIcon()
+		{ target.Label }
+	</a>
+}
+
 templ characterBar(characterID string, header CharacterHeader, active string, layout shellLayout) {
 	@appBar() {
 		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 pt-3 pb-2" }>
-			@characterBarFigure(header, false)
+			<div class="flex min-w-0 items-center gap-3">
+				@backLink(layout.back())
+				@characterBarFigure(header, false)
+			</div>
 			@characterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
-				<a href="/characters" class="btn max-[640px]:flex-1">Back</a>
 				if !layout.OwnShare {
 					@characterShareButton(characterID)
 				}

@@ -280,12 +280,11 @@ func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 		}
 	}
 
-	// The two words-bearing buttons keep their words: Back is navigation and
-	// Save is what the entry page is for.
-	for _, kept := range []string{">Back<", ">Save<"} {
-		if !strings.Contains(body, kept) {
-			t.Errorf("the bar lost %s:\n%s", kept, body)
-		}
+	// Save keeps its words, because it is what the entry page is for. The back
+	// link keeps its own too and is not in this row at all -- see
+	// TestEveryPageHeaderLeadsWithItsBackLink.
+	if !strings.Contains(body, ">Save<") {
+		t.Errorf("the bar lost Save:\n%s", body)
 	}
 }
 
