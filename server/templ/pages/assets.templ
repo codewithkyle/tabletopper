@@ -1,39 +1,61 @@
 package pages
 
-import "tabletopper/templ/layouts"
+import (
+	"strconv"
+
+	"tabletopper/templ/layouts"
+)
+
+const assetTileGrid = "grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]"
+
+const assetFaceGrid = "grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
+
+const assetRowGrid = "grid-cols-1"
 
 templ MapAssets(maps []MapAsset) {
 	@layouts.Base("Maps | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabMaps, mapUploadButton()) {
-			@assetGrid("maps", assetTileGrid, "No maps yet.", "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.") {
-				for _, m := range maps {
-					@MapCard(m)
-				}
-			}
+			@MapCards(maps, "")
+		}
+	}
+}
+
+templ MapCards(maps []MapAsset, query string) {
+	@assetCards(mapsGrid(query)) {
+		for _, m := range maps {
+			@MapCard(m)
 		}
 	}
 }
 
 templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
-		@assetsShell(assetTabTokens, libraryUploadButton("tokens", "Upload token")) {
-			@assetGrid("tokens", assetTileGrid, "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.") {
-				for _, t := range tokens {
-					@LibraryAssetCard(t)
-				}
-			}
+		@assetsShell(assetTabTokens, libraryUploadButton(assetTabTokens, "Upload token")) {
+			@TokenCards(tokens, "")
+		}
+	}
+}
+
+templ TokenCards(tokens []LibraryAsset, query string) {
+	@assetCards(tokensGrid(query)) {
+		for _, t := range tokens {
+			@LibraryAssetCard(t)
 		}
 	}
 }
 
 templ AvatarAssets(avatars []LibraryAsset) {
 	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
-		@assetsShell(assetTabAvatars, libraryUploadButton("avatars", "Upload avatar")) {
-			@assetGrid("avatars", assetTileGrid, "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.") {
-				for _, a := range avatars {
-					@LibraryAssetCard(a)
-				}
-			}
+		@assetsShell(assetTabAvatars, libraryUploadButton(assetTabAvatars, "Upload avatar")) {
+			@AvatarCards(avatars, "")
+		}
+	}
+}
+
+templ AvatarCards(avatars []LibraryAsset, query string) {
+	@assetCards(avatarsGrid(query)) {
+		for _, a := range avatars {
+			@LibraryAssetCard(a)
 		}
 	}
 }
@@ -47,11 +69,12 @@ templ assetsShell(active string, actions templ.Component) {
 						@backLink(homeBack())
 						<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
 					</div>
-					if actions != nil {
-						<div class="flex flex-row flex-nowrap items-center">
+					<div class="flex flex-wrap items-center justify-end gap-3 max-[700px]:w-full">
+						@assetSearchBox(active)
+						if actions != nil {
 							@actions
-						</div>
-					}
+						}
+					</div>
 				</div>
 				@assetTabs(active)
 			}
@@ -60,11 +83,32 @@ templ assetsShell(active string, actions templ.Component) {
 	</assets-page>
 }
 
-templ assetGrid(id string, cols string, heading string, blurb string) {
-	<section id={ id } class={ assetGutter + " grid min-h-0 w-full content-start gap-4 overflow-y-auto py-4 " + cols }>
+templ assetSearchBox(kind string) {
+	<input
+		type="search"
+		name="q"
+		class="input w-56 max-[700px]:w-full"
+		placeholder={ assetSearchLabel(kind) }
+		aria-label={ assetSearchLabel(kind) }
+		aria-controls={ kind }
+		autocomplete="off"
+		maxlength={ strconv.Itoa(AssetNameLimit) }
+		hx-get={ "/fragment/assets/list?kind=" + kind }
+		hx-trigger="input changed delay:250ms, search"
+		hx-target={ "#" + kind }
+		hx-swap="outerHTML"
+	/>
+}
+
+templ assetCards(g assetGrid) {
+	<section id={ g.Kind } class={ assetGutter + " grid min-h-0 w-full content-start gap-4 overflow-y-auto py-4 " + g.Cols }>
 		{ children... }
 		<div class="col-span-full hidden only:block">
-			@assetEmptyState(heading, blurb)
+			if g.Query == "" {
+				@assetEmptyState(g.EmptyHeading, g.EmptyBlurb)
+			} else {
+				<p class="mt-[min(14vh,7rem)] text-center text-base-content/70">{ g.NoMatch }</p>
+			}
 		</div>
 	</section>
 }

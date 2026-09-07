@@ -84,11 +84,38 @@ func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	rows, err := a.Queries.GetMusicLibrary(ctx, sess.UserID)
+	tracks, err := a.musicList(ctx, sess.UserID, "")
 	if err != nil {
 		slog.Error("Failed to load music library", "error", err)
 		redirectToError(w, r)
 		return
+	}
+
+	render(w, r, pages.MusicAssets(tracks))
+}
+
+// musicList is the music shelf in either of its two states -- every finished
+// track, or the ones that matched a search -- so the page and the search
+// fragment build the same cards from the same function.
+//
+// BOTH STATEMENTS DROP THE ROWS WHOSE UPLOAD NEVER FINISHED, and the search one
+// has to say so for itself: uploaded_at IS NOT NULL is in the WHERE of each.
+// Without it, typing a letter of an abandoned upload's name would put a card on
+// the page for a track that is not in the bucket.
+func (a *App) musicList(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.MusicTrack, error) {
+	var rows []queries.Asset
+	var err error
+
+	if term == "" {
+		rows, err = a.Queries.GetMusicLibrary(ctx, ownerID)
+	} else {
+		rows, err = a.Queries.SearchMusicLibrary(ctx, queries.SearchMusicLibraryParams{
+			OwnerID: ownerID,
+			Term:    journalSearchPattern(term),
+		})
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	tracks := make([]pages.MusicTrack, 0, len(rows))
@@ -100,7 +127,7 @@ func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	render(w, r, pages.MusicAssets(tracks))
+	return tracks, nil
 }
 
 func (a *App) RenameMusic(w http.ResponseWriter, r *http.Request) { a.renameLibrary(w, r, musicKind) }

@@ -508,6 +508,17 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// instead precisely because they are not.
 	mux.HandleFunc("GET /fragment/assets/maps/{id}/card", auth.Fragment(app.MapCardFragment))
 
+	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
+	// KINDS, where the pages above are four literal routes -- the pages have
+	// four handlers that do not resemble each other, and this is the same work
+	// four times with a different statement and a different card in it.
+	//
+	// ?kind= IS THE ONE PLACE IN THE MANAGER A KIND COMES OFF THE WIRE, so it
+	// is matched against the four members before a statement runs; anything
+	// else is an empty 404. ?q= is bounded by the name column's width the same
+	// way /fragment/monster/list bounds its own.
+	mux.HandleFunc("GET /fragment/assets/list", auth.Fragment(app.AssetListFragment))
+
 	// Subtree pattern, so it takes any /fragment/ path the five above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's
 	// plain-text 404 page, which is a page-shaped reply to a fragment request.

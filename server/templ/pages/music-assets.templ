@@ -5,11 +5,15 @@ import "tabletopper/templ/layouts"
 templ MusicAssets(tracks []MusicTrack) {
 	@layouts.Base("Music | Asset Manager | Tabletopper", "/js/music-upload.js") {
 		@assetsShell(assetTabMusic, musicUploadButton()) {
-			@assetGrid("music", assetRowGrid, "No music yet.", "The tracks you play behind a session -- a battle, a tavern, an hour of rain. One plays at a time and loops until you stop it or pick another.") {
-				for _, t := range tracks {
-					@MusicCard(t)
-				}
-			}
+			@MusicCards(tracks, "")
+		}
+	}
+}
+
+templ MusicCards(tracks []MusicTrack, query string) {
+	@assetCards(musicGrid(query)) {
+		for _, t := range tracks {
+			@MusicCard(t)
 		}
 	}
 }

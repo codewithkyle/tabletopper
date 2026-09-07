@@ -98,8 +98,15 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"assets-music-full": func() error {
 			return render(MusicAssets([]MusicTrack{testMusicTrack()}))
 		},
-		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":     func() error { return render(TOS()) },
+		// The four search fragments with nothing matched, because a search that
+		// found nothing is markup neither of the states above reaches: the same
+		// slot that holds a shelf's empty state holds the term repeated back.
+		"assets-maps-searched":    func() error { return render(MapCards(nil, "keep")) },
+		"assets-tokens-searched":  func() error { return render(TokenCards(nil, "wagon")) },
+		"assets-avatars-searched": func() error { return render(AvatarCards(nil, "elf")) },
+		"assets-music-searched":   func() error { return render(MusicCards(nil, "rain")) },
+		"sign-in":                 func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":                     func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -2593,6 +2600,149 @@ func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 				t.Errorf("the %s page does not say %q", name, c.heading)
 			}
 		})
+	}
+}
+
+// THE SEARCH BOX ON EACH PAGE IS AIMED AT THAT PAGE'S OWN GRID, and the kind is
+// baked into its hx-get rather than read from anywhere. Three attributes have to
+// agree for a search to work at all -- the kind it asks for, the section it
+// swaps, and the section's id -- and a box aimed at an id that is not on the
+// page fails silently: htmx logs to the console and the list never changes.
+func TestEveryAssetPageSearchesItsOwnKind(t *testing.T) {
+	for kind, page := range map[string]templ.Component{
+		"maps":    MapAssets(nil),
+		"tokens":  TokenAssets(nil),
+		"avatars": AvatarAssets(nil),
+		"music":   MusicAssets(nil),
+	} {
+		t.Run(kind, func(t *testing.T) {
+			body := markup(t, page)
+
+			for _, want := range []string{
+				`hx-get="/fragment/assets/list?kind=` + kind + `"`,
+				`hx-target="#` + kind + `"`,
+				`id="` + kind + `"`,
+				// The term travels as ?q=, which is the name the fragment
+				// route reads. htmx appends it to the hx-get's own query
+				// string, so the kind survives beside it.
+				`name="q"`,
+				// Bounded by the column for the reason the name box is: an
+				// overlong term is a 404 with an empty body, and there is no
+				// error block on a search box to put a message in.
+				`maxlength="` + strconv.Itoa(AssetNameLimit) + `"`,
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("the %s search box carries no %s", kind, want)
+				}
+			}
+
+			// One box per page. Two would be two things swapping one section.
+			if n := strings.Count(body, `hx-get="/fragment/assets/list`); n != 1 {
+				t.Errorf("%d search boxes on the %s page, want 1", n, kind)
+			}
+		})
+	}
+}
+
+// A SHELF WITH NOTHING ON IT AND A SEARCH THAT MATCHED NOTHING ARE DIFFERENT
+// THINGS TO SAY. One wants the Upload button pointed out; the other wants the
+// term repeated back, because the reader can see the shelf is not empty -- they
+// filled it -- and needs to know which search is being answered.
+//
+// THEY SHARE THE :only-child SLOT rather than being two elements, which is what
+// keeps the mechanism working. The slot is the grid's last child and is shown
+// only when it is the only one, so an upload landing on a filtered page hides
+// whichever of the two is in it, with nothing counting.
+func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
+	for name, c := range map[string]struct {
+		cards   templ.Component
+		heading string
+		match   string
+	}{
+		"maps":    {MapCards(nil, "keep"), "No maps yet.", `No maps match "keep".`},
+		"tokens":  {TokenCards(nil, "wagon"), "No tokens yet.", `No tokens match "wagon".`},
+		"avatars": {AvatarCards(nil, "elf"), "No avatars yet.", `No avatars match "elf".`},
+		// The slug is "music" and "No music match" is not a sentence, so this
+		// one says tracks -- which is what one of them is called everywhere
+		// else in the manager.
+		"music": {MusicCards(nil, "rain"), "No music yet.", `No tracks match "rain".`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.cards)
+
+			if !strings.Contains(body, `class="col-span-full hidden only:block"`) {
+				t.Fatalf("the search result does not use the empty slot:\n%s", body)
+			}
+			// templ escapes the quotes around the term, so the comparison is
+			// against the escaped form rather than what a reader sees.
+			if want := strings.ReplaceAll(c.match, `"`, "&#34;"); !strings.Contains(body, want) {
+				t.Errorf("the term is not repeated back as %q:\n%s", c.match, body)
+			}
+			if strings.Contains(body, c.heading) {
+				t.Errorf("a search that found nothing says the shelf is empty: %q", c.heading)
+			}
+		})
+	}
+}
+
+// THE FRAGMENT IS THE SAME SECTION THE PAGE RENDERS and is not a second copy of
+// it. That is the fragment rule, and it is also what makes the swap safe: the
+// reply replaces the grid outright, so a fragment whose markup had drifted from
+// the page's would leave the upload button's target, the search box's target and
+// the grid's own id disagreeing after the first keystroke.
+func TestTheAssetSearchFragmentIsTheSectionThePageAlreadyHas(t *testing.T) {
+	for name, c := range map[string]struct {
+		page  templ.Component
+		cards templ.Component
+	}{
+		"maps":    {MapAssets(nil), MapCards(nil, "")},
+		"tokens":  {TokenAssets(nil), TokenCards(nil, "")},
+		"avatars": {AvatarAssets(nil), AvatarCards(nil, "")},
+		"music":   {MusicAssets(nil), MusicCards(nil, "")},
+	} {
+		t.Run(name, func(t *testing.T) {
+			section := markup(t, c.cards)
+
+			if !strings.HasPrefix(strings.TrimSpace(section), "<section") {
+				t.Fatalf("the fragment is not a bare section:\n%s", section)
+			}
+			if !strings.Contains(markup(t, c.page), section) {
+				t.Errorf("the fragment is not the section the page renders:\n%s", section)
+			}
+		})
+	}
+}
+
+// THE AVATAR WALL IS DENSER THAN THE TILE GRIDS AND EVERY ONE OF THEM IS
+// auto-fill. The count of columns is not written down anywhere: a fixed five
+// was five at 3440 pixels too, which made each card 660 wide and blew a 256
+// pixel preview up two and a half times. Sizing the card and letting the count
+// fall out of the width is what keeps a picture at the size it was stored at.
+func TestTheAssetGridsSizeTheCardRatherThanCountColumns(t *testing.T) {
+	for name, c := range map[string]struct {
+		page templ.Component
+		want string
+	}{
+		"maps":    {MapAssets(nil), assetTileGrid},
+		"tokens":  {TokenAssets(nil), assetTileGrid},
+		"avatars": {AvatarAssets(nil), assetFaceGrid},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.page)
+
+			if !strings.Contains(body, c.want) {
+				t.Errorf("the %s grid is not %s", name, c.want)
+			}
+			if strings.Contains(body, "auto-fill") != strings.Contains(c.want, "auto-fill") {
+				t.Errorf("the %s grid counts columns rather than sizing cards", name)
+			}
+		})
+	}
+
+	// The avatars have to be the denser of the two or the wall is the tile grid
+	// with smaller pictures in it.
+	if assetFaceGrid == assetTileGrid {
+		t.Error("the avatar wall is the same track as the map tiles")
 	}
 }
 

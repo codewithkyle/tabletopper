@@ -88,6 +88,29 @@ SELECT * FROM assets
 WHERE owner_id = ? AND type = 'map'
 ORDER BY created_at DESC;
 
+-- THE SEARCH BOX ON EACH OF THE FOUR MANAGER PAGES, one statement per page.
+-- Each is its list statement above with a LIKE bolted on, and each keeps that
+-- statement's columns and ordering, so a filtered page and an unfiltered one
+-- are the same page with fewer cards in it.
+--
+-- THE TERM IS A PATTERN, NOT A WORD, and the caller escapes it: `%` and `_` are
+-- wildcards to LIKE and ordinary characters to somebody typing, so an
+-- unescaped `%` matches the whole shelf. The manual and the journal search
+-- share the helper that does it.
+--
+-- ONLY name IS SEARCHED, NOT file_name. The chip on the card shows the file the
+-- asset came from, but the name is the thing the owner typed and the thing they
+-- will type again to find it; matching both would turn a search for "keep" into
+-- a hit on every .keep.png somebody uploaded.
+--
+-- The rows are the owner's own and there are tens of them, so the LIKE scans
+-- behind idx_assets_owner_type and reads nothing else. The table is
+-- utf8mb4_0900_ai_ci, so it is already case- and accent-insensitive.
+-- name: SearchMaps :many
+SELECT * FROM assets
+WHERE owner_id = sqlc.arg(owner_id) AND type = 'map' AND name LIKE sqlc.arg(term)
+ORDER BY created_at DESC;
+
 -- name: GetMap :one
 SELECT * FROM assets
 WHERE id = ? AND owner_id = ? AND type = 'map';
@@ -253,6 +276,15 @@ SELECT * FROM assets
 WHERE owner_id = ? AND type = ?
 ORDER BY created_at DESC;
 
+-- The tokens and avatars boxes. The type is a parameter here for the reason it
+-- is one above -- the two kinds differ in nothing but that word -- and it is
+-- still never a value off the wire: the fragment route takes a kind, but it
+-- matches it against the four members before it reaches any statement.
+-- name: SearchLibraryAssets :many
+SELECT * FROM assets
+WHERE owner_id = sqlc.arg(owner_id) AND type = sqlc.arg(type) AND name LIKE sqlc.arg(term)
+ORDER BY created_at DESC;
+
 -- name: GetLibraryAsset :one
 SELECT * FROM assets
 WHERE id = ? AND owner_id = ? AND type = ?;
@@ -291,6 +323,16 @@ VALUES (?, ?, ?, 'music', ?, ?);
 -- name: GetMusicLibrary :many
 SELECT * FROM assets
 WHERE owner_id = ? AND type = 'music' AND uploaded_at IS NOT NULL
+ORDER BY created_at DESC;
+
+-- The music box. uploaded_at IS NOT NULL is carried over from the statement
+-- above and is not optional: a search that dropped it would put a card for a
+-- half-finished upload on the page the moment somebody typed a letter of its
+-- name, and that card is a player answering every press with a 404.
+-- name: SearchMusicLibrary :many
+SELECT * FROM assets
+WHERE owner_id = sqlc.arg(owner_id) AND type = 'music' AND uploaded_at IS NOT NULL
+  AND name LIKE sqlc.arg(term)
 ORDER BY created_at DESC;
 
 -- One track, FINISHED OR NOT. The confirm reads a row that is by definition not

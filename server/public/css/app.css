@@ -2634,6 +2634,9 @@
   .h-6 {
     height: calc(var(--spacing) * 6);
   }
+  .h-7 {
+    height: calc(var(--spacing) * 7);
+  }
   .h-9 {
     height: calc(var(--spacing) * 9);
   }
@@ -2689,6 +2692,9 @@
   }
   .w-32 {
     width: calc(var(--spacing) * 32);
+  }
+  .w-56 {
+    width: calc(var(--spacing) * 56);
   }
   .w-auto {
     width: auto;
@@ -2801,9 +2807,6 @@
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .grid-cols-5 {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
   .grid-cols-\[1fr_auto\] {
     grid-template-columns: 1fr auto;
   }
@@ -2812,6 +2815,12 @@
   }
   .grid-cols-\[24rem_minmax\(0\,1fr\)\] {
     grid-template-columns: 24rem minmax(0,1fr);
+  }
+  .grid-cols-\[repeat\(auto-fill\,minmax\(11rem\,1fr\)\)\] {
+    grid-template-columns: repeat(auto-fill,minmax(11rem,1fr));
+  }
+  .grid-cols-\[repeat\(auto-fill\,minmax\(16rem\,1fr\)\)\] {
+    grid-template-columns: repeat(auto-fill,minmax(16rem,1fr));
   }
   .grid-rows-\[auto_minmax\(0\,1fr\)\] {
     grid-template-rows: auto minmax(0,1fr);

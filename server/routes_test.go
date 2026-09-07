@@ -289,6 +289,19 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// The card is a fragment and the tile is not, and they must not be
 		// confused: one is markup for a swap and the other is image bytes.
 		{http.MethodGet, "/assets/maps/" + id + "/card", "/"},
+		// The search box's grid. ONE ROUTE FOR ALL FOUR KINDS, taking the kind
+		// as a query parameter rather than a segment -- so it is a literal path
+		// and there is no id in it to name somebody else's shelf with. A GET
+		// only, like every other fragment: the subtree catch-all takes the rest.
+		{http.MethodGet, "/fragment/assets/list", "GET /fragment/assets/list"},
+		{http.MethodGet, "/fragment/assets/list?kind=maps&q=keep", "GET /fragment/assets/list"},
+		{http.MethodPost, "/fragment/assets/list", "/fragment/"},
+		{http.MethodDelete, "/fragment/assets/list", "/fragment/"},
+		// The kind is not a segment, so a path shaped like one is not this
+		// route -- it falls to the catch-all rather than being served as maps.
+		{http.MethodGet, "/fragment/assets/list/maps", "/fragment/"},
+		// And it is a fragment, so it does not answer outside the prefix.
+		{http.MethodGet, "/assets/list", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
 		if pattern != c.want {

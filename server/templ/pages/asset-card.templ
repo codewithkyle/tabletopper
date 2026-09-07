@@ -1,9 +1,13 @@
 package pages
 
+const nameBoxRoomy = "h-9 text-2xl"
+
+const nameBoxTight = "h-7 text-lg"
+
 templ assetNameBox(box nameBox) {
 	<input
 		id={ box.ID }
-		class="mb-1 block h-9 w-full truncate rounded border border-transparent bg-transparent font-serif text-2xl transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2"
+		class={ box.Size + " mb-1 block w-full truncate rounded border border-transparent bg-transparent font-serif transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2" }
 		type="text"
 		value={ box.Value }
 		name={ box.Field }
@@ -24,7 +28,7 @@ templ assetCardControls(c cardControls) {
 			<div class="tooltip" data-tip="Replace">
 				<label
 					for={ c.ReplaceID }
-					class="btn btn-soft btn-square"
+					class="btn btn-soft btn-sm btn-square"
 				>
 					@replaceIcon()
 					<input
@@ -49,7 +53,7 @@ templ assetCardControls(c cardControls) {
 templ assetDeleteButton(url string, name string) {
 	<div class="tooltip" data-tip="Delete">
 		<button
-			class="btn btn-soft btn-error btn-square"
+			class="btn btn-soft btn-error btn-sm btn-square"
 			hx-confirm={ "You are about to delete " + name + ". This action cannot be undone." }
 			hx-delete={ url }
 			hx-target="closest asset-card"

@@ -145,19 +145,42 @@ func (a *App) MapAssetsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	maps, err := a.Queries.GetMaps(ctx, sess.UserID)
+	cards, err := a.mapList(ctx, sess.UserID, "")
 	if err != nil {
 		slog.Error("Failed to load maps", "error", err)
 		redirectToError(w, r)
 		return
 	}
 
-	cards := make([]pages.MapAsset, 0, len(maps))
-	for _, m := range maps {
-		cards = append(cards, mapCard(m))
+	render(w, r, pages.MapAssets(cards))
+}
+
+// mapList is the maps shelf in either of its two states -- everything the owner
+// has, or what matched a search -- so the page and the search fragment build the
+// same cards from the same function. See libraryList, which is the same shape
+// for the two kinds that are one stored image.
+func (a *App) mapList(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.MapAsset, error) {
+	var rows []queries.Asset
+	var err error
+
+	if term == "" {
+		rows, err = a.Queries.GetMaps(ctx, ownerID)
+	} else {
+		rows, err = a.Queries.SearchMaps(ctx, queries.SearchMapsParams{
+			OwnerID: ownerID,
+			Term:    journalSearchPattern(term),
+		})
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	render(w, r, pages.MapAssets(cards))
+	cards := make([]pages.MapAsset, 0, len(rows))
+	for _, row := range rows {
+		cards = append(cards, mapCard(row))
+	}
+
+	return cards, nil
 }
 
 // mapCard is the assets row as the card reads it: four values out of twenty-one

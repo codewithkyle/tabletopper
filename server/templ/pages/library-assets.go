@@ -63,13 +63,25 @@ func (l LibraryAsset) ImageURL() string {
 // nameBox and controls are what this asset gives the two shared card
 // components. See asset-card.go for why they are structs built here rather than
 // arguments assembled in the markup.
+// THE AVATAR BOX IS THE TIGHT ONE AND THE TOKEN BOX IS NOT, which is the only
+// place these two kinds part company on the card. It follows from the grids: a
+// token is a tile sixteen rems wide next to the maps, and an avatar is a face on
+// an eleven-rem wall, where a 24-pixel serif heading truncates every name to
+// about ten characters. See assetFaceGrid in asset-grid.go for why the wall is
+// dense in the first place.
 func (l LibraryAsset) nameBox() nameBox {
+	size := nameBoxRoomy
+	if l.Kind == assetTabAvatars {
+		size = nameBoxTight
+	}
+
 	return nameBox{
 		ID:        l.Kind + "-name-" + l.ID,
 		Value:     l.Name,
 		URL:       l.NameURL(),
 		Field:     "name",
 		MaxLength: strconv.Itoa(AssetNameLimit),
+		Size:      size,
 	}
 }
 

@@ -141,6 +141,7 @@ func (m MapAsset) nameBox() nameBox {
 		URL:       "/assets/maps/" + m.ID + "/name",
 		Field:     "map-name",
 		MaxLength: strconv.Itoa(AssetNameLimit),
+		Size:      nameBoxRoomy,
 	}
 }
 

@@ -55,6 +55,7 @@ func (t MusicTrack) nameBox() nameBox {
 		URL:       t.NameURL(),
 		Field:     "name",
 		MaxLength: strconv.Itoa(AssetNameLimit),
+		Size:      nameBoxRoomy,
 	}
 }
 

@@ -40,6 +40,17 @@ type nameBox struct {
 	Field string
 	// MaxLength is AssetNameLimit as a string, because an attribute is text.
 	MaxLength string
+	// Size is the box's height and type scale: nameBoxRoomy or nameBoxTight,
+	// both declared in asset-card.templ because a class named only in a .go
+	// file is never built.
+	//
+	// IT IS A SLOT AND NOT A BOOLEAN because what varies is a pair of class
+	// names, and class names have to be written somewhere Tailwind scans. The
+	// tight one exists for the Avatars page and nothing else: a face wall is
+	// eleven rems to a card, and a 24-pixel serif heading in a card that narrow
+	// truncates every name to about ten characters, which is a heading that has
+	// stopped naming anything.
+	Size string
 }
 
 // cardControls is the strip along the bottom of an asset card: the filename,

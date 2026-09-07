@@ -43,11 +43,24 @@ import (
 // through this process at all.
 
 const (
-	// avatarLibrarySize is what a library avatar is stored at. It is the
-	// character portrait's 96 for the same reason -- a face on a card and in a
-	// bar, never drawn larger -- and it is a separate constant because these
-	// two now have separate lives and one of them may grow without the other.
-	avatarLibrarySize = 96
+	// avatarLibrarySize is what a library avatar is stored at, and it is the
+	// monster picture's 256 rather than the character portrait's 96.
+	//
+	// THE TWO ARE SEPARATE CONSTANTS BECAUSE THE PICTURES HAVE SEPARATE JOBS. A
+	// portrait is a thumbnail: it appears on a roster card and in a sheet's bar
+	// and is never drawn larger, so 96 is the size it is used at. A library
+	// avatar is the face a GM spawns an NPC with, so it ends up on a map at
+	// whatever zoom the table is at -- which is the argument monsterImageSize
+	// makes, and it lands on the same number.
+	//
+	// 96 WAS ALSO VISIBLY SOFT ON THE MANAGER PAGE. A card cannot be narrower
+	// than its own controls, so the densest the Avatars wall goes is about 11
+	// rems, and a 96-pixel image in a 144-pixel box is upscaled before a HiDPI
+	// screen has doubled it.
+	//
+	// Raising it does not re-encode what is already in the bucket: a row keeps
+	// the object it was written with until it is replaced.
+	avatarLibrarySize = 256
 
 	// tokenSize is the box a token is fitted into, and it is large because a
 	// token is not a thumbnail: it is drawn on a map at whatever zoom the game
@@ -98,8 +111,13 @@ type libraryKind struct {
 	// hull -- the shape is what is being stored.
 	Store func(src image.Image) image.Image
 
-	// Page renders the whole manager page for this kind.
-	Page func(assets []pages.LibraryAsset) templ.Component
+	// Page renders the whole manager page for this kind, and Cards renders just
+	// the grid inside it -- the same section, which is what the search fragment
+	// swaps. They are two fields rather than one because the page is what a
+	// browser navigates to and the grid is what htmx replaces; a fragment that
+	// answered with the page would swap a whole document into a section.
+	Page  func(assets []pages.LibraryAsset) templ.Component
+	Cards func(assets []pages.LibraryAsset, query string) templ.Component
 }
 
 var (
@@ -108,6 +126,7 @@ var (
 		Key:       storage.AvatarKey,
 		Store:     func(src image.Image) image.Image { return images.Square(src, avatarLibrarySize) },
 		Page:      pages.AvatarAssets,
+		Cards:     pages.AvatarCards,
 	}
 
 	tokenKind = libraryKind{
@@ -115,6 +134,7 @@ var (
 		Key:       storage.TokenKey,
 		Store:     func(src image.Image) image.Image { return images.Fit(src, tokenSize) },
 		Page:      pages.TokenAssets,
+		Cards:     pages.TokenCards,
 	}
 
 	// Music, which reaches only the two handlers below that do not care what an
@@ -173,14 +193,43 @@ func (a *App) libraryPage(w http.ResponseWriter, r *http.Request, kind libraryKi
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	rows, err := a.Queries.GetLibraryAssets(ctx, queries.GetLibraryAssetsParams{
-		OwnerID: sess.UserID,
-		Type:    kind.Type,
-	})
+	cards, err := a.libraryList(ctx, sess.UserID, kind, "")
 	if err != nil {
 		slog.Error("Failed to load library assets", "error", err, "kind", kind.Slug)
 		redirectToError(w, r)
 		return
+	}
+
+	render(w, r, kind.Page(cards))
+}
+
+// libraryList is one kind's shelf in either of its two states -- everything the
+// owner has, or what matched a search -- so the page and the search fragment
+// build the same cards from the same function, and a card that appeared in only
+// one of them cannot exist.
+//
+// THE TERM IS ESCAPED BY journalSearchPattern RATHER THAN BY A SECOND COPY OF
+// IT. What LIKE reads as a pattern is a fact about MySQL and not about journals:
+// an unescaped `%` matches the whole shelf here exactly as it matches the whole
+// journal there.
+func (a *App) libraryList(ctx context.Context, ownerID ulid.ULID, kind libraryKind, term string) ([]pages.LibraryAsset, error) {
+	var rows []queries.Asset
+	var err error
+
+	if term == "" {
+		rows, err = a.Queries.GetLibraryAssets(ctx, queries.GetLibraryAssetsParams{
+			OwnerID: ownerID,
+			Type:    kind.Type,
+		})
+	} else {
+		rows, err = a.Queries.SearchLibraryAssets(ctx, queries.SearchLibraryAssetsParams{
+			OwnerID: ownerID,
+			Type:    kind.Type,
+			Term:    journalSearchPattern(term),
+		})
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	cards := make([]pages.LibraryAsset, 0, len(rows))
@@ -188,7 +237,7 @@ func (a *App) libraryPage(w http.ResponseWriter, r *http.Request, kind libraryKi
 		cards = append(cards, libraryCard(kind, row))
 	}
 
-	render(w, r, kind.Page(cards))
+	return cards, nil
 }
 
 // uploadLibrary takes one picture into the library.
