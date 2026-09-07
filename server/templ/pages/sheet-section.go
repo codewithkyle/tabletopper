@@ -36,29 +36,20 @@ type shellLayout struct {
 	// the character tabs did before the bar existed, and just as hard to read.
 	SubNav templ.Component
 
-	// ShareLabel is what the bar's Share button says, and it exists for exactly
-	// one page.
+	// OwnShare says this tab brings its own Share button, so the bar does not
+	// draw the character's.
 	//
-	// EVERY BAR BUT ONE HAS A SINGLE SHARE BUTTON, and on those it says "Share"
-	// -- what is being shared is the thing the page is about, and a bar is a
-	// place where words cost more than they are worth. The journal entry page
-	// carries two: the character's, which is on all five tabs, and the entry's
-	// own, which sits in Actions. Two adjacent buttons with the same icon and
-	// the same word would be a coin toss, so that page says which is which.
+	// ONE PAGE SETS IT, AND IT IS THE PAGE WHERE "SHARE" MEANS SOMETHING ELSE.
+	// A journal entry is shared by its own link, with its own expiry and its
+	// own password, so on that page sharing means sharing the entry. The
+	// character's button sat beside it under the same icon and was, almost
+	// every time it was reached for, not the one being reached for -- two
+	// buttons a coin toss apart. The other four tabs keep it, because there it
+	// is the only meaning "share" has.
 	//
-	// Empty is the ordinary case and reads as "Share"; see shareLabel.
-	ShareLabel string
-}
-
-// shareLabel is the bar's Share button's words. It is a function rather than a
-// default written into the struct literal because there are five call sites and
-// four of them do not mention sharing at all.
-func shareLabel(layout shellLayout) string {
-	if layout.ShareLabel == "" {
-		return "Share"
-	}
-
-	return layout.ShareLabel
+	// The character is still shareable from any of those four; what is removed
+	// is a second meaning on the one page that already had its own.
+	OwnShare bool
 }
 
 // panelFormID is the id a savingPanel's form carries, so a control OUTSIDE the

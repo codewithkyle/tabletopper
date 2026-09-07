@@ -6,9 +6,9 @@ templ EditCharacterJournalEntry(data JournalEntryPageData) {
 	{{ action := "/characters/" + data.CharacterID + "/journal/" + data.EntryID }}
 	@layouts.Base("Journal | Tabletopper", "/static/journal-editor.js") {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabJournal, shellLayout{
-			Fill:       true,
-			Actions:    journalEntryActions(data),
-			ShareLabel: "Share character",
+			Fill:     true,
+			Actions:  journalEntryActions(data),
+			OwnShare: true,
 		}) {
 			@savingPanel("Entry", action, JournalEntryPanel) {
 				<div class="fieldset">
@@ -82,7 +82,7 @@ templ journalEntryActions(data JournalEntryPageData) {
 templ journalShareButton(characterID string, entryID string) {
 	<button
 		type="button"
-		class="btn shrink-0 max-[640px]:px-3"
+		class="btn btn-secondary shrink-0 max-[640px]:px-3"
 		data-modal-open={ journalShareDialogURL(characterID, entryID) }
 	>
 		@shareIcon()

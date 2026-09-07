@@ -3432,6 +3432,11 @@
       --btn-fg: var(--color-primary-content);
       --btn-soft-bg: initial;
     }
+    .btn-secondary {
+      --btn-color: var(--color-secondary);
+      --btn-fg: var(--color-secondary-content);
+      --btn-soft-bg: initial;
+    }
     .btn-sm {
       --fontsize: 0.75rem;
       --btn-p: 0.75rem;

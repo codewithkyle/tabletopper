@@ -17,7 +17,9 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 			@characterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
 				<a href="/characters" class="btn max-[640px]:flex-1">Back</a>
-				@characterShareButton(characterID, shareLabel(layout))
+				if !layout.OwnShare {
+					@characterShareButton(characterID)
+				}
 				@characterExportButton(characterID)
 				if layout.Actions != nil {
 					@layout.Actions
@@ -86,19 +88,19 @@ templ characterBarChips(header CharacterHeader, oob bool) {
 }
 
 templ characterExportButton(characterID string) {
-	<a href={ "/characters/" + characterID + "/export.md" } download class="btn shrink-0 max-[640px]:px-3">
+	<a href={ "/characters/" + characterID + "/export.md" } download class="btn btn-secondary shrink-0 max-[640px]:px-3">
 		@downloadIcon()
 		<span class="max-[640px]:sr-only">Export</span>
 	</a>
 }
 
-templ characterShareButton(characterID string, label string) {
+templ characterShareButton(characterID string) {
 	<button
 		type="button"
-		class="btn shrink-0 max-[640px]:px-3"
+		class="btn btn-secondary shrink-0 max-[640px]:px-3"
 		data-modal-open={ characterShareDialogURL(characterID) }
 	>
 		@shareIcon()
-		<span class="max-[640px]:sr-only">{ label }</span>
+		<span class="max-[640px]:sr-only">Share</span>
 	</button>
 }

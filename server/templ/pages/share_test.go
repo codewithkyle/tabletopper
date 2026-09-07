@@ -201,26 +201,34 @@ func TestTheDialogSaysWhatKindOfLinkItIs(t *testing.T) {
 // and the URL it names has to be a /fragment/ route -- content-modal.js refuses
 // anything else and the dialog would simply never open.
 func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
-	body := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{
-		CharacterID: "C", EntryID: "E",
-	}))
-
-	for _, want := range []string{
-		`data-modal-open="/fragment/character/journal-share?character=C&amp;entry=E"`,
-		`data-modal-open="/fragment/character/share?character=C"`,
+	for name, c := range map[string]struct {
+		page templ.Component
+		want string
+	}{
+		"entry":     {EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}), `data-modal-open="/fragment/character/journal-share?character=C&amp;entry=E"`},
+		"character": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), `data-modal-open="/fragment/character/share?character=C"`},
+		"monster":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), `data-modal-open="/fragment/monster/share?monster=M"`},
 	} {
-		if !strings.Contains(body, want) {
-			t.Errorf("no share button opens %s:\n%s", want, body)
-		}
+		t.Run(name, func(t *testing.T) {
+			if body := renderToString(t, c.page); !strings.Contains(body, c.want) {
+				t.Errorf("no share button opens %s:\n%s", c.want, body)
+			}
+		})
 	}
 }
 
-// A BAR WITH ONE SHARE BUTTON SAYS "SHARE", AND THE ONE WITH TWO SAYS WHICH.
-// What is being shared is the thing the page is about, so the noun is a word
-// paid for on every page to be read on none -- except on the journal entry page,
-// where the character's button and the entry's own sit in the same bar under the
-// same icon, and "Share" on both would be a coin toss.
-func TestOnlyTheBarWithTwoShareButtonsNamesWhatItShares(t *testing.T) {
+// ONE PAGE, ONE MEANING OF "SHARE". Every editor bar carries a single Share
+// button that says "Share" and nothing more -- what is being shared is the thing
+// the page is about, so a noun is a word paid for on every page to be read on
+// none.
+//
+// THE JOURNAL ENTRY PAGE IS WHERE THAT RULE COST SOMETHING. It used to carry two
+// of them under the same icon, the character's and the entry's, a coin toss
+// apart; now the bar leaves its own off and the page keeps the one that means
+// what "share" means there. The character is still shareable from any of the
+// other four tabs, which is what makes dropping it from this one a narrowing
+// rather than a loss.
+func TestEachEditorPageHasOneMeaningOfShare(t *testing.T) {
 	for name, page := range map[string]templ.Component{
 		"character": EditCharacter(EditCharacterPageData{CharacterID: "C"}),
 		"journal":   EditCharacterJournal(JournalPageData{CharacterID: "C"}),
@@ -239,30 +247,31 @@ func TestOnlyTheBarWithTwoShareButtonsNamesWhatItShares(t *testing.T) {
 	}
 
 	entry := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}))
-	for _, label := range []string{">Share character<", ">Share entry<"} {
-		if !strings.Contains(entry, label) {
-			t.Errorf("the entry page's two share buttons are not told apart by %s:\n%s", label, entry)
-		}
+	if !strings.Contains(entry, ">Share entry<") {
+		t.Errorf("the entry page lost the share that means the entry:\n%s", entry)
 	}
-	if strings.Contains(entry, `sr-only">Share<`) {
-		t.Errorf("a bare Share on the one page that holds two of them:\n%s", entry)
+	if strings.Contains(entry, characterShareDialogURL("C")) {
+		t.Errorf("the entry page still opens the character's share dialog:\n%s", entry)
+	}
+	if strings.Count(entry, "data-modal-open") != 1 {
+		t.Errorf("the entry page opens %d dialogs from its bar, want one:\n%s", strings.Count(entry, "data-modal-open"), entry)
 	}
 }
 
-// Both share buttons collapse to their icon under 640px, where the journal entry
-// page's bar holds five of them.
+// The icon buttons collapse to their icon under 640px, where the journal entry
+// page's bar is at its most crowded.
 //
 // THE LABELS ARE HIDDEN AND NOT REMOVED, which is the whole of what this checks:
 // sr-only takes the words out of the layout and leaves them in the accessibility
 // tree, while `hidden` or deleting them would leave two adjacent buttons
-// announced as "button" and nothing else -- and the entry page has both, so the
-// names are also the only thing telling them apart once the words are gone.
+// announced as "button" and nothing else -- and once the words are gone the
+// names are the only thing telling a share from a download.
 func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 	body := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{
 		CharacterID: "C", EntryID: "E",
 	}))
 
-	for _, label := range []string{"Share character", "Share entry"} {
+	for _, label := range []string{"Share entry", "Export"} {
 		if !strings.Contains(body, `class="max-[640px]:sr-only">`+label+`<`) {
 			t.Errorf("%q is not hidden with sr-only:\n%s", label, body)
 		}
@@ -345,23 +354,34 @@ func TestTheMonsterEditorCarriesAShareButtonAndTheManualDoesNot(t *testing.T) {
 }
 
 // The character's Share button is on the bar rather than on a page, which is
-// what puts it on all five editor tabs without any of them naming it. Losing
-// that is losing the button from four pages at once, and nothing else would
-// fail.
-func TestEveryEditorTabCarriesTheCharacterShareButton(t *testing.T) {
-	tabs := map[string]templ.Component{
-		"character": EditCharacter(EditCharacterPageData{CharacterID: "C"}),
-		"inventory": EditCharacterInventory(InventoryPageData{CharacterID: "C"}),
-		"spells":    EditCharacterSpellLevel(SpellLevelPageData{CharacterID: "C"}),
-		"journal":   EditCharacterJournal(JournalPageData{CharacterID: "C"}),
-		"entry":     EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}),
+// what puts it on four editor tabs without any of them naming it. Losing that is
+// losing the button from four pages at once, and nothing else would fail.
+//
+// THE ENTRY TAB IS THE ONE THAT OPTS OUT, through shellLayout.OwnShare, and it
+// is listed here rather than left out so the exception is a line somebody has to
+// delete rather than a page nobody remembered to add.
+func TestEveryEditorTabButTheEntryCarriesTheCharacterShareButton(t *testing.T) {
+	tabs := map[string]struct {
+		page   templ.Component
+		shares bool
+	}{
+		"character": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), true},
+		"inventory": {EditCharacterInventory(InventoryPageData{CharacterID: "C"}), true},
+		"spells":    {EditCharacterSpellLevel(SpellLevelPageData{CharacterID: "C"}), true},
+		"journal":   {EditCharacterJournal(JournalPageData{CharacterID: "C"}), true},
+		"entry":     {EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}), false},
 	}
 
-	for name, page := range tabs {
+	for name, tab := range tabs {
 		t.Run(name, func(t *testing.T) {
-			body := renderToString(t, page)
-			if !strings.Contains(body, `data-modal-open="/fragment/character/share?character=C"`) {
-				t.Errorf("the %s tab has no character share button:\n%s", name, body)
+			body := renderToString(t, tab.page)
+
+			if got := strings.Contains(body, `data-modal-open="/fragment/character/share?character=C"`); got != tab.shares {
+				if tab.shares {
+					t.Errorf("the %s tab has no character share button:\n%s", name, body)
+				} else {
+					t.Errorf("the %s tab draws a share that is not the one it means:\n%s", name, body)
+				}
 			}
 		})
 	}
