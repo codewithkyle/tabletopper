@@ -19,35 +19,8 @@ templ MonsterCard(m MonsterSummary) {
 	<monster-card class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
 			<div class="flex items-center gap-4">
-				<div class="relative shrink-0">
-					<div class="avatar avatar-placeholder rounded-full border border-base-300">
-						<div class="relative w-14 rounded-full bg-base-300 text-base-content">
-							<span class="font-serif text-xl font-bold">{ characterInitial(m.Name) }</span>
-							if m.ImageID != "" {
-								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + m.ImageID } alt={ m.Name }/>
-							}
-						</div>
-					</div>
-					<label
-						aria-label={ monsterImageVerb(m) + " monster image" }
-						class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm"
-						data-tip={ monsterImageVerb(m) + " image" }
-						for={ "monster-image-" + m.ID }
-					>
-						@pencilIcon()
-						<input
-							class="absolute h-0 w-0 opacity-0"
-							id={ "monster-image-" + m.ID }
-							type="file"
-							name="image"
-							accept="image/png, image/jpeg, image/webp"
-							required
-							hx-post={ "/monsters/" + m.ID + "/image" }
-							hx-target="closest monster-card"
-							hx-swap="outerHTML"
-							hx-encoding="multipart/form-data"
-						/>
-					</label>
+				<div class="w-14 shrink-0">
+					@MonsterImageControl(MonsterImage{MonsterID: m.ID, Name: m.Name, ImageID: m.ImageID})
 				</div>
 				<div class="min-w-0">
 					<h2 class="card-title font-serif text-xl leading-none">{ m.Name }</h2>
@@ -99,7 +72,7 @@ templ monsterSearchBox() {
 	<input
 		type="search"
 		name="q"
-		class="input w-full"
+		class="input input-sm w-full"
 		placeholder="Search the manual"
 		aria-label="Search the manual"
 		aria-controls={ monsterCardsID }
@@ -158,9 +131,15 @@ templ monstersContent(data MonsterListData) {
 						</button>
 					</div>
 				</div>
+				<div class="border-t border-base-300 bg-base-content/5">
+					<div class="px-6 py-2 max-[700px]:px-4">
+						<div class="max-w-sm">
+							@monsterSearchBox()
+						</div>
+					</div>
+				</div>
 			}
-			<div class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-4 px-6 py-4 max-[700px]:px-4">
-				@monsterSearchBox()
+			<div class="grid min-h-0 grid-rows-[minmax(0,1fr)] px-6 py-4 max-[700px]:px-4">
 				@monsterCards(data)
 			</div>
 		</div>

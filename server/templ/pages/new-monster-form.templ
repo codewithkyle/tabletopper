@@ -9,12 +9,14 @@ templ NewMonsterFragment() {
 		<form
 			class="grid gap-4"
 			hx-post="/monsters"
+			hx-encoding="multipart/form-data"
 			hx-target={ errorBlock }
 			hx-swap="outerHTML"
 			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
 		>
 			@PanelFormErrors(NewMonsterPanel, []string{})
 			@textField("name", "Monster Name", "", "", true)
+			@newMonsterImageField()
 			<div class="modal-action">
 				<button
 					type="button"
@@ -25,4 +27,37 @@ templ NewMonsterFragment() {
 			</div>
 		</form>
 	</div>
+}
+
+templ newMonsterImageField() {
+	<monster-image-picker class="flex items-center gap-4">
+		<div class="relative w-16 shrink-0">
+			<div class="avatar avatar-placeholder w-full rounded-full border border-dashed border-base-content/40">
+				<div class="relative w-full rounded-full bg-base-content/5">
+					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" alt="" hidden/>
+				</div>
+			</div>
+			<label
+				class="absolute inset-0 z-10 cursor-pointer rounded-full"
+				for={ newMonsterImageInputID }
+				aria-label="Choose a picture for this monster"
+			>
+				<input
+					class="absolute h-0 w-0 opacity-0"
+					id={ newMonsterImageInputID }
+					type="file"
+					name="image"
+					accept="image/png, image/jpeg, image/webp"
+					hx-on:change="const picked = event.target.files[0]; const shown = event.target.closest('monster-image-picker').querySelector('img'); shown.hidden = !picked; if (picked) shown.src = URL.createObjectURL(picked)"
+				/>
+			</label>
+			<span class="pointer-events-none absolute -top-1 -right-1 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm">
+				@pencilIcon()
+			</span>
+		</div>
+		<span class="grid gap-1">
+			<span class="text-sm font-semibold">Picture</span>
+			<span class="text-xs text-base-content/65">PNG, JPEG or WEBP. You can add one later.</span>
+		</span>
+	</monster-image-picker>
 }

@@ -29,19 +29,6 @@ type MonsterListData struct {
 	Query    string
 }
 
-// monsterImageVerb is the word on the upload control, which is the one part of
-// the card that changes with whether there is a picture yet. It is a function
-// rather than two branches of markup because the control is otherwise identical
-// in both states, and the character card's two copies of it have already drifted
-// once.
-func monsterImageVerb(m MonsterSummary) string {
-	if m.ImageID == "" {
-		return "Upload"
-	}
-
-	return "Replace"
-}
-
 // MonsterSummary is one monster as its card needs it, and no more of the row
 // than that. The manual lists tens of these and the card shows six values, so it
 // takes the six rather than the whole stat block -- which also means the search
@@ -50,17 +37,13 @@ func monsterImageVerb(m MonsterSummary) string {
 // Subtitle arrives already assembled, the way CharacterHeader's does, because
 // the controller is the only place that knows which of size, type, tags and
 // alignment the row actually has.
-//
-// The placeholder when ImageID is empty is characterInitial, which is shared
-// rather than copied: it is the first letter of a name, and a monster's name is
-// a name.
 type MonsterSummary struct {
 	ID       string
 	Name     string
 	Subtitle string
-	// ImageID is empty when the monster has no picture. The card offers the
-	// upload either way -- it is where a monster's image is set, the way the
-	// roster card is where a character's avatar is.
+	// ImageID is empty when the monster has no picture. Either way the card
+	// carries the upload control, which is MonsterImageControl and is the same
+	// one the editor's bar carries -- see monster-image.go.
 	ImageID string
 
 	// The four chips, each already the string it prints. CR is the rating on

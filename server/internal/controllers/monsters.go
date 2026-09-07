@@ -11,10 +11,12 @@ import (
 	"strings"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
+	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -326,10 +328,17 @@ func (a *App) NewMonsterFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.NewMonsterFragment())
 }
 
-// NewMonsterForm creates a monster from a name and sends the browser to the
-// editor. That is the whole of creation: every other column is answered by the
-// schema, and the stat block is filled in afterwards by a page that saves as you
-// go.
+// NewMonsterForm creates a monster from a name, gives it the picture the dialog
+// carried if there was one, and sends the browser to the editor. Everything else
+// in the stat block is answered by the schema and filled in afterwards by a page
+// that saves as you go.
+//
+// THE PICTURE IS CHECKED BEFORE THE MONSTER EXISTS. Decoding is the only part of
+// an upload a person can be at fault for, and doing it first is what lets a file
+// that will not open come back as a sentence over a dialog that still holds the
+// name they typed. Everything after the create is a server fault, and none of it
+// is worth throwing the monster away over -- the editor carries the same upload
+// control, so a picture that did not land can be added there.
 //
 // The reply on success is a redirect with no body, so nothing lands back in the
 // dialog -- the navigation takes it away. The toast still arrives, on the page
@@ -340,8 +349,11 @@ func (a *App) NewMonsterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	if err := r.ParseForm(); err != nil {
-		rejectNewMonster(w, r, "The submitted form data could not be read.")
+	// The dialog posts multipart because it may carry a file. A form that sent
+	// its fields the ordinary way is still a create with no picture, and
+	// parsing has already read the name out of it by the time it says so.
+	if problem := parseUploadForm(w, r, imageLimits); problem != nil && problem != errNotMultipart {
+		rejectNewMonster(w, r, problem.Message)
 		return
 	}
 
@@ -358,6 +370,11 @@ func (a *App) NewMonsterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	picture, filename, ok := a.newMonsterPicture(w, r)
+	if !ok {
+		return
+	}
+
 	id := ulid.Make()
 	err := a.Queries.CreateMonsterFromName(ctx, queries.CreateMonsterFromNameParams{
 		ID:      id,
@@ -370,8 +387,53 @@ func (a *App) NewMonsterForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx.Toast(w, name+" has been created.")
+	created := name + " has been created."
+	if picture != nil {
+		if _, err := a.attachMonsterImage(ctx, sess.UserID, id, picture, filename); err != nil {
+			slog.Error("Failed to attach the new monster's picture", "error", err, "monsterID", id.String())
+			created = name + " has been created, but the picture could not be saved. Add it again from the editor."
+		}
+	}
+
+	htmx.Toast(w, created)
 	htmx.Redirect(w, "/monsters/"+id.String()+"/edit")
+}
+
+// newMonsterPicture is the dialog's optional file, decoded and re-encoded to
+// what a monster's picture is stored as. It answers (nil, "", true) when the
+// field was left alone, which is the ordinary case -- the whole dialog is one
+// question and this is beside it.
+//
+// A bad file is a 422 into the dialog's error block rather than an alert, for
+// the reason every other failure on this form is: the modal stays open on the
+// thing that needs fixing, with the name still in the field. An alert would open
+// a second dialog over the first to say the same sentence.
+func (a *App) newMonsterPicture(w http.ResponseWriter, r *http.Request) ([]byte, string, bool) {
+	file, filename, problem := openOptionalImageUpload(r, "image", imageLimits)
+	if problem != nil {
+		rejectNewMonster(w, r, problem.Message)
+		return nil, "", false
+	}
+	if file == nil {
+		return nil, "", true
+	}
+	defer file.Close()
+
+	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
+	if err != nil {
+		slog.Warn("Failed to decode a new monster's picture", "error", err)
+		rejectNewMonster(w, r, errUnsupportedImage.Message)
+		return nil, "", false
+	}
+
+	encoded, err := images.EncodeWebP(images.Square(src, monsterImageSize))
+	if err != nil {
+		slog.Error("Failed to encode a new monster's picture as webp", "error", err)
+		htmx.ServerError(w)
+		return nil, "", false
+	}
+
+	return encoded, filename, true
 }
 
 // rejectNewMonster answers with the dialog's error block under a 422, which is

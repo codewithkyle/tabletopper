@@ -162,6 +162,36 @@ func TestReadImageBytesDoesNotDecode(t *testing.T) {
 	}
 }
 
+// AN UPLOAD LARGER THAN multipartMemory IS A FILE ON DISK, NOT BYTES IN A MAP,
+// and that is the whole point of this test. ReadForm keeps the first 32 MiB of
+// a part in memory and spills the rest to a temp file, so the same
+// multipart.File is a rewindable byte slice below the line and an *os.File
+// above it -- and only the second one notices being closed early.
+//
+// Which is what openImageUpload used to do: it deferred a Close and then
+// returned the file it had just closed, and every caller closed it again. Under
+// the line the extra Close is a no-op and nothing showed; over it, every map
+// past 32 MiB failed on "file already closed" -- and the cap is 128.
+//
+// The fixture is a valid header followed by padding, because the header pass is
+// the only part of a map that is ever decoded.
+func TestAMapLargerThanTheMemoryBudgetIsStillReadableWhole(t *testing.T) {
+	fixture := append(pngHeader(100, 100), make([]byte, multipartMemory+(1<<20))...)
+
+	rec := newRecorder()
+	body, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map", mapLimits)
+
+	if !ok {
+		t.Fatalf("readImageBytes refused a spilled upload with status %d", rec.Code)
+	}
+	if len(body) != len(fixture) {
+		t.Errorf("read %d bytes of a %d byte upload", len(body), len(fixture))
+	}
+	if !bytes.Equal(body, fixture) {
+		t.Error("the bytes that came back are not the ones that were sent")
+	}
+}
+
 // The budget is refused on the way through the same header pass, so the map
 // path is no more willing to take a 400-megapixel canvas than the avatar path
 // is -- it just refuses it without ever holding one.

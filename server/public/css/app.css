@@ -716,6 +716,9 @@
       }
     }
   }
+  .pointer-events-none {
+    pointer-events: none;
+  }
   :is(.validator:user-invalid, .validator:has(:user-invalid), .validator[aria-invalid]:not([aria-invalid="false"]), .validator:has([aria-invalid]:not([aria-invalid="false"]))) ~ .validator-hint {
     @layer daisyui.l1.l2.l3 {
       visibility: visible;
@@ -2896,6 +2899,10 @@
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 2px;
   }
+  .border-dashed {
+    --tw-border-style: dashed;
+    border-style: dashed;
+  }
   @layer daisyui.l1.l2 {
     .input-ghost {
       background-color: transparent;
@@ -2934,6 +2941,12 @@
   }
   .border-base-300 {
     border-color: var(--color-base-300);
+  }
+  .border-base-content\/40 {
+    border-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+    }
   }
   .border-base-content\/50 {
     border-color: var(--color-base-content);

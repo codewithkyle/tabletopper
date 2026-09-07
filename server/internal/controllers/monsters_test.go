@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,13 +24,61 @@ import (
 
 var testMonsterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS4")
 
+// createMonster posts the dialog's form the way the dialog posts it: multipart,
+// with a picture part that carries no name and no bytes unless one is given.
+// THAT EMPTY PART IS NOT AN ARTIFICIAL CASE -- it is what a browser sends for a
+// file input nobody touched, so every create that does not attach a picture
+// arrives looking exactly like this.
+//
+// It uses the deadline recorder rather than a bare one because the route lifts
+// the server's read and write deadlines now that it can carry 8 MiB, and a
+// recorder that cannot answer http.ResponseController would put every one of
+// these tests on the path where extending them failed.
+func createMonster(t *testing.T, app *App, form url.Values, picture []byte) *deadlineRecorder {
+	t.Helper()
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	for field, values := range form {
+		for _, value := range values {
+			if err := writer.WriteField(field, value); err != nil {
+				t.Fatalf("writing %s: %v", field, err)
+			}
+		}
+	}
+
+	filename := ""
+	if picture != nil {
+		filename = "picture.png"
+	}
+	part, err := writer.CreateFormFile("image", filename)
+	if err != nil {
+		t.Fatalf("writing the picture part: %v", err)
+	}
+	if _, err := part.Write(picture); err != nil {
+		t.Fatalf("writing the picture: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("closing the form: %v", err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/monsters", &body)
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+
+	rec := newRecorder()
+	app.NewMonsterForm(rec, r)
+
+	return rec
+}
+
 // Creation is one field and one statement, and these pin both halves: that a
 // name is all the handler will take, and that a name is all the statement can
 // carry.
 func TestCreateMonsterRedirectsToTheEditor(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	rec := panelPost(t, db, app.NewMonsterForm, url.Values{"name": {"  Ancient Red Dragon  "}}, nil)
+	rec := createMonster(t, app, url.Values{"name": {"  Ancient Red Dragon  "}}, nil)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
@@ -84,7 +134,7 @@ func TestCreateMonsterRejectsBadNamesWithoutWriting(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
 
-			rec := panelPost(t, db, app.NewMonsterForm, url.Values{"name": {c.value}}, nil)
+			rec := createMonster(t, app, url.Values{"name": {c.value}}, nil)
 
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
@@ -112,7 +162,7 @@ func TestCreateMonsterRejectsBadNamesWithoutWriting(t *testing.T) {
 func TestCreateMonsterMeasuresTheNameInCharactersNotBytes(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	rec := panelPost(t, db, app.NewMonsterForm, url.Values{"name": {strings.Repeat("é", pages.MonsterNameLimit)}}, nil)
+	rec := createMonster(t, app, url.Values{"name": {strings.Repeat("é", pages.MonsterNameLimit)}}, nil)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
@@ -140,7 +190,7 @@ func TestCreateMonsterCannotCarrySheetData(t *testing.T) {
 		"languages":             {"All"},
 		"description":           {"It is much stronger than it looks."},
 	}
-	rec := panelPost(t, db, app.NewMonsterForm, block, nil)
+	rec := createMonster(t, app, block, nil)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -163,6 +213,57 @@ func TestCreateMonsterCannotCarrySheetData(t *testing.T) {
 	// place a fourth value would have to appear.
 	if fields := reflect.TypeOf(queries.CreateMonsterFromNameParams{}).NumField(); fields != 3 {
 		t.Errorf("CreateMonsterFromNameParams has %d fields, want 3 (id, owner, name)", fields)
+	}
+}
+
+// THE PICTURE IS CHECKED BEFORE THE MONSTER EXISTS, which is the whole reason
+// the decode happens where it does. A file that will not open is the one upload
+// failure a person can fix, and fixing it means the dialog is still open with
+// the name in it -- so nothing may have been written by the time they are told.
+//
+// It is a 422 and not an alert for the same reason every other rejection on this
+// form is: 422 is the only 4xx the dialog carries an hx-status route for, and an
+// alert would open a second dialog over the first to say one sentence.
+func TestCreateMonsterRefusesAPictureItCannotDecodeAndWritesNothing(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	rec := createMonster(t, app, url.Values{"name": {"Goblin"}}, []byte("this is not an image"))
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
+	}
+	if len(db.calls) != 0 {
+		t.Errorf("the monster was created anyway: %v", db.calls)
+	}
+	if rec.Header().Get("HX-Redirect") != "" {
+		t.Error("a rejected create still sent HX-Redirect")
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "Only PNG, JPEG, and WEBP") {
+		t.Errorf("body does not say what is wrong with the file: %s", body)
+	}
+	if !strings.Contains(rec.Body.String(), `id="errors-new-monster"`) {
+		t.Errorf("body is not the dialog's error block: %s", rec.Body.String())
+	}
+}
+
+// A create with no multipart body at all still creates. The dialog always sends
+// one -- it carries a file input -- but the route is a plain resource URL, and
+// parsing has read the name out of an ordinary form post by the time it reports
+// that there was nothing multipart about it.
+func TestCreateMonsterTakesAnOrdinaryFormPost(t *testing.T) {
+	app, db := newPanelApp(1)
+
+	rec := panelPost(t, db, app.NewMonsterForm, url.Values{"name": {"Goblin"}}, nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	call := db.only(t)
+	if !strings.Contains(call.query, "INSERT INTO monsters") {
+		t.Errorf("statement is not the create: %q", call.query)
+	}
+	if name, ok := call.args[2].(string); !ok || name != "Goblin" {
+		t.Errorf("stored name = %v, want %q", call.args[2], "Goblin")
 	}
 }
 

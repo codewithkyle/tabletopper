@@ -40,13 +40,8 @@ templ monsterBarFigure(header MonsterHeader, oob bool) {
 			hx-swap-oob="true"
 		}
 	>
-		<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
-			<div class="relative w-11 rounded-full bg-base-300 text-base-content">
-				<span class="font-serif text-lg font-bold">{ characterInitial(header.Name) }</span>
-				if header.ImageID != "" {
-					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + header.ImageID } alt={ header.Name }/>
-				}
-			</div>
+		<div class="w-11 shrink-0">
+			@MonsterImageControl(MonsterImage{MonsterID: header.MonsterID, Name: header.Name, ImageID: header.ImageID})
 		</div>
 		<div class="min-w-0">
 			<h1 class="m-0 truncate font-serif text-2xl leading-tight">{ monsterName(header.Name) }</h1>

@@ -558,6 +558,7 @@ func monsterHeader(monster queries.Monster, derived pages.MonsterDerived) pages.
 	}
 
 	return pages.MonsterHeader{
+		MonsterID:   monster.ID.String(),
 		Name:        monster.Name,
 		Subtitle:    monsterSubtitle(monster),
 		ImageID:     image,

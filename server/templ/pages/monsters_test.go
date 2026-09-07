@@ -291,3 +291,122 @@ func TestTwoMonsterActionRowsShareNoElementID(t *testing.T) {
 		}
 	}
 }
+
+// THE SEARCH BOX BELONGS TO THE PAGE CHROME AND NOT TO THE LIST. It navigates
+// the manual the way the character tabs navigate a sheet, so it sits in the bar
+// with them rather than as the first thing on the grid paper -- which is where
+// the spells subnav ended up for the same reason, and which put a bare control
+// on the desk with nothing behind it.
+//
+// The bar is the <header> appBar renders, so this is the whole assertion: the
+// box is inside it.
+func TestTheManualSearchBoxIsInTheBar(t *testing.T) {
+	page := renderToString(t, Monsters(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
+
+	bar := strings.Index(page, "</header>")
+	if bar < 0 {
+		t.Fatal("the manual has no app bar")
+	}
+	box := strings.Index(page, `name="q"`)
+	if box < 0 {
+		t.Fatal("the manual has no search box")
+	}
+	if box > bar {
+		t.Error("the search box is below the bar, on the grid paper with the cards")
+	}
+
+	// It still aims at the grid, which is the half that fails silently: htmx
+	// logs a missing target to the console and the list simply never changes.
+	if !strings.Contains(page, `hx-target="#`+monsterCardsID+`"`) {
+		t.Errorf("the search box does not target the card grid")
+	}
+	if !strings.Contains(page, `id="`+monsterCardsID+`"`) {
+		t.Errorf("nothing on the page carries the id the search box swaps")
+	}
+}
+
+// A PICTURE CAN BE SET FROM EITHER PAGE, and both of them post to the same URL
+// and swap the same element -- which is what lets the handler answer with one
+// thing. If these ever disagreed the upload would still store the image and one
+// of the two pages would quietly stop redrawing it.
+func TestTheManualAndTheEditorCarryTheSameImageControl(t *testing.T) {
+	const id = "01BX5ZZKBKACTAV9WEVGEMMVS4"
+
+	card := renderToString(t, MonsterCard(testMonsterCard()))
+	editor := renderToString(t, EditMonster(EditMonsterPageData{
+		MonsterID: id,
+		Header:    MonsterHeader{MonsterID: id, Name: "Goblin Boss"},
+	}))
+
+	for _, want := range []string{
+		`hx-post="/monsters/` + id + `/image"`,
+		`hx-target="closest monster-image"`,
+		`hx-swap="outerHTML"`,
+		`name="image"`,
+	} {
+		if !strings.Contains(card, want) {
+			t.Errorf("the manual card is missing %s", want)
+		}
+		if !strings.Contains(editor, want) {
+			t.Errorf("the editor's bar is missing %s", want)
+		}
+	}
+
+	// The control the upload answers with is the one both of them drew.
+	reply := renderToString(t, MonsterImageControl(MonsterImage{MonsterID: id, Name: "Goblin Boss"}))
+	if !strings.Contains(card, reply) {
+		t.Error("the card does not render the component the upload replies with")
+	}
+	if !strings.Contains(editor, reply) {
+		t.Error("the editor does not render the component the upload replies with")
+	}
+}
+
+// The dialog's picture travels with the name, so the form has to be multipart
+// and the field has to be called what the upload route calls it -- the same
+// handler shape reads both.
+func TestTheNewMonsterDialogCarriesAPicture(t *testing.T) {
+	dialog := renderToString(t, NewMonsterFragment())
+
+	if !strings.Contains(dialog, `hx-encoding="multipart/form-data"`) {
+		t.Error("the form is not multipart, so a chosen file would never be sent")
+	}
+	if !strings.Contains(dialog, `type="file"`) || !strings.Contains(dialog, `name="image"`) {
+		t.Errorf("the dialog has no picture field:\n%s", dialog)
+	}
+	// Optional, and the field itself must say so: a create is one question,
+	// and `required` on the file input would turn the picture into a second
+	// one that cannot be skipped.
+	picker := regexp.MustCompile(`<input[^>]*type="file"[^>]*>`).FindString(dialog)
+	if picker == "" {
+		t.Fatalf("no file input in the dialog:\n%s", dialog)
+	}
+	if strings.Contains(picker, "required") {
+		t.Errorf("the picture is required, so a monster cannot be created without one: %s", picker)
+	}
+
+	// The name field comes first, because the modal shell hands focus to the
+	// first control it finds and a dialog asking one question puts the caret
+	// in the field it is asking in.
+	if strings.Index(dialog, `name="name"`) > strings.Index(dialog, `name="image"`) {
+		t.Error("the picture field is above the name, so the dialog opens with focus on it")
+	}
+}
+
+// The control is drawn at two sizes and carries neither of them, which is what
+// lets one reply serve both pages. A width class inside it would mean the
+// handler had to know which page asked.
+func TestTheImageControlDoesNotCarryItsOwnSize(t *testing.T) {
+	control := renderToString(t, MonsterImageControl(MonsterImage{MonsterID: "01BX5ZZKBKACTAV9WEVGEMMVS4", Name: "Goblin Boss"}))
+
+	if !strings.Contains(control, "w-full") {
+		t.Error("the control does not fill the box that sizes it")
+	}
+	// The two widths the two pages draw it at. Either one appearing in here
+	// means the control has taken the decision back off the page.
+	for _, size := range []string{"w-14", "w-11"} {
+		if strings.Contains(control, size) {
+			t.Errorf("the control carries %s; the page that draws it should", size)
+		}
+	}
+}

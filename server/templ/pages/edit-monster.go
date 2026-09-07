@@ -85,7 +85,12 @@ type EditMonsterPageData struct {
 // the wounded copy lives in the room; and a challenge rating, which is the one
 // reading a GM checks before putting a monster in front of anyone.
 type MonsterHeader struct {
-	Name string
+	// MonsterID is here rather than read from EditMonsterPageData because the
+	// bar's two halves are also rendered on their own, as the out-of-band
+	// swaps a panel save answers with, and the upload control in the figure
+	// needs the monster's own URL to post to.
+	MonsterID string
+	Name      string
 	// Subtitle is size, type, tags and alignment as the book prints them, built
 	// by the controller because it is the only place that knows which of the
 	// four the row actually has.

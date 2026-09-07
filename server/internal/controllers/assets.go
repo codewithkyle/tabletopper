@@ -328,17 +328,8 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 // reports is the one the allowlist means. It is also what the content type
 // returned here is built from, for the same reason.
 func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (multipart.File, string, string, bool) {
-	extendUploadDeadlines(w)
-
-	r.Body = http.MaxBytesReader(w, r.Body, limits.bytes)
-	if err := r.ParseMultipartForm(multipartMemory); err != nil {
-		var tooLarge *http.MaxBytesError
-		if errors.As(err, &tooLarge) {
-			htmx.Error(w, "Upload Too Large", fmt.Sprintf("Images must be %d MiB or smaller.", limits.bytes>>20), http.StatusRequestEntityTooLarge)
-			return nil, "", "", false
-		}
-		slog.Error("Failed to parse multipart form", "error", err)
-		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
+	if problem := parseUploadForm(w, r, limits); problem != nil {
+		problem.alert(w)
 		return nil, "", "", false
 	}
 
@@ -348,35 +339,160 @@ func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limit
 		htmx.Error(w, "Upload Failed", "No image was attached. Refresh the page and try again.", http.StatusBadRequest)
 		return nil, "", "", false
 	}
-	defer file.Close()
 
+	contentType, problem := inspectImage(file, field, limits)
+	if problem != nil {
+		file.Close()
+		problem.alert(w)
+		return nil, "", "", false
+	}
+
+	return file, header.Filename, contentType, true
+}
+
+// uploadProblem is something wrong with an upload, kept as data rather than
+// written straight to the response, because the same fault has to be told two
+// different ways. A route that exists to take one picture raises the alert
+// dialog; a form where the picture is one field among several puts the sentence
+// in its own error block and leaves everything else the user typed alone.
+//
+// The heading and the status are the alert's half. The message is the half both
+// use, which is why it is a sentence and not a phrase.
+type uploadProblem struct {
+	Heading string
+	Message string
+	Status  int
+}
+
+func (p *uploadProblem) alert(w http.ResponseWriter) {
+	htmx.Error(w, p.Heading, p.Message, p.Status)
+}
+
+var (
+	// errUnreadableUpload is a body that arrived broken or a file that would
+	// not seek. There is nothing for the user to fix and nothing useful to
+	// tell them beyond "try again".
+	errUnreadableUpload = &uploadProblem{
+		Heading: "Upload Failed",
+		Message: "The upload could not be read. Refresh the page and try again.",
+		Status:  http.StatusBadRequest,
+	}
+
+	// errNotMultipart is a body that carried no file part at all. It is a
+	// separate value from the one above BECAUSE A CALLER CAN GO ON WITHOUT
+	// ONE: a form whose picture is optional has still had its text fields
+	// read by the time this comes back, so it is told apart by identity
+	// rather than by its message, which is the same one.
+	errNotMultipart = &uploadProblem{
+		Heading: "Upload Failed",
+		Message: "The upload could not be read. Refresh the page and try again.",
+		Status:  http.StatusBadRequest,
+	}
+
+	errUnsupportedImage = &uploadProblem{
+		Heading: "Unsupported Image Type",
+		Message: "Only PNG, JPEG, and WEBP images are allowed. Refresh the page and try again.",
+		Status:  http.StatusUnsupportedMediaType,
+	}
+)
+
+// parseUploadForm reads a multipart body under one kind of upload's limits: the
+// deadlines lifted, the byte cap enforced by the reader rather than by trusting
+// a header, and the form parsed.
+//
+// IT IS SEPARATE FROM opening the file because a form can carry an optional
+// picture beside other fields, and that caller needs the form parsed whether or
+// not there is a file in it. ParseMultipartForm reads the ordinary fields on
+// its way through, so by the time it reports that there was no multipart body
+// at all, a urlencoded post's values are already in r.PostForm.
+func parseUploadForm(w http.ResponseWriter, r *http.Request, limits uploadLimits) *uploadProblem {
+	extendUploadDeadlines(w)
+
+	r.Body = http.MaxBytesReader(w, r.Body, limits.bytes)
+	err := r.ParseMultipartForm(multipartMemory)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, http.ErrNotMultipart):
+		return errNotMultipart
+	}
+
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		return &uploadProblem{
+			Heading: "Upload Too Large",
+			Message: fmt.Sprintf("Images must be %d MiB or smaller.", limits.bytes>>20),
+			Status:  http.StatusRequestEntityTooLarge,
+		}
+	}
+
+	slog.Error("Failed to parse multipart form", "error", err)
+
+	return errUnreadableUpload
+}
+
+// inspectImage is the header pass, on a file that is already open. It leaves
+// the file rewound to the start, so whatever the caller does next reads the
+// whole thing.
+func inspectImage(file multipart.File, field string, limits uploadLimits) (string, *uploadProblem) {
 	cfg, format, err := image.DecodeConfig(file)
 	if err != nil {
 		slog.Warn("Failed to read upload header", "field", field, "error", err)
-		unsupportedImage(w)
-		return nil, "", "", false
+		return "", errUnsupportedImage
 	}
 	switch format {
 	case "png", "jpeg", "webp":
 	default:
-		unsupportedImage(w)
-		return nil, "", "", false
+		return "", errUnsupportedImage
 	}
 	// int64, so the multiplication cannot wrap on a declared canvas large
 	// enough to try -- the whole point of this check is a header nobody sane
 	// wrote.
 	if int64(cfg.Width)*int64(cfg.Height) > limits.pixels {
-		htmx.Error(w, "Image Too Large", fmt.Sprintf("Images must be %d megapixels or fewer.", limits.pixels/1_000_000), http.StatusRequestEntityTooLarge)
-		return nil, "", "", false
+		return "", &uploadProblem{
+			Heading: "Image Too Large",
+			Message: fmt.Sprintf("Images must be %d megapixels or fewer.", limits.pixels/1_000_000),
+			Status:  http.StatusRequestEntityTooLarge,
+		}
 	}
 
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		slog.Error("Failed to rewind upload after reading its header", "field", field, "error", err)
-		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
-		return nil, "", "", false
+		return "", errUnreadableUpload
 	}
 
-	return file, header.Filename, "image/" + format, true
+	return "image/" + format, nil
+}
+
+// openOptionalImageUpload is openImageUpload for a form where the picture is
+// one field among several and leaving it empty is allowed. The form must
+// already have been parsed by parseUploadForm.
+//
+// A file input that was left alone still sends a part -- browsers send one with
+// an empty filename and no bytes -- so an empty part is read as no picture
+// rather than as a picture that will not decode. Nothing is written to the
+// response here: the caller reports the problem the way its own page needs it.
+func openOptionalImageUpload(r *http.Request, field string, limits uploadLimits) (multipart.File, string, *uploadProblem) {
+	if r.MultipartForm == nil {
+		return nil, "", nil
+	}
+	headers := r.MultipartForm.File[field]
+	if len(headers) == 0 || headers[0].Size == 0 {
+		return nil, "", nil
+	}
+
+	file, _, err := r.FormFile(field)
+	if err != nil {
+		slog.Error("Failed to get upload from form", "field", field, "error", err)
+		return nil, "", errUnreadableUpload
+	}
+
+	if _, problem := inspectImage(file, field, limits); problem != nil {
+		file.Close()
+		return nil, "", problem
+	}
+
+	return file, headers[0].Filename, nil
 }
 
 // readImageUpload validates an upload and decodes it. It is what every path
@@ -431,7 +547,7 @@ func readImageBytes(w http.ResponseWriter, r *http.Request, field string, limits
 }
 
 func unsupportedImage(w http.ResponseWriter) {
-	htmx.Error(w, "Unsupported Image Type", "Only PNG, JPEG, and WEBP images are allowed. Refresh the page and try again.", http.StatusUnsupportedMediaType)
+	errUnsupportedImage.alert(w)
 }
 
 func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
@@ -586,11 +702,12 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var assetID ulid.ULID
 	if monster.AssetID != nil {
 		// Replacing overwrites the existing key, so nothing can be orphaned and
 		// the card's <img> src does not change -- which is why serveImage sends
 		// no-cache rather than no-store, and why updated_at is bumped.
-		assetID := *monster.AssetID
+		assetID = *monster.AssetID
 		if err := a.Storage.UploadMonsterImage(ctx, sess.UserID, assetID, encoded); err != nil {
 			slog.Error("Failed to upload monster image", "error", err)
 			htmx.ServerError(w)
@@ -607,37 +724,9 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// The row is the ledger for what lives in R2, so it is written first
-		// and rolled back if the upload never lands.
-		assetID := ulid.Make()
-		err := a.Queries.InsertMonsterImage(ctx, queries.InsertMonsterImageParams{
-			ID:       assetID,
-			OwnerID:  sess.UserID,
-			FilePath: storage.MonsterImageKey(sess.UserID, assetID),
-			FileName: filename,
-			Name:     filename,
-		})
+		assetID, err = a.attachMonsterImage(ctx, sess.UserID, monsterID, encoded, filename)
 		if err != nil {
-			slog.Error("Failed to insert monster image into DB", "error", err)
-			htmx.ServerError(w)
-			return
-		}
-
-		if err := a.Storage.UploadMonsterImage(ctx, sess.UserID, assetID, encoded); err != nil {
-			slog.Error("Failed to upload monster image", "error", err)
-			a.discardMonsterImage(ctx, sess.UserID, assetID)
-			htmx.ServerError(w)
-			return
-		}
-
-		err = a.Queries.UpdateMonsterImage(ctx, queries.UpdateMonsterImageParams{
-			ID:      monsterID,
-			OwnerID: sess.UserID,
-			AssetID: &assetID,
-		})
-		if err != nil {
-			slog.Error("Failed to link image to monster", "error", err)
-			a.discardMonsterImage(ctx, sess.UserID, assetID)
+			slog.Error("Failed to attach monster image", "error", err)
 			htmx.ServerError(w)
 			return
 		}
@@ -645,16 +734,64 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 
 	htmx.Toast(w, "Updated image for "+monster.Name)
 
-	updated, err := a.Queries.GetMonster(ctx, queries.GetMonsterParams{
-		ID:      monsterID,
-		OwnerID: sess.UserID,
+	// The reply is the control itself rather than the card around it, because
+	// a picture can be set from either page and this is the one piece both of
+	// them have. Nothing else on the card changes when an image does.
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.MonsterImageControl(pages.MonsterImage{
+		MonsterID: monsterID.String(),
+		Name:      monster.Name,
+		ImageID:   assetID.String(),
+	}))
+}
+
+// attachMonsterImage gives a monster its first picture: an assets row, the
+// object, and the column on the monster that points at it. It is one function
+// because the create dialog can do this as well as the upload route, and the
+// order is the property being protected rather than a detail of either caller.
+//
+// THE ROW IS THE LEDGER FOR WHAT LIVES IN R2, so it is written before the
+// object and names the key the object will land at. An object written first and
+// a row that never followed is a file nothing remembers: no page can render it,
+// no delete will find it, and the sweeper works from these same rows.
+//
+// EVERY FAILURE AFTER THE ROW ROLLS IT BACK, which is what keeps that ledger
+// honest in the other direction -- a row pointing at an object that never
+// landed would render a broken picture on the card forever.
+//
+// The asset id comes back because the caller draws the picture it just stored.
+func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.ULID, encoded []byte, filename string) (ulid.ULID, error) {
+	assetID := ulid.Make()
+
+	err := a.Queries.InsertMonsterImage(ctx, queries.InsertMonsterImageParams{
+		ID:       assetID,
+		OwnerID:  ownerID,
+		FilePath: storage.MonsterImageKey(ownerID, assetID),
+		FileName: filename,
+		Name:     filename,
 	})
 	if err != nil {
-		slog.Error("Failed to reload monster after image update", "error", err, "monsterID", monsterID.String())
-		htmx.Redirect(w, "/monsters")
-		return
+		return ulid.ULID{}, fmt.Errorf("asset row: %w", err)
 	}
-	render(w, r, pages.MonsterCard(monsterSummary(updated)))
+
+	if err := a.Storage.UploadMonsterImage(ctx, ownerID, assetID, encoded); err != nil {
+		a.discardMonsterImage(ctx, ownerID, assetID)
+		return ulid.ULID{}, fmt.Errorf("object: %w", err)
+	}
+
+	// The link runs last -- after the object is in the bucket -- so a monster
+	// never names an asset whose upload failed.
+	err = a.Queries.UpdateMonsterImage(ctx, queries.UpdateMonsterImageParams{
+		ID:      monsterID,
+		OwnerID: ownerID,
+		AssetID: &assetID,
+	})
+	if err != nil {
+		a.discardMonsterImage(ctx, ownerID, assetID)
+		return ulid.ULID{}, fmt.Errorf("link: %w", err)
+	}
+
+	return assetID, nil
 }
 
 // UploadMap stores a map and queues it for tiling. It does not decode it, does
