@@ -10,7 +10,7 @@ sql:
         # Go initialisms sqlc should keep upper-case when it builds field
         # names, so a column like max_hp becomes MaxHP rather than MaxHp and
         # matches the hand-written structs that mirror it.
-        initialisms: ["id", "url", "dc", "ac", "hp", "xp"]
+        initialisms: ["id", "url", "dc", "ac", "hp", "xp", "cr"]
         overrides:
           # THE FIRST MATCH WINS, AND `nullable: true` DOES NOT NARROW IT.
           # sqlc walks this list, takes the first entry whose column pattern
@@ -23,9 +23,9 @@ sql:
           # fails at runtime rather than failing to compile.
           #
           # The six below are the NOT NULL *_id columns that collide with a
-          # wildcard, less one: monsters.asset_id is NOT NULL and still resolves
-          # to *ulid.ULID. Nothing queries monsters, so nothing has ever held
-          # that pointer; it needs an entry here the day something does.
+          # wildcard. monsters.asset_id is not among them: a monster may have no
+          # image, so the column is nullable and the *.asset_id pointer wildcard
+          # further down is exactly the entry it wants.
           #
           # shares.resource_id is here for the opposite reason: it collides with
           # no wildcard at all -- they name id, user_id, owner_id, asset_id,
@@ -104,4 +104,10 @@ sql:
           - column: "*.character_id"
             go_type: *ulid
           - column: "*.room_id"
+            go_type: *ulid
+          # monster_id is the newest of these names and matches none of the
+          # patterns above it, so without this entry it would come back as
+          # []byte. It takes the non-pointer type: an action row always belongs
+          # to a monster, and the column is NOT NULL.
+          - column: "*.monster_id"
             go_type: *ulid
