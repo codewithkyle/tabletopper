@@ -79,6 +79,19 @@ type ZoneOption struct {
 // a script that duplicates prefs' layout table in JavaScript to keep a preview
 // live, which is a second implementation of the formatting to keep in step with
 // the first.
+// STORAGE IS THE ONE READ-ONLY THING ON THE DIALOG, and it is here rather than
+// on a page of its own because there is nowhere else it belongs: it is a fact
+// about the account, and this is the account's dialog. It is also the only
+// field on this struct the session could not supply -- see
+// AccountSettingsFragment for what that costs.
+//
+// IT IS A FORMATTED STRING AND NOT A COUNT OF BYTES, like every other label
+// this package renders. The controller does the arithmetic and the unit; a
+// template that divided by 1024 would be a second place the unit is decided.
+//
+// The welcome dialog leaves it empty, and the dialog renders no line when it
+// is. It shares the pickers and not the rest of this, and an account being
+// welcomed has uploaded nothing.
 type AccountSettingsData struct {
 	Themes []Option
 	Theme  string
@@ -91,4 +104,6 @@ type AccountSettingsData struct {
 
 	TimeFormats []Option
 	TimeFormat  string
+
+	Storage string
 }

@@ -2,7 +2,10 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // THE CLIENT HERE HAS NO s3 FIELD, and that is the assertion. Every one of
@@ -47,5 +50,42 @@ func TestDeletePrefixRefusesAnythingThatIsNotADirectory(t *testing.T) {
 		if err := c.DeletePrefix(context.Background(), prefix); err == nil {
 			t.Errorf("DeletePrefix(%q) = nil, want an error", prefix)
 		}
+	}
+}
+
+// The mapping the music confirm's rollback decision rests on. A HEAD's 404 and
+// a GET's 404 are two different SDK types, and a caller that only matched one
+// would discard a landed 175 MB upload the first time the other came back.
+func TestBothShapesOfAMissingObjectMapToErrNotFound(t *testing.T) {
+	for name, err := range map[string]error{
+		"head": &types.NotFound{},
+		"get":  &types.NoSuchKey{},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := notFound(err); !errors.Is(got, ErrNotFound) {
+				t.Errorf("notFound(%T) = %v, want it to wrap ErrNotFound", err, got)
+			}
+		})
+	}
+}
+
+// And nothing else does. A 5xx, a timeout or a dropped connection means the
+// object is probably there and only the question failed, which is the case the
+// sentinel exists to keep apart.
+func TestEveryOtherFailureIsLeftAlone(t *testing.T) {
+	for name, err := range map[string]error{
+		"server error": errors.New("api error InternalError: We encountered an internal error"),
+		"timeout":      context.DeadlineExceeded,
+		"cancelled":    context.Canceled,
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := notFound(err)
+			if errors.Is(got, ErrNotFound) {
+				t.Errorf("notFound(%v) wrapped ErrNotFound", err)
+			}
+			if !errors.Is(got, err) {
+				t.Errorf("notFound(%v) = %v, want the error unchanged", err, got)
+			}
+		})
 	}
 }

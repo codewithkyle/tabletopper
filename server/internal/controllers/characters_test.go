@@ -91,7 +91,7 @@ func deleteTargets(t *testing.T, calls []recordedCall) []string {
 func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	if err := app.deleteCharacterRows(context.Background(), testCharacterID, testOwnerID); err != nil {
+	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
 
@@ -131,7 +131,7 @@ func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 func TestJournalImageRowsAreDeletedBeforeTheirJournals(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	if err := app.deleteCharacterRows(context.Background(), testCharacterID, testOwnerID); err != nil {
+	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
 
@@ -196,7 +196,7 @@ func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	if err := app.deleteCharacterRows(context.Background(), testCharacterID, testOwnerID); err != nil {
+	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
 

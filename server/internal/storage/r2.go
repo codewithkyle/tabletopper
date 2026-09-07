@@ -190,8 +190,25 @@ func (c *Client) Get(ctx context.Context, key string) (body io.ReadCloser, size 
 	return out.Body, size, nil
 }
 
-// Put writes body to key, overwriting whatever was there.
-func (c *Client) Put(ctx context.Context, key string, body []byte, contentType string) error {
+// PutReader writes body to key, overwriting whatever was there.
+//
+// IT IS THE ONE UPLOAD THAT NEVER HOLDS WHAT IT IS SENDING. Everything else in
+// here is handing over a WebP this process just encoded, which is already in
+// memory and is kilobytes; a map's original is up to 128 MiB that arrived over
+// the wire, and ParseMultipartForm has already spilled it to a temp file. So
+// the map path passes the multipart.File straight through, and nothing copies
+// it back into the heap to get here.
+//
+// body MUST BE SEEKABLE, which is why the parameter is an io.ReadSeeker and not
+// an io.Reader: the S3 client reads it once to checksum and sign, and again to
+// send, and it rewinds between the two. Both forms of multipart.File satisfy
+// that -- an *os.File when the part spilled, a section reader when it did not
+// -- so the client treats either exactly as it treats a bytes.Reader.
+//
+// size is passed because it is known. Without a ContentLength the client has to
+// find the length itself, which for a seekable body means seeking to the end
+// and back, and for anything else means buffering.
+func (c *Client) PutReader(ctx context.Context, key string, body io.ReadSeeker, size int64, contentType string) error {
 	if key == "" {
 		return errors.New("storage: empty key")
 	}
@@ -200,12 +217,20 @@ func (c *Client) Put(ctx context.Context, key string, body []byte, contentType s
 	}
 
 	_, err := c.s3.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(c.bucket),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(body),
-		ContentType: aws.String(contentType),
+		Bucket:        aws.String(c.bucket),
+		Key:           aws.String(key),
+		Body:          body,
+		ContentLength: aws.Int64(size),
+		ContentType:   aws.String(contentType),
 	})
 	return err
+}
+
+// Put writes body to key, overwriting whatever was there. It is PutReader for
+// the callers that already hold their bytes -- every encoded image, and every
+// tile.
+func (c *Client) Put(ctx context.Context, key string, body []byte, contentType string) error {
+	return c.PutReader(ctx, key, bytes.NewReader(body), int64(len(body)), contentType)
 }
 
 // PRESIGNING, WHICH IS HOW MUSIC GETS IN AND OUT WITHOUT TOUCHING THIS PROCESS.
@@ -280,12 +305,23 @@ func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) 
 	return req.URL, nil
 }
 
+// ErrNotFound is the object not being there, told apart from every other way a
+// request to R2 can fail.
+//
+// THE DIFFERENCE IS WORTH A SENTINEL BECAUSE ONE CALLER DELETES ON IT. A music
+// confirm follows a ten-minute, 175 MB PUT; "the object never arrived" means
+// the upload failed and the row is rubbish, while a 5xx from R2, a timeout or a
+// dropped connection means the object is very probably sitting there and the
+// only thing that failed is the question. Without the distinction both answers
+// threw the upload away, and the second one is the common one.
+var ErrNotFound = errors.New("storage: object not found")
+
 // Size reports how many bytes an object holds, and is the cheapest question
 // that can be asked about one -- a HEAD, which transfers none of it.
 //
 // It is what a confirm asks first: an object that is not there at all is an
 // upload that never finished, and one larger than the cap is a signature that
-// was not honoured.
+// was not honoured. A missing object is ErrNotFound and nothing else is.
 func (c *Client) Size(ctx context.Context, key string) (int64, error) {
 	if key == "" {
 		return 0, errors.New("storage: empty key")
@@ -296,13 +332,34 @@ func (c *Client) Size(ctx context.Context, key string) (int64, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return 0, err
+		return 0, notFound(err)
 	}
 	if head.ContentLength == nil {
 		return 0, errors.New("storage: object has no length")
 	}
 
 	return *head.ContentLength, nil
+}
+
+// notFound maps the two ways the S3 API says "no such object" onto ErrNotFound
+// and leaves every other error as it was.
+//
+// THERE ARE TWO BECAUSE HEAD AND GET DISAGREE. A HeadObject has no body to put
+// an error code in, so the SDK models its 404 as *types.NotFound; a GetObject
+// gets the code and models it as *types.NoSuchKey. A caller that only checked
+// one would work on Size and silently fall through on Peek.
+func notFound(err error) error {
+	var missing *types.NotFound
+	if errors.As(err, &missing) {
+		return fmt.Errorf("%w: %w", ErrNotFound, err)
+	}
+
+	var noKey *types.NoSuchKey
+	if errors.As(err, &noKey) {
+		return fmt.Errorf("%w: %w", ErrNotFound, err)
+	}
+
+	return err
 }
 
 // Peek reads the first n bytes of an object and nothing more.
@@ -325,7 +382,7 @@ func (c *Client) Peek(ctx context.Context, key string, n int64) ([]byte, error) 
 		Range:  aws.String("bytes=0-" + strconv.FormatInt(n-1, 10)),
 	})
 	if err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	defer out.Body.Close()
 

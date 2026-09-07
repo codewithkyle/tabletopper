@@ -41,18 +41,20 @@ import (
 // cannot see them. They are already marked detached, which is precisely what
 // internal/sweep looks for, and it takes the object and the row within the day.
 //
-// THE CHARACTER ROW GOES LAST, and that is what makes every failure above it
-// recoverable. While it is there the roster still lists the character and
-// deleting it again re-runs the whole purge from the top: every statement is a
-// delete scoped by the character and the owner, so repeating one finds nothing
-// and succeeds, and a key already gone from R2 deletes again without complaint.
-// So each step below reports its failure and stops, and the reader gets a
-// character they can delete a second time rather than a report of a delete that
-// half happened.
+// THE ROW HALF IS ONE TRANSACTION AND THE OBJECTS ARE NOT. Nine statements
+// across eight tables either all land or none of them do -- see App.tx -- so
+// there is no longer such a thing as a character that is half deleted, and the
+// character row going last is a property of the commit rather than of the order
+// they were written in.
 //
-// Past that row there is nothing left to find, which is why the avatar's asset
-// row -- the one step that runs after it -- is logged rather than reported: a
-// retry could not reach it, and the user's request has been honoured.
+// THE OBJECTS STILL GO FIRST, and they still cannot be rolled back. An object
+// deleted whose rows then failed to commit leaves the character on the roster
+// with a broken portrait, and deleting it again finishes the job: every
+// statement is scoped by the character and the owner, so repeating the purge
+// finds what is left, and a key already gone from R2 deletes again without
+// complaint. That is the only recoverable order -- rows first would leave
+// objects nothing in the database points at, which no retry and no sweep could
+// ever find.
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -106,30 +108,41 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := a.deleteCharacterRows(ctx, characterID, sess.UserID); err != nil {
-		slog.Error("Failed to delete character rows", "error", err)
-		htmx.ServerError(w)
-		return
-	}
+	// The portrait's asset row is inside the transaction rather than logged
+	// after it, which is what changed when this became atomic. It used to run
+	// past the point of no return -- the character row was already gone, so a
+	// retry could not reach the asset and the failure could only be written
+	// down. Now a failure here rolls the character back onto the roster, and
+	// pressing Delete again reaches everything.
+	err = a.tx(ctx, func(q *queries.Queries) error {
+		if err := deleteCharacterRows(ctx, q, characterID, sess.UserID); err != nil {
+			return err
+		}
 
-	err = a.Queries.DeleteCharacter(ctx, queries.DeleteCharacterParams{
-		ID:      characterID,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete character", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if character.AssetID != nil {
-		err := a.Queries.DeleteAsset(ctx, queries.DeleteAssetParams{
-			ID:      *character.AssetID,
+		err := q.DeleteCharacter(ctx, queries.DeleteCharacterParams{
+			ID:      characterID,
 			OwnerID: sess.UserID,
 		})
 		if err != nil {
-			slog.Error("Failed to delete avatar asset row; leaving it behind", "error", err, "assetID", character.AssetID.String())
+			return fmt.Errorf("character: %w", err)
 		}
+
+		if character.AssetID != nil {
+			err := q.DeleteAsset(ctx, queries.DeleteAssetParams{
+				ID:      *character.AssetID,
+				OwnerID: sess.UserID,
+			})
+			if err != nil {
+				return fmt.Errorf("portrait asset: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		slog.Error("Failed to delete character", "error", err, "characterID", characterID.String())
+		htmx.ServerError(w)
+		return
 	}
 
 	htmx.Toast(w, character.Name+" has been deleted.")
@@ -156,46 +169,52 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 // since that one names no journal.
 //
 // The first failure stops the purge and is returned wrapped, so the log names
-// the table rather than only the driver error -- which of these failed is the
-// difference between a leftover the reader can clear by deleting again and one
-// they cannot.
-func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid.ULID) error {
-	if err := a.Queries.DeleteCharacterJournalImages(ctx, queries.DeleteCharacterJournalImagesParams{
+// the table rather than only the driver error. It no longer decides what the
+// reader can recover -- the caller runs all of this inside one transaction, so
+// any failure here undoes every statement before it -- but it is still the
+// difference between reading a stack trace and reading a table name.
+//
+// IT TAKES A Queries RATHER THAN READING App'S, so the caller decides what it
+// is bound to. In the handler that is a transaction; the test that checks this
+// list against db/schema.sql hands it a recorder instead, and neither has to
+// know about the other.
+func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, ownerID ulid.ULID) error {
+	if err := q.DeleteCharacterJournalImages(ctx, queries.DeleteCharacterJournalImagesParams{
 		OwnerID:     ownerID,
 		CharacterID: characterID,
 	}); err != nil {
 		return fmt.Errorf("journal images: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterJournals(ctx, queries.DeleteCharacterJournalsParams{
+	if err := q.DeleteCharacterJournals(ctx, queries.DeleteCharacterJournalsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("journals: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterInventory(ctx, queries.DeleteCharacterInventoryParams{
+	if err := q.DeleteCharacterInventory(ctx, queries.DeleteCharacterInventoryParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("inventory: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterAttacks(ctx, queries.DeleteCharacterAttacksParams{
+	if err := q.DeleteCharacterAttacks(ctx, queries.DeleteCharacterAttacksParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("attacks: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterSpells(ctx, queries.DeleteCharacterSpellsParams{
+	if err := q.DeleteCharacterSpells(ctx, queries.DeleteCharacterSpellsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("spells: %w", err)
 	}
 
-	if err := a.Queries.DeleteCharacterSpellSlots(ctx, queries.DeleteCharacterSpellSlotsParams{
+	if err := q.DeleteCharacterSpellSlots(ctx, queries.DeleteCharacterSpellSlotsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
@@ -206,7 +225,7 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 	// hangs off no character -- needed somewhere to say so. This caller always
 	// has one, and a nil here would match no row rather than every row: SQL
 	// compares NULL to nothing, including itself.
-	if err := a.Queries.DeleteSharesForCharacter(ctx, queries.DeleteSharesForCharacterParams{
+	if err := q.DeleteSharesForCharacter(ctx, queries.DeleteSharesForCharacterParams{
 		CharacterID: &characterID,
 		OwnerID:     ownerID,
 	}); err != nil {

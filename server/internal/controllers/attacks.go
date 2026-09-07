@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"database/sql"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -124,7 +123,9 @@ func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	finishAttackRow(w, r, panel, input.Name, result, err)
+	// "attack" and not "character", for the reason the inventory save says
+	// "item" -- see savedRow.
+	finishRow(w, r, panel, attackToastLabel(input.Name), "attack", result, err)
 }
 
 // DeleteAttack drops one row. The reply carries no body, and it MUST be a 200:
@@ -160,27 +161,6 @@ func (a *App) DeleteAttack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	htmx.Toast(w, "Attack deleted.")
-}
-
-// finishAttackRow is finishInventoryRow with one word changed, and the word is
-// the reason it is not that function. Zero matched rows on a panel means the
-// character is not this user's; here it means this attack is gone -- deleted in
-// another tab, most likely -- and telling someone their character no longer
-// exists because a row does would send them to look for the wrong problem.
-func finishAttackRow(w http.ResponseWriter, r *http.Request, panel string, name string, result sql.Result, err error) {
-	if err != nil {
-		slog.Error("Failed to save attack", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "attack")
-		return
-	}
-
-	htmx.Toast(w, attackToastLabel(name)+" saved.")
-	renderPanelBlock(w, r, panel, nil)
 }
 
 // A row spends its first seconds nameless, and a debounce landing in there

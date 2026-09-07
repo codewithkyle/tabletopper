@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"database/sql"
 	"log/slog"
 	"math"
 	"net/http"
@@ -156,7 +155,10 @@ func (a *App) SaveInventoryItem(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	finishInventoryRow(w, r, panel, input.Name, result, err)
+	// "item" and not "character": a save that matched nothing here means this
+	// row is gone -- deleted in another tab, most likely -- rather than that the
+	// character is not this user's. See savedRow.
+	finishRow(w, r, panel, inventoryToastLabel(input.Name), "item", result, err)
 }
 
 // DeleteInventoryItem drops one row. The reply carries no body, and it MUST be a
@@ -193,27 +195,6 @@ func (a *App) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	htmx.Toast(w, "Item deleted.")
-}
-
-// finishInventoryRow is finishPanel's shape with one word changed, and the word
-// is the reason it is not finishPanel. Zero matched rows on a panel means the
-// character is not this user's; here it means this item is gone -- deleted in
-// another tab, most likely -- and telling someone their character no longer
-// exists because a row does would send them to look for the wrong problem.
-func finishInventoryRow(w http.ResponseWriter, r *http.Request, panel string, name string, result sql.Result, err error) {
-	if err != nil {
-		slog.Error("Failed to save inventory item", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "item")
-		return
-	}
-
-	htmx.Toast(w, inventoryToastLabel(name)+" saved.")
-	renderPanelBlock(w, r, panel, nil)
 }
 
 // A row spends its first seconds nameless, and a debounce landing in there

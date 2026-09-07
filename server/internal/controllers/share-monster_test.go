@@ -2,7 +2,10 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
+	"database/sql/driver"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -127,13 +130,16 @@ func TestAnImportWithABadTokenRunsNoStatements(t *testing.T) {
 func TestAnImportedMonsterIsWrittenUnderTheReaderAndReadOffTheShare(t *testing.T) {
 	app, db := newPanelApp(1)
 
+	// copyMonster rather than importMonster, which is the transaction around
+	// it: a recorder is a queries.DBTX and not a pool, so there is no BeginTx
+	// to be had here, and the statements are what this test is about. The
+	// transaction has its own test below.
+	//
 	// The action copy cannot succeed against this harness -- the read that
 	// feeds it comes back empty-handed -- so the failure is expected, and the
-	// statement that ran before it is what this is about. The new id is taken
-	// off that statement rather than off the return value, which a failed
-	// import deliberately leaves empty.
-	if _, err := app.importMonster(context.Background(), monsterShareGrant(), testImporterID); err == nil {
-		t.Fatal("importMonster succeeded against a database that answers no reads")
+	// statement that ran before it is what this is about.
+	if err := copyMonster(context.Background(), app.Queries, monsterShareGrant(), testImporterID, ulid.Make()); err == nil {
+		t.Fatal("copyMonster succeeded against a database that answers no reads")
 	}
 	if len(db.calls) == 0 {
 		t.Fatal("the import ran no statements at all")
@@ -183,9 +189,9 @@ func TestAnImportedMonsterIsWrittenUnderTheReaderAndReadOffTheShare(t *testing.T
 func TestAMonsterDeletedBeforeTheButtonIsPressedIsADeadLink(t *testing.T) {
 	app, db := newPanelApp(0)
 
-	_, err := app.importMonster(context.Background(), monsterShareGrant(), testImporterID)
+	err := copyMonster(context.Background(), app.Queries, monsterShareGrant(), testImporterID, ulid.Make())
 	if !errors.Is(err, errImportedMonsterGone) {
-		t.Fatalf("importMonster error = %v, want %v", err, errImportedMonsterGone)
+		t.Fatalf("copyMonster error = %v, want %v", err, errImportedMonsterGone)
 	}
 	if len(db.calls) != 1 {
 		t.Errorf("ran %d statements, want the copy alone: %v", len(db.calls), deleteTargets(t, db.calls[1:]))
@@ -193,45 +199,117 @@ func TestAMonsterDeletedBeforeTheButtonIsPressedIsADeadLink(t *testing.T) {
 }
 
 // A HALF-COPIED MONSTER IS WORSE THAN NO COPY AT ALL, because nothing about it
-// says so: it sits in the reader's manual with its name, its armour class and
-// none of its actions, looking exactly like a monster whose owner never wrote
-// any. Nothing in this schema is transactional, so the rollback is written out
-// -- and it runs the monster delete's own statements, so a table added to that
-// purge is covered here too.
-func TestAnImportThatCannotBeFinishedIsThrownAway(t *testing.T) {
+// says so: it would sit in the reader's manual with its name, its armour class
+// and none of its actions, looking exactly like a monster whose owner never
+// wrote any.
+//
+// THE DATABASE IS WHAT UNDOES IT NOW, AND THIS IS THE TEST THAT SAYS SO. It
+// used to be a compensating delete -- the monster purge run over the row the
+// import had just written -- and the test asserted those statements. What is
+// asserted instead is that they are gone: copyMonster writes and never deletes,
+// so a failure inside it leaves the rollback to the transaction around it.
+//
+// The distinction matters because the compensating delete was the thing that
+// had to be extended by hand. A table added to the stat block needed adding to
+// the monster purge or a failed import would leave its rows behind; a
+// transaction covers it with no edit at all. A DELETE appearing here again
+// would mean somebody put that obligation back.
+func TestAFailedImportWritesNoCompensatingDelete(t *testing.T) {
 	app, db := newPanelApp(1)
+	monsterID := ulid.Make()
 
-	monsterID, err := app.importMonster(context.Background(), monsterShareGrant(), testImporterID)
+	err := copyMonster(context.Background(), app.Queries, monsterShareGrant(), testImporterID, monsterID)
 	if err == nil {
-		t.Fatal("importMonster succeeded against a database that answers no reads")
-	}
-	if !monsterID.IsZero() {
-		t.Errorf("a failed import handed back %v, want nothing to redirect to", monsterID)
+		t.Fatal("copyMonster succeeded against a database that answers no reads")
 	}
 
-	// The copy and the read that failed, then the purge.
-	if len(db.calls) < 3 {
-		t.Fatalf("ran %d statements, want the copy, the read and a rollback", len(db.calls))
+	// The copy, and the read of the original's actions that failed. Nothing
+	// after them -- recordingDB counts both, because ListMonsterActions is a
+	// :many and goes through QueryContext rather than QueryRowContext.
+	if len(db.calls) != 2 {
+		t.Fatalf("ran %d statements, want the copy and the read that failed", len(db.calls))
 	}
-	emptied := deleteTargets(t, db.calls[2:])
-	if !strings.Contains(strings.Join(emptied, ","), "monsters") {
-		t.Errorf("the half-made monster was left behind; the rollback emptied %v", emptied)
+	for _, call := range append(db.calls, db.reads...) {
+		if strings.Contains(strings.ToUpper(call.query), "DELETE") {
+			t.Errorf("a failed import ran a delete; the transaction is the rollback:\n%s", call.query)
+		}
 	}
 
-	// EVERY ROLLBACK STATEMENT NAMES THE READER AND THE NEW ROW. One that named
-	// the original instead would delete the monster this import was copying --
-	// out of somebody else's manual, on their own share link.
-	for _, call := range db.calls[2:] {
+	// AND NO STATEMENT IT DID RUN NAMES THE ORIGINAL AS SOMETHING TO WRITE.
+	// The read that feeds the copy is the original's, by design, and it is a
+	// read; every write names the reader and the new row. One that named the
+	// original instead would reach into somebody else's manual on their own
+	// share link.
+	for _, call := range db.calls {
 		for _, arg := range call.args {
 			id, ok := boundID(arg)
 			if !ok {
 				continue
 			}
-			if id == testOwnerID || id == testMonsterID {
-				t.Errorf("the rollback reaches the original:\n%s", call.query)
+			if id == testMonsterID && !strings.Contains(call.query, "SELECT") {
+				t.Errorf("a write names the original:\n%s", call.query)
 			}
 		}
 	}
+}
+
+// The transaction itself, which is the piece the tests above deliberately step
+// around. It needs a real *sql.DB, so it gets one over a driver that does
+// nothing but say yes -- what is under test is which of Commit and Rollback the
+// helper calls, not what the database does with either.
+func TestTxCommitsOnSuccessAndRollsBackOnFailure(t *testing.T) {
+	for name, c := range map[string]struct {
+		fn        func(*queries.Queries) error
+		wantEnd   string
+		wantError bool
+	}{
+		"success": {func(*queries.Queries) error { return nil }, "commit", false},
+		"failure": {func(*queries.Queries) error { return errors.New("no") }, "rollback", true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			conn := &recordingConn{}
+			app := &App{DB: sql.OpenDB(recordingConnector{conn}), Queries: queries.New(refusingDB)}
+
+			err := app.tx(context.Background(), func(q *queries.Queries) error {
+				if q == app.Queries {
+					t.Error("fn was handed App's own Queries rather than one bound to the transaction")
+				}
+
+				return c.fn(q)
+			})
+
+			if c.wantError != (err != nil) {
+				t.Errorf("tx error = %v, wantError %v", err, c.wantError)
+			}
+			if conn.ended != c.wantEnd {
+				t.Errorf("the transaction was %sed, want %s", conn.ended, c.wantEnd)
+			}
+		})
+	}
+}
+
+// A connector whose transactions record how they finished and nothing else.
+type recordingConnector struct{ conn *recordingConn }
+
+func (c recordingConnector) Connect(context.Context) (driver.Conn, error) { return c.conn, nil }
+func (c recordingConnector) Driver() driver.Driver                        { return nil }
+
+type recordingConn struct{ ended string }
+
+func (c *recordingConn) Prepare(string) (driver.Stmt, error) { return nil, io.ErrUnexpectedEOF }
+func (c *recordingConn) Close() error                        { return nil }
+func (c *recordingConn) Begin() (driver.Tx, error)           { return c, nil }
+
+func (c *recordingConn) Commit() error {
+	c.ended = "commit"
+
+	return nil
+}
+
+func (c *recordingConn) Rollback() error {
+	c.ended = "rollback"
+
+	return nil
 }
 
 // copiedColumns is the column list the copy writes, taken off the statement

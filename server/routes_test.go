@@ -392,3 +392,126 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
+// The mutation half of the CSRF defence, driven through the real chain rather
+// than a rebuilt one: a POST that says it came from another site is refused
+// before it reaches a handler.
+//
+// Only the refusal can go through a zero-valued App and Auth. The same-origin
+// case would pass the check and land on RequireSession with a nil store, so
+// what the two cases below prove between them is that the wrapper is there and
+// that it lets a same-site request through to where the session lookup is.
+func TestCrossSiteMutationsAreRefused(t *testing.T) {
+	h := handler(&controllers.App{}, middleware.Auth{})
+
+	// `same-site` is refused alongside `cross-site`, which is exactly where
+	// this is stricter than the SameSite=Lax cookie underneath it: Lax counts
+	// every host under one registrable domain as the same site, and this counts
+	// only the same origin. Pinned because serving the app from a second name
+	// would refuse every mutation, and the fix is csrf.AddTrustedOrigin rather
+	// than a puzzle.
+	for _, site := range []string{"cross-site", "same-site"} {
+		req := httptest.NewRequest(http.MethodPost, "/characters", nil)
+		req.Header.Set("Sec-Fetch-Site", site)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusForbidden {
+			t.Errorf("a %s POST answered %d, want %d", site, rec.Code, http.StatusForbidden)
+		}
+	}
+}
+
+// And a request from the page itself is not, which is what every htmx swap in
+// the app is.
+//
+// A 303 TO THE SIGN-IN PAGE IS THE PASS. It means the request went through the
+// cross-origin check and reached RequireSession, which found no cookie -- so
+// the assertion is that the refusal came from the session and not from the
+// wrapper. Anything further needs a session store, and this mux is built with a
+// zero-valued Auth on purpose: it is the URL space under test, not the
+// database.
+func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
+	h := handler(&controllers.App{}, middleware.Auth{})
+
+	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("a same-origin POST answered %d, want %d -- it did not reach the session check", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/sign-in" {
+		t.Errorf("Location = %q, want %q", got, "/sign-in")
+	}
+}
+
+// A safe method is not covered, which is deliberate and is why /logout moved to
+// POST. This pins the boundary so that a state change added behind a GET does
+// not quietly inherit a protection that was never there.
+func TestCrossSiteReadsAreNotRefused(t *testing.T) {
+	h := handler(&controllers.App{}, middleware.Auth{})
+
+	req := httptest.NewRequest(http.MethodGet, "/tos", nil)
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusForbidden {
+		t.Error("a cross-site GET was refused; the app relies on GET being reachable from anywhere")
+	}
+}
+
+// The floor from middleware.SecurityHeaders, on a response that is itself a
+// refusal -- the case that proves the wrapper is outside the check rather than
+// inside it.
+func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
+	h := handler(&controllers.App{}, middleware.Auth{})
+
+	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	for header, want := range map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "DENY",
+		"Referrer-Policy":        "strict-origin-when-cross-origin",
+	} {
+		if got := rec.Header().Get(header); got != want {
+			t.Errorf("%s = %q, want %q", header, got, want)
+		}
+	}
+}
+
+// Logging out is a state change and has to stay off GET: SameSite=Lax sends the
+// session cookie on a top-level GET navigation, and the cross-origin check
+// above does not cover safe methods, so a GET here is a logout anybody can put
+// behind a link.
+func TestLogoutIsPostOnly(t *testing.T) {
+	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
+
+	if _, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, "/logout", nil)); pattern != "POST /logout" {
+		t.Errorf("POST /logout matched %q, want %q", pattern, "POST /logout")
+	}
+	if _, pattern := mux.Handler(httptest.NewRequest(http.MethodGet, "/logout", nil)); pattern == "POST /logout" {
+		t.Error("GET /logout reached the logout handler")
+	}
+}
+
+// A directory under public/ has no index.html, so http.FileServer would answer
+// one of these with a listing of the scripts or the stylesheets. The file
+// itself still serves.
+func TestStaticDirectoriesAreNotListed(t *testing.T) {
+	h := routes(&controllers.App{}, middleware.Auth{})
+
+	for _, path := range []string{"/css/", "/js/", "/static/", "/images/"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("GET %s answered %d, want %d", path, rec.Code, http.StatusNotFound)
+		}
+	}
+}

@@ -25,14 +25,40 @@ ENV CGO_ENABLED=1
 RUN go build -o tabletopper .
 
 # Step 2: Run
-FROM alpine:latest
+#
+# PINNED, AND PINNED TO THE ALPINE THE BUILDER IS ON. `latest` was a base that
+# moves: a rebuild months from now would pull whatever release is current and
+# turn any incompatibility with the musl the binary was linked against into a
+# load-time failure nobody changed anything to cause. golang:1.25-alpine is
+# Alpine 3.24 today, so these two lines move together and they move
+# deliberately.
+FROM alpine:3.24
 
-# libwebp runtime libs are usually needed when dynamically linked
-RUN apk add --no-cache libwebp
+# libwebp is belt and braces rather than a requirement. The encoder comes from
+# chai2010/webp, which compiles the C in through cgo -- `ldd ./tabletopper`
+# inside this image reports musl and nothing else -- so the package is not what
+# the binary loads. It stays because it costs a couple of megabytes and its
+# absence would be a puzzle if a future dependency did link against the system
+# copy.
+#
+# app is a system user with no password and no home: the process reads its
+# binary and ./public and writes nothing to disk, so it needs no directory of
+# its own, and root inside the container is one bug away from root on whatever
+# is ever mounted into it.
+RUN apk add --no-cache libwebp && adduser -D -H app
 
-WORKDIR /root/
+# NOT /root, WHICH IS root'S HOME AND UNREADABLE BY THE USER BELOW, AND NOT
+# /app, WHICH compose.yaml BIND-MOUNTS THE REPOSITORY OVER. That mount is
+# harmless where it lands now and was harmless before, when this was /root --
+# nothing here reads the repository at runtime, because public/ is copied into
+# the image. But a WORKDIR of /app is shadowed by it the moment the container
+# starts, and the symptom is the binary not existing: `stat ./tabletopper: no
+# such file or directory`, from an image that demonstrably contains it.
+WORKDIR /srv/tabletopper
 COPY --from=builder /app/tabletopper .
 COPY ./server/public ./public
+
+USER app
 
 EXPOSE 3000
 CMD ["./tabletopper"]

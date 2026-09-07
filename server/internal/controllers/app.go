@@ -4,6 +4,9 @@
 package controllers
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -11,6 +14,7 @@ import (
 	"tabletopper/internal/config"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/internal/share"
 	"tabletopper/internal/storage"
 
 	"github.com/a-h/templ"
@@ -22,6 +26,54 @@ type App struct {
 	Clerk    *clerkauth.Client
 	Sessions *session.Store
 	Config   config.Config
+
+	// DB is the pool Queries was built over, and it is here for exactly one
+	// reason: the handful of writes that are several statements and have to
+	// land together. See tx.
+	DB *sql.DB
+
+	// ShareAttempts is the counter in front of the one unauthenticated
+	// password check in the app. It is on App rather than a package-level in
+	// share because the limit and the window are a deployment's decision and
+	// because a test wants its own, and it is required rather than optional:
+	// main builds it, and UnlockShare asks it before bcrypt runs.
+	ShareAttempts *share.Attempts
+}
+
+// tx runs fn over one transaction. fn gets a Queries bound to it; a returned
+// error rolls the whole thing back and nil commits.
+//
+// MYSQL IS TRANSACTIONAL AND THIS SCHEMA USED NOT TO ACT LIKE IT. The purges
+// and the monster import are each several statements against several tables,
+// and until this existed each one wrote them in sequence and carried a
+// compensating delete to undo what had already landed if a later statement
+// failed. That works, and it is more code than a transaction, and it has to be
+// extended by hand every time a table is added -- which the room tables are
+// about to do. A rollback that the database performs cannot forget a table.
+//
+// WHAT STAYS OUTSIDE IS R2. An object is not a row and cannot be rolled back
+// with one, so every purge still deletes objects first and rows second, in the
+// order it always did: an object deleted without its row is a row the reader
+// can delete again, and a row deleted without its object is an orphan nothing
+// will ever find. Only the row half becomes atomic, which is the half that has
+// several steps.
+//
+// The Rollback error is dropped on purpose. It is reached only because fn
+// already failed, that failure is what the caller is told about, and a rollback
+// that itself failed has nothing left to do -- the connection is returned to
+// the pool and the transaction dies with it.
+func (a *App) tx(ctx context.Context, fn func(q *queries.Queries) error) error {
+	tx, err := a.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+
+	if err := fn(a.Queries.WithTx(tx)); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // render writes a component and logs a failure. Nothing more can be done for

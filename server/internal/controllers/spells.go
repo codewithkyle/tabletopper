@@ -323,7 +323,9 @@ func (a *App) SaveSpell(w http.ResponseWriter, r *http.Request) {
 		OwnerID:      sess.UserID,
 		Level:        level,
 	})
-	finishSpellRow(w, r, panel, input.Name, result, err)
+	// "spell" and not "character", for the reason the inventory save says
+	// "item" -- see savedRow.
+	finishRow(w, r, panel, spellToastLabel(input.Name), "spell", result, err)
 }
 
 // DeleteSpell drops one row. The reply carries no body, and it MUST be a 200:
@@ -409,28 +411,9 @@ func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	finishPanel(w, r, panel, pages.SpellLevelName(int(level))+" slots", result, err)
-}
-
-// finishSpellRow is finishInventoryRow's shape with one word changed, and the
-// word is the reason it is not finishPanel. Zero matched rows on a panel means
-// the character is not this user's; here it means this spell is gone -- deleted
-// in another tab, most likely -- and telling someone their character no longer
-// exists because a row does would send them to look for the wrong problem.
-func finishSpellRow(w http.ResponseWriter, r *http.Request, panel string, name string, result sql.Result, err error) {
-	if err != nil {
-		slog.Error("Failed to save spell", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "spell")
-		return
-	}
-
-	htmx.Toast(w, spellToastLabel(name)+" saved.")
-	renderPanelBlock(w, r, panel, nil)
+	// The slots belong to the character rather than to any spell row, so this
+	// one does say "character".
+	finishRow(w, r, panel, pages.SpellLevelName(int(level))+" slots", "character", result, err)
 }
 
 // A row spends its first seconds nameless, and a debounce landing in there

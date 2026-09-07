@@ -79,10 +79,11 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 }
 
 // A JOURNAL SAVE DOES NOT TOAST, and this is the only place that says so.
-// finishInventoryRow announces every save because an inventory field is a few
-// words; a journal save is a pause between two sentences, and toast.js stacks
-// its messages for five seconds each, so announcing them would bury the page in
-// a writing session's worth of "saved."
+// finishRow announces every save that goes through it, because an inventory or
+// attack field is a few words; a journal save is a pause between two sentences,
+// and toast.js stacks its messages for five seconds each, so announcing them
+// would bury the page in a writing session's worth of "saved." That is the
+// reason finishJournalEntry is its own function rather than a finishRow call.
 //
 // The body still has to be the cleared error block rather than a 204, for the
 // reason every panel answers that way: it is what wipes a message the previous

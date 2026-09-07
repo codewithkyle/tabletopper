@@ -166,8 +166,8 @@ GROUP BY j.id;
 -- Born detached: detached_at is NOW() at insert and the first save whose body
 -- carries the image's URL clears it. An upload the writer never saved -- tab
 -- closed inside the debounce -- is swept a day later with nothing to undo.
-INSERT INTO assets (id, owner_id, journal_id, file_path, type, file_name, name, detached_at)
-VALUES (?, ?, ?, ?, 'journal', ?, ?, NOW());
+INSERT INTO assets (id, owner_id, journal_id, file_path, type, file_name, name, size_bytes, detached_at)
+VALUES (?, ?, ?, ?, 'journal', ?, ?, ?, NOW());
 
 -- name: GetJournalImage :one
 -- The serve route. Every id in the URL is in the WHERE, plus the owner from the

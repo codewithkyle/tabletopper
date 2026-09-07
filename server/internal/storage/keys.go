@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"io"
 	"strconv"
 	"time"
 
@@ -159,10 +160,16 @@ func (c *Client) UploadMonsterImage(ctx context.Context, userID ulid.ULID, asset
 // belongs to the map rather than to any of its generations. The asset row must
 // already exist so a failure here can be cleaned up.
 //
+// IT TAKES A READER AND NOT BYTES, alone among the uploads here, because this
+// is the only one whose body was not produced by this process -- see PutReader.
+// The caller hands over the multipart.File it was given and its declared size,
+// and 128 MiB goes from the temp file to the bucket without passing through the
+// heap.
+//
 // contentType is what the upload's header said it is, not image/webp: this is
 // the one stored image that is never re-encoded, and it is a PNG or a JPEG as
 // often as not. Nothing serves it -- the image routes answer image/webp -- so
 // the type is here for whoever is looking in the bucket.
-func (c *Client) UploadMapOriginal(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte, contentType string) error {
-	return c.Put(ctx, MapOriginalKey(userID, assetID), body, contentType)
+func (c *Client) UploadMapOriginal(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body io.ReadSeeker, size int64, contentType string) error {
+	return c.PutReader(ctx, MapOriginalKey(userID, assetID), body, size, contentType)
 }

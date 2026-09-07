@@ -25,12 +25,14 @@
 package share
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"runtime"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -95,10 +97,11 @@ func NewToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
-// HashPassword is bcrypt at the default cost, and the cost is the rate limit.
-// There is nothing in front of the unlock form counting attempts; a guess costs
-// the ~60ms bcrypt takes to check it, which is what makes a share password
-// worth having without a counter behind it.
+// HashPassword is bcrypt at the default cost. THE COST IS NOT THE RATE LIMIT
+// -- Attempts is. A cost bounds what one guess is worth to try; it says nothing
+// about how many are tried, and the two defences this needs are both next door:
+// Attempts caps the tries a share will answer, and PasswordMatches caps how
+// many checks run at once.
 func HashPassword(plain string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
 	if err != nil {
@@ -108,9 +111,34 @@ func HashPassword(plain string) (string, error) {
 	return string(hash), nil
 }
 
-// PasswordMatches reports whether plain is the password behind hash.
-func PasswordMatches(hash, plain string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil
+// bcryptSlots bounds how many password checks run at once to the cores the
+// process was given.
+//
+// THIS IS THE OTHER HALF OF WHAT AN UNAUTHENTICATED bcrypt ENDPOINT NEEDS, and
+// it is not the same half as the attempt counter. Attempts stops one link being
+// guessed at; this stops the checking itself being used as the attack. A
+// comparison pins a core for the better part of a tenth of a second, and Go
+// will start one per request that arrives -- so without a bound, posts spread
+// across enough distinct password-protected links saturate the box while every
+// individual link stays comfortably under its limit.
+//
+// A check that cannot get a slot is refused rather than queued, because a queue
+// on this path is the same resource held for longer.
+var bcryptSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
+
+// PasswordMatches reports whether plain is the password behind hash. It returns
+// false and ctx.Err() when the process is too busy to check inside the
+// caller's deadline, which is a different answer from "no" and the caller has
+// to tell them apart: a wrong password is 401 and a full queue is 503.
+func PasswordMatches(ctx context.Context, hash, plain string) (bool, error) {
+	select {
+	case bcryptSlots <- struct{}{}:
+		defer func() { <-bcryptSlots }()
+	case <-ctx.Done():
+		return false, ctx.Err()
+	}
+
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil, nil
 }
 
 // Unlocked reports whether this request already answered the share's password.

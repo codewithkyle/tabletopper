@@ -3,10 +3,48 @@ package main
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
+
+// handler is what the server actually serves: the URL space below, wrapped in
+// the two things that apply to all of it.
+//
+// THE ORDER IS THE POINT OF IT BEING ONE FUNCTION. CrossOriginProtection is
+// Go's own check of Sec-Fetch-Site, and of Origin against Host, on every
+// non-safe request -- the second layer under SameSite=Lax on the session
+// cookie, which is otherwise the whole of the app's CSRF defence. A request
+// carrying neither header passes, so curl and anything else that is not a
+// browser is unaffected; it does not cover GET by design, which is why /logout
+// is a POST.
+//
+// IT IS STRICTER THAN SameSite=Lax AND THAT IS WHAT MAKES IT WORTH ADDING. Lax
+// treats every host under one registrable domain as the same site; this refuses
+// a mutation whose Sec-Fetch-Site says `same-site` as readily as one that says
+// `cross-site`, so only same-ORIGIN gets through. Nothing today notices,
+// because the app is one host -- but serving it from a second name, or from
+// behind a proxy that rewrites the Host, would refuse every mutation until that
+// origin is named here with csrf.AddTrustedOrigin. Behind Cloudflare with a
+// matching Host there is nothing to add.
+//
+// The one non-safe request a stranger makes is POST /share/{token}, submitted
+// from the gate page itself: same origin, so it passes. The R2 presigned PUT
+// goes browser-to-bucket and never reaches this handler at all.
+//
+// SecurityHeaders is outermost so its floor lands on every response, the 403
+// the check above writes included -- a refusal is still a document a browser
+// renders.
+//
+// It is a function rather than three lines in main so that a test can drive
+// the real chain. A test that rebuilt the wrapping itself would pass while
+// main served the bare mux.
+func handler(app *controllers.App, auth middleware.Auth) http.Handler {
+	csrf := http.NewCrossOriginProtection()
+
+	return middleware.SecurityHeaders(csrf.Handler(routes(app, auth)))
+}
 
 // routes is the whole URL space, in one place. Every pattern names a method:
 // a method-less pattern would answer a POST to a page route with the page.
@@ -21,7 +59,12 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /sign-in", app.SignIn)
 	mux.HandleFunc("GET /sign-up", app.SignUp)
 	mux.HandleFunc("GET /authorize", app.Authorize)
-	mux.HandleFunc("GET /logout", app.Logout)
+	// POST, because it is a state change. A GET here logs somebody out from any
+	// cross-site link or redirect they follow -- SameSite=Lax sends the session
+	// cookie on a top-level GET navigation, and the cross-origin check in main
+	// is defined never to cover safe methods. The badge on the homepage posts a
+	// one-button form instead of linking.
+	mux.HandleFunc("POST /logout", app.Logout)
 
 	mux.HandleFunc("GET /tos", app.TOS)
 	mux.HandleFunc("GET /privacy", app.PrivacyPolicy)
@@ -526,9 +569,34 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 
 	// Static files. The URL prefix is the directory under public/, so one
 	// FileServer rooted there covers all four without a StripPrefix each.
+	//
+	// A PATH ENDING IN A SLASH IS REFUSED BEFORE THE FILE SERVER SEES IT.
+	// http.FileServer renders an index for any directory without an
+	// index.html, so GET /js/ would list the scripts and GET /css/ the
+	// stylesheets. Nothing in here is secret and nothing is served from a
+	// directory on purpose, so a listing is only ever a map of the app handed
+	// to somebody who asked for one.
+	//
+	// Cache-Control is an hour, which is the compromise a URL without a
+	// fingerprint in it forces. Nothing here is content-addressed -- app.css is
+	// app.css across deploys -- so a long max-age would leave a browser holding
+	// last week's stylesheet against this week's markup, and no header at all
+	// leaves it to a heuristic that differs per browser. An hour is short
+	// enough to ride out a deploy and long enough that a session's worth of
+	// navigation does not refetch the same four files. Fingerprint the names
+	// and this becomes immutable.
 	static := http.FileServer(http.Dir("./public"))
+	files := func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/") {
+			notFound(w, r)
+			return
+		}
+
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		static.ServeHTTP(w, r)
+	}
 	for _, prefix := range []string{"/css/", "/js/", "/static/", "/images/"} {
-		mux.Handle("GET "+prefix, static)
+		mux.HandleFunc("GET "+prefix, files)
 	}
 
 	return mux

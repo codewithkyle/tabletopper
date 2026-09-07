@@ -15,7 +15,6 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
-	"tabletopper/internal/storage"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -229,40 +228,63 @@ func (a *App) ImportSharedMonster(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/monsters/"+monsterID.String()+"/edit")
 }
 
-// importMonster writes the row and its stat block rows, and undoes both if the
-// second half fails.
+// importMonster writes the row and its stat block rows, as one transaction.
 //
-// THE ROLLBACK IS WHY THIS IS NOT TWO CALLS IN THE HANDLER. Nothing in this
-// schema is transactional, so a monster whose actions failed halfway would sit
-// in the importer's manual missing most of its stat block and looking complete
-// -- which is worse than not having imported it, because nothing about it says
-// so. Throwing it away and reporting a failure leaves the reader able to press
-// the button again.
+// A HALF-COPIED MONSTER IS WORSE THAN NO COPY AT ALL, because nothing about it
+// says so: it would sit in the reader's manual with its name, its armour class
+// and none of its actions, looking exactly like a monster whose owner never
+// wrote any. That used to be prevented by a compensating delete -- copy the
+// monster, copy its actions, and if the second half failed run the monster
+// purge over what the first half wrote. The transaction is the same guarantee
+// with nothing to keep in step: a table added to the stat block is covered
+// because the database is what undoes the write, not a list of statements
+// somebody has to remember to extend.
+//
+// The picture is copied by the caller, after this returns, and is deliberately
+// not part of it -- an object cannot be rolled back, and a monster with no
+// picture is a monster, while a monster with no actions is a mistake.
 func (a *App) importMonster(ctx context.Context, grant queries.GetShareByTokenRow, ownerID ulid.ULID) (ulid.ULID, error) {
 	monsterID := ulid.Make()
 
-	result, err := a.Queries.CopyMonster(ctx, queries.CopyMonsterParams{
+	err := a.tx(ctx, func(q *queries.Queries) error {
+		return copyMonster(ctx, q, grant, ownerID, monsterID)
+	})
+	if err != nil {
+		return ulid.ULID{}, err
+	}
+
+	return monsterID, nil
+}
+
+// copyMonster is the two writes an import is, over whatever Queries it is
+// given. It is separate from the transaction around it so that a test can drive
+// the statements without one.
+func copyMonster(ctx context.Context, q *queries.Queries, grant queries.GetShareByTokenRow, ownerID, monsterID ulid.ULID) error {
+	result, err := q.CopyMonster(ctx, queries.CopyMonsterParams{
 		ID:            monsterID,
 		OwnerID:       ownerID,
 		SourceID:      grant.ResourceID,
 		SourceOwnerID: grant.OwnerID,
 	})
 	if err != nil {
-		return ulid.ULID{}, fmt.Errorf("monster: %w", err)
+		return fmt.Errorf("monster: %w", err)
 	}
 	// The SELECT half matched nothing, which is the monster having been deleted
 	// between the page and the button. It is the only thing zero rows can mean:
 	// the id was freshly minted, so a duplicate key is not on the table.
+	//
+	// Returning an error rolls the transaction back, which is what should
+	// happen: there is nothing to keep, and the row the INSERT did not write is
+	// not there to remove either.
 	if copied, err := result.RowsAffected(); err == nil && copied == 0 {
-		return ulid.ULID{}, errImportedMonsterGone
+		return errImportedMonsterGone
 	}
 
-	if err := a.copyMonsterActions(ctx, grant, ownerID, monsterID); err != nil {
-		a.discardImportedMonster(ctx, ownerID, monsterID)
-		return ulid.ULID{}, fmt.Errorf("actions: %w", err)
+	if err := copyMonsterActions(ctx, q, grant, ownerID, monsterID); err != nil {
+		return fmt.Errorf("actions: %w", err)
 	}
 
-	return monsterID, nil
+	return nil
 }
 
 // copyMonsterActions copies the seven sections a row at a time, because a fresh
@@ -275,8 +297,8 @@ func (a *App) importMonster(ctx context.Context, grant queries.GetShareByTokenRo
 // whatever order the random bytes happened to fall. ulid.Monotonic is the reader
 // that guarantees each id is greater than the one before it within a
 // millisecond, so the copy prints in the order the original does.
-func (a *App) copyMonsterActions(ctx context.Context, grant queries.GetShareByTokenRow, ownerID, monsterID ulid.ULID) error {
-	rows, err := a.Queries.ListMonsterActions(ctx, queries.ListMonsterActionsParams{
+func copyMonsterActions(ctx context.Context, q *queries.Queries, grant queries.GetShareByTokenRow, ownerID, monsterID ulid.ULID) error {
+	rows, err := q.ListMonsterActions(ctx, queries.ListMonsterActionsParams{
 		MonsterID: grant.ResourceID,
 		OwnerID:   grant.OwnerID,
 	})
@@ -291,7 +313,7 @@ func (a *App) copyMonsterActions(ctx context.Context, grant queries.GetShareByTo
 			return fmt.Errorf("minting an id: %w", err)
 		}
 
-		err = a.Queries.CopyMonsterAction(ctx, queries.CopyMonsterActionParams{
+		err = q.CopyMonsterAction(ctx, queries.CopyMonsterActionParams{
 			ID:          id,
 			OwnerID:     ownerID,
 			MonsterID:   monsterID,
@@ -360,32 +382,4 @@ func (a *App) copyMonsterPicture(ctx context.Context, grant queries.GetShareByTo
 	}
 
 	return nil
-}
-
-// discardImportedMonster throws away a copy that could not be finished. It is
-// the compensating delete the uploads use, and it runs the monster delete's own
-// statements so a table added to that purge is covered here too.
-//
-// IT DETACHES FROM THE REQUEST, for the reason every other cleanup in the app
-// does: the likeliest way to get here is the reader closing the tab, and a
-// cancelled context would leave exactly the half-made row this exists to remove.
-//
-// THERE IS NO PICTURE TO DELETE. The rollback only happens between the row and
-// the picture, and the picture is attached after both -- so anything this
-// reaches is rows alone.
-func (a *App) discardImportedMonster(ctx context.Context, ownerID, monsterID ulid.ULID) {
-	ctx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.deleteMonsterRows(ctx, monsterID, ownerID); err != nil {
-		slog.Error("Failed to discard a half-imported monster's rows", "error", err, "monsterID", monsterID.String())
-	}
-
-	err := a.Queries.DeleteMonster(ctx, queries.DeleteMonsterParams{
-		ID:      monsterID,
-		OwnerID: ownerID,
-	})
-	if err != nil {
-		slog.Error("Failed to discard a half-imported monster", "error", err, "monsterID", monsterID.String())
-	}
 }

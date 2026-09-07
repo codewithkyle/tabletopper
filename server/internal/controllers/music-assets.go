@@ -232,7 +232,9 @@ func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 		// The row named a key nothing was ever given a way to write to, so it
 		// is dropped rather than left for the sweep -- there is no object to
 		// tidy and no window in which one could appear.
-		a.discardMusicRow(ctx, sess.UserID, assetID)
+		// The row alone: the presign failed, so no URL was ever handed out and
+		// there is nothing in the bucket to ask about.
+		a.discardAssetRow(ctx, sess.UserID, assetID)
 		writeJSONProblem(w, http.StatusInternalServerError, "Server Error", "Something went wrong on the server. Try again in a moment.")
 		return
 	}
@@ -261,8 +263,17 @@ func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 // as audio/mpeg forever. Comparing the sniffed type against the one the name
 // implied is what closes that.
 //
-// EVERY FAILURE ROLLS THE WHOLE UPLOAD BACK, object first and row last, which is
-// the order every delete in this app uses.
+// ONLY A MISSING OBJECT ROLLS THE UPLOAD BACK. Discarding costs the user the
+// ten minutes and 175 MB they just spent, so it is reserved for the one answer
+// that says those were wasted anyway: the object is not in the bucket, so the
+// PUT never landed and the row names nothing. Every other failure -- a 5xx from
+// R2, a timeout, a connection dropped mid-HEAD -- is the question failing and
+// not the upload, and the object is very likely there. Those leave the row
+// alone: a second confirm finishes the track, and if none ever comes the sweep
+// collects the unconfirmed row and its object together six hours later.
+//
+// A rollback is object first and row last, which is the order every delete in
+// this app uses.
 func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -279,10 +290,14 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	size, err := a.Storage.Size(ctx, row.FilePath)
+	if errors.Is(err, storage.ErrNotFound) {
+		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
+		htmx.Error(w, "Upload Failed", "The track did not finish uploading. Try again.", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		slog.Error("Failed to read an uploaded track", "error", err, "assetID", row.ID.String())
-		a.discardMusic(ctx, sess.UserID, row.ID, row.FilePath)
-		htmx.Error(w, "Upload Failed", "The track did not finish uploading. Try again.", http.StatusBadGateway)
+		htmx.Error(w, "Upload Not Confirmed", "The track could not be checked. Refresh the page and try again.", http.StatusBadGateway)
 		return
 	}
 	if size > maxMusicBytes {
@@ -290,16 +305,23 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		// it is checked: a cap enforced only by something else is a cap on
 		// trust in that something else.
 		slog.Warn("An uploaded track is over the cap", "assetID", row.ID.String(), "size", size)
-		a.discardMusic(ctx, sess.UserID, row.ID, row.FilePath)
+		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
 		htmx.Error(w, "Track Too Large", "Tracks must be 256 MB or smaller.", http.StatusRequestEntityTooLarge)
 		return
 	}
 
+	// Same split as the HEAD above: gone is discarded, unreachable is left for
+	// a retry. An object that was there a moment ago and is not now is a
+	// deletion racing the confirm, which is the same nothing-to-keep case.
 	head, err := a.Storage.Peek(ctx, row.FilePath, audio.HeaderBytes)
+	if errors.Is(err, storage.ErrNotFound) {
+		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
+		htmx.Error(w, "Upload Failed", "The track did not finish uploading. Try again.", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		slog.Error("Failed to read an uploaded track's header", "error", err, "assetID", row.ID.String())
-		a.discardMusic(ctx, sess.UserID, row.ID, row.FilePath)
-		htmx.Error(w, "Upload Failed", "The track could not be read back. Try again.", http.StatusBadGateway)
+		htmx.Error(w, "Upload Not Confirmed", "The track could not be checked. Refresh the page and try again.", http.StatusBadGateway)
 		return
 	}
 
@@ -308,7 +330,7 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	if !ok || actual != declared {
 		slog.Warn("An uploaded track is not what its name claims",
 			"assetID", row.ID.String(), "declared", declared, "actual", actual)
-		a.discardMusic(ctx, sess.UserID, row.ID, row.FilePath)
+		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
 		htmx.Error(w, "Unsupported Audio",
 			"That file is not the kind of audio its name says it is. Music must be an MP3, OGG, Opus, M4A, WebM, FLAC or WAV file.",
 			http.StatusUnsupportedMediaType)
@@ -321,6 +343,10 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	result, err := a.Queries.FinishMusicUpload(ctx, queries.FinishMusicUploadParams{
 		ID:      row.ID,
 		OwnerID: sess.UserID,
+		// The bucket's own figure, from the HEAD above, and not the size the
+		// browser declared when it asked for the signature. It is the number
+		// that was just checked against the cap.
+		SizeBytes: size,
 	})
 	if err != nil {
 		slog.Error("Failed to finish a music upload", "error", err, "assetID", row.ID.String())
@@ -436,30 +462,16 @@ func (a *App) musicTrack(w http.ResponseWriter, r *http.Request) (queries.Asset,
 	return row, true
 }
 
-// discardMusic rolls back an upload whose object landed and was refused: the
-// object goes first and the row only once R2 has confirmed it is gone, which is
-// the order every delete here uses.
-func (a *App) discardMusic(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, key string) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Storage.Delete(cleanupCtx, key); err != nil {
-		slog.Error("Failed to clean up a refused track; leaving the row for the sweep", "error", err, "assetID", assetID.String())
-		return
-	}
-	if err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{ID: assetID, OwnerID: userID}); err != nil {
-		slog.Error("Failed to delete a refused track's row", "error", err, "assetID", assetID.String())
-	}
-}
-
-// discardMusicRow drops a row that never got as far as owning anything. It is
-// separate from discardMusic because there is nothing in the bucket to delete
-// and no reason to ask: the presign failed, so no URL was ever handed out.
-func (a *App) discardMusicRow(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{ID: assetID, OwnerID: userID}); err != nil {
-		slog.Error("Failed to delete an unsigned track's row", "error", err, "assetID", assetID.String())
-	}
+// discardTrack rolls back an upload whose object landed and was refused.
+//
+// IT TAKES THE KEY OFF THE ROW rather than rebuilding it, which is why this is
+// a named wrapper and the other five call sites are closures written inline.
+// Every other kind is discarded inside the request that minted its id, so the
+// key can be built from that id; a track is discarded by the confirm, which is
+// a second request, and the row it read is the only thing that knows where the
+// browser was told to PUT.
+func (a *App) discardTrack(ctx context.Context, userID, assetID ulid.ULID, key string) {
+	a.discardAsset(ctx, userID, assetID, func(c context.Context) error {
+		return a.Storage.Delete(c, key)
+	})
 }

@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -135,25 +137,51 @@ func TestReadImageUploadRefusesOverThePixelBudget(t *testing.T) {
 	}
 }
 
+// openMap runs the map path's whole validation and hands back what the handler
+// gets: the file, its part header and the type the header pass worked out. The
+// file is drained and closed here, because every assertion these tests make
+// about it is about what it holds rather than about reading it in pieces.
+func openMap(t *testing.T, rec http.ResponseWriter, r *http.Request) ([]byte, *multipart.FileHeader, string, bool) {
+	t.Helper()
+
+	file, header, contentType, ok := openImageUpload(rec, r, "map", mapLimits)
+	if !ok {
+		return nil, nil, "", false
+	}
+	defer file.Close()
+
+	body, err := io.ReadAll(file)
+	if err != nil {
+		t.Fatalf("reading the opened upload: %v", err)
+	}
+
+	return body, header, contentType, true
+}
+
 // THE MAP PATH DOES NOT DECODE, and this is the pair that proves it. The
 // fixture is the same header-and-nothing-else PNG the test above feeds to
 // readImageUpload, which answers 415 because there is nothing there to decode.
-// readImageBytes accepts it, because it never asks: the header pass is the
-// whole of the validation, and what comes back is the file as it arrived.
-func TestReadImageBytesDoesNotDecode(t *testing.T) {
+// The map path accepts it, because it never asks: the header pass is the whole
+// of the validation, and what the handler gets is the file as it arrived.
+func TestTheMapPathDoesNotDecode(t *testing.T) {
 	fixture := pngHeader(100, 100)
 
 	rec := newRecorder()
-	body, filename, contentType, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map", mapLimits)
+	body, header, contentType, ok := openMap(t, rec, uploadRequest(t, "map", fixture))
 
 	if !ok {
-		t.Fatalf("readImageBytes refused a valid header with status %d", rec.Code)
+		t.Fatalf("the map path refused a valid header with status %d", rec.Code)
 	}
 	if !bytes.Equal(body, fixture) {
 		t.Errorf("read %d bytes, want the %d that were uploaded", len(body), len(fixture))
 	}
-	if filename != "huge.png" {
-		t.Errorf("filename = %q, want %q", filename, "huge.png")
+	if header.Filename != "huge.png" {
+		t.Errorf("filename = %q, want %q", header.Filename, "huge.png")
+	}
+	// The size the PUT is given comes off this header, so it has to be the
+	// part's real length rather than anything the browser declared.
+	if header.Size != int64(len(fixture)) {
+		t.Errorf("header.Size = %d, want %d -- it is the ContentLength the PUT is given", header.Size, len(fixture))
 	}
 	// The multipart part was written as application/octet-stream, so this can
 	// only have come from the header pass.
@@ -173,16 +201,22 @@ func TestReadImageBytesDoesNotDecode(t *testing.T) {
 // the line the extra Close is a no-op and nothing showed; over it, every map
 // past 32 MiB failed on "file already closed" -- and the cap is 128.
 //
+// IT IS ALSO THE CASE THE STREAMING UPLOAD RESTS ON. The spilled part is an
+// *os.File, and PutReader requires a seekable body because the S3 client reads
+// it twice; the header pass has already read and rewound it once, so what this
+// asserts is that the file is still positioned at the start and still complete
+// when the handler hands it over.
+//
 // The fixture is a valid header followed by padding, because the header pass is
 // the only part of a map that is ever decoded.
 func TestAMapLargerThanTheMemoryBudgetIsStillReadableWhole(t *testing.T) {
 	fixture := append(pngHeader(100, 100), make([]byte, multipartMemory+(1<<20))...)
 
 	rec := newRecorder()
-	body, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", fixture), "map", mapLimits)
+	body, header, _, ok := openMap(t, rec, uploadRequest(t, "map", fixture))
 
 	if !ok {
-		t.Fatalf("readImageBytes refused a spilled upload with status %d", rec.Code)
+		t.Fatalf("the map path refused a spilled upload with status %d", rec.Code)
 	}
 	if len(body) != len(fixture) {
 		t.Errorf("read %d bytes of a %d byte upload", len(body), len(fixture))
@@ -190,16 +224,53 @@ func TestAMapLargerThanTheMemoryBudgetIsStillReadableWhole(t *testing.T) {
 	if !bytes.Equal(body, fixture) {
 		t.Error("the bytes that came back are not the ones that were sent")
 	}
+	if header.Size != int64(len(fixture)) {
+		t.Errorf("header.Size = %d, want %d", header.Size, len(fixture))
+	}
+}
+
+// The seekability PutReader depends on, asserted rather than assumed: both
+// forms of multipart.File are io.ReadSeekers, and a spilled part is the one
+// that would be easy to lose.
+func TestAnOpenedMapIsSeekableForThePut(t *testing.T) {
+	for name, fixture := range map[string][]byte{
+		"in memory": pngHeader(100, 100),
+		"spilled":   append(pngHeader(100, 100), make([]byte, multipartMemory+(1<<20))...),
+	} {
+		t.Run(name, func(t *testing.T) {
+			file, _, _, ok := openImageUpload(newRecorder(), uploadRequest(t, "map", fixture), "map", mapLimits)
+			if !ok {
+				t.Fatal("the map path refused the upload")
+			}
+			defer file.Close()
+
+			var seeker io.ReadSeeker = file
+			if _, err := seeker.Seek(0, io.SeekEnd); err != nil {
+				t.Fatalf("seeking to the end: %v", err)
+			}
+			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+				t.Fatalf("seeking back to the start: %v", err)
+			}
+
+			body, err := io.ReadAll(seeker)
+			if err != nil {
+				t.Fatalf("reading after the rewind: %v", err)
+			}
+			if !bytes.Equal(body, fixture) {
+				t.Errorf("read %d bytes after a rewind, want the %d that were sent", len(body), len(fixture))
+			}
+		})
+	}
 }
 
 // The budget is refused on the way through the same header pass, so the map
 // path is no more willing to take a 400-megapixel canvas than the avatar path
 // is -- it just refuses it without ever holding one.
-func TestReadImageBytesRefusesOverThePixelBudget(t *testing.T) {
+func TestTheMapPathRefusesOverThePixelBudget(t *testing.T) {
 	rec := newRecorder()
 
-	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map", mapLimits); ok {
-		t.Fatal("readImageBytes accepted a canvas over the budget")
+	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(20000, 20000))); ok {
+		t.Fatal("the map path accepted a canvas over the budget")
 	}
 	if rec.Code != http.StatusRequestEntityTooLarge {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusRequestEntityTooLarge)
@@ -236,8 +307,8 @@ func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
 		t.Errorf("the insert names a preview that does not exist yet: %q", insert.query)
 	}
 
-	if len(insert.args) != 6 {
-		t.Fatalf("the insert takes %d arguments, want 6", len(insert.args))
+	if len(insert.args) != 7 {
+		t.Fatalf("the insert takes %d arguments, want 7", len(insert.args))
 	}
 	assetID, ok := insert.args[0].(ulid.ULID)
 	if !ok {
@@ -248,6 +319,12 @@ func TestUploadMapWritesTheRowBeforeReachingR2(t *testing.T) {
 	}
 	if want := (sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}); insert.args[5] != want {
 		t.Errorf("tile_size = %v, want %v", insert.args[5], want)
+	}
+	// The original's length, which is what the account's storage total is a sum
+	// of. It is the multipart part's own size and not anything the browser
+	// declared, so it has to match the fixture exactly.
+	if want := int64(len(pngHeader(100, 100))); insert.args[6] != want {
+		t.Errorf("size_bytes = %v, want the original's %d bytes", insert.args[6], want)
 	}
 }
 
@@ -355,7 +432,7 @@ func TestAnUploadExtendsBothOfItsDeadlines(t *testing.T) {
 	rec := newRecorder()
 	before := time.Now()
 
-	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(100, 100)), "map", mapLimits); !ok {
+	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(100, 100))); !ok {
 		t.Fatal("the upload was refused")
 	}
 
@@ -375,7 +452,7 @@ func TestTheMapCapTakesWhatTheDecodedCapCannot(t *testing.T) {
 	const width, height = 12000, 9000
 
 	rec := newRecorder()
-	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(width, height)), "map", mapLimits); !ok {
+	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(width, height))); !ok {
 		t.Errorf("a %dx%d map was refused with status %d", width, height, rec.Code)
 	}
 
@@ -390,7 +467,7 @@ func TestTheMapCapTakesWhatTheDecodedCapCannot(t *testing.T) {
 	// Past the map's own cap it is refused there too, with a message that
 	// names the cap it was given rather than one written into the string.
 	rec = newRecorder()
-	if _, _, _, ok := readImageBytes(rec, uploadRequest(t, "map", pngHeader(20000, 20000)), "map", mapLimits); ok {
+	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(20000, 20000))); ok {
 		t.Error("a 400-megapixel map was accepted")
 	}
 	if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, "150 megapixels") {
@@ -509,7 +586,7 @@ func TestASlowUploadOutlivesTheServerTimeouts(t *testing.T) {
 
 	t.Run("through the upload path", func(t *testing.T) {
 		got := dribble(t, func(w http.ResponseWriter, r *http.Request) {
-			read, _, _, ok := readImageBytes(w, r, "map", mapLimits)
+			read, _, _, ok := openMap(t, w, r)
 			if !ok {
 				return
 			}
@@ -595,5 +672,167 @@ func TestABadIDOnTheCardFragmentNeverBecomesAStatement(t *testing.T) {
 
 	if len(db.reads) != 0 {
 		t.Errorf("ran %d reads, want 0", len(db.reads))
+	}
+}
+
+// serveImage's rule for the one asset type whose file_path must never leave
+// this process. imageRequest drives whichever of the two URLs the case is
+// about, against a stub row of the caller's shape.
+func imageRequest(t *testing.T, preview bool, assetType string, previewPath driver.Value, etag string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	updated := time.Unix(1_700_000_000, 0)
+	stub := oneRowDB{
+		columns: []string{"id", "type", "file_path", "preview_path", "updated_at"},
+		values: []driver.Value{
+			testAssetID.String(),
+			[]byte(assetType),
+			"users/x/maps/y/original.png",
+			previewPath,
+			updated,
+		},
+	}
+	app := &App{Queries: queries.New(stub.db())}
+
+	r := httptest.NewRequest(http.MethodGet, "/assets/images/"+testAssetID.String(), nil)
+	r.SetPathValue("id", testAssetID.String())
+	if etag != "" {
+		r.Header.Set("If-None-Match", etag)
+	}
+	rec := httptest.NewRecorder()
+
+	if preview {
+		app.GetImagePreview(rec, r)
+	} else {
+		app.GetImage(rec, r)
+	}
+
+	return rec
+}
+
+// currentETag is what serveImage would send for the stub row above. A request
+// carrying it is answered 304 from the row alone, which is how these cases
+// prove a handler got past the branch under test without an R2 to stream from.
+func currentETag() string {
+	return fmt.Sprintf(`"%s-%d"`, testAssetID, time.Unix(1_700_000_000, 0).Unix())
+}
+
+// A map that has not finished tiling has no picture at either URL. Answering
+// the bare one used to stream file_path, which for a map is the original PNG or
+// JPEG -- up to 128 MiB out through this process, labelled image/webp.
+func TestAMapWithNoPreviewHasNoImageAtEitherURL(t *testing.T) {
+	for name, preview := range map[string]bool{"bare": false, "preview": true} {
+		t.Run(name, func(t *testing.T) {
+			rec := imageRequest(t, preview, "map", nil, currentETag())
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+			}
+		})
+	}
+}
+
+// Once the tiler has built one, the preview is the map's only picture. The bare
+// URL still refuses: there is no route in this app that serves a map's
+// original, which is the invariant the whole storage layout is arranged around.
+func TestAMapServesItsPreviewAndNeverItsOriginal(t *testing.T) {
+	if got := imageRequest(t, false, "map", "users/x/maps/y/gen/preview.webp", currentETag()).Code; got != http.StatusNotFound {
+		t.Errorf("the bare URL answered %d for a tiled map, want %d", got, http.StatusNotFound)
+	}
+	if got := imageRequest(t, true, "map", "users/x/maps/y/gen/preview.webp", currentETag()).Code; got != http.StatusNotModified {
+		t.Errorf("the preview URL answered %d, want %d -- it did not reach the stream", got, http.StatusNotModified)
+	}
+}
+
+// The other four types are unaffected: their file_path is a WebP this app
+// encoded, so the bare URL is the picture and a missing preview falls back to
+// it rather than refusing.
+func TestTheOtherImageTypesStillServeTheirFilePath(t *testing.T) {
+	for _, assetType := range []string{"avatar", "token", "monster", "character"} {
+		t.Run(assetType, func(t *testing.T) {
+			if got := imageRequest(t, false, assetType, nil, currentETag()).Code; got != http.StatusNotModified {
+				t.Errorf("the bare URL answered %d, want %d", got, http.StatusNotModified)
+			}
+			if got := imageRequest(t, true, assetType, nil, currentETag()).Code; got != http.StatusNotModified {
+				t.Errorf("the preview URL answered %d, want %d", got, http.StatusNotModified)
+			}
+		})
+	}
+}
+
+// The bound in front of every request-path decode. Filling the slots and then
+// asking with a deadline that cannot be met is the only way to observe it: a
+// decode that gets a slot finishes in tens of milliseconds, so a test that
+// raced for one would pass either way.
+func TestADecodeWaitsForASlotAndThenGivesUp(t *testing.T) {
+	for range cap(decodeSlots) {
+		decodeSlots <- struct{}{}
+	}
+	defer func() {
+		for range cap(decodeSlots) {
+			<-decodeSlots
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	if _, err := decodeUpload(ctx, bytes.NewReader(pngHeader(10, 10))); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("decodeUpload on a full gate returned %v, want %v", err, context.DeadlineExceeded)
+	}
+}
+
+// And it is a bound rather than a refusal: a slot that is free is taken, and
+// what comes back is the decoder's own verdict on the bytes. pngHeader is a
+// header with no pixel data, so the answer is a decode error and not a
+// deadline -- which is the pair a caller has to tell apart.
+func TestADecodeWithASlotFreeReachesTheDecoder(t *testing.T) {
+	_, err := decodeUpload(context.Background(), bytes.NewReader(pngHeader(10, 10)))
+
+	if err == nil {
+		t.Fatal("a PNG header with no IDAT decoded")
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("decodeUpload returned %v, want the decoder's error", err)
+	}
+}
+
+// THE OWNERSHIP CHECK RUNS BEFORE THE BODY IS TOUCHED, and the two handlers
+// that got this backwards are pinned here.
+//
+// The request carries no multipart body at all. If the lookup runs first the
+// handler stops on the statement, which the recording DB fails, and the body is
+// never reached; if the decode ran first the handler would answer on the
+// missing form field instead and no statement would be recorded. So a recorded
+// statement is the assertion.
+func TestAvatarAndMonsterUploadsCheckOwnershipBeforeReadingTheBody(t *testing.T) {
+	for name, c := range map[string]struct {
+		handler func(*App) http.HandlerFunc
+		table   string
+	}{
+		"avatar":  {func(a *App) http.HandlerFunc { return a.UploadCharacterAvatar }, "FROM characters"},
+		"monster": {func(a *App) http.HandlerFunc { return a.UploadMonsterImage }, "FROM monsters"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &recordingDB{err: errNoRowsToGive}
+			app := &App{Queries: queries.New(db)}
+
+			r := httptest.NewRequest(http.MethodPost, "/upload", nil)
+			r.SetPathValue("id", testCharacterID.String())
+			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+			rec := httptest.NewRecorder()
+
+			c.handler(app)(rec, r)
+
+			if len(db.reads) != 1 {
+				t.Fatalf("ran %d reads before the body, want 1 -- the ownership check moved back after the decode", len(db.reads))
+			}
+			if !strings.Contains(db.reads[0].query, c.table) {
+				t.Errorf("the first statement is %q, want the owner-scoped lookup on %s", db.reads[0].query, c.table)
+			}
+			if !strings.Contains(db.reads[0].query, "owner_id = ?") {
+				t.Errorf("the first statement is not owner-scoped: %q", db.reads[0].query)
+			}
+		})
 	}
 }

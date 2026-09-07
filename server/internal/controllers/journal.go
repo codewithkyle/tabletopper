@@ -361,8 +361,9 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, "Entry deleted.")
 }
 
-// finishJournalEntry is finishInventoryRow with the toast made conditional, and
-// that condition is the whole reason it is its own function.
+// finishJournalEntry is finishRow with the toast made conditional and a
+// callback in the middle, and those two are the whole reason it is its own
+// function -- the checks are savedRow's, like every other save in the app.
 //
 // An inventory field is a few words and a save there is an event worth
 // announcing. A journal save is a pause between two sentences, and toast.js
@@ -383,17 +384,10 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 // because the check that guards it is here: an entry deleted in another tab
 // matched nothing, has no body to reconcile against, and gets the 404 below.
 func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error, announce bool, saved func()) {
-	if err != nil {
-		slog.Error("Failed to save journal entry", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	// Zero matched rows is the entry being gone -- deleted in another tab, most
-	// likely -- rather than the character not being this user's, which is why
-	// this does not say "character" the way finishPanel does.
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "journal entry")
+	// "journal entry" is the noun: zero matched rows is the entry being gone --
+	// deleted in another tab, most likely -- rather than the character not
+	// being this user's.
+	if !savedRow(w, pages.JournalEntryPanel, "journal entry", result, err) {
 		return
 	}
 

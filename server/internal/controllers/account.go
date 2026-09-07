@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -14,11 +15,23 @@ import (
 
 // The account settings dialog and the save behind it.
 //
-// THE DIALOG READS THE SESSION AND NEVER THE DATABASE. The session query joins
-// users, so the four settings arrive with every request already; loading them
-// again here would be a round trip to fetch what the caller was handed on the
-// way in. It also means the dialog and the page it opens over cannot disagree,
-// because they were both rendered from the same read.
+// THE FOUR SETTINGS COME OFF THE SESSION AND NEVER OUT OF THE DATABASE. The
+// session query joins users, so they arrive with every request already; loading
+// them again here would be a round trip to fetch what the caller was handed on
+// the way in. It also means the dialog and the page it opens over cannot
+// disagree, because they were both rendered from the same read.
+//
+// STORAGE USED IS THE ONE EXCEPTION, and it has to be. It is an aggregate over
+// the assets table, so there is nothing on the session that could carry it and
+// nothing that could keep it current if there were -- it changes on every
+// upload and every delete, none of which touch the session row. So opening the
+// dialog is one SUM, scoped to the owner and covered by the index on owner_id,
+// and a dialog nobody opens costs nothing.
+//
+// A FAILED READ DOES NOT COST THE READER THEIR SETTINGS. The four pickers are
+// the reason the dialog exists and they are already in hand; a database that
+// would not answer the aggregate is logged and the line is left off, rather
+// than refusing to render a form that needed nothing from it.
 //
 // THE SAVE IS A POST TO /account/settings AND NOT TO /fragment/. It is a
 // mutation, so it keeps its resource URL; the fragment prefix marks GET-shaped
@@ -36,10 +49,56 @@ import (
 
 // AccountSettingsFragment is the dialog, opened by the gear on the homepage.
 func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
-	p := session.FromContext(r.Context()).Prefs
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	data := accountSettingsData(sess.Prefs, time.Now())
+
+	used, err := a.Queries.SumOwnedAssetBytes(ctx, sess.UserID)
+	if err != nil {
+		slog.Error("Failed to total an account's storage", "error", err)
+	} else {
+		data.Storage = formatBytes(used)
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AccountSettingsFragment(accountSettingsData(p, time.Now())))
+	render(w, r, pages.AccountSettingsFragment(data))
+}
+
+// storageUnits are the steps formatBytes walks, smallest first. The step is
+// 1024 and the names are the ones a file manager uses rather than the strictly
+// correct KiB/MiB/GiB, because this is a sentence a person reads about their own
+// account and not a figure anyone reconciles against a bill.
+var storageUnits = []string{"KB", "MB", "GB", "TB"}
+
+// formatBytes turns a byte count into the line the dialog shows.
+//
+// ONE DECIMAL PLACE AND NEVER MORE. The number exists so a reader can tell
+// "nothing much" from "getting on for a gigabyte"; a second decimal is
+// precision about a total that is a sum of compressed images and would only
+// make it look like an invoice. Bytes are the exception -- there is no decimal
+// place to give something under a kilobyte -- and so is the zero case, which
+// reads as a phrase rather than as a quantity, because "0 B" beside "Storage
+// used" is a worse way to say "nothing yet".
+func formatBytes(n int64) string {
+	if n <= 0 {
+		return "Nothing uploaded yet"
+	}
+	if n < 1024 {
+		return fmt.Sprintf("%d B", n)
+	}
+
+	size := float64(n) / 1024
+	unit := storageUnits[0]
+	for _, next := range storageUnits[1:] {
+		if size < 1024 {
+			break
+		}
+		size /= 1024
+		unit = next
+	}
+
+	return fmt.Sprintf("%.1f %s", size, unit)
 }
 
 // SaveAccountSettings writes all four, or none of them.

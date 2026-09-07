@@ -1,6 +1,7 @@
 package share_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,6 +24,20 @@ func unlock(t *testing.T, setToken, setHash, readToken, readHash string) bool {
 	}
 
 	return share.Unlocked(r, readToken, readHash)
+}
+
+// matches is PasswordMatches for the cases that are about the password rather
+// than about the bound in front of it: a context that is not going to be
+// cancelled, and an error that is a test failure rather than an answer.
+func matches(t *testing.T, hash, plain string) bool {
+	t.Helper()
+
+	ok, err := share.PasswordMatches(context.Background(), hash, plain)
+	if err != nil {
+		t.Fatalf("PasswordMatches: %v", err)
+	}
+
+	return ok
 }
 
 func hash(t *testing.T, plain string) string {
@@ -57,11 +72,28 @@ func TestTokensAreDistinctAndURLSafe(t *testing.T) {
 func TestAPasswordVerifiesAgainstItsOwnHashAndNoOther(t *testing.T) {
 	h := hash(t, "the black spider")
 
-	if !share.PasswordMatches(h, "the black spider") {
+	if !matches(t, h, "the black spider") {
 		t.Error("the right password did not match its hash")
 	}
-	if share.PasswordMatches(h, "the black spiders") {
+	if matches(t, h, "the black spiders") {
 		t.Error("a wrong password matched")
+	}
+}
+
+// A caller whose context is already done is told so rather than being told the
+// password was wrong, and bcrypt never runs -- which is what lets the handler
+// answer 503 instead of sending a reader off to find a password that was
+// right all along.
+func TestABusyProcessRefusesTheCheckRatherThanFailingIt(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	ok, err := share.PasswordMatches(ctx, hash(t, "phandalin"), "phandalin")
+	if err == nil {
+		t.Fatal("a cancelled check reported no error")
+	}
+	if ok {
+		t.Error("a cancelled check reported a match")
 	}
 }
 

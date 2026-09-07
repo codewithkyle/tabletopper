@@ -421,3 +421,37 @@ func TestNotNowStampsTheAccountAndStoresNothingElse(t *testing.T) {
 		t.Errorf("a dismissal repainted the page: %q", trigger)
 	}
 }
+
+// The line the settings dialog shows. The unit boundaries are what matter --
+// a total that reads "1024.0 KB" instead of "1.0 MB" is the bug this shape has
+// -- along with the two cases that are not a quantity at all.
+func TestStorageReadsAsSomethingAPersonWouldSay(t *testing.T) {
+	for _, c := range []struct {
+		bytes int64
+		want  string
+	}{
+		{0, "Nothing uploaded yet"},
+		// Negative is not a state SUM can produce over a NOT NULL DEFAULT 0
+		// column. It reads as the zero case rather than as "-1 B", because
+		// there is no sentence in which a negative total is the honest answer.
+		{-1, "Nothing uploaded yet"},
+		{1, "1 B"},
+		{1023, "1023 B"},
+		// The boundary in both directions: a kilobyte is the first thing that
+		// stops being bytes.
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1024*1024 - 1, "1024.0 KB"},
+		{1024 * 1024, "1.0 MB"},
+		{1024 * 1024 * 1024, "1.0 GB"},
+		{4*1024*1024*1024 + 512*1024*1024, "4.5 GB"},
+		{1024 * 1024 * 1024 * 1024, "1.0 TB"},
+		// Past the last unit it keeps counting in it rather than falling off
+		// the end of the table.
+		{2048 * 1024 * 1024 * 1024 * 1024, "2048.0 TB"},
+	} {
+		if got := formatBytes(c.bytes); got != c.want {
+			t.Errorf("formatBytes(%d) = %q, want %q", c.bytes, got, c.want)
+		}
+	}
+}

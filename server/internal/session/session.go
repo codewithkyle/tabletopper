@@ -53,6 +53,17 @@ type UserSession struct {
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
 
+	// RefreshedAt is when this row's expiry was last slid forward, carried on
+	// the request so Refresh can decide whether to write without asking.
+	//
+	// IT IS HERE TO SAVE A ROUND TRIP AND NOT TO CHANGE A RULE. The throttle
+	// has always lived in RefreshSession's WHERE, which is where it has to stay
+	// -- two requests from two tabs read the same row before either writes, and
+	// only the statement can settle that. What the column bought by coming
+	// along with the read is that the common case, which is almost every
+	// request, no longer sends an UPDATE across the network to match no rows.
+	RefreshedAt time.Time
+
 	// Prefs is the account settings the page renders with: theme, zone, date
 	// order and clock.
 	//
@@ -123,6 +134,7 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		ProfileImageURL: row.ProfileImageURL,
 		Hash:            hash,
 		CreatedAt:       row.CreatedAt,
+		RefreshedAt:     row.RefreshedAt,
 		Prefs: prefs.New(
 			string(row.Theme),
 			row.Timezone,
@@ -177,12 +189,25 @@ func nextExpiry(now time.Time, createdAt time.Time) time.Time {
 
 // Refresh slides an active session's expiry forward and re-issues the cookie to
 // match. It is throttled to one write per refreshInterval and will not extend a
-// session past MaxLifetime, so most requests match no rows and do no work.
+// session past MaxLifetime.
 //
 // The cookie has to be re-issued alongside the row: leaving it on its original
 // Expires would have the browser drop it while the session was still live.
+//
+// THIS RUNS ON EVERY PAGE, EVERY FRAGMENT AND EVERY POST, which is why the
+// throttle is checked twice. The row we were handed already says when it was
+// last refreshed, so the throttled case -- which is nearly all of them, one
+// write an hour against a request every few seconds -- returns here without a
+// statement. The WHERE in RefreshSession stays exactly as it was and is the
+// correctness half: it is what settles two tabs reading the same row at the
+// same moment, and what enforces MaxLifetime, and neither of those can be
+// decided from a copy taken before the write.
 func (s *Store) Refresh(ctx context.Context, w http.ResponseWriter, u *UserSession) error {
 	now := time.Now()
+	if now.Sub(u.RefreshedAt) < refreshInterval {
+		return nil
+	}
+
 	expiresAt := nextExpiry(now, u.CreatedAt)
 
 	result, err := s.q.RefreshSession(ctx, queries.RefreshSessionParams{
@@ -208,6 +233,34 @@ func (s *Store) Refresh(ctx context.Context, w http.ResponseWriter, u *UserSessi
 	u.ExpiresAt = expiresAt
 	s.setCookie(w, u)
 	return nil
+}
+
+// EndCurrent ends whatever session the request's cookie names and leaves the
+// cookie alone, for a caller that is about to issue a fresh one.
+//
+// IT IS WHAT /authorize OWES THE ROW IT IS REPLACING. Signing in inserts a
+// session and overwrites the cookie, so the row the browser held a second
+// earlier goes on being valid for up to a week idle and a month absolute with
+// nothing pointing at it -- and a token copied off that browser would have
+// exactly that window to be used in. Ending it first closes the window, and
+// the hourly sweep goes back to collecting rows that ran out rather than rows
+// nobody ever logged out of.
+//
+// A request with no cookie, or one that does not decode, is nothing to end and
+// is not an error: it is somebody signing in for the first time, or with a
+// cookie from a build that wrote them differently.
+func (s *Store) EndCurrent(r *http.Request) error {
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return nil
+	}
+
+	token, err := base64.RawURLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return nil
+	}
+
+	return s.q.EndSession(r.Context(), hashToken(token))
 }
 
 // Logout ends the session the request's cookie names and clears the cookie.

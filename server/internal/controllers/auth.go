@@ -78,6 +78,14 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The row this login replaces goes first. It is logged rather than fatal:
+	// a session that could not be ended is a stale row the sweep will collect,
+	// and refusing the login over it would lock somebody out of their account
+	// because of a row they are done with.
+	if err := a.Sessions.EndCurrent(r); err != nil {
+		slog.Warn("Failed to end the previous session", "error", err)
+	}
+
 	if err := a.Sessions.Create(ctx, w, &sess); err != nil {
 		slog.Error("Failed to create session", "error", err)
 		redirectToError(w, r)

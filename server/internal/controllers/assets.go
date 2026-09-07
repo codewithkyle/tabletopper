@@ -280,8 +280,25 @@ func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 		return
 	}
 
+	// A MAP'S ORIGINAL IS NEVER SERVED, and this is the branch that holds that
+	// invariant rather than the storage layout that documents it. For every
+	// other kind file_path is a WebP this app encoded; for a map it is the PNG
+	// or JPEG that arrived, up to 128 MiB, and answering with it would stream
+	// all of that through this process under a Content-Type of image/webp.
+	//
+	// So a map has exactly one picture here -- the preview, and only once the
+	// tiler has built one. Both URLs 404 until then, which is what the card
+	// markup already assumes: MapAsset.Usable() gates the <img>, so nothing
+	// links either of them in the meantime.
 	key := asset.FilePath
-	if preview && asset.PreviewPath.Valid {
+	switch {
+	case asset.Type == queries.AssetsTypeMap:
+		if !preview || !asset.PreviewPath.Valid {
+			http.NotFound(w, r)
+			return
+		}
+		key = asset.PreviewPath.String
+	case preview && asset.PreviewPath.Valid:
 		key = asset.PreviewPath.String
 	}
 
@@ -350,27 +367,31 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 // DecodeConfig uses the same registered decoders as Decode, so the name it
 // reports is the one the allowlist means. It is also what the content type
 // returned here is built from, for the same reason.
-func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (multipart.File, string, string, bool) {
+// THE HEADER COMES BACK WHOLE rather than just the filename off it, because the
+// map path needs the declared size as well: it hands the file straight to R2
+// and a PUT wants a ContentLength. Both fields are the multipart part's own,
+// which is what makes them free to return.
+func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (multipart.File, *multipart.FileHeader, string, bool) {
 	if problem := parseUploadForm(w, r, limits); problem != nil {
 		problem.alert(w)
-		return nil, "", "", false
+		return nil, nil, "", false
 	}
 
 	file, header, err := r.FormFile(field)
 	if err != nil {
 		slog.Error("Failed to get upload from form", "field", field, "error", err)
 		htmx.Error(w, "Upload Failed", "No image was attached. Refresh the page and try again.", http.StatusBadRequest)
-		return nil, "", "", false
+		return nil, nil, "", false
 	}
 
 	contentType, problem := inspectImage(file, field, limits)
 	if problem != nil {
 		file.Close()
 		problem.alert(w)
-		return nil, "", "", false
+		return nil, nil, "", false
 	}
 
-	return file, header.Filename, contentType, true
+	return file, header, contentType, true
 }
 
 // uploadProblem is something wrong with an upload, kept as data rather than
@@ -518,6 +539,59 @@ func openOptionalImageUpload(r *http.Request, field string, limits uploadLimits)
 	return file, headers[0].Filename, nil
 }
 
+// decodeSlots is how many uploads may be decoded at once, process-wide.
+//
+// THE DECODE IS THE ONE STEP THAT MULTIPLIES, which is why it is the step that
+// is bounded rather than the request. The header pass has already refused
+// anything over the pixel cap, but the cap is generous: forty megapixels of
+// NRGBA is about 160 MB, imaging may copy it once more to apply an orientation
+// tag, and the few megabytes of PNG that ask for all of that arrive over a
+// connection that costs nothing to open. Ten at once is a gigabyte and a half
+// of heap for ten thumbnails. The resize and the encode that follow read that
+// buffer and produce something a few kilobytes long, so bounding the decode
+// bounds the process.
+//
+// TWO, and the reason is the tiling worker: it holds a whole map's pixels while
+// it works and was deliberately serialised for exactly this -- see the tiling
+// package comment. This is the request path's share of the same budget, and it
+// is a ceiling of roughly two full-size images rather than a throughput
+// target, because the decode itself takes tens of milliseconds and a queue of
+// two is not a queue anyone waits in.
+//
+// The decoded image outlives its slot: the caller still has to resize and
+// encode it. That is accepted -- the peak is the decode, and what is bounded
+// is how many peaks coincide.
+var decodeSlots = make(chan struct{}, 2)
+
+// decodeWait is how long an upload waits for a slot before the request is
+// answered 503. Long enough that a burst of a handful clears, short enough
+// that a reader is told rather than left holding a spinner.
+const decodeWait = 10 * time.Second
+
+// decodeUpload decodes one upload inside the bound above, and reports
+// context.DeadlineExceeded when no slot came free in time -- which the caller
+// has to tell apart from a file it could not read, because one is the server's
+// fault and the other is the upload's.
+func decodeUpload(ctx context.Context, file io.Reader) (image.Image, error) {
+	ctx, cancel := context.WithTimeout(ctx, decodeWait)
+	defer cancel()
+
+	select {
+	case decodeSlots <- struct{}{}:
+		defer func() { <-decodeSlots }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return imaging.Decode(file, imaging.AutoOrientation(true))
+}
+
+// serverBusy is what a request that could not get a decode slot is answered
+// with. 503 rather than 500: nothing is broken and trying again works.
+func serverBusy(w http.ResponseWriter) {
+	htmx.Error(w, "Server Busy", "Too many uploads are being processed. Try again in a moment.", http.StatusServiceUnavailable)
+}
+
 // readImageUpload validates an upload and decodes it. It is what every path
 // that resizes, crops or re-encodes an image uses.
 //
@@ -527,46 +601,31 @@ func openOptionalImageUpload(r *http.Request, field string, limits uploadLimits)
 // stored on its side and there is nothing in the app to turn it back. imaging
 // applies the tag to a JPEG and leaves every other format untouched. It returns
 // no format name, which is the other reason the name comes from the header.
+//
+// IT GOES THROUGH decodeUpload AND NOT STRAIGHT TO imaging, so every path that
+// decodes in a request shares one bound. The other one is newMonsterPicture,
+// which cannot use this function because it answers into a dialog rather than
+// through the alert header.
 func readImageUpload(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) (image.Image, string, bool) {
-	file, filename, _, ok := openImageUpload(w, r, field, limits)
+	file, header, _, ok := openImageUpload(w, r, field, limits)
 	if !ok {
 		return nil, "", false
 	}
 	defer file.Close()
 
-	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
+	src, err := decodeUpload(r.Context(), file)
+	if errors.Is(err, context.DeadlineExceeded) {
+		slog.Warn("Gave up waiting for a decode slot", "field", field)
+		serverBusy(w)
+		return nil, "", false
+	}
 	if err != nil {
 		slog.Warn("Failed to decode upload", "field", field, "error", err)
 		unsupportedImage(w)
 		return nil, "", false
 	}
 
-	return src, filename, true
-}
-
-// readImageBytes validates an upload and hands back the bytes exactly as they
-// arrived, along with what the header said they are.
-//
-// A MAP IS NEVER DECODED IN A REQUEST. The header pass has already refused a
-// canvas larger than the cap, which is the check that matters, and decoding a
-// hundred-megapixel image to re-encode it would put half a gigabyte and most of
-// a minute inside a handler. The bytes are stored as they came and the tiling
-// worker is what decodes them, once, later.
-func readImageBytes(w http.ResponseWriter, r *http.Request, field string, limits uploadLimits) ([]byte, string, string, bool) {
-	file, filename, contentType, ok := openImageUpload(w, r, field, limits)
-	if !ok {
-		return nil, "", "", false
-	}
-	defer file.Close()
-
-	body, err := io.ReadAll(file)
-	if err != nil {
-		slog.Error("Failed to read upload", "field", field, "error", err)
-		htmx.Error(w, "Upload Failed", "The upload could not be read. Refresh the page and try again.", http.StatusBadRequest)
-		return nil, "", "", false
-	}
-
-	return body, filename, contentType, true
+	return src, header.Filename, true
 }
 
 func unsupportedImage(w http.ResponseWriter) {
@@ -583,17 +642,14 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, filename, ok := readImageUpload(w, r, "avatar", imageLimits)
-	if !ok {
-		return
-	}
-	avatar, err := images.EncodeWebP(images.Square(src, avatarSize))
-	if err != nil {
-		slog.Error("Failed to encode avatar as webp", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
+	// THE LOOKUP IS THE OWNERSHIP CHECK AND IT GOES FIRST, which is the order
+	// UploadJournalImage already used and said why. GetCharacterAsset is scoped
+	// to the session's owner, so a request naming somebody else's character
+	// misses here -- before the multipart body is touched, before a decoder has
+	// allocated anything. The other way round, any signed-in user could spend
+	// 160 MB of this process's heap on a forty-megapixel PNG and be answered
+	// 404 for their trouble. The body sits unread on the connection while the
+	// statement runs, which costs nothing.
 	character, err := a.Queries.GetCharacterAsset(ctx, queries.GetCharacterAssetParams{
 		ID:      characterID,
 		OwnerID: sess.UserID,
@@ -604,6 +660,17 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("Failed to get character asset", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	src, filename, ok := readImageUpload(w, r, "avatar", imageLimits)
+	if !ok {
+		return
+	}
+	avatar, err := images.EncodeWebP(images.Square(src, avatarSize))
+	if err != nil {
+		slog.Error("Failed to encode avatar as webp", "error", err)
 		htmx.ServerError(w)
 		return
 	}
@@ -633,9 +700,10 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		err := a.Queries.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
-			ID:       assetID,
-			OwnerID:  sess.UserID,
-			FileName: filename,
+			ID:        assetID,
+			OwnerID:   sess.UserID,
+			FileName:  filename,
+			SizeBytes: int64(len(avatar)),
 		})
 		if err != nil {
 			slog.Error("Failed to update avatar asset", "error", err)
@@ -647,11 +715,12 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		// first and rolled back if the upload never lands
 		assetID := ulid.Make()
 		err := a.Queries.InsertCharacterPortrait(ctx, queries.InsertCharacterPortraitParams{
-			ID:       assetID,
-			OwnerID:  sess.UserID,
-			FilePath: storage.CharacterPortraitKey(sess.UserID, assetID),
-			FileName: assetName(filename),
-			Name:     assetName(filename),
+			ID:        assetID,
+			OwnerID:   sess.UserID,
+			FilePath:  storage.CharacterPortraitKey(sess.UserID, assetID),
+			FileName:  assetName(filename),
+			Name:      assetName(filename),
+			SizeBytes: int64(len(avatar)),
 		})
 		if err != nil {
 			slog.Error("Failed to insert character avatar into DB", "error", err)
@@ -661,7 +730,9 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 
 		if err := a.Storage.UploadCharacterPortrait(ctx, sess.UserID, assetID, avatar); err != nil {
 			slog.Error("Failed to upload character avatar", "error", err)
-			a.discardCharacterPortrait(ctx, sess.UserID, assetID)
+			a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+				return a.Storage.Delete(c, storage.CharacterPortraitKey(sess.UserID, assetID))
+			})
 			htmx.ServerError(w)
 			return
 		}
@@ -673,7 +744,9 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("Failed to link avatar to character", "error", err)
-			a.discardCharacterPortrait(ctx, sess.UserID, assetID)
+			a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+				return a.Storage.Delete(c, storage.CharacterPortraitKey(sess.UserID, assetID))
+			})
 			htmx.ServerError(w)
 			return
 		}
@@ -716,17 +789,9 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, filename, ok := readImageUpload(w, r, "image", imageLimits)
-	if !ok {
-		return
-	}
-	encoded, err := images.EncodeWebP(images.Square(src, monsterImageSize))
-	if err != nil {
-		slog.Error("Failed to encode monster image as webp", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
+	// Owner-scoped lookup first, for the reason UploadCharacterAvatar does it
+	// first: it is the ownership check, and a stranger's monster id must not
+	// cost a decode before it is answered 404.
 	monster, err := a.Queries.GetMonsterAsset(ctx, queries.GetMonsterAssetParams{
 		ID:      monsterID,
 		OwnerID: sess.UserID,
@@ -737,6 +802,17 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("Failed to get monster asset", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	src, filename, ok := readImageUpload(w, r, "image", imageLimits)
+	if !ok {
+		return
+	}
+	encoded, err := images.EncodeWebP(images.Square(src, monsterImageSize))
+	if err != nil {
+		slog.Error("Failed to encode monster image as webp", "error", err)
 		htmx.ServerError(w)
 		return
 	}
@@ -753,9 +829,10 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		err := a.Queries.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
-			ID:       assetID,
-			OwnerID:  sess.UserID,
-			FileName: filename,
+			ID:        assetID,
+			OwnerID:   sess.UserID,
+			FileName:  filename,
+			SizeBytes: int64(len(encoded)),
 		})
 		if err != nil {
 			slog.Error("Failed to update monster image asset", "error", err)
@@ -803,18 +880,21 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 	assetID := ulid.Make()
 
 	err := a.Queries.InsertMonsterImage(ctx, queries.InsertMonsterImageParams{
-		ID:       assetID,
-		OwnerID:  ownerID,
-		FilePath: storage.MonsterImageKey(ownerID, assetID),
-		FileName: filename,
-		Name:     filename,
+		ID:        assetID,
+		OwnerID:   ownerID,
+		FilePath:  storage.MonsterImageKey(ownerID, assetID),
+		FileName:  filename,
+		Name:      filename,
+		SizeBytes: int64(len(encoded)),
 	})
 	if err != nil {
 		return ulid.ULID{}, fmt.Errorf("asset row: %w", err)
 	}
 
 	if err := a.Storage.UploadMonsterImage(ctx, ownerID, assetID, encoded); err != nil {
-		a.discardMonsterImage(ctx, ownerID, assetID)
+		a.discardAsset(ctx, ownerID, assetID, func(c context.Context) error {
+			return a.Storage.Delete(c, storage.MonsterImageKey(ownerID, assetID))
+		})
 		return ulid.ULID{}, fmt.Errorf("object: %w", err)
 	}
 
@@ -826,7 +906,9 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 		AssetID: &assetID,
 	})
 	if err != nil {
-		a.discardMonsterImage(ctx, ownerID, assetID)
+		a.discardAsset(ctx, ownerID, assetID, func(c context.Context) error {
+			return a.Storage.Delete(c, storage.MonsterImageKey(ownerID, assetID))
+		})
 		return ulid.ULID{}, fmt.Errorf("link: %w", err)
 	}
 
@@ -838,15 +920,24 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 // tiling worker, which is the only thing in the app that ever holds a
 // hundred-megapixel image in memory. What is left is a header check, a row, a
 // PUT of the bytes that arrived, and queueing the work.
+//
+// AND IT DOES NOT HOLD THE BYTES EITHER. The file goes to R2 as the reader
+// ParseMultipartForm handed over -- a temp file for anything past 32 MiB -- so
+// a 128 MiB map costs this process the multipart spill and nothing on top of
+// it. Reading it into a slice first, which is what this used to do, meant two
+// concurrent uploads were a quarter of a gigabyte of heap holding bytes that
+// were already on disk.
 func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	original, filename, contentType, ok := readImageBytes(w, r, "map", mapLimits)
+	file, header, contentType, ok := openImageUpload(w, r, "map", mapLimits)
 	if !ok {
 		return
 	}
+	defer file.Close()
 
+	filename := header.Filename
 	assetID := ulid.Make()
 	originalPath := storage.MapOriginalKey(sess.UserID, assetID)
 	tileSize := sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}
@@ -873,6 +964,10 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 		FileName: filename,
 		Name:     filename,
 		TileSize: tileSize,
+		// The original's length, which is the part header's. The tiles the
+		// worker builds from it are derived and are not counted -- see
+		// InsertMap in assets.sql.
+		SizeBytes: header.Size,
 	})
 	if err != nil {
 		slog.Error("Failed to insert map", "error", err)
@@ -880,9 +975,13 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, original, contentType); err != nil {
+	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, file, header.Size, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
-		a.discardMap(ctx, sess.UserID, assetID)
+		// A prefix and not a key: a map owns a directory, because it is a tile
+		// pyramid rather than one file.
+		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
+		})
 		htmx.ServerError(w)
 		return
 	}
@@ -896,7 +995,11 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("Failed to queue map for tiling", "error", err)
-		a.discardMap(ctx, sess.UserID, assetID)
+		// A prefix and not a key: a map owns a directory, because it is a tile
+		// pyramid rather than one file.
+		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
+		})
 		htmx.ServerError(w)
 		return
 	}
@@ -988,10 +1091,15 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	original, filename, contentType, ok := readImageBytes(w, r, "map", mapLimits)
+	// Opened after the ownership check above, and streamed rather than read --
+	// see UploadMap for both.
+	file, header, contentType, ok := openImageUpload(w, r, "map", mapLimits)
 	if !ok {
 		return
 	}
+	defer file.Close()
+
+	filename := header.Filename
 
 	// THE ORIGINAL IS OVERWRITTEN AND NOTHING ELSE IS TOUCHED. Its key is
 	// fixed, so replacing it orphans nothing; the tiles are the opposite --
@@ -1000,16 +1108,17 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 	// deletes it only once it has a whole new one to put in its place. So
 	// there is no window here in which the map has no tiles, and nothing to
 	// clean up if this request fails halfway.
-	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, original, contentType); err != nil {
+	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, file, header.Size, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
 		htmx.ServerError(w)
 		return
 	}
 
 	_, err = a.Queries.RequeueMapForTiling(ctx, queries.RequeueMapForTilingParams{
-		ID:       assetID,
-		OwnerID:  sess.UserID,
-		FileName: filename,
+		SizeBytes: header.Size,
+		ID:        assetID,
+		OwnerID:   sess.UserID,
+		FileName:  filename,
 	})
 	if err != nil {
 		slog.Error("Failed to requeue map for tiling", "error", err)
@@ -1131,66 +1240,52 @@ func assetName(name string) string {
 	return name
 }
 
-// discardMap rolls back a map upload that failed after its row was written. The
-// row is only dropped once R2 confirms the objects are gone, so a cleanup
-// failure leaves the row behind as the record that they may still exist.
-func (a *App) discardMap(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Storage.DeletePrefix(cleanupCtx, storage.MapPrefix(userID, assetID)); err != nil {
-		slog.Error("Failed to clean up map objects; leaving the asset row behind", "error", err, "assetID", assetID.String())
-		return
-	}
-	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: userID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete asset row after cleaning up its objects", "error", err, "assetID", assetID.String())
-	}
-}
-
-// discardMonsterImage rolls back a monster image upload that failed after its
-// row was written, on the same terms as discardMap: the row is only dropped once
-// R2 confirms the object is gone, so a cleanup failure leaves the row behind as
-// the record that it may still exist.
-func (a *App) discardMonsterImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Storage.Delete(cleanupCtx, storage.MonsterImageKey(userID, assetID)); err != nil {
-		slog.Error("Failed to clean up monster image object; leaving the asset row behind", "error", err, "assetID", assetID.String())
-		return
-	}
-	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: userID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetID", assetID.String())
-	}
-}
-
-// discardCharacterPortrait rolls back a portrait upload that failed after its
-// row was written, on the same terms as discardMap.
+// discardAsset rolls back an upload that failed after its row was written, and
+// it is the one rollback for all six kinds -- a map, a portrait, a monster's
+// picture, a journal image, a library token or avatar, and a track.
 //
-// It only ever runs on a row this request just inserted, so the key is the one
-// CharacterPortraitKey builds -- unlike the replace above, which is rolling
-// nothing back and has an older row's path to honour.
-func (a *App) discardCharacterPortrait(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
+// THE ORDER IS THE POINT AND IT IS THE SAME ORDER EVERY DELETE IN THIS APP
+// USES. The object goes first and the row only once R2 has confirmed it, so a
+// cleanup that fails leaves the row behind as the record that the object may
+// still be there -- something a later delete or a sweep can find. The other way
+// round leaves an orphan under a key nothing in the database names, which
+// nothing will ever collect.
+//
+// IT DETACHES FROM THE REQUEST. storage.CleanupContext is what makes that true,
+// and it matters because the likeliest reason to be here at all is the reader
+// having closed the tab: cleaning up under a cancelled context would fail
+// immediately and leave exactly the half-made thing this exists to remove.
+//
+// remove IS A CLOSURE BECAUSE THAT IS THE WHOLE OF WHAT DIFFERED between the
+// six functions this replaced. Five delete one key and one deletes a prefix --
+// a map owns a directory rather than a file, because it is a tile pyramid --
+// and the key itself is built five different ways. Everything around it was the
+// same two statements and the same two log lines, copied.
+//
+// Nothing is returned. Every caller is already answering a failure of its own,
+// and there is nothing a reader could do about a rollback that did not work.
+func (a *App) discardAsset(ctx context.Context, userID, assetID ulid.ULID, remove func(context.Context) error) {
 	cleanupCtx, cancel := storage.CleanupContext(ctx)
 	defer cancel()
 
-	if err := a.Storage.Delete(cleanupCtx, storage.CharacterPortraitKey(userID, assetID)); err != nil {
-		slog.Error("Failed to clean up portrait object; leaving the asset row behind", "error", err, "assetID", assetID.String())
+	if err := remove(cleanupCtx); err != nil {
+		slog.Error("Failed to clean up an asset's objects; leaving the row behind", "error", err, "assetID", assetID.String())
 		return
 	}
+
 	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
 		ID:      assetID,
 		OwnerID: userID,
 	})
 	if err != nil {
-		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetID", assetID.String())
+		slog.Error("Failed to delete an asset row after cleaning up its objects", "error", err, "assetID", assetID.String())
 	}
+}
+
+// discardAssetRow drops a row that never got as far as owning an object, which
+// today is a track whose presigned URL was never handed out. It is
+// discardAsset with a remove that has nothing to do, written out rather than
+// passed as a nil check so the absence is deliberate at the call site.
+func (a *App) discardAssetRow(ctx context.Context, userID, assetID ulid.ULID) {
+	a.discardAsset(ctx, userID, assetID, func(context.Context) error { return nil })
 }

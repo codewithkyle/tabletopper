@@ -42,8 +42,8 @@ import (
 // and internal/sweep takes it a day later; that is the whole removal path, and
 // it is what keeps deleting an entry or a character one statement rather than
 // one per picture. The single exception is an upload that failed after its row
-// was written, which discardJournalImage rolls back below -- those bytes were
-// never referenced by anything and have no undo to protect.
+// was written, which the discardAsset call in UploadJournalImage rolls back --
+// those bytes were never referenced by anything and have no undo to protect.
 const (
 	// journalImageEdge is the box every image is fitted inside, never
 	// upscaled. It is generous for the column the entry renders in and mean
@@ -152,6 +152,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 		FilePath:  storage.JournalImageKey(sess.UserID, assetID),
 		FileName:  name,
 		Name:      name,
+		SizeBytes: int64(len(encoded)),
 	})
 	if err != nil {
 		slog.Error("Failed to insert journal image", "error", err)
@@ -161,7 +162,9 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.Storage.UploadJournalImage(ctx, sess.UserID, assetID, encoded); err != nil {
 		slog.Error("Failed to upload journal image", "error", err)
-		a.discardJournalImage(ctx, sess.UserID, assetID)
+		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+			return a.Storage.Delete(c, storage.JournalImageKey(sess.UserID, assetID))
+		})
 		htmx.ServerError(w)
 		return
 	}
@@ -297,29 +300,4 @@ func journalImageFlips(states []queries.ListJournalImageStatesRow, referenced fu
 	}
 
 	return attach, detach
-}
-
-// discardJournalImage rolls back an upload that failed after its row was
-// written, on the same terms as discardCharacterPortrait: the row is only
-// dropped once R2 confirms the object is gone, so a cleanup failure leaves it
-// behind as the record that the object may still exist.
-//
-// This is the one place outside internal/sweep that deletes a journal image,
-// and the exception is narrow: the bytes it removes were never referenced by an
-// entry, so there is no undo to keep them for.
-func (a *App) discardJournalImage(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Storage.Delete(cleanupCtx, storage.JournalImageKey(userID, assetID)); err != nil {
-		slog.Error("Failed to clean up journal image object; leaving the asset row behind", "error", err, "assetID", assetID.String())
-		return
-	}
-	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: userID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetID", assetID.String())
-	}
 }

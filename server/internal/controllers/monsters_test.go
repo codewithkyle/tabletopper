@@ -314,7 +314,7 @@ const monsterShareTable = "shares"
 func TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	if err := app.deleteMonsterRows(context.Background(), testMonsterID, testOwnerID); err != nil {
+	if err := deleteMonsterRows(context.Background(), app.Queries, testMonsterID, testOwnerID); err != nil {
 		t.Fatalf("deleteMonsterRows: %v", err)
 	}
 
@@ -351,7 +351,7 @@ func TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 func TestTheMonsterPurgeIsScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
 
-	if err := app.deleteMonsterRows(context.Background(), testMonsterID, testOwnerID); err != nil {
+	if err := deleteMonsterRows(context.Background(), app.Queries, testMonsterID, testOwnerID); err != nil {
 		t.Fatalf("deleteMonsterRows: %v", err)
 	}
 	if len(db.calls) == 0 {

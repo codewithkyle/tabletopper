@@ -776,29 +776,58 @@ func unknownBonusKind(w http.ResponseWriter, kind string) {
 	htmx.Error(w, "Not Found", "That part of the character sheet does not exist. Refresh the page and try again.", http.StatusNotFound)
 }
 
-// finishPanel is the tail every panel handler shares. Found-rows semantics (see
-// database.Open) make zero matched rows mean the id is not this user's, not
-// that the save changed nothing, so it is a 404 rather than a silent success.
+// savedRow reports whether a write landed, and answers the response itself when
+// it did not -- so a caller only has to stop.
 //
-// A save that lands answers with the toast and a cleared error block. label is
-// the panel's name in prose, for the toast, and panel is its field prefix, for
-// the block's id. Both are needed because the two disagree wherever the wire
-// format is not a sentence: the saving throws panel is `saving_throws` in every
-// id and field name and "Saving throws" in the message the user reads.
-func finishPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error) {
+// FOUND-ROWS SEMANTICS ARE WHAT MAKE ZERO MATCHED ROWS A 404. See
+// database.Open: the driver reports the rows an UPDATE matched rather than the
+// rows it changed, so a save that found its row and altered no column still
+// counts as found. Zero therefore means the row was not there to be written,
+// never that the write was a no-op.
+//
+// gone IS THE NOUN THE 404 USES, AND IT IS WHY THIS TAKES AN ARGUMENT FOR IT.
+// What is missing is a different thing for each caller: a panel save that
+// matched nothing means the character is not this user's, while an inventory,
+// spell or journal save that matched nothing means that one row is gone --
+// deleted in another tab, most likely -- and telling somebody their character
+// no longer exists because an item does would send them looking for the wrong
+// problem.
+//
+// panel is carried only so the log line says which save failed.
+func savedRow(w http.ResponseWriter, panel, gone string, result sql.Result, err error) bool {
 	if err != nil {
-		slog.Error("Failed to save character panel", "panel", panel, "error", err)
+		slog.Error("Failed to save", "panel", panel, "row", gone, "error", err)
 		htmx.ServerError(w)
-		return
+		return false
 	}
 
 	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "character")
-		return
+		htmx.NotFound(w, gone)
+		return false
+	}
+
+	return true
+}
+
+// finishRow is the tail every autosaving handler shares: the two checks above,
+// and then the toast and a cleared error block.
+//
+// label AND panel ARE BOTH NEEDED because the two disagree wherever the wire
+// format is not a sentence: the saving throws panel is `saving_throws` in every
+// id and field name and "Saving throws" in the message the user reads.
+//
+// The bool is for the one caller that has more to say after a save lands --
+// finishCharacterPanel, which appends the derived values and the bar. Every
+// other caller is done and ignores it.
+func finishRow(w http.ResponseWriter, r *http.Request, panel, label, gone string, result sql.Result, err error) bool {
+	if !savedRow(w, panel, gone, result, err) {
+		return false
 	}
 
 	htmx.Toast(w, label+" saved.")
 	renderPanelBlock(w, r, panel, nil)
+
+	return true
 }
 
 // marshalBonusPayloads builds the two blobs one bonus grid posts: the misc
@@ -855,7 +884,7 @@ func bonusEntriesFor(grid string) []pages.BonusEntry {
 }
 
 // finishCharacterPanel is the tail every panel on the character editor shares.
-// It answers the way finishPanel does and then appends two blocks of
+// It answers the way finishRow does and then appends two blocks of
 // hx-swap-oob elements: the derived values -- ability modifiers, both grids'
 // totals, passive perception and the two spell numbers -- and the bar across
 // the top of the page, which carries the name, the subtitle and six readings.
@@ -879,19 +908,9 @@ func bonusEntriesFor(grid string) []pages.BonusEntry {
 // queued, and a stale readout that a reload fixes is a smaller thing to hand
 // somebody than an error over a write that worked.
 func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
-	if err != nil {
-		slog.Error("Failed to save character panel", "panel", panel, "error", err)
-		htmx.ServerError(w)
+	if !finishRow(w, r, panel, label, "character", result, err) {
 		return
 	}
-
-	if matched, err := result.RowsAffected(); err == nil && matched == 0 {
-		htmx.NotFound(w, "character")
-		return
-	}
-
-	htmx.Toast(w, label+" saved.")
-	renderPanelBlock(w, r, panel, nil)
 
 	character, err := a.Queries.GetCharacter(r.Context(), queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
 	if err != nil {

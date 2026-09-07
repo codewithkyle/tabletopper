@@ -13,6 +13,12 @@ templ AccountSettingsFragment(data AccountSettingsData) {
 		>
 			@PanelFormErrors(AccountSettingsPanel, []string{})
 			@accountSettingsFields(data)
+			if data.Storage != "" {
+				<div class="flex flex-row flex-nowrap items-baseline justify-between gap-4 border-t border-base-content/15 pt-4">
+					<span class="text-sm text-base-content/75">Storage used</span>
+					<span class="font-medium tabular-nums">{ data.Storage }</span>
+				</div>
+			}
 			<div class="modal-action">
 				<button
 					type="button"

@@ -272,14 +272,15 @@ func (a *App) uploadLibrary(w http.ResponseWriter, r *http.Request, kind library
 	name := assetName(filename)
 
 	err = a.Queries.InsertLibraryAsset(ctx, queries.InsertLibraryAssetParams{
-		ID:       assetID,
-		OwnerID:  sess.UserID,
-		FilePath: key,
-		Type:     kind.Type,
-		FileName: name,
-		Name:     name,
-		Width:    sql.NullInt32{Int32: int32(width), Valid: true},
-		Height:   sql.NullInt32{Int32: int32(height), Valid: true},
+		ID:        assetID,
+		OwnerID:   sess.UserID,
+		FilePath:  key,
+		Type:      kind.Type,
+		FileName:  name,
+		Name:      name,
+		Width:     sql.NullInt32{Int32: int32(width), Valid: true},
+		Height:    sql.NullInt32{Int32: int32(height), Valid: true},
+		SizeBytes: int64(len(encoded)),
 	})
 	if err != nil {
 		slog.Error("Failed to insert library asset", "error", err, "kind", kind.Slug)
@@ -289,7 +290,9 @@ func (a *App) uploadLibrary(w http.ResponseWriter, r *http.Request, kind library
 
 	if err := a.Storage.UploadImage(ctx, key, encoded); err != nil {
 		slog.Error("Failed to upload library asset", "error", err, "kind", kind.Slug)
-		a.discardLibraryAsset(ctx, sess.UserID, assetID, key)
+		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
+			return a.Storage.Delete(c, key)
+		})
 		htmx.ServerError(w)
 		return
 	}
@@ -352,12 +355,13 @@ func (a *App) replaceLibrary(w http.ResponseWriter, r *http.Request, kind librar
 
 	name := assetName(filename)
 	err = a.Queries.ReplaceLibraryAsset(ctx, queries.ReplaceLibraryAssetParams{
-		ID:       row.ID,
-		OwnerID:  sess.UserID,
-		Type:     kind.Type,
-		FileName: name,
-		Width:    sql.NullInt32{Int32: int32(width), Valid: true},
-		Height:   sql.NullInt32{Int32: int32(height), Valid: true},
+		ID:        row.ID,
+		OwnerID:   sess.UserID,
+		Type:      kind.Type,
+		FileName:  name,
+		Width:     sql.NullInt32{Int32: int32(width), Valid: true},
+		Height:    sql.NullInt32{Int32: int32(height), Valid: true},
+		SizeBytes: int64(len(encoded)),
 	})
 	if err != nil {
 		slog.Error("Failed to update library asset", "error", err, "kind", kind.Slug)
@@ -487,27 +491,6 @@ func (a *App) libraryAsset(w http.ResponseWriter, r *http.Request, kind assetKin
 	}
 
 	return row, true
-}
-
-// discardLibraryAsset rolls back an upload that failed after its row was
-// written, on the same terms as discardMap: the row is only dropped once R2
-// confirms the object is gone, so a cleanup failure leaves the row behind as
-// the record that it may still exist.
-func (a *App) discardLibraryAsset(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, key string) {
-	cleanupCtx, cancel := storage.CleanupContext(ctx)
-	defer cancel()
-
-	if err := a.Storage.Delete(cleanupCtx, key); err != nil {
-		slog.Error("Failed to clean up library object; leaving the asset row behind", "error", err, "assetID", assetID.String())
-		return
-	}
-	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: userID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete asset row after cleaning up its object", "error", err, "assetID", assetID.String())
-	}
 }
 
 // encode resizes a decoded upload the way this kind stores it and hands back

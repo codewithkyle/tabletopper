@@ -12,8 +12,8 @@
 -- it. See 20260907120000 for the move.
 -- name: InsertCharacterPortrait :exec
 INSERT INTO assets
-(id, owner_id, file_path, type, file_name, name)
-VALUES (?, ?, ?, 'character', ?, ?);
+(id, owner_id, file_path, type, file_name, name, size_bytes)
+VALUES (?, ?, ?, 'character', ?, ?, ?);
 
 -- A monster's picture, and it is its own type rather than a token: `token` is
 -- for one-off images placed on a map that belong to no monster, and this one is
@@ -23,8 +23,8 @@ VALUES (?, ?, ?, 'character', ?, ?);
 -- is at.
 -- name: InsertMonsterImage :exec
 INSERT INTO assets
-(id, owner_id, file_path, type, file_name, name)
-VALUES (?, ?, ?, 'monster', ?, ?);
+(id, owner_id, file_path, type, file_name, name, size_bytes)
+VALUES (?, ?, ?, 'monster', ?, ?, ?);
 
 -- A map is inserted with nothing but its original and the size to tile it at.
 -- preview_path and every pyramid column stay NULL until the worker has built
@@ -38,10 +38,16 @@ VALUES (?, ?, ?, 'monster', ?, ?);
 -- there until the PUT after this returns. A NULL state is a row that owns a
 -- key and nothing more. QueueMapForTiling is what turns it into work, once
 -- there is something to work on.
+-- size_bytes is the multipart part's declared length, which is the original's
+-- length and not the pyramid's. A tiled map costs the bucket its original plus
+-- every tile of the generation that is serving, and the tiles are not counted:
+-- they are derived, they are rebuilt from the original whenever the tiler runs
+-- again, and there is no request that knows their total. What this column
+-- measures is what an account uploaded.
 -- name: InsertMap :exec
 INSERT INTO assets
-(id, owner_id, file_path, type, file_name, name, tile_size)
-VALUES (?, ?, ?, 'map', ?, ?, ?);
+(id, owner_id, file_path, type, file_name, name, tile_size, size_bytes)
+VALUES (?, ?, ?, 'map', ?, ?, ?, ?);
 
 -- The second half of an upload: the original has landed, so the row becomes a
 -- job. Nothing reads the result -- the id is a ULID made in the request that
@@ -63,8 +69,12 @@ WHERE id = ? AND owner_id = ? AND type = 'map';
 -- `character` is here because it is where a character's portrait went, and the
 -- portrait was being served from this statement as `avatar` the day before. It
 -- is a picture every player at the table sees, like the four beside it.
+-- type comes back because a map is the one member here whose file_path must
+-- never be served: it is the original PNG or JPEG, up to 128 MiB, and the only
+-- picture a map has at an image route is the preview the tiler builds. See
+-- serveImage, which refuses the case.
 -- name: GetImage :one
-SELECT id, file_path, preview_path, updated_at FROM assets
+SELECT id, type, file_path, preview_path, updated_at FROM assets
 WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character');
 
 -- Everything the tile route needs to decide whether a requested tile exists,
@@ -118,9 +128,13 @@ WHERE id = ? AND owner_id = ? AND type = 'map';
 -- updated_at is set explicitly: ON UPDATE CURRENT_TIMESTAMP only fires when
 -- a value changes, and re-uploading a file under its old name changes none.
 -- The image proxy's ETag is built from updated_at, so it has to move.
+--
+-- size_bytes moves with it, because this is a replacement: the object at the
+-- key was overwritten, so the length the row carries is the old picture's until
+-- this writes the new one.
 -- name: UpdateAssetFileName :exec
 UPDATE assets
-SET file_name = ?, updated_at = NOW()
+SET file_name = ?, size_bytes = ?, updated_at = NOW()
 WHERE id = ? AND owner_id = ?;
 
 -- The type is in the WHERE so a rename cannot cross kinds. Every rename arrives
@@ -143,7 +157,7 @@ WHERE id = ? AND owner_id = ?;
 -- and throws away what it made.
 -- name: RequeueMapForTiling :execresult
 UPDATE assets
-SET file_name = ?, tile_state = 'pending', tile_attempts = 0
+SET file_name = ?, size_bytes = ?, tile_state = 'pending', tile_attempts = 0
 WHERE id = ? AND owner_id = ? AND type = 'map';
 
 -- The owner asking for one more go at a map whose tiling gave up. The attempt
@@ -268,8 +282,8 @@ WHERE type = 'map' AND tile_state = 'failed' AND tile_attempts < ? AND tile_leas
 -- file_path" is true of a library row whatever kind it is.
 -- name: InsertLibraryAsset :exec
 INSERT INTO assets
-(id, owner_id, file_path, type, file_name, name, width, height)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+(id, owner_id, file_path, type, file_name, name, width, height, size_bytes)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetLibraryAssets :many
 SELECT * FROM assets
@@ -300,7 +314,7 @@ WHERE id = ? AND owner_id = ? AND type = ?;
 -- not move it would go on serving the old picture out of the browser's cache.
 -- name: ReplaceLibraryAsset :exec
 UPDATE assets
-SET file_name = ?, width = ?, height = ?, updated_at = NOW()
+SET file_name = ?, width = ?, height = ?, size_bytes = ?, updated_at = NOW()
 WHERE id = ? AND owner_id = ? AND type = ?;
 
 -- MUSIC, WHICH IS THE ONE KIND WHOSE BYTES NEVER PASS THROUGH THIS PROCESS.
@@ -349,10 +363,46 @@ WHERE id = ? AND owner_id = ? AND type = 'music';
 -- once. The result is read, because the second one landing on zero rows is how
 -- the handler knows not to answer with a second card for a track the page
 -- already shows.
+-- size_bytes is written here rather than at the insert, and it is the only
+-- kind that has to be: the row is created before the browser's PUT begins, so
+-- at insert time the object does not exist and its length is whatever the
+-- browser declared. The confirm's HEAD is the bucket's own answer, and it is
+-- the number already checked against the cap two lines earlier in the handler.
 -- name: FinishMusicUpload :execresult
 UPDATE assets
-SET uploaded_at = NOW()
+SET uploaded_at = NOW(), size_bytes = ?
 WHERE id = ? AND owner_id = ? AND type = 'music' AND uploaded_at IS NULL;
+
+-- What one account is costing the bucket, across every kind at once.
+--
+-- IT IS A SUM AND NOT A COUNTER ON users. A counter would have to be kept in
+-- step by every path that writes or deletes an asset, and those are the paths
+-- that deliberately have no transaction around them: an upload writes the row
+-- and then the object, and a delete removes the object and then the row,
+-- because an object is not a row and cannot be rolled back with one. A counter
+-- that drifted in one of those windows would be wrong permanently, with nothing
+-- left to recompute it from. The sum is derived from the rows that ARE the
+-- ledger, so it cannot disagree with them.
+--
+-- The index on owner_id covers it, and it is read once, when the settings
+-- dialog is opened.
+--
+-- COALESCE for the account with no assets at all: SUM over no rows is NULL, and
+-- a new account has to read 0 rather than nothing.
+--
+-- ROWS PREDATING 20260907150000 COUNT AS THE ZERO THEY WERE DEFAULTED TO, so
+-- the total is what has been uploaded since. Nothing says so on the page: this
+-- has only ever run against a local database, where the rows in question are a
+-- handful of the developer's own and are replaced or deleted in the course of
+-- using the app.
+--
+-- CAST, so this comes back as an integer rather than as sqlc's interface{}.
+-- SUM over a BIGINT is DECIMAL in MySQL, which sqlc has no Go type for and
+-- hands to the caller untyped; the cast is what makes the column a number the
+-- handler can do arithmetic on without asserting.
+-- name: SumOwnedAssetBytes :one
+SELECT CAST(COALESCE(SUM(size_bytes), 0) AS SIGNED) AS total_bytes FROM assets
+WHERE owner_id = ?;
 
 -- The rows whose PUT never finished. A browser that was closed mid-upload
 -- leaves one behind, and there is nothing in a request that could ever notice:

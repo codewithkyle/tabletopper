@@ -18,6 +18,7 @@ import (
 	"tabletopper/internal/middleware"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/internal/share"
 	"tabletopper/internal/storage"
 	"tabletopper/internal/sweep"
 	"tabletopper/internal/tiling"
@@ -72,11 +73,16 @@ func run() error {
 	tiling.Maps(ctx, q, store)
 
 	app := &controllers.App{
+		DB:       pool,
 		Queries:  q,
 		Storage:  store,
 		Clerk:    clerkauth.New(cfg.ClerkAPIKey),
 		Sessions: sessions,
 		Config:   cfg,
+		// Ten tries a minute per share. Generous for somebody mistyping a
+		// password out of a chat message, and a rate at which a six-character
+		// guess never finishes.
+		ShareAttempts: share.NewAttempts(10, time.Minute),
 	}
 	auth := middleware.Auth{Sessions: sessions}
 
@@ -91,7 +97,7 @@ func run() error {
 	// held open on a body nobody is sending.
 	server := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      routes(app, auth),
+		Handler:      handler(app, auth),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,

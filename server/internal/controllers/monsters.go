@@ -16,7 +16,6 @@ import (
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
-	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -418,7 +417,16 @@ func (a *App) newMonsterPicture(w http.ResponseWriter, r *http.Request) ([]byte,
 	}
 	defer file.Close()
 
-	src, err := imaging.Decode(file, imaging.AutoOrientation(true))
+	// Through the same bound every other request-path decode goes through --
+	// see decodeSlots -- and answered into the dialog rather than through the
+	// alert header, which is the whole reason this cannot call
+	// readImageUpload.
+	src, err := decodeUpload(r.Context(), file)
+	if errors.Is(err, context.DeadlineExceeded) {
+		slog.Warn("Gave up waiting for a decode slot", "field", "image")
+		rejectNewMonster(w, r, "The server is busy. Try again in a moment.")
+		return nil, "", false
+	}
 	if err != nil {
 		slog.Warn("Failed to decode a new monster's picture", "error", err)
 		rejectNewMonster(w, r, errUnsupportedImage.Message)
@@ -500,30 +508,37 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := a.deleteMonsterRows(ctx, monsterID, sess.UserID); err != nil {
-		slog.Error("Failed to delete monster rows", "error", err)
-		htmx.ServerError(w)
-		return
-	}
+	// One transaction for every row, and the object above it outside -- see
+	// DeleteCharacter, which this is the same shape as for the same reasons.
+	err = a.tx(ctx, func(q *queries.Queries) error {
+		if err := deleteMonsterRows(ctx, q, monsterID, sess.UserID); err != nil {
+			return err
+		}
 
-	err = a.Queries.DeleteMonster(ctx, queries.DeleteMonsterParams{
-		ID:      monsterID,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to delete monster", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	if monster.AssetID != nil {
-		err := a.Queries.DeleteAsset(ctx, queries.DeleteAssetParams{
-			ID:      *monster.AssetID,
+		err := q.DeleteMonster(ctx, queries.DeleteMonsterParams{
+			ID:      monsterID,
 			OwnerID: sess.UserID,
 		})
 		if err != nil {
-			slog.Error("Failed to delete monster image asset row; leaving it behind", "error", err, "assetID", monster.AssetID.String())
+			return fmt.Errorf("monster: %w", err)
 		}
+
+		if monster.AssetID != nil {
+			err := q.DeleteAsset(ctx, queries.DeleteAssetParams{
+				ID:      *monster.AssetID,
+				OwnerID: sess.UserID,
+			})
+			if err != nil {
+				return fmt.Errorf("image asset: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		slog.Error("Failed to delete monster", "error", err, "monsterID", monsterID.String())
+		htmx.ServerError(w)
+		return
 	}
 
 	htmx.Toast(w, monster.Name+" has been deleted.")
@@ -552,8 +567,11 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 //
 // The failure is returned wrapped, so the log names the table rather than only
 // the driver error.
-func (a *App) deleteMonsterRows(ctx context.Context, monsterID, ownerID ulid.ULID) error {
-	if err := a.Queries.DeleteMonsterActions(ctx, queries.DeleteMonsterActionsParams{
+// It takes a Queries rather than reading App's, for the reason
+// deleteCharacterRows does: the handler binds it to a transaction and the
+// schema test binds it to a recorder.
+func deleteMonsterRows(ctx context.Context, q *queries.Queries, monsterID, ownerID ulid.ULID) error {
+	if err := q.DeleteMonsterActions(ctx, queries.DeleteMonsterActionsParams{
 		MonsterID: monsterID,
 		OwnerID:   ownerID,
 	}); err != nil {
@@ -563,7 +581,7 @@ func (a *App) deleteMonsterRows(ctx context.Context, monsterID, ownerID ulid.ULI
 	// A monster has one link at most, so revoking it and purging it are the
 	// same statement -- unlike a character, which has one of its own plus one
 	// per journal entry and needs a wider delete beside the narrow one.
-	if _, err := a.Queries.DeleteMonsterShare(ctx, queries.DeleteMonsterShareParams{
+	if _, err := q.DeleteMonsterShare(ctx, queries.DeleteMonsterShareParams{
 		MonsterID: monsterID,
 		OwnerID:   ownerID,
 	}); err != nil {

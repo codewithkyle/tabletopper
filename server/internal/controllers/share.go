@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -186,8 +187,15 @@ func (a *App) sharedJournalEntry(w http.ResponseWriter, r *http.Request, token s
 //
 // THE WRONG PASSWORD IS 401 AND SAYS NOTHING ELSE. It does not say whether the
 // share exists, when it expires or whose it is, because all three are behind
-// the question being asked. There is no attempt counter either: bcrypt at the
-// default cost is the rate limit -- see share.HashPassword.
+// the question being asked.
+//
+// IT IS THE ONE bcrypt CHECK IN THE APP NOBODY HAS TO BE SIGNED IN TO REACH,
+// which is why two limits stand in front of it rather than none. The counter
+// caps tries per share, so a link cannot be guessed at; the bound inside
+// share.PasswordMatches caps checks in flight, so the checking cannot be used
+// to burn the box's cores. They fail differently and are answered differently:
+// too many tries at one link is 429, and a process with no core to spare is
+// 503, because the first is the reader's own doing and the second is not.
 func (a *App) UnlockShare(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -221,7 +229,44 @@ func (a *App) UnlockShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !share.PasswordMatches(grant.PasswordHash.String, r.PostFormValue("password")) {
+	// Counted after the two branches above and before the check below, which is
+	// the only place it can go: a malformed token and a share with no password
+	// never reach bcrypt, so counting them would lock a link on requests that
+	// cost nothing, and counting after the compare would have already paid for
+	// what the count is for.
+	if !a.ShareAttempts.Allow(token, time.Now()) {
+		shareHeaders(w)
+		w.WriteHeader(http.StatusTooManyRequests)
+		render(w, r, pages.ShareLocked(pages.ShareLockedData{
+			Action:  "/share/" + token,
+			Problem: "Too many attempts. Wait a minute and try again.",
+		}))
+		return
+	}
+
+	// Three seconds is how long this request will wait for a core to check on.
+	// It is not the compare's own budget -- a compare that started finishes in
+	// a tenth of that -- it is how long a reader waits behind other readers
+	// before being told to come back.
+	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	ok, err := share.PasswordMatches(checkCtx, grant.PasswordHash.String, r.PostFormValue("password"))
+	if err != nil {
+		// The password was never checked, so this says nothing about whether it
+		// was right, and the gate stays shut with a different sentence: a
+		// reader told "that password is not right" would go and look for
+		// another one.
+		slog.Warn("Gave up waiting to check a share password", "error", err)
+		shareHeaders(w)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		render(w, r, pages.ShareLocked(pages.ShareLockedData{
+			Action:  "/share/" + token,
+			Problem: "The server is busy. Try again in a moment.",
+		}))
+		return
+	}
+	if !ok {
 		shareHeaders(w)
 		w.WriteHeader(http.StatusUnauthorized)
 		render(w, r, pages.ShareLocked(pages.ShareLockedData{

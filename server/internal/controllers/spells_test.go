@@ -236,9 +236,10 @@ func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 }
 
 // A row that is already gone -- deleted in another tab -- is a 404 about the
-// spell. finishPanel says "character" for the same condition, which is why this
-// path does not go through it: sending someone to look for a missing character
-// when their character is fine wastes the one thing the message is for.
+// spell. A character panel says "character" for the same condition, which is the
+// whole reason savedRow takes the noun as an argument: sending someone to look
+// for a missing character when their character is fine wastes the one thing the
+// message is for.
 func TestMissingSpellRowIsASpell404(t *testing.T) {
 	for _, c := range []struct {
 		name    string

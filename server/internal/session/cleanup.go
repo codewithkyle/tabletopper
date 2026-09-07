@@ -16,8 +16,10 @@ const (
 )
 
 // StartCleanup sweeps expired sessions in the background until ctx is
-// cancelled. It also clears the rows left behind by repeat logins, since
-// /authorize inserts a new session every time it runs.
+// cancelled. What it collects is rows that ran out on their own -- a session
+// left open on a machine nobody came back to -- plus the ones /authorize and
+// Logout ended early, which are expired the moment they are ended and sit
+// through the grace below like any other.
 func (s *Store) StartCleanup(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(cleanupInterval)
