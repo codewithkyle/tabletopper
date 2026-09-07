@@ -22,3 +22,12 @@ const (
 	// sees the active layer and what is visible on it, and moves what they own.
 	RolePlayer Role = "player"
 )
+
+// Values and Valid are what every enum in this package carries, and Role is an
+// enum like the rest of them even though it was written a phase earlier. The
+// TypeScript generator reads Values to emit a literal union and validation
+// reads it to check membership, so there is one list rather than two that agree
+// until somebody adds a third role.
+func (Role) Values() []string { return []string{string(RoleGM), string(RolePlayer)} }
+
+func (r Role) Valid() bool { return inValues(r, r.Values()) }

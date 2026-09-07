@@ -1,6 +1,6 @@
-.PHONY: db reset sqlc templ css css-watch js run check fmt fmt-check vet test
+.PHONY: db reset sqlc templ protocol css css-watch js run check fmt fmt-check vet test
 
-run: db templ sqlc css js
+run: db templ sqlc protocol css js
 	docker compose up --build
 
 # Nuke the local database and come back up from nothing. `docker compose down -v`
@@ -39,6 +39,22 @@ templ:
 
 sqlc:
 	sqlc generate
+
+# The virtual tabletop's wire protocol, in TypeScript, from the Go types that
+# define it. The server validates every message, so its structs are the
+# authority on what a message is; a second hand-written set of types on the
+# client would agree right up until somebody changed one of them, and the
+# disagreement would be found at a table rather than in a build.
+#
+# It writes exactly one file: server/js/room/protocol.ts, from
+# server/internal/room. The file is committed, and
+# TestProtocolTypesAreCurrent regenerates into a buffer and fails when the two
+# disagree -- so a stale copy breaks `make check` rather than a browser, and
+# this target is the fix rather than the guard.
+#
+# Nothing bundles it yet. The renderer is the first thing that will import it.
+protocol:
+	cd ./server && go generate ./...
 
 # Tailwind is a standalone binary (no Node). It is gitignored; if
 # build/bin/tailwindcss is missing, fetch the pinned version with:

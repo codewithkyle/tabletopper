@@ -130,12 +130,22 @@ Rules:
   objects. Go decodes `type` first, then the concrete struct from the same
   bytes.
 - **Go owns the types and generates the TypeScript.** The server validates
-  every message, so its structs are the authority. A go-generate step emits a
-  `.d.ts` from them (tygo, or a small generator) beside sqlc and templ. Two
+  every message, so its structs are the authority. A go-generate step emits
+  `server/js/room/protocol.ts` from them, beside sqlc and templ; `make
+  protocol` runs it and a test fails when the committed file is stale. Two
   hand-maintained type sets drift, and drift is the bug found at the table.
-- **Server-assigned sequence and time.** Every event carries the room's
-  monotonic `seq`. A gap means the client requests a resync. Clients never
-  stamp their own timestamps.
+  It is a `.ts` module rather than the `.d.ts` this document first said,
+  because the generated file carries one runtime value as well as types --
+  the set of transient event names, which the client's dispatch splits on --
+  and a declaration file cannot hold it. tygo was considered and rejected in
+  phase 2: it emits interfaces but cannot emit the two discriminated unions,
+  which are built from the type strings in the command and event registries.
+- **Server-assigned sequence and time.** Every event carries a monotonic
+  `seq`, stamped by the hub. Clients never stamp their own timestamps.
+  Whether a gap in it means "request a resync" depends on how the counter is
+  assigned, and that is still open: see below. Phase 2's reducer deliberately
+  does not track `seq` at all, so state and sequence cannot get tangled
+  together.
 - **Strict decoding and hard limits.** Unknown fields are rejected. Frames are
   capped at a few tens of kilobytes; strokes are chunked to stay far under it.
   Per-client message rate is capped.
@@ -542,9 +552,30 @@ was written. In brief, so this document stays the summary:
   viewed layer; pawns, fog and strokes belong to a layer; moving pawns between
   layers is GM only; removing a layer deletes what is on it behind the confirm
   modal; the grid stays room-wide (phases 2, 4, 5, 6).
+- **Where the projection happens**: in `Apply`, not in the hub. `Apply` has
+  the state, so an event addressed to players is built holding the player's
+  copy of the pawn. Only an event whose audience spans both roles carries two
+  versions of itself and answers `ForRole`; there are three, and `ForRole`
+  may answer nil, which means "this role is told nothing" (phase 2).
 
 Still open, none blocking:
 
+- **How `seq` is assigned across the two audiences.** A room-wide counter
+  produces gaps in what a player receives by design, because the GM-only
+  events are numbered too -- so "a gap means resync" cannot be the rule
+  unless the counter is per audience or per connection. Phase 2 puts sequence
+  assignment out of scope and its reducer ignores `seq` entirely, which
+  leaves phase 3 free to choose. Decide it when the hub is built, and say so
+  here.
+- **Players receive every layer, not only the active one.** `table.updated`
+  carries the whole table to everybody, so a player's browser holds the names
+  and map references of floors they are not on, and `fog.added` and
+  `stroke.began` go to everybody whichever layer they name. Phase 2
+  implemented the snapshot to agree with those events rather than quietly
+  disagreeing with them. Closing it means projecting those three events per
+  audience, which is the same shape of work as the fog-aware projection
+  below. A GM naming a layer "The vault behind the fake wall" is the case
+  that would make it worth doing.
 - **Server-side fog-aware projection.** Phase 6 conceals pawns under fog on
   the client, which means a player's browser holds pawns it does not show.
   Closing that needs a point-in-polygon pass over pawns on every fog change

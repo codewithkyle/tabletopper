@@ -6,6 +6,33 @@ routes, no socket, no migration and no JavaScript beyond one generated types
 file that nothing imports yet. It is the executable form of the overview's
 Protocol design section, and it is verifiable entirely with `go test`.
 
+## As built, 2026-09-07
+
+Everything in the sections below shipped. Five things differ from what they
+sketch, each for a reason the code carries in a comment:
+
+- **`NewState(roomID, name, env)`** takes an `Env`. The one layer it creates
+  needs an id, and every other id in the package comes from the same injected
+  place; without it a golden fixture would be a regeneration rather than a diff.
+- **`Env` has a second field, `Version`.** The snapshot event carries the server
+  build so a client with a stale bundle reloads, and `sync.request` is the only
+  thing that reads it.
+- **`Authorize` may also answer `not_found`.** "May you move pawn X" has no
+  answer when X is not there, and answering `forbidden` would tell a player
+  their own pawn belongs to somebody else.
+- **`ForRole` may answer nil**, meaning "this role is told nothing". It is what
+  suppresses a `pawn.moved` whose every pawn is hidden. The projection itself
+  happens in `Apply`, which has the state; only the three events sent to an
+  audience spanning both roles carry two copies of themselves.
+- **The generator writes a `.ts`, not a `.d.ts`**, because `TRANSIENT_EVENTS` is
+  a runtime value and a declaration file cannot hold one. `make protocol` runs
+  it; `TestProtocolTypesAreCurrent` fails when the committed file is stale.
+
+Two things this phase found and did not decide, both recorded under "Still open"
+in the overview: how `seq` is assigned across two audiences that receive
+different numbers of events, and that players receive every layer's name and map
+reference rather than only the active one.
+
 ## End state
 
 - `server/internal/room` holds the room state types, every command and event in
