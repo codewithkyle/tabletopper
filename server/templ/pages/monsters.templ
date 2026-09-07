@@ -17,55 +17,47 @@ templ MonsterCardsFragment(data MonsterListData) {
 
 templ MonsterCard(m MonsterSummary) {
 	<monster-card class={ sheetSurface }>
-		<div class="card-body gap-4 p-4">
-			<div class="flex items-center gap-4">
-				<div class="w-14 shrink-0">
-					@MonsterImageControl(MonsterImage{MonsterID: m.ID, Name: m.Name, ImageID: m.ImageID})
-				</div>
-				<div class="min-w-0">
-					<h2 class="card-title font-serif text-xl leading-none">{ m.Name }</h2>
-					<p class="mt-1 text-sm font-semibold text-base-content/75">{ m.Subtitle }</p>
-				</div>
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-3 p-3">
+			<div class="w-11 shrink-0">
+				@MonsterImageControl(MonsterImage{MonsterID: m.ID, Name: m.Name, ImageID: m.ImageID})
 			</div>
-			<div class={ surfaceInset + " grid grid-cols-2 gap-4 p-3" }>
-				<div class="grid content-start gap-1">
-					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Challenge</span>
-					<strong class="text-base leading-tight font-extrabold">{ m.CR }</strong>
-				</div>
-				<div class="grid content-start gap-1">
-					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Armor Class</span>
-					<strong class="text-base leading-tight font-extrabold">{ m.AC }</strong>
-				</div>
-				<div class="grid content-start gap-1">
-					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Hit Points</span>
-					<strong class="text-base leading-tight font-extrabold">{ m.HP }</strong>
-				</div>
-				<div class="grid content-start gap-1">
-					<span class="text-xs font-semibold tracking-wider uppercase text-base-content/75">Speed</span>
-					<strong class="text-base leading-tight font-extrabold">{ m.Speed }</strong>
-				</div>
+			<div class="min-w-0 flex-1 basis-48">
+				<h2 class="m-0 truncate font-serif text-lg leading-tight">{ m.Name }</h2>
+				<p class="m-0 mt-0.5 truncate text-xs text-base-content/70">{ m.Subtitle }</p>
 			</div>
-			<div class="card-actions justify-end">
+			<dl class="m-0 flex shrink-0 items-stretch gap-2">
+				@monsterCardStat("CR", m.CR)
+				@monsterCardStat("AC", m.AC)
+				@monsterCardStat("HP", m.HP)
+			</dl>
+			<div class="flex shrink-0 items-center gap-2 max-[700px]:w-full">
 				<button
 					type="button"
-					class="btn btn-soft max-[700px]:flex-1"
+					class="btn btn-soft btn-sm max-[700px]:flex-1"
 					data-modal-open={ "/fragment/monster/stat-block?monster=" + m.ID }
 					data-modal-size="lg"
 				>View</button>
 				<a
 					href={ "/monsters/" + m.ID + "/edit" }
-					class="btn btn-soft max-[700px]:flex-1"
+					class="btn btn-soft btn-sm max-[700px]:flex-1"
 				>Edit</a>
 				<button
 					hx-confirm={ "You are about to delete " + m.Name + ". This action cannot be undone." }
 					hx-delete={ "/monsters/" + m.ID }
 					hx-target="closest monster-card"
 					hx-swap="delete"
-					class="btn btn-soft btn-error max-[700px]:flex-1"
+					class="btn btn-soft btn-error btn-sm max-[700px]:flex-1"
 				>Delete</button>
 			</div>
 		</div>
 	</monster-card>
+}
+
+templ monsterCardStat(label string, value string) {
+	<div class={ surfaceInset + " min-w-11 px-2 py-1 text-center" }>
+		<dt class="text-[0.55rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">{ label }</dt>
+		<dd class="m-0 text-sm leading-tight font-extrabold tabular-nums">{ value }</dd>
+	</div>
 }
 
 templ monsterSearchBox() {
@@ -99,7 +91,7 @@ templ monsterCards(data MonsterListData) {
 				<p class="text-base-content/70">No monsters match &#34;{ data.Query }&#34;.</p>
 			}
 		} else {
-			<div class="grid grid-cols-2 gap-3.5 max-[700px]:grid-cols-1">
+			<div class="grid gap-3">
 				for _, m := range data.Monsters {
 					@MonsterCard(m)
 				}

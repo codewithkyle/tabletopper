@@ -153,6 +153,15 @@ type MonsterDerived struct {
 // column, and the thing a pawn will open. Nothing on it is an input and nothing
 // on it is a number -- see the note at the top of this file for why every value
 // is a string somebody wrote down by name.
+//
+// IT IS ONE BODY IN TWO FRAMES, which is statBlockBody and the two components
+// that call it. On the editor it is a panel on the desk like every other panel,
+// so it carries the raised surface and the article the out-of-band swap
+// replaces. In the dialog it carries neither: .modal-box is already that
+// surface, and a panel drawn inside a panel is two hairlines and two shadows
+// around one thing, with the outer one always a few millimetres from the inner.
+// The dialog gets the body flush against its own background, and the insets
+// inside -- the AC strip, the ability rows -- are what give it its structure.
 type StatBlock struct {
 	Name     string
 	Subtitle string

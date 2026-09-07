@@ -109,7 +109,6 @@ func testMonsterCard() MonsterSummary {
 		CR:       "1",
 		AC:       "17",
 		HP:       "21",
-		Speed:    "30 ft.",
 	}
 }
 
@@ -163,10 +162,15 @@ func testStatBlock() StatBlock {
 	}
 }
 
-// THE SAME COMPONENT SERVES THE EDITOR, THE DIALOG AND THE REFRESH, which is
-// what makes the preview beside the editor trustworthy: what a GM sees while
-// typing is byte-for-byte what the dialog shows. The only difference between the
-// three renders is the one attribute that makes htmx swap it in place.
+// THE SAME BODY SERVES THE EDITOR, THE DIALOG AND THE REFRESH, which is what
+// makes the preview beside the editor trustworthy: what a GM sees while typing
+// is byte-for-byte what the dialog shows.
+//
+// WHAT DIFFERS IS THE FRAME AND ONLY THE FRAME. On the editor the block is a
+// panel on the desk, so it carries the raised surface and the id the
+// out-of-band swap replaces; in the dialog it carries neither, because
+// .modal-box is already that surface and a panel inside a panel is two
+// hairlines around one thing.
 func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 	inPage := markup(t, MonsterStatBlock(testStatBlock(), false))
 	outOfBand := markup(t, MonsterStatBlock(testStatBlock(), true))
@@ -188,12 +192,27 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 		t.Error("the two renders differ by more than the out-of-band flag")
 	}
 
-	// The dialog is the same block again, with the Close the modal contract
-	// requires -- and no second copy of the markup.
+	// One body, and both frames hold that same body rather than a second copy
+	// of the markup.
+	body := markup(t, statBlockBody(testStatBlock()))
 	fragment := markup(t, MonsterStatBlockFragment(testStatBlock()))
-	if !strings.Contains(fragment, inPage) {
-		t.Error("the dialog renders its own copy of the block rather than the component")
+	if !strings.Contains(inPage, body) {
+		t.Error("the editor's panel renders its own copy of the block")
 	}
+	if !strings.Contains(fragment, body) {
+		t.Error("the dialog renders its own copy of the block")
+	}
+
+	// The dialog brings no surface of its own. surfacePanel's shadow is the
+	// one class every raised thing in the app carries, so its absence is the
+	// whole assertion.
+	if strings.Contains(fragment, "shadow-panel") {
+		t.Error("the dialog draws a panel inside .modal-box, which is already one")
+	}
+	if strings.Contains(fragment, `id="stat-block"`) {
+		t.Error("the dialog carries the editor's swap target, so a redraw could land in it")
+	}
+
 	if !strings.Contains(fragment, "modal:close") || !strings.Contains(fragment, ">Close<") {
 		t.Errorf("the dialog has no way out of it:\n%s", fragment)
 	}
@@ -408,5 +427,23 @@ func TestTheImageControlDoesNotCarryItsOwnSize(t *testing.T) {
 		if strings.Contains(control, size) {
 			t.Errorf("the control carries %s; the page that draws it should", size)
 		}
+	}
+}
+
+// THE MANUAL IS A LIST AND NOT A GALLERY. A GM accumulates monsters for years,
+// so the page has to answer "which of these hundred" rather than "tell me about
+// this one" -- and a row that fits forty on a screen answers it where a tile
+// that fits eight does not. Two columns of tall cards was the second thing.
+func TestTheManualListsOneMonsterPerRow(t *testing.T) {
+	page := renderToString(t, Monsters(MonsterListData{
+		Monsters: []MonsterSummary{testMonsterCard(), testMonsterCard()},
+	}))
+
+	container := regexp.MustCompile(`<section id="` + monsterCardsID + `"[^>]*><div class="([^"]*)"`).FindStringSubmatch(page)
+	if container == nil {
+		t.Fatal("the card grid is not the first thing in the list section any more")
+	}
+	if strings.Contains(container[1], "grid-cols") {
+		t.Errorf("the cards are laid out in columns: %q", container[1])
 	}
 }

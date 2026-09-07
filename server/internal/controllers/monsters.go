@@ -114,7 +114,7 @@ func (a *App) monsterList(ctx context.Context, ownerID ulid.ULID, term string) (
 	return monsters, nil
 }
 
-// monsterSummary is one row as its card reads it. The four chips are the
+// monsterSummary is one row as its card reads it. The three chips are the
 // readings a GM picks a monster by; the rest of the stat block is behind the
 // View button.
 func monsterSummary(monster queries.Monster) pages.MonsterSummary {
@@ -131,7 +131,6 @@ func monsterSummary(monster queries.Monster) pages.MonsterSummary {
 		CR:       pages.ChallengeRatingLabel(pages.NormalizeChallengeRating(monster.CR)),
 		AC:       strconv.FormatUint(uint64(monster.AC), 10),
 		HP:       strconv.FormatUint(uint64(monster.HP), 10),
-		Speed:    fallbackString(monster.Speed, "30 ft."),
 	}
 }
 

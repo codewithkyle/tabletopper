@@ -2677,6 +2677,9 @@
   .grow {
     flex-grow: 1;
   }
+  .basis-48 {
+    flex-basis: calc(var(--spacing) * 48);
+  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -3218,6 +3221,9 @@
       --size: calc(var(--size-selector, 0.25rem) * 5);
       font-size: 0.75rem;
     }
+  }
+  .text-\[0\.55rem\] {
+    font-size: 0.55rem;
   }
   .text-\[0\.58rem\] {
     font-size: 0.58rem;

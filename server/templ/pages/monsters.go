@@ -1,8 +1,16 @@
 package pages
 
-// The manual page's cards. A monster's card is the character roster's card with
-// the readings a GM picks a monster by: the challenge rating first, because it
-// is the one number that answers "can I put this in front of them tonight".
+// The manual page's cards. A card is one row, and the shape of it is a bet
+// about how this page gets used: a GM accumulates monsters for years, so the
+// question the manual answers is "which of these hundred" rather than "tell me
+// about this one". A row that fits forty on a screen answers it; a tile that
+// fits eight does not.
+//
+// SO THE CARD CARRIES THREE NUMBERS AND NOT SIX. The challenge rating first,
+// because it is the one that answers "can I put this in front of them tonight",
+// then AC and hit points. Speed came off with the second column -- it settles no
+// question worth scanning a hundred rows for, and the quick view is one click
+// away for the times it does.
 //
 // ALL OF THE REASONING ABOUT THIS CARD LIVES IN THIS FILE, and it has to. The
 // markup is monsters.templ, which cannot carry a comment of any kind -- Tailwind
@@ -30,9 +38,10 @@ type MonsterListData struct {
 }
 
 // MonsterSummary is one monster as its card needs it, and no more of the row
-// than that. The manual lists tens of these and the card shows six values, so it
-// takes the six rather than the whole stat block -- which also means the search
-// fragment and the page render the same struct, filled in by the same function.
+// than that. The manual lists hundreds of these and the card shows five values,
+// so it takes the five rather than the whole stat block -- which also means the
+// search fragment and the page render the same struct, filled in by the same
+// function.
 //
 // Subtitle arrives already assembled, the way CharacterHeader's does, because
 // the controller is the only place that knows which of size, type, tags and
@@ -46,11 +55,10 @@ type MonsterSummary struct {
 	// one the editor's bar carries -- see monster-image.go.
 	ImageID string
 
-	// The four chips, each already the string it prints. CR is the rating on
+	// The three chips, each already the string it prints. CR is the rating on
 	// its own; the XP and the proficiency bonus that follow from it are stat
 	// block readings and would be three numbers on a card that has room for one.
-	CR    string
-	AC    string
-	HP    string
-	Speed string
+	CR string
+	AC string
+	HP string
 }
