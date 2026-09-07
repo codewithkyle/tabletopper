@@ -202,8 +202,12 @@ func (a *App) deleteCharacterRows(ctx context.Context, characterID, ownerID ulid
 		return fmt.Errorf("spell slots: %w", err)
 	}
 
+	// The pointer is what the column became when a monster's share row -- which
+	// hangs off no character -- needed somewhere to say so. This caller always
+	// has one, and a nil here would match no row rather than every row: SQL
+	// compares NULL to nothing, including itself.
 	if err := a.Queries.DeleteSharesForCharacter(ctx, queries.DeleteSharesForCharacterParams{
-		CharacterID: characterID,
+		CharacterID: &characterID,
 		OwnerID:     ownerID,
 	}); err != nil {
 		return fmt.Errorf("shares: %w", err)

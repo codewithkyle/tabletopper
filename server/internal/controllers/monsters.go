@@ -535,11 +535,20 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 // fill. TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows reads db/schema.sql
 // and fails when one is missing.
 //
-// THERE IS ONE TODAY AND THE SHAPE IS FOR THE SECOND. A monster's rows are its
-// seven sections, which all live in monster_actions -- and the VTT work will add
-// tables that hang off a monster the way spells and inventory hang off a
-// character. A single statement inline in the handler would be the thing that
-// gets forgotten then.
+// THE SHAPE IS FOR THE TABLES THAT ARE NOT HERE YET. A monster's rows are its
+// seven sections and the link it may have been shared by -- and the VTT work
+// will add tables that hang off a monster the way spells and inventory hang off
+// a character. Two statements inline in the handler would be the thing that gets
+// forgotten then.
+//
+// THE SHARE ROW IS FOUND BY resource_id AND NOT BY A monster_id COLUMN, which is
+// the one table here the schema scan cannot see -- shares names what it points
+// at by type and id, so a monster's link is a row whose resource_type says
+// monster. TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows names it
+// outright for that reason. Leaving it behind would be a live link to a monster
+// nobody can open: the reader would find the share, fail to find the monster,
+// and be told the link is dead -- true, but the row would sit there until the
+// account went.
 //
 // The failure is returned wrapped, so the log names the table rather than only
 // the driver error.
@@ -549,6 +558,16 @@ func (a *App) deleteMonsterRows(ctx context.Context, monsterID, ownerID ulid.ULI
 		OwnerID:   ownerID,
 	}); err != nil {
 		return fmt.Errorf("monster actions: %w", err)
+	}
+
+	// A monster has one link at most, so revoking it and purging it are the
+	// same statement -- unlike a character, which has one of its own plus one
+	// per journal entry and needs a wider delete beside the narrow one.
+	if _, err := a.Queries.DeleteMonsterShare(ctx, queries.DeleteMonsterShareParams{
+		MonsterID: monsterID,
+		OwnerID:   ownerID,
+	}); err != nil {
+		return fmt.Errorf("monster share: %w", err)
 	}
 
 	return nil

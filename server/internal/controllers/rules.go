@@ -358,15 +358,17 @@ func hasActionOfKind(actions []queries.MonsterAction, kind string) bool {
 // value is a string written down here by name, so a column added to the row
 // later reaches a reader only if somebody puts it on this struct on purpose.
 func monsterStatBlock(monster queries.Monster, actions []queries.MonsterAction, derived pages.MonsterDerived) pages.StatBlock {
+	// The in-app URL. A shared page overwrites this with the share's own
+	// portrait route, which is the one a reader with no session can reach.
 	image := ""
 	if monster.AssetID != nil {
-		image = monster.AssetID.String()
+		image = "/assets/images/" + monster.AssetID.String()
 	}
 
 	return pages.StatBlock{
 		Name:     monster.Name,
 		Subtitle: monsterSubtitle(monster),
-		ImageID:  image,
+		Image:    image,
 
 		AC: strconv.FormatUint(uint64(monster.AC), 10),
 		// The 2024 block prints the modifier and the passive score together,

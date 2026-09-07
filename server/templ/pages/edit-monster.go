@@ -162,13 +162,22 @@ type MonsterDerived struct {
 // around one thing, with the outer one always a few millimetres from the inner.
 // The dialog gets the body flush against its own background, and the insets
 // inside -- the AC strip, the ability rows -- are what give it its structure.
+//
+// A THIRD FRAME IS THE SHARED PAGE, which is the editor's panel with nothing
+// around it, and it is why Image below is a URL rather than an id.
 type StatBlock struct {
 	Name     string
 	Subtitle string
-	// ImageID names /assets/images/{id}, which serves monster images to any
-	// signed-in user for the reason it serves maps to them: what is on the table
-	// is shown to the table.
-	ImageID string
+	// Image is the whole URL of the picture, empty when the monster has none.
+	//
+	// IT IS A URL AND NOT AN ID BECAUSE THE TWO CALLERS REACH IT DIFFERENTLY.
+	// Inside the app it is /assets/images/{id}, which serves monster images to
+	// any signed-in user for the reason it serves maps to them: what is on the
+	// table is shown to the table. On a shared page there is nobody signed in,
+	// so that route would render as a broken picture for every reader, and the
+	// URL is the share's own portrait route instead. An id here would have made
+	// the markup pick between them, which is a decision the markup cannot make.
+	Image string
 
 	// The three lines under the name. Initiative carries its passive score in
 	// brackets, HitDice carries its own brackets, and each is empty when the

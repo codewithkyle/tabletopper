@@ -45,6 +45,28 @@ type recordedCall struct {
 	args  []any
 }
 
+// boundID reads a ULID out of a recorded argument whichever way sqlc bound it.
+//
+// MOST ID COLUMNS COME THROUGH AS A ulid.ULID AND THE NULLABLE ONES DO NOT.
+// Those are bound as *ulid.ULID, which is what lets a nil write SQL NULL --
+// shares.character_id is one of them, because a monster's share hangs off no
+// character. A test that only accepted the first form would fail on how the
+// argument is typed rather than on the property it is checking.
+func boundID(arg any) (ulid.ULID, bool) {
+	switch id := arg.(type) {
+	case ulid.ULID:
+		return id, true
+	case *ulid.ULID:
+		if id == nil {
+			return ulid.ULID{}, false
+		}
+
+		return *id, true
+	default:
+		return ulid.ULID{}, false
+	}
+}
+
 func (d *recordingDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	d.calls = append(d.calls, recordedCall{query: query, args: args})
 	if d.err != nil {

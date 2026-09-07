@@ -19,8 +19,8 @@ templ statBlockBody(sb StatBlock) {
 		<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
 			<div class="relative w-11 rounded-full bg-base-300 text-base-content">
 				<span class="font-serif text-lg font-bold">{ characterInitial(sb.Name) }</span>
-				if sb.ImageID != "" {
-					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + sb.ImageID } alt={ sb.Name }/>
+				if sb.Image != "" {
+					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ sb.Image } alt={ sb.Name }/>
 				}
 			</div>
 		</div>

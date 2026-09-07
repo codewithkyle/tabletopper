@@ -57,6 +57,53 @@ WHERE m.id = ? AND m.owner_id = ?;
 INSERT INTO monsters (id, owner_id, name)
 VALUES (?, ?, ?);
 
+-- name: CopyMonster :execresult
+-- THE IMPORT, which is the one statement in this file that reads one account's
+-- monster and writes another's. It is what the button on a shared monster's
+-- page runs, and the copy it makes is the importer's own row from that moment
+-- on -- editing either afterwards leaves the other alone.
+--
+-- IT IS AN INSERT ... SELECT, and here that is doing more work than it does
+-- elsewhere in this schema. The source is named by the SHARE ROW -- the
+-- monster and the owner both come off it, never off the request -- so a
+-- visitor cannot point this at a monster the link does not name; and every
+-- value written comes off the source row rather than out of a form, so an
+-- import cannot smuggle a stat block in.
+--
+-- EVERY EDITABLE COLUMN IS NAMED, and a column left out would not fail: it
+-- would silently take the schema's default, so an imported dragon would arrive
+-- with AC 10 and no explanation. TestAnImportedMonsterCarriesEveryEditableColumn
+-- reads the schema and holds that line.
+--
+-- THE SOURCE IS ALIASED because both sides of this statement are the monsters
+-- table: an unqualified `id` in the WHERE is ambiguous between the row being
+-- written and the row being read, and MySQL refuses it rather than guessing.
+--
+-- asset_id IS DELIBERATELY NOT AMONG THEM. It names an object under the source
+-- owner's own prefix, and a row in this account pointing there would break the
+-- moment they deleted their monster. The picture is copied as a new object and
+-- linked afterwards, by the same attachMonsterImage every upload goes through.
+INSERT INTO monsters (
+    id, owner_id,
+    name, size, `type`, tags, alignment,
+    ac, hp, hit_dice, speed, initiative_bonus, cr,
+    legendary_action_uses, legendary_action_uses_in_lair,
+    `str`, dex, `con`, `int`, wis, cha,
+    skills, skill_proficiencies, saving_throws, saving_throw_proficiencies,
+    vulnerabilities, resistances, immunities, gear, senses, languages,
+    habitat, treasure, description
+)
+SELECT sqlc.arg(id), sqlc.arg(owner_id),
+    original.name, original.size, original.`type`, original.tags, original.alignment,
+    original.ac, original.hp, original.hit_dice, original.speed, original.initiative_bonus, original.cr,
+    original.legendary_action_uses, original.legendary_action_uses_in_lair,
+    original.`str`, original.dex, original.`con`, original.`int`, original.wis, original.cha,
+    original.skills, original.skill_proficiencies, original.saving_throws, original.saving_throw_proficiencies,
+    original.vulnerabilities, original.resistances, original.immunities, original.gear, original.senses, original.languages,
+    original.habitat, original.treasure, original.description
+FROM monsters original
+WHERE original.id = sqlc.arg(source_id) AND original.owner_id = sqlc.arg(source_owner_id);
+
 -- name: UpdateMonsterImage :exec
 UPDATE monsters
 SET asset_id = ?

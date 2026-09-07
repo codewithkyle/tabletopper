@@ -203,7 +203,7 @@ func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 	for i, call := range db.calls {
 		seen := []string{}
 		for _, arg := range call.args {
-			id, ok := arg.(ulid.ULID)
+			id, ok := boundID(arg)
 			if !ok {
 				t.Fatalf("statement %d takes a %T, want only ULIDs:\n%s", i, arg, call.query)
 			}

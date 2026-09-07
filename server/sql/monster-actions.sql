@@ -39,6 +39,24 @@ SELECT sqlc.arg(id), monsters.owner_id, monsters.id, sqlc.arg(kind)
 FROM monsters
 WHERE monsters.id = sqlc.arg(monster_id) AND monsters.owner_id = sqlc.arg(owner_id);
 
+-- name: CopyMonsterAction :exec
+-- One row of an imported monster's stat block. It is the only insert in this
+-- file that is a plain VALUES, and the reason InsertMonsterAction above is not
+-- does not apply to it: the monster it names was created by the same request a
+-- moment earlier, under the session's own owner id, off a CopyMonster the share
+-- row scoped. There is no id here that came from the visitor to be guarded
+-- against.
+--
+-- kind, name and description come out of the source row rather than off a form,
+-- read by ListMonsterActions and handed back column for column, so an import
+-- cannot invent a section the ENUM would refuse.
+--
+-- THE IDS ARE MINTED IN ORDER AND THAT IS LOAD-BEARING. ListMonsterActions
+-- sorts by kind then id, so id is the order the sections print in -- see
+-- copyMonsterActions for why ulid.Make is not what mints them.
+INSERT INTO monster_actions (id, owner_id, monster_id, kind, name, description)
+VALUES (?, ?, ?, ?, ?, ?);
+
 -- name: GetMonsterAction :one
 -- Read back after an insert, so the markup for a new row comes from the row
 -- rather than from a copy of the schema's defaults kept in Go.

@@ -1,12 +1,20 @@
-// Package share is the read grant on one thing -- a journal entry or a whole
-// character sheet: the token that names it in a link, the optional password that
-// gates it, and the cookie that remembers someone got past the password.
+// Package share is the read grant on one thing -- a journal entry, a whole
+// character sheet, or a monster out of the manual: the token that names it in a
+// link, the optional password that gates it, and the cookie that remembers
+// someone got past the password.
 //
-// NOTHING IN HERE KNOWS WHICH KIND IT IS HOLDING, and that is why a second kind
-// of share cost this package nothing. A token is 128 bits either way, a password
-// gates a row either way, and the cookie is keyed by the token and the hash --
-// so the grant for one share cannot be replayed at another whether or not the
-// two open the same sort of page.
+// NOTHING IN HERE KNOWS WHICH KIND IT IS HOLDING, and that is why the second and
+// third kinds of share cost this package nothing at all. A token is 128 bits
+// whichever it names, a password gates a row whichever it names, and the cookie
+// is keyed by the token and the hash -- so the grant for one share cannot be
+// replayed at another whether or not the two open the same sort of page.
+//
+// THE PASSWORD GATES EVERY REQUEST THAT REACHES THE THING, and not only the
+// page. That is the caller's job rather than this package's, and it is worth
+// naming here because the list grew: the two image routes ask before they serve
+// a byte, and the monster import asks before it copies anything -- a link
+// somebody was handed but never unlocked would otherwise give up the whole
+// monster on one POST, permanently, without ever having rendered it.
 //
 // A SHARE LINK IS A BEARER CREDENTIAL, which is what separates the token here
 // from every other id in this app. A ULID is unguessable enough, but it is

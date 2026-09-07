@@ -277,7 +277,7 @@ func TestDeleteJournalEntryRevokesAndDetachesBeforeDeleting(t *testing.T) {
 		t.Fatalf("the first statement is not the revoke:\n%s", revoke.query)
 	}
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
-		if got, ok := revoke.args[i].(ulid.ULID); !ok || got != want {
+		if got, ok := boundID(revoke.args[i]); !ok || got != want {
 			t.Errorf("revoke arg %d = %v, want %v", i, revoke.args[i], want)
 		}
 	}

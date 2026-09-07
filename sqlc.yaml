@@ -22,10 +22,14 @@ sql:
           # A nil pointer there writes SQL NULL into a NOT NULL column, which
           # fails at runtime rather than failing to compile.
           #
-          # The six below are the NOT NULL *_id columns that collide with a
-          # wildcard. monsters.asset_id is not among them: a monster may have no
-          # image, so the column is nullable and the *.asset_id pointer wildcard
-          # further down is exactly the entry it wants.
+          # The five below are the NOT NULL *_id columns that collide with a
+          # wildcard. Two columns are deliberately not among them, and both are
+          # nullable, so the pointer wildcards further down are exactly the
+          # entries they want: monsters.asset_id, because a monster may have no
+          # image, and shares.character_id, because a share hangs off a
+          # character only when there is one to hang off -- a monster belongs to
+          # the account rather than to a character, and its share row carries
+          # NULL there.
           #
           # shares.resource_id is here for the opposite reason: it collides with
           # no wildcard at all -- they name id, user_id, owner_id, asset_id,
@@ -44,8 +48,6 @@ sql:
             go_type: *ulid
           - column: "journals.character_id"
             go_type: *ulid
-          - column: "shares.character_id"
-            go_type: *ulid
           - column: "shares.resource_id"
             go_type: *ulid
           # DECIMAL comes back as a string by default. float64 is what lets an
@@ -60,10 +62,10 @@ sql:
           #
           # The three below hand back *ulid.ULID, where a nil pointer reads and
           # writes as SQL NULL and a zero-valued ulid.ULID would have written
-          # sixteen zero bytes instead. characters.asset_id, sessions.character_id
-          # and sessions.room_id are the columns that want that. Every other
-          # column these patterns reach does not, which is what the entries at
-          # the top of the list are for.
+          # sixteen zero bytes instead. characters.asset_id, monsters.asset_id,
+          # sessions.character_id, sessions.room_id and shares.character_id are
+          # the columns that want that. Every other column these patterns reach
+          # does not, which is what the entries at the top of the list are for.
           - column: "*.asset_id"
             nullable: true
             go_type: &nullable_ulid
@@ -71,6 +73,11 @@ sql:
               package: "ulid"
               type: "ULID"
               pointer: true
+          # shares.character_id is the column this one exists for besides
+          # sessions.character_id: NULL on a monster's share, and a ULID on the
+          # other two kinds. A nil pointer reads and writes that NULL, where a
+          # zero-valued ulid.ULID would have written sixteen zero bytes and
+          # matched no character.
           - column: "*.character_id"
             nullable: true
             go_type: *nullable_ulid

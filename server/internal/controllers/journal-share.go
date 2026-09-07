@@ -207,7 +207,7 @@ func (a *App) RevokeJournalShare(w http.ResponseWriter, r *http.Request) {
 
 	result, err := a.Queries.DeleteJournalShare(ctx, queries.DeleteJournalShareParams{
 		EntryID:     entryID,
-		CharacterID: characterID,
+		CharacterID: &characterID,
 		OwnerID:     sess.UserID,
 	})
 	if err != nil {
@@ -246,7 +246,7 @@ func (a *App) journalShareDialog(ctx context.Context, r *http.Request, character
 
 	row, err := a.Queries.GetJournalShare(ctx, queries.GetJournalShareParams{
 		EntryID:     entryID,
-		CharacterID: characterID,
+		CharacterID: &characterID,
 		OwnerID:     ownerID,
 	})
 	if errors.Is(err, sql.ErrNoRows) {

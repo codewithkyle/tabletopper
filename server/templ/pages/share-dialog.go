@@ -2,18 +2,18 @@ package pages
 
 // The share dialog, in the content modal, in one of two states: the thing is
 // not shared and the form offers to share it, or it is and the link is there to
-// copy or revoke. One type and one exported component serve both states AND
-// both kinds of share, because the six routes behind them -- open, create and
-// revoke, for an entry and for a sheet -- all answer with whichever state the
-// thing is now in, and a dialog that swapped between components would need
+// copy or revoke. One type and one exported component serve both states AND all
+// three kinds of share, because the nine routes behind them -- open, create and
+// revoke, for an entry, a sheet and a monster -- all answer with whichever state
+// the thing is now in, and a dialog that swapped between components would need
 // every caller to decide which.
 //
-// WHAT A JOURNAL SHARE AND A CHARACTER SHARE DIFFER BY IS THREE STRINGS. The
-// heading, the sentence under it and the URL its buttons work against; the
-// expiry, the password, the link, the facts and the revoke are the same markup
-// either way. So the difference is data on this struct rather than a second
-// copy of the form, which is also what stops the two drifting the first time
-// one of them gains a field.
+// WHAT THE THREE KINDS DIFFER BY IS THREE STRINGS. The heading, the sentence
+// under it and the URL its buttons work against; the expiry, the password, the
+// link, the facts and the revoke are the same markup whichever it is. So the
+// difference is data on this struct rather than a third copy of the form, which
+// is also what stopped the second and third from drifting -- a monster's dialog
+// cost this file two lines, and both of them are a URL.
 //
 // LINK IS WHAT DECIDES THE STATE. There is no Shared bool: a share that exists
 // has a URL and one that does not has nothing to render, so a second field
@@ -33,8 +33,9 @@ package pages
 const shareDialogID = "share-dialog"
 
 // ShareDialogPanel is the error block the create form owns, so a rejection here
-// takes the 422 path every other form in the app takes. One name for both kinds
-// of share, because one dialog is open at a time and the block is inside it.
+// takes the 422 path every other form in the app takes. One name for all three
+// kinds of share, because one dialog is open at a time and the block is inside
+// it.
 const ShareDialogPanel = "share-dialog"
 
 // ShareDefaultDays is what the days box starts at, and it is a default rather
@@ -50,8 +51,9 @@ type ShareDialogData struct {
 	// Heading and Blurb are the two sentences that name what is being shared.
 	// The controller writes them because it is the half that knows, and they
 	// are fields rather than a kind enum the template switches on -- a switch
-	// here would put the wording of both shares in the markup and mean a third
-	// share could not be added without editing it.
+	// here would have put the wording of every share in the markup, and the
+	// third one did in fact arrive without this file learning what a monster
+	// is.
 	Heading string
 	Blurb   string
 
@@ -83,7 +85,7 @@ type ShareDialogData struct {
 	Protected bool
 }
 
-// The two URLs the Share buttons carry in data-modal-open, which
+// The three URLs the Share buttons carry in data-modal-open, which
 // content-modal.js turns into the modal:open event every other caller
 // dispatches inline.
 //
@@ -102,4 +104,8 @@ func journalShareDialogURL(characterID, entryID string) string {
 
 func characterShareDialogURL(characterID string) string {
 	return "/fragment/character/share?character=" + characterID
+}
+
+func monsterShareDialogURL(monsterID string) string {
+	return "/fragment/monster/share?monster=" + monsterID
 }

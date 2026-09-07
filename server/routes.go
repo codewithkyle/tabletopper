@@ -185,22 +185,34 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.CreateJournalShare))
 	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.RevokeJournalShare))
 
-	// THE READER'S FOUR ROUTES, WHICH SERVE BOTH KINDS OF SHARE. A token names a
-	// row and the row says whether it opens as a journal entry or as a character
-	// sheet, so there is one URL space here and not two -- and nothing in the
-	// path that could be edited into asking for the other.
+	// THE READER'S FIVE ROUTES, WHICH SERVE ALL THREE KINDS OF SHARE. A token
+	// names a row and the row says whether it opens as a journal entry, a
+	// character sheet or a monster, so there is one URL space here and not
+	// three -- and nothing in the path that could be edited into asking for
+	// another.
 	//
-	// THE ONLY ROUTES IN THE APP BEHIND NO MIDDLEWARE AT ALL. Not
-	// RequireSession, not OptionalSession, not even to slide an expiry: a
-	// shared link has to behave identically for a stranger and for the owner
-	// reading their own, and a wrapper that looked for a session would be a
-	// difference between the two waiting to become a bug. The token in the
-	// path is the whole authorisation, and internal/share is what checks it.
+	// THE TOKEN IS THE AUTHORISATION ON ALL OF THEM, and internal/share is what
+	// checks it. Four of the five ask for no session at all: a shared link has
+	// to behave the same for a stranger and for the owner reading their own,
+	// and a wrapper that decided anything from a session would be a difference
+	// between the two waiting to become a bug.
 	//
-	// The POST is the password gate and is the one mutation in this block --
-	// which is why /share/ is not and could not be a /fragment/ prefix. It is a
-	// plain form post answered with a 303, because the share layout loads no
-	// JavaScript and a gate that needs a script does not open without one.
+	// THE PAGE IS OptionalSession AND THE IMPORT IS THE REASON. A shared
+	// monster offers a signed-in reader a copy of it for their own manual, and
+	// the share layout ships no JavaScript, so there is no second request that
+	// could go and ask who is reading. The session decides exactly one thing --
+	// whether that button is drawn -- and the entry, the sheet and the monster
+	// are identical for everybody either way.
+	//
+	// The POST is the password gate, a plain form post answered with a 303,
+	// because the share layout loads no JavaScript and a gate that needs a
+	// script does not open without one. The import is a plain form post for the
+	// same reason, and it is the one route in this block that requires a
+	// session, because it is the one that writes -- into the reader's own
+	// manual, never into the owner's.
+	//
+	// Neither of them could live under /fragment/: the prefix is for GETs that
+	// return partial HTML, and these are mutations that answer with a redirect.
 	//
 	// The two image routes exist because the page's pictures have to come from
 	// somewhere a signed-out reader can reach, and they are separate routes
@@ -209,15 +221,16 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// page is: a password on the page with open images would be a locked door
 	// beside an open window.
 	//
-	// The images route serves a journal share only, and refuses a character one
-	// rather than letting it miss; a shared sheet's one picture is its portrait.
+	// The images route serves a journal share only, and refuses the other two
+	// rather than letting them miss; their one picture each is the portrait.
 	//
-	// The avatar route takes no id and serves both kinds. A share names one
-	// character and a character has one portrait, so there is nothing in the
-	// path to tamper with.
-	mux.HandleFunc("GET /share/{token}", app.SharePage)
+	// The portrait route takes no id and serves all three kinds. A share names
+	// one thing and that thing has one picture, so there is nothing in the path
+	// to tamper with.
+	mux.HandleFunc("GET /share/{token}", auth.OptionalSession(app.SharePage))
 	mux.HandleFunc("POST /share/{token}", app.UnlockShare)
-	mux.HandleFunc("GET /share/{token}/avatar", app.GetShareAvatar)
+	mux.HandleFunc("POST /share/{token}/import", auth.RequireSession(app.ImportSharedMonster))
+	mux.HandleFunc("GET /share/{token}/portrait", app.GetSharePortrait)
 	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
 
 	// The account settings saves. Four columns on the users row, no path
@@ -249,6 +262,20 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /monsters/{id}/edit", auth.RequireSession(app.MonsterPage))
 	mux.HandleFunc("DELETE /monsters/{id}", auth.RequireSession(app.DeleteMonster))
 	mux.HandleFunc("POST /monsters/{id}/image", auth.RequireSession(app.UploadMonsterImage))
+
+	// Sharing a monster: the owner's two mutations, and nothing else -- the
+	// reader's routes are the /share/ block above, which all three kinds of
+	// share go through. Like the character's pair they keep the resource's own
+	// URL and stay off /fragment/, and like them they answer with the share
+	// dialog in whatever state the monster is now in, which is the exception
+	// the fragment rules name. The GET that opens that dialog is a fragment and
+	// is registered with the rest of them further down.
+	//
+	// "share" is a literal segment beside the panel names below and collides
+	// with none of them: no panel is called share, and the mux matches literals
+	// before it matches anything else.
+	mux.HandleFunc("POST /monsters/{id}/share", auth.RequireSession(app.CreateMonsterShare))
+	mux.HandleFunc("DELETE /monsters/{id}/share", auth.RequireSession(app.RevokeMonsterShare))
 
 	// The editor is ONE page and not a page per tab, because a stat block is one
 	// screen: everything a monster has fits beside the block it renders, so
@@ -353,6 +380,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/account/welcome", auth.Fragment(app.AccountWelcomeFragment))
 	// The new-monster dialog, which is the character's with its own panel name.
 	mux.HandleFunc("GET /fragment/monster/new", auth.Fragment(app.NewMonsterFragment))
+	// The monster's share dialog, which is the sheet's with a monster id. It
+	// reads that id from the query string rather than a path for the same
+	// reason: this is not the monster's URL, it is a dialog about the monster.
+	mux.HandleFunc("GET /fragment/monster/share", auth.Fragment(app.MonsterShareFragment))
 	// The manual's grid, filtered by ?q=. It is the journal search's shape with
 	// one parameter instead of two: there is no id in this URL, because the
 	// manual is the account's rather than any character's, and the owner comes

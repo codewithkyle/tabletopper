@@ -107,7 +107,7 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 
 	sheet := sharedCharacterSheet(character, attacks, equipped, prepared, levels)
 	if character.AssetID != nil {
-		sheet.Avatar = "/share/" + token + "/avatar"
+		sheet.Avatar = sharePortraitURL(token)
 	}
 
 	shareHeaders(w)

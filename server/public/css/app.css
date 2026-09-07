@@ -2680,6 +2680,9 @@
   .basis-48 {
     flex-basis: calc(var(--spacing) * 48);
   }
+  .basis-64 {
+    flex-basis: calc(var(--spacing) * 64);
+  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);

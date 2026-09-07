@@ -34,6 +34,9 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 	id := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	item := "01BX5ZZKBKACTAV9WEVGEMMVS0"
 	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
+	// A share token is not a ULID: 22 characters of base64url, which is what
+	// the reader's routes carry instead of an id.
+	token := "yA1rMcJ4TkK9wQ2sVbNpXg"
 	for _, c := range []struct{ method, path, want string }{
 		{http.MethodPost, "/characters/" + id + "/avatar", "POST /characters/{id}/avatar"},
 		{http.MethodPost, "/characters/" + id + "/identity", "POST /characters/{id}/identity"},
@@ -136,6 +139,12 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// not fetched by a route.
 		{http.MethodGet, "/monsters/" + id + "/actions/trait", "/"},
 		{http.MethodPost, "/monsters/" + id + "/image", "POST /monsters/{id}/image"},
+		// The manual's share pair, which sits where a panel name goes -- the
+		// same trust in the mux preferring a literal that the sheet's pair and
+		// the slot save depend on. A revoke arriving at a panel save would
+		// answer a DELETE by writing columns from a form that is not there.
+		{http.MethodPost, "/monsters/" + id + "/share", "POST /monsters/{id}/share"},
+		{http.MethodDelete, "/monsters/" + id + "/share", "DELETE /monsters/{id}/share"},
 		// Creation has no page here either, and "/monsters/new" is the path most
 		// likely to be added by accident -- it looks like the matched pair of
 		// "/monsters/{id}/edit".
@@ -145,6 +154,7 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// The manual's search, whose parameters ride in the query string. A POST
 		// to it is not a route at all but the /fragment/ subtree's 404, which is
 		// what keeps the prefix meaning "a GET that returns partial HTML".
+		{http.MethodGet, "/fragment/monster/share?monster=" + id, "GET /fragment/monster/share"},
 		{http.MethodGet, "/fragment/monster/list", "GET /fragment/monster/list"},
 		{http.MethodGet, "/fragment/monster/list?q=goblin", "GET /fragment/monster/list"},
 		{http.MethodPost, "/fragment/monster/list", "/fragment/"},
@@ -192,6 +202,27 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// And the blank-spell-card fragment. Adding a spell is a POST that
 		// answers with the row it created, so there is nothing left to GET.
 		{http.MethodGet, "/fragment/character/spell-card", "/fragment/"},
+		// THE READER'S BLOCK, WHERE TWO POSTS SIT ONE SEGMENT APART. The bare
+		// path is the password gate and the deeper one takes a copy of a shared
+		// monster, so confusing them would either check a password against a
+		// form that carries none, or copy a monster on somebody typing one in.
+		// The portrait is a GET at the same depth as the import, which is the
+		// other half of the same question.
+		{http.MethodGet, "/share/" + token, "GET /share/{token}"},
+		{http.MethodPost, "/share/" + token, "POST /share/{token}"},
+		{http.MethodPost, "/share/" + token + "/import", "POST /share/{token}/import"},
+		{http.MethodGet, "/share/" + token + "/portrait", "GET /share/{token}/portrait"},
+		{http.MethodGet, "/share/" + token + "/images/" + asset, "GET /share/{token}/images/{assetId}"},
+		// The import is a mutation and has no representation to fetch, and the
+		// portrait is a representation and is not written by anybody. Both are
+		// misses rather than routes waiting to be written.
+		{http.MethodGet, "/share/" + token + "/import", "/"},
+		{http.MethodPost, "/share/" + token + "/portrait", "/"},
+		// The old name of the portrait route, which served a character's avatar
+		// before a monster had a picture to serve here too. Nothing links to it
+		// -- every shared page builds the URL from the token as it renders --
+		// so this is a miss rather than a redirect.
+		{http.MethodGet, "/share/" + token + "/avatar", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
 		if pattern != c.want {

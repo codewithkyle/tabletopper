@@ -292,6 +292,17 @@ func tablesHoldingMonsterRows(t *testing.T) []string {
 	return tables
 }
 
+// The share row is the one table the scan above cannot see, and it is named
+// here rather than left out. shares says what it points at with a type and an
+// id -- a monster's link is a row whose resource_type reads monster -- so it
+// carries no monster_id for the schema scan to find, exactly as a journal's
+// images carry no character_id for the character version of this test.
+//
+// A link left behind is not a leak of somebody else's data: the reader would
+// find the share, fail to find the monster, and be told the link is dead. It is
+// a row nothing can ever reach again, which is what this test is about.
+const monsterShareTable = "shares"
+
 // Nothing cascades in this schema, so every table holding a monster's rows is
 // named by hand in deleteMonsterRows -- and one left out does not fail, it
 // leaks: the rows stay behind forever unreachable.
@@ -315,7 +326,8 @@ func TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 		emptied[table] = true
 	}
 
-	for _, table := range tablesHoldingMonsterRows(t) {
+	want := append([]string{monsterShareTable}, tablesHoldingMonsterRows(t)...)
+	for _, table := range want {
 		if !emptied[table] {
 			t.Errorf("a monster delete leaves %s behind", table)
 		}
@@ -329,6 +341,13 @@ func TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 // A purge that named only the monster would empty another account's rows for any
 // id somebody could guess -- and a ULID in a URL is not a secret, it is just
 // long. Both ids go into every statement.
+//
+// THE COLUMN THE MONSTER IS NAMED BY IS NOT ALWAYS monster_id. The action rows
+// carry one; the share row names what it points at as a resource_id beside a
+// resource_type, because that table holds three kinds of thing. Both are the
+// monster's id in the same position of the same WHERE, so the check is that the
+// statement is bound to this monster by one of them -- and the argument check
+// below is what makes that mean something rather than being a word in a string.
 func TestTheMonsterPurgeIsScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -340,13 +359,14 @@ func TestTheMonsterPurgeIsScopedToItsOwner(t *testing.T) {
 	}
 
 	for _, call := range db.calls {
-		if !strings.Contains(call.query, "owner_id") || !strings.Contains(call.query, "monster_id") {
+		named := strings.Contains(call.query, "monster_id") || strings.Contains(call.query, "resource_id")
+		if !strings.Contains(call.query, "owner_id") || !named {
 			t.Errorf("a purge statement names one id and not both:\n%s", call.query)
 		}
 
 		found := map[ulid.ULID]bool{}
 		for _, arg := range call.args {
-			if id, ok := arg.(ulid.ULID); ok {
+			if id, ok := boundID(arg); ok {
 				found[id] = true
 			}
 		}

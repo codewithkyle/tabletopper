@@ -1,9 +1,9 @@
--- A share is a read grant on one thing, handed out as a link: a journal entry
--- or a whole character sheet. Every statement an owner runs is scoped by the
--- owner and by the thing being shared -- and, for an entry, by the character
--- above it as well; the two statements a visitor runs are scoped by the token
--- alone, because the token IS the authorisation and there is nobody signed in
--- to check it against.
+-- A share is a read grant on one thing, handed out as a link: a journal entry,
+-- a whole character sheet, or a monster out of the manual. Every statement an
+-- owner runs is scoped by the owner and by the thing being shared -- and, for
+-- an entry, by the character above it as well; the two statements a visitor
+-- runs are scoped by the token alone, because the token IS the authorisation
+-- and there is nobody signed in to check it against.
 --
 -- resource_type IS IN EVERY OWNER STATEMENT and in none of the visitor's. An
 -- owner asking about a share already knows which of theirs they mean, so the
@@ -106,6 +106,45 @@ WHERE resource_type = 'character' AND resource_id = sqlc.arg(character_id)
 DELETE FROM shares
 WHERE character_id = ? AND owner_id = ?;
 
+-- The three owner statements for a shared monster, which are the character's
+-- three with the manual's own table underneath them. A monster hangs off no
+-- character, so character_id is left out of the insert and written NULL -- see
+-- 20260906290000 for why that column is a parent pointer rather than part of
+-- what is being shared.
+
+-- name: GetMonsterShare :one
+-- What the monster editor's share dialog asks before it renders. Like the other
+-- two it reads the row whether or not it has expired: an expired share is still
+-- a row the owner has to be shown and offered the chance to revoke.
+SELECT * FROM shares
+WHERE resource_type = 'monster' AND resource_id = sqlc.arg(monster_id)
+    AND owner_id = sqlc.arg(owner_id);
+
+-- name: InsertMonsterShare :execresult
+-- INSERT ... SELECT for the reason the other two give: taking the ids from the
+-- request would prove they are consistent with each other and nothing about
+-- whose monster this is. Selecting them off the monsters row means a monster
+-- that is not this user's matches nothing, inserts nothing, and is read by the
+-- handler as a 404 -- with no window between the check and the write for the
+-- monster to be deleted in.
+INSERT INTO shares (id, owner_id, resource_type, resource_id, token, password_hash, expires_at)
+SELECT sqlc.arg(id), monsters.owner_id, 'monster', monsters.id,
+    sqlc.arg(token), sqlc.arg(password_hash), sqlc.arg(expires_at)
+FROM monsters
+WHERE monsters.id = sqlc.arg(monster_id) AND monsters.owner_id = sqlc.arg(owner_id);
+
+-- name: DeleteMonsterShare :execresult
+-- Revoking a monster's link, and also what deleting the monster runs. There is
+-- no DeleteSharesForMonster beside it the way there is for a character: a
+-- character is a parent with entries of its own that each hand out their own
+-- links, and a monster is one thing with one link, so the revoke and the purge
+-- are the same delete. The two callers want different things from the result --
+-- the revoke route answers 404 on zero rows, the monster delete does not care
+-- -- and that is the whole difference between them.
+DELETE FROM shares
+WHERE resource_type = 'monster' AND resource_id = sqlc.arg(monster_id)
+    AND owner_id = sqlc.arg(owner_id);
+
 -- name: GetShareByToken :one
 -- The visitor's way in, and the only statement in the app whose entire WHERE
 -- clause comes from an unauthenticated request. The token is 128 random bits
@@ -175,3 +214,23 @@ SELECT assets.file_path, assets.updated_at
 FROM characters
 JOIN assets ON assets.id = characters.asset_id
 WHERE characters.id = sqlc.arg(character_id) AND characters.owner_id = sqlc.arg(owner_id);
+
+-- name: GetSharedMonsterImage :one
+-- The monster's picture on its shared page, and the object the import copies.
+-- An INNER JOIN, so a monster with no picture is no row at all: the portrait
+-- route answers 404 -- which is what the page falls back to anyway, since it
+-- renders the initial when there is nothing on top of it -- and the import
+-- takes that as a monster with nothing to copy rather than as a failure.
+--
+-- updated_at is what the ETag is built from, for the reason
+-- GetSharedCharacterAvatar gives: a monster's picture is REPLACED at its id, so
+-- the id alone would be an ETag that never changed while the bytes behind it
+-- did.
+--
+-- file_name comes back for the import alone. It is what the copy's own asset
+-- row is named, so a monster taken into a second manual carries the name of the
+-- file its picture came from rather than one invented at the point of copying.
+SELECT assets.file_path, assets.file_name, assets.updated_at
+FROM monsters
+JOIN assets ON assets.id = monsters.asset_id
+WHERE monsters.id = sqlc.arg(monster_id) AND monsters.owner_id = sqlc.arg(owner_id);

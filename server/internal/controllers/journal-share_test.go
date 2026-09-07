@@ -131,7 +131,7 @@ func TestRevokingAShareDeletesOneRowScopedToItsOwner(t *testing.T) {
 		t.Fatalf("did not delete from shares:\n%s", db.calls[0].query)
 	}
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
-		if got, ok := db.calls[0].args[i].(ulid.ULID); !ok || got != want {
+		if got, ok := boundID(db.calls[0].args[i]); !ok || got != want {
 			t.Errorf("revoke arg %d = %v, want %v", i, db.calls[0].args[i], want)
 		}
 	}

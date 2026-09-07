@@ -22,7 +22,7 @@ func testSharedSheet() SharedCharacterSheet {
 			Proficiency: "+3",
 			Passive:     "15",
 		},
-		Avatar:            "/share/tok/avatar",
+		Avatar:            "/share/tok/portrait",
 		Identity:          []SharedFact{{Label: "Species", Value: "Half-Elf"}},
 		CoreStats:         []SharedFact{{Label: "Armor Class", Value: "16"}},
 		Spellcasting:      []SharedFact{{Label: "Spell Save DC", Value: "14"}},
@@ -132,7 +132,7 @@ func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
 
 	for _, want := range []string{
-		"Vex", "Half-Elf | Ranger 5", `src="/share/tok/avatar"`,
+		"Vex", "Half-Elf | Ranger 5", `src="/share/tok/portrait"`,
 		"Longbow", "1d8+5", "Slow",
 		"Studded Leather", "Hunter&#39;s Mark", "4 slots",
 		"Favoured Enemy", "Undead", "Grey", "My brother.",

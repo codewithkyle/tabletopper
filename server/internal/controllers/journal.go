@@ -319,7 +319,7 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	// nothing is read from the result.
 	if _, err := a.Queries.DeleteJournalShare(ctx, queries.DeleteJournalShareParams{
 		EntryID:     entryID,
-		CharacterID: characterID,
+		CharacterID: &characterID,
 		OwnerID:     sess.UserID,
 	}); err != nil {
 		slog.Error("Failed to revoke journal share", "error", err)

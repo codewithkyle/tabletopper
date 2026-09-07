@@ -47,16 +47,34 @@ func TestTheSharedEntrysBodyIsTheOnlyMarkupOnThePage(t *testing.T) {
 
 // A public page carries no session-shaped machinery: no htmx, no dialogs, no
 // modal modules. It is the whole reason there is a second layout.
-func TestTheSharedPageShipsNoScriptsAndNoDialogs(t *testing.T) {
-	body := renderToString(t, SharedJournalEntry(SharedJournalData{}))
-
-	for _, forbidden := range []string{"<script", "<dialog", "htmx"} {
-		if strings.Contains(body, forbidden) {
-			t.Errorf("a shared page carries %q:\n%s", forbidden, body)
-		}
+//
+// EVERY PAGE THE LAYOUT SERVES IS CHECKED, and the monster's is the one this
+// exists for now: it is the only shared page with a button that writes, and the
+// temptation on the next one like it is to reach for hx-post. It cannot -- htmx
+// is not on the page and will not be, so the button is a form and the answer is
+// a redirect.
+func TestTheSharedPagesShipNoScriptsAndNoDialogs(t *testing.T) {
+	pages := map[string]templ.Component{
+		"entry":   SharedJournalEntry(SharedJournalData{}),
+		"sheet":   SharedCharacterPage(testSharedSheet()),
+		"monster": SharedMonsterPage(testSharedMonster()),
+		"locked":  ShareLocked(ShareLockedData{Action: "/share/tok"}),
+		"dead":    ShareUnavailable(),
 	}
-	if !strings.Contains(body, `name="robots" content="noindex, nofollow"`) {
-		t.Errorf("a shared page is missing its robots meta:\n%s", body)
+
+	for name, page := range pages {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, page)
+
+			for _, forbidden := range []string{"<script", "<dialog", "htmx", "hx-"} {
+				if strings.Contains(body, forbidden) {
+					t.Errorf("a shared page carries %q:\n%s", forbidden, body)
+				}
+			}
+			if !strings.Contains(body, `name="robots" content="noindex, nofollow"`) {
+				t.Errorf("a shared page is missing its robots meta:\n%s", body)
+			}
+		})
 	}
 }
 
@@ -112,14 +130,16 @@ func TestAnUnnamedEntryStillHasATitle(t *testing.T) {
 // The dialog is one component in two states, and Link is what picks. Nothing
 // else decides, so the two can never both render.
 //
-// IT IS ALSO ONE COMPONENT FOR BOTH KINDS OF SHARE, so the same two states are
-// checked against an entry's action URL and a character's -- the create and the
-// revoke both come off Action, and a dialog whose revoke named a different row
-// than its create is the one mistake that shape rules out.
+// IT IS ALSO ONE COMPONENT FOR ALL THREE KINDS OF SHARE, so the same two states
+// are checked against an entry's action URL, a character's and a monster's --
+// the create and the revoke both come off Action, and a dialog whose revoke
+// named a different row than its create is the one mistake that shape rules
+// out.
 func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 	for name, action := range map[string]string{
 		"journal":   "/characters/C/journal/E/share",
 		"character": "/characters/C/share",
+		"monster":   "/monsters/M/share",
 	} {
 		t.Run(name, func(t *testing.T) {
 			form := renderToString(t, ShareDialog(ShareDialogData{Action: action}))
@@ -223,6 +243,32 @@ func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 		if !strings.Contains(body, kept) {
 			t.Errorf("the bar lost %s:\n%s", kept, body)
 		}
+	}
+}
+
+// The monster's Share button is on its bar too, beside Back, and the editor is
+// the only place it appears.
+//
+// THE MANUAL'S CARDS DELIBERATELY DO NOT CARRY ONE. A card is one row in a list
+// somebody scrolls through hundreds of times, and a fourth button on it would be
+// paid for on every row to be used on one -- the editor is where a monster is
+// worked on, and sharing it is part of working on it.
+func TestTheMonsterEditorCarriesAShareButtonAndTheManualDoesNot(t *testing.T) {
+	editor := renderToString(t, EditMonster(EditMonsterPageData{
+		MonsterID: "M",
+		Header:    MonsterHeader{MonsterID: "M", Name: "Goblin"},
+	}))
+
+	if !strings.Contains(editor, `data-modal-open="/fragment/monster/share?monster=M"`) {
+		t.Errorf("the monster editor has no share button:\n%s", editor)
+	}
+	if !strings.Contains(editor, `class="max-[640px]:sr-only">Share monster<`) {
+		t.Errorf("the label is not hidden with sr-only:\n%s", editor)
+	}
+
+	manual := renderToString(t, Monsters(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
+	if strings.Contains(manual, "/fragment/monster/share") {
+		t.Errorf("a manual card carries a share button:\n%s", manual)
 	}
 }
 
