@@ -1,11 +1,106 @@
 package pages
 
-import "tabletopper/templ/layouts"
+import (
+	"strconv"
+	"tabletopper/templ/layouts"
+)
 
 templ MapAssets(maps []MapAsset) {
-	@layouts.Base("Assets Manager | Tabletopper") {
-		@mapAssetsContent(maps)
+	@layouts.Base("Maps | Asset Manager | Tabletopper") {
+		@assetsShell(assetTabMaps, mapUploadButton()) {
+			@assetGrid("maps", "No maps yet.", "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.") {
+				for _, m := range maps {
+					@MapCard(m)
+				}
+			}
+		}
 	}
+}
+
+templ TokenAssets() {
+	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
+		@assetsShell(assetTabTokens, nil) {
+			@assetGrid("tokens", "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.")
+		}
+	}
+}
+
+templ AvatarAssets() {
+	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
+		@assetsShell(assetTabAvatars, nil) {
+			@assetGrid("avatars", "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.")
+		}
+	}
+}
+
+templ MusicAssets() {
+	@layouts.Base("Music | Asset Manager | Tabletopper") {
+		@assetsShell(assetTabMusic, nil) {
+			@assetGrid("music", "No music yet.", "The tracks you play behind a session -- a battle, a tavern, an hour of rain. One plays at a time and loops until you stop it or choose another.")
+		}
+	}
+}
+
+templ assetsShell(active string, actions templ.Component) {
+	<assets-page class="relative block h-screen min-h-dvh w-screen">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class={ assetGutter + " flex flex-wrap items-center justify-between gap-4 py-3" }>
+					<div class="flex min-w-0 items-center gap-3">
+						@backLink(homeBack())
+						<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
+					</div>
+					if actions != nil {
+						<div class="flex flex-row flex-nowrap items-center">
+							@actions
+						</div>
+					}
+				</div>
+				@assetTabs(active)
+			}
+			{ children... }
+		</div>
+	</assets-page>
+}
+
+templ assetGrid(id string, heading string, blurb string) {
+	<section id={ id } class={ assetGutter + " grid min-h-0 w-full grid-cols-5 content-start gap-4 overflow-y-auto py-4" }>
+		{ children... }
+		<div class="col-span-full hidden only:block">
+			@assetEmptyState(heading, blurb)
+		</div>
+	</section>
+}
+
+templ assetEmptyState(heading string, blurb string) {
+	<div class={ sheetSurface + " mx-auto mt-[min(14vh,7rem)] max-w-md text-center" }>
+		<div class="card-body p-8">
+			<p class="m-0 font-serif text-2xl">{ heading }</p>
+			<p class="m-0 mt-4 text-base-content/75">{ blurb }</p>
+		</div>
+	</div>
+}
+
+templ mapUploadButton() {
+	<label
+		for="map-upload"
+		class="btn btn-primary relative"
+	>
+		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
+		Upload map
+		<input
+			class="absolute top-0 left-0 h-0 w-0 opacity-0"
+			id="map-upload"
+			type="file"
+			name="map"
+			accept="image/png, image/jpeg, image/webp"
+			required
+			hx-post="/assets/maps"
+			hx-swap="afterbegin"
+			hx-target="#maps"
+			hx-encoding="multipart/form-data"
+		/>
+	</label>
 }
 
 templ MapCard(m MapAsset) {
@@ -51,6 +146,7 @@ templ MapCard(m MapAsset) {
 			value={ m.Name }
 			name="map-name"
 			required
+			maxlength={ strconv.Itoa(AssetNameLimit) }
 			hx-trigger="input changed delay:1s"
 			hx-patch={ "/assets/maps/" + m.ID + "/name" }
 			hx-swap="none"
@@ -94,45 +190,4 @@ templ MapCard(m MapAsset) {
 			</div>
 		</div>
 	</asset-card>
-}
-
-templ mapAssetsContent(maps []MapAsset) {
-	<assets-page class="relative block h-screen min-h-dvh w-screen">
-		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
-			@appBar() {
-				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:px-4">
-					<div class="flex min-w-0 items-center gap-3">
-						@backLink(homeBack())
-						<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Asset Manager</h1>
-					</div>
-					<div class="flex flex-row flex-nowrap items-center">
-						<label
-							for="map-upload"
-							class="btn btn-primary relative"
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
-							Upload map
-							<input
-								class="absolute top-0 left-0 h-0 w-0 opacity-0"
-								id="map-upload"
-								type="file"
-								name="map"
-								accept="image/png, image/jpeg, image/webp"
-								required
-								hx-post="/assets/maps"
-								hx-swap="afterbegin"
-								hx-target="#maps"
-								hx-encoding="multipart/form-data"
-							/>
-						</label>
-					</div>
-				</div>
-			}
-			<section id="maps" class="grid min-h-0 w-full grid-cols-5 content-start gap-4 overflow-y-auto px-6 py-4 max-[700px]:px-4">
-				for _, m := range maps {
-					@MapCard(m)
-				}
-			</section>
-		</div>
-	</assets-page>
 }

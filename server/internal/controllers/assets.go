@@ -141,6 +141,31 @@ func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/assets/maps")
 }
 
+// THE ASSET MANAGER IS A PAGE PER KIND, and these four handlers are the whole
+// of that: /assets itself redirects, because there is nothing to show above the
+// kinds that the tab strip does not already show.
+//
+// Three of them take no data and read nothing. Tokens, avatars and music have
+// no upload route, no card and no query yet -- they are the sub-nav's four
+// destinations, so that the strip is a strip rather than one link and three
+// dead ends, and so the pages that fill them have somewhere to be filled in.
+// Each renders the empty state it will keep once it has cards to show.
+//
+// They are still behind RequireSession. A page that shows an account its own
+// library is not public because it happens to be empty today, and mounting
+// them open now would be a permission to remember to take away later.
+func (a *App) TokenAssetsPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.TokenAssets())
+}
+
+func (a *App) AvatarAssetsPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.AvatarAssets())
+}
+
+func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.MusicAssets())
+}
+
 func (a *App) MapAssetsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -1050,7 +1075,7 @@ func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := strings.TrimSpace(r.FormValue("map-name"))
+	name := assetName(strings.TrimSpace(r.FormValue("map-name")))
 	if name == "" {
 		name = "Untitled"
 	}
@@ -1067,6 +1092,28 @@ func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	htmx.Toast(w, name+" updated.")
+}
+
+// assetName cuts a name to what assets.name holds. MySQL runs strict, so a
+// longer value is a driver error rather than a truncation -- a 500 on a save
+// that a person would read as the name simply not sticking.
+//
+// IT CUTS RATHER THAN REFUSES, and that is a statement about who can reach it.
+// Every box that posts a name carries pages.AssetNameLimit as maxlength, so a
+// browser cannot send an over-long one; what arrives here too long was composed
+// by something else, and there is no one to show an error to. A filename is the
+// other caller and is not typed at all.
+//
+// The count is in runes because VARCHAR counts characters, which is also what
+// maxlength counts -- so the two agree on a name of accented characters, where
+// a byte count would refuse one the column would have taken.
+func assetName(name string) string {
+	runes := []rune(name)
+	if len(runes) > pages.AssetNameLimit {
+		return string(runes[:pages.AssetNameLimit])
+	}
+
+	return name
 }
 
 // discardMap rolls back a map upload that failed after its row was written. The

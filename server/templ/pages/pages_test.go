@@ -82,9 +82,15 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"stat-block-fragment": func() error {
 			return render(MonsterStatBlockFragment(testStatBlock()))
 		},
-		"assets":  func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
-		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":     func() error { return render(TOS()) },
+		"assets": func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
+		// The map page with nothing on it, because the empty state is markup
+		// the populated one does not reach.
+		"assets-empty":   func() error { return render(MapAssets(nil)) },
+		"assets-tokens":  func() error { return render(TokenAssets()) },
+		"assets-avatars": func() error { return render(AvatarAssets()) },
+		"assets-music":   func() error { return render(MusicAssets()) },
+		"sign-in":        func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":            func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -1299,6 +1305,9 @@ func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 		"roster":           {Characters(nil), "/", "Home"},
 		"manual":           {Monsters(MonsterListData{}), "/", "Home"},
 		"asset manager":    {MapAssets(nil), "/", "Home"},
+		"asset tokens":     {TokenAssets(), "/", "Home"},
+		"asset avatars":    {AvatarAssets(), "/", "Home"},
+		"asset music":      {MusicAssets(), "/", "Home"},
 		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: characterID}), "/characters", "Characters"},
 		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters", "Monsters"},
 		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: characterID}), "/characters", "Characters"},
@@ -2437,5 +2446,155 @@ func TestThePageIsMadeOfTheSameCardTheFragmentServes(t *testing.T) {
 	}
 	if !strings.Contains(page, fragment) {
 		t.Errorf("the page's card is not the one the fragment serves\ncard:\n%s\npage:\n%s", fragment, page)
+	}
+}
+
+// THE SUB-NAV IS THE ONLY THING JOINING THE FOUR ASSET PAGES. There is no index
+// above them -- /assets redirects onto the first -- so a page that dropped one
+// of these links would leave that kind reachable by typing its URL and by
+// nothing else.
+//
+// It is checked from all four pages rather than from one, because each page
+// names its own current tab and a page passing the wrong name is a strip that
+// marks somewhere the reader is not.
+func TestEveryAssetPageOffersEveryKind(t *testing.T) {
+	kinds := []string{"/assets/maps", "/assets/tokens", "/assets/avatars", "/assets/music"}
+
+	for name, c := range map[string]struct {
+		page    templ.Component
+		current string
+	}{
+		"maps":    {MapAssets(nil), "/assets/maps"},
+		"tokens":  {TokenAssets(), "/assets/tokens"},
+		"avatars": {AvatarAssets(), "/assets/avatars"},
+		"music":   {MusicAssets(), "/assets/music"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.page)
+
+			for _, href := range kinds {
+				if !strings.Contains(body, `href="`+href+`"`) {
+					t.Errorf("no way to reach %s from here", href)
+				}
+			}
+
+			// Matched on the attribute rather than the class string, so
+			// restyling the links does not break the test.
+			if want := `href="` + c.current + `" aria-current="page"`; !strings.Contains(body, want) {
+				t.Errorf("the current tab is not %s", c.current)
+			}
+
+			// Exactly one of them, or the strip is marking two places at once.
+			if n := strings.Count(body, `aria-current="page"`); n != 1 {
+				t.Errorf("%d tabs are marked current, want 1", n)
+			}
+		})
+	}
+}
+
+// THE STRIP IS IN THE BAR, not at the top of the content under it. A row of
+// bare links rendered into the scrolling column sits directly on the grid
+// paper, which is what the character tabs did before there was a bar to dock
+// them in.
+func TestTheAssetTabsRenderInsideTheBar(t *testing.T) {
+	body := markup(t, TokenAssets())
+
+	barCloses := strings.Index(body, "</header>")
+	if barCloses < 0 {
+		t.Fatal("the page renders no bar at all")
+	}
+	at := strings.Index(body, `aria-label="Asset kinds"`)
+	if at < 0 {
+		t.Fatal("the page renders no asset nav at all")
+	}
+	if at > barCloses {
+		t.Error("the asset nav renders below the bar, which puts it on the grid paper")
+	}
+}
+
+// THE EMPTY STATE IS THE GRID'S LAST CHILD, HIDDEN BY :only-child. One piece of
+// markup then covers a library that has never held anything and one whose last
+// card was just deleted, with no JavaScript, nothing counting and no second
+// render path.
+//
+// THE ORDER IS THE WHOLE MECHANISM, so it is what is asserted. An upload
+// prepends its card into this section (hx-swap="afterbegin"), so the message
+// stays last and stops being an only child the moment one lands; deleting the
+// last card makes it one again and it comes back on its own.
+//
+// AND THE SECTION IS ALWAYS RENDERED, which is the half that is easy to get
+// wrong. Showing the message *instead of* the grid would take #maps off the
+// page with it -- and #maps is the upload's hx-target, so the first card of a
+// new library would swap into nothing and the upload would look like it failed
+// silently.
+func TestTheEmptyStateSitsLastInAGridThatIsAlwaysThere(t *testing.T) {
+	const marker = `class="col-span-full hidden only:block"`
+
+	for name, c := range map[string]struct {
+		page  templ.Component
+		cards bool
+	}{
+		"a library with nothing in it": {MapAssets(nil), false},
+		"a library with a map in it":   {MapAssets([]MapAsset{testMapCard()}), true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.page)
+
+			if !strings.Contains(body, `id="maps"`) {
+				t.Fatal("no #maps section, so the upload has nothing to swap into")
+			}
+			empty := strings.Index(body, marker)
+			if empty < 0 {
+				t.Fatalf("the empty state is not rendered:\n%s", body)
+			}
+			if !strings.Contains(body, "No maps yet.") {
+				t.Error("the empty state says nothing")
+			}
+
+			// After the cards, which is what makes :only-child true exactly
+			// when there are none.
+			if c.cards {
+				card := strings.Index(body, "<asset-card")
+				if card < 0 {
+					t.Fatal("the map did not render a card")
+				}
+				if card > empty {
+					t.Error("the empty state renders before the cards, so it is never an only child")
+				}
+			}
+		})
+	}
+}
+
+// Every kind's empty state says something about that kind. They were four
+// copies of "Nothing here yet" once, which is a sentence that tells a reader
+// who landed on the wrong tab nothing at all.
+func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
+	for name, c := range map[string]struct {
+		page    templ.Component
+		heading string
+	}{
+		"maps":    {MapAssets(nil), "No maps yet."},
+		"tokens":  {TokenAssets(), "No tokens yet."},
+		"avatars": {AvatarAssets(), "No avatars yet."},
+		"music":   {MusicAssets(), "No music yet."},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if body := markup(t, c.page); !strings.Contains(body, c.heading) {
+				t.Errorf("the %s page does not say %q", name, c.heading)
+			}
+		})
+	}
+}
+
+// The name box is bounded by what the column holds. MySQL runs strict, so a
+// longer value is a driver error rather than a truncation -- and the save is a
+// debounced keystroke with no error block to put a message in, so the refusal
+// has to happen in the browser before anything is sent.
+func TestTheAssetNameBoxIsBoundedByTheColumn(t *testing.T) {
+	body := markup(t, MapCard(testMapCard()))
+
+	if want := `maxlength="` + strconv.Itoa(AssetNameLimit) + `"`; !strings.Contains(body, want) {
+		t.Errorf("the name box carries no %s:\n%s", want, body)
 	}
 }

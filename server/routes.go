@@ -337,8 +337,22 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.SaveMonsterAction))
 	mux.HandleFunc("DELETE /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.DeleteMonsterAction))
 
+	// THE ASSET MANAGER IS A PAGE PER KIND, joined by the sub-nav across the
+	// top. /assets is a redirect onto the first of them rather than an index:
+	// there is nothing to show above the kinds that the tab strip does not
+	// already show, and a page whose whole content is four links to the pages
+	// beneath it is a page nobody wants to land on twice.
+	//
+	// FOUR LITERAL ROUTES RATHER THAN "GET /assets/{kind}". The kinds are a
+	// closed set whose handlers do not resemble each other -- a map is tiled by
+	// a background worker, music is not an image at all -- so a wildcard would
+	// be matched against an allowlist and then switched on, which is a longer
+	// way of writing what the mux does here for nothing.
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
+	mux.HandleFunc("GET /assets/tokens", auth.RequireSession(app.TokenAssetsPage))
+	mux.HandleFunc("GET /assets/avatars", auth.RequireSession(app.AvatarAssetsPage))
+	mux.HandleFunc("GET /assets/music", auth.RequireSession(app.MusicAssetsPage))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
 	mux.HandleFunc("DELETE /assets/maps/{id}", auth.RequireSession(app.DeleteMap))
 	mux.HandleFunc("POST /assets/maps/{id}", auth.RequireSession(app.ReplaceMap))

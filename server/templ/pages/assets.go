@@ -2,6 +2,41 @@ package pages
 
 import "tabletopper/internal/queries"
 
+// THE ASSET MANAGER IS A PAGE PER KIND, and these four names are what says
+// which one is being rendered. They live here rather than beside the markup in
+// asset-tabs.templ because that file cannot carry a comment of any kind, and
+// because the reason there are four of them is not obvious from a list of four
+// strings.
+//
+// A kind is a page rather than a filter on one page because the four do not
+// behave alike. A map is tiled by a background worker and its card polls; a
+// token is one image with an aspect worth keeping; an avatar is a square
+// thumbnail; music is not an image at all and never passes through the image
+// routes. One page switching on a query parameter would be four pages sharing
+// a URL.
+//
+// THE VALUES ARE THE LAST PATH SEGMENT of the page each one marks, which is
+// what lets the controller pass the same word it routed on. They are not read
+// from the URL -- each handler names its own -- so nothing here is a parameter
+// anything could ask for.
+const (
+	assetTabMaps    = "maps"
+	assetTabTokens  = "tokens"
+	assetTabAvatars = "avatars"
+	assetTabMusic   = "music"
+)
+
+// AssetNameLimit is what assets.name holds, and it is exported because the
+// markup needs it: the name box on every asset card carries it as maxlength, so
+// the browser refuses a value the column cannot take rather than the server
+// discovering it at the insert. MySQL runs strict, so a longer value is a
+// driver error rather than a truncation.
+//
+// It is counted in characters and not bytes, which is what VARCHAR counts and
+// what maxlength counts -- so a name of 255 accented characters is legal in
+// both places and is 400-odd bytes on the wire.
+const AssetNameLimit = 255
+
 // The asset manager's cards. A map is not one thing that is either there or
 // not: it is an original in the bucket, a pyramid of tiles built from it by a
 // background worker, and a job that may be queued, running, finished or given

@@ -54,12 +54,6 @@ const (
 	// runaway paste rather than an invariant -- see UploadJournalImage for
 	// what it does and does not promise.
 	journalImageLimit = 40
-
-	// journalImageNameLimit is what assets.name holds. MySQL runs strict, so a
-	// longer value is a driver error rather than a truncation, and it is
-	// counted in runes because VARCHAR counts characters -- the same measure
-	// the entry title uses.
-	journalImageNameLimit = 255
 )
 
 // journalImagePath is the URL an entry's markdown carries for one of its
@@ -148,7 +142,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	assetID := ulid.Make()
-	name := journalImageName(filename)
+	name := assetName(filename)
 	// NOTE: the row is the ledger for what lives in R2, so it is written first
 	// and rolled back if the upload never lands
 	err = a.Queries.InsertJournalImage(ctx, queries.InsertJournalImageParams{
@@ -303,19 +297,6 @@ func journalImageFlips(states []queries.ListJournalImageStatesRow, referenced fu
 	}
 
 	return attach, detach
-}
-
-// journalImageName cuts the uploaded filename to what the column holds. Nothing
-// renders it: a pasted clipboard image arrives as image.png or with no name at
-// all, and the value is there so a row in the bucket's ledger can be recognised
-// by a person reading the table.
-func journalImageName(filename string) string {
-	runes := []rune(filename)
-	if len(runes) > journalImageNameLimit {
-		return string(runes[:journalImageNameLimit])
-	}
-
-	return filename
 }
 
 // discardJournalImage rolls back an upload that failed after its row was

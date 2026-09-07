@@ -3,10 +3,10 @@ package pages
 templ characterTabs(characterID string, active string) {
 	{{ base := "/characters/" + characterID + "/edit" }}
 	<nav class={ barGutter + " flex gap-1" } aria-label="Character sheet sections">
-		@characterTabLink(base, "Character", active == characterTabMain)
-		@characterTabLink(base+"/inventory", "Inventory", active == characterTabInventory)
-		@characterTabLink(base+"/spells/0", "Spells", active == characterTabSpells)
-		@characterTabLink(base+"/journal", "Journal", active == characterTabJournal)
+		@tabLink(base, "Character", active == characterTabMain)
+		@tabLink(base+"/inventory", "Inventory", active == characterTabInventory)
+		@tabLink(base+"/spells/0", "Spells", active == characterTabSpells)
+		@tabLink(base+"/journal", "Journal", active == characterTabJournal)
 	</nav>
 }
 
@@ -16,18 +16,3 @@ const (
 	characterTabSpells    = "spells"
 	characterTabJournal   = "journal"
 )
-
-templ characterTabLink(href string, name string, current bool) {
-	if current {
-		<a
-			href={ href }
-			aria-current="page"
-			class={ tabGutter + " -mb-px border-b-2 border-primary pt-2 pb-2.5 font-semibold transition-colors duration-150" }
-		>{ name }</a>
-	} else {
-		<a
-			href={ href }
-			class={ tabGutter + " -mb-px border-b-2 border-transparent pt-2 pb-2.5 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content" }
-		>{ name }</a>
-	}
-}

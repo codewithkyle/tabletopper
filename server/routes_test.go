@@ -296,3 +296,48 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
+// THE ASSET MANAGER IS FOUR PAGES AND A REDIRECT ONTO THE FIRST OF THEM, and
+// all four are literals. Nothing here is a wildcard, so the mux has nothing to
+// disambiguate -- which is exactly why it is worth pinning: the day one of
+// these is rewritten as "/assets/{kind}", "images" becomes a kind, every
+// avatar and map preview on every page routes to the asset manager instead of
+// to its bytes, and every one of them renders as a broken image.
+//
+// Only maps carries a mutation so far. The other three are a page and nothing
+// else, and a POST to one is a miss rather than a pattern that would answer it
+// with the page -- which is what a method-less registration would have done.
+func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
+	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
+
+	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
+	for _, c := range []struct{ method, path, want string }{
+		{http.MethodGet, "/assets", "GET /assets"},
+		{http.MethodGet, "/assets/maps", "GET /assets/maps"},
+		{http.MethodGet, "/assets/tokens", "GET /assets/tokens"},
+		{http.MethodGet, "/assets/avatars", "GET /assets/avatars"},
+		{http.MethodGet, "/assets/music", "GET /assets/music"},
+		// The image proxy sits at the same depth as the four pages, and stays
+		// there.
+		{http.MethodGet, "/assets/images/" + asset, "GET /assets/images/{id}"},
+		{http.MethodGet, "/assets/images/" + asset + "/preview", "GET /assets/images/{id}/preview"},
+		// "images" is not a kind and there is no page listing it.
+		{http.MethodGet, "/assets/images", "/"},
+		// Maps is the only kind with anything behind the page yet.
+		{http.MethodPost, "/assets/maps", "POST /assets/maps"},
+		{http.MethodPost, "/assets/tokens", "/"},
+		{http.MethodPost, "/assets/avatars", "/"},
+		{http.MethodPost, "/assets/music", "/"},
+		{http.MethodGet, "/assets/tokens/" + asset, "/"},
+		{http.MethodDelete, "/assets/avatars/" + asset, "/"},
+		{http.MethodPatch, "/assets/music/" + asset + "/name", "/"},
+		// A kind that is not one of the four. There is no wildcard to catch it,
+		// so it falls to the root the way any other unknown path does.
+		{http.MethodGet, "/assets/handouts", "/"},
+	} {
+		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
+		if pattern != c.want {
+			t.Errorf("%s %s matched %q, want %q", c.method, c.path, pattern, c.want)
+		}
+	}
+}

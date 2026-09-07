@@ -2120,6 +2120,9 @@
   .col-span-2 {
     grid-column: span 2 / span 2;
   }
+  .col-span-full {
+    grid-column: 1 / -1;
+  }
   @layer daisyui.l1.l2.l3 {
     .modal-box {
       grid-column-start: 1;
@@ -3503,6 +3506,9 @@
     display: grid;
   }
   .peer-user-invalid\:block:is(:where(.peer):user-invalid ~ *) {
+    display: block;
+  }
+  .only\:block:only-child {
     display: block;
   }
   @media (hover: hover) {
