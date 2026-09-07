@@ -89,6 +89,13 @@ func TokenKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/tokens/" + assetID.String()
 }
 
+// MusicKey returns the key holding one track. Flat like a token, and the only
+// object in the bucket this process never writes: the browser PUTs it through a
+// presigned URL, so what is here is the key that URL is signed for.
+func MusicKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/music/" + assetID.String()
+}
+
 // CharacterPortraitKey returns the key holding a character's portrait. See
 // AvatarKey for why portraits written before the library existed are not here.
 func CharacterPortraitKey(userID ulid.ULID, assetID ulid.ULID) string {

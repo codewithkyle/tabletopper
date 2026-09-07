@@ -94,9 +94,12 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"assets-avatars-full": func() error {
 			return render(AvatarAssets([]LibraryAsset{testLibraryCard("avatars")}))
 		},
-		"assets-music": func() error { return render(MusicAssets()) },
-		"sign-in":      func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":          func() error { return render(TOS()) },
+		"assets-music": func() error { return render(MusicAssets(nil)) },
+		"assets-music-full": func() error {
+			return render(MusicAssets([]MusicTrack{testMusicTrack()}))
+		},
+		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":     func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -1313,7 +1316,7 @@ func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 		"asset manager":    {MapAssets(nil), "/", "Home"},
 		"asset tokens":     {TokenAssets(nil), "/", "Home"},
 		"asset avatars":    {AvatarAssets(nil), "/", "Home"},
-		"asset music":      {MusicAssets(), "/", "Home"},
+		"asset music":      {MusicAssets(nil), "/", "Home"},
 		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: characterID}), "/characters", "Characters"},
 		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters", "Monsters"},
 		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: characterID}), "/characters", "Characters"},
@@ -2473,7 +2476,7 @@ func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 		"maps":    {MapAssets(nil), "/assets/maps"},
 		"tokens":  {TokenAssets(nil), "/assets/tokens"},
 		"avatars": {AvatarAssets(nil), "/assets/avatars"},
-		"music":   {MusicAssets(), "/assets/music"},
+		"music":   {MusicAssets(nil), "/assets/music"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			body := markup(t, c.page)
@@ -2583,7 +2586,7 @@ func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 		"maps":    {MapAssets(nil), "No maps yet."},
 		"tokens":  {TokenAssets(nil), "No tokens yet."},
 		"avatars": {AvatarAssets(nil), "No avatars yet."},
-		"music":   {MusicAssets(), "No music yet."},
+		"music":   {MusicAssets(nil), "No music yet."},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if body := markup(t, c.page); !strings.Contains(body, c.heading) {
@@ -2722,5 +2725,101 @@ func TestALibraryUploadTargetsItsOwnGrid(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// testMusicTrack is one finished track as its card reads it.
+func testMusicTrack() MusicTrack {
+	return MusicTrack{
+		ID:       testMapID,
+		Name:     "Tavern, evening",
+		FileName: "tavern-evening.mp3",
+	}
+}
+
+// A TRACK PLAYS THROUGH A ROUTE ON THIS SERVER, NEVER THROUGH A SIGNED URL IN
+// THE MARKUP. A presigned URL expires; one rendered into a page left open across
+// a session would 403 the moment somebody pressed play, or worse, mid-track, on
+// the range request the player makes to refill its buffer. Going through
+// /audio means every request the element makes -- the first, and every seek
+// after it -- is answered with a signature minted a moment earlier.
+//
+// The absence is asserted as well as the presence, because the failure of the
+// other design is invisible until a page has been open long enough.
+func TestAMusicCardPlaysThroughThisServer(t *testing.T) {
+	body := markup(t, MusicCard(testMusicTrack()))
+
+	if want := `src="/assets/music/` + testMapID + `/audio"`; !strings.Contains(body, want) {
+		t.Errorf("the player does not point at %s:\n%s", want, body)
+	}
+	if strings.Contains(body, "X-Amz-Signature") || strings.Contains(body, "r2.cloudflarestorage.com") {
+		t.Errorf("a signed URL was rendered into the page, and it will expire:\n%s", body)
+	}
+}
+
+// preload="none" IS NOT A NICETY. Every card on this page renders a player, and
+// a library of twenty tracks is a couple of gigabytes; without it, opening the
+// page starts pulling all of them at once.
+func TestAMusicPageDoesNotStartDownloadingEveryTrack(t *testing.T) {
+	body := markup(t, MusicAssets([]MusicTrack{testMusicTrack()}))
+
+	if !strings.Contains(body, `preload="none"`) {
+		t.Errorf("the players preload, so opening the page pulls every track:\n%s", body)
+	}
+}
+
+// The music upload is driven by a script, so its markup is a set of hooks rather
+// than hx-* attributes -- and the script is loaded by this page and no other.
+//
+// EVERY CLASS THE PROGRESS ROW NEEDS IS RENDERED HERE. server/public/js is
+// deliberately not a Tailwind source, so a class named in a script is never
+// emitted; the row is hidden by the hidden attribute and the bar moves by its
+// value, both of which need no class at all.
+func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
+	body := markup(t, MusicAssets(nil))
+
+	for _, want := range []string{
+		`src="/js/music-upload.js"`,
+		"data-music-input",
+		"data-music-label",
+		"data-music-progress",
+		"data-music-bar",
+		"data-music-percent",
+		// The grid the finished card is swapped into.
+		`id="music"`,
+		// The progress row starts hidden, and the script is what reveals it.
+		"hidden",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the music page carries no %s:\n%s", want, body)
+		}
+	}
+
+	// No hx-post on the file input: the file goes to R2, not here. An
+	// hx-post left on it would send 175 MB through the server as a multipart
+	// body, which is the whole thing this design avoids.
+	upload := strings.Index(body, "data-music-input")
+	if upload < 0 {
+		t.Fatal("no upload input at all")
+	}
+	if strings.Contains(body[:upload], `hx-post="/assets/music"`) {
+		t.Error("the file input posts to the server, so the bytes would not go to the bucket")
+	}
+}
+
+// Music has no Replace. Every other kind overwrites its object in place, which
+// for a track would be a second presigned round trip for no gain -- deleting and
+// uploading is the same two requests with a clearer name.
+func TestAMusicCardOffersNoReplace(t *testing.T) {
+	body := markup(t, MusicCard(testMusicTrack()))
+
+	if strings.Contains(body, `type="file"`) {
+		t.Errorf("the card offers a replace it has no route for:\n%s", body)
+	}
+	if want := `hx-delete="/assets/music/` + testMapID + `"`; !strings.Contains(body, want) {
+		t.Errorf("the card carries no %s:\n%s", want, body)
+	}
+	if want := `hx-patch="/assets/music/` + testMapID + `/name"`; !strings.Contains(body, want) {
+		t.Errorf("the card carries no %s:\n%s", want, body)
 	}
 }

@@ -141,19 +141,6 @@ func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/assets/maps")
 }
 
-// The music page, which is still the sub-nav's fourth destination and nothing
-// else. It reads nothing, because there is no upload route and no row to read
-// until music has one -- and music is not an image, so none of this file's
-// plumbing reaches it. The tokens and avatars pages moved to library-assets.go
-// once they had something to list.
-//
-// It is behind RequireSession like the other three. A page that shows an
-// account its own library is not public because it happens to be empty today,
-// and mounting it open now would be a permission to remember to take away.
-func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.MusicAssets())
-}
-
 func (a *App) MapAssetsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)

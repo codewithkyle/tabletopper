@@ -57,10 +57,17 @@ const (
 	tokenSize = 512
 )
 
-// libraryKind is one kind of library asset as these handlers need it: the
-// member its rows carry, the words its messages use, where its objects live,
-// and how its picture is resized on the way in.
-type libraryKind struct {
+// assetKind is the least a handler can know about a kind and still act on one
+// of its rows: which member to scope by, which segment it is routed under, and
+// what to call it in a message.
+//
+// IT IS SPLIT OUT FROM libraryKind BECAUSE MUSIC USES HALF OF THESE HANDLERS.
+// Renaming and deleting are the same work whatever the asset is -- a column and
+// an object at file_path -- and music is not an image, so it has none of the
+// resizing, no shared page and no upload in common with the two below. Giving
+// it a libraryKind with nil in the image-shaped fields would have put a landmine
+// in every one of them.
+type assetKind struct {
 	// Type is the assets.type member. It is passed to every statement, which
 	// is what stops a token's id reaching an avatar's route and being renamed,
 	// replaced or deleted through it.
@@ -73,6 +80,13 @@ type libraryKind struct {
 	// One is the word for a single one of these, used by htmx.NotFound to say
 	// "That token no longer exists" rather than naming a row.
 	One string
+}
+
+// libraryKind is one kind of PICTURE the account gathers: an assetKind, plus
+// where its objects live, how it is resized on the way in, and the page that
+// lists it.
+type libraryKind struct {
+	assetKind
 
 	// Key builds the object's key in the bucket.
 	Key func(userID ulid.ULID, assetID ulid.ULID) string
@@ -90,22 +104,22 @@ type libraryKind struct {
 
 var (
 	avatarKind = libraryKind{
-		Type:  queries.AssetsTypeAvatar,
-		Slug:  "avatars",
-		One:   "avatar",
-		Key:   storage.AvatarKey,
-		Store: func(src image.Image) image.Image { return images.Square(src, avatarLibrarySize) },
-		Page:  pages.AvatarAssets,
+		assetKind: assetKind{Type: queries.AssetsTypeAvatar, Slug: "avatars", One: "avatar"},
+		Key:       storage.AvatarKey,
+		Store:     func(src image.Image) image.Image { return images.Square(src, avatarLibrarySize) },
+		Page:      pages.AvatarAssets,
 	}
 
 	tokenKind = libraryKind{
-		Type:  queries.AssetsTypeToken,
-		Slug:  "tokens",
-		One:   "token",
-		Key:   storage.TokenKey,
-		Store: func(src image.Image) image.Image { return images.Fit(src, tokenSize) },
-		Page:  pages.TokenAssets,
+		assetKind: assetKind{Type: queries.AssetsTypeToken, Slug: "tokens", One: "token"},
+		Key:       storage.TokenKey,
+		Store:     func(src image.Image) image.Image { return images.Fit(src, tokenSize) },
+		Page:      pages.TokenAssets,
 	}
+
+	// Music, which reaches only the two handlers below that do not care what an
+	// asset is made of. Everything else it needs is in music-assets.go.
+	musicKind = assetKind{Type: queries.AssetsTypeMusic, Slug: "music", One: "track"}
 )
 
 // The ten routes, which are the five below with a kind bound to each. They are
@@ -118,14 +132,22 @@ func (a *App) UploadAvatar(w http.ResponseWriter, r *http.Request) { a.uploadLib
 func (a *App) ReplaceAvatar(w http.ResponseWriter, r *http.Request) {
 	a.replaceLibrary(w, r, avatarKind)
 }
-func (a *App) RenameAvatar(w http.ResponseWriter, r *http.Request) { a.renameLibrary(w, r, avatarKind) }
-func (a *App) DeleteAvatar(w http.ResponseWriter, r *http.Request) { a.deleteLibrary(w, r, avatarKind) }
+func (a *App) RenameAvatar(w http.ResponseWriter, r *http.Request) {
+	a.renameLibrary(w, r, avatarKind.assetKind)
+}
+func (a *App) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	a.deleteLibrary(w, r, avatarKind.assetKind)
+}
 
 func (a *App) TokenAssetsPage(w http.ResponseWriter, r *http.Request) { a.libraryPage(w, r, tokenKind) }
 func (a *App) UploadToken(w http.ResponseWriter, r *http.Request)     { a.uploadLibrary(w, r, tokenKind) }
 func (a *App) ReplaceToken(w http.ResponseWriter, r *http.Request)    { a.replaceLibrary(w, r, tokenKind) }
-func (a *App) RenameToken(w http.ResponseWriter, r *http.Request)     { a.renameLibrary(w, r, tokenKind) }
-func (a *App) DeleteToken(w http.ResponseWriter, r *http.Request)     { a.deleteLibrary(w, r, tokenKind) }
+func (a *App) RenameToken(w http.ResponseWriter, r *http.Request) {
+	a.renameLibrary(w, r, tokenKind.assetKind)
+}
+func (a *App) DeleteToken(w http.ResponseWriter, r *http.Request) {
+	a.deleteLibrary(w, r, tokenKind.assetKind)
+}
 
 // libraryCard is the assets row as its card reads it. Six values out of
 // twenty-two columns; every pyramid and job column is NULL for these kinds and
@@ -256,7 +278,7 @@ func (a *App) replaceLibrary(w http.ResponseWriter, r *http.Request, kind librar
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	row, ok := a.libraryAsset(w, r, kind)
+	row, ok := a.libraryAsset(w, r, kind.assetKind)
 	if !ok {
 		return
 	}
@@ -315,7 +337,7 @@ func (a *App) replaceLibrary(w http.ResponseWriter, r *http.Request, kind librar
 // The reply is a toast and nothing else -- hx-swap="none" on the box -- because
 // the box already shows what was typed and swapping over it would move the
 // caret while somebody was still in it.
-func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind libraryKind) {
+func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind assetKind) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
@@ -355,7 +377,7 @@ func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind library
 // The reply is 200 with an empty body and not 204 -- noSwap lists 204, and a
 // status in that list overrides the hx-swap="delete" on the button, which would
 // leave the card on screen after the asset was gone.
-func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind libraryKind) {
+func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind assetKind) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
@@ -390,7 +412,7 @@ func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind library
 // THE KIND IN THE WHERE IS WHAT MAKES THE KIND IN THE PATH MEAN SOMETHING.
 // Without it, a token's id sent to DELETE /assets/avatars/{id} would delete the
 // token -- the row is the owner's either way, so nothing else would refuse it.
-func (a *App) libraryAsset(w http.ResponseWriter, r *http.Request, kind libraryKind) (queries.Asset, bool) {
+func (a *App) libraryAsset(w http.ResponseWriter, r *http.Request, kind assetKind) (queries.Asset, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 

@@ -270,3 +270,65 @@ WHERE id = ? AND owner_id = ? AND type = ?;
 UPDATE assets
 SET file_name = ?, width = ?, height = ?, updated_at = NOW()
 WHERE id = ? AND owner_id = ? AND type = ?;
+
+-- MUSIC, WHICH IS THE ONE KIND WHOSE BYTES NEVER PASS THROUGH THIS PROCESS.
+-- The browser PUTs them to R2 through a presigned URL, so an upload is two
+-- requests with a gap between them and these statements are what carry the row
+-- across it. See 20260907140000 for why uploaded_at exists.
+
+-- The row that claims a key, written before the presigned URL that names it is
+-- handed out. uploaded_at stays NULL, so nothing lists it and the sweep can
+-- find it: it owns a key and nothing else until the confirm has looked in the
+-- bucket.
+-- name: InsertMusic :exec
+INSERT INTO assets
+(id, owner_id, file_path, type, file_name, name)
+VALUES (?, ?, ?, 'music', ?, ?);
+
+-- The library, which is finished tracks only. A row whose PUT is still running
+-- -- or was abandoned when the tab closed -- has no object behind it, and a
+-- card for it would be a player that answers every press with a 404.
+-- name: GetMusicLibrary :many
+SELECT * FROM assets
+WHERE owner_id = ? AND type = 'music' AND uploaded_at IS NOT NULL
+ORDER BY created_at DESC;
+
+-- One track, FINISHED OR NOT. The confirm reads a row that is by definition not
+-- finished yet, so this one cannot filter on uploaded_at; every caller that
+-- needs a playable track checks it for itself.
+-- name: GetMusicTrack :one
+SELECT * FROM assets
+WHERE id = ? AND owner_id = ? AND type = 'music';
+
+-- The second half of an upload: the object is in the bucket, it is the size the
+-- signature allowed, and its first bytes say it is the format its name claims.
+--
+-- uploaded_at IS NULL IS IN THE WHERE, so a confirm that arrives twice writes
+-- once. The result is read, because the second one landing on zero rows is how
+-- the handler knows not to answer with a second card for a track the page
+-- already shows.
+-- name: FinishMusicUpload :execresult
+UPDATE assets
+SET uploaded_at = NOW()
+WHERE id = ? AND owner_id = ? AND type = 'music' AND uploaded_at IS NULL;
+
+-- The rows whose PUT never finished. A browser that was closed mid-upload
+-- leaves one behind, and there is nothing in a request that could ever notice:
+-- the request that would have confirmed it is the one that did not happen.
+--
+-- THE type = 'music' IS LOAD-BEARING. uploaded_at is NULL for every map, token,
+-- avatar and journal image in the table, because those land inside the request
+-- that inserted them and have no window for it to describe. Without this
+-- clause, a pass would collect the entire assets table.
+--
+-- The grace is long enough to cover an upload that is merely slow rather than
+-- abandoned -- see internal/sweep for the number and why.
+--
+-- The LIMIT is a literal because sqlc gives no parameter for one. It bounds a
+-- pass rather than the backlog: each of these rows costs a delete against R2,
+-- and what is left waits for the next pass.
+-- name: ListAbandonedMusicUploads :many
+SELECT id, owner_id, file_path FROM assets
+WHERE type = 'music' AND uploaded_at IS NULL AND created_at < ?
+ORDER BY created_at
+LIMIT 100;

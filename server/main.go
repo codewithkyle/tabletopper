@@ -68,6 +68,7 @@ func run() error {
 	sessions.StartCleanup(ctx)
 	sweep.JournalImages(ctx, q, store)
 	sweep.ExpiredShares(ctx, q)
+	sweep.MusicUploads(ctx, q, store)
 	tiling.Maps(ctx, q, store)
 
 	app := &controllers.App{

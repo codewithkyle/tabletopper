@@ -133,7 +133,7 @@ Tokens and avatars are the map card minus the tiling overlay. One shared card
 component with the poll/retry block rendered only for maps, rather than three
 near-copies.
 
-## Phase 2 -- Music -- NEXT
+## Phase 2 -- Music -- LANDED 2026-09-07
 
 The only kind that is not an image. Every helper from `openImageUpload` down is
 image-only, and every serving route ends in `streamImage`, which hardcodes
@@ -211,7 +211,7 @@ back is a whole extra mutation route for a number nothing needs yet.
 256 MiB. Covers 2 hours at 256 kbps with room, and is a number the presigned
 PUT can actually enforce.
 
-## Phase 3 -- Search
+## Phase 3 -- Search -- NEXT
 
 One fragment route with the kind validated against the four members:
 

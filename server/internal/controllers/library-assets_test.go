@@ -175,7 +175,7 @@ func TestLibraryReadsAndRenamesAreScopedToTheirKind(t *testing.T) {
 			r.SetPathValue("id", id)
 			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 
-			app.renameLibrary(newRecorder(), r, kind)
+			app.renameLibrary(newRecorder(), r, kind.assetKind)
 
 			if len(db.calls) != 1 {
 				t.Fatalf("ran %d statements, want 1", len(db.calls))

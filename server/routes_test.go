@@ -347,12 +347,28 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		// rendered by the page, and its bytes come from /assets/images/{id}.
 		{http.MethodGet, "/assets/tokens/" + asset, "/"},
 		{http.MethodGet, "/assets/avatars/" + asset, "/"},
-		// Music is still a page and nothing else. It is not an image, so it
-		// shares no handler with the two above and has none of their routes.
-		{http.MethodPost, "/assets/music", "/"},
+		// MUSIC, WHOSE UPLOAD IS TWO REQUESTS. The begin is the collection and
+		// the confirm hangs off the member, so they differ by two segments; the
+		// bytes go to R2 in between and never touch a route here.
+		//
+		// "confirm" and "audio" are literals in the third segment where no
+		// wildcard sits, so neither can be taken for an id.
+		{http.MethodPost, "/assets/music", "POST /assets/music"},
+		{http.MethodPost, "/assets/music/" + asset + "/confirm", "POST /assets/music/{id}/confirm"},
+		{http.MethodPatch, "/assets/music/" + asset + "/name", "PATCH /assets/music/{id}/name"},
+		{http.MethodDelete, "/assets/music/" + asset, "DELETE /assets/music/{id}"},
+		{http.MethodGet, "/assets/music/" + asset + "/audio", "GET /assets/music/{id}/audio"},
+		// There is no replace: a track is deleted and uploaded again, because
+		// overwriting one is a second presigned round trip for no gain.
 		{http.MethodPost, "/assets/music/" + asset, "/"},
-		{http.MethodPatch, "/assets/music/" + asset + "/name", "/"},
-		{http.MethodDelete, "/assets/music/" + asset, "/"},
+		// The confirm and the player are each one method only. A GET of the
+		// confirm would be a mutation behind a link, and a POST to the player
+		// is nothing at all.
+		{http.MethodGet, "/assets/music/" + asset + "/confirm", "/"},
+		{http.MethodPost, "/assets/music/" + asset + "/audio", "/"},
+		// No representation of a track to fetch: its card is rendered by the
+		// page and its bytes come from the bucket.
+		{http.MethodGet, "/assets/music/" + asset, "/"},
 		// A kind that is not one of the four. There is no wildcard to catch it,
 		// so it falls to the root the way any other unknown path does.
 		{http.MethodGet, "/assets/handouts", "/"},

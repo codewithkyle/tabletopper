@@ -5,7 +5,7 @@ import "tabletopper/templ/layouts"
 templ MapAssets(maps []MapAsset) {
 	@layouts.Base("Maps | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabMaps, mapUploadButton()) {
-			@assetGrid("maps", "No maps yet.", "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.") {
+			@assetGrid("maps", assetTileGrid, "No maps yet.", "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.") {
 				for _, m := range maps {
 					@MapCard(m)
 				}
@@ -17,7 +17,7 @@ templ MapAssets(maps []MapAsset) {
 templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabTokens, libraryUploadButton("tokens", "Upload token")) {
-			@assetGrid("tokens", "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.") {
+			@assetGrid("tokens", assetTileGrid, "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.") {
 				for _, t := range tokens {
 					@LibraryAssetCard(t)
 				}
@@ -29,19 +29,11 @@ templ TokenAssets(tokens []LibraryAsset) {
 templ AvatarAssets(avatars []LibraryAsset) {
 	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabAvatars, libraryUploadButton("avatars", "Upload avatar")) {
-			@assetGrid("avatars", "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.") {
+			@assetGrid("avatars", assetTileGrid, "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.") {
 				for _, a := range avatars {
 					@LibraryAssetCard(a)
 				}
 			}
-		}
-	}
-}
-
-templ MusicAssets() {
-	@layouts.Base("Music | Asset Manager | Tabletopper") {
-		@assetsShell(assetTabMusic, nil) {
-			@assetGrid("music", "No music yet.", "The tracks you play behind a session -- a battle, a tavern, an hour of rain. One plays at a time and loops until you stop it or choose another.")
 		}
 	}
 }
@@ -68,8 +60,8 @@ templ assetsShell(active string, actions templ.Component) {
 	</assets-page>
 }
 
-templ assetGrid(id string, heading string, blurb string) {
-	<section id={ id } class={ assetGutter + " grid min-h-0 w-full grid-cols-5 content-start gap-4 overflow-y-auto py-4" }>
+templ assetGrid(id string, cols string, heading string, blurb string) {
+	<section id={ id } class={ assetGutter + " grid min-h-0 w-full content-start gap-4 overflow-y-auto py-4 " + cols }>
 		{ children... }
 		<div class="col-span-full hidden only:block">
 			@assetEmptyState(heading, blurb)

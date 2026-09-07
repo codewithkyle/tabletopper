@@ -383,6 +383,38 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /assets/avatars/{id}", auth.RequireSession(app.ReplaceAvatar))
 	mux.HandleFunc("PATCH /assets/avatars/{id}/name", auth.RequireSession(app.RenameAvatar))
 	mux.HandleFunc("DELETE /assets/avatars/{id}", auth.RequireSession(app.DeleteAvatar))
+
+	// MUSIC, WHOSE UPLOAD IS TWO REQUESTS BECAUSE ITS BYTES NEVER COME HERE. A
+	// track is 115 to 175 MB, so the browser PUTs it straight to R2 through a
+	// presigned URL: the first route writes the row that claims the key and
+	// hands back the signature, and the second looks in the bucket afterwards
+	// and finishes the row. See internal/controllers/music-assets.go.
+	//
+	// THE FIRST ANSWERS JSON AND THE SECOND ANSWERS THE CARD. Neither could
+	// live under /fragment/: the prefix is for GETs that return partial HTML,
+	// and these are mutations -- one of which returns no HTML at all.
+	//
+	// "confirm" is a literal in the third segment, where no wildcard sits, so
+	// it cannot be taken for an id.
+	mux.HandleFunc("POST /assets/music", auth.RequireSession(app.StartMusicUpload))
+	mux.HandleFunc("POST /assets/music/{id}/confirm", auth.RequireSession(app.ConfirmMusicUpload))
+	mux.HandleFunc("PATCH /assets/music/{id}/name", auth.RequireSession(app.RenameMusic))
+	mux.HandleFunc("DELETE /assets/music/{id}", auth.RequireSession(app.DeleteMusic))
+
+	// The player's source. It is a 302 onto a freshly signed URL rather than a
+	// proxy of the bytes: an <audio> element seeks by asking for byte ranges,
+	// R2 answers those natively, and a browser repeats a GET's headers through
+	// a redirect -- so the Range survives the hop and no audio ever passes
+	// through this process.
+	//
+	// It is also what keeps a signature from going stale in the markup. Every
+	// request the player makes comes back through here and gets a URL minted a
+	// moment earlier.
+	//
+	// RequireSessionOr404 like the image routes, and for the same reason: this
+	// is the src of a media element, so a redirect to the sign-in page renders
+	// as a player that will not play rather than as a sign-in page.
+	mux.HandleFunc("GET /assets/music/{id}/audio", auth.RequireSessionOr404(app.GetMusicAudio))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
 	mux.HandleFunc("DELETE /assets/maps/{id}", auth.RequireSession(app.DeleteMap))
 	mux.HandleFunc("POST /assets/maps/{id}", auth.RequireSession(app.ReplaceMap))

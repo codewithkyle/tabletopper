@@ -41,17 +41,21 @@ templ assetCardControls(c cardControls) {
 					/>
 				</label>
 			</div>
-			<div class="tooltip" data-tip="Delete">
-				<button
-					class="btn btn-soft btn-error btn-square"
-					hx-confirm={ "You are about to delete " + c.ConfirmName + ". This action cannot be undone." }
-					hx-delete={ c.DeleteURL }
-					hx-target="closest asset-card"
-					hx-swap="delete"
-				>
-					@trashXIcon()
-				</button>
-			</div>
+			@assetDeleteButton(c.DeleteURL, c.ConfirmName)
 		</div>
+	</div>
+}
+
+templ assetDeleteButton(url string, name string) {
+	<div class="tooltip" data-tip="Delete">
+		<button
+			class="btn btn-soft btn-error btn-square"
+			hx-confirm={ "You are about to delete " + name + ". This action cannot be undone." }
+			hx-delete={ url }
+			hx-target="closest asset-card"
+			hx-swap="delete"
+		>
+			@trashXIcon()
+		</button>
 	</div>
 }

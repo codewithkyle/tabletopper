@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,8 +29,9 @@ type Config struct {
 }
 
 type Client struct {
-	s3     *s3.Client
-	bucket string
+	s3      *s3.Client
+	presign *s3.PresignClient
+	bucket  string
 }
 
 // New builds the shared client. It does not touch the network: a bad
@@ -56,7 +58,11 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		o.HTTPClient = &http.Client{Timeout: 30 * time.Second}
 	})
 
-	return &Client{s3: s3Client, bucket: cfg.Bucket}, nil
+	return &Client{
+		s3:      s3Client,
+		presign: s3.NewPresignClient(s3Client),
+		bucket:  cfg.Bucket,
+	}, nil
 }
 
 // Delete removes one object. Deleting a key that does not exist succeeds.
@@ -200,4 +206,128 @@ func (c *Client) Put(ctx context.Context, key string, body []byte, contentType s
 		ContentType: aws.String(contentType),
 	})
 	return err
+}
+
+// PRESIGNING, WHICH IS HOW MUSIC GETS IN AND OUT WITHOUT TOUCHING THIS PROCESS.
+//
+// A track is one to two hours long and 115 to 175 MB. Every other upload here is
+// a multipart body this server reads into memory and forwards; at that size
+// that is a 175 MB allocation, a spill to the container's /tmp, and the same
+// bytes crossing the network twice. A presigned URL is a signature over a
+// request the browser then makes itself, so the bytes go browser-to-bucket and
+// the server exchanges a few hundred bytes of URL.
+//
+// NOTHING HERE TOUCHES THE NETWORK. Presigning is an HMAC over a canonical
+// request; it needs credentials and no connection, and it will happily sign a
+// URL for a key that does not exist.
+
+// PresignPut returns a URL the browser may PUT exactly `size` bytes of exactly
+// `contentType` to, until it expires.
+//
+// BOTH ARE SIGNED, NOT SUGGESTED, and that is the whole reason this takes them.
+// Content-Length is in the signature, so R2 refuses a body that is not the
+// length the URL was minted for -- which is what keeps an upload cap
+// enforceable when the bytes never pass through a handler that could measure
+// them. Content-Type is in the signature for a smaller reason: R2 stores what it
+// is given and serves it back on the GET, so this is where a track's type is
+// decided for good.
+//
+// The browser sends Content-Length itself for a body of known size, so the only
+// header a caller has to set by hand is Content-Type.
+func (c *Client) PresignPut(ctx context.Context, key string, contentType string, size int64, ttl time.Duration) (string, error) {
+	if key == "" {
+		return "", errors.New("storage: empty key")
+	}
+
+	req, err := c.presign.PresignPutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(c.bucket),
+		Key:           aws.String(key),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(size),
+	}, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", err
+	}
+
+	return req.URL, nil
+}
+
+// PresignGet returns a URL the browser may GET the object from until it expires.
+//
+// R2 SERVES RANGES ON IT, which is the point: an <audio> element seeks by asking
+// for byte ranges, and Safari will not play a source that cannot answer one.
+// Proxying the bytes through this process would mean implementing 206 and
+// Content-Range here, and streaming every player's copy of a 175 MB track
+// through the Go server for the length of a session.
+//
+// A URL is checked when the request is made and not while the response streams,
+// so an expiry shorter than the track is not a problem -- but every player is
+// re-minted on demand by the redirect route anyway, so nothing here has to
+// outlive one request.
+func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) (string, error) {
+	if key == "" {
+		return "", errors.New("storage: empty key")
+	}
+
+	req, err := c.presign.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	}, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", err
+	}
+
+	return req.URL, nil
+}
+
+// Size reports how many bytes an object holds, and is the cheapest question
+// that can be asked about one -- a HEAD, which transfers none of it.
+//
+// It is what a confirm asks first: an object that is not there at all is an
+// upload that never finished, and one larger than the cap is a signature that
+// was not honoured.
+func (c *Client) Size(ctx context.Context, key string) (int64, error) {
+	if key == "" {
+		return 0, errors.New("storage: empty key")
+	}
+
+	head, err := c.s3.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return 0, err
+	}
+	if head.ContentLength == nil {
+		return 0, errors.New("storage: object has no length")
+	}
+
+	return *head.ContentLength, nil
+}
+
+// Peek reads the first n bytes of an object and nothing more.
+//
+// IT IS A RANGED GET, so identifying a 175 MB track costs 64 bytes off the wire.
+// The Range header is what makes that true; without it this would download the
+// whole object to look at its first line.
+//
+// A short object answers with what it has rather than an error, so a caller gets
+// fewer bytes than it asked for and has to cope -- which audio.TypeForBytes
+// does, by checking the length of every signature it tests.
+func (c *Client) Peek(ctx context.Context, key string, n int64) ([]byte, error) {
+	if key == "" {
+		return nil, errors.New("storage: empty key")
+	}
+
+	out, err := c.s3.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+		Range:  aws.String("bytes=0-" + strconv.FormatInt(n-1, 10)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer out.Body.Close()
+
+	return io.ReadAll(io.LimitReader(out.Body, n))
 }
