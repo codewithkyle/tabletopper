@@ -4,6 +4,7 @@ import "tabletopper/templ/layouts"
 
 templ SharedMonsterPage(data SharedMonsterData) {
 	@layouts.Share(SharedMonsterTitle(data.Block.Name), false) {
+		@sharedPageActions(data.Actions)
 		<article class={ sheetSurface }>
 			<div class="card-body gap-3 p-6 max-[700px]:p-4">
 				@statBlockBody(data.Block)
@@ -14,29 +15,5 @@ templ SharedMonsterPage(data SharedMonsterData) {
 				<p class="m-0 text-sm whitespace-pre-line">{ data.Description }</p>
 			}
 		}
-		if data.Offer.Shown() {
-			@sharedMonsterOffer(data.Offer)
-		}
 	}
-}
-
-templ sharedMonsterOffer(offer SharedMonsterOffer) {
-	<div class={ sheetSurface }>
-		<div class="card-body flex-row flex-wrap items-center gap-x-6 gap-y-3 p-4">
-			<p class="m-0 min-w-0 flex-1 basis-64 text-base-content/75">
-				if offer.Import != "" {
-					Add this monster to your own manual. You get a full copy to run and edit however you like.
-				} else {
-					Sign in to add this monster to your own manual, as a full copy you can run and edit.
-				}
-			</p>
-			if offer.Import != "" {
-				<form method="post" action={ offer.Import } class="max-[700px]:w-full">
-					<button type="submit" class="btn btn-primary max-[700px]:w-full">Add to my manual</button>
-				</form>
-			} else {
-				<a href={ offer.SignIn } class="btn btn-primary max-[700px]:w-full">Sign in</a>
-			}
-		</div>
-	</div>
 }

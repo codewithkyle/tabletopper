@@ -57,6 +57,29 @@ templ ShareUnavailable() {
 	}
 }
 
+templ sharedPageActions(actions SharedActions) {
+	<div class={ sheetSurface }>
+		<div class="card-body flex-row flex-wrap items-center gap-x-6 gap-y-3 p-4">
+			if actions.Blurb != "" {
+				<p class="m-0 min-w-0 flex-1 basis-64 text-base-content/75">{ actions.Blurb }</p>
+			}
+			<div class="ml-auto flex flex-wrap items-center gap-3 max-[700px]:ml-0 max-[700px]:w-full">
+				<a href={ actions.Export } download class="btn max-[700px]:flex-1">
+					@downloadIcon()
+					Export Markdown
+				</a>
+				if actions.Import != "" {
+					<form method="post" action={ actions.Import } class="max-[700px]:flex-1">
+						<button type="submit" class="btn btn-primary w-full">Add to my manual</button>
+					</form>
+				} else if actions.SignIn != "" {
+					<a href={ actions.SignIn } class="btn btn-primary max-[700px]:flex-1">Sign in</a>
+				}
+			</div>
+		</div>
+	</div>
+}
+
 templ sharedCharacterBanner(character SharedCharacter) {
 	<header class={ sheetSurface }>
 		<div class="card-body flex-row flex-wrap items-center gap-4 p-4">

@@ -102,28 +102,45 @@ func (a *App) sharedMonster(w http.ResponseWriter, r *http.Request, token string
 	render(w, r, pages.SharedMonsterPage(pages.SharedMonsterData{
 		Block:       block,
 		Description: strings.TrimSpace(monster.Description),
-		Offer:       sharedMonsterOffer(session.FromContext(ctx).UserID, token, grant.OwnerID),
+		Actions:     sharedMonsterActions(session.FromContext(ctx).UserID, token, grant.OwnerID),
 	}))
 }
 
-// sharedMonsterOffer is what the page says under the block, and it is the one
-// thing on any shared page that is not the same for everybody.
+// sharedMonsterActions is the row above the block, and the import in it is the
+// one thing on any shared page that is not the same for everybody.
 //
-// THE THREE STATES ARE THE THREE KINDS OF READER. Somebody signed in is offered
-// the copy; somebody signed out is told where the copy comes from, because a
-// button that answered with a sign-in page would be a worse way to say the same
-// thing; the owner is offered nothing, since importing their own monster would
-// hand them a duplicate they did not ask for and would be indistinguishable from
-// the button having failed.
-func sharedMonsterOffer(viewer ulid.ULID, token string, ownerID ulid.ULID) pages.SharedMonsterOffer {
+// THE EXPORT IS UNCONDITIONAL AND THE IMPORT IS NOT. The file holds what the
+// page holds, so there is nobody who can read this monster and should not be
+// able to keep a copy of the text -- while taking it into a manual is a write,
+// and needs somewhere to write it.
+//
+// THE IMPORT'S THREE STATES ARE THE THREE KINDS OF READER. Somebody signed in is
+// offered the copy; somebody signed out is told where the copy comes from,
+// because a button that answered with a sign-in page would be a worse way to say
+// the same thing; the owner is offered nothing, since importing their own
+// monster would hand them a duplicate they did not ask for and would be
+// indistinguishable from the button having failed.
+//
+// THE SENTENCE IS WRITTEN HERE RATHER THAN IN THE MARKUP, which is where prose
+// belongs in this app: a .templ is a Tailwind source, and an ordinary English
+// word in one that happens to be a component name emits that component's whole
+// family into the stylesheet.
+func sharedMonsterActions(viewer ulid.ULID, token string, ownerID ulid.ULID) pages.SharedActions {
+	actions := pages.SharedActions{Export: shareExportURL(token)}
+
 	switch {
 	case viewer.IsZero():
-		return pages.SharedMonsterOffer{SignIn: "/sign-in"}
+		actions.Blurb = "Sign in to add this monster to your own manual, as a full copy you can run and edit."
+		actions.SignIn = "/sign-in"
 	case viewer == ownerID:
-		return pages.SharedMonsterOffer{}
+		// The owner's row is the export alone, and it needs no sentence: this
+		// is their monster and the button says what it does.
 	default:
-		return pages.SharedMonsterOffer{Import: "/share/" + token + "/import"}
+		actions.Blurb = "Add this monster to your own manual. You get a full copy to run and edit however you like."
+		actions.Import = "/share/" + token + "/import"
 	}
+
+	return actions
 }
 
 // ImportSharedMonster copies a shared monster into the reader's own manual and

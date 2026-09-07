@@ -139,6 +139,12 @@ type SharedCharacterSheet struct {
 
 	Personality []SharedFact
 	Appearance  []SharedFact
+
+	// Actions is the row under the banner, which on this page is the Markdown
+	// export and nothing else: a sheet has no import beside it, because a
+	// character belongs to the person playing them in a way a monster in a
+	// bestiary does not.
+	Actions SharedActions
 }
 
 // SharedCharacterTitle is the <title> for a shared sheet: the character's name

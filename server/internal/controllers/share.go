@@ -449,6 +449,13 @@ func sharePortraitURL(token string) string {
 	return "/share/" + token + "/portrait"
 }
 
+// shareExportURL is the Markdown download a shared page offers. Like the
+// portrait it is built from the token and names nothing else, so a reader can
+// keep what the page showed them and nothing it did not.
+func shareExportURL(token string) string {
+	return "/share/" + token + "/export.md"
+}
+
 // shareImageSource maps the image URLs stored in a body onto this share's own,
 // and drops everything else. It is the strip half of what the entry page's CSP
 // is the backstop for -- see markdown.ImageSource -- and it is exact rather

@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -151,16 +153,27 @@ func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID
 // missing from each side are not the same levels. The loop below says it in Go
 // for the cost of one extra round trip.
 func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
-	ctx := r.Context()
+	levels, err := a.spellLevels(r.Context(), characterID, ownerID)
+	if err != nil {
+		slog.Error("Failed to load spell levels", "error", err)
+		redirectToError(w, r)
+		return nil, false
+	}
 
+	return levels, true
+}
+
+// spellLevels is the pair of reads and the merge, without a response to fail
+// into. The page wants the redirect above; the export wants to answer for
+// itself, because a download that has already set a Content-Disposition cannot
+// change its mind and become a page.
+func (a *App) spellLevels(ctx context.Context, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, error) {
 	slots, err := a.Queries.ListSpellSlots(ctx, queries.ListSpellSlotsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	})
 	if err != nil {
-		slog.Error("Failed to load spell slots", "error", err)
-		redirectToError(w, r)
-		return nil, false
+		return nil, fmt.Errorf("spell slots: %w", err)
 	}
 
 	counts, err := a.Queries.CountSpellsByLevel(ctx, queries.CountSpellsByLevelParams{
@@ -168,12 +181,10 @@ func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterI
 		OwnerID:     ownerID,
 	})
 	if err != nil {
-		slog.Error("Failed to count spells by level", "error", err)
-		redirectToError(w, r)
-		return nil, false
+		return nil, fmt.Errorf("spell counts: %w", err)
 	}
 
-	return mergeSpellLevels(slots, counts), true
+	return mergeSpellLevels(slots, counts), nil
 }
 
 // mergeSpellLevels builds all ten levels from however few rows the two queries

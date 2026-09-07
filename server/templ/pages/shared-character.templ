@@ -5,6 +5,7 @@ import "tabletopper/templ/layouts"
 templ SharedCharacterPage(data SharedCharacterSheet) {
 	@layouts.Share(SharedCharacterTitle(data.Header.Name), true) {
 		@sharedSheetBanner(data)
+		@sharedPageActions(data.Actions)
 		<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 max-[1280px]:grid-cols-1">
 			<div class="grid content-start gap-4">
 				if len(data.Abilities) > 0 {

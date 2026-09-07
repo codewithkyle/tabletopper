@@ -41,19 +41,38 @@ func monsterShareGrant() queries.GetShareByTokenRow {
 // not ask for, and a button that did it would be indistinguishable from a button
 // that had failed and reloaded the page.
 func TestTheImportIsOfferedToAReaderAndNotToTheOwner(t *testing.T) {
-	signedOut := sharedMonsterOffer(ulid.ULID{}, "tok", testOwnerID)
+	signedOut := sharedMonsterActions(ulid.ULID{}, "tok", testOwnerID)
 	if signedOut.SignIn == "" || signedOut.Import != "" {
 		t.Errorf("a signed-out reader is offered %+v, want the sign-in link alone", signedOut)
 	}
 
-	reader := sharedMonsterOffer(testImporterID, "tok", testOwnerID)
+	reader := sharedMonsterActions(testImporterID, "tok", testOwnerID)
 	if reader.Import != "/share/tok/import" || reader.SignIn != "" {
 		t.Errorf("a signed-in reader is offered %+v, want the import alone", reader)
 	}
 
-	owner := sharedMonsterOffer(testOwnerID, "tok", testOwnerID)
-	if owner.Shown() {
-		t.Errorf("the owner is offered %+v, want nothing", owner)
+	owner := sharedMonsterActions(testOwnerID, "tok", testOwnerID)
+	if owner.Import != "" || owner.SignIn != "" || owner.Blurb != "" {
+		t.Errorf("the owner is offered %+v, want no import at all", owner)
+	}
+}
+
+// THE EXPORT IS THE ONE ACTION EVERY READER GETS, and that is deliberate rather
+// than an oversight in the switch above: the file holds exactly what the page
+// holds, so there is nobody who can read this monster and should not be able to
+// keep the text of it. The import is the one that writes, and only that one is
+// conditional.
+func TestEveryReaderOfASharedMonsterIsOfferedTheExport(t *testing.T) {
+	for name, viewer := range map[string]ulid.ULID{
+		"signed out": {},
+		"the reader": testImporterID,
+		"the owner":  testOwnerID,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := sharedMonsterActions(viewer, "tok", testOwnerID).Export; got != "/share/tok/export.md" {
+				t.Errorf("export = %q, want the share's own download", got)
+			}
+		})
 	}
 }
 

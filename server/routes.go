@@ -81,6 +81,18 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/share", auth.RequireSession(app.CreateCharacterShare))
 	mux.HandleFunc("DELETE /characters/{id}/share", auth.RequireSession(app.RevokeCharacterShare))
 
+	// The Markdown download, which is a representation of the character rather
+	// than a piece of a page -- so it keeps the resource's own URL and stays
+	// off /fragment/, like the image routes. The extension is in the path
+	// because it is what a browser, an editor and a vault all read to decide
+	// what the file is, and because "export" alone at that depth would look
+	// like another panel.
+	//
+	// It is RequireSession and not RequireSessionOr404: the link is an anchor
+	// somebody clicks, so a session that has expired should land them on the
+	// sign-in page rather than on nothing at all.
+	mux.HandleFunc("GET /characters/{id}/export.md", auth.RequireSession(app.ExportCharacter))
+
 	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
 	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
 	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
@@ -227,10 +239,17 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// The portrait route takes no id and serves all three kinds. A share names
 	// one thing and that thing has one picture, so there is nothing in the path
 	// to tamper with.
+	//
+	// The export answers with a Markdown file rather than a page, and it is
+	// behind the same password the page is: a link somebody was handed but
+	// never unlocked would otherwise give up the whole sheet as a download. It
+	// serves a shared monster and a shared sheet; a shared journal entry is
+	// refused, for the reason ExportShare gives.
 	mux.HandleFunc("GET /share/{token}", auth.OptionalSession(app.SharePage))
 	mux.HandleFunc("POST /share/{token}", app.UnlockShare)
 	mux.HandleFunc("POST /share/{token}/import", auth.RequireSession(app.ImportSharedMonster))
 	mux.HandleFunc("GET /share/{token}/portrait", app.GetSharePortrait)
+	mux.HandleFunc("GET /share/{token}/export.md", app.ExportShare)
 	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
 
 	// The account settings saves. Four columns on the users row, no path
@@ -276,6 +295,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// before it matches anything else.
 	mux.HandleFunc("POST /monsters/{id}/share", auth.RequireSession(app.CreateMonsterShare))
 	mux.HandleFunc("DELETE /monsters/{id}/share", auth.RequireSession(app.RevokeMonsterShare))
+
+	// The stat block as Markdown, which is the character's export route with a
+	// monster under it -- see that one for why the extension is in the path.
+	mux.HandleFunc("GET /monsters/{id}/export.md", auth.RequireSession(app.ExportMonster))
 
 	// The editor is ONE page and not a page per tab, because a stat block is one
 	// screen: everything a monster has fits beside the block it renders, so

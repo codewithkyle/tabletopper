@@ -23,6 +23,7 @@ templ monsterBar(header MonsterHeader) {
 			<div class="flex items-center gap-3 max-[640px]:w-full">
 				<a href="/monsters" class="btn max-[640px]:flex-1">Back</a>
 				@monsterShareButton(header.MonsterID)
+				@monsterExportButton(header.MonsterID)
 			</div>
 		</div>
 	}
@@ -42,6 +43,13 @@ templ monsterShareButton(monsterID string) {
 		@shareIcon()
 		<span class="max-[640px]:sr-only">Share monster</span>
 	</button>
+}
+
+templ monsterExportButton(monsterID string) {
+	<a href={ "/monsters/" + monsterID + "/export.md" } download class="btn shrink-0 max-[640px]:px-3">
+		@downloadIcon()
+		<span class="max-[640px]:sr-only">Export Markdown</span>
+	</a>
 }
 
 templ monsterBarFigure(header MonsterHeader, oob bool) {

@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -10,6 +12,8 @@ import (
 
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // What a shared character link opens, and the one place that decides what a
@@ -51,12 +55,7 @@ import (
 // is exactly the pair a share row carries, so a link cannot be edited into
 // asking for a character it does not name.
 func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
-	ctx := r.Context()
-
-	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
-		ID:      grant.ResourceID,
-		OwnerID: grant.OwnerID,
-	})
+	sheet, portrait, err := a.loadCharacterSheet(r.Context(), grant.ResourceID, grant.OwnerID)
 	// The character was deleted after the link went out. Deleting one takes its
 	// shares with it, so this is a race rather than a steady state -- and it
 	// reads as a dead link, which is what it is.
@@ -70,48 +69,65 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 		return
 	}
 
-	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
-		CharacterID: grant.ResourceID,
-		OwnerID:     grant.OwnerID,
-	})
-	if err != nil {
-		slog.Error("Failed to load shared character attacks", "error", err)
-		redirectToError(w, r)
-		return
-	}
-
-	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
-		CharacterID: grant.ResourceID,
-		OwnerID:     grant.OwnerID,
-	})
-	if err != nil {
-		slog.Error("Failed to load shared character equipment", "error", err)
-		redirectToError(w, r)
-		return
-	}
-
-	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
-		CharacterID: grant.ResourceID,
-		OwnerID:     grant.OwnerID,
-	})
-	if err != nil {
-		slog.Error("Failed to load shared character spells", "error", err)
-		redirectToError(w, r)
-		return
-	}
-
-	levels, ok := a.loadSpellLevels(w, r, grant.ResourceID, grant.OwnerID)
-	if !ok {
-		return
-	}
-
-	sheet := sharedCharacterSheet(character, attacks, equipped, prepared, levels)
-	if character.AssetID != nil {
+	if portrait {
 		sheet.Avatar = sharePortraitURL(token)
 	}
+	sheet.Actions = pages.SharedActions{Export: shareExportURL(token)}
 
 	shareHeaders(w)
 	render(w, r, pages.SharedCharacterPage(sheet))
+}
+
+// loadCharacterSheet reads the five things a read-only sheet is built from and
+// builds it. The shared page and the Markdown export both come through here,
+// which is what makes an exported sheet and a shared one the same sheet -- and
+// what stops a panel appearing on one and not the other the next time somebody
+// adds a field.
+//
+// THE PORTRAIT COMES BACK AS A FLAG RATHER THAN A URL, because the two callers
+// disagree about what the URL is and one of them does not want one at all: the
+// shared page points at the share's own portrait route, and the export has no
+// image in it, since a file in somebody's vault cannot reach a picture this app
+// gates behind a session.
+func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.ULID) (pages.SharedCharacterSheet, bool, error) {
+	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
+		ID:      characterID,
+		OwnerID: ownerID,
+	})
+	if err != nil {
+		return pages.SharedCharacterSheet{}, false, err
+	}
+
+	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.SharedCharacterSheet{}, false, fmt.Errorf("attacks: %w", err)
+	}
+
+	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.SharedCharacterSheet{}, false, fmt.Errorf("equipment: %w", err)
+	}
+
+	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.SharedCharacterSheet{}, false, fmt.Errorf("prepared spells: %w", err)
+	}
+
+	levels, err := a.spellLevels(ctx, characterID, ownerID)
+	if err != nil {
+		return pages.SharedCharacterSheet{}, false, err
+	}
+
+	return sharedCharacterSheet(character, attacks, equipped, prepared, levels), character.AssetID != nil, nil
 }
 
 // sharedCharacterSheet is the boundary: forty-odd values named one at a time,

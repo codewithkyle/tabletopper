@@ -33,7 +33,18 @@ func testSharedMonster() SharedMonsterData {
 			Treasure: "Horde",
 		},
 		Description: "It has slept under the peak for four centuries.",
+		Actions:     SharedActions{Export: "/share/tok/export.md"},
 	}
+}
+
+// The same monster as a signed-out reader sees it, which is the state that puts
+// the one link to the app on the page.
+func testSharedMonsterForGuest() SharedMonsterData {
+	data := testSharedMonster()
+	data.Actions.SignIn = "/sign-in"
+	data.Actions.Blurb = "Sign in to add this monster to your own manual."
+
+	return data
 }
 
 // The whole monster, which is the scope decision this page is built on: the
@@ -83,13 +94,14 @@ func TestASharedMonstersPictureNeverNamesTheAppsOwnImageRoute(t *testing.T) {
 	}
 }
 
-// The offer, in each of the three states a reader can be in. The owner's is the
-// one worth pinning: their page ends at the monster, because importing their own
-// would hand them a duplicate they did not ask for.
+// The actions row, in each of the three states a reader can be in. The owner's
+// is the one worth pinning: their row is the export alone, because importing
+// their own monster would hand them a duplicate they did not ask for.
 func TestTheImportPanelIsDrawnForWhoeverCanUseIt(t *testing.T) {
 	data := testSharedMonster()
+	export := "/share/tok/export.md"
 
-	data.Offer = SharedMonsterOffer{Import: "/share/tok/import"}
+	data.Actions = SharedActions{Export: export, Import: "/share/tok/import", Blurb: "Add this monster."}
 	reader := renderToString(t, SharedMonsterPage(data))
 	if !strings.Contains(reader, `action="/share/tok/import"`) {
 		t.Errorf("a signed-in reader is not offered the copy:\n%s", reader)
@@ -101,7 +113,7 @@ func TestTheImportPanelIsDrawnForWhoeverCanUseIt(t *testing.T) {
 		t.Errorf("the button does not say what it does:\n%s", reader)
 	}
 
-	data.Offer = SharedMonsterOffer{SignIn: "/sign-in"}
+	data.Actions = SharedActions{Export: export, SignIn: "/sign-in", Blurb: "Sign in to add this monster."}
 	guest := renderToString(t, SharedMonsterPage(data))
 	if !strings.Contains(guest, `href="/sign-in"`) {
 		t.Errorf("a signed-out reader is not told where the copy comes from:\n%s", guest)
@@ -110,10 +122,10 @@ func TestTheImportPanelIsDrawnForWhoeverCanUseIt(t *testing.T) {
 		t.Errorf("a signed-out reader is offered a form that would bounce:\n%s", guest)
 	}
 
-	data.Offer = SharedMonsterOffer{}
+	data.Actions = SharedActions{Export: export}
 	owner := renderToString(t, SharedMonsterPage(data))
 	if strings.Contains(owner, "manual") || strings.Contains(owner, "/sign-in") {
-		t.Errorf("the owner is offered something:\n%s", owner)
+		t.Errorf("the owner is offered an import:\n%s", owner)
 	}
 }
 

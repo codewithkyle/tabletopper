@@ -87,6 +87,7 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// above depends on.
 		{http.MethodPost, "/characters/" + id + "/share", "POST /characters/{id}/share"},
 		{http.MethodDelete, "/characters/" + id + "/share", "DELETE /characters/{id}/share"},
+		{http.MethodGet, "/characters/" + id + "/export.md", "GET /characters/{id}/export.md"},
 		{http.MethodPost, "/characters/" + id + "/journal/" + item + "/share", "POST /characters/{id}/journal/{entryId}/share"},
 		{http.MethodDelete, "/characters/" + id + "/journal/" + item + "/share", "DELETE /characters/{id}/journal/{entryId}/share"},
 		// An entry's images hang off the member as a sub-collection, so the
@@ -145,6 +146,13 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// answer a DELETE by writing columns from a form that is not there.
 		{http.MethodPost, "/monsters/" + id + "/share", "POST /monsters/{id}/share"},
 		{http.MethodDelete, "/monsters/" + id + "/share", "DELETE /monsters/{id}/share"},
+		// The Markdown download, which sits where a panel name goes with a dot
+		// in it. The extension is part of the literal, so /monsters/{id}/export
+		// is a miss rather than the same route -- which is the point of putting
+		// it there: the path says what the file is.
+		{http.MethodGet, "/monsters/" + id + "/export.md", "GET /monsters/{id}/export.md"},
+		{http.MethodGet, "/monsters/" + id + "/export", "/"},
+		{http.MethodPost, "/monsters/" + id + "/export.md", "/"},
 		// Creation has no page here either, and "/monsters/new" is the path most
 		// likely to be added by accident -- it looks like the matched pair of
 		// "/monsters/{id}/edit".
@@ -212,6 +220,7 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/share/" + token, "POST /share/{token}"},
 		{http.MethodPost, "/share/" + token + "/import", "POST /share/{token}/import"},
 		{http.MethodGet, "/share/" + token + "/portrait", "GET /share/{token}/portrait"},
+		{http.MethodGet, "/share/" + token + "/export.md", "GET /share/{token}/export.md"},
 		{http.MethodGet, "/share/" + token + "/images/" + asset, "GET /share/{token}/images/{assetId}"},
 		// The import is a mutation and has no representation to fetch, and the
 		// portrait is a representation and is not written by anybody. Both are

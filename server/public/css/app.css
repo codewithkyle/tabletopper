@@ -3612,6 +3612,9 @@
     }
   }
   @media (width < 700px) {
+    .max-\[700px\]\:ml-0 {
+      margin-left: 0px;
+    }
     .max-\[700px\]\:w-full {
       width: 100%;
     }

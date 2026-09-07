@@ -2,6 +2,7 @@ package pages
 
 import (
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ func testSharedSheet() SharedCharacterSheet {
 			Proficiency: "+3",
 			Passive:     "15",
 		},
+		Actions:           SharedActions{Export: "/share/tok/export.md"},
 		Avatar:            "/share/tok/portrait",
 		Identity:          []SharedFact{{Label: "Species", Value: "Half-Elf"}},
 		CoreStats:         []SharedFact{{Label: "Armor Class", Value: "16"}},
@@ -62,24 +64,71 @@ func TestASharedSheetShipsNoScriptsAndNoDialogs(t *testing.T) {
 	}
 }
 
-// A SHARED SHEET RENDERS NO ANCHOR AT ALL, which is what "it links nowhere into
-// the app" comes to in markup. The editor's read-only panels -- equipped items,
-// prepared spells, the spell slot list -- each link back to the tab that fills
-// them, and those routes need a session, so reusing one here would put a link on
-// a stranger's page that answers with a redirect to a sign-in form.
+// A SHARED PAGE POINTS ONLY WHERE IT MEANS TO, which is what "it links nowhere
+// into the app" comes to in markup. The editor's read-only panels -- equipped
+// items, prepared spells, the spell slot list -- each link back to the tab that
+// fills them, and those routes need a session, so reusing one here would put a
+// link on a stranger's page that answers with a redirect to a sign-in form.
 //
-// Withholding the character id from SharedCharacterSheet is what makes this
-// true; see the test below. This one is the check that nobody has reintroduced
-// a link some other way.
-func TestASharedSheetLinksNowhereIntoTheApp(t *testing.T) {
-	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
-
-	if strings.Contains(body, "<a ") {
-		t.Errorf("a shared sheet rendered a link:\n%s", body)
+// THE PAGE USED TO CARRY NO ANCHOR AT ALL and the Markdown export is why it now
+// does. That is a widening of the rule rather than a break in it: the download
+// is under /share/ like every other URL a reader is handed, so it is reachable
+// by exactly whoever the page is and by nobody else. The shared monster page
+// adds one more, /sign-in, and that one is the whole point of it -- a reader
+// with no account is being told where an account comes from.
+//
+// Withholding the character id from SharedCharacterSheet is what makes the rest
+// true; see the test below. This is the check that nobody has reintroduced a
+// link some other way.
+func TestASharedPageLinksNowhereIntoTheApp(t *testing.T) {
+	for name, c := range map[string]struct {
+		body    string
+		allowed []string
+	}{
+		"sheet": {
+			body:    renderToString(t, SharedCharacterPage(testSharedSheet())),
+			allowed: []string{"/share/"},
+		},
+		"monster": {
+			body:    renderToString(t, SharedMonsterPage(testSharedMonsterForGuest())),
+			allowed: []string{"/share/", "/sign-in"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			for _, href := range anchorHrefs(c.body) {
+				if !hasAnyPrefix(href, c.allowed) {
+					t.Errorf("a shared page links to %q, want one of %v", href, c.allowed)
+				}
+			}
+		})
 	}
-	if strings.Contains(body, "/characters/") {
+
+	if body := renderToString(t, SharedCharacterPage(testSharedSheet())); strings.Contains(body, "/characters/") {
 		t.Errorf("a shared sheet named a route inside the app:\n%s", body)
 	}
+}
+
+// anchorHrefs is every href the page renders. It is a regexp rather than a
+// parser because the assertion is about what is in the markup, and a page with
+// an anchor this pattern cannot see is a page that has stopped being simple
+// enough for this rule to be checkable.
+func anchorHrefs(body string) []string {
+	hrefs := []string{}
+	for _, match := range regexp.MustCompile(`<a [^>]*href="([^"]*)"`).FindAllStringSubmatch(body, -1) {
+		hrefs = append(hrefs, match[1])
+	}
+
+	return hrefs
+}
+
+func hasAnyPrefix(value string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(value, prefix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // THE ASSERTION IS ON THE TYPE RATHER THAN ON THE MARKUP, the way the password

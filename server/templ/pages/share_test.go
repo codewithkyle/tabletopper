@@ -246,6 +246,38 @@ func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 	}
 }
 
+// THE EXPORT IS ON ALL FIVE SURFACES A MONSTER OR A CHARACTER IS SHOWN ON, which
+// is the whole of what the feature is: an owner should not have to share a thing
+// to get a file out of it, and a reader handed a link should not have to ask.
+//
+// It is an anchor with a download attribute rather than a button, because there
+// is no JavaScript on two of these five pages -- the shared ones ship none at
+// all -- and a plain link to a route that answers with Content-Disposition works
+// the same on every one of them.
+func TestEverySurfaceOffersTheMarkdownExport(t *testing.T) {
+	for name, c := range map[string]struct {
+		page templ.Component
+		want string
+	}{
+		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters/M/export.md"},
+		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), "/characters/C/export.md"},
+		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: "C"}), "/characters/C/export.md"},
+		"shared monster":   {SharedMonsterPage(testSharedMonster()), "/share/tok/export.md"},
+		"shared sheet":     {SharedCharacterPage(testSharedSheet()), "/share/tok/export.md"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, c.page)
+
+			if !strings.Contains(body, `href="`+c.want+`" download`) {
+				t.Errorf("no download link to %s:\n%s", c.want, body)
+			}
+			if !strings.Contains(body, ">Export Markdown<") {
+				t.Errorf("the button does not say what it does:\n%s", body)
+			}
+		})
+	}
+}
+
 // The monster's Share button is on its bar too, beside Back, and the editor is
 // the only place it appears.
 //

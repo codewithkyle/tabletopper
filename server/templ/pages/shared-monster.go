@@ -29,28 +29,10 @@ type SharedMonsterData struct {
 	// the page, rendered as typed and empty for most monsters.
 	Description string
 
-	Offer SharedMonsterOffer
-}
-
-// SharedMonsterOffer is the one thing on any shared page that is not the same
-// for every reader.
-//
-// AT MOST ONE FIELD IS SET, AND BOTH BEING EMPTY IS A STATE. Signed in, Import
-// holds the URL the form posts to; signed out, SignIn holds where to go and get
-// an account, because a button that answered with a sign-in page would be a
-// worse way of saying the same thing; and the owner reading their own link gets
-// neither, since importing their own monster would hand them a duplicate they
-// did not ask for. Two strings rather than a kind and a URL, because the URL is
-// the thing the markup needs and a kind beside it could disagree with it.
-type SharedMonsterOffer struct {
-	Import string
-	SignIn string
-}
-
-// Shown reports whether there is anything to draw, which is the check the panel
-// is wrapped in -- so the owner's page ends at the monster.
-func (o SharedMonsterOffer) Shown() bool {
-	return o.Import != "" || o.SignIn != ""
+	// Actions is the row above the block: the Markdown export every reader
+	// gets, and the copy button the ones who can use it get. It is the shared
+	// character sheet's type as well -- see SharedActions.
+	Actions SharedActions
 }
 
 // SharedMonsterTitle is the <title> for the page: the monster's name and nothing
