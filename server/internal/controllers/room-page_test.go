@@ -34,7 +34,6 @@ func getRoomPage(t *testing.T, db *roomDB, sess session.UserSession) *httptest.R
 func TestTheOwnerReachesTheRoomPageAsGM(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
-		noMembersAnswer(),
 	}}
 
 	rec := getRoomPage(t, db, session.UserSession{UserID: testOwnerID})
@@ -61,7 +60,6 @@ func TestTheOwnerReachesTheRoomPageAsGM(t *testing.T) {
 func TestAMemberReachesTheRoomPageAsAPlayer(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
-		noMembersAnswer(),
 	}}
 
 	rec := getRoomPage(t, db, memberSession(testRoomID))
@@ -101,8 +99,7 @@ func TestANonMemberIsSentToTheJoinPage(t *testing.T) {
 	if got := rec.Header().Get("Location"); got != "/rooms/join" {
 		t.Errorf("Location = %q, want %q", got, "/rooms/join")
 	}
-	// The members were never read: the refusal happens before the page has
-	// anything to draw.
+	// The refusal happens on the one read the page makes.
 	if len(db.calls) != 1 {
 		t.Errorf("ran %d statements, want 1: %v", len(db.calls), db.queries())
 	}
@@ -138,7 +135,6 @@ func TestAMemberOfAClosedRoomIsTurnedOut(t *testing.T) {
 func TestTheOwnerOfAClosedRoomStillGetsThePage(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "", false, true),
-		noMembersAnswer(),
 	}}
 
 	rec := getRoomPage(t, db, session.UserSession{UserID: testOwnerID})
@@ -151,48 +147,6 @@ func TestTheOwnerOfAClosedRoomStillGetsThePage(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "/close") {
 		t.Error("the closed room still offers Close")
-	}
-}
-
-// A `room` that will not parse came off the page's own markup, so there is
-// nobody on the other end to tell -- and the body has to be empty, because
-// noSwap leaves the caller's panel untouched for a 4xx and a page-shaped body
-// swapped into it would be the wreckage instead.
-func TestTheMembersFragmentRefusesAMalformedRoom(t *testing.T) {
-	db := &roomDB{rows: 1}
-	app := newRoomApp(db)
-
-	rec := roomRequest(t, app.RoomMembersFragment, http.MethodGet, "/fragment/room/members?room=nonsense", nil,
-		session.UserSession{UserID: testOwnerID})
-
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
-	}
-	if body := rec.Body.String(); body != "" {
-		t.Errorf("body = %q, want empty", body)
-	}
-	if len(db.calls) != 0 {
-		t.Errorf("ran %d statements, want 0: %v", len(db.calls), db.queries())
-	}
-}
-
-// The same refusal for a room that is somebody else's, and it is a 404 rather
-// than the page's redirect: a fragment is a piece of a page that is already
-// open, and there is nowhere for it to navigate to.
-func TestTheMembersFragmentRefusesARoomThatIsNotYours(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{
-		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
-	}}
-	app := newRoomApp(db)
-
-	rec := roomRequest(t, app.RoomMembersFragment, http.MethodGet,
-		"/fragment/room/members?room="+testRoomID.String(), nil, session.UserSession{UserID: testMemberID})
-
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
-	}
-	if body := rec.Body.String(); body != "" {
-		t.Errorf("body = %q, want empty", body)
 	}
 }
 

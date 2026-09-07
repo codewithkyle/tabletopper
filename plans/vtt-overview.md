@@ -310,9 +310,21 @@ is drawn by coordinate space:
 
 - **Canvas owns map space**: tiles, grid, fog, pawn sprites, pings, doodles,
   the movement path, measurement. Anything that moves when the camera moves.
-- **DOM owns screen space**: toolbar, initiative tracker, stat block modal,
-  character panels, chat, settings. All templ, all htmx, all the existing
-  modal rules apply unchanged.
+- **DOM owns screen space**: the menu bar, the tool pill, the initiative
+  tracker, the stat block modal, character panels and settings. All templ, all
+  htmx, all the existing modal rules apply unchanged.
+- **The room's chrome is a menu bar and a floating tool pill**, decided
+  2026-09-07 after phase 1's first shell was built and rejected. A thin bar
+  across the top carries seven menus -- Room, Tabletop, Fog, Initiative,
+  Window, View, Help -- and a vertical icon-only pill floats top-right and
+  switches what a click and a drag on the table do: move, measure, fog, draw.
+  There is **no side panel**: the table fills everything under the bar. The
+  player list is a window opened from the Room menu rather than a column, and
+  the initiative tracker is not a list beside the map -- how it is presented is
+  settled in phase 6.
+- **There is no chat.** It was in the first draft of this document and is not a
+  feature of this app. Rolls and their results are the dice tray, in the Window
+  menu.
 - **Pawn labels and hp bars** are the grey area. One DOM element per pawn
   lags at a few hundred and makes z-order under fog awkward, so the sprite is
   drawn and hit-tested in canvas, and a single DOM overlay shows the label and

@@ -309,35 +309,31 @@ the handler.
 
 ### The shell layout
 
-The layout's `main` is a centred flex column. Every full-viewport page in this
-app is a custom element that fills it, so the room page is:
+**Superseded 2026-09-07, after this shell was built and rejected.** What was
+specified here -- a header carrying the code, the lock control and Close, over
+a body split into a table region and a side panel holding the members list and
+placeholders for initiative and chat -- is not what the room page is. See the
+"Page composition" section of `plans/vtt-overview.md`, which now carries the
+decision, and `server/templ/pages/room.go`, which carries the reasoning.
+
+In brief: the room is one application window. A thin menu bar across the top
+carries seven menus, the table fills everything under it, and a vertical
+icon-only tool pill floats over the table's top-right corner. There is no side
+panel, no members list on the page and no chat. Most menu items are disabled,
+because the features behind them are later phases.
+
+Two things from the original text survive and still matter:
 
 ```html
 <room-page class="relative block h-dvh w-screen overflow-hidden">
-```
-
-Inside, a grid with a header row and a body row. The header carries the room
-name, and for the GM the code with a copy button (`share-link.js` may already
-offer the copy behaviour; check before writing another), the lock control, and
-Close. For a player it carries Leave. The body is two columns: the table
-region on the left, a side panel on the right with the members list and two
-labelled placeholders for initiative and chat that later phases fill.
-
-The table region is an empty element sized to fill:
-
-```html
 <div id="tabletop" class="relative min-h-0 min-w-0 bg-base-300"></div>
 ```
 
 **It is not `id="table"`.** `table` is a DaisyUI component and any bare
 occurrence in a `.templ` file, including inside an attribute value, emits the
 whole table family. The same applies to `list`, `status`, `tab`, `stack`,
-`swap`, `menu` and `link` as bare words. Prefer `tabletop`, `members`,
-`room-code`, `initiative-panel`.
-
-Buttons inside the shell follow the app's DaisyUI usage. Buttons inside the
-create dialog are solid `btn` with Close first and Create second, and Close
-dispatches `modal:close`, as the character dialog does.
+`swap`, `menu` and `link` as bare words. Prefer `tabletop`, `room-lock`,
+`room-code`.
 
 ## Homepage
 

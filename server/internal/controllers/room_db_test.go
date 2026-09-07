@@ -191,9 +191,3 @@ func getRoomAnswer(id ulid.ULID, ownerID ulid.ULID, name string, code string, lo
 		values:  []driver.Value{id.Bytes(), ownerID.Bytes(), name, codeValue, locked, time.Now(), closedValue},
 	}
 }
-
-// noMembersAnswer is ListRoomMembers with nobody in the room, which is what
-// every page test here wants: the panel is not what they are about.
-func noMembersAnswer() roomAnswer {
-	return roomAnswer{columns: []string{"user_id", "username", "profile_image_url", "character_id", "character_name"}}
-}

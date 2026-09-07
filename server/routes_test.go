@@ -442,15 +442,16 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// five above.
 		{http.MethodPost, "/rooms/" + id, "/"},
 		{http.MethodPatch, "/rooms/" + id + "/name", "/"},
-		// The dialog and the panel, both GETs under /fragment/. Every other
-		// verb is the subtree's 404, which is what keeps the prefix meaning "a
-		// GET that returns partial HTML".
+		// The create dialog, which is the only room fragment. A GET only, like
+		// every other fragment: the subtree catch-all takes the rest, which is
+		// what keeps the prefix meaning "a GET that returns partial HTML".
 		{http.MethodGet, "/fragment/room/new", "GET /fragment/room/new"},
 		{http.MethodPost, "/fragment/room/new", "/fragment/"},
-		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
-		{http.MethodGet, "/fragment/room/members?room=" + id, "GET /fragment/room/members"},
-		{http.MethodPost, "/fragment/room/members", "/fragment/"},
-		// The room is not a fragment and the members panel is not a page.
+		// The Player List behind the Room menu is not built, and neither is the
+		// membership-gated wrapper it will need. Pinned as a miss so that
+		// wiring the menu item to a route nobody wrote is a 404 in a test
+		// rather than in a session.
+		{http.MethodGet, "/fragment/room/members", "/fragment/"},
 		{http.MethodGet, "/rooms/" + id + "/members", "/"},
 		{http.MethodGet, "/fragment/rooms/" + id, "/fragment/"},
 	} {

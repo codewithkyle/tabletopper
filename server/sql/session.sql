@@ -28,14 +28,19 @@ WHERE hash = sqlc.arg(hash)
 DELETE FROM sessions
 WHERE expires_at < sqlc.arg(cutoff);
 
--- THE FOUR ROOM STATEMENTS. Membership in a room is a column on the session
+-- THE THREE ROOM STATEMENTS. Membership in a room is a column on the session
 -- row, not a table: a session is at one table at a time, and the column has
 -- been on this row since 20260227173035 waiting for something to write it.
 --
--- Three of the four key on `hash` rather than on `id`, because that is what the
+-- Two of the three key on `hash` rather than on `id`, because that is what the
 -- store holds for the request in flight -- EndSession and RefreshSession key on
--- it for the same reason. The fourth keys on the room, because it is the sweep
+-- it for the same reason. The third keys on the room, because it is the sweep
 -- that empties one.
+--
+-- THERE IS NO STATEMENT THAT LISTS A ROOM'S MEMBERS. The room page has no panel
+-- to draw one in: the Player List is a window behind the Room menu that is not
+-- built. It will read this table when it is, because username and
+-- profile_image_url are already denormalised onto the session row.
 
 -- name: SetSessionRoom :execresult
 UPDATE sessions
@@ -54,33 +59,3 @@ WHERE hash = ?;
 UPDATE sessions
 SET room_id = NULL, character_id = NULL
 WHERE room_id = ?;
-
--- The members panel on the room page, as the initial render draws it.
---
--- IT READS SESSIONS AND NOT USERS, because username and profile_image_url are
--- already denormalised onto the session row -- see internal/session for why
--- they are copied there and the preferences are not. Joining users to fetch two
--- columns this row already carries would be a join for nothing.
---
--- DISTINCT COLLAPSES ONE PERSON WITH TWO BROWSERS INTO ONE MEMBER. It is the
--- user at the table who is a member, not the tab. Two sessions of one user that
--- picked different characters are two rows even so, which is the honest answer:
--- the panel would be lying if it hid one of them.
---
--- The expiry check is here rather than left to the sweep, because a session
--- that ran out an hour ago is somebody who left rather than somebody sitting
--- quietly, and the hourly sweep has not come round yet.
---
--- THE JOIN TO characters IS WHAT MAKES DISTINCT HONEST. The panel names who is
--- at the table and what they brought, so the character has to be a name rather
--- than an id -- and without it two sessions of one person who picked different
--- characters would collapse into two rows that read identically. It is a LEFT
--- JOIN on a primary key, so it costs one lookup per member and it is NULL for
--- the two cases that are not an error: somebody who joined with no character,
--- and somebody whose character was deleted afterwards.
--- name: ListRoomMembers :many
-SELECT DISTINCT s.user_id, s.username, s.profile_image_url, s.character_id, c.name AS character_name
-FROM sessions s
-LEFT JOIN characters c ON c.id = s.character_id
-WHERE s.room_id = ? AND s.expires_at > NOW()
-ORDER BY s.username;

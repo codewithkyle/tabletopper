@@ -119,11 +119,18 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		// markup and only one of them renders at a time.
 		"room-gm":     func() error { return render(Room(testRoomPage(room.RoleGM))) },
 		"room-player": func() error { return render(Room(testRoomPage(room.RolePlayer))) },
-		"room-members-fragment": func() error {
-			return render(RoomMembersFragment(testRoomPage(room.RoleGM).Members))
+		// The closed room, because its Room menu is a different set of items
+		// and the table carries a notice the open one does not.
+		"room-closed": func() error {
+			data := testRoomPage(room.RoleGM)
+			data.Closed = true
+			data.Code = ""
+
+			return render(Room(data))
 		},
-		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":     func() error { return render(TOS()) },
+		"room-lock-item": func() error { return render(RoomLockItem(testRoomPage(room.RoleGM))) },
+		"sign-in":        func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":            func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup

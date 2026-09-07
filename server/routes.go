@@ -595,18 +595,15 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 
 	// The new-room dialog, which is the character's and the monster's with its
 	// own panel name and its own action.
-	mux.HandleFunc("GET /fragment/room/new", auth.Fragment(app.NewRoomFragment))
-	// Who is at one table. It reads the room from the query string rather than
-	// a path because this is not the room's URL -- it is a panel inside the
-	// room page, the same reason the share and stat-block dialogs do it.
 	//
-	// IT IS THE FIRST FRAGMENT IN THE APP GATED ON SOMETHING OTHER THAN
-	// OWNERSHIP. A room is read by its members as well as by the GM who owns
-	// it, so the handler asks loadRoomMember rather than putting an owner in
-	// the statement -- and a caller who is neither gets an empty 404, which is
-	// the answer the prefix's rules name for a parameter that does not check
-	// out.
-	mux.HandleFunc("GET /fragment/room/members", auth.Fragment(app.RoomMembersFragment))
+	// IT IS THE ONLY ROOM FRAGMENT, AND THE ROOM PAGE HAS NO OTHERS ON PURPOSE.
+	// Everything the room page can do to itself is a mutation on a resource URL
+	// answering with the control it changed; there is nothing on that page yet
+	// that a GET returns a piece of. The Player List behind the Room menu will
+	// be the first, and it will need a wrapper gated on membership rather than
+	// on ownership -- which is a thing to build when there is something to put
+	// behind it, not before.
+	mux.HandleFunc("GET /fragment/room/new", auth.Fragment(app.NewRoomFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have
