@@ -121,22 +121,26 @@ func (a *App) sharedMonster(w http.ResponseWriter, r *http.Request, token string
 // monster would hand them a duplicate they did not ask for and would be
 // indistinguishable from the button having failed.
 //
-// THE SENTENCE IS WRITTEN HERE RATHER THAN IN THE MARKUP, which is where prose
-// belongs in this app: a .templ is a Tailwind source, and an ordinary English
-// word in one that happens to be a component name emits that component's whole
-// family into the stylesheet.
+// EVERY STATE SAYS SOMETHING, INCLUDING THE OWNER'S. A row with one button
+// floating against its right edge and nothing beside it reads as a panel that
+// failed to load the rest of itself, so the left half of it is always a
+// sentence -- what the reader can do here, in the order they would do it.
+//
+// THE SENTENCES ARE WRITTEN HERE RATHER THAN IN THE MARKUP, which is where
+// prose belongs in this app: a .templ is a Tailwind source, and an ordinary
+// English word in one that happens to be a component name emits that
+// component's whole family into the stylesheet.
 func sharedMonsterActions(viewer ulid.ULID, token string, ownerID ulid.ULID) pages.SharedActions {
 	actions := pages.SharedActions{Export: shareExportURL(token)}
 
 	switch {
 	case viewer.IsZero():
-		actions.Blurb = "Sign in to add this monster to your own manual, as a full copy you can run and edit."
+		actions.Blurb = "Sign in to add this monster to your own manual, as a full copy you can run and edit -- or export it as Markdown for your own notes."
 		actions.SignIn = "/sign-in"
 	case viewer == ownerID:
-		// The owner's row is the export alone, and it needs no sentence: this
-		// is their monster and the button says what it does.
+		actions.Blurb = "This monster is yours. Export it as Markdown for your own notes."
 	default:
-		actions.Blurb = "Add this monster to your own manual. You get a full copy to run and edit however you like."
+		actions.Blurb = "Add this monster to your own manual and you get a full copy to run and edit however you like -- or export it as Markdown for your own notes."
 		actions.Import = "/share/" + token + "/import"
 	}
 

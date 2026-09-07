@@ -72,7 +72,10 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 	if portrait {
 		sheet.Avatar = sharePortraitURL(token)
 	}
-	sheet.Actions = pages.SharedActions{Export: shareExportURL(token)}
+	sheet.Actions = pages.SharedActions{
+		Blurb:  "This sheet is read-only and stays in step with the character as it is edited. Export it as Markdown for your own notes.",
+		Export: shareExportURL(token),
+	}
 
 	shareHeaders(w)
 	render(w, r, pages.SharedCharacterPage(sheet))

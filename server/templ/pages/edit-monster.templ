@@ -41,14 +41,14 @@ templ monsterShareButton(monsterID string) {
 		data-modal-open={ monsterShareDialogURL(monsterID) }
 	>
 		@shareIcon()
-		<span class="max-[640px]:sr-only">Share monster</span>
+		<span class="max-[640px]:sr-only">Share</span>
 	</button>
 }
 
 templ monsterExportButton(monsterID string) {
 	<a href={ "/monsters/" + monsterID + "/export.md" } download class="btn shrink-0 max-[640px]:px-3">
 		@downloadIcon()
-		<span class="max-[640px]:sr-only">Export Markdown</span>
+		<span class="max-[640px]:sr-only">Export</span>
 	</a>
 }
 

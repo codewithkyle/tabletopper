@@ -215,8 +215,42 @@ func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
 	}
 }
 
+// A BAR WITH ONE SHARE BUTTON SAYS "SHARE", AND THE ONE WITH TWO SAYS WHICH.
+// What is being shared is the thing the page is about, so the noun is a word
+// paid for on every page to be read on none -- except on the journal entry page,
+// where the character's button and the entry's own sit in the same bar under the
+// same icon, and "Share" on both would be a coin toss.
+func TestOnlyTheBarWithTwoShareButtonsNamesWhatItShares(t *testing.T) {
+	for name, page := range map[string]templ.Component{
+		"character": EditCharacter(EditCharacterPageData{CharacterID: "C"}),
+		"journal":   EditCharacterJournal(JournalPageData{CharacterID: "C"}),
+		"monster":   EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}),
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, page)
+
+			if !strings.Contains(body, ">Share<") {
+				t.Errorf("the %s bar does not say Share:\n%s", name, body)
+			}
+			if strings.Contains(body, ">Share character<") || strings.Contains(body, ">Share monster<") {
+				t.Errorf("the %s bar spends words on a noun the page already carries:\n%s", name, body)
+			}
+		})
+	}
+
+	entry := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{CharacterID: "C", EntryID: "E"}))
+	for _, label := range []string{">Share character<", ">Share entry<"} {
+		if !strings.Contains(entry, label) {
+			t.Errorf("the entry page's two share buttons are not told apart by %s:\n%s", label, entry)
+		}
+	}
+	if strings.Contains(entry, `sr-only">Share<`) {
+		t.Errorf("a bare Share on the one page that holds two of them:\n%s", entry)
+	}
+}
+
 // Both share buttons collapse to their icon under 640px, where the journal entry
-// page's bar holds four of them.
+// page's bar holds five of them.
 //
 // THE LABELS ARE HIDDEN AND NOT REMOVED, which is the whole of what this checks:
 // sr-only takes the words out of the layout and leaves them in the accessibility
@@ -256,14 +290,20 @@ func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 // the same on every one of them.
 func TestEverySurfaceOffersTheMarkdownExport(t *testing.T) {
 	for name, c := range map[string]struct {
-		page templ.Component
-		want string
+		page  templ.Component
+		want  string
+		label string
 	}{
-		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters/M/export.md"},
-		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), "/characters/C/export.md"},
-		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: "C"}), "/characters/C/export.md"},
-		"shared monster":   {SharedMonsterPage(testSharedMonster()), "/share/tok/export.md"},
-		"shared sheet":     {SharedCharacterPage(testSharedSheet()), "/share/tok/export.md"},
+		// THE EDITORS SAY "EXPORT" AND THE SHARED PAGES SAY "EXPORT MARKDOWN",
+		// which is not an inconsistency but the two places being different: a
+		// bar is four buttons deep and every word in one is paid for on every
+		// page, while the shared pages' toolbar has a sentence beside it and a
+		// stranger there has never seen this app before.
+		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters/M/export.md", "Export"},
+		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), "/characters/C/export.md", "Export"},
+		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: "C"}), "/characters/C/export.md", "Export"},
+		"shared monster":   {SharedMonsterPage(testSharedMonster()), "/share/tok/export.md", "Export Markdown"},
+		"shared sheet":     {SharedCharacterPage(testSharedSheet()), "/share/tok/export.md", "Export Markdown"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			body := renderToString(t, c.page)
@@ -271,8 +311,8 @@ func TestEverySurfaceOffersTheMarkdownExport(t *testing.T) {
 			if !strings.Contains(body, `href="`+c.want+`" download`) {
 				t.Errorf("no download link to %s:\n%s", c.want, body)
 			}
-			if !strings.Contains(body, ">Export Markdown<") {
-				t.Errorf("the button does not say what it does:\n%s", body)
+			if !strings.Contains(body, ">"+c.label+"<") {
+				t.Errorf("the button does not say %q:\n%s", c.label, body)
 			}
 		})
 	}
@@ -294,7 +334,7 @@ func TestTheMonsterEditorCarriesAShareButtonAndTheManualDoesNot(t *testing.T) {
 	if !strings.Contains(editor, `data-modal-open="/fragment/monster/share?monster=M"`) {
 		t.Errorf("the monster editor has no share button:\n%s", editor)
 	}
-	if !strings.Contains(editor, `class="max-[640px]:sr-only">Share monster<`) {
+	if !strings.Contains(editor, `class="max-[640px]:sr-only">Share<`) {
 		t.Errorf("the label is not hidden with sr-only:\n%s", editor)
 	}
 

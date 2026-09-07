@@ -35,6 +35,30 @@ type shellLayout struct {
 	// row of bare links and a rule directly on the grid paper -- the same thing
 	// the character tabs did before the bar existed, and just as hard to read.
 	SubNav templ.Component
+
+	// ShareLabel is what the bar's Share button says, and it exists for exactly
+	// one page.
+	//
+	// EVERY BAR BUT ONE HAS A SINGLE SHARE BUTTON, and on those it says "Share"
+	// -- what is being shared is the thing the page is about, and a bar is a
+	// place where words cost more than they are worth. The journal entry page
+	// carries two: the character's, which is on all five tabs, and the entry's
+	// own, which sits in Actions. Two adjacent buttons with the same icon and
+	// the same word would be a coin toss, so that page says which is which.
+	//
+	// Empty is the ordinary case and reads as "Share"; see shareLabel.
+	ShareLabel string
+}
+
+// shareLabel is the bar's Share button's words. It is a function rather than a
+// default written into the struct literal because there are five call sites and
+// four of them do not mention sharing at all.
+func shareLabel(layout shellLayout) string {
+	if layout.ShareLabel == "" {
+		return "Share"
+	}
+
+	return layout.ShareLabel
 }
 
 // panelFormID is the id a savingPanel's form carries, so a control OUTSIDE the

@@ -52,8 +52,30 @@ func TestTheImportIsOfferedToAReaderAndNotToTheOwner(t *testing.T) {
 	}
 
 	owner := sharedMonsterActions(testOwnerID, "tok", testOwnerID)
-	if owner.Import != "" || owner.SignIn != "" || owner.Blurb != "" {
+	if owner.Import != "" || owner.SignIn != "" {
 		t.Errorf("the owner is offered %+v, want no import at all", owner)
+	}
+}
+
+// EVERY STATE SAYS SOMETHING BESIDE THE BUTTONS. A row with one button floating
+// against its right edge and nothing on the left reads as a panel that failed to
+// load the rest of itself -- which is exactly what the owner's looked like
+// before it had a sentence of its own.
+func TestTheActionsRowIsNeverJustAButton(t *testing.T) {
+	for name, viewer := range map[string]ulid.ULID{
+		"signed out": {},
+		"the reader": testImporterID,
+		"the owner":  testOwnerID,
+	} {
+		t.Run(name, func(t *testing.T) {
+			actions := sharedMonsterActions(viewer, "tok", testOwnerID)
+			if actions.Blurb == "" {
+				t.Error("the row has nothing beside its buttons")
+			}
+			if !strings.Contains(actions.Blurb, "Markdown") {
+				t.Errorf("the sentence does not mention the one action every reader gets: %q", actions.Blurb)
+			}
+		})
 	}
 }
 
