@@ -17,7 +17,7 @@ Four kinds of asset behind one sub-nav: Maps (done), Tokens, Avatars, Music.
   presigned URL too -- see Phase 2.
 - Phase order is 0 -> 1 -> 2 -> 3 as below (avatars and tokens before music).
 
-## Phase 0 -- the sub-nav and three shells
+## Phase 0 -- the sub-nav and three shells -- LANDED 2026-09-07
 
 No data work. Ships on its own.
 
@@ -44,7 +44,7 @@ Also, while the name control is about to be copied onto three more pages: the
 map name input carries no `maxlength` and `ReplaceMapName` bounds nothing, so a
 paste longer than `VARCHAR(255)` is a 500. Fix it here.
 
-## Phase 1 -- the migration, then Avatars and Tokens
+## Phase 1 -- the migration, then Avatars and Tokens -- LANDED 2026-09-07
 
 ### Migration
 
@@ -133,7 +133,7 @@ Tokens and avatars are the map card minus the tiling overlay. One shared card
 component with the poll/retry block rendered only for maps, rather than three
 near-copies.
 
-## Phase 2 -- Music
+## Phase 2 -- Music -- NEXT
 
 The only kind that is not an image. Every helper from `openImageUpload` down is
 image-only, and every serving route ends in `streamImage`, which hardcodes

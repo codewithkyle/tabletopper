@@ -353,6 +353,36 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /assets/tokens", auth.RequireSession(app.TokenAssetsPage))
 	mux.HandleFunc("GET /assets/avatars", auth.RequireSession(app.AvatarAssetsPage))
 	mux.HandleFunc("GET /assets/music", auth.RequireSession(app.MusicAssetsPage))
+
+	// THE LIBRARY KINDS, which are the two that are one stored image and
+	// nothing else. Each is the collection-and-member pair every other resource
+	// here uses, and the two sets are identical but for the segment -- one set
+	// of handlers serves both, with the kind bound at registration rather than
+	// read from the path. See internal/controllers/library-assets.go.
+	//
+	// THE KIND IN THE PATH IS ENFORCED AND NOT DECORATIVE. Every statement
+	// behind these carries the type, so a token's id sent to an avatars route
+	// is a 404 rather than a token quietly renamed, replaced or deleted through
+	// the wrong page.
+	//
+	// The upload and the replace both answer with the card they made or
+	// changed, which is the mutation case the fragment rules name. The delete
+	// answers 200 and not 204 -- noSwap lists 204, and a status in that list
+	// overrides the hx-swap="delete" on the button, which would leave the card
+	// on screen after the asset was gone.
+	//
+	// Music has none of these yet: it is not an image, so it shares no handler
+	// with either of them, and its bytes will not pass through this process at
+	// all.
+	mux.HandleFunc("POST /assets/tokens", auth.RequireSession(app.UploadToken))
+	mux.HandleFunc("POST /assets/tokens/{id}", auth.RequireSession(app.ReplaceToken))
+	mux.HandleFunc("PATCH /assets/tokens/{id}/name", auth.RequireSession(app.RenameToken))
+	mux.HandleFunc("DELETE /assets/tokens/{id}", auth.RequireSession(app.DeleteToken))
+
+	mux.HandleFunc("POST /assets/avatars", auth.RequireSession(app.UploadAvatar))
+	mux.HandleFunc("POST /assets/avatars/{id}", auth.RequireSession(app.ReplaceAvatar))
+	mux.HandleFunc("PATCH /assets/avatars/{id}/name", auth.RequireSession(app.RenameAvatar))
+	mux.HandleFunc("DELETE /assets/avatars/{id}", auth.RequireSession(app.DeleteAvatar))
 	mux.HandleFunc("POST /assets/maps", auth.RequireSession(app.UploadMap))
 	mux.HandleFunc("DELETE /assets/maps/{id}", auth.RequireSession(app.DeleteMap))
 	mux.HandleFunc("POST /assets/maps/{id}", auth.RequireSession(app.ReplaceMap))

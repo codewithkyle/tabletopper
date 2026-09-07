@@ -141,27 +141,15 @@ func (a *App) AssetsPage(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/assets/maps")
 }
 
-// THE ASSET MANAGER IS A PAGE PER KIND, and these four handlers are the whole
-// of that: /assets itself redirects, because there is nothing to show above the
-// kinds that the tab strip does not already show.
+// The music page, which is still the sub-nav's fourth destination and nothing
+// else. It reads nothing, because there is no upload route and no row to read
+// until music has one -- and music is not an image, so none of this file's
+// plumbing reaches it. The tokens and avatars pages moved to library-assets.go
+// once they had something to list.
 //
-// Three of them take no data and read nothing. Tokens, avatars and music have
-// no upload route, no card and no query yet -- they are the sub-nav's four
-// destinations, so that the strip is a strip rather than one link and three
-// dead ends, and so the pages that fill them have somewhere to be filled in.
-// Each renders the empty state it will keep once it has cards to show.
-//
-// They are still behind RequireSession. A page that shows an account its own
-// library is not public because it happens to be empty today, and mounting
-// them open now would be a permission to remember to take away later.
-func (a *App) TokenAssetsPage(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.TokenAssets())
-}
-
-func (a *App) AvatarAssetsPage(w http.ResponseWriter, r *http.Request) {
-	render(w, r, pages.AvatarAssets())
-}
-
+// It is behind RequireSession like the other three. A page that shows an
+// account its own library is not public because it happens to be empty today,
+// and mounting it open now would be a permission to remember to take away.
 func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.MusicAssets())
 }
@@ -610,10 +598,26 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if character.AssetID != nil {
+	// THE ROW HAS TO BE THERE, NOT JUST THE POINTER. characters.asset_id has no
+	// foreign key behind it -- nothing in this schema does -- so a character can
+	// name an assets row that has been deleted, and the LEFT JOIN in
+	// GetCharacterAsset hands that back as an id with no file_path. Branching on
+	// the id alone would send the replacement to an empty key and answer 500 on
+	// a character that is simply missing its picture. Falling through to the
+	// insert instead mints a new asset and relinks the character, so uploading a
+	// portrait is what fixes it.
+	if character.AssetID != nil && character.FilePath.Valid {
 		// NOTE: replacing overwrites the existing key, so nothing can be orphaned
+		//
+		// THE KEY COMES OFF THE ROW. A portrait written before the asset library
+		// existed is stored under users/{owner}/avatars/{id}, because that is
+		// what `avatar` meant then; 20260907120000 moved the row's type and
+		// moved nothing in the bucket. Rebuilding the key here would send the
+		// replacement to users/{owner}/portraits/{id}, leaving the object the
+		// row still points at untouched -- so the upload would appear to
+		// succeed and the portrait would never change.
 		assetID := *character.AssetID
-		if err := a.Storage.UploadAvatar(ctx, sess.UserID, assetID, avatar); err != nil {
+		if err := a.Storage.UploadImage(ctx, character.FilePath.String, avatar); err != nil {
 			slog.Error("Failed to upload character avatar", "error", err)
 			htmx.ServerError(w)
 			return
@@ -632,12 +636,12 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		// NOTE: the row is the ledger for what lives in R2, so it is written
 		// first and rolled back if the upload never lands
 		assetID := ulid.Make()
-		err := a.Queries.InsertAvatar(ctx, queries.InsertAvatarParams{
+		err := a.Queries.InsertCharacterPortrait(ctx, queries.InsertCharacterPortraitParams{
 			ID:       assetID,
 			OwnerID:  sess.UserID,
-			FilePath: storage.AvatarKey(sess.UserID, assetID),
-			FileName: filename,
-			Name:     filename,
+			FilePath: storage.CharacterPortraitKey(sess.UserID, assetID),
+			FileName: assetName(filename),
+			Name:     assetName(filename),
 		})
 		if err != nil {
 			slog.Error("Failed to insert character avatar into DB", "error", err)
@@ -645,9 +649,9 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := a.Storage.UploadAvatar(ctx, sess.UserID, assetID, avatar); err != nil {
+		if err := a.Storage.UploadCharacterPortrait(ctx, sess.UserID, assetID, avatar); err != nil {
 			slog.Error("Failed to upload character avatar", "error", err)
-			a.discardAvatar(ctx, sess.UserID, assetID)
+			a.discardCharacterPortrait(ctx, sess.UserID, assetID)
 			htmx.ServerError(w)
 			return
 		}
@@ -659,7 +663,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("Failed to link avatar to character", "error", err)
-			a.discardAvatar(ctx, sess.UserID, assetID)
+			a.discardCharacterPortrait(ctx, sess.UserID, assetID)
 			htmx.ServerError(w)
 			return
 		}
@@ -1083,6 +1087,7 @@ func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	err = a.Queries.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
 		ID:      assetID,
 		OwnerID: sess.UserID,
+		Type:    queries.AssetsTypeMap,
 		Name:    name,
 	})
 	if err != nil {
@@ -1157,14 +1162,18 @@ func (a *App) discardMonsterImage(ctx context.Context, userID ulid.ULID, assetID
 	}
 }
 
-// discardAvatar rolls back an avatar upload that failed after its row was
-// written, on the same terms as discardMap.
-func (a *App) discardAvatar(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
+// discardCharacterPortrait rolls back a portrait upload that failed after its
+// row was written, on the same terms as discardMap.
+//
+// It only ever runs on a row this request just inserted, so the key is the one
+// CharacterPortraitKey builds -- unlike the replace above, which is rolling
+// nothing back and has an older row's path to honour.
+func (a *App) discardCharacterPortrait(ctx context.Context, userID ulid.ULID, assetID ulid.ULID) {
 	cleanupCtx, cancel := storage.CleanupContext(ctx)
 	defer cancel()
 
-	if err := a.Storage.Delete(cleanupCtx, storage.AvatarKey(userID, assetID)); err != nil {
-		slog.Error("Failed to clean up avatar object; leaving the asset row behind", "error", err, "assetID", assetID.String())
+	if err := a.Storage.Delete(cleanupCtx, storage.CharacterPortraitKey(userID, assetID)); err != nil {
+		slog.Error("Failed to clean up portrait object; leaving the asset row behind", "error", err, "assetID", assetID.String())
 		return
 	}
 	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{

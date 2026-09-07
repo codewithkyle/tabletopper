@@ -1,0 +1,57 @@
+package pages
+
+templ assetNameBox(box nameBox) {
+	<input
+		id={ box.ID }
+		class="mb-1 block h-9 w-full truncate rounded border border-transparent bg-transparent font-serif text-2xl transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2"
+		type="text"
+		value={ box.Value }
+		name={ box.Field }
+		required
+		maxlength={ box.MaxLength }
+		hx-trigger="input changed delay:1s"
+		hx-patch={ box.URL }
+		hx-swap="none"
+	/>
+}
+
+templ assetCardControls(c cardControls) {
+	<div class="flex flex-row flex-nowrap items-center justify-between gap-2">
+		<div class="min-w-0 flex-1">
+			<code class="mr-auto inline-block h-6 max-w-full flex-1 overflow-hidden rounded bg-base-content/5 px-1 text-xs leading-6 text-ellipsis whitespace-nowrap">{ c.FileName }</code>
+		</div>
+		<div class="flex flex-row items-center gap-1">
+			<div class="tooltip" data-tip="Replace">
+				<label
+					for={ c.ReplaceID }
+					class="btn btn-soft btn-square"
+				>
+					@replaceIcon()
+					<input
+						class="absolute top-0 left-0 h-0 w-0 opacity-0"
+						id={ c.ReplaceID }
+						type="file"
+						name={ c.Field }
+						accept={ c.Accept }
+						required
+						hx-post={ c.ReplaceURL }
+						hx-target="closest asset-card"
+						hx-swap="outerHTML"
+						hx-encoding="multipart/form-data"
+					/>
+				</label>
+			</div>
+			<div class="tooltip" data-tip="Delete">
+				<button
+					class="btn btn-soft btn-error btn-square"
+					hx-confirm={ "You are about to delete " + c.ConfirmName + ". This action cannot be undone." }
+					hx-delete={ c.DeleteURL }
+					hx-target="closest asset-card"
+					hx-swap="delete"
+				>
+					@trashXIcon()
+				</button>
+			</div>
+		</div>
+	</div>
+}

@@ -31,6 +31,21 @@ func Square(img image.Image, size int) image.Image {
 	return imaging.Fill(img, size, size, imaging.Center, imaging.Lanczos)
 }
 
+// Fit scales img down to sit inside a size-by-size box WITHOUT CROPPING IT, and
+// leaves anything already smaller alone.
+//
+// IT IS THE ONE A TOKEN NEEDS, and the difference from Square is the whole
+// reason it exists. Square centre-crops, which is right for a portrait -- a face
+// is in the middle and a thumbnail is square -- and wrong for a longboat, which
+// it would turn into a square of hull. A token is placed on a map at the shape
+// it was drawn at, so the shape is the thing being preserved.
+//
+// It never enlarges: imaging.Fit scales down only, so a 64-pixel token stays 64
+// pixels rather than being blown up to the box and stored blurry.
+func Fit(img image.Image, size int) image.Image {
+	return imaging.Fit(img, size, size, imaging.Lanczos)
+}
+
 // EncodeWebP encodes img as lossy WebP.
 //
 // AN *image.RGBA GOES STRAIGHT TO THE ENCODER and every other type is copied

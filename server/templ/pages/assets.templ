@@ -1,9 +1,6 @@
 package pages
 
-import (
-	"strconv"
-	"tabletopper/templ/layouts"
-)
+import "tabletopper/templ/layouts"
 
 templ MapAssets(maps []MapAsset) {
 	@layouts.Base("Maps | Asset Manager | Tabletopper") {
@@ -17,18 +14,26 @@ templ MapAssets(maps []MapAsset) {
 	}
 }
 
-templ TokenAssets() {
+templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
-		@assetsShell(assetTabTokens, nil) {
-			@assetGrid("tokens", "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.")
+		@assetsShell(assetTabTokens, libraryUploadButton("tokens", "Upload token")) {
+			@assetGrid("tokens", "No tokens yet.", "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.") {
+				for _, t := range tokens {
+					@LibraryAssetCard(t)
+				}
+			}
 		}
 	}
 }
 
-templ AvatarAssets() {
+templ AvatarAssets(avatars []LibraryAsset) {
 	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
-		@assetsShell(assetTabAvatars, nil) {
-			@assetGrid("avatars", "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.")
+		@assetsShell(assetTabAvatars, libraryUploadButton("avatars", "Upload avatar")) {
+			@assetGrid("avatars", "No avatars yet.", "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.") {
+				for _, a := range avatars {
+					@LibraryAssetCard(a)
+				}
+			}
 		}
 	}
 }
@@ -86,14 +91,14 @@ templ mapUploadButton() {
 		for="map-upload"
 		class="btn btn-primary relative"
 	>
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-camera-up"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 20h-7a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v3.5"></path><path d="M12 16a3 3 0 1 0 0 -6a3 3 0 0 0 0 6"></path><path d="M19 22v-6"></path><path d="M22 19l-3 -3l-3 3"></path></svg>
+		@uploadIcon()
 		Upload map
 		<input
 			class="absolute top-0 left-0 h-0 w-0 opacity-0"
 			id="map-upload"
 			type="file"
 			name="map"
-			accept="image/png, image/jpeg, image/webp"
+			accept={ imageAccept }
 			required
 			hx-post="/assets/maps"
 			hx-swap="afterbegin"
@@ -139,55 +144,7 @@ templ MapCard(m MapAsset) {
 				</div>
 			}
 		</div>
-		<input
-			id={ "map-name-" + m.ID }
-			class="mb-1 block h-9 w-full truncate rounded border border-transparent bg-transparent font-serif text-2xl transition-all duration-150 ease-in-out hover:border-base-content/15 hover:bg-base-content/5 hover:px-2 focus:border-base-300 focus:bg-transparent focus:px-2"
-			type="text"
-			value={ m.Name }
-			name="map-name"
-			required
-			maxlength={ strconv.Itoa(AssetNameLimit) }
-			hx-trigger="input changed delay:1s"
-			hx-patch={ "/assets/maps/" + m.ID + "/name" }
-			hx-swap="none"
-		/>
-		<div class="flex flex-row flex-nowrap items-center justify-between gap-2">
-			<div class="min-w-0 flex-1">
-				<code class="mr-auto inline-block h-6 max-w-full flex-1 overflow-hidden rounded bg-base-content/5 px-1 text-xs leading-6 text-ellipsis whitespace-nowrap">{ m.FileName }</code>
-			</div>
-			<div class="flex flex-row items-center gap-1">
-				<div class="tooltip" data-tip="Replace">
-					<label
-						for={ "map-replace-" + m.ID }
-						class="btn btn-soft btn-square"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-replace"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 2h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M20 14h-4a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2z"></path><path d="M16.707 2.293a1 1 0 0 1 .083 1.32l-.083 .094l-1.293 1.293h3.586a3 3 0 0 1 2.995 2.824l.005 .176v3a1 1 0 0 1 -1.993 .117l-.007 -.117v-3a1 1 0 0 0 -.883 -.993l-.117 -.007h-3.585l1.292 1.293a1 1 0 0 1 -1.32 1.497l-.094 -.083l-3 -3a.98 .98 0 0 1 -.28 -.872l.036 -.146l.04 -.104c.058 -.126 .14 -.24 .245 -.334l2.959 -2.958a1 1 0 0 1 1.414 0z"></path><path d="M3 12a1 1 0 0 1 .993 .883l.007 .117v3a1 1 0 0 0 .883 .993l.117 .007h3.585l-1.292 -1.293a1 1 0 0 1 -.083 -1.32l.083 -.094a1 1 0 0 1 1.32 -.083l.094 .083l3 3a.98 .98 0 0 1 .28 .872l-.036 .146l-.04 .104a1.02 1.02 0 0 1 -.245 .334l-2.959 2.958a1 1 0 0 1 -1.497 -1.32l.083 -.094l1.291 -1.293h-3.584a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-3a1 1 0 0 1 1 -1z"></path></svg>
-						<input
-							class="absolute top-0 left-0 h-0 w-0 opacity-0"
-							id={ "map-replace-" + m.ID }
-							type="file"
-							name="map"
-							accept="image/png, image/jpeg, image/webp"
-							required
-							hx-post={ "/assets/maps/" + m.ID }
-							hx-target="closest asset-card"
-							hx-swap="outerHTML"
-							hx-encoding="multipart/form-data"
-						/>
-					</label>
-				</div>
-				<div class="tooltip" data-tip="Delete">
-					<button
-						class="btn btn-soft btn-error btn-square"
-						hx-confirm={ "You are about to delete your your map " + m.Name + ". This action cannot be undone." }
-						hx-delete={ "/assets/maps/" + m.ID }
-						hx-target="closest asset-card"
-						hx-swap="delete"
-					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="icon icon-tabler icons-tabler-filled icon-tabler-trash-x"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M20 6a1 1 0 0 1 .117 1.993l-.117 .007h-.081l-.919 11a3 3 0 0 1 -2.824 2.995l-.176 .005h-8c-1.598 0 -2.904 -1.249 -2.992 -2.75l-.005 -.167l-.923 -11.083h-.08a1 1 0 0 1 -.117 -1.993l.117 -.007h16zm-9.489 5.14a1 1 0 0 0 -1.218 1.567l1.292 1.293l-1.292 1.293l-.083 .094a1 1 0 0 0 1.497 1.32l1.293 -1.292l1.293 1.292l.094 .083a1 1 0 0 0 1.32 -1.497l-1.292 -1.293l1.292 -1.293l.083 -.094a1 1 0 0 0 -1.497 -1.32l-1.293 1.292l-1.293 -1.292l-.094 -.083z"></path><path d="M14 2a2 2 0 0 1 2 2a1 1 0 0 1 -1.993 .117l-.007 -.117h-4l-.007 .117a1 1 0 0 1 -1.993 -.117a2 2 0 0 1 1.85 -1.995l.15 -.005h4z"></path></svg>
-					</button>
-				</div>
-			</div>
-		</div>
+		@assetNameBox(m.nameBox())
+		@assetCardControls(m.controls())
 	</asset-card>
 }

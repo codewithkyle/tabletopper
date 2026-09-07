@@ -3,10 +3,17 @@
 -- player at the table, so any signed-in user may fetch any image, and any tile
 -- of any map, by id. Ownership gates the writes.
 
--- name: InsertAvatar :exec
+-- A character's portrait. It is `character` and not `avatar` for the reason a
+-- monster's picture is `monster` and not `token`: the member says what owns the
+-- row. This one is owned by a sheet and is reached through characters.asset_id;
+-- `avatar` is library stock the account gathers, listed and deleted by its own
+-- page, and a page offering Delete over a row a character points at would break
+-- that portrait with nothing to notice -- there is no foreign key here to stop
+-- it. See 20260907120000 for the move.
+-- name: InsertCharacterPortrait :exec
 INSERT INTO assets
 (id, owner_id, file_path, type, file_name, name)
-VALUES (?, ?, ?, 'avatar', ?, ?);
+VALUES (?, ?, ?, 'character', ?, ?);
 
 -- A monster's picture, and it is its own type rather than a token: `token` is
 -- for one-off images placed on a map that belong to no monster, and this one is
@@ -53,9 +60,12 @@ WHERE id = ? AND owner_id = ? AND type = 'map';
 -- `journal` IS DELIBERATELY NOT HERE. A journal image belongs to one entry of
 -- one character's diary, it is reached through the share's own reader route,
 -- and it is the one stored picture that is nobody else's business.
+-- `character` is here because it is where a character's portrait went, and the
+-- portrait was being served from this statement as `avatar` the day before. It
+-- is a picture every player at the table sees, like the four beside it.
 -- name: GetImage :one
 SELECT id, file_path, preview_path, updated_at FROM assets
-WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster');
+WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character');
 
 -- Everything the tile route needs to decide whether a requested tile exists,
 -- and where it is. The four numbers are the pyramid's whole shape: the level
@@ -90,10 +100,14 @@ UPDATE assets
 SET file_name = ?, updated_at = NOW()
 WHERE id = ? AND owner_id = ?;
 
+-- The type is in the WHERE so a rename cannot cross kinds. Every rename arrives
+-- at /assets/<kind>/<id>/name, and without it the kind in that path would be
+-- decoration: a token's id posted to the maps route would rename the token, and
+-- the reply is a toast that says it worked.
 -- name: UpdateAssetName :exec
 UPDATE assets
 SET name = ?
-WHERE id = ? AND owner_id = ?;
+WHERE id = ? AND owner_id = ? AND type = ?;
 
 -- name: DeleteAsset :exec
 DELETE FROM assets
@@ -205,3 +219,54 @@ WHERE id = ? AND type = 'map' AND tile_state = 'working' AND tile_lease = ?;
 UPDATE assets
 SET tile_state = 'pending', tile_lease = NULL, tile_leased_at = NULL
 WHERE type = 'map' AND tile_state = 'failed' AND tile_attempts < ? AND tile_leased_at < ?;
+
+-- THE LIBRARY, WHICH IS EVERY KIND THE ACCOUNT GATHERS RATHER THAN A SHEET
+-- OWNS. Tokens and avatars today, music next; maps keep their own statements
+-- because a map is a pyramid and a job as well as a row.
+--
+-- THE TYPE IS A PARAMETER HERE AND A LITERAL EVERYWHERE ELSE, and that is the
+-- one thing about these worth arguing over. It is a parameter because the four
+-- rows differ in nothing but that word -- same columns, same owner scoping,
+-- same ordering -- so a statement per kind would be four copies to keep in
+-- step. It is safe because no request ever supplies it: the handler is reached
+-- through a route naming one kind, and passes the kind that route is for. A
+-- value off the wire would have to be matched against an allowlist first, and
+-- there is no route here that takes one.
+--
+-- Every one of them is scoped to the owner, unlike GetImage and GetMapPyramid.
+-- Those serve pictures to a whole table; these are the manager, and the manager
+-- shows an account its own shelf.
+
+-- width and height are the STORED image's dimensions, not the upload's. A token
+-- is fitted into a box with its aspect kept and an avatar is cropped square, so
+-- what a renderer needs is what came out of the encoder -- and it needs it to
+-- place a token at the right shape without fetching and decoding the file
+-- first. They are written for every kind so that "the pixels of the image at
+-- file_path" is true of a library row whatever kind it is.
+-- name: InsertLibraryAsset :exec
+INSERT INTO assets
+(id, owner_id, file_path, type, file_name, name, width, height)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: GetLibraryAssets :many
+SELECT * FROM assets
+WHERE owner_id = ? AND type = ?
+ORDER BY created_at DESC;
+
+-- name: GetLibraryAsset :one
+SELECT * FROM assets
+WHERE id = ? AND owner_id = ? AND type = ?;
+
+-- Replacing a library asset overwrites its object at the key it already has, so
+-- the row keeps its id, its name and its path, and only what came out of the
+-- new encode changes.
+--
+-- updated_at is set explicitly for the reason UpdateAssetFileName gives: ON
+-- UPDATE CURRENT_TIMESTAMP fires only when a value changes, and replacing a
+-- file with one of the same name and the same dimensions changes none of them.
+-- The image proxy's ETag is built from updated_at, so a replacement that did
+-- not move it would go on serving the old picture out of the browser's cache.
+-- name: ReplaceLibraryAsset :exec
+UPDATE assets
+SET file_name = ?, width = ?, height = ?, updated_at = NOW()
+WHERE id = ? AND owner_id = ? AND type = ?;

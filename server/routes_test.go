@@ -323,14 +323,36 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/assets/images/" + asset + "/preview", "GET /assets/images/{id}/preview"},
 		// "images" is not a kind and there is no page listing it.
 		{http.MethodGet, "/assets/images", "/"},
-		// Maps is the only kind with anything behind the page yet.
+		// The three kinds that take an upload, each a collection and a member.
+		// Tokens and avatars are the same four patterns twice, and they must
+		// stay apart: one set of handlers serves both, and the only thing
+		// saying which kind a request is for is which pattern it arrived on.
 		{http.MethodPost, "/assets/maps", "POST /assets/maps"},
-		{http.MethodPost, "/assets/tokens", "/"},
-		{http.MethodPost, "/assets/avatars", "/"},
-		{http.MethodPost, "/assets/music", "/"},
+		{http.MethodPost, "/assets/tokens", "POST /assets/tokens"},
+		{http.MethodPost, "/assets/tokens/" + asset, "POST /assets/tokens/{id}"},
+		{http.MethodPatch, "/assets/tokens/" + asset + "/name", "PATCH /assets/tokens/{id}/name"},
+		{http.MethodDelete, "/assets/tokens/" + asset, "DELETE /assets/tokens/{id}"},
+		{http.MethodPost, "/assets/avatars", "POST /assets/avatars"},
+		{http.MethodPost, "/assets/avatars/" + asset, "POST /assets/avatars/{id}"},
+		{http.MethodPatch, "/assets/avatars/" + asset + "/name", "PATCH /assets/avatars/{id}/name"},
+		{http.MethodDelete, "/assets/avatars/" + asset, "DELETE /assets/avatars/{id}"},
+		// THE COLLECTION AND THE MEMBER DIFFER BY ONE SEGMENT, which is the
+		// trap the inventory and spell pairs set too: an upload arriving at the
+		// replace handler would parse no id, and a replace arriving at the
+		// upload handler would write a second row for a picture that already
+		// had one.
+		{http.MethodDelete, "/assets/tokens", "/"},
+		{http.MethodPatch, "/assets/tokens/" + asset, "/"},
+		// A library asset has no representation of its own to GET: its card is
+		// rendered by the page, and its bytes come from /assets/images/{id}.
 		{http.MethodGet, "/assets/tokens/" + asset, "/"},
-		{http.MethodDelete, "/assets/avatars/" + asset, "/"},
+		{http.MethodGet, "/assets/avatars/" + asset, "/"},
+		// Music is still a page and nothing else. It is not an image, so it
+		// shares no handler with the two above and has none of their routes.
+		{http.MethodPost, "/assets/music", "/"},
+		{http.MethodPost, "/assets/music/" + asset, "/"},
 		{http.MethodPatch, "/assets/music/" + asset + "/name", "/"},
+		{http.MethodDelete, "/assets/music/" + asset, "/"},
 		// A kind that is not one of the four. There is no wildcard to catch it,
 		// so it falls to the root the way any other unknown path does.
 		{http.MethodGet, "/assets/handouts", "/"},

@@ -67,9 +67,32 @@ func MapTileKey(userID ulid.ULID, assetID ulid.ULID, gen ulid.ULID, z int, x int
 		strconv.Itoa(x) + "_" + strconv.Itoa(y) + ".webp"
 }
 
-// AvatarKey returns the key holding a character's avatar.
+// AvatarKey returns the key holding one avatar in the account's library: a face
+// the game master gathered to put on an NPC, owned by nobody until one is
+// spawned. Flat like a monster's picture and not a directory like a map.
+//
+// THIS PREFIX ALSO HOLDS EVERY CHARACTER PORTRAIT WRITTEN BEFORE THE LIBRARY
+// EXISTED, and that is deliberate. A portrait used to be an `avatar` and used
+// to be stored here; 20260907120000 moved the rows to their own member and
+// moved nothing in the bucket, because every read builds its key from
+// assets.file_path rather than from the type. New portraits go to
+// CharacterPortraitKey. The two cannot collide -- an asset id is a ULID and
+// names exactly one row -- so the only cost is a prefix holding two kinds of
+// thing, which is cheaper than copying objects to make a listing tidy.
 func AvatarKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/avatars/" + assetID.String()
+}
+
+// TokenKey returns the key holding one token: a thing on the board that is not
+// a creature, kept at whatever shape it was uploaded in.
+func TokenKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/tokens/" + assetID.String()
+}
+
+// CharacterPortraitKey returns the key holding a character's portrait. See
+// AvatarKey for why portraits written before the library existed are not here.
+func CharacterPortraitKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/portraits/" + assetID.String()
 }
 
 // JournalImageKey returns the key holding one journal image. There is no
@@ -91,10 +114,25 @@ func CleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 }
 
-// UploadAvatar writes a character avatar to the key returned by AvatarKey. The
-// asset row must already exist so a failure here can be cleaned up.
-func (c *Client) UploadAvatar(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
-	return c.Put(ctx, AvatarKey(userID, assetID), body, "image/webp")
+// UploadImage writes one stored image to a key its caller has already built.
+//
+// IT TAKES A KEY RATHER THAN AN ID because two callers cannot build one. A
+// library upload's key comes from the kind it was routed as, and a replacement
+// overwrites the key on the row it is replacing -- which for a portrait written
+// before the library existed is not the key any builder here would produce.
+//
+// image/webp is pinned rather than passed, because it is true of every image
+// this app stores: everything but a map's original goes through
+// images.EncodeWebP on the way in.
+func (c *Client) UploadImage(ctx context.Context, key string, body []byte) error {
+	return c.Put(ctx, key, body, "image/webp")
+}
+
+// UploadCharacterPortrait writes a character's portrait to the key returned by
+// CharacterPortraitKey. The asset row must already exist so a failure here can
+// be cleaned up.
+func (c *Client) UploadCharacterPortrait(ctx context.Context, userID ulid.ULID, assetID ulid.ULID, body []byte) error {
+	return c.UploadImage(ctx, CharacterPortraitKey(userID, assetID), body)
 }
 
 // UploadJournalImage writes one journal image. The asset row must already

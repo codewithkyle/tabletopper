@@ -300,9 +300,9 @@ func journalImageFlips(states []queries.ListJournalImageStatesRow, referenced fu
 }
 
 // discardJournalImage rolls back an upload that failed after its row was
-// written, on the same terms as discardAvatar: the row is only dropped once R2
-// confirms the object is gone, so a cleanup failure leaves it behind as the
-// record that the object may still exist.
+// written, on the same terms as discardCharacterPortrait: the row is only
+// dropped once R2 confirms the object is gone, so a cleanup failure leaves it
+// behind as the record that the object may still exist.
 //
 // This is the one place outside internal/sweep that deletes a journal image,
 // and the exception is narrow: the bytes it removes were never referenced by an

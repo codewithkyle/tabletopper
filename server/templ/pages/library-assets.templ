@@ -1,0 +1,33 @@
+package pages
+
+templ LibraryAssetCard(l LibraryAsset) {
+	<asset-card class={ sheetSurface + " mb-auto p-4" }>
+		<div class="relative mb-2 flex aspect-square w-full items-center justify-center overflow-hidden rounded bg-base-content/5">
+			<img class="absolute inset-0 h-full w-full object-contain" src={ l.ImageURL() } alt=""/>
+		</div>
+		@assetNameBox(l.nameBox())
+		@assetCardControls(l.controls())
+	</asset-card>
+}
+
+templ libraryUploadButton(kind string, label string) {
+	<label
+		for={ kind + "-upload" }
+		class="btn btn-primary relative"
+	>
+		@uploadIcon()
+		{ label }
+		<input
+			class="absolute top-0 left-0 h-0 w-0 opacity-0"
+			id={ kind + "-upload" }
+			type="file"
+			name="image"
+			accept={ imageAccept }
+			required
+			hx-post={ "/assets/" + kind }
+			hx-swap="afterbegin"
+			hx-target={ "#" + kind }
+			hx-encoding="multipart/form-data"
+		/>
+	</label>
+}

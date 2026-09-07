@@ -86,11 +86,17 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		// The map page with nothing on it, because the empty state is markup
 		// the populated one does not reach.
 		"assets-empty":   func() error { return render(MapAssets(nil)) },
-		"assets-tokens":  func() error { return render(TokenAssets()) },
-		"assets-avatars": func() error { return render(AvatarAssets()) },
-		"assets-music":   func() error { return render(MusicAssets()) },
-		"sign-in":        func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":            func() error { return render(TOS()) },
+		"assets-tokens":  func() error { return render(TokenAssets(nil)) },
+		"assets-avatars": func() error { return render(AvatarAssets(nil)) },
+		"assets-tokens-full": func() error {
+			return render(TokenAssets([]LibraryAsset{testLibraryCard("tokens")}))
+		},
+		"assets-avatars-full": func() error {
+			return render(AvatarAssets([]LibraryAsset{testLibraryCard("avatars")}))
+		},
+		"assets-music": func() error { return render(MusicAssets()) },
+		"sign-in":      func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":          func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup
@@ -1305,8 +1311,8 @@ func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 		"roster":           {Characters(nil), "/", "Home"},
 		"manual":           {Monsters(MonsterListData{}), "/", "Home"},
 		"asset manager":    {MapAssets(nil), "/", "Home"},
-		"asset tokens":     {TokenAssets(), "/", "Home"},
-		"asset avatars":    {AvatarAssets(), "/", "Home"},
+		"asset tokens":     {TokenAssets(nil), "/", "Home"},
+		"asset avatars":    {AvatarAssets(nil), "/", "Home"},
 		"asset music":      {MusicAssets(), "/", "Home"},
 		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: characterID}), "/characters", "Characters"},
 		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters", "Monsters"},
@@ -2465,8 +2471,8 @@ func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 		current string
 	}{
 		"maps":    {MapAssets(nil), "/assets/maps"},
-		"tokens":  {TokenAssets(), "/assets/tokens"},
-		"avatars": {AvatarAssets(), "/assets/avatars"},
+		"tokens":  {TokenAssets(nil), "/assets/tokens"},
+		"avatars": {AvatarAssets(nil), "/assets/avatars"},
 		"music":   {MusicAssets(), "/assets/music"},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -2497,7 +2503,7 @@ func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 // paper, which is what the character tabs did before there was a bar to dock
 // them in.
 func TestTheAssetTabsRenderInsideTheBar(t *testing.T) {
-	body := markup(t, TokenAssets())
+	body := markup(t, TokenAssets(nil))
 
 	barCloses := strings.Index(body, "</header>")
 	if barCloses < 0 {
@@ -2575,8 +2581,8 @@ func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 		heading string
 	}{
 		"maps":    {MapAssets(nil), "No maps yet."},
-		"tokens":  {TokenAssets(), "No tokens yet."},
-		"avatars": {AvatarAssets(), "No avatars yet."},
+		"tokens":  {TokenAssets(nil), "No tokens yet."},
+		"avatars": {AvatarAssets(nil), "No avatars yet."},
 		"music":   {MusicAssets(), "No music yet."},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -2596,5 +2602,125 @@ func TestTheAssetNameBoxIsBoundedByTheColumn(t *testing.T) {
 
 	if want := `maxlength="` + strconv.Itoa(AssetNameLimit) + `"`; !strings.Contains(body, want) {
 		t.Errorf("the name box carries no %s:\n%s", want, body)
+	}
+}
+
+// testLibraryCard is one token or avatar as its card reads it.
+func testLibraryCard(kind string) LibraryAsset {
+	return LibraryAsset{
+		ID:       testMapID,
+		Name:     "Rowboat",
+		FileName: "rowboat.png",
+		Kind:     kind,
+		Width:    512,
+		Height:   171,
+	}
+}
+
+// EVERY URL ON A LIBRARY CARD CARRIES ITS OWN KIND, and that is the whole of
+// what stops one page acting on another's rows. The id is the same shape for a
+// token and an avatar, so a card whose Delete said /assets/avatars/ while
+// sitting on the tokens page would delete somebody's avatar and remove a token
+// from the screen -- and both requests would answer 200.
+func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
+	for _, kind := range []string{"tokens", "avatars"} {
+		t.Run(kind, func(t *testing.T) {
+			body := markup(t, LibraryAssetCard(testLibraryCard(kind)))
+
+			base := "/assets/" + kind + "/" + testMapID
+			for _, want := range []string{
+				`hx-post="` + base + `"`,
+				`hx-delete="` + base + `"`,
+				`hx-patch="` + base + `/name"`,
+				// The stored image, not a /preview: a library asset is kept at
+				// the size it is served at, so preview_path is NULL on the row
+				// and there is no second object to point at.
+				`src="/assets/images/` + testMapID + `"`,
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("the card carries no %s:\n%s", want, body)
+				}
+			}
+
+			// And nothing addressed at the other kind, or at maps.
+			for _, other := range []string{"/assets/maps/", "/assets/music/"} {
+				if strings.Contains(body, other) {
+					t.Errorf("the card reaches into %s", other)
+				}
+			}
+		})
+	}
+}
+
+// A token keeps its shape and an avatar is cropped square, so the card draws
+// both with object-contain: a wide token inside object-cover would be centre-
+// cropped on screen, which is the crop the stored image deliberately avoided.
+func TestALibraryCardShowsTheWholePicture(t *testing.T) {
+	body := markup(t, LibraryAssetCard(testLibraryCard("tokens")))
+
+	if !strings.Contains(body, "object-contain") {
+		t.Errorf("the card crops its picture:\n%s", body)
+	}
+}
+
+// The two cards are one control below the picture, so a change to the name box
+// or to Replace and Delete lands on both. This is asserted as the pair of
+// components rather than as a class string: what matters is that a map and a
+// token render the same markup, not what that markup looks like today.
+func TestTheMapAndLibraryCardsShareTheirControls(t *testing.T) {
+	mapCard := markup(t, MapCard(testMapCard()))
+	libraryCard := markup(t, LibraryAssetCard(testLibraryCard("tokens")))
+
+	for _, shared := range []string{
+		// The name box: a bare input that PATCHes on a debounce and swaps
+		// nothing back.
+		`hx-trigger="input changed delay:1s"`,
+		`hx-swap="none"`,
+		// The controls: Replace targets the card and swaps it, Delete removes
+		// it, and both are confirmed by the same sentence.
+		`hx-target="closest asset-card"`,
+		`hx-swap="delete"`,
+		"You are about to delete ",
+		`maxlength="` + strconv.Itoa(AssetNameLimit) + `"`,
+	} {
+		if !strings.Contains(mapCard, shared) {
+			t.Errorf("the map card is missing %s", shared)
+		}
+		if !strings.Contains(libraryCard, shared) {
+			t.Errorf("the library card is missing %s", shared)
+		}
+	}
+}
+
+// Each library page uploads into the grid on that page, and nowhere else. The
+// button, the file input and the grid are joined by a string built three times
+// from the kind, and a disagreement is invisible: the reply is a card that
+// swaps into nothing.
+func TestALibraryUploadTargetsItsOwnGrid(t *testing.T) {
+	for name, c := range map[string]struct {
+		page templ.Component
+		kind string
+	}{
+		"tokens":  {TokenAssets(nil), "tokens"},
+		"avatars": {AvatarAssets(nil), "avatars"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := markup(t, c.page)
+
+			for _, want := range []string{
+				`hx-post="/assets/` + c.kind + `"`,
+				`hx-target="#` + c.kind + `"`,
+				`hx-swap="afterbegin"`,
+				`id="` + c.kind + `"`,
+				// The label and its hidden input have to agree, or the button
+				// opens no file picker at all.
+				`for="` + c.kind + `-upload"`,
+				`id="` + c.kind + `-upload"`,
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("the %s page carries no %s:\n%s", c.kind, want, body)
+				}
+			}
+		})
 	}
 }

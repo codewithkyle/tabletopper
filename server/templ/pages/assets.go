@@ -1,6 +1,10 @@
 package pages
 
-import "tabletopper/internal/queries"
+import (
+	"strconv"
+
+	"tabletopper/internal/queries"
+)
 
 // THE ASSET MANAGER IS A PAGE PER KIND, and these four names are what says
 // which one is being rendered. They live here rather than beside the markup in
@@ -119,4 +123,35 @@ func (m MapAsset) Retryable() bool {
 // silently -- the swap never happens and the map simply never finishes.
 func (m MapAsset) CardURL() string {
 	return "/fragment/assets/maps/" + m.ID + "/card"
+}
+
+// nameBox and controls are what a map gives the two shared card components. See
+// asset-card.go for why they are structs built here rather than arguments
+// assembled in the markup.
+//
+// THE FIELD NAMES ARE THE MAP'S OWN and are not the library's. "map-name" and
+// "map" are what UploadMap, ReplaceMap and ReplaceMapName read, and they were
+// there before there was a second kind of asset to share a card with -- so they
+// stay, and the components take the field name as a parameter rather than the
+// handlers being rewritten to agree with a card.
+func (m MapAsset) nameBox() nameBox {
+	return nameBox{
+		ID:        "map-name-" + m.ID,
+		Value:     m.Name,
+		URL:       "/assets/maps/" + m.ID + "/name",
+		Field:     "map-name",
+		MaxLength: strconv.Itoa(AssetNameLimit),
+	}
+}
+
+func (m MapAsset) controls() cardControls {
+	return cardControls{
+		FileName:    m.FileName,
+		ReplaceID:   "map-replace-" + m.ID,
+		ReplaceURL:  "/assets/maps/" + m.ID,
+		Field:       "map",
+		Accept:      imageAccept,
+		DeleteURL:   "/assets/maps/" + m.ID,
+		ConfirmName: m.Name,
+	}
 }
