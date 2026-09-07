@@ -393,6 +393,74 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 	}
 }
 
+// THE ROOM BLOCK, WHERE A LITERAL SITS WHERE AN ID GOES. /rooms/join and
+// /rooms/{id} are the same shape to a reader and not to the mux, which prefers
+// the literal -- the same trust the slot save and the two share pairs depend
+// on. If it ever stopped, every join would arrive at RoomPage with "join" as
+// the id, fail to parse it, and redirect to itself.
+//
+// THE PREFILL AND THE SUBMIT ARE THE SAME PATH WITH DIFFERENT METHODS, one
+// segment apart. GET /rooms/join/{code} fills the field in and joins nothing; a
+// GET that seated somebody would be a state change behind a link, which is the
+// rule that put /logout on POST.
+//
+// The five room mutations sit at the same depth as each other and are told
+// apart by their literals alone. A close arriving at the lock route would leave
+// a room open and locked; a leave arriving at the close route would end
+// somebody else's game.
+func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
+	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
+
+	id := "01BX5ZZKBKACTAV9WEVGEMMVT0"
+	code := "AB2C"
+	for _, c := range []struct{ method, path, want string }{
+		{http.MethodGet, "/rooms", "GET /rooms"},
+		{http.MethodPost, "/rooms", "POST /rooms"},
+		// THE ONE THAT MATTERS: the literal has to win over the wildcard.
+		{http.MethodGet, "/rooms/join", "GET /rooms/join"},
+		{http.MethodPost, "/rooms/join", "POST /rooms/join"},
+		{http.MethodGet, "/rooms/join/" + code, "GET /rooms/join/{code}"},
+		{http.MethodGet, "/rooms/" + id, "GET /rooms/{id}"},
+		{http.MethodDelete, "/rooms/" + id, "DELETE /rooms/{id}"},
+		{http.MethodPost, "/rooms/" + id + "/lock", "POST /rooms/{id}/lock"},
+		{http.MethodPost, "/rooms/" + id + "/unlock", "POST /rooms/{id}/unlock"},
+		{http.MethodPost, "/rooms/" + id + "/close", "POST /rooms/{id}/close"},
+		{http.MethodPost, "/rooms/" + id + "/open", "POST /rooms/{id}/open"},
+		{http.MethodPost, "/rooms/" + id + "/leave", "POST /rooms/{id}/leave"},
+		// The join page's own POST is the collection's, not the member's:
+		// there is nothing to post at one room's join.
+		{http.MethodPost, "/rooms/" + id + "/join", "/"},
+		// A code is not an id and the two never swap places. The prefill takes
+		// a code and the room page takes a ULID, and the handler is what checks
+		// the contents -- the mux only decides the shape.
+		{http.MethodPost, "/rooms/join/" + code, "/"},
+		// Creation has no page, and "/rooms/new" is the path most likely to be
+		// added by accident -- it looks like the matched pair of "/rooms/{id}".
+		{http.MethodGet, "/rooms/new", "GET /rooms/{id}"},
+		// A room is not renamed from a route yet, and it is not saved panel by
+		// panel: everything about a room that changes goes through one of the
+		// five above.
+		{http.MethodPost, "/rooms/" + id, "/"},
+		{http.MethodPatch, "/rooms/" + id + "/name", "/"},
+		// The dialog and the panel, both GETs under /fragment/. Every other
+		// verb is the subtree's 404, which is what keeps the prefix meaning "a
+		// GET that returns partial HTML".
+		{http.MethodGet, "/fragment/room/new", "GET /fragment/room/new"},
+		{http.MethodPost, "/fragment/room/new", "/fragment/"},
+		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
+		{http.MethodGet, "/fragment/room/members?room=" + id, "GET /fragment/room/members"},
+		{http.MethodPost, "/fragment/room/members", "/fragment/"},
+		// The room is not a fragment and the members panel is not a page.
+		{http.MethodGet, "/rooms/" + id + "/members", "/"},
+		{http.MethodGet, "/fragment/rooms/" + id, "/fragment/"},
+	} {
+		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
+		if pattern != c.want {
+			t.Errorf("%s %s matched %q, want %q", c.method, c.path, pattern, c.want)
+		}
+	}
+}
+
 // The mutation half of the CSRF defence, driven through the real chain rather
 // than a rebuilt one: a POST that says it came from another site is refused
 // before it reaches a handler.
@@ -410,14 +478,27 @@ func TestCrossSiteMutationsAreRefused(t *testing.T) {
 	// only the same origin. Pinned because serving the app from a second name
 	// would refuse every mutation, and the fix is csrf.AddTrustedOrigin rather
 	// than a puzzle.
-	for _, site := range []string{"cross-site", "same-site"} {
-		req := httptest.NewRequest(http.MethodPost, "/characters", nil)
-		req.Header.Set("Sec-Fetch-Site", site)
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
+	// One mutation per top-level collection, and both room writes that are
+	// reachable without already being in a room: the create, which mints a code
+	// on a stranger's behalf, and the join, which would seat a browser at a
+	// table from a page nobody at that table wrote.
+	mutations := []struct{ method, path string }{
+		{http.MethodPost, "/characters"},
+		{http.MethodPost, "/rooms"},
+		{http.MethodPost, "/rooms/join"},
+		{http.MethodDelete, "/rooms/01BX5ZZKBKACTAV9WEVGEMMVT0"},
+	}
 
-		if rec.Code != http.StatusForbidden {
-			t.Errorf("a %s POST answered %d, want %d", site, rec.Code, http.StatusForbidden)
+	for _, site := range []string{"cross-site", "same-site"} {
+		for _, mutation := range mutations {
+			req := httptest.NewRequest(mutation.method, mutation.path, nil)
+			req.Header.Set("Sec-Fetch-Site", site)
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusForbidden {
+				t.Errorf("a %s %s %s answered %d, want %d", site, mutation.method, mutation.path, rec.Code, http.StatusForbidden)
+			}
 		}
 	}
 }

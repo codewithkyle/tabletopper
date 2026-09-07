@@ -1,0 +1,134 @@
+package pages
+
+import (
+	"strconv"
+	"tabletopper/templ/layouts"
+)
+
+templ Rooms(data RoomsPageData) {
+	@layouts.Base("Rooms | Tabletopper") {
+		@roomsContent(data)
+	}
+}
+
+templ NewRoomFragment() {
+	{{ errorBlock := "#errors-" + NewRoomPanel }}
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">New Room</h3>
+		<form
+			class="grid gap-4"
+			hx-post="/rooms"
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(NewRoomPanel, []string{})
+			<div class="fieldset">
+				<label class="fieldset-legend" for="name">Room Name</label>
+				<input
+					id="name"
+					name="name"
+					type="text"
+					class="input validator peer w-full"
+					maxlength={ strconv.Itoa(RoomNameLimit) }
+					placeholder="Curse of Strahd"
+					required
+				/>
+				<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+			</div>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Create room</button>
+			</div>
+		</form>
+	</div>
+}
+
+templ roomsContent(data RoomsPageData) {
+	<rooms-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:items-stretch max-[700px]:px-4">
+					<div class="flex min-w-0 items-center gap-3">
+						@backLink(homeBack())
+						<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Rooms</h1>
+					</div>
+					<div class="flex flex-wrap items-center justify-end gap-3 max-[700px]:w-full">
+						<button
+							type="button"
+							class="btn btn-primary max-[700px]:flex-1"
+							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/room/new', size: 'sm' } }))"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
+							New room
+						</button>
+					</div>
+				</div>
+			}
+			<section class="grid min-h-0 content-start gap-3.5 overflow-auto px-6 py-4 max-[700px]:px-4">
+				if len(data.Rooms) == 0 {
+					@noticePanel("No rooms yet.") {
+						Create one, then read its four-character code out to your players.
+					}
+				} else {
+					<div class="grid gap-3">
+						for _, r := range data.Rooms {
+							@roomCard(r)
+						}
+					</div>
+				}
+			</section>
+		</div>
+	</rooms-page>
+}
+
+templ roomCard(r RoomSummary) {
+	<room-card class={ sheetSurface }>
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-3 p-3">
+			<div class="min-w-0 flex-1 basis-48">
+				<h2 class="m-0 truncate font-serif text-lg leading-tight">{ r.Name }</h2>
+				<p class="m-0 mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-base-content/70">
+					if r.Closed {
+						<span>Closed &mdash; reopen it to get a new code</span>
+					} else {
+						<span>Code</span>
+						<strong class="font-mono text-sm tracking-[0.2em] text-base-content">{ r.Code }</strong>
+					}
+				</p>
+			</div>
+			<div class="flex shrink-0 items-center gap-2">
+				if r.Closed {
+					<span class="badge badge-neutral badge-md">Closed</span>
+				} else if r.Locked {
+					<span class="badge badge-warning badge-md">Locked</span>
+				} else {
+					<span class="badge badge-success badge-md">Open</span>
+				}
+			</div>
+			<div class="flex shrink-0 items-center gap-2 max-[700px]:w-full">
+				<a
+					href={ "/rooms/" + r.ID }
+					class="btn btn-soft btn-sm max-[700px]:flex-1"
+				>Enter</a>
+				if r.Closed {
+					<button
+						type="button"
+						class="btn btn-soft btn-sm max-[700px]:flex-1"
+						hx-post={ "/rooms/" + r.ID + "/open" }
+					>Reopen</button>
+				}
+				<button
+					hx-confirm={ "You are about to delete " + r.Name + ". Everyone still in it will be removed and this cannot be undone." }
+					hx-delete={ "/rooms/" + r.ID }
+					hx-target="closest room-card"
+					hx-swap="delete"
+					class="btn btn-soft btn-error btn-sm max-[700px]:flex-1"
+				>Delete</button>
+			</div>
+		</div>
+	</room-card>
+}

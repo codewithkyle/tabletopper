@@ -56,8 +56,11 @@ templ homepageContent(session session.UserSession) {
 				<div hidden data-modal-autoopen="/fragment/account/welcome"></div>
 			}
 			<nav class="mt-[4vh] inline-block pl-4">
-				<a class="[animation-delay:350ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/host">Host Game</a>
-				<a class="[animation-delay:400ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/join">Join Game</a>
+				if session.RoomID != nil {
+					<a class="[animation-delay:300ms] mb-6 block text-[3.5rem] font-bold text-primary transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href={ "/rooms/" + session.RoomID.String() }>Return to Your Table</a>
+				}
+				<a class="[animation-delay:350ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/rooms">Host Game</a>
+				<a class="[animation-delay:400ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/rooms/join">Join Game</a>
 				<a class="[animation-delay:450ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/characters">Characters</a>
 				<a class="[animation-delay:500ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/assets/maps">Manage Assets</a>
 				<a class="[animation-delay:550ms] mb-6 block text-[3.5rem] font-bold transition-colors duration-150 hover:text-primary focus-visible:text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" href="/monsters">Monster Manual</a>

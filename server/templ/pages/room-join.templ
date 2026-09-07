@@ -1,0 +1,72 @@
+package pages
+
+import (
+	"strconv"
+	"tabletopper/internal/room"
+	"tabletopper/templ/layouts"
+)
+
+templ JoinRoom(data JoinRoomPageData) {
+	@layouts.Base("Join a Room | Tabletopper") {
+		@joinRoomContent(data)
+	}
+}
+
+templ joinRoomContent(data JoinRoomPageData) {
+	{{ errorBlock := "#errors-" + JoinRoomPanel }}
+	<join-room-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[700px]:items-stretch max-[700px]:px-4">
+					<div class="flex min-w-0 items-center gap-3">
+						@backLink(homeBack())
+						<h1 class="m-0 font-serif text-[clamp(1.45rem,2.4vw,2.05rem)] leading-none">Join a Room</h1>
+					</div>
+				</div>
+			}
+			<section class="grid min-h-0 content-start overflow-auto px-6 py-4 max-[700px]:px-4">
+				<div class={ sheetSurface + " mx-auto mt-[min(10vh,5rem)] w-full max-w-md" }>
+					<form
+						class="card-body grid gap-4 p-8"
+						hx-post="/rooms/join"
+						hx-target={ errorBlock }
+						hx-swap="outerHTML"
+						hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+						hx-status:429={ "target:" + errorBlock + ",swap:outerHTML" }
+					>
+						@PanelFormErrors(JoinRoomPanel, []string{})
+						<p class="m-0 text-base-content/75">Ask your GM for the four-character code.</p>
+						<div class="fieldset">
+							<label class="fieldset-legend" for="code">Room Code</label>
+							<input
+								id="code"
+								name="code"
+								type="text"
+								class="input validator peer w-full text-center font-mono text-2xl tracking-[0.4em] uppercase"
+								value={ data.Code }
+								maxlength={ strconv.Itoa(room.CodeLength) }
+								autocomplete="off"
+								autocapitalize="characters"
+								spellcheck="false"
+								required
+							/>
+							<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+						</div>
+						<div class="fieldset">
+							<label class="fieldset-legend" for="character">Playing as</label>
+							<select id="character" name="character" class="select w-full">
+								<option value={ NoCharacterValue }>No character</option>
+								for _, option := range data.Characters {
+									<option value={ option.ID }>{ option.Name }</option>
+								}
+							</select>
+						</div>
+						<div class="card-actions justify-end">
+							<button type="submit" class="btn btn-primary">Join room</button>
+						</div>
+					</form>
+				</div>
+			</section>
+		</div>
+	</join-room-page>
+}

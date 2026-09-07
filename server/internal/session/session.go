@@ -313,3 +313,70 @@ func hashToken(token []byte) []byte {
 	sum := sha256.Sum256(token)
 	return sum[:]
 }
+
+// ErrSessionGone is what the two room writes below report when their statement
+// matched nothing. The only way that happens is that the row ended between the
+// auth middleware reading it and the handler writing it -- a logout in another
+// tab, or a sweep of an expired session. It is an error rather than a silent
+// success because the caller is about to tell somebody they joined a room they
+// are not in.
+var ErrSessionGone = errors.New("session: the session ended before the write landed")
+
+// JoinRoom seats this session at a room, with the character they picked or none
+// at all. It is a method on Store rather than a query the handler runs, because
+// q is unexported and this package is the only code that touches the row -- the
+// same rule that keeps the cookie and the expiry in step.
+//
+// IT MUTATES u AS WELL AS THE ROW. The handler holds a copy of the session
+// taken by the middleware a moment ago, and it is that copy the page renders
+// from; leaving it stale would mean joining a room and being told by the very
+// next line of the handler that you are not in one. The cookie is untouched,
+// because it names the row and the row is what changed -- the middleware reads
+// it fresh on every request.
+func (s *Store) JoinRoom(ctx context.Context, u *UserSession, roomID ulid.ULID, characterID *ulid.ULID) error {
+	result, err := s.q.SetSessionRoom(ctx, queries.SetSessionRoomParams{
+		RoomID:      &roomID,
+		CharacterID: characterID,
+		Hash:        u.Hash,
+	})
+	if err != nil {
+		return fmt.Errorf("session: join room: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("session: join room: %w", err)
+	}
+	if rows == 0 {
+		return ErrSessionGone
+	}
+
+	u.RoomID = &roomID
+	u.CharacterID = characterID
+
+	return nil
+}
+
+// LeaveRoom takes this session back out of whatever room it was in, and clears
+// the character with it: it was chosen for that table and means nothing at the
+// next one. It is the mirror of JoinRoom in every respect, including mutating
+// the caller's copy.
+func (s *Store) LeaveRoom(ctx context.Context, u *UserSession) error {
+	result, err := s.q.ClearSessionRoom(ctx, u.Hash)
+	if err != nil {
+		return fmt.Errorf("session: leave room: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("session: leave room: %w", err)
+	}
+	if rows == 0 {
+		return ErrSessionGone
+	}
+
+	u.RoomID = nil
+	u.CharacterID = nil
+
+	return nil
+}

@@ -52,6 +52,15 @@ func monsterManualBack() backTarget {
 	return backTarget{Href: "/monsters", Label: "Monsters"}
 }
 
+// roomsBack is the GM's own rooms, which is the page above a room they own. A
+// player reached the same room from the join page rather than from a list of
+// rooms, and /rooms would show them their own empty one -- so the room page
+// picks between this and homeBack by role rather than linking one of them
+// unconditionally. See RoomPageData.back.
+func roomsBack() backTarget {
+	return backTarget{Href: "/rooms", Label: "Rooms"}
+}
+
 // journalBack is the character's own journal tab, and it is the reason
 // shellLayout carries a Back field at all.
 //

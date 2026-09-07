@@ -83,6 +83,11 @@ func run() error {
 		// password out of a chat message, and a rate at which a six-character
 		// guess never finishes.
 		ShareAttempts: share.NewAttempts(10, time.Minute),
+		// Ten tries a minute per user against the room codes. A player
+		// mistyping a code read out over voice chat gets several goes; a
+		// script walking the 920,000 codes at this rate would need about
+		// seventeen years to cover them.
+		RoomJoinAttempts: share.NewAttempts(10, time.Minute),
 	}
 	auth := middleware.Auth{Sessions: sessions}
 

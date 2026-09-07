@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"tabletopper/internal/queries"
+	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 
 	"github.com/a-h/templ"
@@ -105,8 +106,24 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"assets-tokens-searched":  func() error { return render(TokenCards(nil, "wagon")) },
 		"assets-avatars-searched": func() error { return render(AvatarCards(nil, "elf")) },
 		"assets-music-searched":   func() error { return render(MusicCards(nil, "rain")) },
-		"sign-in":                 func() error { return render(SignIn(ClerkFrontend{})) },
-		"tos":                     func() error { return render(TOS()) },
+		"rooms": func() error {
+			return render(Rooms(RoomsPageData{Rooms: []RoomSummary{{ID: "01BX5ZZKBKACTAV9WEVGEMMVT0", Name: "Curse of Strahd", Code: "AB2C"}}}))
+		},
+		// The empty state, because a GM with no rooms is markup the populated
+		// page does not reach.
+		"rooms-empty":         func() error { return render(Rooms(RoomsPageData{})) },
+		"new-room-fragment":   func() error { return render(NewRoomFragment()) },
+		"join-room":           func() error { return render(JoinRoom(JoinRoomPageData{})) },
+		"join-room-prefilled": func() error { return render(JoinRoom(JoinRoomPageData{Code: "AB2C"})) },
+		// Both roles, because the GM's controls and the player's are different
+		// markup and only one of them renders at a time.
+		"room-gm":     func() error { return render(Room(testRoomPage(room.RoleGM))) },
+		"room-player": func() error { return render(Room(testRoomPage(room.RolePlayer))) },
+		"room-members-fragment": func() error {
+			return render(RoomMembersFragment(testRoomPage(room.RoleGM).Members))
+		},
+		"sign-in": func() error { return render(SignIn(ClerkFrontend{})) },
+		"tos":     func() error { return render(TOS()) },
 	}
 
 	var wg sync.WaitGroup

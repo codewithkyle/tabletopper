@@ -380,6 +380,48 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.SaveMonsterAction))
 	mux.HandleFunc("DELETE /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.DeleteMonsterAction))
 
+	// THE ROOM SHELL, WHICH IS THE VIRTUAL TABLETOP WITH NOTHING LIVE IN IT YET.
+	// A room is a thing a GM keeps rather than a session they start, so /rooms
+	// is a list of them in the roster's shape: cards, and a one-field dialog
+	// above them that creates one. The table itself, the socket and the canvas
+	// arrive in later phases and arrive inside GET /rooms/{id}.
+	//
+	// CREATION HAS NO PAGE, for the reason the character's and the monster's do
+	// not: it is a dialog carrying one field, served by the fragment route
+	// further down, and this takes the name it collects and redirects to the
+	// room.
+	//
+	// "join" IS A LITERAL WHERE {id} GOES, and the mux prefers the literal --
+	// the same trust the slot save and the two share pairs depend on. If it
+	// ever stopped, every join would arrive at RoomPage with "join" as the id
+	// and be redirected to itself. The routes test pins it.
+	//
+	// GET /rooms/join/{code} PREFILLS AND NEVER JOINS. A GET that seated
+	// somebody at a table would be a state change behind a link, which is the
+	// rule that put /logout on POST -- and a room code travels in exactly the
+	// kind of chat message a link preview crawler follows.
+	//
+	// The lock pair answer with the control they just changed, which is the
+	// mutation case the fragment rules name. The close, the reopen, the leave
+	// and the delete answer with a redirect or with nothing, because each of
+	// them takes the page away.
+	//
+	// The delete answers 200 and not 204 -- noSwap lists 204, and a status in
+	// that list overrides the hx-swap="delete" on the button, which would leave
+	// the card on screen after the room was gone.
+	mux.HandleFunc("GET /rooms", auth.RequireSession(app.RoomsPage))
+	mux.HandleFunc("POST /rooms", auth.RequireSession(app.NewRoomForm))
+	mux.HandleFunc("GET /rooms/join", auth.RequireSession(app.JoinRoomPage))
+	mux.HandleFunc("GET /rooms/join/{code}", auth.RequireSession(app.JoinRoomPage))
+	mux.HandleFunc("POST /rooms/join", auth.RequireSession(app.JoinRoomForm))
+	mux.HandleFunc("GET /rooms/{id}", auth.RequireSession(app.RoomPage))
+	mux.HandleFunc("POST /rooms/{id}/lock", auth.RequireSession(app.LockRoom))
+	mux.HandleFunc("POST /rooms/{id}/unlock", auth.RequireSession(app.UnlockRoom))
+	mux.HandleFunc("POST /rooms/{id}/close", auth.RequireSession(app.CloseRoom))
+	mux.HandleFunc("POST /rooms/{id}/open", auth.RequireSession(app.OpenRoom))
+	mux.HandleFunc("POST /rooms/{id}/leave", auth.RequireSession(app.LeaveRoom))
+	mux.HandleFunc("DELETE /rooms/{id}", auth.RequireSession(app.DeleteRoom))
+
 	// THE ASSET MANAGER IS A PAGE PER KIND, joined by the sub-nav across the
 	// top. /assets is a redirect onto the first of them rather than an index:
 	// there is nothing to show above the kinds that the tab strip does not
@@ -550,6 +592,21 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// is not the asset manager page. The two dialogs above read a query string
 	// instead precisely because they are not.
 	mux.HandleFunc("GET /fragment/assets/maps/{id}/card", auth.Fragment(app.MapCardFragment))
+
+	// The new-room dialog, which is the character's and the monster's with its
+	// own panel name and its own action.
+	mux.HandleFunc("GET /fragment/room/new", auth.Fragment(app.NewRoomFragment))
+	// Who is at one table. It reads the room from the query string rather than
+	// a path because this is not the room's URL -- it is a panel inside the
+	// room page, the same reason the share and stat-block dialogs do it.
+	//
+	// IT IS THE FIRST FRAGMENT IN THE APP GATED ON SOMETHING OTHER THAN
+	// OWNERSHIP. A room is read by its members as well as by the GM who owns
+	// it, so the handler asks loadRoomMember rather than putting an owner in
+	// the statement -- and a caller who is neither gets an empty 404, which is
+	// the answer the prefix's rules name for a parameter that does not check
+	// out.
+	mux.HandleFunc("GET /fragment/room/members", auth.Fragment(app.RoomMembersFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have

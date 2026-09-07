@@ -38,6 +38,20 @@ type App struct {
 	// because a test wants its own, and it is required rather than optional:
 	// main builds it, and UnlockShare asks it before bcrypt runs.
 	ShareAttempts *share.Attempts
+
+	// RoomJoinAttempts is the same counter in front of the room join, and it is
+	// a second instance rather than a second use of the first: a share token and
+	// a room code are different namespaces, and one window shared between them
+	// would let a flood of bad codes lock a reader out of a link.
+	//
+	// THE KEY IS THE USER ID, WHERE THE SHARE COUNTER'S IS THE TOKEN. A share
+	// request is unauthenticated, so the only client identity available there is
+	// an address Cloudflare wrote into a header -- which is why that one keys by
+	// the thing being attacked instead. A join is behind RequireSession, so the
+	// user id is an identity the client cannot reset by opening a new tab or
+	// changing networks, and keying by it means one person guessing codes locks
+	// only themselves out rather than locking a room somebody is trying to join.
+	RoomJoinAttempts *share.Attempts
 }
 
 // tx runs fn over one transaction. fn gets a Queries bound to it; a returned

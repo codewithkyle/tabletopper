@@ -1,0 +1,157 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ Room(data RoomPageData) {
+	@layouts.Base(data.Name + " | Tabletopper") {
+		@roomContent(data)
+	}
+}
+
+templ RoomMembersFragment(data RoomMembersData) {
+	@roomMembers(data)
+}
+
+templ roomContent(data RoomPageData) {
+	<room-page class="relative block h-dvh w-screen overflow-hidden">
+		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
+			@appBar() {
+				<div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 max-[900px]:items-stretch max-[900px]:px-4">
+					<div class="flex min-w-0 items-center gap-3">
+						@backLink(data.back())
+						<h1 class="m-0 truncate font-serif text-[clamp(1.2rem,2vw,1.7rem)] leading-none">{ data.Name }</h1>
+					</div>
+					<div class="flex flex-wrap items-center justify-end gap-3 max-[900px]:w-full">
+						if data.IsGM() {
+							if data.Closed {
+								<span class="badge badge-neutral badge-lg">Closed</span>
+								<button
+									type="button"
+									class="btn btn-primary"
+									hx-post={ "/rooms/" + data.ID + "/open" }
+								>Reopen</button>
+							} else {
+								@roomCode(data)
+								@RoomLockControl(data)
+								<button
+									type="button"
+									class="btn btn-soft btn-error"
+									hx-confirm="You are about to close this room. Everyone in it will be removed and the code will stop working."
+									data-confirm-heading="Close this room?"
+									data-confirm-label="Close room"
+									hx-post={ "/rooms/" + data.ID + "/close" }
+								>Close</button>
+							}
+						} else {
+							<button
+								type="button"
+								class="btn btn-soft btn-error"
+								hx-post={ "/rooms/" + data.ID + "/leave" }
+							>Leave</button>
+						}
+					</div>
+				</div>
+			}
+			<div class="grid min-h-0 grid-cols-[minmax(0,1fr)_20rem] max-[900px]:grid-cols-[minmax(0,1fr)]">
+				<div id="tabletop" class="relative min-h-0 min-w-0 bg-base-300 max-[900px]:min-h-[50vh]"></div>
+				<aside class="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-3 overflow-auto border-l border-base-300 bg-panel/85 p-3 backdrop-blur-sm max-[900px]:border-l-0 max-[900px]:border-t">
+					@roomMembers(data.Members)
+					@roomSidePanel("Initiative", "initiative-panel") {
+						Turn order shows up here once the encounter starts.
+					}
+					@roomSidePanel("Chat", "messages-panel") {
+						Rolls and dice results show up here.
+					}
+				</aside>
+			</div>
+		</div>
+	</room-page>
+}
+
+templ roomCode(data RoomPageData) {
+	<div class="fieldset m-0">
+		<span class="fieldset-legend">Room Code</span>
+		<div class="join">
+			<input
+				id="room-code"
+				type="text"
+				class="input join-item w-32 font-mono text-lg tracking-[0.3em]"
+				value={ data.Code }
+				readonly
+				aria-label="Room code"
+				data-share-link
+			/>
+			<button type="button" class="btn join-item border-base-content/50" data-share-copy>
+				<span data-share-copy-idle>Copy</span>
+				<span data-share-copy-done hidden>Copied</span>
+			</button>
+		</div>
+	</div>
+}
+
+templ RoomLockControl(data RoomPageData) {
+	<div id={ roomLockID } class="flex items-center gap-2">
+		if data.Locked {
+			<span class="badge badge-warning badge-md">Locked</span>
+			<button
+				type="button"
+				class="btn btn-soft"
+				hx-post={ "/rooms/" + data.ID + "/unlock" }
+				hx-target={ "#" + roomLockID }
+				hx-swap="outerHTML"
+			>Unlock</button>
+		} else {
+			<span class="badge badge-success badge-md">Open</span>
+			<button
+				type="button"
+				class="btn btn-soft"
+				hx-post={ "/rooms/" + data.ID + "/lock" }
+				hx-target={ "#" + roomLockID }
+				hx-swap="outerHTML"
+			>Lock</button>
+		}
+	</div>
+}
+
+templ roomMembers(data RoomMembersData) {
+	<section id="members" class={ surfaceInset + " grid content-start gap-2 p-3" }>
+		<header class="flex items-center justify-between gap-2">
+			<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase text-base-content/65">At the Table</h2>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs"
+				hx-get={ "/fragment/room/members?room=" + data.RoomID }
+				hx-target="#members"
+				hx-swap="outerHTML"
+			>Refresh</button>
+		</header>
+		if len(data.Members) == 0 {
+			<p class="m-0 text-sm text-base-content/70">Nobody has joined yet.</p>
+		} else {
+			<ul class="m-0 grid gap-2">
+				for _, member := range data.Members {
+					<li class="flex items-center gap-2">
+						<img class="size-8 shrink-0 rounded-full object-cover" src={ member.AvatarURL } alt=""/>
+						<span class="min-w-0">
+							<span class="block truncate text-sm font-semibold">{ member.Name }</span>
+							if member.Character != "" {
+								<span class="block truncate text-xs text-base-content/70">{ member.Character }</span>
+							} else {
+								<span class="block truncate text-xs text-base-content/50">No character</span>
+							}
+						</span>
+					</li>
+				}
+			</ul>
+		}
+	</section>
+}
+
+templ roomSidePanel(heading string, id string) {
+	<section id={ id } class={ surfaceInset + " grid content-start gap-2 p-3" }>
+		<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase text-base-content/65">{ heading }</h2>
+		<p class="m-0 text-sm text-base-content/70">
+			{ children... }
+		</p>
+	</section>
+}
