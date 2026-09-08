@@ -16,6 +16,7 @@ import { announce } from "./panels.ts";
 import { empty, reduce } from "./store.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
+import { leaveKicked } from "./exit.ts";
 import { mountWindows } from "./window.ts";
 
 const mount = document.getElementById("tabletop");
@@ -47,6 +48,14 @@ function start(path: string): void {
 			reduce(state, event);
 			announce(event);
 			debug?.event(event);
+
+			// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
+			// nothing below it would run -- and in development the frame that
+			// explains why the tab just changed page is worth having in the
+			// log first.
+			if (event.type === "player.kicked") {
+				leaveKicked(event.reason);
+			}
 		},
 
 		status(status: Status, detail: string) {

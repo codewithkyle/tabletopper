@@ -38,6 +38,18 @@ import (
 // reason: `table` is a DaisyUI component and an attribute value is scanned like
 // anything else. The same goes for `list`, `status`, `tab`, `stack`, `swap`,
 // `menu` and `chat` as bare lower-case words.
+//
+// IT IS PAINTED WITH bg-table, WHICH IS A TOKEN AND NOT A BASE SHADE. It was
+// bg-base-300, which is right in the dark theme -- the darkest shade, so the
+// table is a void the chrome sits above -- and was the whole of what made the
+// light theme look inverted, because caramellatte's base-300 is a saturated
+// caramel that reads as a slab in front of near-white chrome. --table-bg picks
+// the shade per theme; see the note beside it in server/css/app.css.
+//
+// A utility class cannot make that choice, which is the general shape of every
+// token in that file: markup names a role and the theme answers with a colour.
+// bg-table is the table, bg-panel is the chrome, and nothing on this page names
+// a step of the base ramp directly any more.
 
 // roomLockID is the menu item the two lock routes swap. It is a constant
 // because the item carries it as an id and derives its own hx-target from it,
@@ -392,6 +404,12 @@ func dimension(value int) string {
 // the same slot because the GM occupies the same kind of seat, and because a
 // row with an empty first half and a name in brackets reads as a bug.
 type RoomMember struct {
+	// ID is the user id, and it is here for exactly one reason: the GM's kick
+	// button posts to it. It is not rendered and nothing reads it back -- a
+	// player's own id is not a secret from the table they are sitting at, and
+	// the route it goes into is refused for everybody but the GM.
+	ID string
+
 	// Name is the line's first half: the character, or "Game Master", or the
 	// account name again when there is no character to show.
 	Name string
@@ -431,6 +449,15 @@ type RoomMember struct {
 type RoomMembersData struct {
 	RoomID  string
 	Members []RoomMember
+
+	// CanKick draws the GM's remove button on everybody but themselves.
+	//
+	// IT IS NOT THE AUTHORIZATION AND IS NOT PRETENDING TO BE. Hiding a button
+	// is a courtesy to the person who cannot press it; the refusal is
+	// PlayerKick.Authorize, which runs against a role derived from the rooms
+	// row on every post whether or not a button was drawn. A player who forges
+	// the request is told they may not, in the same words the socket would use.
+	CanKick bool
 
 	// Live says the list came from the running room rather than from the
 	// session rows. The difference is visible -- the fallback cannot see the
@@ -478,6 +505,21 @@ func MemberName(isGM bool, character string, username string) string {
 // halves are the same word.
 func (m RoomMember) ShowUsername() bool {
 	return m.Name != m.Username
+}
+
+// KickPath is where the GM's remove button posts. The player travels in the
+// path and not in a query parameter, because this is a mutation of one member
+// of one room rather than a representation of anything -- the same reason the
+// lock routes sit under the room's own id.
+func (d RoomMembersData) KickPath(m RoomMember) string {
+	return "/rooms/" + d.RoomID + "/players/" + m.ID + "/kick"
+}
+
+// KickPrompt is what the confirm dialog asks before it happens. It names the
+// person and says what it does to them, because "Are you sure?" over a list of
+// six people is a question nobody can answer safely.
+func (d RoomMembersData) KickPrompt(m RoomMember) string {
+	return "Remove " + m.Name + " from the room? Their pawns stay on the table, and they can join again with the code unless you lock the room."
 }
 
 // SortRoomMembers puts the GM first and everybody else in name order, which is

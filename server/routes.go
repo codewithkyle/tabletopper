@@ -422,6 +422,20 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/leave", auth.RequireSession(app.LeaveRoom))
 	mux.HandleFunc("DELETE /rooms/{id}", auth.RequireSession(app.DeleteRoom))
 
+	// THE KICK IS A POST AND NOT A SOCKET COMMAND, even though player.kick is
+	// one of the commands a browser may send. The button lives in the Player
+	// List window, which is an ordinary htmx fragment, and routing it through
+	// HTTP is what buys hx-confirm -- the app's one gate in front of a
+	// destructive action, and a gate this needs. Sending it over the socket
+	// would mean a click handler in the room bundle plus a second way to open
+	// the confirm dialog, for a mutation that happens about twice a year.
+	//
+	// It answers with the member list it just changed, which is the mutation
+	// case the fragment rules name. The socket says the same thing a moment
+	// later -- player.left raises room:players and the window refetches -- but
+	// a GM whose own connection has dropped still sees the person go.
+	mux.HandleFunc("POST /rooms/{id}/players/{player}/kick", auth.RequireSession(app.KickPlayer))
+
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
 	//

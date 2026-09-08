@@ -532,3 +532,64 @@ func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
 		}
 	}
 }
+
+// testRoomIDText is any well-formed ULID: these tests render markup and never
+// parse it back, so what matters is that the id shows up in the URLs the
+// buttons carry.
+const testRoomIDText = "01BX5ZZKBKACTAV9WEVGEMMVT0"
+
+// membersFor is a room with the GM and one player in it, drawn for a viewer
+// who either may or may not remove them.
+func membersFor(canKick bool) RoomMembersData {
+	return RoomMembersData{
+		RoomID:  testRoomIDText,
+		Live:    true,
+		CanKick: canKick,
+		Members: SortRoomMembers([]RoomMember{
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: MemberName(false, "Ilyana", "ari"), Username: "ari", Connected: true},
+			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT3", Name: MemberName(true, "", "kyle"), Username: "kyle", IsGM: true, Connected: true},
+		}),
+	}
+}
+
+// THE REMOVE BUTTON IS THE GM'S AND IT IS NEVER ON THEIR OWN ROW. A GM cannot
+// remove themselves -- PlayerKick.Authorize refuses it, because a room with
+// nobody who can unlock or close it has to be abandoned -- so drawing the
+// button there would be an affordance for a refusal.
+func TestTheRemoveButtonIsTheGMsAndSkipsTheirOwnRow(t *testing.T) {
+	data := membersFor(true)
+	page := renderToString(t, RoomMembers(data))
+
+	player := data.Members[1]
+	if !strings.Contains(page, `hx-post="`+data.KickPath(player)+`"`) {
+		t.Errorf("no remove button for the player:\n%s", page)
+	}
+	if got := strings.Count(page, "hx-post="); got != 1 {
+		t.Errorf("%d remove buttons for a room of two, want 1 (not the GM's own row)", got)
+	}
+
+	// The destructive gate is hx-confirm, which is the app's only one, and it
+	// names the person rather than asking "Are you sure?" over a list.
+	if !strings.Contains(page, `hx-confirm="`+data.KickPrompt(player)+`"`) {
+		t.Errorf("the remove button has no confirm:\n%s", page)
+	}
+	if !strings.Contains(page, "Ilyana") {
+		t.Error("the confirm does not name the person it is about")
+	}
+
+	// The reply is the list, so the button has to say where it goes.
+	if !strings.Contains(page, `hx-target="#room-members"`) {
+		t.Errorf("the remove button does not target the list it replaces:\n%s", page)
+	}
+}
+
+// A PLAYER SEES NO BUTTON, and that is a courtesy rather than the rule: the
+// refusal is PlayerKick.Authorize, which runs against a role derived from the
+// rooms row on every post whether or not a button was drawn.
+func TestAPlayerSeesNoRemoveButton(t *testing.T) {
+	page := renderToString(t, RoomMembers(membersFor(false)))
+
+	if strings.Contains(page, "hx-post=") {
+		t.Errorf("the player list offers a player a remove button:\n%s", page)
+	}
+}

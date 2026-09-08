@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -163,7 +164,7 @@ func (a *App) RoomMembersFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
+	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 
@@ -177,7 +178,102 @@ func (a *App) RoomMembersFragment(w http.ResponseWriter, r *http.Request) {
 		RoomID:  row.ID.String(),
 		Members: members,
 		Live:    live,
+		CanKick: role == room.RoleGM,
 	}))
+}
+
+// KickPlayer removes somebody from the table, and it is the GM's only
+// moderation tool.
+//
+// EVERY REFUSAL IS ALREADY WRITTEN AND NONE OF IT IS HERE. PlayerKick's own
+// Authorize refuses a non-GM and refuses the GM kicking themselves; its Apply
+// refuses somebody who has already gone and refuses the GM as a target. This
+// handler establishes who is asking and about which room, and hands the rest to
+// the command -- so the rule is one thing in one place, and the socket and this
+// route cannot disagree about it.
+//
+// THE ROLE CHECK HERE IS NOT THE AUTHORIZATION, it is the actor. roomMember
+// derives the role from the rooms row, and that role is what Authorize is then
+// run against; a player who posts this gets CodeForbidden from the command
+// rather than a 404 from here, which is right -- they are a member of the room,
+// they simply may not do this.
+//
+// WHAT ACTUALLY HAPPENS TO THE PERSON is in internal/hub: the room emits
+// player.kicked to them alone, the hub closes their sockets with the reason
+// "kicked" so the client stops reconnecting, and it clears the room off their
+// session rows so the homepage stops offering to take them back. The room bundle
+// parks an alert and sends them home; see server/js/room/exit.ts.
+func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	if a.Hub == nil {
+		htmx.NotFound(w, "room")
+
+		return
+	}
+
+	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
+	if err != nil {
+		htmx.NotFound(w, "room")
+
+		return
+	}
+
+	playerID, err := ulid.Parse(r.PathValue("player"))
+	if err != nil {
+		htmx.NotFound(w, "player")
+
+		return
+	}
+
+	who := room.Actor{ID: sess.UserID, Role: role}
+	if err := a.Hub.Dispatch(ctx, row.ID, who, &room.PlayerKick{ID: playerID}); err != nil {
+		a.rejectCommand(w, "remove a player", err)
+
+		return
+	}
+
+	members, live := a.roomMembers(ctx, row)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomMembers(pages.RoomMembersData{
+		RoomID:  row.ID.String(),
+		Members: members,
+		Live:    live,
+		CanKick: role == room.RoleGM,
+	}))
+}
+
+// rejectCommand turns a refusal from the protocol into the alert modal.
+//
+// THE PROTOCOL ALREADY WROTE THE SENTENCE. A room.Error carries a heading and a
+// message chosen for the person reading it -- "The GM cannot be removed from
+// their own room" -- so this hands both to the alert rather than inventing a
+// second wording for a rule that is stated once.
+//
+// Anything that is not a room.Error is the hub failing rather than the command
+// being refused: a room that would not load, a context that expired, an actor
+// that has gone. Those are 500s with the generic message, and they are logged,
+// because there is nothing useful to tell the GM about them.
+func (a *App) rejectCommand(w http.ResponseWriter, action string, err error) {
+	var refusal *room.Error
+	if !errors.As(err, &refusal) {
+		slog.Error("Failed to dispatch a room command", "action", action, "error", err)
+		htmx.ServerError(w)
+
+		return
+	}
+
+	status := http.StatusUnprocessableEntity
+	if refusal.Code == room.CodeForbidden {
+		status = http.StatusForbidden
+	}
+	if refusal.Code == room.CodeNotFound {
+		status = http.StatusNotFound
+	}
+
+	htmx.Error(w, refusal.Heading, refusal.Message, status)
 }
 
 // roomMembers asks the hub first and the database second.
@@ -188,6 +284,7 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 			for _, p := range players {
 				isGM := p.Role == room.RoleGM
 				out = append(out, pages.RoomMember{
+					ID:        p.ID.String(),
 					Name:      pages.MemberName(isGM, p.CharacterName, p.Name),
 					Username:  p.Name,
 					Avatar:    p.Avatar,
@@ -211,6 +308,7 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 	for _, m := range rows {
 		isGM := m.UserID == row.OwnerID
 		out = append(out, pages.RoomMember{
+			ID:       m.UserID.String(),
 			Name:     pages.MemberName(isGM, m.CharacterName.String, m.Username),
 			Username: m.Username,
 			Avatar:   m.ProfileImageURL,

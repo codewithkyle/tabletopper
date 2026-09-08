@@ -10,7 +10,7 @@ templ RoomMembers(data RoomMembersData) {
 		class="menu w-full gap-0.5 p-0"
 	>
 		for _, m := range data.Members {
-			@roomMemberRow(m)
+			@roomMemberRow(data, m)
 		}
 		if len(data.Members) == 0 {
 			<li class="px-2 py-1 text-xs text-base-content/60">Nobody is here yet.</li>
@@ -21,7 +21,7 @@ templ RoomMembers(data RoomMembersData) {
 	</ul>
 }
 
-templ roomMemberRow(m RoomMember) {
+templ roomMemberRow(data RoomMembersData, m RoomMember) {
 	<li>
 		<div class="flex items-center gap-2 px-2 py-1">
 			<span
@@ -35,9 +35,9 @@ templ roomMemberRow(m RoomMember) {
 			<img src={ m.Avatar } alt="" class="size-6 shrink-0 rounded-full object-cover"/>
 			<span
 				if m.Connected {
-					class="min-w-0 truncate text-sm"
+					class="min-w-0 flex-1 truncate text-sm"
 				} else {
-					class="min-w-0 truncate text-sm text-base-content/50"
+					class="min-w-0 flex-1 truncate text-sm text-base-content/50"
 				}
 			>
 				{ m.Name }
@@ -46,7 +46,22 @@ templ roomMemberRow(m RoomMember) {
 				}
 			</span>
 			if m.IsGM {
-				<span class="badge badge-xs badge-neutral ml-auto shrink-0">GM</span>
+				<span class="badge badge-xs badge-neutral shrink-0">GM</span>
+			}
+			if data.CanKick && !m.IsGM {
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs shrink-0 px-1 text-base-content/50 hover:text-error"
+					aria-label={ "Remove " + m.Name + " from the room" }
+					hx-post={ data.KickPath(m) }
+					hx-target="#room-members"
+					hx-swap="outerHTML"
+					hx-confirm={ data.KickPrompt(m) }
+					data-confirm-heading="Remove this player?"
+					data-confirm-label="Remove"
+				>
+					@kickIcon()
+				</button>
 			}
 		</div>
 	</li>

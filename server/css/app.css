@@ -105,6 +105,7 @@
   prefersdark: true;
   --border: 1px;
   --panel-bg: var(--color-base-200);
+  --table-bg: var(--color-base-300);
   --hint-color: var(--color-error);
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.45);
   --panel-shadow-lift: 0 12px 32px -16px rgb(0 0 0 / 0.8);
@@ -119,24 +120,44 @@
    prefers-color-scheme media query -- so an explicit theme and an OS-driven one
    both get it, with no selector list of ours to keep in sync.
 
-   Light mode is base-100, the same shade as the desk. DaisyUI's convention is
-   base-200 for elevation, but caramellatte's base-200 is dark enough that
-   .validator-hint's --color-error over it measures below 4.5:1. Flattening the
-   panel to base-100 fixes the contrast rather than working around it, and the
-   panel still reads as a panel: it keeps its base-300 border, its shadow, and
-   the backdrop-blur that separates it from the grid paper behind.
+   BOTH THEMES ARE base-200 NOW, WHICH IS A RECESS AND NOT A LIFT. The panel is
+   one step DARKER than the base-100 desk in either polarity, so the chrome
+   settles into the page rather than floating over it, and the two themes are
+   the same construction rather than mirror images of each other.
 
-   Dark mode keeps base-200, which is *darker* than coffee's base-100 desk, so
-   elevation there is a recess and the error text has room to begin with.
+   LIGHT MODE WAS base-100 -- the same shade as the desk -- until the light
+   theme was inverted. Two things had made that necessary and neither is true
+   any more:
 
-   Overriding --color-base-200 globally would have been the shorter route and
-   the wrong one: DaisyUI builds .btn's default background out of it, so light
-   mode would have lost the distinction between a button and the page. */
+     - .validator-hint read --color-error, which over caramellatte's base-200
+       measures 2.51:1. It reads --color-hint now, which is error-content and
+       measures 8.88:1 over the same shade. See the note on --hint-color below;
+       flattening the panel was never what fixed that, and on its own it moved
+       the number from 2.51 to 2.75.
+     - A default .btn is built out of --color-base-200, so a button on a
+       base-200 panel is the same colour as what it sits on. caramellatte ships
+       --depth: 1, which gives .btn a border mixed 5% darker than its fill plus
+       an inset highlight, so it still reads as a button; coffee ships
+       --depth: 0 and has had exactly this arrangement since the panels were
+       written, which is the evidence that it holds.
+
+   Overriding --color-base-200 globally is still the wrong route and always
+   will be. It is the button's fill: moving it moves every button in the app to
+   chase one surface.
+
+   --table-bg IS THE ROOM'S TABLE, and it is the other half of the inversion.
+   Dark mode keeps base-300, the darkest shade, so the table is a void the
+   chrome sits above. Light mode takes base-100 -- the lightest -- because
+   caramellatte's base-300 is a saturated caramel, and a table painted in it
+   reads as a slab in FRONT of the near-white chrome rather than a surface
+   behind it. Lightest table, middle chrome, is the light-mode reading of what
+   dark mode does with darkest table, middle chrome. */
 @plugin "./vendor/daisyui-theme.js" {
   name: "caramellatte";
   default: true;
   --border: 1px;
-  --panel-bg: var(--color-base-100);
+  --panel-bg: var(--color-base-200);
+  --table-bg: var(--color-base-100);
   --hint-color: var(--color-error-content);
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.05);
   --panel-shadow-lift: 0 10px 26px -14px rgb(0 0 0 / 0.16);
@@ -164,6 +185,19 @@
    goes with it and nothing is left reading a name that is gone. */
 @theme {
   --color-panel: var(--panel-bg);
+}
+
+/* --color-table is the room's table surface, and it exists for the same reason
+   --color-panel does: the shade is a per-theme decision and a utility class in
+   markup cannot make one. #tabletop carried bg-base-300, which is right in the
+   dark theme and was the whole of what made the light theme look inverted --
+   see the note on --table-bg above.
+
+   It is read by exactly one element. That is not an argument against the token:
+   the alternative is the same decision spelled out twice, once per theme, in a
+   selector list of ours to keep in step with DaisyUI's. */
+@theme {
+  --color-table: var(--table-bg);
 }
 
 /* --panel-shadow is the drop shadow that makes a panel read as sitting above
@@ -206,8 +240,8 @@
    Measured against the panel, rasterised through a canvas so the browser does
    the oklch conversion:
 
-     caramellatte  --color-error          rgb(255, 98, 102)   2.75 : 1   fails
-     caramellatte  --color-error-content  rgb(128,  21,  24)  9.70 : 1   passes
+     caramellatte  --color-error          rgb(255, 98, 102)   2.51 : 1   fails
+     caramellatte  --color-error-content  rgb(128,  21,  24)  8.88 : 1   passes
      coffee        --color-error          rgb(252, 149, 129)  8.16 : 1   passes
      coffee        --color-error-content  rgb( 21,   8,   6)  1.12 : 1   fails
 
@@ -218,7 +252,8 @@
    than filled with, and both readings land far the right side of 4.5:1.
 
    Flattening the panel to base-100 was not what fixed this -- on its own it
-   moved caramellatte from 2.56 to 2.75. */
+   moved caramellatte from 2.56 to 2.75, and the light numbers above are the
+   base-200 panel it went back to. */
 @theme {
   --color-hint: var(--hint-color);
 }

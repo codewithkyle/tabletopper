@@ -427,6 +427,18 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/rooms/" + id + "/close", "POST /rooms/{id}/close"},
 		{http.MethodPost, "/rooms/" + id + "/open", "POST /rooms/{id}/open"},
 		{http.MethodPost, "/rooms/" + id + "/leave", "POST /rooms/{id}/leave"},
+		// THE KICK IS TWO SEGMENTS DEEPER and names the person it removes, so
+		// it is the only room mutation with a wildcard after the room's own.
+		// A kick arriving anywhere else would be a GM pressing a button that
+		// did something to a different table.
+		{http.MethodPost, "/rooms/" + id + "/players/" + id + "/kick", "POST /rooms/{id}/players/{player}/kick"},
+		// And it is the whole of what lives under /players/. There is no roster
+		// resource: who is at the table is answered by the live room through
+		// GET /fragment/room/members, which is a representation and belongs
+		// under the prefix that marks one.
+		{http.MethodGet, "/rooms/" + id + "/players", "/"},
+		{http.MethodGet, "/rooms/" + id + "/players/" + id, "/"},
+		{http.MethodDelete, "/rooms/" + id + "/players/" + id, "/"},
 		// THE LIVE CONNECTION IS NOT UNDER THE ROOM, and this pins why. A
 		// pattern "GET /rooms/{id}/socket" and "GET /rooms/join/{code}" both
 		// match "/rooms/join/socket" with neither more specific, which
