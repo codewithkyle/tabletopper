@@ -19,7 +19,8 @@
 
 import type { Pawn, Role } from "./protocol.ts";
 import type { Rect } from "./render/camera.ts";
-import { footprintOf, pawnExtents } from "./render/path.ts";
+import { compareStack } from "./render/scene.ts";
+import { pawnExtents } from "./render/path.ts";
 
 // SELECTION_MAX is room.SelectionMax: what one move, drag or remove may carry.
 // It is written here rather than imported from the generated protocol because
@@ -191,25 +192,37 @@ export function marqueeSelect(
 // wagon" is a question rather than a stored answer -- which means it cannot go
 // stale, and a player who steps off is off.
 //
-// IT NEVER TRIGGERS ON A ONE-CELL CREATURE, which is the rule that keeps two
-// goblins in adjacent squares from picking each other up. A thing that carries
-// passengers is at least two cells on one of its axes.
+// IT NEVER TRIGGERS ON A ONE-CELL THING, which is the rule that keeps two
+// goblins in adjacent squares from picking each other up. Something that
+// carries passengers is at least two cells across on one of its axes.
+//
+// THE GATE IS MEASURED IN PIXELS AND COMPARED AGAINST TWO CELLS, which is one
+// question rather than two: a large creature is exactly two cells wide and a
+// wagon is however wide the picture is. Asking each kind in its own units would
+// be the same rule written twice.
+//
+// THE BOX IS NOT TURNED WITH THE TOKEN. A rotated wagon's riders are found in
+// the box it would occupy square-on, which is generous at the corners of a
+// token turned forty-five degrees -- and generous is the right direction to be
+// wrong in: picking up somebody who was standing beside the cart is a drag they
+// can see and undo, and leaving somebody sitting IN it behind is a rider left
+// in the road.
 export function riders(pawns: readonly Pawn[], anchor: Pawn, cellSize: number): string[] {
-	const [w, h] = footprintOf(anchor, cellSize);
-	if (w < 2 && h < 2) {
+	const cell = Math.max(1, cellSize);
+	const [halfW, halfH] = pawnExtents(anchor, cellSize);
+
+	if (halfW * 2 < cell * 2 && halfH * 2 < cell * 2) {
 		return [];
 	}
-
-	// THE GATE IS IN CELLS AND THE BOX IS IN PIXELS, which is not an
-	// inconsistency: "is this big enough to stand on" is a rule about the grid,
-	// and "is this pawn on top of it" is a question about where the wagon
-	// actually is -- which, for an object, is the size of its picture.
-	const [halfW, halfH] = pawnExtents(anchor, cellSize);
 
 	const found: string[] = [];
 
 	for (const pawn of pawns) {
-		if (pawn.id === anchor.id || pawn.layerId !== anchor.layerId || pawn.z <= anchor.z) {
+		// ABOVE IT IN THE DRAW ORDER, which is not the same question as a
+		// higher z now that every token is drawn under every creature. A goblin
+		// spawned before the wagon still stands ON it, because that is what the
+		// table shows.
+		if (pawn.id === anchor.id || pawn.layerId !== anchor.layerId || compareStack(pawn, anchor) <= 0) {
 			continue;
 		}
 		if (Math.abs(pawn.x - anchor.x) > halfW || Math.abs(pawn.y - anchor.y) > halfH) {

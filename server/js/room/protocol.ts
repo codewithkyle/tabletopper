@@ -109,6 +109,7 @@ export interface Pawn {
 	size: Size;
 	width: number;
 	height: number;
+	rotation: number;
 	visible: boolean;
 	hp: number | null;
 	maxHp: number | null;
@@ -311,6 +312,7 @@ export interface PawnUpdate {
 	z?: number | null;
 	width?: number | null;
 	height?: number | null;
+	rotation?: number | null;
 }
 
 export interface Ping {

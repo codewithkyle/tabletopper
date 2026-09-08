@@ -12,7 +12,7 @@ import { test } from "node:test";
 
 import type { Drawn } from "./pawn-pass.ts";
 import type { Pawn } from "../protocol.ts";
-import { CONDITION_RINGS_MAX, RING_GAP, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
+import { CONDITION_RINGS_MAX, RING_GAP, RING_WIDTH, compareStack, ringRadius, visiblePawns } from "./scene.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
 import { fitFactors } from "./pawn-pass.ts";
 import { pawnExtents } from "./path.ts";
@@ -33,6 +33,7 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		size: "medium",
 		width: 0,
 		height: 0,
+		rotation: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -111,7 +112,7 @@ test("dead is only what the viewer was told", () => {
 // grid rule can express -- and is DRAWN at half of one, so a rat and an ogre
 // are not the same size on the table.
 test("a pawn covers as much floor as its size says", () => {
-	const creature = (size: Pawn["size"]) => pawnExtents({ kind: "monster", size, width: 0, height: 0 }, 64);
+	const creature = (size: Pawn["size"]) => pawnExtents({ kind: "monster", size, width: 0, height: 0, rotation: 0 }, 64);
 
 	assert.deepEqual(creature("medium"), [32, 32]);
 	assert.deepEqual(creature("large"), [64, 64]);
@@ -119,14 +120,14 @@ test("a pawn covers as much floor as its size says", () => {
 	assert.deepEqual(creature("tiny"), [16, 16]);
 
 	assert.deepEqual(
-		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256 }, 64),
+		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256, rotation: 0 }, 64),
 		[64, 128],
 	);
 
 	// AND AN OBJECT DOES NOT CARE WHAT THE CELL SIZE IS. The same wagon on a
 	// hundred-pixel grid is the same wagon.
 	assert.deepEqual(
-		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256 }, 100),
+		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256, rotation: 0 }, 100),
 		[64, 128],
 	);
 });
@@ -135,8 +136,8 @@ test("a pawn covers as much floor as its size says", () => {
 // which is a blank floor with an infinite grid on it, and pawns on that floor
 // still have to be a sensible size.
 test("the cell size comes from the grid and never from nothing", () => {
-	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0 }, 0), [0.5, 0.5]);
-	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0 }, 100), [50, 50]);
+	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0, rotation: 0 }, 0), [0.5, 0.5]);
+	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0, rotation: 0 }, 100), [50, 50]);
 });
 
 // CONTAIN LETTERBOXES AND COVER CROPS, and which one applies is the whole
@@ -201,4 +202,29 @@ test("the pass and the cache agree on the sprite layer's size", () => {
 	// A picture that fills the layer exactly has a UV maximum of one, which is
 	// the arithmetic the pass performs with its own copy of the number.
 	assert.equal(SPRITE_SIZE, 256);
+});
+
+// A TOKEN IS ALWAYS UNDER A CREATURE, WHATEVER z SAYS. Objects are the floor's
+// furniture -- a rug, a road, a bloodstain, a wagon -- and a party that walked
+// onto a rug spawned after them would otherwise vanish underneath it.
+test("every token is drawn under every creature", () => {
+	const rug = { id: "rug", kind: "object" as const, z: 999 };
+	const goblin = { id: "goblin", kind: "monster" as const, z: 0 };
+
+	assert.ok(compareStack(rug, goblin) < 0);
+	assert.ok(compareStack(goblin, rug) > 0);
+});
+
+// AND z STILL DECIDES WITHIN A KIND, so two rugs stack in the order they were
+// laid and a goblin spawned later stands in front of one spawned earlier.
+test("z orders two of a kind and the id breaks a tie", () => {
+	const early = { id: "b", kind: "object" as const, z: 1 };
+	const late = { id: "a", kind: "object" as const, z: 2 };
+
+	assert.ok(compareStack(early, late) < 0);
+
+	// The tie-break is the id, so two pawns that somehow share a z are drawn in
+	// the same order on every client rather than however the array was built.
+	assert.ok(compareStack({ ...early, z: 2 }, late) > 0);
+	assert.equal(compareStack(late, late), 0);
 });

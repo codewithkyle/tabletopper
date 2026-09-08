@@ -14,6 +14,45 @@
 import type { Pawn } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
 
+// Stacked is the part of a pawn that decides what is on top of what. It is a
+// Pick rather than Pawn because the stress test's synthetic pawns are not in
+// the store and the drag ghosts are not pawns yet.
+export type Stacked = Pick<Drawn, "id" | "kind" | "z">;
+
+// compareStack is the draw order, and it is the SAME order the hit test and the
+// riders lookup read. Negative means a is underneath b.
+//
+// A TOKEN IS ALWAYS UNDER A CREATURE, WHATEVER z SAYS, which is the whole
+// reason this is a function rather than a subtraction. Objects are the floor's
+// furniture -- a rug, a road, a bloodstain, a wagon -- and a party that walked
+// onto a rug spawned after them would otherwise vanish underneath it. z decides
+// order WITHIN a kind, so two rugs still stack in the order they were laid and
+// a goblin spawned later still stands in front of one spawned earlier.
+//
+// AND THE HIT TEST FOLLOWS IT EXACTLY. Clicking where a goblin overlaps a rug
+// picks the goblin, because the goblin is what you can see there -- a hit test
+// that disagreed with the draw order would be a click that selected something
+// hidden behind what it landed on.
+//
+// THE TIE-BREAK IS THE ID, so two pawns that somehow share a z are drawn in an
+// order that is the same on every client rather than whichever way the array
+// happened to be built.
+export function compareStack(a: Stacked, b: Stacked): number {
+	const kinds = stackRank(a.kind) - stackRank(b.kind);
+	if (kinds !== 0) {
+		return kinds;
+	}
+	if (a.z !== b.z) {
+		return a.z - b.z;
+	}
+
+	return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+function stackRank(kind: Pawn["kind"]): number {
+	return kind === "object" ? 0 : 1;
+}
+
 // CONDITION_RINGS_MAX is how many rings are drawn round one creature. The
 // protocol caps conditions at sixteen and this matches it, so the drawing and
 // the rule agree -- a seventeenth would be a ring the server would not have
@@ -60,6 +99,7 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 		drawn.size = pawn.size;
 		drawn.width = pawn.width;
 		drawn.height = pawn.height;
+		drawn.rotation = pawn.rotation;
 
 		// A pawn a player cannot see never reaches their store at all, so this
 		// is only ever true on the GM's copy -- which is exactly what the
@@ -99,6 +139,7 @@ function blank(): Drawn {
 		size: "medium",
 		width: 0,
 		height: 0,
+		rotation: 0,
 		hidden: false,
 		dead: false,
 	};

@@ -11,13 +11,21 @@
 // zoomed in; a ring whose RADIUS did not scale would come away from the pawn it
 // belongs to. So the instance carries a world rectangle and the shader converts
 // the pixel thickness against the current zoom.
+//
+// AND A RECTANGLE CAN BE TURNED, which is what an outline round a rotated token
+// and the handles on its corners need. The angle arrives resolved into a cosine
+// and a sine for the pawn pass's reason, and it moves the quad's corners only:
+// the fragment shader's edge distance is computed in the quad's own local
+// space, so nothing downstream of the vertex shader learns the angle.
 
 import type { Camera } from "./camera.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
+import { radians } from "./path.ts";
 
-// FLOATS_PER_INSTANCE: the rectangle, the colour, and the style. Three vec4s.
-const FLOATS_PER_INSTANCE = 12;
+// FLOATS_PER_INSTANCE: the rectangle, the colour, the style, and the angle's
+// cosine and sine. Three vec4s and a vec2.
+const FLOATS_PER_INSTANCE = 14;
 
 export const RING_ELLIPSE = 0;
 export const RING_RECT = 1;
@@ -27,6 +35,7 @@ layout(location = 0) in vec2 a_corner;
 layout(location = 1) in vec4 a_rect;
 layout(location = 2) in vec4 a_color;
 layout(location = 3) in vec4 a_style;
+layout(location = 4) in vec2 a_spin;
 
 uniform mat3 u_clip;
 uniform float u_scale;
@@ -50,7 +59,13 @@ void main() {
 	// the outer edge is clipped by the quad and every ring reads as thinner
 	// than the one before it.
 	vec2 grown = a_rect.zw + v_style.x;
-	vec2 world = a_rect.xy + v_local * grown;
+	vec2 offset = v_local * grown;
+	vec2 turned = vec2(
+		offset.x * a_spin.x - offset.y * a_spin.y,
+		offset.x * a_spin.y + offset.y * a_spin.x
+	);
+
+	vec2 world = a_rect.xy + turned;
 
 	gl_Position = vec4((u_clip * vec3(world, 1.0)).xy, 0.0, 1.0);
 	v_local *= grown / max(a_rect.zw, vec2(1e-4));
@@ -107,11 +122,12 @@ export interface RingPass {
 	begin(): void;
 
 	// add is one outline: a centre, half extents in map pixels, a colour, a
-	// thickness in device pixels, and which shape.
+	// thickness in device pixels, which shape, and how far it is turned in
+	// degrees clockwise about that centre.
 	add(
 		x: number, y: number, halfW: number, halfH: number,
 		color: readonly [number, number, number], alpha: number,
-		thickness: number, shape: number,
+		thickness: number, shape: number, rotation?: number,
 	): void;
 
 	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
@@ -140,6 +156,10 @@ export function createRingPass(gl: WebGL2RenderingContext): RingPass {
 		gl.vertexAttribDivisor(1 + i, 1);
 	}
 
+	gl.enableVertexAttribArray(4);
+	gl.vertexAttribPointer(4, 2, gl.FLOAT, false, stride, 48);
+	gl.vertexAttribDivisor(4, 1);
+
 	gl.bindVertexArray(null);
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
@@ -153,7 +173,7 @@ export function createRingPass(gl: WebGL2RenderingContext): RingPass {
 			count = 0;
 		},
 
-		add(x, y, halfW, halfH, color, alpha, thickness, shape) {
+		add(x, y, halfW, halfH, color, alpha, thickness, shape, rotation = 0) {
 			const floats = (count + 1) * FLOATS_PER_INSTANCE;
 			if (floats > data.length) {
 				let size = data.length;
@@ -182,6 +202,10 @@ export function createRingPass(gl: WebGL2RenderingContext): RingPass {
 			data[at + 9] = shape;
 			data[at + 10] = 0;
 			data[at + 11] = 0;
+
+			const angle = radians(rotation);
+			data[at + 12] = rotation === 0 ? 1 : Math.cos(angle);
+			data[at + 13] = rotation === 0 ? 0 : Math.sin(angle);
 
 			count++;
 		},

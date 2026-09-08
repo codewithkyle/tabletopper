@@ -733,9 +733,10 @@ func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
 	}
 
 	if out.Object {
-		out.Pixels = pages.PawnPixelsText(pawn.Width, pawn.Height)
+		out.Pixels = pages.PawnPixelsText(pawn.Width, pawn.Height, pawn.Rotation)
 		out.Width = strconv.Itoa(pawn.Width)
 		out.Height = strconv.Itoa(pawn.Height)
+		out.Rotation = strconv.Itoa(pawn.Rotation)
 	} else {
 		out.Size = pages.PawnSizeText(string(pawn.Size))
 		out.SizeValue = string(pawn.Size)
@@ -869,6 +870,17 @@ func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []strin
 		}
 		if wBad == "" && hBad == "" {
 			cmd.Width, cmd.Height = &width, &height
+		}
+
+		// THE ANGLE IS FOLDED RATHER THAN REFUSED, so a GM who types 400 gets a
+		// wagon at 40 degrees rather than a form back with a complaint about a
+		// number that means exactly what they wanted. The input's own min and
+		// max keep an ordinary entry inside one turn; this is what happens when
+		// somebody goes round the input.
+		if rotation, bad := requiredNumber(r.FormValue("rotation"), "Angle"); bad != "" {
+			problems = append(problems, bad)
+		} else {
+			cmd.Rotation = &rotation
 		}
 
 		return cmd, problems

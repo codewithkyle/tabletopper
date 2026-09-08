@@ -13,7 +13,8 @@
 // neither is the 14.1 feet a ruler would report. What the table plays by is a
 // count of squares, so that is what this counts.
 
-import type { Grid, Pawn } from "../protocol.ts";
+import type { Grid, Pawn, Size } from "../protocol.ts";
+import type { Point } from "./camera.ts";
 
 // PATH_CELLS_MAX bounds one path. A drag across a 12000 pixel map at 64 pixel
 // cells is under two hundred cells; this is generous enough never to be reached
@@ -61,9 +62,10 @@ export function snapAxis(cell: number, offset: number, footprint: number, mode: 
 	return round(k * step + offset + half);
 }
 
-// snapPoint snaps a centre, each axis by its own footprint. A two by three
-// wagon is even across and odd down, so it straddles horizontally and centres
-// vertically -- which is the whole reason snapping is per axis.
+// snapPoint snaps a centre, each axis by its own footprint. The axes are
+// genuinely independent even though nothing passes two different numbers today:
+// a creature's square is the same across and down, and an object does not snap
+// at all.
 export function snapPoint(grid: Grid, footprintW: number, footprintH: number, x: number, y: number): [number, number] {
 	return [
 		snapAxis(grid.cellSize, grid.offsetX, footprintW, grid.snap, x),
@@ -71,81 +73,201 @@ export function snapPoint(grid: Grid, footprintW: number, footprintH: number, x:
 	];
 }
 
-// Sized is the part of a pawn that answers "how big is it": a creature by its
-// size category, an object by the pixel size of the picture on it.
-export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height">;
+// Sized is the part of a pawn that answers "how big is it, and which way round":
+// a creature by its size category, an object by the pixel size of the picture on
+// it and the angle it has been turned to.
+export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height" | "rotation">;
+
+// Placed is that plus where it is, which is what a hit test needs.
+export type Placed = Sized & Pick<Pawn, "x" | "y">;
 
 // TINY_SCALE is how much of its cell a tiny creature is drawn at. It OCCUPIES
 // a whole cell, because half a cell is not a position any grid rule can
 // express, and a rat drawn the size of an ogre is not a rat.
 export const TINY_SCALE = 0.5;
 
-// footprintOf is how many CELLS a pawn stands on, per axis. It is
-// Pawn.Footprint in Go: a creature reads its size category, and an object
-// divides the picture's pixels by the cell size.
+// footprintOf is how many CELLS a creature stands on, on a side. It is Go's
+// Size.Footprint, and it is the parity snapping needs: an odd footprint has a
+// middle cell to stand in, an even one straddles the vertex where four meet.
 //
-// IT IS THE SNAPPING LATTICE AND NOT THE DRAWN SIZE, which is the whole reason
-// it and pawnExtents are two functions. An object is DRAWN at the picture's own
-// pixels -- that is what makes a token look like the thing it is a picture of
-// -- and there is no such thing as half a cell of snapping parity, so the
-// lattice it lands on is the nearest whole number of cells to that.
-//
-// THE ROUNDING IS GO'S INTEGER ARITHMETIC AND NOT Math.round, for the reason
-// the note at the top of this file gives about snapPoint: the server does this
-// sum too, and the two must not disagree. (w + cell/2) / cell with both
-// divisions truncated is not Math.round(w / cell) once the cell size is odd.
+// AN OBJECT HAS NO FOOTPRINT AND IS NOT ASKED FOR ONE. It is not on the lattice
+// -- see snapPawn -- so "how many cells is this wagon" has no caller left. What
+// an object is, is width by height pixels at an angle.
 //
 // AN UNKNOWN SIZE IS ONE CELL rather than zero, because a zero footprint would
 // divide by nothing in the snapper and would make a pawn with a corrupt size
 // unplaceable rather than merely medium.
-export function footprintOf(pawn: Sized, cellSize: number): [number, number] {
-	if (pawn.kind === "object") {
-		const cell = Math.max(1, cellSize);
-		const half = Math.trunc(cell / 2);
-
-		return [
-			Math.max(1, Math.trunc((pawn.width + half) / cell)),
-			Math.max(1, Math.trunc((pawn.height + half) / cell)),
-		];
-	}
-
-	switch (pawn.size) {
+export function footprintOf(size: Size): number {
+	switch (size) {
 		case "large":
-			return [2, 2];
+			return 2;
 		case "huge":
-			return [3, 3];
+			return 3;
 		case "gargantuan":
-			return [4, 4];
+			return 4;
 		default:
-			return [1, 1];
+			return 1;
 	}
 }
 
-// pawnExtents is how much floor a pawn covers, in map pixels, as half extents.
-// It is what the renderer sizes a quad with, what the hit test measures against
-// and what the selection ring is drawn round.
+// pawnExtents is how much floor a pawn covers, in map pixels, as half extents
+// IN ITS OWN FRAME. It is what the renderer sizes a quad with, what the hit test
+// measures against and what the selection outline is drawn round.
 //
 // AN OBJECT IS ITS PICTURE AND A CREATURE IS ITS CELLS. A wagon is as wide as
 // the wagon in the file, whatever the grid is set to; a goblin is one cell and
 // an ogre is two, whatever picture is on them.
+//
+// THE ROTATION IS NOT IN HERE. These are the half extents of the unrotated
+// rectangle, and every consumer applies the angle itself -- the shader by
+// turning the quad, the hit test by turning the POINT the other way. Baking a
+// rotated bounding box in would give the renderer a quad that grew as it
+// spun.
 export function pawnExtents(pawn: Sized, cellSize: number): [number, number] {
 	if (pawn.kind === "object") {
 		return [Math.max(1, pawn.width) / 2, Math.max(1, pawn.height) / 2];
 	}
 
 	const cell = Math.max(1, cellSize);
-	const [w, h] = footprintOf(pawn, cell);
+	const f = footprintOf(pawn.size);
 	const scale = pawn.size === "tiny" ? TINY_SCALE : 1;
 
-	return [(w * cell * scale) / 2, (h * cell * scale) / 2];
+	return [(f * cell * scale) / 2, (f * cell * scale) / 2];
+}
+
+// boundsOf is the SCREEN-ALIGNED box a pawn occupies, as half extents: the
+// rotated rectangle's own extents projected back onto the map's axes.
+//
+// IT IS NOT WHAT THE QUAD IS DRAWN AT, which is pawnExtents. This is the box
+// something square-on has to be placed against -- the DOM overlay that floats
+// above a selected pawn -- and for a long token turned on its side the two are
+// each other's opposite. Baking it into pawnExtents instead would give the
+// renderer a quad that grew as it spun.
+export function boundsOf(pawn: Sized, cellSize: number): [number, number] {
+	const [halfW, halfH] = pawnExtents(pawn, cellSize);
+	if (pawn.rotation === 0 || pawn.kind !== "object") {
+		return [halfW, halfH];
+	}
+
+	const a = radians(pawn.rotation);
+	const cos = Math.abs(Math.cos(a));
+	const sin = Math.abs(Math.sin(a));
+
+	return [halfW * cos + halfH * sin, halfW * sin + halfH * cos];
+}
+
+// radians turns the wire's whole degrees into what the trigonometry wants. The
+// protocol carries degrees because they are exact over JSON and are what a
+// person types into a field; nothing below this line is in them.
+export function radians(degrees: number): number {
+	return (degrees * Math.PI) / 180;
+}
+
+// unrotate takes an offset from a pawn's centre into the PAWN'S own frame, and
+// spin puts one back out into the map's.
+//
+// THEY WRITE INTO A CALLER'S OBJECT rather than returning a pair, because the
+// hit test calls unrotate once per pawn on every pointer move and a tuple per
+// pawn per move is the allocation the second performance rule is about.
+//
+// ZERO IS A FAST PATH AND ALSO AN EXACT ONE. Almost every pawn on a table is at
+// zero, and Math.cos(0) is 1 but Math.sin(radians(180)) is 1.2e-16 -- so a
+// short-circuit here keeps an unturned pawn's arithmetic to the bit rather than
+// to a rounding error's worth of it.
+export function unrotate(degrees: number, dx: number, dy: number, out: Point): Point {
+	if (degrees === 0) {
+		out.x = dx;
+		out.y = dy;
+
+		return out;
+	}
+
+	const a = radians(degrees);
+	const cos = Math.cos(a);
+	const sin = Math.sin(a);
+
+	out.x = dx * cos + dy * sin;
+	out.y = dy * cos - dx * sin;
+
+	return out;
+}
+
+export function spin(degrees: number, lx: number, ly: number, out: Point): Point {
+	if (degrees === 0) {
+		out.x = lx;
+		out.y = ly;
+
+		return out;
+	}
+
+	const a = radians(degrees);
+	const cos = Math.cos(a);
+	const sin = Math.sin(a);
+
+	out.x = lx * cos - ly * sin;
+	out.y = lx * sin + ly * cos;
+
+	return out;
+}
+
+// local is this module's scratch, so containsPoint allocates nothing.
+const local: Point = { x: 0, y: 0 };
+
+// containsPoint is whether a map point is on a pawn, and it is the one place
+// the shapes are decided.
+//
+// A DISC FOR A CREATURE AND A RECTANGLE FOR AN OBJECT, matching exactly what the
+// pawn pass draws: a click on the corner of a wagon's box hits the wagon, and a
+// click on the corner of a goblin's does not hit the goblin.
+//
+// THE POINT IS TURNED AND THE PAWN IS NOT. A rotated rectangle is an axis-
+// aligned one seen from an angle, so the cheap and exact test is to take the
+// pointer into the pawn's frame and compare against the half extents there.
+// Testing a rotated box in the map's frame would need four edges and would give
+// a different answer at the corners.
+export function containsPoint(pawn: Placed, x: number, y: number, cellSize: number): boolean {
+	const [halfW, halfH] = pawnExtents(pawn, cellSize);
+
+	if (pawn.kind !== "object") {
+		const dx = x - pawn.x;
+		const dy = y - pawn.y;
+
+		return dx * dx + dy * dy <= halfW * halfW;
+	}
+
+	unrotate(pawn.rotation, x - pawn.x, y - pawn.y, local);
+
+	return Math.abs(local.x) <= halfW && Math.abs(local.y) <= halfH;
+}
+
+// snapsToGrid is whether a pawn's position is quantised at all: the grid has to
+// be snapping AND the pawn has to be the kind that answers to a lattice.
+//
+// IT IS ASKED BY THE DRAG'S CLOCK as well as by the snapper. With snapping on,
+// the cell under the pointer is what decides when to report a drag -- the hot
+// path quantises itself -- and a pawn that moves freely never crosses a
+// boundary, so it needs the timer instead.
+export function snapsToGrid(pawn: Sized, grid: Grid): boolean {
+	return grid.snap !== "off" && pawn.kind !== "object";
 }
 
 // snapPawn is what a drag calls: it reads the footprint off the pawn so no
 // caller has to remember which axis takes which number.
+//
+// AN OBJECT IS NEVER SNAPPED, which is internal/room.snapPawn returning early
+// for the same reason. A picture laid on a floor is not a creature standing in
+// a square: a rug, a door, a bloodstain and a road sign are placed against what
+// the cartographer drew rather than against the lattice laid over it, and a
+// table that could not be nudged the last twenty pixels into its doorway is a
+// table that cannot be dressed.
 export function snapPawn(grid: Grid, pawn: Sized, x: number, y: number): [number, number] {
-	const [w, h] = footprintOf(pawn, grid.cellSize);
+	if (pawn.kind === "object") {
+		return [x, y];
+	}
 
-	return snapPoint(grid, w, h, x, y);
+	const f = footprintOf(pawn.size);
+
+	return snapPoint(grid, f, f, x, y);
 }
 
 // cellAt is which cell a map point falls in, as integer cell coordinates. The

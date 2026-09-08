@@ -236,6 +236,34 @@ func TestTheObjectFormHasASizeInPixelsAndNoConditions(t *testing.T) {
 	if strings.Contains(body, `name="conditionName"`) {
 		t.Error("an object's form offers conditions, which the core refuses")
 	}
+	if !strings.Contains(body, `name="rotation"`) {
+		t.Errorf("an object's form has no angle:\n%s", body)
+	}
+
+	// AND A CREATURE'S FORM HAS NONE OF THE THREE. PawnUpdate refuses a width,
+	// a height or an angle on anything that is not an object, so a field here
+	// would be a save that comes back refused.
+	creature := html(t, RoomPawnForm(testPawnForm()))
+	for _, forbidden := range []string{`name="width"`, `name="height"`, `name="rotation"`} {
+		if strings.Contains(creature, forbidden) {
+			t.Errorf("a creature's form carries %q", forbidden)
+		}
+	}
+}
+
+// The size line is one sentence with two kinds of answer, and an unturned token
+// says nothing about its angle -- zero degrees is the absence of a rotation
+// rather than a fact about the wagon, and the clause would be on every one.
+func TestAnObjectsSizeLinePrintsItsAngleOnlyWhenItHasOne(t *testing.T) {
+	if got := PawnPixelsText(200, 140, 0); got != "200 by 140 pixels" {
+		t.Errorf("an unturned object reads %q", got)
+	}
+	if got := PawnPixelsText(200, 140, 30); got != "200 by 140 pixels, turned 30 degrees" {
+		t.Errorf("a turned object reads %q", got)
+	}
+	if got := PawnPixelsText(0, 140, 30); got != "" {
+		t.Errorf("an object with no recorded size reads %q, want silence", got)
+	}
 }
 
 // The Close button inside the form cannot be a <form method="dialog">, because

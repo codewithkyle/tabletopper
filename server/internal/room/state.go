@@ -156,12 +156,28 @@ type Player struct {
 // wide as the wagon in the file, and forcing it onto a whole number of cells
 // would letterbox every token that was not authored against this table's grid.
 // So the two are different fields with different units rather than one field
-// with a branch, and Footprint below is where the pixels become cells for the
-// one thing that has to count in them, which is snapping.
+// with a branch.
 //
-// WIDTH AND HEIGHT ARE ZERO FOR A CREATURE and Size is empty for an object.
-// addPawn clears whichever pair does not apply, so a pawn cannot be carrying a
-// stale answer from before it was edited.
+// AND AN OBJECT IS NOT ON THE LATTICE AT ALL. Nothing about a picture laid on a
+// floor answers to cell parity: a rug is where somebody put it, a door sits in
+// a wall rather than in a square, and a road runs at whatever angle the
+// cartographer drew it. snapPawn returns an object's centre untouched, which is
+// why Size -- the only thing that indexes the lattice -- is a creature's field
+// and not a pawn's.
+//
+// ROTATION IS WHOLE DEGREES CLOCKWISE ABOUT THE CENTRE, and it is an object's
+// alone. The centre is the origin because it is the one point that is still
+// there after the turn -- an object rotated about a corner would walk away from
+// where the GM put it -- and it is the same origin resizing uses, so the two
+// gestures do not fight over where the thing IS. Every write folds it into
+// [0, 360) so that nothing downstream has to know that -30 and 330 are one
+// angle. A creature's is always zero: a disc has no facing, and turning the
+// picture inside one would be a portrait leaning over in a circle whose edge
+// nobody can see.
+//
+// WIDTH, HEIGHT AND ROTATION ARE ZERO FOR A CREATURE and Size is empty for an
+// object. addPawn clears whichever set does not apply, so a pawn cannot be
+// carrying a stale answer from before it was edited.
 //
 // HP, MAXHP, AC AND HPBAND ARE POINTERS because "unknown" and "zero" are
 // different facts about a pawn and the player projection has to be able to say
@@ -180,6 +196,7 @@ type Pawn struct {
 	Size        Size        `json:"size"`
 	Width       int         `json:"width"`
 	Height      int         `json:"height"`
+	Rotation    int         `json:"rotation"`
 	Visible     bool        `json:"visible"`
 	HP          *int        `json:"hp"`
 	MaxHP       *int        `json:"maxHp"`
@@ -630,30 +647,19 @@ func (s *State) maxZ() int {
 	return z
 }
 
-// Footprint is how many cells wide and tall a pawn stands, and it is the one
-// answer to that question. A creature gets its size's square on both axes; an
-// object is a picture with a pixel size, so it is rounded to the nearest whole
-// number of cells. Snapping and the movement path ask here rather than each
-// branching on Kind.
+// normalizeRotation folds an angle into [0, 360).
 //
-// IT IS THE SNAPPING LATTICE AND NOT THE DRAWN SIZE. What an object is DRAWN at
-// is Width by Height exactly, which is the point of storing pixels; what it is
-// SNAPPED against is the cell parity, and there is no such thing as half a cell
-// of parity. A 100-pixel object on a 64-pixel grid snaps like a two-cell one --
-// to a vertex rather than a cell centre -- and is still drawn 100 pixels wide.
-//
-// ROUNDING RATHER THAN CEILING, and never below one. Ceiling would send every
-// object one cell out of true the moment a picture was a pixel over a boundary,
-// which is most of them; the floor of one is what keeps a small token snapping
-// like the creature-sized thing it is standing in for.
-func (p Pawn) Footprint(cellSize int) (w, h int) {
-	if p.Kind == PawnObject {
-		cell := max(cellSize, 1)
-
-		return max(1, (p.Width+cell/2)/cell), max(1, (p.Height+cell/2)/cell)
+// IT NORMALIZES RATHER THAN REFUSES, which is the difference between an angle
+// and every other number in this package. -30 and 330 are the same facing, so
+// rejecting one of them would be rejecting a way of writing the other; there is
+// no such thing as an out-of-range rotation, only one that has not been reduced
+// yet. Go's % keeps the sign of the dividend, which is the whole reason this is
+// three lines rather than one.
+func normalizeRotation(degrees int) int {
+	d := degrees % 360
+	if d < 0 {
+		d += 360
 	}
 
-	f := p.Size.Footprint()
-
-	return f, f
+	return d
 }

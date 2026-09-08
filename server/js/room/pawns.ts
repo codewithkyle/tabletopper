@@ -22,17 +22,22 @@ import type { Modifiers, Tool } from "./render/input.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Point, Rect } from "./render/camera.ts";
 import { Selection, dragSet, marqueeSelect, mayMove } from "./selection.ts";
-import type { Sized } from "./render/path.ts";
+import type { Placed, Sized } from "./render/path.ts";
 import {
 	cellAt,
 	cellCentre,
+	boundsOf,
 	cellsMoved,
+	containsPoint,
 	distanceLabel,
-	footprintOf,
 	pawnExtents,
 	snapPawn,
+	snapsToGrid,
 	supercover,
 } from "./render/path.ts";
+import type { Handle } from "./handles.ts";
+import { SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
+import { compareStack } from "./render/scene.ts";
 
 // DRAG_THRESHOLD is how far the hand moves before a press stops being a click,
 // in DEVICE pixels. Four is under a millimetre and above the jitter of a hand
@@ -89,6 +94,10 @@ export interface Outline {
 	alpha: number;
 	thickness: number;
 	rect: boolean;
+
+	// rotation is degrees clockwise about the centre, which an outline round a
+	// turned token needs and the marquee never has.
+	rotation: number;
 }
 
 // Ruler is one drag's path: the cells it crosses, the line across them, and how
@@ -138,7 +147,7 @@ export interface Armed {
 // had to be talked out of.
 type Ghostable = Pick<
 	Drawn,
-	"id" | "kind" | "name" | "image" | "x" | "y" | "z" | "size" | "width" | "height"
+	"id" | "kind" | "name" | "image" | "x" | "y" | "z" | "size" | "width" | "height" | "rotation"
 >;
 
 export interface TableDeps {
@@ -148,6 +157,12 @@ export interface TableDeps {
 	viewed: () => string;
 	send: (command: Outgoing) => void;
 	invalidate: () => void;
+
+	// scale is how many MAP pixels one CSS pixel covers, which is the camera's
+	// zoom inverted. The resize handles are the only thing here that needs it:
+	// they are a fixed size on screen and are therefore a moving size on the
+	// table, and a hand grabbing one is aiming in screen pixels.
+	scale: () => number;
 }
 
 export interface Table {
@@ -161,6 +176,10 @@ export interface Table {
 	ghosts(out: Drawn[]): Drawn[];
 	outlines(out: Outline[]): Outline[];
 	rulers(out: Ruler[]): Ruler[];
+
+	// handles is the resize and rotate controls, which exist for exactly one
+	// selected object the viewer may move and are empty every other time.
+	handles(out: Handle[]): Handle[];
 
 	// bounds is the box the overlay sits above: one pawn's, or the selection's.
 	bounds(): Rect | null;
@@ -199,6 +218,26 @@ interface Dragging {
 	sentAt: number;
 }
 
+// Shaping is a hand on a resize or rotate handle. It carries the proposal
+// rather than writing it to the pawn: the preview is a ghost, and the whole
+// gesture leaves as one PawnUpdate on release.
+//
+// THE HANDLE IS COPIED AND NOT REFERENCED. handlesFor writes into an array it
+// reuses every frame, so holding the object it handed back would be holding a
+// slot that has since become a different handle.
+interface Shaping {
+	kind: "shape";
+	id: string;
+	handle: Handle;
+	width: number;
+	height: number;
+	rotation: number;
+
+	// moved is whether the hand actually asked for anything. A click that
+	// landed on a handle and went nowhere sends nothing.
+	moved: boolean;
+}
+
 interface Marqueeing {
 	kind: "marquee";
 	from: Point;
@@ -213,7 +252,7 @@ interface Panning {
 	moved: boolean;
 }
 
-type Gesture = Pressing | Dragging | Marqueeing | Panning | null;
+type Gesture = Pressing | Dragging | Shaping | Marqueeing | Panning | null;
 
 // Preview is somebody else's drag, as it arrived.
 interface Preview {
@@ -236,6 +275,14 @@ export function createTable(deps: TableDeps): Table {
 
 	// Scratch, so nothing in the frame path allocates.
 	const snapped: Point = { x: 0, y: 0 };
+	const handleList: Handle[] = [];
+	const shape: Placed = {
+		kind: "object", size: "medium", width: 0, height: 0, rotation: 0, x: 0, y: 0,
+	};
+	const proposal: Ghostable = {
+		id: "", kind: "object", name: "", image: "",
+		x: 0, y: 0, z: 0, size: "medium", width: 0, height: 0, rotation: 0,
+	};
 
 	function grid(): Grid {
 		return state.table.grid;
@@ -255,6 +302,61 @@ export function createTable(deps: TableDeps): Table {
 	// on another floor is not reachable by any of them.
 	function onFloor(p: Pawn): boolean {
 		return p.layerId === deps.viewed();
+	}
+
+	// shaped is a pawn as the viewer's own hand is currently proposing it: the
+	// committed pawn, with a live resize or rotation written over the top.
+	//
+	// IT IS ONE SCRATCH OBJECT, reused, because the outline, the handles and the
+	// ghost all ask for it on every frame of a gesture.
+	function shaped(p: Pawn): Placed {
+		shape.kind = p.kind;
+		shape.size = p.size;
+		shape.x = p.x;
+		shape.y = p.y;
+		shape.width = p.width;
+		shape.height = p.height;
+		shape.rotation = p.rotation;
+
+		if (gesture?.kind === "shape" && gesture.id === p.id) {
+			shape.width = gesture.width;
+			shape.height = gesture.height;
+			shape.rotation = gesture.rotation;
+		}
+
+		return shape;
+	}
+
+	// selectedToken is the one token the handles belong to, and activeHandles is
+	// the controls that are up right now.
+	//
+	// ONE SELECTED OBJECT AND NOT A HOVERED ONE. Handles are a commitment: they
+	// sit under the pointer and take a press that would otherwise have moved the
+	// token, so they appear when somebody has said which token they mean.
+	//
+	// A MULTIPLE SELECTION HAS NONE either, because scaling six things about six
+	// different centres is not one gesture, and scaling them about a shared one
+	// would move five of them.
+	function selectedToken(): Pawn | null {
+		const one = selection.only();
+		const p = one ? pawn(one) : null;
+
+		if (!p || p.kind !== "object" || !onFloor(p) || !mayMove(p, role, user)) {
+			return null;
+		}
+
+		return p;
+	}
+
+	function activeHandles(out: Handle[]): Handle[] {
+		const p = selectedToken();
+		if (!p) {
+			out.length = 0;
+
+			return out;
+		}
+
+		return handlesFor(shaped(p), grid().cellSize, deps.scale(), out);
 	}
 
 	function snapFor(p: Sized, x: number, y: number): Point {
@@ -322,7 +424,7 @@ export function createTable(deps: TableDeps): Table {
 		// boundaries and send the same number of frames. With it off there is no
 		// boundary to cross, so a timer stands in.
 		const moved = !active.sent || cell[0] !== active.sent[0] || cell[1] !== active.sent[1];
-		const due = grid().snap === "off" ? now - active.sentAt >= DRAG_INTERVAL : moved;
+		const due = snapsToGrid(anchor, grid()) ? moved : now - active.sentAt >= DRAG_INTERVAL;
 		if (!due) {
 			return;
 		}
@@ -368,6 +470,55 @@ export function createTable(deps: TableDeps): Table {
 		announce();
 	}
 
+	// moveShape is a hand on a handle: it works out what the pointer is asking
+	// for and keeps it as a proposal. Nothing is sent while it runs.
+	//
+	// NOBODY ELSE SEES IT HAPPEN, which is the one way this is unlike a move
+	// drag. pawn.dragging carries positions and only positions, and a preview of
+	// a resize would be a second hot-path event for a gesture that lasts a
+	// second and happens between fights. What the others get is the result.
+	function moveShape(active: Shaping, map: Point, mods: Modifiers): void {
+		const p = pawn(active.id);
+		if (!p) {
+			return;
+		}
+
+		if (active.handle.turns) {
+			active.rotation = turned(p, map.x, map.y, mods.shift ? SPIN_STEP : 0);
+		} else {
+			const [width, height] = resized(p, active.handle, map.x, map.y, grid().cellSize, mods.shift);
+			active.width = width;
+			active.height = height;
+		}
+
+		active.moved = true;
+		announce();
+	}
+
+	// commitShape ends a handle drag. Unlike a move, a cancelled one sends
+	// NOTHING: the proposal never left this client, so there is nothing anybody
+	// else has to be told to stop drawing.
+	function commitShape(active: Shaping, cancelled: boolean): void {
+		const p = pawn(active.id);
+		gesture = null;
+
+		if (!p || cancelled || !active.moved) {
+			announce();
+
+			return;
+		}
+
+		if (active.handle.turns) {
+			if (active.rotation !== p.rotation) {
+				deps.send({ type: "pawn.update", id: p.id, rotation: active.rotation });
+			}
+		} else if (active.width !== p.width || active.height !== p.height) {
+			deps.send({ type: "pawn.update", id: p.id, width: active.width, height: active.height });
+		}
+
+		announce();
+	}
+
 	function place(map: Point): void {
 		if (!armed) {
 			return;
@@ -394,30 +545,45 @@ export function createTable(deps: TableDeps): Table {
 		});
 	}
 
-	function onKeyDown(e: KeyboardEvent): void {
-		if (e.key !== "Escape") {
-			return;
-		}
-
-		// ESCAPE IS ONE KEY WITH TWO JOBS AND THE ORDER MATTERS. A GM placing an
-		// encounter presses it to stop placing, and a GM mid-drag presses it to
-		// put the pawn back. Placement wins, because it is the mode you are IN
-		// rather than the gesture you are making.
+	// abandon is the one way out, and Escape and the right button are the two
+	// ways to ask for it. It answers whether there was anything to abandon,
+	// which is what decides whether the browser's context menu appears.
+	//
+	// THE ORDER MATTERS. A GM placing an encounter presses it to stop placing,
+	// and a GM mid-drag presses it to put the pawn back. Placement wins, because
+	// it is the mode you are IN rather than the gesture you are making.
+	function abandon(): boolean {
 		if (armed) {
 			arm(null);
 
-			return;
+			return true;
 		}
 
-		if (gesture?.kind === "drag") {
-			commit(gesture, true);
+		switch (gesture?.kind) {
+			case "drag":
+				commit(gesture, true);
 
-			return;
+				return true;
+
+			case "shape":
+				commitShape(gesture, true);
+
+				return true;
+
+			case "marquee":
+				gesture = null;
+				announce();
+
+				return true;
+
+			default:
+				return false;
 		}
+	}
 
-		if (gesture?.kind === "marquee") {
-			gesture = null;
-			announce();
+	function onKeyDown(e: KeyboardEvent): void {
+		if (e.key === "Escape") {
+			abandon();
 		}
 	}
 
@@ -438,6 +604,28 @@ export function createTable(deps: TableDeps): Table {
 				// THE MODE SURVIVES A SPAWN, which is the whole reason arming
 				// is worth a round trip: an encounter is eight goblins and
 				// eight clicks, not eight visits to a dialog.
+				return true;
+			}
+
+			// A HANDLE IS TESTED BEFORE THE TABLE IS, because a handle sits ON
+			// the edge of the token it belongs to: whichever of the two the
+			// press is nearer, somebody aiming at a five-pixel box meant the
+			// box. Only the selected object has any, so this costs nine
+			// distance tests and only while something is selected.
+			const target = selectedToken();
+			const grabbed = target ? handleAt(activeHandles(handleList), map.x, map.y, deps.scale()) : null;
+
+			if (target && grabbed) {
+				gesture = {
+					kind: "shape",
+					id: target.id,
+					handle: { ...grabbed },
+					width: target.width,
+					height: target.height,
+					rotation: target.rotation,
+					moved: false,
+				};
+
 				return true;
 			}
 
@@ -469,7 +657,7 @@ export function createTable(deps: TableDeps): Table {
 			return false;
 		},
 
-		drag(map, screen) {
+		drag(map, screen, mods) {
 			pointer = { x: map.x, y: map.y };
 
 			// A PRESS BECOMES A DRAG HERE AND NOWHERE ELSE, which is what keeps
@@ -493,6 +681,11 @@ export function createTable(deps: TableDeps): Table {
 			switch (active.kind) {
 				case "drag":
 					moveDrag(active, map);
+
+					return;
+
+				case "shape":
+					moveShape(active, map, mods);
 
 					return;
 
@@ -525,6 +718,11 @@ export function createTable(deps: TableDeps): Table {
 			switch (active.kind) {
 				case "drag":
 					commit(active, false);
+
+					return;
+
+				case "shape":
+					commitShape(active, false);
 
 					return;
 
@@ -578,9 +776,16 @@ export function createTable(deps: TableDeps): Table {
 
 				return;
 			}
+			if (active?.kind === "shape") {
+				commitShape(active, true);
+
+				return;
+			}
 
 			announce();
 		},
+
+		secondary: abandon,
 
 		hover(map) {
 			pointer = map ? { x: map.x, y: map.y } : null;
@@ -616,6 +821,7 @@ export function createTable(deps: TableDeps): Table {
 		slot.size = p.size;
 		slot.width = p.width;
 		slot.height = p.height;
+		slot.rotation = p.rotation;
 		slot.hidden = false;
 		slot.dead = false;
 
@@ -682,6 +888,26 @@ export function createTable(deps: TableDeps): Table {
 				}
 			}
 
+			// A RESIZE OR A ROTATION IN PROGRESS, drawn as the same kind of
+			// proposal a move is: the committed token stays where it is and the
+			// ghost shows what letting go would do.
+			if (gesture?.kind === "shape" && gesture.moved) {
+				const p = pawn(gesture.id);
+				if (p && onFloor(p)) {
+					proposal.id = p.id;
+					proposal.kind = p.kind;
+					proposal.name = p.name;
+					proposal.image = p.image;
+					proposal.z = p.z;
+					proposal.size = p.size;
+					proposal.width = gesture.width;
+					proposal.height = gesture.height;
+					proposal.rotation = gesture.rotation;
+
+					count = ghostOf(proposal, p.x, p.y, out, count);
+				}
+			}
+
 			// And the thing placement is armed with, following the pointer.
 			if (armed && pointer) {
 				const shape = armedShape(armed, grid().cellSize);
@@ -711,11 +937,16 @@ export function createTable(deps: TableDeps): Table {
 					continue;
 				}
 
-				const [halfW, halfH] = pawnExtents(p, cell);
+				// THE OUTLINE FOLLOWS THE PROPOSAL AND NOT THE PAWN, so a hand
+				// on a corner handle sees the box it is about to get rather
+				// than the one it started with.
+				const at = shaped(p);
+				const [halfW, halfH] = pawnExtents(at, cell);
+
 				add({
 					x: p.x, y: p.y, halfW, halfH,
 					color: SELF_COLOR, alpha: 0.95, thickness: 2,
-					rect: p.kind === "object",
+					rect: p.kind === "object", rotation: at.rotation,
 				});
 			}
 
@@ -726,7 +957,7 @@ export function createTable(deps: TableDeps): Table {
 					y: (rect.y1 + rect.y2) / 2,
 					halfW: Math.abs(rect.x2 - rect.x1) / 2,
 					halfH: Math.abs(rect.y2 - rect.y1) / 2,
-					color: SELF_COLOR, alpha: 0.8, thickness: 1, rect: true,
+					color: SELF_COLOR, alpha: 0.8, thickness: 1, rect: true, rotation: 0,
 				});
 			}
 
@@ -786,6 +1017,10 @@ export function createTable(deps: TableDeps): Table {
 			return out;
 		},
 
+		handles(out) {
+			return activeHandles(out);
+		},
+
 		bounds() {
 			const ids = selection.size > 0 ? selection.ids() : hovered ? [hovered] : [];
 			if (ids.length === 0) {
@@ -801,7 +1036,12 @@ export function createTable(deps: TableDeps): Table {
 					continue;
 				}
 
-				const [halfW, halfH] = pawnExtents(p, cell);
+				// THE SCREEN-ALIGNED BOX AND NOT THE TOKEN'S OWN. What sits on
+				// this is the DOM overlay, which is a rectangle on the page: a
+				// long token turned on its side is wide here and tall in its
+				// own frame, and an overlay placed on the second would land
+				// across the middle of it.
+				const [halfW, halfH] = boundsOf(shaped(p), cell);
 				if (!box) {
 					box = { x1: p.x - halfW, y1: p.y - halfH, x2: p.x + halfW, y2: p.y + halfH };
 
@@ -907,9 +1147,17 @@ export function createTable(deps: TableDeps): Table {
 // microseconds, and the topmost is found by keeping the best rather than by
 // ordering the whole table -- which would allocate on every pointer move.
 //
-// A DISC FOR A CREATURE AND A RECTANGLE FOR AN OBJECT, matching exactly what
-// the pawn pass drew: a click on the corner of a wagon's bounding box hits the
-// wagon, and a click on the corner of a goblin's does not hit the goblin.
+// A DISC FOR A CREATURE AND A RECTANGLE FOR AN OBJECT, turned with the token,
+// which is containsPoint and is exactly what the pawn pass drew: a click on the
+// corner of a wagon's bounding box hits the wagon, a click on the corner of a
+// goblin's does not hit the goblin, and a click just off the corner of a token
+// turned forty degrees hits the table.
+//
+// TOPMOST IS compareStack AND NOT z. Every token is drawn under every creature,
+// so clicking where a goblin stands on a rug picks the goblin -- the rug is not
+// reachable there, because it is not what is on top there. It is the same
+// comparison the draw order uses, which is the whole point: what a click picks
+// is what a person can see.
 export function hitTest(
 	pawns: readonly Pawn[],
 	layerID: string,
@@ -923,19 +1171,10 @@ export function hitTest(
 		if (p.layerId !== layerID) {
 			continue;
 		}
-		if (best && (p.z < best.z || (p.z === best.z && p.id < best.id))) {
+		if (best && compareStack(p, best) < 0) {
 			continue;
 		}
-
-		const [halfW, halfH] = pawnExtents(p, grid.cellSize);
-		const dx = x - p.x;
-		const dy = y - p.y;
-
-		const inside = p.kind === "object"
-			? Math.abs(dx) <= halfW && Math.abs(dy) <= halfH
-			: dx * dx + dy * dy <= halfW * halfW;
-
-		if (inside) {
+		if (containsPoint(p, x, y, grid.cellSize)) {
 			best = p;
 		}
 	}
@@ -975,7 +1214,7 @@ function blankDrawn(): Drawn {
 	return {
 		id: "", kind: "monster", name: "", image: "",
 		x: 0, y: 0, z: 0, size: "medium",
-		width: 0, height: 0, hidden: false, dead: false,
+		width: 0, height: 0, rotation: 0, hidden: false, dead: false,
 	};
 }
 
@@ -997,13 +1236,16 @@ function armedShape(armed: Armed, cellSize: number): Ghostable {
 		size: armed.size,
 		width: object ? armed.width || cell : 0,
 		height: object ? armed.height || cell : 0,
+
+		// A TOKEN GOES DOWN SQUARE. There is no angle on the wire for a spawn
+		// and none in the dialog; it is turned afterwards, with the handles.
+		rotation: 0,
 	};
 }
 
 function blankOutline(): Outline {
-	return { x: 0, y: 0, halfW: 0, halfH: 0, color: SELF_COLOR, alpha: 1, thickness: 1, rect: false };
+	return {
+		x: 0, y: 0, halfW: 0, halfH: 0,
+		color: SELF_COLOR, alpha: 1, thickness: 1, rect: false, rotation: 0,
+	};
 }
-
-// footprintOf is re-exported so the interaction tests can reach the rule the
-// riders lookup and the snapper share without importing the renderer.
-export { footprintOf };

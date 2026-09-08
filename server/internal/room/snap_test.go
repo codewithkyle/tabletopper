@@ -128,9 +128,12 @@ func TestSnapPawnReadsTheFootprintOffThePawn(t *testing.T) {
 		t.Fatalf("a large creature snapped to (%d, %d), want the vertex at (128, 128)", x, y)
 	}
 
+	// AND AN OBJECT IS NOT ASKED AT ALL. It is a picture laid on the floor
+	// rather than a creature standing in a square, so it keeps the pixel it was
+	// given even with whole-cell snapping switched on.
 	x, y = snapPawn(g, Pawn{Kind: PawnObject, Width: 2 * g.CellSize, Height: 3 * g.CellSize}, 100, 100)
-	if x != 128 || y != 96 {
-		t.Fatalf("a 2x3 object snapped to (%d, %d), want (128, 96)", x, y)
+	if x != 100 || y != 100 {
+		t.Fatalf("a 2x3 object snapped to (%d, %d), want the raw (100, 100)", x, y)
 	}
 }
 

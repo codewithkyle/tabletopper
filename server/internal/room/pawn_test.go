@@ -43,12 +43,14 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 		offsets[id] = [2]int{p.X - anchorBefore.X, p.Y - anchorBefore.Y}
 	}
 
-	// A raw 300 on an even footprint snaps to the vertex at 320.
+	// AN OBJECT ANCHOR LANDS ON THE RAW NUMBER, because an object is not on the
+	// lattice at all: see snapPawn. Snapping is on, and 300 is neither a cell
+	// centre nor a vertex.
 	ems := w.apply(&PawnMove{Anchor: wagon, X: 300, Y: 300, Others: riders}, w.gm)
 
 	after := w.s.Pawn(wagon)
-	if after.X != 320 || after.Y != 320 {
-		t.Fatalf("the anchor landed at (%d, %d), want the vertex at (320, 320)", after.X, after.Y)
+	if after.X != 300 || after.Y != 300 {
+		t.Fatalf("the anchor landed at (%d, %d), want the raw (300, 300)", after.X, after.Y)
 	}
 
 	for _, id := range riders {
@@ -73,6 +75,24 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 	}
 	if moved.Pawns[0].ID != wagon {
 		t.Fatal("the anchor is not first in the position list")
+	}
+
+	// AND THE SAME PROPERTY WITH THE SNAP THE OTHER WAY ROUND. Ari is a medium
+	// creature, so she DOES land on a cell centre -- and the wagon she was
+	// sitting on rides along by her delta rather than being snapped to one.
+	rider := w.s.Pawn(riders[0])
+	offset := [2]int{after.X - rider.X, after.Y - rider.Y}
+
+	w.apply(&PawnMove{Anchor: riders[0], X: 500, Y: 500, Others: []ulid.ULID{wagon}}, w.gm)
+
+	rider = w.s.Pawn(riders[0])
+	if rider.X != 480 || rider.Y != 480 {
+		t.Fatalf("the creature anchor landed at (%d, %d), want the centre at (480, 480)", rider.X, rider.Y)
+	}
+
+	carried := w.s.Pawn(wagon)
+	if carried.X-rider.X != offset[0] || carried.Y-rider.Y != offset[1] {
+		t.Fatalf("the wagon sat at offset %v and is now at %v", offset, [2]int{carried.X - rider.X, carried.Y - rider.Y})
 	}
 }
 
@@ -194,8 +214,8 @@ func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 	if p.HP != nil || p.MaxHP != nil {
 		t.Fatal("the object was given hit points it was not asked for")
 	}
-	if wide, tall := p.Footprint(w.s.Table.Grid.CellSize); wide != 2 || tall != 4 {
-		t.Fatalf("the object stands on %dx%d cells, want 2x4", wide, tall)
+	if p.Width != 128 || p.Height != 256 {
+		t.Fatalf("the object is %dx%d pixels, want 128x256", p.Width, p.Height)
 	}
 
 	w.refuse(&PawnSetConditions{ID: wagon, Conditions: []Condition{
@@ -208,6 +228,36 @@ func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	w.refuse(&PawnUpdate{ID: goblin, Width: intp(192)}, w.gm, CodeInvalid)
+
+	// And so is an angle on one. A disc has no facing, so a rotation on a
+	// creature is the client having sent an object's field to a monster.
+	w.refuse(&PawnUpdate{ID: goblin, Rotation: intp(90)}, w.gm, CodeInvalid)
+}
+
+// AN OBJECT TURNS AND A CREATURE DOES NOT, and the angle that comes back is
+// always the reduced one -- a client that dragged the handle three times round
+// leaves the wagon where a client that dragged it once did.
+func TestAnObjectTurnsAboutItsCentre(t *testing.T) {
+	w := newWorld(t)
+
+	wagon := w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", Width: 128, Height: 256, Visible: true})
+	if got := w.s.Pawn(wagon).Rotation; got != 0 {
+		t.Fatalf("a spawned object starts at %d degrees, want 0", got)
+	}
+
+	before := *w.s.Pawn(wagon)
+	w.apply(&PawnUpdate{ID: wagon, Rotation: intp(-90)}, w.gm)
+
+	after := w.s.Pawn(wagon)
+	if after.Rotation != 270 {
+		t.Fatalf("the wagon is at %d degrees, want 270", after.Rotation)
+	}
+	if after.X != before.X || after.Y != before.Y {
+		t.Fatalf("turning moved the wagon from %d,%d to %d,%d", before.X, before.Y, after.X, after.Y)
+	}
+	if after.Width != before.Width || after.Height != before.Height {
+		t.Fatalf("turning resized the wagon to %dx%d", after.Width, after.Height)
+	}
 }
 
 // THE VISIBILITY TRANSITIONS, which are the whole reason for the two-audience

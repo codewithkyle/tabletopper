@@ -72,6 +72,7 @@ function pawn(id: string, name: string): Pawn {
 		size: "medium",
 		width: 0,
 		height: 0,
+		rotation: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,

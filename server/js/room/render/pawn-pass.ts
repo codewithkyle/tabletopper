@@ -18,6 +18,12 @@
 // has typed a different width or height into the pawn's dialog, which is the
 // one case where an object is deliberately not the shape of its picture.
 //
+// AND AN OBJECT'S QUAD TURNS. The rotation is a per-instance pair of floats and
+// the vertex shader spins the corner offset by it, which rotates the picture
+// with the rectangle -- because the fragment shader's texture lookup is in the
+// quad's own local space and never learns the angle at all. A creature's is
+// always zero: a disc has no facing.
+//
 // THE INSTANCE BUFFER IS REBUILT WHEN THE TABLE CHANGES AND NOT PER FRAME. A
 // pan or a zoom changes the matrix and nothing else, which is the common case
 // by a wide margin; what forces a rebuild is a pawn moving, appearing, changing
@@ -31,12 +37,17 @@ import { KIND_COLORS } from "./sprites.ts";
 import { SKULL } from "./sprites.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { pawnExtents } from "./path.ts";
+import { pawnExtents, radians } from "./path.ts";
+import { compareStack } from "./scene.ts";
 
-// FLOATS_PER_INSTANCE: the rectangle, the border colour, the style and the fit.
-// Four vec4s, so the attribute count stays at four and one instance is one
-// contiguous run of sixteen floats.
-const FLOATS_PER_INSTANCE = 16;
+// FLOATS_PER_INSTANCE: the rectangle, the border colour, the style, the fit and
+// the angle's cosine and sine. Four vec4s and a vec2.
+//
+// THE ANGLE ARRIVES PRE-RESOLVED. A cosine and a sine per instance rather than
+// a degree per instance, because the shader would otherwise compute the same
+// two transcendentals for all four corners of every quad in every frame, and
+// the buffer is rebuilt only when the table changes.
+const FLOATS_PER_INSTANCE = 18;
 
 // BORDER_PIXELS is the ring round a creature, in DEVICE pixels rather than map
 // pixels, so it is the same weight at every zoom. A border that scaled with the
@@ -65,6 +76,7 @@ layout(location = 1) in vec4 a_rect;
 layout(location = 2) in vec4 a_border;
 layout(location = 3) in vec4 a_style;
 layout(location = 4) in vec4 a_fit;
+layout(location = 5) in vec2 a_spin;
 
 uniform mat3 u_clip;
 uniform float u_scale;
@@ -86,7 +98,13 @@ void main() {
 	// per-instance value and this is the last place it is one.
 	v_edge = BORDER_PIXELS / max(a_rect.z * u_scale, 1e-4);
 
-	vec2 world = a_rect.xy + v_local * a_rect.zw;
+	vec2 offset = v_local * a_rect.zw;
+	vec2 turned = vec2(
+		offset.x * a_spin.x - offset.y * a_spin.y,
+		offset.x * a_spin.y + offset.y * a_spin.x
+	);
+
+	vec2 world = a_rect.xy + turned;
 	gl_Position = vec4((u_clip * vec3(world, 1.0)).xy, 0.0, 1.0);
 }
 `;
@@ -178,6 +196,9 @@ export interface Drawn {
 	width: number;
 	height: number;
 
+	// rotation is degrees clockwise about the centre, and is an object's alone.
+	rotation: number;
+
 	// hidden is the GM's copy of a pawn players cannot see. It is never true on
 	// a player's, because they are never sent one.
 	hidden: boolean;
@@ -224,6 +245,10 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 		gl.vertexAttribDivisor(1 + i, 1);
 	}
 
+	gl.enableVertexAttribArray(5);
+	gl.vertexAttribPointer(5, 2, gl.FLOAT, false, stride, 64);
+	gl.vertexAttribDivisor(5, 1);
+
 	gl.bindVertexArray(null);
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
@@ -258,6 +283,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 		border: readonly [number, number, number], borderAlpha: number,
 		layer: number, shape: number, alpha: number, grey: number,
 		kx: number, ky: number, uvW: number, uvH: number,
+		cos: number, sin: number,
 	): void {
 		const at = count * FLOATS_PER_INSTANCE;
 
@@ -281,6 +307,9 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 		data[at + 14] = uvW;
 		data[at + 15] = uvH;
 
+		data[at + 16] = cos;
+		data[at + 17] = sin;
+
 		count++;
 	}
 
@@ -293,10 +322,10 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 			// the skull over it.
 			reserve(pawns.length * 2);
 
-			// SORTED BY z AND THEN BY id, which is the server's own order for a
-			// draw: a pawn spawned later sits on top, and two pawns that
-			// somehow share a z are drawn in an order that is the same on every
-			// client rather than whichever way the array happened to be built.
+			// SORTED BY compareStack, which puts every object under every
+			// creature and then orders within a kind by z and by id. It is the
+			// same comparison the hit test uses, so what a click picks is what
+			// is drawn on top of the pile. See scene.ts.
 			if (order.length !== pawns.length) {
 				order = pawns.map((_, i) => i);
 			} else {
@@ -304,7 +333,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					order[i] = i;
 				}
 			}
-			order.sort((a, b) => pawns[a].z - pawns[b].z || (pawns[a].id < pawns[b].id ? -1 : 1));
+			order.sort((a, b) => compareStack(pawns[a], pawns[b]));
 
 			for (const index of order) {
 				const pawn = pawns[index];
@@ -329,6 +358,10 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					? fitFactors(slot.w, slot.h, halfW, halfH, !object)
 					: [1, 1];
 
+				const angle = radians(pawn.rotation);
+				const cos = pawn.rotation === 0 ? 1 : Math.cos(angle);
+				const sin = pawn.rotation === 0 ? 0 : Math.sin(angle);
+
 				push(
 					pawn.x, pawn.y, halfW, halfH,
 					KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc,
@@ -337,6 +370,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					kx, ky,
 					slot ? slot.w / SPRITE_EDGE : 1,
 					slot ? slot.h / SPRITE_EDGE : 1,
+					cos, sin,
 				);
 
 				if (pawn.dead && !object) {
@@ -345,11 +379,15 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 						const size = halfW * SKULL_SCALE;
 						const [sx, sy] = fitFactors(skull.w, skull.h, size, size, false);
 
+						// UPRIGHT WHATEVER THE PAWN IS DOING. A skull is a
+						// marker read by a person rather than part of the
+						// picture, and a creature carries no rotation anyway.
 						push(
 							pawn.x, pawn.y, size, size,
 							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
 							skull.layer, 1, opacity, 0,
 							sx, sy, skull.w / SPRITE_EDGE, skull.h / SPRITE_EDGE,
+							1, 0,
 						);
 					}
 				}

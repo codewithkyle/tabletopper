@@ -271,6 +271,75 @@ Five items, of which two are the same change: a token stops being asked about.
   right thing with it. It is the only item in the Tabletop menu behind a
   confirmation, and the confirmation names what goes.
 
+### Rework 3, tokens lie on the floor and can be turned (2026-09-08)
+
+Four items, of which three are one idea: a token is a picture laid on a map, not
+a creature standing in a square.
+
+- **Every token is drawn under every creature, and a click follows the draw
+  order.** `compareStack` in `render/scene.ts` is one comparison read by the pawn
+  pass, the hit test and the riders lookup: object first, then `z`, then id.
+  Objects are the floor's furniture -- a rug, a road, a bloodstain, a wagon --
+  and a party that walked onto a rug spawned after them used to vanish under it.
+  `z` still orders within a kind, so two rugs stack in the order they were laid.
+  The hit test uses the same comparison rather than `z` alone, so clicking where
+  a goblin stands on a rug picks the goblin; the rug is reachable everywhere the
+  goblin is not, and the map is what is under both.
+- **Right-clicking abandons the gesture in hand.** `Tool.secondary` is Escape for
+  a hand that is already on the mouse: it disarms placement, puts a dragged pawn
+  back, or drops a marquee, and answers whether it did any of those. Only when it
+  did is the browser's own context menu suppressed, so a right click on empty
+  table is still a right click on a web page.
+- **A token is never snapped.** `snapPawn` returns an object's centre untouched
+  on both sides -- `internal/room/snap.go` and its port in `render/path.ts` -- so
+  a rug, a door, a road sign and a wagon are placed against what the cartographer
+  drew rather than against the lattice over it. `Pawn.Footprint` lost its object
+  branch and its cell-size argument with it; the client's `footprintOf` is now
+  `Size.Footprint` exactly, and the riders gate that used to ask for it measures
+  two cells in pixels instead. The drag's clock followed: with nothing to snap to
+  there is no cell boundary to report on, so a token's drag reports on the timer
+  that snapping-off already used.
+- **A token can be resized and turned.** `Pawn.Rotation` is whole degrees
+  clockwise about the centre, an object's alone, folded into `[0, 360)` by
+  `normalizeRotation` wherever it is written -- an angle is a wrapping quantity,
+  so -30 is reduced rather than refused. It is not on `PawnSpawn`: a token goes
+  down square and is turned afterwards, by the eight boxes and one circle in
+  `js/room/handles.ts` or by the Angle field in the pawn dialog, both of which are
+  `PawnUpdate`.
+
+  **Everything scales about the centre**, resizing included, and that is the one
+  choice here worth arguing. An image editor anchors the opposite corner, which
+  makes a resize a change of size AND position -- and position is `PawnMove`'s,
+  snapped and authorised separately, so one gesture would send two commands that
+  can be refused independently and a token could end up somewhere nobody dragged
+  it. Scaling about the centre keeps the whole gesture inside one idempotent
+  command and gives the two gestures one origin instead of two.
+
+  Shift locks a corner's aspect ratio and steps a rotation by 15 degrees, which
+  is the only way to get a token exactly square again once it has been turned by
+  hand. The handles are a fixed size on screen and a moving size on the table,
+  which is the one number `TableDeps.scale` exists for.
+
+  **The rotate handle hangs below the token rather than above it**, which is
+  where every other editor puts one. Above is already taken: the pawn overlay is
+  placed on the top of the same box and lifted eight pixels off it, and the
+  handles are only ever up when exactly one pawn is selected -- which is exactly
+  when that overlay is showing. A handle up there is not occasionally covered,
+  it is always covered. So the angle is measured from straight DOWN, and a
+  quarter turn clockwise is the hand dragging to the left.
+
+  The rotation reaches the GPU as a cosine and a sine per instance in both the
+  pawn pass and the ring pass; the fragment shaders never learn the angle,
+  because their arithmetic is already in the quad's own local space. The hit test
+  turns the POINT into the token's frame rather than growing a box round it, and
+  `boundsOf` is the screen-aligned box the DOM overlay is placed on, which for a
+  long token turned on its side is `pawnExtents` the other way round.
+
+  A resize or a rotation is previewed locally as a ghost and committed as one
+  `pawn.update` on release. Nobody else watches it happen: `pawn.dragging` carries
+  positions and only positions, and a second hot-path event for a gesture that
+  lasts a second and happens between fights is not worth the protocol.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and
@@ -283,7 +352,7 @@ Five items, of which two are the same change: a token stops being asked about.
   marquee over several. Dragging a selected pawn drags the whole selection as
   one. Dragging a wagon carries the pawns standing on it without selecting
   them first.
-- With snapping on, the grabbed pawn snaps to cells or corners by footprint
+- With snapping on, the grabbed CREATURE snaps to cells or corners by footprint
   parity, the rest keep their exact offsets, a path of highlighted cells runs
   from where the grabbed pawn stood to where it will land, and a label shows
   the distance in feet under the table's diagonal rule. Every other client
@@ -294,8 +363,9 @@ Five items, of which two are the same change: a token stops being asked about.
   the edit dialog and the stat block; for several, the count and a Remove
   button for the GM.
 - The pawn dialog edits name, HP with arithmetic input, max HP, AC, a creature
-  size or an object's width and height in pixels, layer, visibility, and
-  conditions with colour and duration.
+  size or an object's width, height and angle, layer, visibility, and
+  conditions with colour and duration. *(Reworked above: an object carries an
+  angle, and is never snapped.)*
 - Every pawn lives on one layer. The canvas shows the viewed layer's pawns;
   spawns land on the layer the spawner is viewing; the GM moves pawns between
   layers from the pawn dialog's layer select or the selection overlay's Move

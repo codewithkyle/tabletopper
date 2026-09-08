@@ -17,11 +17,12 @@ import "math"
 // is simply the nearest of the two and the footprint stops mattering. It is the
 // mode for a table that wants a creature between squares as readily as in one.
 //
-// IT IS PER AXIS, which is what makes an object work. A two by four wagon is
-// even on both axes and lands on vertices; a three by four one is odd across
-// and even down, so its centre sits at a cell centre horizontally and on a
-// vertex vertically. Nothing special is written for objects: they pass a
-// different pair of numbers into the same call.
+// IT IS PER AXIS, which is what a footprint that is not square needs and what
+// the parity rule cannot express in one number. Nothing in the app passes two
+// different footprints today -- a creature's square is the same on both axes
+// and an object does not snap at all -- but the axes are genuinely independent
+// and collapsing them would be a rule that happened to be true rather than one
+// that is.
 //
 // THE SERVER SNAPS TOO, not just the client. The stored position is the
 // server's answer, so a client that does not snap, or snaps differently,
@@ -76,8 +77,25 @@ func centred(footprint int) bool {
 
 // snapPawn is what the commands call: it reads the footprint off the pawn so
 // that no caller has to remember which axis takes which number.
+//
+// AN OBJECT IS NEVER SNAPPED, and that is the rule the paragraph above about
+// "nothing special is written for objects" used to describe the opposite of. A
+// picture laid on a floor is not a creature standing in a square: a rug, a
+// door, a bloodstain, a road sign and a wagon are all placed against what the
+// cartographer DREW rather than against the lattice laid over it, and a table
+// that could not be nudged the last twenty pixels into the doorway it belongs
+// in is a table that cannot be dressed. So an object's centre is wherever the
+// hand let go of it, to the pixel.
+//
+// IT RETURNS EARLY HERE RATHER THAN IN THE CALLER, so every path that commits a
+// position -- spawning, moving, and the client's own port of this -- gets the
+// same answer without any of them knowing the rule.
 func snapPawn(g Grid, p Pawn, x, y int) (int, int) {
-	w, h := p.Footprint(g.CellSize)
+	if p.Kind == PawnObject {
+		return x, y
+	}
 
-	return SnapPoint(g, w, h, x, y)
+	f := p.Size.Footprint()
+
+	return SnapPoint(g, f, f, x, y)
 }

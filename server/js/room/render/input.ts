@@ -19,6 +19,13 @@
 // hit-testing the table must ignore events inside a window, satisfied by
 // listening in the right place rather than by testing for it.
 //
+// THE SECONDARY BUTTON IS THE TOOL'S ALONE and the camera never sees it. It
+// arrives as a contextmenu event rather than as a pointerdown, because that one
+// event fires on whichever of press and release the platform puts it on and is
+// also what a keyboard's menu key and a long press produce -- and because
+// preventing it is the only way to stop the browser's own menu appearing over
+// the table.
+//
 // A TOOL GETS FIRST REFUSAL ON THE PRIMARY BUTTON, and the middle button is
 // always the camera's. The tool is told about every primary press, drag and
 // release whether or not it claims one; what claiming decides is only whether
@@ -80,6 +87,17 @@ export interface Tool {
 	// cancel is a pointer the browser took away -- a context menu, a gesture
 	// the OS claimed. It is not an Escape, which the tool hears for itself.
 	cancel(): void;
+
+	// secondary is the right button, and it answers whether it meant anything.
+	// True suppresses the browser's context menu; false lets it through.
+	//
+	// IT IS A WAY OUT AND NOT A MENU. The one thing a right click does on this
+	// table is abandon what the hand is in the middle of -- placing, dragging,
+	// dropping a marquee -- which is Escape's job for a hand that is already on
+	// the mouse. Suppressing the browser's menu only when something was
+	// actually abandoned means a right click on empty table still offers Save
+	// image as, rather than being silently eaten by a canvas.
+	secondary(): boolean;
 
 	// hover is the pointer moving with nothing down, and null is it leaving the
 	// canvas entirely.
@@ -344,6 +362,13 @@ export function wireInput(
 		invalidate();
 	}
 
+	function onContextMenu(e: MouseEvent): void {
+		if (tool?.secondary()) {
+			e.preventDefault();
+			invalidate();
+		}
+	}
+
 	function onPointerEnter(): void {
 		measure();
 	}
@@ -389,6 +414,7 @@ export function wireInput(
 	canvas.addEventListener("pointercancel", onPointerUp);
 	canvas.addEventListener("pointerenter", onPointerEnter);
 	canvas.addEventListener("pointerleave", onPointerLeave);
+	canvas.addEventListener("contextmenu", onContextMenu);
 
 	window.addEventListener("resize", measure);
 	measure();
@@ -408,6 +434,7 @@ export function wireInput(
 			canvas.removeEventListener("pointercancel", onPointerUp);
 			canvas.removeEventListener("pointerenter", onPointerEnter);
 			canvas.removeEventListener("pointerleave", onPointerLeave);
+			canvas.removeEventListener("contextmenu", onContextMenu);
 			window.removeEventListener("resize", measure);
 			canvas.removeEventListener("wheel", onWheel);
 			pointers.clear();

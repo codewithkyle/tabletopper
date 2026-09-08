@@ -165,14 +165,21 @@ type RoomPawn struct {
 
 	// Size is the label the panel prints for a CREATURE and SizeValue is what
 	// the form's select is set to. Pixels is the same line for an OBJECT --
-	// "200 by 140 pixels" -- and Width and Height are the two numbers its form
-	// takes. The panel prints whichever of the two applies under one heading,
-	// because "how big is it" is one question with two kinds of answer.
+	// "200 by 140 pixels, turned 30 degrees" -- and Width, Height and Rotation
+	// are the three numbers its form takes. The panel prints whichever of the
+	// two applies under one heading, because "how big is it" is one question
+	// with two kinds of answer.
+	//
+	// THE ANGLE IS PART OF THE SIZE LINE RATHER THAN A HEADING OF ITS OWN. It
+	// is empty far more often than not -- most tokens are never turned -- and a
+	// row reading "Rotation: 0 degrees" under every wagon on the table is a row
+	// that says nothing.
 	Size      string
 	SizeValue string
 	Pixels    string
 	Width     string
 	Height    string
+	Rotation  string
 
 	// Layer is the floor's name, which is worth showing because a pawn's panel
 	// can outlive the GM's view of the floor it stands on.
@@ -376,15 +383,25 @@ func PawnSizeText(size string) string {
 	return strings.ToUpper(size[:1]) + size[1:]
 }
 
-// PawnPixelsText is an object's rectangle, in map pixels. It is the creature
-// size line's opposite number: a wagon has no size category to print, so what
-// it prints instead is how large the picture on the table is.
-func PawnPixelsText(w int, h int) string {
+// PawnPixelsText is an object's rectangle, in map pixels, and the angle it has
+// been turned to. It is the creature size line's opposite number: a wagon has
+// no size category to print, so what it prints instead is how large the picture
+// on the table is and which way round it is lying.
+//
+// A SQUARE TOKEN SAYS NOTHING ABOUT ITS ANGLE, because zero degrees is the
+// absence of a rotation rather than a fact about the wagon. Most tokens are
+// never turned and the clause would be noise on every one of them.
+func PawnPixelsText(w int, h int, rotation int) string {
 	if w <= 0 || h <= 0 {
 		return ""
 	}
 
-	return strconv.Itoa(w) + " by " + strconv.Itoa(h) + " pixels"
+	out := strconv.Itoa(w) + " by " + strconv.Itoa(h) + " pixels"
+	if rotation != 0 {
+		out += ", turned " + strconv.Itoa(rotation) + " degrees"
+	}
+
+	return out
 }
 
 // PawnDurationText is a condition's remaining turns, and -1 is not a number

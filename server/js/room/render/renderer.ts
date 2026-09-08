@@ -32,9 +32,17 @@ import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./sce
 import { cellCentre } from "./path.ts";
 import { stressPawns } from "./stress.ts";
 import type { Outline, Ruler, Table } from "../pawns.ts";
+import type { Handle } from "../handles.ts";
+import { HANDLE_HALF } from "../handles.ts";
 import { GHOST_ALPHA } from "../pawns.ts";
 import { apply, wireInput } from "./input.ts";
 import { screenToWorld, worldToScreen } from "./camera.ts";
+
+// HANDLE_COLOR and HANDLE_WIDTH are how a resize control is drawn: the same
+// near-white the selection outline uses, so the set reads as one thing, and a
+// heavier line, because a five-pixel box outlined at a hairline is a smudge.
+const HANDLE_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
+const HANDLE_WIDTH = 2;
 
 // VIEW_ZOOM_STEP is what the View menu's Zoom in and Zoom out move by. It is
 // larger than a wheel notch because a menu item is a deliberate act and
@@ -79,6 +87,12 @@ export interface Renderer {
 	// module that needs it: the DOM overlay, which follows a pawn in CSS pixels
 	// while everything else on the table is drawn in map pixels.
 	toScreen(x: number, y: number, out: Point): Point;
+
+	// mapPerPixel is how much of the table one CSS pixel covers. The table's
+	// resize handles are a fixed size on screen and are therefore a moving size
+	// on the map, and the hit test that grabs one is the tool's rather than the
+	// renderer's -- so the one number it needs crosses here.
+	mapPerPixel(): number;
 
 	// onFrame runs after every frame this renderer draws.
 	//
@@ -194,6 +208,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	const ghosts: Drawn[] = [];
 	const outlines: Outline[] = [];
 	const rulers: Ruler[] = [];
+	const handles: Handle[] = [];
 
 	const frames = startFrames({
 		mount,
@@ -340,7 +355,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 			rings.add(
 				outline.x, outline.y, outline.halfW, outline.halfH,
 				outline.color, outline.alpha, outline.thickness,
-				outline.rect ? RING_RECT : RING_ELLIPSE,
+				outline.rect ? RING_RECT : RING_ELLIPSE, outline.rotation,
 			);
 		}
 
@@ -352,6 +367,28 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		if (table) {
 			ghostPass.build(table.ghosts(ghosts), tableGrid, sprites, GHOST_ALPHA);
 			ghostPass.draw(camera, canvas.width, canvas.height, dpr);
+		}
+
+		// THE HANDLES GO OVER THE GHOST, which is why they are a second batch
+		// through the same pass rather than more instances in the first. What a
+		// hand is dragging is drawn at half alpha and the control doing the
+		// dragging has to stay solid on top of it.
+		//
+		// A BOX FOR A CORNER AND A CIRCLE FOR THE ROTATION, both a fixed size on
+		// screen, both turned with the token so the set reads as one frame round
+		// it rather than as marks scattered near it.
+		if (table) {
+			const half = HANDLE_HALF * worldPerCssPixel;
+
+			rings.begin();
+			for (const handle of table.handles(handles)) {
+				rings.add(
+					handle.x, handle.y, half, half,
+					HANDLE_COLOR, 1, HANDLE_WIDTH,
+					handle.turns ? RING_ELLIPSE : RING_RECT, handle.rotation,
+				);
+			}
+			rings.draw(camera, canvas.width, canvas.height, dpr);
 		}
 
 		// And the ruler's line and its distance, last, because they are read
@@ -539,6 +576,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		},
 
 		toScreen: (x, y, out) => worldToScreen(camera, viewport, x, y, out),
+		mapPerPixel: () => 1 / Math.max(camera.zoom, 1e-4),
 
 		stress(count) {
 			const map = layers.viewed()?.map ?? null;

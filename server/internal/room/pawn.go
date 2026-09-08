@@ -136,6 +136,11 @@ func (e *PawnDragging) ForRole(role Role) Event {
 // stale. The GM changes it afterwards with PawnUpdate if the picture was not
 // what they wanted; they are not asked before it is down.
 //
+// NEITHER IS ITS ANGLE. A token goes down square and is turned afterwards, by
+// the handles on the canvas or by the number in its dialog -- both of which are
+// PawnUpdate. Asking a dialog for an angle before anything is on the table
+// would be asking somebody to guess at a rotation they cannot yet see.
+//
 // It is READ BY THE HUB AND NOT BY Apply, like MonsterID and AssetID beside it.
 type PawnSpawn struct {
 	Kind        PawnKind   `json:"kind"`
@@ -246,8 +251,9 @@ func (s *State) addPawn(p Pawn, env Env) ([]Emission, error) {
 	if p.Kind == PawnObject {
 		p.Size = ""
 		p.Conditions = nil
+		p.Rotation = normalizeRotation(p.Rotation)
 	} else {
-		p.Width, p.Height = 0, 0
+		p.Width, p.Height, p.Rotation = 0, 0, 0
 	}
 	clampHP(&p)
 
@@ -473,15 +479,16 @@ func (s *State) shownPositions(all []PawnPosition) []PawnPosition {
 // monster's hit points and then changes them, and an "unset" that could be
 // reached by a client sending null is a way to lose a stat line by accident.
 type PawnUpdate struct {
-	ID     ulid.ULID `json:"id"`
-	Name   *string   `json:"name,omitempty"`
-	HP     *int      `json:"hp,omitempty"`
-	MaxHP  *int      `json:"maxHp,omitempty"`
-	AC     *int      `json:"ac,omitempty"`
-	Size   *Size     `json:"size,omitempty"`
-	Z      *int      `json:"z,omitempty"`
-	Width  *int      `json:"width,omitempty"`
-	Height *int      `json:"height,omitempty"`
+	ID       ulid.ULID `json:"id"`
+	Name     *string   `json:"name,omitempty"`
+	HP       *int      `json:"hp,omitempty"`
+	MaxHP    *int      `json:"maxHp,omitempty"`
+	AC       *int      `json:"ac,omitempty"`
+	Size     *Size     `json:"size,omitempty"`
+	Z        *int      `json:"z,omitempty"`
+	Width    *int      `json:"width,omitempty"`
+	Height   *int      `json:"height,omitempty"`
+	Rotation *int      `json:"rotation,omitempty"`
 }
 
 func (c *PawnUpdate) Authorize(s *State, a Actor) error {
@@ -517,15 +524,18 @@ func (c *PawnUpdate) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		}
 		next.Size = *c.Size
 	}
-	if c.Width != nil || c.Height != nil {
+	if c.Width != nil || c.Height != nil || c.Rotation != nil {
 		if next.Kind != PawnObject {
-			return nil, invalid("Wrong pawn", "A creature has a size rather than a width and a height.")
+			return nil, invalid("Wrong pawn", "A creature has a size rather than a rectangle at an angle.")
 		}
 		if c.Width != nil {
 			next.Width = *c.Width
 		}
 		if c.Height != nil {
 			next.Height = *c.Height
+		}
+		if c.Rotation != nil {
+			next.Rotation = normalizeRotation(*c.Rotation)
 		}
 	}
 

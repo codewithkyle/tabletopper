@@ -62,6 +62,7 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		size: "medium",
 		width: 0,
 		height: 0,
+		rotation: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -103,7 +104,7 @@ test("hit testing uses a rectangle for an object", () => {
 });
 
 // The topmost is what a click means, and it is the same order the pawn pass
-// drew in: z, then id for a tie.
+// drew in: objects underneath, then z, then id for a tie.
 test("hit testing prefers the topmost pawn", () => {
 	const pawns = [
 		pawn({ id: "under", z: 1 }),
@@ -114,6 +115,36 @@ test("hit testing prefers the topmost pawn", () => {
 	assert.equal(hitTest(pawns, GROUND, grid(), 0, 0)?.id, "over");
 });
 
+// A TOKEN IS ALWAYS UNDER A CREATURE AND A CLICK FOLLOWS THE DRAW ORDER. A rug
+// laid down after the party is drawn beneath them, so clicking where a goblin
+// stands on it picks the goblin -- the rug is not what is on top there, and a
+// hit test that disagreed with what a person can see would select something
+// hidden behind what they aimed at.
+test("a creature is picked over a token it is standing on", () => {
+	const rug = pawn({ id: "rug", kind: "object", width: 256, height: 256, x: 0, y: 0, z: 99 });
+	const goblin = pawn({ id: "goblin", x: 0, y: 0, z: 1 });
+
+	assert.equal(hitTest([rug, goblin], GROUND, grid(), 0, 0)?.id, "goblin");
+
+	// And the rug is still reachable everywhere the goblin is not.
+	assert.equal(hitTest([rug, goblin], GROUND, grid(), 100, 100)?.id, "rug");
+});
+
+// A ROTATED TOKEN'S CORNERS MOVE WITH IT. The hit test turns the POINT into the
+// token's frame rather than growing a box round it, which is what makes a click
+// just off a turned corner land on the table.
+test("hit testing turns with the token", () => {
+	const flat = pawn({ id: "beam", kind: "object", width: 256, height: 32, x: 0, y: 0 });
+	const upright = pawn({ ...flat, rotation: 90 });
+
+	assert.equal(hitTest([flat], GROUND, grid(), 120, 0)?.id, "beam");
+	assert.equal(hitTest([flat], GROUND, grid(), 0, 120), null);
+
+	// Turned a quarter turn, the same beam answers the other way round.
+	assert.equal(hitTest([upright], GROUND, grid(), 120, 0), null);
+	assert.equal(hitTest([upright], GROUND, grid(), 0, 120)?.id, "beam");
+});
+
 test("hit testing ignores another floor", () => {
 	const pawns = [pawn({ id: "upstairs", layerId: CELLAR })];
 
@@ -121,7 +152,10 @@ test("hit testing ignores another floor", () => {
 });
 
 // A table wired to a recording send, so a test can read what crossed the wire.
-function table(pawns: Pawn[], over: Partial<{ role: "gm" | "player"; user: string; grid: Grid }> = {}) {
+function table(
+	pawns: Pawn[],
+	over: Partial<{ role: "gm" | "player"; user: string; grid: Grid; scale: number }> = {},
+) {
 	const state: State = empty();
 	state.pawns = pawns;
 	state.table.grid = over.grid ?? grid();
@@ -138,6 +172,10 @@ function table(pawns: Pawn[], over: Partial<{ role: "gm" | "player"; user: strin
 			sent.push(command as unknown as Record<string, unknown>);
 		},
 		invalidate: () => {},
+
+		// ONE MAP PIXEL PER SCREEN PIXEL, so a handle's grab radius in these
+		// tests is the constant itself and the arithmetic is readable.
+		scale: () => over.scale ?? 1,
 	});
 
 	return { controller, sent, state };
@@ -412,4 +450,179 @@ test("a client ignores its own dragging event", () => {
 	});
 
 	assert.deepEqual(controller.ghosts([]), []);
+});
+
+// A TOKEN MOVES FREELY AND A CREATURE DOES NOT, with whole-cell snapping
+// switched on for both. It is internal/room.snapPawn's rule and the drag has to
+// preview what the server is going to store, or the token jumps when the echo
+// arrives.
+test("a token commits where the hand let go and a creature commits to the lattice", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 128, x: 0, y: 0 });
+	const { controller, sent } = table([wagon]);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(101, 99), at(101, 99), NONE);
+	controller.tool.release(at(101, 99), at(101, 99), NONE);
+
+	const move = sent.at(-1);
+	assert.equal(move?.type, "pawn.move");
+	assert.deepEqual([move?.x, move?.y], [101, 99], "the token was pulled onto the grid");
+
+	const goblin = pawn({ id: "goblin", x: 0, y: 0 });
+	const creature = table([goblin]);
+
+	creature.controller.tool.press(at(0, 0), at(0, 0), NONE);
+	creature.controller.tool.drag(at(101, 99), at(101, 99), NONE);
+	creature.controller.tool.release(at(101, 99), at(101, 99), NONE);
+
+	const snappedMove = creature.sent.at(-1);
+	assert.deepEqual([snappedMove?.x, snappedMove?.y], [96, 96], "the creature ignored the lattice");
+});
+
+// RIGHT CLICK IS ESCAPE FOR A HAND THAT IS ALREADY ON THE MOUSE. It answers
+// whether it abandoned anything, which is what decides whether the browser's
+// own context menu is suppressed -- a right click on empty table is still a
+// right click on a web page.
+test("the right button abandons placement and says that it did", () => {
+	const { controller } = table([]);
+
+	assert.equal(controller.tool.secondary(), false, "nothing was happening and the menu was eaten");
+
+	controller.arm({
+		kind: "object", id: "01ASSET", name: "Barrel", image: "",
+		visible: true, size: "medium", width: 64, height: 64,
+	});
+	assert.equal(controller.isArmed(), true);
+
+	assert.equal(controller.tool.secondary(), true);
+	assert.equal(controller.isArmed(), false, "placement survived a right click");
+});
+
+// AND IT PUTS A DRAG BACK, which is the other half of what Escape does. The
+// cancelled move is still SENT: the server answers with unchanged positions,
+// and that event is what tells everybody else to drop the ghost they are
+// drawing.
+test("the right button puts a dragged pawn back", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, sent } = table([goblin]);
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(300, 300), at(268, 268), NONE);
+
+	assert.equal(controller.tool.secondary(), true);
+
+	const move = sent.at(-1);
+	assert.equal(move?.type, "pawn.move");
+	assert.deepEqual([move?.x, move?.y], [32, 32], "the pawn did not go back where it started");
+});
+
+// THE HANDLES ARE ONE SELECTED OBJECT'S AND NOBODY ELSE'S. A creature has a
+// size category rather than a rectangle, and six selected things have six
+// centres to scale about.
+test("handles are drawn for one selected token and for nothing else", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const goblin = pawn({ id: "goblin", x: 400, y: 400 });
+	const { controller } = table([wagon, goblin]);
+
+	assert.deepEqual(controller.handles([]), [], "nothing is selected and there are handles");
+
+	controller.selection.set(["goblin"]);
+	assert.deepEqual(controller.handles([]), [], "a creature was given resize handles");
+
+	controller.selection.set(["wagon", "goblin"]);
+	assert.deepEqual(controller.handles([]), [], "a multiple selection was given handles");
+
+	controller.selection.set(["wagon"]);
+
+	const handles = controller.handles([]);
+	assert.equal(handles.length, 9, "eight resize handles and one rotate");
+	assert.equal(handles.filter((h) => h.turns).length, 1);
+
+	// The corner handles are the picture's own corners: 64 across, 128 down.
+	const corner = handles.find((h) => h.lx === 1 && h.ly === 1 && !h.turns);
+	assert.deepEqual([corner?.x, corner?.y], [64, 128]);
+});
+
+// SCALING IS ABOUT THE CENTRE, so a resize is a change of size alone and the
+// whole gesture is one idempotent command. An edge handle leaves the other axis
+// exactly as it was.
+test("dragging an edge handle resizes about the centre", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller, sent } = table([wagon]);
+
+	controller.selection.set(["wagon"]);
+
+	// The middle of the right edge, dragged out to 100 from the centre.
+	const claimed = controller.tool.press(at(64, 0), at(0, 0), NONE);
+	assert.equal(claimed, true, "the camera was allowed to pan from a handle");
+
+	controller.tool.drag(at(100, 0), at(36, 0), NONE);
+
+	const ghost = controller.ghosts([])[0];
+	assert.deepEqual([ghost?.width, ghost?.height], [200, 256], "the preview did not follow the hand");
+	assert.deepEqual([ghost?.x, ghost?.y], [0, 0], "the token moved while it was being resized");
+
+	controller.tool.release(at(100, 0), at(36, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "pawn.update", id: "wagon", width: 200, height: 256 }]);
+});
+
+// THE ROTATE HANDLE MARKS THE BOTTOM EDGE -- above the token is where the pawn
+// overlay sits -- so dragging it to the LEFT of the centre is a quarter turn
+// clockwise. Shift steps it, which is the only way to get a token exactly
+// square again once it has been turned by hand.
+test("dragging the rotate handle turns the token about its centre", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller, sent } = table([wagon]);
+
+	controller.selection.set(["wagon"]);
+
+	const spinner = controller.handles([]).find((h) => h.turns);
+	assert.ok(spinner, "there is no rotate handle");
+
+	assert.ok(spinner.y > 0, "the rotate handle is above the token, under the overlay");
+
+	controller.tool.press(at(spinner.x, spinner.y), at(0, 0), NONE);
+	controller.tool.drag(at(-300, -4), at(0, 0), NONE);
+
+	// Just past the quarter turn, and the angle on the wire is whole degrees.
+	assert.equal(controller.ghosts([])[0]?.rotation, 91);
+
+	// Shift snaps to fifteen degree steps, which is what makes a right angle
+	// reachable by hand.
+	controller.tool.drag(at(-300, -4), at(0, 0), SHIFT);
+	assert.equal(controller.ghosts([])[0]?.rotation, 90);
+
+	controller.tool.release(at(-300, -4), at(0, 0), SHIFT);
+
+	assert.deepEqual(sent, [{ type: "pawn.update", id: "wagon", rotation: 90 }]);
+});
+
+// A HANDLE THAT WAS PRESSED AND NOT DRAGGED SENDS NOTHING, the way a click on a
+// pawn does not move it.
+test("a handle pressed and released sends nothing", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller, sent } = table([wagon]);
+
+	controller.selection.set(["wagon"]);
+	controller.tool.press(at(64, 128), at(0, 0), NONE);
+	controller.tool.release(at(64, 128), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// AND A RESIZE ABANDONED HALFWAY SENDS NOTHING AT ALL, which is where it is
+// unlike a cancelled move: the proposal never left this client, so there is
+// nothing anybody else has to be told to stop drawing.
+test("a resize abandoned with the right button sends nothing", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller, sent } = table([wagon]);
+
+	controller.selection.set(["wagon"]);
+	controller.tool.press(at(64, 0), at(0, 0), NONE);
+	controller.tool.drag(at(300, 0), at(0, 0), NONE);
+
+	assert.equal(controller.tool.secondary(), true);
+	assert.deepEqual(sent, []);
+	assert.deepEqual(controller.ghosts([]), [], "the proposal outlived the gesture");
 });

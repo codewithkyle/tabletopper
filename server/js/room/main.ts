@@ -64,6 +64,11 @@ if (mount) {
 			socket?.send(command);
 		},
 		invalidate: () => renderer?.invalidate(),
+
+		// A CAMERA THAT HAS NOT STARTED IS ONE MAP PIXEL PER SCREEN PIXEL,
+		// which is the identity rather than a guess: with no renderer there is
+		// no canvas, so nothing asks for a handle and the number is never used.
+		scale: () => renderer?.mapPerPixel() ?? 1,
 	});
 
 	renderer = mountRenderer(mount, state, table);

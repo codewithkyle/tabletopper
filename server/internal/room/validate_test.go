@@ -1,6 +1,9 @@
 package room
 
 import (
+	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -286,4 +289,35 @@ func entries(n int) []InitiativeEntry {
 	}
 
 	return out
+}
+
+// THE CANVAS CLAMPS A RESIZE TO THE SAME NUMBER THIS PACKAGE REFUSES PAST, and
+// the two are written in two languages, so this is what keeps them one number.
+//
+// IT IS A CLAMP RATHER THAN A CHECK ON THAT SIDE, which is why it matters. A
+// hand dragging a corner handle is a continuous gesture; if the client let it
+// run past the limit, the release would be answered with an alert modal about a
+// size the GM never typed. The client stops the drag at the edge instead, and
+// this test is why it stops at the right one.
+func TestTheCanvasClampMatchesTheObjectSizeLimit(t *testing.T) {
+	const source = "../../js/room/handles.ts"
+
+	body, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatalf("reading %s: %v", source, err)
+	}
+
+	found := regexp.MustCompile(`OBJECT_PIXELS_MAX = ([0-9_]+)`).FindSubmatch(body)
+	if found == nil {
+		t.Fatalf("%s no longer declares OBJECT_PIXELS_MAX", source)
+	}
+
+	written, err := strconv.Atoi(strings.ReplaceAll(string(found[1]), "_", ""))
+	if err != nil {
+		t.Fatalf("OBJECT_PIXELS_MAX is %q, which is not a number", found[1])
+	}
+
+	if written != ObjectPixelsMax {
+		t.Errorf("the canvas clamps a resize at %d and the core refuses past %d", written, ObjectPixelsMax)
+	}
 }

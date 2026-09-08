@@ -32,6 +32,7 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		size: "medium",
 		width: 0,
 		height: 0,
+		rotation: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -144,17 +145,22 @@ test("riders are the pawns standing on a wagon and not the ones beside it", () =
 	assert.deepEqual(riders(pawns, wagon(), CELL).sort(), ["aboard", "alsoAboard"]);
 });
 
-// THE DRAW ORDER IS WHAT "ON" MEANS. A wagon spawned after the party sits above
-// them, and dragging it must not pick up the people it was parked over -- which
-// is the same rule read the other way.
-test("riders are only what is above the wagon", () => {
+// THE DRAW ORDER IS WHAT "ON" MEANS, and every token is drawn under every
+// creature -- so a party the wagon was parked over is standing ON it whatever
+// order the two were spawned in, which is what the table shows. z still decides
+// between two tokens: a rug laid over the wagon rides on it and one laid under
+// it stays in the road.
+test("riders are whatever is above the wagon in the draw order", () => {
+	const rug = { kind: "object" as const, width: 32, height: 32, x: 10, y: 10 };
 	const pawns = [
 		wagon(),
-		pawn({ id: "under", x: 10, y: 10, z: 0 }),
-		pawn({ id: "over", x: 10, y: 10, z: 2 }),
+		pawn({ id: "spawnedFirst", x: 10, y: 10, z: 0 }),
+		pawn({ id: "spawnedLast", x: 10, y: 10, z: 2 }),
+		pawn({ id: "rugUnder", ...rug, z: 0 }),
+		pawn({ id: "rugOver", ...rug, z: 2 }),
 	];
 
-	assert.deepEqual(riders(pawns, wagon(), CELL), ["over"]);
+	assert.deepEqual(riders(pawns, wagon(), CELL).sort(), ["rugOver", "spawnedFirst", "spawnedLast"]);
 });
 
 test("riders ignore pawns on another floor", () => {

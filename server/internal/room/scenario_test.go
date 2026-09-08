@@ -104,6 +104,14 @@ func scenario(r *recorder) {
 	}, gm)
 	wagon := spawnWagon[0].Event.(*PawnSpawned).Pawn.ID
 
+	// AN OBJECT IS RESIZED AND TURNED AFTER IT IS DOWN, never before: the spawn
+	// carries no size and no angle at all. The angle is written as -90 rather
+	// than 270 because that is what a hand dragging the rotate handle
+	// anticlockwise produces, and folding it is the server's job.
+	r.do("turn the wagon across the road and stretch it", &PawnUpdate{
+		ID: wagon, Width: intp(96), Height: intp(320), Rotation: intp(-90),
+	}, gm)
+
 	r.do("hide the numbers again now the fight is on", &TableSetOptions{MonsterHP: HPBandOn, PlayersCanDraw: true}, gm)
 
 	// --- The fight. ---
