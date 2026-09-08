@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.2
 	github.com/chai2010/webp v1.4.0
 	github.com/clerk/clerk-sdk-go/v2 v2.7.0
+	github.com/coder/websocket v1.8.15
 	github.com/disintegration/imaging v1.6.2
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/oklog/ulid/v2 v2.1.1

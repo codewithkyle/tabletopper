@@ -1363,7 +1363,7 @@
             "maxHp": 14,
             "hpBand": null,
             "ac": 16,
-            "conditions": null,
+            "conditions": [],
             "ownerId": "010000000000000000000000ZA",
             "monsterId": null,
             "characterId": "010000000000000000000000ZC"
@@ -1506,7 +1506,7 @@
             "maxHp": 9,
             "hpBand": null,
             "ac": 14,
-            "conditions": null,
+            "conditions": [],
             "ownerId": "010000000000000000000000ZB",
             "monsterId": null,
             "characterId": "010000000000000000000000ZD"
@@ -1671,7 +1671,7 @@
             "maxHp": 7,
             "hpBand": null,
             "ac": 15,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
             "characterId": null
@@ -1858,7 +1858,7 @@
             "maxHp": 7,
             "hpBand": null,
             "ac": 15,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
             "characterId": null
@@ -2067,7 +2067,7 @@
             "maxHp": 30,
             "hpBand": null,
             "ac": 12,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": null,
             "characterId": null
@@ -3778,7 +3778,7 @@
             "maxHp": 7,
             "hpBand": null,
             "ac": 15,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
             "characterId": null
@@ -5092,7 +5092,7 @@
             "maxHp": 7,
             "hpBand": null,
             "ac": 15,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
             "characterId": null
@@ -5357,7 +5357,7 @@
             "maxHp": 7,
             "hpBand": null,
             "ac": 15,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
             "characterId": null
@@ -8705,7 +8705,7 @@
             "maxHp": 30,
             "hpBand": null,
             "ac": 12,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": null,
             "characterId": null
@@ -9654,7 +9654,7 @@
             "maxHp": 30,
             "hpBand": null,
             "ac": 12,
-            "conditions": null,
+            "conditions": [],
             "ownerId": null,
             "monsterId": null,
             "characterId": null

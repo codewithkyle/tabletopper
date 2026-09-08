@@ -59,3 +59,33 @@ WHERE hash = ?;
 UPDATE sessions
 SET room_id = NULL, character_id = NULL
 WHERE room_id = ?;
+
+-- ClearUserRoomSessions is one person's half of ClearRoomSessions above: what a
+-- kick owes the browser it just removed. It is scoped by both columns because a
+-- kick removes one player and leaves the rest of the table where it is, and it
+-- names the user rather than a hash because the person being removed may have
+-- several tabs open and all of them are leaving.
+-- name: ClearUserRoomSessions :execresult
+UPDATE sessions
+SET room_id = NULL, character_id = NULL
+WHERE room_id = ? AND user_id = ?;
+
+-- ListRoomMembers is who is in a room according to the session rows, which is
+-- what the player list falls back to while the room is not live in the hub.
+--
+-- THAT WINDOW IS SMALL AND THE LIST IS NOT THE LIVE ONE. A room is live from
+-- the moment somebody's socket opens, so this answers the page between its
+-- render and its first frame, and it answers with the membership rather than
+-- with who is connected -- there is nobody connected to a room that is not
+-- running. It also cannot see the GM, whose membership is ownership of the
+-- rooms row rather than a room_id on their session.
+--
+-- DISTINCT, because one person with two tabs is two rows here and one member.
+-- Username and the avatar are denormalised onto every session row from the same
+-- Clerk profile, so the three columns agree across a user's rows and the
+-- distinct collapses them to one.
+-- name: ListRoomMembers :many
+SELECT DISTINCT user_id, username, profile_image_url
+FROM sessions
+WHERE room_id = ? AND expires_at > NOW()
+ORDER BY username;

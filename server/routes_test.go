@@ -427,6 +427,17 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/rooms/" + id + "/close", "POST /rooms/{id}/close"},
 		{http.MethodPost, "/rooms/" + id + "/open", "POST /rooms/{id}/open"},
 		{http.MethodPost, "/rooms/" + id + "/leave", "POST /rooms/{id}/leave"},
+		// THE LIVE CONNECTION IS NOT UNDER THE ROOM, and this pins why. A
+		// pattern "GET /rooms/{id}/socket" and "GET /rooms/join/{code}" both
+		// match "/rooms/join/socket" with neither more specific, which
+		// ServeMux answers by panicking at registration -- so the socket has a
+		// prefix of its own and the path that looks like it should work is a
+		// miss.
+		{http.MethodGet, "/socket/room/" + id, "GET /socket/room/{id}"},
+		{http.MethodGet, "/rooms/" + id + "/socket", "/"},
+		// And nothing else hangs off it. A socket is one route, and a GET.
+		{http.MethodPost, "/socket/room/" + id, "/"},
+		{http.MethodGet, "/socket/room/" + id + "/frames", "/"},
 		// The join page's own POST is the collection's, not the member's:
 		// there is nothing to post at one room's join.
 		{http.MethodPost, "/rooms/" + id + "/join", "/"},
@@ -447,11 +458,10 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// what keeps the prefix meaning "a GET that returns partial HTML".
 		{http.MethodGet, "/fragment/room/new", "GET /fragment/room/new"},
 		{http.MethodPost, "/fragment/room/new", "/fragment/"},
-		// The Player List behind the Room menu is not built, and neither is the
-		// membership-gated wrapper it will need. Pinned as a miss so that
-		// wiring the menu item to a route nobody wrote is a 404 in a test
-		// rather than in a session.
-		{http.MethodGet, "/fragment/room/members", "/fragment/"},
+		// The player window behind the Room menu, which is the first fragment
+		// in the app gated on membership rather than on ownership.
+		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
+		{http.MethodPost, "/fragment/room/members", "/fragment/"},
 		{http.MethodGet, "/rooms/" + id + "/members", "/"},
 		{http.MethodGet, "/fragment/rooms/" + id, "/fragment/"},
 	} {
@@ -526,6 +536,27 @@ func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 	}
 	if got := rec.Header().Get("Location"); got != "/sign-in" {
 		t.Errorf("Location = %q, want %q", got, "/sign-in")
+	}
+}
+
+// A WebSocket upgrade cannot follow a redirect: the browser reports a failed
+// handshake and the client retries it on its backoff, forever, against a
+// sign-in page. So the socket route sits behind the 404 wrapper rather than the
+// one every other room route uses, and this pins that -- the two wrappers are
+// one word apart at the call site and the difference only shows up in a room
+// that will not connect.
+func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
+	h := handler(&controllers.App{}, middleware.Auth{})
+
+	req := httptest.NewRequest(http.MethodGet, "/socket/room/01BX5ZZKBKACTAV9WEVGEMMVT0", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if got := rec.Header().Get("Location"); got != "" {
+		t.Errorf("Location = %q, want no redirect at all", got)
 	}
 }
 

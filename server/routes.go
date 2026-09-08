@@ -422,6 +422,29 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/leave", auth.RequireSession(app.LeaveRoom))
 	mux.HandleFunc("DELETE /rooms/{id}", auth.RequireSession(app.DeleteRoom))
 
+	// The room's live connection, and the only route in the app that answers
+	// with neither a document nor a fragment of one.
+	//
+	// IT IS NOT "/rooms/{id}/socket", WHICH IS WHERE IT BELONGS AND CANNOT GO.
+	// That pattern and "GET /rooms/join/{code}" above both match
+	// "/rooms/join/socket" -- each has a literal where the other has a
+	// wildcard, so neither is more specific and ServeMux panics at
+	// registration. net/http has no way to settle that: a third, more specific
+	// pattern does not resolve a conflict the way it does in some routers. So
+	// the socket takes a prefix of its own, which every future GET under a room
+	// id would otherwise have to fight the same battle for.
+	//
+	// THE PREFIX MEANS WHAT /fragment/ MEANS, one level up: it names a kind of
+	// response rather than a kind of resource. /fragment/ is a GET that returns
+	// partial HTML; this is a GET that returns no HTML at all, and putting it
+	// under /fragment/ would break that prefix's one promise.
+	//
+	// RequireSessionOr404 RATHER THAN RequireSession, because a redirect to
+	// /sign-in is not something a WebSocket upgrade can follow -- the browser
+	// reports a failed handshake and the client retries it on its backoff
+	// forever, against a sign-in page. A 404 is a refusal the client can read.
+	mux.HandleFunc("GET /socket/room/{id}", auth.RequireSessionOr404(app.RoomSocket))
+
 	// THE ASSET MANAGER IS A PAGE PER KIND, joined by the sub-nav across the
 	// top. /assets is a redirect onto the first of them rather than an index:
 	// there is nothing to show above the kinds that the tab strip does not
@@ -595,15 +618,19 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 
 	// The new-room dialog, which is the character's and the monster's with its
 	// own panel name and its own action.
-	//
-	// IT IS THE ONLY ROOM FRAGMENT, AND THE ROOM PAGE HAS NO OTHERS ON PURPOSE.
-	// Everything the room page can do to itself is a mutation on a resource URL
-	// answering with the control it changed; there is nothing on that page yet
-	// that a GET returns a piece of. The Player List behind the Room menu will
-	// be the first, and it will need a wrapper gated on membership rather than
-	// on ownership -- which is a thing to build when there is something to put
-	// behind it, not before.
 	mux.HandleFunc("GET /fragment/room/new", auth.Fragment(app.NewRoomFragment))
+
+	// The player window behind the Room menu, and the first live panel in the
+	// app: a socket event fires a DOM event, this element's hx-trigger hears it
+	// and refetches. That is the refetch pattern the whole room page is built
+	// on -- rendered markup stays on HTTP and the socket carries JSON.
+	//
+	// IT IS GATED ON MEMBERSHIP AND NOT ON OWNERSHIP, which is what makes it
+	// the first fragment here a player may fetch. auth.Fragment answers "who is
+	// asking"; which room they are asking about is a query parameter, so the
+	// membership check is in the handler beside the parse rather than in a
+	// wrapper that would have to parse it a second time.
+	mux.HandleFunc("GET /fragment/room/members", auth.Fragment(app.RoomMembersFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have

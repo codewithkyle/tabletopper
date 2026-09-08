@@ -2460,11 +2460,17 @@
   .bottom-0 {
     bottom: 0px;
   }
+  .bottom-3 {
+    bottom: calc(var(--spacing) * 3);
+  }
   .left-0 {
     left: 0px;
   }
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
+  }
+  .left-3 {
+    left: calc(var(--spacing) * 3);
   }
   @layer daisyui.l1.l2.l3 {
     .textarea {
@@ -3080,6 +3086,10 @@
       height: var(--size);
     }
   }
+  .size-2 {
+    width: calc(var(--spacing) * 2);
+    height: calc(var(--spacing) * 2);
+  }
   .size-3 {
     width: calc(var(--spacing) * 3);
     height: calc(var(--spacing) * 3);
@@ -3128,6 +3138,9 @@
   .h-screen {
     height: 100vh;
   }
+  .max-h-48 {
+    max-height: calc(var(--spacing) * 48);
+  }
   .max-h-\[calc\(100dvh-9rem\)\] {
     max-height: calc(100dvh - 9rem);
   }
@@ -3175,6 +3188,12 @@
   .w-56 {
     width: calc(var(--spacing) * 56);
   }
+  .w-60 {
+    width: calc(var(--spacing) * 60);
+  }
+  .w-96 {
+    width: calc(var(--spacing) * 96);
+  }
   .w-auto {
     width: auto;
   }
@@ -3201,6 +3220,9 @@
   }
   .max-w-\[1024px\] {
     max-width: 1024px;
+  }
+  .max-w-\[calc\(100vw-1\.5rem\)\] {
+    max-width: calc(100vw - 1.5rem);
   }
   .max-w-\[calc\(100vw-4rem\)\] {
     max-width: calc(100vw - 4rem);
@@ -3306,6 +3328,9 @@
   }
   .grid-cols-\[24rem_minmax\(0\,1fr\)\] {
     grid-template-columns: 24rem minmax(0,1fr);
+  }
+  .grid-cols-\[auto_1fr\] {
+    grid-template-columns: auto 1fr;
   }
   .grid-cols-\[repeat\(auto-fill\,minmax\(11rem\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fill,minmax(11rem,1fr));
@@ -3414,6 +3439,9 @@
   }
   .gap-y-3 {
     row-gap: calc(var(--spacing) * 3);
+  }
+  .self-end {
+    align-self: flex-end;
   }
   .self-stretch {
     align-self: stretch;
@@ -3611,6 +3639,12 @@
       background-color: color-mix(in oklab, var(--color-base-content) 15%, transparent);
     }
   }
+  .bg-base-content\/25 {
+    background-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-base-content) 25%, transparent);
+    }
+  }
   .bg-error\/90 {
     background-color: var(--color-error);
     @supports (color: color-mix(in lab, red, red)) {
@@ -3628,6 +3662,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-panel) 95%, transparent);
     }
+  }
+  .bg-success {
+    background-color: var(--color-success);
   }
   .bg-transparent {
     background-color: transparent;
@@ -3776,6 +3813,9 @@
   .pr-16 {
     padding-right: calc(var(--spacing) * 16);
   }
+  .pb-1 {
+    padding-bottom: var(--spacing);
+  }
   .pb-2 {
     padding-bottom: calc(var(--spacing) * 2);
   }
@@ -3842,6 +3882,10 @@
       --size: calc(var(--size-selector, 0.25rem) * 5);
       font-size: 0.75rem;
     }
+    .badge-xs {
+      --size: calc(var(--size-selector, 0.25rem) * 4);
+      font-size: 0.625rem;
+    }
   }
   .text-\[0\.55rem\] {
     font-size: 0.55rem;
@@ -3857,6 +3901,9 @@
   }
   .text-\[3\.5rem\] {
     font-size: 3.5rem;
+  }
+  .text-\[10px\] {
+    font-size: 10px;
   }
   .text-\[10rem\] {
     font-size: 10rem;
@@ -3938,6 +3985,12 @@
     color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
       color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+    }
+  }
+  .text-base-content\/50 {
+    color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
     }
   }
   .text-base-content\/60 {
@@ -4081,6 +4134,13 @@
       --fontsize: 0.6875rem;
       --btn-p: 0.5rem;
       --size: calc(var(--size-field, 0.25rem) * 6);
+    }
+    .textarea-xs {
+      --font-size-min: 0.6875rem;
+    }
+    .floating-label:has(.textarea-xs) {
+      --top-mul: 3;
+      --font-size: 0.6875rem;
     }
     .badge-neutral {
       --badge-color: var(--color-neutral);

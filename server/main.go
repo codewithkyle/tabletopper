@@ -15,6 +15,7 @@ import (
 	"tabletopper/internal/config"
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/database"
+	"tabletopper/internal/hub"
 	"tabletopper/internal/middleware"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -72,6 +73,14 @@ func run() error {
 	sweep.MusicUploads(ctx, q, store)
 	tiling.Maps(ctx, q, store)
 
+	// THE ROOMS. One goroutine per live room, loaded on the first join and
+	// unloaded ten minutes after the last person leaves. It is constructed
+	// here rather than lazily because Shutdown below has to reach it: a deploy
+	// in the middle of Saturday's game has to write every room back before the
+	// process goes, and a hub nothing had built yet would have nothing to
+	// write.
+	rooms := hub.New(q, hub.Options{})
+
 	app := &controllers.App{
 		DB:       pool,
 		Queries:  q,
@@ -79,6 +88,7 @@ func run() error {
 		Clerk:    clerkauth.New(cfg.ClerkAPIKey),
 		Sessions: sessions,
 		Config:   cfg,
+		Hub:      rooms,
 		// Ten tries a minute per share. Generous for somebody mistyping a
 		// password out of a chat message, and a rate at which a six-character
 		// guess never finishes.
@@ -132,6 +142,14 @@ func run() error {
 	if err := <-errCh; !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server: %w", err)
 	}
+
+	// AFTER THE SERVER HAS DRAINED, not before. Shutdown closes every socket
+	// with going-away so the browsers reconnect to the next process instead of
+	// showing an error, and a room closed while the listener was still open
+	// would be reopened by the reconnect that followed. It shares the same
+	// deadline: a room that misses it loses only what changed since its last
+	// debounced save.
+	rooms.Shutdown(shutdownCtx)
 
 	slog.Info("Server shutdown complete")
 	return nil

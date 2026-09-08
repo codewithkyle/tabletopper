@@ -1,0 +1,48 @@
+package pages
+
+templ RoomMembers(data RoomMembersData) {
+	<ul
+		id="room-members"
+		hx-get={ data.Path() }
+		hx-trigger="room:players from:window"
+		hx-sync="this:replace"
+		hx-swap="outerHTML"
+		class="menu w-full gap-0.5 p-0"
+	>
+		for _, m := range data.Members {
+			@roomMemberRow(m)
+		}
+		if len(data.Members) == 0 {
+			<li class="px-2 py-1 text-xs text-base-content/60">Nobody is here yet.</li>
+		}
+		if !data.Live {
+			<li class="px-2 py-1 text-xs text-base-content/60">Waiting for the connection.</li>
+		}
+	</ul>
+}
+
+templ roomMemberRow(m RoomMember) {
+	<li>
+		<div class="flex items-center gap-2 px-2 py-1">
+			<span
+				if m.Connected {
+					class="size-2 shrink-0 rounded-full bg-success"
+				} else {
+					class="size-2 shrink-0 rounded-full bg-base-content/25"
+				}
+				aria-hidden="true"
+			></span>
+			<img src={ m.Avatar } alt="" class="size-6 shrink-0 rounded-full object-cover"/>
+			<span
+				if m.Connected {
+					class="truncate text-sm"
+				} else {
+					class="truncate text-sm text-base-content/50"
+				}
+			>{ m.Name }</span>
+			if m.IsGM {
+				<span class="badge badge-xs badge-neutral ml-auto">GM</span>
+			}
+		</div>
+	</li>
+}

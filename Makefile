@@ -1,4 +1,4 @@
-.PHONY: db reset sqlc templ protocol css css-watch js run check fmt fmt-check vet test
+.PHONY: db reset sqlc templ protocol css css-watch ts-check js js-test run check fmt fmt-check vet test
 
 run: db templ sqlc protocol css js
 	docker compose up --build
@@ -52,7 +52,8 @@ sqlc:
 # disagree -- so a stale copy breaks `make check` rather than a browser, and
 # this target is the fix rather than the guard.
 #
-# Nothing bundles it yet. The renderer is the first thing that will import it.
+# The room bundle imports it: see the js target below, whose type check is what
+# turns a protocol change the client has not followed into a build failure.
 protocol:
 	cd ./server && go generate ./...
 
@@ -79,31 +80,64 @@ css:
 css-watch:
 	./build/bin/tailwindcss -i ./server/css/app.css -o ./server/public/css/app.css --watch
 
-# The journal editor is Tiptap, which is npm-only, so this one target is the
-# whole reason the repo has a package.json. node_modules is gitignored; if it is
-# missing, install the pinned tree with:
+# The TypeScript type check, which is a separate target because two things
+# want it: the bundle below, and `make check`.
+#
+# esbuild STRIPS TYPES WITHOUT CHECKING THEM, which is what makes it fast and
+# what makes this necessary. Without this a type error would bundle cleanly and
+# fail in a browser; with it, it fails the build the way a Go compile error
+# does. The config is server/js/tsconfig.json and it emits nothing.
+ts-check:
+	./node_modules/.bin/tsc -p ./server/js/tsconfig.json
+
+# The two browser bundles. node_modules is gitignored; if it is missing,
+# install the pinned tree with:
 #
 #   npm ci
 #
-# Node 24 or newer, which package.json declares. It bundles exactly one entry
-# point: server/js/journal-editor.js becomes
+# Node 24 or newer, which package.json declares.
+#
+# THE FIRST IS THE JOURNAL EDITOR, which is Tiptap and is npm-only -- it is why
+# this repo has a package.json at all. server/js/journal-editor.js becomes
 # server/public/static/journal-editor.js, an ES module the journal entry page
 # loads and no other page does.
 #
-# THE OUTPUT IS MINIFIED and app.css is not, which is not an inconsistency:
-# app.css is committed and read in diffs, while this is 400 KB of vendored
-# third-party code nobody reads either way. Brotli at the edge does the
-# compression that matters in both cases.
-js:
+# THE SECOND IS THE ROOM, which is TypeScript: server/js/room/main.ts and
+# everything it imports become server/public/static/room.js. The room page
+# loads it with the server build on the URL, so a deploy changes the URL and
+# the one-hour cache on /static/ cannot answer the reload with the script that
+# was there before it.
+#
+# BOTH OUTPUTS ARE MINIFIED and app.css is not, which is not an inconsistency:
+# app.css is committed and read in diffs, while these are build artifacts whose
+# source is what gets reviewed. The room bundle carries a sourcemap for exactly
+# that reason -- it is our own code, so a stack trace from a table has to lead
+# back to the TypeScript it came from.
+js: ts-check
 	./node_modules/.bin/esbuild ./server/js/journal-editor.js \
 		--bundle --minify --format=esm --target=es2022 \
 		--outfile=./server/public/static/journal-editor.js
+	./node_modules/.bin/esbuild ./server/js/room/main.ts \
+		--bundle --minify --format=esm --target=es2022 --sourcemap \
+		--outfile=./server/public/static/room.js
+
+# The client reducer, replayed against the golden fixtures the Go tests
+# generate. Node runs the .ts files directly -- erasableSyntaxOnly in the
+# tsconfig is what keeps them to the syntax it can strip -- and node:test is in
+# the standard library, so there is no test framework here to install.
+#
+# A CHANGE TO internal/room/reduce.go FAILS THIS. The fixtures are regenerated
+# by `go test ./internal/room -update`, and the TypeScript port has to follow
+# them before the build is green again. That is the whole reason a reducer
+# exists in Go: the server never reduces its own events.
+js-test: ts-check
+	node --test ./server/js/room/*.test.ts
 
 # Formatting is enforced, not suggested: `make check` is what CI and a
 # pre-commit hook should run. fmt-check lists every offending file before it
 # fails so the fix is one `make fmt` away. templ fmt has no dry-run flag, so
 # each file is formatted to stdout and diffed against itself.
-check: fmt-check vet test
+check: fmt-check vet test js-test
 
 fmt:
 	gofmt -w ./server

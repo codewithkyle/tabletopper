@@ -409,15 +409,33 @@ func cloneInitiative(i Initiative) Initiative {
 }
 
 func cloneShape(f FogShape) FogShape {
-	f.Points = append([]int(nil), f.Points...)
+	f.Points = cloneSlice(f.Points)
 
 	return f
 }
 
 func cloneStroke(st Stroke) Stroke {
-	st.Points = append([]int(nil), st.Points...)
+	st.Points = cloneSlice(st.Points)
 
 	return st
+}
+
+// cloneSlice copies a slice and never hands back a nil one.
+//
+// THAT IS THE WHOLE REASON IT EXISTS, and it is not a style preference. The
+// obvious spelling, append([]T(nil), src...), returns NIL when src is empty --
+// so an event carrying a pawn with no conditions marshals `"conditions": null`
+// while the state's copy of the same pawn, which Normalize has been over,
+// marshals `[]`. The generated TypeScript declares that field as an array, and
+// a client that had to check for null on a field the types say is always there
+// is a client with a bug waiting in whichever branch nobody wrote.
+//
+// Normalize does exactly this for the state. These are for the entities that
+// travel in events, which Normalize never sees -- an Apply clones the pawn it
+// is about to append and emits that, so the clone is where the guarantee has to
+// be made or it is not made at all.
+func cloneSlice[T any](src []T) []T {
+	return append(make([]T, 0, len(src)), src...)
 }
 
 // WireCommandPrototypes is one fresh zero value of every command a browser may

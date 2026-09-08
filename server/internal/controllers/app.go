@@ -12,6 +12,7 @@ import (
 
 	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
+	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
@@ -26,6 +27,17 @@ type App struct {
 	Clerk    *clerkauth.Client
 	Sessions *session.Store
 	Config   config.Config
+
+	// Hub is the live rooms. It is the one dependency here that owns
+	// goroutines rather than answering questions: a handler either sends a
+	// command into a room and waits for the answer, or upgrades a request to a
+	// socket and hands it over.
+	//
+	// IT MAY BE NIL, AND EVERY CALLER CHECKS. The routes test builds a
+	// zero-valued App to walk the URL space, and several handler tests do the
+	// same; a room handler that dereferenced this without asking would turn
+	// those into a panic instead of a 404.
+	Hub *hub.Hub
 
 	// DB is the pool Queries was built over, and it is here for exactly one
 	// reason: the handful of writes that are several statements and have to

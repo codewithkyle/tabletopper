@@ -353,3 +353,95 @@ The canvas, any rendering, pawn spawning, resolution against the database for
 anything but what `Dispatch` needs (the lock mirror), and the stress toggle.
 The `resolve.go` file is created with the interface and the three cases
 stubbed to return `invalid`, so phase 4 and phase 5 fill them in.
+
+---
+
+## As built, 2026-09-07
+
+Everything above landed. What follows is where the implementation departed from
+this plan, and why, so the two do not have to be read side by side.
+
+### The sequence is one counter per audience
+
+The plan's actor sketch says `seq++` per emission, which is a room-wide counter.
+That was left open deliberately -- `plans/vtt-overview.md` said to decide it when
+the hub was built -- and the answer is two counters, GM and players.
+
+A room-wide counter numbers the GM-only events into the players' stream, so
+every player sees holes by design and "a gap means resync" cannot be a rule a
+client acts on. Per connection would work and would cost the encode-once-per-
+audience property that server-side projection exists for. Per audience is exact,
+because of a property of the catalog that was verified rather than assumed:
+every event that is not transient goes to a whole audience (`ToAll`, `ToGM`,
+`ToPlayers`), and the three partial audiences carry only transient events --
+`ToOthers` only `pawn.dragging`, `ToPlayer` only `player.kicked`, `ToSender`
+only `snapshot`. `actor.emit` logs an error if that ever stops being true.
+
+Two consequences the plan did not anticipate:
+
+- **Transient events do not advance the counter.** They carry the current value,
+  and the client checks the sequence only over the events its reducer runs.
+- **Neither does the snapshot**, which is not transient. It is not a step in the
+  stream, it is the state the stream continues from; numbering it would put a
+  gap in every other client's sequence every time somebody resynced. Its
+  envelope `seq` and its `state.seq` are set to the audience's current value and
+  have to agree, because the client takes its counter from the state it adopts.
+
+The test the plan asked for -- "`pawn.setVisible` produces `pawn.updated` on the
+GM and `pawn.removed` on players, with the same `seq`" -- is not the invariant
+any more, so it was replaced by the one that is: each audience's sequence is
+contiguous over what that audience receives.
+
+### The socket is `/socket/room/{id}`
+
+`GET /rooms/{id}/socket` and `GET /rooms/join/{code}` both match
+`/rooms/join/socket` with neither more specific, and `http.ServeMux` panics at
+registration. net/http has no way to settle that: a third, more specific pattern
+does not resolve a conflict there the way it does in some routers. So the socket
+takes a prefix of its own, which every future GET under a room id would
+otherwise have had to fight the same battle for. The prefix means what
+`/fragment/` means -- it names a kind of response, and this one is not HTML.
+
+### Smaller departures
+
+- **`Hub.Serve` takes a `room.Player`, not a `session.UserSession`.** The hub has
+  no reason to know what a session is; the controller builds the player from one
+  and passes it. `Hub.Players` gained a `context.Context`, because it is a round
+  trip into a goroutine and needs a bound.
+- **`handler.go` does not exist.** `Serve` is three lines at the bottom of
+  `hub.go` and `attach` -- the upgrade and the two pumps -- is in `conn.go`,
+  which is where the WebSocket already was.
+- **`Close` saves before unloading.** The plan says "unload without saving"; the
+  overview says a reopened room comes back to the pawns where they were left,
+  and that is the behaviour the product wants. `GetRoomSnapshot` cannot read a
+  closed room, so nothing loads it until it is reopened.
+- **A fourth query.** The plan's controller section names `ListRoomMembers` but
+  its table of statements does not; it was added to `server/sql/session.sql`.
+- **`@types/node` is a second devDependency.** The tsconfig's `include` covers
+  `reduce.test.ts`, which imports `node:test`, so the type check needs them.
+- **The Player List menu item is no longer disabled.** The plan's members panel
+  had nowhere to live -- phase 1 removed the side column -- so it is the floating
+  window the Room menu already promised, toggled by a `window` action in
+  `room.js`. Its `hx-sync="this:replace"` is not in the plan and closes the one
+  real ordering hazard in the refetch pattern: two socket events fire two GETs
+  whose responses can land in either order.
+
+### One phase 2 bug, found by the port
+
+`clonePawn`, `cloneShape` and `cloneStroke` used `append([]T(nil), src...)`,
+which returns nil when `src` is empty -- so an event carrying a pawn with no
+conditions marshalled `"conditions": null` while the state's copy of the same
+pawn, which `Normalize` had been over, marshalled `[]`. The generated TypeScript
+declares that field as an array. `cloneSlice` in `command.go` fixes it, and the
+golden fixtures were regenerated: 21 lines, all `null` becoming `[]` inside
+event payloads, no state changed.
+
+The TypeScript reducer test is what found it, which is the argument for having
+written it.
+
+### Still to verify by hand
+
+The five steps under Verification above need two browser profiles and a Clerk
+sign-in, which is the GM's to do. One correction to step 2: `ping` carries a
+`layer` now, so the command to paste is
+`{"type":"ping","layer":"<the Layer the debug panel shows>","x":100,"y":100}`.

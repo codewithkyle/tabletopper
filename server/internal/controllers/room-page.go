@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -15,22 +16,36 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// RoomPage is the shell every later phase of the tabletop mounts on: a menu bar
-// across the top, the table filling everything under it, and the tool pill
-// floating over it. Nothing on it is live yet.
+// RoomPage is the shell the tabletop mounts on: a menu bar across the top, the
+// table filling everything under it, and the tool pill floating over it. From
+// this phase it is also live -- the page carries what the socket module needs
+// to connect and nothing else.
+//
+// THE SOCKET PATH IS EMPTY FOR A CLOSED ROOM, and that is how the client is
+// told not to connect. A closed room cannot be loaded by the hub, so a browser
+// that tried would be refused and would keep retrying on its backoff forever;
+// leaving the attribute off is one condition in one place instead.
 func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 	row, role, ok := a.loadRoomMember(w, r)
 	if !ok {
 		return
 	}
 
+	socket := ""
+	if !row.ClosedAt.Valid {
+		socket = "/socket/room/" + row.ID.String()
+	}
+
 	render(w, r, pages.Room(pages.RoomPageData{
-		ID:     row.ID.String(),
-		Name:   row.Name,
-		Code:   row.Code.String,
-		Locked: row.IsLocked,
-		Closed: row.ClosedAt.Valid,
-		Role:   role,
+		ID:      row.ID.String(),
+		Name:    row.Name,
+		Code:    row.Code.String,
+		Locked:  row.IsLocked,
+		Closed:  row.ClosedAt.Valid,
+		Role:    role,
+		Socket:  socket,
+		Version: a.hubVersion(),
+		Debug:   a.Config.Development(),
 	}))
 }
 
@@ -88,6 +103,13 @@ func (a *App) setRoomLocked(w http.ResponseWriter, r *http.Request, locked bool)
 		return
 	}
 
+	// THE ROW IS WRITTEN FIRST AND THE ROOM IS TOLD SECOND, always, for every
+	// fact the rooms row owns. Going the other way would put two writers on one
+	// truth and make "is this room locked" a question with two answers; this
+	// way the room is a mirror, and a room that is not running has nothing to
+	// mirror because its next load reads the column.
+	a.notify(roomID, &room.RoomSetLocked{Locked: locked})
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.RoomLockItem(pages.RoomPageData{
 		ID:     roomID.String(),
@@ -139,6 +161,13 @@ func (a *App) CloseRoom(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to close room", "error", err)
 		htmx.ServerError(w)
 		return
+	}
+
+	// Everybody still at the table is told, dropped, and the room saves one
+	// last time on its way out -- so reopening it comes back to the pawns where
+	// they were left.
+	if a.Hub != nil {
+		a.Hub.Close(ctx, roomID)
 	}
 
 	htmx.Toast(w, "The room is closed.")
@@ -211,12 +240,73 @@ func (a *App) LeaveRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Leaving is not disconnecting: the row goes, so the pawns this person
+	// owned stop being theirs to move and their line leaves the tracker.
+	a.notify(roomID, &room.PlayerLeave{ID: sess.UserID})
+
 	htmx.Toast(w, "You left the room.")
 	htmx.Redirect(w, "/")
 }
 
+// notify mirrors a change into a live room and does nothing when there is no
+// hub -- which is the routes test and several handler tests, and never a
+// running server.
+func (a *App) notify(roomID ulid.ULID, cmd room.Command) {
+	if a.Hub == nil {
+		return
+	}
+
+	a.Hub.Notify(roomID, cmd)
+}
+
+// hubVersion is the build string the page puts on its bundle URL, so a client
+// that reloads after a deploy cannot be served last week's script out of the
+// one-hour static cache.
+func (a *App) hubVersion() string {
+	if a.Hub == nil {
+		return ""
+	}
+
+	return a.Hub.Version()
+}
+
 // loadRoomMember is the access rule for the room page, written on its own
 // because it is three questions and the page asks all three.
+//
+// EVERY REFUSAL LANDS ON THE JOIN PAGE, and none of them says why. This is a
+// page request, so the answer is a 303 a browser follows -- and a full
+// navigation has no channel for a message, which is why there is no toast here
+// to explain the closed room.
+//
+// ok is false when this function has already written the response.
+func (a *App) loadRoomMember(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, room.Role, bool) {
+	row, role, err := a.roomMember(r.Context(), session.FromContext(r.Context()), r.PathValue("id"))
+	switch {
+	case errors.Is(err, errNotAMember):
+		redirect(w, r, "/rooms/join")
+
+		return queries.GetRoomRow{}, "", false
+	case err != nil:
+		slog.Error("Failed to load room", "error", err)
+		redirectToError(w, r)
+
+		return queries.GetRoomRow{}, "", false
+	}
+
+	return row, role, true
+}
+
+// errNotAMember is every way a request can be turned away from a room: the id
+// is not a ULID, there is no such row, the caller is neither the owner nor
+// somebody whose session points at it, or the room is closed and they are not
+// the GM. They are one error because they get one answer -- the caller is not
+// told which, since telling somebody "that room exists but is not yours" is a
+// way to enumerate rooms.
+var errNotAMember = errors.New("rooms: not a member of that room")
+
+// roomMember is the access rule itself, with no ResponseWriter in it, because
+// three callers want three different refusals: the page redirects, the socket
+// and the fragment answer 404.
 //
 // THE ROLE IS DERIVED AND NOT STORED. rooms.owner_id says who the GM is, and
 // sessions.room_id says who else is in the room; a role column would be a
@@ -228,52 +318,35 @@ func (a *App) LeaveRoom(w http.ResponseWriter, r *http.Request) {
 // closed room is over: their session is cleared here rather than left pointing
 // at a room they cannot rejoin, because the alternative is a homepage that goes
 // on offering "return to your table" for a table that is gone.
-//
-// EVERY REFUSAL LANDS ON THE JOIN PAGE, and none of them says why. This is a
-// page request, so the answer is a 303 a browser follows -- and a full
-// navigation has no channel for a message, which is why there is no toast here
-// to explain the closed room. When the player list and the other room fragments
-// arrive they will want the htmx-shaped half of this, and that is when the
-// explanation gets somewhere to go.
-//
-// ok is false when this function has already written the response.
-func (a *App) loadRoomMember(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, room.Role, bool) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-
-	roomID, err := ulid.Parse(r.PathValue("id"))
+func (a *App) roomMember(ctx context.Context, sess session.UserSession, id string) (queries.GetRoomRow, room.Role, error) {
+	roomID, err := ulid.Parse(id)
 	if err != nil {
-		redirect(w, r, "/rooms/join")
-		return queries.GetRoomRow{}, "", false
+		return queries.GetRoomRow{}, "", errNotAMember
 	}
 
 	row, err := a.Queries.GetRoom(ctx, roomID)
 	if errors.Is(err, sql.ErrNoRows) {
-		redirect(w, r, "/rooms/join")
-		return queries.GetRoomRow{}, "", false
+		return queries.GetRoomRow{}, "", errNotAMember
 	}
 	if err != nil {
-		slog.Error("Failed to load room", "error", err)
-		redirectToError(w, r)
-		return queries.GetRoomRow{}, "", false
+		return queries.GetRoomRow{}, "", err
 	}
 
 	if row.OwnerID == sess.UserID {
-		return row, room.RoleGM, true
+		return row, room.RoleGM, nil
 	}
 
 	if sess.RoomID == nil || *sess.RoomID != roomID {
-		redirect(w, r, "/rooms/join")
-		return queries.GetRoomRow{}, "", false
+		return queries.GetRoomRow{}, "", errNotAMember
 	}
 
 	if row.ClosedAt.Valid {
 		if err := a.Sessions.LeaveRoom(ctx, &sess); err != nil {
 			slog.Error("Failed to clear a closed room from a session", "error", err)
 		}
-		redirect(w, r, "/rooms/join")
-		return queries.GetRoomRow{}, "", false
+
+		return queries.GetRoomRow{}, "", errNotAMember
 	}
 
-	return row, room.RolePlayer, true
+	return row, room.RolePlayer, nil
 }

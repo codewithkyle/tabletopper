@@ -8,9 +8,10 @@
 -- from "already in that state": locking a room that is already locked matches
 -- its row and reports 1.
 --
--- The three snapshot columns are named by nothing here on purpose. They are
--- written and read by the transport phase, and every statement below lists its
--- columns so none of these drags the blob back with it in the meantime.
+-- The three snapshot columns are read and written by exactly two statements,
+-- at the bottom of this file, and by nothing else. Every statement above lists
+-- its columns so that none of them drags the blob back with it -- it is tens of
+-- kilobytes and every other read here is a page or a card with no use for it.
 
 -- name: CreateRoom :exec
 INSERT INTO rooms (id, owner_id, name, code)
@@ -73,3 +74,34 @@ WHERE id = ? AND owner_id = ?;
 -- name: DeleteRoom :execresult
 DELETE FROM rooms
 WHERE id = ? AND owner_id = ?;
+
+-- THE TWO SNAPSHOT STATEMENTS. The room's state lives in one Go process and
+-- nowhere else, so a deploy in the middle of Saturday's game would lose the
+-- table; these are what turn that into a reconnect. The hub writes a debounced
+-- JSON blob a few seconds after the last change and on shutdown, and reads it
+-- back on the first join after a restart.
+--
+-- The blob is not selected by any other statement in this file, and that is
+-- deliberate: it is tens of kilobytes and every other read here is a page or a
+-- card that has no use for it.
+
+-- GetRoomSnapshot is the room's whole identity for the hub: the two columns the
+-- row is the writer of record for, and the state to rehydrate from. It cannot
+-- match a closed room -- a closed room has no session to restore, and the join
+-- that would have loaded it was refused before this ran.
+-- name: GetRoomSnapshot :one
+SELECT name, is_locked, snapshot
+FROM rooms
+WHERE id = ? AND closed_at IS NULL;
+
+-- SaveRoomSnapshot is NOT owner-scoped and cannot be: it is written by the room
+-- goroutine, which has no request and no caller, on behalf of whoever is at the
+-- table. The id it names came from a page load that was already checked.
+--
+-- It does not guard on closed_at. Closing saves one last time so that reopening
+-- comes back to the pawns where they were left, which is what makes a room
+-- worth keeping between Saturdays.
+-- name: SaveRoomSnapshot :execresult
+UPDATE rooms
+SET snapshot = ?, snapshot_seq = ?, snapshot_at = NOW()
+WHERE id = ?;

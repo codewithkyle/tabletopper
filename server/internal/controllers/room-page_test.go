@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/hub"
 	"tabletopper/internal/session"
 
 	"github.com/oklog/ulid/v2"
@@ -316,5 +317,61 @@ func TestReopeningMintsANewCode(t *testing.T) {
 	}
 	if want := "/rooms/" + testRoomID.String(); rec.Header().Get("HX-Redirect") != want {
 		t.Errorf("HX-Redirect = %q, want %q", rec.Header().Get("HX-Redirect"), want)
+	}
+}
+
+// THE MOUNT CONTRACT. The client reads four attributes off #tabletop and
+// nothing else -- there is no configuration script and no global -- so a page
+// that stopped rendering one of them would be a room that silently never
+// connected.
+func TestTheRoomPageCarriesWhatTheClientNeedsToConnect(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
+	}}
+	app := newRoomApp(db)
+	app.Hub = hub.New(nil, hub.Options{Store: emptyRoomStore{}, Version: "abc123"})
+
+	rec := roomRequest(t, app.RoomPage, http.MethodGet, "/rooms/"+testRoomID.String(),
+		map[string]string{"id": testRoomID.String()}, session.UserSession{UserID: testOwnerID})
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`data-room="` + testRoomID.String() + `"`,
+		`data-role="gm"`,
+		`data-version="abc123"`,
+		`data-socket="/socket/room/` + testRoomID.String() + `"`,
+		// The build is on the bundle URL as well, so a client that reloads
+		// itself after a deploy cannot be handed the old script out of the
+		// one-hour cache on /static/.
+		`src="/static/room.js?v=abc123"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page is missing %s", want)
+		}
+	}
+}
+
+// A CLOSED ROOM RENDERS NO SOCKET PATH, and that absence is the whole of "do
+// not connect". The hub refuses to load a closed room, so a client that tried
+// would retry on its backoff forever against a 404.
+func TestAClosedRoomTellsTheClientNotToConnect(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "", false, true),
+	}}
+	app := newRoomApp(db)
+	app.Hub = hub.New(nil, hub.Options{Store: emptyRoomStore{}, Version: "abc123"})
+
+	rec := roomRequest(t, app.RoomPage, http.MethodGet, "/rooms/"+testRoomID.String(),
+		map[string]string{"id": testRoomID.String()}, session.UserSession{UserID: testOwnerID})
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if strings.Contains(rec.Body.String(), "data-socket") {
+		t.Error("a closed room renders a socket path")
 	}
 }

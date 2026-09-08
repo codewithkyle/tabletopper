@@ -140,12 +140,20 @@ Rules:
   and a declaration file cannot hold it. tygo was considered and rejected in
   phase 2: it emits interfaces but cannot emit the two discriminated unions,
   which are built from the type strings in the command and event registries.
-- **Server-assigned sequence and time.** Every event carries a monotonic
-  `seq`, stamped by the hub. Clients never stamp their own timestamps.
-  Whether a gap in it means "request a resync" depends on how the counter is
-  assigned, and that is still open: see below. Phase 2's reducer deliberately
-  does not track `seq` at all, so state and sequence cannot get tangled
-  together.
+- **Server-assigned sequence, one counter per audience.** Every event that
+  changes state carries a monotonic `seq`, stamped by the hub, and there are
+  two counters -- GM and players -- because a single room-wide one would number
+  the GM-only events into the players' stream and put holes in it by design.
+  Per connection would work too and would cost the encode-once-per-audience
+  property the whole projection exists for. Per audience is exact because of a
+  property of the catalog: every event that is not transient goes to a WHOLE
+  audience, and the three partial audiences carry only transient events.
+  Transient events and the snapshot carry the current value without advancing
+  it, so a client checks `seq == last + 1` over exactly the events its reducer
+  runs, and a gap means the server dropped something rather than that the
+  client was not addressed. Clients never stamp their own timestamps, and
+  phase 2's reducer deliberately does not track `seq` at all, so state and
+  sequence cannot get tangled together.
 - **Strict decoding and hard limits.** Unknown fields are rejected. Frames are
   capped at a few tens of kilobytes; strokes are chunked to stay far under it.
   Per-client message rate is capped.
@@ -557,16 +565,30 @@ was written. In brief, so this document stays the summary:
   copy of the pawn. Only an event whose audience spans both roles carries two
   versions of itself and answers `ForRole`; there are three, and `ForRole`
   may answer nil, which means "this role is told nothing" (phase 2).
+- **How `seq` is assigned**: one counter per audience, decided in phase 3 when
+  the hub was built. See Wire format above for why.
+- **What a gap means**: a server bug, not a reordering. A WebSocket is one TCP
+  connection with no multiplexing, so frames arrive in the order they were
+  sent and the browser fires `message` in receive order -- there is no reorder
+  buffer on the client and none is needed. The backpressure policy is to close
+  a client that falls behind rather than to drop frames for it, and a reconnect
+  gets a fresh snapshot, so a live connection cannot legitimately see a gap.
+  `seq` is therefore a cheap assertion that catches a fan-out that skipped
+  somebody, and the client answers one with `sync.request` (phase 3).
+- **The refetch pattern's own ordering hazard**: two socket events fire two
+  htmx GETs whose responses can land in either order, which would leave a live
+  panel showing the older answer. Every refetching panel carries
+  `hx-sync="this:replace"`, which aborts the request in flight when a newer one
+  starts. The socket is ordered; a pair of HTTP requests is not (phase 3).
+- **The socket's URL** is `/socket/room/{id}` rather than `/rooms/{id}/socket`.
+  That pattern and `/rooms/join/{code}` both match `/rooms/join/socket` with
+  neither more specific, which `http.ServeMux` answers by panicking at
+  registration; net/http has no way to settle it. The prefix means what
+  `/fragment/` means one level up -- it names a kind of response, and this one
+  is not HTML at all (phase 3).
 
 Still open, none blocking:
 
-- **How `seq` is assigned across the two audiences.** A room-wide counter
-  produces gaps in what a player receives by design, because the GM-only
-  events are numbered too -- so "a gap means resync" cannot be the rule
-  unless the counter is per audience or per connection. Phase 2 puts sequence
-  assignment out of scope and its reducer ignores `seq` entirely, which
-  leaves phase 3 free to choose. Decide it when the hub is built, and say so
-  here.
 - **Players receive every layer, not only the active one.** `table.updated`
   carries the whole table to everybody, so a player's browser holds the names
   and map references of floors they are not on, and `fog.added` and

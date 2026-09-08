@@ -1,7 +1,9 @@
 package pages
 
 import (
+	"slices"
 	"strconv"
+	"strings"
 
 	"tabletopper/internal/room"
 )
@@ -68,12 +70,58 @@ type RoomPageData struct {
 	// stored anywhere. It is room.Role rather than a bool because the protocol
 	// phase authorises every command against the same type.
 	Role room.Role
+
+	// Socket is the path the client connects to, and it is empty for a closed
+	// room. That emptiness is the whole of "do not connect": the client reads
+	// the attribute and does nothing when it is not there, which is one
+	// condition in one place rather than a reconnect loop against a room the
+	// hub will refuse to load.
+	Socket string
+
+	// Version is the server build. It goes on the bundle URL, so a deploy
+	// changes the URL and the one-hour cache on /static/ cannot answer the
+	// reload with the script that was there before it.
+	Version string
+
+	// Debug renders the development panel: connection state, sequence number,
+	// the player list and the last twenty frames, with a box to send a raw
+	// command. It is the config's Development and nothing else, so it cannot
+	// be turned on from a query string.
+	Debug bool
+}
+
+// Bundle is the room module's URL with the build on it. It is a method rather
+// than a field because the two halves must not be able to drift: whatever
+// version the page reports in its snapshot comparison is the version whose
+// bundle it loaded.
+func (d RoomPageData) Bundle() string {
+	if d.Version == "" {
+		return "/static/room.js"
+	}
+
+	return "/static/room.js?v=" + d.Version
+}
+
+// MembersPath is the fragment the player window fetches itself from. The room
+// travels as a query parameter rather than in the path because this is a
+// representation of a room's membership and not a resource of its own -- the
+// same reason the two share dialogs read one.
+func (d RoomPageData) MembersPath() string {
+	return "/fragment/room/members?room=" + d.ID
 }
 
 // IsGM is the one question the markup asks of the role, written here so that
 // the comparison lives beside the type rather than in a template.
 func (d RoomPageData) IsGM() bool {
 	return d.Role == room.RoleGM
+}
+
+// RoleName is the role as the client reads it off the mount element. It is a
+// conversion and not a cast in the markup, because room.Role is a string type
+// and templ takes a string -- and because the two values it can hold are the
+// same two the protocol validates, which is the point of it not being a bool.
+func (d RoomPageData) RoleName() string {
+	return string(d.Role)
 }
 
 // RoomMenu is one heading in the bar and what drops out of it.
@@ -155,7 +203,7 @@ func (d RoomPageData) roomMenu() RoomMenu {
 		items = append(items, RoomMenuItem{Label: "Reopen room", Post: "/rooms/" + d.ID + "/open"})
 	}
 
-	items = append(items, RoomMenuItem{Label: "Player List", Disabled: true})
+	items = append(items, RoomMenuItem{Label: "Player List", Action: "window", Value: "players"})
 
 	if d.IsGM() {
 		if !d.Closed {
@@ -270,4 +318,66 @@ func RoomTools() []RoomTool {
 // default is named in one place.
 func (t RoomTool) Pressed() string {
 	return strconv.FormatBool(t.Name == DefaultRoomTool)
+}
+
+// RoomMember is one person at the table as the player window draws them. It is
+// not room.Player: that type carries ids and a character reference this window
+// has no use for, and a template that took it would be able to render either.
+type RoomMember struct {
+	Name   string
+	Avatar string
+
+	// IsGM sorts them to the top and labels them, because "who is running
+	// this" is the first thing anybody wants from a player list.
+	IsGM bool
+
+	// Connected is false for somebody whose socket has dropped and whose row
+	// is being kept for them. It is always false in the fallback list, which is
+	// honest: a room that is not running has nobody connected to it.
+	Connected bool
+}
+
+// THE REFETCH PATTERN HAS ONE RACE AND hx-sync IS THE ANSWER TO IT. A burst of
+// player events fires a burst of GETs, and two responses can land in either
+// order -- the socket is ordered, a pair of HTTP requests is not -- which would
+// leave the window showing whichever answer arrived last rather than the newest
+// one. hx-sync="this:replace" aborts the request in flight when a new one
+// starts, so there is only ever one answer coming.
+//
+// RoomMembersData is the window's whole contents.
+type RoomMembersData struct {
+	RoomID  string
+	Members []RoomMember
+
+	// Live says the list came from the running room rather than from the
+	// session rows. The difference is visible -- the fallback cannot see the
+	// GM at all, whose membership is ownership of the rooms row rather than a
+	// room_id on their session -- so the window says which it is showing
+	// instead of quietly presenting one as the other.
+	Live bool
+}
+
+// Path is the fragment's own URL, so the swapped-in copy refetches itself the
+// same way the first one did.
+func (d RoomMembersData) Path() string {
+	return "/fragment/room/members?room=" + d.RoomID
+}
+
+// SortRoomMembers puts the GM first and everybody else in name order, which is
+// stable across refetches -- a list that reordered itself every time somebody
+// reconnected would be a list nobody could read.
+func SortRoomMembers(members []RoomMember) []RoomMember {
+	slices.SortFunc(members, func(a, b RoomMember) int {
+		if a.IsGM != b.IsGM {
+			if a.IsGM {
+				return -1
+			}
+
+			return 1
+		}
+
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+	})
+
+	return members
 }

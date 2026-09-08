@@ -366,3 +366,52 @@ func TestARoomCardShowsTheCodeOnlyWhileItIsOpen(t *testing.T) {
 		}
 	}
 }
+
+// The player window sorts the GM to the top and everybody else by name, and it
+// has to do it the same way every time: this list is refetched on every join,
+// every reconnect and every disconnect, and one that reordered itself each time
+// would be one nobody could read.
+func TestThePlayerWindowPutsTheGMFirstAndTheRestByName(t *testing.T) {
+	got := SortRoomMembers([]RoomMember{
+		{Name: "ari"},
+		{Name: "Sam"},
+		{Name: "Kyle", IsGM: true},
+		{Name: "Blake"},
+	})
+
+	want := []string{"Kyle", "ari", "Blake", "Sam"}
+	for i, member := range got {
+		if member.Name != want[i] {
+			t.Fatalf("order = %v, want %v", names(got), want)
+		}
+	}
+}
+
+func names(members []RoomMember) []string {
+	out := make([]string, 0, len(members))
+	for _, m := range members {
+		out = append(out, m.Name)
+	}
+
+	return out
+}
+
+// The Player List item is a window toggle now that there is a window behind it,
+// and the value names which one -- room.js reads both and nothing else.
+func TestThePlayerListItemOpensTheWindow(t *testing.T) {
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		var item RoomMenuItem
+		for _, candidate := range testRoomPage(role).roomMenu().Items {
+			if candidate.Label == "Player List" {
+				item = candidate
+			}
+		}
+
+		if item.Disabled {
+			t.Errorf("%s: Player List is still disabled", role)
+		}
+		if item.Action != "window" || item.Value != "players" {
+			t.Errorf("%s: Player List is %q/%q, want the window toggle", role, item.Action, item.Value)
+		}
+	}
+}

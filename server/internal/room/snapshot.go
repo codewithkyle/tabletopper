@@ -112,14 +112,12 @@ func (s *State) Clone() State {
 
 	c.Fog = make([]FogShape, len(s.Fog))
 	for i, f := range s.Fog {
-		f.Points = append([]int(nil), f.Points...)
-		c.Fog[i] = f
+		c.Fog[i] = cloneShape(f)
 	}
 
 	c.Strokes = make([]Stroke, len(s.Strokes))
 	for i, st := range s.Strokes {
-		st.Points = append([]int(nil), st.Points...)
-		c.Strokes[i] = st
+		c.Strokes[i] = cloneStroke(st)
 	}
 
 	c.Normalize()
@@ -135,7 +133,7 @@ func clonePawn(p Pawn) Pawn {
 	p.OwnerID = cloneID(p.OwnerID)
 	p.MonsterID = cloneID(p.MonsterID)
 	p.CharacterID = cloneID(p.CharacterID)
-	p.Conditions = append([]Condition(nil), p.Conditions...)
+	p.Conditions = cloneSlice(p.Conditions)
 
 	return p
 }
