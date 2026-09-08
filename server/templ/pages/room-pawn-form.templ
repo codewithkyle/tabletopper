@@ -17,8 +17,8 @@ templ RoomPawnForm(data RoomPawnFormData) {
 			@textField("name", "Name", data.Pawn.Name, "", true)
 			if data.Pawn.Object {
 				<div class="grid grid-cols-2 gap-2">
-					@pawnCells("footprintW", "Cells across", data.Pawn.FootprintW)
-					@pawnCells("footprintH", "Cells down", data.Pawn.FootprintH)
+					@pawnPixels("width", "Width", data.Pawn.Width)
+					@pawnPixels("height", "Height", data.Pawn.Height)
 				</div>
 			} else {
 				@selectField("size", "Size", sizeOptions, data.Pawn.SizeValue, true)
@@ -60,7 +60,7 @@ templ RoomPawnForm(data RoomPawnFormData) {
 	</div>
 }
 
-templ pawnCells(name string, caption string, value string) {
+templ pawnPixels(name string, caption string, value string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ caption }</label>
 		<input
@@ -71,11 +71,11 @@ templ pawnCells(name string, caption string, value string) {
 			class="input validator peer w-full"
 			value={ value }
 			min="1"
-			max={ strconv.Itoa(FootprintCellsMax) }
+			max={ strconv.Itoa(ObjectPixelsMax) }
 			step="1"
 			required
 		/>
-		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a whole number of cells.</p>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a whole number of pixels.</p>
 	</div>
 }
 

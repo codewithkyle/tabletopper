@@ -59,8 +59,8 @@ export function stressPawns(count: number, from: readonly Drawn[], cellSize: num
 			y: cy + Math.round((next() - 0.5) * SPREAD * cell),
 			z: i,
 			size: object ? "medium" : SIZES[Math.floor(next() * SIZES.length)] ?? "medium",
-			footprintW: object ? 1 + Math.floor(next() * 4) : 0,
-			footprintH: object ? 1 + Math.floor(next() * 4) : 0,
+			width: object ? cell * (1 + Math.floor(next() * 4)) : 0,
+			height: object ? cell * (1 + Math.floor(next() * 4)) : 0,
 			hidden: next() < 0.15,
 			dead: next() < 0.1,
 		});

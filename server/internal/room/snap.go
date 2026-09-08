@@ -77,7 +77,7 @@ func centred(footprint int) bool {
 // snapPawn is what the commands call: it reads the footprint off the pawn so
 // that no caller has to remember which axis takes which number.
 func snapPawn(g Grid, p Pawn, x, y int) (int, int) {
-	w, h := p.Footprint()
+	w, h := p.Footprint(g.CellSize)
 
 	return SnapPoint(g, w, h, x, y)
 }

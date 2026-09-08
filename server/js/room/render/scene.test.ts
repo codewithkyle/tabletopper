@@ -14,7 +14,8 @@ import type { Drawn } from "./pawn-pass.ts";
 import type { Pawn } from "../protocol.ts";
 import { CONDITION_RINGS_MAX, RING_GAP, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
-import { fitFactors, pawnExtents } from "./pawn-pass.ts";
+import { fitFactors } from "./pawn-pass.ts";
+import { pawnExtents } from "./path.ts";
 
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
@@ -30,8 +31,8 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		y: 0,
 		z: 1,
 		size: "medium",
-		footprintW: 0,
-		footprintH: 0,
+		width: 0,
+		height: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -105,12 +106,12 @@ test("dead is only what the viewer was told", () => {
 	assert.equal(out[0].dead, false, "a band was read as a hit-point count");
 });
 
-// A creature's footprint is its size category and an object's is its rectangle.
+// A creature's footprint is its size category and an object's is its picture.
 // A tiny creature OCCUPIES a whole cell -- half a cell is not a position any
 // grid rule can express -- and is DRAWN at half of one, so a rat and an ogre
 // are not the same size on the table.
 test("a pawn covers as much floor as its size says", () => {
-	const creature = (size: Pawn["size"]) => pawnExtents({ kind: "monster", size, footprintW: 0, footprintH: 0 }, 64);
+	const creature = (size: Pawn["size"]) => pawnExtents({ kind: "monster", size, width: 0, height: 0 }, 64);
 
 	assert.deepEqual(creature("medium"), [32, 32]);
 	assert.deepEqual(creature("large"), [64, 64]);
@@ -118,7 +119,14 @@ test("a pawn covers as much floor as its size says", () => {
 	assert.deepEqual(creature("tiny"), [16, 16]);
 
 	assert.deepEqual(
-		pawnExtents({ kind: "object", size: "medium", footprintW: 2, footprintH: 4 }, 64),
+		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256 }, 64),
+		[64, 128],
+	);
+
+	// AND AN OBJECT DOES NOT CARE WHAT THE CELL SIZE IS. The same wagon on a
+	// hundred-pixel grid is the same wagon.
+	assert.deepEqual(
+		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256 }, 100),
 		[64, 128],
 	);
 });
@@ -127,8 +135,8 @@ test("a pawn covers as much floor as its size says", () => {
 // which is a blank floor with an infinite grid on it, and pawns on that floor
 // still have to be a sensible size.
 test("the cell size comes from the grid and never from nothing", () => {
-	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", footprintW: 0, footprintH: 0 }, 0), [0.5, 0.5]);
-	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", footprintW: 0, footprintH: 0 }, 100), [50, 50]);
+	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0 }, 0), [0.5, 0.5]);
+	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0 }, 100), [50, 50]);
 });
 
 // CONTAIN LETTERBOXES AND COVER CROPS, and which one applies is the whole

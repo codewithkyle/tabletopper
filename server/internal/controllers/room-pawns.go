@@ -178,9 +178,11 @@ func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) (
 	out := make([]pages.RoomSpawnToken, 0, len(rows))
 	for _, t := range rows {
 		out = append(out, pages.RoomSpawnToken{
-			ID:    t.ID.String(),
-			Name:  t.Name,
-			Image: "/assets/images/" + t.ID.String(),
+			ID:     t.ID.String(),
+			Name:   t.Name,
+			Image:  "/assets/images/" + t.ID.String(),
+			Width:  int(t.Width.Int32),
+			Height: int(t.Height.Int32),
 		})
 	}
 
@@ -188,11 +190,18 @@ func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) (
 }
 
 // SpawnParty places a pawn for everybody connected who joined with a character.
+// It is the Tabletop menu's Spawn pawns item, and it is the only way a player
+// character reaches the table.
 //
 // THE COMMAND CARRIES NOTHING AND THAT IS THE POINT. Who is at the table and
 // which characters are already on it are room state; the hub reads both when it
 // resolves this, so there is no list from a browser to be trusted or to have
-// gone stale between the dialog rendering and the button being pressed.
+// gone stale between the page loading and the item being pressed.
+//
+// A 204 AND NO BODY IS THE WHOLE REPLY. The pawns arrive over the socket as
+// pawn.spawned, which is the same way they would arrive for anybody else in the
+// room, so there is nothing for this response to swap and nothing for it to
+// say. A refusal is the alert modal, out of rejectCommand.
 func (a *App) SpawnParty(w http.ResponseWriter, r *http.Request) {
 	who, roomID, ok := a.pawnActor(w, r)
 	if !ok {
@@ -205,7 +214,6 @@ func (a *App) SpawnParty(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	htmx.CloseModal(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -537,7 +545,11 @@ func (a *App) RemovePawns(w http.ResponseWriter, r *http.Request) {
 // so serving one to a player would contradict, in a second window, the setting
 // the GM chose in the first.
 //
-// THE OWNER IS THE ROOM'S AND NOT THE ASKER'S -- and that is the whole of what
+// IT RENDERS THE PANEL FRAME AND NOT THE DIALOG ONE. The block goes into a
+// window, which is dismissed by the controls on its own title bar, so it ships
+// no Close of its own -- see the note on pages.StatBlock.
+//
+// THE OWNER IS THE ROOM'S AND NOT THE ASKER'S, which is the other half of what
 // makes this different from MonsterStatBlockFragment. GetMonster and
 // ListMonsterActions are both scoped by owner already, so no new statement is
 // needed: what changes is which id goes into the parameter. The pawn is read
@@ -581,7 +593,7 @@ func (a *App) RoomStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterStatBlockFragment(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
+	render(w, r, pages.MonsterStatBlockPanel(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
 }
 
 // livePawn is the three questions every fragment in this file asks: is this a
@@ -721,9 +733,9 @@ func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
 	}
 
 	if out.Object {
-		out.Footprint = pages.PawnFootprintText(pawn.FootprintW, pawn.FootprintH)
-		out.FootprintW = strconv.Itoa(pawn.FootprintW)
-		out.FootprintH = strconv.Itoa(pawn.FootprintH)
+		out.Pixels = pages.PawnPixelsText(pawn.Width, pawn.Height)
+		out.Width = strconv.Itoa(pawn.Width)
+		out.Height = strconv.Itoa(pawn.Height)
 	} else {
 		out.Size = pages.PawnSizeText(string(pawn.Size))
 		out.SizeValue = string(pawn.Size)
@@ -820,8 +832,8 @@ func evaluateHP(entry string, current *int) (int, string) {
 
 // pawnUpdateForm turns the modal's form into the plain-field command. Every
 // field is a pointer, so a value the form did not carry is left alone rather
-// than reset -- which is what lets the object form omit a size and the creature
-// form omit a footprint.
+// than reset -- which is what lets the object form omit a creature size and the
+// creature form omit a width and a height.
 func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []string) {
 	var problems []string
 
@@ -847,8 +859,8 @@ func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []strin
 	}
 
 	if pawn.Kind == room.PawnObject {
-		width, wBad := requiredNumber(r.FormValue("footprintW"), "Cells across")
-		height, hBad := requiredNumber(r.FormValue("footprintH"), "Cells down")
+		width, wBad := requiredNumber(r.FormValue("width"), "Width")
+		height, hBad := requiredNumber(r.FormValue("height"), "Height")
 		if wBad != "" {
 			problems = append(problems, wBad)
 		}
@@ -856,7 +868,7 @@ func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []strin
 			problems = append(problems, hBad)
 		}
 		if wBad == "" && hBad == "" {
-			cmd.FootprintW, cmd.FootprintH = &width, &height
+			cmd.Width, cmd.Height = &width, &height
 		}
 
 		return cmd, problems

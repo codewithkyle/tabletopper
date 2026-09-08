@@ -149,6 +149,20 @@ type Player struct {
 // and the movement path all reason about where a creature stands, and a corner
 // is only the same thing as a position when everything is one cell.
 //
+// AN OBJECT IS MEASURED IN MAP PIXELS AND A CREATURE IN CELLS, which is Width
+// and Height against Size. A creature's size is a category out of the rules --
+// medium is one cell, large is two -- and it is the same square whatever the
+// grid is set to. An object is a picture somebody drew at a size: a wagon is as
+// wide as the wagon in the file, and forcing it onto a whole number of cells
+// would letterbox every token that was not authored against this table's grid.
+// So the two are different fields with different units rather than one field
+// with a branch, and Footprint below is where the pixels become cells for the
+// one thing that has to count in them, which is snapping.
+//
+// WIDTH AND HEIGHT ARE ZERO FOR A CREATURE and Size is empty for an object.
+// addPawn clears whichever pair does not apply, so a pawn cannot be carrying a
+// stale answer from before it was edited.
+//
 // HP, MAXHP, AC AND HPBAND ARE POINTERS because "unknown" and "zero" are
 // different facts about a pawn and the player projection has to be able to say
 // the first. A monster projected to players with hit points hidden has all
@@ -164,8 +178,8 @@ type Pawn struct {
 	Y           int         `json:"y"`
 	Z           int         `json:"z"`
 	Size        Size        `json:"size"`
-	FootprintW  int         `json:"footprintW"`
-	FootprintH  int         `json:"footprintH"`
+	Width       int         `json:"width"`
+	Height      int         `json:"height"`
 	Visible     bool        `json:"visible"`
 	HP          *int        `json:"hp"`
 	MaxHP       *int        `json:"maxHp"`
@@ -617,12 +631,26 @@ func (s *State) maxZ() int {
 }
 
 // Footprint is how many cells wide and tall a pawn stands, and it is the one
-// answer to that question. An object carries its own rectangle; a creature gets
-// its size's square on both axes. Snapping, hit testing and the movement path
-// all ask here rather than each branching on Kind.
-func (p Pawn) Footprint() (w, h int) {
+// answer to that question. A creature gets its size's square on both axes; an
+// object is a picture with a pixel size, so it is rounded to the nearest whole
+// number of cells. Snapping and the movement path ask here rather than each
+// branching on Kind.
+//
+// IT IS THE SNAPPING LATTICE AND NOT THE DRAWN SIZE. What an object is DRAWN at
+// is Width by Height exactly, which is the point of storing pixels; what it is
+// SNAPPED against is the cell parity, and there is no such thing as half a cell
+// of parity. A 100-pixel object on a 64-pixel grid snaps like a two-cell one --
+// to a vertex rather than a cell centre -- and is still drawn 100 pixels wide.
+//
+// ROUNDING RATHER THAN CEILING, and never below one. Ceiling would send every
+// object one cell out of true the moment a picture was a pixel over a boundary,
+// which is most of them; the floor of one is what keeps a small token snapping
+// like the creature-sized thing it is standing in for.
+func (p Pawn) Footprint(cellSize int) (w, h int) {
 	if p.Kind == PawnObject {
-		return max(1, p.FootprintW), max(1, p.FootprintH)
+		cell := max(cellSize, 1)
+
+		return max(1, (p.Width+cell/2)/cell), max(1, (p.Height+cell/2)/cell)
 	}
 
 	f := p.Size.Footprint()

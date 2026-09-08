@@ -117,6 +117,77 @@ func TestTheLastLayerCannotBeRemoved(t *testing.T) {
 	w.refuse(&TableRemoveLayer{Layer: testID(999)}, w.gm, CodeNotFound)
 }
 
+// CLEAR TABLETOP IS THE END OF THE EVENING: every floor's map, every pawn, all
+// the fog, all the drawing and the tracker, in one command. What it does NOT
+// touch is the floors themselves and the grid -- a room needs at least one
+// layer, and the cell size a GM matched to their maps is a setting rather than
+// a thing standing on the table.
+func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
+	w := newWorld(t)
+	ground := w.layer
+	cellar := w.addLayer("Cellar")
+
+	goblin := w.spawn(Pawn{Name: "Goblin", LayerID: ground, Visible: true})
+	w.spawn(Pawn{Name: "Ambusher", LayerID: ground, Visible: false})
+	w.spawn(Pawn{Name: "Downstairs", LayerID: cellar, Visible: true})
+
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin}}}, w.gm)
+	w.apply(&FogAdd{Layer: ground, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(701), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+
+	cell := w.s.Table.Grid.CellSize
+	ems := w.apply(&TableClear{}, w.gm)
+
+	equalStrings(t, "emissions", summary(ems), []string{
+		// Three to the GM and one to the players. Only the goblin was ever on
+		// a player's table: the ambusher is hidden, and the third is on a
+		// floor nobody is looking at.
+		"pawn.removed to gm",
+		"pawn.removed to players",
+		"pawn.removed to gm",
+		"pawn.removed to gm",
+
+		// Both floors, whether or not either had anything on it.
+		"fog.cleared to all",
+		"stroke.cleared to all",
+		"fog.cleared to all",
+		"stroke.cleared to all",
+
+		"table.updated to all",
+		"initiative.updated to all",
+	})
+
+	if len(w.s.Pawns) != 0 || len(w.s.Fog) != 0 || len(w.s.Strokes) != 0 {
+		t.Fatalf("the table still holds %d pawns, %d fog shapes and %d strokes",
+			len(w.s.Pawns), len(w.s.Fog), len(w.s.Strokes))
+	}
+	if len(w.s.Initiative.Entries) != 0 {
+		t.Fatal("the tracker outlived the pawns it named")
+	}
+
+	// The floors stay, and so does everything about them that is a setting
+	// rather than a thing on the table.
+	if len(w.s.Table.Layers) != 2 {
+		t.Fatalf("the room has %d layers after a clear, want both", len(w.s.Table.Layers))
+	}
+	for _, l := range w.s.Table.Layers {
+		if l.Map != nil {
+			t.Errorf("the %s layer kept its map", l.Name)
+		}
+	}
+	if w.s.Table.Grid.CellSize != cell {
+		t.Error("clearing the table changed the grid")
+	}
+}
+
+// A player cannot clear the table, which is the same rule every other command
+// in this file has and matters more here than in any of them.
+func TestOnlyTheGMClearsTheTabletop(t *testing.T) {
+	w := newWorld(t)
+
+	w.refuse(&TableClear{}, w.pc, CodeForbidden)
+}
+
 // A PLAYER'S COMMANDS STAY ON THE FLOOR EVERYBODY IS LOOKING AT. A player who
 // could name another layer could ping into a room the party has not found, or
 // draw on a map they cannot see, and in both cases the giveaway is that the
@@ -127,7 +198,6 @@ func TestAPlayerCannotActOnAnotherLayer(t *testing.T) {
 
 	w.refuse(&Ping{Layer: cellar, X: 10, Y: 10}, w.pc, CodeForbidden)
 	w.refuse(&StrokeBegin{ID: testID(710), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.pc, CodeForbidden)
-	w.refuse(&PawnSpawn{Kind: PawnPlayer, Layer: cellar, CharacterID: &testCharID}, w.pc, CodeForbidden)
 
 	// fog.add is GM-only anyway, and the layer rule is checked first, so a
 	// player naming another floor is refused for the more specific reason.

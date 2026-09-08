@@ -212,18 +212,18 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		w.refuse(&PawnMove{Anchor: ids[0], X: 128, Y: 128, Others: ids[1:]}, w.gm, CodeInvalid)
 	})
 
-	t.Run("an object's footprint stops at both ends", func(t *testing.T) {
+	t.Run("an object's size stops at both ends", func(t *testing.T) {
 		w := newWorld(t)
 
-		w.spawn(Pawn{Kind: PawnObject, FootprintW: FootprintMax, FootprintH: FootprintMax, Visible: true})
+		w.spawn(Pawn{Kind: PawnObject, Width: ObjectPixelsMax, Height: ObjectPixelsMax, Visible: true})
 
-		for _, bad := range [][2]int{{0, 1}, {1, 0}, {FootprintMax + 1, 1}, {1, FootprintMax + 1}} {
+		for _, bad := range [][2]int{{0, 1}, {1, 0}, {ObjectPixelsMax + 1, 1}, {1, ObjectPixelsMax + 1}} {
 			_, err := w.run(&PawnSpawn{
-				Kind: PawnObject, Layer: w.layer, FootprintW: bad[0], FootprintH: bad[1],
-				Pawn: &Pawn{},
+				Kind: PawnObject, Layer: w.layer,
+				Pawn: &Pawn{Width: bad[0], Height: bad[1]},
 			}, w.gm)
 			if err == nil {
-				t.Fatalf("an object of %dx%d cells was accepted", bad[0], bad[1])
+				t.Fatalf("an object of %dx%d pixels was accepted", bad[0], bad[1])
 			}
 		}
 	})

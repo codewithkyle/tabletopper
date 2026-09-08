@@ -30,8 +30,8 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		y: 0,
 		z: 1,
 		size: "medium",
-		footprintW: 0,
-		footprintH: 0,
+		width: 0,
+		height: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -127,10 +127,10 @@ test("a marquee stops at the protocol's own limit", () => {
 	assert.equal(found.length, SELECTION_MAX);
 });
 
-// A wagon is two by four cells, so its footprint reaches 64 across and 128 down
+// A wagon's picture is 128 by 256 pixels, so it reaches 64 across and 128 down
 // from its centre. What is ON it is inside that box and above it in draw order.
 function wagon(): Pawn {
-	return pawn({ id: "wagon", kind: "object", footprintW: 2, footprintH: 4, z: 1, x: 0, y: 0 });
+	return pawn({ id: "wagon", kind: "object", width: 128, height: 256, z: 1, x: 0, y: 0 });
 }
 
 test("riders are the pawns standing on a wagon and not the ones beside it", () => {
@@ -218,7 +218,7 @@ test("riders join a drag that selected nothing, and Alt leaves them", () => {
 // A player dragging their own wagon must not take somebody else's pawn with it:
 // the server would refuse the whole move, so the whole move is never built.
 test("a rider the viewer may not move does not join the drag", () => {
-	const cart = pawn({ id: "cart", kind: "object", footprintW: 2, footprintH: 2, z: 1, ownerId: ME });
+	const cart = pawn({ id: "cart", kind: "object", width: 128, height: 128, z: 1, ownerId: ME });
 	const pawns = [cart, pawn({ id: "theirs", x: 10, y: 10, z: 5, ownerId: THEM })];
 
 	const found = dragSet(pawns, cart, new Selection(), {

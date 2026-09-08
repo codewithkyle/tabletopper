@@ -817,7 +817,7 @@ type SpawnView struct {
 	Players []room.Player
 
 	// Characters is the set already represented by a player pawn, which is
-	// what keeps Spawn party from putting a second Ilyana beside the first
+	// what keeps Spawn pawns from putting a second Ilyana beside the first
 	// when it is pressed twice.
 	Characters map[ulid.ULID]bool
 }

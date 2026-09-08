@@ -216,19 +216,19 @@ func TestTheGMsControlsRenderOnlyForTheGM(t *testing.T) {
 	}
 }
 
-// An object has a rectangle instead of a size and cannot be poisoned, which is
-// the protocol's rule -- PawnSetConditions refuses an object outright -- and
-// the form must not offer what the server will not take.
-func TestTheObjectFormHasAFootprintAndNoConditions(t *testing.T) {
+// An object is measured in pixels instead of by a creature size and cannot be
+// poisoned, which is the protocol's rule -- PawnSetConditions refuses an object
+// outright -- and the form must not offer what the server will not take.
+func TestTheObjectFormHasASizeInPixelsAndNoConditions(t *testing.T) {
 	data := testPawnForm()
 	data.Pawn.Object = true
-	data.Pawn.FootprintW = "2"
-	data.Pawn.FootprintH = "4"
+	data.Pawn.Width = "128"
+	data.Pawn.Height = "256"
 	data.Pawn.SizeValue = ""
 
 	body := html(t, RoomPawnForm(data))
-	if !strings.Contains(body, `name="footprintW"`) || !strings.Contains(body, `name="footprintH"`) {
-		t.Errorf("an object's form has no footprint fields:\n%s", body)
+	if !strings.Contains(body, `name="width"`) || !strings.Contains(body, `name="height"`) {
+		t.Errorf("an object's form has no size fields:\n%s", body)
 	}
 	if strings.Contains(body, `name="size"`) {
 		t.Error("an object's form offers a creature size")
@@ -257,9 +257,9 @@ func TestTheFormClosesWithoutNestingAForm(t *testing.T) {
 // The form's max attribute and the core's limit are one number in two places,
 // and a form that accepts what the server refuses is a save that fails with a
 // message about a limit the field said was fine.
-func TestTheFootprintLimitMatchesTheProtocol(t *testing.T) {
-	if FootprintCellsMax != room.FootprintMax {
-		t.Errorf("the form allows %d cells and the core allows %d", FootprintCellsMax, room.FootprintMax)
+func TestTheObjectSizeLimitMatchesTheProtocol(t *testing.T) {
+	if ObjectPixelsMax != room.ObjectPixelsMax {
+		t.Errorf("the form allows %d pixels and the core allows %d", ObjectPixelsMax, room.ObjectPixelsMax)
 	}
 }
 

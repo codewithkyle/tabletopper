@@ -158,14 +158,12 @@ func (w *world) spawn(p Pawn) ulid.ULID {
 
 	before := len(w.s.Pawns)
 	w.apply(&PawnSpawn{
-		Kind:       p.Kind,
-		Layer:      p.LayerID,
-		X:          p.X,
-		Y:          p.Y,
-		Visible:    p.Visible,
-		FootprintW: p.FootprintW,
-		FootprintH: p.FootprintH,
-		Pawn:       &p,
+		Kind:    p.Kind,
+		Layer:   p.LayerID,
+		X:       p.X,
+		Y:       p.Y,
+		Visible: p.Visible,
+		Pawn:    &p,
 	}, w.gm)
 
 	if len(w.s.Pawns) != before+1 {

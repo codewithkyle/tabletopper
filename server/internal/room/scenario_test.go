@@ -57,17 +57,18 @@ func scenario(r *recorder) {
 
 	r.hub("lock the room once everybody is in", &RoomSetLocked{Locked: true})
 
-	spawnAri := r.do("Ari places her own character", &PawnSpawn{
+	spawnAri := r.do("the GM puts Ari's character on the map", &PawnSpawn{
 		Kind: PawnPlayer, Layer: ground, X: 300, Y: 300, Visible: true,
 		CharacterID: &testCharID,
 		Pawn: &Pawn{
 			Name: "Ari", Image: "/assets/ari.webp", Size: SizeMedium,
-			HP: intp(11), MaxHP: intp(14), AC: intp(16), CharacterID: &testCharID,
+			HP: intp(11), MaxHP: intp(14), AC: intp(16),
+			OwnerID: &testPlayerID, CharacterID: &testCharID,
 		},
-	}, pc)
+	}, gm)
 	ari := spawnAri[0].Event.(*PawnSpawned).Pawn.ID
 
-	r.do("the GM spawns the rest of the party", &PawnSpawnCharacters{Pawns: []Pawn{{
+	r.do("and Spawn pawns brings the rest of the party", &PawnSpawnCharacters{Pawns: []Pawn{{
 		Name: "Rin", Image: "/assets/rin.webp", Size: SizeMedium, LayerID: ground,
 		X: 380, Y: 300, Visible: true,
 		HP: intp(9), MaxHP: intp(9), AC: intp(14),
@@ -95,9 +96,11 @@ func scenario(r *recorder) {
 	ambusher := spawnAmbush[0].Event.(*PawnSpawned).Pawn.ID
 
 	spawnWagon := r.do("the party's wagon is in the way", &PawnSpawn{
-		Kind: PawnObject, Layer: ground, X: 480, Y: 480, Visible: true,
-		FootprintW: 2, FootprintH: 4, Name: "Wagon",
-		Pawn: &Pawn{Image: "/assets/wagon.webp", HP: intp(30), MaxHP: intp(30), AC: intp(12)},
+		Kind: PawnObject, Layer: ground, X: 480, Y: 480, Visible: true, Name: "Wagon",
+		Pawn: &Pawn{
+			Image: "/assets/wagon.webp", Width: 128, Height: 256,
+			HP: intp(30), MaxHP: intp(30), AC: intp(12),
+		},
 	}, gm)
 	wagon := spawnWagon[0].Event.(*PawnSpawned).Pawn.ID
 
@@ -188,6 +191,12 @@ func scenario(r *recorder) {
 
 	r.do("the cellar is not needed after all", &TableRemoveLayer{Layer: cellar}, gm)
 	r.do("clear the ground floor's map", &TableClearLayerMap{Layer: ground}, gm)
+
+	// ONE COMMAND FOR WHAT THE FOUR ABOVE DID BY HAND. Everything still on the
+	// table goes: the four remaining pawns, both floors' fog and drawing, the
+	// maps, and the tracker. It is the end of the evening rather than a tool
+	// used during one, which is why it is here and not up in the fight.
+	r.do("and clear the tabletop for next week", &TableClear{}, gm)
 
 	r.hub("unlock on the way out", &RoomSetLocked{Locked: false})
 	r.hub("and close the room", &RoomClose{})

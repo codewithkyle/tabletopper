@@ -213,6 +213,22 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 		t.Error("the dialog carries the editor's swap target, so a redraw could land in it")
 	}
 
+	// THE FOURTH FRAME IS THE ROOM'S WINDOW, WHICH IS THE DIALOG MINUS ITS
+	// Close. A modal ships a labelled way out beside its affirmative action; a
+	// window is dismissed by the controls on its own title bar, so a Close at
+	// the bottom of the block scrolled with the content and closed nothing --
+	// it fired modal:close at a modal that was not open.
+	panel := markup(t, MonsterStatBlockPanel(testStatBlock()))
+	if !strings.Contains(panel, body) {
+		t.Error("the window renders its own copy of the block")
+	}
+	if strings.Contains(panel, "modal:close") || strings.Contains(panel, ">Close<") {
+		t.Errorf("the window's block carries a Close that closes nothing:\n%s", panel)
+	}
+	if strings.Contains(panel, "shadow-panel") || strings.Contains(panel, `id="stat-block"`) {
+		t.Error("the window's block brings a surface or a swap target of its own")
+	}
+
 	if !strings.Contains(fragment, "modal:close") || !strings.Contains(fragment, ">Close<") {
 		t.Errorf("the dialog has no way out of it:\n%s", fragment)
 	}

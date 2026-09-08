@@ -120,18 +120,23 @@ func (e *PawnDragging) ForRole(role Role) Event {
 // which floor it is on, whether players can see it.
 //
 // SIZE IS ON THE WIRE AND EVERY OTHER STAT IS NOT, which looks arbitrary and is
-// not. A monster and a character both bring a size with them, from a column;
-// a token brings nothing but a picture, and there is no honest default for how
-// much floor a picture stands on. Size is also the one of these that is
-// structural rather than informational: it decides the footprint, which decides
-// the snapping lattice and the drawn radius, so a token placed at the wrong one
-// is placed in the wrong place. Hit points and armour class are numbers a GM
-// fills in once they know what the thing is, and the pawn dialog is where they
-// do it -- putting them here would put a stat block in a spawn dialog.
+// not. A monster and a character both bring a size with them, from a column, so
+// this is here for the one creature that brings none: an NPC placed from a
+// picture. Size is also the one of these that is structural rather than
+// informational -- it decides the footprint, which decides the snapping lattice
+// and the drawn radius -- so a creature placed at the wrong one is placed in
+// the wrong place. Hit points and armour class are numbers a GM fills in once
+// they know what the thing is, and the pawn dialog is where they do it;
+// putting them here would put a stat block in a spawn dialog.
+//
+// AN OBJECT'S SIZE IS NOT ON THE WIRE AT ALL, and that is the same argument
+// reaching the opposite answer. An object is a picture on the table and the
+// picture already has a size, in the assets row that resolution reads, so there
+// is nothing for a browser to say about it and nothing to be trusted or gone
+// stale. The GM changes it afterwards with PawnUpdate if the picture was not
+// what they wanted; they are not asked before it is down.
 //
 // It is READ BY THE HUB AND NOT BY Apply, like MonsterID and AssetID beside it.
-// Resolution is what decides whether a size is taken from this field, from a
-// row, or ignored entirely because the pawn is an object with a footprint.
 type PawnSpawn struct {
 	Kind        PawnKind   `json:"kind"`
 	Layer       ulid.ULID  `json:"layer"`
@@ -143,37 +148,33 @@ type PawnSpawn struct {
 	AssetID     *ulid.ULID `json:"assetId,omitempty"`
 	Name        string     `json:"name,omitempty"`
 	Size        Size       `json:"size,omitempty"`
-	FootprintW  int        `json:"footprintW,omitempty"`
-	FootprintH  int        `json:"footprintH,omitempty"`
 
 	Pawn *Pawn `json:"-"`
 }
 
-// Authorize lets a player spawn exactly one thing: their own character, on the
-// floor everybody is looking at. That is the "I joined late" case, and it is
-// the only reason a player needs this command at all -- everything else on the
-// table is the GM's to place.
-func (c *PawnSpawn) Authorize(s *State, a Actor) error {
-	if err := s.requirePlayerLayer(a, c.Layer); err != nil {
-		return err
-	}
-	if a.GM() {
-		return nil
-	}
-
-	if c.Kind != PawnPlayer {
-		return forbidden("Only the GM", "Only the GM can put that on the table.")
-	}
-
-	me := s.Player(a.ID)
-	if me == nil || me.CharacterID == nil || c.CharacterID == nil || *me.CharacterID != *c.CharacterID {
-		return forbidden("Not your character", "You can only place the character you joined with.")
-	}
-
-	return nil
+// Authorize is the GM and nobody else, a player's own character included.
+//
+// PUTTING SOMETHING ON THE TABLE IS ONE PERSON'S JOB. A player who arrives late
+// does not place their own pawn and is not asked to: the GM presses Spawn
+// pawns and everybody connected who joined with a character gets one, which is
+// PawnSpawnCharacters below. That keeps one pair of hands deciding what is on
+// the map and where it starts, which is what a table with a screen at one end
+// of it already looks like.
+//
+// THE ALLOWANCE WAS REMOVED RATHER THAN HIDDEN. This used to let a player spawn
+// the character they joined with, and taking the menu item away would not have
+// been the same thing: the socket accepts commands from whoever is connected,
+// so a rule that only a button enforces is not a rule.
+//
+// THE LAYER IS NOT CHECKED HERE ANY MORE and does not need to be.
+// requirePlayerLayer only ever refused a player naming a floor nobody is
+// looking at, and a player no longer reaches this at all. That the layer
+// EXISTS is still checked, by requireLayer at the top of Apply.
+func (c *PawnSpawn) Authorize(_ *State, a Actor) error {
+	return requireGM(a, "put something on the table")
 }
 
-func (c *PawnSpawn) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *PawnSpawn) Apply(s *State, _ Actor, env Env) ([]Emission, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
@@ -191,16 +192,6 @@ func (c *PawnSpawn) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	p.Visible = c.Visible
 	if c.Name != "" {
 		p.Name = c.Name
-	}
-	if c.Kind == PawnObject {
-		p.FootprintW, p.FootprintH = c.FootprintW, c.FootprintH
-	}
-
-	// A player's pawn belongs to the player who placed it whatever the hub
-	// resolved, so that the answer to "may I move this" cannot be arranged by
-	// the client that asked for it.
-	if !a.GM() {
-		p.OwnerID = &a.ID
 	}
 
 	return s.addPawn(p, env)
@@ -256,7 +247,7 @@ func (s *State) addPawn(p Pawn, env Env) ([]Emission, error) {
 		p.Size = ""
 		p.Conditions = nil
 	} else {
-		p.FootprintW, p.FootprintH = 0, 0
+		p.Width, p.Height = 0, 0
 	}
 	clampHP(&p)
 
@@ -295,7 +286,7 @@ func checkPawn(p Pawn) error {
 	}
 
 	if p.Kind == PawnObject {
-		return checkFootprint(p.FootprintW, p.FootprintH)
+		return checkObjectSize(p.Width, p.Height)
 	}
 
 	if !p.Size.Valid() {
@@ -482,15 +473,15 @@ func (s *State) shownPositions(all []PawnPosition) []PawnPosition {
 // monster's hit points and then changes them, and an "unset" that could be
 // reached by a client sending null is a way to lose a stat line by accident.
 type PawnUpdate struct {
-	ID         ulid.ULID `json:"id"`
-	Name       *string   `json:"name,omitempty"`
-	HP         *int      `json:"hp,omitempty"`
-	MaxHP      *int      `json:"maxHp,omitempty"`
-	AC         *int      `json:"ac,omitempty"`
-	Size       *Size     `json:"size,omitempty"`
-	Z          *int      `json:"z,omitempty"`
-	FootprintW *int      `json:"footprintW,omitempty"`
-	FootprintH *int      `json:"footprintH,omitempty"`
+	ID     ulid.ULID `json:"id"`
+	Name   *string   `json:"name,omitempty"`
+	HP     *int      `json:"hp,omitempty"`
+	MaxHP  *int      `json:"maxHp,omitempty"`
+	AC     *int      `json:"ac,omitempty"`
+	Size   *Size     `json:"size,omitempty"`
+	Z      *int      `json:"z,omitempty"`
+	Width  *int      `json:"width,omitempty"`
+	Height *int      `json:"height,omitempty"`
 }
 
 func (c *PawnUpdate) Authorize(s *State, a Actor) error {
@@ -522,19 +513,19 @@ func (c *PawnUpdate) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 
 	if c.Size != nil {
 		if next.Kind == PawnObject {
-			return nil, invalid("Wrong pawn", "An object has a footprint rather than a size.")
+			return nil, invalid("Wrong pawn", "An object is measured in pixels rather than by a creature size.")
 		}
 		next.Size = *c.Size
 	}
-	if c.FootprintW != nil || c.FootprintH != nil {
+	if c.Width != nil || c.Height != nil {
 		if next.Kind != PawnObject {
-			return nil, invalid("Wrong pawn", "A creature has a size rather than a footprint.")
+			return nil, invalid("Wrong pawn", "A creature has a size rather than a width and a height.")
 		}
-		if c.FootprintW != nil {
-			next.FootprintW = *c.FootprintW
+		if c.Width != nil {
+			next.Width = *c.Width
 		}
-		if c.FootprintH != nil {
-			next.FootprintH = *c.FootprintH
+		if c.Height != nil {
+			next.Height = *c.Height
 		}
 	}
 

@@ -195,6 +195,7 @@ var wireCommands = map[string]func() Command{
 	"table.setActiveLayer": func() Command { return &TableSetActiveLayer{} },
 	"table.setGrid":        func() Command { return &TableSetGrid{} },
 	"table.setOptions":     func() Command { return &TableSetOptions{} },
+	"table.clear":          func() Command { return &TableClear{} },
 	"pawn.spawn":           func() Command { return &PawnSpawn{} },
 	"pawn.spawnCharacters": func() Command { return &PawnSpawnCharacters{} },
 	"pawn.move":            func() Command { return &PawnMove{} },

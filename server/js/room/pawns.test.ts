@@ -60,8 +60,8 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		y: 0,
 		z: 1,
 		size: "medium",
-		footprintW: 0,
-		footprintH: 0,
+		width: 0,
+		height: 0,
 		visible: true,
 		hp: 7,
 		maxHp: 7,
@@ -94,7 +94,7 @@ test("hit testing uses a disc for a creature", () => {
 });
 
 test("hit testing uses a rectangle for an object", () => {
-	const wagon = pawn({ id: "wagon", kind: "object", footprintW: 2, footprintH: 4, x: 0, y: 0 });
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
 
 	// Half extents are 64 across and 128 down.
 	assert.equal(hitTest([wagon], GROUND, grid(), 60, 120)?.id, "wagon");
@@ -277,7 +277,7 @@ test("Escape sends the committed position with the same others", () => {
 // Grabbing a wagon means grabbing a part of it nobody is standing on, which is
 // what a hand does anyway.
 function wagonAndRider() {
-	const wagon = pawn({ id: "wagon", kind: "object", footprintW: 2, footprintH: 2, x: 0, y: 0, z: 1 });
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 128, x: 0, y: 0, z: 1 });
 	const rider = pawn({ id: "rider", x: 10, y: 10, z: 5 });
 
 	return [wagon, rider];
@@ -343,7 +343,7 @@ test("arming places on every click until Escape", () => {
 
 	controller.arm({
 		kind: "monster", id: "01MONSTER", name: "Goblin", image: "",
-		visible: false, size: "medium", footprintW: 1, footprintH: 1,
+		visible: false, size: "medium", width: 0, height: 0,
 	});
 
 	controller.tool.press(at(90, 90), at(0, 0), NONE);

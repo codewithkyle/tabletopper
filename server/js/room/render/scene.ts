@@ -58,8 +58,8 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 		drawn.y = pawn.y;
 		drawn.z = pawn.z;
 		drawn.size = pawn.size;
-		drawn.footprintW = pawn.footprintW;
-		drawn.footprintH = pawn.footprintH;
+		drawn.width = pawn.width;
+		drawn.height = pawn.height;
 
 		// A pawn a player cannot see never reaches their store at all, so this
 		// is only ever true on the GM's copy -- which is exactly what the
@@ -97,8 +97,8 @@ function blank(): Drawn {
 		y: 0,
 		z: 0,
 		size: "medium",
-		footprintW: 0,
-		footprintH: 0,
+		width: 0,
+		height: 0,
 		hidden: false,
 		dead: false,
 	};

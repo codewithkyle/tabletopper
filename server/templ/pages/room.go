@@ -107,12 +107,6 @@ type RoomPageData struct {
 	// reload with the script that was there before it.
 	Version string
 
-	// CharacterID is the character this player joined with, empty for the GM and
-	// for somebody who joined without one. It is what "Place my pawn" arms the
-	// canvas with, and the core refuses any other -- PawnSpawn.Authorize checks
-	// it against the session's own membership rather than trusting this.
-	CharacterID string
-
 	// Debug renders the development panel: connection state, sequence number,
 	// the player list and the last twenty frames, with a box to send a raw
 	// command. It is the config's Development and nothing else, so it cannot
@@ -140,11 +134,26 @@ func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
 }
 
-// SpawnPath is the Spawn dialog, which the GM's Tabletop menu opens in the
+// SpawnPath is the library dialog, which the GM's Tabletop menu opens in the
 // content modal. It starts on the monsters half, which is what a GM reaches for
 // nine times in ten.
 func (d RoomPageData) SpawnPath() string {
 	return "/fragment/room/spawn?room=" + d.ID + "&kind=" + RoomSpawnMonsters
+}
+
+// ClearPath is the Clear tabletop item. It is a mutation like PartyPath below
+// and carries nothing for the same reason: what is on the table is room state,
+// and this says "all of it".
+func (d RoomPageData) ClearPath() string {
+	return "/rooms/" + d.ID + "/tabletop/clear"
+}
+
+// PartyPath is the Spawn pawns item, which is a mutation and so keeps its
+// resource URL rather than living under /fragment/. It carries nothing: who is
+// at the table and which of them already have a pawn are both room state, read
+// by the hub when it resolves the command.
+func (d RoomPageData) PartyPath() string {
+	return "/rooms/" + d.ID + "/pawns/party"
 }
 
 // LayersPath, GridPath and LayerNamePath are the three table fragments this
@@ -314,41 +323,43 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 	return RoomMenuItem{ID: roomLockID, Label: "Lock room", Post: "/rooms/" + d.ID + "/lock"}
 }
 
-// tabletopMenu is what is under the pawns: the floors and the grid.
+// tabletopMenu is what is under the pawns: the floors, the grid and what
+// stands on them.
 //
-// BOTH ARE WINDOWS AND NOT MODALS, which was decided after the first two were
-// built as modals and rejected. The work is not one act: somebody preparing a
-// tower adds three floors and checks each map against the table behind it, and
-// somebody matching a cell size to a map is looking at the map while they do
-// it. A dialog that covered the table between every step would be shut and
-// reopened six times. The map picker one of them opens IS a modal, because
-// choosing one map is a single act with an end.
+// LAYERS AND GRID ARE WINDOWS AND NOT MODALS, which was decided after the first
+// two were built as modals and rejected. The work is not one act: somebody
+// preparing a tower adds three floors and checks each map against the table
+// behind it, and somebody matching a cell size to a map is looking at the map
+// while they do it. A dialog that covered the table between every step would be
+// shut and reopened six times. The map picker one of them opens IS a modal,
+// because choosing one map is a single act with an end.
 //
-// A PLAYER SEES THE SAME FOUR LINES, DISABLED. The bar's shape does not change
-// with who is looking -- only the Room menu does that -- and a player who opens
-// this menu is told these exist and are not theirs, which is true.
-// A PLAYER GETS ONE LIVE ITEM IN THIS MENU AND IT IS THEIR OWN PAWN. Placing
-// the character they joined with is the one thing on the table that is theirs
-// to put there -- the "I joined late" case PawnSpawn.Authorize exists for -- and
-// the rest of the menu stays greyed out beside it, which is true.
+// SPAWN PAWNS IS THE PARTY AND IT OPENS NOTHING. Pressing it puts a pawn at the
+// centre of the map for everybody connected who joined with a character and has
+// none yet. There is no dialog because there is nothing to ask: the roster is
+// room state, the position is the middle of the map, and a GM who wants them
+// somewhere else drags them -- one gesture against the four a dialog costs.
 //
-// IT ARMS RATHER THAN OPENING A DIALOG, because there is nothing to choose:
-// they have one character and the only question is where. The item hands the
-// canvas a character id and the next click puts the pawn down.
+// CLEAR TABLETOP IS THE END OF THE EVENING AND NOT A TOOL. It empties every
+// layer's map, every pawn, the fog, the drawing and the tracker in one command
+// -- which is why it sits last, is drawn in the error colour, and is the only
+// item in this menu with a confirmation in front of it. Clearing the fog or the
+// tracker DURING a session is what the Fog and Initiative menus are for; those
+// items stay exactly as they are.
+//
+// A PLAYER SEES EVERY LINE DISABLED. Putting something on the table is the GM's
+// act and only theirs, refused in PawnSpawn.Authorize rather than by the
+// absence of a button, so a player who opens this menu is told these exist and
+// are not theirs. That is true, and it is the shape the Fog and Initiative
+// menus already have.
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	if !d.IsGM() {
-		items := []RoomMenuItem{{Label: "Layers", Disabled: true}, {Label: "Grid & settings", Disabled: true}}
-
-		if d.CharacterID != "" {
-			items = append(items, RoomMenuItem{Label: "Place my pawn", Action: roomArmAction, Value: d.CharacterID})
-		} else {
-			items = append(items, RoomMenuItem{Label: "Place my pawn", Disabled: true})
-		}
-
-		return RoomMenu{Label: "Tabletop", Items: append(items, comingSoon("Clear tabletop")...)}
+		return RoomMenu{Label: "Tabletop", Items: comingSoon(
+			"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear tabletop",
+		)}
 	}
 
-	return RoomMenu{Label: "Tabletop", Items: append([]RoomMenuItem{
+	return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{
 		{Label: "Layers", Window: RoomWindow{
 			ID:     "layers",
 			Title:  "Layers",
@@ -363,14 +374,18 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Width:  300,
 			Height: 420,
 		}},
-		{Label: "Spawn pawns", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
-	}, comingSoon("Clear tabletop")...)}
+		{Label: "Spawn pawns", Post: d.PartyPath()},
+		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
+		{
+			Label:          "Clear tabletop",
+			Post:           d.ClearPath(),
+			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid.",
+			ConfirmHeading: "Clear the tabletop?",
+			ConfirmLabel:   "Clear tabletop",
+			Danger:         true,
+		},
+	}}
 }
-
-// roomArmAction is the data-room-action the player's own item carries.
-// public/js/room.js turns it into the same room:arm event the spawn dialog
-// raises, which is why the canvas does not care which of the two armed it.
-const roomArmAction = "arm-character"
 
 // viewMenu is the camera, plus the one item in it that needs no camera.
 //
@@ -479,6 +494,19 @@ func (t RoomTool) Pressed() string {
 // <template> and loads URL into it with htmx, so anything already served under
 // /fragment/ can be a window without a line of server change -- and a fragment
 // that refetches itself on a socket event goes on doing that inside one.
+//
+// THE TITLE BAR CARRIES min-w-0 AND THE WINDOW IS BROKEN WITHOUT IT. Title,
+// minimize, maximize, close is the ordinary flex truncation arrangement -- the
+// heading takes min-w-0 flex-1 truncate and the three buttons do not shrink --
+// and that arrangement only holds while something upstream fixes the bar's
+// width. Here nothing does: the bar is a row of a grid whose column is sized
+// auto, so the column's floor is the bar's own min-content width, and the
+// heading's white-space: nowrap makes its min-content the WHOLE title. A long
+// pawn name therefore widened the column past the window, and the section's
+// overflow-hidden cut the three buttons off outside it -- the window could not
+// be closed. min-w-0 on the bar makes its automatic minimum size zero, the
+// column stays the width the client set, and the heading truncates the way it
+// was always meant to.
 type RoomWindow struct {
 	// ID is the stable identity: one window per id, and the key its position
 	// and size are remembered under. It is deliberately not the URL, which

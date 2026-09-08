@@ -13,12 +13,26 @@ import "strconv"
 // encounter is eight goblins, and eight clicks with one dialog visit is the
 // whole reason this is not a form with an X and a Y in it.
 //
+// A TOKEN IS ALWAYS AN OBJECT AND THE DIALOG ASKS NOTHING ABOUT IT. It used to
+// ask two questions and both were wrong. The first was creature or object, and
+// a token is an object: it is a picture of a thing on the table -- a wagon, a
+// door, a crate -- and a creature is a monster out of the manual or a player's
+// character, both of which arrive with a stat line this dialog could never
+// collect. The second was how big, in cells, which asked the GM to measure by
+// eye something the assets row already records to the pixel. Both are gone, and
+// what is left is a search, a Players-see-it switch and a wall of pictures.
+//
+// SO THE ONLY STATE THE DIALOG COLLECTS IS VISIBILITY, and that one is a real
+// question with no answer anywhere else: whether the GM is putting a thing down
+// in front of the party or setting up the next room while they talk.
+//
 // IT IS TWO ROUTES, THE DIALOG AND THE RESULTS, and that is the shape the
 // asset manager and the map picker already have. A search that replaced the
 // whole dialog would replace the box being typed into, and the caret would jump
 // to the end of the field on every keystroke; a search that replaces the grid
-// alone does not. The kind switch replaces the whole dialog, because the
-// controls above the results are different for the two kinds.
+// alone does not. The kind switch still replaces the whole dialog rather than
+// the grid, because it changes the pressed button, the placeholder and the
+// empty state as well as the results.
 
 const (
 	// RoomSpawnMonsters and RoomSpawnTokens are the two halves of the dialog
@@ -50,7 +64,7 @@ type RoomSpawnData struct {
 }
 
 // RoomSpawnToken is one token in the library as its pick card needs it: a
-// picture and a name, which is all a token is.
+// picture, a name, and how big the picture is.
 type RoomSpawnToken struct {
 	ID   string
 	Name string
@@ -59,6 +73,33 @@ type RoomSpawnToken struct {
 	// place in this dialog where the picture IS the thing being chosen and an
 	// empty one is a card with nothing on it.
 	Image string
+
+	// Width and Height are the stored picture's own pixels, and the card
+	// carries them so that the ghost following the pointer is the size of the
+	// thing about to be placed.
+	//
+	// THE SERVER DOES NOT TRUST THEM BACK. They ride out to the client and the
+	// client draws with them; the pawn's actual size is read from the same
+	// assets row again when the spawn is resolved, so a browser that edited
+	// these has changed its own preview and nothing else.
+	Width  int
+	Height int
+}
+
+// WidthText and HeightText are the two data attributes the card prints. An
+// unknown dimension is an empty attribute rather than a zero, which is what
+// lets the client tell "this row predates the size columns" from "this token is
+// nothing wide" and fall back to one cell for the ghost.
+func (t RoomSpawnToken) WidthText() string { return pixelText(t.Width) }
+
+func (t RoomSpawnToken) HeightText() string { return pixelText(t.Height) }
+
+func pixelText(value int) string {
+	if value < 1 {
+		return ""
+	}
+
+	return strconv.Itoa(value)
 }
 
 // IsMonsters is the one question the markup asks of the kind.
@@ -80,12 +121,6 @@ func (d RoomSpawnData) Path(kind string) string {
 // carries no term: htmx appends the box's own value as q.
 func (d RoomSpawnData) ListPath() string {
 	return "/fragment/room/spawn-list?room=" + d.RoomID + "&kind=" + d.Kind
-}
-
-// PartyPath is the Spawn party button, which is a mutation and therefore a
-// resource URL rather than a fragment.
-func (d RoomSpawnData) PartyPath() string {
-	return "/rooms/" + d.RoomID + "/pawns/party"
 }
 
 // ResultsID is the element the search replaces.
@@ -115,9 +150,6 @@ func (d RoomSpawnData) NoMatch() string {
 // refuses past. It is the asset name limit because that is the longest thing
 // anybody could be searching for.
 func (d RoomSpawnData) SearchLimit() string { return strconv.Itoa(AssetNameLimit) }
-
-// FootprintMaxText is the object width and height inputs' max attribute.
-func (d RoomSpawnData) FootprintMaxText() string { return strconv.Itoa(FootprintCellsMax) }
 
 // EmptyHeading and EmptyBlurb are the two states of "there is nothing here",
 // which are different sentences and not one with a word swapped: an empty
@@ -163,10 +195,3 @@ func boolText(value bool) string {
 
 	return "false"
 }
-
-// Sizes is the six creature sizes, for the token view's size select. A token is
-// a picture and brings no size with it, so this is where one is chosen -- and
-// it is the only stat the dialog collects, because size decides the footprint
-// and therefore where a click actually puts the pawn. Hit points and armour
-// class are the pawn dialog's, filled in once the GM knows what the thing is.
-func (d RoomSpawnData) Sizes() []Option { return sizeOptions }

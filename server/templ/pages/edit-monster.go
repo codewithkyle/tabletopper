@@ -165,6 +165,15 @@ type MonsterDerived struct {
 //
 // A THIRD FRAME IS THE SHARED PAGE, which is the editor's panel with nothing
 // around it, and it is why Image below is a URL rather than an id.
+//
+// A FOURTH IS THE ROOM'S WINDOW, WHICH IS THE DIALOG MINUS ITS Close. A modal
+// must ship a labelled way out beside its affirmative action, so
+// MonsterStatBlockFragment ends in one; a window is dismissed by the corner
+// controls on its own title bar, and a second Close at the bottom of the block
+// scrolled with the content, sat under whatever the last legendary action was,
+// and closed nothing -- it fired modal:close at a modal that was not open. The
+// two frames are separate components rather than a flag because the difference
+// is which surface is asking, and only the surface knows.
 type StatBlock struct {
 	Name     string
 	Subtitle string

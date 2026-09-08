@@ -63,15 +63,15 @@ var ConditionNames = []string{
 // map to eight colours in each place, and the protocol validates the name.
 var ConditionColors = []string{"red", "orange", "yellow", "green", "blue", "purple", "pink", "white"}
 
-// FootprintCellsMax is the object footprint the form allows on one axis, and it
-// is room.FootprintMax written here rather than imported.
+// ObjectPixelsMax is the object size the form allows on one axis, in MAP
+// PIXELS, and it is room.ObjectPixelsMax written here rather than imported.
 //
 // THE PACKAGE IS NOT IMPORTED BY THE MARKUP ON PURPOSE. templ/pages renders
 // HTML and has no business holding a protocol type; what it needs is the number
 // the input's max attribute prints, and the core refuses anything past it
 // whatever this says. A test pins the two together so a change to one is a
 // failure rather than a form that accepts what the server will not.
-const FootprintCellsMax = 20
+const ObjectPixelsMax = 8_192
 
 // ConditionColorLabel is a colour name as the select prints it.
 func ConditionColorLabel(color string) string {
@@ -140,8 +140,9 @@ type RoomPawn struct {
 	// URL the canvas draws its sprite from.
 	Image string
 
-	// Object switches the whole shape of both surfaces: a footprint instead of
-	// a size, and no conditions at all, because a wagon cannot be poisoned.
+	// Object switches the whole shape of both surfaces: a picture's width and
+	// height instead of a creature size, and no conditions at all, because a
+	// wagon cannot be poisoned.
 	Object bool
 
 	// HP is "12 / 20" when the viewer is given numbers, and empty when they are
@@ -162,14 +163,16 @@ type RoomPawn struct {
 	// form's value. It is empty when the viewer was told nothing.
 	AC string
 
-	// Size is the label the panel prints and SizeValue is what the form's
-	// select is set to. Footprint is the object's sentence -- "2 by 4 cells" --
-	// and FootprintW and FootprintH are the two numbers its form takes.
-	Size       string
-	SizeValue  string
-	Footprint  string
-	FootprintW string
-	FootprintH string
+	// Size is the label the panel prints for a CREATURE and SizeValue is what
+	// the form's select is set to. Pixels is the same line for an OBJECT --
+	// "200 by 140 pixels" -- and Width and Height are the two numbers its form
+	// takes. The panel prints whichever of the two applies under one heading,
+	// because "how big is it" is one question with two kinds of answer.
+	Size      string
+	SizeValue string
+	Pixels    string
+	Width     string
+	Height    string
 
 	// Layer is the floor's name, which is worth showing because a pawn's panel
 	// can outlive the GM's view of the floor it stands on.
@@ -373,13 +376,15 @@ func PawnSizeText(size string) string {
 	return strings.ToUpper(size[:1]) + size[1:]
 }
 
-// PawnFootprintText is an object's rectangle, in cells.
-func PawnFootprintText(w int, h int) string {
+// PawnPixelsText is an object's rectangle, in map pixels. It is the creature
+// size line's opposite number: a wagon has no size category to print, so what
+// it prints instead is how large the picture on the table is.
+func PawnPixelsText(w int, h int) string {
 	if w <= 0 || h <= 0 {
 		return ""
 	}
 
-	return strconv.Itoa(w) + " by " + strconv.Itoa(h) + " cells"
+	return strconv.Itoa(w) + " by " + strconv.Itoa(h) + " pixels"
 }
 
 // PawnDurationText is a condition's remaining turns, and -1 is not a number

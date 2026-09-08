@@ -72,7 +72,7 @@ func TestMonsterHitPointsProjectByTheRoomsSetting(t *testing.T) {
 			for _, kind := range kinds {
 				p := Pawn{Kind: kind, Name: string(kind), Visible: true, HP: intp(5), MaxHP: intp(20), AC: intp(15)}
 				if kind == PawnObject {
-					p.FootprintW, p.FootprintH = 1, 1
+					p.Width, p.Height = DefaultCellSize, DefaultCellSize
 				}
 				w.spawn(p)
 			}

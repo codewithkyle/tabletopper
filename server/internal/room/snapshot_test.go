@@ -157,7 +157,7 @@ func busyWorld(t *testing.T) *world {
 	ari := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", X: 96, Y: 96, Visible: true, OwnerID: &testPlayerID, CharacterID: &testCharID, HP: intp(11), MaxHP: intp(14), AC: intp(16)})
 	goblin := w.spawn(Pawn{Kind: PawnMonster, Name: "Goblin", X: 160, Y: 96, Visible: true, HP: intp(3), MaxHP: intp(7), AC: intp(15), MonsterID: idp(testID(60))})
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Ambusher", X: 224, Y: 96, Visible: false, HP: intp(7), MaxHP: intp(7)})
-	w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", FootprintW: 2, FootprintH: 4, X: 128, Y: 128, Visible: true})
+	w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", Width: 128, Height: 256, X: 128, Y: 128, Visible: true})
 	w.spawn(Pawn{Kind: PawnNPC, Name: "Innkeeper", LayerID: cellar, Visible: true, HP: intp(4), MaxHP: intp(4)})
 
 	w.apply(&PawnSetConditions{ID: goblin, Conditions: []Condition{

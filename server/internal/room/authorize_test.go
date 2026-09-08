@@ -39,11 +39,12 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.setActiveLayer", &TableSetActiveLayer{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setGrid", &TableSetGrid{Grid: w.s.Table.Grid}, ok, CodeForbidden, CodeForbidden},
 		{"table.setOptions", &TableSetOptions{MonsterHP: HPExact}, ok, CodeForbidden, CodeForbidden},
+		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
 
-		// A player may place exactly one thing: the character they joined
-		// with, on the layer everybody is looking at. The other player is
-		// refused because it is not their character, not because of their role.
-		{"pawn.spawn", &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, CharacterID: &testCharID}, ok, ok, CodeForbidden},
+		// Putting something on the table is the GM's act, a player's own
+		// character included. They get one from the GM's Spawn pawns, which is
+		// pawn.spawnCharacters on the line below.
+		{"pawn.spawn", &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, CharacterID: &testCharID}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.spawnCharacters", &PawnSpawnCharacters{}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.move", &PawnMove{Anchor: fx.owned}, ok, ok, CodeForbidden},
 		{"pawn.drag", &PawnDrag{Anchor: fx.owned}, ok, ok, CodeForbidden},

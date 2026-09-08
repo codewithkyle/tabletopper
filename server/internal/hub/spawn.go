@@ -19,9 +19,10 @@ import (
 //
 // FOUR KINDS AND FOUR SOURCES. A monster comes from the GM's manual, a token
 // from the GM's library, a character from its owner's sheet, and an object from
-// the same library as a token with a rectangle instead of a size. What they
-// have in common is the shape of the answer and nothing else, which is why this
-// is four functions rather than one with a switch inside it.
+// the same library as a token with the picture's own pixel size instead of a
+// creature size. What they have in common is the shape of the answer and
+// nothing else, which is why this is four functions rather than one with a
+// switch inside it.
 //
 // WHAT IT DOES NOT DECIDE: where the pawn stands, which floor it is on, whether
 // players can see it, what its id is, or whether the actor is allowed any of
@@ -43,6 +44,20 @@ const (
 
 // resolveSpawn fills in the pawn behind one spawn command.
 func (h *Hub) resolveSpawn(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd *room.PawnSpawn) error {
+	// RESOLUTION RUNS BEFORE AUTHORIZATION, which is the price of running it
+	// off the room's goroutine, and this is where that ordering shows.
+	// PawnSpawn.Authorize is the GM and nobody else, so there is nothing here
+	// to look up for anybody else: leaving Pawn nil hands the refusal to
+	// Authorize, which says the right thing, and a forged spawn off a player's
+	// socket costs no query at all.
+	//
+	// EVERY RESOLVER BELOW THEREFORE ASSUMES THE GM, which is what lets each of
+	// them read the acting actor's own library -- the GM is the room's owner,
+	// so who.ID IS the manual and the asset list being searched.
+	if !who.GM() {
+		return nil
+	}
+
 	if h.queries == nil {
 		return notBuilt("Spawning is not ready", "This server cannot read the library.")
 	}
@@ -53,7 +68,7 @@ func (h *Hub) resolveSpawn(ctx context.Context, roomID ulid.ULID, who room.Actor
 	case room.PawnNPC:
 		return h.resolveToken(ctx, who, cmd)
 	case room.PawnObject:
-		return h.resolveObject(ctx, who, cmd)
+		return h.resolveObject(ctx, roomID, who, cmd)
 	case room.PawnPlayer:
 		return h.resolveCharacter(ctx, roomID, who, cmd)
 	}
@@ -65,9 +80,7 @@ func (h *Hub) resolveSpawn(ctx context.Context, roomID ulid.ULID, who room.Actor
 //
 // THE LIBRARY IS THE ASKER'S OWN, which is resolveMap's rule and holds for the
 // same reason: only the GM may put a monster on the table, and the GM is the
-// room's owner, so the acting actor's id IS the library being read. A player
-// who sends this reaches their own manual and is then refused by Authorize,
-// which tells them nothing they did not already own.
+// room's owner, so the acting actor's id IS the library being read.
 func (h *Hub) resolveMonster(ctx context.Context, who room.Actor, cmd *room.PawnSpawn) error {
 	if cmd.MonsterID == nil {
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "That spawn named no monster."}
@@ -131,14 +144,18 @@ func (h *Hub) resolveToken(ctx context.Context, who room.Actor, cmd *room.PawnSp
 // resolveObject places a token as a prop: a wagon, a boat, a door.
 //
 // NO STAT LINE AND NO CONDITIONS, which is the object kind's whole shape. Apply
-// clears the conditions and the size for an object and takes the footprint off
-// the command; what is left for this to supply is the picture and the name.
+// clears the conditions and the creature size for an object; what is left for
+// this to supply is the picture, the name and how big the picture is.
 //
-// THE FOOTPRINT IS NOT DEFAULTED HERE. A zero is a client that did not send
-// one, and the core refuses it in checkFootprint with a message about the
-// limit. Quietly making it a one-cell object would place something the person
-// did not ask for and give them nothing to notice.
-func (h *Hub) resolveObject(ctx context.Context, who room.Actor, cmd *room.PawnSpawn) error {
+// THE SIZE IS THE PICTURE'S AND NOBODY IS ASKED FOR IT. It used to come off the
+// wire, from two number fields in the spawn dialog, which asked the GM to
+// describe in cells a thing they were looking at -- and got it wrong whenever
+// the token was not authored against this table's grid. The assets row already
+// records what the picture is, so the answer is read rather than typed, and the
+// dialog has two fewer controls. A GM who wants it bigger drags the numbers in
+// the pawn's own dialog afterwards, which is where every other thing about a
+// pawn is changed.
+func (h *Hub) resolveObject(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd *room.PawnSpawn) error {
 	if cmd.AssetID == nil {
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "An object needs a picture from your library."}
 	}
@@ -153,21 +170,65 @@ func (h *Hub) resolveObject(ctx context.Context, who room.Actor, cmd *room.PawnS
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "That spawn named nothing to place."}
 	}
 
-	cmd.Pawn = &room.Pawn{Name: name, Image: imageURL(assetID(asset))}
+	width, height := pictureSize(asset)
+	if width == 0 || height == 0 {
+		cell := h.oneCell(ctx, roomID)
+		width, height = cell, cell
+	}
+
+	cmd.Pawn = &room.Pawn{Name: name, Image: imageURL(assetID(asset)), Width: width, Height: height}
 
 	return nil
 }
 
-// resolveCharacter places somebody's character.
+// pictureSize is how much table an object covers: the stored picture's own
+// dimensions, read as map pixels. Zero is "this row does not say".
 //
-// THE TWO ACTORS READ THE SHEET DIFFERENTLY AND BOTH ARE SCOPED. A player
-// reaches GetCharacter, which is scoped to them, so the only sheets they can
-// resolve are their own and Authorize then narrows that to the one they joined
-// with. The GM reaches GetCharacterForRoom, which is scoped to nothing at all
-// -- and the scope it is missing is supplied here, by looking the character up
-// in the room's own player list first. A character id nobody at this table
-// joined with is not found, whoever owns it.
-func (h *Hub) resolveCharacter(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd *room.PawnSpawn) error {
+// THE COLUMNS ARRIVED WITH THE TILING WORK and library rows written before it
+// never got them, so an absent answer is the handful of the developer's own
+// rather than a case worth an error message.
+func pictureSize(asset *queries.Asset) (int, int) {
+	if asset == nil || !asset.Width.Valid || !asset.Height.Valid {
+		return 0, 0
+	}
+	if asset.Width.Int32 < 1 || asset.Height.Int32 < 1 {
+		return 0, 0
+	}
+
+	return int(asset.Width.Int32), int(asset.Height.Int32)
+}
+
+// oneCell is what a picture of unknown size is placed at: one cell of THIS
+// table's grid.
+//
+// IT IS THE SAME FALLBACK THE SPAWN DIALOG DRAWS. The token card carries the
+// picture's pixels and leaves the attribute off when the row has none, and the
+// client then ghosts one cell -- so the thing under the pointer and the thing
+// that lands are the same size, which is the whole reason this reads the grid
+// rather than defaulting to 64 on its own.
+//
+// A ROOM THAT WILL NOT ANSWER FALLS BACK TO THE DEFAULT CELL, which is the only
+// number available when there is no room to ask.
+func (h *Hub) oneCell(ctx context.Context, roomID ulid.ULID) int {
+	view, ok := h.spawn(ctx, roomID)
+	if !ok {
+		return room.DefaultCellSize
+	}
+
+	return max(view.Grid.CellSize, 1)
+}
+
+// resolveCharacter places one player's character, which is the GM putting a
+// single late arrival on the map rather than the whole party -- the party is
+// resolveParty below.
+//
+// THE STATEMENT IS UNSCOPED AND THE ROOM SUPPLIES THE SCOPE. GetCharacterForRoom
+// takes an id and nothing else, because the sheet belongs to a player and the
+// person asking for it is the GM. What stands in for an owner check is the seat
+// lookup above it: a character id that nobody at this table joined with is not
+// found, whoever owns it, so the GM can reach exactly the sheets that walked
+// into their room and no others.
+func (h *Hub) resolveCharacter(ctx context.Context, roomID ulid.ULID, _ room.Actor, cmd *room.PawnSpawn) error {
 	if cmd.CharacterID == nil {
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "That spawn named no character."}
 	}
@@ -178,27 +239,6 @@ func (h *Hub) resolveCharacter(ctx context.Context, roomID ulid.ULID, who room.A
 	}
 
 	seat := seatFor(view.Players, *cmd.CharacterID)
-
-	if !who.GM() {
-		row, err := h.queries.GetCharacter(ctx, queries.GetCharacterParams{ID: *cmd.CharacterID, OwnerID: who.ID})
-		if err != nil {
-			return missing(err, "Character gone", "That character is no longer on your roster.")
-		}
-
-		cmd.Pawn = characterPawn(queries.GetCharacterForRoomRow{
-			ID:        row.ID,
-			OwnerID:   row.OwnerID,
-			Name:      row.Name,
-			Size:      row.Size,
-			AC:        row.AC,
-			CurrentHP: row.CurrentHP,
-			MaxHP:     row.MaxHP,
-			AssetID:   row.AssetID,
-		}, seat)
-
-		return nil
-	}
-
 	if seat == nil {
 		return &room.Error{Code: room.CodeNotFound, Heading: "Character gone", Message: "Nobody at this table joined with that character."}
 	}
@@ -213,8 +253,8 @@ func (h *Hub) resolveCharacter(ctx context.Context, roomID ulid.ULID, who room.A
 	return nil
 }
 
-// resolveParty is the Spawn party button: one pawn for everybody who is here
-// and has a character, and nobody twice.
+// resolveParty is the Tabletop menu's Spawn pawns: one pawn for everybody who
+// is here and has a character, and nobody twice.
 //
 // THE ROOM DECIDES WHO IS AT THE TABLE, not the request. There is nothing on
 // the wire to check, which is why this command has no fields: the player list
@@ -226,11 +266,10 @@ func (h *Hub) resolveCharacter(ctx context.Context, roomID ulid.ULID, who room.A
 // the party actually is. A layer with no map centres on the origin, which is
 // where the infinite grid's own centre is.
 func (h *Hub) resolveParty(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd *room.PawnSpawnCharacters) error {
-	// RESOLUTION RUNS BEFORE AUTHORIZATION, which is the price of running it
-	// off the room's goroutine, and this is where that ordering shows. A player
-	// pressing this would otherwise be told "everybody already has a pawn" --
-	// true, useless, and not the reason they were refused. Leaving Pawns nil
-	// hands the refusal to Authorize, which says the right thing.
+	// RESOLUTION RUNS BEFORE AUTHORIZATION, the same as resolveSpawn above. A
+	// player who forged this would otherwise be told "everybody already has a
+	// pawn" -- true, useless, and not the reason they were refused. Leaving
+	// Pawns nil hands the refusal to Authorize, which says the right thing.
 	if !who.GM() {
 		return nil
 	}

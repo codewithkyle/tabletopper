@@ -71,16 +71,42 @@ export function snapPoint(grid: Grid, footprintW: number, footprintH: number, x:
 	];
 }
 
-// footprintOf is how many cells a pawn stands on, per axis. It is
-// Pawn.Footprint in Go: a creature reads its size category and an object
-// carries a rectangle.
+// Sized is the part of a pawn that answers "how big is it": a creature by its
+// size category, an object by the pixel size of the picture on it.
+export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height">;
+
+// TINY_SCALE is how much of its cell a tiny creature is drawn at. It OCCUPIES
+// a whole cell, because half a cell is not a position any grid rule can
+// express, and a rat drawn the size of an ogre is not a rat.
+export const TINY_SCALE = 0.5;
+
+// footprintOf is how many CELLS a pawn stands on, per axis. It is
+// Pawn.Footprint in Go: a creature reads its size category, and an object
+// divides the picture's pixels by the cell size.
+//
+// IT IS THE SNAPPING LATTICE AND NOT THE DRAWN SIZE, which is the whole reason
+// it and pawnExtents are two functions. An object is DRAWN at the picture's own
+// pixels -- that is what makes a token look like the thing it is a picture of
+// -- and there is no such thing as half a cell of snapping parity, so the
+// lattice it lands on is the nearest whole number of cells to that.
+//
+// THE ROUNDING IS GO'S INTEGER ARITHMETIC AND NOT Math.round, for the reason
+// the note at the top of this file gives about snapPoint: the server does this
+// sum too, and the two must not disagree. (w + cell/2) / cell with both
+// divisions truncated is not Math.round(w / cell) once the cell size is odd.
 //
 // AN UNKNOWN SIZE IS ONE CELL rather than zero, because a zero footprint would
 // divide by nothing in the snapper and would make a pawn with a corrupt size
 // unplaceable rather than merely medium.
-export function footprintOf(pawn: Pick<Pawn, "kind" | "size" | "footprintW" | "footprintH">): [number, number] {
+export function footprintOf(pawn: Sized, cellSize: number): [number, number] {
 	if (pawn.kind === "object") {
-		return [Math.max(1, pawn.footprintW), Math.max(1, pawn.footprintH)];
+		const cell = Math.max(1, cellSize);
+		const half = Math.trunc(cell / 2);
+
+		return [
+			Math.max(1, Math.trunc((pawn.width + half) / cell)),
+			Math.max(1, Math.trunc((pawn.height + half) / cell)),
+		];
 	}
 
 	switch (pawn.size) {
@@ -95,10 +121,29 @@ export function footprintOf(pawn: Pick<Pawn, "kind" | "size" | "footprintW" | "f
 	}
 }
 
+// pawnExtents is how much floor a pawn covers, in map pixels, as half extents.
+// It is what the renderer sizes a quad with, what the hit test measures against
+// and what the selection ring is drawn round.
+//
+// AN OBJECT IS ITS PICTURE AND A CREATURE IS ITS CELLS. A wagon is as wide as
+// the wagon in the file, whatever the grid is set to; a goblin is one cell and
+// an ogre is two, whatever picture is on them.
+export function pawnExtents(pawn: Sized, cellSize: number): [number, number] {
+	if (pawn.kind === "object") {
+		return [Math.max(1, pawn.width) / 2, Math.max(1, pawn.height) / 2];
+	}
+
+	const cell = Math.max(1, cellSize);
+	const [w, h] = footprintOf(pawn, cell);
+	const scale = pawn.size === "tiny" ? TINY_SCALE : 1;
+
+	return [(w * cell * scale) / 2, (h * cell * scale) / 2];
+}
+
 // snapPawn is what a drag calls: it reads the footprint off the pawn so no
 // caller has to remember which axis takes which number.
-export function snapPawn(grid: Grid, pawn: Parameters<typeof footprintOf>[0], x: number, y: number): [number, number] {
-	const [w, h] = footprintOf(pawn);
+export function snapPawn(grid: Grid, pawn: Sized, x: number, y: number): [number, number] {
+	const [w, h] = footprintOf(pawn, grid.cellSize);
 
 	return snapPoint(grid, w, h, x, y);
 }

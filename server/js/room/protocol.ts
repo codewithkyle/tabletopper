@@ -107,8 +107,8 @@ export interface Pawn {
 	y: number;
 	z: number;
 	size: Size;
-	footprintW: number;
-	footprintH: number;
+	width: number;
+	height: number;
 	visible: boolean;
 	hp: number | null;
 	maxHp: number | null;
@@ -292,8 +292,6 @@ export interface PawnSpawn {
 	assetId?: string | null;
 	name?: string;
 	size?: Size;
-	footprintW?: number;
-	footprintH?: number;
 }
 
 export interface PawnSpawnCharacters {
@@ -311,8 +309,8 @@ export interface PawnUpdate {
 	ac?: number | null;
 	size?: Size | null;
 	z?: number | null;
-	footprintW?: number | null;
-	footprintH?: number | null;
+	width?: number | null;
+	height?: number | null;
 }
 
 export interface Ping {
@@ -373,6 +371,11 @@ export interface TableAddLayer {
 	type: "table.addLayer";
 	cid: string;
 	name: string;
+}
+
+export interface TableClear {
+	type: "table.clear";
+	cid: string;
 }
 
 export interface TableClearLayerMap {
@@ -454,6 +457,7 @@ export type Command =
 	| StrokeExtend
 	| SyncRequest
 	| TableAddLayer
+	| TableClear
 	| TableClearLayerMap
 	| TableMoveLayer
 	| TableRemoveLayer

@@ -22,8 +22,17 @@ import type { Modifiers, Tool } from "./render/input.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Point, Rect } from "./render/camera.ts";
 import { Selection, dragSet, marqueeSelect, mayMove } from "./selection.ts";
-import { cellAt, cellCentre, cellsMoved, distanceLabel, footprintOf, snapPawn, supercover } from "./render/path.ts";
-import { pawnExtents } from "./render/pawn-pass.ts";
+import type { Sized } from "./render/path.ts";
+import {
+	cellAt,
+	cellCentre,
+	cellsMoved,
+	distanceLabel,
+	footprintOf,
+	pawnExtents,
+	snapPawn,
+	supercover,
+} from "./render/path.ts";
 
 // DRAG_THRESHOLD is how far the hand moves before a press stops being a click,
 // in DEVICE pixels. Four is under a millimetre and above the jitter of a hand
@@ -94,19 +103,43 @@ export interface Ruler {
 	color: readonly [number, number, number];
 }
 
-// Armed is what placement will put down on the next click. It is what the spawn
-// dialog dispatches and what the player's own menu item dispatches, in one
-// shape, because the canvas does not care which.
+// Armed is what placement will put down on the next click, built by the spawn
+// dialog out of the card that was picked and the one switch above it.
+//
+// IT IS ONLY EVER THE GM'S. Putting something on the table is refused for
+// everybody else in PawnSpawn.Authorize, and the dialog that builds this is a
+// GM-only fragment, so a player's canvas is never armed.
 export interface Armed {
 	kind: PawnKind;
 	id: string;
 	name: string;
 	image: string;
 	visible: boolean;
+
+	// size is the creature size the ghost is drawn at, and it is ignored for an
+	// object -- which is measured in pixels below.
 	size: Size;
-	footprintW: number;
-	footprintH: number;
+
+	// width and height are the PICTURE'S own pixels for an object, and zero
+	// when the library row does not record them. Zero means one cell, which is
+	// the same fallback the hub applies when it resolves the spawn, so the
+	// ghost and the pawn that lands are the same size either way.
+	//
+	// THEY ARE NOT SENT. The spawn command carries no size at all: the hub
+	// reads the assets row again and takes the answer from there. These exist
+	// so the thing following the pointer is the thing about to be placed.
+	width: number;
+	height: number;
 }
+
+// Ghostable is the part of a pawn a ghost is built from. It is a Pick rather
+// than Pawn because the armed spec is not a pawn yet -- it has no id, no owner
+// and no floor -- and casting one into a Pawn to draw it was a lie the compiler
+// had to be talked out of.
+type Ghostable = Pick<
+	Drawn,
+	"id" | "kind" | "name" | "image" | "x" | "y" | "z" | "size" | "width" | "height"
+>;
 
 export interface TableDeps {
 	state: State;
@@ -224,7 +257,7 @@ export function createTable(deps: TableDeps): Table {
 		return p.layerId === deps.viewed();
 	}
 
-	function snapFor(p: Pawn, x: number, y: number): Point {
+	function snapFor(p: Sized, x: number, y: number): Point {
 		const [sx, sy] = snapPawn(grid(), p, Math.round(x), Math.round(y));
 		snapped.x = sx;
 		snapped.y = sy;
@@ -340,13 +373,12 @@ export function createTable(deps: TableDeps): Table {
 			return;
 		}
 
-		const footprint = armed.kind === "object"
-			? { footprintW: armed.footprintW, footprintH: armed.footprintH }
-			: { footprintW: 0, footprintH: 0 };
+		const point = snapFor(armedShape(armed, grid().cellSize), map.x, map.y);
 
-		const shape = { kind: armed.kind, size: armed.size, ...footprint };
-		const point = snapFor(shape as Pawn, map.x, map.y);
-
+		// NO SIZE FOR AN OBJECT AND NO FOOTPRINT FOR ANYTHING. What an object
+		// is, is the picture named by assetId, and how big it is, is a column
+		// beside that picture -- so there is nothing here for a browser to say
+		// about it and nothing for the server to have to distrust.
 		deps.send({
 			type: "pawn.spawn",
 			kind: armed.kind,
@@ -355,8 +387,6 @@ export function createTable(deps: TableDeps): Table {
 			y: point.y,
 			visible: armed.visible,
 			size: armed.kind === "object" ? undefined : armed.size,
-			footprintW: armed.kind === "object" ? armed.footprintW : undefined,
-			footprintH: armed.kind === "object" ? armed.footprintH : undefined,
 			monsterId: armed.kind === "monster" ? armed.id : undefined,
 			characterId: armed.kind === "player" ? armed.id : undefined,
 			assetId: armed.kind === "npc" || armed.kind === "object" ? armed.id || undefined : undefined,
@@ -573,7 +603,7 @@ export function createTable(deps: TableDeps): Table {
 		return { x1: active.from.x, y1: active.from.y, x2: active.to.x, y2: active.to.y };
 	}
 
-	function ghostOf(p: Pawn, x: number, y: number, out: Drawn[], count: number): number {
+	function ghostOf(p: Ghostable, x: number, y: number, out: Drawn[], count: number): number {
 		const slot = out[count] ?? (out[count] = blankDrawn());
 
 		slot.id = p.id;
@@ -584,8 +614,8 @@ export function createTable(deps: TableDeps): Table {
 		slot.y = y;
 		slot.z = p.z;
 		slot.size = p.size;
-		slot.footprintW = p.footprintW;
-		slot.footprintH = p.footprintH;
+		slot.width = p.width;
+		slot.height = p.height;
 		slot.hidden = false;
 		slot.dead = false;
 
@@ -654,18 +684,7 @@ export function createTable(deps: TableDeps): Table {
 
 			// And the thing placement is armed with, following the pointer.
 			if (armed && pointer) {
-				const shape = {
-					id: "armed",
-					kind: armed.kind,
-					name: armed.name,
-					image: armed.image,
-					z: 0,
-					size: armed.size,
-					footprintW: armed.kind === "object" ? armed.footprintW : 0,
-					footprintH: armed.kind === "object" ? armed.footprintH : 0,
-					visible: true,
-				} as unknown as Pawn;
-
+				const shape = armedShape(armed, grid().cellSize);
 				const point = snapFor(shape, pointer.x, pointer.y);
 				count = ghostOf(shape, point.x, point.y, out, count);
 			}
@@ -956,7 +975,28 @@ function blankDrawn(): Drawn {
 	return {
 		id: "", kind: "monster", name: "", image: "",
 		x: 0, y: 0, z: 0, size: "medium",
-		footprintW: 0, footprintH: 0, hidden: false, dead: false,
+		width: 0, height: 0, hidden: false, dead: false,
+	};
+}
+
+// armedShape is the armed spec as something that can be snapped, measured and
+// drawn. An object with no recorded picture size is one cell, which is what the
+// hub places it at.
+function armedShape(armed: Armed, cellSize: number): Ghostable {
+	const cell = Math.max(1, cellSize);
+	const object = armed.kind === "object";
+
+	return {
+		id: "armed",
+		kind: armed.kind,
+		name: armed.name,
+		image: armed.image,
+		x: 0,
+		y: 0,
+		z: 0,
+		size: armed.size,
+		width: object ? armed.width || cell : 0,
+		height: object ? armed.height || cell : 0,
 	};
 }
 

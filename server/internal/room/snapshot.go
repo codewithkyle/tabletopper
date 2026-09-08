@@ -18,7 +18,11 @@ import (
 // is a deploy that changed the shape. When a second schema exists, the answer
 // is a migration function per step and this constant is what selects it -- not
 // a best-effort decode, which is how a room comes back half-populated.
-const Schema = 1
+// SCHEMA 2 MOVED AN OBJECT'S SIZE FROM CELLS TO MAP PIXELS. footprintW and
+// footprintH became width and height, and a 2 that meant two cells would decode
+// as two pixels -- an invisible wagon rather than a decode error, which is
+// exactly the kind of failure a version number exists to turn into a loud one.
+const Schema = 2
 
 var (
 	// ErrEmpty is the column default. A room row is created with an empty JSON

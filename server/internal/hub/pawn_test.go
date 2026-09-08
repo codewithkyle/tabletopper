@@ -196,6 +196,30 @@ func TestResolvingAMonsterReadsTheGMsManual(t *testing.T) {
 	}
 }
 
+// A PLAYER'S SPAWN RESOLVES INTO NOTHING AND ASKS THE DATABASE NOTHING. Putting
+// something on the table is the GM's act -- PawnSpawn.Authorize refuses
+// everybody else -- and Authorize runs AFTER resolution, so without the early
+// return this half would go and read a manual on behalf of a command that is
+// about to be thrown away.
+//
+// THE STUB IS THE PROOF. It holds the same row that builds a Goblin for the GM
+// in the test above; a player gets no pawn out of it and no error either, because
+// the refusal is not this half's to give and "not found" would be the wrong
+// thing to say about a monster that is right there.
+func TestAPlayersSpawnIsResolvedIntoNothing(t *testing.T) {
+	h := stubbedHub(t, monsterRow(testID(8)))
+
+	cmd := &room.PawnSpawn{Kind: room.PawnMonster, MonsterID: &monsterID}
+	who := room.Actor{ID: playerID, Role: room.RolePlayer}
+
+	if err := h.resolveSpawn(context.Background(), testID(1), who, cmd); err != nil {
+		t.Fatalf("a player's spawn was refused during resolution: %v", err)
+	}
+	if cmd.Pawn != nil {
+		t.Errorf("a player's spawn built %+v; the refusal belongs to Authorize", cmd.Pawn)
+	}
+}
+
 // A monster nobody at this table owns is not found rather than forbidden. The
 // statement is scoped to the asker, so another GM's manual matches nothing --
 // and "not found" is the honest answer, because to this GM it does not exist.
@@ -255,8 +279,8 @@ func TestObjectTakesTheAssetsNameWhenBlank(t *testing.T) {
 	asset := testID(9)
 	h := stubbedHub(t, tokenRow(asset, "Ox-drawn wagon"))
 
-	cmd := &room.PawnSpawn{Kind: room.PawnObject, AssetID: &asset, FootprintW: 2, FootprintH: 4}
-	if err := h.resolveObject(context.Background(), room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
+	cmd := &room.PawnSpawn{Kind: room.PawnObject, AssetID: &asset}
+	if err := h.resolveObject(context.Background(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
 		t.Fatalf("resolution failed: %v", err)
 	}
 
@@ -264,7 +288,27 @@ func TestObjectTakesTheAssetsNameWhenBlank(t *testing.T) {
 		t.Errorf("name = %q, want the asset's own", cmd.Pawn.Name)
 	}
 	if cmd.Pawn.HP != nil || cmd.Pawn.AC != nil || cmd.Pawn.Conditions != nil {
-		t.Error("an object was given a stat line; it has a footprint and a picture and nothing else")
+		t.Error("an object was given a stat line; it has a size and a picture and nothing else")
+	}
+}
+
+// AN OBJECT IS THE SIZE OF ITS PICTURE, and the spawn command says nothing
+// about it. This is the whole of what replaced the two cell-count fields the
+// dialog used to carry: the row that holds the picture holds its dimensions,
+// and those are what land on the table.
+func TestAnObjectIsTheSizeOfItsPicture(t *testing.T) {
+	asset := testID(9)
+	h := stubbedHub(t, tokenRow(asset, "Ox-drawn wagon"))
+
+	cmd := &room.PawnSpawn{Kind: room.PawnObject, AssetID: &asset}
+	if err := h.resolveObject(context.Background(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
+		t.Fatalf("resolution failed: %v", err)
+	}
+
+	// tokenRow's picture is 512 by 171, which is the shape a wagon is stored
+	// at; nothing about the room's grid comes into it.
+	if cmd.Pawn.Width != 512 || cmd.Pawn.Height != 171 {
+		t.Errorf("the wagon is %dx%d, want the picture's 512x171", cmd.Pawn.Width, cmd.Pawn.Height)
 	}
 }
 
@@ -273,8 +317,8 @@ func TestObjectTakesTheAssetsNameWhenBlank(t *testing.T) {
 func TestObjectWithNoAssetIsRefused(t *testing.T) {
 	h := stubbedHub(t, noRows())
 
-	cmd := &room.PawnSpawn{Kind: room.PawnObject, FootprintW: 2, FootprintH: 4}
-	err := h.resolveObject(context.Background(), room.Actor{ID: gmID, Role: room.RoleGM}, cmd)
+	cmd := &room.PawnSpawn{Kind: room.PawnObject}
+	err := h.resolveObject(context.Background(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, cmd)
 
 	refusal, ok := err.(*room.Error)
 	if !ok || refusal.Code != room.CodeInvalid {

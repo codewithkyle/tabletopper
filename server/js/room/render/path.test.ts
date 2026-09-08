@@ -18,6 +18,7 @@ import {
 	distanceLabel,
 	feetMoved,
 	footprintOf,
+	pawnExtents,
 	snapAxis,
 	snapPawn,
 	snapPoint,
@@ -108,10 +109,10 @@ test("snapPoint takes each axis separately", () => {
 });
 
 test("snapPawn reads the footprint off the pawn", () => {
-	const large = { kind: "monster" as const, size: "large" as const, footprintW: 0, footprintH: 0 };
+	const large = { kind: "monster" as const, size: "large" as const, width: 0, height: 0 };
 	assert.deepEqual(snapPawn(grid(), large, 100, 100), [128, 128]);
 
-	const wagon = { kind: "object" as const, size: "medium" as const, footprintW: 2, footprintH: 3 };
+	const wagon = { kind: "object" as const, size: "medium" as const, width: 128, height: 192 };
 	assert.deepEqual(snapPawn(grid(), wagon, 100, 100), [128, 96]);
 });
 
@@ -122,9 +123,9 @@ test("an impossible grid leaves the coordinate alone", () => {
 	assert.equal(snapAxis(0, 0, 1, "cells", 100), 100);
 });
 
-test("a creature's footprint is its size and an object's is its rectangle", () => {
+test("a creature's footprint is its size and an object's is its picture", () => {
 	const creature = (size: Grid extends never ? never : string) =>
-		footprintOf({ kind: "monster", size: size as never, footprintW: 0, footprintH: 0 });
+		footprintOf({ kind: "monster", size: size as never, width: 0, height: 0 }, 64);
 
 	assert.deepEqual(creature("tiny"), [1, 1]);
 	assert.deepEqual(creature("medium"), [1, 1]);
@@ -136,9 +137,46 @@ test("a creature's footprint is its size and an object's is its rectangle", () =
 	// footprint divides by nothing in the snapper.
 	assert.deepEqual(creature("colossal"), [1, 1]);
 
+	const object = (w: number, h: number) =>
+		footprintOf({ kind: "object", size: "medium", width: w, height: h }, 64);
+
+	// A picture that is a whole number of cells is that many cells.
+	assert.deepEqual(object(128, 256), [2, 4]);
+
+	// AND ONE THAT IS NOT ROUNDS TO THE NEAREST, which is the lattice it snaps
+	// against rather than the size it is drawn at: 100 pixels is two cells of
+	// parity and is still drawn 100 pixels wide.
+	assert.deepEqual(object(100, 100), [2, 2]);
+	assert.deepEqual(object(90, 90), [1, 1]);
+
+	// A picture smaller than a cell still stands on one.
+	assert.deepEqual(object(8, 8), [1, 1]);
+});
+
+// pawnExtents is the DRAWN size, and it is where a creature and an object part
+// company: a goblin is its cell whatever picture is on it, and a wagon is its
+// picture whatever the grid is set to.
+test("an object is drawn at its picture's size and a creature at its cell's", () => {
 	assert.deepEqual(
-		footprintOf({ kind: "object", size: "medium", footprintW: 2, footprintH: 4 }),
-		[2, 4],
+		pawnExtents({ kind: "object", size: "medium", width: 100, height: 40 }, 64),
+		[50, 20],
+	);
+
+	assert.deepEqual(
+		pawnExtents({ kind: "monster", size: "large", width: 0, height: 0 }, 64),
+		[64, 64],
+	);
+
+	// A tiny creature OCCUPIES a whole cell and is drawn at half of one.
+	assert.deepEqual(
+		pawnExtents({ kind: "monster", size: "tiny", width: 0, height: 0 }, 64),
+		[16, 16],
+	);
+
+	// An object with no picture size is not drawn at nothing.
+	assert.deepEqual(
+		pawnExtents({ kind: "object", size: "medium", width: 0, height: 0 }, 64),
+		[0.5, 0.5],
 	);
 });
 

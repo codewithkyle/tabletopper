@@ -83,6 +83,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"stat-block-fragment": func() error {
 			return render(MonsterStatBlockFragment(testStatBlock()))
 		},
+		"stat-block-panel": func() error {
+			return render(MonsterStatBlockPanel(testStatBlock()))
+		},
 		"assets": func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
 		// The map page with nothing on it, because the empty state is markup
 		// the populated one does not reach.

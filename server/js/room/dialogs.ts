@@ -1,68 +1,49 @@
 // The spawn dialog's own behaviour, and the bridge from it to the canvas.
 //
-// THE DIALOG IS SERVER-RENDERED AND THIS IS THE THREE THINGS IT CANNOT BE. Its
-// search, its Spawn party button and its Close are ordinary htmx; what needs a
-// script is reading the controls above the results when a card is clicked,
-// showing the object fields instead of the size when the kind changes, and
-// handing the answer to the renderer.
+// THE DIALOG IS SERVER-RENDERED AND THIS IS THE ONE THING IT CANNOT BE. Its
+// search, its kind switch and its Close are ordinary htmx; what needs a script
+// is turning the card that was clicked into an armed spec and handing that to
+// the renderer.
 //
-// ARMING CROSSES BUNDLES AS A WINDOW EVENT, which is the shape the View menu
-// already uses: public/js/room.js and this module are in different bundles and
-// cannot import each other, so `room:arm` is the contract and it is spelled out
-// in both. The player's own "Place my pawn" comes from the menu bar through the
-// same event, which is why the canvas does not care which raised it.
+// IT USED TO ASK THE GM TWO MORE QUESTIONS AND BOTH ARE GONE. A token was
+// creature-or-object with a size or a pair of cell counts beside it; a token is
+// an object, and how big it is, is the size of the picture, which the card now
+// carries as two data attributes and the server reads again for itself. What is
+// left of the controls is the Players-see-it switch.
 //
-// NO CLASS NAME IS WRITTEN HERE. server/js is not a Tailwind source; the object
-// fields are toggled with [hidden] and the pressed state with aria-pressed,
-// both of which are rendered in templ.
+// ARMING IS A DIRECT CALL AND NO LONGER A WINDOW EVENT. It used to cross
+// bundles as `room:arm`, because the menu bar in public/js/room.js armed the
+// canvas with a player's own character and could not import this module. That
+// item is gone -- putting something on the table is the GM's act, and the GM's
+// only way in is this dialog, which is in the same bundle as the canvas -- so
+// the event had one raiser fewer than it had listeners and was removed rather
+// than left as a hook nothing pulls.
+//
+// NO CLASS NAME IS WRITTEN HERE. server/js is not a Tailwind source, and after
+// the two questions went there is nothing left in this file that touches
+// presentation at all.
 
 import type { Armed } from "./pawns.ts";
 import type { Size } from "./protocol.ts";
 
-// ARM_EVENT is the contract. It is also named in public/js/room.js, which
-// raises it for the player's own character.
-export const ARM_EVENT = "room:arm";
+// ARMED_SIZE is the creature size a ghost is drawn at before the server has
+// said what the thing actually is. A monster's real size is a column in the
+// manual, which this dialog's cards do not carry and the spawn does not send --
+// the hub reads it when it resolves -- so the pointer carries a one-cell disc
+// until the pawn lands.
+const ARMED_SIZE: Size = "medium";
 
 export interface Arming {
 	stop(): void;
 }
 
-// mountDialogs wires the document once. Every listener is delegated, because
-// the spawn dialog arrives in a modal swap and its cards arrive in a second
-// swap inside that one.
+// mountDialogs wires the document once. The listener is delegated, because the
+// spawn dialog arrives in a modal swap and its cards arrive in a second swap
+// inside that one.
 export function mountDialogs(arm: (armed: Armed | null) => void): Arming {
-	function onArm(e: Event): void {
-		const detail = (e as CustomEvent<Partial<Armed> | null>).detail;
-		if (!detail || !detail.kind) {
-			arm(null);
-
-			return;
-		}
-
-		arm({
-			kind: detail.kind,
-			id: detail.id ?? "",
-			name: detail.name ?? "",
-			image: detail.image ?? "",
-			visible: detail.visible ?? true,
-			size: detail.size ?? "medium",
-			footprintW: detail.footprintW ?? 1,
-			footprintH: detail.footprintH ?? 1,
-		});
-	}
-
-	// A card arms and closes. The kind comes from the card for a monster and
-	// from the Creature-or-Object switch for a token, because a token is a
-	// picture and what it becomes is the GM's choice rather than the library's.
+	// A card arms and closes.
 	function onClick(e: MouseEvent): void {
 		if (!(e.target instanceof Element)) {
-			return;
-		}
-
-		const kindSwitch = e.target.closest("[data-spawn-as]");
-		if (kindSwitch instanceof HTMLElement) {
-			chooseKind(kindSwitch);
-
 			return;
 		}
 
@@ -80,64 +61,34 @@ export function mountDialogs(arm: (armed: Armed | null) => void): Arming {
 		window.dispatchEvent(new CustomEvent("modal:close"));
 	}
 
-	function chooseKind(pressed: HTMLElement): void {
-		const dialog = pressed.closest("#room-spawn");
-		if (!(dialog instanceof HTMLElement)) {
-			return;
-		}
-
-		const object = pressed.dataset.spawnAs === "object";
-
-		for (const button of dialog.querySelectorAll("[data-spawn-as]")) {
-			button.setAttribute("aria-pressed", String(button === pressed));
-		}
-		for (const field of dialog.querySelectorAll("[data-spawn-creature]")) {
-			(field as HTMLElement).hidden = object;
-		}
-		for (const field of dialog.querySelectorAll("[data-spawn-object]")) {
-			(field as HTMLElement).hidden = !object;
-		}
-	}
-
-	window.addEventListener(ARM_EVENT, onArm);
 	document.addEventListener("click", onClick);
 
 	return {
 		stop() {
-			window.removeEventListener(ARM_EVENT, onArm);
 			document.removeEventListener("click", onClick);
 		},
 	};
 }
 
-// read builds the armed spec out of the card and the controls above it.
+// read builds the armed spec out of the card and the one switch above it.
+//
+// A MONSTER IS A CREATURE AND A TOKEN IS AN OBJECT, which is the whole of the
+// kind decision now. A creature is something with a stat line -- a monster from
+// the manual or a player's character -- and a token is a picture of a thing:
+// a wagon, a door, a crate.
 function read(dialog: HTMLElement, card: HTMLElement): Armed {
-	const source = card.dataset.spawnSource ?? "monster";
-	const object = pressedKind(dialog) === "object";
-
-	// A monster is always a creature; a token is whichever the switch says.
-	const kind = source === "monster" ? "monster" : object ? "object" : "npc";
+	const monster = (card.dataset.spawnSource ?? "monster") === "monster";
 
 	return {
-		kind,
+		kind: monster ? "monster" : "object",
 		id: card.dataset.spawnId ?? "",
 		name: card.dataset.spawnName ?? "",
 		image: card.querySelector("img")?.getAttribute("src") ?? "",
 		visible: checked(dialog, "[data-spawn-shown]"),
-		size: (value(dialog, "[data-spawn-size]") || "medium") as Size,
-		footprintW: number(dialog, "[data-spawn-width]"),
-		footprintH: number(dialog, "[data-spawn-height]"),
+		size: ARMED_SIZE,
+		width: pixels(card.dataset.spawnWidth),
+		height: pixels(card.dataset.spawnHeight),
 	};
-}
-
-function pressedKind(dialog: HTMLElement): string {
-	for (const button of dialog.querySelectorAll("[data-spawn-as]")) {
-		if (button.getAttribute("aria-pressed") === "true") {
-			return (button as HTMLElement).dataset.spawnAs ?? "creature";
-		}
-	}
-
-	return "creature";
 }
 
 function checked(dialog: HTMLElement, selector: string): boolean {
@@ -146,14 +97,11 @@ function checked(dialog: HTMLElement, selector: string): boolean {
 	return found instanceof HTMLInputElement ? found.checked : true;
 }
 
-function value(dialog: HTMLElement, selector: string): string {
-	const found = dialog.querySelector(selector);
+// pixels reads one of the card's size attributes. Zero is "the library row does
+// not say", which the canvas draws as one cell -- the same answer the hub gives
+// the pawn itself.
+function pixels(value: string | undefined): number {
+	const parsed = Number.parseInt(value ?? "", 10);
 
-	return found instanceof HTMLSelectElement || found instanceof HTMLInputElement ? found.value : "";
-}
-
-function number(dialog: HTMLElement, selector: string): number {
-	const parsed = Number.parseInt(value(dialog, selector), 10);
-
-	return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }

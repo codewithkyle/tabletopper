@@ -81,9 +81,11 @@ const (
 	// per-command cost stops being flat.
 	SelectionMax = 200
 
-	// FootprintMax is an object's size on one axis, in cells. Twenty cells is a
-	// hundred feet of ship.
-	FootprintMax = 20
+	// ObjectPixelsMax is an object's size on one axis, in MAP PIXELS. An object
+	// is drawn at the size of the picture behind it rather than at a whole
+	// number of cells, so the bound is on pictures: 8192 is past anything
+	// anybody draws a wagon at, and a picture larger than that is a map.
+	ObjectPixelsMax = 8_192
 
 	// InitiativeMax is entries in the tracker. A round with two hundred turns
 	// in it is not a round.
@@ -272,10 +274,10 @@ func checkCondition(c Condition) error {
 	return nil
 }
 
-// checkFootprint validates an object's rectangle.
-func checkFootprint(w, h int) error {
-	if w < 1 || w > FootprintMax || h < 1 || h > FootprintMax {
-		return invalid("Bad footprint", fmt.Sprintf("An object is between 1 and %d cells on each side.", FootprintMax))
+// checkObjectSize validates an object's rectangle, in map pixels.
+func checkObjectSize(w, h int) error {
+	if w < 1 || w > ObjectPixelsMax || h < 1 || h > ObjectPixelsMax {
+		return invalid("Bad size", fmt.Sprintf("An object is between 1 and %d pixels on each side.", ObjectPixelsMax))
 	}
 
 	return nil

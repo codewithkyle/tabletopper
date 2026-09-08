@@ -133,22 +133,42 @@ func TestFootprintCoversCreaturesAndObjects(t *testing.T) {
 		SizeLarge: 2, SizeHuge: 3, SizeGargantuan: 4,
 	}
 	for size, want := range sizes {
-		w, h := Pawn{Kind: PawnMonster, Size: size}.Footprint()
+		w, h := Pawn{Kind: PawnMonster, Size: size}.Footprint(DefaultCellSize)
 		if w != want || h != want {
 			t.Fatalf("a %s creature stands on %dx%d cells, want %dx%d", size, w, h, want, want)
 		}
 	}
 
-	w, h := Pawn{Kind: PawnObject, FootprintW: 2, FootprintH: 4}.Footprint()
-	if w != 2 || h != 4 {
-		t.Fatalf("a 2x4 object reports %dx%d", w, h)
+	// A CREATURE IGNORES THE CELL SIZE AND AN OBJECT IS DIVIDED BY IT, which is
+	// the whole difference between a size category and a picture.
+	w, h := Pawn{Kind: PawnMonster, Size: SizeLarge}.Footprint(100)
+	if w != 2 || h != 2 {
+		t.Fatalf("a large creature on a 100-pixel grid reports %dx%d, want 2x2", w, h)
 	}
 
-	// An object that somehow reached the state with a zero footprint reports 1
-	// rather than 0, because zero would divide by nothing in the snapper.
-	w, h = Pawn{Kind: PawnObject}.Footprint()
+	w, h = Pawn{Kind: PawnObject, Width: 128, Height: 256}.Footprint(DefaultCellSize)
+	if w != 2 || h != 4 {
+		t.Fatalf("a 128x256 object on a 64-pixel grid reports %dx%d, want 2x4", w, h)
+	}
+
+	// A picture that is not a whole number of cells rounds to the nearest, and
+	// it is the lattice it snaps against rather than the size it is drawn at.
+	w, h = Pawn{Kind: PawnObject, Width: 100, Height: 90}.Footprint(DefaultCellSize)
+	if w != 2 || h != 1 {
+		t.Fatalf("a 100x90 object on a 64-pixel grid reports %dx%d, want 2x1", w, h)
+	}
+
+	// An object that somehow reached the state with no size at all reports 1
+	// rather than 0, because zero would divide by nothing in the snapper. So
+	// does one on a grid with no cells.
+	w, h = Pawn{Kind: PawnObject}.Footprint(DefaultCellSize)
 	if w != 1 || h != 1 {
-		t.Fatalf("a zero footprint reports %dx%d, want 1x1", w, h)
+		t.Fatalf("a sizeless object reports %dx%d, want 1x1", w, h)
+	}
+
+	w, h = Pawn{Kind: PawnObject, Width: 128, Height: 128}.Footprint(0)
+	if w != 128 || h != 128 {
+		t.Fatalf("an impossible grid reports %dx%d, want 128x128", w, h)
 	}
 }
 

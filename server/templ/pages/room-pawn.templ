@@ -41,12 +41,10 @@ templ RoomPawnFragment(data RoomPawnData) {
 					<span class="text-base-content/40">Unknown</span>
 				}
 			}
-			if data.Pawn.Object {
-				@pawnStat("Footprint") {
-					{ data.Pawn.Footprint }
-				}
-			} else {
-				@pawnStat("Size") {
+			@pawnStat("Size") {
+				if data.Pawn.Object {
+					{ data.Pawn.Pixels }
+				} else {
 					{ data.Pawn.Size }
 				}
 			}

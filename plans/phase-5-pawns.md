@@ -167,7 +167,8 @@ from what the sections below sketch:
   lied about it would build a selection whose every move came back forbidden.
 - **A player's `Place my pawn` arms rather than opening a dialog**, and raises
   the same `room:arm` event the spawn dialog does. There is nothing to choose:
-  they joined with one character and the only question is where.
+  they joined with one character and the only question is where. *(Reverted in
+  the rework below: players no longer place pawns at all.)*
 
 **Three integration bugs, all found by wiring rather than by tests.** Moving the
 hand from a pawn toward its own Details button fires `pointerleave` on the
@@ -190,15 +191,94 @@ row, `max-w-64`, `pointer-events-auto` on its two interactive blocks -- the root
 is `pointer-events-none` so it does not take clicks from the table underneath --
 and `will-change-transform`.
 
+### Rework 1, spawning is the GM's (2026-09-08)
+
+The first pass gave a player a live `Place my pawn` and made the GM's `Spawn
+pawns` open a dialog. Both were wrong and both are gone.
+
+- **`Spawn pawns` posts and opens nothing.** It is `POST
+  /rooms/{id}/pawns/party`, which is the `pawn.spawnCharacters` command that
+  already existed: a pawn at the centre of the map for everybody connected who
+  joined with a character and has none yet. There was never anything to ask --
+  the roster and which characters are already down are both room state, read by
+  the hub when it resolves -- so the dialog it used to open was four clicks
+  around a question with one answer. The GM drags them where the party actually
+  is, which is one gesture.
+- **The library dialog kept its own item, `Spawn from library`.** Monsters and
+  tokens still need somewhere to come from, and that half of the dialog was
+  working; renaming its entry rather than deleting it leaves the decision about
+  where it eventually lives open. Its own `Spawn party` button is gone, because
+  the menu item now owns that act and one act with two buttons is one that will
+  drift.
+- **A player's Tabletop menu is five disabled lines.** Putting something on the
+  table is the GM's act, and nothing under Tabletop is a player's.
+- **`PawnSpawn.Authorize` is GM-only, which is the half that matters.** The
+  allowance for a player's own character was REMOVED rather than merely hidden:
+  the socket takes commands from whoever is connected, so a rule that only a
+  missing button enforces is not a rule. `requirePlayerLayer` went with it (a
+  no-op for the GM), as did `Apply`'s "a player's pawn belongs to whoever placed
+  it" branch, which nothing can now reach.
+- **Resolution bails out for a non-GM before it touches the database.**
+  Resolution runs BEFORE authorization -- the price of running it off the room's
+  goroutine -- so without the early return a forged spawn off a player's socket
+  would read a manual on behalf of a command about to be refused.
+  `resolveCharacter` lost its whole player branch with it.
+- **`room:arm` is gone as a window event.** It existed because the menu bar in
+  `public/js/room.js` armed the canvas and could not import `dialogs.ts`. With
+  that item gone the only thing that arms is the dialog, which is in the same
+  bundle as the canvas, so arming is a direct call and the event is not left
+  behind as a hook nothing pulls. `RoomPageData.CharacterID` went with it.
+
+The scenario fixture changed by three lines: the GM places Ari's character
+instead of Ari, so the `by` on that `pawn.spawned` is the GM's id and two step
+names read differently.
+
+### Rework 2, the picture decides, and the table can be cleared (2026-09-08)
+
+Five items, of which two are the same change: a token stops being asked about.
+
+- **A window's title bar can shrink.** A long pawn name pushed the minimize,
+  maximize and close controls past the window's right edge, where the section's
+  `overflow-hidden` cut them off and the window could not be closed. The bar is
+  a row of a grid whose column is sized `auto`, so the column's floor was the
+  bar's own min-content width -- and the heading's `white-space: nowrap`, which
+  is half of `truncate`, made that the whole title. `min-w-0` on the bar makes
+  its automatic minimum size zero and the heading truncates as intended.
+  Reproduced and confirmed in a headless browser before and after.
+- **The token half of the spawn dialog asks nothing.** The Creature-or-Object
+  switch is gone -- a token is an object, a picture of a thing on the table, and
+  a creature is a monster out of the manual or a player's character -- and so
+  are the creature-size select and the two cell-count inputs. What is left is a
+  search, a Players-see-it switch and a wall of pictures.
+- **An object is drawn at the size of its picture, in map pixels.**
+  `Pawn.FootprintW`/`FootprintH`, which were CELLS, became `Pawn.Width`/`Height`
+  in MAP PIXELS; `Pawn.Footprint` now takes the cell size and rounds, and is the
+  snapping lattice rather than the drawn size. `PawnSpawn` lost its size fields
+  entirely: the assets row holds the picture's dimensions, so the hub reads them
+  in `resolveObject` and there is nothing for a browser to say about it. The
+  pawn's own dialog still lets the GM override it, now in pixels. `Schema` went
+  to 2, because a 2 that meant two cells would decode as two pixels -- an
+  invisible wagon rather than a decode error.
+- **The stat block in a window has no `Close`.** The one at the bottom fired
+  `modal:close` at a modal that was not open. `MonsterStatBlockPanel` is the
+  dialog's frame minus its footer; the modal keeps its `Close`, because a modal
+  must ship a labelled way out and a window is dismissed by its own title bar.
+- **`Clear tabletop` works.** `table.clear` empties every layer's map, every
+  pawn, all the fog, all the drawing and the tracker, in one command. The floors
+  themselves stay -- a room needs at least one -- and so does the grid. It emits
+  one `pawn.removed` per pawn rather than an event of its own, which is what
+  removing a populated layer already sends, so every open panel already does the
+  right thing with it. It is the only item in the Tabletop menu behind a
+  confirmation, and the confirmation names what goes.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and
-  clicks the map to place it, again and again until Escape. A token can be
-  placed as a creature or as an object with a rectangular footprint, such as a
-  two by four wagon. A Visible toggle decides whether players see it appear.
-  Spawn party places a pawn for every connected player who joined with a
-  character.
-- A player who joined with a character can place their own pawn.
+  clicks the map to place it, again and again until Escape. A Visible toggle
+  decides whether players see it appear. *(Reworked above: a token is always an
+  object and is drawn at its picture's size; the dialog asks for neither.)*
+- Spawn pawns places a pawn for every connected player who joined with a
+  character. *(Reworked above: it is the GM's alone and opens nothing.)*
 - Anyone selects pawns they may move: click one, Shift-click to add, or drag a
   marquee over several. Dragging a selected pawn drags the whole selection as
   one. Dragging a wagon carries the pawns standing on it without selecting
@@ -213,8 +293,9 @@ and `will-change-transform`.
   as the viewer may see them, armour class and conditions, with buttons for
   the edit dialog and the stat block; for several, the count and a Remove
   button for the GM.
-- The pawn dialog edits name, HP with arithmetic input, max HP, AC, size or
-  footprint, layer, visibility, and conditions with colour and duration.
+- The pawn dialog edits name, HP with arithmetic input, max HP, AC, a creature
+  size or an object's width and height in pixels, layer, visibility, and
+  conditions with colour and duration.
 - Every pawn lives on one layer. The canvas shows the viewed layer's pawns;
   spawns land on the layer the spawner is viewing; the GM moves pawns between
   layers from the pawn dialog's layer select or the selection overlay's Move

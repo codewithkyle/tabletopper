@@ -305,10 +305,34 @@ func TestSpawningThePartyIsRefusedForAPlayer(t *testing.T) {
 		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
 	}
 
-	// AND IT DOES NOT CLOSE A MODAL ON THE WAY OUT. A failure leaves the dialog
-	// open on the thing that needs fixing, which is the rule every form in this
-	// app follows.
-	if trigger := rec.Header().Get("HX-Trigger"); strings.Contains(trigger, "modal:close") {
-		t.Errorf("a refused spawn closed the dialog: %q", trigger)
+	// THE REFUSAL IS THE ALERT AND NOTHING ELSE. This route answers a menu item
+	// rather than a dialog, so there is no modal to dismiss on the way out --
+	// and a modal:close in the same header would clobber the alert, which is
+	// the whole reason internal/htmx owns HX-Trigger rather than the handlers.
+	trigger := rec.Header().Get("HX-Trigger")
+	if !strings.Contains(trigger, "Only the GM") {
+		t.Errorf("the refusal did not reach the alert modal: %q", trigger)
+	}
+	if strings.Contains(trigger, "modal:close") {
+		t.Errorf("a refused spawn closed a dialog: %q", trigger)
+	}
+}
+
+// CLEARING THE TABLETOP IS THE GM'S AND THE ROUTE IS NOT THE RULE. The menu
+// item is disabled for a player, which is a courtesy to somebody who cannot
+// press it; the refusal is TableClear.Authorize, which runs against a role
+// derived from the rooms row whether or not a button was drawn.
+func TestClearingTheTabletopIsRefusedForAPlayer(t *testing.T) {
+	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+
+	rec := tableRequest(t, app.ClearTabletop, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/tabletop/clear",
+		map[string]string{"id": testRoomID.String()}, url.Values{}, memberSession(testRoomID))
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
+	}
+	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "Only the GM") {
+		t.Errorf("the refusal did not reach the alert modal: %q", trigger)
 	}
 }

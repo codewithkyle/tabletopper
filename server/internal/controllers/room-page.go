@@ -38,28 +38,17 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 
 	sess := session.FromContext(r.Context())
 
-	// THE CHARACTER IS THE PLAYER'S OWN AND ONLY THEIRS. It comes off the
-	// session rather than off the room, so the menu item that arms placement
-	// arms it with the character this person joined with -- and the core checks
-	// exactly that again on receipt, so a browser that changed the value gets
-	// "You can only place the character you joined with."
-	character := ""
-	if role != room.RoleGM && sess.CharacterID != nil {
-		character = sess.CharacterID.String()
-	}
-
 	render(w, r, pages.Room(pages.RoomPageData{
-		ID:          row.ID.String(),
-		Name:        row.Name,
-		Code:        row.Code.String,
-		Locked:      row.IsLocked,
-		Closed:      row.ClosedAt.Valid,
-		Role:        role,
-		UserID:      sess.UserID.String(),
-		Socket:      socket,
-		Version:     a.hubVersion(),
-		CharacterID: character,
-		Debug:       a.Config.Development(),
+		ID:      row.ID.String(),
+		Name:    row.Name,
+		Code:    row.Code.String,
+		Locked:  row.IsLocked,
+		Closed:  row.ClosedAt.Valid,
+		Role:    role,
+		UserID:  sess.UserID.String(),
+		Socket:  socket,
+		Version: a.hubVersion(),
+		Debug:   a.Config.Development(),
 	}))
 }
 

@@ -129,6 +129,12 @@ templ statBlockAbilityHeadings() {
 	</div>
 }
 
+templ MonsterStatBlockPanel(sb StatBlock) {
+	<div class="grid gap-3">
+		@statBlockBody(sb)
+	</div>
+}
+
 templ MonsterStatBlockFragment(sb StatBlock) {
 	<div class="grid gap-4">
 		<div class="grid gap-3">

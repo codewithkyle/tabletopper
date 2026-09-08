@@ -25,7 +25,7 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 	loose.Snap = SnapOff
 	w.apply(&TableSetGrid{Grid: loose}, w.gm)
 
-	wagon := w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", FootprintW: 2, FootprintH: 2, X: 128, Y: 128, Visible: true})
+	wagon := w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", Width: 128, Height: 128, X: 128, Y: 128, Visible: true})
 	riders := []ulid.ULID{
 		w.spawn(Pawn{Name: "Ari", X: 150, Y: 140, Visible: true}),
 		w.spawn(Pawn{Name: "Rin", X: 170, Y: 100, Visible: true}),
@@ -179,13 +179,13 @@ func TestADragPreviewsWithoutChangingAnything(t *testing.T) {
 	}
 }
 
-// OBJECTS ARE NOT CREATURES. They have a rectangle instead of a size, they
-// cannot be poisoned, and they may have no hit points at all -- a door usually
-// does not.
+// OBJECTS ARE NOT CREATURES. They are measured in pixels instead of by a
+// creature size, they cannot be poisoned, and they may have no hit points at
+// all -- a door usually does not.
 func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 	w := newWorld(t)
 
-	wagon := w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", FootprintW: 2, FootprintH: 4, Visible: true})
+	wagon := w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", Width: 128, Height: 256, Visible: true})
 
 	p := w.s.Pawn(wagon)
 	if p.Size != "" {
@@ -194,7 +194,7 @@ func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 	if p.HP != nil || p.MaxHP != nil {
 		t.Fatal("the object was given hit points it was not asked for")
 	}
-	if wide, tall := p.Footprint(); wide != 2 || tall != 4 {
+	if wide, tall := p.Footprint(w.s.Table.Grid.CellSize); wide != 2 || tall != 4 {
 		t.Fatalf("the object stands on %dx%d cells, want 2x4", wide, tall)
 	}
 
@@ -202,12 +202,12 @@ func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 		{Name: "Poisoned", Color: ColorGreen, Duration: -1, Clear: ClearEnd},
 	}}, w.gm, CodeInvalid)
 
-	// The two edits cross over: a size on an object and a footprint on a
+	// The two edits cross over: a creature size on an object and a width on a
 	// creature are both the client having confused one for the other.
 	w.refuse(&PawnUpdate{ID: wagon, Size: sizep(SizeLarge)}, w.gm, CodeInvalid)
 
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
-	w.refuse(&PawnUpdate{ID: goblin, FootprintW: intp(3)}, w.gm, CodeInvalid)
+	w.refuse(&PawnUpdate{ID: goblin, Width: intp(192)}, w.gm, CodeInvalid)
 }
 
 // THE VISIBILITY TRANSITIONS, which are the whole reason for the two-audience

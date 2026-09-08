@@ -27,7 +27,7 @@ import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
 import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
-import { pawnExtents } from "./pawn-pass.ts";
+import { pawnExtents } from "./path.ts";
 import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
 import { cellCentre } from "./path.ts";
 import { stressPawns } from "./stress.ts";

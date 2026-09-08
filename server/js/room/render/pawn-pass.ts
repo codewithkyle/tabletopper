@@ -10,8 +10,13 @@
 // with a border in its kind's colour and its picture COVERS that disc -- cropped
 // rather than letterboxed, because a portrait with bars down the side inside a
 // circle looks like a mistake. An object is drawn unmasked with its picture
-// CONTAINED in its footprint, aspect kept, because the footprint is the wagon's
-// actual size on the floor and a wagon stretched to fill it is the wrong wagon.
+// CONTAINED in its quad, aspect kept, because the quad is the wagon's actual
+// size on the floor and a wagon stretched to fill it is the wrong wagon.
+//
+// AN OBJECT'S QUAD IS THE PICTURE'S OWN PIXELS, so contain normally fits it
+// exactly and the two factors come back at one. They stop being one when the GM
+// has typed a different width or height into the pawn's dialog, which is the
+// one case where an object is deliberately not the shape of its picture.
 //
 // THE INSTANCE BUFFER IS REBUILT WHEN THE TABLE CHANGES AND NOT PER FRAME. A
 // pan or a zoom changes the matrix and nothing else, which is the common case
@@ -26,7 +31,7 @@ import { KIND_COLORS } from "./sprites.ts";
 import { SKULL } from "./sprites.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { footprintOf } from "./path.ts";
+import { pawnExtents } from "./path.ts";
 
 // FLOATS_PER_INSTANCE: the rectangle, the border colour, the style and the fit.
 // Four vec4s, so the attribute count stays at four and one instance is one
@@ -43,12 +48,6 @@ const BORDER_PIXELS = 2;
 // thing -- a GM scanning a table has to be able to tell without hovering.
 const HIDDEN_ALPHA = 0.6;
 const HIDDEN_GREY = 0.7;
-
-// TINY_SCALE is how much of its cell a tiny creature is drawn at. It OCCUPIES
-// one cell, because half a cell is not a position any grid rule can express,
-// and it is DRAWN at half of one so that a sprite and a rat are not the same
-// size on the table.
-const TINY_SCALE = 0.5;
 
 // SKULL_SCALE is the dead-creature mark, as a fraction of the pawn's diameter.
 const SKULL_SCALE = 0.7;
@@ -173,8 +172,11 @@ export interface Drawn {
 	y: number;
 	z: number;
 	size: Pawn["size"];
-	footprintW: number;
-	footprintH: number;
+
+	// width and height are an OBJECT'S size, in map pixels, and are zero for a
+	// creature -- whose size comes from its category instead. See pawnExtents.
+	width: number;
+	height: number;
 
 	// hidden is the GM's copy of a pawn players cannot see. It is never true on
 	// a player's, because they are never sent one.
@@ -386,29 +388,6 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 			gl.deleteBuffer(instances);
 		},
 	};
-}
-
-// pawnExtents is how much floor a pawn covers, in map pixels, as half extents.
-//
-// A CREATURE IS SQUARE AND AN OBJECT IS NOT. A creature's footprint is one
-// number from its size category -- one cell through four -- and a tiny creature
-// occupies a whole cell and is DRAWN at half of one, because half a cell is not
-// a position any grid rule can express but a rat the size of an ogre is not a
-// rat.
-export function pawnExtents(
-	pawn: Pick<Drawn, "kind" | "size" | "footprintW" | "footprintH">,
-	cellSize: number,
-): [number, number] {
-	const cell = Math.max(1, cellSize);
-	const [w, h] = footprintOf(pawn);
-
-	if (pawn.kind === "object") {
-		return [(w * cell) / 2, (h * cell) / 2];
-	}
-
-	const scale = pawn.size === "tiny" ? TINY_SCALE : 1;
-
-	return [(w * cell * scale) / 2, (h * cell * scale) / 2];
 }
 
 // fitFactors is how much of the quad the picture covers on each axis.

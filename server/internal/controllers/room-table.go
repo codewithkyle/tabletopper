@@ -502,6 +502,25 @@ func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
 	renderPanelBlock(w, r, pages.RoomGridPanel, nil)
 }
 
+// ClearTabletop is the Tabletop menu's last item: every layer's map, every
+// pawn, all the fog, all the drawing and the tracker, in one command.
+//
+// IT IS A POST AND NOT A DELETE, and the reason is the menu rather than the
+// verb. A menu item is a button carrying hx-post; making this one the exception
+// would mean a second branch in the item markup for one route. The confirm
+// modal in front of it is where the GM is told what goes, which is also the
+// only place they could be -- there is no undo and the item is one click from
+// Layers.
+//
+// A 204 AND NO BODY IS THE WHOLE REPLY, for SpawnParty's reason: the table
+// empties over the socket, the same way it does for everybody else in the room,
+// so there is nothing here to swap.
+func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
+	a.layerCommand(w, r, "clear the tabletop", func(ulid.ULID) (room.Command, bool) {
+		return &room.TableClear{}, true
+	})
+}
+
 // layerCommand is the shape every mutation in this file has: establish the
 // asker and the room, read the layer out of the path, build the command, send
 // it, and answer 204 or the refusal.

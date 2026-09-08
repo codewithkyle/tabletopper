@@ -235,7 +235,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
 	for heading, want := range map[string][]string{
-		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Clear tabletop"},
+		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Clear tracker"},
 		"Window":     {"Monster Manual", "Dice tray"},
@@ -246,6 +246,99 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("the %s menu is %v, want %v", heading, got, want)
 		}
+	}
+}
+
+// SPAWN PAWNS IS A POST AND NOT A DIALOG, AND IT IS THE GM'S ALONE. Both halves
+// of that were built the other way first and both were wrong. The item opened a
+// modal that asked nothing the room did not already know -- who is connected and
+// which of them have a pawn are room state -- and the player's copy of this menu
+// carried a live "Place my pawn" beside four dead lines.
+//
+// A PLAYER MAY DO NOTHING TO THE TABLE AND THE MENU SAYS SO. That is not merely
+// a hidden button: PawnSpawn.Authorize refuses a player outright, so the greyed
+// lines here and the socket agree about what is possible.
+func TestSpawnPawnsPostsThePartyAndIsTheGMsAlone(t *testing.T) {
+	var spawn RoomMenuItem
+	for _, item := range menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items {
+		if item.Label == "Spawn pawns" {
+			spawn = item
+		}
+	}
+
+	if want := "/rooms/01BX5ZZKBKACTAV9WEVGEMMVT0/pawns/party"; spawn.Post != want {
+		t.Errorf("Spawn pawns posts to %q, want %q", spawn.Post, want)
+	}
+	if spawn.Modal.URL != "" {
+		t.Errorf("Spawn pawns opens the modal at %q; it asks nothing", spawn.Modal.URL)
+	}
+	if spawn.Disabled || spawn.Action != "" || spawn.Window.ID != "" {
+		t.Errorf("Spawn pawns is not a plain post: %+v", spawn)
+	}
+
+	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
+		if !item.Disabled {
+			t.Errorf("a player's %q is live; nothing under Tabletop is theirs", item.Label)
+		}
+	}
+}
+
+// CLEAR TABLETOP IS A POST BEHIND A CONFIRMATION, and it is the only item in
+// this menu that is either. It empties every floor in one command and there is
+// no undo, so the confirm modal has to name what goes -- "Are you sure?" over a
+// menu of six items is a question nobody can answer safely.
+func TestClearTabletopIsConfirmedAndIsTheGMsAlone(t *testing.T) {
+	var clear RoomMenuItem
+	for _, item := range menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items {
+		if item.Label == "Clear tabletop" {
+			clear = item
+		}
+	}
+
+	if want := "/rooms/01BX5ZZKBKACTAV9WEVGEMMVT0/tabletop/clear"; clear.Post != want {
+		t.Errorf("Clear tabletop posts to %q, want %q", clear.Post, want)
+	}
+	if clear.Disabled {
+		t.Error("the GM's Clear tabletop is disabled")
+	}
+	if !clear.Danger {
+		t.Error("Clear tabletop is not drawn as destructive")
+	}
+	for _, part := range []string{"map", "pawn", "fog", "drawing", "initiative"} {
+		if !strings.Contains(clear.Confirm, part) {
+			t.Errorf("the confirmation does not mention %s: %q", part, clear.Confirm)
+		}
+	}
+
+	// It is last, because it is the one item in the menu that undoes the rest.
+	items := menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items
+	if items[len(items)-1].Label != "Clear tabletop" {
+		t.Errorf("Clear tabletop is not the last item: %q", items[len(items)-1].Label)
+	}
+
+	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
+		if item.Label == "Clear tabletop" && !item.Disabled {
+			t.Error("a player can clear the tabletop")
+		}
+	}
+}
+
+// A WINDOW'S TITLE BAR MUST BE ABLE TO SHRINK OR THE WINDOW CANNOT BE CLOSED.
+// The bar is a row of a grid whose column is sized auto, so without min-w-0 the
+// column's floor is the bar's own min-content width -- and the heading's
+// white-space: nowrap makes that the whole title. A long pawn name then pushed
+// the three controls past the window's edge, where overflow-hidden cut them off.
+func TestAWindowsTitleBarCanShrink(t *testing.T) {
+	body := renderToString(t, roomWindowTemplate())
+
+	bar := body[strings.Index(body, "data-window-bar"):]
+	bar = bar[:strings.Index(bar, ">")]
+	if !strings.Contains(bar, "min-w-0") {
+		t.Errorf("the title bar cannot shrink, so a long name pushes the controls out:\n%s", bar)
+	}
+
+	if !strings.Contains(body, "truncate") {
+		t.Error("the heading does not truncate")
 	}
 }
 

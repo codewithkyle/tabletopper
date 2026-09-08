@@ -19,7 +19,7 @@
 
 import type { Pawn, Role } from "./protocol.ts";
 import type { Rect } from "./render/camera.ts";
-import { footprintOf } from "./render/path.ts";
+import { footprintOf, pawnExtents } from "./render/path.ts";
 
 // SELECTION_MAX is room.SelectionMax: what one move, drag or remove may carry.
 // It is written here rather than imported from the generated protocol because
@@ -195,14 +195,16 @@ export function marqueeSelect(
 // goblins in adjacent squares from picking each other up. A thing that carries
 // passengers is at least two cells on one of its axes.
 export function riders(pawns: readonly Pawn[], anchor: Pawn, cellSize: number): string[] {
-	const [w, h] = footprintOf(anchor);
+	const [w, h] = footprintOf(anchor, cellSize);
 	if (w < 2 && h < 2) {
 		return [];
 	}
 
-	const cell = Math.max(1, cellSize);
-	const halfW = (w * cell) / 2;
-	const halfH = (h * cell) / 2;
+	// THE GATE IS IN CELLS AND THE BOX IS IN PIXELS, which is not an
+	// inconsistency: "is this big enough to stand on" is a rule about the grid,
+	// and "is this pawn on top of it" is a question about where the wagon
+	// actually is -- which, for an object, is the size of its picture.
+	const [halfW, halfH] = pawnExtents(anchor, cellSize);
 
 	const found: string[] = [];
 

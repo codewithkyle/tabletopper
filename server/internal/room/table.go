@@ -242,6 +242,78 @@ func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, erro
 	return []Emission{tableUpdated(s)}, nil
 }
 
+// TableClear empties the table: every layer's map, every pawn, all the fog, all
+// the drawing, and the tracker. The floors themselves stay, and so does the
+// grid -- a room needs at least one layer, and the cell size a GM matched to
+// their maps is a setting rather than a thing on the table.
+//
+// IT IS ONE COMMAND AND NOT SIX BUTTONS PRESSED IN ORDER. Clearing a table by
+// hand is remove-the-pawns, then clear-the-fog on each floor, then the
+// drawing, then each map, then the tracker -- five or six acts, each of which
+// can be half-done, and the GM is doing it because the last session is over and
+// the next one starts in a minute. One act with one confirmation is the whole
+// point of it existing.
+//
+// FOG AND THE TRACKER HAVE THEIR OWN Clear ITEMS AND KEEP THEM. This is not a
+// replacement for either: clearing the fog mid-session is a thing a GM does
+// constantly, and doing it by wiping the table would be an unusual way to go
+// about it. This is the end of the evening.
+type TableClear struct{}
+
+func (c *TableClear) Authorize(s *State, a Actor) error {
+	return requireGM(a, "clear the tabletop")
+}
+
+func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+	var out []Emission
+
+	// EVERY EMISSION IS BUILT BEFORE ANYTHING IS DELETED, which is
+	// TableRemoveLayer's rule for TableRemoveLayer's reason: each removal needs
+	// to know whether players could see the pawn, and once the pawn is gone
+	// that question has no answer.
+	//
+	// ONE pawn.removed PER PAWN AND NOT ONE EVENT SAYING "ALL OF THEM". It is
+	// what removing a populated layer already sends, so every client and every
+	// open panel already does the right thing with it -- a stat block window
+	// whose pawn has gone closes itself off this event, and an event nothing
+	// had ever seen before would leave it open showing a dead goblin.
+	for _, p := range s.Pawns {
+		out = append(out, to(ToGM, &PawnRemoved{ID: p.ID}))
+		if s.Shown(p) {
+			out = append(out, to(ToPlayers, &PawnRemoved{ID: p.ID}))
+		}
+	}
+
+	// Unconditionally, and per layer, because both events are a filter on the
+	// receiving end: one that matches nothing costs a pass over an empty list,
+	// and asking first would make the event stream depend on state that is
+	// about to be thrown away anyway.
+	for _, l := range s.Table.Layers {
+		out = append(out,
+			to(ToAll, &FogCleared{Layer: l.ID}),
+			to(ToAll, &StrokeCleared{Layer: l.ID}),
+		)
+	}
+
+	for i := range s.Table.Layers {
+		s.Table.Layers[i].Map = nil
+	}
+
+	s.Pawns = nil
+	s.Fog = nil
+	s.Strokes = nil
+	s.Initiative = Initiative{}
+	s.Normalize()
+
+	// THE TABLE LAST OF THE THREE, so a client applies the removals against the
+	// floors it still knows about and then hears that the maps under them are
+	// gone. The tracker follows because it is a singleton and its entries went
+	// with the pawns they named.
+	out = append(out, tableUpdated(s))
+
+	return append(out, initiativeUpdated(s)...), nil
+}
+
 // TableSetActiveLayer changes what the players are looking at.
 type TableSetActiveLayer struct {
 	Layer ulid.ULID `json:"layer"`

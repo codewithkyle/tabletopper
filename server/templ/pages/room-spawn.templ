@@ -36,9 +36,6 @@ templ RoomSpawn(data RoomSpawnData) {
 				Players see it
 			</label>
 		</div>
-		if !data.IsMonsters() {
-			@roomSpawnTokenControls(data)
-		}
 		@RoomSpawnList(data)
 		<div class="flex flex-wrap items-center gap-2">
 			<button
@@ -46,11 +43,6 @@ templ RoomSpawn(data RoomSpawnData) {
 				class="btn border-base-content/50"
 				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
 			>Close</button>
-			<button
-				type="button"
-				class="btn btn-primary ml-auto"
-				hx-post={ data.PartyPath() }
-			>Spawn party</button>
 		</div>
 	</room-spawn>
 }
@@ -65,31 +57,6 @@ templ roomSpawnKind(data RoomSpawnData, kind string, caption string) {
 		hx-target="#room-spawn"
 		hx-swap="outerHTML"
 	>{ caption }</button>
-}
-
-templ roomSpawnTokenControls(data RoomSpawnData) {
-	<div class="flex flex-wrap items-end gap-3 rounded-box border border-base-300 p-2">
-		<div class="join">
-			<button type="button" data-spawn-as="creature" aria-pressed="true" class="btn btn-xs join-item aria-pressed:bg-primary aria-pressed:text-primary-content">Creature</button>
-			<button type="button" data-spawn-as="object" aria-pressed="false" class="btn btn-xs join-item aria-pressed:bg-primary aria-pressed:text-primary-content">Object</button>
-		</div>
-		<label data-spawn-creature class="flex flex-col gap-0.5">
-			<span class="text-[10px] text-base-content/60">Size</span>
-			<select data-spawn-size class="select select-xs w-28">
-				for _, option := range data.Sizes() {
-					<option value={ option.Value } selected?={ option.Value == DefaultSize }>{ option.Label }</option>
-				}
-			</select>
-		</label>
-		<label data-spawn-object hidden class="flex flex-col gap-0.5">
-			<span class="text-[10px] text-base-content/60">Cells across</span>
-			<input type="number" data-spawn-width value="1" min="1" max={ data.FootprintMaxText() } step="1" class="input input-xs w-20"/>
-		</label>
-		<label data-spawn-object hidden class="flex flex-col gap-0.5">
-			<span class="text-[10px] text-base-content/60">Cells down</span>
-			<input type="number" data-spawn-height value="1" min="1" max={ data.FootprintMaxText() } step="1" class="input input-xs w-20"/>
-		</label>
-	</div>
 }
 
 templ RoomSpawnList(data RoomSpawnData) {
@@ -143,6 +110,8 @@ templ roomSpawnTokenCard(t RoomSpawnToken) {
 		data-spawn-source="token"
 		data-spawn-id={ t.ID }
 		data-spawn-name={ t.Name }
+		data-spawn-width={ t.WidthText() }
+		data-spawn-height={ t.HeightText() }
 	>
 		@roomSpawnThumb(t.Image, t.Name)
 		<span class="w-full truncate text-xs font-semibold">{ t.Name }</span>
