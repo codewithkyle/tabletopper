@@ -21,7 +21,7 @@ import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
-import type { State } from "./protocol.ts";
+import type { Event, State } from "./protocol.ts";
 import { mountWindows } from "./window.ts";
 
 const mount = document.getElementById("tabletop");
@@ -53,6 +53,19 @@ if (mount) {
 	}
 }
 
+// touchesPawns is which events move something the pawn pass has already put in
+// its buffer. A snapshot replaces the whole table; the pawn family is itself;
+// table.updated carries the grid, whose cell size is every pawn's radius.
+//
+// pawn.dragging is deliberately absent. It is a preview nobody has committed
+// to, it is drawn from a buffer of its own, and it is one of the three hot paths
+// in the protocol -- rebuilding the whole table's instances twenty times a
+// second for a ghost is exactly what the split between the two buffers exists to
+// avoid.
+function touchesPawns(type: Event["type"]): boolean {
+	return type === "snapshot" || type === "table.updated" || (type.startsWith("pawn.") && type !== "pawn.dragging");
+}
+
 function start(path: string, state: State, renderer: Renderer | null): void {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
@@ -73,6 +86,17 @@ function start(path: string, state: State, renderer: Renderer | null): void {
 			// worth a frame. Asking on every event is right because the frame
 			// loop collapses however many arrive between two frames into one.
 			renderer?.invalidate();
+
+			// AND THE PAWNS ARE TOLD SEPARATELY, because their instance buffer
+			// is rebuilt on a change rather than per frame -- a pan is the
+			// common case by a wide margin and rebuilds nothing. The reducer
+			// mutates the store in place, which is what keeps a pawn moving
+			// from allocating and is also why there is nothing to subscribe to;
+			// this is the subscription, in one line, at the one place that
+			// knows an event happened.
+			if (touchesPawns(event.type)) {
+				renderer?.pawnsChanged();
+			}
 
 			// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
 			// nothing below it would run -- and in development the frame that

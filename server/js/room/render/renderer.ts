@@ -14,13 +14,22 @@
 
 import type { Camera, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
+import type { Drawn } from "./pawn-pass.ts";
 import type { LayerView } from "./layers.ts";
 import { clampToMap, fit, newCamera, zoomAt, zoomTo } from "./camera.ts";
 import { createContext } from "./gl.ts";
+import { createGlyphAtlas } from "./glyphs.ts";
 import { createGridPass } from "./grid-pass.ts";
+import { createPathPass } from "./path-pass.ts";
+import { createPawnPass } from "./pawn-pass.ts";
+import { createRingPass, RING_ELLIPSE } from "./ring-pass.ts";
+import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
 import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
+import { pawnExtents } from "./pawn-pass.ts";
+import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
+import { stressPawns } from "./stress.ts";
 import { apply, wireInput } from "./input.ts";
 
 // VIEW_ZOOM_STEP is what the View menu's Zoom in and Zoom out move by. It is
@@ -51,6 +60,16 @@ export interface Renderer {
 	// benchmark sweeps the camera for ten seconds and reports what it cost.
 	// The callback runs once, at the end.
 	benchmark(report: (result: Benchmark) => void): void;
+
+	// pawnsChanged says the table's contents moved, so the instance buffer has
+	// to be built again. The renderer cannot notice this on its own: the
+	// reducer mutates the store in place, which is what keeps a pawn moving
+	// from allocating, and an in-place mutation has nothing to subscribe to.
+	pawnsChanged(): void;
+
+	// stress adds synthetic pawns beside the real ones, for the benchmark.
+	// Nothing about them is sent anywhere; see stress.ts.
+	stress(count: number): number;
 
 	// onSettled fires when the viewed layer, or whether it is the active one,
 	// has changed -- after the frame that worked it out. The menu bar's floor
@@ -90,6 +109,17 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	const gl: WebGL2RenderingContext = context;
 	const grid = createGridPass(gl);
 	const tiles = createTilePass(gl, () => frames.invalidate());
+	const sprites = createSpriteCache(gl, () => frames.invalidate());
+	const pawnPass = createPawnPass(gl);
+	const rings = createRingPass(gl);
+	const atlas = createGlyphAtlas(gl);
+
+	// TWO PATH PASSES, UNDER AND OVER. The highlighted cells are the floor and
+	// go beneath the pawns standing on them; the line and the distance label
+	// are the ruler and go on top. See path-pass.ts.
+	const floorMarks = createPathPass(gl, atlas);
+	const overMarks = createPathPass(gl, atlas);
+
 	const layers = newLayerView(mount.dataset.role === "gm");
 
 	const camera: Camera = newCamera();
@@ -110,6 +140,16 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	let settled: (() => void) | null = null;
 	let lastViewed = "";
 	let lastFollowing = true;
+
+	// The pawn instance buffer is rebuilt on a change rather than per frame,
+	// and these are every way it can change: the reducer said so, the floor
+	// moved, the cell size moved, or a picture landed and with it the aspect
+	// ratio a quad is fitted to.
+	const drawn: Drawn[] = [];
+	let synthetic: Drawn[] = [];
+	let pawnsDirty = true;
+	let lastCell = 0;
+	let lastEpoch = -1;
 
 	const input = wireInput(canvas, () => frames.invalidate());
 
@@ -170,10 +210,82 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 
 		grid.draw(camera, state.table.grid, canvas.width, canvas.height, dpr);
 
-		// Four reasons to draw again, and the loop stops when none of them
+		const loading = drawPawns(viewedID);
+
+		// Five reasons to draw again, and the loop stops when none of them
 		// holds: a button or a finger is down, the crossfade is partway
-		// through, tiles are queued for upload, or the benchmark is driving.
-		return input.dragging() || layers.fading() || uploading || sweeping;
+		// through, tiles or pictures are queued for upload, or the benchmark is
+		// driving.
+		return input.dragging() || layers.fading() || uploading || loading || sweeping;
+	}
+
+	// drawPawns is the table's contents: the highlighted cells under them, the
+	// pawns themselves, and the rings round them.
+	//
+	// THE ORDER IS THE ORDER OF THE TABLE, as it is for the tiles and the grid.
+	// A highlight is the floor and goes under the pawn standing on it; a
+	// condition ring is on the pawn and goes over it; the ruler's line and its
+	// distance are read against everything else and go last.
+	function drawPawns(viewedID: string): boolean {
+		const tableGrid = state.table.grid;
+		const cell = Math.max(1, tableGrid.cellSize);
+
+		// Every way the instance buffer can go stale: the reducer said so, the
+		// floor moved, the cell size moved, or a picture landed and with it the
+		// aspect ratio a quad is fitted to.
+		const rebuilding = pawnsDirty || cell !== lastCell || sprites.epoch() !== lastEpoch;
+
+		sprites.begin(rebuilding);
+
+		// The two screen-to-table scales, and they are two because the things
+		// they size want different units. A ring is a hairline and is measured
+		// in the pixels that actually exist; a label is text and is measured in
+		// the ones a person reads. See scene.ts.
+		const worldPerDevicePixel = 1 / Math.max(camera.zoom * dpr, 1e-4);
+		const worldPerCssPixel = 1 / Math.max(camera.zoom, 1e-4);
+
+		floorMarks.begin(worldPerCssPixel);
+		overMarks.begin(worldPerCssPixel);
+
+		if (rebuilding) {
+			visiblePawns(state.pawns, viewedID, drawn);
+
+			pawnPass.build(synthetic.length > 0 ? drawn.concat(synthetic) : drawn, tableGrid, sprites);
+
+			pawnsDirty = false;
+			lastCell = cell;
+			lastEpoch = sprites.epoch();
+		}
+
+		floorMarks.draw(camera, canvas.width, canvas.height, dpr);
+		pawnPass.draw(camera, canvas.width, canvas.height, dpr);
+
+		// THE RINGS ARE BUILT PER FRAME AND THE PAWNS ARE NOT, which is not an
+		// inconsistency: there are a handful of rings and hundreds of pawns,
+		// and what will drive the rings in the next phase -- a selection, a
+		// drag ghost -- changes at the rate a hand moves rather than at the
+		// rate the table does.
+		rings.begin();
+		for (const pawn of state.pawns) {
+			if (pawn.layerId !== viewedID || pawn.kind === "object" || pawn.conditions.length === 0) {
+				continue;
+			}
+
+			const [halfW] = pawnExtents(pawn, cell);
+			const shown = Math.min(pawn.conditions.length, CONDITION_RINGS_MAX);
+
+			for (let i = 0; i < shown; i++) {
+				const colour = CONDITION_COLORS[pawn.conditions[i].color] ?? CONDITION_COLORS.white;
+				const radius = ringRadius(halfW, i, worldPerDevicePixel);
+
+				rings.add(pawn.x, pawn.y, radius, radius, colour, 1, RING_WIDTH, RING_ELLIPSE);
+			}
+		}
+		rings.draw(camera, canvas.width, canvas.height, dpr);
+
+		overMarks.draw(camera, canvas.width, canvas.height, dpr);
+
+		return sprites.end();
 	}
 
 	// settleMap notices the viewed map changing and frames it when framing is
@@ -340,6 +452,24 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 			frames.invalidate();
 		},
 
+		pawnsChanged() {
+			pawnsDirty = true;
+		},
+
+		stress(count) {
+			const map = layers.viewed()?.map ?? null;
+			const cell = Math.max(1, state.table.grid.cellSize);
+
+			synthetic = count > 0
+				? stressPawns(count, drawn, cell, map ? map.width / 2 : 0, map ? map.height / 2 : 0)
+				: [];
+
+			pawnsDirty = true;
+			frames.invalidate();
+
+			return synthetic.length;
+		},
+
 		stop() {
 			window.removeEventListener("theme:change", readClearColor);
 			window.removeEventListener("room:view", onViewCommand as EventListener);
@@ -347,6 +477,12 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 			frames.stop();
 			tiles.dispose();
 			grid.dispose();
+			pawnPass.dispose();
+			rings.dispose();
+			floorMarks.dispose();
+			overMarks.dispose();
+			sprites.dispose();
+			atlas?.dispose();
 		},
 	};
 }

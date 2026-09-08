@@ -323,7 +323,22 @@ interface Wanted {
 	priority: number;
 }
 
-export function newLoader(invalidate: () => void): Loader {
+// decode turns a fetched blob into a bitmap. The default is below; the sprite
+// cache passes one of its own, because a pawn picture is resized on the way in
+// and a map tile is not.
+export type Decode = (blob: Blob) => Promise<ImageBitmap | null>;
+
+// decodeAsIs is the tiles' own: the bytes that reach the GPU are the bytes the
+// tiler wrote.
+//
+// premultiplyAlpha and colorSpaceConversion are both turned off because the
+// default for either is "browser decides", and two browsers deciding
+// differently is a map that is a shade off on one of them.
+export function decodeAsIs(blob: Blob): Promise<ImageBitmap | null> {
+	return createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+}
+
+export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): Loader {
 	const queue: Wanted[] = [];
 	const inFlight = new Map<string, AbortController>();
 	const ready: { key: string; bitmap: ImageBitmap }[] = [];
@@ -355,21 +370,7 @@ export function newLoader(invalidate: () => void): Loader {
 
 				return response.blob();
 			})
-			.then((blob) => {
-				if (!blob) {
-					return null;
-				}
-
-				// premultiplyAlpha and colorSpaceConversion are both turned off
-				// so the bytes that reach the GPU are the bytes the tiler
-				// wrote. The default for either is "browser decides", and two
-				// browsers deciding differently is a map that is a shade off on
-				// one of them.
-				return createImageBitmap(blob, {
-					premultiplyAlpha: "none",
-					colorSpaceConversion: "none",
-				});
-			})
+			.then((blob) => (blob ? decode(blob) : null))
 			.then((bitmap) => {
 				if (bitmap) {
 					ready.push({ key: item.key, bitmap });

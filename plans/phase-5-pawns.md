@@ -72,6 +72,63 @@ phase added is one the new markup uses.
 item whose click does nothing reads as broken -- which is the argument
 `room.go` already makes for the disabled ones.
 
+### Checkpoint 2, the rendering (2026-09-08)
+
+The sprite cache, the three passes, the ruler's arithmetic, the layer filter and
+the stress toggle shipped. Six things differ from what the sections below
+sketch:
+
+- **A sprite keeps its aspect ratio.** Decision 1 says "resized to 256 by 256",
+  which is right for a monster picture and a portrait -- both are stored square
+  already -- and wrong for the case the object kind exists for. A wagon is
+  stored 512 by 171; squashed into a square and stretched across a two-by-four
+  footprint it is visibly the wrong wagon. So the longest edge becomes 256, the
+  layer is partly unwritten exactly as an edge tile's is, and the real pixels
+  ride in the slot -- machinery the tile cache already had. Creatures then COVER
+  their disc (cropped, because a portrait with bars down the side inside a
+  circle looks like a mistake) and objects CONTAIN theirs.
+- **`createImageBitmap` cannot fit, so the decode is two steps.** resizeWidth
+  and resizeHeight are absolute: giving both distorts and giving one needs to
+  know which edge is longer, which is what the first decode answers. The second
+  call resizes an already-decoded bitmap, which is cheap and still off-thread.
+- **The glyph atlas is a module of its own**, `render/glyphs.ts`. The plan asks
+  for one without naming a file; it is fourteen characters rasterised once, and
+  a label is an index into them rather than a canvas re-uploaded every time the
+  dragged cell changes.
+- **Hairlines are DEVICE pixels and text is CSS pixels.** A pawn border, a
+  condition ring and its spacing are measured in the pixels that actually exist
+  -- which is the argument the grid's own shader makes for drawing itself
+  exactly one device pixel wide -- and the distance label is measured in the
+  ones a person reads. Mixing them made rings twice as far apart as they were
+  thick on a retina screen, which is how the two units got separated.
+- **The sprite cache re-touches its own working set every frame.** The pawn
+  buffer is rebuilt on a CHANGE and frames happen continuously, so a picture
+  arriving several frames after the rebuild that asked for it would claim a
+  layer while nothing had touched the ones on screen -- and with a full cache,
+  claiming means evicting them. `begin(rebuilding)` is the fix: forget the set
+  only when the caller is about to name a new one.
+- **`render/scene.ts` holds the layer filter**, so rendering, hit testing, the
+  marquee and the riders lookup all read one list. Phase 5's client module list
+  has the filter as a property of four modules; one function is one place for it
+  to be wrong.
+
+**The shaders are checked with glslangValidator, not by looking at them.** All
+five programs compile as GLSL ES 3.00 and LINK -- the second catches a varying
+declared `flat` on one side and not the other, which is a link error and
+produces a black table with no other symptom. The extractor lives in the
+session scratchpad rather than the repo, because wiring it into `make check`
+would make the build depend on a tool that is not currently required. It found
+one real thing on the first run: `.replace("BORDER", ...)` on a shader source is
+a runtime string operation nothing verifies, and a replace that matched nothing
+would ship an uncompilable shader. It is a `#define` now.
+
+**The CSS diff is empty.** The one markup change is the debug panel's Stress
+button, which is `btn btn-xs` and already in the build.
+
+**Nothing drives the path pass yet.** It is built, wired and drawn in the right
+order -- under the pawns for the highlighted cells, over them for the line and
+the label -- and the drag that fills it is checkpoint 3.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

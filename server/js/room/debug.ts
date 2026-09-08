@@ -17,6 +17,11 @@ import type { Socket, Status } from "./socket.ts";
 
 const historyLimit = 20;
 
+// STRESS_PAWNS is the overview's own number: the verification section asks for
+// a toggle that spawns five hundred pawns so that decisions about workers and
+// WASM kernels are made from a flame graph rather than from worry.
+const STRESS_PAWNS = 500;
+
 export function wireDebug(root: HTMLElement, socket: Socket, state: State, renderer: Renderer | null): {
 	status(status: Status, detail: string): void;
 	event(event: Event): void;
@@ -45,6 +50,8 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 	const benchmark = root.querySelector("[data-debug-benchmark]");
 	const timing = root.querySelector("[data-debug-timing]");
 
+	let stressed = 0;
+
 	if (benchmark instanceof HTMLButtonElement && renderer) {
 		benchmark.addEventListener("click", () => {
 			benchmark.disabled = true;
@@ -60,6 +67,19 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 						`${result.frames} frames  ${result.tiles} tiles`;
 				}
 			});
+		});
+	}
+
+	// FIVE HUNDRED PAWNS THAT ARE NOT ON ANYBODY'S TABLE, and the button
+	// toggles rather than accumulates: pressing it twice puts the room back
+	// where it was rather than leaving a thousand behind. Nothing is sent
+	// anywhere -- see render/stress.ts.
+	const stress = root.querySelector("[data-debug-stress]");
+	if (stress instanceof HTMLButtonElement && renderer) {
+		stress.addEventListener("click", () => {
+			const added = renderer.stress(stressed > 0 ? 0 : STRESS_PAWNS);
+			stressed = added;
+			stress.textContent = added > 0 ? `Stress (${added})` : "Stress";
 		});
 	}
 
