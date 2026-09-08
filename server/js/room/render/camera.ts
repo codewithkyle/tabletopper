@@ -149,19 +149,28 @@ export function fit(cam: Camera, vp: Viewport, width: number, height: number): v
 	cam.y = height / 2;
 }
 
-// clampToMap keeps the viewport centre over the map.
+// clampToMap bounds the camera so the map cannot be lost off the side of the
+// screen.
 //
-// THE RULE IS "THE MIDDLE OF THE SCREEN IS ALWAYS ON THE MAP", which is the
-// same thing as saying the map can be pushed at most half a viewport off the
-// edge. It is one comparison per axis and it has no configuration, and the
-// alternative -- letting the map leave entirely and offering a Fit map item to
-// get back -- is a state a person can reach by accident and cannot see their
-// way out of.
+// THE RULE IS "HALF OF WHATEVER THE SCREEN COULD SHOW OF THE MAP STAYS ON IT",
+// per axis. Zoomed in, the screen could show a screen's worth, so half a screen
+// of map stays -- which is the same thing as saying the middle of the screen is
+// always over the map, and is exactly the bound this had before. Zoomed out far
+// enough that the whole map fits, the screen could show all of it, so half the
+// map stays and the camera may roam a screen's width around it.
 //
-// A MAP SMALLER THAN THE VIEWPORT IS LOCKED CENTRED on that axis instead.
-// There is nothing to explore in a direction where everything is already
-// visible, and a map that can be nudged into a corner at low zoom reads as the
-// view having slipped rather than as freedom.
+// THAT SECOND CASE USED TO BE A LOCK, and the lock was wrong. It was written
+// when the grid stopped at the map, so off the edge there was nothing to look
+// at and being pinned to the centre cost nothing. The grid is infinite now:
+// past the edge is where a chase goes and where a party camps, so there is
+// something to pan to at every zoom, and a view that refused to move read as
+// the drag being broken rather than as the map being entirely visible already.
+//
+// It is still a bound rather than free panning, because a map pushed completely
+// off screen is a state somebody reaches by accident and cannot see their way
+// out of -- the grid past the edge looks the same everywhere, so nothing on
+// screen says which way back is. Fit map is the way back; this is what makes
+// needing it rare.
 export function clampToMap(cam: Camera, vp: Viewport, width: number, height: number): void {
 	if (width < 1 || height < 1) {
 		return;
@@ -171,12 +180,14 @@ export function clampToMap(cam: Camera, vp: Viewport, width: number, height: num
 	cam.y = clampAxis(cam.y, vp.height / cam.zoom, height);
 }
 
+// clampAxis is that rule as arithmetic. viewport is the axis in MAP UNITS, so
+// the two cases below are the same expression and there is no branch: keep is
+// half the overlap the two could ever have, and the centre may travel until the
+// overlap is down to it in either direction.
 function clampAxis(centre: number, viewport: number, size: number): number {
-	if (viewport >= size) {
-		return size / 2;
-	}
+	const keep = Math.min(viewport, size) / 2;
 
-	return Math.min(Math.max(centre, 0), size);
+	return Math.min(Math.max(centre, keep - viewport / 2), size - keep + viewport / 2);
 }
 
 // clipMatrix is the camera as the vertex shaders take it: map pixels in, clip

@@ -98,15 +98,54 @@ WHERE id = ? AND type = 'map';
 -- or it failed -- and putting one on a layer would give every client at the
 -- table a URL that 404s at every zoom.
 --
--- ORDERED BY NAME, unlike the manager page's newest-first. This is a picker
--- rather than a shelf: somebody choosing between eleven maps is looking for one
--- they can name, and a list that reorders itself whenever a map is re-uploaded
--- is a list they have to read every time.
+-- IT IS THE LAYER MANAGER'S, which needs the name of the map each layer already
+-- carries. The picker below is the one that offers a choice, and it deliberately
+-- offers a wider set than this: a map that is still building belongs in front of
+-- the person who has just uploaded it.
 --
 -- name: ListReadyMaps :many
 SELECT id, name, width, height FROM assets
 WHERE owner_id = ? AND type = 'map' AND tile_gen IS NOT NULL
 ORDER BY name;
+
+-- THE MAP PICKER'S TWO STATEMENTS: the whole shelf, and what a search matched.
+-- The columns and the ordering are identical, because a filtered picker and an
+-- unfiltered one are the same picker with fewer cards in it.
+--
+-- EVERY MAP IS HERE, tiled or not, which is what makes uploading from inside the
+-- picker work. A map three seconds old has no pyramid and cannot be chosen, but
+-- leaving it out would mean a GM presses Upload and nothing happens for a minute
+-- -- so it comes back with its tile_state, the card says what it is doing, and
+-- it turns into a button of its own accord when the tiles land. Choosing one
+-- that is not ready is refused in resolveMap either way; the card not being a
+-- button is the courtesy, not the rule.
+--
+-- UNFINISHED MAPS SORT FIRST, then everything alphabetically. `tile_gen IS NOT
+-- NULL` is 0 for a map with no pyramid and 1 for a map with one, so ascending
+-- puts the ones wanting attention at the top -- the upload that is building, and
+-- anything that gave up -- and a GM watching a map tile does not have to know
+-- what letter it starts with to find it. The rest is by name for the reason
+-- above: a shelf that reorders itself is one that has to be read every time.
+--
+-- name: ListPickerMaps :many
+SELECT id, name, file_name, width, height, tile_gen, tile_state FROM assets
+WHERE owner_id = ? AND type = 'map'
+ORDER BY tile_gen IS NOT NULL, name;
+
+-- BOTH NAMES ARE SEARCHED HERE, unlike SearchMaps below, which matches the
+-- owner's name for the map and not the file it came from. The manager's reason
+-- for that stands -- a search for "keep" should not hit every .keep.png -- and
+-- this is the case it does not cover: the picker is reached mid-session with a
+-- map in mind, and the thing a GM remembers about a map they renamed a month ago
+-- is as often the file they exported as the name they typed. The card shows the
+-- file name whenever it differs, so a hit that matched on it can be seen to have
+-- matched on something.
+--
+-- name: SearchPickerMaps :many
+SELECT id, name, file_name, width, height, tile_gen, tile_state FROM assets
+WHERE owner_id = sqlc.arg(owner_id) AND type = 'map'
+  AND (name LIKE sqlc.arg(term) OR file_name LIKE sqlc.arg(term))
+ORDER BY tile_gen IS NOT NULL, name;
 
 -- name: GetMaps :many
 SELECT * FROM assets

@@ -3063,3 +3063,93 @@ func TestAMusicCardOffersNoReplace(t *testing.T) {
 		t.Errorf("the card carries no %s:\n%s", want, body)
 	}
 }
+
+// THE PICKER HAS NO WAY OUT OF ITSELF TO THE ASSET MANAGER. The button that used
+// to be there was a link off the room page in the middle of a session, and
+// everything it was reached for is in the dialog now -- so this pins the absence
+// rather than leaving it to be re-added by somebody who reads the empty state as
+// a dead end.
+func TestTheMapPickerDoesNotLinkOutOfTheRoom(t *testing.T) {
+	var buf bytes.Buffer
+	data := RoomMapsData{
+		RoomID:  "room",
+		LayerID: "layer",
+		Maps: []RoomMapChoice{{
+			RoomID: "room", LayerID: "layer", ID: "map",
+			Name: "Death House", FileName: "Death House",
+			Generation: "gen", Width: 4000, Height: 3000,
+		}},
+	}
+	if err := RoomMaps(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	if strings.Contains(body, `href="/assets`) {
+		t.Errorf("the picker links to the asset manager:\n%s", body)
+	}
+	// Uploading is the thing that link was there for, and it happens without
+	// leaving the dialog -- straight into the grid, at the front of it.
+	if !strings.Contains(body, `hx-post="/rooms/room/layers/layer/maps"`) || !strings.Contains(body, `type="file"`) {
+		t.Errorf("the picker cannot upload a map:\n%s", body)
+	}
+	if !strings.Contains(body, `hx-target="#`+RoomMapListID+`"`) || !strings.Contains(body, `hx-swap="afterbegin"`) {
+		t.Errorf("the upload does not land at the front of the grid:\n%s", body)
+	}
+	if !strings.Contains(body, `id="`+RoomMapListID+`"`) || !strings.Contains(body, `type="search"`) {
+		t.Errorf("the picker has no search:\n%s", body)
+	}
+}
+
+// A CARD BUILDS ITS TILES IN FRONT OF THE GM AND THEN BECOMES A BUTTON, which is
+// the whole of what an upload looks like from inside the picker. The two states
+// are pinned together because the poll is what carries a card from one to the
+// other: a building card names the fragment it fetches its next self from, and a
+// finished one carries no trigger at all, which is what ends the poll.
+func TestAPickerCardPollsUntilItsTilesAreReady(t *testing.T) {
+	building := RoomMapChoice{
+		RoomID: "room", LayerID: "layer", ID: "map",
+		Name: "keep.png", FileName: "keep.png", State: queries.AssetsTileStatePending,
+	}
+
+	var buf bytes.Buffer
+	if err := RoomMapCard(building).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body := buf.String()
+
+	// The ampersands in the URL are escaped in the attribute, which is what
+	// templ does with every one of them and is not what is under test here.
+	if !strings.Contains(body, `hx-get="`+escapeAmps(building.CardURL())+`"`) || !strings.Contains(body, `hx-trigger="every 2s"`) {
+		t.Errorf("a building card does not ask again:\n%s", body)
+	}
+	if !strings.Contains(body, "loading-spinner") || !strings.Contains(body, "Building tiles") {
+		t.Errorf("a building card does not say so:\n%s", body)
+	}
+	if strings.Contains(body, `name="asset"`) {
+		t.Errorf("a map with no tiles is offered as a choice:\n%s", body)
+	}
+
+	ready := building
+	ready.Generation = "gen"
+	ready.State = ""
+	ready.Width, ready.Height = 4000, 3000
+
+	buf.Reset()
+	if err := RoomMapCard(ready).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	body = buf.String()
+
+	if strings.Contains(body, "hx-trigger") {
+		t.Errorf("a finished card goes on polling:\n%s", body)
+	}
+	if !strings.Contains(body, ready.PreviewURL()) {
+		t.Errorf("a finished card has no preview:\n%s", body)
+	}
+	if !strings.Contains(body, `name="asset" value="map"`) || !strings.Contains(body, `hx-post="`+ready.SetPath()+`"`) {
+		t.Errorf("a finished card is not a button:\n%s", body)
+	}
+}
+
+func escapeAmps(s string) string { return strings.ReplaceAll(s, "&", "&amp;") }

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -160,8 +161,44 @@ func (a *App) SetLayerMap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RoomMapsFragment is the picker: the GM's maps that have finished tiling.
+// THE PICKER IS TWO ROUTES, the whole dialog and the grid inside it, and they
+// are the shape the asset manager's pages and their shared search route already
+// have: a page renders the box with the list in it, and a second route renders
+// the list on its own so that a search can replace it without replacing the box
+// the search is being typed into.
+//
+// THE GRID IS ALSO WHAT POLLS. A map uploaded from in here has no pyramid for the
+// best part of a minute, so the grid asks again every couple of seconds while
+// anything is queued or running and stops when nothing is -- which it can only
+// do by being fetchable on its own. See RoomMapsData in templ/pages/room-maps.go
+// for why the poll carries the search term with it.
+
+// RoomMapsFragment is the picker.
 func (a *App) RoomMapsFragment(w http.ResponseWriter, r *http.Request) {
+	data, ok := a.pickerMaps(w, r)
+	if !ok {
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomMaps(data))
+}
+
+// RoomMapListFragment is the grid alone: what a search matched, and what the
+// poll comes back to.
+func (a *App) RoomMapListFragment(w http.ResponseWriter, r *http.Request) {
+	data, ok := a.pickerMaps(w, r)
+	if !ok {
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomMapList(data))
+}
+
+// pickerMaps is the query behind both of them. A false return has already
+// answered the request.
+func (a *App) pickerMaps(w http.ResponseWriter, r *http.Request) (pages.RoomMapsData, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
@@ -169,29 +206,225 @@ func (a *App) RoomMapsFragment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 
-		return
+		return pages.RoomMapsData{}, false
 	}
 
 	layer, err := ulid.Parse(r.URL.Query().Get("layer"))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 
-		return
+		return pages.RoomMapsData{}, false
+	}
+
+	// Trimmed, so a term somebody is still typing a space into does not stop
+	// matching, and so a box holding nothing but spaces is the whole library
+	// rather than a search for a space. An overlong one is a 404 with an empty
+	// body: the box carries a maxlength, so it cannot come from the dialog, and
+	// there is nobody on the other end to tell.
+	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len([]rune(term)) > pages.AssetNameLimit {
+		w.WriteHeader(http.StatusNotFound)
+
+		return pages.RoomMapsData{}, false
 	}
 
 	// THE LIBRARY IS THE ASKER'S OWN, scoped by the session rather than by the
 	// room's owner column. They are the same person -- gmTable answered, so
 	// this session owns the room -- and scoping by the session is the property
 	// every other asset route in this application has.
-	rows, err := a.Queries.ListReadyMaps(ctx, sess.UserID)
+	rows, err := a.pickerMapRows(ctx, sess.UserID, term)
 	if err != nil {
 		htmx.ServerError(w)
+
+		return pages.RoomMapsData{}, false
+	}
+
+	return mapsData(row.ID, layer, term, rows), true
+}
+
+// RoomMapCardFragment is one card asking what became of its map. A card whose
+// tiling job is queued or running polls this every couple of seconds and swaps
+// itself with what comes back, so the poll stops by virtue of what it is
+// answered with: a finished card carries no hx-trigger, and it carries the
+// preview and the form that puts the map on the layer instead.
+//
+// A FAILURE HERE IS A BARE 404 rather than an alert. This request is a background
+// poll that the GM did not make, and an error dialog opening by itself over the
+// picker would be a card reporting on its own housekeeping. htmx leaves the
+// target alone on a 4xx, so the card that is on screen simply stays. It is
+// MapCardFragment's rule, for MapCardFragment's reason.
+func (a *App) RoomMapCardFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	roomID, layerID, ok := a.pickerLayer(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("layer"))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	assetID, err := ulid.Parse(r.URL.Query().Get("asset"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{ID: assetID, OwnerID: sess.UserID})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("Failed to load a picker card", "error", err, "assetID", assetID.String())
+		}
+		w.WriteHeader(http.StatusNotFound)
 
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMaps(mapsData(row.ID, layer, rows)))
+	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, m)))
+}
+
+// UploadRoomMap is the picker's Upload map button.
+//
+// IT IS THE SAME WORK AS UploadMap AND A DIFFERENT CARD. storeMap writes the row,
+// puts the original in the bucket and queues the tiling; what differs is what is
+// rendered afterwards, because the manager's card is a name box with a Replace
+// and a Delete on it and this one is a button that puts the map on a layer. The
+// map itself is the GM's own either way -- it appears on the Maps page and is
+// theirs at the next table.
+//
+// THE CARD COMES BACK PENDING AND IS PREPENDED TO THE GRID, which is what makes
+// an upload visible immediately: the spinner is on screen before the first tile
+// exists, and the card fetches its own replacement until the preview is there to
+// show. It is built from what was just written rather than by reading the row
+// back, because the insert is the whole of what this map is so far.
+func (a *App) UploadRoomMap(w http.ResponseWriter, r *http.Request) {
+	roomID, layerID, ok := a.pickerLayer(r.Context(), r, r.PathValue("id"), r.PathValue("layer"))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	assetID, filename, ok := a.storeMap(w, r)
+	if !ok {
+		return
+	}
+
+	render(w, r, pages.RoomMapCard(pages.RoomMapChoice{
+		RoomID:   roomID,
+		LayerID:  layerID,
+		ID:       assetID.String(),
+		Name:     filename,
+		FileName: filename,
+		State:    queries.AssetsTileStatePending,
+	}))
+}
+
+// RetryRoomMapTiling queues a failed map's tiling again from inside the picker
+// and answers with that map's card, which comes back building and starts polling
+// on its own.
+//
+// IT EXISTS BECAUSE THE DIALOG HAS NO WAY OUT OF ITSELF. A map that gave up while
+// the GM was looking at it would otherwise be a card that says so with nothing to
+// do about it, in the middle of a session.
+func (a *App) RetryRoomMapTiling(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	roomID, layerID, ok := a.pickerLayer(ctx, r, r.PathValue("id"), r.PathValue("layer"))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	assetID, err := ulid.Parse(r.PathValue("asset"))
+	if err != nil {
+		htmx.NotFound(w, "map")
+
+		return
+	}
+
+	m, ok := a.requeueMap(w, ctx, sess.UserID, assetID)
+	if !ok {
+		return
+	}
+
+	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, m)))
+}
+
+// pickerLayer establishes that the asker is the room's GM and that the layer they
+// name is a layer, and hands back the two ids as the strings the cards are built
+// from. It is the same check every route in this file starts with; what it adds
+// is the layer, because a picker card is addressed to one.
+func (a *App) pickerLayer(ctx context.Context, r *http.Request, roomID string, layerID string) (string, string, bool) {
+	row, _, ok := a.gmTable(ctx, r, roomID)
+	if !ok {
+		return "", "", false
+	}
+
+	layer, err := ulid.Parse(layerID)
+	if err != nil {
+		return "", "", false
+	}
+
+	return row.ID.String(), layer.String(), true
+}
+
+// pickerChoice is one assets row as the picker's card reads it. It is mapCard's
+// shape a file over, and the columns it flattens are the same ones: a NULL
+// tile_state is neither pending nor working nor failed, so a row from before
+// there was a tiling worker is a card that does not poll and offers no retry.
+func pickerChoice(roomID string, layerID string, m queries.Asset) pages.RoomMapChoice {
+	choice := pages.RoomMapChoice{
+		RoomID:   roomID,
+		LayerID:  layerID,
+		ID:       m.ID.String(),
+		Name:     m.Name,
+		FileName: m.FileName,
+		Width:    int(m.Width.Int32),
+		Height:   int(m.Height.Int32),
+		State:    m.TileState.AssetsTileState,
+	}
+	if m.TileGen != nil {
+		choice.Generation = m.TileGen.String()
+	}
+
+	return choice
+}
+
+// pickerMapRows is the library in either of its two states -- everything the GM
+// owns, or what a search matched -- so the dialog and its grid build the same
+// cards from the same function. It is mapList's shape one file over, and the
+// difference is which pair of statements it runs: this one lists maps that have
+// not been tiled as well, because a map uploaded thirty seconds ago is exactly
+// what somebody in here is waiting for.
+//
+// THE TWO ROW TYPES ARE ONE TYPE with two names. sqlc generates a struct per
+// statement, and these two statements select the same seven columns in the same
+// order, so the conversion below is a compile-time check that they still do:
+// change one SELECT and this stops building.
+func (a *App) pickerMapRows(ctx context.Context, ownerID ulid.ULID, term string) ([]queries.ListPickerMapsRow, error) {
+	if term == "" {
+		return a.Queries.ListPickerMaps(ctx, ownerID)
+	}
+
+	found, err := a.Queries.SearchPickerMaps(ctx, queries.SearchPickerMapsParams{
+		OwnerID: ownerID,
+		Term:    journalSearchPattern(term),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	rows := make([]queries.ListPickerMapsRow, 0, len(found))
+	for _, row := range found {
+		rows = append(rows, queries.ListPickerMapsRow(row))
+	}
+
+	return rows, nil
 }
 
 // RoomGridFragment is the grid and the two room-wide options, pre-filled from
@@ -408,19 +641,44 @@ func layersData(roomID ulid.ULID, view *hub.TableView, names map[ulid.ULID]strin
 	}
 }
 
-// mapsData turns the owner's ready maps into the picker's cards.
-func mapsData(roomID ulid.ULID, layer ulid.ULID, rows []queries.ListReadyMapsRow) pages.RoomMapsData {
+// mapsData turns the owner's maps into the picker's cards.
+//
+// A NULL tile_state flattens to the empty string, which is neither pending nor
+// working nor failed -- so a row from before there was a tiling worker renders as
+// a card that does not poll and offers no retry, rather than as one stuck waiting
+// for a job nothing will ever run. It is mapCard's rule, for the same reason.
+//
+// Width and Height are NULL until the worker that tiles a map writes them, so an
+// untiled one arrives here as zeroes and RoomMapChoice.Size leaves the line off
+// the card rather than printing them.
+func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.ListPickerMapsRow) pages.RoomMapsData {
+	roomText, layerText := roomID.String(), layer.String()
+
 	out := make([]pages.RoomMapChoice, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, pages.RoomMapChoice{
-			ID:     m.ID.String(),
-			Name:   m.Name,
-			Width:  int(m.Width.Int32),
-			Height: int(m.Height.Int32),
-		})
+		choice := pages.RoomMapChoice{
+			RoomID:   roomText,
+			LayerID:  layerText,
+			ID:       m.ID.String(),
+			Name:     m.Name,
+			FileName: m.FileName,
+			Width:    int(m.Width.Int32),
+			Height:   int(m.Height.Int32),
+			State:    m.TileState.AssetsTileState,
+		}
+		if m.TileGen != nil {
+			choice.Generation = m.TileGen.String()
+		}
+
+		out = append(out, choice)
 	}
 
-	return pages.RoomMapsData{RoomID: roomID.String(), LayerID: layer.String(), Maps: out}
+	return pages.RoomMapsData{
+		RoomID:  roomText,
+		LayerID: layerText,
+		Query:   term,
+		Maps:    out,
+	}
 }
 
 // gridData flattens the table into the grid form.

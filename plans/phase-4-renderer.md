@@ -124,6 +124,11 @@ strokes yet.
     against, and a GM preparing a floor parks the manager open while they work.
     The map picker stays a content modal: it is a one-shot pick that closes on
     choose, which is what a modal is for.
+
+    CORRECTED WHILE BUILDING: the picker is also where a map is uploaded, so it
+    lists maps that have not been tiled yet and it is a locked size. It is still
+    a modal and it still closes on choose. See decision 19.
+
 13. **The viewed layer is shown in the menu bar**, at its right end: for the GM
     a `<select>` of the layers with a "Viewing, not active" badge and a Make
     active button when the viewed and active layers differ; for a player a plain
@@ -138,6 +143,16 @@ strokes yet.
     with the re-rendered list instead would save a round trip and leave the
     other tab stale.
 
+18. **A map smaller than the viewport is not locked centred.** The first draft
+    pinned the camera to the map's centre once the whole map fitted on screen,
+    on the reasoning that there is nothing to explore in a direction where
+    everything is already visible. That reasoning died with decision 6: the grid
+    runs past the map now, so past the edge is somewhere a party goes and a view
+    that refuses to move reads as a broken drag rather than as a finished one.
+    One expression covers both cases -- half of `min(viewport, map)` has to stay
+    on screen -- and it reduces to the old zoomed-in bound exactly, so only the
+    case that was a lock changes.
+
 17. **Snapping is a whole-cell step or a half-cell one, and the third choice is
     off.** The dialog first offered Cells, Corners and Off, where Corners was
     the parity rule inverted -- odd footprints on vertices, even ones on
@@ -151,6 +166,64 @@ strokes yet.
     corners -- the nearest of either, footprint irrelevant) and `off`. The
     parity term in `SnapAxis` survives for `cells` alone and `halfCells` needs
     no phase at all. `cells` keeps its wire value, so no stored room moves.
+
+19. **The map picker uploads, searches, and is a locked size.** It began as a
+    grid of the owner's tiled maps with a Manage maps link beside Close, and
+    each part of that turned out to be wrong the first time somebody sat down at
+    a table with it.
+
+    The link was a way out of the room. A GM who opens the picker and finds
+    nothing in it needs a map on the table now, and sending them to
+    `/assets/maps` ends the session to come back through the room list. So the
+    dialog uploads, against the same `POST /assets/maps` the manager uses,
+    posted with `hx-swap="none"` because the card that answers is the manager's
+    markup and the wrong shape here. A map uploaded from a room is still the
+    GM's own -- it appears on the Maps page and is theirs at the next table --
+    because an asset belongs to a person and not to a room.
+
+    The card is the unit, exactly as it is on the asset manager. An upload
+    answers with the picker's card, already pending, and htmx prepends it to the
+    grid with `hx-swap="afterbegin"` -- so the spinner is on screen before the
+    first tile exists. That card then polls `GET /fragment/room/map-card` every
+    two seconds and swaps itself with `outerMorph`, and the preview appears in
+    place when the tiles land. Nothing refetches the list, which is the point:
+    a card finishing cannot reorder the cards around it or throw away the scroll
+    position of somebody reading them, and the poll ends by virtue of what it is
+    answered with, because a finished card carries no `hx-trigger`. It is
+    `MapCard`'s mechanism and `MapCardFragment`'s rule, down to the bare 404 on
+    failure -- a poll the GM did not make must not open an alert over the dialog.
+
+    That is also why the listing is every map rather than the tiled ones: a map
+    uploaded on a previous visit and still building has to come back on the next
+    open, polling from the start. Choosing an unready map was already refused in
+    `hub.resolveMap`; the card not being a button is the courtesy, not the rule.
+    A failed map keeps a Try again, for the same reason the link went -- it is
+    the one state that would otherwise be a dead end with nowhere to go from
+    inside the dialog -- and it replaces its own card, `hx-target="closest
+    room-map-card"`.
+
+    The search matches `name` **or** `file_name`, which is the one search in the
+    app that does. `SearchMaps` deliberately matches only the name, so that a
+    search for "keep" does not hit every `.keep.png`, and the picker is the case
+    that reasoning does not cover: it is reached mid-session with a map in mind,
+    and a map renamed a month ago is as often remembered by the file it was
+    exported as. The card prints the file name whenever it differs from the
+    name, so a hit that matched on it can be seen to have matched on something.
+
+    The search replaces the grid and nothing else, so the box being typed into
+    is never swapped out from under the caret. The empty state lives inside the
+    grid as `hidden only:flex`, which is how an upload prepended into an empty
+    library hides "No maps yet." with no round trip -- the manager's `only:block`
+    trick, one display value over.
+
+    And the dialog is one size whatever is in it -- `xl` wide, 62vh tall, the
+    grid scrolling inside it. A dialog as tall as its list resizes under the
+    cursor on every keystroke in the search box, and the card somebody was
+    aiming at moves out from under them. The card's radii are concentric with
+    its padding: a `rounded-box` card with `p-2` holds a `rounded-lg` preview,
+    because 1rem of outer radius less 0.5rem of padding is 0.5rem of inner one.
+    The grid around them carries no border or fill of its own, so there is one
+    nesting to get right rather than two.
 
 10. **Zoom range is 0.05 to 4.** The old client stopped at 0.1 and 2 because it
     had one texture. Tiles make a full-map overview cheap. Wheel zoom applies
@@ -168,7 +241,11 @@ strokes yet.
 | `PATCH /rooms/{id}/layers/{layer}/name` | `RequireSession` | `RenameLayer` | GM only. Dispatches `table.renameLayer`. |
 | `POST /rooms/{id}/layers/{layer}/move` | `RequireSession` | `MoveLayer` | GM only. Reads `index`, dispatches `table.moveLayer`. |
 | `POST /rooms/{id}/layers/{layer}/activate` | `RequireSession` | `ActivateLayer` | GM only. Dispatches `table.setActiveLayer`. |
-| `GET /fragment/room/maps?room={id}&layer={id}` | `Fragment` | `RoomMapsFragment` | GM only. Pick-shaped cards of the owner's maps with a generation: preview image, name, dimensions. Each card is a `<form>` posting to the layer's map route with the asset id in a hidden field. Close first. |
+| `GET /fragment/room/maps?room={id}&layer={id}&q=` | `Fragment` | `RoomMapsFragment` | GM only. The whole dialog: a heading, a search box, an Upload map button, the grid, and Close. Opened at `xl` and a fixed 62vh tall, so it does not resize as the list under it changes. See decision 19. |
+| `GET /fragment/room/map-list?room={id}&layer={id}&q=` | `Fragment` | `RoomMapListFragment` | GM only. The grid on its own, which is what a search replaces. Cards of **every** map the owner has. `q` matches `name` or `file_name`, and is a 404 past `AssetNameLimit`. The empty state is inside the grid as `hidden only:flex`, so an upload prepended into it hides the notice with no round trip. |
+| `GET /fragment/room/map-card?room={id}&layer={id}&asset={id}` | `Fragment` | `RoomMapCardFragment` | GM only. One card: preview image, name, the file it came from when that differs, dimensions. A card with a generation is a `<form>` posting to the layer's map route with the asset id in a hidden field; one without is the same card and not a button, captioned "Building tiles" with a spinner or "Tiling gave up" with a Try again under it. A building card carries `hx-trigger="every 2s"` and `hx-swap="outerMorph"` on itself; a finished one carries neither, which is what ends the poll. A failure is a bare 404, never an alert. |
+| `POST /rooms/{id}/layers/{layer}/maps` | `RequireSession` | `UploadRoomMap` | GM only. The picker's Upload map. Shares `storeMap` with `UploadMap` and answers with the picker's card, pending, which htmx prepends to the grid. |
+| `POST /rooms/{id}/layers/{layer}/maps/{asset}` | `RequireSession` | `RetryRoomMapTiling` | GM only. Queues a failed map's tiling again from inside the picker. Shares `requeueMap` with `RetryMapTiling` and answers with that map's card, building. |
 | `POST /rooms/{id}/layers/{layer}/map` | `RequireSession` | `SetLayerMap` | GM only. Reads `asset`, resolves via `GetMapPyramid` (owner must be the GM, `tile_gen` must be set, else `htmx.Error` "That map is not ready yet" 409), `hub.Dispatch(table.setLayerMap)`, `htmx.CloseModal` -- the picker is the one content modal here. |
 | `DELETE /rooms/{id}/layers/{layer}/map` | `RequireSession` | `ClearLayerMap` | GM only. `hub.Dispatch(table.clearLayerMap)`. |
 | `GET /fragment/room/grid?room={id}` | `Fragment` | `RoomGridFragment` | GM only. Opened as a window from the Tabletop menu. A form pre-filled from the live state via a new `hub.Table(roomID)` accessor, which returns the table and a pawn count per layer -- the manager needs the counts for its confirm text and this needs the grid. |
@@ -270,8 +347,12 @@ stops; the rest of the room page keeps working.
   zoom so the map fills the viewport with a margin and centres it. Fit runs
   automatically the first time a map appears in the state and when the map
   changes.
-- Zoom is clamped to `[0.05, 4]`; the camera position is clamped so the map
-  cannot be panned more than half a viewport off screen when a map is set.
+- Zoom is clamped to `[0.05, 4]`; the camera position is clamped so that half of
+  whatever the screen could show of the map stays on it, per axis. Zoomed in
+  that is "the middle of the screen is over the map"; zoomed out past the point
+  where the whole map fits it is "the camera may roam a screen's width around
+  the map's centre", NOT the lock to the centre this plan first specified --
+  see decision 18.
 
 ### Tile pass
 

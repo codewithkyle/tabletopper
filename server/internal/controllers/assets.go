@@ -940,12 +940,37 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 // concurrent uploads were a quarter of a gigabyte of heap holding bytes that
 // were already on disk.
 func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
+	assetID, filename, ok := a.storeMap(w, r)
+	if !ok {
+		return
+	}
+
+	// The card is built from what was just written rather than by reading the
+	// row back: the insert above is the whole of what this map is so far, and
+	// a map with no pyramid has nothing else to show. It comes back pending,
+	// so it starts polling the moment it lands on the page.
+	render(w, r, pages.MapCard(pages.MapAsset{
+		ID:       assetID.String(),
+		Name:     filename,
+		FileName: filename,
+		State:    queries.AssetsTileStatePending,
+	}))
+}
+
+// storeMap is the upload itself, without the card at the end of it.
+//
+// IT IS SPLIT OUT BECAUSE THE MAP PICKER UPLOADS TOO, and the picker's card is
+// not this one: it is a button that puts the map on a layer, where this one is a
+// name box, a Replace and a Delete. The work is identical and the markup is not,
+// so the work is here and each caller renders its own. A false return has already
+// answered the request.
+func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, string, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
 	file, header, contentType, ok := openImageUpload(w, r, "map", mapLimits)
 	if !ok {
-		return
+		return ulid.ULID{}, "", false
 	}
 	defer file.Close()
 
@@ -984,7 +1009,7 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to insert map", "error", err)
 		htmx.ServerError(w)
-		return
+		return ulid.ULID{}, "", false
 	}
 
 	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, file, header.Size, contentType); err != nil {
@@ -995,7 +1020,7 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
 		})
 		htmx.ServerError(w)
-		return
+		return ulid.ULID{}, "", false
 	}
 
 	// The same rollback as a failed upload: a row left un-queued would be a
@@ -1013,20 +1038,12 @@ func (a *App) UploadMap(w http.ResponseWriter, r *http.Request) {
 			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
 		})
 		htmx.ServerError(w)
-		return
+		return ulid.ULID{}, "", false
 	}
 
-	// The card is built from what was just written rather than by reading the
-	// row back: the insert above is the whole of what this map is so far, and
-	// a map with no pyramid has nothing else to show. It comes back pending,
-	// so it starts polling the moment it lands on the page.
 	htmx.Toast(w, filename+" uploaded.")
-	render(w, r, pages.MapCard(pages.MapAsset{
-		ID:       assetID.String(),
-		Name:     filename,
-		FileName: filename,
-		State:    queries.AssetsTileStatePending,
-	}))
+
+	return assetID, filename, true
 }
 
 func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
@@ -1169,35 +1186,47 @@ func (a *App) RetryMapTiling(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The update is conditional on the row still being failed, and its result
-	// is deliberately not read: a button pressed twice, or pressed on a card
-	// that a background retry already picked up, changes nothing and is not an
-	// error. What the owner gets back either way is the row as it now stands.
-	_, err = a.Queries.RetryMapTiling(ctx, queries.RetryMapTilingParams{
-		ID:      assetID,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to retry map tiling", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-
-	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{
-		ID:      assetID,
-		OwnerID: sess.UserID,
-	})
-	if errors.Is(err, sql.ErrNoRows) {
-		htmx.NotFound(w, "map")
-		return
-	}
-	if err != nil {
-		slog.Error("Failed to load map after retry", "error", err, "assetID", assetID.String())
-		htmx.ServerError(w)
+	m, ok := a.requeueMap(w, r.Context(), sess.UserID, assetID)
+	if !ok {
 		return
 	}
 
 	render(w, r, pages.MapCard(mapCard(m)))
+}
+
+// requeueMap is the retry itself, without the card at the end of it, split out
+// for the reason storeMap is: the map picker offers the same button and answers
+// with its own markup. A false return has already answered the request.
+func (a *App) requeueMap(w http.ResponseWriter, ctx context.Context, ownerID ulid.ULID, assetID ulid.ULID) (queries.Asset, bool) {
+	// The update is conditional on the row still being failed, and its result
+	// is deliberately not read: a button pressed twice, or pressed on a card
+	// that a background retry already picked up, changes nothing and is not an
+	// error. What the owner gets back either way is the row as it now stands.
+	_, err := a.Queries.RetryMapTiling(ctx, queries.RetryMapTilingParams{
+		ID:      assetID,
+		OwnerID: ownerID,
+	})
+	if err != nil {
+		slog.Error("Failed to retry map tiling", "error", err)
+		htmx.ServerError(w)
+		return queries.Asset{}, false
+	}
+
+	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{
+		ID:      assetID,
+		OwnerID: ownerID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "map")
+		return queries.Asset{}, false
+	}
+	if err != nil {
+		slog.Error("Failed to load map after retry", "error", err, "assetID", assetID.String())
+		htmx.ServerError(w)
+		return queries.Asset{}, false
+	}
+
+	return m, true
 }
 
 func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {

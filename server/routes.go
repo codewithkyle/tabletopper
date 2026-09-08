@@ -458,6 +458,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/activate", auth.RequireSession(app.ActivateLayer))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.SetLayerMap))
 	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.ClearLayerMap))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
 	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
 
 	// The room's live connection, and the only route in the app that answers
@@ -689,6 +691,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// with the same 404 they answer a stranger.
 	mux.HandleFunc("GET /fragment/room/layers", auth.Fragment(app.RoomLayersFragment))
 	mux.HandleFunc("GET /fragment/room/maps", auth.Fragment(app.RoomMapsFragment))
+	mux.HandleFunc("GET /fragment/room/map-list", auth.Fragment(app.RoomMapListFragment))
+	mux.HandleFunc("GET /fragment/room/map-card", auth.Fragment(app.RoomMapCardFragment))
 	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR

@@ -13,6 +13,7 @@ import (
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -42,11 +43,40 @@ func pyramidAnswer(owner ulid.ULID, gen ulid.ULID, w, h, tile, maxZoom int) room
 	}
 }
 
-// readyMapAnswer is a ListReadyMaps row.
+// readyMapAnswer is a ListReadyMaps row, which is what the layer manager reads
+// to put a name under each layer.
 func readyMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	return roomAnswer{
 		columns: []string{"id", "name", "width", "height"},
 		values:  []driver.Value{id.Bytes(), name, int64(w), int64(h)},
+	}
+}
+
+// pickerMapAnswer is a ListPickerMaps row: a map that has been tiled, so it has
+// a generation, dimensions and no job outstanding.
+func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
+	return roomAnswer{
+		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
+		values:  []driver.Value{id.Bytes(), name, name + ".png", int64(w), int64(h), testMapGen.Bytes(), nil},
+	}
+}
+
+// buildingMapAnswer is the same row for a map that was uploaded a moment ago:
+// no generation, no size yet, and a job queued. It is the state the picker had
+// to learn to show, because uploading is now something done from inside it.
+func buildingMapAnswer(id ulid.ULID, name string) roomAnswer {
+	return roomAnswer{
+		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
+		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "pending"},
+	}
+}
+
+// failedMapAnswer is a map whose tiling gave up, which is the one state that
+// needs a control of its own now that the dialog has no way out to the manager.
+func failedMapAnswer(id ulid.ULID, name string) roomAnswer {
+	return roomAnswer{
+		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
+		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "failed"},
 	}
 }
 
@@ -258,38 +288,59 @@ func TestAMapThatHasNotFinishedTilingIsRefused(t *testing.T) {
 	}
 }
 
-// The picker asks for the owner's maps that have a generation, and both halves
-// of that matter: the wrong owner is a leak and the wrong filter is a table
-// full of broken tiles.
-func TestThePickerAsksOnlyForTheOwnersReadyMaps(t *testing.T) {
+// pickerRequest is the dialog or its grid, asked for as the room's GM.
+func pickerRequest(t *testing.T, app *App, handler http.HandlerFunc, path string, query string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	layer := firstLayer(t, app)
+	url := path + "?room=" + testRoomID.String() + "&layer=" + layer.String() + query
+
+	return tableRequest(t, handler, http.MethodGet, url, nil, nil, session.UserSession{UserID: testOwnerID})
+}
+
+// listing is the statement the picker read its cards from, which is the one
+// ordered by whether a map has been tiled. The room lookup runs first and this
+// picks the listing out from behind it.
+func listing(t *testing.T, db *roomDB) recordedCall {
+	t.Helper()
+
+	for _, call := range db.calls {
+		if strings.Contains(call.query, "ORDER BY tile_gen IS NOT NULL") {
+			return call
+		}
+	}
+	t.Fatalf("the picker read no map listing; statements: %v", db.queries())
+
+	return recordedCall{}
+}
+
+// THE PICKER ASKS FOR THE OWNER'S WHOLE MAP LIBRARY, and both halves of that
+// matter. The wrong owner is a leak. The wrong filter is the reason this changed:
+// it used to ask only for maps with a generation, which was right when the only
+// way to get a map was the asset manager and wrong the moment uploading moved in
+// here -- a GM who presses Upload has to be able to watch the thing they uploaded
+// build, and a listing that hid it until it was finished would show nothing at
+// all for the minute that takes.
+func TestThePickerAsksForTheOwnersWholeMapLibrary(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
-		readyMapAnswer(testMapID, "Death House", 4000, 3000),
+		pickerMapAnswer(testMapID, "Death House", 4000, 3000),
 	}}
 	app := tableApp(t, db)
-	layer := firstLayer(t, app)
 
-	rec := tableRequest(t, app.RoomMapsFragment, http.MethodGet,
-		"/fragment/room/maps?room="+testRoomID.String()+"&layer="+layer.String(),
-		nil, nil, session.UserSession{UserID: testOwnerID})
-
+	rec := pickerRequest(t, app, app.RoomMapsFragment, "/fragment/room/maps", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
 	}
 
-	var listing recordedCall
-	for _, call := range db.calls {
-		if strings.Contains(call.query, "tile_gen IS NOT NULL") {
-			listing = call
-		}
+	read := listing(t, db)
+	if strings.Contains(read.query, "tile_gen IS NOT NULL\n") || strings.Contains(read.query, "AND tile_gen IS NOT NULL") {
+		t.Errorf("the picker still filters out maps that have not been tiled: %q", read.query)
 	}
-	if listing.query == "" {
-		t.Fatalf("nothing filtered on tile_gen; statements: %v", db.queries())
+	if !strings.Contains(read.query, "owner_id = ?") {
+		t.Errorf("the listing is not scoped to an owner: %q", read.query)
 	}
-	if !strings.Contains(listing.query, "owner_id = ?") {
-		t.Errorf("the listing is not scoped to an owner: %q", listing.query)
-	}
-	if got, ok := boundRoomID(listing.args[0]); !ok || got != testOwnerID {
+	if got, ok := boundRoomID(read.args[0]); !ok || got != testOwnerID {
 		t.Errorf("the listing asked for %s's maps, want %s", got, testOwnerID)
 	}
 
@@ -299,8 +350,163 @@ func TestThePickerAsksOnlyForTheOwnersReadyMaps(t *testing.T) {
 	}
 	// The card posts to the LAYER's map resource, because what is being
 	// changed is the layer and not the picker.
-	if !strings.Contains(body, `hx-post="/rooms/`+testRoomID.String()+`/layers/`+layer.String()+`/map"`) {
+	if !strings.Contains(body, `hx-post="/rooms/`+testRoomID.String()+`/layers/`+firstLayer(t, app).String()+`/map"`) {
 		t.Errorf("the card posts somewhere else:\n%s", body)
+	}
+}
+
+// A SEARCH MATCHES THE FILE THE MAP CAME FROM AS WELL AS ITS NAME, which is the
+// one place in the app that does. The manager's search deliberately does not --
+// see SearchMaps in assets.sql -- and the picker is the case that reason does not
+// cover: it is reached mid-session with a map in mind, and a map renamed a month
+// ago is as often remembered by its export as by its name.
+func TestThePickerSearchesBothNames(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		tableRoomAnswer(),
+		pickerMapAnswer(testMapID, "Death House", 4000, 3000),
+	}}
+	app := tableApp(t, db)
+
+	rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list", "&q=death")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+
+	read := listing(t, db)
+	if !strings.Contains(read.query, "name LIKE") || !strings.Contains(read.query, "file_name LIKE") {
+		t.Errorf("the search does not look at both names: %q", read.query)
+	}
+	// The term is a pattern and not a word: the caller escapes it, so a
+	// wildcard somebody typed is a character and not the whole library.
+	if got := read.args[1]; got != "%death%" {
+		t.Errorf("the bound term is %v, want %%death%%", got)
+	}
+}
+
+// A TERM LONGER THAN A NAME CAN BE IS A 404 WITH AN EMPTY BODY, and the box
+// carries a maxlength so it cannot come from the dialog. There is nobody on the
+// other end to tell, which is why this is not an alert.
+func TestAnOverlongSearchIsRefusedWithoutReadingTheLibrary(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+
+	rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list",
+		"&q="+strings.Repeat("a", pages.AssetNameLimit+1))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+	if rec.Body.Len() != 0 {
+		t.Errorf("the refusal has a body: %s", rec.Body.String())
+	}
+	for _, call := range db.calls {
+		if strings.Contains(call.query, "ORDER BY tile_gen IS NOT NULL") {
+			t.Errorf("the library was read anyway: %v", db.queries())
+		}
+	}
+}
+
+// A MAP THAT IS STILL BUILDING IS ON THE SHELF AND IS NOT A BUTTON, and the grid
+// polls while it is there. The card says what it is doing, the grid asks again in
+// two seconds, and both of those stop by themselves: the poll lives on the grid's
+// own markup, so the swap that comes back without a building map comes back
+// without an hx-trigger.
+func TestAMapThatIsStillBuildingIsShownButCannotBeChosen(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		tableRoomAnswer(),
+		buildingMapAnswer(testMapID, "sunless-citadel.png"),
+	}}
+	app := tableApp(t, db)
+
+	rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "sunless-citadel.png") {
+		t.Errorf("the map is not on the shelf:\n%s", body)
+	}
+	if strings.Contains(body, `name="asset"`) {
+		t.Errorf("a map with no tiles is offered as a choice:\n%s", body)
+	}
+	if !strings.Contains(body, `hx-trigger="every 2s"`) {
+		t.Errorf("the card does not ask again while its tiles are building:\n%s", body)
+	}
+	// The card polls its own fragment, so a map finishing cannot move the
+	// cards around it or throw away somebody's scroll position.
+	if !strings.Contains(body, "/fragment/room/map-card?room="+testRoomID.String()) {
+		t.Errorf("the card does not name the fragment it refetches:\n%s", body)
+	}
+}
+
+// AND A CARD WITH NOTHING LEFT TO WAIT FOR DOES NOT POLL. This is the half that
+// makes the poll end rather than run for as long as the dialog is open.
+func TestACardWithNothingBuildingDoesNotPoll(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		tableRoomAnswer(),
+		pickerMapAnswer(testMapID, "Death House", 4000, 3000),
+	}}
+	app := tableApp(t, db)
+
+	rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list", "")
+
+	if body := rec.Body.String(); strings.Contains(body, "every 2s") {
+		t.Errorf("a finished card polls with nothing to wait for:\n%s", body)
+	}
+}
+
+// A MAP WHOSE TILING GAVE UP CAN BE TRIED AGAIN FROM IN HERE. There is no link
+// out of this dialog to the asset manager any more, so a failure with no control
+// beside it would be a dead end in the middle of a session.
+func TestAFailedMapOffersItsRetryInThePicker(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		tableRoomAnswer(),
+		failedMapAnswer(testMapID, "castle.png"),
+	}}
+	app := tableApp(t, db)
+
+	rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list", "")
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `/maps/`+testMapID.String()+`"`) {
+		t.Errorf("a failed map cannot be tried again:\n%s", body)
+	}
+	// It answers with this card and nothing else, so the retry replaces the
+	// card that was pressed rather than the grid around it.
+	if !strings.Contains(body, `hx-target="closest room-map-card"`) {
+		t.Errorf("the retry does not replace its own card:\n%s", body)
+	}
+}
+
+// THE UPLOAD'S HAPPY PATH IS NOT HERE, because storeMap puts the original in R2
+// and App.Storage is a concrete *storage.Client with nothing to stand in for it.
+// What the picker adds to that path is the card on the end of it, and that is
+// pinned in templ/pages: TestAPickerCardPollsUntilItsTilesAreReady renders a
+// pending card and a finished one and checks that the first fetches its own
+// replacement and the second does not.
+
+// A PLAYER CANNOT UPLOAD INTO A ROOM THEY ARE ONLY SITTING AT, and the refusal
+// comes before the file is read: the route is the GM's picker, so somebody who
+// is not the GM has no picker to be uploading from.
+func TestAPlayerCannotUploadThroughThePicker(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+	layer := firstLayer(t, app)
+
+	before := len(db.calls)
+	rec := tableRequest(t, app.UploadRoomMap, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/layers/"+layer.String()+"/maps",
+		map[string]string{"id": testRoomID.String(), "layer": layer.String()},
+		nil, memberSession(testRoomID))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+	for _, call := range db.calls[before:] {
+		if strings.Contains(call.query, "INSERT INTO assets") {
+			t.Errorf("a player's upload wrote a row: %v", db.queries())
+		}
 	}
 }
 

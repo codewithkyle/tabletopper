@@ -1,43 +1,143 @@
 package pages
 
+const roomMapPickerBox = "flex h-[62vh] w-full flex-col gap-3"
+
+const roomMapGrid = "grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto p-1 sm:grid-cols-3"
+
+const roomMapCardBox = "flex flex-col gap-2 rounded-box border border-base-300 p-2"
+
+const roomMapPickableBox = "flex flex-col gap-2 rounded-box border border-base-300 p-2 hover:border-primary focus-within:border-primary"
+
 templ RoomMaps(data RoomMapsData) {
-	<div class="flex flex-col gap-4">
-		<h2 class="text-lg font-semibold">Choose a map</h2>
-		if len(data.Maps) == 0 {
-			<p class="text-sm text-base-content/70">
-				None of your maps have finished tiling yet. Upload one from the Maps page, and it will
-				appear here once its tiles are ready.
-			</p>
-		} else {
-			<div class="grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
-				for _, m := range data.Maps {
-					@roomMapCard(data, m)
-				}
+	<room-map-picker class={ roomMapPickerBox }>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="m-0 text-lg font-semibold">Choose a map</h2>
+			<div class="flex items-center gap-2">
+				<input
+					type="search"
+					name="q"
+					class="input input-sm w-48"
+					placeholder={ data.SearchLabel() }
+					aria-label={ data.SearchLabel() }
+					aria-controls={ RoomMapListID }
+					autocomplete="off"
+					maxlength={ data.NameLimit() }
+					hx-get={ data.ListPath() }
+					hx-trigger={ data.SearchTriggers() }
+					hx-target={ "#" + RoomMapListID }
+					hx-swap="outerHTML"
+				/>
+				@roomMapUpload(data)
 			</div>
-		}
-		<div class="flex justify-end gap-2">
+		</div>
+		@RoomMapList(data)
+		<div class="flex justify-end">
 			<button
 				type="button"
 				class="btn border-base-content/50"
 				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
 			>Close</button>
-			<a href="/assets/maps" class="btn">Manage maps</a>
 		</div>
-	</div>
+	</room-map-picker>
 }
 
-templ roomMapCard(data RoomMapsData, m RoomMapChoice) {
-	<form hx-post={ data.SetPath() } hx-swap="none" class="contents">
-		<input type="hidden" name="asset" value={ m.ID }/>
-		<button
-			type="submit"
-			class="flex flex-col gap-1 rounded-box border border-base-300 p-1 text-left hover:border-primary focus-visible:border-primary"
-		>
-			<span class="relative block aspect-video w-full overflow-hidden rounded-sm bg-base-300">
-				<img src={ data.PreviewURL(m) } alt="" class="absolute inset-0 h-full w-full object-cover"/>
+templ RoomMapList(data RoomMapsData) {
+	<section id={ RoomMapListID } class={ roomMapGrid }>
+		for _, m := range data.Maps {
+			@RoomMapCard(m)
+		}
+		<div class="col-span-full hidden only:flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+			if data.Query == "" {
+				<p class="m-0 font-serif text-xl">{ data.EmptyHeading() }</p>
+				<p class="m-0 max-w-sm text-sm text-base-content/70">{ data.EmptyBlurb() }</p>
+			} else {
+				<p class="m-0 font-serif text-xl">{ data.NoMatchHeading() }</p>
+				<p class="m-0 max-w-sm text-sm text-base-content/70">{ noMatchHint }</p>
+			}
+		</div>
+	</section>
+}
+
+templ roomMapUpload(data RoomMapsData) {
+	<label for="room-map-upload" class="btn btn-primary btn-sm relative">
+		@uploadIcon()
+		Upload map
+		<input
+			class="absolute top-0 left-0 h-0 w-0 opacity-0"
+			id="room-map-upload"
+			type="file"
+			name="map"
+			accept={ data.UploadAccept() }
+			required
+			hx-post={ data.UploadPath() }
+			hx-target={ "#" + RoomMapListID }
+			hx-swap="afterbegin"
+			hx-encoding="multipart/form-data"
+			hx-on::after-request="this.value = ''"
+		/>
+	</label>
+}
+
+templ RoomMapCard(m RoomMapChoice) {
+	<room-map-card
+		class={ m.CardClass() }
+		if m.Polling() {
+			data-quiet
+			hx-get={ m.CardURL() }
+			hx-trigger="every 2s"
+			hx-swap="outerMorph"
+		}
+	>
+		if m.Usable() {
+			<form hx-post={ m.SetPath() } hx-swap="none" class="contents">
+				<input type="hidden" name="asset" value={ m.ID }/>
+				<button type="submit" class="flex w-full flex-col gap-2 text-left">
+					@roomMapThumb(m)
+					@roomMapLabel(m)
+				</button>
+			</form>
+		} else {
+			@roomMapThumb(m)
+			@roomMapLabel(m)
+		}
+		if m.Retryable() {
+			<button
+				type="button"
+				class="btn btn-xs w-full"
+				hx-post={ m.RetryPath() }
+				hx-target="closest room-map-card"
+				hx-swap="outerHTML"
+			>Try again</button>
+		}
+	</room-map-card>
+}
+
+templ roomMapThumb(m RoomMapChoice) {
+	<span class="relative block aspect-video w-full overflow-hidden rounded-lg bg-base-300">
+		if m.Usable() {
+			<img src={ m.PreviewURL() } alt="" class="absolute inset-0 h-full w-full object-cover"/>
+		} else {
+			<span class="absolute inset-0 flex items-center justify-center">
+				@photoIcon()
 			</span>
-			<span class="truncate px-1 text-sm font-medium">{ m.Name }</span>
-			<span class="px-1 text-xs text-base-content/60">{ m.Size() }</span>
-		</button>
-	</form>
+		}
+		if m.Polling() {
+			<span class="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-base-100/85 px-2 py-1 text-xs">
+				<span class="loading loading-spinner loading-xs"></span>
+				Building tiles
+			</span>
+		} else if m.Retryable() {
+			<span class="absolute inset-x-0 bottom-0 block bg-error/90 px-2 py-1 text-xs text-error-content">Tiling gave up</span>
+		}
+	</span>
+}
+
+templ roomMapLabel(m RoomMapChoice) {
+	<span class="block truncate text-sm font-medium">{ m.Name }</span>
+	if m.FileLabel() != "" {
+		<span class="-mt-1 block truncate text-xs text-base-content/50">{ m.FileLabel() }</span>
+	}
+	if m.Size() != "" {
+		<span class="-mt-1 block text-xs text-base-content/60">{ m.Size() }</span>
+	}
 }

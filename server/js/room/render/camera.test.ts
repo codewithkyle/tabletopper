@@ -150,7 +150,10 @@ test("fit on a viewport or a map with no size does nothing", () => {
 	assert.deepEqual(cam, camera(1, 2, 3));
 });
 
-test("the middle of the screen cannot leave the map", () => {
+// Zoomed in, the screen holds less than the map, so half a screen of map has to
+// stay on it -- which is the same thing as the middle of the screen never
+// leaving the map, and is the bound this has always had.
+test("the middle of the screen cannot leave the map while the map is the bigger one", () => {
 	const vp = viewport(1280, 720);
 
 	const past = camera(20000, -400, 1);
@@ -163,13 +166,31 @@ test("the middle of the screen cannot leave the map", () => {
 	assert.deepEqual(inside, camera(6000, 4500, 1));
 });
 
-test("a map smaller than the viewport is locked centred", () => {
-	const cam = camera(9000, 200, 0.05);
+// THE BUG THIS PINS: zoomed out far enough to see the whole map, the camera
+// used to be pinned to the map's centre and the drag did nothing. The grid runs
+// past the map now, so there is somewhere to go at every zoom.
+test("a map smaller than the viewport can still be panned around", () => {
+	// At 0.05 the viewport is 25600 by 14400 map units against a 12000 by 9000
+	// map, so both axes are in the second case.
+	const vp = viewport(1280, 720);
+	const cam = camera(6000 + 4000, 4500 - 2000, 0.05);
 
-	clampToMap(cam, viewport(1280, 720), 12000, 9000);
+	clampToMap(cam, vp, 12000, 9000);
 
-	assert.equal(cam.x, 6000);
-	assert.equal(cam.y, 4500);
+	assert.deepEqual(cam, camera(10000, 2500, 0.05), "a pan well inside the bound was refused");
+});
+
+// And the bound is that half the map stays on screen: the centre may travel
+// half a viewport either way from the map's middle.
+test("a map smaller than the viewport stops before it leaves the screen", () => {
+	const vp = viewport(1280, 720);
+
+	const far = camera(1e6, -1e6, 0.05);
+	clampToMap(far, vp, 12000, 9000);
+
+	// 12000/2 +/- 25600/2, and 9000/2 +/- 14400/2.
+	assert.equal(far.x, 6000 + 12800);
+	assert.equal(far.y, 4500 - 7200);
 });
 
 test("clampToMap does nothing when there is no map", () => {
