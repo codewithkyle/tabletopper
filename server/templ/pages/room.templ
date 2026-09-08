@@ -33,6 +33,7 @@ templ roomContent(data RoomPageData) {
 				class="relative z-0 min-h-0 min-w-0 bg-table"
 				data-room={ data.ID }
 				data-role={ data.RoleName() }
+				data-user={ data.UserID }
 				data-version={ data.Version }
 				if data.Socket != "" {
 					data-socket={ data.Socket }
@@ -48,6 +49,7 @@ templ roomContent(data RoomPageData) {
 						This browser cannot draw the tabletop. It needs WebGL2, which every current browser supports; updating this one, or switching hardware acceleration back on, should bring it back.
 					</p>
 				}
+				@roomOverlay(data)
 				@roomToolbar()
 				if data.Debug {
 					@roomDebug()
@@ -115,6 +117,14 @@ templ roomBarItem(item RoomMenuItem) {
 				}
 				if item.Danger {
 					class="text-error"
+				}
+			>{ item.Label }</button>
+		} else if item.Modal.URL != "" {
+			<button
+				type="button"
+				data-modal-open={ item.Modal.URL }
+				if item.Modal.Size != "" {
+					data-modal-size={ item.Modal.Size }
 				}
 			>{ item.Label }</button>
 		} else if item.Window.ID != "" {

@@ -654,7 +654,21 @@ func pawnIDs(w http.ResponseWriter, r *http.Request) ([]ulid.ULID, bool) {
 		return nil, false
 	}
 
-	raw := r.Form["ids"]
+	// COMMAS AS WELL AS REPEATS, and the commas are what the canvas overlay
+	// sends. htmx's hx-vals SETS each key rather than appending it, so an array
+	// arrives as one value with the elements joined -- there is no way to make
+	// it emit a repeated field. A ULID has no comma in it, so splitting is
+	// exact, and the pawn dialog's single id goes through the same path
+	// unchanged.
+	var raw []string
+	for _, value := range r.Form["ids"] {
+		for _, part := range strings.Split(value, ",") {
+			if part = strings.TrimSpace(part); part != "" {
+				raw = append(raw, part)
+			}
+		}
+	}
+
 	if len(raw) == 0 || len(raw) > room.SelectionMax {
 		w.WriteHeader(http.StatusNotFound)
 
@@ -663,7 +677,7 @@ func pawnIDs(w http.ResponseWriter, r *http.Request) ([]ulid.ULID, bool) {
 
 	ids := make([]ulid.ULID, 0, len(raw))
 	for _, value := range raw {
-		id, err := ulid.Parse(strings.TrimSpace(value))
+		id, err := ulid.Parse(value)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 

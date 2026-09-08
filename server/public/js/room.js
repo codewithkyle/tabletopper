@@ -114,6 +114,9 @@ function run(action, value) {
         case "view":
             view(value);
             break;
+        case "arm-character":
+            armCharacter(value);
+            break;
         case "fullscreen":
             toggleFullscreen();
             break;
@@ -145,6 +148,29 @@ function view(action) {
     }
 
     window.dispatchEvent(new CustomEvent(VIEW_EVENT, { detail: { action } }));
+}
+
+// A PLAYER PLACING THEIR OWN PAWN ARMS THE CANVAS RATHER THAN OPENING A DIALOG,
+// because there is nothing to choose: they joined with one character and the
+// only question left is where it stands. The next click on the table puts it
+// down.
+//
+// IT IS THE SAME EVENT THE SPAWN DIALOG RAISES, which is why the canvas has one
+// consumer rather than two. The detail's shape is the Armed interface in
+// server/js/room/pawns.ts, and it is spelled out in both files for the reason
+// room:view is: the two bundles cannot import each other.
+const ARM_EVENT = "room:arm";
+
+function armCharacter(characterID) {
+    if (!characterID) {
+        return;
+    }
+
+    window.dispatchEvent(
+        new CustomEvent(ARM_EVENT, {
+            detail: { kind: "player", id: characterID, visible: true, size: "medium" },
+        }),
+    );
 }
 
 // navigator.clipboard is only defined in a secure context, which is https and

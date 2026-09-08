@@ -1239,6 +1239,9 @@
       }
     }
   }
+  .pointer-events-auto {
+    pointer-events: auto;
+  }
   .pointer-events-none {
     pointer-events: none;
   }
@@ -3552,6 +3555,9 @@
   .max-w-56 {
     max-width: calc(var(--spacing) * 56);
   }
+  .max-w-64 {
+    max-width: calc(var(--spacing) * 64);
+  }
   .max-w-\[1024px\] {
     max-width: 1024px;
   }
@@ -4533,6 +4539,9 @@
     --tw-ease: var(--ease-in-out);
     transition-timing-function: var(--ease-in-out);
   }
+  .will-change-transform {
+    will-change: transform;
+  }
   @layer daisyui.l1.l2 {
     .input-sm {
       --in-size-mul: 8;
@@ -4695,6 +4704,9 @@
   }
   .only\:flex:only-child {
     display: flex;
+  }
+  .empty\:hidden:empty {
+    display: none;
   }
   .focus-within\:border-primary:focus-within {
     border-color: var(--color-primary);

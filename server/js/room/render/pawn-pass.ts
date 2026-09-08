@@ -189,7 +189,11 @@ export interface Drawn {
 export interface PawnPass {
 	// build rebuilds the instance buffer. It is called when the table changes
 	// rather than every frame; see the note at the top of this file.
-	build(pawns: readonly Drawn[], grid: Grid, sprites: SpriteCache): void;
+	//
+	// alpha multiplies every instance, which is the whole of what makes a
+	// second pass a GHOST pass: the same pawns, the same pictures, the same
+	// arithmetic, drawn at half.
+	build(pawns: readonly Drawn[], grid: Grid, sprites: SpriteCache, alpha?: number): void;
 
 	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
 
@@ -279,7 +283,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 	}
 
 	return {
-		build(pawns, grid, sprites) {
+		build(pawns, grid, sprites, alpha = 1) {
 			count = 0;
 			texture = sprites.texture();
 
@@ -305,7 +309,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 				const [halfW, halfH] = pawnExtents(pawn, grid.cellSize);
 				const object = pawn.kind === "object";
 
-				const alpha = pawn.hidden ? HIDDEN_ALPHA : 1;
+				const opacity = alpha * (pawn.hidden ? HIDDEN_ALPHA : 1);
 				const grey = pawn.hidden ? HIDDEN_GREY : pawn.dead ? 1 : 0;
 
 				// The picture, or the initials that stand in for it -- both
@@ -327,7 +331,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					pawn.x, pawn.y, halfW, halfH,
 					KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc,
 					object ? 0 : 1,
-					layer, object ? 1 : 0, alpha, grey,
+					layer, object ? 1 : 0, opacity, grey,
 					kx, ky,
 					slot ? slot.w / SPRITE_EDGE : 1,
 					slot ? slot.h / SPRITE_EDGE : 1,
@@ -342,7 +346,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 						push(
 							pawn.x, pawn.y, size, size,
 							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
-							skull.layer, 1, alpha, 0,
+							skull.layer, 1, opacity, 0,
 							sx, sy, skull.w / SPRITE_EDGE, skull.h / SPRITE_EDGE,
 						);
 					}

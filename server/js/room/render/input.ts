@@ -18,8 +18,21 @@
 // never reaches here -- which is the rule in CLAUDE.md that anything
 // hit-testing the table must ignore events inside a window, satisfied by
 // listening in the right place rather than by testing for it.
+//
+// A TOOL GETS FIRST REFUSAL ON THE PRIMARY BUTTON, and the middle button is
+// always the camera's. The tool is told about every primary press, drag and
+// release whether or not it claims one; what claiming decides is only whether
+// the CAMERA also pans with that pointer. So a press on a goblin nobody may
+// move is a pan, and the tool still learns the click happened -- which is what
+// lets a click on empty space clear a selection without taking panning away
+// from every empty part of the table.
+//
+// THE HIT TEST THAT DECIDES IS IN A HANDLER AND THAT IS NOT A BROKEN RULE. The
+// first performance rule is about pointermove and wheel, which arrive at the
+// mouse's polling rate; a press and a release happen once per gesture, and a
+// distance test over a few hundred pawns is a few microseconds.
 
-import type { Camera, Viewport } from "./camera.ts";
+import type { Camera, Point, Viewport } from "./camera.ts";
 import { panBy, zoomAt } from "./camera.ts";
 
 // ZOOM_STEP_MAX is how much one event may change the zoom: 25 percent.
@@ -43,6 +56,39 @@ const PINCH_SCALE = 0.01;
 // that still do this mean about this many.
 const PIXELS_PER_LINE = 16;
 const PIXELS_PER_PAGE = 400;
+
+// Modifiers are the keys held when a pointer event happened. Shift draws a
+// marquee, Alt takes a wagon out from under its riders, and both are read at
+// the moment of the gesture rather than at the moment of the frame.
+export interface Modifiers {
+	shift: boolean;
+	alt: boolean;
+}
+
+// Tool is what a primary press means to whatever owns the table's contents.
+//
+// The points are in MAP pixels and CSS pixels both, because the two questions a
+// tool asks want different units: what is under the pointer is a map-space
+// question, and whether the hand has moved far enough to be a drag rather than
+// a click is a screen-space one.
+export interface Tool {
+	// press answers whether the camera should keep out of this gesture.
+	press(map: Point, screen: Point, mods: Modifiers): boolean;
+	drag(map: Point, screen: Point, mods: Modifiers): void;
+	release(map: Point, screen: Point, mods: Modifiers): void;
+
+	// cancel is a pointer the browser took away -- a context menu, a gesture
+	// the OS claimed. It is not an Escape, which the tool hears for itself.
+	cancel(): void;
+
+	// hover is the pointer moving with nothing down, and null is it leaving the
+	// canvas entirely.
+	hover(map: Point | null): void;
+
+	// active keeps the frame loop alive through a gesture that has paused, the
+	// way a held button does.
+	active(): boolean;
+}
 
 // Pending is everything that happened since the last frame, collapsed.
 export interface Pending {
@@ -116,19 +162,75 @@ export interface Input {
 	stop(): void;
 }
 
-// PAN_BUTTONS is the primary and the middle button. The primary one will
-// eventually belong to whichever tool is selected in the pill and pan only
-// under Move; there is no tool that reads the table yet, so it pans always.
+// Project turns a point in CSS pixels relative to the canvas into map pixels.
+// It is a callback because the camera belongs to the renderer, and this module
+// deliberately knows nothing about one.
+export type Project = (x: number, y: number, out: Point) => Point;
+
+// PAN_BUTTONS is the primary and the middle button. The primary one pans only
+// when the tool declines the gesture -- a drag from empty table -- and the
+// middle one always does, in every mode, which is the escape hatch that makes
+// placement and drawing survivable.
 const PAN_BUTTONS = new Set([0, 1]);
 
-export function wireInput(canvas: HTMLCanvasElement, invalidate: () => void): Input {
+export function wireInput(
+	canvas: HTMLCanvasElement,
+	invalidate: () => void,
+	project: Project | null = null,
+	tool: Tool | null = null,
+): Input {
 	const pending = newPending();
 	const pointers = new Map<number, Tracked>();
 
-	function at(e: PointerEvent | WheelEvent): Tracked {
-		const rect = canvas.getBoundingClientRect();
+	// claimed is the one pointer the tool has taken. There is at most one: a
+	// second finger during a drag is a pinch the camera has no business
+	// starting halfway through somebody moving a pawn, so it is ignored.
+	let claimed: number | null = null;
 
-		return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+	const map: Point = { x: 0, y: 0 };
+	const screen: Point = { x: 0, y: 0 };
+
+	function toMap(tracked: Tracked): Point {
+		screen.x = tracked.x;
+		screen.y = tracked.y;
+
+		if (project) {
+			project(tracked.x, tracked.y, map);
+		} else {
+			map.x = tracked.x;
+			map.y = tracked.y;
+		}
+
+		return map;
+	}
+
+	function mods(e: PointerEvent): Modifiers {
+		return { shift: e.shiftKey, alt: e.altKey };
+	}
+
+	// THE CANVAS RECTANGLE IS CACHED AND NOT READ PER EVENT, and it became worth
+	// caching when hovering started calling this.
+	//
+	// getBoundingClientRect forces layout when anything above it is dirty, and
+	// the room page is full of htmx swaps that dirty it -- so a read on every
+	// pointermove is a forced layout at the mouse's polling rate, which is the
+	// third performance rule broken in the one handler that fires most. It used
+	// to be safe because a move with no button down returned before reaching
+	// here; hover changed that.
+	//
+	// It is refreshed when a gesture starts, when the pointer arrives over the
+	// table, and when the window resizes, which is every way the canvas can
+	// have moved between one pointer event and the next: it fills its mount
+	// absolutely, and the mount only moves with the window.
+	let bounds = { left: 0, top: 0 };
+
+	function measure(): void {
+		const rect = canvas.getBoundingClientRect();
+		bounds = { left: rect.left, top: rect.top };
+	}
+
+	function at(e: PointerEvent | WheelEvent): Tracked {
+		return { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
 	}
 
 	function onPointerDown(e: PointerEvent): void {
@@ -140,17 +242,45 @@ export function wireInput(canvas: HTMLCanvasElement, invalidate: () => void): In
 		// and Linux, which appears over the table and stays there.
 		e.preventDefault();
 
+		measure();
 		canvas.setPointerCapture(e.pointerId);
-		pointers.set(e.pointerId, at(e));
+
+		const tracked = at(e);
+
+		if (e.button === 0 && tool && claimed === null) {
+			const took = tool.press(toMap(tracked), screen, mods(e));
+			claimed = e.pointerId;
+			invalidate();
+
+			if (took) {
+				return;
+			}
+		}
+
+		pointers.set(e.pointerId, tracked);
 	}
 
 	function onPointerMove(e: PointerEvent): void {
+		const now = at(e);
+
+		if (tool) {
+			if (e.pointerId === claimed) {
+				tool.drag(toMap(now), screen, mods(e));
+				invalidate();
+			} else if (claimed === null && pointers.size === 0) {
+				// Hovering. This is the one place a pointermove does work
+				// rather than accumulating, and it is a distance test over the
+				// pawns on one floor -- microseconds, once per move, and the
+				// answer is what the overlay follows.
+				tool.hover(toMap(now));
+				invalidate();
+			}
+		}
+
 		const tracked = pointers.get(e.pointerId);
 		if (!tracked) {
 			return;
 		}
-
-		const now = at(e);
 
 		if (pointers.size === 1) {
 			pending.panX += now.x - tracked.x;
@@ -195,12 +325,49 @@ export function wireInput(canvas: HTMLCanvasElement, invalidate: () => void): In
 	}
 
 	function onPointerUp(e: PointerEvent): void {
-		if (!pointers.delete(e.pointerId)) {
-			return;
-		}
 		if (canvas.hasPointerCapture(e.pointerId)) {
 			canvas.releasePointerCapture(e.pointerId);
 		}
+		pointers.delete(e.pointerId);
+
+		if (e.pointerId !== claimed || !tool) {
+			return;
+		}
+		claimed = null;
+
+		if (e.type === "pointercancel") {
+			tool.cancel();
+		} else {
+			tool.release(toMap(at(e)), screen, mods(e));
+		}
+
+		invalidate();
+	}
+
+	function onPointerEnter(): void {
+		measure();
+	}
+
+	// A pointer that has left the table is a pointer over nothing, and the
+	// overlay has to stop following a pawn that is no longer under it.
+	//
+	// LEAVING THE CANVAS IS NOT LEAVING THE TABLE. The overlay is a sibling
+	// stacked above the canvas, so moving the hand from a pawn toward its own
+	// Details button leaves the canvas -- and clearing the hover there would
+	// hide the overlay out from under the hand reaching for it, which reads as
+	// the button being impossible to click. So the question asked is whether
+	// the pointer left the MOUNT, which the toolbar, the debug panel and every
+	// open window are also inside.
+	function onPointerLeave(e: PointerEvent): void {
+		if (!tool || claimed !== null || pointers.size > 0) {
+			return;
+		}
+		if (e.relatedTarget instanceof Node && canvas.parentElement?.contains(e.relatedTarget)) {
+			return;
+		}
+
+		tool.hover(null);
+		invalidate();
 	}
 
 	function onWheel(e: WheelEvent): void {
@@ -220,6 +387,11 @@ export function wireInput(canvas: HTMLCanvasElement, invalidate: () => void): In
 	canvas.addEventListener("pointermove", onPointerMove);
 	canvas.addEventListener("pointerup", onPointerUp);
 	canvas.addEventListener("pointercancel", onPointerUp);
+	canvas.addEventListener("pointerenter", onPointerEnter);
+	canvas.addEventListener("pointerleave", onPointerLeave);
+
+	window.addEventListener("resize", measure);
+	measure();
 
 	// passive: false is what makes preventDefault above legal. A wheel listener
 	// is passive by default in every browser, and a passive listener that calls
@@ -228,12 +400,15 @@ export function wireInput(canvas: HTMLCanvasElement, invalidate: () => void): In
 
 	return {
 		pending,
-		dragging: () => pointers.size > 0,
+		dragging: () => pointers.size > 0 || claimed !== null || (tool?.active() ?? false),
 		stop() {
 			canvas.removeEventListener("pointerdown", onPointerDown);
 			canvas.removeEventListener("pointermove", onPointerMove);
 			canvas.removeEventListener("pointerup", onPointerUp);
 			canvas.removeEventListener("pointercancel", onPointerUp);
+			canvas.removeEventListener("pointerenter", onPointerEnter);
+			canvas.removeEventListener("pointerleave", onPointerLeave);
+			window.removeEventListener("resize", measure);
 			canvas.removeEventListener("wheel", onWheel);
 			pointers.clear();
 		},

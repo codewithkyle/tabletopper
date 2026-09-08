@@ -129,6 +129,67 @@ button, which is `btn btn-xs` and already in the build.
 order -- under the pawns for the highlighted cells, over them for the line and
 the label -- and the drag that fills it is checkpoint 3.
 
+### Checkpoint 3, the interaction (2026-09-08)
+
+Selection, the drag state machine, riders, placement and the overlay shipped,
+and the two menu items that reach them went live with them. Seven things differ
+from what the sections below sketch:
+
+- **A tool gets first refusal on the primary button, and hears every press
+  either way.** `input.ts` grew a `Tool` contract: `press` answers whether the
+  CAMERA should keep out of the gesture, and the tool is told about the press,
+  the drag and the release whichever way it answered. That second half is what
+  lets a click on empty table clear a selection without taking panning away from
+  every empty part of the table.
+- **There is no Select tool.** Move owns it, per the decision taken before this
+  phase started: press a movable pawn to drag it, press empty floor to pan,
+  Shift-drag to marquee. The pill's other three tools do not gate the table yet
+  and phase 6 wires all four at once -- gating on features that do not exist
+  would mean a GM who pressed Measure found a table where nothing worked.
+- **Other players' drags are told apart by COLOUR and not by a name label.** The
+  plan asks for "a small name label on the anchor", and the glyph atlas is
+  deliberately fourteen characters -- the digits, a space, an f, a t and a full
+  stop. Rendering arbitrary player names means a full Unicode atlas, which is a
+  different feature; a fixed palette indexed by a hash of the player id
+  distinguishes six people at a table and costs nothing.
+- **`hx-vals` sends the selection as ONE comma-separated value.** htmx SETS each
+  key rather than appending it, so an array arrives joined and there is no way
+  to make it emit a repeated field. `pawnIDs` splits on commas as well as taking
+  repeats; a ULID has no comma in it, so it is exact.
+- **The overlay's condition dots are cloned from a `<template>`.** A colour is a
+  class name and `server/js` is not a Tailwind source, so the eight dots are
+  rendered in templ and the script clones the one it wants -- the same move the
+  `list` attribute made in checkpoint 1, for the same reason.
+- **The page carries `data-user`.** The canvas needs the viewer's own id to
+  answer "may I move this". It is not a secret from the table -- the player list
+  already carries every member's id for the kick button -- and it is not
+  authority either: every command is authorised server-side, so a browser that
+  lied about it would build a selection whose every move came back forbidden.
+- **A player's `Place my pawn` arms rather than opening a dialog**, and raises
+  the same `room:arm` event the spawn dialog does. There is nothing to choose:
+  they joined with one character and the only question is where.
+
+**Three integration bugs, all found by wiring rather than by tests.** Moving the
+hand from a pawn toward its own Details button fires `pointerleave` on the
+canvas, which cleared the hover, which hid the overlay out from under the hand
+reaching for it -- so the question asked is now whether the pointer left the
+MOUNT. The overlay's text was set only when the selection changed, so a goblin
+taking damage left it stale. And `expirePreviews` was written and never called,
+which would have left a ghost from a tab that closed mid-drag on every client
+for the rest of the session -- and, because a live preview keeps the frame loop
+awake, every client rendering for ever to draw it.
+
+**The wagon test was wrong and the code was right.** Pressing at a wagon's
+centre grabs the RIDER standing there, because the topmost pawn is what a click
+means and a passenger is above what carries it by definition. The tests now
+press an empty corner, and there is a third that asserts the rule that made the
+first two wrong.
+
+**Four new CSS selectors**, all in the overlay: `empty:hidden` on the conditions
+row, `max-w-64`, `pointer-events-auto` on its two interactive blocks -- the root
+is `pointer-events-none` so it does not take clicks from the table underneath --
+and `will-change-transform`.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

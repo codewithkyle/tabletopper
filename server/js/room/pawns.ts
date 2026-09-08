@@ -1,0 +1,969 @@
+// What a pointer on the table means: what is under it, what a drag does, and
+// what placement puts down.
+//
+// THIS IS A STATE MACHINE AND THE STATES ARE THE FOUR THINGS A PRESS CAN
+// BECOME. A press on a movable pawn is a click until the hand has moved four
+// device pixels, at which point it is a drag; a press with Shift on empty table
+// is a marquee; a press on anything else is the camera's, and this only watches
+// it to know whether the click that ends it should clear the selection.
+//
+// NOTHING HERE ALLOCATES PER FRAME. The ghosts, the outlines and the ruler are
+// written into arrays the caller owns and reuses, because they are read once
+// per frame for as long as a hand is moving.
+//
+// THE DRAG IS PREVIEWED LOCALLY AND COMMITTED ONCE. Every client works out the
+// same ghosts and the same path from the same two cells, so what crosses the
+// wire while a hand is moving is one position a few times a second -- and the
+// move itself is a single command at the end. See decision 7.
+
+import type { Drawn } from "./render/pawn-pass.ts";
+import type { Event, Grid, Pawn, PawnKind, Role, Size, State } from "./protocol.ts";
+import type { Modifiers, Tool } from "./render/input.ts";
+import type { Outgoing } from "./socket.ts";
+import type { Point, Rect } from "./render/camera.ts";
+import { Selection, dragSet, marqueeSelect, mayMove } from "./selection.ts";
+import { cellAt, cellCentre, cellsMoved, distanceLabel, footprintOf, snapPawn, supercover } from "./render/path.ts";
+import { pawnExtents } from "./render/pawn-pass.ts";
+
+// DRAG_THRESHOLD is how far the hand moves before a press stops being a click,
+// in DEVICE pixels. Four is under a millimetre and above the jitter of a hand
+// resting on a mouse -- which is what it is for, because a click that
+// accidentally moved a goblin one cell is a click nobody notices until the
+// fight is over.
+const DRAG_THRESHOLD = 4;
+
+// DRAG_HZ is how often a drag reports itself when snapping is OFF. With
+// snapping on the hovered cell is the clock and this never runs: the hot path
+// quantises itself, which is the whole reason cell-change is the trigger.
+const DRAG_INTERVAL = 1000 / 20;
+
+// PREVIEW_TIMEOUT drops somebody else's ghosts when their drag stops arriving.
+// A tab that was closed mid-drag, or a connection that went away, would
+// otherwise leave a ghost on everybody's table until the room reloaded.
+const PREVIEW_TIMEOUT = 3000;
+
+// GHOST_ALPHA is how solid a previewed position is. Half, so the committed
+// pawn underneath is still legible -- what a drag shows is a proposal, and a
+// proposal that hid what it was replacing would be worse than no preview.
+export const GHOST_ALPHA = 0.5;
+
+// ACTOR_COLORS is how one dragging player is told from another.
+//
+// A FIXED PALETTE INDEXED BY A HASH OF THE PLAYER ID, so the colour is stable
+// across a session and across a reload without anything being stored or sent.
+// Six people at a table and eight colours means a collision is possible and
+// harmless: two ghosts the same colour is two ghosts, which is what they are.
+const ACTOR_COLORS: readonly (readonly [number, number, number])[] = [
+	[0.36, 0.65, 0.98],
+	[0.99, 0.6, 0.28],
+	[0.42, 0.82, 0.5],
+	[0.85, 0.44, 0.9],
+	[0.98, 0.78, 0.3],
+	[0.4, 0.85, 0.83],
+	[0.95, 0.45, 0.5],
+	[0.72, 0.72, 0.78],
+];
+
+// SELF_COLOR is this client's own ruler. It is deliberately not from the
+// palette: your own drag is the one you are looking at, and it reads against
+// both themes.
+const SELF_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
+
+// Outline is one ring or rectangle for the ring pass: a selection, a ghost, or
+// the marquee.
+export interface Outline {
+	x: number;
+	y: number;
+	halfW: number;
+	halfH: number;
+	color: readonly [number, number, number];
+	alpha: number;
+	thickness: number;
+	rect: boolean;
+}
+
+// Ruler is one drag's path: the cells it crosses, the line across them, and how
+// far that is.
+export interface Ruler {
+	cells: number[];
+	x0: number;
+	y0: number;
+	x1: number;
+	y1: number;
+	label: string;
+	color: readonly [number, number, number];
+}
+
+// Armed is what placement will put down on the next click. It is what the spawn
+// dialog dispatches and what the player's own menu item dispatches, in one
+// shape, because the canvas does not care which.
+export interface Armed {
+	kind: PawnKind;
+	id: string;
+	name: string;
+	image: string;
+	visible: boolean;
+	size: Size;
+	footprintW: number;
+	footprintH: number;
+}
+
+export interface TableDeps {
+	state: State;
+	role: Role;
+	user: string;
+	viewed: () => string;
+	send: (command: Outgoing) => void;
+	invalidate: () => void;
+}
+
+export interface Table {
+	tool: Tool;
+	selection: Selection;
+
+	// focus is what the overlay is about: the one selected pawn, or the hovered
+	// one when nothing is selected, or nothing.
+	focus(): Pawn | null;
+
+	ghosts(out: Drawn[]): Drawn[];
+	outlines(out: Outline[]): Outline[];
+	rulers(out: Ruler[]): Ruler[];
+
+	// bounds is the box the overlay sits above: one pawn's, or the selection's.
+	bounds(): Rect | null;
+
+	// preview consumes the events that start and end somebody else's ghosts.
+	preview(event: Event): void;
+
+	arm(armed: Armed | null): void;
+	isArmed(): boolean;
+
+	// onChange fires when the overlay's CONTENTS need rewriting, which is a
+	// different question from whether the canvas needs a frame: the overlay's
+	// text is set on a change and its position on every frame.
+	onChange(fn: () => void): void;
+
+	stop(): void;
+}
+
+// A press that has not yet decided what it is.
+interface Pressing {
+	kind: "press";
+	anchor: string;
+	screen: Point;
+	grab: Point;
+	mods: Modifiers;
+}
+
+interface Dragging {
+	kind: "drag";
+	anchor: string;
+	ids: string[];
+	origins: Map<string, Point>;
+	grab: Point;
+	ghost: Point;
+	sent: [number, number] | null;
+	sentAt: number;
+}
+
+interface Marqueeing {
+	kind: "marquee";
+	from: Point;
+	to: Point;
+}
+
+// Panning is the camera's gesture, watched only so that the click which ends it
+// can clear the selection.
+interface Panning {
+	kind: "pan";
+	screen: Point;
+	moved: boolean;
+}
+
+type Gesture = Pressing | Dragging | Marqueeing | Panning | null;
+
+// Preview is somebody else's drag, as it arrived.
+interface Preview {
+	positions: { id: string; x: number; y: number }[];
+	color: readonly [number, number, number];
+	at: number;
+}
+
+export function createTable(deps: TableDeps): Table {
+	const { state, role, user } = deps;
+
+	const selection = new Selection();
+	const previews = new Map<string, Preview>();
+
+	let gesture: Gesture = null;
+	let hovered: string | null = null;
+	let armed: Armed | null = null;
+	let pointer: Point | null = null;
+	let changed: (() => void) | null = null;
+
+	// Scratch, so nothing in the frame path allocates.
+	const snapped: Point = { x: 0, y: 0 };
+
+	function grid(): Grid {
+		return state.table.grid;
+	}
+
+	function pawn(id: string): Pawn | null {
+		return state.pawns.find((p) => p.id === id) ?? null;
+	}
+
+	function announce(): void {
+		changed?.();
+		deps.invalidate();
+	}
+
+	// THE FLOOR IS THE FILTER AND IT IS APPLIED IN ONE PLACE. Hit testing, the
+	// marquee, the riders lookup and the hover all go through here, so a pawn
+	// on another floor is not reachable by any of them.
+	function onFloor(p: Pawn): boolean {
+		return p.layerId === deps.viewed();
+	}
+
+	function snapFor(p: Pawn, x: number, y: number): Point {
+		const [sx, sy] = snapPawn(grid(), p, Math.round(x), Math.round(y));
+		snapped.x = sx;
+		snapped.y = sy;
+
+		return snapped;
+	}
+
+	function beginDrag(from: Pressing): void {
+		const anchor = pawn(from.anchor);
+		if (!anchor) {
+			gesture = null;
+
+			return;
+		}
+
+		const ids = dragSet(state.pawns, anchor, selection, {
+			// ALT TAKES THE WAGON OUT FROM UNDER ITS RIDERS, which is the one
+			// thing the automatic rule cannot express on its own.
+			withRiders: !from.mods.alt,
+			role,
+			user,
+			cellSize: grid().cellSize,
+		});
+
+		const origins = new Map<string, Point>();
+		for (const id of ids) {
+			const p = pawn(id);
+			if (p) {
+				origins.set(id, { x: p.x, y: p.y });
+			}
+		}
+
+		gesture = {
+			kind: "drag",
+			anchor: anchor.id,
+			ids,
+			origins,
+			grab: from.grab,
+			ghost: { x: anchor.x, y: anchor.y },
+			sent: null,
+			sentAt: 0,
+		};
+	}
+
+	// moveDrag places the anchor's ghost and reports the drag when the cell it
+	// is over has changed.
+	function moveDrag(active: Dragging, map: Point): void {
+		const anchor = pawn(active.anchor);
+		if (!anchor) {
+			return;
+		}
+
+		const point = snapFor(anchor, map.x + active.grab.x, map.y + active.grab.y);
+		active.ghost.x = point.x;
+		active.ghost.y = point.y;
+
+		const cell = cellAt(grid(), point.x, point.y);
+		const now = performance.now();
+
+		// WITH SNAPPING ON THE CELL IS THE CLOCK, which is what makes the hot
+		// path quantise itself: a fast mouse and a slow one cross the same
+		// boundaries and send the same number of frames. With it off there is no
+		// boundary to cross, so a timer stands in.
+		const moved = !active.sent || cell[0] !== active.sent[0] || cell[1] !== active.sent[1];
+		const due = grid().snap === "off" ? now - active.sentAt >= DRAG_INTERVAL : moved;
+		if (!due) {
+			return;
+		}
+
+		active.sent = cell;
+		active.sentAt = now;
+
+		deps.send({
+			type: "pawn.drag",
+			anchor: active.anchor,
+			x: point.x,
+			y: point.y,
+			others: active.ids.filter((id) => id !== active.anchor),
+		});
+	}
+
+	// commit ends a drag, at the ghost or back where it started.
+	//
+	// A CANCELLED DRAG SENDS THE COMMITTED POSITION RATHER THAN NOTHING. The
+	// server answers with pawn.moved carrying unchanged positions, and that
+	// event is what tells everybody else to drop the ghosts they are drawing --
+	// so Escape needs no event of its own. See decision 8.
+	function commit(active: Dragging, cancelled: boolean): void {
+		const anchor = pawn(active.anchor);
+		const origin = active.origins.get(active.anchor);
+		gesture = null;
+
+		if (!anchor || !origin) {
+			return;
+		}
+
+		const x = cancelled ? origin.x : active.ghost.x;
+		const y = cancelled ? origin.y : active.ghost.y;
+
+		deps.send({
+			type: "pawn.move",
+			anchor: active.anchor,
+			x,
+			y,
+			others: active.ids.filter((id) => id !== active.anchor),
+		});
+
+		announce();
+	}
+
+	function place(map: Point): void {
+		if (!armed) {
+			return;
+		}
+
+		const footprint = armed.kind === "object"
+			? { footprintW: armed.footprintW, footprintH: armed.footprintH }
+			: { footprintW: 0, footprintH: 0 };
+
+		const shape = { kind: armed.kind, size: armed.size, ...footprint };
+		const point = snapFor(shape as Pawn, map.x, map.y);
+
+		deps.send({
+			type: "pawn.spawn",
+			kind: armed.kind,
+			layer: deps.viewed(),
+			x: point.x,
+			y: point.y,
+			visible: armed.visible,
+			size: armed.kind === "object" ? undefined : armed.size,
+			footprintW: armed.kind === "object" ? armed.footprintW : undefined,
+			footprintH: armed.kind === "object" ? armed.footprintH : undefined,
+			monsterId: armed.kind === "monster" ? armed.id : undefined,
+			characterId: armed.kind === "player" ? armed.id : undefined,
+			assetId: armed.kind === "npc" || armed.kind === "object" ? armed.id || undefined : undefined,
+			name: armed.kind === "npc" || armed.kind === "object" ? armed.name : undefined,
+		});
+	}
+
+	function onKeyDown(e: KeyboardEvent): void {
+		if (e.key !== "Escape") {
+			return;
+		}
+
+		// ESCAPE IS ONE KEY WITH TWO JOBS AND THE ORDER MATTERS. A GM placing an
+		// encounter presses it to stop placing, and a GM mid-drag presses it to
+		// put the pawn back. Placement wins, because it is the mode you are IN
+		// rather than the gesture you are making.
+		if (armed) {
+			arm(null);
+
+			return;
+		}
+
+		if (gesture?.kind === "drag") {
+			commit(gesture, true);
+
+			return;
+		}
+
+		if (gesture?.kind === "marquee") {
+			gesture = null;
+			announce();
+		}
+	}
+
+	function arm(next: Armed | null): void {
+		armed = next;
+		announce();
+	}
+
+	document.addEventListener("keydown", onKeyDown);
+
+	const tool: Tool = {
+		press(map, screen, mods) {
+			pointer = { x: map.x, y: map.y };
+
+			if (armed) {
+				place(map);
+
+				// THE MODE SURVIVES A SPAWN, which is the whole reason arming
+				// is worth a round trip: an encounter is eight goblins and
+				// eight clicks, not eight visits to a dialog.
+				return true;
+			}
+
+			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y);
+
+			if (hit && mayMove(hit, role, user)) {
+				gesture = {
+					kind: "press",
+					anchor: hit.id,
+					screen: { x: screen.x, y: screen.y },
+					grab: { x: hit.x - map.x, y: hit.y - map.y },
+					mods,
+				};
+
+				return true;
+			}
+
+			if (mods.shift) {
+				gesture = { kind: "marquee", from: { x: map.x, y: map.y }, to: { x: map.x, y: map.y } };
+
+				return true;
+			}
+
+			// Empty table, or something this viewer may not move. The camera
+			// takes the gesture; this watches it only so that a click which
+			// went nowhere can clear the selection.
+			gesture = { kind: "pan", screen: { x: screen.x, y: screen.y }, moved: false };
+
+			return false;
+		},
+
+		drag(map, screen) {
+			pointer = { x: map.x, y: map.y };
+
+			// A PRESS BECOMES A DRAG HERE AND NOWHERE ELSE, which is what keeps
+			// a click from moving anything: under four device pixels this
+			// returns without touching the table, and the release that follows
+			// is a selection.
+			if (gesture?.kind === "press") {
+				if (!past(gesture.screen, screen)) {
+					return;
+				}
+
+				beginDrag(gesture);
+			}
+
+			// Re-read, because beginDrag replaced it.
+			const active = gesture;
+			if (!active) {
+				return;
+			}
+
+			switch (active.kind) {
+				case "drag":
+					moveDrag(active, map);
+
+					return;
+
+				case "marquee":
+					active.to.x = map.x;
+					active.to.y = map.y;
+					announce();
+
+					return;
+
+				case "pan":
+					if (past(active.screen, screen)) {
+						active.moved = true;
+					}
+
+					return;
+			}
+		},
+
+		release(map, screen, mods) {
+			pointer = { x: map.x, y: map.y };
+
+			const active = gesture;
+			gesture = null;
+
+			if (!active) {
+				return;
+			}
+
+			switch (active.kind) {
+				case "drag":
+					commit(active, false);
+
+					return;
+
+				case "press": {
+					// It stayed a click. Shift toggles one pawn in or out;
+					// anything else selects it alone.
+					const hit = pawn(active.anchor);
+					if (!hit) {
+						return;
+					}
+
+					if (mods.shift) {
+						selection.toggle(hit.id);
+					} else {
+						selection.set([hit.id]);
+					}
+					announce();
+
+					return;
+				}
+
+				case "marquee": {
+					const rect = marqueeRect(active);
+					const found = marqueeSelect(state.pawns, deps.viewed(), rect, role, user);
+
+					if (mods.shift) {
+						selection.add(found);
+					} else {
+						selection.set(found);
+					}
+					announce();
+
+					return;
+				}
+
+				case "pan":
+					if (!active.moved && selection.clear()) {
+						announce();
+					}
+
+					return;
+			}
+		},
+
+		cancel() {
+			const active = gesture;
+			gesture = null;
+
+			if (active?.kind === "drag") {
+				commit(active, true);
+
+				return;
+			}
+
+			announce();
+		},
+
+		hover(map) {
+			pointer = map ? { x: map.x, y: map.y } : null;
+
+			const found = map ? hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y) : null;
+			const next = found?.id ?? null;
+
+			if (next !== hovered) {
+				hovered = next;
+				announce();
+			}
+		},
+
+		active() {
+			return gesture !== null || armed !== null || previews.size > 0;
+		},
+	};
+
+	function marqueeRect(active: Marqueeing): Rect {
+		return { x1: active.from.x, y1: active.from.y, x2: active.to.x, y2: active.to.y };
+	}
+
+	function ghostOf(p: Pawn, x: number, y: number, out: Drawn[], count: number): number {
+		const slot = out[count] ?? (out[count] = blankDrawn());
+
+		slot.id = p.id;
+		slot.kind = p.kind;
+		slot.name = p.name;
+		slot.image = p.image;
+		slot.x = x;
+		slot.y = y;
+		slot.z = p.z;
+		slot.size = p.size;
+		slot.footprintW = p.footprintW;
+		slot.footprintH = p.footprintH;
+		slot.hidden = false;
+		slot.dead = false;
+
+		return count + 1;
+	}
+
+	return {
+		tool,
+		selection,
+
+		focus() {
+			const one = selection.only();
+			if (one) {
+				return pawn(one);
+			}
+			if (selection.size > 0) {
+				return null;
+			}
+
+			return hovered ? pawn(hovered) : null;
+		},
+
+		ghosts(out) {
+			// A DRAG THAT STOPPED ARRIVING IS DROPPED HERE, on the frame that
+			// reads it. A tab closed mid-drag, or a connection that went away,
+			// would otherwise leave a ghost on everybody's table for the rest of
+			// the session -- and, because a live preview is one of the things
+			// that keeps the frame loop awake, it would leave every client
+			// rendering for ever to draw it.
+			expirePreviews(previews, performance.now());
+
+			let count = 0;
+
+			// This client's own drag.
+			if (gesture?.kind === "drag") {
+				const origin = gesture.origins.get(gesture.anchor);
+				if (origin) {
+					const dx = gesture.ghost.x - origin.x;
+					const dy = gesture.ghost.y - origin.y;
+
+					for (const id of gesture.ids) {
+						const p = pawn(id);
+						const from = gesture.origins.get(id);
+						if (p && from) {
+							// ONE DELTA FOR EVERYBODY AND ONLY THE ANCHOR
+							// SNAPS. A wagon with three people on it must arrive
+							// with them sitting in the same three spots, and
+							// snapping each one on its own would shuffle them
+							// into the wagon's cells. The server applies the
+							// same rule to the committed move.
+							count = ghostOf(p, from.x + dx, from.y + dy, out, count);
+						}
+					}
+				}
+			}
+
+			// Everybody else's.
+			for (const preview of previews.values()) {
+				for (const at of preview.positions) {
+					const p = pawn(at.id);
+					if (p && onFloor(p)) {
+						count = ghostOf(p, at.x, at.y, out, count);
+					}
+				}
+			}
+
+			// And the thing placement is armed with, following the pointer.
+			if (armed && pointer) {
+				const shape = {
+					id: "armed",
+					kind: armed.kind,
+					name: armed.name,
+					image: armed.image,
+					z: 0,
+					size: armed.size,
+					footprintW: armed.kind === "object" ? armed.footprintW : 0,
+					footprintH: armed.kind === "object" ? armed.footprintH : 0,
+					visible: true,
+				} as unknown as Pawn;
+
+				const point = snapFor(shape, pointer.x, pointer.y);
+				count = ghostOf(shape, point.x, point.y, out, count);
+			}
+
+			out.length = count;
+
+			return out;
+		},
+
+		outlines(out) {
+			let count = 0;
+
+			const add = (o: Outline): void => {
+				const slot = out[count] ?? (out[count] = blankOutline());
+				Object.assign(slot, o);
+				count++;
+			};
+
+			const cell = grid().cellSize;
+
+			for (const id of selection.ids()) {
+				const p = pawn(id);
+				if (!p || !onFloor(p)) {
+					continue;
+				}
+
+				const [halfW, halfH] = pawnExtents(p, cell);
+				add({
+					x: p.x, y: p.y, halfW, halfH,
+					color: SELF_COLOR, alpha: 0.95, thickness: 2,
+					rect: p.kind === "object",
+				});
+			}
+
+			if (gesture?.kind === "marquee") {
+				const rect = marqueeRect(gesture);
+				add({
+					x: (rect.x1 + rect.x2) / 2,
+					y: (rect.y1 + rect.y2) / 2,
+					halfW: Math.abs(rect.x2 - rect.x1) / 2,
+					halfH: Math.abs(rect.y2 - rect.y1) / 2,
+					color: SELF_COLOR, alpha: 0.8, thickness: 1, rect: true,
+				});
+			}
+
+			out.length = count;
+
+			return out;
+		},
+
+		rulers(out) {
+			let count = 0;
+			const g = grid();
+
+			const add = (fromX: number, fromY: number, toX: number, toY: number, color: Ruler["color"]): void => {
+				const a = cellAt(g, fromX, fromY);
+				const b = cellAt(g, toX, toY);
+
+				const slot = out[count] ?? (out[count] = { cells: [], x0: 0, y0: 0, x1: 0, y1: 0, label: "", color });
+				supercover(a[0], a[1], b[0], b[1], slot.cells);
+
+				const start = cellCentre(g, a[0], a[1]);
+				const end = cellCentre(g, b[0], b[1]);
+
+				slot.x0 = start[0];
+				slot.y0 = start[1];
+				slot.x1 = end[0];
+				slot.y1 = end[1];
+				slot.label = distanceLabel(cellsMoved(b[0] - a[0], b[1] - a[1], g.diagonals) * Math.max(0, g.feetPerCell));
+				slot.color = color;
+
+				count++;
+			};
+
+			if (gesture?.kind === "drag") {
+				const origin = gesture.origins.get(gesture.anchor);
+				if (origin) {
+					add(origin.x, origin.y, gesture.ghost.x, gesture.ghost.y, SELF_COLOR);
+				}
+			}
+
+			for (const preview of previews.values()) {
+				// THE ANCHOR IS THE FIRST POSITION, because that is the order
+				// the server builds the list in -- selection() puts the anchor
+				// at the head. It is a convention rather than a field, and the
+				// one case it is wrong is a hidden wagon carrying a visible
+				// rider, where a player's projected list starts with the rider.
+				// The path is then drawn for the wrong pawn of the group, which
+				// is a wrong line rather than a wrong move.
+				const anchor = preview.positions[0];
+				const p = anchor ? pawn(anchor.id) : null;
+				if (anchor && p && onFloor(p)) {
+					add(p.x, p.y, anchor.x, anchor.y, preview.color);
+				}
+			}
+
+			out.length = count;
+
+			return out;
+		},
+
+		bounds() {
+			const ids = selection.size > 0 ? selection.ids() : hovered ? [hovered] : [];
+			if (ids.length === 0) {
+				return null;
+			}
+
+			const cell = grid().cellSize;
+			let box: Rect | null = null;
+
+			for (const id of ids) {
+				const p = pawn(id);
+				if (!p || !onFloor(p)) {
+					continue;
+				}
+
+				const [halfW, halfH] = pawnExtents(p, cell);
+				if (!box) {
+					box = { x1: p.x - halfW, y1: p.y - halfH, x2: p.x + halfW, y2: p.y + halfH };
+
+					continue;
+				}
+
+				box.x1 = Math.min(box.x1, p.x - halfW);
+				box.y1 = Math.min(box.y1, p.y - halfH);
+				box.x2 = Math.max(box.x2, p.x + halfW);
+				box.y2 = Math.max(box.y2, p.y + halfH);
+			}
+
+			return box;
+		},
+
+		preview(event) {
+			switch (event.type) {
+				case "pawn.dragging": {
+					if (!event.by || event.by === user) {
+						return;
+					}
+
+					previews.set(event.by, {
+						positions: event.pawns.map((at) => ({ id: at.id, x: at.x, y: at.y })),
+						color: actorColor(event.by),
+						at: performance.now(),
+					});
+					deps.invalidate();
+
+					return;
+				}
+
+				// A COMMITTED MOVE IS WHAT ENDS A PREVIEW, which is why a
+				// cancelled drag sends one rather than an event of its own.
+				case "pawn.moved":
+				case "pawn.updated":
+				case "pawn.removed": {
+					const touched = event.type === "pawn.moved"
+						? event.pawns.map((at) => at.id)
+						: [event.type === "pawn.updated" ? event.pawn.id : event.id];
+
+					for (const [by, preview] of previews) {
+						if (preview.positions.some((at) => touched.includes(at.id))) {
+							previews.delete(by);
+						}
+					}
+
+					// A pawn that left the table cannot stay selected: its next
+					// drag would be answered not_found.
+					const present = new Set(state.pawns.map((p) => p.id));
+					selection.prune(present);
+					if (hovered && !present.has(hovered)) {
+						hovered = null;
+					}
+
+					// AND THE OVERLAY IS REWRITTEN WHATEVER CHANGED, because
+					// what it says about a pawn -- its hit points, its
+					// conditions, its name -- moved even when the selection did
+					// not. These three are the committed events and arrive at
+					// human pace; pawn.dragging, which does not, is handled
+					// above and announces nothing.
+					announce();
+
+					return;
+				}
+
+				case "snapshot": {
+					previews.clear();
+					const present = new Set(state.pawns.map((p) => p.id));
+					if (selection.prune(present)) {
+						announce();
+					}
+
+					return;
+				}
+			}
+		},
+
+		arm,
+		isArmed: () => armed !== null,
+
+		onChange(fn) {
+			changed = fn;
+		},
+
+		stop() {
+			document.removeEventListener("keydown", onKeyDown);
+		},
+	};
+
+	function past(from: Point, now: Point): boolean {
+		// The threshold is in device pixels and the pointer is in CSS pixels,
+		// which on a retina screen are not the same distance.
+		const dpr = window.devicePixelRatio || 1;
+
+		return Math.hypot(now.x - from.x, now.y - from.y) * dpr >= DRAG_THRESHOLD;
+	}
+}
+
+// hitTest is what is under a point, topmost first.
+//
+// ON THE CPU, IN ONE PASS, WITH NO SORT. A few hundred pawns is a few
+// microseconds, and the topmost is found by keeping the best rather than by
+// ordering the whole table -- which would allocate on every pointer move.
+//
+// A DISC FOR A CREATURE AND A RECTANGLE FOR AN OBJECT, matching exactly what
+// the pawn pass drew: a click on the corner of a wagon's bounding box hits the
+// wagon, and a click on the corner of a goblin's does not hit the goblin.
+export function hitTest(
+	pawns: readonly Pawn[],
+	layerID: string,
+	grid: Grid,
+	x: number,
+	y: number,
+): Pawn | null {
+	let best: Pawn | null = null;
+
+	for (const p of pawns) {
+		if (p.layerId !== layerID) {
+			continue;
+		}
+		if (best && (p.z < best.z || (p.z === best.z && p.id < best.id))) {
+			continue;
+		}
+
+		const [halfW, halfH] = pawnExtents(p, grid.cellSize);
+		const dx = x - p.x;
+		const dy = y - p.y;
+
+		const inside = p.kind === "object"
+			? Math.abs(dx) <= halfW && Math.abs(dy) <= halfH
+			: dx * dx + dy * dy <= halfW * halfW;
+
+		if (inside) {
+			best = p;
+		}
+	}
+
+	return best;
+}
+
+// actorColor is a stable colour per player, from a hash of their id. Nothing is
+// stored and nothing is sent: two clients compute the same answer because they
+// are looking at the same ULID.
+export function actorColor(id: string): readonly [number, number, number] {
+	let hash = 0;
+	for (let i = 0; i < id.length; i++) {
+		hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+	}
+
+	return ACTOR_COLORS[hash % ACTOR_COLORS.length] ?? ACTOR_COLORS[0];
+}
+
+// expired drops previews nobody has updated. It is exported so the frame can
+// call it without this module owning a timer -- a timer would keep a tab awake
+// that has nothing to draw.
+export function expirePreviews(previews: Map<string, { at: number }>, now: number): boolean {
+	let dropped = false;
+
+	for (const [by, preview] of previews) {
+		if (now - preview.at > PREVIEW_TIMEOUT) {
+			previews.delete(by);
+			dropped = true;
+		}
+	}
+
+	return dropped;
+}
+
+function blankDrawn(): Drawn {
+	return {
+		id: "", kind: "monster", name: "", image: "",
+		x: 0, y: 0, z: 0, size: "medium",
+		footprintW: 0, footprintH: 0, hidden: false, dead: false,
+	};
+}
+
+function blankOutline(): Outline {
+	return { x: 0, y: 0, halfW: 0, halfH: 0, color: SELF_COLOR, alpha: 1, thickness: 1, rect: false };
+}
+
+// footprintOf is re-exported so the interaction tests can reach the rule the
+// riders lookup and the snapper share without importing the renderer.
+export { footprintOf };

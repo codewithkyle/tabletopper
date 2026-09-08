@@ -83,6 +83,18 @@ type RoomPageData struct {
 	// phase authorises every command against the same type.
 	Role room.Role
 
+	// UserID is who is looking, and the canvas needs it for one question: may I
+	// move this pawn. A player may move what they own, and ownership is a ULID
+	// on the pawn compared against this one.
+	//
+	// IT IS NOT A SECRET FROM THE TABLE. The player list already carries every
+	// member's id, because the GM's kick button posts to it; a person's own id
+	// at a table they are sitting at is not something the room is keeping from
+	// them. What it is NOT is authority: every command is authorised server-side
+	// against the session, and a browser that lied about this would build a
+	// selection whose every move came back forbidden.
+	UserID string
+
 	// Socket is the path the client connects to, and it is empty for a closed
 	// room. That emptiness is the whole of "do not connect": the client reads
 	// the attribute and does nothing when it is not there, which is one
@@ -94,6 +106,12 @@ type RoomPageData struct {
 	// changes the URL and the one-hour cache on /static/ cannot answer the
 	// reload with the script that was there before it.
 	Version string
+
+	// CharacterID is the character this player joined with, empty for the GM and
+	// for somebody who joined without one. It is what "Place my pawn" arms the
+	// canvas with, and the core refuses any other -- PawnSpawn.Authorize checks
+	// it against the session's own membership rather than trusting this.
+	CharacterID string
 
 	// Debug renders the development panel: connection state, sequence number,
 	// the player list and the last twenty frames, with a box to send a raw
@@ -120,6 +138,13 @@ func (d RoomPageData) Bundle() string {
 // same reason the two share dialogs read one.
 func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
+}
+
+// SpawnPath is the Spawn dialog, which the GM's Tabletop menu opens in the
+// content modal. It starts on the monsters half, which is what a GM reaches for
+// nine times in ten.
+func (d RoomPageData) SpawnPath() string {
+	return "/fragment/room/spawn?room=" + d.ID + "&kind=" + RoomSpawnMonsters
 }
 
 // LayersPath, GridPath and LayerNamePath are the three table fragments this
@@ -167,6 +192,7 @@ type RoomMenu struct {
 //   - Post: a mutation, over htmx, with the confirm modal in front of the
 //     destructive ones.
 //   - Window: opens a floating panel over the table on a fragment URL.
+//   - Modal: opens the content modal on a fragment URL. A task with an end.
 //   - Action: a behaviour that is entirely client-side, named for room.js.
 //
 // ID IS BOTH AN ANCHOR AND A CONTRACT. An item that carries one also carries an
@@ -191,6 +217,12 @@ type RoomMenuItem struct {
 	// Window is the floating panel this item opens, and an item that carries
 	// one carries nothing else. See RoomWindow.
 	Window RoomWindow
+
+	// Modal is the content modal this item opens, and like Window an item that
+	// carries one carries nothing else. It is a separate alternative rather
+	// than a flag on Window because the two are different surfaces answering
+	// different questions -- see the Windows section of CLAUDE.md.
+	Modal RoomModal
 
 	// Danger marks the one destructive item in a menu, which is drawn in the
 	// error colour and sits last.
@@ -295,9 +327,25 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 // A PLAYER SEES THE SAME FOUR LINES, DISABLED. The bar's shape does not change
 // with who is looking -- only the Room menu does that -- and a player who opens
 // this menu is told these exist and are not theirs, which is true.
+// A PLAYER GETS ONE LIVE ITEM IN THIS MENU AND IT IS THEIR OWN PAWN. Placing
+// the character they joined with is the one thing on the table that is theirs
+// to put there -- the "I joined late" case PawnSpawn.Authorize exists for -- and
+// the rest of the menu stays greyed out beside it, which is true.
+//
+// IT ARMS RATHER THAN OPENING A DIALOG, because there is nothing to choose:
+// they have one character and the only question is where. The item hands the
+// canvas a character id and the next click puts the pawn down.
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tabletop", Items: comingSoon("Layers", "Grid & settings", "Spawn pawns", "Clear tabletop")}
+		items := []RoomMenuItem{{Label: "Layers", Disabled: true}, {Label: "Grid & settings", Disabled: true}}
+
+		if d.CharacterID != "" {
+			items = append(items, RoomMenuItem{Label: "Place my pawn", Action: roomArmAction, Value: d.CharacterID})
+		} else {
+			items = append(items, RoomMenuItem{Label: "Place my pawn", Disabled: true})
+		}
+
+		return RoomMenu{Label: "Tabletop", Items: append(items, comingSoon("Clear tabletop")...)}
 	}
 
 	return RoomMenu{Label: "Tabletop", Items: append([]RoomMenuItem{
@@ -315,8 +363,14 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Width:  300,
 			Height: 420,
 		}},
-	}, comingSoon("Spawn pawns", "Clear tabletop")...)}
+		{Label: "Spawn pawns", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
+	}, comingSoon("Clear tabletop")...)}
 }
+
+// roomArmAction is the data-room-action the player's own item carries.
+// public/js/room.js turns it into the same room:arm event the spawn dialog
+// raises, which is why the canvas does not care which of the two armed it.
+const roomArmAction = "arm-character"
 
 // viewMenu is the camera, plus the one item in it that needs no camera.
 //
@@ -382,10 +436,13 @@ func comingSoon(labels ...string) []RoomMenuItem {
 // live two clicks deep. It floats over the table rather than sitting in the bar
 // for the same reason: it belongs to the surface it acts on.
 //
-// NOTHING READS THE SELECTION YET. The toolbar keeps its own state -- which
-// button is pressed -- and the canvas that will ask it does not exist. That
-// makes it a real control over a feature that is not built, rather than a
-// picture of one.
+// THE CANVAS DOES NOT ASK IT WHICH MODE IT IS IN, and that is the honest state
+// rather than an oversight. Move is what the table does now: a press on a pawn
+// drags it, a press on empty floor pans, and Shift-drag draws a marquee. The
+// other three name features that do not exist, so gating the table on them
+// would mean a GM who pressed Measure found a table where nothing worked and
+// nothing said why. Phase 6 builds the three and wires the pill to all four at
+// once.
 type RoomTool struct {
 	Name  string
 	Label string
@@ -450,6 +507,16 @@ func dimension(value int) string {
 	}
 
 	return strconv.Itoa(value)
+}
+
+// RoomModal is the content modal an item opens: a fragment URL and one of the
+// four sizes. It is three lines rather than a type of its own alternative
+// because content-modal.js already takes exactly these two as data attributes.
+type RoomModal struct {
+	URL string
+
+	// Size is sm, md, lg or xl, and empty is the default md.
+	Size string
 }
 
 // RoomMember is one person at the table as the player window draws them. It is

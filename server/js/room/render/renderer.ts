@@ -12,7 +12,7 @@
 // strokes and pawns are later phases and each is one more call in this list,
 // against the same camera matrix.
 
-import type { Camera, Viewport } from "./camera.ts";
+import type { Camera, Point, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
 import type { LayerView } from "./layers.ts";
@@ -22,15 +22,19 @@ import { createGlyphAtlas } from "./glyphs.ts";
 import { createGridPass } from "./grid-pass.ts";
 import { createPathPass } from "./path-pass.ts";
 import { createPawnPass } from "./pawn-pass.ts";
-import { createRingPass, RING_ELLIPSE } from "./ring-pass.ts";
+import { createRingPass, RING_ELLIPSE, RING_RECT } from "./ring-pass.ts";
 import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
 import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
 import { pawnExtents } from "./pawn-pass.ts";
 import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
+import { cellCentre } from "./path.ts";
 import { stressPawns } from "./stress.ts";
+import type { Outline, Ruler, Table } from "../pawns.ts";
+import { GHOST_ALPHA } from "../pawns.ts";
 import { apply, wireInput } from "./input.ts";
+import { screenToWorld, worldToScreen } from "./camera.ts";
 
 // VIEW_ZOOM_STEP is what the View menu's Zoom in and Zoom out move by. It is
 // larger than a wheel notch because a menu item is a deliberate act and
@@ -71,6 +75,22 @@ export interface Renderer {
 	// Nothing about them is sent anywhere; see stress.ts.
 	stress(count: number): number;
 
+	// toScreen is the camera's projection, for the one thing outside this
+	// module that needs it: the DOM overlay, which follows a pawn in CSS pixels
+	// while everything else on the table is drawn in map pixels.
+	toScreen(x: number, y: number, out: Point): Point;
+
+	// onFrame runs after every frame this renderer draws.
+	//
+	// IT IS FOR ONE CALLER AND ONE WRITE. The DOM overlay follows a pawn while
+	// the camera moves, which is a transform per frame -- and the third
+	// performance rule bans DOM work in the frame loop for a reason this does
+	// not run into: a transform is composited rather than laid out, nothing is
+	// READ back, and it happens only while something is hovered or selected.
+	// Anything that wanted to measure an element from here would be the rule
+	// the note is actually about.
+	onFrame(fn: () => void): void;
+
 	// onSettled fires when the viewed layer, or whether it is the active one,
 	// has changed -- after the frame that worked it out. The menu bar's floor
 	// control follows it rather than reading the store, because the override
@@ -84,7 +104,7 @@ export interface Renderer {
 // browser without WebGL2 or a page that rendered no canvas. Neither is an
 // error: the room's menus, windows and player list are ordinary HTML and go on
 // working, and the caller has nothing to do about it.
-export function mountRenderer(mount: HTMLElement, state: State): Renderer | null {
+export function mountRenderer(mount: HTMLElement, state: State, table?: Table): Renderer | null {
 	const found = mount.querySelector("[data-tabletop-canvas]");
 	if (!(found instanceof HTMLCanvasElement)) {
 		return null;
@@ -111,6 +131,12 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	const tiles = createTilePass(gl, () => frames.invalidate());
 	const sprites = createSpriteCache(gl, () => frames.invalidate());
 	const pawnPass = createPawnPass(gl);
+
+	// A SECOND PAWN PASS FOR THE GHOSTS, because they are the one thing on the
+	// table that changes every frame. The committed pawns are rebuilt on a
+	// change and the previews are rebuilt continuously; sharing one buffer
+	// would mean rebuilding the whole table at the rate of a hand.
+	const ghostPass = createPawnPass(gl);
 	const rings = createRingPass(gl);
 	const atlas = createGlyphAtlas(gl);
 
@@ -138,6 +164,7 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	let sweep: { from: number; report: (result: Benchmark) => void; tiles: number } | null = null;
 
 	let settled: (() => void) | null = null;
+	let framed: (() => void) | null = null;
 	let lastViewed = "";
 	let lastFollowing = true;
 
@@ -151,7 +178,22 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	let lastCell = 0;
 	let lastEpoch = -1;
 
-	const input = wireInput(canvas, () => frames.invalidate());
+	// The tool is given the pointer in MAP pixels, which is a question only the
+	// camera can answer -- so the conversion crosses as a callback and input.ts
+	// goes on knowing nothing about a camera.
+	const input = wireInput(
+		canvas,
+		() => frames.invalidate(),
+		(x, y, out) => screenToWorld(camera, viewport, x, y, out),
+		table?.tool ?? null,
+	);
+
+	// Per-frame scratch for what the table draws over the pawns. They are
+	// arrays the callee fills rather than returns, because they are read every
+	// frame for as long as a hand is moving.
+	const ghosts: Drawn[] = [];
+	const outlines: Outline[] = [];
+	const rulers: Ruler[] = [];
 
 	const frames = startFrames({
 		mount,
@@ -212,6 +254,8 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 
 		const loading = drawPawns(viewedID);
 
+		framed?.();
+
 		// Five reasons to draw again, and the loop stops when none of them
 		// holds: a button or a finger is down, the crossfade is partway
 		// through, tiles or pictures are queued for upload, or the benchmark is
@@ -257,6 +301,15 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 			lastEpoch = sprites.epoch();
 		}
 
+		// THE RULER'S CELLS ARE THE FLOOR AND GO UNDER THE PAWNS, so a pawn
+		// standing on a highlighted square is not tinted by it.
+		for (const ruler of table ? table.rulers(rulers) : []) {
+			for (let i = 0; i < ruler.cells.length; i += 2) {
+				const [cx, cy] = cellCentre(tableGrid, ruler.cells[i], ruler.cells[i + 1]);
+				floorMarks.cell(cx - cell / 2, cy - cell / 2, cell, ruler.color, 0.16);
+			}
+		}
+
 		floorMarks.draw(camera, canvas.width, canvas.height, dpr);
 		pawnPass.draw(camera, canvas.width, canvas.height, dpr);
 
@@ -281,7 +334,32 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 				rings.add(pawn.x, pawn.y, radius, radius, colour, 1, RING_WIDTH, RING_ELLIPSE);
 			}
 		}
+		// The selection's rings and the marquee, which are the viewer's own and
+		// belong over the pawn rather than round it.
+		for (const outline of table ? table.outlines(outlines) : []) {
+			rings.add(
+				outline.x, outline.y, outline.halfW, outline.halfH,
+				outline.color, outline.alpha, outline.thickness,
+				outline.rect ? RING_RECT : RING_ELLIPSE,
+			);
+		}
+
 		rings.draw(camera, canvas.width, canvas.height, dpr);
+
+		// THE GHOSTS GO OVER EVERYTHING THEY ARE A PROPOSAL ABOUT. Half alpha,
+		// so the committed pawn underneath stays legible -- a preview that hid
+		// what it was replacing would be worse than no preview.
+		if (table) {
+			ghostPass.build(table.ghosts(ghosts), tableGrid, sprites, GHOST_ALPHA);
+			ghostPass.draw(camera, canvas.width, canvas.height, dpr);
+		}
+
+		// And the ruler's line and its distance, last, because they are read
+		// against everything else.
+		for (const ruler of rulers) {
+			overMarks.line(ruler.x0, ruler.y0, ruler.x1, ruler.y1, 2, ruler.color, 0.9);
+			overMarks.label(ruler.label, (ruler.x0 + ruler.x1) / 2, (ruler.y0 + ruler.y1) / 2, ruler.color, 1);
+		}
 
 		overMarks.draw(camera, canvas.width, canvas.height, dpr);
 
@@ -442,6 +520,10 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 			settled = fn;
 		},
 
+		onFrame(fn) {
+			framed = fn;
+		},
+
 		benchmark(report) {
 			if (sweep) {
 				return;
@@ -455,6 +537,8 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 		pawnsChanged() {
 			pawnsDirty = true;
 		},
+
+		toScreen: (x, y, out) => worldToScreen(camera, viewport, x, y, out),
 
 		stress(count) {
 			const map = layers.viewed()?.map ?? null;
@@ -478,6 +562,7 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 			tiles.dispose();
 			grid.dispose();
 			pawnPass.dispose();
+			ghostPass.dispose();
 			rings.dispose();
 			floorMarks.dispose();
 			overMarks.dispose();

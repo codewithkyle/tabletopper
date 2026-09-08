@@ -15,14 +15,18 @@
 // rectangle that fills in a moment later.
 
 import { announce } from "./panels.ts";
+import { createTable } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
+import { mountDialogs } from "./dialogs.ts";
+import { mountOverlay } from "./overlay.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
-import type { Event, State } from "./protocol.ts";
+import type { Event, Role, State } from "./protocol.ts";
 import { mountWindows } from "./window.ts";
+import type { Table } from "./pawns.ts";
 
 const mount = document.getElementById("tabletop");
 
@@ -33,7 +37,36 @@ if (mount) {
 	mountWindows(mount, mount.dataset.room ?? "");
 
 	const state = empty();
-	const renderer = mountRenderer(mount, state);
+	const roomID = mount.dataset.room ?? "";
+	const role: Role = mount.dataset.role === "gm" ? "gm" : "player";
+	const user = mount.dataset.user ?? "";
+
+	// THE THREE OF THESE REFER TO EACH OTHER AND THE CYCLE IS BROKEN WITH
+	// CALLBACKS RATHER THAN WITH ORDER. The table needs a socket to send a move
+	// and a renderer to know which floor is being looked at; the renderer needs
+	// the table to give it a tool; the socket needs the table to hand it a
+	// drag. Every one of those is a function call at the time it happens, so
+	// each is a closure over a `let` rather than a constructor argument.
+	let socket: Socket | null = null;
+	let renderer: Renderer | null = null;
+
+	const table = createTable({
+		state,
+		role,
+		user,
+
+		// THE VIEWED FLOOR IS THE RENDERER'S AND NOT THE STORE'S, because the
+		// GM's local choice to look at another floor exists only in there. A
+		// player has no such choice and falls back to the active layer, which
+		// is the only one they hold pawns for anyway.
+		viewed: () => renderer?.view.viewed()?.id ?? state.table.activeLayer,
+		send: (command) => {
+			socket?.send(command);
+		},
+		invalidate: () => renderer?.invalidate(),
+	});
+
+	renderer = mountRenderer(mount, state, table);
 
 	// The bar's floor control belongs to the renderer's view rather than to the
 	// store, because half of what it shows -- which floor this GM is looking at
@@ -45,11 +78,37 @@ if (mount) {
 		if (bar) {
 			renderer.onSettled(bar.refresh);
 		}
+
+		const view = renderer;
+		const overlay = mountOverlay(mount, {
+			focus: () => table.focus(),
+			selected: () => table.selection.ids(),
+			bounds: () => table.bounds(),
+			project: (x, y, out) => view.toScreen(x, y, out),
+			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
+			roomID,
+			role,
+			user,
+		});
+
+		if (overlay) {
+			// WHAT IT SAYS ON A CHANGE AND WHERE IT IS ON EVERY FRAME. Those
+			// are different rates and writing either at the other's would be
+			// wrong in a different way; see overlay.ts.
+			table.onChange(overlay.refresh);
+			view.onFrame(overlay.place);
+		}
 	}
+
+	// The spawn dialog's own behaviour, and the bridge that turns a picked card
+	// into a canvas that is armed. It needs no socket and no canvas: a room
+	// whose renderer would not start still opens the dialog, and arming lands
+	// nowhere, which is the right amount of nothing to happen.
+	mountDialogs(table.arm);
 
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		start(path, state, renderer);
+		socket = start(path, state, renderer, table);
 	}
 }
 
@@ -66,7 +125,7 @@ function touchesPawns(type: Event["type"]): boolean {
 	return type === "snapshot" || type === "table.updated" || (type.startsWith("pawn.") && type !== "pawn.dragging");
 }
 
-function start(path: string, state: State, renderer: Renderer | null): void {
+function start(path: string, state: State, renderer: Renderer | null, table: Table): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
 	const socket = new Socket(path, {
@@ -98,6 +157,13 @@ function start(path: string, state: State, renderer: Renderer | null): void {
 				renderer?.pawnsChanged();
 			}
 
+			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people
+			// are dragging live outside the store on purpose -- pawn.dragging
+			// is transient and the reducer never sees it -- so this is the one
+			// consumer, and it also hears the committed moves that tell it a
+			// preview is over.
+			table.preview(event);
+
 			// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
 			// nothing below it would run -- and in development the frame that
 			// explains why the tab just changed page is worth having in the
@@ -118,4 +184,6 @@ function start(path: string, state: State, renderer: Renderer | null): void {
 	}
 
 	socket.start();
+
+	return socket;
 }
