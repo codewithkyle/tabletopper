@@ -252,17 +252,17 @@ type Stroke struct {
 	Done    bool      `json:"done"`
 }
 
-// Snap is how a pawn's centre lands when it is dropped. See snap.go for what
-// each mode does to which parity of footprint.
+// Snap is how a pawn's centre lands when it is dropped. See snap.go for the
+// arithmetic; the two live modes are a whole-cell step and a half-cell one.
 type Snap string
 
 const (
-	SnapOff     Snap = "off"
-	SnapCells   Snap = "cells"
-	SnapCorners Snap = "corners"
+	SnapOff       Snap = "off"
+	SnapCells     Snap = "cells"
+	SnapHalfCells Snap = "halfCells"
 )
 
-func (Snap) Values() []string { return []string{"off", "cells", "corners"} }
+func (Snap) Values() []string { return []string{"off", "cells", "halfCells"} }
 func (s Snap) Valid() bool    { return inValues(s, s.Values()) }
 
 // Diagonals is the distance rule the movement path counts with: equal is 5e's
@@ -507,6 +507,17 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 // whichever branch nobody wrote.
 func (s *State) Normalize() {
 	s.Schema = Schema
+
+	// A SNAPPING MODE THAT NO LONGER EXISTS BECOMES THE DEFAULT. The set has
+	// been narrowed once already -- "corners" was the parity rule inverted and
+	// is gone -- and a room snapshot written before that is read back with a
+	// value nothing accepts: the grid form shows no radio selected, and the
+	// first thing the GM changes is refused for a field they never touched.
+	// The room is otherwise intact and is not worth throwing away over this,
+	// so the one field is repaired and the rest of the table stands.
+	if !s.Table.Grid.Snap.Valid() {
+		s.Table.Grid.Snap = SnapCells
+	}
 
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Pawns, func(a, b Pawn) int { return a.ID.Compare(b.ID) })

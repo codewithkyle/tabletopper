@@ -159,8 +159,42 @@ func (w *worker) build(ctx context.Context, asset queries.Asset, generation ulid
 	return result, previewPath, nil
 }
 
+// THE LEVELS ARE NOT WORTH THE SAME NUMBER, so the quality falls with the
+// level rather than being one constant for the pyramid.
+//
+// Level 0 is the one a GM zooms all the way into, and it is the only level that
+// still holds what the original held: whatever the encoder throws away there is
+// thrown away for good, because every level above it was derived from these
+// pixels and cannot put back what they lost. It gets 90.
+//
+// The top level is the whole map on one screen. It is already a box average of
+// sixteen or a thousand source pixels, so its detail is gone before the encoder
+// sees it and there is little left for artefacts to sit on -- and it is also
+// the level fetched first, on every join, before anything is on screen at all.
+// It gets 70, and the bytes saved come off the wait everybody sees.
+//
+// In between it is a straight line, which puts the middle of the pyramid at
+// about 80. Nothing subtler is warranted: the ramp is a preference about detail
+// against bytes, not a measurement, and a curve would only be a preference with
+// more decimal places.
+const (
+	nativeQuality   = 90
+	overviewQuality = 70
+)
+
+func tileQuality(z, maxZoom int) int {
+	if maxZoom < 1 || z <= 0 {
+		return nativeQuality
+	}
+	if z >= maxZoom {
+		return overviewQuality
+	}
+
+	return nativeQuality - (nativeQuality-overviewQuality)*z/maxZoom
+}
+
 func (w *worker) writeTile(ctx context.Context, asset queries.Asset, generation ulid.ULID, tile tiler.Tile) error {
-	encoded, err := images.EncodeWebP(tile.Image)
+	encoded, err := images.EncodeWebPAt(tile.Image, tileQuality(tile.Z, tile.MaxZoom))
 	if err != nil {
 		return fmt.Errorf("encoding tile z%d %d,%d: %w", tile.Z, tile.X, tile.Y, err)
 	}

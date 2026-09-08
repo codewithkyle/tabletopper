@@ -16,7 +16,7 @@
 
 import { createProgram, fullscreenTriangle, uniforms } from "./gl.ts";
 import type { Grid } from "../protocol.ts";
-import type { Camera, Rect } from "./camera.ts";
+import type { Camera } from "./camera.ts";
 import { inverseClipMatrix } from "./camera.ts";
 
 const vertexSource = `#version 300 es
@@ -32,11 +32,11 @@ void main() {
 }
 `;
 
-// u_rect is the map rectangle the grid is confined to. Outside it the fragment
-// is discarded, so a grid never runs off the edge of the map it belongs to --
-// and a layer with no map passes a rectangle big enough to never clip, which is
-// how a GM choosing a cell size before choosing a map still sees what they are
-// choosing.
+// THE GRID IS INFINITE AND IS NOT CLIPPED TO THE MAP. It covers the whole
+// viewport at every camera position, including the empty table beyond the map's
+// edge, because that is where a chase leaves the map and a party camps in the
+// woods. Thirty feet off the image still has to be a countable thirty feet, so
+// the cells go on past the picture rather than stopping with it.
 //
 // THE FADE IS NOT DECORATION. Below about two device pixels per cell the lines
 // are closer together than the pixels that would draw them, and what comes out
@@ -48,7 +48,6 @@ precision highp float;
 
 in vec2 v_world;
 
-uniform vec4 u_rect;
 uniform vec2 u_offset;
 uniform float u_cell;
 uniform vec4 u_color;
@@ -56,10 +55,6 @@ uniform vec4 u_color;
 out vec4 outColor;
 
 void main() {
-	if (v_world.x < u_rect.x || v_world.y < u_rect.y || v_world.x > u_rect.z || v_world.y > u_rect.w) {
-		discard;
-	}
-
 	vec2 cells = (v_world - u_offset) / u_cell;
 	vec2 perPixel = fwidth(cells);
 	vec2 toEdge = abs(fract(cells - 0.5) - 0.5) / max(perPixel, vec2(1e-8));
@@ -76,15 +71,10 @@ void main() {
 }
 `;
 
-const names = ["u_clipToWorld", "u_rect", "u_offset", "u_cell", "u_color"] as const;
-
-// NO_MAP is the rectangle a layer without one is clipped to: far enough out
-// that no reachable camera position finds its edge, and small enough that it
-// stays exact in a 32 bit float.
-const NO_MAP: Rect = { x1: -1e7, y1: -1e7, x2: 1e7, y2: 1e7 };
+const names = ["u_clipToWorld", "u_offset", "u_cell", "u_color"] as const;
 
 export interface GridPass {
-	draw(cam: Camera, grid: Grid, map: Rect | null, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(cam: Camera, grid: Grid, deviceWidth: number, deviceHeight: number, dpr: number): void;
 	dispose(): void;
 }
 
@@ -97,7 +87,7 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 	const color = new Float32Array(4);
 
 	return {
-		draw(cam, grid, map, deviceWidth, deviceHeight, dpr) {
+		draw(cam, grid, deviceWidth, deviceHeight, dpr) {
 			if (!grid.visible || grid.cellSize < 1) {
 				return;
 			}
@@ -107,13 +97,10 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 				return;
 			}
 
-			const rect = map ?? NO_MAP;
-
 			gl.useProgram(program);
 			gl.bindVertexArray(vao);
 
 			gl.uniformMatrix3fv(at.u_clipToWorld, false, inverseClipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
-			gl.uniform4f(at.u_rect, rect.x1, rect.y1, rect.x2, rect.y2);
 
 			// The offset is reduced into one cell here rather than in the
 			// shader. The state deliberately keeps it unreduced -- a GM nudging

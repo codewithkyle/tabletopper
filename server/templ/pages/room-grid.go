@@ -99,9 +99,9 @@ type Choice struct {
 
 func GridSnapChoices() []Choice {
 	return []Choice{
-		{Value: "cells", Label: "Cells", Hint: "Creatures stand in a square."},
-		{Value: "corners", Label: "Corners", Hint: "Creatures stand where four squares meet."},
-		{Value: "off", Label: "Off", Hint: "Pawns go exactly where they are dropped."},
+		{Value: "cells", Label: "Centre only", Hint: "A creature stands in the middle of the squares it fills."},
+		{Value: "halfCells", Label: "Centre and corners", Hint: "Half a square at a time, so a pawn may also stand where four squares meet."},
+		{Value: "off", Label: "No snapping", Hint: "Pawns go exactly where they are dropped."},
 	}
 }
 

@@ -24,11 +24,19 @@ import (
 // Image is *image.RGBA because that is the one type the WebP encoder takes
 // without first copying it into one. It is tileSize square except along the
 // right edge and the bottom, where it is the remainder.
+//
+// MAXZOOM RIDES ON EVERY TILE so that a consumer can tell how deep in the
+// pyramid this one sits without waiting for Build to return -- and no consumer
+// worth the callback can wait, because encoding runs alongside the build and
+// the whole point of emit is that the tiles are handed over as they are cut.
+// Z on its own says "level 3"; Z against MaxZoom says "the bottom of the
+// pyramid" or "halfway up", which is what a decision about detail needs.
 type Tile struct {
-	Z     int
-	X     int
-	Y     int
-	Image *image.RGBA
+	Z       int
+	X       int
+	Y       int
+	MaxZoom int
+	Image   *image.RGBA
 }
 
 // Result describes the pyramid that was built. Width and Height are the
@@ -118,7 +126,7 @@ func emitLevel(level image.Image, result Result, z int, emit func(Tile) error) e
 			))
 			draw.Draw(tile, tile.Bounds(), level, origin.Add(image.Pt(x*result.TileSize, y*result.TileSize)), draw.Src)
 
-			if err := emit(Tile{Z: z, X: x, Y: y, Image: tile}); err != nil {
+			if err := emit(Tile{Z: z, X: x, Y: y, MaxZoom: result.MaxZoom, Image: tile}); err != nil {
 				return err
 			}
 		}

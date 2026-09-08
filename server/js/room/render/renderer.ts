@@ -12,7 +12,7 @@
 // strokes and pawns are later phases and each is one more call in this list,
 // against the same camera matrix.
 
-import type { Camera, Rect, Viewport } from "./camera.ts";
+import type { Camera, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
 import type { LayerView } from "./layers.ts";
 import { clampToMap, fit, newCamera, zoomAt, zoomTo } from "./camera.ts";
@@ -96,7 +96,6 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	const viewport: Viewport = { width: 1, height: 1 };
 	let dpr = window.devicePixelRatio || 1;
 
-	const mapRect: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
 	const clear = { r: 0, g: 0, b: 0 };
 
 	// lastMap is how "the map changed" is noticed without a subscription. The
@@ -169,7 +168,7 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 		}
 		const uploading = tiles.end();
 
-		grid.draw(camera, state.table.grid, mapRectOf(map), canvas.width, canvas.height, dpr);
+		grid.draw(camera, state.table.grid, canvas.width, canvas.height, dpr);
 
 		// Four reasons to draw again, and the loop stops when none of them
 		// holds: a button or a finger is down, the crossfade is partway
@@ -203,19 +202,6 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 
 		lastWidth = map.width;
 		lastHeight = map.height;
-	}
-
-	function mapRectOf(map: MapRef | null): Rect | null {
-		if (!map) {
-			return null;
-		}
-
-		mapRect.x1 = 0;
-		mapRect.y1 = 0;
-		mapRect.x2 = map.width;
-		mapRect.y2 = map.height;
-
-		return mapRect;
 	}
 
 	// advanceSweep drives the camera through the benchmark and answers whether

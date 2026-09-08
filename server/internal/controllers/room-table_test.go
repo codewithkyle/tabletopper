@@ -366,7 +366,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
 			"showGrid": {"on"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
-			"color": {"#3355ffcc"}, "snap": {"corners"}, "feetPerCell": {"10"},
+			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"},
 			"diagonals": {"alternating"}, "monsterHp": {"hidden"}, "playersCanDraw": {"on"},
 		}, session.UserSession{UserID: testOwnerID})
 
@@ -387,7 +387,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 
 	want := room.Grid{
 		Visible: true, CellSize: 70, OffsetX: 12, OffsetY: -4,
-		Color: "#3355FFCC", Snap: room.SnapCorners, FeetPerCell: 10,
+		Color: "#3355FFCC", Snap: room.SnapHalfCells, FeetPerCell: 10,
 		Diagonals: room.DiagonalsAlternating,
 	}
 	if view.Table.Grid != want {

@@ -357,3 +357,22 @@ func TestBuildRefusesWhatItCannotBuild(t *testing.T) {
 		t.Error("Build of a non-image = nil, want an error")
 	}
 }
+
+// EVERY TILE CARRIES THE PYRAMID'S TOP LEVEL, which is what lets a consumer
+// decide something about a tile while the build is still running. The encoder
+// pool is handed tiles through a channel and never sees the Result, so a tile
+// that only knew its own Z could not tell the bottom of the pyramid from the
+// top of it.
+func TestEveryTileKnowsHowTallThePyramidIs(t *testing.T) {
+	result, tiles := buildPNG(t, coordinateImage(40, 24), 8)
+
+	if result.MaxZoom < 2 {
+		t.Fatalf("the fixture is only %d levels tall; it cannot show this", result.MaxZoom+1)
+	}
+	for _, tile := range tiles {
+		if tile.MaxZoom != result.MaxZoom {
+			t.Fatalf("tile z%d %d,%d says the pyramid is %d tall, want %d",
+				tile.Z, tile.X, tile.Y, tile.MaxZoom, result.MaxZoom)
+		}
+	}
+}

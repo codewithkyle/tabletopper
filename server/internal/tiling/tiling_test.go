@@ -605,3 +605,44 @@ func TestAPassClaimsUntilTheQueueIsEmpty(t *testing.T) {
 		t.Error("the published generation is not the one the tiles were written under")
 	}
 }
+
+// THE RAMP'S THREE FIXED POINTS, which are the whole of what was asked for:
+// the level that is zoomed all the way in keeps the most, the level that is the
+// whole map on one screen keeps the least, and the middle of the pyramid sits
+// between them. A ramp that ran the other way would look like nothing at all
+// until somebody zoomed in on a coastline.
+func TestTileQualityFallsWithTheLevel(t *testing.T) {
+	const maxZoom = 5
+
+	if got := tileQuality(0, maxZoom); got != 90 {
+		t.Errorf("level 0 encoded at %d, want 90", got)
+	}
+	if got := tileQuality(maxZoom, maxZoom); got != 70 {
+		t.Errorf("the top level encoded at %d, want 70", got)
+	}
+
+	// Halfway up a six-level pyramid is level 2 or 3, and both are meant to be
+	// about 80 rather than exactly it -- the ramp is a straight line through
+	// integers, not a table of three values.
+	for _, z := range []int{2, 3} {
+		if got := tileQuality(z, maxZoom); got < 77 || got > 83 {
+			t.Errorf("level %d of %d encoded at %d, want about 80", z, maxZoom, got)
+		}
+	}
+
+	// And it never climbs on the way up, whatever the rounding does.
+	for z := 1; z <= maxZoom; z++ {
+		if tileQuality(z, maxZoom) > tileQuality(z-1, maxZoom) {
+			t.Fatalf("level %d encoded higher than level %d", z, z-1)
+		}
+	}
+}
+
+// A map small enough to fit in one tile has no ramp to run down: its only level
+// IS the native one, and dividing by a zero max zoom would panic on the way to
+// deciding that.
+func TestTileQualityOfAOneLevelPyramid(t *testing.T) {
+	if got := tileQuality(0, 0); got != 90 {
+		t.Errorf("the only level of a one-level pyramid encoded at %d, want 90", got)
+	}
+}

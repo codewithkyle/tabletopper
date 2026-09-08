@@ -69,7 +69,18 @@ strokes yet.
    shader maps its pixel back to map space through the inverse camera and
    draws a line where the fractional cell coordinate is within one device
    pixel of an edge, using `fwidth` so lines stay one pixel wide at every zoom.
-   Clipped to the map rectangle. Colour and alpha from the grid colour.
+   Colour and alpha from the grid colour.
+
+   **CORRECTED WHILE BUILDING: the grid is NOT clipped to the map rectangle.**
+   This plan said it was, and the old client's shader never did. Play leaves
+   the image constantly -- a chase off the north road, a camp in the woods, a
+   party backed against the edge of the drawn area -- and whether somebody is
+   five feet or thirty feet off the picture is a question the grid is the only
+   thing that answers. Stopping the cells at the image turns the surrounding
+   table into a place where a pawn cannot be positioned, only dropped. So the
+   grid is infinite: it covers the viewport at every camera position, the map
+   rectangle is not passed to the pass at all, and the fade at two to six
+   device pixels per cell is the only thing that ever ends it.
 7. **The frame loop is driven by a dirty flag.** `invalidate()` requests a
    frame if none is pending. A frame renders, then requests another only if
    something is still pending: a drag in progress, a tile upload queued, an
@@ -126,6 +137,20 @@ strokes yet.
     player list uses, and it is what keeps a GM's second tab correct. Replying
     with the re-rendered list instead would save a round trip and leave the
     other tab stale.
+
+17. **Snapping is a whole-cell step or a half-cell one, and the third choice is
+    off.** The dialog first offered Cells, Corners and Off, where Corners was
+    the parity rule inverted -- odd footprints on vertices, even ones on
+    centres. Nobody wants that: a table that plays on intersections still wants
+    a large creature to cover four whole squares, so inverting the parity moved
+    the wrong pawns. What the third option was reaching for is a lattice that
+    holds BOTH, and stepping by half a cell is exactly that, because the odd
+    multiples of half a cell are the centres and the even ones are the
+    vertices. So the modes are `cells` (Centre only -- the 5e parity rule, a
+    creature in the middle of the squares it fills), `halfCells` (Centre and
+    corners -- the nearest of either, footprint irrelevant) and `off`. The
+    parity term in `SnapAxis` survives for `cells` alone and `halfCells` needs
+    no phase at all. `cells` keeps its wire value, so no stored room moves.
 
 10. **Zoom range is 0.05 to 4.** The old client stopped at 0.1 and 2 because it
     had one texture. Tiles make a full-map overview cheap. Wheel zoom applies
@@ -289,12 +314,13 @@ priority moves to the new map and the old one is left to age out.
 ### Grid pass
 
 A second program drawing one full-viewport triangle after the tiles when
-`grid.visible`. Uniforms: inverse camera, map rectangle, cell size, offsets,
-colour, device pixel ratio. The fragment shader computes map coordinates,
-discards outside the map, computes distance to the nearest vertical and
+`grid.visible`. Uniforms: inverse camera, cell size, offsets, colour, device
+pixel ratio -- and no map rectangle, per decision 6. The fragment shader
+computes map coordinates, computes distance to the nearest vertical and
 horizontal cell edge in device pixels via `fwidth`, and blends the colour with
-a one-pixel line. When the viewed layer has no map, the grid draws across the viewport so the
-GM can see the cell size while choosing one.
+a one-pixel line. It covers the whole viewport whether or not the viewed layer
+has a map, so a GM sizing cells before choosing a map sees the same grid a
+party standing off the north edge of one does.
 
 ### Frame timing
 

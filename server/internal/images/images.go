@@ -16,8 +16,11 @@ import (
 )
 
 const (
-	// quality is the WebP setting every stored image is encoded at.
-	quality = 75
+	// DefaultQuality is the WebP setting a stored image is encoded at when
+	// nothing has a reason to ask for another one. Avatars, monster pictures
+	// and journal images are all shown at the size they are stored, so there
+	// is no detail underneath waiting to be zoomed into.
+	DefaultQuality = 75
 
 	// MapPreviewSize is the square a map's card shows. It is a constant here
 	// rather than at either caller because the preview is written by the
@@ -46,15 +49,27 @@ func Fit(img image.Image, size int) image.Image {
 	return imaging.Fit(img, size, size, imaging.Lanczos)
 }
 
-// EncodeWebP encodes img as lossy WebP.
+// EncodeWebP encodes img as lossy WebP at DefaultQuality.
+func EncodeWebP(img image.Image) ([]byte, error) {
+	return EncodeWebPAt(img, DefaultQuality)
+}
+
+// EncodeWebPAt encodes img as lossy WebP at a caller's quality.
+//
+// IT EXISTS FOR THE TILE PYRAMID, which is the one producer here whose images
+// are not all worth the same number: the level a GM zooms into is the one every
+// brushstroke of the original survives or does not, and the level that is the
+// whole map on one screen is four thousand pixels of coastline squeezed into
+// four hundred. Spending the same bits on both wastes them at one end and
+// starves the other.
 //
 // AN *image.RGBA GOES STRAIGHT TO THE ENCODER and every other type is copied
 // into one first. It costs a full-size allocation and a pass over the pixels,
 // which is worth knowing when the caller is producing images in bulk and can
 // choose the type it produces them in.
-func EncodeWebP(img image.Image) ([]byte, error) {
+func EncodeWebPAt(img image.Image, quality int) ([]byte, error) {
 	var out bytes.Buffer
-	if err := webp.Encode(&out, img, &webp.Options{Quality: quality}); err != nil {
+	if err := webp.Encode(&out, img, &webp.Options{Quality: float32(quality)}); err != nil {
 		return nil, err
 	}
 	return out.Bytes(), nil

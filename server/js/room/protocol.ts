@@ -34,7 +34,7 @@ export type ShapeKind = "rect" | "poly";
 
 export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
 
-export type Snap = "off" | "cells" | "corners";
+export type Snap = "off" | "cells" | "halfCells";
 
 
 // The entities. These are the objects that appear inside a snapshot and
