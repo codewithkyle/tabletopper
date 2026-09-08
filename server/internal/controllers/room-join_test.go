@@ -16,6 +16,23 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+// testJoinCharacterID is the character every join in these tests brings. A join
+// with no character is a refusal now, so the id is part of the fixture rather
+// than something individual tests opt into -- see joinForm below.
+var testJoinCharacterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
+
+// joinForm is a complete submission: a code and the character to bring.
+func joinForm(code string) url.Values {
+	return url.Values{"code": {code}, "character": {testJoinCharacterID.String()}}
+}
+
+// characterAnswer is the result set GetCharacterName reads. It is the first
+// statement of every successful join, so it comes before the room's answer in
+// every list below.
+func characterAnswer(name string) roomAnswer {
+	return roomAnswer{columns: []string{"name"}, values: []driver.Value{name}}
+}
+
 // joinPost drives JoinRoomForm over a stub, with a session that carries the
 // hash the join writes against.
 func joinPost(t *testing.T, app *App, form url.Values) *httptest.ResponseRecorder {
@@ -73,7 +90,7 @@ func TestAMalformedCodeIsRefusedWithoutAQuery(t *testing.T) {
 			db := &roomDB{rows: 1}
 			app := newJoinApp(db)
 
-			rec := joinPost(t, app, url.Values{"code": {code}})
+			rec := joinPost(t, app, joinForm(code))
 
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
@@ -94,37 +111,42 @@ func TestAMalformedCodeIsRefusedWithoutAQuery(t *testing.T) {
 // The stored code is upper case, so a player typing what their keyboard was in
 // has to reach the statement in the shape the column holds.
 func TestATypedCodeIsNormalisedBeforeTheLookup(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{openRoomAnswer(testRoomID, "Curse of Strahd", false)}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterAnswer("Ilyana"),
+		openRoomAnswer(testRoomID, "Curse of Strahd", false),
+	}}
 	app := newJoinApp(db)
 
-	rec := joinPost(t, app, url.Values{"code": {"  ab2c \n"}})
+	rec := joinPost(t, app, joinForm("  ab2c \n"))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
-	if len(db.calls) == 0 {
-		t.Fatal("nothing was queried")
+	if len(db.calls) < 2 {
+		t.Fatalf("ran %d statements, want the character and the lookup: %v", len(db.calls), db.queries())
 	}
-	if got := boundCode(t, db.calls[0].args[0]); got != "AB2C" {
+	if got := boundCode(t, db.calls[1].args[0]); got != "AB2C" {
 		t.Errorf("the lookup asked for %q, want %q", got, "AB2C")
 	}
 }
 
-// THE COUNTER IS ASKED BEFORE THE ROOM IS LOOKED UP, which is what makes it a
+// THE COUNTER IS ASKED BEFORE ANYTHING IS QUERIED, which is what makes it a
 // bound on guessing rather than a bound on being told the answer. A refused try
-// still counts, so somebody hammering a locked window holds it locked.
+// still counts, so somebody hammering a locked window holds it locked -- and it
+// runs no statements at all, which is why it sits in front of the character
+// check as well as the room lookup.
 func TestTheEleventhJoinInAMinuteIsRefusedBeforeTheLookup(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{openRoomAnswer(testRoomID, "Curse of Strahd", false)}}
+	db := &roomDB{rows: 1}
 	app := newJoinApp(db)
 
 	for i := range 10 {
-		if rec := joinPost(t, app, url.Values{"code": {"AB2C"}}); rec.Code == http.StatusTooManyRequests {
+		if rec := joinPost(t, app, joinForm("AB2C")); rec.Code == http.StatusTooManyRequests {
 			t.Fatalf("try %d was rate limited inside the limit", i+1)
 		}
 	}
 
 	before := len(db.calls)
-	rec := joinPost(t, app, url.Values{"code": {"AB2C"}})
+	rec := joinPost(t, app, joinForm("AB2C"))
 
 	if rec.Code != http.StatusTooManyRequests {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusTooManyRequests)
@@ -146,10 +168,13 @@ func TestTheEleventhJoinInAMinuteIsRefusedBeforeTheLookup(t *testing.T) {
 // that a code is in use. A room code is not a bearer credential and the friend
 // who typed the right code is who the message is for.
 func TestALockedRoomSaysSo(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{openRoomAnswer(testRoomID, "Curse of Strahd", true)}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterAnswer("Ilyana"),
+		openRoomAnswer(testRoomID, "Curse of Strahd", true),
+	}}
 	app := newJoinApp(db)
 
-	rec := joinPost(t, app, url.Values{"code": {"AB2C"}})
+	rec := joinPost(t, app, joinForm("AB2C"))
 
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
@@ -157,9 +182,10 @@ func TestALockedRoomSaysSo(t *testing.T) {
 	if want := "That room is locked. Ask the GM to unlock it."; !strings.Contains(rec.Body.String(), want) {
 		t.Errorf("body missing %q: %s", want, rec.Body.String())
 	}
-	// The lookup ran and nothing else did: a locked room is not joined.
-	if len(db.calls) != 1 {
-		t.Errorf("ran %d statements, want 1: %v", len(db.calls), db.queries())
+	// The character and the lookup ran and nothing else did: a locked room is
+	// not joined.
+	if len(db.calls) != 2 {
+		t.Errorf("ran %d statements, want 2: %v", len(db.calls), db.queries())
 	}
 }
 
@@ -167,10 +193,13 @@ func TestALockedRoomSaysSo(t *testing.T) {
 // from the locked one on purpose -- the alternative is a player who typed the
 // right code and cannot tell whether they typed it wrong.
 func TestACodeThatNamesNoOpenRoomSaysSo(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{{columns: []string{"id", "name", "is_locked"}}}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterAnswer("Ilyana"),
+		{columns: []string{"id", "name", "is_locked"}},
+	}}
 	app := newJoinApp(db)
 
-	rec := joinPost(t, app, url.Values{"code": {"AB2C"}})
+	rec := joinPost(t, app, joinForm("AB2C"))
 
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusUnprocessableEntity, rec.Body.String())
@@ -183,21 +212,24 @@ func TestACodeThatNamesNoOpenRoomSaysSo(t *testing.T) {
 // The join writes the session row, keyed on the hash, and answers with a
 // redirect the toast rides along on.
 func TestJoiningSeatsTheSessionAndRedirects(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{openRoomAnswer(testRoomID, "Curse of Strahd", false)}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterAnswer("Ilyana"),
+		openRoomAnswer(testRoomID, "Curse of Strahd", false),
+	}}
 	app := newJoinApp(db)
 
-	rec := joinPost(t, app, url.Values{"code": {"AB2C"}})
+	rec := joinPost(t, app, joinForm("AB2C"))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
 	}
-	if len(db.calls) != 2 {
-		t.Fatalf("ran %d statements, want the lookup and the seat: %v", len(db.calls), db.queries())
+	if len(db.calls) != 3 {
+		t.Fatalf("ran %d statements, want the character, the lookup and the seat: %v", len(db.calls), db.queries())
 	}
 
-	seat := db.calls[1]
+	seat := db.calls[2]
 	if !strings.Contains(seat.query, "UPDATE sessions") || !strings.Contains(seat.query, "room_id = ?") {
-		t.Errorf("the second statement is not the seat: %q", seat.query)
+		t.Errorf("the third statement is not the seat: %q", seat.query)
 	}
 	if len(seat.args) != 3 {
 		t.Fatalf("the seat took %d values, want 3", len(seat.args))
@@ -205,8 +237,10 @@ func TestJoiningSeatsTheSessionAndRedirects(t *testing.T) {
 	if id, ok := boundRoomID(seat.args[0]); !ok || id != testRoomID {
 		t.Errorf("the seat wrote room %v, want %v", seat.args[0], testRoomID)
 	}
-	if seat.args[1] != nil {
-		t.Errorf("character = %v, want NULL for a join with no character", seat.args[1])
+	// THE CHARACTER IS WRITTEN WITH THE ROOM. It is what the socket reads back
+	// to put a name in the player list, and what a pawn is spawned from later.
+	if id, ok := boundRoomID(seat.args[1]); !ok || id != testJoinCharacterID {
+		t.Errorf("the seat wrote character %v, want %v", seat.args[1], testJoinCharacterID)
 	}
 	// Keyed on the hash, like every other statement against this row.
 	if hash, ok := seat.args[2].([]byte); !ok || string(hash) != "session-hash" {
@@ -248,6 +282,38 @@ func TestACharacterThatIsNotYoursIsRefusedBeforeTheLookup(t *testing.T) {
 				if strings.Contains(sent, "rooms") {
 					t.Errorf("the room was looked up anyway: %v", db.queries())
 				}
+			}
+		})
+	}
+}
+
+// A JOIN WITH NO CHARACTER IS A REFUSAL AND NOT A SEAT. The picker is
+// `required` and its placeholder is `disabled`, so nothing that came off the
+// form arrives here -- and a form is markup, so this is what answers everything
+// else. The message names what to do rather than what went wrong, because there
+// is only one thing to do.
+func TestAJoinWithNoCharacterIsRefusedBeforeTheLookup(t *testing.T) {
+	for name, form := range map[string]url.Values{
+		"an empty value": {"code": {"AB2C"}, "character": {""}},
+		"no field":       {"code": {"AB2C"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &roomDB{rows: 1, answers: []roomAnswer{
+				characterAnswer("Ilyana"),
+				openRoomAnswer(testRoomID, "Curse of Strahd", false),
+			}}
+			app := newJoinApp(db)
+
+			rec := joinPost(t, app, form)
+
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusUnprocessableEntity, rec.Body.String())
+			}
+			if want := "Choose the character you are playing."; !strings.Contains(rec.Body.String(), want) {
+				t.Errorf("body missing %q: %s", want, rec.Body.String())
+			}
+			if len(db.calls) != 0 {
+				t.Errorf("ran %d statements, want 0: %v", len(db.calls), db.queries())
 			}
 		})
 	}

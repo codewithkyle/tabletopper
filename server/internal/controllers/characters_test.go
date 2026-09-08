@@ -56,12 +56,15 @@ func tablesHoldingCharacterRows(t *testing.T) []string {
 // Tables that carry a character_id and are deliberately left alone, with the
 // reason, because "we forgot" and "we decided" look identical in a diff.
 var unpurgedTables = map[string]string{
-	// Nothing writes sessions.character_id. GetSession is the only statement
-	// that names the column at all and it reads it; StartSession does not set
-	// it and no UPDATE touches it, so the column is NULL in every row and there
-	// is nothing for a delete to clear. Purging it would be a statement
-	// standing guard over a value that cannot exist.
-	"sessions": "never written",
+	// A DANGLING CHARACTER ON A SESSION IS ALREADY WHAT "NO CHARACTER" LOOKS
+	// LIKE. The join writes this column and the socket reads it back, so a
+	// player whose character is deleted mid-session is left holding an id that
+	// matches nothing -- GetCharacterName finds no row, the player list draws
+	// them under their account name, and the next join overwrites it. Clearing
+	// it here would reach the same state by a longer road, and would do it for
+	// every session of every account rather than for the one row that is
+	// pointing at the deleted character.
+	"sessions": "a dangling id already reads as no character",
 }
 
 // A character's pictures are in assets, which carries no character_id -- it is

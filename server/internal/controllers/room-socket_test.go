@@ -135,8 +135,8 @@ func TestTheMembersWindowFallsBackToTheSessionRows(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
 		{
-			columns: []string{"user_id", "username", "profile_image_url"},
-			values:  []driver.Value{testMemberID.Bytes(), "Ari", "/images/default-avatar.webp"},
+			columns: []string{"user_id", "username", "profile_image_url", "character_name"},
+			values:  []driver.Value{testMemberID.Bytes(), "ari", "/images/default-avatar.webp", "Ilyana"},
 		},
 	}}
 	app := newRoomApp(db)
@@ -148,8 +148,12 @@ func TestTheMembersWindowFallsBackToTheSessionRows(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, "Ari") {
-		t.Error("the fallback list does not name the member the session rows hold")
+	// THE CHARACTER LEADS AND THE ACCOUNT FOLLOWS IN BRACKETS, in the fallback
+	// exactly as in the live list -- a window that changed what it was naming
+	// depending on where the answer came from would be a window nobody could
+	// read across a reconnect.
+	if !strings.Contains(body, "Ilyana") || !strings.Contains(body, "(ari)") {
+		t.Errorf("the fallback list does not name the character and the account:\n%s", body)
 	}
 	if !strings.Contains(body, "Waiting for the connection.") {
 		t.Error("the fallback list does not say that it is not the live one")
@@ -179,7 +183,7 @@ func TestTheMembersWindowPrefersTheLiveRoom(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	err := app.Hub.Dispatch(ctx, testRoomID, room.Actor{ID: testOwnerID, Role: room.RoleGM}, &room.PlayerJoin{
-		Player: room.Player{ID: testOwnerID, Name: "Kyle", Avatar: "/images/default-avatar.webp", Role: room.RoleGM},
+		Player: room.Player{ID: testOwnerID, Name: "kyle", Avatar: "/images/default-avatar.webp", Role: room.RoleGM},
 	})
 	if err != nil {
 		t.Fatalf("seating the GM: %v", err)
@@ -192,8 +196,10 @@ func TestTheMembersWindowPrefersTheLiveRoom(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, "Kyle") {
-		t.Error("the live list does not name the person who is connected")
+	// THE GM BRINGS NO CHARACTER, so their line is the title and their account,
+	// not a blank followed by brackets.
+	if !strings.Contains(body, "Game Master") || !strings.Contains(body, "(kyle)") {
+		t.Errorf("the live list does not name the GM and their account:\n%s", body)
 	}
 	if !strings.Contains(body, ">GM<") {
 		t.Error("the live list does not say who is running the room")

@@ -378,11 +378,31 @@ func dimension(value int) string {
 // RoomMember is one person at the table as the player window draws them. It is
 // not room.Player: that type carries ids and a character reference this window
 // has no use for, and a template that took it would be able to render either.
+//
+// IT IS TWO NAMES, AND THE WINDOW DRAWS BOTH -- "Ilyana Vasilovich (kyle)" for
+// a player and "Game Master (kyle)" for the person running it.
+//
+// THE CHARACTER LEADS AND THE ACCOUNT FOLLOWS, because for the next four hours
+// the character is what everybody at the table is going to say out loud, and
+// the account is how the GM tells two of them apart when both players are
+// called Bob -- or works out whose socket to close. A list of usernames would
+// have the useful half in brackets.
+//
+// "GAME MASTER" IS NOT A CHARACTER AND IS NOT PRETENDING TO BE ONE. It goes in
+// the same slot because the GM occupies the same kind of seat, and because a
+// row with an empty first half and a name in brackets reads as a bug.
 type RoomMember struct {
-	Name   string
+	// Name is the line's first half: the character, or "Game Master", or the
+	// account name again when there is no character to show.
+	Name string
+
+	// Username is the account, drawn in brackets after the name. It is never
+	// empty -- see clerkauth.FallbackUsername for the reason that holds.
+	Username string
+
 	Avatar string
 
-	// IsGM sorts them to the top and labels them, because "who is running
+	// IsGM sorts them to the top and names them, because "who is running
 	// this" is the first thing anybody wants from a player list.
 	IsGM bool
 
@@ -424,6 +444,40 @@ type RoomMembersData struct {
 // same way the first one did.
 func (d RoomMembersData) Path() string {
 	return "/fragment/room/members?room=" + d.RoomID
+}
+
+// GameMasterName is the first half of the GM's line. It is a constant here
+// rather than a string in the markup because both halves of the member list --
+// the live one out of the hub and the fallback out of the session rows -- build
+// it, and two spellings of it would be two different rooms.
+const GameMasterName = "Game Master"
+
+// MemberName is the line a member is drawn under: the GM's title, the character
+// they brought, or their account name when there is no character.
+//
+// THE LAST CASE IS NOT A PLACEHOLDER. A player whose character was deleted
+// while they were away is still at the table, and "(kyle)" with nothing before
+// it is worse than their name twice -- so the caller writes the account name
+// into both halves and the row reads as somebody with no character rather than
+// as a row that failed to load.
+func MemberName(isGM bool, character string, username string) string {
+	if isGM {
+		return GameMasterName
+	}
+	if character != "" {
+		return character
+	}
+
+	return username
+}
+
+// ShowUsername is false when the account is already the whole line, which is
+// what MemberName falls back to for somebody with no character. "rin (rin)" is
+// not more informative than "rin", it is just noisier, and a reader scanning a
+// list of them would spend a moment on every one working out that the two
+// halves are the same word.
+func (m RoomMember) ShowUsername() bool {
+	return m.Name != m.Username
 }
 
 // SortRoomMembers puts the GM first and everybody else in name order, which is

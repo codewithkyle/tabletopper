@@ -35,13 +35,18 @@ templ roomMemberRow(m RoomMember) {
 			<img src={ m.Avatar } alt="" class="size-6 shrink-0 rounded-full object-cover"/>
 			<span
 				if m.Connected {
-					class="truncate text-sm"
+					class="min-w-0 truncate text-sm"
 				} else {
-					class="truncate text-sm text-base-content/50"
+					class="min-w-0 truncate text-sm text-base-content/50"
 				}
-			>{ m.Name }</span>
+			>
+				{ m.Name }
+				if m.ShowUsername() {
+					<span class="text-xs text-base-content/60">({ m.Username })</span>
+				}
+			</span>
 			if m.IsGM {
-				<span class="badge badge-xs badge-neutral ml-auto">GM</span>
+				<span class="badge badge-xs badge-neutral ml-auto shrink-0">GM</span>
 			}
 		</div>
 	</li>

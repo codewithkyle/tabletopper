@@ -1,5 +1,7 @@
 package pages
 
+import "strconv"
+
 templ AccountSettingsFragment(data AccountSettingsData) {
 	{{ errorBlock := "#errors-" + AccountSettingsPanel }}
 	<div id={ accountSettingsID } class="grid gap-4">
@@ -60,11 +62,39 @@ templ AccountWelcomeFragment(data AccountSettingsData) {
 	</div>
 }
 
+templ AccountName(name string, oob bool) {
+	<span
+		id="account-name"
+		if oob {
+			hx-swap-oob="true"
+		}
+		class="mt-1 inline-block text-xl font-bold text-primary"
+	>{ name }</span>
+}
+
 templ accountSettingsFields(data AccountSettingsData) {
+	@displayNameField(data.Name)
 	@selectField("theme", "Theme", data.Themes, data.Theme, true)
 	@zoneField(data.Zones, data.Zone)
 	@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
 	@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
+}
+
+templ displayNameField(value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for="username">Display name</label>
+		<input
+			id="username"
+			name="username"
+			type="text"
+			class="input validator peer w-full"
+			value={ value }
+			maxlength={ strconv.Itoa(DisplayNameLimit) }
+			autocomplete="nickname"
+			required
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+	</div>
 }
 
 templ zoneField(groups []ZoneGroup, value string) {

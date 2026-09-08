@@ -67,12 +67,15 @@ type UserSession struct {
 	// Prefs is the account settings the page renders with: theme, zone, date
 	// order and clock.
 	//
-	// IT IS JOINED, NOT COPIED INTO THE ROW. Username and ProfileImageURL above
-	// are copies on the sessions row, and that is right for them -- both come
-	// from Clerk and only change when a login refreshes them. These change
-	// while the user is sitting in the app, and one user has several sessions,
-	// so a copy would mean switching to dark on a laptop and watching the phone
-	// stay light until its session expired a week later.
+	// IT IS JOINED, NOT COPIED INTO THE ROW, and so is Username above. Those
+	// all change while the user is sitting in the app, and one user has several
+	// sessions, so a copy would mean switching to dark on a laptop -- or
+	// renaming yourself -- and watching the phone show the old value until its
+	// session expired a week later.
+	//
+	// ProfileImageURL is the one that is still a copy on the sessions row, and
+	// that is right for it: it comes from Clerk, this app has no way to change
+	// it, and a login is the only thing that ever refreshes it.
 	//
 	// The join is to users on its primary key, inside a lookup that already
 	// runs on every request. It is the cheapest correct answer, and there is no
@@ -147,8 +150,12 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 }
 
 // Create starts a session for u and sets its cookie. u carries the user in:
-// UserID, Username and ProfileImageURL must be set. The ID, token and
-// timestamps are filled in here.
+// UserID and ProfileImageURL must be set. The ID, token and timestamps are
+// filled in here.
+//
+// THE NAME IS NOT WRITTEN, because the row does not hold one -- it is read off
+// the join to users on every request. u.Username is still set by the caller,
+// since the session it is handed back is the one that request renders with.
 func (s *Store) Create(ctx context.Context, w http.ResponseWriter, u *UserSession) error {
 	u.ID = ulid.Make()
 	u.token = make([]byte, 32)
@@ -162,7 +169,6 @@ func (s *Store) Create(ctx context.Context, w http.ResponseWriter, u *UserSessio
 	err := s.q.StartSession(ctx, queries.StartSessionParams{
 		ID:              u.ID,
 		Hash:            u.Hash,
-		Username:        u.Username,
 		ProfileImageURL: u.ProfileImageURL,
 		UserID:          u.UserID,
 		ExpiresAt:       u.ExpiresAt,

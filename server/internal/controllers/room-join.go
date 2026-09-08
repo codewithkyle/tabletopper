@@ -60,9 +60,15 @@ func (a *App) JoinRoomPage(w http.ResponseWriter, r *http.Request) {
 // THE ORDER OF THE CHECKS IS THE DESIGN. The code's shape is checked first,
 // because a value that cannot name a room does not need a query run to find
 // that out -- the same refusal share.ValidToken makes in front of every share
-// route. The character is verified next, so a caller cannot use a bad character
-// to probe codes without paying the rate limit. Only then is a try counted, and
-// only then is the code looked up.
+// route. Then a try is counted, and only then does anything reach the database.
+//
+// THE COUNTER MOVED IN FRONT OF THE CHARACTER CHECK when the character became
+// required. It used to sit behind it, so that a caller could not use a bad
+// character to dodge the limit; that reasoning inverted the moment every join
+// had to carry one, because a caller hammering this route now pays for a
+// character lookup on every attempt whether or not the limit has already
+// refused them. In front of both, a refused try runs no statements at all --
+// and a bad character still costs a try, which is what the old order wanted.
 //
 // THE COUNTER IS KEYED BY THE USER AND NOT BY THE CODE, and the refusal is
 // counted like any other try -- see App.RoomJoinAttempts and share.Attempts for
@@ -88,13 +94,13 @@ func (a *App) JoinRoomForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	characterID, ok := a.joiningCharacter(w, r)
-	if !ok {
+	if !a.RoomJoinAttempts.Allow(sess.UserID.String(), time.Now()) {
+		rejectJoin(w, r, "Too many attempts. Wait a minute and try again.", http.StatusTooManyRequests)
 		return
 	}
 
-	if !a.RoomJoinAttempts.Allow(sess.UserID.String(), time.Now()) {
-		rejectJoin(w, r, "Too many attempts. Wait a minute and try again.", http.StatusTooManyRequests)
+	characterID, ok := a.joiningCharacter(w, r)
+	if !ok {
 		return
 	}
 
@@ -123,14 +129,20 @@ func (a *App) JoinRoomForm(w http.ResponseWriter, r *http.Request) {
 	htmx.Redirect(w, "/rooms/"+found.ID.String())
 }
 
-// joiningCharacter reads the picker. An empty value is "No character", which is
-// a legitimate answer -- a player may join before they have made one -- and any
-// other value has to be a character on this account's own roster.
+// joiningCharacter reads the picker, which every join has to answer.
+//
+// AN EMPTY VALUE IS A REFUSAL AND NOT "NO CHARACTER". It was the latter at
+// first; see pages/room-join.go for why a seat at a table now belongs to a
+// character. The select is `required` and its placeholder is `disabled`, so a
+// browser that has not been argued with never sends one -- this is what answers
+// the browser that has.
 //
 // IT IS CHECKED AGAINST THE ROSTER RATHER THAN TRUSTED, because the id arrives
 // off a form and the session that will carry it is what a pawn is spawned from
-// later. GetCharacter is owner-scoped, so somebody else's character matches
-// nothing and is refused with the same message a made-up id gets.
+// later. GetCharacterName is owner-scoped, so somebody else's character matches
+// nothing and is refused with the same message a made-up id gets -- and it
+// reads the one column that is wanted rather than the whole sheet, because the
+// name is what the socket carries into the room for the player list to draw.
 //
 // ok is false when this function has already written the response.
 func (a *App) joiningCharacter(w http.ResponseWriter, r *http.Request) (*ulid.ULID, bool) {
@@ -139,7 +151,8 @@ func (a *App) joiningCharacter(w http.ResponseWriter, r *http.Request) (*ulid.UL
 
 	raw := r.PostFormValue("character")
 	if raw == pages.NoCharacterValue {
-		return nil, true
+		rejectJoin(w, r, "Choose the character you are playing.", http.StatusUnprocessableEntity)
+		return nil, false
 	}
 
 	characterID, err := ulid.Parse(raw)
@@ -148,7 +161,7 @@ func (a *App) joiningCharacter(w http.ResponseWriter, r *http.Request) (*ulid.UL
 		return nil, false
 	}
 
-	_, err = a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: sess.UserID})
+	_, err = a.Queries.GetCharacterName(ctx, queries.GetCharacterNameParams{ID: characterID, OwnerID: sess.UserID})
 	if errors.Is(err, sql.ErrNoRows) {
 		rejectJoin(w, r, "That character is not yours.", http.StatusUnprocessableEntity)
 		return nil, false

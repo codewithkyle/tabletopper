@@ -1,7 +1,16 @@
+-- GetSession is the read on every authenticated request.
+--
+-- THE NAME COMES OFF THE JOIN AND THE AVATAR OFF THE ROW, which looks
+-- inconsistent and is not. The name is the account's own and the settings
+-- dialog can change it while the reader is sitting in the app, so a copy on
+-- this row would go stale on their other devices until those sessions expired.
+-- The avatar comes from Clerk, this app cannot change it, and a login is the
+-- only thing that ever refreshes it -- which is what a copy on a session row is
+-- for. The preference columns below are joined for the first reason.
 -- name: GetSession :one
-SELECT s.id, s.username, s.profile_image_url, s.user_id, s.character_id, s.room_id,
+SELECT s.id, s.profile_image_url, s.user_id, s.character_id, s.room_id,
        s.created_at, s.refreshed_at,
-       u.theme, u.timezone, u.date_format, u.time_format, u.onboarded_at
+       u.username, u.theme, u.timezone, u.date_format, u.time_format, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 WHERE s.expires_at > NOW() AND s.hash = ?;
@@ -13,8 +22,8 @@ WHERE hash = ?;
 
 -- name: StartSession :exec
 INSERT INTO sessions
-(id, hash, username, profile_image_url, user_id, expires_at)
-VALUES (?, ?, ?, ?, ?, ?);
+(id, hash, profile_image_url, user_id, expires_at)
+VALUES (?, ?, ?, ?, ?);
 
 -- name: RefreshSession :execresult
 UPDATE sessions
@@ -37,10 +46,10 @@ WHERE expires_at < sqlc.arg(cutoff);
 -- it for the same reason. The third keys on the room, because it is the sweep
 -- that empties one.
 --
--- THERE IS NO STATEMENT THAT LISTS A ROOM'S MEMBERS. The room page has no panel
--- to draw one in: the Player List is a window behind the Room menu that is not
--- built. It will read this table when it is, because username and
--- profile_image_url are already denormalised onto the session row.
+-- THE STATEMENT THAT LISTS A ROOM'S MEMBERS IS AT THE BOTTOM OF THIS FILE, and
+-- it is the Player List window's fallback rather than its source: who is at the
+-- table is answered by the running room in internal/hub, and this answers the
+-- moments when there is no running room to ask.
 
 -- name: SetSessionRoom :execresult
 UPDATE sessions
@@ -81,11 +90,23 @@ WHERE room_id = ? AND user_id = ?;
 -- rooms row rather than a room_id on their session.
 --
 -- DISTINCT, because one person with two tabs is two rows here and one member.
--- Username and the avatar are denormalised onto every session row from the same
--- Clerk profile, so the three columns agree across a user's rows and the
--- distinct collapses them to one.
+-- The avatar is denormalised onto every session row from the same Clerk profile
+-- and the name comes off the join, so those columns agree across a user's rows
+-- and the distinct collapses them to one.
+--
+-- THE CHARACTER IS JOINED RATHER THAN COPIED, so a character renamed between
+-- sitting down and reading the window is read under the name it has now. The
+-- join is LEFT because a session whose character has since been deleted is
+-- still a person at the table, and the empty name renders as their account's.
+--
+-- It is also the one column that can put somebody in this list twice: the
+-- character is chosen per join, so two tabs can hold two characters. The live
+-- list keys on the user and cannot, which is one more way this fallback is not
+-- the real answer.
 -- name: ListRoomMembers :many
-SELECT DISTINCT user_id, username, profile_image_url
-FROM sessions
-WHERE room_id = ? AND expires_at > NOW()
-ORDER BY username;
+SELECT DISTINCT s.user_id, u.username, s.profile_image_url, c.name AS character_name
+FROM sessions s
+INNER JOIN users u ON u.id = s.user_id
+LEFT JOIN characters c ON c.id = s.character_id
+WHERE s.room_id = ? AND s.expires_at > NOW()
+ORDER BY u.username;

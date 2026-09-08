@@ -1,11 +1,12 @@
 package pages
 
-// The account settings dialog: four pickers over the values in internal/prefs.
+// The account settings dialog: the account's display name, then four pickers
+// over the values in internal/prefs.
 //
-// IT IS A DIALOG AND NOT A PAGE because there is nothing else on it. Four
-// selects and a Save is a question, and a question belongs in the content modal
-// beside "New Character" and "Share this entry" rather than in a route with a
-// heading, a layout and a way back.
+// IT IS A DIALOG AND NOT A PAGE because there is nothing else on it. A field,
+// four selects and a Save is a question, and a question belongs in the content
+// modal beside "New Character" and "Share this entry" rather than in a route
+// with a heading, a layout and a way back.
 
 // accountSettingsID is the element the dialog renders into, and the target its
 // own form swaps. It is unexported for the reason journalShareID is: the id
@@ -21,9 +22,9 @@ const AccountSettingsPanel = "account-settings"
 // different pair of buttons and a different route.
 //
 // IT IS A SECOND WRAPPER AND NOT A SECOND COPY. accountSettingsFields is the
-// pickers, and both dialogs call it -- a fragment is never a second copy of
-// markup, and four selects that drifted apart would be four places for the
-// stored value to stop being the selected one.
+// fields, and both dialogs call it -- a fragment is never a second copy of
+// markup, and five controls that drifted apart would be five places for the
+// stored value to stop being the one on screen.
 //
 // What differs is everything around them: this one explains why it is asking,
 // its save also stamps the account as set up, and its Close says "Not now" and
@@ -35,6 +36,26 @@ const (
 	accountWelcomeID    = "account-welcome"
 	AccountWelcomePanel = "account-welcome"
 )
+
+// DisplayNameLimit mirrors users.username, which is VARCHAR(128). The field
+// carries the same number as a maxlength; the handler is what refuses a client
+// that ignored it, and refusing there is what keeps MySQL from truncating a
+// name rather than rejecting it.
+const DisplayNameLimit = 128
+
+// AccountName, in account.templ, is the greeting on the homepage and the same
+// element the two settings saves hand back out of band, so a rename lands on
+// the page the dialog is open over.
+//
+// oob IS FALSE ON THE PAGE AND TRUE IN THE REPLY, and there is one component
+// rather than two because a fragment is never a second copy of markup -- two
+// spans that drifted apart would be a greeting that changed font when it was
+// renamed.
+//
+// THE ONLY PLACE THAT OPENS EITHER DIALOG IS THE HOMEPAGE, which is what makes
+// the out-of-band swap safe: htmx reports an oob target it cannot find as an
+// error, so a caller from another page would write one to the console on every
+// save. If one is ever added, this element goes with it.
 
 // ZoneGroup is one <optgroup> of the time zone picker, and ZoneOption is one
 // city in it.
@@ -62,8 +83,8 @@ type ZoneOption struct {
 	Alias string
 }
 
-// AccountSettingsData is the dialog: each picker's options, and the value
-// currently stored for it.
+// AccountSettingsData is the dialog: the stored display name, plus each picker's
+// options and the value currently stored for it.
 //
 // EVERY LABEL IS BUILT BY THE CONTROLLER, which is this package's rule
 // everywhere and earns its keep here. The date and clock options are labelled
@@ -93,6 +114,15 @@ type ZoneOption struct {
 // is. It shares the pickers and not the rest of this, and an account being
 // welcomed has uploaded nothing.
 type AccountSettingsData struct {
+	// Name is the account's display name: what the homepage greets and what
+	// the player list writes in brackets beside a character.
+	//
+	// IT IS THE ONE FIELD ON THIS DIALOG THE READER TYPES. Everything else is
+	// a picker over a fixed list, which is why every other rejection here names
+	// a field rather than quoting a value back -- this one is the exception,
+	// and the two messages it can produce are in accountDisplayName.
+	Name string
+
 	Themes []Option
 	Theme  string
 

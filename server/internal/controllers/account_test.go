@@ -19,6 +19,7 @@ import (
 // a reason it did not mean to exercise.
 func settingsForm() url.Values {
 	return url.Values{
+		"username":    {"kyle"},
 		"theme":       {"dark"},
 		"timezone":    {"Europe/London"},
 		"date_format": {"iso"},
@@ -106,7 +107,7 @@ func TestOneBadFieldStopsTheWholeSave(t *testing.T) {
 	}
 }
 
-func TestAValidSaveWritesTheFourColumnsOnce(t *testing.T) {
+func TestAValidSaveWritesTheFiveColumnsOnce(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
 	rec := saveSettings(t, db, settingsForm())
@@ -119,13 +120,14 @@ func TestAValidSaveWritesTheFourColumnsOnce(t *testing.T) {
 	}
 
 	call := db.calls[0]
-	if want := []string{"theme", "timezone", "date_format", "time_format"}; !equalStrings(setColumns(t, call.query), want) {
+	if want := []string{"username", "theme", "timezone", "date_format", "time_format"}; !equalStrings(setColumns(t, call.query), want) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 
 	// THE ROW IS THE SESSION'S OWN AND NOT ONE NAMED IN THE REQUEST. The route
 	// takes no id, so the only user this can reach is the one asking.
 	wantArgs := []any{
+		"kyle",
 		queries.UsersTheme("dark"),
 		"Europe/London",
 		queries.UsersDateFormat("iso"),
@@ -210,8 +212,11 @@ func TestTheDialogIsBuiltFromTheStoredSettings(t *testing.T) {
 		TimeFormat: prefs.Time24H,
 	}
 
-	data := accountSettingsData(p, summerNoon)
+	data := accountSettingsData("kyle", p, summerNoon)
 
+	if data.Name != "kyle" {
+		t.Errorf("the dialog opens on display name %q, want %q", data.Name, "kyle")
+	}
 	if data.Theme != "dark" || data.Zone != "Australia/Sydney" ||
 		data.DateFormat != "dmy_slash" || data.TimeFormat != "24h" {
 		t.Errorf("the dialog does not open on what is stored: %#v", data)
@@ -260,7 +265,7 @@ func TestTheOptionsAreLabelledWithRealDates(t *testing.T) {
 		TimeFormat: prefs.Time12H,
 	}
 
-	data := accountSettingsData(p, summerNoon)
+	data := accountSettingsData("kyle", p, summerNoon)
 
 	want := map[string]string{
 		"dmy_text":  "7 Sep 2026",
@@ -343,7 +348,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 		t.Fatalf("statements run = %d, want 1", len(db.calls))
 	}
 
-	want := []string{"theme", "timezone", "date_format", "time_format", "onboarded_at"}
+	want := []string{"username", "theme", "timezone", "date_format", "time_format", "onboarded_at"}
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
@@ -354,7 +359,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 }
 
 // The welcome dialog validates exactly as the settings dialog does, because it
-// is the same four pickers. A rejected form writes nothing -- and crucially
+// is the same fields. A rejected form writes nothing -- and crucially
 // leaves the account unstamped, so the question is asked again rather than
 // being silently closed on a value that never landed.
 func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {

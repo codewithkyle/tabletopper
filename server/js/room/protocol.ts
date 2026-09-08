@@ -131,6 +131,7 @@ export interface Player {
 	name: string;
 	avatar: string;
 	characterId: string | null;
+	characterName: string;
 	role: Role;
 	connected: boolean;
 }

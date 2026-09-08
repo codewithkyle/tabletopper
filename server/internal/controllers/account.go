@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"tabletopper/internal/htmx"
@@ -15,11 +16,12 @@ import (
 
 // The account settings dialog and the save behind it.
 //
-// THE FOUR SETTINGS COME OFF THE SESSION AND NEVER OUT OF THE DATABASE. The
-// session query joins users, so they arrive with every request already; loading
-// them again here would be a round trip to fetch what the caller was handed on
-// the way in. It also means the dialog and the page it opens over cannot
-// disagree, because they were both rendered from the same read.
+// EVERYTHING ON THE DIALOG COMES OFF THE SESSION AND NEVER OUT OF THE DATABASE.
+// The session query joins users, so the display name and the four preferences
+// arrive with every request already; loading them again here would be a round
+// trip to fetch what the caller was handed on the way in. It also means the
+// dialog and the page it opens over cannot disagree, because they were both
+// rendered from the same read.
 //
 // STORAGE USED IS THE ONE EXCEPTION, and it has to be. It is an aggregate over
 // the assets table, so there is nothing on the session that could carry it and
@@ -52,7 +54,7 @@ func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
-	data := accountSettingsData(sess.Prefs, time.Now())
+	data := accountSettingsData(sess.Username, sess.Prefs, time.Now())
 
 	used, err := a.Queries.SumOwnedAssetBytes(ctx, sess.UserID)
 	if err != nil {
@@ -101,16 +103,20 @@ func formatBytes(n int64) string {
 	return fmt.Sprintf("%.1f %s", size, unit)
 }
 
-// SaveAccountSettings writes all four, or none of them.
+// SaveAccountSettings writes all five, or none of them.
 //
-// EVERY FIELD IS VALIDATED AGAINST THE LIST THAT OFFERED IT, and a value that
+// EVERY PICKER IS VALIDATED AGAINST THE LIST THAT OFFERED IT, and a value that
 // is not on one is a rejection rather than a silent fallback. The read path
 // falls back -- prefs.New does, so a column this build does not understand
 // still renders a page -- but a form is the other direction: accepting a zone
 // the picker cannot show would store a value the reader could never see
 // selected, and could not get back to after changing anything else.
 //
-// The four are collected before any of them is written, so a form carrying one
+// THE DISPLAY NAME IS THE ONE FIELD THAT IS TYPED, so it is the one rejection
+// that is about what arrived rather than about a stale page. It is trimmed,
+// required, and bounded by its column -- see accountDisplayName.
+//
+// All five are collected before any of them is written, so a form carrying one
 // bad field changes nothing. There is no partial save to explain.
 func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -120,7 +126,7 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, problems := accountSettingsInput(r)
+	name, updated, problems := accountSettingsInput(r)
 	if len(problems) > 0 {
 		renderPanelBlock(w, r, pages.AccountSettingsPanel, problems)
 		return
@@ -128,6 +134,7 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 
 	err := a.Queries.UpdateUserPreferences(ctx, queries.UpdateUserPreferencesParams{
 		ID:         sess.UserID,
+		Username:   name,
 		Theme:      queries.UsersTheme(updated.Theme),
 		Timezone:   updated.Timezone,
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
@@ -139,13 +146,21 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	announceSettings(w, r, pages.AccountSettingsPanel, updated, "Settings saved.")
+	announceSettings(w, r, pages.AccountSettingsPanel, name, updated, "Settings saved.")
 }
 
-// AccountWelcomeFragment is the same four pickers behind a welcome message,
-// opened by the homepage for an account that has never answered it.
+// AccountWelcomeFragment is the same fields behind a welcome message, opened by
+// the homepage for an account that has never answered it.
 //
-// IT IS OFFERED THE DEFAULTS, because that is what the row holds -- and the
+// THE NAME FIELD IS WHY THE WELCOME DIALOG ASKS FOR ONE AT ALL. An account
+// signing up through Google has no username to take, so the name it arrives
+// with was resolved out of the Clerk profile -- their real one, most likely,
+// which is not what most people want printed beside their pawn. This is the
+// first chance to change it, and the field is prefilled with what was resolved
+// rather than left empty, so a reader who does not care can leave it alone.
+//
+// IT IS OFFERED THE DEFAULTS FOR THE REST, because that is what the row holds --
+// and the
 // zone picker inside it is wrapped in <zone-detect>, which preselects the
 // browser's own zone if this app offers it. That is the browser detection this
 // project turned down for the read path, and it is right here for the reason it
@@ -153,13 +168,14 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 // suggestion sitting in a control they are already looking at rather than a
 // guess written behind their back.
 func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
-	p := session.FromContext(r.Context()).Prefs
+	sess := session.FromContext(r.Context())
+	p := sess.Prefs
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(p, time.Now())))
+	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
 }
 
-// CompleteOnboarding is the welcome dialog's Save. It writes the same four
+// CompleteOnboarding is the welcome dialog's Save. It writes the same five
 // columns SaveAccountSettings does and stamps the account as set up, in ONE
 // statement -- two would have a window in which the settings landed and the
 // stamp did not, and the dialog would reopen over the answer just given.
@@ -171,7 +187,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated, problems := accountSettingsInput(r)
+	name, updated, problems := accountSettingsInput(r)
 	if len(problems) > 0 {
 		renderPanelBlock(w, r, pages.AccountWelcomePanel, problems)
 		return
@@ -179,6 +195,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 
 	err := a.Queries.CompleteOnboarding(ctx, queries.CompleteOnboardingParams{
 		ID:         sess.UserID,
+		Username:   name,
 		Theme:      queries.UsersTheme(updated.Theme),
 		Timezone:   updated.Timezone,
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
@@ -190,7 +207,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	announceSettings(w, r, pages.AccountWelcomePanel, updated, "You are all set.")
+	announceSettings(w, r, pages.AccountWelcomePanel, name, updated, "You are all set.")
 }
 
 // DismissOnboarding is "Not now": the account is stamped and keeps every
@@ -221,14 +238,25 @@ func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// announceSettings is the reply both saves share: repaint, dismiss, say so, and
-// clear the error block. The block is not busywork -- the form targets it, so
-// rendering it empty is what clears a complaint the previous attempt left.
-func announceSettings(w http.ResponseWriter, r *http.Request, panel string, p prefs.Preferences, message string) {
+// announceSettings is the reply both saves share: repaint, dismiss, say so,
+// clear the error block, and correct the greeting behind the dialog.
+//
+// THE ERROR BLOCK IS NOT BUSYWORK -- the form targets it, so rendering it empty
+// is what clears a complaint the previous attempt left.
+//
+// THE GREETING IS AN OUT-OF-BAND SWAP AND THE THEME IS A HEADER, which is not
+// an inconsistency: the theme is one attribute on <html> that no component
+// owns, and the name is an element that one does. Both exist for the same
+// reason -- the response only swapped a fragment inside a dialog, and the page
+// underneath it is still showing what it was rendered with.
+func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name string, p prefs.Preferences, message string) {
 	htmx.Theme(w, p.Theme.Palette())
 	htmx.CloseModal(w)
 	htmx.Toast(w, message)
-	renderPanelBlock(w, r, panel, nil)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.PanelFormErrors(panel, nil))
+	render(w, r, pages.AccountName(name, true))
 }
 
 // accountSettingsInput reads the four fields and reports what it could not
@@ -238,11 +266,16 @@ func announceSettings(w http.ResponseWriter, r *http.Request, panel string, p pr
 // a <select> the server rendered, so a rejection here is a stale page or a
 // hand-made request rather than something the reader typed wrong, and quoting
 // their input back at them would explain nothing.
-func accountSettingsInput(r *http.Request) (prefs.Preferences, []string) {
+func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string) {
 	var (
 		p        prefs.Preferences
 		problems []string
 	)
+
+	name, problem := accountDisplayName(r)
+	if problem != "" {
+		problems = append(problems, problem)
+	}
 
 	theme, ok := prefs.ParseTheme(r.PostFormValue("theme"))
 	if !ok {
@@ -268,18 +301,43 @@ func accountSettingsInput(r *http.Request) (prefs.Preferences, []string) {
 	}
 	p.TimeFormat = timeFormat
 
-	return p, problems
+	return name, p, problems
+}
+
+// accountDisplayName reads the one field on this dialog somebody types into,
+// and returns the empty string with a complaint when it cannot be used.
+//
+// IT IS TRIMMED BEFORE IT IS MEASURED, so a name of nothing but spaces is the
+// same refusal as an empty one -- storing it would give the reader a blank
+// greeting and a blank line in every player list, with no way to tell what went
+// wrong.
+//
+// THE LIMIT IS THE COLUMN'S. MySQL truncates an over-long value rather than
+// refusing it, so a name that arrived past the maxlength the field carries
+// would otherwise be silently stored as its first 128 characters.
+func accountDisplayName(r *http.Request) (string, string) {
+	name := strings.TrimSpace(r.PostFormValue("username"))
+
+	switch {
+	case name == "":
+		return "", "Enter a display name."
+	case len([]rune(name)) > pages.DisplayNameLimit:
+		return "", "Display name must be 128 characters or fewer."
+	}
+
+	return name, ""
 }
 
 // accountSettingsData builds the dialog. now is passed in rather than read here
 // so the labels are one instant apart from each other and a test can pin them.
-func accountSettingsData(p prefs.Preferences, now time.Time) pages.AccountSettingsData {
+func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.AccountSettingsData {
 	// The examples below are rendered in the zone the reader has SAVED, which
 	// is what makes "6 Sep 2026" and "07/09/2026" both correct answers on the
 	// same dialog for a reader in Sydney.
 	local := now.In(p.Location())
 
 	data := pages.AccountSettingsData{
+		Name:       name,
 		Theme:      string(p.Theme),
 		Zone:       p.Timezone,
 		DateFormat: string(p.DateFormat),

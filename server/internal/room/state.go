@@ -115,13 +115,31 @@ type Grid struct {
 // player, because their pawns are owned by that id and their initiative entry
 // is named after it. Connected goes false, the row stays, and a reconnect is
 // one field changing back.
+//
+// IT CARRIES TWO NAMES AND NEEDS BOTH. Name is the account -- who this is --
+// and CharacterName is who they are playing, which is what a table calls them
+// for the next four hours. The player list draws the character with the account
+// in brackets after it, so the GM can tell two players apart when both of their
+// characters are called Bob, and can tell which account to remove when one of
+// them is not welcome.
+//
+// CHARACTERNAME IS A COPY AND NOT A LOOKUP. It is denormalised onto this row
+// exactly as Name and Avatar are: the room is an actor holding its own state
+// and cannot reach a database from inside its goroutine, so a name that had to
+// be read per frame could not be sent at all. The socket resolves it once, when
+// the connection opens, which is also when the character was chosen.
+//
+// It is empty for the GM, who brings no character, and empty for a player whose
+// character was deleted out from under them. Both render as the account name
+// alone, which is honest -- there is no character to name.
 type Player struct {
-	ID          ulid.ULID  `json:"id"`
-	Name        string     `json:"name"`
-	Avatar      string     `json:"avatar"`
-	CharacterID *ulid.ULID `json:"characterId"`
-	Role        Role       `json:"role"`
-	Connected   bool       `json:"connected"`
+	ID            ulid.ULID  `json:"id"`
+	Name          string     `json:"name"`
+	Avatar        string     `json:"avatar"`
+	CharacterID   *ulid.ULID `json:"characterId"`
+	CharacterName string     `json:"characterName"`
+	Role          Role       `json:"role"`
+	Connected     bool       `json:"connected"`
 }
 
 // Pawn is anything on the table: a player's character, a monster from the

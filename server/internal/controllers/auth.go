@@ -38,18 +38,21 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clerk is the source of truth for the profile; the row only remembers
-	// what Clerk said last time, so it fills in where Clerk had nothing.
-	sess := session.UserSession{
-		Username:        identity.Username,
-		ProfileImageURL: identity.ImageURL,
-	}
+	// Clerk is the source of truth for the picture; the row only remembers what
+	// Clerk said last time, so it fills in where Clerk had nothing.
+	//
+	// THE NAME GOES THE OTHER WAY. users.username is the account's own display
+	// name, which the settings dialog can change, so Clerk seeds it at sign-up
+	// and never touches it again -- a login that copied Clerk's value over the
+	// row would silently undo every rename on the reader's next visit.
+	sess := session.UserSession{ProfileImageURL: identity.ImageURL}
 
 	row, err := a.Queries.GetUserByClerkID(ctx, identity.ClerkID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		slog.Info("New user signed up", "clerkID", identity.ClerkID)
 		sess.UserID = ulid.Make()
+		sess.Username = identity.Username
 		if sess.ProfileImageURL == "" {
 			sess.ProfileImageURL = defaultAvatarURL
 		}
@@ -70,11 +73,29 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		sess.UserID = row.ID
-		if sess.Username == "" {
-			sess.Username = row.Username
-		}
+		sess.Username = row.Username
 		if sess.ProfileImageURL == "" {
 			sess.ProfileImageURL = row.ProfileImageURL
+		}
+
+		// AN ACCOUNT WITH NO NAME PREDATES THE FALLBACK. Clerk's username is
+		// optional and an OAuth sign-up need not have one, so before
+		// clerkauth resolved a name out of the profile and the email, a Google
+		// sign-up wrote an empty string here and kept it. Seeding it now is
+		// what a rename would have done, and it happens once: the row is not
+		// empty the next time this runs.
+		if sess.Username == "" && identity.Username != "" {
+			sess.Username = identity.Username
+
+			err := a.Queries.SetUsername(ctx, queries.SetUsernameParams{
+				ID:       sess.UserID,
+				Username: sess.Username,
+			})
+			if err != nil {
+				// Not fatal. The session already carries the name, so this
+				// login reads correctly and the next one tries again.
+				slog.Warn("Failed to seed a display name", "error", err)
+			}
 		}
 	}
 

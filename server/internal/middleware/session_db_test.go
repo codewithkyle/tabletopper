@@ -61,9 +61,9 @@ type sessionRows struct{ done bool }
 
 func (r *sessionRows) Columns() []string {
 	return []string{
-		"id", "username", "profile_image_url", "user_id", "character_id", "room_id",
+		"id", "profile_image_url", "user_id", "character_id", "room_id",
 		"created_at", "refreshed_at",
-		"theme", "timezone", "date_format", "time_format", "onboarded_at",
+		"username", "theme", "timezone", "date_format", "time_format", "onboarded_at",
 	}
 }
 
@@ -81,13 +81,13 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 		// the 26-character text form and a []byte as 16 raw bytes, and it is
 		// the text form that a MySQL CHAR(26) hands back.
 		"01ARZ3NDEKTSV4RRFFQ69G5FAV", // id
-		[]byte("gm"),                 // username
 		[]byte(""),                   // profile_image_url
 		"01BX5ZZKBKACTAV9WEVGEMMVRZ", // user_id
 		nil,                          // character_id
 		nil,                          // room_id
 		now.Add(-time.Hour),          // created_at
 		now,                          // refreshed_at, so Refresh skips its UPDATE
+		[]byte("gm"),                 // username, off the join to users
 		[]byte("system"),             // theme
 		[]byte("UTC"),                // timezone
 		[]byte("iso"),                // date_format

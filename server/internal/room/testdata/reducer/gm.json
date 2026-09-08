@@ -38,6 +38,7 @@
         "name": "Kyle",
         "avatar": "",
         "characterId": null,
+        "characterName": "",
         "role": "gm",
         "connected": true
       },
@@ -46,6 +47,7 @@
         "name": "Ari",
         "avatar": "",
         "characterId": "010000000000000000000000ZC",
+        "characterName": "Ilyana",
         "role": "player",
         "connected": true
       },
@@ -54,6 +56,7 @@
         "name": "Rin",
         "avatar": "",
         "characterId": "010000000000000000000000ZD",
+        "characterName": "Brannor",
         "role": "player",
         "connected": true
       }
@@ -119,6 +122,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -127,6 +131,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -135,6 +140,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -234,6 +240,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -242,6 +249,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -250,6 +258,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -363,6 +372,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -371,6 +381,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -379,6 +390,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -492,6 +504,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -500,6 +513,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -508,6 +522,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -635,6 +650,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -643,6 +659,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -651,6 +668,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -778,6 +796,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -786,6 +805,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -794,6 +814,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -921,6 +942,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -929,6 +951,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -937,6 +960,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1064,6 +1088,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1072,6 +1097,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1080,6 +1106,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1207,6 +1234,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1215,6 +1243,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1223,6 +1252,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1309,6 +1339,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1317,6 +1348,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1325,6 +1357,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1429,6 +1462,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1437,6 +1471,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1445,6 +1480,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1572,6 +1608,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1580,6 +1617,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1588,6 +1626,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1737,6 +1776,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1745,6 +1785,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1753,6 +1794,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -1924,6 +1966,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -1932,6 +1975,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -1940,6 +1984,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -2133,6 +2178,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -2141,6 +2187,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -2149,6 +2196,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -2387,6 +2435,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -2395,6 +2444,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -2403,6 +2453,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -2620,6 +2671,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -2628,6 +2680,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -2636,6 +2689,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -2872,6 +2926,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -2880,6 +2935,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -2888,6 +2944,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -3107,6 +3164,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -3115,6 +3173,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -3123,6 +3182,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -3342,6 +3402,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -3350,6 +3411,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -3358,6 +3420,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -3594,6 +3657,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -3602,6 +3666,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -3610,6 +3675,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -3844,6 +3910,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -3852,6 +3919,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -3860,6 +3928,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -4109,6 +4178,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -4117,6 +4187,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -4125,6 +4196,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -4359,6 +4431,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -4367,6 +4440,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -4375,6 +4449,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -4626,6 +4701,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -4634,6 +4710,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -4642,6 +4719,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -4893,6 +4971,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -4901,6 +4980,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -4909,6 +4989,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -5158,6 +5239,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -5166,6 +5248,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -5174,6 +5257,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -5423,6 +5507,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -5431,6 +5516,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -5439,6 +5525,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -5669,6 +5756,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -5677,6 +5765,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -5685,6 +5774,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -5957,6 +6047,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -5965,6 +6056,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -5973,6 +6065,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -6245,6 +6338,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -6253,6 +6347,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -6261,6 +6356,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -6500,6 +6596,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -6508,6 +6605,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -6516,6 +6614,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -6772,6 +6871,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -6780,6 +6880,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -6788,6 +6889,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -7045,6 +7147,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -7053,6 +7156,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -7061,6 +7165,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -7319,6 +7424,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -7327,6 +7433,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -7335,6 +7442,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -7601,6 +7709,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -7609,6 +7718,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -7617,6 +7727,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -7881,6 +7992,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -7889,6 +8001,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -7897,6 +8010,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -8174,6 +8288,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -8182,6 +8297,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -8190,6 +8306,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -8470,6 +8587,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -8478,6 +8596,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -8486,6 +8605,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -8771,6 +8891,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -8779,6 +8900,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -8787,6 +8909,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -9095,6 +9218,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -9103,6 +9227,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -9111,6 +9236,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -9419,6 +9545,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -9427,6 +9554,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -9435,6 +9563,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -9720,6 +9849,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -9728,6 +9858,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -9736,6 +9867,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -9993,6 +10125,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -10001,6 +10134,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -10009,6 +10143,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -10270,6 +10405,7 @@
                 "name": "Kyle",
                 "avatar": "",
                 "characterId": null,
+                "characterName": "",
                 "role": "gm",
                 "connected": true
               },
@@ -10278,6 +10414,7 @@
                 "name": "Ari",
                 "avatar": "",
                 "characterId": "010000000000000000000000ZC",
+                "characterName": "Ilyana",
                 "role": "player",
                 "connected": true
               },
@@ -10286,6 +10423,7 @@
                 "name": "Rin",
                 "avatar": "",
                 "characterId": "010000000000000000000000ZD",
+                "characterName": "Brannor",
                 "role": "player",
                 "connected": true
               }
@@ -10546,6 +10684,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -10554,6 +10693,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -10562,6 +10702,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -10768,6 +10909,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": false
           }
@@ -10832,6 +10974,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -10840,6 +10983,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -10848,6 +10992,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": false
           }
@@ -11054,6 +11199,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -11118,6 +11264,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -11126,6 +11273,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -11134,6 +11282,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -11340,6 +11489,7 @@
             "name": "Wren",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "player",
             "connected": true
           }
@@ -11404,6 +11554,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -11412,6 +11563,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -11420,6 +11572,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           },
@@ -11428,6 +11581,7 @@
             "name": "Wren",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "player",
             "connected": true
           }
@@ -11691,6 +11845,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -11699,6 +11854,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -11707,6 +11863,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -11994,6 +12151,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -12002,6 +12160,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -12010,6 +12169,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -12235,6 +12395,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -12243,6 +12404,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -12251,6 +12413,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -12459,6 +12622,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -12467,6 +12631,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -12475,6 +12640,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -12666,6 +12832,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -12674,6 +12841,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           },
@@ -12682,6 +12850,7 @@
             "name": "Rin",
             "avatar": "",
             "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
             "role": "player",
             "connected": true
           }
@@ -12854,6 +13023,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -12862,6 +13032,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           }
@@ -13062,6 +13233,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -13070,6 +13242,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           }
@@ -13244,6 +13417,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -13252,6 +13426,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           }
@@ -13406,6 +13581,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -13414,6 +13590,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           }
@@ -13563,6 +13740,7 @@
             "name": "Kyle",
             "avatar": "",
             "characterId": null,
+            "characterName": "",
             "role": "gm",
             "connected": true
           },
@@ -13571,6 +13749,7 @@
             "name": "Ari",
             "avatar": "",
             "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
             "role": "player",
             "connected": true
           }

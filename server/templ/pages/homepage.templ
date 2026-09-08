@@ -37,7 +37,7 @@ templ homepageContent(session session.UserSession) {
 					<p class="inline-block mr-8 text-xs font-medium">
 						Welcome
 						<br/>
-						<span class="mt-1 inline-block text-xl font-bold text-primary">{ session.Username }</span>
+						@AccountName(session.Username, false)
 					</p>
 					<div class="tooltip" data-tip="Logout">
 						<form method="post" action="/logout" class="contents">

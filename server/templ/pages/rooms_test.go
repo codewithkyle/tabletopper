@@ -84,11 +84,18 @@ func TestTheNewRoomDialogRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 	}
 }
 
+// oneCharacter is a roster with something in it, which every test of the join
+// FORM needs: a page rendered for an account with no characters has no form on
+// it at all, which is the point of the two tests at the bottom of this group.
+func oneCharacter() []JoinCharacterOption {
+	return []JoinCharacterOption{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Vex"}}
+}
+
 // The join form takes the same route, plus one for the rate limit. 429 is not
 // 422, and without its own hx-status the noSwap list would swallow the message
 // that says to wait a minute.
 func TestTheJoinFormRoutesBothOfItsRejections(t *testing.T) {
-	page := renderToString(t, JoinRoom(JoinRoomPageData{}))
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
 	block := "#errors-" + JoinRoomPanel
 	for _, want := range []string{
@@ -109,17 +116,56 @@ func TestTheJoinFormRoutesBothOfItsRejections(t *testing.T) {
 // drift: a field that let five characters through would send a code no room can
 // have to a handler that refuses it.
 func TestTheJoinFieldIsAsLongAsACode(t *testing.T) {
-	page := renderToString(t, JoinRoom(JoinRoomPageData{}))
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
 	if !strings.Contains(page, `maxlength="4"`) || room.CodeLength != 4 {
 		t.Errorf("the code field does not carry the code's own length (%d)", room.CodeLength)
 	}
 }
 
+// THE FIELD IS THE OTP COMPONENT AND ONE BOX IS ONE CHARACTER. DaisyUI draws
+// the boxes from the spans, and the input is what is actually typed into, so a
+// field with five boxes and a maxlength of four is a box that can never be
+// filled -- and four boxes with no maxlength is a code that runs past the last
+// one. Both halves are asserted here because nothing else can notice.
+func TestTheJoinFieldHasOneBoxPerCharacter(t *testing.T) {
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
+
+	otp := strings.Index(page, `class="otp`)
+	if otp < 0 {
+		t.Fatalf("the code field is not the otp component:\n%s", page)
+	}
+
+	end := strings.Index(page[otp:], "</label>")
+	if end < 0 {
+		t.Fatalf("the otp label is not closed:\n%s", page)
+	}
+
+	if boxes := strings.Count(page[otp:otp+end], "<span></span>"); boxes != room.CodeLength {
+		t.Errorf("the field draws %d boxes, want %d", boxes, room.CodeLength)
+	}
+}
+
+// The pattern comes off the alphabet rather than out of the markup, so a letter
+// left out of codes is a letter the field refuses without anybody remembering
+// to change two places.
+func TestTheJoinFieldRefusesTheLettersCodesDoNotUse(t *testing.T) {
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
+
+	if !strings.Contains(page, `pattern="`+room.CodePattern()+`"`) {
+		t.Errorf("the code field does not carry the code's own pattern (%s)", room.CodePattern())
+	}
+	for _, banned := range []string{"I", "L", "O", "0", "1"} {
+		if strings.Contains(room.CodePattern(), banned) {
+			t.Errorf("the pattern accepts %q, which is not in the alphabet", banned)
+		}
+	}
+}
+
 // A pasted /rooms/join/{code} link prefills the field and joins nothing: the
 // form is still there to submit.
 func TestAPrefilledJoinPageStillHasToBeSubmitted(t *testing.T) {
-	page := renderToString(t, JoinRoom(JoinRoomPageData{Code: "AB2C"}))
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Code: "AB2C", Characters: oneCharacter()}))
 
 	if !strings.Contains(page, `value="AB2C"`) {
 		t.Error("the code was not prefilled")
@@ -129,19 +175,35 @@ func TestAPrefilledJoinPageStillHasToBeSubmitted(t *testing.T) {
 	}
 }
 
-// The picker always offers "No character", because a player may join before
-// they have made one -- and it is the first option, so it is what an untouched
-// form submits.
-func TestTheJoinPickerAlwaysOffersNoCharacter(t *testing.T) {
-	page := renderToString(t, JoinRoom(JoinRoomPageData{
-		Characters: []JoinCharacterOption{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Vex"}},
-	}))
+// THE PICKER CANNOT BE LEFT UNANSWERED. Its first option carries the empty
+// value and is disabled, so an untouched form submits nothing the handler will
+// take -- and `required` is what stops it being submitted at all. Neither is
+// the check: JoinRoomForm refuses an empty value, because a form is markup.
+func TestTheJoinPickerCannotBeLeftUnanswered(t *testing.T) {
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
-	if !strings.Contains(page, `<option value="">No character</option>`) {
-		t.Errorf("the picker does not offer joining without a character:\n%s", page)
+	if !strings.Contains(page, `<option value="" disabled selected>`) {
+		t.Errorf("the picker's placeholder is not a disabled empty option:\n%s", page)
 	}
-	if strings.Index(page, "No character") > strings.Index(page, "Vex") {
-		t.Error("a character is offered above No character, so an untouched form would submit it")
+	if strings.Contains(page, "No character") {
+		t.Error("the picker still offers joining without a character")
+	}
+	if !strings.Contains(page, `name="character"`) || !strings.Contains(page, `class="select validator peer w-full" required`) {
+		t.Errorf("the picker is not required:\n%s", page)
+	}
+}
+
+// AN ACCOUNT WITH NO CHARACTERS GETS NO FORM. A picker with nothing in it and a
+// button that cannot work is a page that looks broken; the honest version says
+// what is missing and links to where it is made.
+func TestAJoinPageWithNoCharactersOffersNoForm(t *testing.T) {
+	page := renderToString(t, JoinRoom(JoinRoomPageData{Code: "AB2C"}))
+
+	if strings.Contains(page, `hx-post="/rooms/join"`) {
+		t.Errorf("the page offers a form it cannot complete:\n%s", page)
+	}
+	if !strings.Contains(page, `href="/characters"`) {
+		t.Errorf("the page does not say where a character is made:\n%s", page)
 	}
 }
 

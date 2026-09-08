@@ -11,6 +11,13 @@ ORDER BY created_at DESC;
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;
 
+-- GetCharacterName is the one column the room needs when a player sits down: a
+-- socket carries the character's name so the player list can draw it, and
+-- reading the whole sheet to get it would be fifty columns for one string.
+-- name: GetCharacterName :one
+SELECT name FROM characters
+WHERE id = ? AND owner_id = ?;
+
 -- name: GetCharacterAsset :one
 SELECT c.name, c.asset_id, a.file_path FROM characters c
 LEFT JOIN assets a ON a.id = c.asset_id

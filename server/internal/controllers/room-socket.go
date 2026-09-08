@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -64,12 +66,15 @@ func (a *App) RoomSocket(w http.ResponseWriter, r *http.Request) {
 
 	clearSocketDeadlines(w)
 
+	characterID := roomCharacter(sess, row.ID)
+
 	a.Hub.Serve(w, r, row.ID, room.Player{
-		ID:          sess.UserID,
-		Name:        sess.Username,
-		Avatar:      sess.ProfileImageURL,
-		CharacterID: roomCharacter(sess, row.ID),
-		Role:        role,
+		ID:            sess.UserID,
+		Name:          sess.Username,
+		Avatar:        sess.ProfileImageURL,
+		CharacterID:   characterID,
+		CharacterName: a.characterName(ctx, sess.UserID, characterID),
+		Role:          role,
 	})
 }
 
@@ -84,6 +89,35 @@ func roomCharacter(sess session.UserSession, roomID ulid.ULID) *ulid.ULID {
 	}
 
 	return sess.CharacterID
+}
+
+// characterName is the one read this handler does that the room could not do
+// for itself, and it happens here because here is the only place it can: the
+// room is a goroutine holding its own state, and the name has to be in hand
+// before the player row is handed to it.
+//
+// IT IS ONE STATEMENT PER CONNECTION and not per frame -- a player with three
+// tabs open pays for it three times, on the three occasions a socket opens.
+//
+// AN EMPTY NAME IS A LEGITIMATE ANSWER and never an error the caller sees. The
+// GM brings no character, so there is nothing to look up; a player whose
+// character was deleted while they were away looks up nothing. Both are drawn
+// as the account name alone, and a database that would not answer is logged and
+// falls into the same shape rather than refusing the connection over a label.
+func (a *App) characterName(ctx context.Context, userID ulid.ULID, characterID *ulid.ULID) string {
+	if characterID == nil {
+		return ""
+	}
+
+	name, err := a.Queries.GetCharacterName(ctx, queries.GetCharacterNameParams{
+		ID:      *characterID,
+		OwnerID: userID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		slog.Error("Failed to read a character name for the socket", "error", err)
+	}
+
+	return name
 }
 
 // clearSocketDeadlines takes the server's request timeouts off this connection.
@@ -152,10 +186,12 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 		if players, ok := a.Hub.Players(ctx, row.ID); ok {
 			out := make([]pages.RoomMember, 0, len(players))
 			for _, p := range players {
+				isGM := p.Role == room.RoleGM
 				out = append(out, pages.RoomMember{
-					Name:      p.Name,
+					Name:      pages.MemberName(isGM, p.CharacterName, p.Name),
+					Username:  p.Name,
 					Avatar:    p.Avatar,
-					IsGM:      p.Role == room.RoleGM,
+					IsGM:      isGM,
 					Connected: p.Connected,
 				})
 			}
@@ -173,10 +209,12 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 
 	out := make([]pages.RoomMember, 0, len(rows))
 	for _, m := range rows {
+		isGM := m.UserID == row.OwnerID
 		out = append(out, pages.RoomMember{
-			Name:   m.Username,
-			Avatar: m.ProfileImageURL,
-			IsGM:   m.UserID == row.OwnerID,
+			Name:     pages.MemberName(isGM, m.CharacterName.String, m.Username),
+			Username: m.Username,
+			Avatar:   m.ProfileImageURL,
+			IsGM:     isGM,
 		})
 	}
 

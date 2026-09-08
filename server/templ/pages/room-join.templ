@@ -13,7 +13,6 @@ templ JoinRoom(data JoinRoomPageData) {
 }
 
 templ joinRoomContent(data JoinRoomPageData) {
-	{{ errorBlock := "#errors-" + JoinRoomPanel }}
 	<join-room-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
 			@appBar() {
@@ -26,47 +25,75 @@ templ joinRoomContent(data JoinRoomPageData) {
 			}
 			<section class="grid min-h-0 content-start overflow-auto px-6 py-4 max-[700px]:px-4">
 				<div class={ sheetSurface + " mx-auto mt-[min(10vh,5rem)] w-full max-w-md" }>
-					<form
-						class="card-body grid gap-4 p-8"
-						hx-post="/rooms/join"
-						hx-target={ errorBlock }
-						hx-swap="outerHTML"
-						hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
-						hx-status:429={ "target:" + errorBlock + ",swap:outerHTML" }
-					>
-						@PanelFormErrors(JoinRoomPanel, []string{})
-						<p class="m-0 text-base-content/75">Ask your GM for the four-character code.</p>
-						<div class="fieldset">
-							<label class="fieldset-legend" for="code">Room Code</label>
-							<input
-								id="code"
-								name="code"
-								type="text"
-								class="input validator peer w-full text-center font-mono text-2xl tracking-[0.4em] uppercase"
-								value={ data.Code }
-								maxlength={ strconv.Itoa(room.CodeLength) }
-								autocomplete="off"
-								autocapitalize="characters"
-								spellcheck="false"
-								required
-							/>
-							<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
-						</div>
-						<div class="fieldset">
-							<label class="fieldset-legend" for="character">Playing as</label>
-							<select id="character" name="character" class="select w-full">
-								<option value={ NoCharacterValue }>No character</option>
-								for _, option := range data.Characters {
-									<option value={ option.ID }>{ option.Name }</option>
-								}
-							</select>
-						</div>
-						<div class="card-actions justify-end">
-							<button type="submit" class="btn btn-primary">Join room</button>
-						</div>
-					</form>
+					if len(data.Characters) == 0 {
+						@joinRoomWithoutCharacter()
+					} else {
+						@joinRoomForm(data)
+					}
 				</div>
 			</section>
 		</div>
 	</join-room-page>
+}
+
+templ joinRoomWithoutCharacter() {
+	<div class="card-body grid gap-4 p-8">
+		<p class="m-0 text-base-content/75">Every seat belongs to a character, so you will need one before you can join.</p>
+		<p class="m-0 text-base-content/75">Make one and come back with your code.</p>
+		<div class="card-actions justify-end">
+			<a href="/characters" class="btn btn-primary">Make a character</a>
+		</div>
+	</div>
+}
+
+templ joinRoomForm(data JoinRoomPageData) {
+	{{ errorBlock := "#errors-" + JoinRoomPanel }}
+	<form
+		class="card-body grid gap-4 p-8"
+		hx-post="/rooms/join"
+		hx-target={ errorBlock }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		hx-status:429={ "target:" + errorBlock + ",swap:outerHTML" }
+	>
+		@PanelFormErrors(JoinRoomPanel, []string{})
+		<p class="m-0 text-base-content/75">Ask your GM for the four-character code.</p>
+		<div class="fieldset items-center">
+			<label class="fieldset-legend self-start" for="code">Room Code</label>
+			<label class="otp otp-lg peer">
+				<span></span>
+				<span></span>
+				<span></span>
+				<span></span>
+				<input
+					id="code"
+					name="code"
+					type="text"
+					class="uppercase"
+					value={ data.Code }
+					maxlength={ strconv.Itoa(room.CodeLength) }
+					pattern={ room.CodePattern() }
+					autocomplete="off"
+					autocapitalize="characters"
+					autocorrect="off"
+					spellcheck="false"
+					required
+				/>
+			</label>
+			<p class="validator-hint hidden self-start peer-has-[:user-invalid]:block text-hint">Four letters or numbers.</p>
+		</div>
+		<div class="fieldset">
+			<label class="fieldset-legend" for="character">Playing as</label>
+			<select id="character" name="character" class="select validator peer w-full" required>
+				<option value={ NoCharacterValue } disabled selected>Choose a character</option>
+				for _, option := range data.Characters {
+					<option value={ option.ID }>{ option.Name }</option>
+				}
+			</select>
+			<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+		</div>
+		<div class="card-actions justify-end">
+			<button type="submit" class="btn btn-primary">Join room</button>
+		</div>
+	</form>
 }

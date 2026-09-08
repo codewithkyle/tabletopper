@@ -87,8 +87,8 @@ func newWorld(t *testing.T) *world {
 	// Seated through the hub-only command rather than by appending rows, so
 	// that the state a test starts from is one the server can actually reach.
 	w.apply(&PlayerJoin{Player: Player{ID: testGMID, Name: "Kyle", Role: RoleGM}}, w.gm)
-	w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer, CharacterID: &testCharID}}, w.gm)
-	w.apply(&PlayerJoin{Player: Player{ID: testOtherID, Name: "Rin", Role: RolePlayer, CharacterID: &testOtherChar}}, w.gm)
+	w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer, CharacterID: &testCharID, CharacterName: "Ilyana"}}, w.gm)
+	w.apply(&PlayerJoin{Player: Player{ID: testOtherID, Name: "Rin", Role: RolePlayer, CharacterID: &testOtherChar, CharacterName: "Brannor"}}, w.gm)
 
 	return w
 }

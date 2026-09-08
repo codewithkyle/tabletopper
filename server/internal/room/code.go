@@ -7,6 +7,7 @@ package room
 
 import (
 	"crypto/rand"
+	"strconv"
 	"strings"
 )
 
@@ -32,6 +33,21 @@ const codeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 // byte. A byte at or above it is thrown away rather than folded in, which is
 // what makes every letter equally likely.
 const codeCeiling = 256 - 256%len(codeAlphabet)
+
+// CodePattern is the code's shape written as an HTML pattern attribute, so the
+// field on the join page cannot drift from the alphabet above.
+//
+// IT CARRIES BOTH CASES because the pattern attribute has no case-insensitive
+// flag and the field accepts what the player's keyboard was in -- the same
+// difference NormalizeCode settles on the way to the database. Duplicating the
+// digits across the two halves is harmless: a character class is a set.
+//
+// The browser refusing a malformed code is a convenience and not the check.
+// ValidCode is the check, it runs before any statement, and it runs against a
+// value that may not have come from this field at all.
+func CodePattern() string {
+	return "[" + codeAlphabet + strings.ToLower(codeAlphabet) + "]{" + strconv.Itoa(CodeLength) + "}"
+}
 
 // NewCode mints a room code. It reads from crypto/rand and cannot fail: the
 // standard library's rand.Read panics rather than returning an error since Go
