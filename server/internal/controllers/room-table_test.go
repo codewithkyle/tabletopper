@@ -13,6 +13,7 @@ import (
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+	"tabletopper/internal/tiling"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -52,12 +53,15 @@ func readyMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	}
 }
 
+// pickerMapColumns is what ListPickerMaps and SearchPickerMaps both select.
+var pickerMapColumns = []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state", "tile_attempts"}
+
 // pickerMapAnswer is a ListPickerMaps row: a map that has been tiled, so it has
 // a generation, dimensions and no job outstanding.
 func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	return roomAnswer{
-		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
-		values:  []driver.Value{id.Bytes(), name, name + ".png", int64(w), int64(h), testMapGen.Bytes(), nil},
+		columns: pickerMapColumns,
+		values:  []driver.Value{id.Bytes(), name, name + ".png", int64(w), int64(h), testMapGen.Bytes(), nil, int64(0)},
 	}
 }
 
@@ -66,17 +70,18 @@ func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 // to learn to show, because uploading is now something done from inside it.
 func buildingMapAnswer(id ulid.ULID, name string) roomAnswer {
 	return roomAnswer{
-		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
-		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "pending"},
+		columns: pickerMapColumns,
+		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "pending", int64(0)},
 	}
 }
 
-// failedMapAnswer is a map whose tiling gave up, which is the one state that
-// needs a control of its own now that the dialog has no way out to the manager.
-func failedMapAnswer(id ulid.ULID, name string) roomAnswer {
+// failedMapAnswer is a map whose tiling failed, attempts goes in as the number
+// of tries it has already had. Below tiling.MaxAttempts the worker is coming
+// back for it; at the cap it is not, and the card has to say which.
+func failedMapAnswer(id ulid.ULID, name string, attempts int) roomAnswer {
 	return roomAnswer{
-		columns: []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state"},
-		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "failed"},
+		columns: pickerMapColumns,
+		values:  []driver.Value{id.Bytes(), name, name, nil, nil, nil, "failed", int64(attempts)},
 	}
 }
 
@@ -456,13 +461,13 @@ func TestACardWithNothingBuildingDoesNotPoll(t *testing.T) {
 	}
 }
 
-// A MAP WHOSE TILING GAVE UP CAN BE TRIED AGAIN FROM IN HERE. There is no link
+// A MAP WHOSE TILING FAILED CAN BE TRIED AGAIN FROM IN HERE. There is no link
 // out of this dialog to the asset manager any more, so a failure with no control
 // beside it would be a dead end in the middle of a session.
 func TestAFailedMapOffersItsRetryInThePicker(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
-		failedMapAnswer(testMapID, "castle.png"),
+		failedMapAnswer(testMapID, "castle.png", tiling.MaxAttempts),
 	}}
 	app := tableApp(t, db)
 
@@ -476,6 +481,40 @@ func TestAFailedMapOffersItsRetryInThePicker(t *testing.T) {
 	// card that was pressed rather than the grid around it.
 	if !strings.Contains(body, `hx-target="closest room-map-card"`) {
 		t.Errorf("the retry does not replace its own card:\n%s", body)
+	}
+}
+
+// A FAILURE THE WORKER IS COMING BACK FOR DOES NOT SAY IT GAVE UP, which it did
+// for as long as the card read the state and not the attempt count. The sweep
+// requeues a failed map with tries left a lease window later, so the first
+// failure of three is a wait and not an ending -- and the button offers to skip
+// the wait rather than to start something that was not going to happen.
+func TestAFailureWithTriesLeftSaysSoAndTheLastOneDoesNot(t *testing.T) {
+	for name, tc := range map[string]struct {
+		attempts int
+		want     string
+		notWant  string
+	}{
+		"the first of three": {attempts: 1, want: "Trying again", notWant: "gave up"},
+		"the last of three":  {attempts: tiling.MaxAttempts, want: "gave up", notWant: "Trying again"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := &roomDB{rows: 1, answers: []roomAnswer{
+				tableRoomAnswer(),
+				failedMapAnswer(testMapID, "castle.png", tc.attempts),
+			}}
+			app := tableApp(t, db)
+
+			rec := pickerRequest(t, app, app.RoomMapListFragment, "/fragment/room/map-list", "")
+
+			body := rec.Body.String()
+			if !strings.Contains(body, tc.want) {
+				t.Errorf("after %d attempts the card does not say %q:\n%s", tc.attempts, tc.want, body)
+			}
+			if strings.Contains(body, tc.notWant) {
+				t.Errorf("after %d attempts the card still says %q:\n%s", tc.attempts, tc.notWant, body)
+			}
+		})
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -46,6 +47,7 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		ctx,
 		awsconfig.WithRegion("auto"),
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKeyID, cfg.SecretAccessKey, "")),
+		awsconfig.WithRetryer(newRetryer),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("storage: aws config: %w", err)
@@ -63,6 +65,63 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		presign: s3.NewPresignClient(s3Client),
 		bucket:  cfg.Bucket,
 	}, nil
+}
+
+// R2 REFUSES A BURST WITH A STATUS AND A CODE THE SDK DOES NOT RETRY, and until
+// this was here that refusal threw away a minute of work.
+//
+// The tiler writes a pyramid through sixteen concurrent PUTs, and R2 answers a
+// burst of them with `429 ServiceUnavailable: Reduce your concurrent request
+// rate for the same object`. The SDK's standard retryer retries 500, 502, 503
+// and 504, and a list of error codes that includes SlowDown and Throttling; 429
+// is in neither set and neither is ServiceUnavailable, so a throttled PUT came
+// straight back as a failure. One tile out of six hundred failing abandons the
+// whole generation -- correctly, because a pyramid with a hole in it is worse
+// than no pyramid -- so a single throttle at any point during a build lost the
+// build. That is what the game master saw: a map that said "Tiling gave up"
+// seconds after it was uploaded, and tiled perfectly on the next attempt.
+//
+// SO BOTH ARE ADDED TO THE RETRYABLE SETS, and the retryer's own machinery does
+// the rest: exponential backoff with jitter, so sixteen goroutines that were all
+// refused at once do not come back at once, and a token bucket shared across the
+// client that stops a bucket-wide outage from turning into a retry storm.
+//
+// IT IS ON THE CLIENT AND NOT AROUND THE TILER'S PUT, because nothing about
+// this is particular to tiles. An avatar uploaded while a map is being built
+// meets the same throttle from the same bucket, and a retry written at one call
+// site is a retry the other twelve do not have.
+const (
+	// retryAttempts is the whole attempt count and not the number of retries:
+	// four goes after the first. The default is three, which a burst of
+	// sixteen can exhaust while the bucket is still shedding load.
+	retryAttempts = 5
+
+	// retryBackoff caps one wait. The SDK doubles with jitter up to this, so
+	// four retries spread over roughly ten seconds -- long enough to outlast a
+	// burst, and short enough that a user-facing GET behind the same client
+	// does not sit there. It is deliberately not the SDK's 20 second default,
+	// which this client cannot afford inside a request.
+	retryBackoff = 5 * time.Second
+)
+
+// throttleStatus and throttleCode are what R2 sends and what the SDK does not
+// know about. They are separate checks because they are separate mechanisms:
+// one reads the HTTP status off the response, the other reads the code out of
+// the parsed error, and R2 has been seen to send this status with no code.
+var (
+	throttleStatus = map[int]struct{}{http.StatusTooManyRequests: {}}
+	throttleCode   = map[string]struct{}{"ServiceUnavailable": {}}
+)
+
+func newRetryer() aws.Retryer {
+	return retry.NewStandard(func(o *retry.StandardOptions) {
+		o.MaxAttempts = retryAttempts
+		o.MaxBackoff = retryBackoff
+		o.Retryables = append(o.Retryables,
+			retry.RetryableHTTPStatusCode{Codes: throttleStatus},
+			retry.RetryableErrorCode{Codes: throttleCode},
+		)
+	})
 }
 
 // Delete removes one object. Deleting a key that does not exist succeeds.

@@ -107,7 +107,7 @@ templ RoomMapCard(m RoomMapChoice) {
 				hx-post={ m.RetryPath() }
 				hx-target="closest room-map-card"
 				hx-swap="outerHTML"
-			>Try again</button>
+			>{ m.RetryLabel() }</button>
 		}
 	</room-map-card>
 }
@@ -127,7 +127,7 @@ templ roomMapThumb(m RoomMapChoice) {
 				Building tiles
 			</span>
 		} else if m.Retryable() {
-			<span class="absolute inset-x-0 bottom-0 block bg-error/90 px-2 py-1 text-xs text-error-content">Tiling gave up</span>
+			<span class="absolute inset-x-0 bottom-0 block bg-error/90 px-2 py-1 text-xs text-error-content">{ m.TileFailure() }</span>
 		}
 	</span>
 }

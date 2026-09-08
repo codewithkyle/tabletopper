@@ -163,14 +163,14 @@ templ MapCard(m MapAsset) {
 			}
 			if m.Retryable() {
 				<div class="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-error/90 px-2 py-1 text-xs text-error-content">
-					Tiling gave up
+					<span class="min-w-0">{ m.TileFailure() }</span>
 					<button
-						class="btn btn-xs"
+						class="btn btn-xs shrink-0"
 						hx-post={ "/assets/maps/" + m.ID + "/tiles" }
 						hx-target="closest asset-card"
 						hx-swap="outerHTML"
 					>
-						Retry
+						{ m.RetryLabel() }
 					</button>
 				</div>
 			}

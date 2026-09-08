@@ -57,11 +57,20 @@ const (
 	// largest map this app accepts is an order of magnitude under it.
 	leaseWindow = 15 * time.Minute
 
-	// maxAttempts is how many times a map is tiled before it is left alone.
+	// MaxAttempts is how many times a map is tiled before it is left alone.
 	// A transient R2 outage gets three tries a lease window apart; an image
 	// that cannot be decoded stops rather than being retried until the
 	// process is restarted.
-	maxAttempts = 3
+	//
+	// IT IS EXPORTED BECAUSE THE CARD HAS TO SAY WHICH OF THOSE HAPPENED. A map
+	// that has failed once is going to be tried again in a few minutes and a map
+	// that has failed three times is not, and a card that said "Tiling gave up"
+	// to both was telling the first one something untrue -- which is how a game
+	// master ends up pressing a button they did not need. The controllers
+	// compare a row's tile_attempts against this to decide which sentence the
+	// card carries; a manual retry sets the count back to zero, so pressing it
+	// buys three more automatic tries as well as an immediate one.
+	MaxAttempts = 3
 
 	// strandedBatch is the LIMIT inside ListStrandedTilingJobs, which sqlc
 	// gives no parameter for. It is repeated here because a pass that came
@@ -235,7 +244,7 @@ func (w *worker) reclaim(ctx context.Context) {
 	}
 
 	result, err := w.db.RequeueFailedTilingJobs(ctx, queries.RequeueFailedTilingJobsParams{
-		TileAttempts: maxAttempts,
+		TileAttempts: MaxAttempts,
 		TileLeasedAt: cutoff,
 	})
 	if err != nil {

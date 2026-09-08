@@ -28,6 +28,12 @@ import (
 // the bound on how far the tiler may run ahead: the tiler blocks handing over a
 // tile once the pool is full, which is what stops a whole pyramid of decoded
 // pixels accumulating in front of the encoders.
+//
+// SIXTEEN AT ONCE IS ENOUGH TO MAKE R2 REFUSE SOME OF THEM, and that is handled
+// at the storage client rather than here: R2 answers a burst with a 429 the AWS
+// SDK does not retry by default, so storage.New teaches its retryer about that
+// status and that error code. Before it did, one throttled tile out of six
+// hundred abandoned the whole generation.
 const encoders = 16
 
 // errAbandoned is what the tiler is told when the pool has already failed. The

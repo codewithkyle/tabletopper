@@ -197,10 +197,20 @@ strokes yet.
     uploaded on a previous visit and still building has to come back on the next
     open, polling from the start. Choosing an unready map was already refused in
     `hub.resolveMap`; the card not being a button is the courtesy, not the rule.
-    A failed map keeps a Try again, for the same reason the link went -- it is
-    the one state that would otherwise be a dead end with nowhere to go from
-    inside the dialog -- and it replaces its own card, `hx-target="closest
+    A failed map keeps a retry, for the same reason the link went -- it is the
+    one state that would otherwise be a dead end with nowhere to go from inside
+    the dialog -- and it replaces its own card, `hx-target="closest
     room-map-card"`.
+
+    What a failed card SAYS is `tileFailureText` in `templ/pages/assets.go`, and
+    both cards share it. A failure is two situations: the worker gives a map
+    `tiling.MaxAttempts` goes a lease window apart, so a map that has failed once
+    is going to be tried again in a few minutes and a map that has failed three
+    times is not. Both used to read "Tiling gave up" beside a Retry, which told
+    most of them something untrue and offered what was already coming. The count
+    is what separates them -- it is `RequeueFailedTilingJobs`' condition minus
+    the timestamp -- so the card says which one it is and the button reads Try
+    now or Try again to match.
 
     The search matches `name` **or** `file_name`, which is the one search in the
     app that does. `SearchMaps` deliberately matches only the name, so that a
@@ -243,7 +253,7 @@ strokes yet.
 | `POST /rooms/{id}/layers/{layer}/activate` | `RequireSession` | `ActivateLayer` | GM only. Dispatches `table.setActiveLayer`. |
 | `GET /fragment/room/maps?room={id}&layer={id}&q=` | `Fragment` | `RoomMapsFragment` | GM only. The whole dialog: a heading, a search box, an Upload map button, the grid, and Close. Opened at `xl` and a fixed 62vh tall, so it does not resize as the list under it changes. See decision 19. |
 | `GET /fragment/room/map-list?room={id}&layer={id}&q=` | `Fragment` | `RoomMapListFragment` | GM only. The grid on its own, which is what a search replaces. Cards of **every** map the owner has. `q` matches `name` or `file_name`, and is a 404 past `AssetNameLimit`. The empty state is inside the grid as `hidden only:flex`, so an upload prepended into it hides the notice with no round trip. |
-| `GET /fragment/room/map-card?room={id}&layer={id}&asset={id}` | `Fragment` | `RoomMapCardFragment` | GM only. One card: preview image, name, the file it came from when that differs, dimensions. A card with a generation is a `<form>` posting to the layer's map route with the asset id in a hidden field; one without is the same card and not a button, captioned "Building tiles" with a spinner or "Tiling gave up" with a Try again under it. A building card carries `hx-trigger="every 2s"` and `hx-swap="outerMorph"` on itself; a finished one carries neither, which is what ends the poll. A failure is a bare 404, never an alert. |
+| `GET /fragment/room/map-card?room={id}&layer={id}&asset={id}` | `Fragment` | `RoomMapCardFragment` | GM only. One card: preview image, name, the file it came from when that differs, dimensions. A card with a generation is a `<form>` posting to the layer's map route with the asset id in a hidden field; one without is the same card and not a button, captioned "Building tiles" with a spinner, or with the failure it had and a retry under it. A building card carries `hx-trigger="every 2s"` and `hx-swap="outerMorph"` on itself; a finished one carries neither, which is what ends the poll. A failure is a bare 404, never an alert. |
 | `POST /rooms/{id}/layers/{layer}/maps` | `RequireSession` | `UploadRoomMap` | GM only. The picker's Upload map. Shares `storeMap` with `UploadMap` and answers with the picker's card, pending, which htmx prepends to the grid. |
 | `POST /rooms/{id}/layers/{layer}/maps/{asset}` | `RequireSession` | `RetryRoomMapTiling` | GM only. Queues a failed map's tiling again from inside the picker. Shares `requeueMap` with `RetryMapTiling` and answers with that map's card, building. |
 | `POST /rooms/{id}/layers/{layer}/map` | `RequireSession` | `SetLayerMap` | GM only. Reads `asset`, resolves via `GetMapPyramid` (owner must be the GM, `tile_gen` must be set, else `htmx.Error` "That map is not ready yet" 409), `hub.Dispatch(table.setLayerMap)`, `htmx.CloseModal` -- the picker is the one content modal here. |

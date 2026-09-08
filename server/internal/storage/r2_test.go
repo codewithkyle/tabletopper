@@ -3,9 +3,13 @@ package storage
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
 // THE CLIENT HERE HAS NO s3 FIELD, and that is the assertion. Every one of
@@ -87,5 +91,72 @@ func TestEveryOtherFailureIsLeftAlone(t *testing.T) {
 				t.Errorf("notFound(%v) = %v, want the error unchanged", err, got)
 			}
 		})
+	}
+}
+
+// THE ONE THING THIS FIX IS is a classification, so it is the classification
+// that is pinned. A map is tiled through sixteen concurrent PUTs and R2 answers
+// a burst of them with 429 ServiceUnavailable, which the SDK's own retryer does
+// not consider retryable -- neither the status nor the code is in its default
+// sets -- so before this the first throttled tile abandoned the whole pyramid.
+// Nothing about that is visible from the outside: a retryer that quietly stopped
+// retrying would look exactly like R2 having a bad afternoon.
+func TestR2ThrottlingIsRetried(t *testing.T) {
+	for name, err := range map[string]error{
+		"the code R2 sends":   &smithy.GenericAPIError{Code: "ServiceUnavailable", Message: "Reduce your concurrent request rate for the same object."},
+		"the status it sends": throttleResponse(http.StatusTooManyRequests),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if !newRetryer().IsErrorRetryable(err) {
+				t.Errorf("a throttled request is not retried: %v", err)
+			}
+		})
+	}
+}
+
+// And the checks that were already there still are: adding to a set is only safe
+// if it is an addition. A 503 is the case the SDK always handled and a 404 is the
+// case it must go on refusing, because retrying a key that is not there is four
+// more round trips to be told the same thing.
+func TestTheSDKsOwnRetryRulesSurvive(t *testing.T) {
+	if !newRetryer().IsErrorRetryable(throttleResponse(http.StatusServiceUnavailable)) {
+		t.Error("a 503 is no longer retried")
+	}
+	if newRetryer().IsErrorRetryable(throttleResponse(http.StatusNotFound)) {
+		t.Error("a 404 is retried")
+	}
+}
+
+// A RETRY IS BOUNDED, and the bound is the reason it is safe to have on the
+// client every request goes through rather than around the tiler's PUT alone.
+// Four waits capped at five seconds is long enough to outlast a burst and short
+// enough that a game master waiting on an image is not.
+func TestRetriesAreBounded(t *testing.T) {
+	r := newRetryer()
+
+	if got := r.MaxAttempts(); got != retryAttempts {
+		t.Errorf("MaxAttempts() = %d, want %d", got, retryAttempts)
+	}
+
+	for attempt := 1; attempt < retryAttempts; attempt++ {
+		delay, err := r.RetryDelay(attempt, throttleResponse(http.StatusTooManyRequests))
+		if err != nil {
+			t.Fatalf("RetryDelay(%d): %v", attempt, err)
+		}
+		if delay > retryBackoff {
+			t.Errorf("attempt %d waits %s, past the %s cap", attempt, delay, retryBackoff)
+		}
+	}
+}
+
+// throttleResponse is an error shaped the way the SDK's status check reads one:
+// it looks for something that can report an HTTP status, which is what the
+// transport wraps every response in.
+func throttleResponse(status int) error {
+	return &awshttp.ResponseError{
+		ResponseError: &smithyhttp.ResponseError{
+			Response: &smithyhttp.Response{Response: &http.Response{StatusCode: status}},
+			Err:      errors.New("throttled"),
+		},
 	}
 }

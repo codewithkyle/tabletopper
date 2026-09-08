@@ -79,6 +79,11 @@ type MapAsset struct {
 	// State is the tiling job's state, or the zero value for a row that has
 	// never had one.
 	State queries.AssetsTileState
+
+	// AutoRetry says the tiling worker is going to come back to this map on
+	// its own, which is only ever true of a failure. See tileFailureText for
+	// why a card cannot answer that from State alone.
+	AutoRetry bool
 }
 
 // Usable answers whether this map can be put on a table: there is a complete
@@ -114,6 +119,55 @@ func (m MapAsset) Polling() bool {
 // try again anyway.
 func (m MapAsset) Retryable() bool {
 	return m.State == queries.AssetsTileStateFailed
+}
+
+// TileFailure and RetryLabel are what a failed card says and what its button
+// says. See tileFailureText for both.
+func (m MapAsset) TileFailure() string { return tileFailureText(m.AutoRetry) }
+
+func (m MapAsset) RetryLabel() string { return retryLabelText(m.AutoRetry) }
+
+// A FAILURE IS TWO DIFFERENT SITUATIONS AND THE CARD USED TO CALL BOTH OF THEM
+// "Tiling gave up", which was untrue of most of them.
+//
+// The worker gives a map tiling.MaxAttempts goes before it leaves it alone, a
+// lease window apart, so a map that has failed once or twice is queued again a
+// few minutes later without anybody doing anything. A card that announced the
+// end of the road after the first failure sent people to press a button that
+// bought them nothing they were not already getting -- and it did it most often
+// for the failure that most deserved to be waited out, a transient refusal from
+// R2 in the middle of a build.
+//
+// So the sentence names which of the two it is, and the button changes with it:
+// pressing it while a retry is already coming means "not in a few minutes, now",
+// and pressing it after the worker has stopped is the only thing that will move
+// the map at all. Both do the same thing -- RetryMapTiling sets the row back to
+// pending and the attempt count to zero -- so the difference is entirely in what
+// the owner is told.
+//
+// THE SENTENCES LIVE HERE AND NOT IN THE MARKUP because assets.templ and
+// room-maps.templ cannot carry a comment of any kind, and because both cards say
+// them: the asset manager's and the room's map picker's. One string in one place
+// is also the only way the two stay worded alike.
+const (
+	tilingRetrying = "Tiling failed. Trying again in a few minutes."
+	tilingGaveUp   = "Tiling gave up."
+)
+
+func tileFailureText(autoRetry bool) string {
+	if autoRetry {
+		return tilingRetrying
+	}
+
+	return tilingGaveUp
+}
+
+func retryLabelText(autoRetry bool) string {
+	if autoRetry {
+		return "Try now"
+	}
+
+	return "Try again"
 }
 
 // CardURL is where a polling card fetches its next self from. It is a method so

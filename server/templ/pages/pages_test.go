@@ -3153,3 +3153,79 @@ func TestAPickerCardPollsUntilItsTilesAreReady(t *testing.T) {
 }
 
 func escapeAmps(s string) string { return strings.ReplaceAll(s, "&", "&amp;") }
+
+// A FAILED MAP IS TWO SITUATIONS AND THE CARDS USED TO CALL BOTH OF THEM "Tiling
+// gave up". The worker gives a map three goes a lease window apart, so most of
+// the failures that sentence was shown for were about to be retried without
+// anybody doing anything -- and the button beside it read Retry, which offered
+// what was already coming.
+//
+// BOTH CARDS ARE CHECKED AGAINST ONE STRING because both of them say it: the
+// asset manager's and the room's map picker's. A wording that drifted between
+// them would be two answers to one question depending on which window a game
+// master happened to have open.
+func TestAFailureThatWillBeRetriedDoesNotSayItGaveUp(t *testing.T) {
+	manager := MapAsset{ID: "m", Name: "castle.png", State: queries.AssetsTileStateFailed}
+	picker := RoomMapChoice{RoomID: "r", LayerID: "l", ID: "m", Name: "castle.png", State: queries.AssetsTileStateFailed}
+
+	for name, tc := range map[string]struct {
+		autoRetry bool
+		want      string
+		notWant   string
+		label     string
+		notLabel  string
+	}{
+		"the worker is coming back": {autoRetry: true, want: tilingRetrying, notWant: tilingGaveUp, label: "Try now", notLabel: "Try again"},
+		"the worker has stopped":    {autoRetry: false, want: tilingGaveUp, notWant: tilingRetrying, label: "Try again", notLabel: "Try now"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			manager.AutoRetry, picker.AutoRetry = tc.autoRetry, tc.autoRetry
+
+			for card, body := range map[string]string{
+				"the asset manager": renderString(t, MapCard(manager)),
+				"the map picker":    renderString(t, RoomMapCard(picker)),
+			} {
+				if !strings.Contains(body, tc.want) || strings.Contains(body, tc.notWant) {
+					t.Errorf("%s does not say %q and only that:\n%s", card, tc.want, body)
+				}
+				if !strings.Contains(body, tc.label) || strings.Contains(body, tc.notLabel) {
+					t.Errorf("%s does not offer %q and only that:\n%s", card, tc.label, body)
+				}
+			}
+		})
+	}
+
+	// And the sentence a retry is not coming is still the one it always was,
+	// so nothing about a map that really has stopped changed.
+	if tilingGaveUp != "Tiling gave up." {
+		t.Errorf("the final wording moved: %q", tilingGaveUp)
+	}
+}
+
+// A MAP THAT IS BUILDING OR FINISHED SAYS NEITHER OF THEM. AutoRetry is only
+// ever read by a failed card, and a card that leaked the wording into another
+// state would be a spinner with "Tiling gave up" written under it.
+func TestOnlyAFailedCardTalksAboutRetrying(t *testing.T) {
+	for name, m := range map[string]MapAsset{
+		"building": {ID: "m", Name: "castle.png", State: queries.AssetsTileStatePending},
+		"finished": {ID: "m", Name: "castle.png", Generation: "gen"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body := renderString(t, MapCard(m))
+			if strings.Contains(body, "Tiling") {
+				t.Errorf("a %s card talks about tiling failures:\n%s", name, body)
+			}
+		})
+	}
+}
+
+func renderString(t *testing.T, c templ.Component) string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	if err := c.Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	return buf.String()
+}

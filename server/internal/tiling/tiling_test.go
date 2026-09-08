@@ -556,8 +556,8 @@ func TestReclaimRetriesFailedRowsUnderTheCap(t *testing.T) {
 	if len(db.retried) != 1 {
 		t.Fatalf("ran %d retry statements, want one", len(db.retried))
 	}
-	if db.retried[0].TileAttempts != maxAttempts {
-		t.Errorf("retried rows under %d attempts, want %d", db.retried[0].TileAttempts, maxAttempts)
+	if db.retried[0].TileAttempts != MaxAttempts {
+		t.Errorf("retried rows under %d attempts, want %d", db.retried[0].TileAttempts, MaxAttempts)
 	}
 	cutoff := db.retried[0].TileLeasedAt
 	if !cutoff.Valid {

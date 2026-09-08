@@ -379,14 +379,15 @@ func (a *App) pickerLayer(ctx context.Context, r *http.Request, roomID string, l
 // there was a tiling worker is a card that does not poll and offers no retry.
 func pickerChoice(roomID string, layerID string, m queries.Asset) pages.RoomMapChoice {
 	choice := pages.RoomMapChoice{
-		RoomID:   roomID,
-		LayerID:  layerID,
-		ID:       m.ID.String(),
-		Name:     m.Name,
-		FileName: m.FileName,
-		Width:    int(m.Width.Int32),
-		Height:   int(m.Height.Int32),
-		State:    m.TileState.AssetsTileState,
+		RoomID:    roomID,
+		LayerID:   layerID,
+		ID:        m.ID.String(),
+		Name:      m.Name,
+		FileName:  m.FileName,
+		Width:     int(m.Width.Int32),
+		Height:    int(m.Height.Int32),
+		State:     m.TileState.AssetsTileState,
+		AutoRetry: willTileAgain(m.TileState.AssetsTileState, m.TileAttempts),
 	}
 	if m.TileGen != nil {
 		choice.Generation = m.TileGen.String()
@@ -657,14 +658,15 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 	out := make([]pages.RoomMapChoice, 0, len(rows))
 	for _, m := range rows {
 		choice := pages.RoomMapChoice{
-			RoomID:   roomText,
-			LayerID:  layerText,
-			ID:       m.ID.String(),
-			Name:     m.Name,
-			FileName: m.FileName,
-			Width:    int(m.Width.Int32),
-			Height:   int(m.Height.Int32),
-			State:    m.TileState.AssetsTileState,
+			RoomID:    roomText,
+			LayerID:   layerText,
+			ID:        m.ID.String(),
+			Name:      m.Name,
+			FileName:  m.FileName,
+			Width:     int(m.Width.Int32),
+			Height:    int(m.Height.Int32),
+			State:     m.TileState.AssetsTileState,
+			AutoRetry: willTileAgain(m.TileState.AssetsTileState, m.TileAttempts),
 		}
 		if m.TileGen != nil {
 			choice.Generation = m.TileGen.String()

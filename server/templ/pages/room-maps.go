@@ -81,6 +81,11 @@ type RoomMapChoice struct {
 	Height     int
 	Generation string
 	State      queries.AssetsTileState
+
+	// AutoRetry says the tiling worker is going to come back to this map on its
+	// own, which is only ever true of a failure. See tileFailureText in
+	// assets.go, which is where both cards' wording lives.
+	AutoRetry bool
 }
 
 // ListPath is the grid on its own, which is what a search replaces.
@@ -151,6 +156,14 @@ func (m RoomMapChoice) Polling() bool {
 func (m RoomMapChoice) Retryable() bool {
 	return m.State == queries.AssetsTileStateFailed
 }
+
+// TileFailure and RetryLabel are the manager card's, word for word. See
+// tileFailureText in assets.go: a map that has failed once is going to be tried
+// again on its own and a map that has failed three times is not, and the picker
+// has no more business than the manager does telling somebody the wrong one.
+func (m RoomMapChoice) TileFailure() string { return tileFailureText(m.AutoRetry) }
+
+func (m RoomMapChoice) RetryLabel() string { return retryLabelText(m.AutoRetry) }
 
 // CardClass is the card's border, which says whether the card is a button.
 //

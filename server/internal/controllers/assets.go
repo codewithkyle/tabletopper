@@ -194,16 +194,30 @@ func (a *App) mapList(ctx context.Context, ownerID ulid.ULID, term string) ([]pa
 // waiting for a job nothing will ever run.
 func mapCard(m queries.Asset) pages.MapAsset {
 	card := pages.MapAsset{
-		ID:       m.ID.String(),
-		Name:     m.Name,
-		FileName: m.FileName,
-		State:    m.TileState.AssetsTileState,
+		ID:        m.ID.String(),
+		Name:      m.Name,
+		FileName:  m.FileName,
+		State:     m.TileState.AssetsTileState,
+		AutoRetry: willTileAgain(m.TileState.AssetsTileState, m.TileAttempts),
 	}
 	if m.TileGen != nil {
 		card.Generation = m.TileGen.String()
 	}
 
 	return card
+}
+
+// willTileAgain answers whether the tiling worker is coming back to this row on
+// its own, which is the difference between the two things a failed card can say.
+//
+// IT IS RequeueFailedTilingJobs' CONDITION, MINUS THE TIMESTAMP. That statement
+// takes every failed map with fewer than tiling.MaxAttempts attempts whose lease
+// went cold, so the count is what decides whether a retry is coming and the
+// timestamp only decides when. A card cannot usefully say "in eleven minutes" --
+// the sweep is on an interval and the row is one of a batch -- so it says a few
+// minutes and is right about the part that matters.
+func willTileAgain(state queries.AssetsTileState, attempts uint8) bool {
+	return state == queries.AssetsTileStateFailed && int(attempts) < tiling.MaxAttempts
 }
 
 // MapCardFragment is the card asking what became of its map. A card whose

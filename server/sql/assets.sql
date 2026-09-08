@@ -112,6 +112,11 @@ ORDER BY name;
 -- The columns and the ordering are identical, because a filtered picker and an
 -- unfiltered one are the same picker with fewer cards in it.
 --
+-- tile_attempts RIDES ALONG WITH tile_state because a failure is not one thing:
+-- RequeueFailedTilingJobs comes back for a row that has failed fewer than three
+-- times, so a card has to be able to say "trying again shortly" rather than
+-- "gave up" to a map the worker has not finished with.
+--
 -- EVERY MAP IS HERE, tiled or not, which is what makes uploading from inside the
 -- picker work. A map three seconds old has no pyramid and cannot be chosen, but
 -- leaving it out would mean a GM presses Upload and nothing happens for a minute
@@ -128,7 +133,7 @@ ORDER BY name;
 -- above: a shelf that reorders itself is one that has to be read every time.
 --
 -- name: ListPickerMaps :many
-SELECT id, name, file_name, width, height, tile_gen, tile_state FROM assets
+SELECT id, name, file_name, width, height, tile_gen, tile_state, tile_attempts FROM assets
 WHERE owner_id = ? AND type = 'map'
 ORDER BY tile_gen IS NOT NULL, name;
 
@@ -142,7 +147,7 @@ ORDER BY tile_gen IS NOT NULL, name;
 -- matched on something.
 --
 -- name: SearchPickerMaps :many
-SELECT id, name, file_name, width, height, tile_gen, tile_state FROM assets
+SELECT id, name, file_name, width, height, tile_gen, tile_state, tile_attempts FROM assets
 WHERE owner_id = sqlc.arg(owner_id) AND type = 'map'
   AND (name LIKE sqlc.arg(term) OR file_name LIKE sqlc.arg(term))
 ORDER BY tile_gen IS NOT NULL, name;
