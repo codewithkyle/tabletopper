@@ -396,9 +396,9 @@ func names(members []RoomMember) []string {
 	return out
 }
 
-// The Player List item is a window toggle now that there is a window behind it,
-// and the value names which one -- room.js reads both and nothing else.
-func TestThePlayerListItemOpensTheWindow(t *testing.T) {
+// The Player List opens a window, for the GM and for a player alike -- who is
+// at the table is not a secret from the table.
+func TestThePlayerListItemOpensAWindow(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		var item RoomMenuItem
 		for _, candidate := range testRoomPage(role).roomMenu().Items {
@@ -410,8 +410,63 @@ func TestThePlayerListItemOpensTheWindow(t *testing.T) {
 		if item.Disabled {
 			t.Errorf("%s: Player List is still disabled", role)
 		}
-		if item.Action != "window" || item.Value != "players" {
-			t.Errorf("%s: Player List is %q/%q, want the window toggle", role, item.Action, item.Value)
+		if item.Window.ID != "players" {
+			t.Errorf("%s: Player List opens window %q, want %q", role, item.Window.ID, "players")
+		}
+		if item.Window.Title == "" {
+			t.Errorf("%s: the window has no title to put in its bar", role)
+		}
+		// THE URL HAS TO BE A FRAGMENT. The client refuses anything else, for
+		// the reason the content modal does: a page URL swapped into a window
+		// is a whole document inside a panel, and it reads as a styling bug.
+		if !strings.HasPrefix(item.Window.URL, "/fragment/") {
+			t.Errorf("%s: the window loads %q, which is not a fragment", role, item.Window.URL)
+		}
+	}
+}
+
+// The trigger is three data attributes and the client reads all three. An item
+// that lost one would open nothing and log, which is a bug nobody sees until
+// they click the menu.
+func TestAWindowItemRendersItsTrigger(t *testing.T) {
+	markup := renderToString(t, RoomLockItem(testRoomPage(room.RoleGM)))
+	if strings.Contains(markup, "data-window") {
+		t.Fatal("the lock item, which is not a window, rendered window attributes")
+	}
+
+	data := testRoomPage(room.RoleGM)
+	var item RoomMenuItem
+	for _, candidate := range data.roomMenu().Items {
+		if candidate.Label == "Player List" {
+			item = candidate
+		}
+	}
+
+	markup = renderToString(t, roomBarItem(item))
+	for _, want := range []string{
+		`data-window="players"`,
+		`data-window-title="Players"`,
+		`data-window-url="/fragment/room/members?room=` + data.ID + `"`,
+		`data-window-width="260"`,
+		`data-window-height="260"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the trigger is missing %s\n%s", want, markup)
+		}
+	}
+}
+
+// An unset size renders no attribute at all, so the client's own default is
+// what applies rather than a zero.
+func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
+	markup := renderToString(t, roomBarItem(RoomMenuItem{
+		Label:  "Dice tray",
+		Window: RoomWindow{ID: "dice", Title: "Dice tray", URL: "/fragment/room/dice"},
+	}))
+
+	for _, unwanted := range []string{"data-window-width", "data-window-height"} {
+		if strings.Contains(markup, unwanted) {
+			t.Errorf("an unsized window rendered %s", unwanted)
 		}
 	}
 }

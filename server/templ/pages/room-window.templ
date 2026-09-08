@@ -1,0 +1,45 @@
+package pages
+
+templ roomWindowTemplate() {
+	<template data-window-template>
+		<section
+			data-window-root
+			class={ surfacePanel + " absolute top-0 left-0 grid grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-box" }
+			role="dialog"
+		>
+			<header
+				data-window-bar
+				class="relative z-10 flex h-7 cursor-grab touch-none items-center gap-0.5 border-b border-base-300 bg-base-200/70 pr-0.5 pl-2 select-none"
+			>
+				<h2 data-window-title class="min-w-0 flex-1 truncate text-xs font-semibold"></h2>
+				<button type="button" data-window-action="minimize" class="btn btn-ghost btn-xs px-1" aria-label="Minimize">
+					@windowMinimizeIcon()
+				</button>
+				<button type="button" data-window-action="maximize" class="btn btn-ghost btn-xs px-1" aria-label="Maximize">
+					<span data-window-icon="maximize" class="contents">
+						@windowMaximizeIcon()
+					</span>
+					<span data-window-icon="restore" class="contents" hidden>
+						@windowRestoreIcon()
+					</span>
+				</button>
+				<button type="button" data-window-action="close" class="btn btn-ghost btn-xs px-1" aria-label="Close">
+					@windowCloseIcon()
+				</button>
+			</header>
+			<div data-window-body class="min-h-0 overflow-auto">
+				<div data-window-state="loading" class="grid h-full min-h-16 place-content-center">
+					<span class="loading loading-spinner loading-sm"></span>
+				</div>
+				<div data-window-state="error" hidden class="grid h-full min-h-16 place-content-center justify-items-center gap-2 p-3 text-center">
+					<p class="text-xs text-base-content/60">That could not be loaded.</p>
+					<button type="button" data-window-action="retry" class="btn btn-xs">Retry</button>
+				</div>
+				<div data-window-state="content" hidden class="p-2"></div>
+			</div>
+			<span data-window-resize="x" class="absolute top-0 right-0 h-full w-1.5 cursor-ew-resize touch-none"></span>
+			<span data-window-resize="y" class="absolute bottom-0 left-0 h-1.5 w-full cursor-ns-resize touch-none"></span>
+			<span data-window-resize="both" class="absolute right-0 bottom-0 size-3 cursor-nwse-resize touch-none"></span>
+		</section>
+	</template>
+}

@@ -199,3 +199,67 @@ Or from markup, with `hx-on:`:
 
 `server/public/js` is not a Tailwind `@source`. A class name written in a script is never
 emitted. Render every class in templ and toggle `[hidden]` or an inline style from JS.
+
+## Windows
+
+**The room page has floating windows, and a window is not a modal.** The three
+`<dialog>` modals above are unchanged and the rule against a fourth still holds.
+This is a different mechanism for a different job:
+
+| | Modal | Window |
+| --- | --- | --- |
+| How many | One at a time | Several at once |
+| Blocks the page | Yes | No |
+| Where it sits | Centred, the browser decides | Where the GM dragged it |
+| How long | Until dismissed | Across the session, and across reloads |
+| Dismissal | Labelled `Close` | Corner controls |
+
+**A window is allowed the corner ✕ that a modal is not.** The modal rule exists
+because a dialog interrupts you and needs an unmistakable way out beside its
+affirmative action. A window has no affirmative action to sit beside, three
+controls spelled out in words is a title bar with no room for a title, and
+`─ □ ✕` is what every window manager has trained every user to look for. They are
+icon buttons carrying `aria-label`, in that order, at the right of the bar.
+
+**A window holds a fragment URL and no markup of its own.** The chrome is one
+`<template>` in `server/templ/pages/room-window.templ`, cloned per window by
+`server/js/room/window.ts`, and the body is loaded with `htmx.ajax`. htmx
+processes `hx-*` in a response it swapped, so anything already served under
+`/fragment/` becomes a window with no server change, and a fragment that
+refetches itself on a socket event goes on doing that inside one.
+
+Adding a window is therefore a fragment and a menu item:
+
+```go
+// server/templ/pages/room.go
+RoomMenuItem{Label: "Player List", Window: RoomWindow{
+    ID:     "players",
+    Title:  "Players",
+    URL:    d.MembersPath(),
+    Width:  260,
+    Height: 260,
+}}
+```
+
+- `ID` is the identity: one window per id, and the key its position and size are
+  remembered under. It is deliberately **not** the URL, which carries the room and
+  would key a GM's layout per table. Several of one kind take a suffix
+  (`monster:01H...`), which is how two stat blocks are open at once.
+- `URL` must start with `/fragment/`. The client refuses anything else, for the
+  reason the content modal does: a page URL swapped into a window is a whole
+  document inside a panel, and it reads as a styling bug rather than a wrong URL.
+- `Width` and `Height` apply the first time somebody opens it. After that, the
+  size they left it at wins.
+
+**Geometry is the viewer's, not the room's.** Position and size go in
+`localStorage` per window id; which windows are open goes in `localStorage` per
+room. None of it reaches the server, and every accessor is wrapped — a private
+window throws on the first read.
+
+**`server/js/room/window.ts` writes no class name**, for the same reason
+`public/js` cannot: `server/js` is not a Tailwind `@source` either. It sets text,
+`[hidden]` and inline geometry, and every class is in the template.
+
+**Anything that hit-tests the table must ignore events inside a window.** The
+canvas listens on the document, and a pointer that started on a title bar is not
+a pointer on the tabletop.

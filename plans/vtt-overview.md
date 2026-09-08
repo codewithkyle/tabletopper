@@ -343,6 +343,17 @@ is drawn by coordinate space:
 - **There is no chat.** It was in the first draft of this document and is not a
   feature of this app. Rolls and their results are the dice tray, in the Window
   menu.
+- **Panels that are not the table are floating windows**, decided 2026-09-07
+  after phase 3's player list was built as a fixed panel and rejected. Several
+  are open at once, dragged and resized and tucked into corners, snapping flush
+  to the table's edges and to each other; position and size are remembered per
+  window and which windows were open is remembered per room. A window holds a
+  `/fragment/` URL and no view code, so any fragment in the app becomes one --
+  which is what makes the layer manager, the grid settings, the dice tray and a
+  monster's stat block each a fragment and a menu item rather than a feature.
+  This is the old client's one interaction worth carrying forward; it is not
+  carried forward as code, because there every window held a lit-html template
+  and owned its content's lifecycle. See the Windows section in CLAUDE.md.
 - **Pawn labels and hp bars** are the grey area. One DOM element per pawn
   lags at a few hundred and makes z-order under fog awkward, so the sprite is
   drawn and hit-tested in canvas, and a single DOM overlay shows the label and
@@ -578,8 +589,12 @@ was written. In brief, so this document stays the summary:
 - **The refetch pattern's own ordering hazard**: two socket events fire two
   htmx GETs whose responses can land in either order, which would leave a live
   panel showing the older answer. Every refetching panel carries
-  `hx-sync="this:replace"`, which aborts the request in flight when a newer one
-  starts. The socket is ordered; a pair of HTTP requests is not (phase 3).
+  `hx-sync="this:queue last"`, which runs them one at a time and keeps only the
+  newest pending one. Not `replace`: that cancels the request in flight, and
+  htmx reports every cancellation as a console error -- which the ordinary page
+  load produces, since the `load` fetch is still open when the first snapshot
+  fires the event. The socket is ordered; a pair of HTTP requests is not
+  (phase 3).
 - **The socket's URL** is `/socket/room/{id}` rather than `/rooms/{id}/socket`.
   That pattern and `/rooms/join/{code}` both match `/rooms/join/socket` with
   neither more specific, which `http.ServeMux` answers by panicking at

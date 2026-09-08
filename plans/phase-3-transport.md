@@ -422,9 +422,12 @@ otherwise have had to fight the same battle for. The prefix means what
 - **The Player List menu item is no longer disabled.** The plan's members panel
   had nowhere to live -- phase 1 removed the side column -- so it is the floating
   window the Room menu already promised, toggled by a `window` action in
-  `room.js`. Its `hx-sync="this:replace"` is not in the plan and closes the one
-  real ordering hazard in the refetch pattern: two socket events fire two GETs
-  whose responses can land in either order.
+  `room.js`. Its `hx-sync="this:queue last"` is not in the plan and closes the
+  one real ordering hazard in the refetch pattern: two socket events fire two
+  GETs whose responses can land in either order. It was `replace` first, which
+  is wrong twice -- htmx reports the cancellation as a console error on every
+  page load, and under a burst each event restarts a request that then never
+  finishes.
 
 ### One phase 2 bug, found by the port
 

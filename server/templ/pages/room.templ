@@ -25,7 +25,7 @@ templ roomContent(data RoomPageData) {
 			}
 			<div
 				id="tabletop"
-				class="relative min-h-0 min-w-0 bg-base-300"
+				class="relative z-0 min-h-0 min-w-0 bg-base-300"
 				data-room={ data.ID }
 				data-role={ data.RoleName() }
 				data-version={ data.Version }
@@ -38,11 +38,11 @@ templ roomContent(data RoomPageData) {
 						This room is closed. Reopen it from the Room menu to get a new code.
 					</p>
 				}
-				@roomPlayers(data)
 				@roomToolbar()
 				if data.Debug {
 					@roomDebug()
 				}
+				@roomWindowTemplate()
 			</div>
 		</div>
 	</room-page>
@@ -99,6 +99,19 @@ templ roomBarItem(item RoomMenuItem) {
 					class="text-error"
 				}
 			>{ item.Label }</button>
+		} else if item.Window.ID != "" {
+			<button
+				type="button"
+				data-window={ item.Window.ID }
+				data-window-url={ item.Window.URL }
+				data-window-title={ item.Window.Title }
+				if item.Window.WidthValue() != "" {
+					data-window-width={ item.Window.WidthValue() }
+				}
+				if item.Window.HeightValue() != "" {
+					data-window-height={ item.Window.HeightValue() }
+				}
+			>{ item.Label }</button>
 		} else {
 			<button
 				type="button"
@@ -140,31 +153,6 @@ templ roomToolIcon(name string) {
 		default:
 			@moveIcon()
 	}
-}
-
-templ roomPlayers(data RoomPageData) {
-	<div
-		data-room-window="players"
-		hidden
-		class={ surfacePanel + " absolute top-3 left-3 z-10 w-60 rounded-box p-2" }
-	>
-		<div class="flex items-center justify-between gap-2 px-2 pb-1">
-			<h2 class="text-xs font-semibold">Players</h2>
-			<button
-				type="button"
-				class="btn btn-ghost btn-xs"
-				data-room-action="window"
-				data-room-value="players"
-			>Close</button>
-		</div>
-		<div
-			id="room-members"
-			hx-get={ data.MembersPath() }
-			hx-trigger="load, room:players from:window"
-			hx-sync="this:replace"
-			hx-swap="outerHTML"
-		></div>
-	</div>
 }
 
 templ roomDebug() {

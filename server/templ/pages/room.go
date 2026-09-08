@@ -131,13 +131,14 @@ type RoomMenu struct {
 }
 
 // RoomMenuItem is one line in a menu. It is a struct of alternatives rather
-// than an interface because there are only four ways an item can behave and the
+// than an interface because there are only five ways an item can behave and the
 // markup has to switch on them anyway:
 //
 //   - Disabled: a feature that does not exist yet. Nothing else is read.
 //   - Href: ordinary navigation. NewTab sends it to a second tab.
 //   - Post: a mutation, over htmx, with the confirm modal in front of the
 //     destructive ones.
+//   - Window: opens a floating panel over the table on a fragment URL.
 //   - Action: a behaviour that is entirely client-side, named for room.js.
 //
 // ID IS BOTH AN ANCHOR AND A CONTRACT. An item that carries one also carries an
@@ -158,6 +159,10 @@ type RoomMenuItem struct {
 
 	Action string
 	Value  string
+
+	// Window is the floating panel this item opens, and an item that carries
+	// one carries nothing else. See RoomWindow.
+	Window RoomWindow
 
 	// Danger marks the one destructive item in a menu, which is drawn in the
 	// error colour and sits last.
@@ -203,7 +208,13 @@ func (d RoomPageData) roomMenu() RoomMenu {
 		items = append(items, RoomMenuItem{Label: "Reopen room", Post: "/rooms/" + d.ID + "/open"})
 	}
 
-	items = append(items, RoomMenuItem{Label: "Player List", Action: "window", Value: "players"})
+	items = append(items, RoomMenuItem{Label: "Player List", Window: RoomWindow{
+		ID:     "players",
+		Title:  "Players",
+		URL:    d.MembersPath(),
+		Width:  260,
+		Height: 260,
+	}})
 
 	if d.IsGM() {
 		if !d.Closed {
@@ -320,6 +331,50 @@ func (t RoomTool) Pressed() string {
 	return strconv.FormatBool(t.Name == DefaultRoomTool)
 }
 
+// RoomWindow is a floating panel over the table: the player list, a monster's
+// stat block, the layer manager. It is what a menu item carries instead of a
+// route.
+//
+// A WINDOW IS NOT A MODAL AND MUST NOT BECOME ONE. The three <dialog> modals
+// are one at a time, block the page, and are dismissed; a window blocks
+// nothing, sits where the GM put it, and several are open at once while they
+// work. See the Windows section in CLAUDE.md for why this one is allowed the
+// corner controls that a modal is not.
+//
+// IT IS THREE STRINGS AND NO MARKUP. The client clones the chrome from a
+// <template> and loads URL into it with htmx, so anything already served under
+// /fragment/ can be a window without a line of server change -- and a fragment
+// that refetches itself on a socket event goes on doing that inside one.
+type RoomWindow struct {
+	// ID is the stable identity: one window per id, and the key its position
+	// and size are remembered under. It is deliberately not the URL, which
+	// carries the room and would key a GM's layout per table.
+	ID    string
+	Title string
+	URL   string
+
+	// Width and Height are the size a window opens at the FIRST time somebody
+	// opens it. After that the size they left it at wins.
+	Width  int
+	Height int
+}
+
+// WidthValue and HeightValue render the two optional attributes, empty when
+// unset so the markup can leave them off entirely. They are methods rather than
+// a strconv call in the template because a .templ file is scanned by Tailwind
+// as text and every import is one more file to keep prose out of.
+func (w RoomWindow) WidthValue() string { return dimension(w.Width) }
+
+func (w RoomWindow) HeightValue() string { return dimension(w.Height) }
+
+func dimension(value int) string {
+	if value <= 0 {
+		return ""
+	}
+
+	return strconv.Itoa(value)
+}
+
 // RoomMember is one person at the table as the player window draws them. It is
 // not room.Player: that type carries ids and a character reference this window
 // has no use for, and a template that took it would be able to render either.
@@ -341,8 +396,16 @@ type RoomMember struct {
 // player events fires a burst of GETs, and two responses can land in either
 // order -- the socket is ordered, a pair of HTTP requests is not -- which would
 // leave the window showing whichever answer arrived last rather than the newest
-// one. hx-sync="this:replace" aborts the request in flight when a new one
-// starts, so there is only ever one answer coming.
+// one.
+//
+// "queue last" AND NOT "replace", which was the first thing written here and
+// was wrong twice over. replace aborts the request in flight, and htmx reports
+// every cancellation as an error -- so the ordinary page load, where the load
+// trigger's fetch is still open when the first snapshot fires room:players,
+// wrote a stack trace to the console. Worse, under a sustained burst each new
+// event would restart a request that then never finished. queue last runs one
+// at a time and keeps only the newest pending one, which is the same guarantee
+// without cancelling anything.
 //
 // RoomMembersData is the window's whole contents.
 type RoomMembersData struct {

@@ -114,27 +114,8 @@ function run(action, value) {
         case "fullscreen":
             toggleFullscreen();
             break;
-        case "window":
-            toggleWindow(value);
-            break;
         default:
             console.error("unknown room action:", action);
-    }
-}
-
-// A window is a floating panel over the table that a menu item shows and hides.
-// The player list is the first; the dice tray and the monster manual are the
-// same mechanism when they exist.
-//
-// IT TOGGLES [hidden] AND NOTHING ELSE. The panel's whole appearance is
-// rendered in templ, because a class name written in this file would never be
-// emitted -- server/public/js is deliberately not a Tailwind source. Its
-// contents keep refetching themselves while it is shut, which costs one GET per
-// player event and means it is already right when it opens.
-function toggleWindow(name) {
-    const panel = document.querySelector(`[data-room-window="${name}"]`);
-    if (panel) {
-        panel.hidden = !panel.hidden;
     }
 }
 

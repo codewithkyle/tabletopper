@@ -157,6 +157,13 @@ func TestTheMembersWindowFallsBackToTheSessionRows(t *testing.T) {
 	if !strings.Contains(body, `hx-trigger="room:players from:window"`) {
 		t.Error("the swapped-in list does not listen for the next player event, so it would refetch once and stop")
 	}
+	// The strategy matters and is easy to lose. Without it a burst of player
+	// events is a burst of GETs whose answers can land in either order; with
+	// "replace" instead, htmx cancels the request in flight and reports the
+	// cancellation as an error on every page load.
+	if !strings.Contains(body, `hx-sync="this:queue last"`) {
+		t.Error("the swapped-in list does not serialise its refetches")
+	}
 }
 
 // And with a live room it is the room's own answer, connected states and all.

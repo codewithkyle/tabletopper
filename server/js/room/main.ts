@@ -16,15 +16,23 @@ import { announce } from "./panels.ts";
 import { empty, reduce } from "./store.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
+import { mountWindows } from "./window.ts";
 
 const mount = document.getElementById("tabletop");
-const path = mount?.dataset.socket ?? "";
 
-if (mount && path !== "") {
-	start(mount, path);
+if (mount) {
+	// The windows do not need a socket. A closed room has no connection and
+	// still has a player list worth reading, and the layout somebody arranged
+	// should come back whether or not the table is live.
+	mountWindows(mount, mount.dataset.room ?? "");
+
+	const path = mount.dataset.socket ?? "";
+	if (path !== "") {
+		start(path);
+	}
 }
 
-function start(mount: HTMLElement, path: string): void {
+function start(path: string): void {
 	const state = empty();
 
 	let debug: ReturnType<typeof wireDebug> | null = null;
