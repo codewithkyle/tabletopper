@@ -706,7 +706,7 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridData {
 	return pages.RoomGridData{
 		RoomID:         roomID.String(),
-		Visible:        t.Grid.Visible,
+		Lines:          string(t.Grid.Lines),
 		CellSize:       t.Grid.CellSize,
 		OffsetX:        t.Grid.OffsetX,
 		OffsetY:        t.Grid.OffsetY,
@@ -747,7 +747,7 @@ func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {
 	}
 
 	grid := room.Grid{
-		Visible:     r.FormValue("showGrid") != "",
+		Lines:       room.GridLines(r.FormValue("gridLines")),
 		CellSize:    number("cellSize", "Cell size"),
 		OffsetX:     number("offsetX", "The offset across"),
 		OffsetY:     number("offsetY", "The offset down"),

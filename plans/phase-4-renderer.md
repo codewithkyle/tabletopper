@@ -17,8 +17,9 @@ strokes yet.
 - The GM can view a layer other than the active one to prepare it, with a
   clear indicator and a button to make it active. Players always see the
   active layer and its name.
-- The GM opens a Grid dialog, changes cell size, offsets, colour, snapping,
-  feet per cell and diagonal rule, and every client's grid updates.
+- The GM opens a Grid dialog, changes the line style, cell size, offsets,
+  colour, snapping, feet per cell and diagonal rule, and every client's grid
+  updates.
 - Everyone can pan with a drag or middle button, zoom to the cursor with the
   wheel, pinch on a touchscreen, and reset the view. Tiles load progressively
   with a coarser parent shown until the child arrives. There is no visible
@@ -27,6 +28,33 @@ strokes yet.
   time per frame on a laptop, and the frame loop is idle when nothing changes.
 - The debug panel gains a benchmark button that sweeps the camera for ten
   seconds and reports average and 95th percentile frame time.
+
+## As built
+
+### Rework 1, the grid has a line style and the ruler carries its own contrast (2026-09-08)
+
+- **`Grid.Visible` became `Grid.Lines`, one of `off | solid | dashed`.** It is
+  one control and not two: a GM looking at a map asks what they want over it,
+  and a checkbox beside a style select would have a fourth state -- off, but
+  dashed -- that means nothing. Dashed is for the maps that are already drawn
+  on; a cartographer's flagstones and a solid grid compete, and a broken line
+  reads as an overlay instead. The dashes are the grid's own distance field
+  asked ALONG the line rather than across it, masked in cell units so the
+  pattern is a property of the grid rather than of the zoom, and phase-shifted
+  half a period so the ink lands on the crossings -- without the shift every
+  place two lines meet falls in a gap. No new program and nothing rebuilt.
+  Snapshots written before the field existed carry no style, so `Normalize`
+  repairs it to solid rather than the schema being bumped, which would have
+  emptied every live table to save a few GMs one click.
+- **The ruler is drawn twice, dark and then coloured.** Every colour a ruler is
+  ever drawn in is a light one, because it has to show against the dark table
+  and the dark half of a map -- and on the pale stone and parchment floors that
+  are half the maps in use, a near-white two-pixel line and a thirteen-pixel
+  label are invisible. The pass cannot tint itself to what is under it: it does
+  not know, and what is under it changes as the line is dragged. So the
+  contrast is carried rather than assumed. The line's dark copy is wider and
+  longer by 1.25 CSS pixels, the label's is eight copies on a unit circle at
+  the same radius, and against a dark floor the halo simply disappears into it.
 
 ## Decisions
 
@@ -286,9 +314,9 @@ New query in `server/sql/assets.sql`:
 - `pages/room-grid.templ`, `.go`: `RoomGridFragment(data RoomGridData)`; a form
   with number inputs for cell size, offsets and feet per cell, a colour input
   (an 8-digit hex text field with a native colour picker beside it is fine;
-  the core accepts 6 or 8 digits), radio groups for snap and diagonals, a
-  toggle for visible, a select for monster HP visibility, a toggle for players
-  can draw. The `hx-post`, `hx-target`, `hx-swap`, `hx-status:422` trio
+  the core accepts 6 or 8 digits), radio groups for the line style, snap and
+  diagonals, a select for monster HP visibility, a toggle for players can
+  draw. The `hx-post`, `hx-target`, `hx-swap`, `hx-status:422` trio
   targets its errors block; pin it in a template test.
 - The MENU BAR, not a header of buttons: this plan predates the bar and the
   windows, and both are built. The **Tabletop** menu's four disabled
@@ -405,7 +433,7 @@ priority moves to the new map and the old one is left to age out.
 ### Grid pass
 
 A second program drawing one full-viewport triangle after the tiles when
-`grid.visible`. Uniforms: inverse camera, cell size, offsets, colour, device
+`grid.lines` is not `off`. Uniforms: inverse camera, cell size, offsets, colour, device
 pixel ratio -- and no map rectangle, per decision 6. The fragment shader
 computes map coordinates, computes distance to the nearest vertical and
 horizontal cell edge in device pixels via `fwidth`, and blends the colour with

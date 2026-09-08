@@ -49,7 +49,7 @@ func TestNewStateStartsUsable(t *testing.T) {
 	}
 
 	g := s.Table.Grid
-	if !g.Visible || g.CellSize != DefaultCellSize || g.Color != DefaultGridColor ||
+	if g.Lines != GridLinesSolid || g.CellSize != DefaultCellSize || g.Color != DefaultGridColor ||
 		g.Snap != SnapCells || g.FeetPerCell != DefaultFeetPerCell || g.Diagonals != DiagonalsEqual {
 		t.Fatalf("the default grid is %+v", g)
 	}

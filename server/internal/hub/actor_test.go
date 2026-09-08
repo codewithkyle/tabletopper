@@ -56,7 +56,7 @@ func TestARefusalGoesToTheSenderAloneWithItsCorrelationID(t *testing.T) {
 	frames(t, player)
 
 	tb.send(player, "a9", &room.TableSetGrid{Grid: room.Grid{
-		Visible: true, CellSize: 64, Color: "#000000FF", Snap: room.SnapCells, FeetPerCell: 5, Diagonals: room.DiagonalsEqual,
+		Lines: room.GridLinesSolid, CellSize: 64, Color: "#000000FF", Snap: room.SnapCells, FeetPerCell: 5, Diagonals: room.DiagonalsEqual,
 	}})
 
 	got := only(t, player, "error")

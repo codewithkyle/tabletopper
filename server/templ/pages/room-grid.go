@@ -38,7 +38,7 @@ const RoomGridPanel = "room-grid"
 type RoomGridData struct {
 	RoomID string
 
-	Visible     bool
+	Lines       string
 	CellSize    int
 	OffsetX     int
 	OffsetY     int
@@ -88,13 +88,27 @@ const (
 	GridColorPat = "#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?"
 )
 
-// GridSnapChoices, GridDiagonalChoices and GridHPChoices are the three closed
-// sets, each with the wording a GM reads rather than the value the protocol
-// stores. The values are the protocol's own and are validated there.
+// The four closed sets below -- the line style, the snapping mode, the diagonal
+// rule and what players are told about a monster's health -- each carry the
+// wording a GM reads rather than the value the protocol stores. The values are
+// the protocol's own and are validated there.
 type Choice struct {
 	Value string
 	Label string
 	Hint  string
+}
+
+// GridLineChoices is the grid's own control, and off is one of its three
+// answers rather than a switch beside them. A GM looking at a map asks one
+// question -- what do I want over this -- and a checkbox plus a style select
+// would be two controls for it, with a fourth state (off, but dashed) that
+// means nothing.
+func GridLineChoices() []Choice {
+	return []Choice{
+		{Value: "off", Label: "Off", Hint: "No lines at all. Pawns still snap and distances are still counted."},
+		{Value: "solid", Label: "Solid"},
+		{Value: "dashed", Label: "Dashed", Hint: "Easier to read over a map that has its own floor drawn on it."},
+	}
 }
 
 func GridSnapChoices() []Choice {

@@ -190,11 +190,12 @@ func TestTheGridFormDoesNotRedrawItselfOnItsOwnSave(t *testing.T) {
 	}
 }
 
-// The three closed sets are the protocol's own values, and a form offering a
-// fourth would send something the core refuses with "that is not a snapping
+// The four closed sets are the protocol's own values, and a form offering a
+// fifth would send something the core refuses with "that is not a snapping
 // mode" -- a message about the app rather than about anything the GM did.
 func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 	for name, pair := range map[string][2][]string{
+		"gridLines": {values(GridLineChoices()), room.GridLines("").Values()},
 		"snap":      {values(GridSnapChoices()), room.Snap("").Values()},
 		"diagonals": {values(GridDiagonalChoices()), room.Diagonals("").Values()},
 		"monsterHp": {values(GridHPChoices()), room.HPVisibility("").Values()},
@@ -210,6 +211,23 @@ func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 				t.Errorf("%s does not offer %q; it offers %v", name, v, got)
 			}
 		}
+	}
+}
+
+// THE FORM HAS TO OPEN ON THE STYLE THE TABLE IS ACTUALLY ON. Nothing fails if
+// it does not: the window shows solid, the GM changes something else, and the
+// change carries a line style they never chose back to the table. So the one
+// thing worth pinning is that the field reaches the radio.
+func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
+	page := renderToString(t, RoomGrid(RoomGridData{
+		RoomID: testTableRoomID, Lines: "dashed", CellSize: 64, FeetPerCell: 5, Color: "#000000FF",
+	}))
+
+	if !strings.Contains(page, `value="dashed" checked`) {
+		t.Errorf("a dashed grid does not open on Dashed:\n%s", page)
+	}
+	if strings.Contains(page, `value="solid" checked`) {
+		t.Errorf("a dashed grid also opens on Solid:\n%s", page)
 	}
 }
 

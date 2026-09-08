@@ -35,6 +35,44 @@ const FLOATS_PER_INSTANCE = 16;
 const LABEL_PIXELS = 13;
 const LABEL_LIFT = 10;
 
+// THE RULER IS DRAWN TWICE, DARK AND THEN COLOURED, and that is the only reason
+// it can be read at all.
+//
+// Every colour a ruler is ever drawn in is a light one -- the palette is eight
+// pale hues and your own drag is nearly white -- because the ruler has to show
+// on the dark table and on the dark half of a map. Half the maps a GM actually
+// uses are a pale stone floor or a parchment tavern, and a near-white line two
+// pixels wide on parchment is a line nobody can see. Tinting it to the map is
+// not available: the pass does not know what is under it, and the map changes
+// under the line as the line is dragged across it.
+//
+// So the contrast is carried instead of assumed. A dark copy goes down first,
+// wider for the line and offset in a ring for the label, and the coloured one
+// goes on top of it: against a pale floor the halo is what you see the shape
+// against, and against a dark one it disappears into the dark and the colour
+// does the work. Neither case needs to be detected.
+const HALO_COLOR: readonly [number, number, number] = [0.04, 0.04, 0.06];
+
+// HALO_PIXELS is how far the dark copy reaches past the coloured one, in CSS
+// pixels: how much wider and longer the line's band is, and the radius of the
+// ring the label is drawn in. One number for both, because it is one edge as
+// far as a reader is concerned.
+const HALO_PIXELS = 1.25;
+
+// The eight directions the label's dark copy is drawn in, on the unit circle so
+// the ring is round: four square offsets alone leave the diagonals of a glyph
+// bare, and eight offsets all at full width would bulge at the corners.
+const HALO_RING: readonly (readonly [number, number])[] = [
+	[1, 0],
+	[0.7071, 0.7071],
+	[0, 1],
+	[-0.7071, 0.7071],
+	[-1, 0],
+	[-0.7071, -0.7071],
+	[0, -1],
+	[0.7071, -0.7071],
+];
+
 const vertexSource = `#version 300 es
 layout(location = 0) in vec2 a_corner;
 layout(location = 1) in vec4 a_rect;
@@ -195,6 +233,46 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 		count++;
 	}
 
+	// segment is one band along a direction, its width already in world units:
+	// the origin is pushed half a width to one side so the band is centred on the
+	// line rather than hanging off one edge of it.
+	function segment(
+		x: number, y: number, dx: number, dy: number,
+		width: number, color: readonly [number, number, number], alpha: number,
+	): void {
+		const half = width / 2 / Math.hypot(dx, dy);
+		const nx = -dy * half;
+		const ny = dx * half;
+
+		push(x - nx, y - ny, dx, dy, nx * 2, ny * 2, 0, color, alpha, 0, 0, 0, 0);
+	}
+
+	// run lays one copy of a label out from its top left corner. The label is
+	// drawn nine times -- eight dark and one coloured -- so the layout is a
+	// function rather than the body of the loop that draws it.
+	function run(
+		text: string, left: number, top: number, height: number,
+		color: readonly [number, number, number], alpha: number,
+	): void {
+		if (!atlas) {
+			return;
+		}
+
+		let pen = left;
+		for (const char of text) {
+			const glyph = atlas.get(char);
+			if (!glyph) {
+				continue;
+			}
+
+			if (glyph.width > 0) {
+				push(pen, top, glyph.width * height, 0, 0, height, 1, color, alpha, glyph.u0, glyph.v0, glyph.u1, glyph.v1);
+			}
+
+			pen += glyph.advance * height;
+		}
+	}
+
 	return {
 		begin(worldPerPixel) {
 			count = 0;
@@ -213,14 +291,18 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 				return;
 			}
 
-			// The quad runs along the segment and is half its width either
-			// side, so the line is centred on the path rather than hanging off
-			// one edge of it.
-			const half = (width * scale) / 2;
-			const nx = (-dy / length) * half;
-			const ny = (dx / length) * half;
+			// The dark copy is wider by the halo on each side and longer by it at
+			// each end, so the line is outlined rather than merely underlined --
+			// a cap with no halo is a bright stub against a pale floor.
+			const grow = HALO_PIXELS * scale;
+			const ux = (dx / length) * grow;
+			const uy = (dy / length) * grow;
 
-			push(x0 - nx, y0 - ny, dx, dy, nx * 2, ny * 2, 0, color, alpha, 0, 0, 0, 0);
+			segment(
+				x0 - ux, y0 - uy, dx + ux * 2, dy + uy * 2,
+				width * scale + grow * 2, HALO_COLOR, alpha,
+			);
+			segment(x0, y0, dx, dy, width * scale, color, alpha);
 		},
 
 		label(text, x, y, color, alpha) {
@@ -234,22 +316,15 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			// Centred on the anchor and lifted above it, both in world units
 			// derived from CSS pixels -- so the label sits the same distance
 			// off the pawn at every zoom.
-			let pen = x - width / 2;
+			const left = x - width / 2;
 			const top = y - LABEL_LIFT * scale - height;
 
-			for (const char of text) {
-				const glyph = atlas.get(char);
-				if (!glyph) {
-					continue;
-				}
-
-				if (glyph.width > 0) {
-					const w = glyph.width * height;
-					push(pen, top, w, 0, 0, height, 1, color, alpha, glyph.u0, glyph.v0, glyph.u1, glyph.v1);
-				}
-
-				pen += glyph.advance * height;
+			const reach = HALO_PIXELS * scale;
+			for (const [ox, oy] of HALO_RING) {
+				run(text, left + ox * reach, top + oy * reach, height, HALO_COLOR, alpha);
 			}
+
+			run(text, left, top, height, color, alpha);
 		},
 
 		draw(cam, deviceWidth, deviceHeight, dpr) {

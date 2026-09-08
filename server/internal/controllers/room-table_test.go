@@ -582,7 +582,7 @@ func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
-			"cellSize": {"4"}, "offsetX": {"0"}, "offsetY": {"0"},
+			"gridLines": {"solid"}, "cellSize": {"4"}, "offsetX": {"0"}, "offsetY": {"0"},
 			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
 			"diagonals": {"equal"}, "monsterHp": {"band"},
 		}, session.UserSession{UserID: testOwnerID})
@@ -610,7 +610,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
-			"showGrid": {"on"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
+			"gridLines": {"dashed"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
 			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"},
 			"diagonals": {"alternating"}, "monsterHp": {"hidden"}, "playersCanDraw": {"on"},
 		}, session.UserSession{UserID: testOwnerID})
@@ -631,7 +631,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	}
 
 	want := room.Grid{
-		Visible: true, CellSize: 70, OffsetX: 12, OffsetY: -4,
+		Lines: room.GridLinesDashed, CellSize: 70, OffsetX: 12, OffsetY: -4,
 		Color: "#3355FFCC", Snap: room.SnapHalfCells, FeetPerCell: 10,
 		Diagonals: room.DiagonalsAlternating,
 	}
@@ -647,12 +647,13 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 }
 
 // AN UNCHECKED BOX SENDS NOTHING AT ALL. That is how HTML forms work, and it is
-// why both toggles are read by presence -- a reader that looked for "false"
-// would leave a grid switched on for ever.
+// why the toggle is read by presence -- a reader that looked for "false" would
+// leave drawing switched on for ever.
 func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
-		"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"#000000FF"},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "monsterHp": {"band"},
+		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
+		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
+		"diagonals": {"equal"}, "monsterHp": {"band"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -661,11 +662,35 @@ func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatalf("a complete form was refused: %v", problems)
 	}
-	if grid.Visible {
-		t.Error("an absent grid toggle read as on")
+	if grid.Lines != room.GridLinesSolid {
+		t.Errorf("the line style read as %q", grid.Lines)
 	}
 	if options.PlayersCanDraw {
 		t.Error("an absent drawing toggle read as on")
+	}
+}
+
+// THE LINE STYLE IS A RADIO GROUP AND NOT A CHECKBOX, so "absent" is not a
+// state it has: a browser always sends the one that is checked. What arrives
+// without it is a request nobody's form made, and the core refuses it by name
+// rather than this handler quietly choosing a style for it.
+func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+
+	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
+		map[string]string{"id": testRoomID.String()},
+		url.Values{
+			"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
+			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
+			"diagonals": {"equal"}, "monsterHp": {"band"},
+		}, session.UserSession{UserID: testOwnerID})
+
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422; body: %s", rec.Code, rec.Body.String())
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "grid line style") {
+		t.Errorf("the message is not the core's:\n%s", body)
 	}
 }
 

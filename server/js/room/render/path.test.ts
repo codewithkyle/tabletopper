@@ -29,7 +29,7 @@ import {
 
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
-		visible: true,
+		lines: "solid",
 		cellSize: 64,
 		offsetX: 0,
 		offsetY: 0,

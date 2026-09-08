@@ -170,7 +170,7 @@ export function empty(): State {
 			layers: [],
 			activeLayer: "",
 			grid: {
-				visible: true,
+				lines: "solid",
 				cellSize: 64,
 				offsetX: 0,
 				offsetY: 0,

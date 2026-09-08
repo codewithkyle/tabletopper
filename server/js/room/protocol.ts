@@ -22,6 +22,8 @@ export type Diagonals = "equal" | "alternating";
 
 export type FogMode = "reveal" | "hide";
 
+export type GridLines = "off" | "solid" | "dashed";
+
 export type HPBand = "healthy" | "bloodied" | "critical" | "dead";
 
 export type HPVisibility = "hidden" | "band" | "exact";
@@ -57,7 +59,7 @@ export interface FogShape {
 }
 
 export interface Grid {
-	visible: boolean;
+	lines: GridLines;
 	cellSize: number;
 	offsetX: number;
 	offsetY: number;

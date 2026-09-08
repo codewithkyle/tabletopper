@@ -97,7 +97,7 @@ type MapRef struct {
 // instead would make a GM nudging the offset past a cell boundary jump back to
 // the other side of the cell, which is the opposite of what nudging means.
 type Grid struct {
-	Visible     bool      `json:"visible"`
+	Lines       GridLines `json:"lines"`
 	CellSize    int       `json:"cellSize"`
 	OffsetX     int       `json:"offsetX"`
 	OffsetY     int       `json:"offsetY"`
@@ -282,6 +282,26 @@ type Stroke struct {
 	Points  []int     `json:"points"`
 	Done    bool      `json:"done"`
 }
+
+// GridLines is how the grid is drawn, and off is one of the ways. It is a
+// single three-valued field rather than a visible flag beside a style because
+// it is a single control: a GM asks "what do I want over this map", and the
+// three answers are nothing, a line, and a dashed line.
+//
+// DASHED EXISTS FOR THE MAPS THAT ARE ALREADY DRAWN ON. A cartographer's floor
+// has its own lines -- planks, flagstones, mortar -- and a solid grid laid over
+// them competes with the picture, while a dashed one reads as an overlay and
+// lets the floor through.
+type GridLines string
+
+const (
+	GridLinesOff    GridLines = "off"
+	GridLinesSolid  GridLines = "solid"
+	GridLinesDashed GridLines = "dashed"
+)
+
+func (GridLines) Values() []string { return []string{"off", "solid", "dashed"} }
+func (l GridLines) Valid() bool    { return inValues(l, l.Values()) }
 
 // Snap is how a pawn's centre lands when it is dropped. See snap.go for the
 // arithmetic; the two live modes are a whole-cell step and a half-cell one.
@@ -491,7 +511,7 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 			Layers:      []Layer{layer},
 			ActiveLayer: layer.ID,
 			Grid: Grid{
-				Visible:     true,
+				Lines:       GridLinesSolid,
 				CellSize:    DefaultCellSize,
 				Color:       DefaultGridColor,
 				Snap:        SnapCells,
@@ -548,6 +568,17 @@ func (s *State) Normalize() {
 	// so the one field is repaired and the rest of the table stands.
 	if !s.Table.Grid.Snap.Valid() {
 		s.Table.Grid.Snap = SnapCells
+	}
+
+	// AND SO DOES A GRID WITH NO LINE STYLE, which is every snapshot written
+	// before the field existed. Those rooms carried a visible flag instead, and
+	// solid is what a true one was drawn as -- so the repair is right for the
+	// tables that had a grid and wrong only for the few that had turned it off,
+	// who see it come back once and switch it off again. That is the whole cost
+	// of not bumping the schema, which would have thrown every pawn on every
+	// table away to save them the one click.
+	if !s.Table.Grid.Lines.Valid() {
+		s.Table.Grid.Lines = GridLinesSolid
 	}
 
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })

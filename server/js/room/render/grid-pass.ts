@@ -43,6 +43,13 @@ void main() {
 // is moire rather than a grid. Fading between two and six pixels means zooming
 // out to the whole map dissolves the grid instead of painting a slab of colour
 // over it.
+//
+// THE DASHES ARE THE SAME QUESTION ASKED ALONG THE LINE INSTEAD OF ACROSS IT.
+// A vertical line is broken by how far ALONG y the pixel is, a horizontal one
+// by how far along x, and both are measured in cells -- so the pattern is a
+// property of the grid rather than of the zoom, and a dash stays a dash from
+// one end of a pan to the other. Nothing is rebuilt for it and there is no
+// second program: the mask multiplies the line that was already computed.
 const fragmentSource = `#version 300 es
 precision highp float;
 
@@ -51,18 +58,54 @@ in vec2 v_world;
 uniform vec2 u_offset;
 uniform float u_cell;
 uniform vec4 u_color;
+uniform float u_dash;
 
 out vec4 outColor;
+
+// DASH_PERIOD is how often the pattern repeats, in cells, and DASH_HALF is half
+// of how much of a period is drawn: a quarter cell of pattern, three fifths of
+// it ink. At a 64 pixel cell that is a ten pixel dash and a six pixel gap,
+// which reads as a broken line at a glance without turning into a dotted one.
+const float DASH_PERIOD = 0.25;
+const float DASH_HALF = 0.3;
+
+// dash answers how much of THIS pixel is ink, given how far along the line it
+// sits and how much of a cell a pixel covers there.
+//
+// THE PATTERN IS CENTRED ON THE CROSSINGS, which is the half-period the phase
+// is shifted by. A period divides the cell exactly, so without the shift every
+// place two lines meet would land in a gap, and a dashed grid whose every
+// corner is missing reads as a broken grid rather than as a dashed one.
+//
+// IT WIDENS AS THE PIXELS DO, which is the antialiasing and the zoom-out
+// behaviour in one expression. Zoomed in, the smoothstep band is a fraction of
+// a pixel and the ends of a dash are crisp; zoomed out far enough that a whole
+// dash is inside one pixel, the band swallows the pattern and the mask settles
+// at a half -- so a dashed grid dissolves into a fainter solid one rather than
+// into the aliased mess a hard cut would give.
+float dash(float along, float perPixel) {
+	float s = abs(fract(along / DASH_PERIOD + 0.5) - 0.5);
+	float w = max(perPixel / DASH_PERIOD, 1e-8);
+
+	return 1.0 - smoothstep(DASH_HALF - w, DASH_HALF + w, s);
+}
 
 void main() {
 	vec2 cells = (v_world - u_offset) / u_cell;
 	vec2 perPixel = fwidth(cells);
 	vec2 toEdge = abs(fract(cells - 0.5) - 0.5) / max(perPixel, vec2(1e-8));
 
-	float line = 1.0 - clamp(min(toEdge.x, toEdge.y), 0.0, 1.0);
+	// x is the vertical lines and y is the horizontal ones, kept apart until the
+	// end because each is broken along the OTHER axis.
+	vec2 line = 1.0 - clamp(toEdge, 0.0, 1.0);
+	if (u_dash > 0.5) {
+		line.x *= dash(cells.y, perPixel.y);
+		line.y *= dash(cells.x, perPixel.x);
+	}
+
 	float fade = smoothstep(2.0, 6.0, 1.0 / max(max(perPixel.x, perPixel.y), 1e-8));
 
-	float alpha = u_color.a * line * fade;
+	float alpha = u_color.a * max(line.x, line.y) * fade;
 	if (alpha <= 0.0) {
 		discard;
 	}
@@ -71,7 +114,7 @@ void main() {
 }
 `;
 
-const names = ["u_clipToWorld", "u_offset", "u_cell", "u_color"] as const;
+const names = ["u_clipToWorld", "u_offset", "u_cell", "u_color", "u_dash"] as const;
 
 export interface GridPass {
 	draw(cam: Camera, grid: Grid, deviceWidth: number, deviceHeight: number, dpr: number): void;
@@ -88,7 +131,7 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 
 	return {
 		draw(cam, grid, deviceWidth, deviceHeight, dpr) {
-			if (!grid.visible || grid.cellSize < 1) {
+			if (grid.lines === "off" || grid.cellSize < 1) {
 				return;
 			}
 
@@ -109,6 +152,7 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 			gl.uniform2f(at.u_offset, wrap(grid.offsetX, grid.cellSize), wrap(grid.offsetY, grid.cellSize));
 			gl.uniform1f(at.u_cell, grid.cellSize);
 			gl.uniform4f(at.u_color, color[0], color[1], color[2], color[3]);
+			gl.uniform1f(at.u_dash, grid.lines === "dashed" ? 1 : 0);
 
 			gl.enable(gl.BLEND);
 			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

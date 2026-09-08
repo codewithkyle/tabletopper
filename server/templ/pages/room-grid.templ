@@ -12,7 +12,7 @@ templ RoomGrid(data RoomGridData) {
 		hx-status:422={ "target:#errors-" + RoomGridPanel + ",swap:outerHTML" }
 	>
 		@PanelFormErrors(RoomGridPanel, data.Errors)
-		@gridToggle("showGrid", "Draw the grid", data.Visible)
+		@gridRadios("gridLines", "Grid lines", GridLineChoices(), data.Lines)
 		<div class="grid grid-cols-2 gap-2">
 			@gridNumber("cellSize", "Cell size", data.CellSizeText(), GridCellMin, GridCellMax)
 			@gridNumber("feetPerCell", "Feet per cell", data.FeetText(), GridFeetMin, GridFeetMax)

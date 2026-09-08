@@ -237,6 +237,9 @@ func checkGrid(g Grid) error {
 	if err := checkColor("grid colour", g.Color); err != nil {
 		return err
 	}
+	if !g.Lines.Valid() {
+		return invalid("Bad grid", "That is not a grid line style.")
+	}
 	if !g.Snap.Valid() {
 		return invalid("Bad grid", "That is not a snapping mode.")
 	}

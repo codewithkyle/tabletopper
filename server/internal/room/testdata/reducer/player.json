@@ -20,7 +20,7 @@
       ],
       "activeLayer": "01000000000000000000000001",
       "grid": {
-        "visible": true,
+        "lines": "solid",
         "cellSize": 64,
         "offsetX": 0,
         "offsetY": 0,
@@ -104,7 +104,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -181,7 +181,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -222,7 +222,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -306,7 +306,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -354,7 +354,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -438,7 +438,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -486,7 +486,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -577,7 +577,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -632,7 +632,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -723,7 +723,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -778,7 +778,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -869,7 +869,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 64,
               "offsetX": 0,
               "offsetY": 0,
@@ -924,7 +924,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
             "offsetY": 0,
@@ -1015,7 +1015,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -1070,7 +1070,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1161,7 +1161,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -1216,7 +1216,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1321,7 +1321,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1445,7 +1445,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1593,7 +1593,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1764,7 +1764,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -1929,7 +1929,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -2123,7 +2123,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -2340,7 +2340,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -2524,7 +2524,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -2607,7 +2607,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -2825,7 +2825,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -3062,7 +3062,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -3282,7 +3282,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -3489,7 +3489,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -3726,7 +3726,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -3962,7 +3962,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -4213,7 +4213,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -4448,7 +4448,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -4700,7 +4700,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -4952,7 +4952,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -5203,7 +5203,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -5455,7 +5455,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -5686,7 +5686,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -5904,7 +5904,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -5959,7 +5959,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -6177,7 +6177,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -6232,7 +6232,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -6472,7 +6472,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -6729,7 +6729,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -6987,7 +6987,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -7246,7 +7246,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -7513,7 +7513,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -7778,7 +7778,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -8056,7 +8056,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -8337,7 +8337,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -8602,7 +8602,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -8833,7 +8833,7 @@
             ],
             "activeLayer": "01000000000000000000000002",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -8934,7 +8934,7 @@
           ],
           "activeLayer": "01000000000000000000000002",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -9104,7 +9104,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -9264,7 +9264,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -9528,7 +9528,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -9790,7 +9790,7 @@
               ],
               "activeLayer": "01000000000000000000000001",
               "grid": {
-                "visible": true,
+                "lines": "solid",
                 "cellSize": 70,
                 "offsetX": -12,
                 "offsetY": 8,
@@ -10051,7 +10051,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -10309,7 +10309,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -10581,7 +10581,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -10853,7 +10853,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -11125,7 +11125,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -11398,7 +11398,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -11686,7 +11686,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -11911,7 +11911,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12119,7 +12119,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12310,7 +12310,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12482,7 +12482,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12632,7 +12632,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -12673,7 +12673,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12804,7 +12804,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -12838,7 +12838,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -12999,7 +12999,7 @@
             ],
             "activeLayer": "01000000000000000000000001",
             "grid": {
-              "visible": true,
+              "lines": "solid",
               "cellSize": 70,
               "offsetX": -12,
               "offsetY": 8,
@@ -13043,7 +13043,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -13118,7 +13118,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,
@@ -13188,7 +13188,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
-            "visible": true,
+            "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
             "offsetY": 8,

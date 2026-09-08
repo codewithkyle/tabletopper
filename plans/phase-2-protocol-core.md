@@ -130,7 +130,7 @@ type MapRef struct {
 }
 
 type Grid struct {
-    Visible     bool      `json:"visible"`
+    Lines       GridLines `json:"lines"`        // off | solid | dashed, default solid
     CellSize    int       `json:"cellSize"`     // px, 8..512, default 64
     OffsetX     int       `json:"offsetX"`      // px, any int; renderer reduces modulo CellSize
     OffsetY     int       `json:"offsetY"`
