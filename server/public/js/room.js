@@ -111,12 +111,40 @@ function run(action, value) {
         case "copy-code":
             copyCode(value);
             break;
+        case "view":
+            view(value);
+            break;
         case "fullscreen":
             toggleFullscreen();
             break;
         default:
             console.error("unknown room action:", action);
     }
+}
+
+// THE VIEW ITEMS AND THE CAMERA ARE IN DIFFERENT BUNDLES. This file is served
+// as it is written; the renderer is TypeScript bundled into
+// /static/room.js from server/js/room/. Neither can import the other, so what
+// crosses between them is a window event -- the same shape as the "alert:pending"
+// contract between the room bundle and alert-modal.js.
+//
+// THE EVENT NAME IS THE CONTRACT and it is spelled out in both files. The
+// listener is in server/js/room/render/renderer.ts; the values are the ones
+// pages.viewMenu sends, and an unknown one is ignored there rather than here,
+// because the renderer is what knows which of them it can honour.
+//
+// A room with no canvas -- a closed one, or a browser without WebGL2 -- has no
+// listener, and the event lands nowhere. That is the right amount of nothing to
+// happen: the menu item is still there, still says what it does, and the reason
+// it did not is on the table in front of them.
+const VIEW_EVENT = "room:view";
+
+function view(action) {
+    if (!action) {
+        return;
+    }
+
+    window.dispatchEvent(new CustomEvent(VIEW_EVENT, { detail: { action } }));
 }
 
 // navigator.clipboard is only defined in a secure context, which is https and

@@ -83,6 +83,27 @@ strokes yet.
     its pawns, fog and strokes. Tiles are cached by map id, so switching keeps
     the old layer resident for a 250 ms crossfade: the old map's tiles draw at
     falling alpha under the new map's at rising alpha.
+12. **The layer manager and the grid settings are WINDOWS, not modals.** The
+    overview's Windows section names both of them as examples, and it was
+    written after this plan's first draft; where the two disagree the overview
+    wins. A grid tuned by eye must not cover the table it is being tuned
+    against, and a GM preparing a floor parks the manager open while they work.
+    The map picker stays a content modal: it is a one-shot pick that closes on
+    choose, which is what a modal is for.
+13. **The viewed layer is shown in the menu bar**, at its right end: for the GM
+    a `<select>` of the layers with a "Viewing, not active" badge and a Make
+    active button when the viewed and active layers differ; for a player a plain
+    label naming the active layer. It is the one piece of table state that has
+    to be glanceable -- a GM who forgets they are on the cellar moves pawns onto
+    a floor nobody can see -- so it is not behind a menu.
+14. **Every layer mutation answers 204 and the manager refetches on the event.**
+    `table.updated` reaches every client already, so `panels.ts` raises
+    `room:table` and the manager carries
+    `hx-trigger="room:table from:window"`. That is the refetch pattern the
+    player list uses, and it is what keeps a GM's second tab correct. Replying
+    with the re-rendered list instead would save a round trip and leave the
+    other tab stale.
+
 10. **Zoom range is 0.05 to 4.** The old client stopped at 0.1 and 2 because it
     had one texture. Tiles make a full-map overview cheap. Wheel zoom applies
     a multiplier capped at 25 percent per event, anchored at the cursor.
@@ -93,17 +114,17 @@ strokes yet.
 
 | Pattern | Wrapper | Handler | Behaviour |
 | --- | --- | --- | --- |
-| `GET /fragment/room/layers?room={id}` | `Fragment` | `RoomLayersFragment` | GM only. The layer manager: one row per layer, bottom to top, with a name field (`hx-patch` on change), the map's preview and name or "No map", Choose map, Clear map, Up, Down, an Active radio, and Remove. Remove carries `hx-confirm` reading "Delete <name> and the N pawns on it? Their fog and drawings go with them. This cannot be undone.", `data-confirm-label="Delete layer"`; when the layer has no pawns the message drops the pawn clause. An Add layer form with a name field sits below the list. A warning line appears under any layer whose map dimensions differ from the first layer's. Every mutation below answers with the re-rendered manager list. |
+| `GET /fragment/room/layers?room={id}` | `Fragment` | `RoomLayersFragment` | GM only. The layer manager, opened as a window from the Tabletop menu. One row per layer, bottom to top, with a name field (`hx-patch` on change), the map's preview and name or "No map", Choose map, Clear map, Up, Down, an Active radio, and Remove. Remove carries `hx-confirm` reading "Delete <name> and the N pawns on it? Their fog and drawings go with them. This cannot be undone.", `data-confirm-label="Delete layer"`; when the layer has no pawns the message drops the pawn clause. An Add layer form with a name field sits below the list. A warning line appears under any layer whose map dimensions differ from the first layer's. It carries `hx-trigger="room:table from:window"` and refetches itself; every mutation below answers 204. |
 | `POST /rooms/{id}/layers` | `RequireSession` | `AddLayer` | GM only. Dispatches `table.addLayer`. |
 | `DELETE /rooms/{id}/layers/{layer}` | `RequireSession` | `RemoveLayer` | GM only. Dispatches `table.removeLayer`. The core deletes the pawns; the confirm text already said so. |
 | `PATCH /rooms/{id}/layers/{layer}/name` | `RequireSession` | `RenameLayer` | GM only. Dispatches `table.renameLayer`. |
 | `POST /rooms/{id}/layers/{layer}/move` | `RequireSession` | `MoveLayer` | GM only. Reads `index`, dispatches `table.moveLayer`. |
 | `POST /rooms/{id}/layers/{layer}/activate` | `RequireSession` | `ActivateLayer` | GM only. Dispatches `table.setActiveLayer`. |
 | `GET /fragment/room/maps?room={id}&layer={id}` | `Fragment` | `RoomMapsFragment` | GM only. Pick-shaped cards of the owner's maps with a generation: preview image, name, dimensions. Each card is a `<form>` posting to the layer's map route with the asset id in a hidden field. Close first. |
-| `POST /rooms/{id}/layers/{layer}/map` | `RequireSession` | `SetLayerMap` | GM only. Reads `asset`, resolves via `GetMapPyramid` (owner must be the GM, `tile_gen` must be set, else `htmx.Error` "That map is not ready yet" 409), `hub.Dispatch(table.setLayerMap)`, `htmx.CloseModal`. |
-| `DELETE /rooms/{id}/layers/{layer}/map` | `RequireSession` | `ClearLayerMap` | GM only. `hub.Dispatch(table.clearLayerMap)`. Answers with the manager list. |
-| `GET /fragment/room/grid?room={id}` | `Fragment` | `RoomGridFragment` | GM only. A form pre-filled from the live state via a new `hub.Table(roomID)` accessor. |
-| `POST /rooms/{id}/grid` | `RequireSession` | `SetRoomGrid` | GM only. Parses the eight grid fields plus `monsterHp` and `playersCanDraw`, dispatches `table.setGrid` then `table.setOptions`, `htmx.CloseModal`. Validation errors come back from the core as `room.Error` and are rendered with `PanelFormErrors` at 422, matching the character panels. |
+| `POST /rooms/{id}/layers/{layer}/map` | `RequireSession` | `SetLayerMap` | GM only. Reads `asset`, resolves via `GetMapPyramid` (owner must be the GM, `tile_gen` must be set, else `htmx.Error` "That map is not ready yet" 409), `hub.Dispatch(table.setLayerMap)`, `htmx.CloseModal` -- the picker is the one content modal here. |
+| `DELETE /rooms/{id}/layers/{layer}/map` | `RequireSession` | `ClearLayerMap` | GM only. `hub.Dispatch(table.clearLayerMap)`. |
+| `GET /fragment/room/grid?room={id}` | `Fragment` | `RoomGridFragment` | GM only. Opened as a window from the Tabletop menu. A form pre-filled from the live state via a new `hub.Table(roomID)` accessor, which returns the table and a pawn count per layer -- the manager needs the counts for its confirm text and this needs the grid. |
+| `POST /rooms/{id}/grid` | `RequireSession` | `SetRoomGrid` | GM only. Parses the eight grid fields plus `monsterHp` and `playersCanDraw`, dispatches `table.setGrid` then `table.setOptions`, and answers 204. A window has no `htmx.CloseModal` and wants none: the GM adjusts, watches the table, adjusts again. Validation errors come back from the core as `room.Error` and are rendered with `PanelFormErrors` at 422, matching the character panels. |
 
 The resolution for `table.setLayerMap` lives in `hub/resolve.go`, replacing the
 stub from phase 3, so the same code path serves a future socket-originated
@@ -134,15 +155,25 @@ New query in `server/sql/assets.sql`:
   toggle for visible, a select for monster HP visibility, a toggle for players
   can draw. The `hx-post`, `hx-target`, `hx-swap`, `hx-status:422` trio
   targets its errors block; pin it in a template test.
-- The room header gains Layers and Grid buttons for the GM, each
-  `data-modal-open="/fragment/room/..." data-modal-size="lg"`, and a View
-  control with Reset view and Fit map. It also gains the layer indicator: for
-  players a label with the active layer's name, filled by the client from the
-  store; for the GM a `<select>` whose options the client rebuilds from the
-  store, choosing the viewed layer, with a "Viewing, not active" badge and a
-  Make active button (posting to the activate route) shown whenever the two
-  differ. The select and badge are rendered in templ; the script fills options
-  and toggles `hidden`.
+- The MENU BAR, not a header of buttons: this plan predates the bar and the
+  windows, and both are built. The **Tabletop** menu's four disabled
+  placeholders become `Layers` and `Grid & settings`, each a `RoomMenuItem`
+  carrying a `RoomWindow`, beside `Spawn pawns` and `Clear tabletop` which stay
+  disabled. The **View** menu's five disabled items become `Action` items --
+  `Zoom in`, `Zoom out`, `100%`, `200%`, `Fit map` -- beside the fullscreen
+  toggle that already works.
+- The bar's right end gains the layer indicator: for players a label with the
+  active layer's name, filled by the client from the store; for the GM a
+  `<select>` whose options the client rebuilds from the store, choosing the
+  viewed layer, with a "Viewing, not active" badge and a Make active button
+  (posting to the activate route) shown whenever the two differ. The select and
+  badge are rendered in templ; the script fills options and toggles `hidden`.
+- The View items and the camera are IN DIFFERENT BUNDLES and cannot import each
+  other: the bar is `server/public/js/room.js`, the renderer is
+  `server/js/room/render/`. `room.js` gains one case per action that dispatches
+  `room:view` on window with `{ action }`, and the renderer listens. The event
+  name is a cross-bundle contract and is spelled out in both files, the way
+  `"alert:pending"` is.
 
 The page-data type for the room adds nothing for maps: the client learns every
 layer's pyramid from the snapshot's `table.layers`.
@@ -218,6 +249,12 @@ for the previous layer's map as well at its fading alpha:
 The loader uploads at most four tiles per frame so a burst of arrivals never
 stalls a frame; the rest wait for the next frame and keep the loop alive.
 
+THE CACHE IS KEYED BY TILE SIZE AS WELL, and holds one texture array per
+distinct size. `assets.tile_size` is a per-row column, stored deliberately so a
+map tiled under an old constant keeps working; a texture array has one fixed
+layer size, so two maps tiled differently cannot share one. In practice there
+is exactly one array.
+
 Tile URLs are built from the layer's `map` and the pyramid math:
 `/assets/maps/{assetId}/tiles/{gen}/{z}/{x}_{y}.webp`. The cache is keyed by
 asset id and generation as well as tile coordinates, so several layers' maps
@@ -276,6 +313,25 @@ measurement the overview asked for; keep the numbers in the pull request.
 - `SetRoomGrid` turns a core `invalid` into a 422 with the field's message and
   a valid form into two dispatches in order.
 - Template test pins the grid form's trio.
+
+## Build order
+
+Three checkpoints, agreed with the user, each stopping for review:
+
+1. **The canvas**: `gl.ts`, `camera.ts`, `frame.ts`, `input.ts`, `grid-pass.ts`
+   and a `renderer.ts` that draws only the grid. A pannable, zoomable grid over
+   an empty table, with the View menu wired. NO SERVER CHANGE AT ALL, which is
+   what makes it the first one: the riskiest part of the phase is brought up
+   against nothing.
+2. **The controls**: `resolve.go`, the seven routes, the three fragments, the
+   two windows and the layer indicator. A map can be put on a layer and the
+   grid configured, and the canvas still only draws the grid.
+3. **The tiles**: `pyramid.ts`, `tiles.ts`, `tile-pass.ts`, `layers.ts`, the
+   crossfade and the benchmark.
+
+`make js-test` runs `node --test ./server/js/room/*.test.ts`, a glob that does
+not descend into `render/`. It is fixed in checkpoint 1 or every test below is
+silently not run.
 
 ## Verification
 

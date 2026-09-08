@@ -267,18 +267,31 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 }
 
 // viewMenu is the camera, plus the one item in it that needs no camera.
-// Fullscreen is the browser's own and works today; everything else moves a
-// viewport that does not exist yet.
+//
+// EVERY CAMERA ITEM IS ONE ACTION WITH A VALUE rather than five actions,
+// because they are one feature: the bar and the renderer are in different
+// bundles and cannot import each other, so what crosses between them is a
+// window event, and five names to keep in step across that gap instead of one
+// is five chances to misspell it. public/js/room.js turns "view" into a
+// `room:view` event carrying the value, and render/renderer.ts listens.
+//
+// FIT MAP REPLACED "CENTER TABLETOP", which said what it did to a viewport and
+// not what it does for the reader. Fitting is centring plus the zoom that shows
+// the whole map, which is what somebody reaching for it wants both halves of.
 func (d RoomPageData) viewMenu() RoomMenu {
 	return RoomMenu{Label: "View", Items: []RoomMenuItem{
-		{Label: "Zoom in", Disabled: true},
-		{Label: "Zoom out", Disabled: true},
-		{Label: "100%", Disabled: true},
-		{Label: "200%", Disabled: true},
+		{Label: "Zoom in", Action: roomViewAction, Value: "zoom-in"},
+		{Label: "Zoom out", Action: roomViewAction, Value: "zoom-out"},
+		{Label: "100%", Action: roomViewAction, Value: "zoom-1"},
+		{Label: "200%", Action: roomViewAction, Value: "zoom-2"},
+		{Label: "Fit map", Action: roomViewAction, Value: "fit"},
 		{Label: "Toggle fullscreen", Action: "fullscreen"},
-		{Label: "Center tabletop", Disabled: true},
 	}}
 }
+
+// roomViewAction is the data-room-action every camera item carries. It is a
+// constant so the template test and the menu cannot disagree about it.
+const roomViewAction = "view"
 
 // helpMenu is the two documents every page in the app already links to, and the
 // issue report that does not exist yet.

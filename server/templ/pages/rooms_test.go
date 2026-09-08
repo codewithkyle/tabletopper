@@ -28,28 +28,33 @@ func menuLabels(data RoomPageData) []string {
 	return labels
 }
 
-// itemLabels is the lines in one menu, in order. It fails rather than returning
-// nothing for a heading that is not there, because a test asking about a menu
-// that has been renamed should say so.
-func itemLabels(t *testing.T, data RoomPageData, heading string) []string {
+// menuNamed is one menu of the bar. It fails rather than returning nothing for
+// a heading that is not there, because a test asking about a menu that has been
+// renamed should say so.
+func menuNamed(t *testing.T, data RoomPageData, heading string) RoomMenu {
 	t.Helper()
 
 	for _, m := range data.Menus() {
-		if m.Label != heading {
-			continue
+		if m.Label == heading {
+			return m
 		}
-
-		labels := []string{}
-		for _, item := range m.Items {
-			labels = append(labels, item.Label)
-		}
-
-		return labels
 	}
 
 	t.Fatalf("there is no %q menu; the bar has %v", heading, menuLabels(data))
 
-	return nil
+	return RoomMenu{}
+}
+
+// itemLabels is the lines in one menu, in order.
+func itemLabels(t *testing.T, data RoomPageData, heading string) []string {
+	t.Helper()
+
+	labels := []string{}
+	for _, item := range menuNamed(t, data, heading).Items {
+		labels = append(labels, item.Label)
+	}
+
+	return labels
 }
 
 // THE 422 ROUTE IS WHAT MAKES A REJECTION VISIBLE. Every 4xx is in the noSwap
@@ -234,13 +239,83 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Clear tracker"},
 		"Window":     {"Monster Manual", "Dice tray"},
-		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Toggle fullscreen", "Center tabletop"},
+		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Fit map", "Toggle fullscreen"},
 		"Help":       {"Report issue", "Privacy policy", "Terms of service"},
 	} {
 		got := itemLabels(t, data, heading)
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("the %s menu is %v, want %v", heading, got, want)
 		}
+	}
+}
+
+// THE CANVAS IS THE RENDERER'S WHOLE FOOTPRINT IN THE MARKUP, and the two
+// attributes on it are what render/renderer.ts looks for. touch-none is not
+// decoration: without it a browser handles a one finger drag as a scroll and
+// the pointer events never arrive, so a tablet gets a table it cannot pan.
+func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
+	open := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
+
+	for _, want := range []string{"data-tabletop-canvas", "data-tabletop-unsupported", "touch-none"} {
+		if !strings.Contains(open, want) {
+			t.Errorf("the table has no %s:\n%s", want, open)
+		}
+	}
+
+	// The message is rendered by the page and revealed by the client, because
+	// server/js is not a Tailwind source and a class name written there would
+	// never reach the stylesheet.
+	if !strings.Contains(open, "data-tabletop-unsupported hidden") {
+		t.Error("the unsupported message is not hidden to begin with")
+	}
+
+	// A closed room has no socket, no state and nothing to draw. Putting a
+	// canvas there would paint a grid behind the sentence explaining that the
+	// room is shut.
+	closed := testRoomPage(room.RoleGM)
+	closed.Closed = true
+
+	if page := renderToString(t, roomContent(closed)); strings.Contains(page, "data-tabletop-canvas") {
+		t.Errorf("a closed room drew a table:\n%s", page)
+	}
+}
+
+// THE CAMERA ITEMS ARE THE ONE PLACE A LABEL IS NOT THE CONTRACT. Everything
+// else in the bar is a URL or a window id, which fails loudly when it is wrong;
+// these cross into another bundle as a string in an event, where a typo is a
+// menu item that does nothing and reports nothing. So the action and every
+// value are pinned here, against public/js/room.js and render/renderer.ts.
+func TestEveryCameraItemSendsTheOneViewAction(t *testing.T) {
+	want := map[string]string{
+		"Zoom in":  "zoom-in",
+		"Zoom out": "zoom-out",
+		"100%":     "zoom-1",
+		"200%":     "zoom-2",
+		"Fit map":  "fit",
+	}
+
+	seen := 0
+
+	for _, item := range menuNamed(t, testRoomPage(room.RoleGM), "View").Items {
+		value, ok := want[item.Label]
+		if !ok {
+			continue
+		}
+
+		seen++
+		if item.Action != "view" {
+			t.Errorf("%q has action %q, want view", item.Label, item.Action)
+		}
+		if item.Value != value {
+			t.Errorf("%q sends %q, want %q", item.Label, item.Value, value)
+		}
+		if item.Disabled {
+			t.Errorf("%q is disabled", item.Label)
+		}
+	}
+
+	if seen != len(want) {
+		t.Errorf("found %d camera items, want %d", seen, len(want))
 	}
 }
 

@@ -37,6 +37,11 @@ templ roomContent(data RoomPageData) {
 					<p class="absolute inset-0 m-0 grid place-content-center px-6 text-center text-base-content/60">
 						This room is closed. Reopen it from the Room menu to get a new code.
 					</p>
+				} else {
+					<canvas data-tabletop-canvas class="absolute inset-0 block h-full w-full touch-none select-none"></canvas>
+					<p data-tabletop-unsupported hidden class="absolute inset-0 m-0 grid place-content-center px-6 text-center text-base-content/60">
+						This browser cannot draw the tabletop. It needs WebGL2, which every current browser supports; updating this one, or switching hardware acceleration back on, should bring it back.
+					</p>
 				}
 				@roomToolbar()
 				if data.Debug {

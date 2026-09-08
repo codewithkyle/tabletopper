@@ -1,6 +1,6 @@
 // The room's client. It reads what it needs off the mount element, connects,
-// reduces, and hands the DOM its two jobs: refetch the live panels, and draw
-// the debug panel in development.
+// reduces, and hands the DOM its three jobs: draw the table, refetch the live
+// panels, and draw the debug panel in development.
 //
 // THERE ARE NO GLOBALS AND NO CONFIGURATION SCRIPT. Everything this module
 // needs is an attribute on #tabletop, rendered by the page that knows the
@@ -8,15 +8,19 @@
 // closed room renders no socket path, and that is how the client is told not to
 // connect.
 //
-// THE CANVAS IS NOT HERE YET. What is here is the protocol on a socket, and a
-// debug panel that proves it; the renderer imports the same store when it
-// arrives and reads the state this keeps.
+// THE STATE IS CREATED BEFORE THE SOCKET AND OUTLIVES ITS ABSENCE. The renderer
+// is a function of the state and a camera, and both of those are worth having
+// in a room that is not live: a closed room still has windows to arrange, and a
+// room whose socket has not opened yet should show a table rather than a blank
+// rectangle that fills in a moment later.
 
 import { announce } from "./panels.ts";
 import { empty, reduce } from "./store.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
+import { mountRenderer, type Renderer } from "./render/renderer.ts";
+import type { State } from "./protocol.ts";
 import { mountWindows } from "./window.ts";
 
 const mount = document.getElementById("tabletop");
@@ -27,27 +31,35 @@ if (mount) {
 	// should come back whether or not the table is live.
 	mountWindows(mount, mount.dataset.room ?? "");
 
+	const state = empty();
+	const renderer = mountRenderer(mount, state);
+
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		start(path);
+		start(path, state, renderer);
 	}
 }
 
-function start(path: string): void {
-	const state = empty();
-
+function start(path: string, state: State, renderer: Renderer | null): void {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
 	const socket = new Socket(path, {
 		event(event) {
 			// REDUCE FIRST, THEN TELL EVERYBODY. A panel that refetched before
 			// the store had applied the event would be reading the server
-			// again anyway, but the debug panel reads the store -- and an
-			// order that put it first would show the room one frame behind for
-			// no reason.
+			// again anyway, but the canvas and the debug panel both read the
+			// store -- and an order that put either first would show the room
+			// one frame behind for no reason.
 			reduce(state, event);
 			announce(event);
 			debug?.event(event);
+
+			// THE RENDERER IS TOLD RATHER THAN SUBSCRIBED. It holds a reference
+			// to the same state object the reducer just mutated, so there is
+			// nothing to hand it; all it needs is to know that looking again is
+			// worth a frame. Asking on every event is right because the frame
+			// loop collapses however many arrive between two frames into one.
+			renderer?.invalidate();
 
 			// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
 			// nothing below it would run -- and in development the frame that
