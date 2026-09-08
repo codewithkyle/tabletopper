@@ -1,0 +1,136 @@
+package pages
+
+templ RoomLayers(data RoomLayersData) {
+	<div
+		id="room-layers"
+		hx-get={ data.Path() }
+		hx-trigger="room:tabletop from:window"
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		class="flex flex-col gap-2"
+	>
+		<ul class="flex flex-col gap-1">
+			for _, l := range data.Layers {
+				@layerRow(data, l)
+			}
+		</ul>
+		@addLayerForm(data)
+	</div>
+}
+
+templ layerRow(data RoomLayersData, l RoomLayer) {
+	<li class="rounded-field border border-base-300 p-1.5">
+		<div class="flex items-center gap-1.5">
+			<input
+				type="radio"
+				name="active-layer"
+				class="radio radio-xs shrink-0"
+				checked?={ l.Active }
+				aria-label={ "Show " + l.Name + " to the players" }
+				hx-post={ data.ActivatePath(l) }
+				hx-trigger="change"
+			/>
+			<input
+				type="text"
+				name="name"
+				value={ l.Name }
+				maxlength={ LayerNameLimit }
+				required
+				aria-label="Layer name"
+				class="input input-xs min-w-0 flex-1"
+				hx-patch={ data.NamePath(l) }
+				hx-trigger="change"
+			/>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs shrink-0 px-1"
+				aria-label={ "Move " + l.Name + " up" }
+				disabled?={ l.Top }
+				hx-post={ data.MovePath(l) }
+				hx-vals={ data.MoveVals(l, 1) }
+			>
+				@chevronUpIcon()
+			</button>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs shrink-0 px-1"
+				aria-label={ "Move " + l.Name + " down" }
+				disabled?={ l.Bottom }
+				hx-post={ data.MovePath(l) }
+				hx-vals={ data.MoveVals(l, -1) }
+			>
+				@chevronDownIcon()
+			</button>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs shrink-0 px-1 text-base-content/50 hover:text-error"
+				aria-label={ "Delete " + l.Name }
+				hx-delete={ data.LayerPath(l) }
+				hx-confirm={ data.RemovePrompt(l) }
+				data-confirm-heading="Delete this layer?"
+				data-confirm-label="Delete layer"
+			>
+				@trashXIcon()
+			</button>
+		</div>
+		<div class="mt-1.5 flex items-center gap-2 pl-6">
+			if l.HasMap() && !l.MapMissing() {
+				<img src={ data.PreviewURL(l) } alt="" class="size-8 shrink-0 rounded-sm object-cover"/>
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-xs">{ l.MapName }</p>
+					<p class="text-[10px] text-base-content/60">{ l.Size() }</p>
+				</div>
+			} else if l.MapMissing() {
+				<p class="min-w-0 flex-1 text-xs text-warning">That map is no longer in your library.</p>
+			} else {
+				<p class="min-w-0 flex-1 text-xs text-base-content/60">No map</p>
+			}
+			<button
+				type="button"
+				class="btn btn-xs shrink-0"
+				data-modal-open={ data.ChooseMapPath(l) }
+				data-modal-size="lg"
+			>Choose</button>
+			if l.HasMap() {
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs shrink-0"
+					hx-delete={ data.MapPath(l) }
+				>Clear</button>
+			}
+		</div>
+		if l.PawnLabel() != "" || l.Mismatch {
+			<div class="mt-1 pl-6 text-[10px] leading-tight">
+				if l.PawnLabel() != "" {
+					<p class="text-base-content/60">{ l.PawnLabel() }</p>
+				}
+				if l.Mismatch {
+					<p class="text-warning">A different size from the other floors, so the grid will not line up.</p>
+				}
+			</div>
+		}
+	</li>
+}
+
+templ addLayerForm(data RoomLayersData) {
+	<form
+		hx-post={ data.AddPath() }
+		hx-on::after-request="this.reset()"
+		class="flex items-center gap-1"
+	>
+		<input
+			type="text"
+			name="name"
+			placeholder="New floor"
+			required
+			maxlength={ LayerNameLimit }
+			aria-label="Name for the new floor"
+			class="input input-xs min-w-0 flex-1"
+			disabled?={ data.Full }
+		/>
+		<button type="submit" class="btn btn-xs shrink-0" disabled?={ data.Full }>Add</button>
+	</form>
+	if data.Full {
+		<p class="text-[10px] text-base-content/60">A room holds twenty floors, which is as many as this one has.</p>
+	}
+}

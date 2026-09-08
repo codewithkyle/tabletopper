@@ -235,7 +235,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
 	for heading, want := range map[string][]string{
-		"Tabletop":   {"Settings", "Load image", "Spawn pawns", "Clear tabletop"},
+		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Clear tracker"},
 		"Window":     {"Monster Manual", "Dice tray"},

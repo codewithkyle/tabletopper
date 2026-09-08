@@ -34,6 +34,7 @@
     --radius-sm: 0.25rem;
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     --blur-sm: 8px;
+    --aspect-video: 16 / 9;
     --default-transition-duration: 150ms;
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
@@ -2412,6 +2413,102 @@
     }
   }
   @layer daisyui.l1.l2.l3 {
+    .radio {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+      cursor: pointer;
+      appearance: none;
+      border-radius: calc(infinity * 1px);
+      padding: 0.25rem;
+      vertical-align: middle;
+      border: var(--border) solid var(--input-color, currentColor);
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .radio {
+        border: var(--border) solid var(--input-color, color-mix(in srgb, currentColor 20%, #0000));
+      }
+    }
+    .radio {
+      box-shadow: 0 1px oklch(0% 0 0 / calc(var(--depth) * 0.1)) inset;
+      --size: calc(var(--size-selector, 0.25rem) * 6);
+      width: var(--size);
+      height: var(--size);
+      color: var(--input-color, currentColor);
+    }
+    .radio:before {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: calc(infinity * 1px);
+      --tw-content: "";
+      content: var(--tw-content);
+      background-size: auto, calc(var(--noise) * 100%);
+      background-image: none, var(--fx-noise);
+    }
+    .radio:focus-visible {
+      outline: 2px solid currentColor;
+    }
+    .radio:checked {
+      border-color: currentcolor;
+      background-color: var(--color-base-100);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .radio:checked {
+        animation: radio 0.2s ease-out;
+      }
+    }
+    .radio:checked:before {
+      background-color: currentcolor;
+      box-shadow: 0 -1px oklch(0% 0 0 / calc(var(--depth) * 0.1)) inset, 0 8px 0 -4px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset, 0 1px oklch(0% 0 0 / calc(var(--depth) * 0.1));
+    }
+    @media (forced-colors: active) {
+      .radio:checked:before {
+        outline-style: var(--tw-outline-style);
+        outline-width: 1px;
+        outline-offset: calc(1px * -1);
+      }
+    }
+    @media print {
+      .radio:checked:before {
+        outline: 0.25rem solid;
+        outline-offset: -1rem;
+      }
+    }
+    .radio[aria-checked="true"] {
+      border-color: currentcolor;
+      background-color: var(--color-base-100);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .radio[aria-checked="true"] {
+        animation: radio 0.2s ease-out;
+      }
+    }
+    .radio[aria-checked="true"]:before {
+      background-color: currentcolor;
+      box-shadow: 0 -1px oklch(0% 0 0 / calc(var(--depth) * 0.1)) inset, 0 8px 0 -4px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset, 0 1px oklch(0% 0 0 / calc(var(--depth) * 0.1));
+    }
+    @media (forced-colors: active) {
+      .radio[aria-checked="true"]:before {
+        outline-style: var(--tw-outline-style);
+        outline-width: 1px;
+        outline-offset: calc(1px * -1);
+      }
+    }
+    @media print {
+      .radio[aria-checked="true"]:before {
+        outline: 0.25rem solid;
+        outline-offset: -1rem;
+      }
+    }
+  }
+  @layer daisyui.l1.l2 {
+    .radio:disabled {
+      cursor: not-allowed;
+      opacity: 20%;
+    }
+  }
+  @layer daisyui.l1.l2.l3 {
     .card-body {
       display: flex;
       flex: auto;
@@ -3095,6 +3192,9 @@
   .mt-1 {
     margin-top: var(--spacing);
   }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
+  }
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
@@ -3248,6 +3348,9 @@
   .aspect-square {
     aspect-ratio: 1 / 1;
   }
+  .aspect-video {
+    aspect-ratio: var(--aspect-video);
+  }
   @layer daisyui.l1.l2 {
     .btn-circle {
       border-radius: calc(infinity * 1px);
@@ -3280,6 +3383,10 @@
   .size-6 {
     width: calc(var(--spacing) * 6);
     height: calc(var(--spacing) * 6);
+  }
+  .size-8 {
+    width: calc(var(--spacing) * 8);
+    height: calc(var(--spacing) * 8);
   }
   .size-10 {
     width: calc(var(--spacing) * 10);
@@ -3319,6 +3426,9 @@
   .max-h-48 {
     max-height: calc(var(--spacing) * 48);
   }
+  .max-h-\[60vh\] {
+    max-height: 60vh;
+  }
   .max-h-\[calc\(100dvh-9rem\)\] {
     max-height: calc(100dvh - 9rem);
   }
@@ -3356,6 +3466,9 @@
   }
   .w-6 {
     width: calc(var(--spacing) * 6);
+  }
+  .w-8 {
+    width: calc(var(--spacing) * 8);
   }
   .w-11 {
     width: calc(var(--spacing) * 11);
@@ -3398,6 +3511,9 @@
   }
   .max-w-6xl {
     max-width: var(--container-6xl);
+  }
+  .max-w-44 {
+    max-width: calc(var(--spacing) * 44);
   }
   .max-w-56 {
     max-width: calc(var(--spacing) * 56);
@@ -3952,11 +4068,22 @@
   .object-cover {
     object-fit: cover;
   }
+  @layer daisyui.l1.l2 {
+    .radio-xs {
+      padding: 0.125rem;
+    }
+    .radio-xs:is([type="radio"]) {
+      --size: calc(var(--size-selector, 0.25rem) * 4);
+    }
+  }
   .p-0 {
     padding: 0px;
   }
   .p-1 {
     padding: var(--spacing);
+  }
+  .p-1\.5 {
+    padding: calc(var(--spacing) * 1.5);
   }
   .p-2 {
     padding: calc(var(--spacing) * 2);
@@ -3990,6 +4117,9 @@
   }
   .px-6 {
     padding-inline: calc(var(--spacing) * 6);
+  }
+  .py-0\.5 {
+    padding-block: calc(var(--spacing) * 0.5);
   }
   .py-1 {
     padding-block: var(--spacing);
@@ -4050,6 +4180,9 @@
   }
   .text-center {
     text-align: center;
+  }
+  .text-left {
+    text-align: left;
   }
   .text-right {
     text-align: right;
@@ -4243,6 +4376,9 @@
   .text-primary {
     color: var(--color-primary);
   }
+  .text-warning {
+    color: var(--color-warning);
+  }
   .capitalize {
     text-transform: capitalize;
   }
@@ -4304,6 +4440,15 @@
     .floating-label:has(.input-sm) {
       --top-mul: 4;
       --font-size: 0.75rem;
+    }
+    .input-xs {
+      --in-size-mul: 6;
+      --font-size-min: 0.6875rem;
+      --spin-my: -1;
+    }
+    .floating-label:has(.input-xs) {
+      --top-mul: 3;
+      --font-size: 0.6875rem;
     }
     .select-sm {
       --sl-size-mul: 8;
@@ -4372,6 +4517,14 @@
   .select-none {
     -webkit-user-select: none;
     user-select: none;
+  }
+  @layer daisyui.l1.l2 {
+    .toggle-xs:is([type="checkbox"]) {
+      --size: calc(var(--size-selector, 0.25rem) * 4);
+    }
+    .toggle-xs:has([type="checkbox"]) {
+      --size: calc(var(--size-selector, 0.25rem) * 4);
+    }
   }
   .\[animation-delay\:300ms\] {
     animation-delay: 300ms;
@@ -4446,6 +4599,9 @@
         border-color: color-mix(in oklab, var(--color-base-content) 30%, transparent);
       }
     }
+    .hover\:border-primary:hover {
+      border-color: var(--color-primary);
+    }
     .hover\:bg-base-content\/5:hover {
       background-color: var(--color-base-content);
     }
@@ -4497,6 +4653,9 @@
   }
   .focus\:-outline-offset-2:focus {
     outline-offset: calc(2px * -1);
+  }
+  .focus-visible\:border-primary:focus-visible {
+    border-color: var(--color-primary);
   }
   .focus-visible\:text-primary:focus-visible {
     color: var(--color-primary);
@@ -4589,6 +4748,11 @@
     }
     .max-\[640px\]\:px-3 {
       padding-inline: calc(var(--spacing) * 3);
+    }
+  }
+  @media (width >= 40rem) {
+    .sm\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   @container (width >= 19rem) {

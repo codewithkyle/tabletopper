@@ -122,6 +122,22 @@ func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
 }
 
+// LayersPath, GridPath and LayerNamePath are the three table fragments this
+// page reaches for. They are query parameters rather than path segments for the
+// reason MembersPath is: each is a representation of a room's configuration and
+// not a resource of its own.
+func (d RoomPageData) LayersPath() string {
+	return "/fragment/room/layers?room=" + d.ID
+}
+
+func (d RoomPageData) GridPath() string {
+	return "/fragment/room/grid?room=" + d.ID
+}
+
+func (d RoomPageData) LayerNamePath() string {
+	return "/fragment/room/layer?room=" + d.ID
+}
+
 // IsGM is the one question the markup asks of the role, written here so that
 // the comparison lives beside the type rather than in a template.
 func (d RoomPageData) IsGM() bool {
@@ -189,7 +205,7 @@ type RoomMenuItem struct {
 func (d RoomPageData) Menus() []RoomMenu {
 	return []RoomMenu{
 		d.roomMenu(),
-		{Label: "Tabletop", Items: comingSoon("Settings", "Load image", "Spawn pawns", "Clear tabletop")},
+		d.tabletopMenu(),
 		{Label: "Fog", Items: comingSoon("Fill fog", "Clear fog")},
 		{Label: "Initiative", Items: comingSoon("Sync tracker", "Clear tracker")},
 		{Label: "Window", Items: comingSoon("Monster Manual", "Dice tray")},
@@ -264,6 +280,42 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 	}
 
 	return RoomMenuItem{ID: roomLockID, Label: "Lock room", Post: "/rooms/" + d.ID + "/lock"}
+}
+
+// tabletopMenu is what is under the pawns: the floors and the grid.
+//
+// BOTH ARE WINDOWS AND NOT MODALS, which was decided after the first two were
+// built as modals and rejected. The work is not one act: somebody preparing a
+// tower adds three floors and checks each map against the table behind it, and
+// somebody matching a cell size to a map is looking at the map while they do
+// it. A dialog that covered the table between every step would be shut and
+// reopened six times. The map picker one of them opens IS a modal, because
+// choosing one map is a single act with an end.
+//
+// A PLAYER SEES THE SAME FOUR LINES, DISABLED. The bar's shape does not change
+// with who is looking -- only the Room menu does that -- and a player who opens
+// this menu is told these exist and are not theirs, which is true.
+func (d RoomPageData) tabletopMenu() RoomMenu {
+	if !d.IsGM() {
+		return RoomMenu{Label: "Tabletop", Items: comingSoon("Layers", "Grid & settings", "Spawn pawns", "Clear tabletop")}
+	}
+
+	return RoomMenu{Label: "Tabletop", Items: append([]RoomMenuItem{
+		{Label: "Layers", Window: RoomWindow{
+			ID:     "layers",
+			Title:  "Layers",
+			URL:    d.LayersPath(),
+			Width:  320,
+			Height: 360,
+		}},
+		{Label: "Grid & settings", Window: RoomWindow{
+			ID:     "grid",
+			Title:  "Grid & settings",
+			URL:    d.GridPath(),
+			Width:  300,
+			Height: 420,
+		}},
+	}, comingSoon("Spawn pawns", "Clear tabletop")...)}
 }
 
 // viewMenu is the camera, plus the one item in it that needs no camera.

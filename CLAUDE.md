@@ -57,6 +57,12 @@ Go is scanned too: `for _, option := range options` is why `.range` is in the bu
 rules for a slider this app does not have. That one cannot be fixed, because the loop is
 the markup. It is why the check below stays a habit rather than a one-off.
 
+**Attribute values are scanned as well, and the extractor splits on `:` and `.`** So an
+`hx-trigger="room:table from:window"` puts `table` in the build exactly as the prose would,
+and a form field named `visible` emits `.visible`. Both happened here and both were caught
+by the diff below rather than by review. Where a name is ours to choose — a DOM event, a
+field, a data attribute — choose one that is not a component: `room:tabletop`, `showGrid`.
+
 After changing anything under `server/templ`, check what the build gained:
 
 ```sh

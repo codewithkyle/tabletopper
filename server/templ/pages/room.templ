@@ -21,6 +21,9 @@ templ roomContent(data RoomPageData) {
 					for _, m := range data.Menus() {
 						@roomBarMenu(m)
 					}
+					if !data.Closed {
+						@RoomLayerName(RoomLayerNameData{RoomID: data.ID})
+					}
 				</div>
 			}
 			<div

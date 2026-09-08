@@ -51,7 +51,7 @@ func Reduce(s *State, ev Event) error {
 	case *RoomUpdated:
 		s.Room = e.Room
 	case *TableUpdated:
-		s.Table = cloneTable(e.Table)
+		s.Table = CloneTable(e.Table)
 	case *InitiativeUpdated:
 		s.Initiative = cloneInitiative(e.Initiative)
 

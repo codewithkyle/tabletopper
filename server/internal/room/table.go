@@ -26,7 +26,7 @@ func (*TableUpdated) eventType() string { return "table.updated" }
 
 // tableUpdated is the emission nine of the commands below end with.
 func tableUpdated(s *State) Emission {
-	return to(ToAll, &TableUpdated{Table: cloneTable(s.Table)})
+	return to(ToAll, &TableUpdated{Table: CloneTable(s.Table)})
 }
 
 // TableAddLayer adds an empty floor above the ones already there.

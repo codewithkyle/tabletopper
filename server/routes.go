@@ -436,6 +436,30 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// a GM whose own connection has dropped still sees the person go.
 	mux.HandleFunc("POST /rooms/{id}/players/{player}/kick", auth.RequireSession(app.KickPlayer))
 
+	// THE TABLE'S CONFIGURATION, and every one of these is HTTP for the reason
+	// the kick above is: the controls are htmx, and a control that posted over
+	// the socket would need its own confirm, its own way to report a refusal
+	// and its own way to draw a form with errors in it.
+	//
+	// A LAYER IS A RESOURCE AND ITS MAP IS A RESOURCE OF ITS OWN. Setting one
+	// is a POST to .../map and clearing it is a DELETE of the same URL, rather
+	// than two verbs on the layer -- because clearing a layer's map and
+	// deleting the layer are different destructions and a GM who confuses them
+	// loses an encounter.
+	//
+	// NONE OF THEM ANSWERS WITH MARKUP except the grid, which answers with its
+	// error block. Every command here ends in table.updated, the windows
+	// refetch on it, and a reply carrying the new list would leave a second
+	// tab showing the old one.
+	mux.HandleFunc("POST /rooms/{id}/layers", auth.RequireSession(app.AddLayer))
+	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}", auth.RequireSession(app.RemoveLayer))
+	mux.HandleFunc("PATCH /rooms/{id}/layers/{layer}/name", auth.RequireSession(app.RenameLayer))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/move", auth.RequireSession(app.MoveLayer))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/activate", auth.RequireSession(app.ActivateLayer))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.SetLayerMap))
+	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.ClearLayerMap))
+	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
+
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
 	//
@@ -645,6 +669,27 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// membership check is in the handler beside the parse rather than in a
 	// wrapper that would have to parse it a second time.
 	mux.HandleFunc("GET /fragment/room/members", auth.Fragment(app.RoomMembersFragment))
+
+	// The active layer's name, in the menu bar, for everybody in the room. It
+	// is a fragment rather than a value the client fills in from the store
+	// because it is one string that changes when a GM clicks a menu item: the
+	// refetch pattern the player list uses costs one GET per floor change per
+	// client, and the alternative is a script that has to be kept in step with
+	// the reducer to print a name.
+	//
+	// IT ANSWERS EMPTY FOR A ROOM WITH ONE LAYER, which is nearly every room.
+	// A bar that permanently said "Ground floor" would be labelling the only
+	// thing there is.
+	mux.HandleFunc("GET /fragment/room/layer", auth.Fragment(app.RoomLayerFragment))
+
+	// THE GM'S TWO CONFIGURATION WINDOWS AND THE PICKER ONE OF THEM OPENS.
+	// Unlike the members fragment above, these are gated on OWNERSHIP: they are
+	// the controls that decide what the table is, and a player who fetched one
+	// would be reading the room's configuration. The handlers answer a player
+	// with the same 404 they answer a stranger.
+	mux.HandleFunc("GET /fragment/room/layers", auth.Fragment(app.RoomLayersFragment))
+	mux.HandleFunc("GET /fragment/room/maps", auth.Fragment(app.RoomMapsFragment))
+	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have

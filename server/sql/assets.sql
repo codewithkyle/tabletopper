@@ -93,6 +93,21 @@ WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character');
 SELECT owner_id, width, height, tile_size, max_zoom, tile_gen FROM assets
 WHERE id = ? AND type = 'map';
 
+-- THE MAPS A ROOM CAN ACTUALLY USE, which is a smaller set than GetMaps. A map
+-- with no tile_gen has no pyramid in the bucket yet -- it is queued, running,
+-- or it failed -- and putting one on a layer would give every client at the
+-- table a URL that 404s at every zoom.
+--
+-- ORDERED BY NAME, unlike the manager page's newest-first. This is a picker
+-- rather than a shelf: somebody choosing between eleven maps is looking for one
+-- they can name, and a list that reorders itself whenever a map is re-uploaded
+-- is a list they have to read every time.
+--
+-- name: ListReadyMaps :many
+SELECT id, name, width, height FROM assets
+WHERE owner_id = ? AND type = 'map' AND tile_gen IS NOT NULL
+ORDER BY name;
+
 -- name: GetMaps :many
 SELECT * FROM assets
 WHERE owner_id = ? AND type = 'map'

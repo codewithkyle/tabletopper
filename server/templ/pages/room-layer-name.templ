@@ -1,0 +1,12 @@
+package pages
+
+templ RoomLayerName(data RoomLayerNameData) {
+	<span
+		id="room-layer-name"
+		hx-get={ data.Path() }
+		hx-trigger="load, room:tabletop from:window"
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		class="ml-auto max-w-44 truncate px-2 text-xs text-base-content/60"
+	>{ data.Name }</span>
+}

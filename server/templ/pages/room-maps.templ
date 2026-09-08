@@ -1,0 +1,43 @@
+package pages
+
+templ RoomMaps(data RoomMapsData) {
+	<div class="flex flex-col gap-4">
+		<h2 class="text-lg font-semibold">Choose a map</h2>
+		if len(data.Maps) == 0 {
+			<p class="text-sm text-base-content/70">
+				None of your maps have finished tiling yet. Upload one from the Maps page, and it will
+				appear here once its tiles are ready.
+			</p>
+		} else {
+			<div class="grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
+				for _, m := range data.Maps {
+					@roomMapCard(data, m)
+				}
+			</div>
+		}
+		<div class="flex justify-end gap-2">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<a href="/assets/maps" class="btn">Manage maps</a>
+		</div>
+	</div>
+}
+
+templ roomMapCard(data RoomMapsData, m RoomMapChoice) {
+	<form hx-post={ data.SetPath() } hx-swap="none" class="contents">
+		<input type="hidden" name="asset" value={ m.ID }/>
+		<button
+			type="submit"
+			class="flex flex-col gap-1 rounded-box border border-base-300 p-1 text-left hover:border-primary focus-visible:border-primary"
+		>
+			<span class="relative block aspect-video w-full overflow-hidden rounded-sm bg-base-300">
+				<img src={ data.PreviewURL(m) } alt="" class="absolute inset-0 h-full w-full object-cover"/>
+			</span>
+			<span class="truncate px-1 text-sm font-medium">{ m.Name }</span>
+			<span class="px-1 text-xs text-base-content/60">{ m.Size() }</span>
+		</button>
+	</form>
+}

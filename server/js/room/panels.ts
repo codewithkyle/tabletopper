@@ -11,6 +11,13 @@
 // for in its own markup:
 //
 //     hx-get="/fragment/room/members?room=..." hx-trigger="room:players from:window"
+//
+// THIS IS ALSO WHY EVERY TABLE MUTATION ANSWERS 204. The layer manager, the
+// grid form and the layer name in the bar all listen for room:tabletop, and every
+// one of the GM's controls ends in table.updated -- so the window that sent the
+// command and the one open in another tab are corrected by the same event, from
+// the same source, at the same time. A reply carrying the new markup would
+// correct one of them.
 
 import type { Event } from "./protocol.ts";
 
@@ -22,12 +29,13 @@ const panelEvents: Partial<Record<Event["type"], string>> = {
 	"player.left": "room:players",
 	"initiative.updated": "room:initiative",
 	"room.updated": "room:info",
+	"table.updated": "room:tabletop",
 };
 
 // A snapshot changes everything at once, so it raises everything at once. This
 // is the first join and every resync, which is exactly when a panel drawn from
 // a stale fetch would be wrong.
-const everything = ["room:players", "room:initiative", "room:info"];
+const everything = ["room:players", "room:initiative", "room:info", "room:tabletop"];
 
 export function announce(event: Event): void {
 	if (event.type === "snapshot") {

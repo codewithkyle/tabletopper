@@ -172,7 +172,7 @@ func (h *Hub) Version() string { return h.version }
 // refused, which is what lets a handler put a heading and a message in the
 // alert modal without knowing anything about the command it sent.
 func (h *Hub) Dispatch(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
-	if err := h.resolve(ctx, cmd); err != nil {
+	if err := h.resolve(ctx, who, cmd); err != nil {
 		return err
 	}
 
@@ -280,6 +280,47 @@ func (h *Hub) Players(ctx context.Context, roomID ulid.ULID) ([]room.Player, boo
 	select {
 	case players := <-reply:
 		return players, players != nil
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
+// TableView is the room's table plus how many pawns stand on each layer. It is
+// the answer to the two questions the GM's configuration dialogs ask, and they
+// are answered together because they are read together: a layer manager that
+// fetched the table and then counted the pawns would be quoting a number from
+// one instant and offering to delete from another.
+type TableView struct {
+	Table room.Table
+	Pawns map[ulid.ULID]int
+}
+
+// Table is the live table for the layer manager and the grid form.
+//
+// IT LOADS THE ROOM RATHER THAN ANSWERING FALSE, which is the opposite of what
+// Players does a few lines up, and the difference is what the caller is about
+// to do. The player list is a passive read and booting a room to draw one would
+// mean a page load could start a room nobody is in. Somebody opening the layer
+// manager is one click away from Dispatch, which loads the room anyway; making
+// them wait for the fragment to be wrong first buys nothing.
+//
+// The false it can still answer is a hub that is shutting down or a room whose
+// snapshot will not load, which is the caller's cue to say so rather than to
+// draw an empty table.
+func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
+	a, err := h.room(ctx, roomID)
+	if err != nil {
+		return nil, false
+	}
+
+	reply := make(chan *TableView, 1)
+	if err := a.post(ctx, tableView{reply: reply}); err != nil {
+		return nil, false
+	}
+
+	select {
+	case view := <-reply:
+		return view, view != nil
 	case <-ctx.Done():
 		return nil, false
 	}

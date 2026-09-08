@@ -62,6 +62,10 @@ type (
 	// roster is the player list, for the members fragment.
 	roster struct{ reply chan []room.Player }
 
+	// tableView is the table and the pawn count per layer, for the layer
+	// manager and the grid form.
+	tableView struct{ reply chan *TableView }
+
 	// shutdown snapshots and closes every connection with going-away, so the
 	// browsers reconnect to the next process rather than showing an error.
 	shutdown struct{ done chan struct{} }
@@ -210,6 +214,9 @@ func (a *actor) handle(m any) bool {
 
 	case roster:
 		m.reply <- a.players()
+
+	case tableView:
+		m.reply <- a.table()
 
 	case shutdown:
 		a.stopAll(closeGoingAway, reasonRestarting)
@@ -677,6 +684,25 @@ func (a *actor) players() []room.Player {
 	return out
 }
 
+// table is the GM's two configuration dialogs, answered from inside the room
+// goroutine because that is the only place the state may be read.
+//
+// THE PAWN COUNT IS COUNTED HERE AND NOT ASKED FOR LATER. It is the number in
+// the layer manager's confirm text -- "Delete Cellar and the 9 pawns on it?" --
+// and a caller that received the table and then asked a second question would
+// be quoting a count from one instant and deleting from another.
+//
+// It is every pawn on the layer, not the shown ones. The reader is the GM, and
+// what they are about to delete is all of them.
+func (a *actor) table() *TableView {
+	pawns := make(map[ulid.ULID]int, len(a.state.Table.Layers))
+	for _, p := range a.state.Pawns {
+		pawns[p.LayerID]++
+	}
+
+	return &TableView{Table: room.CloneTable(a.state.Table), Pawns: pawns}
+}
+
 // drain answers whatever arrived in the instant between this room deciding to
 // retire and removing itself from the hub's map. Every sender selects on done
 // as well as on the inbox, so the window is one scheduling gap wide -- but a
@@ -696,6 +722,8 @@ func (a *actor) drain() {
 			case dispatch:
 				m.reply <- errGone
 			case roster:
+				m.reply <- nil
+			case tableView:
 				m.reply <- nil
 			case shutdown:
 				close(m.done)

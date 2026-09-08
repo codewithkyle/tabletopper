@@ -439,6 +439,30 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/rooms/" + id + "/players", "/"},
 		{http.MethodGet, "/rooms/" + id + "/players/" + id, "/"},
 		{http.MethodDelete, "/rooms/" + id + "/players/" + id, "/"},
+		// THE TABLE'S CONFIGURATION, and the shape of it is the point: a layer
+		// is a resource under the room and its MAP is a resource under the
+		// layer. Setting one is a POST to .../map and clearing it is a DELETE
+		// of the same URL, which is what keeps "clear this floor's map" and
+		// "delete this floor" from being the same request with a different
+		// verb -- two destructions a GM must not be able to confuse.
+		{http.MethodPost, "/rooms/" + id + "/layers", "POST /rooms/{id}/layers"},
+		{http.MethodDelete, "/rooms/" + id + "/layers/" + id, "DELETE /rooms/{id}/layers/{layer}"},
+		{http.MethodPatch, "/rooms/" + id + "/layers/" + id + "/name", "PATCH /rooms/{id}/layers/{layer}/name"},
+		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/move", "POST /rooms/{id}/layers/{layer}/move"},
+		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/activate", "POST /rooms/{id}/layers/{layer}/activate"},
+		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/map", "POST /rooms/{id}/layers/{layer}/map"},
+		{http.MethodDelete, "/rooms/" + id + "/layers/" + id + "/map", "DELETE /rooms/{id}/layers/{layer}/map"},
+		{http.MethodPost, "/rooms/" + id + "/grid", "POST /rooms/{id}/grid"},
+		// A layer is written and never read here: the list is a fragment,
+		// because it is a representation of the room's configuration and the
+		// prefix is what marks those.
+		{http.MethodGet, "/rooms/" + id + "/layers", "/"},
+		{http.MethodGet, "/rooms/" + id + "/layers/" + id, "/"},
+		{http.MethodGet, "/rooms/" + id + "/grid", "/"},
+		// And the grid is the room's, not a layer's. It is room-wide on the
+		// assumption that a building's floors were exported at one scale, and a
+		// per-layer URL would be an invitation to change that.
+		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/grid", "/"},
 		// THE LIVE CONNECTION IS NOT UNDER THE ROOM, and this pins why. A
 		// pattern "GET /rooms/{id}/socket" and "GET /rooms/join/{code}" both
 		// match "/rooms/join/socket" with neither more specific, which
@@ -474,6 +498,21 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// in the app gated on membership rather than on ownership.
 		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
 		{http.MethodPost, "/fragment/room/members", "/fragment/"},
+		// The GM's two configuration windows, the picker one of them opens,
+		// and the active layer's name in the bar -- four representations of a
+		// room's configuration, so four fragments. Three are the GM's and the
+		// fourth is everybody's; that is a decision in the handler, because the
+		// room is a query parameter and a wrapper would have to parse it twice.
+		{http.MethodGet, "/fragment/room/layers", "GET /fragment/room/layers"},
+		{http.MethodGet, "/fragment/room/maps", "GET /fragment/room/maps"},
+		{http.MethodGet, "/fragment/room/grid", "GET /fragment/room/grid"},
+		{http.MethodGet, "/fragment/room/layer", "GET /fragment/room/layer"},
+		// EVERY ONE OF THEM IS A GET AND NOTHING ELSE. A mutation keeps its
+		// resource URL, so the layer routes above are where the writing lives
+		// and the catch-all answers anything else here.
+		{http.MethodPost, "/fragment/room/layers", "/fragment/"},
+		{http.MethodPost, "/fragment/room/grid", "/fragment/"},
+		{http.MethodDelete, "/fragment/room/layers", "/fragment/"},
 		{http.MethodGet, "/rooms/" + id + "/members", "/"},
 		{http.MethodGet, "/fragment/rooms/" + id, "/fragment/"},
 	} {

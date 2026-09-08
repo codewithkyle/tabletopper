@@ -380,7 +380,16 @@ func (s *State) shownTransitions(before map[ulid.ULID]bool) []Emission {
 // The event payload clones. An emission is a value the hub holds until it has
 // encoded it, and a test holds one for the length of a scenario; sharing a
 // slice with the live state would let a later command edit an earlier event.
-func cloneTable(t Table) Table {
+
+// CloneTable is a deep copy of the table: the layer slice and every map
+// reference in it, so a caller may hold one while the room goes on changing.
+//
+// IT IS EXPORTED FOR THE HUB, which hands a copy out of the room goroutine to
+// the HTTP handler drawing the layer manager. Everything else in the protocol
+// clones inside this package, but a table crossing a goroutine boundary is the
+// one place where sharing the backing array would be a data race rather than
+// merely a surprise.
+func CloneTable(t Table) Table {
 	// The source is held before the destination is allocated. Ranging over the
 	// field after reassigning it would range over the fresh, empty slice --
 	// which is a copy that silently produces zeroes.
