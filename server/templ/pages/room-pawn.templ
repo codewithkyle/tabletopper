@@ -20,40 +20,58 @@ templ RoomPawnFragment(data RoomPawnData) {
 			if data.Pawn.Hidden {
 				<span class="badge badge-xs badge-warning shrink-0">Hidden</span>
 			}
+			@pawnActions(data)
 		</header>
-		@PanelFormErrors(data.Panel(), data.Errors)
+		@PanelFormErrors(data.Panel(), []string{})
 		if data.CanEdit {
 			@pawnHPForm(data)
 			@pawnEditor(data)
 		} else {
 			@pawnReadings(data)
 		}
-		<div class="mt-auto flex flex-wrap items-center gap-1 pt-1">
-			if data.IsGM && data.Pawn.MonsterID != "" {
-				<button
-					type="button"
-					class="btn btn-xs border-base-content/50"
-					data-window={ data.StatBlockWindow() }
-					data-window-url={ data.StatBlockPath() }
-					data-window-title={ data.Pawn.Name }
-					data-window-width="380"
-					data-window-height="520"
-				>Stat block</button>
-			}
-			if data.IsGM {
-				<button
-					type="button"
-					class="btn btn-xs btn-error ml-auto"
-					hx-delete={ data.RemovePath() }
-					hx-vals={ data.RemoveVals() }
-					hx-swap="none"
-					hx-confirm={ data.RemovePrompt() }
-					data-confirm-heading="Remove this pawn?"
-					data-confirm-label="Remove"
-				>Remove</button>
-			}
-		</div>
 	</article>
+}
+
+templ pawnActions(data RoomPawnData) {
+	<div class="flex shrink-0 items-center gap-0.5">
+		if data.IsGM && data.Pawn.MonsterID != "" {
+			<button
+				type="button"
+				class="btn btn-xs border-base-content/50"
+				data-window={ data.StatBlockWindow() }
+				data-window-url={ data.StatBlockPath() }
+				data-window-title={ data.Pawn.Name }
+				data-window-width="380"
+				data-window-height="520"
+			>Stat block</button>
+		}
+		if data.CanEdit {
+			<button
+				type="button"
+				class="btn btn-square btn-ghost btn-xs text-base-content/60"
+				aria-label="Rename"
+				data-modal-open={ data.RenamePath() }
+				data-modal-size="sm"
+			>
+				@pencilIcon()
+			</button>
+		}
+		if data.IsGM {
+			<button
+				type="button"
+				class="btn btn-square btn-ghost btn-xs text-base-content/60 hover:text-error"
+				aria-label={ data.RemoveLabel() }
+				hx-delete={ data.RemovePath() }
+				hx-vals={ data.RemoveVals() }
+				hx-swap="none"
+				hx-confirm={ data.RemovePrompt() }
+				data-confirm-heading="Remove this pawn?"
+				data-confirm-label="Remove"
+			>
+				@trashIcon()
+			</button>
+		}
+	</div>
 }
 
 templ pawnReadings(data RoomPawnData) {
@@ -116,29 +134,36 @@ templ pawnStat(caption string) {
 
 templ pawnHPForm(data RoomPawnData) {
 	<form
-		class="flex items-center gap-1"
+		class="fieldset"
 		hx-post={ data.HPPath() }
-		hx-target={ "#" + data.ElementID() }
-		hx-swap="outerHTML"
+		hx-trigger="change"
 		hx-sync="this:queue last"
+		hx-target={ "#errors-" + data.Panel() }
+		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
-		<label class="text-[10px] tracking-wide text-base-content/55 uppercase" for={ data.Field("hp") }>Hit points</label>
-		<input
-			id={ data.Field("hp") }
-			type="text"
-			name="hp"
-			value={ data.Pawn.HPValue }
-			inputmode="numeric"
-			autocomplete="off"
-			maxlength="6"
-			class="input input-xs w-14"
-		/>
-		if data.Pawn.MaxHP != "" {
-			<span class="text-xs text-base-content/55">/ { data.Pawn.MaxHP }</span>
-		}
-		<button type="submit" class="btn btn-xs">Set</button>
+		<label class="fieldset-legend" for={ data.Field("hp") }>Hit points</label>
+		<div class="flex items-center gap-1.5">
+			@pawnHPBox(data.Field("hp"), "hp", "Hit points", data.Pawn.HPValue)
+			<span class="shrink-0 text-base-content/45">/</span>
+			@pawnHPBox(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
+		</div>
 	</form>
+}
+
+templ pawnHPBox(id string, name string, caption string, value string) {
+	<input
+		id={ id }
+		name={ name }
+		type="text"
+		data-hp-math
+		value={ value }
+		aria-label={ caption }
+		inputmode="numeric"
+		autocomplete="off"
+		maxlength={ HPEntryMax }
+		class="input input-sm min-w-0 flex-1"
+	/>
 }
 
 templ pawnConditionChip(c RoomPawnCondition) {

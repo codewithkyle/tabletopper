@@ -13,23 +13,32 @@ import (
 // is the interaction the old client had that was worth carrying forward: a
 // goblin's hit points, armour class and conditions, tucked in a corner, several
 // at once, refetching themselves as the socket says they changed. Everything
-// about the pawn is now in it -- its name, its size, its maximum hit points,
-// its armour class, its conditions, whether players can see it and which floor
-// it stands on.
+// about the pawn is in it -- its hit points, its size, its armour class, its
+// conditions, whether players can see it and which floor it stands on.
 //
-// THERE WAS A MODAL AND IT HAS BEEN TAKEN OUT. It held exactly the fields
-// listed above, reached by an Edit button on this panel, and every one of them
-// is something a GM wants beside the value they are watching rather than behind
-// a button that blocks the page. Two surfaces for one pawn also meant two error
-// slots, two ids for every field, and a Save that dismissed a dialog rather
-// than answering with what it had changed.
+// THERE WAS AN EDIT MODAL AND IT HAS BEEN TAKEN OUT. It held every field listed
+// above, reached by an Edit button on this panel, and each of them is something
+// a GM wants beside the value they are watching rather than behind a button
+// that blocks the page. Two surfaces for one pawn also meant two error slots,
+// two ids for every field, and a Save that dismissed a dialog rather than
+// answering with what it had changed.
 //
-// THE OBJECTION TO A FORM IN A REFETCHING PANEL IS ANSWERED BY THE PANEL'S OWN
-// TRIGGER. A swap while somebody is typing throws away what they typed, which
-// is why the form used to be somewhere that never refetches -- but this panel
-// already declined every refetch while focus was inside it, to protect the one
-// field it had. That guard now covers the whole form. It is the same rule doing
-// more work rather than a new rule. See RoomPawnData.Trigger.
+// NOTHING HERE IS SAVED BY PRESSING ANYTHING. There is no Save button, for the
+// reason the character sheet has none: a form whose button is below the fold of
+// a 320 pixel window is a form that looks broken, and the reader who cannot see
+// it concludes the fields do not work. Every control autosaves -- the editor on
+// a debounced input, the hit-point boxes on change -- and both forms answer with
+// the panel's ERROR SLOT rather than with the panel. That is the whole of why
+// autosaving here is safe: a save that swapped the panel would replace the field
+// somebody had just tabbed into, which is precisely what an autosave does every
+// few seconds. See pawnSaveTrigger.
+//
+// THE NAME IS RENAMED THROUGH A DIALOG AND NOT THROUGH A FIELD, which is the
+// one thing here that is not a control in the panel. A name is changed once in
+// a session and read every second of it, so it is a heading with a button
+// beside it rather than an input taking up a row for ever; and an autosaving
+// text field that renames a pawn on every pause mid-word would rename it four
+// times to get to "Goblin archer".
 //
 // TWO OF THESE ARE OPEN AT ONCE AS A MATTER OF COURSE, which is what makes
 // every id in this file carry the pawn's own: the panel's element, its error
@@ -48,6 +57,33 @@ import (
 // course, and two elements sharing an id is a POST whose errors land in
 // somebody else's window.
 const RoomPawnPanel = "pawn"
+
+// RoomPawnRenamePanel is the same slot for the rename dialog, and it needs no
+// pawn id: there is one content modal on the page and it holds one dialog at a
+// time, so the two panels that could collide here cannot both exist.
+const RoomPawnRenamePanel = "pawn-rename"
+
+// pawnSaveTrigger is how the editor saves: a debounced keystroke, plus the
+// event repeater.js raises when a condition row is deleted.
+//
+// IT IS THE CHARACTER SHEET'S PANEL TRIGGER WITH A SHORTER FUSE. The sheet
+// waits a second because its fields are prose that one person is writing; this
+// is short numbers and selects, and what they change is on a table half a dozen
+// people are looking at -- a floor select that took a second to move a pawn
+// upstairs would read as a control that did not work.
+//
+// THE HIT-POINT BOXES ARE DELIBERATELY NOT ON THIS. They take arithmetic, and a
+// sum debounced on input is a different sum at every keystroke: "23-" is not a
+// number and "23-7" posted mid-entry is a goblin on 16 before the person had
+// finished typing 23-7-4. They fire on change, which is blur or Enter, which is
+// when a sum is finished. See js/room/hp.ts.
+const pawnSaveTrigger = "input delay:400ms, repeater:changed"
+
+// HPEntryMax is the maxlength of a hit-point box, as the attribute prints it.
+// It is not a bound on hit points -- the core decides those -- but on the
+// arithmetic the box accepts, and it is js/room/hp.ts's LIMIT written where the
+// markup can reach it.
+const HPEntryMax = "24"
 
 // ConditionNames is the twenty familiar conditions, offered as a datalist
 // rather than enforced as a set.
@@ -157,11 +193,23 @@ type RoomPawnData struct {
 	// RoomPawn.Hidden and both are here because one is a control's value and
 	// the other is a badge in the header.
 	Shown bool
+}
 
-	// Errors is what a refused field puts above the form. It arrives on a 422,
-	// which the form's hx-status:422 lets through the page's noSwap list, and
-	// it replaces the error slot rather than the panel.
-	Errors []string
+// RoomPawnRenameData is the rename dialog: one field, prefilled.
+type RoomPawnRenameData struct {
+	RoomID string
+	PawnID string
+	Name   string
+}
+
+// SavePath is the rename's own route rather than the panel's save.
+//
+// A ROUTE OF ITS OWN BECAUSE THE EDITOR'S POST IS THE WHOLE FORM. That handler
+// replaces a pawn's conditions with the rows the form carried, so a dialog
+// posting one field to it would take every condition off the goblin on its way
+// past. One field, one route, one command.
+func (d RoomPawnRenameData) SavePath() string {
+	return "/rooms/" + d.RoomID + "/pawns/" + d.PawnID + "/name"
 }
 
 // RoomPawn is one pawn as the panel draws it: strings, because every number on
@@ -187,10 +235,10 @@ type RoomPawn struct {
 	HP   string
 	Band string
 
-	// HPValue is what the editable field starts with, which is the current
-	// number and not the pair; MaxHP is the "/ 20" printed beside it. They are
-	// separate from HP because the editable form prints its two halves either
-	// side of an input and the read-only line prints them as one string.
+	// HPValue and MaxHP are the two editable boxes, which is the same pair HP
+	// prints as one string for a reader. They are separate from it because the
+	// row is two fields with a slash between them and the reading is a
+	// sentence: "4 / 7" cannot be typed into and neither box can be read.
 	HPValue string
 	MaxHP   string
 
@@ -283,6 +331,13 @@ func (d RoomPawnData) Path() string {
 	return "/fragment/room/pawn?room=" + d.RoomID + "&pawn=" + d.Pawn.ID
 }
 
+// RenamePath is the fragment the Rename button opens in the content modal. It
+// is a /fragment/ URL because the modal refuses anything else, for the reason a
+// window does: a page swapped into a dialog is a whole document inside a panel.
+func (d RoomPawnData) RenamePath() string {
+	return "/fragment/room/pawn/rename?room=" + d.RoomID + "&pawn=" + d.Pawn.ID
+}
+
 // Trigger is the refetch, and both halves of it are load-bearing.
 //
 // THE FILTER ON detail.id IS WHAT MAKES TEN WINDOWS COST ONE REQUEST. panels.ts
@@ -290,11 +345,14 @@ func (d RoomPawnData) Path() string {
 // open panel hears it and all but one decline. Without the filter, one goblin
 // taking damage is a GET per open window, every round, for the whole fight.
 //
-// THE FILTER ON activeElement IS WHAT KEEPS A REFETCH FROM EATING A KEYSTROKE.
-// The panel has one editable field, and a swap while somebody is typing into it
-// would replace the field and lose what was in it. Skipping the refetch
-// entirely while focus is inside the panel is exact: the POST that follows
-// their own entry answers with the panel, which brings it back in step.
+// THE FILTER ON activeElement IS WHAT KEEPS A REFETCH FROM EATING A KEYSTROKE,
+// and it asks about a TYPING field rather than about the panel. A swap replaces
+// the box somebody is halfway through filling in and loses what was in it --
+// but only a box that is being filled in. A select or a checkbox has nothing
+// half-entered to lose, and those are exactly the controls whose own save has
+// to bring the panel back: ticking "players can see this pawn" changes the
+// Hidden badge in the header, and a refetch declined because the checkbox still
+// had focus would leave the badge contradicting the box beside it.
 //
 // hx-sync="this:queue last" is in the markup beside this and is not optional. A
 // burst of events is a burst of GETs whose answers can land in either order --
@@ -302,12 +360,34 @@ func (d RoomPawnData) Path() string {
 // them one at a time keeping only the newest. Never "replace": that cancels the
 // request in flight, and htmx reports every cancellation as a console error.
 func (d RoomPawnData) Trigger() string {
-	return "room:pawn[detail.id === '" + d.Pawn.ID + "' && !this.contains(document.activeElement)] from:window"
+	return "room:pawn[detail.id === '" + d.Pawn.ID + "' && !" + typingInPanel + "] from:window"
 }
 
-// HPPath is where the one inline control posts. It is a resource URL and not a
-// fragment, because it is a mutation -- and it answers with the panel it just
-// changed, which is the case the fragment rules name.
+// typingInPanel is the half of the filter above that asks whether this panel
+// holds the caret, and it asks it by the control's TYPE rather than with a CSS
+// selector.
+//
+// NEITHER A SQUARE BRACKET NOR A COMMA MAY APPEAR IN AN hx-trigger FILTER. The
+// filter is delimited by the brackets around it and the whole attribute is split
+// on commas, so 'input[type=text],textarea' -- the obvious way to write this --
+// ends the filter early and leaves the rest of the expression parsed as trigger
+// modifiers. What comes out is not an error; it is a panel that has quietly
+// stopped refetching.
+//
+// A TYPE OF text OR number IS WHAT "TYPING" MEANS HERE, and it is deliberately
+// the positive list. Every box in this panel is one or the other; a select
+// answers "select-one", a checkbox "checkbox", and anything that is not a form
+// control answers undefined -- so the three controls whose own save has to bring
+// the panel back are covered by not being in the list, rather than by being
+// remembered in a list of exceptions.
+const typingInPanel = "(this.contains(document.activeElement) && " +
+	"(document.activeElement.type === 'text' || document.activeElement.type === 'number'))"
+
+// HPPath is where the hit-point row posts, both boxes together. It is a
+// resource URL and not a fragment because it is a mutation, and it answers with
+// the error slot rather than with anything to swap into the row -- the boxes
+// resolve their own arithmetic in the browser, so there is nothing left for the
+// reply to tell them.
 func (d RoomPawnData) HPPath() string {
 	return "/rooms/" + d.RoomID + "/pawns/" + d.Pawn.ID + "/hp"
 }
@@ -338,6 +418,21 @@ func (d RoomPawnData) SavePath() string {
 // that differ in how many.
 func (d RoomPawnData) RemovePath() string {
 	return "/rooms/" + d.RoomID + "/pawns"
+}
+
+// RemoveLabel is what a screen reader is told the Remove button does, and it is
+// built HERE rather than written in the markup for the reason conditionNameList
+// is. Tailwind reads every .templ file as text, attribute values included, and
+// the word "table" in one of them puts DaisyUI's whole .table family in the
+// stylesheet -- three selectors and a kilobyte for a component this window does
+// not use, with nothing failing anywhere. Measured with the selector diff.
+//
+// IT NAMES THE PAWN because the button is an icon in a row of icons, and "remove"
+// on its own does not say remove what. A sighted reader has the panel around it
+// to answer that; a reader listening to the button has this string and nothing
+// else.
+func (d RoomPawnData) RemoveLabel() string {
+	return "Remove " + d.Pawn.Name + " from the table"
 }
 
 // RemovePrompt names what is about to go, because "Are you sure?" over a table

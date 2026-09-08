@@ -474,16 +474,25 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// The pawn dialog sends a list of one, which is why there is no second pair
 	// of routes for the single case.
 	//
-	// HIT POINTS HAVE A ROUTE OF THEIR OWN, and it is the only one here that
-	// answers with markup. It is the one control on the live panel, so it
-	// replies with the panel it just changed -- the mutation-returns-what-it-
-	// changed case the fragment rules name -- rather than making the person who
-	// typed "-7" wait for their own event to come back round the socket.
+	// HIT POINTS AND THE NAME HAVE ROUTES OF THEIR OWN, and neither is a
+	// duplicate of the pawn's own POST above it. That one is the panel's editor
+	// and it posts the WHOLE form -- including the conditions, which it replaces
+	// wholesale -- so a control sending one field to it would take every chip
+	// off the goblin on its way past. The hit-point boxes also take arithmetic
+	// and fire on blur rather than on a debounced keystroke, and the name is
+	// changed in a dialog rather than in the panel at all.
+	//
+	// THE THREE OF THEM ANSWER WITH THE PANEL'S ERROR SLOT AND NOT WITH THE
+	// PANEL. Nothing in that window is saved by pressing anything, so a reply
+	// that swapped it would regularly replace the field somebody had moved on
+	// to; the socket is what brings every open copy back into step, including
+	// the one the change came from.
 	mux.HandleFunc("POST /rooms/{id}/pawns/party", auth.RequireSession(app.SpawnParty))
 	mux.HandleFunc("POST /rooms/{id}/pawns/layer", auth.RequireSession(app.MovePawnsToLayer))
 	mux.HandleFunc("DELETE /rooms/{id}/pawns", auth.RequireSession(app.RemovePawns))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}", auth.RequireSession(app.UpdatePawn))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/hp", auth.RequireSession(app.UpdatePawnHP))
+	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/name", auth.RequireSession(app.RenamePawn))
 
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
@@ -739,6 +748,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/spawn", auth.Fragment(app.RoomSpawnFragment))
 	mux.HandleFunc("GET /fragment/room/spawn-list", auth.Fragment(app.RoomSpawnListFragment))
 	mux.HandleFunc("GET /fragment/room/pawn", auth.Fragment(app.RoomPawnFragment))
+	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
 	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
 

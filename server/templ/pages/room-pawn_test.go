@@ -69,18 +69,32 @@ func testPawnPanel() RoomPawnData {
 // Without it, a fight is a GET per open window per round, which is exactly the
 // cost the refetch pattern was chosen on the assumption of NOT paying.
 //
-// The activeElement half is what keeps a refetch from eating a keystroke. The
-// panel carries one editable field -- hit points, the value that changes every
-// round -- and a swap while somebody is typing into it replaces the field and
-// loses what was in it.
+// The activeElement half is what keeps a refetch from eating a keystroke, and it
+// asks about a TYPING field rather than about the panel. A swap replaces the box
+// somebody is halfway through filling in; a select or a checkbox has nothing
+// half-entered to lose, and those are exactly the controls whose own save has to
+// bring the panel back -- ticking "players can see this pawn" changes the Hidden
+// badge in the header, and a refetch declined because the checkbox still had
+// focus would leave the badge contradicting the box beside it.
 func TestThePawnPanelFiltersItsRefetchOnItsOwnID(t *testing.T) {
 	body := decoded(t, RoomPawnFragment(testPawnPanel()))
 
 	if !strings.Contains(body, "detail.id === '"+testPawnID+"'") {
 		t.Errorf("the panel's trigger does not compare the pawn's own id:\n%s", body)
 	}
-	if !strings.Contains(body, "!this.contains(document.activeElement)") {
-		t.Error("the panel refetches while focus is inside it, which eats a keystroke in the hit-point field")
+	if !strings.Contains(body, "!"+typingInPanel) {
+		t.Errorf("the panel refetches while somebody is typing in it:\n%s", body)
+	}
+	// NEITHER A SQUARE BRACKET NOR A COMMA MAY APPEAR IN THE FILTER. It is
+	// delimited by the brackets around it and the attribute is split on commas,
+	// so a CSS selector written in here -- 'input[type=text],textarea' -- ends
+	// the filter early and leaves the rest parsed as trigger modifiers. Nothing
+	// errors; the panel just stops refetching.
+	if strings.ContainsAny(typingInPanel, "[],") {
+		t.Errorf("the filter carries a character that ends it early: %q", typingInPanel)
+	}
+	if !strings.Contains(typingInPanel, "'text'") || !strings.Contains(typingInPanel, "'number'") {
+		t.Errorf("the filter does not cover both kinds of box the panel has: %q", typingInPanel)
 	}
 	if !strings.Contains(body, "from:window") {
 		t.Error("the panel listens on itself rather than on window, where panels.ts dispatches")
@@ -173,22 +187,101 @@ func TestAReaderSeesTheReadingAndNotTheField(t *testing.T) {
 
 // A form in a panel that refetches would throw away what was half-typed in it,
 // which is exactly why the form used to be a modal. The panel's own trigger
-// filter is the answer: it declines every refetch while focus is inside it,
+// filter is the answer: it declines a refetch while a box in it has the caret,
 // which was written for one hit-point field and now covers the whole editor.
 func TestTheEditorIsInThePanelAndNotBehindAButton(t *testing.T) {
 	body := decoded(t, RoomPawnFragment(testPawnPanel()))
 
-	for _, field := range []string{`name="name"`, `name="size"`, `name="maxHp"`, `name="ac"`, `name="conditionName"`} {
+	for _, field := range []string{`name="hp"`, `name="maxHp"`, `name="size"`, `name="ac"`, `name="conditionName"`} {
 		if !strings.Contains(body, field) {
 			t.Errorf("the panel has no %s:\n%s", field, body)
 		}
 	}
 
-	// The modal is gone, and with it every way of asking for one.
-	for _, forbidden := range []string{"data-modal-open", "modal:close", "pawn/edit", ">Edit<"} {
+	// The edit modal is gone. The one dialog the panel still opens is the
+	// rename, which is a different URL and is checked below.
+	for _, forbidden := range []string{"pawn/edit", ">Edit<"} {
 		if strings.Contains(body, forbidden) {
 			t.Errorf("the panel still reaches for the edit modal: %q", forbidden)
 		}
+	}
+}
+
+// NOTHING IN THE PANEL IS SAVED BY PRESSING ANYTHING, and the missing button is
+// the point rather than an omission: a Save below the fold of a 320 pixel window
+// is a Save nobody finds, and the reader concludes the fields do not work.
+//
+// The two forms save on different events, which is why they are two. The editor
+// debounces a keystroke; the hit-point boxes take arithmetic and wait for the
+// entry to be finished, which is what change means.
+func TestNothingInThePanelIsSavedByPressingAnything(t *testing.T) {
+	body := decoded(t, RoomPawnFragment(testPawnPanel()))
+
+	if strings.Contains(body, `type="submit"`) || strings.Contains(body, ">Save<") {
+		t.Errorf("the panel still has a save button:\n%s", body)
+	}
+	if !strings.Contains(body, `hx-trigger="`+pawnSaveTrigger+`"`) {
+		t.Errorf("the editor does not autosave:\n%s", body)
+	}
+	if !strings.Contains(body, `hx-trigger="change"`) {
+		t.Errorf("the hit-point boxes do not save on change:\n%s", body)
+	}
+}
+
+// THE TWO NUMBERS ARE ONE CONTROL. "4 / 7" is how a table says it, so they are
+// one form on one route -- which is also what lets raising a maximum and healing
+// to it be a single entry, since PawnUpdate clamps once after applying both.
+//
+// BOTH BOXES TAKE ARITHMETIC, which is the data-hp-math attribute js/room/hp.ts
+// looks for. A box that had lost it would go on working and would stop doing
+// sums, which is exactly the kind of quiet regression a marker like this exists
+// to make loud.
+func TestTheHitPointRowIsOneFormWithBothNumbers(t *testing.T) {
+	data := testPawnPanel()
+	body := decoded(t, RoomPawnFragment(data))
+
+	if strings.Count(body, "data-hp-math") != 2 {
+		t.Errorf("the two hit-point boxes do not both do arithmetic:\n%s", body)
+	}
+	if strings.Count(body, `hx-post="`+data.HPPath()+`"`) != 1 {
+		t.Errorf("the hit-point row is not one form on the hit-point route:\n%s", body)
+	}
+	if strings.Contains(body, `type="number" inputmode="numeric" class="input input-sm validator peer w-full" value="7"`) {
+		t.Error("the maximum is still a plain number field, which cannot take a sum")
+	}
+}
+
+// THE NAME IS A HEADING WITH A BUTTON BESIDE IT AND NOT A FIELD. It is changed
+// once in a session and read every second of it, and an autosaving text field
+// would rename the pawn on every pause mid-word -- four renames to get to
+// "Goblin archer", each one an event to everybody at the table.
+func TestTheNameIsChangedInADialogAndNotInThePanel(t *testing.T) {
+	data := testPawnPanel()
+	body := decoded(t, RoomPawnFragment(data))
+
+	if strings.Contains(body, `name="name"`) {
+		t.Errorf("the panel still carries a name field:\n%s", body)
+	}
+	if !strings.Contains(body, `data-modal-open="`+data.RenamePath()+`"`) {
+		t.Errorf("the panel has no rename button:\n%s", body)
+	}
+	if !strings.HasPrefix(data.RenamePath(), "/fragment/") {
+		t.Errorf("the rename dialog is not a fragment, so the modal refuses it: %q", data.RenamePath())
+	}
+
+	// The dialog opens on the name the pawn has now, which is the whole reason
+	// it is a fragment rather than markup on the page.
+	dialog := decoded(t, RoomPawnRename(RoomPawnRenameData{
+		RoomID: testPawnRoomID, PawnID: testPawnID, Name: "Goblin",
+	}))
+	if !strings.Contains(dialog, `value="Goblin"`) {
+		t.Errorf("the rename dialog is not prefilled:\n%s", dialog)
+	}
+	if !strings.Contains(dialog, ">Close<") {
+		t.Error("the rename dialog has no labelled Close beside its affirmative action")
+	}
+	if !strings.Contains(dialog, `hx-post="/rooms/`+testPawnRoomID+"/pawns/"+testPawnID+`/name"`) {
+		t.Errorf("the rename dialog posts somewhere other than the rename route:\n%s", dialog)
 	}
 }
 
@@ -211,7 +304,7 @@ func TestTheGMsControlsRenderOnlyForTheGM(t *testing.T) {
 	if !strings.Contains(gm, `name="layer"`) {
 		t.Error("the GM has no floor select")
 	}
-	if !strings.Contains(gm, ">Remove<") {
+	if !strings.Contains(gm, `aria-label="`+data.RemoveLabel()+`"`) {
 		t.Error("the GM has no way to remove the pawn")
 	}
 
@@ -219,9 +312,9 @@ func TestTheGMsControlsRenderOnlyForTheGM(t *testing.T) {
 	data.Layers = nil
 
 	player := html(t, RoomPawnFragment(data))
-	// ">Remove<" and not "Remove": every condition row carries a "Remove
-	// condition" control, which is the player's to press.
-	for _, forbidden := range []string{`name="shown"`, `name="layer"`, ">Remove<"} {
+	// The whole aria-label and not the word: every condition row carries a
+	// "Remove condition" control, which is the player's to press.
+	for _, forbidden := range []string{`name="shown"`, `name="layer"`, `aria-label="` + data.RemoveLabel() + `"`} {
 		if strings.Contains(player, forbidden) {
 			t.Errorf("a player's panel carries %q", forbidden)
 		}
@@ -272,12 +365,12 @@ func TestEveryIDInThePanelCarriesThePawnsOwn(t *testing.T) {
 	data := testPawnPanel()
 	body := html(t, RoomPawnFragment(data))
 
-	for _, bare := range []string{`id="name"`, `id="size"`, `id="maxHp"`, `id="ac"`, `id="pawn-conditions"`, `id="condition-names"`, `id="pawn-form"`} {
+	for _, bare := range []string{`id="hp"`, `id="size"`, `id="maxHp"`, `id="ac"`, `id="pawn-conditions"`, `id="condition-names"`, `id="pawn-form"`} {
 		if strings.Contains(body, bare) {
 			t.Errorf("the panel carries a shared id: %q", bare)
 		}
 	}
-	for _, own := range []string{data.Field("name"), data.ConditionsID(), data.NamesID(), data.FormID()} {
+	for _, own := range []string{data.Field("hp"), data.Field("maxHp"), data.ConditionsID(), data.NamesID(), data.FormID()} {
 		if !strings.Contains(body, `"`+own+`"`) {
 			t.Errorf("the panel does not carry %q", own)
 		}
@@ -293,16 +386,21 @@ func TestEveryIDInThePanelCarriesThePawnsOwn(t *testing.T) {
 	}
 }
 
-// Both forms in the panel swap the panel, because both are mutations answering
-// with what they changed -- which is the case the fragment rules name for a
-// route outside /fragment/. A Save that answered 204 would leave the window
-// showing what the pawn was until the socket came back round.
-func TestBothOfThePanelsFormsSwapThePanel(t *testing.T) {
+// NEITHER FORM SWAPS THE PANEL, and that is what makes autosaving safe. Both
+// post while somebody is still working in the window -- one a few hundred
+// milliseconds after a keystroke, the other the moment a box is left -- so a
+// reply that replaced the panel would take away the field they had moved on to.
+// Both answer with the one error slot instead, and the socket is what brings
+// every open copy back into step.
+func TestNeitherFormSwapsThePanel(t *testing.T) {
 	data := testPawnPanel()
 	body := decoded(t, RoomPawnFragment(data))
 
-	if strings.Count(body, `hx-target="#`+data.ElementID()+`"`) != 2 {
-		t.Errorf("the two forms do not both answer with the panel:\n%s", body)
+	if strings.Contains(body, `hx-target="#`+data.ElementID()+`"`) {
+		t.Errorf("a save swaps the panel it is being typed into:\n%s", body)
+	}
+	if strings.Count(body, `hx-target="#errors-`+data.Panel()+`"`) != 2 {
+		t.Errorf("the two forms do not both answer with the error slot:\n%s", body)
 	}
 	if strings.Count(body, "target:#errors-"+data.Panel()) != 2 {
 		t.Errorf("the two forms do not share one error slot:\n%s", body)

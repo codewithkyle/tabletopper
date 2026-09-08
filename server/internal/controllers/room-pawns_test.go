@@ -43,20 +43,33 @@ func removePath(values url.Values) string {
 // AN UNSIGNED NUMBER IS AN ABSOLUTE VALUE. "7" in a box showing 12 means seven,
 // not nineteen: somebody setting a monster's hit points reads a number off a
 // sheet, and somebody applying damage types the minus sign.
-func TestHitPointArithmetic(t *testing.T) {
+//
+// EVERY CASE HERE HAS A TWIN IN js/room/hp.test.ts. The box resolves itself on
+// blur so the number appears without a round trip, and this resolves it again
+// because this is what holds the pawn; the two answering differently is a
+// number that changes when the panel refetches.
+func TestTheHitPointBoxTakesASum(t *testing.T) {
 	twelve := 12
 
 	cases := []struct {
-		entry string
-		from  *int
-		want  int
-		bad   bool
+		entry   string
+		from    *int
+		want    int
+		absent  bool
+		refused bool
 	}{
 		{entry: "12", from: &twelve, want: 12},
 		{entry: "0", from: &twelve, want: 0},
 		{entry: "-7", from: &twelve, want: 5},
 		{entry: "+3", from: &twelve, want: 15},
 		{entry: "  -7  ", from: &twelve, want: 5},
+
+		// The entry the field is built for: the value is already in the box and
+		// the damage is typed on the end of it.
+		{entry: "12-7", from: &twelve, want: 5},
+		{entry: "12-7-4", from: &twelve, want: 1},
+		{entry: "12 - 7", from: &twelve, want: 5},
+		{entry: "-7-4", from: &twelve, want: 1},
 
 		// Past zero is left to the core, which clamps against the max hit
 		// points it holds rather than the ones a request happened to carry.
@@ -67,20 +80,38 @@ func TestHitPointArithmetic(t *testing.T) {
 		// answer rather than a panic.
 		{entry: "+3", from: nil, want: 3},
 
-		{entry: "", from: &twelve, bad: true},
-		{entry: "lots", from: &twelve, bad: true},
-		{entry: "7hp", from: &twelve, bad: true},
-		{entry: "--7", from: &twelve, bad: true},
+		// An empty box is not a change. Blurring a field somebody has cleared
+		// must not set the pawn to zero.
+		{entry: "", from: &twelve, absent: true},
+		{entry: "   ", from: &twelve, absent: true},
+
+		{entry: "lots", from: &twelve, refused: true},
+		{entry: "7hp", from: &twelve, refused: true},
+		{entry: "--7", from: &twelve, refused: true},
+		{entry: "12-", from: &twelve, refused: true},
+		{entry: "-", from: &twelve, refused: true},
+		{entry: "7.5", from: &twelve, refused: true},
+		{entry: "12 7", from: &twelve, refused: true},
+		{entry: strings.Repeat("1", 25), from: &twelve, refused: true},
 	}
 
 	for _, tc := range cases {
-		got, bad := evaluateHP(tc.entry, tc.from)
-		if (bad != "") != tc.bad {
-			t.Errorf("evaluateHP(%q) refusal = %q, want bad = %v", tc.entry, bad, tc.bad)
+		got, ok, bad := evaluateHP(tc.entry, tc.from, "Hit points")
+
+		if (bad != "") != tc.refused {
+			t.Errorf("evaluateHP(%q) refusal = %q, want refused = %v", tc.entry, bad, tc.refused)
 
 			continue
 		}
-		if !tc.bad && got != tc.want {
+		if tc.refused {
+			continue
+		}
+		if ok == tc.absent {
+			t.Errorf("evaluateHP(%q) present = %v, want absent = %v", tc.entry, ok, tc.absent)
+
+			continue
+		}
+		if ok && got != tc.want {
 			t.Errorf("evaluateHP(%q) = %d, want %d", tc.entry, got, tc.want)
 		}
 	}

@@ -7,25 +7,27 @@ templ pawnEditor(data RoomPawnData) {
 		id={ data.FormID() }
 		class="flex flex-col gap-2"
 		hx-post={ data.SavePath() }
-		hx-target={ "#" + data.ElementID() }
+		hx-trigger={ pawnSaveTrigger }
+		hx-target={ "#errors-" + data.Panel() }
 		hx-swap="outerHTML"
 		hx-sync="this:queue last"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
-		@pawnTextField(data.Field("name"), "name", "Name", data.Pawn.Name)
 		if data.Pawn.Object {
-			<div class="grid grid-cols-3 gap-2">
+			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
 				@pawnPixels(data.Field("width"), "width", "Width", data.Pawn.Width)
 				@pawnPixels(data.Field("height"), "height", "Height", data.Pawn.Height)
+			</div>
+			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
 				@pawnDegrees(data.Field("rotation"), data.Pawn.Rotation)
+				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
 			</div>
 		} else {
-			@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
+			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
+				@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
+				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
+			</div>
 		}
-		<div class="grid grid-cols-2 gap-2">
-			@pawnNumberField(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
-			@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
-		</div>
 		if !data.Pawn.Object {
 			@pawnConditionsEditor(data)
 		}
@@ -35,22 +37,30 @@ templ pawnEditor(data RoomPawnData) {
 				@pawnLayerSelect(data)
 			}
 		}
-		<button type="submit" class="btn btn-sm btn-primary self-start">Save</button>
 	</form>
 }
 
-templ pawnTextField(id string, name string, caption string, value string) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ id }>{ caption }</label>
-		<input
-			id={ id }
-			name={ name }
-			type="text"
-			class="input input-sm validator peer w-full"
-			value={ value }
-			required
-		/>
-		<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+templ RoomPawnRename(data RoomPawnRenameData) {
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Rename</h3>
+		<form
+			class="grid gap-4"
+			hx-post={ data.SavePath() }
+			hx-target={ "#errors-" + RoomPawnRenamePanel }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:#errors-" + RoomPawnRenamePanel + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(RoomPawnRenamePanel, []string{})
+			@textField("name", "Name", data.Name, "", true)
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Rename</button>
+			</div>
+		</form>
 	</div>
 }
 

@@ -220,20 +220,18 @@ func (a *App) SpawnParty(w http.ResponseWriter, r *http.Request) {
 // RoomPawnFragment is the panel that goes in a window, which is the pawn's
 // whole surface: what it is, and every control for changing it.
 func (a *App) RoomPawnFragment(w http.ResponseWriter, r *http.Request) {
-	a.renderPawnPanel(w, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"), nil)
+	a.renderPawnPanel(w, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"))
 }
 
 // renderPawnPanel answers with the panel, or with the empty 404 that is the
 // only thing a viewer who may not see the pawn is ever told.
 //
-// THE TWO IDS ARE PASSED IN RATHER THAN READ OFF THE REQUEST, because the three
-// callers do not agree on where they are. The fragment carries them in the
-// query string; the two mutations that answer with the panel they just changed
-// carry them in the path. Reading the query here would leave both of those
-// answering 404 to a request that had in fact succeeded -- silently, because
-// the page's noSwap config swallows a 4xx and the socket event brings the panel
-// back into step a moment later.
-func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pawnID string, problems []string) {
+// NOTHING BUT THE FRAGMENT CALLS IT ANY MORE. The two saves used to answer with
+// the panel they had just changed; they answer with its error slot instead,
+// because a panel that swapped itself on every autosave would replace whatever
+// field the person had moved on to. So the panel is built here, when somebody
+// asks for it, and the socket is what tells them to ask again.
+func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pawnID string) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
@@ -253,7 +251,6 @@ func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pa
 		Pawn:    pawnView(pawn, role, layerName(view, pawn.LayerID)),
 		LayerID: pawn.LayerID.String(),
 		Shown:   pawn.Visible,
-		Errors:  problems,
 	}
 
 	// THE FLOOR SELECT IS THE GM'S AND SO IS THE READ BEHIND IT. hub.Table is
@@ -296,23 +293,23 @@ func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// UpdatePawn is the panel's form: everything about a pawn except the one value
-// that changes every round.
+// UpdatePawn is the panel's editor: everything about a pawn except its name,
+// which is a dialog, and its hit points, which are the row above it.
 //
 // IT IS UP TO FOUR COMMANDS AND THEY GO IN ORDER, because the protocol keeps
 // them apart on purpose -- conditions are replaced wholesale, visibility is the
 // GM's alone and drives the two-audience transitions, and a layer change moves
 // a pawn between floors. The plain fields go first: they are the ones that can
-// be refused for a value out of range, and a form that had already flipped the
-// visibility before failing would leave the GM with half of what they pressed
-// Save for.
+// be refused for a value out of range, and a save that had already flipped the
+// visibility before failing would leave the GM with half of what they typed.
 //
-// IT ANSWERS WITH THE PANEL IT JUST CHANGED, which is the same shape the
-// hit-point control has and the case the fragment rules name for a mutation
-// outside /fragment/. There is no modal to dismiss any more: the form is in a
-// window that stays open, so the reply has to be what that window should now
-// show. The socket says the same thing a moment later and every OTHER open copy
-// follows it.
+// IT ANSWERS WITH THE FORM'S ERROR SLOT AND NOT WITH THE PANEL, which is the
+// shape the character sheet's autosaving panels and the grid form already have.
+// The form has no Save button: it posts a few hundred milliseconds after a
+// keystroke, which is regularly while somebody is still working in it, and a
+// reply that swapped the panel would replace the field they had just tabbed
+// into. What brings the window back into step is the socket event, and the
+// panel's own trigger declines that only while a typing field has the caret.
 func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -390,24 +387,26 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	a.renderPawnPanel(w, r, r.PathValue("id"), r.PathValue("pawn"), nil)
+	a.renderPawnErrors(w, r, pawnID, nil)
 }
 
-// UpdatePawnHP is the panel's one quick control, and it answers with the panel.
+// UpdatePawnHP is the hit-point row: the current total and the maximum, in one
+// form because they are one reading -- "4 / 7" is how a table says it.
 //
-// THE MUTATION RETURNS WHAT IT CHANGED, which is the case the fragment rules
-// name. The socket says the same thing a moment later and every other open
-// window follows it, but the person who typed "-7" should not watch their own
-// entry sit there until their event comes back round.
+// IT IS SEPARATE FROM THE EDITOR BELOW IT because it is a different gesture at
+// a different rate. "The goblin takes 7" is typed every round and takes a sum;
+// the fields under it are a size and an armour class somebody sets once. That
+// difference is what puts them on different triggers -- change here, a debounced
+// keystroke there -- and forms do not nest, so two sibling forms is how a panel
+// holds two triggers.
+//
+// EITHER BOX MAY BE EMPTY AND EMPTY MEANS UNTOUCHED. A pawn can have no hit
+// points recorded at all, and a person clearing a box to retype it must not
+// have blurred their way into setting the goblin to zero.
 //
 // IT DOES NOT CLOSE A MODAL. There is no modal open behind this -- it is a
 // field in a window -- and sending modal:close would dismiss whatever else the
 // GM happened to have open.
-//
-// IT IS SEPARATE FROM THE FORM BELOW IT because it is a different gesture at a
-// different rate: "the goblin takes 7" is typed every round and takes a signed
-// change, and the form beside it is a Save somebody presses between fights.
-// They are two sibling forms rather than one, because forms do not nest.
 func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -431,27 +430,119 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hp, bad := evaluateHP(r.FormValue("hp"), pawn.HP)
-	if bad != "" {
-		a.renderPawnErrors(w, r, pawnID, []string{bad})
+	hp, hasHP, badHP := evaluateHP(r.FormValue("hp"), pawn.HP, "Hit points")
+	maxHP, hasMax, badMax := evaluateHP(r.FormValue("maxHp"), pawn.MaxHP, "Maximum hit points")
+
+	var problems []string
+	for _, bad := range []string{badHP, badMax} {
+		if bad != "" {
+			problems = append(problems, bad)
+		}
+	}
+	if len(problems) > 0 {
+		a.renderPawnErrors(w, r, pawnID, problems)
 
 		return
 	}
 
-	if err := a.Hub.Dispatch(ctx, roomID, who, &room.PawnUpdate{ID: pawnID, HP: &hp}); err != nil {
+	// BOTH NUMBERS GO IN ONE COMMAND, which is what makes raising a maximum and
+	// healing to it a single entry. PawnUpdate clamps once, after it has applied
+	// everything it was given, so a goblin taken from 7/7 to 20/20 is not
+	// clipped back to seven on its way through.
+	update := &room.PawnUpdate{ID: pawnID}
+	if hasHP {
+		update.HP = &hp
+	}
+	if hasMax {
+		update.MaxHP = &maxHP
+	}
+
+	if hasHP || hasMax {
+		if err := a.Hub.Dispatch(ctx, roomID, who, update); err != nil {
+			a.refusePawnForm(w, r, pawnID, "change a pawn's hit points", err)
+
+			return
+		}
+	}
+
+	a.renderPawnErrors(w, r, pawnID, nil)
+}
+
+// RenamePawn is the rename dialog's save: one field, one command.
+//
+// IT DISMISSES THE DIALOG AND ANSWERS NOTHING, which is the content modal's
+// contract. The panel behind it is corrected by the socket the same way every
+// other open copy of it is -- and it is genuinely behind it, so the refetch is
+// not declined for a caret that is in the dialog rather than in the panel.
+func (a *App) RenamePawn(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	who, roomID, ok := a.pawnActor(w, r)
+	if !ok {
+		return
+	}
+
+	pawnID, err := ulid.Parse(r.PathValue("pawn"))
+	if err != nil {
+		htmx.NotFound(w, "pawn")
+
+		return
+	}
+
+	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
+	if !live || !mayEditPawn(who.Role, sess.UserID, pawn) {
+		htmx.NotFound(w, "pawn")
+
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		renderPanelBlock(w, r, pages.RoomPawnRenamePanel, []string{"A pawn needs a name."})
+
+		return
+	}
+
+	cmd := &room.PawnUpdate{ID: pawnID, Name: &name}
+	if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
 		var refusal *room.Error
 		if errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
-			a.renderPawnErrors(w, r, pawnID, []string{refusal.Message})
+			renderPanelBlock(w, r, pages.RoomPawnRenamePanel, []string{refusal.Message})
 
 			return
 		}
 
-		a.rejectCommand(w, "change a pawn's hit points", err)
+		a.rejectCommand(w, "rename a pawn", err)
 
 		return
 	}
 
-	a.renderPawnPanel(w, r, r.PathValue("id"), r.PathValue("pawn"), nil)
+	htmx.CloseModal(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// RoomPawnRenameFragment is that dialog, prefilled with the name the pawn has
+// now. It is the panel's own permission check again: the projection decides
+// whether the asker may see the pawn at all, and mayEditPawn whether they may
+// change it.
+func (a *App) RoomPawnRenameFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	row, role, pawn, ok := a.livePawn(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"))
+	if !ok || !mayEditPawn(role, sess.UserID, pawn) {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomPawnRename(pages.RoomPawnRenameData{
+		RoomID: row.ID.String(),
+		PawnID: pawn.ID.String(),
+		Name:   pawn.Name,
+	}))
 }
 
 // MovePawnsToLayer is the GM sending a selection upstairs. It takes a list
@@ -773,8 +864,14 @@ func mayEditPawn(role room.Role, user ulid.ULID, pawn *room.Pawn) bool {
 	return pawn.OwnerID != nil && *pawn.OwnerID == user
 }
 
-// evaluateHP is the arithmetic the panel's one field takes: 12 sets, -7
-// subtracts, +3 adds.
+// hpEntryLimit is how long a hit-point entry may be. It is not a rule about hit
+// points -- the core decides those -- but a bound on the arithmetic, so a
+// pasted essay is refused as an entry rather than summed a digit at a time. It
+// is js/room/hp.ts's LIMIT and the maxlength the box carries.
+const hpEntryLimit = 24
+
+// evaluateHP is the arithmetic a hit-point box takes: 12 sets, -7 subtracts,
+// and 23-7-4 is worked out.
 //
 // THE SIGN IS THE OPERATOR AND THE ABSENCE OF ONE IS ALSO A DECISION. "7" in a
 // box showing 12 means seven, not nineteen; a GM setting a monster's hit points
@@ -782,19 +879,34 @@ func mayEditPawn(role room.Role, user ulid.ULID, pawn *room.Pawn) bool {
 // sign they would say out loud. Clamping is left to the core, which does it
 // against the max hit points it holds rather than the ones this happens to have
 // been handed.
-func evaluateHP(entry string, current *int) (int, string) {
-	text := strings.TrimSpace(entry)
+//
+// THE CLIENT EVALUATES THE SAME STRINGS AND THIS IS THE AUTHORITY. js/room/hp.ts
+// resolves the box on blur so the number appears without a round trip; every
+// case it answers, this has to answer the same way, and hp.test.ts and
+// TestTheHitPointBoxTakesASum are the two halves of that agreement. A request
+// still arrives carrying a sum whenever that script has not run.
+//
+// AN EMPTY BOX IS NOT A CHANGE, which is the false in the middle answer. A pawn
+// may have no hit points recorded at all, and somebody clearing a box to retype
+// it must not blur their way into setting the goblin to zero.
+func evaluateHP(entry string, current *int, what string) (int, bool, string) {
+	text := strings.Join(strings.Fields(entry), " ")
+	text = strings.ReplaceAll(text, " +", "+")
+	text = strings.ReplaceAll(text, "+ ", "+")
+	text = strings.ReplaceAll(text, " -", "-")
+	text = strings.ReplaceAll(text, "- ", "-")
+
 	if text == "" {
-		return 0, "Enter a number, or a signed change such as -7."
+		return 0, false, ""
 	}
 
-	value, err := strconv.Atoi(text)
-	if err != nil {
-		return 0, "Enter a number, or a signed change such as -7."
+	total, ok := sumTerms(text)
+	if !ok {
+		return 0, false, what + " has to be a number, or a change such as -7 or 23-7."
 	}
 
 	if text[0] != '+' && text[0] != '-' {
-		return value, ""
+		return total, true, ""
 	}
 
 	from := 0
@@ -802,30 +914,69 @@ func evaluateHP(entry string, current *int) (int, string) {
 		from = *current
 	}
 
-	return from + value, ""
+	return from + total, true, ""
 }
 
-// pawnUpdateForm turns the modal's form into the plain-field command. Every
-// field is a pointer, so a value the form did not carry is left alone rather
-// than reset -- which is what lets the object form omit a creature size and the
-// creature form omit a width and a height.
+// sumTerms adds a chain of signed whole numbers, left to right, and answers
+// false for anything that is not one. There is no precedence to get wrong: the
+// only operators are plus and minus, which is the whole of what a table does to
+// a hit-point total.
+func sumTerms(text string) (int, bool) {
+	if len(text) > hpEntryLimit {
+		return 0, false
+	}
+
+	total, sign, term, digits := 0, 1, 0, 0
+
+	for i := 0; i < len(text); i++ {
+		c := text[i]
+
+		if c == '+' || c == '-' {
+			// A sign is only an operator after a number, and only ever the
+			// first character otherwise -- so "23--7" and a bare "-" are
+			// refused rather than read as something nobody typed.
+			if i > 0 && digits == 0 {
+				return 0, false
+			}
+
+			total += sign * term
+			sign, term, digits = 1, 0, 0
+			if c == '-' {
+				sign = -1
+			}
+
+			continue
+		}
+
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+
+		term = term*10 + int(c-'0')
+		digits++
+	}
+
+	if digits == 0 {
+		return 0, false
+	}
+
+	return total + sign*term, true
+}
+
+// pawnUpdateForm turns the editor into the plain-field command. Every field is
+// a pointer, so a value the form did not carry is left alone rather than reset
+// -- which is what lets the object form omit a creature size and the creature
+// form omit a width and a height.
+//
+// THE NAME AND THE HIT POINTS ARE NOT IN IT, and both are absences worth
+// stating. The name is the rename dialog's, and a form that read a missing
+// field as an empty one would refuse every autosave with "a pawn needs a name".
+// The two hit-point boxes are their own form on their own route, because they
+// take arithmetic and fire on a different event.
 func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []string) {
 	var problems []string
 
 	cmd := &room.PawnUpdate{ID: pawn.ID}
-
-	name := strings.TrimSpace(r.FormValue("name"))
-	if name == "" {
-		problems = append(problems, "A pawn needs a name.")
-	} else {
-		cmd.Name = &name
-	}
-
-	if value, ok, bad := optionalNumber(r.FormValue("maxHp"), "Maximum hit points"); bad != "" {
-		problems = append(problems, bad)
-	} else if ok {
-		cmd.MaxHP = &value
-	}
 
 	if value, ok, bad := optionalNumber(r.FormValue("ac"), "Armour class"); bad != "" {
 		problems = append(problems, bad)

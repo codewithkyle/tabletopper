@@ -22,6 +22,7 @@ import { mountOverlay } from "./overlay.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
+import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import type { Event, Role, State } from "./protocol.ts";
@@ -37,6 +38,11 @@ if (mount) {
 	// still has a player list worth reading, and the layout somebody arranged
 	// should come back whether or not the table is live.
 	mountWindows(mount, mount.dataset.room ?? "");
+
+	// The hit-point boxes inside those windows. It is one listener on the
+	// document rather than anything a panel owns, because a panel is markup
+	// htmx swapped in and has no mount of its own to run.
+	mountHitPoints();
 
 	const state = empty();
 	const roomID = mount.dataset.room ?? "";
