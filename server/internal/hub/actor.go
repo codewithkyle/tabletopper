@@ -5,9 +5,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log/slog"
+	"math"
 	"slices"
 	"time"
 
+	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 
 	"github.com/oklog/ulid/v2"
@@ -65,6 +67,20 @@ type (
 	// tableView is the table and the pawn count per layer, for the layer
 	// manager and the grid form.
 	tableView struct{ reply chan *TableView }
+
+	// pawnView is one pawn as one role may see it, for the pawn window and
+	// the stat block route. The role is carried rather than assumed because
+	// the answer is different for the two of them, and getting that wrong is
+	// the one mistake in this phase that leaks.
+	pawnView struct {
+		id    ulid.ULID
+		role  room.Role
+		reply chan *room.Pawn
+	}
+
+	// spawnView is what resolving a spawn needs and only the room knows: who
+	// is at the table, which floor is active, and how big its map is.
+	spawnView struct{ reply chan *SpawnView }
 
 	// shutdown snapshots and closes every connection with going-away, so the
 	// browsers reconnect to the next process rather than showing an error.
@@ -217,6 +233,12 @@ func (a *actor) handle(m any) bool {
 
 	case tableView:
 		m.reply <- a.table()
+
+	case pawnView:
+		m.reply <- a.state.ProjectedPawn(m.id, m.role)
+
+	case spawnView:
+		m.reply <- a.spawn()
 
 	case shutdown:
 		a.stopAll(closeGoingAway, reasonRestarting)
@@ -574,6 +596,17 @@ func (a *actor) snapshot(c *client) {
 // triggered by an event: Close sends the room a message of its own and unloads
 // it, and room.closed is what that message emits on the way out.
 func (a *actor) effect(em room.Emission) {
+	// THE GM'S COPY AND NOT THE PLAYERS', because a shown pawn emits both and
+	// this must run once. The GM's is also the unprojected one, so its hit
+	// points are the real ones -- the players' copy of a monster carries a band
+	// or nothing, and a player pawn's would be right by luck rather than by
+	// construction.
+	if updated, ok := em.Event.(*room.PawnUpdated); ok && em.To == room.ToGM {
+		a.writeThrough(updated.Pawn)
+
+		return
+	}
+
 	if _, ok := em.Event.(*room.PlayerKicked); !ok {
 		return
 	}
@@ -588,6 +621,64 @@ func (a *actor) effect(em room.Emission) {
 	if len(a.conns) == 0 {
 		a.emptySince = time.Now()
 	}
+}
+
+// writeThrough puts a player pawn's hit points back on the character sheet, so
+// that a fight fought at the table leaves the sheet saying what happened.
+//
+// ONE COLUMN AND NO OTHER, which is UpdateCharacterCurrentHP's whole shape.
+// Max hit points and armour class were read off the sheet when the pawn was
+// spawned and are the TABLE'S copy afterwards: a GM giving one goblin's twin an
+// extra point of armour for one fight must not be able to rewrite somebody's
+// character, and the same rule applied to a player pawn is what keeps a
+// temporary buff out of the sheet.
+//
+// IT RUNS ON EVERY UPDATE RATHER THAN ON A CHANGE, and the alternative was
+// worse than the cost. Knowing that hit points changed means carrying the pawn
+// as it was before Apply ran alongside the event, through a path whose entire
+// value is that an event carries the entity and nothing else. What this saves
+// instead is a statement that writes the value already there, at the rate a GM
+// renames a pawn -- a few times a session.
+//
+// OFF THE ROOM'S GOROUTINE, for forget's reason: a table full of people must
+// not wait on an UPDATE. A failure is a log line, because the table is still
+// right and the sheet catches up the next time anything edits the pawn.
+func (a *actor) writeThrough(p room.Pawn) {
+	character, hp, owed := writeThroughHP(p)
+	if !owed || a.hub.queries == nil {
+		return
+	}
+
+	q := a.hub.queries
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer cancel()
+
+		_, err := q.UpdateCharacterCurrentHP(ctx, queries.UpdateCharacterCurrentHPParams{
+			CurrentHP: uint16(max(0, min(hp, math.MaxUint16))),
+			ID:        character,
+		})
+		if err != nil {
+			slog.Error("Failed to write a pawn's hit points back to its sheet", "character", character, "error", err)
+		}
+	}()
+}
+
+// writeThroughHP is the decision on its own: whose sheet, what number, and
+// whether anything is owed at all.
+//
+// IT IS SPLIT OUT SO IT CAN BE TESTED WITHOUT A DATABASE. What matters about
+// the write-through is which pawns it fires for -- a player's, never a
+// monster's, never an object's -- and that is a question about a pawn rather
+// than about SQL. The statement above it is one line and the goroutine around
+// it is forget's, already established.
+func writeThroughHP(p room.Pawn) (ulid.ULID, int, bool) {
+	if p.Kind != room.PawnPlayer || p.CharacterID == nil || p.HP == nil {
+		return ulid.ULID{}, 0, false
+	}
+
+	return *p.CharacterID, *p.HP, true
 }
 
 // forget clears the room off the kicked person's session rows, so the homepage
@@ -703,6 +794,56 @@ func (a *actor) table() *TableView {
 	return &TableView{Table: room.CloneTable(a.state.Table), Pawns: pawns}
 }
 
+// pawn is one pawn as the asking role may see it, which is the protocol's own
+// question and is therefore asked of the protocol. See room.ProjectedPawn for
+// why there is no way to reach the unprojected one from here.
+
+// SpawnView is what resolution needs from a running room: who is at the table
+// and what they brought, which floor is active, and the geometry a row of party
+// pawns is laid out against.
+//
+// IT IS READ IN ONE MESSAGE RATHER THAN FOUR. Spawning the party asks who is
+// connected, which characters are already standing on the table, where the
+// centre of the floor is and how wide a cell is; asking those separately would
+// mean four trips into a goroutine that a table full of people is waiting on,
+// and four answers from four different instants.
+type SpawnView struct {
+	ActiveLayer ulid.ULID
+	Grid        room.Grid
+	Map         *room.MapRef
+
+	// Players is everybody in the room, connected or not. Resolution filters
+	// it, because "connected" is its rule rather than this one's.
+	Players []room.Player
+
+	// Characters is the set already represented by a player pawn, which is
+	// what keeps Spawn party from putting a second Ilyana beside the first
+	// when it is pressed twice.
+	Characters map[ulid.ULID]bool
+}
+
+func (a *actor) spawn() *SpawnView {
+	view := &SpawnView{
+		ActiveLayer: a.state.Table.ActiveLayer,
+		Grid:        a.state.Table.Grid,
+		Players:     a.players(),
+		Characters:  make(map[ulid.ULID]bool),
+	}
+
+	if layer := a.state.Layer(view.ActiveLayer); layer != nil && layer.Map != nil {
+		m := *layer.Map
+		view.Map = &m
+	}
+
+	for _, p := range a.state.Pawns {
+		if p.Kind == room.PawnPlayer && p.CharacterID != nil {
+			view.Characters[*p.CharacterID] = true
+		}
+	}
+
+	return view
+}
+
 // drain answers whatever arrived in the instant between this room deciding to
 // retire and removing itself from the hub's map. Every sender selects on done
 // as well as on the inbox, so the window is one scheduling gap wide -- but a
@@ -724,6 +865,10 @@ func (a *actor) drain() {
 			case roster:
 				m.reply <- nil
 			case tableView:
+				m.reply <- nil
+			case pawnView:
+				m.reply <- nil
+			case spawnView:
 				m.reply <- nil
 			case shutdown:
 				close(m.done)

@@ -118,6 +118,20 @@ func (e *PawnDragging) ForRole(role Role) Event {
 // of those are rows in the database and this package has none. Apply then owns
 // the fields that are the table's rather than the source's: where it stands,
 // which floor it is on, whether players can see it.
+//
+// SIZE IS ON THE WIRE AND EVERY OTHER STAT IS NOT, which looks arbitrary and is
+// not. A monster and a character both bring a size with them, from a column;
+// a token brings nothing but a picture, and there is no honest default for how
+// much floor a picture stands on. Size is also the one of these that is
+// structural rather than informational: it decides the footprint, which decides
+// the snapping lattice and the drawn radius, so a token placed at the wrong one
+// is placed in the wrong place. Hit points and armour class are numbers a GM
+// fills in once they know what the thing is, and the pawn dialog is where they
+// do it -- putting them here would put a stat block in a spawn dialog.
+//
+// It is READ BY THE HUB AND NOT BY Apply, like MonsterID and AssetID beside it.
+// Resolution is what decides whether a size is taken from this field, from a
+// row, or ignored entirely because the pawn is an object with a footprint.
 type PawnSpawn struct {
 	Kind        PawnKind   `json:"kind"`
 	Layer       ulid.ULID  `json:"layer"`
@@ -128,6 +142,7 @@ type PawnSpawn struct {
 	CharacterID *ulid.ULID `json:"characterId,omitempty"`
 	AssetID     *ulid.ULID `json:"assetId,omitempty"`
 	Name        string     `json:"name,omitempty"`
+	Size        Size       `json:"size,omitempty"`
 	FootprintW  int        `json:"footprintW,omitempty"`
 	FootprintH  int        `json:"footprintH,omitempty"`
 
@@ -739,6 +754,44 @@ func (s *State) requireOwner(a Actor, id ulid.ULID, what string) error {
 	}
 
 	return nil
+}
+
+// ProjectedPawn is one pawn as one role may see it, or nil when that role is
+// shown nothing at all. It is the only way out of this package to a single
+// pawn, and it is exported for exactly one caller: the hub, answering the HTTP
+// fragments that draw a pawn's panel and its stat block.
+//
+// IT IS PROJECTED BY CONSTRUCTION AND THAT IS THE POINT OF ITS EXISTING. The
+// two-audience design rests on a hidden pawn never reaching a player's browser,
+// and every socket emission honours it because Apply runs the payload through
+// projectPawn on the way to ToPlayers. A fragment route is a second door into
+// the same state, and one that handed back the stored pawn would be a way round
+// all of it -- a player guesses a ULID, GETs the panel, and reads the hit
+// points the socket was careful never to send.
+//
+// So clonePawn and projectPawn stay unexported and this is what crosses the
+// import. A caller cannot ask for the unprojected pawn because there is nothing
+// to ask; it can only forget to check for nil, which is an empty panel rather
+// than a leak.
+func (s *State) ProjectedPawn(id ulid.ULID, role Role) *Pawn {
+	p := s.Pawn(id)
+	if p == nil {
+		return nil
+	}
+
+	if role == RoleGM {
+		out := clonePawn(*p)
+
+		return &out
+	}
+
+	if !s.Shown(*p) {
+		return nil
+	}
+
+	out := projectPawn(clonePawn(*p), s.Table)
+
+	return &out
 }
 
 // pawnUpdated is the pair of emissions an edit to one pawn produces: the whole

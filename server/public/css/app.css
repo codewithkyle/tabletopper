@@ -7,6 +7,14 @@
     --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
+    --color-red-500: oklch(63.7% 0.237 25.331);
+    --color-orange-500: oklch(70.5% 0.213 47.604);
+    --color-yellow-400: oklch(85.2% 0.199 91.936);
+    --color-green-500: oklch(72.3% 0.219 149.579);
+    --color-blue-500: oklch(62.3% 0.214 259.815);
+    --color-purple-500: oklch(62.7% 0.265 303.9);
+    --color-pink-400: oklch(71.8% 0.202 349.761);
+    --color-white: #fff;
     --spacing: 0.25rem;
     --container-sm: 24rem;
     --container-md: 28rem;
@@ -29,6 +37,7 @@
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
     --font-weight-extrabold: 800;
+    --tracking-wide: 0.025em;
     --tracking-wider: 0.05em;
     --leading-tight: 1.25;
     --radius-sm: 0.25rem;
@@ -3217,6 +3226,9 @@
   .mt-\[min\(14vh\,7rem\)\] {
     margin-top: min(14vh, 7rem);
   }
+  .mt-auto {
+    margin-top: auto;
+  }
   .mr-3 {
     margin-right: calc(var(--spacing) * 3);
   }
@@ -3418,6 +3430,9 @@
   .h-10 {
     height: calc(var(--spacing) * 10);
   }
+  .h-16 {
+    height: calc(var(--spacing) * 16);
+  }
   .h-\[62vh\] {
     height: 62vh;
   }
@@ -3429,6 +3444,9 @@
   }
   .h-screen {
     height: 100vh;
+  }
+  .max-h-16 {
+    max-height: calc(var(--spacing) * 16);
   }
   .max-h-48 {
     max-height: calc(var(--spacing) * 48);
@@ -3482,6 +3500,12 @@
   }
   .w-16 {
     width: calc(var(--spacing) * 16);
+  }
+  .w-20 {
+    width: calc(var(--spacing) * 20);
+  }
+  .w-24 {
+    width: calc(var(--spacing) * 24);
   }
   .w-28 {
     width: calc(var(--spacing) * 28);
@@ -3657,6 +3681,9 @@
   .grid-cols-\[auto_1fr\] {
     grid-template-columns: auto 1fr;
   }
+  .grid-cols-\[minmax\(0\,1fr\)_auto_5rem_auto\] {
+    grid-template-columns: minmax(0,1fr) auto 5rem auto;
+  }
   .grid-cols-\[repeat\(auto-fill\,minmax\(11rem\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fill,minmax(11rem,1fr));
   }
@@ -3758,6 +3785,9 @@
   }
   .gap-x-8 {
     column-gap: calc(var(--spacing) * 8);
+  }
+  .gap-y-1\.5 {
+    row-gap: calc(var(--spacing) * 1.5);
   }
   .gap-y-2 {
     row-gap: calc(var(--spacing) * 2);
@@ -3910,6 +3940,12 @@
       border-color: color-mix(in oklab, var(--color-base-content) 15%, transparent);
     }
   }
+  .border-base-content\/25 {
+    border-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-base-content) 25%, transparent);
+    }
+  }
   .border-base-content\/40 {
     border-color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
@@ -3976,11 +4012,20 @@
       background-color: color-mix(in oklab, var(--color-base-content) 25%, transparent);
     }
   }
+  .bg-blue-500 {
+    background-color: var(--color-blue-500);
+  }
   .bg-error\/90 {
     background-color: var(--color-error);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-error) 90%, transparent);
     }
+  }
+  .bg-green-500 {
+    background-color: var(--color-green-500);
+  }
+  .bg-orange-500 {
+    background-color: var(--color-orange-500);
   }
   .bg-panel\/70 {
     background-color: var(--color-panel);
@@ -4000,6 +4045,15 @@
       background-color: color-mix(in oklab, var(--color-panel) 95%, transparent);
     }
   }
+  .bg-pink-400 {
+    background-color: var(--color-pink-400);
+  }
+  .bg-purple-500 {
+    background-color: var(--color-purple-500);
+  }
+  .bg-red-500 {
+    background-color: var(--color-red-500);
+  }
   .bg-success {
     background-color: var(--color-success);
   }
@@ -4014,6 +4068,12 @@
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-warning) 30%, transparent);
     }
+  }
+  .bg-white {
+    background-color: var(--color-white);
+  }
+  .bg-yellow-400 {
+    background-color: var(--color-yellow-400);
   }
   @layer daisyui.l1.l2.l3 {
     .btn-outline {
@@ -4082,6 +4142,10 @@
     object-fit: cover;
   }
   @layer daisyui.l1.l2 {
+    .checkbox-sm {
+      padding: 0.1875rem;
+      --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
     .radio-xs {
       padding: 0.125rem;
     }
@@ -4149,8 +4213,14 @@
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
   }
+  .py-10 {
+    padding-block: calc(var(--spacing) * 10);
+  }
   .py-12 {
     padding-block: calc(var(--spacing) * 12);
+  }
+  .pt-1 {
+    padding-top: var(--spacing);
   }
   .pt-2 {
     padding-top: calc(var(--spacing) * 2);
@@ -4322,6 +4392,10 @@
     --tw-tracking: 0.11em;
     letter-spacing: 0.11em;
   }
+  .tracking-wide {
+    --tw-tracking: var(--tracking-wide);
+    letter-spacing: var(--tracking-wide);
+  }
   .tracking-wider {
     --tw-tracking: var(--tracking-wider);
     letter-spacing: var(--tracking-wider);
@@ -4350,10 +4424,22 @@
       color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
     }
   }
+  .text-base-content\/45 {
+    color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-base-content) 45%, transparent);
+    }
+  }
   .text-base-content\/50 {
     color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
       color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
+    }
+  }
+  .text-base-content\/55 {
+    color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-base-content) 55%, transparent);
     }
   }
   .text-base-content\/60 {
@@ -4685,6 +4771,9 @@
   .focus\:-outline-offset-2:focus {
     outline-offset: calc(2px * -1);
   }
+  .focus-visible\:border-primary:focus-visible {
+    border-color: var(--color-primary);
+  }
   .focus-visible\:text-primary:focus-visible {
     color: var(--color-primary);
   }
@@ -4795,6 +4884,11 @@
   }
   @container (width >= 22rem) {
     .\@\[22rem\]\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @container (width >= 24rem) {
+    .\@sm\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }

@@ -6,6 +6,8 @@ import (
 	"errors"
 
 	"tabletopper/internal/room"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // RESOLUTION IS THE HUB'S HALF OF THREE COMMANDS. internal/room has no database
@@ -19,25 +21,26 @@ import (
 // socket's read loop or the HTTP handler's, so the room never waits on a
 // SELECT while a table full of people waits on the room.
 //
-// TWO OF THE THREE ARE STILL STUBS. The commands exist because the protocol is
-// complete; spawning is not built yet, and a GM who finds a way to send one
-// gets a message saying so, which is true, rather than a pawn with no name.
-func (h *Hub) resolve(ctx context.Context, who room.Actor, cmd room.Command) error {
+// THE ROOM ID IS A PARAMETER AND THE ACTOR IS NOT ENOUGH. Setting a map needs
+// only the asker, whose library it is; the two spawns need the room as well --
+// which floor is active, who is sitting at the table, and which characters are
+// already on it. Those are room state, so they are read back out of the room in
+// one message rather than reconstructed from anything a browser sent. The two
+// callers both have the id: the socket's read pump has its actor, and Dispatch
+// was given one.
+//
+// THE SPAWNS THEMSELVES LIVE IN spawn.go, which is four kinds and four sources
+// and long enough to be its own file.
+func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
 	switch cmd := cmd.(type) {
 	case *room.TableSetLayerMap:
 		return h.resolveMap(ctx, who, cmd)
 
 	case *room.PawnSpawn:
-		// To fill in when spawning lands: read the monster, character or token
-		// asset the command names and build the whole pawn from it -- name,
-		// image, hit points, armour class, size.
-		return notBuilt("Spawning is not ready", "Putting a pawn on the table is not built yet.")
+		return h.resolveSpawn(ctx, roomID, who, cmd)
 
 	case *room.PawnSpawnCharacters:
-		// To fill in with the above: one pawn per connected player who joined
-		// with a character, which needs both the room's player list and the
-		// characters table.
-		return notBuilt("Spawning is not ready", "Spawning the party is not built yet.")
+		return h.resolveParty(ctx, roomID, who, cmd)
 	}
 
 	return nil

@@ -1,0 +1,163 @@
+package pages
+
+templ RoomPawnFragment(data RoomPawnData) {
+	<article
+		id={ data.ElementID() }
+		class="@container flex flex-col gap-2"
+		hx-get={ data.Path() }
+		hx-trigger={ data.Trigger() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+	>
+		<header class="flex items-center gap-2">
+			@pawnPortrait(data.Pawn)
+			<div class="min-w-0 flex-1">
+				<p class="m-0 truncate text-sm font-semibold">{ data.Pawn.Name }</p>
+				if data.Pawn.Layer != "" {
+					<p class="m-0 truncate text-[10px] text-base-content/55">{ data.Pawn.Layer }</p>
+				}
+			</div>
+			if data.Pawn.Hidden {
+				<span class="badge badge-xs badge-warning shrink-0">Hidden</span>
+			}
+		</header>
+		@PanelFormErrors(data.Panel(), data.Errors)
+		<dl class="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 @sm:grid-cols-2">
+			@pawnStat("Hit points") {
+				if data.CanEdit {
+					@pawnHPForm(data)
+				} else if data.Pawn.HP != "" {
+					{ data.Pawn.HP }
+				} else if data.Pawn.Band != "" {
+					{ data.Pawn.Band }
+				} else {
+					<span class="text-base-content/40">Unknown</span>
+				}
+			}
+			@pawnStat("Armour class") {
+				if data.Pawn.AC != "" {
+					{ data.Pawn.AC }
+				} else {
+					<span class="text-base-content/40">Unknown</span>
+				}
+			}
+			if data.Pawn.Object {
+				@pawnStat("Footprint") {
+					{ data.Pawn.Footprint }
+				}
+			} else {
+				@pawnStat("Size") {
+					{ data.Pawn.Size }
+				}
+			}
+		</dl>
+		if !data.Pawn.Object {
+			<div class="flex flex-wrap gap-1">
+				for _, c := range data.Pawn.Conditions {
+					@pawnConditionChip(c)
+				}
+				if len(data.Pawn.Conditions) == 0 {
+					<span class="text-[10px] text-base-content/45">No conditions.</span>
+				}
+			</div>
+		}
+		<div class="mt-auto flex flex-wrap gap-1 pt-1">
+			if data.CanEdit {
+				<button
+					type="button"
+					class="btn btn-xs border-base-content/50"
+					data-modal-open={ data.EditPath() }
+					data-modal-size="md"
+				>Edit</button>
+			}
+			if data.IsGM && data.Pawn.MonsterID != "" {
+				<button
+					type="button"
+					class="btn btn-xs border-base-content/50"
+					data-window={ data.StatBlockWindow() }
+					data-window-url={ data.StatBlockPath() }
+					data-window-title={ data.Pawn.Name }
+					data-window-width="380"
+					data-window-height="520"
+				>Stat block</button>
+			}
+		</div>
+	</article>
+}
+
+templ pawnPortrait(pawn RoomPawn) {
+	<div class="avatar avatar-placeholder shrink-0">
+		<div class="relative w-8 rounded-full border border-base-300 bg-base-300 text-base-content">
+			<span class="text-xs font-semibold">{ characterInitial(pawn.Name) }</span>
+			if pawn.Image != "" {
+				<img src={ pawn.Image } alt="" class="absolute inset-0 h-full w-full rounded-full object-cover select-none"/>
+			}
+		</div>
+	</div>
+}
+
+templ pawnStat(caption string) {
+	<div class="min-w-0">
+		<dt class="text-[10px] tracking-wide text-base-content/55 uppercase">{ caption }</dt>
+		<dd class="m-0 truncate text-sm">
+			{ children... }
+		</dd>
+	</div>
+}
+
+templ pawnHPForm(data RoomPawnData) {
+	<form
+		class="flex items-center gap-1"
+		hx-post={ data.HPPath() }
+		hx-target={ "#" + data.ElementID() }
+		hx-swap="outerHTML"
+		hx-sync="this:queue last"
+		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
+	>
+		<input
+			type="text"
+			name="hp"
+			value={ data.Pawn.HPValue }
+			inputmode="numeric"
+			autocomplete="off"
+			maxlength="6"
+			aria-label="Hit points"
+			class="input input-xs w-14"
+		/>
+		if data.Pawn.MaxHP != "" {
+			<span class="text-xs text-base-content/55">/ { data.Pawn.MaxHP }</span>
+		}
+		<button type="submit" class="btn btn-xs">Set</button>
+	</form>
+}
+
+templ pawnConditionChip(c RoomPawnCondition) {
+	<span class="badge badge-sm gap-1 border-base-content/25">
+		@pawnConditionSwatch(c.Color)
+		{ c.Name }
+		if c.DurationText != "" {
+			<span class="text-[10px] text-base-content/55">{ c.DurationText }</span>
+		}
+	</span>
+}
+
+templ pawnConditionSwatch(color string) {
+	switch color {
+		case "red":
+			<span class="size-2 shrink-0 rounded-full bg-red-500" aria-hidden="true"></span>
+		case "orange":
+			<span class="size-2 shrink-0 rounded-full bg-orange-500" aria-hidden="true"></span>
+		case "yellow":
+			<span class="size-2 shrink-0 rounded-full bg-yellow-400" aria-hidden="true"></span>
+		case "green":
+			<span class="size-2 shrink-0 rounded-full bg-green-500" aria-hidden="true"></span>
+		case "blue":
+			<span class="size-2 shrink-0 rounded-full bg-blue-500" aria-hidden="true"></span>
+		case "purple":
+			<span class="size-2 shrink-0 rounded-full bg-purple-500" aria-hidden="true"></span>
+		case "pink":
+			<span class="size-2 shrink-0 rounded-full bg-pink-400" aria-hidden="true"></span>
+		default:
+			<span class="size-2 shrink-0 rounded-full bg-white" aria-hidden="true"></span>
+	}
+}

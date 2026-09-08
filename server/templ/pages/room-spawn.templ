@@ -1,0 +1,160 @@
+package pages
+
+const roomSpawnBox = "flex h-[62vh] w-full flex-col gap-3"
+
+const roomSpawnGrid = "grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto p-1 sm:grid-cols-3"
+
+const roomSpawnCard = "flex flex-col items-center gap-1.5 rounded-box border border-base-300 p-2 text-center hover:border-primary focus-visible:border-primary"
+
+templ RoomSpawn(data RoomSpawnData) {
+	<room-spawn id="room-spawn" class={ roomSpawnBox }>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="m-0 text-lg font-semibold">Spawn</h2>
+			<div class="join">
+				@roomSpawnKind(data, RoomSpawnMonsters, "Monsters")
+				@roomSpawnKind(data, RoomSpawnTokens, "Tokens")
+			</div>
+		</div>
+		<div class="flex flex-wrap items-center gap-2">
+			<input
+				type="search"
+				name="q"
+				value={ data.Query }
+				class="input input-sm w-48"
+				placeholder={ data.SearchLabel() }
+				aria-label={ data.SearchLabel() }
+				aria-controls={ data.ResultsID() }
+				autocomplete="off"
+				maxlength={ data.SearchLimit() }
+				hx-get={ data.ListPath() }
+				hx-trigger="input changed delay:250ms, search"
+				hx-target={ "#" + data.ResultsID() }
+				hx-swap="outerHTML"
+			/>
+			<label class="flex items-center gap-1.5 text-xs">
+				<input type="checkbox" data-spawn-shown checked class="checkbox checkbox-sm"/>
+				Players see it
+			</label>
+		</div>
+		if !data.IsMonsters() {
+			@roomSpawnTokenControls(data)
+		}
+		@RoomSpawnList(data)
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button
+				type="button"
+				class="btn btn-primary ml-auto"
+				hx-post={ data.PartyPath() }
+			>Spawn party</button>
+		</div>
+	</room-spawn>
+}
+
+templ roomSpawnKind(data RoomSpawnData, kind string, caption string) {
+	<button
+		type="button"
+		class={ "btn btn-sm join-item", templ.KV("btn-primary", data.Kind == kind) }
+		aria-pressed={ boolText(data.Kind == kind) }
+		hx-get={ data.Path(kind) }
+		hx-include="[name='q']"
+		hx-target="#room-spawn"
+		hx-swap="outerHTML"
+	>{ caption }</button>
+}
+
+templ roomSpawnTokenControls(data RoomSpawnData) {
+	<div class="flex flex-wrap items-end gap-3 rounded-box border border-base-300 p-2">
+		<div class="join">
+			<button type="button" data-spawn-as="creature" aria-pressed="true" class="btn btn-xs join-item aria-pressed:bg-primary aria-pressed:text-primary-content">Creature</button>
+			<button type="button" data-spawn-as="object" aria-pressed="false" class="btn btn-xs join-item aria-pressed:bg-primary aria-pressed:text-primary-content">Object</button>
+		</div>
+		<label data-spawn-creature class="flex flex-col gap-0.5">
+			<span class="text-[10px] text-base-content/60">Size</span>
+			<select data-spawn-size class="select select-xs w-28">
+				for _, option := range data.Sizes() {
+					<option value={ option.Value } selected?={ option.Value == DefaultSize }>{ option.Label }</option>
+				}
+			</select>
+		</label>
+		<label data-spawn-object hidden class="flex flex-col gap-0.5">
+			<span class="text-[10px] text-base-content/60">Cells across</span>
+			<input type="number" data-spawn-width value="1" min="1" max={ data.FootprintMaxText() } step="1" class="input input-xs w-20"/>
+		</label>
+		<label data-spawn-object hidden class="flex flex-col gap-0.5">
+			<span class="text-[10px] text-base-content/60">Cells down</span>
+			<input type="number" data-spawn-height value="1" min="1" max={ data.FootprintMaxText() } step="1" class="input input-xs w-20"/>
+		</label>
+	</div>
+}
+
+templ RoomSpawnList(data RoomSpawnData) {
+	<section id={ roomSpawnResultsID } class={ roomSpawnGrid }>
+		if data.IsMonsters() {
+			for _, m := range data.Monsters {
+				@roomSpawnMonsterCard(m)
+			}
+		} else {
+			for _, t := range data.Tokens {
+				@roomSpawnTokenCard(t)
+			}
+		}
+		<div class="col-span-full hidden only:flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+			if data.Query == "" {
+				@noticePanel(data.EmptyHeading()) {
+					{ data.EmptyBlurb() }
+				}
+			} else {
+				@noticePanel(data.NoMatch()) {
+					{ noMatchHint }
+				}
+			}
+		</div>
+	</section>
+}
+
+templ roomSpawnMonsterCard(m MonsterSummary) {
+	<button
+		type="button"
+		class={ roomSpawnCard }
+		data-spawn-pick
+		data-spawn-source="monster"
+		data-spawn-id={ m.ID }
+		data-spawn-name={ m.Name }
+	>
+		@roomSpawnThumb(monsterImageURL(m.ImageID), m.Name)
+		<span class="w-full truncate text-xs font-semibold">{ m.Name }</span>
+		<span class="w-full truncate text-[10px] text-base-content/60">{ m.Subtitle }</span>
+		if m.CR != "" {
+			<span class="badge badge-xs">CR { m.CR }</span>
+		}
+	</button>
+}
+
+templ roomSpawnTokenCard(t RoomSpawnToken) {
+	<button
+		type="button"
+		class={ roomSpawnCard }
+		data-spawn-pick
+		data-spawn-source="token"
+		data-spawn-id={ t.ID }
+		data-spawn-name={ t.Name }
+	>
+		@roomSpawnThumb(t.Image, t.Name)
+		<span class="w-full truncate text-xs font-semibold">{ t.Name }</span>
+	</button>
+}
+
+templ roomSpawnThumb(src string, name string) {
+	<span class="grid h-16 w-full place-content-center overflow-hidden rounded-field bg-base-content/5">
+		if src != "" {
+			<img src={ src } alt="" class="max-h-16 w-auto object-contain select-none"/>
+		} else {
+			<span class="font-serif text-xl text-base-content/50">{ characterInitial(name) }</span>
+		}
+	</span>
+}

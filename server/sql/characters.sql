@@ -226,3 +226,41 @@ WHERE id = ? AND owner_id = ?;
 UPDATE characters
 SET features = ?
 WHERE id = ? AND owner_id = ?;
+
+-- THE TWO STATEMENTS THE VIRTUAL TABLETOP ADDS, and they are the only two in
+-- this file that are not scoped to the owner. Both are deliberate and both are
+-- guarded somewhere else.
+
+-- GetCharacterForRoom reads a sheet the asker does not own, which is what
+-- "spawn the party" is: the GM places a pawn for every player at the table, and
+-- those sheets belong to the players.
+--
+-- SO THE GUARD IS MEMBERSHIP RATHER THAN OWNERSHIP, and it is in the caller,
+-- which is the only place that can ask it -- this table knows nothing about
+-- rooms. internal/hub reads the character id off the room's own player list, so
+-- the id can only ever be one somebody in the room joined with; it is never a
+-- value off the wire.
+--
+-- The eight columns are what a pawn is made of, for the reason
+-- GetMonsterForRoom gives.
+-- name: GetCharacterForRoom :one
+SELECT id, owner_id, name, size, ac, current_hp, max_hp, asset_id FROM characters
+WHERE id = ?;
+
+-- UpdateCharacterCurrentHP is the write-through: a player's pawn takes seven
+-- damage at the table and the sheet says so afterwards.
+--
+-- ONE COLUMN, WHICH IS THE WHOLE OF WHAT THE TABLE OWNS. Max hit points and
+-- armour class are read off the sheet when the pawn is spawned and edited on
+-- the table without coming back here, because a GM giving a goblin's twin an
+-- extra point of AC for one fight must not rewrite somebody's character. Every
+-- other writer in this file names exactly the columns it owns; this one owns
+-- one.
+--
+-- It is unscoped for the same reason as above: the GM writes it, the player
+-- owns it, and the pawn's character_id was resolved from the room's player list
+-- at spawn rather than supplied by whoever sent the edit.
+-- name: UpdateCharacterCurrentHP :execresult
+UPDATE characters
+SET current_hp = ?
+WHERE id = ?;

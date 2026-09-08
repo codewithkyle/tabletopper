@@ -1,0 +1,161 @@
+package pages
+
+import "strconv"
+
+templ RoomPawnForm(data RoomPawnFormData) {
+	<div class="flex flex-col gap-3">
+		<h2 class="m-0 font-serif text-xl leading-tight">{ data.Pawn.Name }</h2>
+		<form
+			id="pawn-form"
+			class="flex flex-col gap-2"
+			hx-post={ data.SavePath() }
+			hx-target={ "#errors-" + data.Panel() }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(data.Panel(), data.Errors)
+			@textField("name", "Name", data.Pawn.Name, "", true)
+			if data.Pawn.Object {
+				<div class="grid grid-cols-2 gap-2">
+					@pawnCells("footprintW", "Cells across", data.Pawn.FootprintW)
+					@pawnCells("footprintH", "Cells down", data.Pawn.FootprintH)
+				</div>
+			} else {
+				@selectField("size", "Size", sizeOptions, data.Pawn.SizeValue, true)
+			}
+			<div class="grid grid-cols-2 gap-2">
+				@numberField("maxHp", "Maximum hit points", data.Pawn.MaxHP, false)
+				@numberField("ac", "Armour class", data.Pawn.AC, false)
+			</div>
+			if !data.Pawn.Object {
+				@pawnConditionsEditor(data)
+			}
+			if data.IsGM {
+				@toggleField("shown", "Players can see this pawn", data.Shown)
+				if len(data.Layers) > 1 {
+					@pawnLayerSelect(data)
+				}
+			}
+		</form>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button type="submit" form="pawn-form" class="btn btn-primary">Save</button>
+			if data.IsGM {
+				<button
+					type="button"
+					class="btn btn-error ml-auto"
+					hx-delete={ data.RemovePath() }
+					hx-vals={ data.RemoveVals() }
+					hx-confirm={ data.RemovePrompt() }
+					data-confirm-heading="Remove this pawn?"
+					data-confirm-label="Remove"
+					hx-on::after-request="if (event.detail.successful) window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Remove</button>
+			}
+		</div>
+	</div>
+}
+
+templ pawnCells(name string, caption string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ name }>{ caption }</label>
+		<input
+			id={ name }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input validator peer w-full"
+			value={ value }
+			min="1"
+			max={ strconv.Itoa(FootprintCellsMax) }
+			step="1"
+			required
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a whole number of cells.</p>
+	</div>
+}
+
+templ pawnLayerSelect(data RoomPawnFormData) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for="layer">Floor</label>
+		<select id="layer" name="layer" class="select w-full">
+			for _, l := range data.Layers {
+				<option value={ l.ID } selected?={ l.ID == data.LayerID }>{ l.Name }</option>
+			}
+		</select>
+	</div>
+}
+
+templ pawnConditionsEditor(data RoomPawnFormData) {
+	<div class="fieldset">
+		<span class="fieldset-legend">Conditions</span>
+		<div id="pawn-conditions" class="flex flex-col gap-1.5">
+			for _, c := range data.Pawn.Conditions {
+				@RoomPawnConditionRow(c)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-xs mt-1.5 self-start border-base-content/50"
+			hx-get={ data.ConditionRowPath() }
+			hx-target="#pawn-conditions"
+			hx-swap="beforeend"
+		>Add condition</button>
+	</div>
+	<datalist id="condition-names">
+		for _, name := range ConditionNames {
+			<option value={ name }></option>
+		}
+	</datalist>
+}
+
+templ RoomPawnConditionRow(c RoomPawnCondition) {
+	<div data-condition-row class="grid grid-cols-[minmax(0,1fr)_auto_5rem_auto] items-center gap-1">
+		<input type="hidden" name="conditionId" value={ c.ID }/>
+		<input
+			type="text"
+			name="conditionName"
+			value={ c.Name }
+			{ conditionNameList... }
+			placeholder="Condition"
+			maxlength="64"
+			autocomplete="off"
+			aria-label="Condition"
+			class="input input-xs w-full"
+		/>
+		<select name="conditionColor" aria-label="Colour" class="select select-xs w-20">
+			for _, color := range ConditionColors {
+				<option value={ color } selected?={ color == c.Color }>{ ConditionColorLabel(color) }</option>
+			}
+		</select>
+		<input
+			type="number"
+			name="conditionDuration"
+			value={ c.Duration }
+			min="-1"
+			max="999"
+			step="1"
+			aria-label="Turns, or -1 until removed"
+			class="input input-xs w-full"
+		/>
+		<div class="flex items-center gap-1">
+			<select name="conditionClear" aria-label="Counts down at" class="select select-xs w-24">
+				for _, option := range ConditionClears {
+					<option value={ option.Value } selected?={ option.Value == c.Clear }>{ option.Label }</option>
+				}
+			</select>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
+				aria-label="Remove condition"
+				data-remove-closest="[data-condition-row]"
+			>
+				@kickIcon()
+			</button>
+		</div>
+	</div>
+}

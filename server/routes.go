@@ -462,6 +462,28 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
 	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
 
+	// WHAT IS ON THE TABLE. Same rule as the layer routes above and for the
+	// same reason: these are the DOM's controls, so they are HTTP. What the
+	// socket carries is what originates on the CANVAS -- a drag, a placement
+	// click -- and neither of those has a form or a confirm dialog in front of
+	// it.
+	//
+	// THE TWO LIST ROUTES TAKE ids AS A REPEATED FORM VALUE rather than one id
+	// in the path, because the canvas overlay sends a whole selection to both.
+	// The pawn dialog sends a list of one, which is why there is no second pair
+	// of routes for the single case.
+	//
+	// HIT POINTS HAVE A ROUTE OF THEIR OWN, and it is the only one here that
+	// answers with markup. It is the one control on the live panel, so it
+	// replies with the panel it just changed -- the mutation-returns-what-it-
+	// changed case the fragment rules name -- rather than making the person who
+	// typed "-7" wait for their own event to come back round the socket.
+	mux.HandleFunc("POST /rooms/{id}/pawns/party", auth.RequireSession(app.SpawnParty))
+	mux.HandleFunc("POST /rooms/{id}/pawns/layer", auth.RequireSession(app.MovePawnsToLayer))
+	mux.HandleFunc("DELETE /rooms/{id}/pawns", auth.RequireSession(app.RemovePawns))
+	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}", auth.RequireSession(app.UpdatePawn))
+	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/hp", auth.RequireSession(app.UpdatePawnHP))
+
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
 	//
@@ -694,6 +716,31 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/map-list", auth.Fragment(app.RoomMapListFragment))
 	mux.HandleFunc("GET /fragment/room/map-card", auth.Fragment(app.RoomMapCardFragment))
 	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
+
+	// The pawn fragments, and they split three ways on who may read them.
+	//
+	// THE SPAWN DIALOG AND ITS RESULTS ARE THE GM'S, like the layer manager
+	// above: a player who fetched one would be handed the GM's whole manual.
+	//
+	// THE PANEL IS ANY MEMBER'S AND IS PROJECTED FOR THEM. It is the one
+	// fragment in this file that a player may fetch about a specific thing on
+	// the table, and hub.Pawn answers it with the copy their role may see or
+	// with nothing at all -- so a hidden monster is a 404 with an empty body,
+	// which is also what a pawn id that never existed gets. The two are
+	// indistinguishable on purpose: the whole two-audience design says a hidden
+	// pawn never reaches a player's browser, and a fragment route is the second
+	// door into the state the socket projects on the way out.
+	//
+	// THE STAT BLOCK IS THE GM'S. The room's monster-health setting exists so a
+	// table can hide a monster's hit points; a stat block carries those, its
+	// armour class and its legendary actions, so serving one to a player would
+	// contradict in one window the setting the GM chose in another.
+	mux.HandleFunc("GET /fragment/room/spawn", auth.Fragment(app.RoomSpawnFragment))
+	mux.HandleFunc("GET /fragment/room/spawn-list", auth.Fragment(app.RoomSpawnListFragment))
+	mux.HandleFunc("GET /fragment/room/pawn", auth.Fragment(app.RoomPawnFragment))
+	mux.HandleFunc("GET /fragment/room/pawn/edit", auth.Fragment(app.RoomPawnEditFragment))
+	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
+	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have

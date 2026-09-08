@@ -1,5 +1,5 @@
-// The bridge from the socket to the DOM panels, and it is four lines of
-// mapping because that is the whole of it.
+// The bridge from the socket to the DOM panels, and it is a mapping table
+// because that is the whole of it.
 //
 // LIVE PANELS UPDATE BY REFETCH. A socket event fires a DOM event on window, an
 // element's hx-trigger hears it, and htmx fetches a room fragment that reads
@@ -18,6 +18,18 @@
 // command and the one open in another tab are corrected by the same event, from
 // the same source, at the same time. A reply carrying the new markup would
 // correct one of them.
+//
+// ONLY EVENTS THAT COUNT, AND NEVER A HOT PATH. Hit points, armour class,
+// conditions, names and layers change at human pace -- a few per round -- and a
+// GET each is nothing. pawn.moved, pawn.dragging and stroke.extended fire up to
+// twenty times a second, and binding a refetch to one of them is precisely what
+// "the socket carries JSON and the DOM refetches" was designed to avoid. They
+// are absent from the table below and panels.test.ts asserts that they raise
+// nothing at all, so the rule fails where it would be broken.
+//
+// A window that wants a per-frame value does not fetch it: the client already
+// holds the whole projected room in store.ts, which is what the debug panel
+// reads. That escape hatch exists and needs no change to the protocol.
 
 import type { Event } from "./protocol.ts";
 
@@ -37,6 +49,12 @@ const panelEvents: Partial<Record<Event["type"], string>> = {
 // a stale fetch would be wrong.
 const everything = ["room:players", "room:initiative", "room:info", "room:tabletop"];
 
+// PAWN_WINDOW is the id a pawn's panel window is keyed under, and it is built
+// in exactly two places: here, and RoomPawnData in templ/pages. Both spell it
+// the same way because a close aimed at an id nobody opened does nothing and
+// says nothing.
+const PAWN_WINDOW = "pawn:";
+
 export function announce(event: Event): void {
 	if (event.type === "snapshot") {
 		for (const name of everything) {
@@ -46,8 +64,47 @@ export function announce(event: Event): void {
 		return;
 	}
 
+	// THE PAWN EVENTS CARRY AN ID AND THE REST DO NOT, and the id is what makes
+	// a table full of open pawn windows affordable. Every one of them hears
+	// room:pawn; the filter in each panel's own hx-trigger compares the id and
+	// all but one decline. Without it, one goblin taking damage is a GET per
+	// open window, every round, for the whole fight.
+	switch (event.type) {
+		case "pawn.spawned":
+		case "pawn.updated":
+			pawnChanged(event.pawn.id);
+
+			// A window's heading is set from the trigger that opened it, so a
+			// rename reaches the body and not the bar. This is the other half.
+			window.dispatchEvent(
+				new CustomEvent("window:retitle", {
+					detail: { id: PAWN_WINDOW + event.pawn.id, title: event.pawn.name },
+				}),
+			);
+
+			return;
+
+		case "pawn.removed":
+			pawnChanged(event.id);
+
+			// The panel's fragment 404s from here on and the page's noSwap
+			// config covers 4xx, so nothing would swap and the window would sit
+			// there showing a dead goblin's hit points. The close has to come
+			// from outside the fragment, because the fragment is what stopped
+			// existing.
+			window.dispatchEvent(
+				new CustomEvent("window:close", { detail: { id: PAWN_WINDOW + event.id } }),
+			);
+
+			return;
+	}
+
 	const name = panelEvents[event.type];
 	if (name) {
 		window.dispatchEvent(new CustomEvent(name));
 	}
+}
+
+function pawnChanged(id: string): void {
+	window.dispatchEvent(new CustomEvent("room:pawn", { detail: { id } }));
 }

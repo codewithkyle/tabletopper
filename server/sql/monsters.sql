@@ -215,3 +215,18 @@ SET
     treasure = ?,
     description = ?
 WHERE id = ? AND owner_id = ?;
+
+-- SPAWNING A MONSTER ONTO A TABLE, which is six columns rather than the
+-- thirty-six GetMonster reads. A pawn holds a name, a size, a stat line and a
+-- picture; the hit dice, the ability scores and the prose belong to the stat
+-- block, which is opened separately and rarely. An encounter is a dozen spawns
+-- in a row and every one of them would otherwise carry a paragraph of
+-- description across the wire from MySQL for nothing.
+--
+-- THE OWNER IS THE ROOM'S GM AND NOT THE ASKER. A player placing their own
+-- character never reaches this; everything else on the table is spawned by the
+-- GM, whose library it is. The caller passes the room's owner_id, which it got
+-- from the rooms row rather than from the command.
+-- name: GetMonsterForRoom :one
+SELECT id, name, size, ac, hp, asset_id FROM monsters
+WHERE id = ? AND owner_id = ?;

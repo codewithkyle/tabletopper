@@ -134,6 +134,35 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 		}, RECLAMP_DELAY);
 	});
 
+	// THE TWO EVENTS A LIVE PANEL CREATES, and both are the socket reaching the
+	// chrome rather than the content.
+	//
+	// A REMOVED PAWN WOULD OTHERWISE LEAVE A WINDOW SHOWING A DEAD GOBLIN'S
+	// HIT POINTS FOREVER. Its fragment 404s, the page's noSwap config covers
+	// every 4xx, so htmx swaps nothing and the stale panel simply sits there.
+	// The close has to come from outside the fragment because the fragment is
+	// the thing that stopped existing.
+	//
+	// A RENAMED PAWN WOULD OTHERWISE KEEP ITS OLD TITLE, for the mirror of that
+	// reason: the heading belongs to the chrome and only the body refetches.
+	//
+	// AN ID THAT IS NOT OPEN IS NOT AN ERROR. Ten clients each have a different
+	// set of windows open and the socket event reaches all of them, so most of
+	// these land on nothing at all. That is the normal case.
+	window.addEventListener("window:close", (e) => {
+		const id = (e as CustomEvent<{ id?: string }>).detail?.id;
+		if (id) {
+			windows.get(id)?.close();
+		}
+	});
+
+	window.addEventListener("window:retitle", (e) => {
+		const detail = (e as CustomEvent<{ id?: string; title?: string }>).detail;
+		if (detail?.id && detail.title) {
+			windows.get(detail.id)?.retitle(detail.title);
+		}
+	});
+
 	// WHAT WAS OPEN COMES BACK. A reload -- including the one the client gives
 	// itself when the server build changes -- should not cost the GM the layout
 	// they arranged.
@@ -177,8 +206,14 @@ export function openWindow(spec: WindowSpec): void {
 
 class RoomWindow {
 	readonly id: string;
-	readonly title: string;
 	readonly url: string;
+
+	// title is not readonly, and the one thing that moves it is a rename
+	// arriving over the socket. A window's heading is set from the trigger that
+	// opened it, so without this a pawn renamed mid-session keeps the name it
+	// had when its panel was opened -- forever, because nothing about the
+	// chrome refetches.
+	private title: string;
 
 	private readonly el: HTMLElement;
 	private readonly bar: HTMLElement;
@@ -485,6 +520,18 @@ class RoomWindow {
 	// window to the size of somebody else's screen is not restoring it.
 	save(): void {
 		store(`window:${this.id}`, this.restoreTo ?? { x: this.x, y: this.y, w: this.w, h: this.h });
+	}
+
+	// retitle follows a rename. It writes the heading and re-remembers the
+	// layout, so the new name survives a reload as well as the session.
+	retitle(title: string): void {
+		if (title === "" || title === this.title) {
+			return;
+		}
+
+		this.title = title;
+		must(this.el, "[data-window-title]").textContent = title;
+		remember();
 	}
 
 	spec(): WindowSpec {

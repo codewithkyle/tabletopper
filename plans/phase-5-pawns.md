@@ -8,6 +8,70 @@ spawning from the monster manual, the token library and the party's
 characters; selecting one or many; moving them with snapping and the shared
 movement path; and editing them through a dialog.
 
+## As built
+
+### Checkpoint 1, the server (2026-09-08)
+
+Resolution, the write-through, the routes, the fragments and the window
+plumbing shipped. Nine things differ from what the sections below sketch, each
+for a reason the code carries in a comment:
+
+- **Snapping modes are `off | cells | halfCells`, not "corners".** `snap.go`
+  answers the parity question with cells mode and drops it in half-cells mode;
+  there is no corners mode to port. `path.ts` is a port of `SnapAxis` as it is.
+- **`pawn.spawn` gained a `size` field.** The wire carried no size at all, so a
+  token could only ever land medium -- and size is the one stat that is
+  structural rather than informational: it decides the footprint, which decides
+  the snapping lattice and where a click actually puts the pawn. Hit points and
+  armour class stay off the wire and are the pawn dialog's, per decision 10.
+  Resolution reads the field; `Apply` is unchanged.
+- **The room stat block needs no new statement.** `GetMonster` and
+  `ListMonsterActions` both already take an `OwnerID` parameter, so "scoped to
+  the room owner" is which id goes in rather than a second copy of the SQL.
+  Decision 13's `GetMonsterStatBlockForRoom` would have been a byte-identical
+  duplicate; the actions query, which decision 13 does not mention, would have
+  needed one too and has the same answer.
+- **The stat block is GM-only.** The route table said "any member when the pawn
+  is visible", which contradicts the room's own monster-health setting: a stat
+  block carries hit points, armour class and legendary actions, so serving one
+  to a player undoes in one window what the GM chose in another.
+- **The spawn dialog is two routes**, `/fragment/room/spawn` and
+  `/fragment/room/spawn-list`, which is the shape the map picker and the asset
+  manager already have. One route means a search swaps the box being typed into
+  and the caret jumps to the end on every keystroke.
+- **The conditions editor adds rows through a fragment**,
+  `/fragment/room/condition-row`. `repeater.js` only REMOVES rows now; the
+  character sheet adds them through `/fragment/character/feature-row`, and a row
+  built in JavaScript would render unstyled because `public/js` is not a
+  Tailwind source.
+- **The write-through fires on every `pawn.updated` for a player pawn with a
+  character**, rather than diffing hit points. Knowing that hit points changed
+  means carrying the before-image through a path whose whole value is that an
+  event carries the entity and nothing else; what it saves instead is a
+  statement that writes the value already there, a few times a session.
+- **`resolveParty` returns early for a player.** Resolution runs before
+  Authorize -- the price of running it off the room's goroutine -- so a player
+  pressing Spawn party was told "everybody already has a pawn", which is true,
+  useless, and not why they were refused. Leaving `Pawns` nil hands the refusal
+  to Authorize.
+- **`hx-vals` on the DELETE arrives in the QUERY STRING.** This htmx tests
+  `/GET|DELETE/` against the method and appends to the URL for both, while
+  net/http's `ParseForm` reads a body only for POST, PUT and PATCH. `ParseForm`
+  is exactly the union of the two; `r.PostForm` would have found nothing.
+
+**The CSS diff caught one thing and it was the attribute vector.**
+`list="condition-names"` -- HTML's own attribute, tying the condition field to
+its `<datalist>` -- put DaisyUI's whole `.list` family in the build: fourteen
+selectors and 2.4 KB. The word cannot be renamed, so the attribute is built in
+`room-pawn.go` as a `templ.Attributes` and spread into the markup, which is the
+same move the ban on prose makes for the same reason. Every other selector the
+phase added is one the new markup uses.
+
+**The menu items are not wired yet.** `Spawn pawns` and the player's
+`Place my pawn` land with `dialogs.ts` in checkpoint 3, because an enabled menu
+item whose click does nothing reads as broken -- which is the argument
+`room.go` already makes for the disabled ones.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

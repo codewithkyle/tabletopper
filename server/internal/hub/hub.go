@@ -172,7 +172,7 @@ func (h *Hub) Version() string { return h.version }
 // refused, which is what lets a handler put a heading and a message in the
 // alert modal without knowing anything about the command it sent.
 func (h *Hub) Dispatch(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
-	if err := h.resolve(ctx, who, cmd); err != nil {
+	if err := h.resolve(ctx, roomID, who, cmd); err != nil {
 		return err
 	}
 
@@ -315,6 +315,63 @@ func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
 
 	reply := make(chan *TableView, 1)
 	if err := a.post(ctx, tableView{reply: reply}); err != nil {
+		return nil, false
+	}
+
+	select {
+	case view := <-reply:
+		return view, view != nil
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
+// Pawn is one pawn as the asking role may see it, for the fragments that draw
+// a pawn's panel and its stat block. It answers nil for a pawn that is not
+// there, for a room that is not running, and -- the case that matters -- for
+// one this role is shown nothing of.
+//
+// THE ROLE IS A PARAMETER AND THE PROJECTION IS NOT OPTIONAL. See
+// room.ProjectedPawn: there is no accessor here that hands back the stored
+// pawn, because a fragment route is a second door into state the socket
+// projects on the way out, and a door with no lock on it is how a player reads
+// a hidden monster's hit points.
+//
+// IT DOES NOT LOAD THE ROOM, which is Players' rule rather than Table's. Both
+// callers are drawing a panel about a pawn that is on somebody's screen, so the
+// room is running by definition; loading one to answer would mean a stale
+// window in a reloaded tab could start a room that nobody is in.
+func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
+	h.mu.Lock()
+	a, ok := h.rooms[roomID]
+	h.mu.Unlock()
+	if !ok {
+		return nil, false
+	}
+
+	reply := make(chan *room.Pawn, 1)
+	if err := a.post(ctx, pawnView{id: pawnID, role: role, reply: reply}); err != nil {
+		return nil, false
+	}
+
+	select {
+	case p := <-reply:
+		return p, p != nil
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
+// spawn is what resolving a spawn needs out of the running room. It is
+// unexported because nothing outside this package resolves a command.
+func (h *Hub) spawn(ctx context.Context, roomID ulid.ULID) (*SpawnView, bool) {
+	a, err := h.room(ctx, roomID)
+	if err != nil {
+		return nil, false
+	}
+
+	reply := make(chan *SpawnView, 1)
+	if err := a.post(ctx, spawnView{reply: reply}); err != nil {
 		return nil, false
 	}
 

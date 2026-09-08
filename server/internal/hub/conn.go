@@ -258,7 +258,7 @@ func (h *Hub) readPump(ctx context.Context, ws *websocket.Conn, a *actor, c *cli
 		// RESOLUTION HAPPENS HERE, ON THIS GOROUTINE, and that is the reason
 		// it is not in the room: the three commands that need rows would
 		// otherwise have a table full of people waiting behind a SELECT.
-		if err := h.resolve(ctx, c.who, cmd); err != nil {
+		if err := h.resolve(ctx, a.id, c.who, cmd); err != nil {
 			h.post(ctx, a, command{c: c, cid: cid, err: err})
 
 			continue
