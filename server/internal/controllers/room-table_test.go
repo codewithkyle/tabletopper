@@ -460,3 +460,28 @@ func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 		t.Errorf("problems = %v, want one about the cell size", problems)
 	}
 }
+
+// THE PAIR THAT MUST NOT CLOSE INTO A CIRCLE. The player's menu bar asks for
+// the active layer's name on load and swaps the reply over itself; htmx fires
+// a load trigger the moment it processes an element, including one it has just
+// swapped in. So the page arms the fetch exactly once and the fragment must
+// never arm it again -- the shipped bug was a browser that fetched this one
+// string for the rest of the session, with the loading bar up throughout.
+func TestTheLayerNameFragmentDoesNotAskForItselfAgain(t *testing.T) {
+	page := getRoomPage(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}, memberSession(testRoomID))
+	if !strings.Contains(page.Body.String(), `hx-trigger="load, room:tabletop from:window"`) {
+		t.Fatal("the player's page never asks for the layer name")
+	}
+
+	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+
+	rec := tableRequest(t, app.RoomLayerFragment, http.MethodGet,
+		"/fragment/room/layer?room="+testRoomID.String(), nil, nil, memberSession(testRoomID))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "load") {
+		t.Errorf("the fragment arms its own load trigger again:\n%s", rec.Body.String())
+	}
+}

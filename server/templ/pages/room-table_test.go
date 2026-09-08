@@ -284,3 +284,24 @@ func TestAPlayersTabletopMenuOpensNothing(t *testing.T) {
 		}
 	}
 }
+
+// THE ANSWER MUST NOT RE-ARM THE TRIGGER THAT ASKED FOR IT, and this is a
+// regression guard on a bug that shipped: the span asks for itself on load and
+// replaces itself with the reply, so a reply carrying "load" fires the moment
+// htmx processes it and the browser spends the rest of the session fetching
+// this one string -- a request per round trip, the loading bar up for good, and
+// the whole page under a wait cursor, because html[state="loading"] * sets one.
+func TestTheLayerNameAsksOnceAndThenOnlyListens(t *testing.T) {
+	page := renderToString(t, RoomLayerName(RoomLayerNameData{RoomID: testTableRoomID}))
+	if !strings.Contains(page, `hx-trigger="load, room:tabletop from:window"`) {
+		t.Errorf("the page render never asks for the name:\n%s", page)
+	}
+
+	answer := renderToString(t, RoomLayerName(RoomLayerNameData{RoomID: testTableRoomID, Fetched: true}))
+	if strings.Contains(answer, "load") {
+		t.Errorf("the answer arms itself again:\n%s", answer)
+	}
+	if !strings.Contains(answer, `hx-trigger="room:tabletop from:window"`) {
+		t.Errorf("the answer stopped listening for the socket:\n%s", answer)
+	}
+}

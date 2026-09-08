@@ -404,20 +404,7 @@ export function newLoader(invalidate: () => void): Loader {
 		},
 
 		end() {
-			if (stopped) {
-				return;
-			}
-
-			// A tile that has left the viewport is not worth the connection it
-			// is holding. This is what "abort on level change" is: every tile of
-			// the level just left goes unwanted in the same frame.
-			for (const [key, controller] of inFlight) {
-				if (!wantedThisFrame.has(key)) {
-					controller.abort();
-				}
-			}
-
-			if (queue.length === 0) {
+			if (stopped || queue.length === 0) {
 				return;
 			}
 
@@ -426,6 +413,38 @@ export function newLoader(invalidate: () => void): Loader {
 			// from the edges is the same tiles arriving in the least useful
 			// order.
 			queue.sort((a, b) => a.priority - b.priority);
+
+			// A TILE THAT HAS LEFT THE VIEWPORT LOSES ITS CONNECTION ONLY WHEN
+			// A TILE THAT IS IN THE VIEWPORT NEEDS IT, and never merely for
+			// having left.
+			//
+			// Aborting on sight is the obvious policy and it is wrong three
+			// ways. It throws away a download that may be nearly finished for
+			// a pan of a few pixels that comes straight back. It aborts, on
+			// the way in, exactly the coarse level the fine one is about to be
+			// drawn from -- an ancestor still in flight is what the map looks
+			// like for the next second. And it costs the other end a cancelled
+			// request per tile, which at eight in flight and a level boundary
+			// every 1.4 notches of the wheel is a burst of them per zoom.
+			//
+			// So the connections are freed to order: in the order they were
+			// taken, enough of them for what is queued, and none beyond that.
+			let spare = IN_FLIGHT - inFlight.size;
+			for (const [key, controller] of inFlight) {
+				if (spare >= queue.length) {
+					break;
+				}
+				if (wantedThisFrame.has(key)) {
+					continue;
+				}
+
+				// Dropped here rather than left to the fetch's own finally,
+				// which is a microtask away: the loop below reads inFlight.size
+				// to decide how many it may start, and it runs first.
+				controller.abort();
+				inFlight.delete(key);
+				spare++;
+			}
 
 			for (const item of queue) {
 				if (inFlight.size >= IN_FLIGHT) {

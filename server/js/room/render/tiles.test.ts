@@ -1,14 +1,14 @@
-// The tile arithmetic and the cache's bookkeeping. The loader is not here: it
-// is fetch, AbortController and createImageBitmap, and what is worth checking
-// about it is that a real browser fetches real tiles, which is a different
-// kind of test.
+// The tile arithmetic, the cache's bookkeeping and the loader's abort policy.
+// The rest of the loader is not here: decoding and uploading are
+// createImageBitmap and a texture, and what is worth checking about those is
+// that a real browser fetches real tiles, which is a different kind of test.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { MapRef } from "../protocol.ts";
 import type { Rect } from "./camera.ts";
-import { Slots, levelFor, levelScale, newRange, rangeCount, tileKey, tileRect, tileURL, uvFor, visibleRange } from "./tiles.ts";
+import { Slots, levelFor, levelScale, newLoader, newRange, rangeCount, tileKey, tileRect, tileURL, uvFor, visibleRange } from "./tiles.ts";
 
 // The worked example from internal/tiler: 12000 by 9000 at 512, six levels.
 const map: MapRef = { assetId: "a", gen: "g", width: 12000, height: 9000, tileSize: 512, maxZoom: 5 };
@@ -215,4 +215,86 @@ test("a key that was never claimed is not resident", () => {
 
 	assert.equal(slots.get("nothing"), undefined);
 	assert.equal(slots.has("nothing"), false);
+});
+
+// THE ABORT POLICY IS BOOKKEEPING RATHER THAN NETWORKING, which is why it is
+// here when nothing else about the loader is. A fetch that never settles is
+// all it takes to hold a connection, so the stub answers with one of those and
+// counts what gets dropped.
+function stubFetch(): { started: string[]; aborted: string[]; restore: () => void } {
+	const real = globalThis.fetch;
+	const started: string[] = [];
+	const aborted: string[] = [];
+
+	globalThis.fetch = ((url: string, init?: { signal?: AbortSignal }) => {
+		started.push(url);
+		init?.signal?.addEventListener("abort", () => aborted.push(url));
+
+		return new Promise<Response>(() => {});
+	}) as typeof globalThis.fetch;
+
+	return { started, aborted, restore: () => { globalThis.fetch = real; } };
+}
+
+// A TILE THAT HAS LEFT THE VIEWPORT IS NOT WORTH CANCELLING FOR ITS OWN SAKE.
+// Aborting on sight throws away a nearly finished download every time somebody
+// pans a few pixels and back, drops the coarse level a zoom is about to draw
+// the fine one from, and costs the server a cancelled request per tile.
+test("a tile that has left the viewport keeps its connection until one is needed", () => {
+	const net = stubFetch();
+
+	try {
+		const loader = newLoader(() => {});
+
+		loader.begin();
+		for (let i = 0; i < 10; i++) {
+			loader.want(`k${i}`, `/tiles/${i}`, i);
+		}
+		loader.end();
+		assert.equal(net.started.length, 8, "eight at once is the cap");
+
+		// A frame that wants none of them. Nothing is queued, so nothing is
+		// waiting on a connection, so nothing is cancelled.
+		loader.begin();
+		loader.end();
+		assert.equal(net.aborted.length, 0, "cancelled with nothing to cancel for");
+
+		// One tile comes into view. Exactly one connection is freed for it.
+		loader.begin();
+		loader.want("fresh", "/tiles/fresh", 0);
+		loader.end();
+		assert.equal(net.aborted.length, 1, "freed more connections than were asked for");
+		assert.equal(net.started.at(-1), "/tiles/fresh");
+	} finally {
+		net.restore();
+	}
+});
+
+// The other half of the same rule: when a whole screen of tiles is queued --
+// which is what a zoom across a level boundary produces -- the connections do
+// come back, up to the cap and no further.
+test("a level change frees as many connections as the new level needs", () => {
+	const net = stubFetch();
+
+	try {
+		const loader = newLoader(() => {});
+
+		loader.begin();
+		for (let i = 0; i < 8; i++) {
+			loader.want(`old${i}`, `/tiles/old/${i}`, i);
+		}
+		loader.end();
+		assert.equal(net.started.length, 8);
+
+		loader.begin();
+		for (let i = 0; i < 20; i++) {
+			loader.want(`new${i}`, `/tiles/new/${i}`, i);
+		}
+		loader.end();
+
+		assert.equal(net.aborted.length, 8, "the level just left is still holding connections");
+		assert.equal(net.started.length, 16, "the new level did not get the cap");
+	} finally {
+		net.restore();
+	}
 });

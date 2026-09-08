@@ -323,7 +323,19 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 
 	body, size, err := a.Storage.Get(r.Context(), key)
 	if err != nil {
-		slog.Error("Failed to get image from R2", "error", err, "key", key)
+		// A CANCELLED REQUEST IS THE BROWSER AND NOT THE STORE, and on the
+		// room page it is routine rather than rare: the renderer drops every
+		// tile fetch that leaves the viewport, so a pan abandons a handful and
+		// a zoom that changes pyramid level abandons everything in flight. An
+		// <img> does the same the moment the page navigates. Logged at error
+		// level those bury the failures that are real -- a missing object, a
+		// bad credential -- under a line per abandoned tile.
+		if errors.Is(err, context.Canceled) || r.Context().Err() != nil {
+			slog.Debug("Image fetch abandoned by the client", "key", key)
+		} else {
+			slog.Error("Failed to get image from R2", "error", err, "key", key)
+		}
+
 		// The status and nothing else. Every caller of this function is
 		// answering an <img> or a renderer's fetch, and http.NotFound would
 		// write "404 page not found" where the bytes were meant to be.

@@ -529,5 +529,5 @@ func (a *App) RoomLayerFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomLayerName(pages.RoomLayerNameData{RoomID: row.ID.String(), Name: name}))
+	render(w, r, pages.RoomLayerName(pages.RoomLayerNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
 }
