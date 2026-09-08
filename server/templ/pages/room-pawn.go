@@ -7,26 +7,35 @@ import (
 	"github.com/a-h/templ"
 )
 
-// ONE PAWN, ON TWO SURFACES, AND THE SPLIT IS THE WHOLE DESIGN OF THIS FILE.
+// ONE PAWN, ONE SURFACE, AND THE SURFACE IS A WINDOW.
 //
-// THE PANEL IS A WINDOW AND STAYS OPEN THROUGH A FIGHT. It is what the old
-// client opened on a right-click and the one interaction worth carrying
-// forward: a goblin's hit points, armour class and conditions, tucked in a
-// corner, several at once, refetching themselves as the socket says they
-// changed. It carries exactly ONE editable control -- hit points -- because
-// that is the value that changes every round, and a dialog in front of "the
-// goblin takes 7" is the wrong shape.
+// THE PANEL IS WHAT A RIGHT CLICK OPENS AND IT STAYS OPEN THROUGH A FIGHT. It
+// is the interaction the old client had that was worth carrying forward: a
+// goblin's hit points, armour class and conditions, tucked in a corner, several
+// at once, refetching themselves as the socket says they changed. Everything
+// about the pawn is now in it -- its name, its size, its maximum hit points,
+// its armour class, its conditions, whether players can see it and which floor
+// it stands on.
 //
-// THE FORM IS A MODAL AND IS A TASK WITH A SAVE. Renaming, resizing, max hit
-// points, armour class, conditions, visibility, layer: things somebody sets
-// once and then stops thinking about. It is a modal rather than a window for a
-// mechanical reason as well as a shape one -- a form that refetched itself
-// would throw away whatever was half-typed in it, and nothing refetches a
-// modal.
+// THERE WAS A MODAL AND IT HAS BEEN TAKEN OUT. It held exactly the fields
+// listed above, reached by an Edit button on this panel, and every one of them
+// is something a GM wants beside the value they are watching rather than behind
+// a button that blocks the page. Two surfaces for one pawn also meant two error
+// slots, two ids for every field, and a Save that dismissed a dialog rather
+// than answering with what it had changed.
 //
-// SO THE PANEL REFETCHES AND THE FORM DOES NOT, and the one field that is on
-// the refetching surface is guarded by document.activeElement in its own
-// trigger filter. See RoomPawnData.Trigger.
+// THE OBJECTION TO A FORM IN A REFETCHING PANEL IS ANSWERED BY THE PANEL'S OWN
+// TRIGGER. A swap while somebody is typing throws away what they typed, which
+// is why the form used to be somewhere that never refetches -- but this panel
+// already declined every refetch while focus was inside it, to protect the one
+// field it had. That guard now covers the whole form. It is the same rule doing
+// more work rather than a new rule. See RoomPawnData.Trigger.
+//
+// TWO OF THESE ARE OPEN AT ONCE AS A MATTER OF COURSE, which is what makes
+// every id in this file carry the pawn's own: the panel's element, its error
+// slot, its form, its conditions list, its datalist and every labelled control.
+// A shared id is a label that focuses another window's field and a POST whose
+// errors land in somebody else's panel.
 //
 // EVERYTHING HERE HAS ALREADY BEEN PROJECTED. The controller reads the pawn
 // through hub.Pawn, which answers with the copy the asking role may see -- so a
@@ -91,8 +100,9 @@ var ConditionClears = []Option{
 	{Label: "Start of turn", Value: "start"},
 }
 
-// conditionNameList ties the condition field to its <datalist> of the twenty
-// familiar names.
+// conditionNameList ties one pawn's condition fields to that pawn's own
+// <datalist> of the twenty familiar names, and conditionNamesID is the id it
+// points at.
 //
 // IT IS AN ATTRIBUTE BUILT IN GO RATHER THAN WRITTEN IN THE MARKUP, and that is
 // not a style choice. Tailwind reads every .templ file as TEXT and takes a
@@ -105,33 +115,58 @@ var ConditionClears = []Option{
 // event or a form field. This one is HTML's own attribute and cannot be
 // renamed, so it moves to a file the scanner does not read instead. Measured
 // with the selector diff, not assumed.
-var conditionNameList = templ.Attributes{"list": "condition-names"}
+//
+// THE PAWN'S ID IS IN IT because two panels are open at once and each brings
+// its own list. Two elements with one id is invalid, and every input in both
+// windows would resolve to whichever happened to be first in the document --
+// which works right up until that window is closed.
+func conditionNamesID(pawnID string) string { return "condition-names-" + pawnID }
+
+func conditionNameList(pawnID string) templ.Attributes {
+	return templ.Attributes{"list": conditionNamesID(pawnID)}
+}
 
 // RoomPawnData is the live panel: one pawn, already projected, plus who is
 // looking at it.
 type RoomPawnData struct {
 	RoomID string
 
-	// CanEdit is the GM or the pawn's owner, and it is what draws the hit-point
-	// field and the Edit button. It is a courtesy and not the authorization:
+	// CanEdit is the GM or the pawn's owner, and it is what draws the form
+	// instead of the readings. It is a courtesy and not the authorization:
 	// PawnUpdate.Authorize refuses the same people again on every post.
 	CanEdit bool
 
-	// IsGM draws the two controls that are the GM's alone -- the hidden marker
-	// and the stat block button.
+	// IsGM draws the controls that are the GM's alone -- the hidden marker,
+	// the stat block button, the visibility toggle, the floor select and
+	// Remove.
 	IsGM bool
 
 	Pawn RoomPawn
 
-	// Errors is what an unparseable hit-point entry puts above the field. It
-	// arrives on a 422, which the form's hx-status:422 lets through the page's
-	// noSwap list, and it replaces the error slot rather than the panel.
+	// Layers is the room's floors, for the GM's floor select, and LayerID is
+	// the one the pawn stands on now.
+	//
+	// IT IS EMPTY FOR A PLAYER, who may not move a pawn between floors at all:
+	// PawnSetLayer refuses them, because a player who sent their own pawn
+	// upstairs would stop being sent it and would be holding a pawn they can no
+	// longer see.
+	Layers  []RoomPawnLayer
+	LayerID string
+
+	// Shown is the visibility toggle's state, GM only. It is the opposite of
+	// RoomPawn.Hidden and both are here because one is a control's value and
+	// the other is a badge in the header.
+	Shown bool
+
+	// Errors is what a refused field puts above the form. It arrives on a 422,
+	// which the form's hx-status:422 lets through the page's noSwap list, and
+	// it replaces the error slot rather than the panel.
 	Errors []string
 }
 
-// RoomPawn is one pawn as either surface draws it: strings, because every
-// number on it has already been decided to be shown or withheld and a nil int
-// in a template is a decision waiting to be made twice.
+// RoomPawn is one pawn as the panel draws it: strings, because every number on
+// it has already been decided to be shown or withheld and a nil int in a
+// template is a decision waiting to be made twice.
 type RoomPawn struct {
 	ID   string
 	Name string
@@ -140,7 +175,7 @@ type RoomPawn struct {
 	// URL the canvas draws its sprite from.
 	Image string
 
-	// Object switches the whole shape of both surfaces: a picture's width and
+	// Object switches the whole shape of the panel: a picture's width and
 	// height instead of a creature size, and no conditions at all, because a
 	// wagon cannot be poisoned.
 	Object bool
@@ -163,8 +198,8 @@ type RoomPawn struct {
 	// form's value. It is empty when the viewer was told nothing.
 	AC string
 
-	// Size is the label the panel prints for a CREATURE and SizeValue is what
-	// the form's select is set to. Pixels is the same line for an OBJECT --
+	// Size is the label a reader's panel prints for a CREATURE and SizeValue is
+	// what the editor's select is set to. Pixels is the same line for an OBJECT --
 	// "200 by 140 pixels, turned 30 degrees" -- and Width, Height and Rotation
 	// are the three numbers its form takes. The panel prints whichever of the
 	// two applies under one heading, because "how big is it" is one question
@@ -216,43 +251,31 @@ type RoomPawnCondition struct {
 	Clear        string
 }
 
-// RoomPawnFormData is the edit form in the content modal.
-type RoomPawnFormData struct {
-	RoomID string
-	IsGM   bool
-	Pawn   RoomPawn
-
-	// Layers is the room's floors, for the GM's Move to layer select. It is
-	// empty for a player, who may not move a pawn between floors at all --
-	// PawnSetLayer refuses them, because a player who sent their own pawn
-	// upstairs would no longer be sent it.
-	Layers []RoomPawnLayer
-
-	// LayerID is the floor the pawn is on now, which is the selected option.
-	LayerID string
-
-	// Shown is the visibility toggle's state, GM only.
-	Shown bool
-
-	Errors []string
-}
-
 // RoomPawnLayer is one option in the layer select.
 type RoomPawnLayer struct {
 	ID   string
 	Name string
 }
 
-// RoomPawnFormPanel is the form's error slot, and it is per pawn for the reason
-// the panel's is: a GM can have one modal open and one panel open on the same
-// goblin, and two error slots with one id would collide.
-func (d RoomPawnFormData) Panel() string { return "pawn-form-" + d.Pawn.ID }
-
-// Panel is the hit-point field's error slot.
+// Panel is the error slot the form and the hit-point field both write into.
 func (d RoomPawnData) Panel() string { return RoomPawnPanel + "-" + d.Pawn.ID }
 
-// ElementID is the panel's own id, which is also its refetch target.
+// ElementID is the panel's own id, which is also its refetch target and what
+// both of its forms swap.
 func (d RoomPawnData) ElementID() string { return "pawn-" + d.Pawn.ID }
+
+// FormID is the editor's form element, ConditionsID is the list its Add button
+// appends to, and NamesID is the datalist its condition fields read.
+func (d RoomPawnData) FormID() string { return "pawn-form-" + d.Pawn.ID }
+
+func (d RoomPawnData) ConditionsID() string { return "pawn-conditions-" + d.Pawn.ID }
+
+func (d RoomPawnData) NamesID() string { return conditionNamesID(d.Pawn.ID) }
+
+// Field is one control's id, and it carries the pawn's own for the reason
+// every other id here does: two panels are open at once, and a <label for> that
+// named a bare "name" would put the caret in the other window's field.
+func (d RoomPawnData) Field(name string) string { return name + "-" + d.Pawn.ID }
 
 // Path is the fragment's own URL, so the copy swapped in refetches itself the
 // same way the first one did.
@@ -289,11 +312,6 @@ func (d RoomPawnData) HPPath() string {
 	return "/rooms/" + d.RoomID + "/pawns/" + d.Pawn.ID + "/hp"
 }
 
-// EditPath opens the form in the content modal.
-func (d RoomPawnData) EditPath() string {
-	return "/fragment/room/pawn/edit?room=" + d.RoomID + "&pawn=" + d.Pawn.ID
-}
-
 // StatBlockPath, StatBlockWindow and StatBlockTitle are the three attributes
 // the stat block trigger carries.
 //
@@ -307,8 +325,10 @@ func (d RoomPawnData) StatBlockPath() string {
 
 func (d RoomPawnData) StatBlockWindow() string { return "monster:" + d.Pawn.MonsterID }
 
-// SavePath is where the modal's form posts.
-func (d RoomPawnFormData) SavePath() string {
+// SavePath is where the editor posts, and it answers with the panel it just
+// changed -- which is the case the fragment rules name for a mutation outside
+// /fragment/.
+func (d RoomPawnData) SavePath() string {
 	return "/rooms/" + d.RoomID + "/pawns/" + d.Pawn.ID
 }
 
@@ -316,21 +336,21 @@ func (d RoomPawnFormData) SavePath() string {
 // values rather than in the path because the same route takes a whole selection
 // from the canvas overlay, and one route that takes a list is better than two
 // that differ in how many.
-func (d RoomPawnFormData) RemovePath() string {
+func (d RoomPawnData) RemovePath() string {
 	return "/rooms/" + d.RoomID + "/pawns"
 }
 
 // RemovePrompt names what is about to go, because "Are you sure?" over a table
 // of goblins is a question nobody can answer safely.
-func (d RoomPawnFormData) RemovePrompt() string {
+func (d RoomPawnData) RemovePrompt() string {
 	return "Remove " + d.Pawn.Name + " from the table. This cannot be undone."
 }
 
-// RemoveVals is the one id the dialog's Remove sends, in the shape the route
-// takes from the canvas overlay as well -- a repeated ids field. One route that
-// takes a list serves both, and the alternative is two routes that differ only
-// in how many pawns they name.
-func (d RoomPawnFormData) RemoveVals() string {
+// RemoveVals is the one id the panel's Remove sends, in the shape the route
+// takes from the canvas overlay as well. One route that takes a list serves
+// both, and the alternative is two routes that differ only in how many pawns
+// they name.
+func (d RoomPawnData) RemoveVals() string {
 	return `{"ids": "` + d.Pawn.ID + `"}`
 }
 
@@ -340,7 +360,7 @@ func (d RoomPawnFormData) RemoveVals() string {
 // character sheet's repeaters already have: repeater.js removes rows and the
 // server renders them, so the markup for a row exists once. A row built in
 // JavaScript would be a second copy of it, in a file Tailwind does not scan.
-func (d RoomPawnFormData) ConditionRowPath() string {
+func (d RoomPawnData) ConditionRowPath() string {
 	return "/fragment/room/condition-row?room=" + d.RoomID + "&pawn=" + d.Pawn.ID
 }
 

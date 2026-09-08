@@ -50,6 +50,9 @@ templ roomContent(data RoomPageData) {
 					</p>
 				}
 				@roomOverlay(data)
+				if data.IsGM() {
+					@roomRemoveKey(data)
+				}
 				@roomToolbar()
 				if data.Debug {
 					@roomDebug()

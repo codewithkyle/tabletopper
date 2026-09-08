@@ -6,43 +6,11 @@ templ roomOverlay(data RoomPageData) {
 		hidden
 		class={ surfacePanel + " pointer-events-none absolute top-0 left-0 z-10 flex max-w-64 flex-col gap-1 rounded-box p-1.5 text-xs will-change-transform" }
 	>
-		<div data-overlay-one hidden class="pointer-events-auto flex flex-col gap-1">
+		<div data-overlay-one hidden class="flex flex-col gap-1">
 			<p data-overlay-name class="m-0 truncate font-semibold"></p>
 			<div class="flex items-center gap-2 text-[10px] text-base-content/70">
 				<span data-overlay-hp class="truncate"></span>
 				<span data-overlay-ac class="truncate"></span>
-			</div>
-			<div data-overlay-conditions class="flex flex-wrap items-center gap-1 empty:hidden"></div>
-			<div class="flex flex-wrap gap-1">
-				<button
-					type="button"
-					data-overlay-details
-					data-window=""
-					data-window-url=""
-					data-window-title=""
-					data-window-width="260"
-					data-window-height="300"
-					class="btn btn-xs border-base-content/50"
-				>Details</button>
-				<button
-					type="button"
-					data-overlay-stat-block
-					hidden
-					data-window=""
-					data-window-url=""
-					data-window-title=""
-					data-window-width="380"
-					data-window-height="520"
-					class="btn btn-xs border-base-content/50"
-				>Stat block</button>
-				<button
-					type="button"
-					data-overlay-edit
-					hidden
-					data-modal-open=""
-					data-modal-size="md"
-					class="btn btn-xs border-base-content/50"
-				>Edit</button>
 			</div>
 		</div>
 		<div data-overlay-many hidden class="pointer-events-auto flex flex-col gap-1">
@@ -70,15 +38,19 @@ templ roomOverlay(data RoomPageData) {
 				>Remove</button>
 			}
 		</div>
-		<template data-overlay-dots>
-			<span data-dot="red" class="size-2 shrink-0 rounded-full bg-red-500"></span>
-			<span data-dot="orange" class="size-2 shrink-0 rounded-full bg-orange-500"></span>
-			<span data-dot="yellow" class="size-2 shrink-0 rounded-full bg-yellow-400"></span>
-			<span data-dot="green" class="size-2 shrink-0 rounded-full bg-green-500"></span>
-			<span data-dot="blue" class="size-2 shrink-0 rounded-full bg-blue-500"></span>
-			<span data-dot="purple" class="size-2 shrink-0 rounded-full bg-purple-500"></span>
-			<span data-dot="pink" class="size-2 shrink-0 rounded-full bg-pink-400"></span>
-			<span data-dot="white" class="size-2 shrink-0 rounded-full bg-white"></span>
-		</template>
 	</div>
+}
+
+templ roomRemoveKey(data RoomPageData) {
+	<button
+		type="button"
+		data-pawn-remove
+		hidden
+		hx-delete={ "/rooms/" + data.ID + "/pawns" }
+		hx-swap="none"
+		hx-vals=""
+		hx-confirm="Remove what is selected from the table. This cannot be undone."
+		data-confirm-heading="Remove from the table?"
+		data-confirm-label="Remove"
+	>Remove</button>
 }

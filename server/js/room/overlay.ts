@@ -12,40 +12,72 @@
 // text per frame would be a string comparison per field per frame for nothing,
 // and writing the transform on a change would leave it behind during a pan.
 //
+// IT FOLLOWS THE HOVER AND NEVER THE SELECTION. A pawn somebody has SELECTED is
+// a pawn they are about to do something to -- drag it, turn it, resize it --
+// and a panel parked over the top of it is in the way of every one of those.
+// What a label is for is telling you what you are pointing AT, which is a
+// question you stop asking the moment you have picked the thing. The one
+// exception is a multiple selection, where the label is not describing a pawn
+// at all: it is the count and the two controls that act on the group.
+//
+// IT CARRIES NO BUTTONS. Everything about a pawn is in its window, which a
+// right click on the table opens; a row of buttons on a thing that follows the
+// pointer is a row of buttons that moves out from under the hand reaching for
+// it.
+//
 // NO CLASS NAME IS WRITTEN IN THIS FILE, which server/js cannot do: it is not a
 // Tailwind source, so a class named here would never be emitted. Everything
-// this needs is rendered in room-overlay.templ -- including the eight coloured
-// condition dots, which live in a <template> and are cloned.
+// this needs is rendered in room-overlay.templ.
 
-import type { Pawn, Role } from "./protocol.ts";
+import type { Pawn } from "./protocol.ts";
 import type { Rect } from "./render/camera.ts";
 
 export interface OverlayDeps {
-	// focus is the one pawn the overlay is about, or null when several or none
-	// are chosen.
+	// focus is the one pawn the overlay is describing -- the hovered one -- or
+	// null when there is nothing under the pointer worth a label.
 	focus: () => Pawn | null;
 
-	// selected is how many, which decides which of the two shapes is shown.
+	// selected is how many, which is what decides between describing one pawn
+	// and counting a group.
 	selected: () => string[];
 
-	// bounds is the box to sit above, in map pixels.
+	// bounds is the box to sit above, in map pixels, and it is the box of
+	// whatever is being shown rather than of whatever is selected.
 	bounds: () => Rect | null;
 
 	// project turns a map point into a CSS pixel offset inside the table.
 	project: (x: number, y: number, out: { x: number; y: number }) => { x: number; y: number };
 
 	// layers is the room's floors, for the GM's Move to floor control.
+	//
+	// IT IS THE ONLY THING THIS PANEL STILL NEEDS FROM THE ROOM. The room id,
+	// the viewer's role and their user id were all here to decide which buttons
+	// to draw; there are no buttons on the single-pawn shape any more, and the
+	// two on the group shape are rendered for the GM by the page or not at all.
 	layers: () => { id: string; name: string }[];
-
-	roomID: string;
-	role: Role;
-	user: string;
 }
 
 export interface Overlay {
 	// refresh rewrites the contents. It is called when the selection, the hover
 	// or the pawn under either of them changes.
 	refresh(): void;
+
+	// remove presses the Delete key's own button, which is a hidden control on
+	// the room page rather than anything in this panel.
+	//
+	// A CLICK AND NOT A FETCH, and that is the whole reason it is a button at
+	// all. Removing pawns is confirmed, the confirmation is the app's confirm
+	// modal, and hx-confirm lives on the element that makes the request -- so
+	// pressing that element is what gets the dialog. Building the DELETE by
+	// hand would skip it, and window.confirm is banned.
+	//
+	// IT IS HIDDEN AND IT STAYS HIDDEN. A keyboard shortcut needs an element to
+	// press; it does not need one anybody can see, and the panel this file
+	// draws deliberately has no buttons on it.
+	//
+	// IT IS THE GM'S BUTTON OR NOTHING. A player's page never renders one, so
+	// this is a no-op for them without a role test of its own.
+	remove(): void;
 
 	// place writes the transform. It is called once per frame, and only while
 	// there is something to place.
@@ -74,17 +106,14 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 	const name = must(root, "[data-overlay-name]");
 	const hp = must(root, "[data-overlay-hp]");
 	const ac = must(root, "[data-overlay-ac]");
-	const conditions = must(root, "[data-overlay-conditions]");
 	const count = root.querySelector("[data-overlay-count]");
-	const details = must(root, "[data-overlay-details]");
-	const statBlock = must(root, "[data-overlay-stat-block]");
-	const edit = must(root, "[data-overlay-edit]");
 
-	// The three GM-only controls are absent from a player's page entirely, so
-	// these are nulls rather than hidden elements.
-	const remove = root.querySelector("[data-overlay-remove]");
+	// The GM-only controls are absent from a player's page entirely, so these
+	// are nulls rather than hidden elements. The Delete key's button is looked
+	// up on the MOUNT rather than on the panel, because it is not part of it.
+	const removeButton = root.querySelector("[data-overlay-remove]");
 	const layerSelect = root.querySelector("[data-overlay-layer]");
-	const dots = root.querySelector("[data-overlay-dots]");
+	const removeKey = mount.querySelector("[data-pawn-remove]");
 
 	const at = { x: 0, y: 0 };
 	let showing = false;
@@ -95,15 +124,31 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 
 	function refresh(): void {
 		const chosen = deps.selected();
-		const pawn = deps.focus();
+
+		// THE KEY'S BUTTON IS ARMED WHATEVER THE PANEL DOES, because the two
+		// are not the same question. Delete acts on the SELECTION, and the
+		// selection is exactly the case this panel goes away for.
+		armRemoveKey(chosen);
 
 		if (chosen.length > 1) {
 			showMany(chosen);
-		} else if (pawn) {
-			showOne(pawn);
-		} else {
-			hide();
+
+			return;
 		}
+
+		// A SINGLE SELECTION SHOWS NOTHING AT ALL, which is the point: what a
+		// hand does next to one selected pawn is drag it, turn it or resize it,
+		// and all three happen where this panel would be sitting. Hovering
+		// something else while one thing is selected still labels what is under
+		// the pointer, because that is the question a label answers.
+		const pawn = deps.focus();
+		if (pawn) {
+			showOne(pawn);
+
+			return;
+		}
+
+		hide();
 	}
 
 	function hide(): void {
@@ -134,31 +179,6 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 				: "";
 
 		ac.textContent = pawn.ac !== null ? `AC ${pawn.ac}` : "";
-
-		fillConditions(pawn);
-
-		const window = `pawn:${pawn.id}`;
-		details.dataset.window = window;
-		details.dataset.windowUrl = `/fragment/room/pawn?room=${deps.roomID}&pawn=${pawn.id}`;
-		details.dataset.windowTitle = pawn.name;
-
-		// THE STAT BLOCK IS THE GM'S. A player's projected pawn never carries a
-		// monster id -- the server only sets it on the GM's copy -- so this is
-		// the projection deciding rather than a flag being trusted.
-		if (pawn.monsterId) {
-			statBlock.hidden = false;
-			statBlock.dataset.window = `monster:${pawn.monsterId}`;
-			statBlock.dataset.windowUrl = `/fragment/room/stat-block?room=${deps.roomID}&pawn=${pawn.id}`;
-			statBlock.dataset.windowTitle = pawn.name;
-		} else {
-			statBlock.hidden = true;
-		}
-
-		const mayEdit = deps.role === "gm" || (pawn.ownerId !== null && pawn.ownerId === deps.user);
-		edit.hidden = !mayEdit;
-		if (mayEdit) {
-			edit.dataset.modalOpen = `/fragment/room/pawn/edit?room=${deps.roomID}&pawn=${pawn.id}`;
-		}
 	}
 
 	function showMany(chosen: string[]): void {
@@ -172,37 +192,27 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 		}
 
 		// hx-vals IS SET AS AN ATTRIBUTE AND READ AT REQUEST TIME, which is what
-		// lets one button carry a selection that changes under it. The ids go as
-		// one comma-separated value because that is what htmx does with an
-		// array -- it sets rather than appends -- and the route splits them.
-		const vals = JSON.stringify({ ids: chosen.join(",") });
-		remove?.setAttribute("hx-vals", vals);
-		layerSelect?.setAttribute("hx-vals", vals);
+		// lets one button carry a selection that changes under it.
+		const values = vals(chosen);
+		removeButton?.setAttribute("hx-vals", values);
+		layerSelect?.setAttribute("hx-vals", values);
 
 		fillLayers();
 	}
 
-	function fillConditions(pawn: Pawn): void {
-		conditions.replaceChildren();
-		if (!(dots instanceof HTMLTemplateElement)) {
-			return;
-		}
+	// armRemoveKey keeps the hidden button in step with the selection, so the
+	// Delete key never removes something that is no longer chosen.
+	function armRemoveKey(chosen: string[]): void {
+		removeKey?.setAttribute("hx-vals", vals(chosen));
+	}
 
-		for (const condition of pawn.conditions) {
-			const dot = dots.content.querySelector(`[data-dot="${condition.color}"]`);
-			if (!dot) {
-				continue;
-			}
-
-			const copy = dot.cloneNode(true);
-			if (copy instanceof HTMLElement) {
-				// The name is the title rather than text beside it: sixteen
-				// chips would be wider than the table, and the dot's colour is
-				// what a GM reads at a glance anyway.
-				copy.title = condition.name;
-				conditions.append(copy);
-			}
-		}
+	// vals is the ids in the shape the route reads.
+	//
+	// ONE COMMA-SEPARATED VALUE AND NOT A REPEATED FIELD, because that is what
+	// htmx does with an array -- it SETS each key rather than appending it --
+	// and the route splits on the comma. A ULID has none in it.
+	function vals(chosen: string[]): string {
+		return JSON.stringify({ ids: chosen.join(",") });
 	}
 
 	function fillLayers(): void {
@@ -254,6 +264,15 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 	return {
 		refresh,
 		place,
+
+		remove() {
+			if (deps.selected().length === 0) {
+				return;
+			}
+
+			removeKey?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+		},
+
 		stop() {
 			hide();
 		},

@@ -739,7 +739,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/spawn", auth.Fragment(app.RoomSpawnFragment))
 	mux.HandleFunc("GET /fragment/room/spawn-list", auth.Fragment(app.RoomSpawnListFragment))
 	mux.HandleFunc("GET /fragment/room/pawn", auth.Fragment(app.RoomPawnFragment))
-	mux.HandleFunc("GET /fragment/room/pawn/edit", auth.Fragment(app.RoomPawnEditFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
 	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
 

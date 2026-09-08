@@ -76,6 +76,14 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 	};
 }
 
+// press is a key arriving on the document, optionally from a control. The
+// listener createTable installed is the only one there is.
+function press(key: string, target: unknown = null): void {
+	for (const fn of keydown) {
+		(fn as (e: unknown) => void)({ key, target });
+	}
+}
+
 const NONE = { shift: false, alt: false };
 const SHIFT = { shift: true, alt: false };
 const ALT = { shift: false, alt: true };
@@ -151,7 +159,8 @@ test("hit testing ignores another floor", () => {
 	assert.equal(hitTest(pawns, GROUND, grid(), 0, 0), null);
 });
 
-// A table wired to a recording send, so a test can read what crossed the wire.
+// A table wired to a recording send, so a test can read what crossed the wire,
+// and to recording versions of the two things it asks the page to do.
 function table(
 	pawns: Pawn[],
 	over: Partial<{ role: "gm" | "player"; user: string; grid: Grid; scale: number }> = {},
@@ -162,6 +171,8 @@ function table(
 	state.table.activeLayer = GROUND;
 
 	const sent: Record<string, unknown>[] = [];
+	const opened: string[] = [];
+	let removals = 0;
 
 	const controller = createTable({
 		state,
@@ -176,9 +187,16 @@ function table(
 		// ONE MAP PIXEL PER SCREEN PIXEL, so a handle's grab radius in these
 		// tests is the constant itself and the arithmetic is readable.
 		scale: () => over.scale ?? 1,
+
+		details: (p) => {
+			opened.push(p.id);
+		},
+		remove: () => {
+			removals += 1;
+		},
 	});
 
-	return { controller, sent, state };
+	return { controller, sent, state, opened, removals: () => removals };
 }
 
 // A CLICK STILL SELECTS, which is the whole reason the threshold exists: a
@@ -293,9 +311,7 @@ test("Escape sends the committed position with the same others", () => {
 	controller.tool.press(at(32, 32), at(0, 0), NONE);
 	controller.tool.drag(at(300, 300), at(268, 268), NONE);
 
-	for (const fn of keydown) {
-		fn({ key: "Escape" });
-	}
+	press("Escape");
 
 	const move = sent[sent.length - 1];
 	assert.equal(move?.type, "pawn.move");
@@ -396,9 +412,7 @@ test("arming places on every click until Escape", () => {
 
 	assert.equal(controller.isArmed(), true);
 
-	for (const fn of keydown) {
-		fn({ key: "Escape" });
-	}
+	press("Escape");
 
 	assert.equal(controller.isArmed(), false);
 
@@ -479,14 +493,13 @@ test("a token commits where the hand let go and a creature commits to the lattic
 	assert.deepEqual([snappedMove?.x, snappedMove?.y], [96, 96], "the creature ignored the lattice");
 });
 
-// RIGHT CLICK IS ESCAPE FOR A HAND THAT IS ALREADY ON THE MOUSE. It answers
-// whether it abandoned anything, which is what decides whether the browser's
-// own context menu is suppressed -- a right click on empty table is still a
-// right click on a web page.
-test("the right button abandons placement and says that it did", () => {
-	const { controller } = table([]);
-
-	assert.equal(controller.tool.secondary(), false, "nothing was happening and the menu was eaten");
+// RIGHT CLICK IS ESCAPE FOR A HAND THAT IS ALREADY ON THE MOUSE, and placement
+// wins over everything else: a GM halfway through putting down an encounter
+// pressed it to STOP, and opening a window over the table they were working on
+// would be the opposite of what they asked for.
+test("the right button abandons placement rather than opening anything", () => {
+	const goblin = pawn({ id: "goblin", x: 0, y: 0 });
+	const { controller, opened } = table([goblin]);
 
 	controller.arm({
 		kind: "object", id: "01ASSET", name: "Barrel", image: "",
@@ -494,8 +507,10 @@ test("the right button abandons placement and says that it did", () => {
 	});
 	assert.equal(controller.isArmed(), true);
 
-	assert.equal(controller.tool.secondary(), true);
+	controller.tool.secondary(at(0, 0), at(0, 0));
+
 	assert.equal(controller.isArmed(), false, "placement survived a right click");
+	assert.deepEqual(opened, [], "a window opened over the encounter being placed");
 });
 
 // AND IT PUTS A DRAG BACK, which is the other half of what Escape does. The
@@ -504,16 +519,151 @@ test("the right button abandons placement and says that it did", () => {
 // drawing.
 test("the right button puts a dragged pawn back", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
-	const { controller, sent } = table([goblin]);
+	const { controller, sent, opened } = table([goblin]);
 
 	controller.tool.press(at(32, 32), at(0, 0), NONE);
 	controller.tool.drag(at(300, 300), at(268, 268), NONE);
 
-	assert.equal(controller.tool.secondary(), true);
+	controller.tool.secondary(at(300, 300), at(268, 268));
 
 	const move = sent.at(-1);
 	assert.equal(move?.type, "pawn.move");
 	assert.deepEqual([move?.x, move?.y], [32, 32], "the pawn did not go back where it started");
+	assert.deepEqual(opened, [], "abandoning a drag also opened a window");
+});
+
+// WITH NOTHING TO ABANDON IT IS A QUESTION ABOUT WHAT IS UNDER THE POINTER,
+// which is the one thing a right click does that Escape cannot.
+test("the right button on a pawn opens its window", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	controller.tool.secondary(at(32, 32), at(0, 0));
+	assert.deepEqual(opened, ["goblin"]);
+
+	// Empty table opens nothing, and the browser's own menu is gone either way
+	// -- that is input.ts's decision and not this module's.
+	controller.tool.secondary(at(900, 900), at(0, 0));
+	assert.deepEqual(opened, ["goblin"]);
+});
+
+// IT IS THE HIT TEST AND NOT A SEPARATE RULE, so a right click picks the same
+// pawn a left click would: the goblin standing on the rug rather than the rug.
+test("the right button follows the draw order", () => {
+	const rug = pawn({ id: "rug", kind: "object", width: 256, height: 256, x: 0, y: 0, z: 9 });
+	const goblin = pawn({ id: "goblin", x: 0, y: 0, z: 1 });
+	const { controller, opened } = table([rug, goblin]);
+
+	controller.tool.secondary(at(0, 0), at(0, 0));
+	assert.deepEqual(opened, ["goblin"]);
+});
+
+// A RIGHT CLICK IS NOT A SELECTION. Answering "let me look at that" by throwing
+// away whatever the GM had picked out would make it a destructive gesture.
+test("the right button leaves the selection alone", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const wagon = pawn({ id: "wagon", kind: "object", width: 64, height: 64, x: 400, y: 400 });
+	const { controller } = table([goblin, wagon]);
+
+	controller.selection.set(["wagon"]);
+	controller.tool.secondary(at(32, 32), at(0, 0));
+
+	assert.deepEqual(controller.selection.ids(), ["wagon"]);
+});
+
+// THE LABEL FOLLOWS THE HOVER AND LETS GO OF A SELECTION. A pawn somebody has
+// picked out is a pawn they are about to drag, turn or resize, and a panel
+// parked over the top of it is in the way of all three.
+test("the label is about what is hovered and never what is selected", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const orc = pawn({ id: "orc", x: 400, y: 400 });
+	const { controller } = table([goblin, orc]);
+
+	controller.tool.hover(at(32, 32));
+	assert.equal(controller.focus()?.id, "goblin");
+
+	controller.selection.set(["goblin"]);
+	assert.equal(controller.focus()?.id, "goblin", "hovering the selected pawn still labels it");
+
+	// The hand moves off it. One thing is selected and nothing is under the
+	// pointer, so there is nothing to label.
+	controller.tool.hover(null);
+	assert.equal(controller.focus(), null);
+	assert.equal(controller.bounds(), null);
+
+	// And hovering something ELSE labels that, not the selection.
+	controller.tool.hover(at(400, 400));
+	assert.equal(controller.focus()?.id, "orc");
+});
+
+// A TOKEN HAS NOTHING TO SAY: no hit points, no armour class, and a name the
+// picture already tells you. What a label over one WOULD do is sit on top of
+// the handles that appear the moment it is selected.
+test("a token is never labelled", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller } = table([wagon]);
+
+	controller.tool.hover(at(0, 0));
+	assert.equal(controller.focus(), null);
+	assert.equal(controller.bounds(), null);
+
+	controller.selection.set(["wagon"]);
+	assert.equal(controller.focus(), null, "selecting a token labelled it");
+
+	// And it still has its handles, which is what that space is for.
+	assert.equal(controller.handles([]).length, 9);
+});
+
+// A GROUP IS THE ONE CASE THE LABEL STAYS UP FOR, because it is not describing
+// a pawn at all -- it is the count and the controls that act on the group. Its
+// box is the whole selection's, so the panel sits above all of them.
+test("a group is boxed by the whole selection", () => {
+	const a = pawn({ id: "a", x: 0, y: 0 });
+	const b = pawn({ id: "b", x: 400, y: 0 });
+	const { controller } = table([a, b]);
+
+	controller.selection.set(["a", "b"]);
+	controller.tool.hover(null);
+
+	const box = controller.bounds();
+	assert.deepEqual([box?.x1, box?.x2], [-32, 432], "the group's box is not both of them");
+});
+
+// DELETE ASKS THE PAGE RATHER THAN SENDING ANYTHING. Removing pawns is
+// confirmed, and the confirmation lives on the element that makes the request,
+// so what this can do is press it.
+test("Delete asks for the selection to be removed and Escape does not", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, removals, sent } = table([goblin]);
+
+	press("Delete");
+	assert.equal(removals(), 0, "Delete removed something with nothing selected");
+
+	controller.selection.set(["goblin"]);
+	press("Delete");
+	assert.equal(removals(), 1);
+	assert.deepEqual(sent, [], "Delete sent a command of its own");
+
+	press("Escape");
+	assert.equal(removals(), 1, "Escape asked for a removal");
+});
+
+// A GM TYPING A GOBLIN'S NEW NAME IS RUBBING OUT A LETTER, NOT A GOBLIN. The
+// keys are heard on the document, and the pawn window's form is on it too.
+test("Delete inside a field is not Delete on the table", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, removals } = table([goblin]);
+
+	controller.selection.set(["goblin"]);
+
+	press("Delete", { tagName: "INPUT" });
+	press("Delete", { tagName: "TEXTAREA" });
+	press("Delete", { tagName: "SELECT" });
+	press("Delete", { tagName: "DIV", isContentEditable: true });
+	assert.equal(removals(), 0);
+
+	press("Delete", { tagName: "DIV" });
+	assert.equal(removals(), 1, "a key from the page at large is a key on the table");
 });
 
 // THE HANDLES ARE ONE SELECTED OBJECT'S AND NOBODY ELSE'S. A creature has a
@@ -622,7 +772,7 @@ test("a resize abandoned with the right button sends nothing", () => {
 	controller.tool.press(at(64, 0), at(0, 0), NONE);
 	controller.tool.drag(at(300, 0), at(0, 0), NONE);
 
-	assert.equal(controller.tool.secondary(), true);
+	controller.tool.secondary(at(300, 0), at(0, 0));
 	assert.deepEqual(sent, []);
 	assert.deepEqual(controller.ghosts([]), [], "the proposal outlived the gesture");
 });

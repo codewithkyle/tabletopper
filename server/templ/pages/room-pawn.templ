@@ -22,52 +22,13 @@ templ RoomPawnFragment(data RoomPawnData) {
 			}
 		</header>
 		@PanelFormErrors(data.Panel(), data.Errors)
-		<dl class="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 @sm:grid-cols-2">
-			@pawnStat("Hit points") {
-				if data.CanEdit {
-					@pawnHPForm(data)
-				} else if data.Pawn.HP != "" {
-					{ data.Pawn.HP }
-				} else if data.Pawn.Band != "" {
-					{ data.Pawn.Band }
-				} else {
-					<span class="text-base-content/40">Unknown</span>
-				}
-			}
-			@pawnStat("Armour class") {
-				if data.Pawn.AC != "" {
-					{ data.Pawn.AC }
-				} else {
-					<span class="text-base-content/40">Unknown</span>
-				}
-			}
-			@pawnStat("Size") {
-				if data.Pawn.Object {
-					{ data.Pawn.Pixels }
-				} else {
-					{ data.Pawn.Size }
-				}
-			}
-		</dl>
-		if !data.Pawn.Object {
-			<div class="flex flex-wrap gap-1">
-				for _, c := range data.Pawn.Conditions {
-					@pawnConditionChip(c)
-				}
-				if len(data.Pawn.Conditions) == 0 {
-					<span class="text-[10px] text-base-content/45">No conditions.</span>
-				}
-			</div>
+		if data.CanEdit {
+			@pawnHPForm(data)
+			@pawnEditor(data)
+		} else {
+			@pawnReadings(data)
 		}
-		<div class="mt-auto flex flex-wrap gap-1 pt-1">
-			if data.CanEdit {
-				<button
-					type="button"
-					class="btn btn-xs border-base-content/50"
-					data-modal-open={ data.EditPath() }
-					data-modal-size="md"
-				>Edit</button>
-			}
+		<div class="mt-auto flex flex-wrap items-center gap-1 pt-1">
 			if data.IsGM && data.Pawn.MonsterID != "" {
 				<button
 					type="button"
@@ -79,8 +40,58 @@ templ RoomPawnFragment(data RoomPawnData) {
 					data-window-height="520"
 				>Stat block</button>
 			}
+			if data.IsGM {
+				<button
+					type="button"
+					class="btn btn-xs btn-error ml-auto"
+					hx-delete={ data.RemovePath() }
+					hx-vals={ data.RemoveVals() }
+					hx-swap="none"
+					hx-confirm={ data.RemovePrompt() }
+					data-confirm-heading="Remove this pawn?"
+					data-confirm-label="Remove"
+				>Remove</button>
+			}
 		</div>
 	</article>
+}
+
+templ pawnReadings(data RoomPawnData) {
+	<dl class="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 @sm:grid-cols-2">
+		@pawnStat("Hit points") {
+			if data.Pawn.HP != "" {
+				{ data.Pawn.HP }
+			} else if data.Pawn.Band != "" {
+				{ data.Pawn.Band }
+			} else {
+				<span class="text-base-content/40">Unknown</span>
+			}
+		}
+		@pawnStat("Armour class") {
+			if data.Pawn.AC != "" {
+				{ data.Pawn.AC }
+			} else {
+				<span class="text-base-content/40">Unknown</span>
+			}
+		}
+		@pawnStat("Size") {
+			if data.Pawn.Object {
+				{ data.Pawn.Pixels }
+			} else {
+				{ data.Pawn.Size }
+			}
+		}
+	</dl>
+	if !data.Pawn.Object {
+		<div class="flex flex-wrap gap-1">
+			for _, c := range data.Pawn.Conditions {
+				@pawnConditionChip(c)
+			}
+			if len(data.Pawn.Conditions) == 0 {
+				<span class="text-[10px] text-base-content/45">No conditions.</span>
+			}
+		</div>
+	}
 }
 
 templ pawnPortrait(pawn RoomPawn) {
@@ -112,14 +123,15 @@ templ pawnHPForm(data RoomPawnData) {
 		hx-sync="this:queue last"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
+		<label class="text-[10px] tracking-wide text-base-content/55 uppercase" for={ data.Field("hp") }>Hit points</label>
 		<input
+			id={ data.Field("hp") }
 			type="text"
 			name="hp"
 			value={ data.Pawn.HPValue }
 			inputmode="numeric"
 			autocomplete="off"
 			maxlength="6"
-			aria-label="Hit points"
 			class="input input-xs w-14"
 		/>
 		if data.Pawn.MaxHP != "" {

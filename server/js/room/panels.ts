@@ -32,6 +32,7 @@
 // reads. That escape hatch exists and needs no change to the protocol.
 
 import type { Event } from "./protocol.ts";
+import { PAWN_WINDOW } from "./pawn-window.ts";
 
 // panelEvents is which DOM event each family of protocol events raises. A
 // family that no panel listens for is simply absent.
@@ -48,12 +49,6 @@ const panelEvents: Partial<Record<Event["type"], string>> = {
 // is the first join and every resync, which is exactly when a panel drawn from
 // a stale fetch would be wrong.
 const everything = ["room:players", "room:initiative", "room:info", "room:tabletop"];
-
-// PAWN_WINDOW is the id a pawn's panel window is keyed under, and it is built
-// in exactly two places: here, and RoomPawnData in templ/pages. Both spell it
-// the same way because a close aimed at an id nobody opened does nothing and
-// says nothing.
-const PAWN_WINDOW = "pawn:";
 
 export function announce(event: Event): void {
 	if (event.type === "snapshot") {

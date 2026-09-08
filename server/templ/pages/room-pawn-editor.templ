@@ -1,0 +1,203 @@
+package pages
+
+import "strconv"
+
+templ pawnEditor(data RoomPawnData) {
+	<form
+		id={ data.FormID() }
+		class="flex flex-col gap-2"
+		hx-post={ data.SavePath() }
+		hx-target={ "#" + data.ElementID() }
+		hx-swap="outerHTML"
+		hx-sync="this:queue last"
+		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
+	>
+		@pawnTextField(data.Field("name"), "name", "Name", data.Pawn.Name)
+		if data.Pawn.Object {
+			<div class="grid grid-cols-3 gap-2">
+				@pawnPixels(data.Field("width"), "width", "Width", data.Pawn.Width)
+				@pawnPixels(data.Field("height"), "height", "Height", data.Pawn.Height)
+				@pawnDegrees(data.Field("rotation"), data.Pawn.Rotation)
+			</div>
+		} else {
+			@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
+		}
+		<div class="grid grid-cols-2 gap-2">
+			@pawnNumberField(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
+			@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
+		</div>
+		if !data.Pawn.Object {
+			@pawnConditionsEditor(data)
+		}
+		if data.IsGM {
+			@toggleField("shown", "Players can see this pawn", data.Shown)
+			if len(data.Layers) > 1 {
+				@pawnLayerSelect(data)
+			}
+		}
+		<button type="submit" class="btn btn-sm btn-primary self-start">Save</button>
+	</form>
+}
+
+templ pawnTextField(id string, name string, caption string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ id }>{ caption }</label>
+		<input
+			id={ id }
+			name={ name }
+			type="text"
+			class="input input-sm validator peer w-full"
+			value={ value }
+			required
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+	</div>
+}
+
+templ pawnNumberField(id string, name string, caption string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ id }>{ caption }</label>
+		<input
+			id={ id }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input input-sm validator peer w-full"
+			value={ value }
+			min="0"
+			max="9999"
+			step="1"
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
+	</div>
+}
+
+templ pawnSizeField(id string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ id }>Size</label>
+		<select id={ id } name="size" class="select select-sm w-full" required>
+			for _, option := range sizeOptions {
+				<option value={ option.Value } selected?={ option.Value == value }>{ option.Label }</option>
+			}
+		</select>
+	</div>
+}
+
+templ pawnPixels(id string, name string, caption string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ id }>{ caption }</label>
+		<input
+			id={ id }
+			name={ name }
+			type="number"
+			inputmode="numeric"
+			class="input input-sm validator peer w-full"
+			value={ value }
+			min="1"
+			max={ strconv.Itoa(ObjectPixelsMax) }
+			step="1"
+			required
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a whole number of pixels.</p>
+	</div>
+}
+
+templ pawnDegrees(id string, value string) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ id }>Angle</label>
+		<input
+			id={ id }
+			name="rotation"
+			type="number"
+			inputmode="numeric"
+			class="input input-sm validator peer w-full"
+			value={ value }
+			min="0"
+			max="359"
+			step="1"
+			required
+		/>
+		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter degrees clockwise, 0 to 359.</p>
+	</div>
+}
+
+templ pawnLayerSelect(data RoomPawnData) {
+	<div class="fieldset">
+		<label class="fieldset-legend" for={ data.Field("layer") }>Floor</label>
+		<select id={ data.Field("layer") } name="layer" class="select select-sm w-full">
+			for _, l := range data.Layers {
+				<option value={ l.ID } selected?={ l.ID == data.LayerID }>{ l.Name }</option>
+			}
+		</select>
+	</div>
+}
+
+templ pawnConditionsEditor(data RoomPawnData) {
+	<div class="fieldset">
+		<span class="fieldset-legend">Conditions</span>
+		<div id={ data.ConditionsID() } class="flex flex-col gap-1.5">
+			for _, c := range data.Pawn.Conditions {
+				@RoomPawnConditionRow(data.Pawn.ID, c)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-xs mt-1.5 self-start border-base-content/50"
+			hx-get={ data.ConditionRowPath() }
+			hx-target={ "#" + data.ConditionsID() }
+			hx-swap="beforeend"
+		>Add condition</button>
+	</div>
+	<datalist id={ data.NamesID() }>
+		for _, name := range ConditionNames {
+			<option value={ name }></option>
+		}
+	</datalist>
+}
+
+templ RoomPawnConditionRow(pawnID string, c RoomPawnCondition) {
+	<div data-condition-row class="grid grid-cols-[minmax(0,1fr)_auto_4rem_auto] items-center gap-1">
+		<input type="hidden" name="conditionId" value={ c.ID }/>
+		<input
+			type="text"
+			name="conditionName"
+			value={ c.Name }
+			{ conditionNameList(pawnID)... }
+			placeholder="Condition"
+			maxlength="64"
+			autocomplete="off"
+			aria-label="Condition"
+			class="input input-xs w-full"
+		/>
+		<select name="conditionColor" aria-label="Colour" class="select select-xs w-20">
+			for _, color := range ConditionColors {
+				<option value={ color } selected?={ color == c.Color }>{ ConditionColorLabel(color) }</option>
+			}
+		</select>
+		<input
+			type="number"
+			name="conditionDuration"
+			value={ c.Duration }
+			min="-1"
+			max="999"
+			step="1"
+			aria-label="Turns, or -1 until removed"
+			class="input input-xs w-full"
+		/>
+		<div class="flex items-center gap-1">
+			<select name="conditionClear" aria-label="Counts down at" class="select select-xs w-24">
+				for _, option := range ConditionClears {
+					<option value={ option.Value } selected?={ option.Value == c.Clear }>{ option.Label }</option>
+				}
+			</select>
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
+				aria-label="Remove condition"
+				data-remove-closest="[data-condition-row]"
+			>
+				@kickIcon()
+			</button>
+		</div>
+	</div>
+}

@@ -163,14 +163,35 @@ export interface TableDeps {
 	// they are a fixed size on screen and are therefore a moving size on the
 	// table, and a hand grabbing one is aiming in screen pixels.
 	scale: () => number;
+
+	// details opens a pawn's window, which is what a right click on one means.
+	//
+	// IT IS A CALLBACK AND NOT A URL BUILT HERE. This module knows what is
+	// under a pointer; it does not know which room it is in, what a fragment
+	// path looks like, or how large a window opens. Those belong to the wiring
+	// that already holds all three.
+	details: (pawn: Pawn) => void;
+
+	// remove is the Delete key asking for the selection to be taken off the
+	// table.
+	//
+	// IT ASKS RATHER THAN SENDS, and that is the whole reason it is a callback
+	// too. Removing pawns is confirmed, the confirmation is the app's confirm
+	// modal, and that modal is driven by hx-confirm on the element making the
+	// request -- so what this can do is press the button that already carries
+	// it. window.confirm is banned and a second confirmation of our own would
+	// be a fourth dialog.
+	remove: () => void;
 }
 
 export interface Table {
 	tool: Tool;
 	selection: Selection;
 
-	// focus is what the overlay is about: the one selected pawn, or the hovered
-	// one when nothing is selected, or nothing.
+	// focus is what the overlay is about, which is the HOVERED pawn and never a
+	// selected one. See the overlay's own header: a label answers "what am I
+	// pointing at", and that stops being a question the moment somebody has
+	// picked the thing out.
 	focus(): Pawn | null;
 
 	ghosts(out: Drawn[]): Drawn[];
@@ -346,6 +367,19 @@ export function createTable(deps: TableDeps): Table {
 		}
 
 		return p;
+	}
+
+	// described is the pawn the overlay labels: the hovered one, and never a
+	// token.
+	//
+	// A TOKEN HAS NOTHING TO SAY. A rug, a road, a wagon: no hit points, no
+	// armour class, and a name the picture already tells you. What a label over
+	// one WOULD do is sit on top of the resize and rotate handles that appear
+	// the moment it is selected.
+	function described(): Pawn | null {
+		const p = hovered ? pawn(hovered) : null;
+
+		return p && p.kind !== "object" ? p : null;
 	}
 
 	function activeHandles(out: Handle[]): Handle[] {
@@ -547,7 +581,7 @@ export function createTable(deps: TableDeps): Table {
 
 	// abandon is the one way out, and Escape and the right button are the two
 	// ways to ask for it. It answers whether there was anything to abandon,
-	// which is what decides whether the browser's context menu appears.
+	// which is what tells the right button whether it has already been spent.
 	//
 	// THE ORDER MATTERS. A GM placing an encounter presses it to stop placing,
 	// and a GM mid-drag presses it to put the pawn back. Placement wins, because
@@ -581,9 +615,31 @@ export function createTable(deps: TableDeps): Table {
 		}
 	}
 
+	// THE KEYS ARE HEARD ON THE DOCUMENT AND THE TABLE IS NOT THE ONLY THING ON
+	// IT. A GM typing a goblin's new name into a pawn window is pressing Delete
+	// to rub out a letter, not to rub out the goblin -- so a key that arrives
+	// from a field is not a key pressed on the table. Escape is asked the same
+	// question for the same reason: it is Cancel in a form long before it is
+	// "put that pawn back".
 	function onKeyDown(e: KeyboardEvent): void {
+		if (typing(e.target)) {
+			return;
+		}
+
 		if (e.key === "Escape") {
 			abandon();
+
+			return;
+		}
+
+		// DELETE IS THE SELECTION'S AND NOT THE HOVER'S. Everything else here
+		// acts on what the pointer is over; this one does not, because a key that
+		// removed whatever the mouse happened to be resting on is a key nobody
+		// would press twice. There is no test of the role either: deps.remove
+		// presses a control that exists for the GM alone, so a player pressing
+		// Delete finds nothing to press.
+		if (e.key === "Delete" && selection.size > 0) {
+			deps.remove();
 		}
 	}
 
@@ -785,7 +841,26 @@ export function createTable(deps: TableDeps): Table {
 			announce();
 		},
 
-		secondary: abandon,
+		// THE RIGHT BUTTON IS A WAY OUT BEFORE IT IS A WAY IN. A GM halfway
+		// through placing an encounter who right-clicks a goblin meant to stop
+		// placing; opening a window over the table they were working on would be
+		// the opposite of what the press asked for. So abandoning spends the
+		// click, and only a click with nothing to abandon asks about what is
+		// under it.
+		//
+		// IT DOES NOT SELECT. A right click is a question about one pawn, and
+		// answering it by throwing away whatever the GM had selected would make
+		// "let me look at that" a destructive gesture.
+		secondary(map) {
+			if (abandon()) {
+				return;
+			}
+
+			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y);
+			if (hit) {
+				deps.details(hit);
+			}
+		},
 
 		hover(map) {
 			pointer = map ? { x: map.x, y: map.y } : null;
@@ -832,17 +907,7 @@ export function createTable(deps: TableDeps): Table {
 		tool,
 		selection,
 
-		focus() {
-			const one = selection.only();
-			if (one) {
-				return pawn(one);
-			}
-			if (selection.size > 0) {
-				return null;
-			}
-
-			return hovered ? pawn(hovered) : null;
-		},
+		focus: described,
 
 		ghosts(out) {
 			// A DRAG THAT STOPPED ARRIVING IS DROPPED HERE, on the frame that
@@ -1022,7 +1087,12 @@ export function createTable(deps: TableDeps): Table {
 		},
 
 		bounds() {
-			const ids = selection.size > 0 ? selection.ids() : hovered ? [hovered] : [];
+			// THE SAME RULE THE OVERLAY DRAWS BY, or the label lands somewhere
+			// other than the thing it is labelling. A group is boxed by the
+			// whole selection; anything else is boxed by what is hovered, which
+			// is null exactly when nothing is shown.
+			const one = described();
+			const ids = selection.size > 1 ? selection.ids() : one ? [one.id] : [];
 			if (ids.length === 0) {
 				return null;
 			}
@@ -1241,6 +1311,24 @@ function armedShape(armed: Armed, cellSize: number): Ghostable {
 		// and none in the dialog; it is turned afterwards, with the handles.
 		rotation: 0,
 	};
+}
+
+// typing is whether a key went to a control rather than to the table.
+//
+// IT DUCK-TYPES RATHER THAN USING instanceof, and the reason is the test rig
+// rather than taste: this module is exercised in Node, where HTMLElement does
+// not exist -- so `target instanceof HTMLElement` is a ReferenceError rather
+// than a false. What is actually being asked, does this thing take text, is
+// answered by the two properties either way.
+const TYPES_INTO = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+
+function typing(target: EventTarget | null): boolean {
+	const el = target as { tagName?: string; isContentEditable?: boolean } | null;
+	if (!el?.tagName) {
+		return false;
+	}
+
+	return el.isContentEditable === true || TYPES_INTO.has(el.tagName);
 }
 
 function blankOutline(): Outline {

@@ -26,6 +26,16 @@
 // preventing it is the only way to stop the browser's own menu appearing over
 // the table.
 //
+// THE TABLE HAS NO BROWSER MENU AT ALL, and the default is refused before the
+// tool is asked rather than because of what it answered. A right click on a
+// tabletop is a gesture in the application: it puts down what the hand is
+// holding, or it opens the thing under the pointer. Offering "Save image as" on
+// one part of the table and a gesture on another would make the same button do
+// two unrelated things depending on where it landed, which is the behaviour
+// nobody can predict. Everything ELSE on the page keeps its menu, because every
+// listener here is on the canvas -- a right click on a window, a form field or
+// the menu bar never reaches this file.
+//
 // A TOOL GETS FIRST REFUSAL ON THE PRIMARY BUTTON, and the middle button is
 // always the camera's. The tool is told about every primary press, drag and
 // release whether or not it claims one; what claiming decides is only whether
@@ -88,16 +98,15 @@ export interface Tool {
 	// the OS claimed. It is not an Escape, which the tool hears for itself.
 	cancel(): void;
 
-	// secondary is the right button, and it answers whether it meant anything.
-	// True suppresses the browser's context menu; false lets it through.
+	// secondary is the right button, at a point on the table. It answers
+	// nothing: the browser's own menu is already gone by the time it is called,
+	// so there is no decision left for it to report.
 	//
-	// IT IS A WAY OUT AND NOT A MENU. The one thing a right click does on this
-	// table is abandon what the hand is in the middle of -- placing, dragging,
-	// dropping a marquee -- which is Escape's job for a hand that is already on
-	// the mouse. Suppressing the browser's menu only when something was
-	// actually abandoned means a right click on empty table still offers Save
-	// image as, rather than being silently eaten by a canvas.
-	secondary(): boolean;
+	// IT IS A WAY OUT FIRST AND A WAY IN SECOND. A right click abandons
+	// whatever the hand is in the middle of -- placing, dragging, dropping a
+	// marquee -- which is Escape's job for a hand that is already on the mouse.
+	// With nothing to abandon it is the pointer asking about what is under it.
+	secondary(map: Point, screen: Point): void;
 
 	// hover is the pointer moving with nothing down, and null is it leaving the
 	// canvas entirely.
@@ -247,7 +256,10 @@ export function wireInput(
 		bounds = { left: rect.left, top: rect.top };
 	}
 
-	function at(e: PointerEvent | WheelEvent): Tracked {
+	// PointerEvent, WheelEvent and the contextmenu MouseEvent all carry the two
+	// client coordinates this reads, which is why the parameter is their shared
+	// base rather than a union of the three.
+	function at(e: MouseEvent): Tracked {
 		return { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
 	}
 
@@ -363,10 +375,21 @@ export function wireInput(
 	}
 
 	function onContextMenu(e: MouseEvent): void {
-		if (tool?.secondary()) {
-			e.preventDefault();
-			invalidate();
+		// UNCONDITIONALLY, AND BEFORE THE TOOL IS ASKED. See the header: the
+		// canvas has no browser menu, whatever the right click turns out to
+		// have meant.
+		e.preventDefault();
+
+		if (!tool) {
+			return;
 		}
+
+		// A right click can be the first thing a pointer does on the table --
+		// no press has happened, so nothing has measured the canvas yet.
+		measure();
+
+		tool.secondary(toMap(at(e)), screen);
+		invalidate();
 	}
 
 	function onPointerEnter(): void {

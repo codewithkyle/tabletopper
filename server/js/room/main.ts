@@ -25,7 +25,9 @@ import { leaveKicked } from "./exit.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import type { Event, Role, State } from "./protocol.ts";
-import { mountWindows } from "./window.ts";
+import { mountWindows, openWindow } from "./window.ts";
+import { pawnWindow } from "./pawn-window.ts";
+import type { Overlay } from "./overlay.ts";
 import type { Table } from "./pawns.ts";
 
 const mount = document.getElementById("tabletop");
@@ -49,6 +51,7 @@ if (mount) {
 	// each is a closure over a `let` rather than a constructor argument.
 	let socket: Socket | null = null;
 	let renderer: Renderer | null = null;
+	let overlay: Overlay | null = null;
 
 	const table = createTable({
 		state,
@@ -69,6 +72,20 @@ if (mount) {
 		// which is the identity rather than a guess: with no renderer there is
 		// no canvas, so nothing asks for a handle and the number is never used.
 		scale: () => renderer?.mapPerPixel() ?? 1,
+
+		// A RIGHT CLICK ON A PAWN OPENS ITS WINDOW, and this is where the room
+		// id lives. The canvas knows which pawn; pawn-window.ts knows what one
+		// of these windows is; neither of them knows which table is being
+		// looked at.
+		details: (pawn) => {
+			openWindow(pawnWindow(roomID, pawn));
+		},
+
+		// AND DELETE PRESSES THE OVERLAY'S OWN BUTTON, which is what carries the
+		// hx-confirm. See overlay.ts: the confirmation belongs to the element
+		// making the request, so the way to get it is to press that element
+		// rather than to build the DELETE here.
+		remove: () => overlay?.remove(),
 	});
 
 	renderer = mountRenderer(mount, state, table);
@@ -85,15 +102,12 @@ if (mount) {
 		}
 
 		const view = renderer;
-		const overlay = mountOverlay(mount, {
+		overlay = mountOverlay(mount, {
 			focus: () => table.focus(),
 			selected: () => table.selection.ids(),
 			bounds: () => table.bounds(),
 			project: (x, y, out) => view.toScreen(x, y, out),
 			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
-			roomID,
-			role,
-			user,
 		});
 
 		if (overlay) {

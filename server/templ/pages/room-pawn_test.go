@@ -55,6 +55,9 @@ func testPawnPanel() RoomPawnData {
 			MaxHP:   "7",
 			AC:      "15",
 			Size:    "Small",
+			Conditions: []RoomPawnCondition{
+				{ID: "01BX5ZZKBKACTAV9WEVGEMMVT5", Name: "Prone", Color: "red", Duration: "-1", Clear: "end"},
+			},
 		},
 	}
 }
@@ -168,23 +171,24 @@ func TestAReaderSeesTheReadingAndNotTheField(t *testing.T) {
 	}
 }
 
-func testPawnForm() RoomPawnFormData {
-	return RoomPawnFormData{
-		RoomID: testPawnRoomID,
-		IsGM:   true,
-		Shown:  true,
-		Pawn: RoomPawn{
-			ID:        testPawnID,
-			Name:      "Goblin",
-			MaxHP:     "7",
-			AC:        "15",
-			SizeValue: "small",
-		},
-		LayerID: "01BX5ZZKBKACTAV9WEVGEMMVT1",
-		Layers: []RoomPawnLayer{
-			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: "Ground floor"},
-			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: "Cellar"},
-		},
+// A form in a panel that refetches would throw away what was half-typed in it,
+// which is exactly why the form used to be a modal. The panel's own trigger
+// filter is the answer: it declines every refetch while focus is inside it,
+// which was written for one hit-point field and now covers the whole editor.
+func TestTheEditorIsInThePanelAndNotBehindAButton(t *testing.T) {
+	body := decoded(t, RoomPawnFragment(testPawnPanel()))
+
+	for _, field := range []string{`name="name"`, `name="size"`, `name="maxHp"`, `name="ac"`, `name="conditionName"`} {
+		if !strings.Contains(body, field) {
+			t.Errorf("the panel has no %s:\n%s", field, body)
+		}
+	}
+
+	// The modal is gone, and with it every way of asking for one.
+	for _, forbidden := range []string{"data-modal-open", "modal:close", "pawn/edit", ">Edit<"} {
+		if strings.Contains(body, forbidden) {
+			t.Errorf("the panel still reaches for the edit modal: %q", forbidden)
+		}
 	}
 }
 
@@ -193,61 +197,115 @@ func testPawnForm() RoomPawnFormData {
 // pawn upstairs would stop being sent it and would be holding a pawn they can
 // no longer see.
 func TestTheGMsControlsRenderOnlyForTheGM(t *testing.T) {
-	gm := html(t, RoomPawnForm(testPawnForm()))
+	data := testPawnPanel()
+	data.LayerID = "01BX5ZZKBKACTAV9WEVGEMMVT1"
+	data.Layers = []RoomPawnLayer{
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: "Ground floor"},
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: "Cellar"},
+	}
+
+	gm := html(t, RoomPawnFragment(data))
 	if !strings.Contains(gm, `name="shown"`) {
 		t.Error("the GM has no visibility toggle")
 	}
 	if !strings.Contains(gm, `name="layer"`) {
 		t.Error("the GM has no floor select")
 	}
-	if !strings.Contains(gm, "Remove") {
+	if !strings.Contains(gm, ">Remove<") {
 		t.Error("the GM has no way to remove the pawn")
 	}
 
-	data := testPawnForm()
 	data.IsGM = false
 	data.Layers = nil
 
-	player := html(t, RoomPawnForm(data))
-	for _, forbidden := range []string{`name="shown"`, `name="layer"`, "Remove"} {
+	player := html(t, RoomPawnFragment(data))
+	// ">Remove<" and not "Remove": every condition row carries a "Remove
+	// condition" control, which is the player's to press.
+	for _, forbidden := range []string{`name="shown"`, `name="layer"`, ">Remove<"} {
 		if strings.Contains(player, forbidden) {
-			t.Errorf("a player's form carries %q", forbidden)
+			t.Errorf("a player's panel carries %q", forbidden)
 		}
 	}
 }
 
 // An object is measured in pixels instead of by a creature size and cannot be
 // poisoned, which is the protocol's rule -- PawnSetConditions refuses an object
-// outright -- and the form must not offer what the server will not take.
-func TestTheObjectFormHasASizeInPixelsAndNoConditions(t *testing.T) {
-	data := testPawnForm()
+// outright -- and the panel must not offer what the server will not take.
+func TestTheObjectPanelHasASizeInPixelsAndNoConditions(t *testing.T) {
+	data := testPawnPanel()
 	data.Pawn.Object = true
 	data.Pawn.Width = "128"
 	data.Pawn.Height = "256"
 	data.Pawn.SizeValue = ""
 
-	body := html(t, RoomPawnForm(data))
+	body := html(t, RoomPawnFragment(data))
 	if !strings.Contains(body, `name="width"`) || !strings.Contains(body, `name="height"`) {
-		t.Errorf("an object's form has no size fields:\n%s", body)
+		t.Errorf("an object's panel has no size fields:\n%s", body)
 	}
 	if strings.Contains(body, `name="size"`) {
-		t.Error("an object's form offers a creature size")
+		t.Error("an object's panel offers a creature size")
 	}
 	if strings.Contains(body, `name="conditionName"`) {
-		t.Error("an object's form offers conditions, which the core refuses")
+		t.Error("an object's panel offers conditions, which the core refuses")
 	}
 	if !strings.Contains(body, `name="rotation"`) {
-		t.Errorf("an object's form has no angle:\n%s", body)
+		t.Errorf("an object's panel has no angle:\n%s", body)
 	}
 
-	// AND A CREATURE'S FORM HAS NONE OF THE THREE. PawnUpdate refuses a width,
+	// AND A CREATURE'S PANEL HAS NONE OF THE THREE. PawnUpdate refuses a width,
 	// a height or an angle on anything that is not an object, so a field here
 	// would be a save that comes back refused.
-	creature := html(t, RoomPawnForm(testPawnForm()))
+	creature := html(t, RoomPawnFragment(testPawnPanel()))
 	for _, forbidden := range []string{`name="width"`, `name="height"`, `name="rotation"`} {
 		if strings.Contains(creature, forbidden) {
-			t.Errorf("a creature's form carries %q", forbidden)
+			t.Errorf("a creature's panel carries %q", forbidden)
 		}
+	}
+}
+
+// TWO PANELS ARE OPEN AT ONCE AND NEITHER MAY OWN A BARE id. A <label for> that
+// named "name" would put the caret in the other window's field, an Add
+// condition aimed at "pawn-conditions" would append the row to whichever panel
+// happened to be first in the document, and two <datalist id="condition-names">
+// is invalid markup that stops working the moment one window is closed.
+func TestEveryIDInThePanelCarriesThePawnsOwn(t *testing.T) {
+	data := testPawnPanel()
+	body := html(t, RoomPawnFragment(data))
+
+	for _, bare := range []string{`id="name"`, `id="size"`, `id="maxHp"`, `id="ac"`, `id="pawn-conditions"`, `id="condition-names"`, `id="pawn-form"`} {
+		if strings.Contains(body, bare) {
+			t.Errorf("the panel carries a shared id: %q", bare)
+		}
+	}
+	for _, own := range []string{data.Field("name"), data.ConditionsID(), data.NamesID(), data.FormID()} {
+		if !strings.Contains(body, `"`+own+`"`) {
+			t.Errorf("the panel does not carry %q", own)
+		}
+	}
+
+	// AND THE ROW FRAGMENT AGREES WITH THE PANEL IT LANDS IN. The Add button
+	// fetches a row on its own and htmx appends it; a row pointing at another
+	// pawn's datalist would offer the twenty names from the wrong window, or
+	// none once that window was closed.
+	row := html(t, RoomPawnConditionRow(testPawnID, RoomPawnCondition{Color: "red", Duration: "-1", Clear: "end"}))
+	if !strings.Contains(row, data.NamesID()) {
+		t.Errorf("a condition row does not name its own pawn's list:\n%s", row)
+	}
+}
+
+// Both forms in the panel swap the panel, because both are mutations answering
+// with what they changed -- which is the case the fragment rules name for a
+// route outside /fragment/. A Save that answered 204 would leave the window
+// showing what the pawn was until the socket came back round.
+func TestBothOfThePanelsFormsSwapThePanel(t *testing.T) {
+	data := testPawnPanel()
+	body := decoded(t, RoomPawnFragment(data))
+
+	if strings.Count(body, `hx-target="#`+data.ElementID()+`"`) != 2 {
+		t.Errorf("the two forms do not both answer with the panel:\n%s", body)
+	}
+	if strings.Count(body, "target:#errors-"+data.Panel()) != 2 {
+		t.Errorf("the two forms do not share one error slot:\n%s", body)
 	}
 }
 
@@ -263,22 +321,6 @@ func TestAnObjectsSizeLinePrintsItsAngleOnlyWhenItHasOne(t *testing.T) {
 	}
 	if got := PawnPixelsText(0, 140, 30); got != "" {
 		t.Errorf("an object with no recorded size reads %q, want silence", got)
-	}
-}
-
-// The Close button inside the form cannot be a <form method="dialog">, because
-// forms do not nest. It dispatches the event instead, and Close comes first.
-func TestTheFormClosesWithoutNestingAForm(t *testing.T) {
-	body := html(t, RoomPawnForm(testPawnForm()))
-
-	if !strings.Contains(body, "modal:close") {
-		t.Error("the form has no way out")
-	}
-	if strings.Contains(body, `method="dialog"`) {
-		t.Error("the form nests a form, which the browser drops")
-	}
-	if strings.Index(body, "Close") > strings.Index(body, ">Save<") {
-		t.Error("Save comes before Close; every dialog in this app puts Close first")
 	}
 }
 

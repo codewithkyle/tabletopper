@@ -23,7 +23,7 @@ for a reason the code carries in a comment:
   token could only ever land medium -- and size is the one stat that is
   structural rather than informational: it decides the footprint, which decides
   the snapping lattice and where a click actually puts the pawn. Hit points and
-  armour class stay off the wire and are the pawn dialog's, per decision 10.
+  armour class stay off the wire and are the pawn window's, per decision 10.
   Resolution reads the field; `Apply` is unchanged.
 - **The room stat block needs no new statement.** `GetMonster` and
   `ListMonsterActions` both already take an `OwnerID` parameter, so "scoped to
@@ -289,7 +289,9 @@ a creature standing in a square.
   a hand that is already on the mouse: it disarms placement, puts a dragged pawn
   back, or drops a marquee, and answers whether it did any of those. Only when it
   did is the browser's own context menu suppressed, so a right click on empty
-  table is still a right click on a web page.
+  table is still a right click on a web page. *(Reworked below: the menu is
+  suppressed unconditionally, and a right click with nothing to abandon opens
+  the window for the pawn under it.)*
 - **A token is never snapped.** `snapPawn` returns an object's centre untouched
   on both sides -- `internal/room/snap.go` and its port in `render/path.ts` -- so
   a rug, a door, a road sign and a wagon are placed against what the cartographer
@@ -304,7 +306,7 @@ a creature standing in a square.
   `normalizeRotation` wherever it is written -- an angle is a wrapping quantity,
   so -30 is reduced rather than refused. It is not on `PawnSpawn`: a token goes
   down square and is turned afterwards, by the eight boxes and one circle in
-  `js/room/handles.ts` or by the Angle field in the pawn dialog, both of which are
+  `js/room/handles.ts` or by the Angle field in the pawn window, both of which are
   `PawnUpdate`.
 
   **Everything scales about the centre**, resizing included, and that is the one
@@ -326,7 +328,9 @@ a creature standing in a square.
   handles are only ever up when exactly one pawn is selected -- which is exactly
   when that overlay is showing. A handle up there is not occasionally covered,
   it is always covered. So the angle is measured from straight DOWN, and a
-  quarter turn clockwise is the hand dragging to the left.
+  quarter turn clockwise is the hand dragging to the left. *(Rework 5 retired
+  that collision -- a token is never labelled now -- but the handle stays below,
+  on the first half of the argument.)*
 
   The rotation reaches the GPU as a cosine and a sine per instance in both the
   pawn pass and the ring pass; the fragment shaders never learn the angle,
@@ -339,6 +343,102 @@ a creature standing in a square.
   `pawn.update` on release. Nobody else watches it happen: `pawn.dragging` carries
   positions and only positions, and a second hot-path event for a gesture that
   lasts a second and happens between fights is not worth the protocol.
+
+### Rework 4, the pawn window is the pawn's whole surface (2026-09-08)
+
+Eight items, of which six are the same move: everything that was behind an Edit
+button in a modal is now in the window a right click opens.
+
+- **The canvas has no browser menu.** `onContextMenu` in `render/input.ts`
+  prevents the default unconditionally and before the tool is asked, which
+  replaces Rework 3's rule that it was suppressed only when something was
+  abandoned. A right click on a tabletop is a gesture in the application: it puts
+  down what the hand is holding, or it opens the thing under the pointer.
+  Offering "Save image as" on one part of the table and a gesture on another
+  makes one button do two unrelated things depending on where it lands.
+  Everything else on the page keeps its menu for free, because every listener in
+  that file is on the canvas -- a right click on a window, a field or the menu
+  bar never reaches it.
+- **Right-clicking a pawn opens its window.** `Tool.secondary` takes the point
+  now and answers nothing; it abandons FIRST and asks about what is under the
+  pointer only when there was nothing to abandon, because a GM halfway through
+  placing an encounter pressed it to stop. It uses the same `hitTest` as a left
+  click, so it picks the goblin standing on the rug rather than the rug, and it
+  does not touch the selection: answering "let me look at that" by throwing away
+  what somebody had picked out would make it a destructive gesture.
+- **What a pawn's window IS lives in `js/room/pawn-window.ts`.** Four things
+  reach for it -- the overlay's Details button, a right click, the retitle that
+  follows a rename and the close that follows a removal -- and two of those aim
+  an id at a window somebody else opened. An id spelled differently in any of
+  the four is a window that opens twice and never closes.
+- **The pawn edit modal is gone**, along with `/fragment/room/pawn/edit`,
+  `RoomPawnFormData` and `RoomPawnForm`. Name, creature size or pixel size and
+  angle, maximum hit points, armour class, conditions, visibility and floor are
+  all in the panel, as one form beside the quick hit-point control. `UpdatePawn`
+  answers with the panel it just changed instead of closing a dialog, which is
+  the shape `UpdatePawnHP` already had.
+
+  **The objection to a form in a refetching panel is answered by the panel's own
+  trigger.** A swap while somebody is typing throws away what they typed, which
+  is exactly why the form was somewhere that never refetched -- but the panel
+  already declined every refetch while focus was inside it, to protect the one
+  field it had. That guard covers the whole form unchanged. It is the same rule
+  doing more work rather than a new rule.
+
+  Two panels are open at once as a matter of course, so every id in the fragment
+  carries the pawn's own: the element, the error slot, the form, the conditions
+  list, the `<datalist>` and every labelled control. A shared id is a label that
+  focuses the other window's field and an Add condition that appends the row to
+  whichever panel happens to be first in the document.
+
+  It also fixed a silent bug: `pawnPanel` read the room and the pawn out of the
+  QUERY STRING, so the hit-point POST -- which carries them in the path -- was
+  answering 404 to a request that had in fact succeeded. Nothing showed, because
+  the page's noSwap config swallows a 4xx and the socket event brought the panel
+  back into step a moment later. The two ids are parameters now.
+- **Delete removes the selection, through the confirm modal.** `pawns.ts` hears
+  the key and calls `TableDeps.remove`, which presses a button: `hx-confirm`
+  lives on the element that makes the request, so pressing that element is the
+  only way to get the dialog, and `window.confirm` is banned. *(Reworked below:
+  that button is a hidden GM-only control on the room page rather than anything
+  in the selection overlay, which has no buttons on it at all.)*
+
+  The keys are heard on the document and the table is not the only thing on it,
+  so a key that arrives from an input, a textarea, a select or anything
+  contenteditable is not a key pressed on the table. A GM typing a goblin's new
+  name into its window is rubbing out a letter, not a goblin. There is no role
+  test: a player's page renders no such button, so there is nothing to press.
+
+### Rework 5, the label is a label (2026-09-08)
+
+Three items, all of them the same correction: the thing that follows the
+pointer is a label, not a toolbar and not a panel.
+
+- **The single-pawn label carries a name, hit points and armour class, and
+  nothing else.** Details, Stat block and Remove are gone from it, and so are
+  the condition dots. Everything about a pawn is in its window, which a right
+  click opens; a row of buttons on something that follows the pointer is a row
+  of buttons that moves out from under the hand reaching for it. `OverlayDeps`
+  lost `roomID`, `role` and `user` with them -- all three were there to decide
+  which buttons to draw.
+- **A selected pawn is not labelled.** `Table.focus` is the HOVERED pawn now and
+  never a selected one, and `Table.bounds` follows the same rule so the label
+  cannot land somewhere other than the thing it is labelling. What a hand does
+  next to one selected pawn is drag it, turn it or resize it, and all three
+  happen exactly where the label was sitting. A multiple selection is the one
+  case that stays up, unchanged, because it is not describing a pawn at all: it
+  is the count, the Move to floor select and the group's Remove button.
+- **A token is never labelled at all.** No hit points, no armour class, and a
+  name the picture already tells you -- and the space over a token is where its
+  eight resize boxes and its rotate handle are. This is also what retires the
+  reason the rotate handle went below the token in Rework 3; it stays there,
+  because below is where every other editor puts one.
+- **The Delete key presses a hidden button on the room page**, `data-pawn-remove`,
+  rendered for the GM alone and kept in step with the selection by the overlay
+  on every refresh. A keyboard shortcut needs an element to press -- `hx-confirm`
+  only works on the element making the request -- but it does not need one
+  anybody can see, and this is what lets the label have no buttons on it while
+  Delete goes on working for a selection of one.
 
 ## End state
 
@@ -358,18 +458,20 @@ a creature standing in a square.
   the distance in feet under the table's diagonal rule. Every other client
   sees the same ghosts and path in the dragging player's colour. Release
   commits; Escape cancels.
-- Hovering or selecting shows an overlay: for one pawn, its name, hit points
-  as the viewer may see them, armour class and conditions, with buttons for
-  the edit dialog and the stat block; for several, the count and a Remove
-  button for the GM.
-- The pawn dialog edits name, HP with arithmetic input, max HP, AC, a creature
-  size or an object's width, height and angle, layer, visibility, and
+- Hovering a creature shows a label: its name, hit points as the viewer may
+  see them, and armour class. Selecting several shows the count, a Move to
+  floor select and a Remove button for the GM. *(Reworked above: the label is
+  hover-only and carries no buttons, a token gets none at all, and Delete
+  presses a hidden button on the page instead.)*
+- The pawn window edits name, HP with arithmetic input, max HP, AC, a creature
+  size or an object's width, height and angle, floor, visibility, and
   conditions with colour and duration. *(Reworked above: an object carries an
-  angle, and is never snapped.)*
+  angle and is never snapped, and this is a window rather than a modal -- there
+  is no pawn dialog any more.)*
 - Every pawn lives on one layer. The canvas shows the viewed layer's pawns;
   spawns land on the layer the spawner is viewing; the GM moves pawns between
-  layers from the pawn dialog's layer select or the selection overlay's Move
-  to layer control. When the GM switches the active layer, players see the
+  layers from the pawn window's floor select or the selection overlay's Move
+  to floor control. When the GM switches the active layer, players see the
   floor change and its pawns arrive.
 - A player pawn's hit points write through to the character sheet's current HP.
 - The debug panel's stress button spawns 500 synthetic pawns client-side and
@@ -500,12 +602,11 @@ edit.
 | --- | --- | --- | --- |
 | `GET /fragment/room/spawn?room={id}&kind={monsters\|tokens}&q=` | `Fragment` | `RoomSpawnFragment` | GM only. Search box in the shape of `assetSearchBox`, results as pick cards. `kind` is matched against the two values before any statement. The tokens view carries a Creature or Object choice; Object reveals width and height fields in cells, defaulting to 1 and 1. A card arms placement with `hx-on:click` dispatching a `room:arm` window event carrying `{kind, id, name, visible, footprintW, footprintH}` read from the dialog's controls, then `modal:close`. A Spawn party button posts to the party route. |
 | `POST /rooms/{id}/pawns/party` | `RequireSession` | `SpawnParty` | GM only. Dispatches `pawn.spawnCharacters`. `htmx.CloseModal`. |
-| `GET /fragment/room/pawn?room={id}&pawn={id}` | `Fragment` | `RoomPawnFragment` | Any member; the projection decides what they see. Reads the live pawn via `hub.Pawn(ctx, roomID, pawnID, role)`, PROJECTED FOR THE ROLE; 404 empty if absent or not shown to the requester. Renders the live panel that goes in a window: name, HP, AC, conditions, layer, with HP editable inline. Objects show a footprint instead of a size and no conditions. See the last section of this document for the trigger it carries and why. |
-| `GET /fragment/room/pawn/edit?room={id}&pawn={id}` | `Fragment` | `RoomPawnEditFragment` | Owner or GM of the pawn. The form that goes in the content modal: name, size or footprint, max HP, AC, conditions, and for the GM visibility and a Layer select listing the room's layers from the live table. |
-| `POST /rooms/{id}/pawns/{pawn}` | `RequireSession` | `UpdatePawn` | The content modal's form. Parses it, dispatches `pawn.update`, then `pawn.setConditions` when the repeater changed, then `pawn.setVisible` when the GM toggled it, then `pawn.setLayer` when the GM changed the layer. `htmx.CloseModal`. |
-| `POST /rooms/{id}/pawns/{pawn}/hp` | `RequireSession` | `UpdatePawnHP` | The window panel's one inline control. Evaluates the arithmetic against the live value, dispatches `pawn.update`, and answers with the panel fragment -- the mutation returning what it changed, so the person who typed it sees the result without waiting for their own event to come back round. NOT `htmx.CloseModal`: there is no modal open, and sending it would dismiss whatever else was. |
-| `POST /rooms/{id}/pawns/layer` | `RequireSession` | `MovePawnsToLayer` | GM only. Reads repeated `ids` and `layer`, at most `SelectionMax`, dispatches `pawn.setLayer`. Empty 200. Used by the pawn dialog with one id and by the overlay with the selection. |
-| `DELETE /rooms/{id}/pawns` | `RequireSession` | `RemovePawns` | GM only. Reads repeated `ids` form values, at most `SelectionMax`, dispatches one `pawn.remove`. Empty 200. Used by the dialog with one id and by the overlay with the selection. |
+| `GET /fragment/room/pawn?room={id}&pawn={id}` | `Fragment` | `RoomPawnFragment` | Any member; the projection decides what they see. Reads the live pawn via `hub.Pawn(ctx, roomID, pawnID, role)`, PROJECTED FOR THE ROLE; 404 empty if absent or not shown to the requester. Renders the panel that goes in a window, which is the pawn's whole surface: the header and readings for a viewer, and for somebody who may edit it the quick hit-point control plus a form carrying name, creature size or pixel size and angle, max HP, AC, conditions, and for the GM visibility, a floor select and Remove. Every id in it carries the pawn's own, because two are open at once. See the last section of this document for the trigger it carries and why. |
+| `POST /rooms/{id}/pawns/{pawn}` | `RequireSession` | `UpdatePawn` | The panel's form. Parses it, dispatches `pawn.update`, then `pawn.setConditions` when the repeater changed, then `pawn.setVisible` when the GM toggled it, then `pawn.setLayer` when the GM changed the floor, and answers with the panel it just changed. NOT `htmx.CloseModal`: there is no modal, and sending it would dismiss whatever else was open. |
+| `POST /rooms/{id}/pawns/{pawn}/hp` | `RequireSession` | `UpdatePawnHP` | The window panel's one quick control. Evaluates the arithmetic against the live value, dispatches `pawn.update`, and answers with the panel fragment -- the mutation returning what it changed, so the person who typed it sees the result without waiting for their own event to come back round. NOT `htmx.CloseModal`: there is no modal open, and sending it would dismiss whatever else was. |
+| `POST /rooms/{id}/pawns/layer` | `RequireSession` | `MovePawnsToLayer` | GM only. Reads repeated `ids` and `layer`, at most `SelectionMax`, dispatches `pawn.setLayer`. Empty 200. Used by the pawn window with one id and by the overlay with the selection. |
+| `DELETE /rooms/{id}/pawns` | `RequireSession` | `RemovePawns` | GM only. Reads repeated `ids` form values, at most `SelectionMax`, dispatches one `pawn.remove`. Empty 200. Used by the pawn window with one id and by the overlay with the selection, which the Delete key presses. |
 | `GET /fragment/room/stat-block?room={id}&pawn={id}` | `Fragment` | `RoomStatBlockFragment` | GM, or any member when the pawn is visible. Resolves the pawn's `monsterId`, reads with the room owner as owner, renders the same stat block component the manual uses. |
 
 The Spawn dialog opens in the content modal at size `lg`. The pawn panel and
@@ -523,15 +624,20 @@ last two rows of the table above. Buttons are solid `btn`; Close first.
   conditions editor uses `repeater.js` rows: name (with a `<datalist>` of the
   twenty familiar conditions from the old client), colour select of the eight
   colours, duration number with -1 meaning until removed, clear-on select.
-  Visibility and layer controls render only for `RoleGM`. Remove is a button
+  Visibility and floor controls render only for `RoleGM`. Remove is a button
   with `hx-delete` to the pawns route, `hx-vals` with the id, and `hx-confirm`.
-- The room page gains the overlay element, hidden by default, with two shapes
-  inside it toggled by `hidden`: the single-pawn block and the selection block.
-  The selection block's Remove button carries `hx-delete`, `hx-confirm` with a
-  heading override, and an `hx-vals` the client fills with the selected ids.
-  For the GM the selection block also carries a Move to layer `<select>` whose
+  *(Rework 4: the editor is `pages/room-pawn-editor.templ` and renders inside
+  this same fragment rather than in a modal of its own.)*
+- The room page gains the overlay element, hidden by default, with two blocks
+  inside it toggled by `hidden`: the single-pawn block and the multi-selection
+  block. The multi-selection block's Remove button carries `hx-delete`,
+  `hx-confirm` with a heading override, and an `hx-vals` the client fills with
+  the selected ids. For the GM it also carries a Move to floor `<select>` whose
   options the client fills from the store and whose change posts to the layer
-  route with the same `hx-vals`.
+  route with the same `hx-vals`. *(Rework 5: the single-pawn block is a name,
+  hit points and armour class and carries no controls; beside the overlay the
+  page renders one hidden GM-only Remove button, `data-pawn-remove`, which is
+  what the Delete key presses.)*
   The debug panel gains the stress button. The header gains Spawn for the GM
   and My pawn for a player with a character. The tool strip from phase 6 is
   not here yet; the Select tool is a button beside the existing view controls
@@ -737,14 +843,15 @@ this stay open while the GM works, or is it a task they finish?
 
 | Surface | Kind | Why |
 | --- | --- | --- |
-| Pawn panel: name, HP, AC, conditions, layer | **Window**, `pawn:<ulid>` | It stays open through a fight, several at once, tucked in a corner. This is what the old client opened on right-click and it is the interaction worth carrying forward. |
+| Pawn panel: everything about one pawn, readings and controls both | **Window**, `pawn:<ulid>` | It stays open through a fight, several at once, tucked in a corner. This is what the old client opened on right-click and it is the interaction worth carrying forward. *(Rework 4: the edit form moved in here and the modal was deleted. A form that refetches would throw away what somebody was typing, which the panel's own trigger filter already prevented for its one field and now prevents for all of them.)* |
 | Stat block | **Window**, `monster:<ulid>` | Keyed by the monster and not the pawn, so eight goblins share one window rather than opening eight identical ones. |
-| Edit form: rename, size or footprint, max HP, visibility | Content modal | A task with a Save. A form that refetched itself would throw away what somebody was typing; see below for the one field that is the exception. |
 | Spawn dialog | Content modal | A task with an outcome: it arms placement and closes. |
 
 The pawn panel's trigger lives on the selection overlay rather than in a menu,
 because a pawn window is about one pawn and the overlay is where that pawn is
-named:
+named -- and, since Rework 4, on a right click anywhere on that pawn. Both go
+through `pawnWindow` in `js/room/pawn-window.ts`, which is the one place the id,
+the URL, the heading and the opening size are spelled:
 
 ```go
 RoomWindow{

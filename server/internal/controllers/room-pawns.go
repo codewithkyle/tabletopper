@@ -217,91 +217,60 @@ func (a *App) SpawnParty(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RoomPawnFragment is the live panel that goes in a window.
+// RoomPawnFragment is the panel that goes in a window, which is the pawn's
+// whole surface: what it is, and every control for changing it.
 func (a *App) RoomPawnFragment(w http.ResponseWriter, r *http.Request) {
-	data, ok := a.pawnPanel(w, r, nil)
-	if !ok {
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnFragment(data))
+	a.renderPawnPanel(w, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"), nil)
 }
 
-// pawnPanel reads the pawn PROJECTED FOR THE ASKER and turns it into the
-// panel's data. A false return has already answered with an empty 404, which is
-// the only thing a player asking about a pawn they are shown nothing of is ever
-// told.
-func (a *App) pawnPanel(w http.ResponseWriter, r *http.Request, problems []string) (pages.RoomPawnData, bool) {
+// renderPawnPanel answers with the panel, or with the empty 404 that is the
+// only thing a viewer who may not see the pawn is ever told.
+//
+// THE TWO IDS ARE PASSED IN RATHER THAN READ OFF THE REQUEST, because the three
+// callers do not agree on where they are. The fragment carries them in the
+// query string; the two mutations that answer with the panel they just changed
+// carry them in the path. Reading the query here would leave both of those
+// answering 404 to a request that had in fact succeeded -- silently, because
+// the page's noSwap config swallows a 4xx and the socket event brings the panel
+// back into step a moment later.
+func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pawnID string, problems []string) {
 	ctx := r.Context()
+	sess := session.FromContext(ctx)
 
-	row, role, pawn, ok := a.livePawn(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"))
+	row, role, pawn, ok := a.livePawn(ctx, r, roomID, pawnID)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 
-		return pages.RoomPawnData{}, false
+		return
 	}
 
 	view, _ := a.Hub.Table(ctx, row.ID)
 
-	return pages.RoomPawnData{
+	data := pages.RoomPawnData{
 		RoomID:  row.ID.String(),
 		IsGM:    role == room.RoleGM,
-		CanEdit: mayEditPawn(role, session.FromContext(ctx).UserID, pawn),
+		CanEdit: mayEditPawn(role, sess.UserID, pawn),
 		Pawn:    pawnView(pawn, role, layerName(view, pawn.LayerID)),
-		Errors:  problems,
-	}, true
-}
-
-// RoomPawnEditFragment is the form that goes in the content modal.
-func (a *App) RoomPawnEditFragment(w http.ResponseWriter, r *http.Request) {
-	data, ok := a.pawnForm(w, r, nil)
-	if !ok {
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnForm(data))
-}
-
-// pawnForm is the edit form's data. Unlike the panel it is refused outright for
-// somebody who may not edit: a form drawn for a reader is a form whose Save
-// button is a lie.
-func (a *App) pawnForm(w http.ResponseWriter, r *http.Request, problems []string) (pages.RoomPawnFormData, bool) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-
-	row, role, pawn, ok := a.livePawn(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"))
-	if !ok || !mayEditPawn(role, sess.UserID, pawn) {
-		w.WriteHeader(http.StatusNotFound)
-
-		return pages.RoomPawnFormData{}, false
-	}
-
-	data := pages.RoomPawnFormData{
-		RoomID:  row.ID.String(),
-		IsGM:    role == room.RoleGM,
-		Pawn:    pawnView(pawn, role, ""),
 		LayerID: pawn.LayerID.String(),
 		Shown:   pawn.Visible,
 		Errors:  problems,
 	}
 
-	// THE LAYER SELECT IS THE GM'S AND SO IS THE READ BEHIND IT. hub.Table is
+	// THE FLOOR SELECT IS THE GM'S AND SO IS THE READ BEHIND IT. hub.Table is
 	// the room's whole configuration, which a player has no business being
-	// handed -- the layer manager is refused to them for the same reason.
-	if data.IsGM {
-		if view, live := a.Hub.Table(ctx, row.ID); live {
-			for _, l := range view.Table.Layers {
-				data.Layers = append(data.Layers, pages.RoomPawnLayer{
-					ID:   l.ID.String(),
-					Name: pages.SafeLayerName(l.Name),
-				})
-			}
+	// handed -- the layer manager is refused to them for the same reason, and
+	// PawnSetLayer refuses their move anyway.
+	if data.IsGM && view != nil {
+		for _, l := range view.Table.Layers {
+			data.Layers = append(data.Layers, pages.RoomPawnLayer{
+				ID:   l.ID.String(),
+				Name: pages.SafeLayerName(l.Name),
+			})
 		}
 	}
 
-	return data, true
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomPawnFragment(data))
 }
 
 // RoomConditionRowFragment is one empty condition row, for the form's Add
@@ -320,15 +289,15 @@ func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnConditionRow(pages.RoomPawnCondition{
+	render(w, r, pages.RoomPawnConditionRow(pawn.ID.String(), pages.RoomPawnCondition{
 		Color:    string(room.ColorRed),
 		Duration: "-1",
 		Clear:    "end",
 	}))
 }
 
-// UpdatePawn is the content modal's form: everything about a pawn except the
-// one value that changes every round.
+// UpdatePawn is the panel's form: everything about a pawn except the one value
+// that changes every round.
 //
 // IT IS UP TO FOUR COMMANDS AND THEY GO IN ORDER, because the protocol keeps
 // them apart on purpose -- conditions are replaced wholesale, visibility is the
@@ -337,6 +306,13 @@ func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 // be refused for a value out of range, and a form that had already flipped the
 // visibility before failing would leave the GM with half of what they pressed
 // Save for.
+//
+// IT ANSWERS WITH THE PANEL IT JUST CHANGED, which is the same shape the
+// hit-point control has and the case the fragment rules name for a mutation
+// outside /fragment/. There is no modal to dismiss any more: the form is in a
+// window that stays open, so the reply has to be what that window should now
+// show. The socket says the same thing a moment later and every OTHER open copy
+// follows it.
 func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -362,7 +338,7 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 
 	update, problems := pawnUpdateForm(r, pawn)
 	if len(problems) > 0 {
-		a.renderPawnFormErrors(w, r, pawnID, problems)
+		a.renderPawnErrors(w, r, pawnID, problems)
 
 		return
 	}
@@ -376,7 +352,7 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 	if pawn.Kind != room.PawnObject {
 		conditions, bad := pawnConditionsForm(r)
 		if bad != "" {
-			a.renderPawnFormErrors(w, r, pawnID, []string{bad})
+			a.renderPawnErrors(w, r, pawnID, []string{bad})
 
 			return
 		}
@@ -414,11 +390,10 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	htmx.CloseModal(w)
-	w.WriteHeader(http.StatusNoContent)
+	a.renderPawnPanel(w, r, r.PathValue("id"), r.PathValue("pawn"), nil)
 }
 
-// UpdatePawnHP is the panel's one inline control, and it answers with the panel.
+// UpdatePawnHP is the panel's one quick control, and it answers with the panel.
 //
 // THE MUTATION RETURNS WHAT IT CHANGED, which is the case the fragment rules
 // name. The socket says the same thing a moment later and every other open
@@ -428,6 +403,11 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 // IT DOES NOT CLOSE A MODAL. There is no modal open behind this -- it is a
 // field in a window -- and sending modal:close would dismiss whatever else the
 // GM happened to have open.
+//
+// IT IS SEPARATE FROM THE FORM BELOW IT because it is a different gesture at a
+// different rate: "the goblin takes 7" is typed every round and takes a signed
+// change, and the form beside it is a Save somebody presses between fights.
+// They are two sibling forms rather than one, because forms do not nest.
 func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -453,7 +433,7 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 
 	hp, bad := evaluateHP(r.FormValue("hp"), pawn.HP)
 	if bad != "" {
-		a.renderPawnPanelErrors(w, r, []string{bad})
+		a.renderPawnErrors(w, r, pawnID, []string{bad})
 
 		return
 	}
@@ -461,7 +441,7 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 	if err := a.Hub.Dispatch(ctx, roomID, who, &room.PawnUpdate{ID: pawnID, HP: &hp}); err != nil {
 		var refusal *room.Error
 		if errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
-			a.renderPawnPanelErrors(w, r, []string{refusal.Message})
+			a.renderPawnErrors(w, r, pawnID, []string{refusal.Message})
 
 			return
 		}
@@ -471,13 +451,7 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, ok := a.pawnPanel(w, r, nil)
-	if !ok {
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnFragment(data))
+	a.renderPawnPanel(w, r, r.PathValue("id"), r.PathValue("pawn"), nil)
 }
 
 // MovePawnsToLayer is the GM sending a selection upstairs. It takes a list
@@ -972,20 +946,20 @@ func requiredNumber(entry string, what string) (int, string) {
 	return value, ""
 }
 
-// renderPawnFormErrors and renderPawnPanelErrors put a refusal above the field
-// that caused it rather than in the alert modal.
+// renderPawnErrors puts a refusal above the fields that caused it rather than
+// in the alert modal.
+//
+// ONE SLOT NOW SERVES BOTH FORMS, because both are in the same panel: the quick
+// hit-point control and the Save beneath it write into the same block, and a
+// second slot would be a message that appeared somewhere the eye was not.
 //
 // THE 422 IS DELIBERATE AND SO IS THE hx-status:422 BESIDE IT. The page's
 // noSwap config swallows every 4xx, which is right for a mutation whose answer
 // is a dialog; a form with fields needs its errors on screen, so both forms
-// carry an override naming their own error slot. It is the shape the character
-// panels and the grid form already have.
-func (a *App) renderPawnFormErrors(w http.ResponseWriter, r *http.Request, pawnID ulid.ULID, problems []string) {
-	renderPanelBlock(w, r, "pawn-form-"+pawnID.String(), problems)
-}
-
-func (a *App) renderPawnPanelErrors(w http.ResponseWriter, r *http.Request, problems []string) {
-	renderPanelBlock(w, r, pages.RoomPawnPanel+"-"+r.PathValue("pawn"), problems)
+// carry an override naming that slot. It is the shape the character panels and
+// the grid form already have.
+func (a *App) renderPawnErrors(w http.ResponseWriter, r *http.Request, pawnID ulid.ULID, problems []string) {
+	renderPanelBlock(w, r, pages.RoomPawnPanel+"-"+pawnID.String(), problems)
 }
 
 // refusePawnForm turns a refusal from the protocol into a form error where the
@@ -994,7 +968,7 @@ func (a *App) renderPawnPanelErrors(w http.ResponseWriter, r *http.Request, prob
 func (a *App) refusePawnForm(w http.ResponseWriter, r *http.Request, pawnID ulid.ULID, action string, err error) {
 	var refusal *room.Error
 	if errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
-		a.renderPawnFormErrors(w, r, pawnID, []string{refusal.Message})
+		a.renderPawnErrors(w, r, pawnID, []string{refusal.Message})
 
 		return
 	}
