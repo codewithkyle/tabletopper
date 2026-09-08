@@ -7,15 +7,19 @@
 // state plus a camera, which is why nothing here has to be kept in step with
 // anything -- there is no second copy to drift.
 //
-// WHAT IS HERE IS THE GRID AND THE CAMERA. Tiles, pawns, fog and strokes are
-// later phases and each is one more pass called from drawFrame, in that order,
+// THE ORDER OF THE PASSES IS THE ORDER OF THE TABLE. Tiles first, because they
+// are the ground; the grid over them, because it is drawn on the ground. Fog,
+// strokes and pawns are later phases and each is one more call in this list,
 // against the same camera matrix.
 
 import type { Camera, Rect, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
+import type { LayerView } from "./layers.ts";
 import { clampToMap, fit, newCamera, zoomAt, zoomTo } from "./camera.ts";
 import { createContext } from "./gl.ts";
 import { createGridPass } from "./grid-pass.ts";
+import { createTilePass } from "./tile-pass.ts";
+import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
 import { apply, wireInput } from "./input.ts";
 
@@ -24,14 +28,35 @@ import { apply, wireInput } from "./input.ts";
 // reaching the menu again for a second helping is expensive.
 const VIEW_ZOOM_STEP = 1.5;
 
+// BENCHMARK_MS is the sweep's length. Ten seconds is long enough to fill the
+// tile cache, cross a level boundary in both directions, and give the ring of
+// frame samples something to be a 95th percentile of.
+const BENCHMARK_MS = 10_000;
+
+export interface Benchmark {
+	average: number;
+	p95: number;
+	frames: number;
+	tiles: number;
+}
+
 export interface Renderer {
 	// invalidate asks for a frame. main.ts calls it when the reducer has
 	// changed something the canvas draws.
 	invalidate(): void;
 
-	// timings is the benchmark's readout: CPU milliseconds inside the render.
-	timings(): { average: number; p95: number; samples: number };
-	resetTimings(): void;
+	// view is the GM's floor selector, which the menu bar drives.
+	view: LayerView;
+
+	// benchmark sweeps the camera for ten seconds and reports what it cost.
+	// The callback runs once, at the end.
+	benchmark(report: (result: Benchmark) => void): void;
+
+	// onSettled fires when the viewed layer, or whether it is the active one,
+	// has changed -- after the frame that worked it out. The menu bar's floor
+	// control follows it rather than reading the store, because the override
+	// that makes the two differ lives in here and nowhere else.
+	onSettled(fn: () => void): void;
 
 	stop(): void;
 }
@@ -64,6 +89,8 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 
 	const gl: WebGL2RenderingContext = context;
 	const grid = createGridPass(gl);
+	const tiles = createTilePass(gl, () => frames.invalidate());
+	const layers = newLayerView(mount.dataset.role === "gm");
 
 	const camera: Camera = newCamera();
 	const viewport: Viewport = { width: 1, height: 1 };
@@ -76,6 +103,14 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	// key is the asset and its tiling generation, so a re-tiled map counts as a
 	// new one -- which it is, at new URLs, with possibly new dimensions.
 	let lastMap = "";
+	let lastWidth = 0;
+	let lastHeight = 0;
+
+	let sweep: { from: number; report: (result: Benchmark) => void; tiles: number } | null = null;
+
+	let settled: (() => void) | null = null;
+	let lastViewed = "";
+	let lastFollowing = true;
 
 	const input = wireInput(canvas, () => frames.invalidate());
 
@@ -102,22 +137,25 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 	frames.invalidate();
 
 	function drawFrame(): boolean {
-		const map = activeMap(state);
+		const now = performance.now();
 
-		// A map arriving, or being swapped for another, frames itself. Doing it
-		// on the first frame that sees the map rather than on the event means
-		// it happens once the viewport is known, so a room opened in a
-		// background tab still fits correctly when it is looked at.
-		const key = map ? `${map.assetId}:${map.gen}` : "";
-		if (key !== lastMap) {
-			lastMap = key;
-			if (map) {
-				fit(camera, viewport, map.width, map.height);
-			}
+		layers.update(state.table, now);
+
+		const viewedID = layers.viewed()?.id ?? "";
+		const following = layers.following();
+		if (viewedID !== lastViewed || following !== lastFollowing) {
+			lastViewed = viewedID;
+			lastFollowing = following;
+			settled?.();
 		}
 
-		const moved = apply(input.pending, camera, viewport);
-		if (moved && map) {
+		const painted = layers.draws();
+		const map = layers.viewed()?.map ?? null;
+
+		settleMap(map);
+
+		const sweeping = advanceSweep(now, map);
+		if (!sweeping && apply(input.pending, camera, viewport) && map) {
 			clampToMap(camera, viewport, map.width, map.height);
 		}
 
@@ -125,12 +163,46 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 		gl.clearColor(clear.r, clear.g, clear.b, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT);
 
+		tiles.begin();
+		for (const layer of painted) {
+			tiles.draw(camera, layer.map, layer.alpha, canvas.width, canvas.height, dpr);
+		}
+		const uploading = tiles.end();
+
 		grid.draw(camera, state.table.grid, mapRectOf(map), canvas.width, canvas.height, dpr);
 
-		// The loop keeps running while a button or a finger is down, so a drag
-		// that pauses does not settle into a stale frame, and stops the moment
-		// it is released.
-		return input.dragging();
+		// Four reasons to draw again, and the loop stops when none of them
+		// holds: a button or a finger is down, the crossfade is partway
+		// through, tiles are queued for upload, or the benchmark is driving.
+		return input.dragging() || layers.fading() || uploading || sweeping;
+	}
+
+	// settleMap notices the viewed map changing and frames it when framing is
+	// what somebody would want.
+	//
+	// A FLOOR OF THE SAME SIZE KEEPS THE CAMERA. Floors of a building are
+	// aligned -- that is the whole reason the grid is room-wide -- so a GM
+	// stepping from the ground floor to the cellar is looking at the same
+	// corner of the same building, and moving the camera would throw away the
+	// one thing they were doing. Only a map that is a different SHAPE, or the
+	// first map of the session, is worth a fit.
+	function settleMap(map: MapRef | null): void {
+		const key = map ? `${map.assetId}:${map.gen}` : "";
+		if (key === lastMap) {
+			return;
+		}
+
+		lastMap = key;
+		if (!map) {
+			return;
+		}
+
+		if (lastWidth !== map.width || lastHeight !== map.height) {
+			fit(camera, viewport, map.width, map.height);
+		}
+
+		lastWidth = map.width;
+		lastHeight = map.height;
 	}
 
 	function mapRectOf(map: MapRef | null): Rect | null {
@@ -146,8 +218,69 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 		return mapRect;
 	}
 
+	// advanceSweep drives the camera through the benchmark and answers whether
+	// it is still running.
+	//
+	// THE SWEEP IS SCRIPTED AND NOT RANDOM, so two runs on two machines are
+	// comparable and a change that made the renderer slower shows up as a
+	// number rather than as a feeling. It pans the width of the map at three
+	// zooms -- which crosses at least one level boundary and pulls tiles the
+	// whole way -- and then zooms in and out at the centre, which is the motion
+	// that thrashes the cache hardest.
+	function advanceSweep(now: number, map: MapRef | null): boolean {
+		if (!sweep) {
+			return false;
+		}
+
+		const elapsed = now - sweep.from;
+		if (elapsed >= BENCHMARK_MS || !map) {
+			const timings = frames.timings();
+			const report = sweep.report;
+			const tilesBefore = sweep.tiles;
+			sweep = null;
+
+			report({
+				average: timings.average,
+				p95: timings.p95,
+				frames: timings.samples,
+				tiles: tiles.fetched() - tilesBefore,
+			});
+
+			return false;
+		}
+
+		const t = elapsed / BENCHMARK_MS;
+
+		if (t < 0.75) {
+			// Three passes across the map, each at a different zoom.
+			const pass = Math.floor(t / 0.25);
+			const within = (t % 0.25) / 0.25;
+
+			camera.zoom = [fitZoom(map), 1, 2][pass] ?? 1;
+			camera.x = map.width * within;
+			camera.y = map.height / 2;
+		} else {
+			// A zoom in and back out at the centre, which is what thrashes the
+			// tile cache hardest: every level of the pyramid in one motion.
+			const within = (t - 0.75) / 0.25;
+			const swing = 1 - Math.abs(within * 2 - 1);
+
+			camera.x = map.width / 2;
+			camera.y = map.height / 2;
+			camera.zoom = fitZoom(map) * Math.pow(4 / fitZoom(map), swing);
+		}
+
+		clampToMap(camera, viewport, map.width, map.height);
+
+		return true;
+	}
+
+	function fitZoom(map: MapRef): number {
+		return Math.min(viewport.width / map.width, viewport.height / map.height) * 0.9;
+	}
+
 	function onViewCommand(e: CustomEvent<{ action?: string }>): void {
-		const map = activeMap(state);
+		const map = layers.viewed()?.map ?? null;
 
 		switch (e.detail?.action) {
 			case "zoom-in":
@@ -205,31 +338,29 @@ export function mountRenderer(mount: HTMLElement, state: State): Renderer | null
 
 	return {
 		invalidate: frames.invalidate,
-		timings: frames.timings,
-		resetTimings: frames.resetTimings,
+		view: layers,
+
+		onSettled(fn) {
+			settled = fn;
+		},
+
+		benchmark(report) {
+			if (sweep) {
+				return;
+			}
+
+			frames.resetTimings();
+			sweep = { from: performance.now(), report, tiles: tiles.fetched() };
+			frames.invalidate();
+		},
 
 		stop() {
 			window.removeEventListener("theme:change", readClearColor);
 			window.removeEventListener("room:view", onViewCommand as EventListener);
 			input.stop();
 			frames.stop();
+			tiles.dispose();
 			grid.dispose();
 		},
 	};
-}
-
-// activeMap is the map the canvas is drawing.
-//
-// IT IS THE ACTIVE LAYER'S FOR EVERYONE TODAY. The GM's ability to view a layer
-// other than the active one is a piece of client state with a crossfade
-// attached, and it arrives with the tiles that make the crossfade mean
-// something; until then there is one answer and both audiences get it.
-function activeMap(state: State): MapRef | null {
-	for (const layer of state.table.layers) {
-		if (layer.id === state.table.activeLayer) {
-			return layer.map;
-		}
-	}
-
-	return null;
 }

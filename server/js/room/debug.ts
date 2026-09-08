@@ -12,11 +12,12 @@
 // text and toggles [hidden].
 
 import type { Event, State } from "./protocol.ts";
+import type { Renderer } from "./render/renderer.ts";
 import type { Socket, Status } from "./socket.ts";
 
 const historyLimit = 20;
 
-export function wireDebug(root: HTMLElement, socket: Socket, state: State): {
+export function wireDebug(root: HTMLElement, socket: Socket, state: State, renderer: Renderer | null): {
 	status(status: Status, detail: string): void;
 	event(event: Event): void;
 } {
@@ -30,6 +31,37 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State): {
 	const events = root.querySelector("[data-debug-events]");
 	const form = root.querySelector("[data-debug-form]");
 	const input = root.querySelector("[data-debug-input]");
+
+	// THE BENCHMARK IS THE ONE MEASUREMENT THE ARCHITECTURE ASKED FOR. It
+	// sweeps the camera on a script -- three passes across the map at three
+	// zooms, then a zoom in and out at the centre -- so that two runs on two
+	// machines are comparable and a change that made the renderer slower shows
+	// up as a number rather than as a feeling.
+	//
+	// WHAT IT REPORTS IS CPU TIME INSIDE THE RENDER, not the frame interval.
+	// The interval belongs to the display and is 16.7ms on a machine doing
+	// nothing at all; what this renderer controls is how much of it is spent
+	// here, and the budget is a fraction of a millisecond.
+	const benchmark = root.querySelector("[data-debug-benchmark]");
+	const timing = root.querySelector("[data-debug-timing]");
+
+	if (benchmark instanceof HTMLButtonElement && renderer) {
+		benchmark.addEventListener("click", () => {
+			benchmark.disabled = true;
+			if (timing) {
+				timing.textContent = "sweeping...";
+			}
+
+			renderer.benchmark((result) => {
+				benchmark.disabled = false;
+				if (timing) {
+					timing.textContent =
+						`avg ${result.average.toFixed(2)}ms  p95 ${result.p95.toFixed(2)}ms  ` +
+						`${result.frames} frames  ${result.tiles} tiles`;
+				}
+			});
+		});
+	}
 
 	if (form instanceof HTMLFormElement && input instanceof HTMLTextAreaElement) {
 		form.addEventListener("submit", (e) => {

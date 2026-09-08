@@ -19,6 +19,7 @@ import { empty, reduce } from "./store.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
+import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import type { State } from "./protocol.ts";
 import { mountWindows } from "./window.ts";
@@ -33,6 +34,18 @@ if (mount) {
 
 	const state = empty();
 	const renderer = mountRenderer(mount, state);
+
+	// The bar's floor control belongs to the renderer's view rather than to the
+	// store, because half of what it shows -- which floor this GM is looking at
+	// as opposed to which one is active -- exists only in here. It follows the
+	// frame that settles it rather than the event, which is one frame earlier
+	// and one frame wrong.
+	if (renderer) {
+		const bar = mountLayerBar(mount, state, renderer);
+		if (bar) {
+			renderer.onSettled(bar.refresh);
+		}
+	}
 
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
@@ -77,7 +90,7 @@ function start(path: string, state: State, renderer: Renderer | null): void {
 
 	const panel = document.querySelector("[data-room-debug]");
 	if (panel instanceof HTMLElement) {
-		debug = wireDebug(panel, socket, state);
+		debug = wireDebug(panel, socket, state, renderer);
 	}
 
 	socket.start();

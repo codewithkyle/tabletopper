@@ -3512,6 +3512,9 @@
   .max-w-6xl {
     max-width: var(--container-6xl);
   }
+  .max-w-40 {
+    max-width: calc(var(--spacing) * 40);
+  }
   .max-w-44 {
     max-width: calc(var(--spacing) * 44);
   }
@@ -4458,6 +4461,15 @@
     .floating-label:has(.select-sm) {
       --top-mul: 4;
       --font-size: 0.75rem;
+    }
+    .select-xs {
+      --sl-size-mul: 6;
+      --font-size-min: 0.6875rem;
+      --option-px: 2;
+    }
+    .floating-label:has(.select-xs) {
+      --top-mul: 3;
+      --font-size: 0.6875rem;
     }
     .btn-error {
       --btn-color: var(--color-error);

@@ -21,7 +21,9 @@ templ roomContent(data RoomPageData) {
 					for _, m := range data.Menus() {
 						@roomBarMenu(m)
 					}
-					if !data.Closed {
+					if !data.Closed && data.IsGM() {
+						@roomLayerPicker()
+					} else if !data.Closed {
 						@RoomLayerName(RoomLayerNameData{RoomID: data.ID})
 					}
 				</div>
@@ -54,6 +56,14 @@ templ roomContent(data RoomPageData) {
 			</div>
 		</div>
 	</room-page>
+}
+
+templ roomLayerPicker() {
+	<div data-layer-bar hidden class="ml-auto flex items-center gap-1.5 pl-2">
+		<select data-layer-select aria-label="Floor to look at" class="select select-xs max-w-40"></select>
+		<span data-layer-viewing hidden class="badge badge-xs badge-warning">Viewing</span>
+		<button type="button" data-layer-activate hidden class="btn btn-xs">Show to players</button>
+	</div>
 }
 
 templ roomBarMenu(m RoomMenu) {
@@ -180,6 +190,10 @@ templ roomDebug() {
 				<dt class="text-base-content/60">Layer</dt>
 				<dd data-debug-layer class="truncate font-mono"></dd>
 			</dl>
+			<div class="flex items-center gap-2 px-1">
+				<button type="button" data-debug-benchmark class="btn btn-xs">Benchmark</button>
+				<span data-debug-timing class="min-w-0 flex-1 truncate font-mono text-[10px] text-base-content/60"></span>
+			</div>
 			<div class="px-1">
 				<p class="text-base-content/60">Players</p>
 				<ul data-debug-players class="mt-0.5"></ul>

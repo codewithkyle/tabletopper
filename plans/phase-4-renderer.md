@@ -32,10 +32,18 @@ strokes yet.
 
 1. **Level 0 is native and `z` increases as detail falls.** This is the inverse
    of the slippy-map convention and it is what the pyramid on the server uses.
-   The tile at `(z, x, y)` covers native pixels from
-   `(x * tileSize << z, y * tileSize << z)` with size `(tileSize << z)`
-   except at the right and bottom edges. Mixing conventions renders a level
-   off and looks like a blurry map rather than an error.
+   Mixing conventions renders a level off and looks like a blurry map rather
+   than an error.
+
+   **CORRECTED WHILE BUILDING: a tile's native rectangle is NOT
+   `x * tileSize << z`.** `tiler.Build` resizes each level to
+   `LevelPixels(size, z)` -- a CEIL -- and that level then stands for the whole
+   map, so the scale is `size / levelPixels(size, z)` per axis per level and
+   only equals `2^z` when the dimension divides evenly. 9000 rows at level 5 is
+   282 pixels, and 282 x 32 is 9024: the shift draws the map 24 pixels taller
+   than it is, so the grid slides off the features it lines up with and the map
+   breathes as the level changes. `tiles.levelScale` is the fix and
+   `tiles.test.ts` pins it.
 2. **Pyramid math is a line-for-line port of `internal/tiler/pyramid.go`**,
    with the same test example: 12000 by 9000 at tile size 512 gives
    `maxZoom` 5, six levels, 584 tiles. `ceil`, never a shift; edge tiles are
@@ -75,6 +83,21 @@ strokes yet.
    pixel at the viewport centre. `screen = (world - camera) * zoom + viewport / 2`
    in CSS pixels, multiplied by the device pixel ratio for the canvas. One
    function each way, tested by round trip.
+15. **The outgoing map is drawn OPAQUE and the incoming one dissolves over it**,
+    not "the old at falling alpha under the new at rising alpha" as decision 11
+    below first put it. Complementary alphas are wrong over a cleared buffer:
+    old at `1-t` then new at `t` leaves
+    `t*new + (1-t)^2*old + t(1-t)*background`, which is a quarter of the table
+    colour showing through at the midpoint -- the transition dips through the
+    empty desk and back. Painting the old one solid and dissolving the new one
+    over it is exactly `lerp(old, new, t)`.
+16. **Switching to a floor of the same size does not move the camera.** The plan
+    said fit runs "when the map changes". Floors of a building are aligned --
+    that is why the grid is room-wide -- so a GM stepping from the ground floor
+    to the cellar is looking at the same corner of the same building, and
+    re-fitting would throw away the one thing they were doing. Fit runs for the
+    first map of the session and for a map of a different SHAPE.
+
 11. **One layer is rendered at a time, and the client tracks a viewed layer.**
     For players it is always the active layer from the store. For the GM it is
     a local choice, defaulting to the active layer and following it whenever
@@ -334,6 +357,26 @@ not descend into `render/`. It is fixed in checkpoint 1 or every test below is
 silently not run.
 
 ## Verification
+
+The GL path has no unit tests -- a shader that fails to compile or a UV that is
+transposed is a black screen, not an assertion -- so it is checked by driving
+the real renderer in headless Chromium against synthetic tiles whose colour
+names their own (z, x, y). A pixel read back off the canvas then says exactly
+which tile of which level landed there. Three things make that harness work:
+
+- **requestAnimationFrame is replaced with a queue the probe pumps.** Headless
+  services only TWO rAF callbacks under `--virtual-time-budget`, and the
+  loader's path is three frames long (request, upload, draw).
+- **Every read happens in the same task as the draw.** `preserveDrawingBuffer`
+  is false, so the moment the probe yields, the compositor may take the buffer
+  and a read returns a cleared one.
+- **`OffscreenCanvas.convertToBlob` never resolves under virtual time**, so the
+  tile's colour rides in the blob's MIME type and a stubbed `createImageBitmap`
+  builds the ImageData from it. Both stubs are synchronous.
+
+Bundle the probe with `esbuild --format=iife`, inline it into one HTML file,
+and open it as `file://` (a local HTTP server cannot bind a port here); report
+through `document.title` and read it with `--dump-dom`.
 
 1. `make js && make check`, then the CSS selector diff for the new templates.
 2. Open a room with a large tiled map. Zoom from the whole map to native
