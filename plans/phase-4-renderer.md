@@ -313,8 +313,9 @@ New query in `server/sql/assets.sql`:
   solid `btn`; Close first.
 - `pages/room-grid.templ`, `.go`: `RoomGridFragment(data RoomGridData)`; a form
   with number inputs for cell size, offsets and feet per cell, a colour input
-  (an 8-digit hex text field with a native colour picker beside it is fine;
-  the core accepts 6 or 8 digits), radio groups for the line style, snap and
+  (an 8-digit hex text field, with -- as of Rework 10 in the phase 5 plan -- a
+  vanilla-colorful `<hex-alpha-color-picker>` behind a swatch beside it, because
+  the native colour input cannot do alpha; the core accepts 6 or 8 digits), radio groups for the line style, snap and
   diagonals, a select for monster HP visibility, a toggle for players can
   draw. The `hx-post`, `hx-target`, `hx-swap`, `hx-status:422` trio
   targets its errors block; pin it in a template test.

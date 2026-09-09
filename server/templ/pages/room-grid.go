@@ -1,6 +1,10 @@
 package pages
 
-import "strconv"
+import (
+	"strconv"
+
+	"tabletopper/internal/room"
+)
 
 // THE GRID AND THE TWO ROOM-WIDE OPTIONS, which are one window because they are
 // one question: how does this table behave. The grid decides what is drawn and
@@ -65,16 +69,61 @@ func (d RoomGridData) OffsetYText() string { return strconv.Itoa(d.OffsetY) }
 
 func (d RoomGridData) FeetText() string { return strconv.Itoa(d.FeetPerCell) }
 
-// ColorRGB is the colour without its alpha, because a native colour input takes
-// six digits and has no opinion about opacity. The text field beside it is the
-// one that holds all eight, and the picker writes its choice into that field's
-// first six.
-func (d RoomGridData) ColorRGB() string {
-	if len(d.Color) >= 7 {
-		return d.Color[:7]
+// THE COLOUR CONTROL IS A CUSTOM ELEMENT AND NOT <input type="color">, and the
+// reason is the alpha. The grid is drawn over somebody's map and is almost
+// never wanted opaque, so the alpha pair is the half of the value that
+// actually gets tuned -- and a native colour input has no opinion about
+// opacity, which left the two digits to be typed and guessed at. The `alpha`
+// attribute would answer that on Chromium and Safari; a browser without it
+// ignores the attribute and says nothing, which is the same guessing with a
+// worse explanation.
+//
+// SO IT IS vanilla-colorful's <hex-alpha-color-picker>, pinned in package.json
+// and bundled into room.js. It was chosen over the popup pickers for one
+// reason that matters here more than anywhere: every style it has is inside
+// its own shadow root. There is no stylesheet to add to public/css, nothing
+// for Tailwind to scan, and no second theme to keep honest against caramellatte
+// and coffee.
+//
+// THE TEXT FIELD IS STILL THE FIELD. It keeps name="color", its pattern and
+// its value; the picker writes into it and the form posts what it always
+// posted. Nothing on the server has heard of the picker, and a browser running
+// no scripts still edits the colour by hand.
+//
+// AND THE PICKER IS FOLDED AWAY UNTIL IT IS ASKED FOR. This window is 300 by
+// 420 and its contents already scroll; a permanent 176-pixel picker would push
+// half the settings below the fold for a setting a GM changes once a campaign.
+// The swatch beside the field is the disclosure, and it is the first thing on
+// the row because it is what tells the GM what the eight digits mean.
+
+// GridColorPickerID is the picker's element id, which exists only so the
+// disclosure button can name it in aria-controls. There is one grid window per
+// page -- a window's id is its identity -- so a constant is safe here in a way
+// it would not be inside a pawn panel.
+const GridColorPickerID = "grid-color-picker"
+
+// PickerColor is what the picker opens on. It is the stored colour, except for
+// a table that somehow has none: the picker parses whatever it is given and
+// would read an empty string as a colour made of NaN, so the default the core
+// would have written stands in.
+func (d RoomGridData) PickerColor() string {
+	if d.Color == "" {
+		return room.DefaultGridColor
 	}
 
-	return "#000000"
+	return d.Color
+}
+
+// SwatchStyle paints the chip on the disclosure button, and it is the FIRST
+// paint rather than the only one -- color.ts sets the same property as the
+// picker moves. Doing it here is what keeps the chip right on a panel that has
+// just been swapped in, which is every time the window is opened: the fragment
+// arrives with no script of its own to run.
+//
+// The template puts white behind the chip, so a colour at a fifth opacity
+// looks like a fifth of itself rather than like a darker panel.
+func (d RoomGridData) SwatchStyle() map[string]string {
+	return map[string]string{"background-color": d.PickerColor()}
 }
 
 // The bounds the core enforces, as attributes. A browser that refuses 4 before

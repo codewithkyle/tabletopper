@@ -623,6 +623,51 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   GM's and has always been drawn only when the room has more than one floor,
   which is why a one-floor room shows no such control.
 
+### Rework 10, the colour picker has an alpha slider (2026-09-08)
+
+- **The grid colour is picked with `<hex-alpha-color-picker>` and not with
+  `<input type="color">`.** The native input has no opinion about opacity, and
+  the grid is drawn over somebody's map -- the alpha pair is the half of the
+  value that actually gets tuned, and it was left to be typed and guessed at
+  two hex digits at a time. The `alpha` attribute answers that on Chromium and
+  Safari, and a browser without it ignores the attribute silently, which is the
+  same guessing with a worse explanation.
+- **The picker is vanilla-colorful, pinned in package.json and bundled into
+  room.js**: 7KB minified, 3KB over the wire, MIT, no dependencies. It was
+  chosen over Coloris, Pickr and iro.js for one property that matters here more
+  than the size: it is a custom element and every style it has is inside its
+  own shadow root. There is no stylesheet to add to public/css, nothing for
+  Tailwind to scan, no second theme to keep honest against caramellatte and
+  coffee, and no class name in server/js -- which is banned anyway, because
+  server/js is not a Tailwind source and a class name written there is never
+  emitted.
+- **The text field is still the form field.** It keeps `name="color"`, its
+  pattern and its value; the picker writes into it and the form posts what it
+  always posted. Nothing on the server has heard of the picker, `checkColor`
+  already took 6 or 8 digits, and a browser running no scripts gets an
+  unupgraded tag it ignores beside a colour it can still edit by hand.
+- **The picker is folded away behind the swatch.** The window is 300 by 420 and
+  its contents already scroll; 176 pixels of permanent picker would push half
+  the settings below the fold for a setting a GM changes once a campaign. The
+  swatch is the disclosure and carries `aria-expanded` and `aria-controls`, and
+  what the script toggles is `hidden` -- the only thing it can toggle.
+- **The template paints the swatch and the client repaints it.** The panel is a
+  fragment htmx swaps into a window with no script of its own to run, so a chip
+  left to the client would be blank until the GM touched something. `SwatchStyle`
+  is an inline `background-color` over the white the button puts behind it, so a
+  colour at a fifth opacity looks like a fifth of itself and not like a darker
+  panel.
+- **The form is told once the drag has settled.** `color-changed` fires on every
+  pointer move and the form saves on `change`, so forwarding each one would be a
+  POST per frame. The field's value is written live -- the hex and the swatch
+  track the drag -- and the `change` htmx listens for is held until the picker
+  has been quiet for 300ms.
+- **Every accepted spelling becomes `#RRGGBBAA` in upper case.** vanilla-colorful
+  drops the alpha pair when a colour is opaque and answers in lower case, so
+  without normalising, a drag across full opacity would flip the box between
+  `#ff0000` and `#ff0000cc` -- two spellings of the same setting, in a box whose
+  whole job is to show what the alpha currently is.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

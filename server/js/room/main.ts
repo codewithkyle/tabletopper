@@ -14,6 +14,11 @@
 // room whose socket has not opened yet should show a table rather than a blank
 // rectangle that fills in a moment later.
 
+// The colour picker registers <hex-alpha-color-picker> at module scope, so
+// the import is here rather than in color.ts -- node runs the tests beside
+// that file and has no custom element registry to define into.
+import "vanilla-colorful/hex-alpha-color-picker.js";
+
 import { announce } from "./panels.ts";
 import { createTable } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
@@ -22,6 +27,7 @@ import { mountOverlay } from "./overlay.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
+import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
@@ -43,6 +49,10 @@ if (mount) {
 	// document rather than anything a panel owns, because a panel is markup
 	// htmx swapped in and has no mount of its own to run.
 	mountHitPoints();
+
+	// And the grid colour, for the same reason and in the same way: the picker
+	// arrives inside a window nothing here rendered.
+	mountColorFields();
 
 	const state = empty();
 	const roomID = mount.dataset.room ?? "";

@@ -231,6 +231,90 @@ func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
 	}
 }
 
+// THE PICKER IS NOT A FIELD AND MUST NEVER BECOME ONE. It is a custom element
+// bundled into room.js; the server has never heard of it, and everything the
+// form posts still comes out of the text box beside it. A browser running no
+// scripts gets an unupgraded tag it ignores and a colour it can still edit by
+// hand.
+func TestTheColourIsPostedByTheTextFieldAndNotByThePicker(t *testing.T) {
+	page := renderToString(t, RoomGrid(RoomGridData{
+		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
+	}))
+
+	for _, want := range []string{
+		`name="color"`,
+		`value="#3366CCB3"`,
+		`pattern="` + GridColorPat + `"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the colour field is missing %s:\n%s", want, page)
+		}
+	}
+
+	// The native input is what could not do alpha, which is the whole reason
+	// the picker is here. One left behind would post a second colour.
+	if strings.Contains(page, `type="color"`) {
+		t.Errorf("the native colour input is still in the form:\n%s", page)
+	}
+	if strings.Contains(page, `name="color"`) && strings.Count(page, `name="color"`) != 1 {
+		t.Errorf("%d colour fields, want 1:\n%s", strings.Count(page, `name="color"`), page)
+	}
+}
+
+// BOTH HALVES OF THE CONTROL OPEN ON THE COLOUR THE TABLE IS ON. The picker
+// reads its own attribute and the chip is painted by the template, because the
+// panel is a fragment htmx swaps in with no script of its own to run -- a chip
+// left to the client would be blank until the GM touched something.
+func TestTheColourControlOpensOnTheTablesColour(t *testing.T) {
+	page := renderToString(t, RoomGrid(RoomGridData{
+		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
+	}))
+
+	if !strings.Contains(page, `color="#3366CCB3"`) {
+		t.Errorf("the picker does not open on the table's colour:\n%s", page)
+	}
+	if !strings.Contains(page, "background-color:#3366CCB3") {
+		t.Errorf("the swatch is not painted by the template:\n%s", page)
+	}
+
+	// An empty colour would reach the picker as a colour made of NaN, so the
+	// default the core would have written stands in for it.
+	if got := (RoomGridData{}).PickerColor(); got != room.DefaultGridColor {
+		t.Errorf("a table with no colour opens the picker on %q, want %q", got, room.DefaultGridColor)
+	}
+	if got := (RoomGridData{Color: "#3366CCB3"}).PickerColor(); got != "#3366CCB3" {
+		t.Errorf("PickerColor = %q", got)
+	}
+}
+
+// THE PICKER IS FOLDED AWAY AND THE SWATCH IS WHAT UNFOLDS IT. This window is
+// 300 by 420 and already scrolls; 176 pixels of permanent picker would push
+// half the settings below the fold for a setting a GM changes once a campaign.
+// The `hidden` is what color.ts toggles, and it is the only way it can -- a
+// class name written in server/js is never emitted by Tailwind.
+func TestThePickerIsFoldedAwayUntilTheSwatchIsPressed(t *testing.T) {
+	page := renderToString(t, RoomGrid(RoomGridData{
+		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
+	}))
+
+	if !strings.Contains(page, `data-color-picker hidden`) {
+		t.Errorf("the picker is open on load:\n%s", page)
+	}
+	if !strings.Contains(page, `aria-expanded="false"`) {
+		t.Errorf("the swatch does not say it is a disclosure:\n%s", page)
+	}
+
+	// The button names the picker, so the two ids have to agree. They come
+	// from the same constant, and this is the guard on somebody hard-coding
+	// one of them later.
+	if !strings.Contains(page, `aria-controls="`+GridColorPickerID+`"`) {
+		t.Errorf("the swatch does not name the picker:\n%s", page)
+	}
+	if !strings.Contains(page, `id="`+GridColorPickerID+`"`) {
+		t.Errorf("the picker does not carry the id the swatch names:\n%s", page)
+	}
+}
+
 func values(choices []Choice) []string {
 	out := make([]string, 0, len(choices))
 	for _, c := range choices {
