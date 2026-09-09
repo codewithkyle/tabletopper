@@ -238,6 +238,35 @@ type RoomInitiativePip struct {
 	Band string
 }
 
+// ActingConditions is the chips drawn under the strip, and they are the acting
+// line's alone -- one creature's, because one line is acting.
+//
+// THEY USED TO HANG UNDER THE CARD AND THEY PUSHED THE FIGHT APART. A card is
+// 72 pixels wide and "Poisoned 2 turns left" is nearer 130, and a column that
+// is a flex item sized by its widest child grew to fit them: two chips on the
+// acting line and the creatures either side of it slid away, so the turn order
+// moved every time somebody was poisoned. Truncating them to 72 pixels is the
+// other way out and it is worse -- a chip that reads "Pois..." is a coloured
+// dot with a cost.
+//
+// SO THE CHIPS GOT THEIR OWN ROW, centred under the whole strip and outside the
+// cards' scroller. Nothing they contain can move a card, they read left to
+// right on one line instead of wrapping into a 72-pixel gutter, and the row is
+// not inside the horizontal scroll box, so a wide set of them neither clips nor
+// puts a scrollbar under the fight.
+//
+// A GROUP CARRIES NONE, which is decided upstream: nine goblins have nine sets
+// of conditions and the rings on the table are where that lives.
+func (d RoomInitiativeData) ActingConditions() []RoomPawnCondition {
+	for _, e := range d.Entries {
+		if e.Active {
+			return e.Conditions
+		}
+	}
+
+	return nil
+}
+
 // Path is the fragment's own URL, so the copy swapped in refetches itself the
 // way the first one did. The room travels as a query parameter rather than in
 // the path for the reason MembersPath's does: this is a representation of a

@@ -1,6 +1,6 @@
 package pages
 
-const initiativeColumn = "flex shrink-0 flex-col items-center"
+const initiativeColumn = "flex w-18 shrink-0 flex-col items-center"
 
 const initiativeTile = "block w-18 shrink-0 p-1 shadow-panel"
 
@@ -15,7 +15,7 @@ const initiativeUnderlay = "absolute inset-x-0 bottom-0 bg-black/55 px-0.5 text-
 templ RoomInitiative(data RoomInitiativeData) {
 	<div
 		id={ RoomInitiativeID }
-		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center p-2"
+		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1 p-2"
 		hx-get={ data.Path() }
 		hx-trigger={ data.Trigger() }
 		hx-sync="this:queue last"
@@ -31,6 +31,7 @@ templ RoomInitiative(data RoomInitiativeData) {
 				@initiativeEntry(data, e)
 			}
 		</div>
+		@initiativeConditions(data.ActingConditions())
 		if data.IsGM {
 			<button
 				type="button"
@@ -167,9 +168,12 @@ templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
 			<span data-turn-timer data-turn-tone="plain" class="font-mono text-xs leading-none tabular-nums opacity-80">0:00</span>
 		</button>
 	}
-	if len(e.Conditions) > 0 {
-		<span class="flex max-w-64 flex-wrap justify-center gap-0.5 pt-1">
-			for _, c := range e.Conditions {
+}
+
+templ initiativeConditions(chips []RoomPawnCondition) {
+	if len(chips) > 0 {
+		<span class="flex max-w-full flex-wrap justify-center gap-1 px-1">
+			for _, c := range chips {
 				@pawnConditionChip(c)
 			}
 		</span>
@@ -180,7 +184,7 @@ templ roomInitiativeMount(data RoomPageData) {
 	<div
 		id={ RoomInitiativeID }
 		hidden
-		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center p-2"
+		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1 p-2"
 		hx-get={ data.InitiativePath() }
 		hx-trigger={ InitiativeLoadTrigger }
 		hx-sync="this:queue last"

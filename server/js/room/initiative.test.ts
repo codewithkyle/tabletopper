@@ -198,10 +198,15 @@ test("the stylesheet paints every tone the clock can reach", () => {
 // strip is a mounted fight: the root, the acting line, the clock and the
 // button, plus a clock this test drives by hand.
 function strip(active: string | null) {
+	// THE CLOCK IS INSIDE THE BUTTON, which is where room-initiative.templ puts
+	// it: End turn on one line and the running time under it, one target the
+	// width of the card. write() finds it by attribute wherever it sits, and
+	// this fixture is nested so that a query which stopped looking at children
+	// would fail here rather than on somebody's phone.
 	const timer = new El("data-turn-timer");
-	const next = new El("data-turn-next");
+	const next = new El("data-turn-next").append(timer);
 	const acting = new El("data-turn-active");
-	const root = new El("data-turns").append(acting, timer, next);
+	const root = new El("data-turns").append(acting, next);
 	const mount = new El().append(root);
 
 	const state = { initiative: { active, entries: [], round: 1 } } as unknown as State;
@@ -242,6 +247,66 @@ test("the clock counts from the moment the turn changed", () => {
 	assert.equal(fight.timer.getAttribute("data-turn-tone"), "warning");
 
 	fight.turns.stop();
+});
+
+// AND THE SWAP THAT HANDS A PLAYER THEIR TURN IS WHAT STARTS IT TICKING. This
+// is the sequence that left the digits frozen at 0:00 for a whole turn: the
+// server renders the clock into the acting line for its owner alone, so while
+// somebody else is up there is no clock on this player's screen at all.
+// initiative.updated arrives, the strip begins an async refetch, changed() runs
+// in that same tick against markup the refetch has not replaced -- and an
+// interval started only there is an interval that finds nothing to write into
+// and is never started.
+//
+// IT IS ASSERTED THROUGH setInterval BECAUSE A TICKER HAS NO OTHER TRACE. The
+// global is borrowed for the length of the swap and handed back, and the tick
+// is then run by hand, so the test neither waits a real second nor leaves a
+// timer behind.
+test("the swap that brings the clock in starts it running", () => {
+	const root = new El("data-turns").append(new El("data-turn-active"));
+	const mount = new El().append(root);
+	const state = { initiative: { active: "01ARI", entries: [], round: 1 } } as unknown as State;
+
+	let clock = 0;
+	const turns = mountTurns(mount as unknown as HTMLElement, state, () => clock);
+
+	// The turn becomes this player's while the strip on screen is still the one
+	// where somebody else was acting.
+	turns.changed();
+
+	// A moment later the refetch lands, carrying their End turn and its clock.
+	const timer = new El("data-turn-timer");
+	root.append(new El("data-turn-next").append(timer));
+
+	const ticks: (() => void)[] = [];
+	const realSet = globalThis.setInterval;
+	const realClear = globalThis.clearInterval;
+	globalThis.setInterval = ((fn: () => void) => {
+		ticks.push(fn);
+
+		return 0;
+	}) as unknown as typeof setInterval;
+	globalThis.clearInterval = (() => {}) as unknown as typeof clearInterval;
+
+	try {
+		doc.fire("htmx:after:swap", { target: root });
+	} finally {
+		globalThis.setInterval = realSet;
+		globalThis.clearInterval = realClear;
+	}
+
+	assert.equal(timer.textContent, "0:00");
+	assert.equal(ticks.length, 1, "the swap that brought the clock in started nothing");
+
+	// AND IT COUNTS FROM WHEN THE TURN CHANGED, not from when the markup
+	// arrived: changed() is what set the moment, a whole refetch earlier.
+	clock = 75_000;
+	ticks[0]();
+
+	assert.equal(timer.textContent, "1:15");
+	assert.equal(timer.getAttribute("data-turn-tone"), "warning");
+
+	turns.stop();
 });
 
 // A LINE DRAGGED MID-TURN DOES NOT RESTART THE CLOCK, which is the whole reason

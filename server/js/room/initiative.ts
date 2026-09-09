@@ -166,6 +166,30 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 		}
 	}
 
+	// run owns the interval, and it is its own function because the moment the
+	// turn moves and the moment the clock appears are not the same moment.
+	//
+	// THE CLOCK IS NOT ON SCREEN YET WHEN THE TURN BECOMES THIS PLAYER'S. The
+	// server renders it into the acting line for its owner alone, so the strip
+	// standing in the page while somebody else was up holds no clock at all.
+	// initiative.updated arrives, panels.ts raises room:initiative, the strip
+	// starts an async GET, and changed() runs in that same tick against the
+	// markup the GET has not replaced yet -- so write() found nothing, started
+	// nothing, and the digits the refetch delivered a moment later read 0:00
+	// for the whole turn. Nothing failed; the number simply never moved.
+	//
+	// SO THE SWAP STARTS IT AS WELL, and both callers ask the same question:
+	// is there a clock on this screen, and is somebody acting. A screen with
+	// neither -- the GM's, and a tracker nobody has started -- still never has
+	// an interval, which is the whole reason write() reports what it found.
+	function run(): void {
+		halt();
+
+		if (write() && state.initiative.active !== null) {
+			ticker = setInterval(write, 1000);
+		}
+	}
+
 	function changed(): void {
 		const active = state.initiative.active;
 
@@ -174,13 +198,7 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 			since = active === null ? null : now();
 		}
 
-		// The interval is started only when there is a clock to write into and
-		// somebody to write about, so a screen with neither never has one.
-		halt();
-		if (write() && active !== null) {
-			ticker = setInterval(write, 1000);
-		}
-
+		run();
 		reveal();
 	}
 
@@ -288,9 +306,10 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 	}
 
 	// A SWAP RESETS THE DIGITS, THE SCROLLBAR AND THE DRAG ALL AT ONCE, because
-	// all three live on elements htmx has just replaced. The filter is what
-	// keeps a pawn window's own refetch from tearing down a Sortable it has
-	// nothing to do with.
+	// all three live on elements htmx has just replaced -- and on the swap that
+	// hands a player their own turn it is what STARTS the clock, for the reason
+	// spelled out over run(). The filter is what keeps a pawn window's own
+	// refetch from tearing down a Sortable it has nothing to do with.
 	//
 	// AND IT IS THE ONLY THING THAT EVER BUILDS THE SORTABLE. The strip the
 	// page renders is an empty placeholder that fetches itself, so the
@@ -313,7 +332,7 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 		}
 
 		remount();
-		write();
+		run();
 		reveal();
 	}
 

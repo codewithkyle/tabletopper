@@ -641,6 +641,13 @@ func PawnDurationText(turns int) string {
 		return ""
 	}
 
+	// ONE TURN IS NOT "1 turns left". The chip is read at a glance by somebody
+	// deciding whether to spend a spell slot on it, and the last turn of a
+	// condition is the one that gets read most.
+	if turns == 1 {
+		return "1 turn left"
+	}
+
 	return strconv.Itoa(turns) + " turns left"
 }
 
