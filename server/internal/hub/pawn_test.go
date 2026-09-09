@@ -33,7 +33,7 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 
-	tb.send(gm, "opt", &room.TableSetOptions{MonsterHP: room.HPBandOn, PlayersCanDraw: true})
+	tb.send(gm, "opt", &room.TableSetOptions{PawnLabels: room.LabelsDefault, PlayersCanDraw: true})
 	frames(t, gm)
 	frames(t, player)
 
@@ -54,16 +54,23 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 		}
 	}
 
-	// The player is shown the visible one as a BAND and no numbers.
+	// The player is shown the visible one as a WORD and no numbers.
 	p, ok := tb.Pawn(tb.ctx(), roomID, visible, room.RolePlayer)
 	if !ok {
 		t.Fatal("the player was shown nothing of a visible monster")
 	}
 	if p.HP != nil || p.MaxHP != nil {
-		t.Errorf("the player's copy carries hit points %v/%v; the room is set to band", p.HP, p.MaxHP)
+		t.Errorf("the player's copy carries hit points %v/%v; the room labels words", p.HP, p.MaxHP)
 	}
-	if p.HPBand == nil || *p.HPBand != room.BandBloodied {
-		t.Errorf("the player's copy band = %v, want bloodied for 4 of 10", p.HPBand)
+	if p.HPBand == nil || *p.HPBand != room.BandBloody {
+		t.Errorf("the player's copy band = %v, want bloody for 4 of 10", p.HPBand)
+	}
+
+	// AND NO ARMOUR CLASS, which is the half of the projection this door would
+	// be the easiest way round: the socket never sends it and a GET that did
+	// would hand the party what to roll against.
+	if p.AC != nil {
+		t.Errorf("the player's copy carries armour class %d", *p.AC)
 	}
 
 	// And nothing at all of the hidden one. This is the assertion the door

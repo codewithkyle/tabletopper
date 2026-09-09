@@ -714,7 +714,7 @@ func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridD
 		Snap:           string(t.Grid.Snap),
 		FeetPerCell:    t.Grid.FeetPerCell,
 		Diagonals:      string(t.Grid.Diagonals),
-		MonsterHP:      string(t.MonsterHP),
+		PawnLabels:     string(t.PawnLabels),
 		PlayersCanDraw: t.PlayersCanDraw,
 		Errors:         problems,
 	}
@@ -765,7 +765,7 @@ func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {
 	}
 
 	options := room.TableSetOptions{
-		MonsterHP:      room.HPVisibility(r.FormValue("monsterHp")),
+		PawnLabels:     room.PawnLabels(r.FormValue("pawnLabels")),
 		PlayersCanDraw: r.FormValue("playersCanDraw") != "",
 	}
 

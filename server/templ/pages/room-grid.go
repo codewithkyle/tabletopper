@@ -4,9 +4,9 @@ import "strconv"
 
 // THE GRID AND THE TWO ROOM-WIDE OPTIONS, which are one window because they are
 // one question: how does this table behave. The grid decides what is drawn and
-// what a pawn snaps to; the options decide what players are told about a
-// monster's health and whether they may draw. Neither is worth a window of its
-// own and both are the GM's.
+// what a pawn snaps to; the options decide what a pawn is labelled with and
+// whether players may draw. Neither is worth a window of its own and both are
+// the GM's.
 //
 // IT IS A WINDOW, SO IT DOES NOT CLOSE ON SAVE. A GM setting a cell size is
 // matching it against a map they can see, which takes three tries; a dialog
@@ -47,7 +47,7 @@ type RoomGridData struct {
 	FeetPerCell int
 	Diagonals   string
 
-	MonsterHP      string
+	PawnLabels     string
 	PlayersCanDraw bool
 
 	Errors []string
@@ -89,9 +89,9 @@ const (
 )
 
 // The four closed sets below -- the line style, the snapping mode, the diagonal
-// rule and what players are told about a monster's health -- each carry the
-// wording a GM reads rather than the value the protocol stores. The values are
-// the protocol's own and are validated there.
+// rule and what a pawn is labelled with -- each carry the wording a GM reads
+// rather than the value the protocol stores. The values are the protocol's own
+// and are validated there.
 type Choice struct {
 	Value string
 	Label string
@@ -126,10 +126,19 @@ func GridDiagonalChoices() []Choice {
 	}
 }
 
-func GridHPChoices() []Choice {
+// PawnLabelChoices is what the panel over a pawn says, and it is written from
+// the players' side because the GM's side only ever changes at one of the three
+// -- none, where the GM's own label goes away too.
+//
+// THE HINTS SPELL OUT THE WORDS BECAUSE THE WORDS ARE THE FEATURE. A GM
+// choosing between "words" and "numbers" is choosing whether a fight is
+// described or calculated, and "Healthy, bruised, bloody" is what that reads
+// like on the table. The full list is six long and the hint gives the ends of
+// it rather than all of it; internal/room's HPBand has them all.
+func PawnLabelChoices() []Choice {
 	return []Choice{
-		{Value: "hidden", Label: "Nothing"},
-		{Value: "band", Label: "A health bar"},
-		{Value: "exact", Label: "The exact numbers"},
+		{Value: "none", Label: "None", Hint: "No panel over any pawn, for anybody. Every pawn's window is still yours."},
+		{Value: "default", Label: "Default", Hint: "You read the numbers. Players read a name and a word: healthy, bruised, bloody, and so on down to near death."},
+		{Value: "full", Label: "Full", Hint: "Everybody reads the name, the armour class and the hit points, the same as you do."},
 	}
 }

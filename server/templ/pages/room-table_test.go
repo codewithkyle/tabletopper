@@ -195,10 +195,10 @@ func TestTheGridFormDoesNotRedrawItselfOnItsOwnSave(t *testing.T) {
 // mode" -- a message about the app rather than about anything the GM did.
 func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 	for name, pair := range map[string][2][]string{
-		"gridLines": {values(GridLineChoices()), room.GridLines("").Values()},
-		"snap":      {values(GridSnapChoices()), room.Snap("").Values()},
-		"diagonals": {values(GridDiagonalChoices()), room.Diagonals("").Values()},
-		"monsterHp": {values(GridHPChoices()), room.HPVisibility("").Values()},
+		"gridLines":  {values(GridLineChoices()), room.GridLines("").Values()},
+		"snap":       {values(GridSnapChoices()), room.Snap("").Values()},
+		"diagonals":  {values(GridDiagonalChoices()), room.Diagonals("").Values()},
+		"pawnLabels": {values(PawnLabelChoices()), room.PawnLabels("").Values()},
 	} {
 		got, want := pair[0], pair[1]
 		if len(got) != len(want) {

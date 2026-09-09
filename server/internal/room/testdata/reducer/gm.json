@@ -29,7 +29,7 @@
         "feetPerCell": 5,
         "diagonals": "equal"
       },
-      "monsterHp": "band",
+      "pawnLabels": "default",
       "playersCanDraw": true
     },
     "players": [
@@ -113,7 +113,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -190,7 +190,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -231,7 +231,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -315,7 +315,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -363,7 +363,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -447,7 +447,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -495,7 +495,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -586,7 +586,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -641,7 +641,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -732,7 +732,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -787,7 +787,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -878,7 +878,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -933,7 +933,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -1024,7 +1024,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -1079,7 +1079,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -1170,7 +1170,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "exact",
+            "pawnLabels": "full",
             "playersCanDraw": true
           }
         }
@@ -1225,7 +1225,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1330,7 +1330,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1454,7 +1454,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1602,7 +1602,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1773,7 +1773,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1967,7 +1967,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2184,7 +2184,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2424,7 +2424,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2631,7 +2631,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -2686,7 +2686,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -2927,7 +2927,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3187,7 +3187,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3430,7 +3430,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3673,7 +3673,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3933,7 +3933,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4192,7 +4192,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4466,7 +4466,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4724,7 +4724,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4999,7 +4999,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5274,7 +5274,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5548,7 +5548,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5822,7 +5822,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6076,7 +6076,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6317,7 +6317,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -6372,7 +6372,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6613,7 +6613,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -6668,7 +6668,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6931,7 +6931,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7211,7 +7211,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7492,7 +7492,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7774,7 +7774,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8064,7 +8064,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8352,7 +8352,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8653,7 +8653,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8957,7 +8957,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9267,7 +9267,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9544,7 +9544,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -9599,7 +9599,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9876,7 +9876,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -9931,7 +9931,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10241,7 +10241,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10522,7 +10522,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10807,7 +10807,7 @@
                 "feetPerCell": 5,
                 "diagonals": "equal"
               },
-              "monsterHp": "band",
+              "pawnLabels": "default",
               "playersCanDraw": true
             },
             "players": [
@@ -11091,7 +11091,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11386,7 +11386,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11681,7 +11681,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11976,7 +11976,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12272,7 +12272,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12583,7 +12583,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12831,7 +12831,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13062,7 +13062,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13276,7 +13276,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13471,7 +13471,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13644,7 +13644,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -13685,7 +13685,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13839,7 +13839,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -13873,7 +13873,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -14063,7 +14063,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         },
@@ -14107,7 +14107,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -14182,7 +14182,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -14252,7 +14252,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [

@@ -38,7 +38,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.clearLayerMap", &TableClearLayerMap{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setActiveLayer", &TableSetActiveLayer{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setGrid", &TableSetGrid{Grid: w.s.Table.Grid}, ok, CodeForbidden, CodeForbidden},
-		{"table.setOptions", &TableSetOptions{MonsterHP: HPExact}, ok, CodeForbidden, CodeForbidden},
+		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull}, ok, CodeForbidden, CodeForbidden},
 		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
 
 		// Putting something on the table is the GM's act, a player's own

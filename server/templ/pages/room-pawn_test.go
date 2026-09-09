@@ -171,13 +171,13 @@ func TestAReaderSeesTheReadingAndNotTheField(t *testing.T) {
 	data.Pawn.HP = ""
 	data.Pawn.HPValue = ""
 	data.Pawn.MaxHP = ""
-	data.Pawn.Band = "Bloodied"
+	data.Pawn.Band = "Very bloody"
 
 	body := html(t, RoomPawnFragment(data))
 	if strings.Contains(body, `name="hp"`) {
 		t.Error("a reader was given the hit-point field")
 	}
-	if !strings.Contains(body, "Bloodied") {
+	if !strings.Contains(body, "Very bloody") {
 		t.Errorf("the band is not shown:\n%s", body)
 	}
 	if strings.Contains(body, "4 / 7") {
@@ -450,5 +450,24 @@ func TestTheConditionColoursAreTheProtocolsOwn(t *testing.T) {
 		if !strings.Contains(body, "bg-") {
 			t.Errorf("%q draws no swatch; a colour with no branch renders nothing", color)
 		}
+	}
+}
+
+// EVERY BAND HAS A WORD, and a band added to the protocol without one here is a
+// pawn window that says nothing about a monster's health while the panel on the
+// table says "Bloody" -- the reader's own copy of the panel, disagreeing with
+// it. The TypeScript half of the pair is js/room/overlay.test.ts.
+func TestEveryBandHasAWord(t *testing.T) {
+	for _, band := range room.HPBand("").Values() {
+		if PawnBandText(band) == "" {
+			t.Errorf("the band %q prints nothing", band)
+		}
+	}
+
+	// A band from a server a version ahead prints nothing rather than its own
+	// value: "veryBloody" over a goblin reads as a bug, and an empty line reads
+	// as a pawn nobody has filled in.
+	if got := PawnBandText("bloodied"); got != "" {
+		t.Errorf("a band this build does not know printed %q", got)
 	}
 }

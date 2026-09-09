@@ -17,7 +17,7 @@ function layer(id: string, map: MapRef | null): Layer {
 }
 
 function table(active: string, layers: Layer[]): Table {
-	return { layers, activeLayer: active, grid: grid(), monsterHp: "band", playersCanDraw: true };
+	return { layers, activeLayer: active, grid: grid(), pawnLabels: "default", playersCanDraw: true };
 }
 
 function grid(): Table["grid"] {

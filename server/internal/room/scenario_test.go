@@ -51,7 +51,7 @@ func scenario(r *recorder) {
 	grid.Color = "#334455ff"
 	r.do("line the grid up with the map", &TableSetGrid{Grid: grid}, gm)
 
-	r.do("show the party exact hit points for a while", &TableSetOptions{MonsterHP: HPExact, PlayersCanDraw: true}, gm)
+	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true}, gm)
 
 	// --- The party arrives. ---
 
@@ -112,7 +112,7 @@ func scenario(r *recorder) {
 		ID: wagon, Width: intp(96), Height: intp(320), Rotation: intp(-90),
 	}, gm)
 
-	r.do("hide the numbers again now the fight is on", &TableSetOptions{MonsterHP: HPBandOn, PlayersCanDraw: true}, gm)
+	r.do("hide the numbers again now the fight is on", &TableSetOptions{PawnLabels: LabelsDefault, PlayersCanDraw: true}, gm)
 
 	// --- The fight. ---
 

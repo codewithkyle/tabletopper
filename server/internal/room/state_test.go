@@ -41,8 +41,8 @@ func TestNewStateStartsUsable(t *testing.T) {
 		t.Fatal("a new room's fog is not prefilled, so turning it on would reveal everything")
 	}
 
-	if s.Table.MonsterHP != HPBandOn {
-		t.Fatalf("monster hit points default to %q, want %q", s.Table.MonsterHP, HPBandOn)
+	if s.Table.PawnLabels != LabelsDefault {
+		t.Fatalf("monster hit points default to %q, want %q", s.Table.PawnLabels, LabelsDefault)
 	}
 	if !s.Table.PlayersCanDraw {
 		t.Fatal("players cannot draw in a new room")
@@ -168,19 +168,19 @@ func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 
 	enums := map[string]enum{
 		"Role": RoleGM, "Snap": SnapCells, "Diagonals": DiagonalsEqual,
-		"HPVisibility": HPBandOn, "PawnKind": PawnMonster, "Size": SizeMedium,
+		"PawnLabels": LabelsDefault, "PawnKind": PawnMonster, "Size": SizeMedium,
 		"HPBand": BandHealthy, "ConditionColor": ColorRed,
 		"ClearTrigger": ClearStart, "ShapeKind": ShapeRect, "FogMode": FogReveal,
 	}
 
 	valid := map[string]func(string) bool{
-		"Role":         func(v string) bool { return Role(v).Valid() },
-		"Snap":         func(v string) bool { return Snap(v).Valid() },
-		"Diagonals":    func(v string) bool { return Diagonals(v).Valid() },
-		"HPVisibility": func(v string) bool { return HPVisibility(v).Valid() },
-		"PawnKind":     func(v string) bool { return PawnKind(v).Valid() },
-		"Size":         func(v string) bool { return Size(v).Valid() },
-		"HPBand":       func(v string) bool { return HPBand(v).Valid() },
+		"Role":       func(v string) bool { return Role(v).Valid() },
+		"Snap":       func(v string) bool { return Snap(v).Valid() },
+		"Diagonals":  func(v string) bool { return Diagonals(v).Valid() },
+		"PawnLabels": func(v string) bool { return PawnLabels(v).Valid() },
+		"PawnKind":   func(v string) bool { return PawnKind(v).Valid() },
+		"Size":       func(v string) bool { return Size(v).Valid() },
+		"HPBand":     func(v string) bool { return HPBand(v).Valid() },
 		"ConditionColor": func(v string) bool {
 			return ConditionColor(v).Valid()
 		},

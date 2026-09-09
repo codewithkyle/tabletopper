@@ -55,11 +55,11 @@ type RoomInfo struct {
 // bytes and it changes when a person clicks a menu item, so there is nothing to
 // win by sending less and a partial-update reducer to lose.
 type Table struct {
-	Layers         []Layer      `json:"layers"`
-	ActiveLayer    ulid.ULID    `json:"activeLayer"`
-	Grid           Grid         `json:"grid"`
-	MonsterHP      HPVisibility `json:"monsterHp"`
-	PlayersCanDraw bool         `json:"playersCanDraw"`
+	Layers         []Layer    `json:"layers"`
+	ActiveLayer    ulid.ULID  `json:"activeLayer"`
+	Grid           Grid       `json:"grid"`
+	PawnLabels     PawnLabels `json:"pawnLabels"`
+	PlayersCanDraw bool       `json:"playersCanDraw"`
 }
 
 // Layer is a floor or a scene: a named slot holding at most one map, with its
@@ -181,8 +181,8 @@ type Player struct {
 //
 // HP, MAXHP, AC AND HPBAND ARE POINTERS because "unknown" and "zero" are
 // different facts about a pawn and the player projection has to be able to say
-// the first. A monster projected to players with hit points hidden has all
-// three nil; with the band setting it has HPBand set and the other two nil.
+// the first. A monster projected to players in a room labelling nothing has all
+// four nil; in the default room it has HPBand set and the other three nil.
 // HPBand is never set in the GM's copy: it exists only as a projection.
 type Pawn struct {
 	ID          ulid.ULID   `json:"id"`
@@ -329,19 +329,34 @@ const (
 func (Diagonals) Values() []string { return []string{"equal", "alternating"} }
 func (d Diagonals) Valid() bool    { return inValues(d, d.Values()) }
 
-// HPVisibility is how much of a monster's health players are told. It is a room
+// PawnLabels is how much a pawn is described by, and to whom. It is a room
 // setting rather than a per-pawn one because it is a table's style of play, not
-// a property of a goblin. Player-owned pawns are always exact regardless.
-type HPVisibility string
+// a property of a goblin.
+//
+// IT IS THREE POINTS ON ONE SCALE, which is why it is one control and not a
+// pair of them. None tells nobody anything; default is the GM's table, where
+// the GM reads numbers and the party reads words; full is an open table where
+// everybody reads the same numbers. A fourth combination -- the GM told less
+// than the players -- is not a way anybody runs a game.
+//
+// NONE IS THE ONLY ONE THE CLIENT HAS TO KNOW ABOUT. The other two are entirely
+// carried by what Project leaves on a pawn, so the label prints whatever
+// arrived; none has to suppress the GM's own label as well, and the GM's copy
+// is never projected. That one read is in js/room/overlay.ts.
+//
+// PLAYER-OWNED PAWNS AND OBJECTS ARE ALWAYS EXACT, whatever this says. A
+// player's own character sheet is not a secret from the table, and a door's
+// hit points are the thing the party is currently hitting.
+type PawnLabels string
 
 const (
-	HPHidden HPVisibility = "hidden"
-	HPBandOn HPVisibility = "band"
-	HPExact  HPVisibility = "exact"
+	LabelsNone    PawnLabels = "none"
+	LabelsDefault PawnLabels = "default"
+	LabelsFull    PawnLabels = "full"
 )
 
-func (HPVisibility) Values() []string { return []string{"hidden", "band", "exact"} }
-func (v HPVisibility) Valid() bool    { return inValues(v, v.Values()) }
+func (PawnLabels) Values() []string { return []string{"none", "default", "full"} }
+func (v PawnLabels) Valid() bool    { return inValues(v, v.Values()) }
 
 // PawnKind decides both what a pawn is drawn as and how it projects. Player
 // pawns project unchanged; monsters and npcs go through the hit-point setting;
@@ -398,19 +413,34 @@ func (s Size) Footprint() int {
 	}
 }
 
-// HPBand is the coarse health a player is shown when the room hides exact
-// numbers. It exists only in the player projection.
+// HPBand is the coarse health a player is shown instead of a number. It exists
+// only in the player projection.
+//
+// SIX WORDS AND NOT A BAR, because a bar is a number drawn sideways: a party
+// that can see a monster is at three fifths can work out its maximum from two
+// hits, and then the fight is arithmetic again. A word is what somebody at a
+// real table gets from looking, and the scale is deliberately coarse at the top
+// -- everything above three quarters is one word -- and fine at the bottom,
+// where the only question anyone is asking is whether one more hit will do it.
+//
+// DEAD IS SEPARATE FROM NEAR DEATH and that distinction is the point of having
+// both. A creature at zero is down; a creature at one is the reason somebody
+// spends their turn attacking rather than running.
 type HPBand string
 
 const (
-	BandHealthy  HPBand = "healthy"
-	BandBloodied HPBand = "bloodied"
-	BandCritical HPBand = "critical"
-	BandDead     HPBand = "dead"
+	BandHealthy    HPBand = "healthy"
+	BandBruised    HPBand = "bruised"
+	BandBloody     HPBand = "bloody"
+	BandVeryBloody HPBand = "veryBloody"
+	BandNearDeath  HPBand = "nearDeath"
+	BandDead       HPBand = "dead"
 )
 
-func (HPBand) Values() []string { return []string{"healthy", "bloodied", "critical", "dead"} }
-func (b HPBand) Valid() bool    { return inValues(b, b.Values()) }
+func (HPBand) Values() []string {
+	return []string{"healthy", "bruised", "bloody", "veryBloody", "nearDeath", "dead"}
+}
+func (b HPBand) Valid() bool { return inValues(b, b.Values()) }
 
 // ConditionColor is the ring drawn around a pawn carrying the condition. It is
 // a closed set of eight rather than a hex string because these are read at a
@@ -519,11 +549,12 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 				Diagonals:   DiagonalsEqual,
 			},
 
-			// Band, not exact and not hidden. Exact turns every fight into
-			// arithmetic about when to run; hidden means a player cannot tell
-			// a scratch from a killing blow and stops describing what they
-			// did. Bloodied is the word the table already uses.
-			MonsterHP: HPBandOn,
+			// The middle one, and it is the middle one for the reason the
+			// other two are extremes. Full turns every fight into arithmetic
+			// about when to run; none means a player cannot tell a scratch
+			// from a killing blow and stops describing what they did. Bloody
+			// is the word the table already uses.
+			PawnLabels: LabelsDefault,
 
 			// Players draw by default because the drawing tool's ordinary use
 			// is a player sketching the plan on the tavern table, and a GM who
@@ -579,6 +610,16 @@ func (s *State) Normalize() {
 	// table away to save them the one click.
 	if !s.Table.Grid.Lines.Valid() {
 		s.Table.Grid.Lines = GridLinesSolid
+	}
+
+	// AND A LABEL SETTING NOTHING ACCEPTS BECOMES THE DEFAULT, which is every
+	// snapshot written while the field was called monsterHp and held hidden,
+	// band or exact. Default is band's successor and is what the great majority
+	// of those rooms were on; a room that had been set to either extreme comes
+	// back in the middle once and the GM sets it again. The alternative is
+	// bumping the schema, which throws every pawn on every table away.
+	if !s.Table.PawnLabels.Valid() {
+		s.Table.PawnLabels = LabelsDefault
 	}
 
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })

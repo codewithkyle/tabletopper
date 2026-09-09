@@ -226,45 +226,55 @@ func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {
 	return false
 }
 
-// projectPawn is the hit-point half of the projection, and it is where the
-// room's one setting is read.
+// projectPawn is the statistics half of the projection, and it is where the
+// room's one label setting is read.
 //
 // PLAYER PAWNS AND OBJECTS PASS THROUGH UNCHANGED. A player's own character
 // sheet is not a secret from the table, and a door's hit points are the thing
-// the party is currently hitting. The setting is about monsters, which is what
-// it is called.
+// the party is currently hitting. What the setting withholds is a monster's.
+//
+// ARMOUR CLASS GOES WITH THE NUMBERS AND NOT WITH THE NAME. A party that is
+// told a monster's AC is told what to roll, which is the same fight-solving
+// arithmetic the bands exist to avoid -- so it survives only on full, where
+// everything does. Withholding it HERE rather than in the label is the whole
+// difference between a secret and a hidden element: what is not projected is
+// not in the browser to be read out of.
 func projectPawn(p Pawn, t Table) Pawn {
 	if p.Kind != PawnMonster && p.Kind != PawnNPC {
 		return p
 	}
 
-	switch t.MonsterHP {
-	case HPExact:
-		return p
-
-	case HPBandOn:
-		band := hpBand(p.HP, p.MaxHP)
-		p.HP = nil
-		p.MaxHP = nil
-		p.HPBand = band
-
-		return p
-
-	default:
-		p.HP = nil
-		p.MaxHP = nil
-		p.HPBand = nil
-
+	if t.PawnLabels == LabelsFull {
 		return p
 	}
+
+	band := hpBand(p.HP, p.MaxHP)
+	p.HP = nil
+	p.MaxHP = nil
+	p.AC = nil
+	p.HPBand = nil
+
+	if t.PawnLabels == LabelsDefault {
+		p.HPBand = band
+	}
+
+	return p
 }
 
 // hpBand is the coarse health a player is told about instead of a number.
 //
-// The thresholds are 5e's own vocabulary: bloodied is at or below half, which
-// is the word every table already uses, and critical is at or below a quarter,
-// which is where a party decides whether to spend the last healing spell. The
-// comparisons multiply rather than divide so that a maximum of 7 has exact
+// THE CUTS ARE THREE QUARTERS, A HALF, A QUARTER AND A TWENTIETH, and each one
+// is a boundary rather than a range: a creature is bruised from just under
+// three quarters down to half, and bloody from there down to a quarter. The top
+// band is wide because the answer above three quarters is always "it is fine",
+// and the bottom two are narrow because that is the only part of the scale
+// anybody is making a decision on.
+//
+// IT IS TESTED DOWNWARD AND THE FIRST MATCH WINS, which is what makes the
+// overlapping way of saying it -- under a half is bloody, under a quarter is
+// very bloody -- come out as one band per creature.
+//
+// THE COMPARISONS MULTIPLY RATHER THAN DIVIDE so that a maximum of 7 has exact
 // thresholds rather than ones that depend on which way integer division fell.
 func hpBand(hp, maxHP *int) *HPBand {
 	if hp == nil || maxHP == nil || *maxHP < 1 {
@@ -275,10 +285,14 @@ func hpBand(hp, maxHP *int) *HPBand {
 	switch {
 	case *hp <= 0:
 		band = BandDead
+	case *hp*20 <= *maxHP:
+		band = BandNearDeath
 	case *hp*4 <= *maxHP:
-		band = BandCritical
+		band = BandVeryBloody
 	case *hp*2 <= *maxHP:
-		band = BandBloodied
+		band = BandBloody
+	case *hp*4 <= *maxHP*3:
+		band = BandBruised
 	}
 
 	return &band

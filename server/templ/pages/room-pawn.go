@@ -229,9 +229,9 @@ type RoomPawn struct {
 	Object bool
 
 	// HP is "12 / 20" when the viewer is given numbers, and empty when they are
-	// not. Band is the word -- Bloodied -- when a band is all they get. Exactly
-	// one of the two is set, and both are empty when the room hides monster
-	// health entirely.
+	// not. Band is the word -- Very bloody -- when a word is all they get.
+	// Exactly one of the two is set, and both are empty in a room labelling
+	// nothing.
 	HP   string
 	Band string
 
@@ -474,14 +474,23 @@ func PawnHPText(hp *int, maxHP *int) string {
 
 // PawnBandText is the word a band projects to. It is title case because it is
 // printed as a label rather than read as a value.
+//
+// IT HAS A TWIN IN js/room/overlay.ts, which prints the same word over the pawn
+// on the table while this one prints it in the pawn's window. The two saying
+// different things about one goblin is the bug this note exists to make
+// findable; TestEveryBandHasAWord and its TypeScript opposite pin the pair.
 func PawnBandText(band string) string {
 	switch band {
 	case "healthy":
 		return "Healthy"
-	case "bloodied":
-		return "Bloodied"
-	case "critical":
-		return "Critical"
+	case "bruised":
+		return "Bruised"
+	case "bloody":
+		return "Bloody"
+	case "veryBloody":
+		return "Very bloody"
+	case "nearDeath":
+		return "Near death"
 	case "dead":
 		return "Dead"
 	}

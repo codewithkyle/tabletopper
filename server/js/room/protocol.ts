@@ -24,11 +24,11 @@ export type FogMode = "reveal" | "hide";
 
 export type GridLines = "off" | "solid" | "dashed";
 
-export type HPBand = "healthy" | "bloodied" | "critical" | "dead";
-
-export type HPVisibility = "hidden" | "band" | "exact";
+export type HPBand = "healthy" | "bruised" | "bloody" | "veryBloody" | "nearDeath" | "dead";
 
 export type PawnKind = "player" | "monster" | "npc" | "object";
+
+export type PawnLabels = "none" | "default" | "full";
 
 export type Role = "gm" | "player";
 
@@ -176,7 +176,7 @@ export interface Table {
 	layers: Layer[];
 	activeLayer: string;
 	grid: Grid;
-	monsterHp: HPVisibility;
+	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
 }
 
@@ -430,7 +430,7 @@ export interface TableSetLayerMap {
 export interface TableSetOptions {
 	type: "table.setOptions";
 	cid: string;
-	monsterHp: HPVisibility;
+	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
 }
 

@@ -504,6 +504,47 @@ Five items, and the last of them is why the first four are safe.
   `change` handler is on the form above it and would otherwise read the box
   before the sum was resolved.
 
+### Rework 7, the label is one setting and the setting is the whole label (2026-09-08)
+
+`Table.MonsterHP` is `Table.PawnLabels`, `hidden | band | exact` is
+`none | default | full`, and what it governs is no longer just hit points.
+
+- **Three points on one scale, and the scale is what the table is told.**
+  `none` labels nothing for anybody, including the GM. `default` is the GM's
+  table: the GM reads numbers, the party reads words. `full` is an open table
+  where everybody reads the same numbers. The fourth combination -- the GM told
+  less than the players -- is not a way anybody runs a game, which is why this
+  is one control and not a pair of them.
+- **Armour class travels with the hit points now.** Telling the party what to
+  roll against is the same fight-solving arithmetic the words exist to avoid, so
+  `projectPawn` strips `AC` from a monster or npc on `none` and on `default`, and
+  keeps it only on `full`. It is stripped in the PROJECTION and not in the
+  label, which is the whole difference between a secret and a hidden element:
+  what is not projected is not in the browser to be read out of.
+- **Six bands instead of four.** Healthy above three quarters, bruised down to
+  a half, bloody down to a quarter, very bloody down to a twentieth, near death
+  below that, and dead at zero. The scale is coarse at the top because the
+  answer above three quarters is always "it is fine", and fine at the bottom
+  because that is the only part of it anybody is making a decision on. Dead
+  stays separate from near death: a creature at zero is down, and a creature at
+  one is the reason somebody spends their turn attacking rather than running.
+  `pages.PawnBandText` and `js/room/overlay.ts` each print the six, and a test
+  either side pins the pair.
+- **`none` is the one setting the client reads.** The other two are carried
+  entirely by what `Project` leaves on a pawn -- a player in a `default` room
+  was sent a word and no numbers -- so the label prints whatever arrived and has
+  no idea which room it is in. `none` cannot work that way, because it takes the
+  label away from the GM too and a GM's copy is never projected: there is
+  nothing missing from it to notice. That single read is `OverlayDeps.labels`.
+  It does not take the GROUP panel away, which is not a label at all but the
+  count and the GM's two controls for acting on a selection.
+- **An old snapshot is repaired rather than discarded.** A room saved as
+  `monsterHp: "band"` reads back as a `pawnLabels` nothing accepts, and
+  `Normalize` sets it to `default` -- band's successor, and what the great
+  majority of those rooms were on. A room that had been set to either extreme
+  comes back in the middle once. The alternative is bumping `Schema`, which
+  throws every pawn on every table away to save the GM one click.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and
@@ -526,7 +567,9 @@ Five items, and the last of them is why the first four are safe.
   see them, and armour class. Selecting several shows the count, a Move to
   floor select and a Remove button for the GM. *(Reworked above: the label is
   hover-only and carries no buttons, a token gets none at all, and Delete
-  presses a hidden button on the page instead.)*
+  presses a hidden button on the page instead. Rework 7: whether there is a
+  label at all, and what a player reads in it, is the room's `pawnLabels`
+  setting.)*
 - The pawn window edits HP with arithmetic input, max HP, AC, a creature
   size or an object's width, height and angle, floor, visibility, and
   conditions with colour and duration. *(Reworked above: an object carries an
@@ -796,7 +839,9 @@ palette indexed by a hash), and a small name label on the anchor.
 `overlay.ts` positions the templ-rendered overlay element above the hovered
 pawn or the selection's bounding box each frame while one exists, using
 `worldToScreen`. For one pawn it fills name, HP text from `hp` and `maxHp` or
-the band word when that is all the viewer has, and AC. For several pawns the
+the band word when that is all the viewer has, and AC. *(Rework 7: whether
+the label is drawn at all is the room's `pawnLabels` setting, and AC is withheld
+from a monster on everything but `full`.)* For several pawns the
 overlay shows the count, a Move to floor select and, for the GM, the Remove
 button whose `hx-vals` the client sets to the selected ids.
 
@@ -873,8 +918,8 @@ present. Nothing is sent to the server.
    only their own pawn.
 6. Switch the diagonal rule; the same diagonal drag reports 15 feet instead of
    10 for two cells.
-7. Set monster HP to band; the player's overlay says Bloodied when the GM
-   takes a goblin below half.
+7. Set pawn labels to the middle choice; the player's overlay says Bloody
+   when the GM takes a goblin to half.
 8. Edit a player pawn's HP to `-5`; the character sheet's current HP dropped by
    five.
 9. GM selects five pawns and removes them from the overlay behind the confirm
@@ -1048,7 +1093,8 @@ a page section usually does not.
 **Go**:
 
 - `hub.Pawn` projects: a player asking for a hidden pawn gets nothing, and a
-  player asking for a visible monster with the band setting gets a band and no
+  player asking for a visible monster with the default setting gets a word, no
+  armour class and no
   numbers. This is the security test and it is the first one to write.
 - The pawn fragment renders its `hx-trigger` with the pawn's own id in the
   filter and with `hx-sync="this:queue last"`, so a refactor cannot quietly turn
@@ -1069,8 +1115,8 @@ a page section usually does not.
 13. Click into the first window's HP field and type. The GM's other tab changes
     that pawn's AC; the field keeps what was typed. Blur it, change the AC
     again, and the panel catches up.
-14. A player opens a panel for a visible monster with hit points set to band:
-    it says Bloodied and no numbers. The GM hides that monster; the player's
+14. A player opens a panel for a visible monster with labels on the default
+    setting: it says Bloody, with no numbers and no armour class. The GM hides that monster; the player's
     window is closed by `pawn.removed` rather than left showing stale stats.
 15. Drag the pawn panel to 900px wide: the stat rows go from one column to two
     without a reload.

@@ -179,7 +179,7 @@ export function empty(): State {
 				feetPerCell: 5,
 				diagonals: "equal",
 			},
-			monsterHp: "band",
+			pawnLabels: "default",
 			playersCanDraw: true,
 		},
 		players: [],

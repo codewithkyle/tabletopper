@@ -47,27 +47,27 @@ func TestAPlayerNeverReceivesAPawnFromAnotherLayer(t *testing.T) {
 	}
 }
 
-// THE THREE HIT POINT SETTINGS, against the three kinds of pawn they treat
+// THE THREE LABEL SETTINGS, against the three kinds of pawn they treat
 // differently. A player's own character is never hidden from the table, and an
 // object's hit points are the thing the party is currently hitting.
-func TestMonsterHitPointsProjectByTheRoomsSetting(t *testing.T) {
+func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 	kinds := []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject}
 
 	tests := []struct {
-		setting  HPVisibility
+		setting  PawnLabels
 		numbers  bool
 		banded   bool
 		affected []PawnKind
 	}{
-		{HPExact, true, false, nil},
-		{HPBandOn, false, true, []PawnKind{PawnMonster, PawnNPC}},
-		{HPHidden, false, false, []PawnKind{PawnMonster, PawnNPC}},
+		{LabelsFull, true, false, nil},
+		{LabelsDefault, false, true, []PawnKind{PawnMonster, PawnNPC}},
+		{LabelsNone, false, false, []PawnKind{PawnMonster, PawnNPC}},
 	}
 
 	for _, tc := range tests {
 		t.Run(string(tc.setting), func(t *testing.T) {
 			w := newWorld(t)
-			w.apply(&TableSetOptions{MonsterHP: tc.setting, PlayersCanDraw: true}, w.gm)
+			w.apply(&TableSetOptions{PawnLabels: tc.setting, PlayersCanDraw: true}, w.gm)
 
 			for _, kind := range kinds {
 				p := Pawn{Kind: kind, Name: string(kind), Visible: true, HP: intp(5), MaxHP: intp(20), AC: intp(15)}
@@ -105,6 +105,17 @@ func TestMonsterHitPointsProjectByTheRoomsSetting(t *testing.T) {
 						t.Fatalf("a %s pawn has a band under %q", p.Kind, tc.setting)
 					}
 				}
+
+				// ARMOUR CLASS TRAVELS WITH THE NUMBERS. Telling the party
+				// what to roll against is the same arithmetic the words exist
+				// to avoid, so a monster keeps its AC on the full setting and
+				// on neither of the other two.
+				if affected && !tc.numbers && p.AC != nil {
+					t.Fatalf("a %s pawn kept its armour class under %q", p.Kind, tc.setting)
+				}
+				if (!affected || tc.numbers) && (p.AC == nil || *p.AC != 15) {
+					t.Fatalf("a %s pawn lost its armour class under %q", p.Kind, tc.setting)
+				}
 			}
 
 			// The GM's copy never carries a band, whatever the setting: a band
@@ -113,33 +124,66 @@ func TestMonsterHitPointsProjectByTheRoomsSetting(t *testing.T) {
 				if p.HPBand != nil {
 					t.Fatalf("the GM's copy of a %s pawn carries a band", p.Kind)
 				}
+				if p.AC == nil || p.HP == nil {
+					t.Fatalf("the GM's copy of a %s pawn was projected under %q", p.Kind, tc.setting)
+				}
 			}
 		})
 	}
 }
 
-// The band thresholds are 5e's own vocabulary, and they are compared by
-// multiplication so that an awkward maximum has exact boundaries rather than
-// ones that depend on which way integer division fell.
+// The band boundaries are three quarters, a half, a quarter and a twentieth,
+// and they are compared by multiplication so that an awkward maximum has exact
+// boundaries rather than ones that depend on which way integer division fell.
 func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 	tests := []struct {
 		hp, maxHP int
 		want      HPBand
 	}{
+		// A maximum of 100, where every boundary is a whole number and every
+		// one of them is ON the lower band: three quarters of a hundred is
+		// bruised, not healthy.
+		{100, 100, BandHealthy},
+		{76, 100, BandHealthy},
+		{75, 100, BandBruised},
+		{51, 100, BandBruised},
+		{50, 100, BandBloody},
+		{26, 100, BandBloody},
+		{25, 100, BandVeryBloody},
+		{6, 100, BandVeryBloody},
+		{5, 100, BandNearDeath},
+		{1, 100, BandNearDeath},
+		{0, 100, BandDead},
+
+		// A maximum of 20, where a twentieth is one hit point: a goblin is
+		// near death at exactly 1 and very bloody at 2.
 		{20, 20, BandHealthy},
-		{11, 20, BandHealthy},
-		{10, 20, BandBloodied},
-		{6, 20, BandBloodied},
-		{5, 20, BandCritical},
-		{1, 20, BandCritical},
+		{16, 20, BandHealthy},
+		{15, 20, BandBruised},
+		{10, 20, BandBloody},
+		{5, 20, BandVeryBloody},
+		{2, 20, BandVeryBloody},
+		{1, 20, BandNearDeath},
 		{0, 20, BandDead},
 
-		// A maximum of 7: a quarter is 1.75 and a half is 3.5, so the
-		// boundaries fall between whole numbers.
-		{4, 7, BandHealthy},
-		{3, 7, BandBloodied},
-		{2, 7, BandBloodied},
-		{1, 7, BandCritical},
+		// A maximum of 7: three quarters is 5.25, a half is 3.5 and a quarter
+		// is 1.75, so every boundary falls between whole numbers.
+		{7, 7, BandHealthy},
+		{6, 7, BandHealthy},
+		{5, 7, BandBruised},
+		{4, 7, BandBruised},
+		{3, 7, BandBloody},
+		{2, 7, BandBloody},
+		{1, 7, BandVeryBloody},
+
+		// A creature already below the last cut is still not dead until it is
+		// at zero, which is the whole reason the two words are separate.
+		{1, 1000, BandNearDeath},
+		{0, 1000, BandDead},
+
+		// Overhealed past its own maximum, which a temporary hit point pool or
+		// a GM raising the maximum after the fact both produce.
+		{30, 20, BandHealthy},
 	}
 
 	for _, tc := range tests {
@@ -173,7 +217,7 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Ambusher", Visible: false, HP: intp(5), MaxHP: intp(5)})
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Downstairs", LayerID: cellar, Visible: true, HP: intp(5), MaxHP: intp(5)})
 
-	ems := w.apply(&TableSetOptions{MonsterHP: HPExact, PlayersCanDraw: true}, w.gm)
+	ems := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true}, w.gm)
 
 	// The table, then one pawn per monster or npc the players can actually
 	// see. Not the player's own pawn, whose projection did not change; not the
@@ -193,7 +237,7 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 	}
 
 	// Setting it to what it already is emits the table and nothing else.
-	again := w.apply(&TableSetOptions{MonsterHP: HPExact, PlayersCanDraw: false}, w.gm)
+	again := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false}, w.gm)
 	equalStrings(t, "emissions", summary(again), []string{"table.updated to all"})
 }
 
@@ -246,4 +290,34 @@ func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 	// treats a reconnect as a new arrival.
 	back := w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer}}, w.gm)
 	equalStrings(t, "emissions", summary(back), []string{"player.updated to all"})
+}
+
+// A ROOM SAVED WHEN THE SETTING WAS CALLED SOMETHING ELSE comes back with a
+// value nothing accepts, because the field it was written into no longer
+// exists. The room is otherwise intact, so the one field is repaired: the
+// alternative is a settings window with no radio selected and a refusal on the
+// next unrelated change the GM makes.
+func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
+	s := NewState(testRoomID, "The Sunless Citadel", Env{})
+
+	// "band" is what every room on the old wording holds, and the empty string
+	// is what a snapshot written before the field existed unmarshals to.
+	for _, stale := range []PawnLabels{"band", "hidden", "exact", ""} {
+		s.Table.PawnLabels = stale
+		s.Normalize()
+
+		if s.Table.PawnLabels != LabelsDefault {
+			t.Fatalf("%q came back as %q, want %q", stale, s.Table.PawnLabels, LabelsDefault)
+		}
+	}
+
+	// And a setting that IS one is left exactly as the GM chose it.
+	for _, live := range []PawnLabels{LabelsNone, LabelsDefault, LabelsFull} {
+		s.Table.PawnLabels = live
+		s.Normalize()
+
+		if s.Table.PawnLabels != live {
+			t.Fatalf("a live setting was rewritten from %q to %q", live, s.Table.PawnLabels)
+		}
+	}
 }

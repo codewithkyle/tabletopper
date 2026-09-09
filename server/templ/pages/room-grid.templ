@@ -22,7 +22,7 @@ templ RoomGrid(data RoomGridData) {
 		@gridColor(data)
 		@gridRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
 		@gridRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
-		@gridRadios("monsterHp", "Players see a monster's health as", GridHPChoices(), data.MonsterHP)
+		@gridRadios("pawnLabels", "What a pawn is labelled with", PawnLabelChoices(), data.PawnLabels)
 		@gridToggle("playersCanDraw", "Players may draw on the tabletop", data.PlayersCanDraw)
 	</form>
 }

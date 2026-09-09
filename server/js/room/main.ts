@@ -114,6 +114,7 @@ if (mount) {
 			bounds: () => table.bounds(),
 			project: (x, y, out) => view.toScreen(x, y, out),
 			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
+			labels: () => state.table.pawnLabels,
 		});
 
 		if (overlay) {

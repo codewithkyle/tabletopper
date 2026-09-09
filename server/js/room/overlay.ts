@@ -49,12 +49,23 @@ export interface OverlayDeps {
 	project: (x: number, y: number, out: { x: number; y: number }) => { x: number; y: number };
 
 	// layers is the room's floors, for the GM's Move to floor control.
-	//
-	// IT IS THE ONLY THING THIS PANEL STILL NEEDS FROM THE ROOM. The room id,
-	// the viewer's role and their user id were all here to decide which buttons
-	// to draw; there are no buttons on the single-pawn shape any more, and the
-	// two on the group shape are rendered for the GM by the page or not at all.
 	layers: () => { id: string; name: string }[];
+
+	// labels is the room's one setting for this panel, and reading it here is
+	// the ONLY branch in the client on what a viewer may know.
+	//
+	// EVERYTHING ELSE IS ALREADY DECIDED BY THE TIME A PAWN ARRIVES. A player
+	// in a default room was sent a word and no numbers and a player in a full
+	// room was sent both, so showOne prints whatever is on the pawn and needs
+	// no idea which room it is in. "None" is the one setting that cannot work
+	// that way: it takes the panel away from the GM too, and a GM's copy of a
+	// pawn is never projected -- there is nothing missing from it to notice.
+	//
+	// IT DOES NOT TAKE THE GROUP PANEL AWAY, because that one is not a label.
+	// What it holds is a count and the GM's two controls for acting on a
+	// selection: a toolbar that happens to follow what is selected, rather than
+	// anything a viewer is being told about a pawn.
+	labels: () => string;
 }
 
 export interface Overlay {
@@ -142,7 +153,7 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 		// something else while one thing is selected still labels what is under
 		// the pointer, because that is the question a label answers.
 		const pawn = deps.focus();
-		if (pawn) {
+		if (pawn && deps.labels() !== "none") {
 			showOne(pawn);
 
 			return;
@@ -170,8 +181,9 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 
 		// HIT POINTS AS THE VIEWER MAY SEE THEM, and there is nothing to decide
 		// here: the projection already did it. A player looking at a monster in
-		// a band room was sent a band and no numbers, so what this prints is
-		// whichever of the two arrived.
+		// a default room was sent a word and no numbers, so what this prints is
+		// whichever of the two arrived. The same goes for the line below it: a
+		// null armour class is one the server withheld, not one nobody set.
 		hp.textContent = pawn.hp !== null
 			? `${pawn.hp}${pawn.maxHp !== null ? ` / ${pawn.maxHp}` : ""} HP`
 			: pawn.hpBand
@@ -279,14 +291,22 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 	};
 }
 
-function bandWord(band: string): string {
+// bandWord is the word a band prints as, and it is exported for its test rather
+// than for a caller: pages.PawnBandText says the same six in the pawn's window,
+// and one goblin described two ways in two places is the failure both sides are
+// pinned against.
+export function bandWord(band: string): string {
 	switch (band) {
 		case "healthy":
 			return "Healthy";
-		case "bloodied":
-			return "Bloodied";
-		case "critical":
-			return "Critical";
+		case "bruised":
+			return "Bruised";
+		case "bloody":
+			return "Bloody";
+		case "veryBloody":
+			return "Very bloody";
+		case "nearDeath":
+			return "Near death";
 		case "dead":
 			return "Dead";
 	}

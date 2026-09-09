@@ -108,7 +108,7 @@ type Table struct {
     Layers         []Layer      `json:"layers"`          // ordered bottom to top; never empty
     ActiveLayer    ulid.ULID    `json:"activeLayer"`     // what players see; GM-controlled
     Grid           Grid         `json:"grid"`            // room-wide, shared by every layer
-    MonsterHP      HPVisibility `json:"monsterHp"`       // hidden | band | exact
+    PawnLabels     PawnLabels   `json:"pawnLabels"`      // none | default | full
     PlayersCanDraw bool         `json:"playersCanDraw"`
 }
 
@@ -164,7 +164,7 @@ type Pawn struct {
     Visible     bool        `json:"visible"`
     HP          *int        `json:"hp"`          // nil when projected away
     MaxHP       *int        `json:"maxHp"`
-    HPBand      *HPBand     `json:"hpBand"`      // set only in the player projection when MonsterHP is band
+    HPBand      *HPBand     `json:"hpBand"`      // set only in the player projection, on the default setting
     AC          *int        `json:"ac"`
     Conditions  []Condition `json:"conditions"`
     OwnerID     *ulid.ULID  `json:"ownerId"`     // player id; nil for GM-owned
@@ -222,8 +222,9 @@ Enums are named string types. Each one has a `Values() []string` method on
 the type and a `Valid() bool` that checks membership. `Values` is what the
 TypeScript generator reads to emit a literal union, and what validation reads,
 so the two cannot disagree. Enum types: `Role`, `Snap`, `Diagonals`,
-`HPVisibility`, `PawnKind`, `Size`, `HPBand` (`healthy`, `bloodied`,
-`critical`, `dead`), `ConditionColor`, `ClearTrigger`, `ShapeKind`, `FogMode`.
+`PawnLabels`, `PawnKind`, `Size`, `HPBand` (`healthy`, `bruised`, `bloody`,
+`veryBloody`, `nearDeath`, `dead`), `ConditionColor`, `ClearTrigger`,
+`ShapeKind`, `FogMode`.
 
 Sizes follow 5e footprints, not the old client's multipliers: tiny occupies one
 cell and is drawn at half a cell; small and medium occupy one cell; large 2 by
@@ -246,7 +247,7 @@ That is what makes the golden tests and the convergence test simple.
 
 **Defaults.** `NewState(roomID, name)` returns a state with `Schema`, one layer
 named "Ground floor" with no map, fog disabled and prefill true, set as the
-active layer, the grid defaults above, `MonsterHP` band, `PlayersCanDraw`
+active layer, the grid defaults above, `PawnLabels` default, `PlayersCanDraw`
 true, and everything else empty. `Table.Layers` is never empty and
 `ActiveLayer` always names one of them.
 
@@ -291,10 +292,12 @@ projection of its own.
 - each remaining pawn passes through `projectPawn`.
 
 `projectPawn(p Pawn, t Table) Pawn` for the player audience: a `player` pawn is
-unchanged. A `monster` or `npc` pawn keeps `HP`, `MaxHP` when `MonsterHP` is
-exact; has both set to nil and `HPBand` computed when band; has all three nil
-when hidden. Bands: dead at 0, critical at or below a quarter of max, bloodied
-at or below half, healthy otherwise.
+unchanged, and so is an `object`. A `monster` or `npc` pawn keeps `HP`, `MaxHP`
+and `AC` when `PawnLabels` is `full`; has all three set to nil and `HPBand`
+computed on `default`; has all four nil on `none`. Bands, tested downward with
+the first match winning: dead at 0, near death at or below a twentieth of max,
+very bloody at or below a quarter, bloody at or below a half, bruised at or
+below three quarters, healthy otherwise.
 
 Every emission of a pawn to `ToPlayers` or `ToAll` goes through `projectPawn`
 for the player copy. The rule for `ToAll` with a pawn payload is therefore two
@@ -384,7 +387,7 @@ that names a layer other than the active one is `forbidden`.
 | `table.clearLayerMap` | `layer` | GM | Set that layer's map to nil. Emit `table.updated` ToAll. |
 | `table.setActiveLayer` | `layer` | GM | Emit `table.updated` ToAll, then ToPlayers `pawn.removed` for every pawn shown before and not after, and `pawn.spawned` for every pawn shown after and not before. |
 | `table.setGrid` | `grid Grid` | GM | Validate every field, set, emit `table.updated` ToAll. |
-| `table.setOptions` | `monsterHp`, `playersCanDraw` | GM | Set both. Emit `table.updated` ToAll. When `monsterHp` changed, also emit `pawn.updated` ToPlayers for every visible monster and npc pawn, since their projection changed. |
+| `table.setOptions` | `pawnLabels`, `playersCanDraw` | GM | Set both. Emit `table.updated` ToAll. When `pawnLabels` changed, also emit `pawn.updated` ToPlayers for every visible monster and npc pawn, since their projection changed. |
 | `pawn.spawn` | wire: `kind`, `layer`, `x`, `y`, `visible`, one of `monsterId`, `characterId`, `assetId` (a token), and optional `name` for an npc or object, and `footprintW`, `footprintH` for an object. The hub resolves it before Apply into `Pawn Pawn` tagged `json:"-"`, without an id | GM; or a player when `kind == player` and `characterId` is the player's own session character | `invalid` if unresolved. Assign id, snap position per grid, `Z` = one above the current max. Emit `pawn.spawned` ToGM; ToPlayers only if shown. |
 | `pawn.spawnCharacters` | none on the wire. The hub resolves it into `Pawns []Pawn` tagged `json:"-"`: one pawn per connected player who joined with a character and has no player pawn yet, placed in a row at the map centre | GM | For each resolved pawn, exactly as `pawn.spawn`. |
 | `pawn.move` | `anchor`, `x`, `y`, `others []ulid` | GM, or owner of the anchor and of every id in `others` | All-or-nothing. Snap the anchor per its footprint, compute one delta from the anchor's committed position, apply the delta to every id in `others`, so relative positions are preserved exactly. Emit `pawn.moved` with the list of resulting positions: ToGM complete, ToPlayers with hidden pawns dropped, suppressed if that leaves none. |
@@ -582,8 +585,10 @@ that returns ULIDs in sequence.
 - **Visibility transitions**: `pawn.setVisible` each way emits exactly the
   events in the table to exactly the audiences, including the initiative
   side-effect.
-- **Projection**: `MonsterHP` in all three settings against player, monster and
-  npc pawns; `table.setOptions` changing it emits the pawn updates.
+- **Projection**: `PawnLabels` in all three settings against player, monster and
+  npc pawns, hit points and armour class both; `table.setOptions` changing it
+  emits the pawn updates. `Normalize` repairs a setting nothing accepts, which
+  is what every room saved as `monsterHp` reads back as.
 - **Initiative**: next from nil, wrap and round increment, removal of the
   active entry, condition decrement on start and end triggers, -1 untouched.
 - **Kick**: target gets `player.kicked`, everyone gets `player.left`, GM cannot

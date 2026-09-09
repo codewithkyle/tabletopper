@@ -273,8 +273,8 @@ The room projects every event and every snapshot for two audiences, **GM** and
 players when it is visible and on the active layer. Hiding a pawn, or moving it
 to another layer, or the active layer moving away from it, is `pawn.updated`
 to the GM and `pawn.removed` to players. The reverse is `pawn.spawned` to
-players. Monster hit points project to players as a health band or nothing,
-per a table setting. Retrofitting this means touching every event, so it is in
+players. A monster's hit points and armour class project to players as a word,
+or as nothing at all, per a table setting. Retrofitting this means touching every event, so it is in
 the first version.
 
 ### Authorize, then apply
@@ -557,8 +557,11 @@ was written. In brief, so this document stays the summary:
 - **Reaching a room**: `/rooms` lists the GM's persistent, named rooms;
   `/rooms/join` takes a code; the room page is `/rooms/{id}`; joining sets
   the session's room and character (phase 1).
-- **Monster hit points for players**: a table setting, `hidden`, `band` or
-  `exact`, per room; player pawns are always exact (phase 2).
+- **What a pawn is labelled with**: a table setting, `none`, `default` or
+  `full`, per room. `default` gives the party a word for a monster's health and
+  no armour class while the GM reads numbers; `none` takes the label off the
+  table for everybody. Player pawns and objects are always exact (phase 2,
+  reworked in phase 5).
 - **`by` in the envelope**: an optional field, present when a player caused the
   event (phase 2).
 - **Limits**: the table of constants in phase 2.

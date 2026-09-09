@@ -29,7 +29,7 @@
         "feetPerCell": 5,
         "diagonals": "equal"
       },
-      "monsterHp": "band",
+      "pawnLabels": "default",
       "playersCanDraw": true
     },
     "players": [
@@ -113,7 +113,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -190,7 +190,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -231,7 +231,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -315,7 +315,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -363,7 +363,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -447,7 +447,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -495,7 +495,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -586,7 +586,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -641,7 +641,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -732,7 +732,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -787,7 +787,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -878,7 +878,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -933,7 +933,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -1024,7 +1024,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -1079,7 +1079,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -1170,7 +1170,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "exact",
+            "pawnLabels": "full",
             "playersCanDraw": true
           }
         }
@@ -1225,7 +1225,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1330,7 +1330,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1454,7 +1454,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1602,7 +1602,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1773,7 +1773,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -1938,7 +1938,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2132,7 +2132,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2349,7 +2349,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "exact",
+          "pawnLabels": "full",
           "playersCanDraw": true
         },
         "players": [
@@ -2533,7 +2533,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         },
@@ -2558,7 +2558,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -2616,7 +2616,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -2712,7 +2712,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -2834,7 +2834,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -2930,7 +2930,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3071,7 +3071,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3167,7 +3167,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3291,7 +3291,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3387,7 +3387,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3498,7 +3498,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3594,7 +3594,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3735,7 +3735,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -3831,7 +3831,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3912,8 +3912,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -3971,7 +3971,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4066,8 +4066,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -4148,8 +4148,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -4222,7 +4222,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4317,8 +4317,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -4457,7 +4457,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4552,8 +4552,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -4709,7 +4709,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -4804,8 +4804,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -4961,7 +4961,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5056,8 +5056,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -5154,7 +5154,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -5212,7 +5212,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5307,8 +5307,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -5346,7 +5346,7 @@
             "hp": null,
             "maxHp": null,
             "hpBand": "healthy",
-            "ac": 15,
+            "ac": null,
             "conditions": [],
             "ownerId": null,
             "monsterId": "0100000000000000000000001W",
@@ -5464,7 +5464,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5559,8 +5559,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -5695,7 +5695,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -5790,8 +5790,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -5913,7 +5913,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -5968,7 +5968,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6063,8 +6063,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -6186,7 +6186,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -6241,7 +6241,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6336,8 +6336,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -6481,7 +6481,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6576,8 +6576,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -6738,7 +6738,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -6833,8 +6833,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -6996,7 +6996,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7091,8 +7091,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -7255,7 +7255,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7350,8 +7350,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -7522,7 +7522,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7617,8 +7617,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -7787,7 +7787,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -7882,8 +7882,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -8065,7 +8065,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8160,8 +8160,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -8346,7 +8346,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8441,8 +8441,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -8611,7 +8611,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -8706,8 +8706,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -8842,7 +8842,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         },
@@ -8943,7 +8943,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9113,7 +9113,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         },
@@ -9199,8 +9199,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -9273,7 +9273,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9368,8 +9368,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -9537,7 +9537,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -9632,8 +9632,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -9799,7 +9799,7 @@
                 "feetPerCell": 5,
                 "diagonals": "equal"
               },
-              "monsterHp": "band",
+              "pawnLabels": "default",
               "playersCanDraw": true
             },
             "players": [
@@ -9894,8 +9894,8 @@
                 "visible": true,
                 "hp": null,
                 "maxHp": null,
-                "hpBand": "bloodied",
-                "ac": 15,
+                "hpBand": "bloody",
+                "ac": null,
                 "conditions": [
                   {
                     "id": "0100000000000000000000000B",
@@ -10060,7 +10060,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10155,8 +10155,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -10318,7 +10318,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10413,8 +10413,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -10590,7 +10590,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10685,8 +10685,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -10862,7 +10862,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -10957,8 +10957,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -11134,7 +11134,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11238,8 +11238,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -11407,7 +11407,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11502,8 +11502,8 @@
             "visible": true,
             "hp": null,
             "maxHp": null,
-            "hpBand": "bloodied",
-            "ac": 15,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
                 "id": "0100000000000000000000000B",
@@ -11695,7 +11695,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -11920,7 +11920,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12128,7 +12128,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12319,7 +12319,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12491,7 +12491,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12641,7 +12641,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -12682,7 +12682,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -12813,7 +12813,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         }
@@ -12847,7 +12847,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13008,7 +13008,7 @@
               "feetPerCell": 5,
               "diagonals": "equal"
             },
-            "monsterHp": "band",
+            "pawnLabels": "default",
             "playersCanDraw": true
           }
         },
@@ -13052,7 +13052,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13127,7 +13127,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [
@@ -13197,7 +13197,7 @@
             "feetPerCell": 5,
             "diagonals": "equal"
           },
-          "monsterHp": "band",
+          "pawnLabels": "default",
           "playersCanDraw": true
         },
         "players": [

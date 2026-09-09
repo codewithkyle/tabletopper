@@ -367,8 +367,8 @@ func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 // TableSetOptions carries both room-wide options at once, because they are one
 // settings panel and sending the panel is the singleton rule again.
 type TableSetOptions struct {
-	MonsterHP      HPVisibility `json:"monsterHp"`
-	PlayersCanDraw bool         `json:"playersCanDraw"`
+	PawnLabels     PawnLabels `json:"pawnLabels"`
+	PlayersCanDraw bool       `json:"playersCanDraw"`
 }
 
 func (c *TableSetOptions) Authorize(s *State, a Actor) error {
@@ -376,12 +376,12 @@ func (c *TableSetOptions) Authorize(s *State, a Actor) error {
 }
 
 func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	if !c.MonsterHP.Valid() {
-		return nil, invalid("Bad setting", "That is not a hit point visibility setting.")
+	if !c.PawnLabels.Valid() {
+		return nil, invalid("Bad setting", "That is not a pawn label setting.")
 	}
 
-	changed := s.Table.MonsterHP != c.MonsterHP
-	s.Table.MonsterHP = c.MonsterHP
+	changed := s.Table.PawnLabels != c.PawnLabels
+	s.Table.PawnLabels = c.PawnLabels
 	s.Table.PlayersCanDraw = c.PlayersCanDraw
 	s.Normalize()
 
