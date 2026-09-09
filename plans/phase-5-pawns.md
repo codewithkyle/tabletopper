@@ -144,8 +144,9 @@ from what the sections below sketch:
 - **There is no Select tool.** Move owns it, per the decision taken before this
   phase started: press a movable pawn to drag it, press empty floor to pan,
   Shift-drag to marquee. The pill's other three tools do not gate the table yet
-  and phase 6 wires all four at once -- gating on features that do not exist
-  would mean a GM who pressed Measure found a table where nothing worked.
+  and each is wired when its feature arrives -- Measure in Rework 13 below,
+  Fog in phase 7, Draw in phase 8 -- because gating on features that do not
+  exist would mean a GM who pressed Measure found a table where nothing worked.
 - **Other players' drags are told apart by COLOUR and not by a name label.** The
   plan asks for "a small name label on the anchor", and the glyph atlas is
   deliberately fourteen characters -- the digits, a space, an f, a t and a full
@@ -789,7 +790,8 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   opens in is read the same way, off the button rendered pressed.
 - **Measure, Fog and Draw leave the table on Select.** Their features are not
   built, and gating the pointer on them would drop a GM into a mode where
-  nothing works and nothing says why. Phase 6 builds the three.
+  nothing works and nothing says why. Measure is Rework 13 below; Fog is
+  phase 7 and Draw is phase 8.
 - **A floors menu in the pill swaps the ACTIVE layer.** The bar picks the floor
   this GM is looking at and the layers window is where floors are made; neither
   is the thing a GM does over and over while running a fight, which is putting
@@ -1136,9 +1138,9 @@ last two rows of the table above. Buttons are solid `btn`; Close first.
   page renders one hidden GM-only Remove button, `data-pawn-remove`, which is
   what the Delete key presses.)*
   The debug panel gains the stress button. The header gains Spawn for the GM
-  and My pawn for a player with a character. The tool strip from phase 6 is
-  not here yet; the Select tool is a button beside the existing view controls
-  and Shift-drag works without it.
+  and My pawn for a player with a character. The pill's Fog and Draw modes
+  are phases 7 and 8; the Select tool is a button beside the existing view
+  controls and Shift-drag works without it.
 
 ## Client
 

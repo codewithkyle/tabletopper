@@ -338,8 +338,11 @@ is drawn by coordinate space:
   switches what a click and a drag on the table do: move, measure, fog, draw.
   There is **no side panel**: the table fills everything under the bar. The
   player list is a window opened from the Room menu rather than a column, and
-  the initiative tracker is not a list beside the map -- how it is presented is
-  settled in phase 6.
+  the initiative tracker is a strip across the top of the table that exists
+  only while the tracker has entries -- decided 2026-09-09 in the phase 6
+  plan, which is where the reasons are. It is the one live panel that is not a
+  window, because it is read by everybody every few seconds for exactly the
+  minutes a fight lasts, and players have no menu to open a window from.
 - **There is no chat.** It was in the first draft of this document and is not a
   feature of this app. Rolls and their results are the dice tray, in the Window
   menu.
@@ -550,8 +553,12 @@ Recorded so they are not re-proposed without new information.
 
 ## Decided since, and still open
 
-The six phase plans beside this document settled most of what was open when it
-was written. In brief, so this document stays the summary:
+The phase plans beside this document settled most of what was open when it
+was written. There were six; on 2026-09-09, after phase 5 shipped, the sixth
+-- fog, strokes, pings and initiative in one plan -- was split into initiative
+(phase 6), fog (phase 7) and strokes with pings (phase 8), so that each ships
+as one feature with one verification. In brief, so this document stays the
+summary:
 
 - **Snapshot storage**: three columns on the `rooms` row (phase 1).
 - **Reaching a room**: `/rooms` lists the GM's persistent, named rooms;
@@ -573,7 +580,7 @@ was written. In brief, so this document stays the summary:
 - **Layers**: per-room ordered layers with one active for players and a GM-only
   viewed layer; pawns, fog and strokes belong to a layer; moving pawns between
   layers is GM only; removing a layer deletes what is on it behind the confirm
-  modal; the grid stays room-wide (phases 2, 4, 5, 6).
+  modal; the grid stays room-wide (phases 2, 4, 5, 7 and 8).
 - **Where the projection happens**: in `Apply`, not in the hub. `Apply` has
   the state, so an event addressed to players is built holding the player's
   copy of the pawn. Only an event whose audience spans both roles carries two
@@ -616,7 +623,7 @@ Still open, none blocking:
   audience, which is the same shape of work as the fog-aware projection
   below. A GM naming a layer "The vault behind the fake wall" is the case
   that would make it worth doing.
-- **Server-side fog-aware projection.** Phase 6 conceals pawns under fog on
+- **Server-side fog-aware projection.** Phase 7 conceals pawns under fog on
   the client, which means a player's browser holds pawns it does not show.
   Closing that needs a point-in-polygon pass over pawns on every fog change
   and per-pawn visibility events for players. Deferred hardening.
