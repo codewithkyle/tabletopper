@@ -54,13 +54,16 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 		}
 	}
 
-	// The player is shown the visible one as a WORD and no numbers.
+	// The player is shown the visible one WITH ITS NUMBERS AND A BAND BESIDE
+	// THEM. The numbers are how the canvas draws it bleeding; the band is the
+	// instruction to print a word rather than the numbers, and it is what both
+	// the details window and the label under the pointer read. See projectPawn.
 	p, ok := tb.Pawn(tb.ctx(), roomID, visible, room.RolePlayer)
 	if !ok {
 		t.Fatal("the player was shown nothing of a visible monster")
 	}
-	if p.HP != nil || p.MaxHP != nil {
-		t.Errorf("the player's copy carries hit points %v/%v; the room labels words", p.HP, p.MaxHP)
+	if p.HP == nil || *p.HP != 4 || p.MaxHP == nil || *p.MaxHP != 10 {
+		t.Errorf("the player's copy lost its hit points %v/%v", p.HP, p.MaxHP)
 	}
 	if p.HPBand == nil || *p.HPBand != room.BandBloody {
 		t.Errorf("the player's copy band = %v, want bloody for 4 of 10", p.HPBand)

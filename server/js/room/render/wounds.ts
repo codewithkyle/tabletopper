@@ -14,20 +14,20 @@
 // condition and a creature at a twentieth of its hit points were the same
 // hairline at the same radius.
 //
-// THE BAND IS ALREADY ON THE WIRE AND THIS IS ONLY THE OTHER HALF OF IT. A
-// player is sent one of six words instead of a number, on purpose -- see HPBand
-// in internal/room/state.go, which argues at length that a bar is a number drawn
-// sideways and that a party who can see a monster is at three fifths can work
-// out its maximum from two hits. Everything below reads that word, so nothing
-// here can leak a number the server decided to withhold, and a room with its
-// labels off draws no wound and sheds no blood at all -- exactly as it already
-// draws no skull.
+// EVERY VIEWER IS SENT THE NUMBERS AND THE ROOM'S LABEL SETTING DOES NOT REACH
+// THIS FILE. That setting governs TEXT -- the word under the pointer, the line
+// in the details window -- and nothing below is text. A table that has turned
+// the labels off has not turned off the fact that the goblin is bleeding, so a
+// room set to none draws every wound here and prints no number anywhere. See
+// PawnLabels in internal/room/state.go and projectPawn in snapshot.go, which
+// hold the sending half of it.
 //
-// A GM IS SENT THE NUMBER INSTEAD, so bandOf below turns one into the other.
-// That mirrors Go, which is the arrangement hp.ts already has with evaluateHP
-// and path.ts has with snap.go: the client resolves it so the table can be drawn
-// without asking, and the server resolves it because the server is what actually
-// holds the pawn. The other half is hpBand in internal/room/snapshot.go.
+// bandOf MIRRORS THE GO AND IS NOW THE MAIN ROAD rather than the GM's alone. It
+// is the arrangement hp.ts already has with evaluateHP and path.ts has with
+// snap.go: the client resolves it so the table can be drawn without asking, and
+// the server resolves it because the server is what actually holds the pawn.
+// The other half is hpBand in internal/room/snapshot.go, and the band it still
+// sends is what an INTERFACE reads to decide whether to print a word.
 //
 // NOTHING HERE IS SENT ANYWHERE. It is all drawn from state the client already
 // has -- no event, no field, not a byte on the wire.
@@ -88,25 +88,42 @@ export function healthOf(pawn: Health): HPBand | null {
 	return pawn.hp !== null ? bandOf(pawn.hp, pawn.maxHp) : pawn.hpBand;
 }
 
-// RANK is the six bands as a scale, so "got worse" is a comparison rather than a
-// list of pairs. It is the only place their order is written down.
-const RANK: Record<HPBand, number> = {
-	healthy: 0,
-	bruised: 1,
-	bloody: 2,
-	veryBloody: 3,
-	nearDeath: 4,
-	dead: 5,
-};
+// A HIT IS THE DIFFERENCE BETWEEN TWO HIT-POINT TOTALS, and severityOf is how
+// big that difference looked. It is the fraction of the creature's OWN maximum
+// that went, so the same eight points is a scratch on a giant and most of a
+// goblin -- which is the only reason a mark on the floor can say anything about
+// a hit rather than just that one happened.
+//
+// IT WAS A BAND TRANSITION ONCE AND THAT WAS A PROXY FOR THIS. Blood appeared
+// only when a creature crossed one of five lines, so four hits in a row could
+// pass without a mark and the fifth threw one for a reason nobody at the table
+// could see. The difference IS the event. The band was a way of noticing it.
+//
+// THE SQUARE ROOT IS THE POINT OF THE FUNCTION. Damage as a fraction of a
+// maximum lives at the bottom of its range -- a d8 against a forty-point monster
+// is twelve per cent, and an ordinary fight is a long run of numbers under a
+// fifth. Read straight, almost every hit would draw the same smallest mark and
+// the scale would be spent on hits nobody ever deals. The root spreads that
+// common band across the middle of what can be seen, and leaves the top of it
+// for the hit somebody is going to remember.
+export function severityOf(damage: number, maxHp: number | null): number {
+	if (damage <= 0) {
+		return 0;
+	}
+	if (maxHp === null || maxHp < 1) {
+		return SEVERITY_UNKNOWN;
+	}
 
-// worsened is what throws blood, and it is a band transition rather than any
-// drop in hit points ON PURPOSE. A GM applying a one-point scratch to a full orc
-// should not spray the floor, and -- more importantly -- a GM and a player
-// watching the same hit land must see the same thing. They read different
-// fields, a number and a word, and the band is where those two agree.
-export function worsened(from: HPBand, to: HPBand): boolean {
-	return RANK[to] > RANK[from];
+	const fraction = damage / maxHp;
+
+	return fraction >= 1 ? 1 : Math.sqrt(fraction);
 }
+
+// SEVERITY_UNKNOWN is a hit on a creature nobody wrote a maximum for. There is
+// no fraction to take, so it is drawn as an ordinary hit rather than as the
+// smallest or the largest: a GM counting damage upward on a monster with no
+// stat line still gets a mark for every one of them.
+export const SEVERITY_UNKNOWN = 0.4;
 
 // hurt is how far into the creature's own picture the injury has got, from 0 for
 // untouched to 1 for about to die. The pawn shader reads it as one number and
@@ -289,21 +306,33 @@ function phase(now: number, period: number): number {
 	return ((now % period) + period) % period;
 }
 
-// splatters is how many marks a creature throws on the floor for arriving in a
-// band. Nothing above the halfway line sheds any, which is hurt's rule again:
-// the first blood on the floor and the first mark on the token are the same
-// moment.
-export function splatters(band: HPBand): number {
-	switch (band) {
-		case "bloody":
-			return 1;
-		case "veryBloody":
-			return 2;
-		case "nearDeath":
-			return 3;
-		case "dead":
-			return 4;
-		default:
-			return 0;
+// splatters is how many marks ONE HIT throws on the floor.
+//
+// IT IS NEVER ZERO, and that is the rule this replaced a band table to get: a
+// hit that lands leaves something, always, at the moment and in the place it
+// landed. What a small hit gets is a small faint mark rather than no mark, which
+// is a thing the floor can say and a band transition never could.
+//
+// AND IT IS NEVER FOUR. Four is the death spray, and nothing a living creature
+// survives should be mistaken across a table for something dying.
+export function splatters(severity: number): number {
+	if (severity >= HEAVY) {
+		return 3;
 	}
+	if (severity >= SOLID) {
+		return 2;
+	}
+
+	return 1;
 }
+
+// SOLID and HEAVY are where a hit earns its second and third mark. They read on
+// the CURVED scale rather than the raw fraction, which puts them at a quarter of
+// a creature's maximum and at about two thirds of it.
+const SOLID = 0.5;
+const HEAVY = 0.8;
+
+// DEATH_SPLATTERS is the spray a corpse throws on top of its pool, deliberately
+// out of reach of the scale above. See decals.ts, where the pool is laid first
+// and this lands on it.
+export const DEATH_SPLATTERS = 4;

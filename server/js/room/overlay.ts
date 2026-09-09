@@ -69,12 +69,13 @@ export interface OverlayDeps {
 	// labels is the room's one setting for this panel, and reading it here is
 	// the ONLY branch in the client on what a viewer may know.
 	//
-	// EVERYTHING ELSE IS ALREADY DECIDED BY THE TIME A PAWN ARRIVES. A player
-	// in a default room was sent a word and no numbers and a player in a full
-	// room was sent both, so showOne prints whatever is on the pawn and needs
-	// no idea which room it is in. "None" is the one setting that cannot work
-	// that way: it takes the panel away from the GM too, and a GM's copy of a
-	// pawn is never projected -- there is nothing missing from it to notice.
+	// "NONE" IS WHAT IT IS READ FOR. It takes the panel away from the GM too,
+	// and a GM's copy of a pawn is never projected -- there is nothing missing
+	// from it to notice, so nothing on the pawn itself could say so.
+	//
+	// THE OTHER TWO ARE CARRIED BY THE BAND, not by this. See showOne: hit
+	// points now reach every viewer, and the band beside them is the server
+	// saying which of the two this one reads.
 	//
 	// IT DOES NOT TAKE THE GROUP PANEL AWAY, because that one is not a label.
 	// What it holds is a count and the GM's three controls for acting on a
@@ -195,15 +196,25 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 
 		name.textContent = pawn.name;
 
-		// HIT POINTS AS THE VIEWER MAY SEE THEM, and there is nothing to decide
-		// here: the projection already did it. A player looking at a monster in
-		// a default room was sent a word and no numbers, so what this prints is
-		// whichever of the two arrived. The same goes for the line below it: a
-		// null armour class is one the server withheld, not one nobody set.
-		hp.textContent = pawn.hp !== null
-			? `${pawn.hp}${pawn.maxHp !== null ? ` / ${pawn.maxHp}` : ""} HP`
-			: pawn.hpBand
-				? bandWord(pawn.hpBand)
+		// HIT POINTS AS THE VIEWER MAY SEE THEM, AND THE BAND IS THE
+		// INSTRUCTION. The numbers are on every pawn now -- projectPawn sends
+		// them to everybody, because the blood and the pallor and the heartbeat
+		// are all drawn from them -- so their presence no longer means the
+		// viewer is meant to READ them. A band beside them does: it is set only
+		// on a copy that was projected for somebody who gets the word instead,
+		// and a GM's copy is never projected and never carries one.
+		//
+		// THAT LEAVES ONE CASE TO THE CALLER. A room labelling nothing sends no
+		// band either, so this alone would print the numbers -- and does not,
+		// because refresh never opens the panel at all in that room. The two
+		// reads are a pair; see labels above.
+		//
+		// The line below it is untouched: a null armour class is still one the
+		// server withheld, not one nobody set.
+		hp.textContent = pawn.hpBand !== null
+			? bandWord(pawn.hpBand)
+			: pawn.hp !== null
+				? `${pawn.hp}${pawn.maxHp !== null ? ` / ${pawn.maxHp}` : ""} HP`
 				: "";
 
 		ac.textContent = pawn.ac !== null ? `AC ${pawn.ac}` : "";

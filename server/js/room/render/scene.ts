@@ -108,12 +108,18 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 		drawn.hidden = !pawn.visible;
 
 		// HEALTH IS WHATEVER THE VIEWER WAS ACTUALLY GIVEN, WHICHEVER OF THE
-		// TWO IT WAS. A monster in a room that hides its hit points arrives with
-		// hp null and a band instead -- so reading it here withholds nothing:
-		// the label beside the pawn already prints the word. The band is the
-		// ONLY fallback, which is what keeps the room that sends neither --
-		// labels set to none -- drawing no skull, no wound ring and no blood at
-		// all. See healthOf in wounds.ts, which is where the rule lives.
+		// TWO IT WAS -- and it is now the number for nearly everybody, because
+		// projectPawn sends hit points to the whole table.
+		//
+		// THE ROOM'S LABEL SETTING IS NOT READ HERE AND MUST NOT BE. It governs
+		// TEXT: the word under the pointer and the line in the details window.
+		// What is drawn inside the disc is the creature -- blood, pallor, a
+		// heartbeat -- and a table that has turned the words off has not turned
+		// off the fact that the goblin is bleeding. See PawnLabels in
+		// internal/room/state.go, which holds the same line from the other end.
+		//
+		// Null still reaches here and still draws nothing at all: it is a pawn
+		// whose hit points were never set. See healthOf in wounds.ts.
 		drawn.health = healthOf(pawn);
 
 		count++;

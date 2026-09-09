@@ -248,7 +248,7 @@ func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pa
 		RoomID:  row.ID.String(),
 		IsGM:    role == room.RoleGM,
 		CanEdit: mayEditPawn(role, sess.UserID, pawn),
-		Pawn:    pawnView(pawn, role, layerName(view, pawn.LayerID)),
+		Pawn:    pawnView(pawn, role, tableLabels(view), layerName(view, pawn.LayerID)),
 		LayerID: pawn.LayerID.String(),
 		Shown:   pawn.Visible,
 	}
@@ -811,13 +811,21 @@ func pawnIDs(w http.ResponseWriter, r *http.Request) ([]ulid.ULID, bool) {
 // of it. A player looking at a monster in a band room arrives with HP nil,
 // MaxHP nil and HPBand set, and there is nothing in this function that could
 // put a number back.
-func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
+// pawnView is the panel's copy of a pawn. It is built from the PROJECTED pawn,
+// so everything on it has already been through projectPawn -- and since that
+// stopped withholding hit points, this is where the room's label setting is
+// obeyed for the details window. See ExactHP in internal/room/state.go: the
+// numbers are in the response either way, and this decides whether they are in
+// the markup.
+func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer string) pages.RoomPawn {
+	exact := room.ExactHP(pawn.Kind, labels, role)
+
 	out := pages.RoomPawn{
 		ID:     pawn.ID.String(),
 		Name:   pawn.Name,
 		Image:  pawn.Image,
 		Object: pawn.Kind == room.PawnObject,
-		HP:     pages.PawnHPText(pawn.HP, pawn.MaxHP),
+		HP:     hpText(exact, pawn),
 		Layer:  layer,
 
 		// The kind, narrowed to the one question the panel asks of it: is this
@@ -829,10 +837,15 @@ func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
 	if pawn.HPBand != nil {
 		out.Band = pages.PawnBandText(string(*pawn.HPBand))
 	}
-	if pawn.HP != nil {
+	// AND THE BOXES GO WITH THE READING. They are the same two numbers in an
+	// editable shape, so a viewer who is not shown the line is not shown the
+	// fields either -- and anybody who may edit a pawn is shown them by
+	// definition, because a GM reads everything and a player's own character is
+	// never banded.
+	if exact && pawn.HP != nil {
 		out.HPValue = strconv.Itoa(*pawn.HP)
 	}
-	if pawn.MaxHP != nil {
+	if exact && pawn.MaxHP != nil {
 		out.MaxHP = strconv.Itoa(*pawn.MaxHP)
 	}
 	if pawn.AC != nil {
@@ -878,6 +891,29 @@ func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
 // layerName is the floor a pawn stands on, which is worth showing because a
 // pawn's window outlives the GM's view of its floor. An unavailable table is an
 // empty string rather than a guess -- the panel simply omits the line.
+// hpText is the printed line, and the whole of what the setting changes here:
+// the numbers when the viewer is shown them, and nothing when they are not --
+// in which case Band carries the word instead, or is empty in a room that
+// labels nothing.
+func hpText(exact bool, pawn *room.Pawn) string {
+	if !exact {
+		return ""
+	}
+
+	return pages.PawnHPText(pawn.HP, pawn.MaxHP)
+}
+
+// tableLabels is the room's setting, or the default when the table could not be
+// read. The fallback is the SAFE one rather than the permissive one: a panel
+// built without knowing the room shows a player the word.
+func tableLabels(view *hub.TableView) room.PawnLabels {
+	if view == nil {
+		return room.LabelsDefault
+	}
+
+	return view.Table.PawnLabels
+}
+
 func layerName(view *hub.TableView, id ulid.ULID) string {
 	if view == nil {
 		return ""

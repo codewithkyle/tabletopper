@@ -281,6 +281,18 @@ function start(
 				renderer?.bloodCleared(event.layer);
 			}
 
+			// AND A SNAPSHOT IS NOT A ROUND OF COMBAT. It arrives on the first
+			// join and on every reconnect, and what it carries is the table as
+			// it is NOW -- which, after a laptop lid has been shut for three
+			// rounds, differs from what the canvas remembers by everything that
+			// happened in them. Bleeding for that difference would put one
+			// enormous mark on the floor for a fight that took place while
+			// nobody was looking, so the marks already down stay and the
+			// comparison starts again from here.
+			if (event.type === "snapshot") {
+				renderer?.bloodResync();
+			}
+
 			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people
 			// are dragging live outside the store on purpose -- pawn.dragging
 			// is transient and the reducer never sees it -- so this is the one

@@ -393,3 +393,76 @@ func TestClearingTheTabletopIsRefusedForAPlayer(t *testing.T) {
 		t.Errorf("the refusal did not reach the alert modal: %q", trigger)
 	}
 }
+
+// THE PANEL IS THE OTHER HALF OF A DECISION MADE IN internal/room. Hit points
+// are now on every pawn that reaches a browser -- projectPawn sends them so the
+// canvas can draw a creature bleeding -- so this is where a viewer is kept from
+// READING a monster's, and it is the only thing between the room's label setting
+// and a number in the markup.
+func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
+	hp, maxHP, ac := 4, 10, 15
+	band := room.BandBloody
+
+	tests := []struct {
+		name    string
+		kind    room.PawnKind
+		labels  room.PawnLabels
+		role    room.Role
+		banded  bool
+		numbers string
+	}{
+		// A GM reads everything. There is no setting that hides a monster's
+		// hit points from the person running it.
+		{"the GM in a room labelling words", room.PawnMonster, room.LabelsDefault, room.RoleGM, false, "4 / 10"},
+		{"the GM in a room labelling nothing", room.PawnMonster, room.LabelsNone, room.RoleGM, false, "4 / 10"},
+
+		// A player reads a monster's numbers only in an open room, and reads
+		// the word in an ordinary one.
+		{"a player in an open room", room.PawnMonster, room.LabelsFull, room.RolePlayer, false, "4 / 10"},
+		{"a player in an ordinary room", room.PawnMonster, room.LabelsDefault, room.RolePlayer, true, ""},
+
+		// AND NOTHING AT ALL WHERE THE ROOM LABELS NOTHING. This is the case
+		// the projection used to cover by sending neither: the band is absent,
+		// so without the check here the numbers would simply print.
+		{"a player in a room labelling nothing", room.PawnMonster, room.LabelsNone, room.RolePlayer, false, ""},
+
+		// A character sheet is not a secret from the table and a door's hit
+		// points are what the party is currently hitting.
+		{"a player's own character", room.PawnPlayer, room.LabelsNone, room.RolePlayer, false, "4 / 10"},
+		{"a door", room.PawnObject, room.LabelsNone, room.RolePlayer, false, "4 / 10"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			pawn := &room.Pawn{Kind: tc.kind, Name: "Goblin", HP: &hp, MaxHP: &maxHP, AC: &ac}
+			if tc.banded {
+				pawn.HPBand = &band
+			}
+
+			view := pawnView(pawn, tc.role, tc.labels, "Ground floor")
+
+			if view.HP != tc.numbers {
+				t.Errorf("the panel reads %q, want %q", view.HP, tc.numbers)
+			}
+
+			// AND THE BOXES GO WITH THE READING. They are the same two numbers
+			// in an editable shape, and a viewer not shown the line must not be
+			// handed the fields either.
+			if (view.HPValue != "") != (tc.numbers != "") {
+				t.Errorf("the hit-point box reads %q beside a line of %q", view.HPValue, view.HP)
+			}
+			if (view.MaxHP != "") != (tc.numbers != "") {
+				t.Errorf("the maximum box reads %q beside a line of %q", view.MaxHP, view.HP)
+			}
+		})
+	}
+}
+
+// A view built when the room could not be read falls back to the SAFE setting
+// rather than the permissive one. The alternative is a panel that prints a
+// monster's hit points to a player because a lookup failed.
+func TestThePawnPanelFallsBackToWordsWhenTheRoomCannotBeRead(t *testing.T) {
+	if got := tableLabels(nil); got != room.LabelsDefault {
+		t.Fatalf("an unreadable room labels %q, want %q", got, room.LabelsDefault)
+	}
+}

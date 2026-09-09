@@ -22,10 +22,10 @@ import type { HPBand, Pawn } from "../protocol.ts";
 const KINDS: Pawn["kind"][] = ["player", "monster", "npc", "object"];
 const SIZES: Pawn["size"][] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 
-// HEALTH is the six bands plus the room that tells you nothing, so a stress run
-// puts wound rings and skulls on roughly five sixths of the table. That is more
-// injury than a real fight has and is the point: the ring pass is measured under
-// a load nobody will ever hand it.
+// HEALTH is the six bands plus the pawn nobody wrote hit points for, so a stress
+// run puts wounds, pulses and skulls on roughly five sixths of the table. That
+// is more injury than a real fight has and is the point: the pawn pass is
+// measured under a load nobody will ever hand it.
 const HEALTH: (HPBand | null)[] = [null, "healthy", "bruised", "bloody", "veryBloody", "nearDeath", "dead"];
 
 // SPREAD is how far across the map they are scattered, in cells. Thirty by

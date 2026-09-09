@@ -353,10 +353,16 @@ func (d Diagonals) Valid() bool    { return inValues(d, d.Values()) }
 // everybody reads the same numbers. A fourth combination -- the GM told less
 // than the players -- is not a way anybody runs a game.
 //
-// NONE IS THE ONLY ONE THE CLIENT HAS TO KNOW ABOUT. The other two are entirely
-// carried by what Project leaves on a pawn, so the label prints whatever
-// arrived; none has to suppress the GM's own label as well, and the GM's copy
-// is never projected. That one read is in js/room/overlay.ts.
+// IT DECIDES WHAT IS SHOWN AND NOT WHAT IS SENT. Hit points go to everybody --
+// see projectPawn, which argues it -- because the table cannot be DRAWN without
+// them, and this then decides whether an interface prints them. Both readers
+// are ExactHP below: pawnView in internal/controllers/room-pawns.go for the
+// details window, and js/room/overlay.ts for the label under the pointer.
+//
+// IT STILL GOVERNS TEXT ONLY. A creature's blood, its pallor and its heartbeat
+// are not labels -- they are the creature -- so they are drawn under all three
+// settings, and none is a table with no words on it rather than a table where
+// nobody bleeds. See wounds.ts, which is where that line is held.
 //
 // PLAYER-OWNED PAWNS AND OBJECTS ARE ALWAYS EXACT, whatever this says. A
 // player's own character sheet is not a secret from the table, and a door's
@@ -371,6 +377,26 @@ const (
 
 func (PawnLabels) Values() []string { return []string{"none", "default", "full"} }
 func (v PawnLabels) Valid() bool    { return inValues(v, v.Values()) }
+
+// ExactHP is whether an interface prints a pawn's hit points as numbers. It is
+// the SHOWING rule and projectPawn is the SENDING one, and they are separate
+// functions because they stopped being the same question: everybody is sent the
+// numbers and only some viewers are shown them.
+//
+// A GM READS EVERYTHING, ALWAYS. There is no setting that hides a monster's hit
+// points from the person running it, which is why the role is asked for here
+// rather than inferred from what arrived -- a GM's copy is never projected and
+// so never carries a band to be recognised by.
+func ExactHP(kind PawnKind, labels PawnLabels, role Role) bool {
+	if role == RoleGM {
+		return true
+	}
+	if kind != PawnMonster && kind != PawnNPC {
+		return true
+	}
+
+	return labels == LabelsFull
+}
 
 // PawnKind decides both what a pawn is drawn as and how it projects. Player
 // pawns project unchanged; monsters and npcs go through the hit-point setting;

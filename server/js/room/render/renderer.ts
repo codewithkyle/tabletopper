@@ -91,6 +91,15 @@ export interface Renderer {
 	// should not leave the next encounter starting on last week's blood.
 	bloodCleared(layerID: string): void;
 
+	// bloodResync forgets what every pawn's hit points were, without dropping
+	// any of the blood already on the floor.
+	//
+	// IT IS WIRED TO THE SNAPSHOT. A tab that was asleep or offline through
+	// three rounds comes back to a table where a monster is forty points down,
+	// and that difference is not a hit -- it is everything that happened while
+	// nobody was watching. See resync in decals.ts.
+	bloodResync(): void;
+
 	// stress adds synthetic pawns beside the real ones, for the benchmark.
 	// Nothing about them is sent anywhere; see stress.ts.
 	stress(count: number): number;
@@ -640,6 +649,10 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		bloodCleared(layerID) {
 			decals.clear(layerID);
 			frames.invalidate();
+		},
+
+		bloodResync() {
+			decals.resync();
 		},
 
 		toScreen: (x, y, out) => worldToScreen(camera, viewport, x, y, out),

@@ -10,8 +10,8 @@ import { test } from "node:test";
 
 import type { HPBand } from "../protocol.ts";
 import {
-	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW, SLOW_PERIOD,
-	bandOf, beats, bleeds, fastBeat, healthOf, heartbeat, hurt, slowBeat, splatters, worsened,
+	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW, DEATH_SPLATTERS, SEVERITY_UNKNOWN, SLOW_PERIOD,
+	bandOf, beats, bleeds, fastBeat, healthOf, heartbeat, hurt, severityOf, slowBeat, splatters,
 } from "./wounds.ts";
 
 test("the bands sit exactly where the server puts them", () => {
@@ -92,11 +92,59 @@ test("the number wins over the band, and neither is invented", () => {
 	assert.equal(healthOf({ hp: null, maxHp: null, hpBand: null }), null);
 });
 
-test("worsening is one way", () => {
-	assert.equal(worsened("healthy", "bloody"), true);
-	assert.equal(worsened("nearDeath", "dead"), true);
-	assert.equal(worsened("bloody", "healthy"), false, "being healed shed blood");
-	assert.equal(worsened("dead", "dead"), false, "standing still shed blood");
+// A HIT IS MEASURED AGAINST THE CREATURE IT LANDED ON and nothing else. This is
+// the property the whole floor rests on: the same eight points is a scratch on
+// an ogre and most of a goblin, and if these two ever came out equal the marks
+// would stop meaning anything.
+test("the same damage is worth more to a smaller creature", () => {
+	assert.ok(severityOf(8, 7) > severityOf(8, 40));
+	assert.ok(severityOf(8, 40) > severityOf(8, 200));
+
+	// And a bigger hit is worth more than a smaller one on the same creature.
+	assert.ok(severityOf(20, 40) > severityOf(8, 40));
+});
+
+test("a hit that is not a hit is worth nothing", () => {
+	assert.equal(severityOf(0, 40), 0, "standing still shed blood");
+	assert.equal(severityOf(-5, 40), 0, "being healed shed blood");
+});
+
+// NOBODY WROTE A MAXIMUM DOWN, which is a GM counting damage on a monster with
+// no stat line. There is no fraction to take, so it draws an ORDINARY hit --
+// neither the smallest nor the largest, because both would be a claim about a
+// number that does not exist.
+test("a hit on a creature with no maximum is an ordinary one", () => {
+	assert.equal(severityOf(3, null), SEVERITY_UNKNOWN);
+	assert.equal(severityOf(3, 0), SEVERITY_UNKNOWN);
+
+	assert.ok(SEVERITY_UNKNOWN > 0 && SEVERITY_UNKNOWN < 1);
+});
+
+// IT NEVER LEAVES ITS RANGE, whatever a GM types. A hit far bigger than the
+// creature's maximum is what a critical against a goblin looks like, and it is
+// the top of the scale rather than a mark the size of the room.
+test("severity is a fraction and stays one", () => {
+	assert.equal(severityOf(40, 40), 1);
+	assert.equal(severityOf(400, 40), 1);
+
+	for (const [damage, maxHp] of [[1, 1000], [1, 7], [3, 8], [19, 40], [39, 40]]) {
+		const value = severityOf(damage, maxHp);
+		assert.ok(value > 0 && value <= 1, `${damage} of ${maxHp} left the range at ${value}`);
+	}
+});
+
+// THE CURVE IS THE POINT OF THE FUNCTION. An ordinary fight is a long run of
+// hits under a fifth of a creature's maximum, and read straight every one of
+// them would land at the bottom of the scale and draw the same smallest mark.
+// The root lifts that band into the middle of what can actually be seen.
+test("the ordinary hit is not squashed against the floor of the scale", () => {
+	// A d8 against a forty-point monster: twelve per cent, which a linear
+	// reading would put a long way below halfway.
+	assert.ok(severityOf(5, 40) > 0.3, "the commonest hit in a fight was drawn as nothing");
+
+	// And it is still clearly below what a quarter of the creature is worth,
+	// so the scale has not simply been pushed to the top instead.
+	assert.ok(severityOf(5, 40) < severityOf(10, 40));
 });
 
 // THE MISSING ENTRIES ARE THE FEATURE. A table where every creature looks
@@ -148,14 +196,23 @@ test("blood only shows on a portrait once the creature is badly hurt", () => {
 	assert.equal(bleeds("dead"), true);
 });
 
-// The same line the ring draws: the first blood on the floor and the first ring
-// round the pawn are the same moment.
-test("nothing above the halfway line sheds blood", () => {
-	assert.equal(splatters("healthy"), 0);
-	assert.equal(splatters("bruised"), 0);
+// EVERY HIT MARKS THE FLOOR. This is the rule the band table was replaced to
+// get: the mark for a scratch is small and faint rather than absent, so the
+// floor says a blow landed here at the moment and in the place it landed.
+test("every hit throws at least one mark and no hit throws a death", () => {
+	for (const severity of [0, 0.01, 0.2, SEVERITY_UNKNOWN, 0.5, 0.79, 0.8, 1]) {
+		const count = splatters(severity);
 
-	assert.ok(splatters("bloody") > 0);
-	assert.ok(splatters("dead") > splatters("bloody"), "dying threw no more than a scratch");
+		assert.ok(count >= 1, `a hit at ${severity} threw nothing`);
+		assert.ok(count < DEATH_SPLATTERS, `a hit at ${severity} threw as much as a death`);
+	}
+});
+
+test("a worse hit throws more, and never fewer", () => {
+	const counts = [0, 0.25, 0.5, 0.75, 1].map(splatters);
+
+	assert.deepEqual(counts, [...counts].sort((a, b) => a - b));
+	assert.ok(counts[counts.length - 1] > counts[0], "the worst hit threw no more than the lightest");
 });
 
 // IT IS TWO THUMPS AND A LONG REST, NOT A SINE. A sine reads as "selected", or

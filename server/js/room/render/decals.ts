@@ -7,6 +7,14 @@
 // what the drip told you was only what the ring already said. A burst says
 // something the ring cannot: somebody just got hit, right there, this instant.
 //
+// AND A HIT IS NOW LITERALLY A HIT. What lands here is the difference between
+// two hit-point totals, so every blow marks the floor and the mark is sized by
+// what the blow was worth against that creature's own maximum -- a scratch on an
+// ogre and a scratch on a goblin are not the same event and no longer draw the
+// same thing. It was a band transition once, which meant four hits in a row
+// could pass without a mark and the fifth threw one for a reason nobody could
+// see. See severityOf in wounds.ts.
+//
 // AND IT DRIES RATHER THAN VANISHING. Fresh blood is bright and mostly opaque;
 // over the next six seconds it darkens to a dried maroon at about a third alpha
 // and then STOPS, costing nothing for the rest of the evening. The floor of a
@@ -28,12 +36,11 @@
 // and not worth a byte on the wire to fix.
 
 import type { Pawn } from "../protocol.ts";
-import type { HPBand } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
 import {
 	BLOOD_DRIED as DRIED, BLOOD_FRESH as FRESH,
-	BLOOD_VARIANTS, bloodSprite, healthOf, seed, splatters, worsened,
+	BLOOD_VARIANTS, DEATH_SPLATTERS, bloodSprite, seed, severityOf, splatters,
 } from "./wounds.ts";
 import { pawnExtents } from "./path.ts";
 
@@ -61,18 +68,51 @@ const WET_ALPHA = 0.85;
 const REST_ALPHA = 0.38;
 const POOL_REST_ALPHA = 0.5;
 
+// EVERYTHING BELOW IS MEASURED AGAINST THE CREATURE THAT SHED IT, so a dragon
+// throws more blood than a goblin without any of it being written down twice.
+//
 // JITTER is how far from the pawn's centre a mark may land, as a fraction of its
-// radius, and SPREAD_MIN/MAX are how big it is drawn against the same radius. A
-// dragon throws more blood than a goblin because both of these are measured
-// against the creature that shed it.
+// radius. HIT_SPREAD_MIN and HIT_SPREAD_MAX are how big one is drawn against the
+// same radius, and a hit picks between them by how bad it was.
+//
+// THE SMALLEST IS SMALLER THAN ANYTHING THAT USED TO BE ON THE FLOOR. It has to
+// be: every hit marks now, so the mark for a scratch has to read as a fleck
+// rather than as a splatter, or a fight fills the room with blood that all means
+// the same thing.
 const JITTER = 0.55;
-const SPREAD_MIN = 1.1;
-const SPREAD_MAX = 1.7;
+const HIT_SPREAD_MIN = 0.5;
+const HIT_SPREAD_MAX = 1.6;
+
+// DEATH_SPREAD is the spray, POOL_SPREAD the pool underneath it. THE POOL IS THE
+// BIGGEST THING THE FLOOR EVER GETS and no hit may reach it: dying is the one
+// event on a table that is allowed to be over the top.
+const DEATH_SPREAD = 1.6;
 const POOL_SPREAD = 2.4;
+
+// VARY_MIN and VARY_MAX are the wobble on a mark's size, so that two hits of the
+// same weight are not the same drawing.
+const VARY_MIN = 0.85;
+const VARY_MAX = 1.15;
+
+// HIT_FAINT is how dim the smallest hit lands, against a full-strength one, and
+// SCATTER_FLOOR is how tightly it is thrown. Both of them move with the hit: a
+// scratch drops something small and dim directly under the creature, and a blow
+// that takes a third of it throws blood a token's width away.
+//
+// THREE THINGS MOVING TOGETHER IS WHAT MAKES IT READ. Size alone is a mark you
+// have to compare against its neighbours to judge; size, weight and scatter at
+// once is a hit you can tell was heavy without looking at anything else.
+const HIT_FAINT = 0.55;
+const SCATTER_FLOOR = 0.6;
 
 // CAP is how many marks one floor holds. Past it the oldest is faded out over
 // EVICT_MS and dropped -- a long session should stain a room, not bury it.
-export const CAP = 96;
+//
+// IT WENT UP WHEN EVERY HIT STARTED MARKING. A fight is fifty or sixty blows
+// rather than the dozen band crossings it used to be, and a cap that evicted the
+// first round's blood before the last round landed would be a floor that only
+// ever remembers the end of a fight.
+export const CAP = 160;
 const EVICT_MS = 400;
 
 interface Decal {
@@ -83,6 +123,11 @@ interface Decal {
 	sprite: string;
 	born: number;
 	dry: number;
+
+	// wet is the alpha it lands at and rest is what it dries to and stays at.
+	// Both are on the mark rather than global because a scratch and a killing
+	// blow land at different weights -- see HIT_FAINT.
+	wet: number;
 	rest: number;
 
 	// evicting is 0 while the mark is staying, and otherwise the moment it began
@@ -104,7 +149,7 @@ export interface DecalTarget {
 
 export interface Decals {
 	// watch reads every pawn in the store -- on every floor, not just the viewed
-	// one -- and sheds blood for the ones whose health has just got worse.
+	// one -- and sheds blood for the ones that have just lost hit points.
 	//
 	// IT IS EVERY FLOOR BECAUSE THE MEMORY HAS TO BE. A goblin hurt in the
 	// cellar while the GM is looking at the ground floor must not be a goblin
@@ -124,86 +169,99 @@ export interface Decals {
 	// event that wipes a floor's drawing, because "clear this floor" is one
 	// gesture at a table and it would be strange for the blood to survive it.
 	clear(layerID: string): void;
+
+	// resync forgets what every pawn's hit points were, WITHOUT dropping a drop
+	// of what is already on the floor.
+	//
+	// IT IS THE RECONNECT. A tab that was asleep or offline through three rounds
+	// comes back to a snapshot in which a monster is forty points down, and the
+	// difference between what this remembers and what just arrived is not a hit:
+	// it is everything that happened while nobody was watching. Bleeding for it
+	// would put one enormous mark on the floor for a fight that took place
+	// somewhere else. So the next watch records and does not bleed, which is
+	// exactly what first sight already does.
+	resync(): void;
 }
 
 export function newDecals(): Decals {
 	const byLayer = new Map<string, Decal[]>();
 
-	// seen is the band each pawn was last known to be in, and it is what makes
-	// this a transition rather than a state. A pawn met for the first time is
-	// RECORDED AND NOT BLED FOR: somebody opening the room mid-fight should not
-	// be greeted by a burst of blood under every wounded creature in it.
-	const seen = new Map<string, HPBand | null>();
-
-	// thrown counts the marks each pawn has shed, and its only job is to make
-	// the second splatter of a burst land somewhere other than the first.
-	const thrown = new Map<string, number>();
+	// seen is the hit points each pawn was last known to have, and it is what
+	// makes this a DIFFERENCE rather than a state. A pawn met for the first time
+	// is RECORDED AND NOT BLED FOR: somebody opening the room mid-fight should
+	// not be greeted by a burst of blood under every wounded creature in it.
+	const seen = new Map<string, Seen>();
 
 	// A reused tuple, because the tint is computed per decal per frame and this
 	// is the second performance rule: an allocation in the frame loop is a
 	// garbage collection pause during a drag.
 	const tint: [number, number, number] = [0, 0, 0];
 
-	function spawn(pawn: Pawn, band: HPBand, cellSize: number, now: number): void {
-		const count = splatters(band);
-		if (count === 0) {
-			return;
-		}
-
+	function spawn(pawn: Pawn, damage: number, cellSize: number, now: number): void {
 		const list = byLayer.get(pawn.layerId) ?? [];
 		byLayer.set(pawn.layerId, list);
 
 		const [halfW, halfH] = pawnExtents(pawn, cellSize);
 		const radius = Math.max(halfW, halfH);
-		const already = thrown.get(pawn.id) ?? 0;
+
+		// DEATH IS NOT ON THE SCALE, it replaces it. A killing blow is whatever
+		// size it happened to be -- a goblin can die to one point -- and what the
+		// table needs to see is that something died, not that it was finished off
+		// cheaply.
+		const dead = pawn.hp !== null && pawn.hp <= 0;
+		const strength = dead ? 1 : severityOf(damage, pawn.maxHp);
+		const count = dead ? DEATH_SPLATTERS : splatters(strength);
 
 		// A DEATH LEAVES A POOL AS WELL AS A SPRAY, and the pool goes down first
 		// so the spray lands on top of it. The skull marks the creature; this
 		// marks the floor it fell on, and it is the one that is still there when
 		// the body has been cleared away.
-		if (band === "dead") {
-			place(list, pawn, radius * POOL_SPREAD, already, now, POOL_DRY_MS, POOL_REST_ALPHA, radius);
+		if (dead) {
+			pool(list, pawn, radius, now);
 		}
 
+		const weight = dead ? 1 : HIT_FAINT + (1 - HIT_FAINT) * strength;
+		const reach = dead ? DEATH_SPREAD : HIT_SPREAD_MIN + (HIT_SPREAD_MAX - HIT_SPREAD_MIN) * strength;
+		const scatter = JITTER * (dead ? 1 : SCATTER_FLOOR + (1 - SCATTER_FLOOR) * strength);
+
 		for (let i = 0; i < count; i++) {
-			const seed = already + i + 1;
-			const next = generator(pawn.id, band, seed);
-			const spread = SPREAD_MIN + next() * (SPREAD_MAX - SPREAD_MIN);
+			const next = generator(pawn, i);
+			const spread = reach * (VARY_MIN + next() * (VARY_MAX - VARY_MIN));
 
 			list.push({
-				x: pawn.x + (next() - 0.5) * 2 * JITTER * radius,
-				y: pawn.y + (next() - 0.5) * 2 * JITTER * radius,
+				x: pawn.x + (next() - 0.5) * 2 * scatter * radius,
+				y: pawn.y + (next() - 0.5) * 2 * scatter * radius,
 				half: radius * spread,
 				rotation: Math.floor(next() * 360),
 				sprite: bloodSprite(Math.floor(next() * BLOOD_VARIANTS)),
 				born: now,
 				dry: DRY_MS,
-				rest: REST_ALPHA,
+				wet: WET_ALPHA * weight,
+				rest: REST_ALPHA * weight,
 				evicting: 0,
 			});
 		}
 
-		thrown.set(pawn.id, already + count + 1);
 		evict(list, now);
 	}
 
-	// place is the death pool: centred, unjittered, and turned only so that two
-	// creatures dying on the same square do not leave the same mark twice.
-	function place(
-		list: Decal[], pawn: Pawn, half: number, seed: number,
-		now: number, dry: number, rest: number, radius: number,
-	): void {
-		const next = generator(pawn.id, "dead", seed);
+	// pool is the death pool: centred, barely jittered, and turned only so that
+	// two creatures dying on the same square do not leave the same mark twice.
+	// It dries slower than a spray because there is more of it, which is both
+	// true and the reason a death reads as a heavier event than a hit.
+	function pool(list: Decal[], pawn: Pawn, radius: number, now: number): void {
+		const next = generator(pawn, POOL_MARK);
 
 		list.push({
 			x: pawn.x + (next() - 0.5) * 0.3 * radius,
 			y: pawn.y + (next() - 0.5) * 0.3 * radius,
-			half,
+			half: radius * POOL_SPREAD,
 			rotation: Math.floor(next() * 360),
 			sprite: bloodSprite(Math.floor(next() * BLOOD_VARIANTS)),
 			born: now,
-			dry,
-			rest,
+			dry: POOL_DRY_MS,
+			wet: WET_ALPHA,
+			rest: POOL_REST_ALPHA,
 			evicting: 0,
 		});
 	}
@@ -237,18 +295,11 @@ export function newDecals(): Decals {
 					continue;
 				}
 
-				const band = healthOf(pawn);
 				const was = seen.get(pawn.id);
-				seen.set(pawn.id, band);
+				seen.set(pawn.id, { hp: pawn.hp, maxHp: pawn.maxHp });
 
-				// Nothing to compare against: either this is the first sight of
-				// the pawn, or the viewer has never been told anything about its
-				// health -- a monster in a room whose labels are off, which
-				// never bleeds because nobody watching it knows it was hit.
-				if (band === null || was === undefined || was === null) {
-					continue;
-				}
-				if (!worsened(was, band)) {
+				const damage = hit(was, pawn);
+				if (damage === 0) {
 					continue;
 				}
 
@@ -261,7 +312,7 @@ export function newDecals(): Decals {
 					continue;
 				}
 
-				spawn(pawn, band, cellSize, now);
+				spawn(pawn, damage, cellSize, now);
 			}
 
 			// Pawns that have left the table take their memory with them. The
@@ -272,7 +323,6 @@ export function newDecals(): Decals {
 				for (const id of seen.keys()) {
 					if (!here.has(id)) {
 						seen.delete(id);
-						thrown.delete(id);
 					}
 				}
 			}
@@ -307,7 +357,7 @@ export function newDecals(): Decals {
 				const rise = clamp(age / RISE_MS);
 				const dried = clamp((age - RISE_MS) / decal.dry);
 
-				let alpha = (WET_ALPHA + (decal.rest - WET_ALPHA) * dried) * rise;
+				let alpha = (decal.wet + (decal.rest - decal.wet) * dried) * rise;
 				if (decal.evicting !== 0) {
 					alpha *= 1 - clamp((now - decal.evicting) / EVICT_MS);
 				}
@@ -346,14 +396,63 @@ export function newDecals(): Decals {
 		clear(layerID) {
 			byLayer.delete(layerID);
 		},
+
+		resync() {
+			seen.clear();
+		},
 	};
 }
 
-// generator is a small deterministic source, seeded off the pawn's id, the band
-// it landed in and which mark of the burst this is. Math.random would put
+// Seen is what a pawn's hit points were the last time this looked. The maximum
+// is remembered as well as the number so that a GM correcting a stat line can be
+// told apart from a creature being hit; see hit.
+interface Seen {
+	hp: number | null;
+	maxHp: number | null;
+}
+
+// hit is how much damage a pawn has just taken, or zero for anything that is not
+// a hit. EVERY GUARD IN IT IS A WAY OF NOT BLEEDING, and each one is a case that
+// came up rather than a precaution.
+function hit(was: Seen | undefined, pawn: Pawn): number {
+	// The first sight of a pawn, or one whose hit points nobody ever wrote down.
+	// Recorded by the caller, never bled for.
+	if (was === undefined || was.hp === null || pawn.hp === null) {
+		return 0;
+	}
+
+	// A CORPSE DOES NOT BLEED AGAIN. A GM taking something already at zero down
+	// to minus six is bookkeeping, and the pool is on the floor already.
+	if (was.hp <= 0) {
+		return 0;
+	}
+
+	// THE STAT LINE CHANGED RATHER THAN THE CREATURE. A GM fixing a maximum they
+	// typed wrong is not a hit, and the fraction it would be measured against is
+	// the number that just moved.
+	if (was.maxHp !== pawn.maxHp) {
+		return 0;
+	}
+
+	const damage = was.hp - pawn.hp;
+
+	return damage > 0 ? damage : 0;
+}
+
+// POOL_MARK is the death pool's place in the sequence below. It is negative so
+// that it cannot collide with a spray's index, whatever the spray's length.
+const POOL_MARK = -1;
+
+// generator is a small deterministic source, seeded off the pawn's id, the hit
+// points it landed on and which mark of the burst this is. Math.random would put
 // different blood on every screen at the table for no gain.
-function generator(id: string, band: HPBand, nth: number): () => number {
-	let state = seed(`${id}:${band}:${nth}`);
+//
+// THE HIT POINTS ARE THE KEY RATHER THAN A COUNTER, and that is what keeps a
+// table in agreement now that everybody is sent the numbers: two people watching
+// the same blow land compute the same seed from it, whether or not they were
+// both in the room for the ones before it.
+function generator(pawn: Pawn, nth: number): () => number {
+	let state = seed(`${pawn.id}:${pawn.hp ?? "?"}:${nth}`);
 
 	return () => {
 		state = (Math.imul(state, 1664525) + 1013904223) >>> 0;

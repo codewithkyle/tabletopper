@@ -47,21 +47,27 @@ func TestAPlayerNeverReceivesAPawnFromAnotherLayer(t *testing.T) {
 	}
 }
 
-// THE THREE LABEL SETTINGS, against the three kinds of pawn they treat
+// THE THREE LABEL SETTINGS, against the four kinds of pawn they treat
 // differently. A player's own character is never hidden from the table, and an
 // object's hit points are the thing the party is currently hitting.
+//
+// THE HIT POINTS SURVIVE ALL THREE NOW, which is the reversal this test was
+// rewritten for. What the setting decides is what an interface PRINTS, and that
+// decision is made by ExactHP where the printing happens -- pawnView in
+// internal/controllers/room-pawns.go and js/room/overlay.ts. What is still
+// withheld here is armour class, which nothing on the table is drawn from, and
+// the band, which is the instruction to print a word instead of a number.
 func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 	kinds := []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject}
 
 	tests := []struct {
-		setting  PawnLabels
-		numbers  bool
-		banded   bool
-		affected []PawnKind
+		setting PawnLabels
+		banded  bool
+		exact   bool
 	}{
-		{LabelsFull, true, false, nil},
-		{LabelsDefault, false, true, []PawnKind{PawnMonster, PawnNPC}},
-		{LabelsNone, false, false, []PawnKind{PawnMonster, PawnNPC}},
+		{LabelsFull, false, true},
+		{LabelsDefault, true, false},
+		{LabelsNone, false, false},
 	}
 
 	for _, tc := range tests {
@@ -78,42 +84,33 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 			}
 
 			for _, p := range w.s.Project(RolePlayer).Pawns {
-				affected := p.Kind == PawnMonster || p.Kind == PawnNPC
+				monster := p.Kind == PawnMonster || p.Kind == PawnNPC
 
-				switch {
-				case !affected:
-					if p.HP == nil || *p.HP != 5 || p.MaxHP == nil {
-						t.Fatalf("a %s pawn lost its hit points under %q", p.Kind, tc.setting)
-					}
-					if p.HPBand != nil {
-						t.Fatalf("a %s pawn was given a band under %q", p.Kind, tc.setting)
-					}
-
-				case tc.numbers:
-					if p.HP == nil || *p.HP != 5 {
-						t.Fatalf("a %s pawn lost its hit points under %q", p.Kind, tc.setting)
-					}
-
-				default:
-					if p.HP != nil || p.MaxHP != nil {
-						t.Fatalf("a %s pawn kept a number under %q", p.Kind, tc.setting)
-					}
-					if tc.banded && p.HPBand == nil {
-						t.Fatalf("a %s pawn has no band under %q", p.Kind, tc.setting)
-					}
-					if !tc.banded && p.HPBand != nil {
-						t.Fatalf("a %s pawn has a band under %q", p.Kind, tc.setting)
-					}
+				// EVERY VIEWER IS SENT THE NUMBERS, under every setting. The
+				// blood on a creature, the blood under it, the colour draining
+				// out of it and its heartbeat are all drawn from them, and none
+				// of that can be drawn out of a word.
+				if p.HP == nil || *p.HP != 5 || p.MaxHP == nil || *p.MaxHP != 20 {
+					t.Fatalf("a %s pawn lost its hit points under %q", p.Kind, tc.setting)
 				}
 
-				// ARMOUR CLASS TRAVELS WITH THE NUMBERS. Telling the party
-				// what to roll against is the same arithmetic the words exist
-				// to avoid, so a monster keeps its AC on the full setting and
-				// on neither of the other two.
-				if affected && !tc.numbers && p.AC != nil {
+				banded := monster && tc.banded
+				if banded && p.HPBand == nil {
+					t.Fatalf("a %s pawn has no band under %q", p.Kind, tc.setting)
+				}
+				if !banded && p.HPBand != nil {
+					t.Fatalf("a %s pawn has a band under %q", p.Kind, tc.setting)
+				}
+
+				// ARMOUR CLASS IS THE LAST THING STILL WITHHELD. Telling the
+				// party what to roll against is the same fight-solving
+				// arithmetic the words exist to avoid, and unlike hit points
+				// there is nothing on the table drawn from it -- so it survives
+				// only on full, where everything does.
+				if monster && !tc.exact && p.AC != nil {
 					t.Fatalf("a %s pawn kept its armour class under %q", p.Kind, tc.setting)
 				}
-				if (!affected || tc.numbers) && (p.AC == nil || *p.AC != 15) {
+				if (!monster || tc.exact) && (p.AC == nil || *p.AC != 15) {
 					t.Fatalf("a %s pawn lost its armour class under %q", p.Kind, tc.setting)
 				}
 			}
@@ -129,6 +126,43 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// ExactHP IS THE SHOWING RULE and the only thing the label setting still
+// decides. By the time it is asked, the numbers are on the pawn either way.
+func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
+	settings := []PawnLabels{LabelsNone, LabelsDefault, LabelsFull}
+
+	// A GM READS EVERYTHING, ALWAYS. There is no setting that hides a monster's
+	// hit points from the person running it.
+	for _, labels := range settings {
+		for _, kind := range []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject} {
+			if !ExactHP(kind, labels, RoleGM) {
+				t.Fatalf("the GM was refused a %s pawn's hit points under %q", kind, labels)
+			}
+		}
+	}
+
+	// A player's own character and an object are exact under every setting: a
+	// character sheet is not a secret from the table, and a door's hit points
+	// are the thing the party is currently hitting.
+	for _, labels := range settings {
+		for _, kind := range []PawnKind{PawnPlayer, PawnObject} {
+			if !ExactHP(kind, labels, RolePlayer) {
+				t.Fatalf("a player was refused a %s pawn's hit points under %q", kind, labels)
+			}
+		}
+	}
+
+	// A monster is the one case the setting touches, and only full shows it.
+	for _, kind := range []PawnKind{PawnMonster, PawnNPC} {
+		if ExactHP(kind, LabelsNone, RolePlayer) || ExactHP(kind, LabelsDefault, RolePlayer) {
+			t.Fatalf("a player was shown a %s's hit points in a room that labels words", kind)
+		}
+		if !ExactHP(kind, LabelsFull, RolePlayer) {
+			t.Fatalf("a player was refused a %s's hit points in an open room", kind)
+		}
 	}
 }
 

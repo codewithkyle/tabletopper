@@ -231,14 +231,28 @@ func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {
 //
 // PLAYER PAWNS AND OBJECTS PASS THROUGH UNCHANGED. A player's own character
 // sheet is not a secret from the table, and a door's hit points are the thing
-// the party is currently hitting. What the setting withholds is a monster's.
+// the party is currently hitting. What the setting treats differently is a
+// monster's.
 //
-// ARMOUR CLASS GOES WITH THE NUMBERS AND NOT WITH THE NAME. A party that is
-// told a monster's AC is told what to roll, which is the same fight-solving
-// arithmetic the bands exist to avoid -- so it survives only on full, where
-// everything does. Withholding it HERE rather than in the label is the whole
-// difference between a secret and a hidden element: what is not projected is
-// not in the browser to be read out of.
+// HIT POINTS ARE SENT TO EVERYONE AND HIDDEN BY THE INTERFACE, which is the
+// opposite of what this function used to do and is a deliberate reversal. The
+// line is now: WHAT THE TABLE HAS TO DRAW IS SENT, AND WHAT ONLY A PERSON WOULD
+// READ IS PROJECTED. A creature's hit points are drawn -- the blood on it, the
+// blood under it, the pallor and the heartbeat all read the number, and how
+// hard a hit landed can only be the difference between two of them -- so the
+// number has to be in the browser for the table to look right. Armour class is
+// drawn by nothing, so it is still withheld here.
+//
+// THAT MEANS A PLAYER CAN READ A MONSTER'S HIT POINTS OUT OF THE SOCKET, and
+// this app has decided not to fight that. A player who wants an edge already
+// has one -- they can look the monster up -- and the answer to it is to change
+// the monster rather than to change the app. What the setting still does is
+// decide what the interface SHOWS, which is the honest description of a
+// preference about how a table plays rather than a secret it cannot keep.
+//
+// THE BAND IS STILL SENT AND IS STILL THE INSTRUCTION. Its presence is how a
+// viewer is told they get the word rather than the number, and it is the one
+// piece of this the client does not have to work out for itself.
 func projectPawn(p Pawn, t Table) Pawn {
 	if p.Kind != PawnMonster && p.Kind != PawnNPC {
 		return p
@@ -248,14 +262,11 @@ func projectPawn(p Pawn, t Table) Pawn {
 		return p
 	}
 
-	band := hpBand(p.HP, p.MaxHP)
-	p.HP = nil
-	p.MaxHP = nil
 	p.AC = nil
 	p.HPBand = nil
 
 	if t.PawnLabels == LabelsDefault {
-		p.HPBand = band
+		p.HPBand = hpBand(p.HP, p.MaxHP)
 	}
 
 	return p

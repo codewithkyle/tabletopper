@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { Pawn } from "../protocol.ts";
+import type { HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import type { DecalTarget } from "./decals.ts";
 import { CAP, newDecals } from "./decals.ts";
@@ -107,54 +107,171 @@ test("blood is shed on the way down and not on the way back up", () => {
 	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
 
 	const hit = drawn(decals, 10);
-	assert.equal(hit.length, 1, "a creature crossing the halfway line shed no blood");
+	assert.ok(hit.length > 0, "a creature that lost four of its seven hit points shed no blood");
 
-	// Healed back up, then hurt again to the SAME band it was in before. Only
-	// the second of those is a worsening.
+	// Healed back up, which is not a hit however far it moves the number.
 	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 20);
-	assert.equal(drawn(decals, 20).length, 1, "being healed shed blood");
+	assert.equal(drawn(decals, 20).length, hit.length, "being healed shed blood");
 
+	// And hit for the same four points again, which throws a second burst --
+	// the DIFFERENCE is the event, not the band it happens to land in.
 	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 30);
-	assert.equal(drawn(decals, 30).length, 2);
+	assert.equal(drawn(decals, 30).length, hit.length * 2);
 });
 
-// A ONE POINT SCRATCH IS NOT A SPRAY. The trigger is the band rather than the
-// number, which is also what makes a GM reading hit points and a player reading
-// a word see the same blood at the same moment.
-test("a scratch throws nothing, and neither does a bruise", () => {
+// EVERY HIT MARKS THE FLOOR, AND THAT IS THE WHOLE CHANGE. It was a band
+// crossing once, so four hits in a row could pass without a mark and the fifth
+// threw one for a reason nobody at the table could see. What a scratch gets now
+// is a scratch -- small, faint and thrown close in -- rather than nothing.
+test("every hit marks the floor, including the ones that cross nothing", () => {
+	const decals = newDecals();
+	decals.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+
+	// Four ordinary hits, none of them crossing a band, every one of them well
+	// above the halfway line the old rule waited for.
+	let shed = 0;
+	for (const [at, hp] of [[10, 99], [20, 80], [30, 76], [40, 60]] as const) {
+		decals.watch([pawn({ hp, maxHp: 100 })], GROUND, CELL, at);
+
+		const marks = drawn(decals, at);
+		assert.ok(marks.length > shed, `a hit taking it to ${hp} of 100 drew nothing`);
+		shed = marks.length;
+	}
+});
+
+// SIZE, WEIGHT AND SCATTER ALL MOVE TOGETHER. Any one of them alone is a mark
+// you would have to compare against its neighbours to judge; the three at once
+// is a hit you can tell was heavy without looking at anything else.
+test("a heavy blow is bigger and bolder than a scratch", () => {
+	const scratch = newDecals();
+	scratch.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+	scratch.watch([pawn({ hp: 99, maxHp: 100 })], GROUND, CELL, 10);
+
+	const blow = newDecals();
+	blow.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+	blow.watch([pawn({ hp: 40, maxHp: 100 })], GROUND, CELL, 10);
+
+	const small = drawn(scratch, 5000);
+	const large = drawn(blow, 5000);
+
+	const widest = (marks: Mark[]) => Math.max(...marks.map((mark) => mark.half));
+	const boldest = (marks: Mark[]) => Math.max(...marks.map((mark) => mark.alpha));
+
+	assert.ok(large.length >= small.length, "a heavy blow threw fewer marks than a scratch");
+	assert.ok(widest(large) > widest(small) * 1.5, "sixty points drew the same size mark as one");
+	assert.ok(boldest(large) > boldest(small), "a scratch was as bold as a heavy blow");
+});
+
+// A CREATURE NOBODY WROTE HIT POINTS FOR CANNOT BE SEEN TO BE HIT. There is no
+// number to take the difference of, so nothing is drawn and nothing is guessed.
+test("a pawn with no hit points at all sheds nothing", () => {
+	const decals = newDecals();
+
+	const blank = { hp: null, maxHp: null, hpBand: null };
+	decals.watch([pawn(blank)], GROUND, CELL, 0);
+	decals.watch([pawn(blank)], GROUND, CELL, 10);
+	assert.deepEqual(drawn(decals, 10), []);
+});
+
+// THE GM AND THE PARTY SEE THE SAME BLOOD, and that is what the room's label
+// setting stopped costing. Hit points reach every viewer now -- see projectPawn
+// in internal/room/snapshot.go -- and only the TEXT differs, so a player being
+// shown a word watches a monster bleed at exactly the weight the GM does.
+test("a player sees the same blood as the GM, word or number", () => {
+	// A GM's copy carries hit points and no band, because a GM's copy is never
+	// projected. A player's copy of the same monster in an ordinary room carries
+	// the same hit points with a band beside them.
+	const asGM = (hp: number): Pawn => pawn({ hp, maxHp: 40 });
+	const asPlayer = (hp: number, band: HPBand): Pawn => pawn({ hp, maxHp: 40, hpBand: band });
+
+	const theirs = newDecals();
+	const ours = newDecals();
+	for (const [at, hp, band] of [[0, 40, "healthy"], [10, 31, "bruised"], [20, 12, "bloody"]] as const) {
+		theirs.watch([asGM(hp)], GROUND, CELL, at);
+		ours.watch([asPlayer(hp, band)], GROUND, CELL, at);
+	}
+
+	assert.ok(drawn(theirs, 20).length > 0, "the GM saw no blood at all");
+	assert.deepEqual(drawn(ours, 20), drawn(theirs, 20));
+});
+
+// A GM taking something already at zero down to minus six is bookkeeping, and
+// the pool it is lying in went down when it died.
+test("a corpse does not bleed again", () => {
+	const decals = newDecals();
+
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 0, maxHp: 7 })], GROUND, CELL, 10);
+	const died = drawn(decals, 10).length;
+
+	decals.watch([pawn({ hp: -6, maxHp: 7 })], GROUND, CELL, 20);
+	assert.equal(drawn(decals, 20).length, died, "a corpse bled again");
+});
+
+// A GM fixing a maximum they typed wrong is not a hit, and the fraction it would
+// be measured against is the number that just moved.
+test("correcting a stat line is not a hit", () => {
+	const decals = newDecals();
+
+	decals.watch([pawn({ hp: 60, maxHp: 100 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 40, maxHp: 60 })], GROUND, CELL, 10);
+	assert.deepEqual(drawn(decals, 10), [], "a corrected stat block sprayed the floor");
+
+	// And the next real hit bleeds normally.
+	decals.watch([pawn({ hp: 30, maxHp: 60 })], GROUND, CELL, 20);
+	assert.ok(drawn(decals, 20).length > 0);
+});
+
+// A TAB THAT WAS ASLEEP MISSED A FIGHT RATHER THAN TOOK ONE HIT. What arrives on
+// a reconnect is the table as it is NOW, and the difference from what this
+// remembers is three rounds of combat nobody in this browser watched.
+test("a reconnection is not one enormous hit", () => {
 	const decals = newDecals();
 
 	decals.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
-	decals.watch([pawn({ hp: 99, maxHp: 100 })], GROUND, CELL, 10);
-	decals.watch([pawn({ hp: 80, maxHp: 100 })], GROUND, CELL, 20);
-	assert.deepEqual(drawn(decals, 20), [], "twenty points inside one band drew blood");
+	decals.resync();
+	decals.watch([pawn({ hp: 4, maxHp: 100 })], GROUND, CELL, 10);
+	assert.deepEqual(drawn(decals, 10), [], "a reconnection bled for a fight nobody watched");
 
-	// Bruised crosses a band and STILL draws nothing. The first blood on the
-	// floor and the first ring round the pawn are the same moment, and that
-	// moment is the halfway line -- a table where everything is marked is a
-	// table with no signal in it.
-	decals.watch([pawn({ hp: 60, maxHp: 100 })], GROUND, CELL, 30);
-	assert.deepEqual(drawn(decals, 30), [], "a bruise bled");
-
-	decals.watch([pawn({ hp: 50, maxHp: 100 })], GROUND, CELL, 40);
-	assert.equal(drawn(decals, 40).length, 1, "crossing the halfway line drew nothing");
+	// The first hit after it is an ordinary one.
+	decals.watch([pawn({ hp: 2, maxHp: 100 })], GROUND, CELL, 20);
+	assert.ok(drawn(decals, 20).length > 0);
 });
 
-test("a room that tells the viewer nothing sheds nothing", () => {
+// It forgets the NUMBERS and not the FLOOR. Blood already down was shed by hits
+// this browser did watch, and a reconnection is not a mop.
+test("resyncing keeps the blood already on the floor", () => {
 	const decals = newDecals();
 
-	// Labels off: a monster arrives with no number and no band, so no viewer can
-	// know it was hit and no floor may show that it was.
-	const unlabelled = { hp: null, maxHp: null, hpBand: null };
-	decals.watch([pawn(unlabelled)], GROUND, CELL, 0);
-	decals.watch([pawn(unlabelled)], GROUND, CELL, 10);
-	assert.deepEqual(drawn(decals, 10), []);
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
+	const shed = drawn(decals, 10).length;
+	assert.ok(shed > 0);
 
-	// A player in an ordinary room is sent the band instead of the number, and
-	// bleeds off exactly that.
-	decals.watch([pawn({ hp: null, maxHp: null, hpBand: "healthy" })], GROUND, CELL, 20);
-	decals.watch([pawn({ hp: null, maxHp: null, hpBand: "veryBloody" })], GROUND, CELL, 30);
-	assert.equal(drawn(decals, 30).length, 2);
+	decals.resync();
+	assert.equal(drawn(decals, 10).length, shed, "a reconnection wiped the floor");
+});
+
+// DYING IS THE ONE EVENT ON A TABLE ALLOWED TO BE OVER THE TOP, and it has to
+// stay that way whatever a critical hit does. A creature left on one hit point
+// is the worst a living thing can look, and it is still visibly not a death.
+test("no hit is ever as big as a death", () => {
+	const killed = newDecals();
+	killed.watch([pawn({ hp: 40, maxHp: 40 })], GROUND, CELL, 0);
+	killed.watch([pawn({ hp: 0, maxHp: 40 })], GROUND, CELL, 10);
+
+	const mauled = newDecals();
+	mauled.watch([pawn({ hp: 40, maxHp: 40 })], GROUND, CELL, 0);
+	mauled.watch([pawn({ hp: 1, maxHp: 40 })], GROUND, CELL, 10);
+
+	const death = drawn(killed, 10);
+	const worst = drawn(mauled, 10);
+
+	assert.ok(
+		Math.max(...death.map((mark) => mark.half)) > Math.max(...worst.map((mark) => mark.half)),
+		"something that survived left a bigger mark than something that died",
+	);
+	assert.ok(death.length > worst.length, "dying threw no more than surviving");
 });
 
 test("objects and creatures nobody can see do not bleed", () => {
