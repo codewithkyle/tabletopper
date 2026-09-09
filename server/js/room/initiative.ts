@@ -291,7 +291,23 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 	// all three live on elements htmx has just replaced. The filter is what
 	// keeps a pawn window's own refetch from tearing down a Sortable it has
 	// nothing to do with.
-	function onSettle(event: Event): void {
+	//
+	// AND IT IS THE ONLY THING THAT EVER BUILDS THE SORTABLE. The strip the
+	// page renders is an empty placeholder that fetches itself, so the
+	// remount() beneath these listeners runs against markup with no
+	// [data-entries] in it and returns having done nothing. Every strip a GM
+	// can actually drag arrived in a swap, which makes a listener that does not
+	// fire here not a stale clock but a turn order that cannot be reordered at
+	// all.
+	//
+	// THE NAME IS SPELLED WITH COLONS BECAUSE htmx 4 SPELLS IT WITH COLONS --
+	// htmx:after:swap, htmx:before:request, htmx:after:settle -- and the
+	// camelCase names of htmx 1 and 2 are not emitted by the library in
+	// server/public/static. addEventListener for a name nothing dispatches is
+	// not an error: it type checks, it bundles, it runs, and the feature is
+	// simply dead. server/js/room/htmx-events.test.ts pins every name this
+	// bundle listens for to the names that library actually contains.
+	function onSwap(event: Event): void {
 		if (!(event.target instanceof Element) || !event.target.hasAttribute("data-turns")) {
 			return;
 		}
@@ -303,7 +319,7 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 
 	mount.addEventListener("click", onClickCapture, true);
 	document.addEventListener("keydown", onKeyDown);
-	document.addEventListener("htmx:afterSettle", onSettle);
+	document.addEventListener("htmx:after:swap", onSwap);
 
 	remount();
 
@@ -316,7 +332,7 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 			sortable = null;
 			mount.removeEventListener("click", onClickCapture, true);
 			document.removeEventListener("keydown", onKeyDown);
-			document.removeEventListener("htmx:afterSettle", onSettle);
+			document.removeEventListener("htmx:after:swap", onSwap);
 		},
 	};
 }

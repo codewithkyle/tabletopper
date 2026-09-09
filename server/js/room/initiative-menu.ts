@@ -222,7 +222,12 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 	// refetches on every hit and every turn, so a menu left open would be
 	// pointing at an element that is no longer there and its Remove would press
 	// a button in a detached tree.
-	function onSettle(event: Event): void {
+	//
+	// THE NAME IS SPELLED WITH COLONS BECAUSE htmx 4 SPELLS IT WITH COLONS, and
+	// a listener for a name the library never dispatches fails by doing
+	// nothing. See the same note in initiative.ts, where the cost of getting it
+	// wrong was the whole drag.
+	function onSwap(event: Event): void {
 		if (event.target instanceof Element && event.target.hasAttribute("data-turns")) {
 			close();
 		}
@@ -234,7 +239,7 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 	document.addEventListener("pointerdown", onPointerDown);
 	document.addEventListener("wheel", onWheel);
 	document.addEventListener("keydown", onKeyDown);
-	document.addEventListener("htmx:afterSettle", onSettle);
+	document.addEventListener("htmx:after:swap", onSwap);
 
 	return {
 		close,
@@ -247,7 +252,7 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 			document.removeEventListener("pointerdown", onPointerDown);
 			document.removeEventListener("wheel", onWheel);
 			document.removeEventListener("keydown", onKeyDown);
-			document.removeEventListener("htmx:afterSettle", onSettle);
+			document.removeEventListener("htmx:after:swap", onSwap);
 		},
 	};
 }
