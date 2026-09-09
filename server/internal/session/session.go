@@ -65,7 +65,7 @@ type UserSession struct {
 	RefreshedAt time.Time
 
 	// Prefs is the account settings the page renders with: theme, zone, date
-	// order and clock.
+	// order, clock, and whether the camera at a table follows the turn.
 	//
 	// IT IS JOINED, NOT COPIED INTO THE ROW, and so is Username above. Those
 	// all change while the user is sitting in the app, and one user has several
@@ -153,6 +153,7 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 			row.Timezone,
 			string(row.DateFormat),
 			string(row.TimeFormat),
+			row.FollowTurn,
 		),
 		Onboarded: row.OnboardedAt.Valid,
 		token:     token,

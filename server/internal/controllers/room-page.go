@@ -39,16 +39,17 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())
 
 	render(w, r, pages.Room(pages.RoomPageData{
-		ID:      row.ID.String(),
-		Name:    row.Name,
-		Code:    row.Code.String,
-		Locked:  row.IsLocked,
-		Closed:  row.ClosedAt.Valid,
-		Role:    role,
-		UserID:  sess.UserID.String(),
-		Socket:  socket,
-		Version: a.hubVersion(),
-		Debug:   a.Config.Development(),
+		ID:         row.ID.String(),
+		Name:       row.Name,
+		Code:       row.Code.String,
+		Locked:     row.IsLocked,
+		Closed:     row.ClosedAt.Valid,
+		Role:       role,
+		UserID:     sess.UserID.String(),
+		Socket:     socket,
+		Version:    a.hubVersion(),
+		Debug:      a.Config.Development(),
+		FollowTurn: sess.Prefs.FollowTurn,
 	}))
 }
 

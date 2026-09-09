@@ -149,6 +149,45 @@ export function fit(cam: Camera, vp: Viewport, width: number, height: number): v
 	cam.y = height / 2;
 }
 
+// FOCUS_MARGIN is how much of the viewport a followed line of the turn order is
+// allowed to fill when the camera has to zoom out to hold it.
+//
+// IT IS TIGHTER THAN FIT_MARGIN BECAUSE WHAT IS BEING FRAMED IS CREATURES AND
+// NOT A MAP. A map's edge is the end of the picture and touching it costs
+// nothing; a token's edge is not the end of the token -- its name plate hangs
+// under it and its condition rings sit outside it -- so a group boxed to the
+// pixel would be framed with everything that says who those creatures are
+// already off the screen.
+const FOCUS_MARGIN = 0.8;
+
+// focusTarget is where the camera would have to be to hold rect: centred on it,
+// and zoomed out far enough to contain it. It writes a camera rather than
+// moving one, because the renderer eases from the old one to it over a few
+// frames and needs both ends at once.
+//
+// IT NEVER ZOOMS IN, ONLY OUT, and that asymmetry is the whole feel of the
+// thing. How close somebody is looking at the table is their own decision and
+// it survives the fight; what the turn order is allowed to take from them is
+// the minimum -- if the creature that is acting does not fit on the screen at
+// the zoom they chose, the zoom has to give, and otherwise it does not.
+//
+// A single token therefore never changes the zoom at all, however far in or out
+// the viewer is, because one token fits at every zoom this camera has.
+export function focusTarget(cam: Camera, vp: Viewport, rect: Rect, out: Camera): Camera {
+	// The 1 is not a fudge: a rect of zero size is a legitimate question --
+	// a pawn on a table whose cell size has not arrived yet -- and dividing the
+	// viewport by it would put Infinity in the zoom.
+	const width = Math.max(rect.x2 - rect.x1, 1);
+	const height = Math.max(rect.y2 - rect.y1, 1);
+	const holds = clampZoom(Math.min(vp.width / width, vp.height / height) * FOCUS_MARGIN);
+
+	out.x = (rect.x1 + rect.x2) / 2;
+	out.y = (rect.y1 + rect.y2) / 2;
+	out.zoom = Math.min(cam.zoom, holds);
+
+	return out;
+}
+
 // clampToMap bounds the camera so the map cannot be lost off the side of the
 // screen.
 //

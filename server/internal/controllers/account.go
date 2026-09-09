@@ -103,7 +103,7 @@ func formatBytes(n int64) string {
 	return fmt.Sprintf("%.1f %s", size, unit)
 }
 
-// SaveAccountSettings writes all five, or none of them.
+// SaveAccountSettings writes all six, or none of them.
 //
 // EVERY PICKER IS VALIDATED AGAINST THE LIST THAT OFFERED IT, and a value that
 // is not on one is a rejection rather than a silent fallback. The read path
@@ -116,7 +116,7 @@ func formatBytes(n int64) string {
 // that is about what arrived rather than about a stale page. It is trimmed,
 // required, and bounded by its column -- see accountDisplayName.
 //
-// All five are collected before any of them is written, so a form carrying one
+// All six are collected before any of them is written, so a form carrying one
 // bad field changes nothing. There is no partial save to explain.
 func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -139,6 +139,7 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		Timezone:   updated.Timezone,
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
+		FollowTurn: updated.FollowTurn,
 	})
 	if err != nil {
 		slog.Error("Failed to save account settings", "error", err)
@@ -175,7 +176,7 @@ func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
 }
 
-// CompleteOnboarding is the welcome dialog's Save. It writes the same five
+// CompleteOnboarding is the welcome dialog's Save. It writes the same six
 // columns SaveAccountSettings does and stamps the account as set up, in ONE
 // statement -- two would have a window in which the settings landed and the
 // stamp did not, and the dialog would reopen over the answer just given.
@@ -200,6 +201,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		Timezone:   updated.Timezone,
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
+		FollowTurn: updated.FollowTurn,
 	})
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err)
@@ -259,8 +261,7 @@ func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name
 	render(w, r, pages.AccountName(name, true))
 }
 
-// accountSettingsInput reads the four fields and reports what it could not
-// accept.
+// accountSettingsInput reads the fields and reports what it could not accept.
 //
 // The messages name the field and not the value. Every one of these came out of
 // a <select> the server rendered, so a rejection here is a stale page or a
@@ -300,6 +301,18 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 		problems = append(problems, "Choose either the 12-hour or the 24-hour clock.")
 	}
 	p.TimeFormat = timeFormat
+
+	// THE ONE FIELD WITH NOTHING TO REJECT. An unticked box sends no value at
+	// all -- that is how HTML has always posted a checkbox -- so absence is the
+	// answer rather than a missing field, and there is no list to check the
+	// answer against.
+	//
+	// IT IS THE REASON THE TOGGLE IS ON BOTH DIALOGS AND NOT JUST THE SETTINGS
+	// ONE. Both saves come through here, so a welcome form that did not carry
+	// the box would post nothing for it and this would read that as "off" --
+	// turning a setting that is on by default off for every new account, on the
+	// dialog that exists to welcome them.
+	p.FollowTurn = r.PostFormValue("follow_turn") != ""
 
 	return name, p, problems
 }
@@ -342,6 +355,7 @@ func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.
 		Zone:       p.Timezone,
 		DateFormat: string(p.DateFormat),
 		TimeFormat: string(p.TimeFormat),
+		FollowTurn: p.FollowTurn,
 	}
 
 	for _, theme := range prefs.Themes() {

@@ -78,6 +78,24 @@ templ accountSettingsFields(data AccountSettingsData) {
 	@zoneField(data.Zones, data.Zone)
 	@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
 	@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
+	@followTurnField(data.FollowTurn)
+}
+
+templ followTurnField(checked bool) {
+	<div class="fieldset">
+		<span class="fieldset-legend">Combat camera</span>
+		<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
+			<label class="col-start-1 row-start-1 font-medium" for="follow-turn">Follow the turn</label>
+			<input
+				id="follow-turn"
+				name="follow_turn"
+				type="checkbox"
+				class="toggle col-start-2 row-start-1"
+				checked?={ checked }
+			/>
+			<p class="col-span-2 m-0 text-sm text-base-content/75">Move the tabletop to whoever is acting when the turn changes. A line that several creatures share is framed as a whole.</p>
+		</div>
+	</div>
 }
 
 templ displayNameField(value string) {

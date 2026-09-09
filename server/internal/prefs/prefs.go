@@ -1,7 +1,14 @@
-// Package prefs is the account settings that change how a page is rendered:
-// the theme it paints in, and the zone, date order and clock its timestamps are
-// written in. It holds the tokens the database stores, the layouts they mean,
-// and nothing that talks to a database or an HTTP request.
+// Package prefs is the account settings a reader chooses once and every page
+// obeys: the theme it paints in, the zone, date order and clock its timestamps
+// are written in, and whether the camera at a table goes to whoever is acting.
+// It holds the tokens the database stores, the layouts they mean, and nothing
+// that talks to a database or an HTTP request.
+//
+// THE LAST OF THOSE IS NOT A RENDERING AND IT BELONGS HERE ANYWAY. Four of
+// these settings decide what a page looks like and the fifth decides what a
+// canvas does, but all five are one account's answer to "how do I like this",
+// all five are read off the same join on every request, and splitting them by
+// what they happen to affect would be two packages with one shape.
 //
 // WHAT IS STORED IS INTENT AND WHAT IS RETURNED IS A RENDERING, and the gap
 // between the two is the whole point of the package. The column says "dark",
@@ -111,9 +118,10 @@ var Default = Preferences{
 	Timezone:   DefaultTimezone,
 	DateFormat: DateDMYText,
 	TimeFormat: Time12H,
+	FollowTurn: true,
 }
 
-// Preferences is one reader's four settings. It is a value, copied freely, and
+// Preferences is one reader's five settings. It is a value, copied freely, and
 // carries no location pointer: Location resolves through the zone table, which
 // is already a map of loaded locations, so caching one here would only add a
 // field the zero value has to lie about.
@@ -122,9 +130,25 @@ type Preferences struct {
 	Timezone   string
 	DateFormat DateFormat
 	TimeFormat TimeFormat
+
+	// FollowTurn moves this reader's camera onto whoever is acting when the
+	// turn moves, and zooms out far enough to hold a whole group when the line
+	// that came up is one.
+	//
+	// IT IS THE ACCOUNT'S AND NOT THE ROOM'S. Everything else about a fight is
+	// the table's -- who is in the order, what they rolled, whose turn it is --
+	// and this is not: it is about where one person's viewport points, and a GM
+	// running the fight from an overview and a player who wants to be shown
+	// their own turn are both right at the same table.
+	//
+	// THE ZERO VALUE IS THE WRONG ANSWER, which is the one thing to watch for.
+	// It is on for everybody by default, so a Preferences built by hand rather
+	// than through New or Default has it off -- see New, which is the reason
+	// there is only one way to build one of these.
+	FollowTurn bool
 }
 
-// New normalises four stored strings into Preferences, falling back field by
+// New normalises the stored columns into Preferences, falling back field by
 // field. It never fails, because it is the read path: a value the database
 // holds that this build does not recognise -- a column rolled forward and the
 // binary rolled back, a zone dropped from the curated list -- should render a
@@ -132,7 +156,7 @@ type Preferences struct {
 //
 // The write path is the parsers below, which do report an unknown value, so
 // nothing unrecognised gets stored in the first place.
-func New(theme, timezone, dateFormat, timeFormat string) Preferences {
+func New(theme, timezone, dateFormat, timeFormat string, followTurn bool) Preferences {
 	p := Default
 
 	if v, ok := ParseTheme(theme); ok {
@@ -147,6 +171,13 @@ func New(theme, timezone, dateFormat, timeFormat string) Preferences {
 	if v, ok := ParseTimeFormat(timeFormat); ok {
 		p.TimeFormat = v
 	}
+
+	// A BOOLEAN HAS NOTHING TO NORMALISE, which is why this is an assignment
+	// standing beside four parses. It is in here rather than set by the caller
+	// afterwards so that every Preferences in the app is built by one function:
+	// a field left to the caller is a field the second caller forgets, and the
+	// zero value of this one silently turns the setting off.
+	p.FollowTurn = followTurn
 
 	return p
 }

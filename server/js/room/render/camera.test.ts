@@ -13,6 +13,7 @@ import {
 	clampToMap,
 	clipMatrix,
 	fit,
+	focusTarget,
 	inverseClipMatrix,
 	newCamera,
 	panBy,
@@ -148,6 +149,94 @@ test("fit on a viewport or a map with no size does nothing", () => {
 	fit(cam, viewport(0, 0), 12000, 9000);
 
 	assert.deepEqual(cam, camera(1, 2, 3));
+});
+
+// THE FOLLOW CAMERA. Every one of these is about the same promise: the turn
+// order may move the view, and it may take the zoom only when it has to.
+test("a followed box is centred whatever shape it is", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	focusTarget(camera(0, 0, 1), vp, { x1: 100, y1: 200, x2: 200, y2: 260 }, out);
+
+	assert.equal(out.x, 150);
+	assert.equal(out.y, 230);
+});
+
+// One token fits on the screen at every zoom this camera has, so following one
+// is a pan and never a zoom. A GM who has drilled into a corridor to read a
+// token's picture keeps that view when the turn passes to the creature beside
+// it.
+test("a box that already fits keeps the viewer's zoom", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	for (const zoom of [ZOOM_MIN, 0.4, 1, 2.5, ZOOM_MAX]) {
+		focusTarget(camera(0, 0, zoom), vp, { x1: 0, y1: 0, x2: 70, y2: 70 }, out);
+
+		assert.equal(out.zoom, zoom, `a single token moved the zoom at ${zoom}`);
+	}
+});
+
+test("a box too big for the screen pulls the zoom out until it fits", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	// Nine goblins spread over 2400 by 1800 map pixels, seen at 1:1 -- which
+	// shows 1280 by 720 of them.
+	focusTarget(camera(0, 0, 1), vp, { x1: 0, y1: 0, x2: 2400, y2: 1800 }, out);
+
+	assert.ok(out.zoom < 1, "the zoom did not give");
+	assert.ok(out.zoom * 2400 <= vp.width, "the group is wider than the viewport");
+	assert.ok(out.zoom * 1800 <= vp.height, "the group is taller than the viewport");
+});
+
+// The margin is the difference between framing a group and framing its bounding
+// box: a token's name plate hangs below it and its condition rings sit outside
+// it, and neither is in the box.
+test("a box pulled out to fit is not pulled to the very edges", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	focusTarget(camera(0, 0, 1), vp, { x1: 0, y1: 0, x2: 2400, y2: 1800 }, out);
+
+	assert.ok(out.zoom * 1800 < vp.height * 0.9, "the group touches the top and bottom of the screen");
+});
+
+// The zoom only ever gives. A viewer looking at the whole map is not dragged
+// down onto one goblin because it is that goblin's turn -- the map slides under
+// them and the scale they chose stays.
+test("following never zooms in", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	focusTarget(camera(0, 0, 0.2), vp, { x1: 4000, y1: 4000, x2: 4070, y2: 4070 }, out);
+
+	assert.equal(out.zoom, 0.2);
+	assert.equal(out.x, 4035);
+	assert.equal(out.y, 4035);
+});
+
+// A box with no size is a real question -- a pawn on a table whose grid has not
+// arrived yet -- and the answer is a position, not Infinity.
+test("a box with no size still gives a camera", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	focusTarget(camera(0, 0, 1), vp, { x1: 500, y1: 500, x2: 500, y2: 500 }, out);
+
+	assert.deepEqual(out, camera(500, 500, 1));
+});
+
+// A group larger than the widest view this camera has is framed as far out as
+// the camera goes rather than to a zoom the rest of the renderer would refuse.
+test("a box bigger than the zoom range stops at the limit", () => {
+	const vp = viewport(1280, 720);
+	const out = newCamera();
+
+	focusTarget(camera(0, 0, 1), vp, { x1: 0, y1: 0, x2: 1_000_000, y2: 1_000_000 }, out);
+
+	assert.equal(out.zoom, ZOOM_MIN);
 });
 
 // Zoomed in, the screen holds less than the map, so half a screen of map has to

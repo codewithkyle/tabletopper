@@ -193,7 +193,7 @@ func TestTheZeroValueStillRenders(t *testing.T) {
 // New is the read path and never fails: a column holding something this build
 // does not know about should cost one wrong field, not a blank page.
 func TestNewFallsBackFieldByField(t *testing.T) {
-	p := New("dark", "nonsense/Nowhere", "iso", "")
+	p := New("dark", "nonsense/Nowhere", "iso", "", true)
 
 	if p.Theme != ThemeDark {
 		t.Errorf("Theme = %q, want %q", p.Theme, ThemeDark)
@@ -206,6 +206,29 @@ func TestNewFallsBackFieldByField(t *testing.T) {
 	}
 	if p.TimeFormat != Default.TimeFormat {
 		t.Errorf("TimeFormat = %q, want the default %q", p.TimeFormat, Default.TimeFormat)
+	}
+	if !p.FollowTurn {
+		t.Error("FollowTurn = false, want the stored true: a boolean has nothing to fall back to")
+	}
+}
+
+// The camera setting is on for an account that has never been asked, and that
+// is the whole of "on by default for everybody" as far as this package is
+// concerned -- the column carries the same default, so the two agree on a row
+// nobody has touched and on a Preferences nothing has read a row into.
+//
+// THE ZERO VALUE IS NOT THE DEFAULT, which is the trap this pins. Preferences{}
+// has it off, so anything that builds one by hand rather than through New or
+// Default turns the setting off for whoever it belongs to.
+func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
+	if !Default.FollowTurn {
+		t.Error("Default.FollowTurn = false, want true")
+	}
+	if p := New("", "", "", "", false); p.FollowTurn {
+		t.Error("New ignored a stored false")
+	}
+	if (Preferences{}).FollowTurn {
+		t.Error("the zero value has it on; the note on the field is wrong")
 	}
 }
 

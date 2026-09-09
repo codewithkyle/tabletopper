@@ -157,6 +157,17 @@ type RoomPageData struct {
 	// command. It is the config's Development and nothing else, so it cannot
 	// be turned on from a query string.
 	Debug bool
+
+	// FollowTurn moves this viewer's camera onto whoever is acting when the
+	// turn moves. It is the account setting off the session and nothing about
+	// the room, so two people at one table can disagree about it.
+	//
+	// IT IS RENDERED AS A BARE ATTRIBUTE THAT IS EITHER THERE OR NOT, which is
+	// the same shape Socket uses for "do not connect": the client mounts the
+	// module when it finds the attribute and mounts nothing at all when it does
+	// not, so there is no flag to read at every turn and no half-on state. A
+	// value of "false" in an attribute would be a third thing to get wrong.
+	FollowTurn bool
 }
 
 // Bundle is the room module's URL with the build on it. It is a method rather

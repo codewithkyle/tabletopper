@@ -64,7 +64,7 @@ func (r *sessionRows) Columns() []string {
 		"id", "profile_image_url", "user_id", "character_id", "room_id",
 		"created_at", "refreshed_at",
 		"username", "avatar_asset_id",
-		"theme", "timezone", "date_format", "time_format", "onboarded_at",
+		"theme", "timezone", "date_format", "time_format", "follow_turn", "onboarded_at",
 	}
 }
 
@@ -94,6 +94,7 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 		[]byte("UTC"),                // timezone
 		[]byte("iso"),                // date_format
 		[]byte("24h"),                // time_format
+		int64(1),                     // follow_turn
 		nil,                          // onboarded_at
 	} {
 		dest[i] = v

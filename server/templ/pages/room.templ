@@ -38,6 +38,9 @@ templ roomContent(data RoomPageData) {
 				data-role={ data.RoleName() }
 				data-user={ data.UserID }
 				data-version={ data.Version }
+				if data.FollowTurn {
+					data-follow-turn
+				}
 				if data.Socket != "" {
 					data-socket={ data.Socket }
 				}

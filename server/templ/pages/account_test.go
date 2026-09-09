@@ -41,6 +41,7 @@ func testAccountSettings() AccountSettingsData {
 			{Value: "24h", Label: "24-hour (14:04)"},
 		},
 		TimeFormat: "24h",
+		FollowTurn: true,
 	}
 }
 
@@ -299,6 +300,7 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 		`name="timezone"`,
 		`name="date_format"`,
 		`name="time_format"`,
+		`name="follow_turn"`,
 		`<optgroup label="Americas">`,
 		`<option value="dark" selected>Dark</option>`,
 		`<option value="America/Chicago" selected>Chicago</option>`,
@@ -311,6 +313,43 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 		if !strings.Contains(welcome, want) {
 			t.Errorf("the welcome dialog is missing %s", want)
 		}
+	}
+}
+
+// THE CAMERA TOGGLE OPENS ON WHAT IS STORED, exactly as the four pickers do.
+// A dialog that always drew it ticked would read as "this is on" to somebody who
+// had turned it off, and saving without touching it would turn it back on.
+func TestTheCameraToggleOpensOnWhatIsStored(t *testing.T) {
+	on := collapseWhitespace(renderSettings(t))
+	if !strings.Contains(on, `name="follow_turn" type="checkbox" class="toggle col-start-2 row-start-1" checked`) {
+		t.Errorf("a stored true did not render ticked\n%s", on)
+	}
+
+	data := testAccountSettings()
+	data.FollowTurn = false
+
+	var buf bytes.Buffer
+	if err := AccountSettingsFragment(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	off := collapseWhitespace(buf.String())
+	if strings.Contains(off, `name="follow_turn" type="checkbox" class="toggle col-start-2 row-start-1" checked`) {
+		t.Errorf("a stored false rendered ticked\n%s", off)
+	}
+	if !strings.Contains(off, `name="follow_turn"`) {
+		t.Errorf("the toggle is missing altogether\n%s", off)
+	}
+}
+
+// AN UNTICKED CHECKBOX POSTS NOTHING, so the control has to be on the welcome
+// form as well or that dialog's save reads its absence as "off" -- turning a
+// setting that is on by default off for every new account. The shared-fields
+// assertion above covers the presence; this is the reason written down where
+// somebody removing it from one dialog will read it.
+func TestTheWelcomeDialogCarriesTheCameraToggle(t *testing.T) {
+	if !strings.Contains(collapseWhitespace(renderWelcome(t)), `name="follow_turn"`) {
+		t.Error("the welcome dialog would post no answer for a setting its save writes")
 	}
 }
 

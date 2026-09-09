@@ -12,11 +12,11 @@
 // strokes and pawns are later phases and each is one more call in this list,
 // against the same camera matrix.
 
-import type { Camera, Point, Viewport } from "./camera.ts";
+import type { Camera, Point, Rect, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
 import type { LayerView } from "./layers.ts";
-import { clampToMap, fit, newCamera, zoomAt, zoomTo } from "./camera.ts";
+import { clampToMap, fit, focusTarget, newCamera, zoomAt, zoomTo } from "./camera.ts";
 import { createContext } from "./gl.ts";
 import { createGlyphAtlas } from "./glyphs.ts";
 import { createGridPass } from "./grid-pass.ts";
@@ -56,6 +56,16 @@ const HANDLE_WIDTH = 2;
 // reaching the menu again for a second helping is expensive.
 const VIEW_ZOOM_STEP = 1.5;
 
+// FOCUS_MS is how long the camera takes to travel to whoever is acting.
+//
+// IT IS A MOVE AND NOT A CUT. A camera that teleports on every turn leaves the
+// viewer working out where on the map they have been put, once per creature,
+// for the whole fight; a third of a second of travel answers that question for
+// free, because the direction the table slid IS the answer. It is short enough
+// that a GM stepping quickly through a row of goblins is never waiting on it,
+// and a hand on the table cancels it outright -- see drawFrame.
+const FOCUS_MS = 320;
+
 // BENCHMARK_MS is the sweep's length. Ten seconds is long enough to fill the
 // tile cache, cross a level boundary in both directions, and give the ring of
 // frame samples something to be a 95th percentile of.
@@ -85,6 +95,14 @@ export interface Renderer {
 	// reducer mutates the store in place, which is what keeps a pawn moving
 	// from allocating, and an in-place mutation has nothing to subscribe to.
 	pawnsChanged(): void;
+
+	// focus moves the camera onto a box of the table, easing rather than
+	// jumping, and gives up the moment a hand touches the canvas.
+	//
+	// THE CALLER DECIDES WHAT IS WORTH LOOKING AT AND THIS DECIDES NOTHING.
+	// What arrives is a rectangle in map pixels; the turn order is what turned
+	// the acting line into one, and it is the only caller today. See follow.ts.
+	focus(rect: Rect): void;
 
 	// bloodCleared drops one floor's blood.
 	//
@@ -207,6 +225,17 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 
 	let sweep: { from: number; report: (result: Benchmark) => void; tiles: number } | null = null;
 
+	// THE FOLLOWED TURN, MID-TRAVEL. travel is where the camera started and
+	// when; target is where it is going, and it is a whole camera rather than a
+	// point because the zoom may have to give as well as the position.
+	//
+	// BOTH ARE ALLOCATED ONCE, like everything else this loop touches. A turn
+	// change is not a hot path, but a Camera allocated per turn is a Camera
+	// allocated in the same file that reuses a matrix, a rect and two anchors,
+	// and the inconsistency is the part that would get copied.
+	const target: Camera = newCamera();
+	let travel: { x: number; y: number; zoom: number; from: number } | null = null;
+
 	let settled: (() => void) | null = null;
 	let framed: (() => void) | null = null;
 	let lastViewed = "";
@@ -288,8 +317,24 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		settleMap(map);
 
 		const sweeping = advanceSweep(now, map);
-		if (!sweeping && apply(input.pending, camera, viewport) && map) {
-			clampToMap(camera, viewport, map.width, map.height);
+		if (!sweeping) {
+			// A HAND ON THE TABLE OUTRANKS THE TURN ORDER. A pointer that is
+			// down -- panning, holding a token, dragging a marquee -- has said
+			// where this person wants to look more recently than the tracker
+			// did, and a camera that slid out from under it would read as the
+			// drag itself being broken. It is dropped and not deferred: by the
+			// time the hand comes off, "go to whoever is up" is stale.
+			if (input.dragging()) {
+				travel = null;
+			}
+
+			if (apply(input.pending, camera, viewport)) {
+				if (map) {
+					clampToMap(camera, viewport, map.width, map.height);
+				}
+			} else {
+				advanceTravel(now);
+			}
 		}
 
 		gl.viewport(0, 0, canvas.width, canvas.height);
@@ -314,7 +359,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// driving. drawPawns folds in two more of its own -- blood that is
 		// still drying, and a creature with a heartbeat -- and only the last of
 		// those has no end in sight. See the note beside it.
-		return input.dragging() || layers.fading() || uploading || loading || sweeping;
+		return input.dragging() || layers.fading() || uploading || loading || sweeping || travel !== null;
 	}
 
 	// drawPawns is the table's contents: the blood and the highlighted cells
@@ -500,10 +545,46 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 
 		if (lastWidth !== map.width || lastHeight !== map.height) {
 			fit(camera, viewport, map.width, map.height);
+
+			// AND A FIT ENDS ANY TRAVEL, because a map of a different shape is a
+			// different place: a camera still easing towards a box measured on
+			// the map that has just been replaced would pull straight back off
+			// the frame this just chose.
+			travel = null;
 		}
 
 		lastWidth = map.width;
 		lastHeight = map.height;
+	}
+
+	// advanceTravel eases the camera one frame along its way to whatever it was
+	// pointed at, and clears the trip on the frame it arrives.
+	//
+	// THE ZOOM IS INTERPOLATED GEOMETRICALLY AND THE POSITION IS NOT, because a
+	// zoom is a ratio and a position is a distance. Halfway between 0.25 and 4
+	// on a straight line is 2.125, which is most of the way to the far end;
+	// halfway between them as a ratio is 1, which is what "half zoomed" looks
+	// like. Interpolating it linearly reads as the table rushing away at the
+	// start of the move and crawling at the end of it.
+	//
+	// THE EASE IS A SMOOTHSTEP, so the camera starts and finishes at rest. That
+	// is the difference between a table that glides to the next creature and
+	// one that is yanked there and stopped dead.
+	function advanceTravel(now: number): void {
+		if (!travel) {
+			return;
+		}
+
+		const t = Math.min(1, (now - travel.from) / FOCUS_MS);
+		const eased = t * t * (3 - 2 * t);
+
+		camera.x = travel.x + (target.x - travel.x) * eased;
+		camera.y = travel.y + (target.y - travel.y) * eased;
+		camera.zoom = travel.zoom * Math.pow(target.zoom / travel.zoom, eased);
+
+		if (t >= 1) {
+			travel = null;
+		}
 	}
 
 	// advanceSweep drives the camera through the benchmark and answers whether
@@ -669,6 +750,23 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 
 		pawnsChanged() {
 			pawnsDirty = true;
+		},
+
+		focus(rect) {
+			focusTarget(camera, viewport, rect, target);
+
+			// THE DESTINATION IS CLAMPED AND THE JOURNEY IS NOT. Both ends of
+			// it are inside the bound -- the camera is already there, and this
+			// is what puts the target there -- so nothing in between strays far
+			// enough from the map to see, and clamping every frame against a
+			// bound that moves with the zoom would bend the path.
+			const map = layers.viewed()?.map ?? null;
+			if (map) {
+				clampToMap(target, viewport, map.width, map.height);
+			}
+
+			travel = { x: camera.x, y: camera.y, zoom: camera.zoom, from: performance.now() };
+			frames.invalidate();
 		},
 
 		bloodCleared(layerID) {

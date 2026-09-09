@@ -483,6 +483,27 @@ func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
 	}
 }
 
+// THE FOLLOW SETTING CROSSES INTO THE BUNDLE AS AN ATTRIBUTE THAT IS THERE OR
+// IS NOT, which is the same shape data-socket uses to say "do not connect". The
+// client mounts follow.ts when it finds it and mounts nothing at all when it
+// does not, so a spelling that drifted from main.ts is a feature that is simply
+// off for everybody with nothing anywhere reporting it.
+func TestTheCameraFollowsTheTurnOnlyForAnAccountThatAskedForIt(t *testing.T) {
+	following := testRoomPage(room.RoleGM)
+	following.FollowTurn = true
+
+	if !strings.Contains(renderToString(t, roomContent(following)), "data-follow-turn") {
+		t.Error("the room page did not tell the bundle to follow the turn")
+	}
+
+	// And off is the attribute's absence rather than a value the client would
+	// have to read and compare.
+	off := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
+	if strings.Contains(off, "data-follow-turn") {
+		t.Errorf("an account that turned it off still got the attribute:\n%s", off)
+	}
+}
+
 // THE CAMERA ITEMS ARE THE ONE PLACE A LABEL IS NOT THE CONTRACT. Everything
 // else in the bar is a URL or a window id, which fails loudly when it is wrong;
 // these cross into another bundle as a string in an event, where a typo is a

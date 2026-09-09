@@ -24,6 +24,7 @@ func settingsForm() url.Values {
 		"timezone":    {"Europe/London"},
 		"date_format": {"iso"},
 		"time_format": {"24h"},
+		"follow_turn": {"on"},
 	}
 }
 
@@ -107,7 +108,7 @@ func TestOneBadFieldStopsTheWholeSave(t *testing.T) {
 	}
 }
 
-func TestAValidSaveWritesTheFiveColumnsOnce(t *testing.T) {
+func TestAValidSaveWritesTheSixColumnsOnce(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
 	rec := saveSettings(t, db, settingsForm())
@@ -120,7 +121,7 @@ func TestAValidSaveWritesTheFiveColumnsOnce(t *testing.T) {
 	}
 
 	call := db.calls[0]
-	if want := []string{"username", "theme", "timezone", "date_format", "time_format"}; !equalStrings(setColumns(t, call.query), want) {
+	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn"}; !equalStrings(setColumns(t, call.query), want) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 
@@ -132,6 +133,7 @@ func TestAValidSaveWritesTheFiveColumnsOnce(t *testing.T) {
 		"Europe/London",
 		queries.UsersDateFormat("iso"),
 		queries.UsersTimeFormat("24h"),
+		true,
 		testOwnerID,
 	}
 	if len(call.args) != len(wantArgs) {
@@ -348,7 +350,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 		t.Fatalf("statements run = %d, want 1", len(db.calls))
 	}
 
-	want := []string{"username", "theme", "timezone", "date_format", "time_format", "onboarded_at"}
+	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "onboarded_at"}
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
@@ -378,6 +380,48 @@ func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "errors-account-welcome") {
 		t.Errorf("the reply is not the welcome dialog's error block\n%s", rec.Body.String())
+	}
+}
+
+// AN UNTICKED BOX POSTS NOTHING, which is how HTML has always sent a checkbox
+// and is the one place this setting could go wrong: absence has to read as off
+// and not as "the field was missing, keep what was there".
+func TestUntickingTheCameraTogglePutsItAway(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	form := settingsForm()
+	form.Del("follow_turn")
+	rec := saveSettings(t, db, form)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200\n%s", rec.Code, rec.Body.String())
+	}
+	if len(db.calls) != 1 {
+		t.Fatalf("statements run = %d, want 1", len(db.calls))
+	}
+
+	// The columns are written in the statement's order and follow_turn is the
+	// fifth of the six; see UpdateUserPreferences.
+	if got := db.calls[0].args[5]; got != false {
+		t.Errorf("follow_turn = %#v, want false", got)
+	}
+}
+
+// AND THE WELCOME DIALOG CARRIES THE SAME BOX FOR EXACTLY THAT REASON. It saves
+// through the same reader, so a welcome form that had left the control out
+// would post nothing for it, and this would store "off" for every account on
+// the dialog that exists to welcome them.
+func TestTheWelcomeDialogSavesTheCameraSettingToo(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	welcomePost(t, db, "/account/welcome", settingsForm(),
+		func(a *App, w http.ResponseWriter, r *http.Request) { a.CompleteOnboarding(w, r) })
+
+	if len(db.calls) != 1 {
+		t.Fatalf("statements run = %d, want 1", len(db.calls))
+	}
+	if got := db.calls[0].args[5]; got != true {
+		t.Errorf("follow_turn = %#v, want true", got)
 	}
 }
 

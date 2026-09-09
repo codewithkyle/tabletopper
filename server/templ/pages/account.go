@@ -1,7 +1,7 @@
 package pages
 
-// The account settings dialog: the account's display name, then four pickers
-// over the values in internal/prefs.
+// The account settings dialog: the account's display name, four pickers over
+// the values in internal/prefs, and one toggle.
 //
 // IT IS A DIALOG AND NOT A PAGE because there is nothing else on it. A field,
 // four selects and a Save is a question, and a question belongs in the content
@@ -134,6 +134,23 @@ type AccountSettingsData struct {
 
 	TimeFormats []Option
 	TimeFormat  string
+
+	// FollowTurn is the one control on this dialog that is not about how a page
+	// is rendered: it moves the reader's camera onto whoever is acting when the
+	// turn moves at a table.
+	//
+	// IT IS A TOGGLE AND NOT A PICKER, so it has no list of options beside it --
+	// which is why it is a bare bool where its four neighbours are a value and
+	// the set it came from. There is no second member to offer.
+	//
+	// IT IS ON THE WELCOME DIALOG TOO, and that is not decoration. An unticked
+	// checkbox posts nothing at all, so a welcome form that left this control
+	// out would post nothing for it, and the save behind both dialogs would read
+	// that silence as "off" -- turning a setting that is on by default off for
+	// every account, on the dialog that exists to welcome them. See
+	// accountSettingsFields, which is the one copy of the controls both dialogs
+	// render.
+	FollowTurn bool
 
 	Storage string
 }

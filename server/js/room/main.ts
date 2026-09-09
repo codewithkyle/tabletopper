@@ -32,6 +32,7 @@ import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
 import { mountEntryMenu } from "./initiative-menu.ts";
+import { mountFollow, type Follow } from "./follow.ts";
 import { mountTurns, type Turns } from "./initiative.ts";
 import { mountLayerTool } from "./layer-tool.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
@@ -112,6 +113,7 @@ if (mount) {
 	let socket: Socket | null = null;
 	let renderer: Renderer | null = null;
 	let overlay: Overlay | null = null;
+	let follow: Follow | null = null;
 
 	const table = createTable({
 		state,
@@ -209,6 +211,22 @@ if (mount) {
 			table.onChange(overlay.refresh);
 			view.onFrame(overlay.place);
 		}
+
+		// AND THE CAMERA FOLLOWS THE TURN, for a reader who asked it to. The
+		// attribute is rendered by the room page out of the account settings,
+		// so somebody who turned it off mounts nothing rather than mounting
+		// something that checks a flag -- there is no half-on state to reason
+		// about, and a page with no renderer never reaches here at all.
+		//
+		// THE VIEWED FLOOR IS THE RENDERER'S, exactly as it is for the table
+		// above: a GM looking at another floor is not looking at the fight, and
+		// the follow declines rather than dragging them back to it.
+		if (mount.dataset.followTurn !== undefined) {
+			follow = mountFollow(state, {
+				viewed: () => view.view.viewed()?.id ?? state.table.activeLayer,
+				focus: (rect) => view.focus(rect),
+			});
+		}
 	}
 
 	// The spawn dialog's own behaviour, and the bridge that turns a picked card
@@ -219,7 +237,7 @@ if (mount) {
 
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table, overlay, turns);
+		socket = start(path, state, renderer, table, overlay, turns, follow);
 	}
 }
 
@@ -243,6 +261,7 @@ function start(
 	table: Table,
 	overlay: Overlay | null,
 	turns: Turns | null,
+	follow: Follow | null,
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
@@ -317,6 +336,14 @@ function start(
 			if (event.type === "snapshot" || event.type === "initiative.updated") {
 				turns?.changed();
 			}
+
+			// AND THE CAMERA GOES TO WHOEVER IS UP, for a reader who asked for
+			// that. It is handed the whole event rather than being called from
+			// inside the branch above, because what counts as the turn MOVING
+			// is not what counts as the strip needing a clock: a reorder and a
+			// reconnect both land in that branch and neither is a new turn.
+			// See follow.ts.
+			follow?.event(event);
 
 			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people
 			// are dragging live outside the store on purpose -- pawn.dragging
