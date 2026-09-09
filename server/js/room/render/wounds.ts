@@ -140,17 +140,20 @@ export function hurt(band: HPBand | null): number {
 // they ride into the shader as a number because a per-instance branch is a float
 // compare either way.
 //
-// THE PULSE COLLAPSES INWARD, from the rim toward the centre, and that direction
-// is the whole reason it works. Outward reads as something escaping the body and
-// sails straight out into the ring stack where the conditions live; inward reads
-// as life draining toward a point, and it can never collide with anything
-// because it never leaves the disc.
+// THE PULSE IS A GRADIENT ON THE INSIDE OF THE RIM AND NOTHING TRAVELS. It was a
+// ring collapsing toward the centre once, and the travel was the wrong idea
+// twice: a shape crossing the token pulls the eye off the token, and the ring
+// arrives ON the face at the end of every beat, which is the one part of a pawn
+// that has to stay legible. So the geometry is fixed -- bright at the creature's
+// edge, falling off quickly inward -- and only its brightness beats.
+//
+// EITHER WAY IT STAYS INSIDE THE DISC, which is the rule this whole file is
+// about: outward would sail into the ring stack the conditions own.
 export const BEAT_NONE = 0;
 export const BEAT_SLOW = 1;
 export const BEAT_HEART = 2;
 
-// beats is which of those a band gets. Very bloody is a slow single sweep; near
-// death is a heart.
+// beats is which of those a band gets: the same heart labouring at two rates.
 export function beats(band: HPBand | null): number {
 	switch (band) {
 		case "veryBloody":
@@ -168,12 +171,26 @@ export function beats(band: HPBand | null): number {
 // in pawn-pass.ts: the splatter's dense centre is exactly where the face is, and
 // exactly what gets masked away.
 //
-// A CORPSE KEEPS ITS BLOOD RED while the body under it goes grey, which is the
-// one place in this app where the two are deliberately out of step. It is a
-// stronger picture than either alone.
+// A CORPSE KEEPS ITS BLOOD, DRIED. The body goes grey and the splatter over it
+// goes to the same dark maroon the floor's marks settle at -- bright arterial red
+// on a black and white portrait reads as paint rather than as blood, and both
+// changes land on the frame the skull arrives. See BLOOD_DRIED.
 export function bleeds(band: HPBand | null): boolean {
 	return band === "veryBloody" || band === "nearDeath" || band === "dead";
 }
+
+// BLOOD_FRESH and BLOOD_DRIED are what the sheet's pure red is multiplied by.
+// The art has no desaturation anywhere in it -- the green and blue channels are
+// essentially zero -- so the red channel carries all of a splatter's shading and
+// a tint against it recolours the whole set from one texture.
+//
+// THEY ARE SHARED BY THE FLOOR AND THE PORTRAIT so that a corpse and the pool it
+// is lying in are the same colour. A creature's blood dries the moment it dies:
+// bright red on a body that has just gone grey and white reads as paint rather
+// than as blood, and the two changes land together, on the frame the skull
+// arrives.
+export const BLOOD_FRESH: readonly [number, number, number] = [1, 0.13, 0.1];
+export const BLOOD_DRIED: readonly [number, number, number] = [0.34, 0.06, 0.05];
 
 // BLOOD_VARIANTS is how many splatters the sheet was cut into. They live under
 // /images/blood at 256 square, which is the sprite cache's layer size, so each
@@ -202,10 +219,16 @@ export function seed(text: string): number {
 	return value >>> 0;
 }
 
-// BEAT_PERIOD is one heartbeat, in milliseconds. Around 57 a minute: slow enough
-// to read as a heart rather than as a blinking cursor, fast enough to be
-// alarming.
+// BEAT_PERIOD and SLOW_PERIOD are one beat, in milliseconds. Around 57 a minute
+// for a creature that is dying and 33 for one that is badly hurt: the same heart
+// labouring at two rates, so a table with both on it reads as one language
+// rather than as two effects.
 export const BEAT_PERIOD = 1050;
+export const SLOW_PERIOD = 1800;
+
+// SLOW_PEAK and BEAT_PEAK are how hard each of them hits.
+const SLOW_PEAK = 0.55;
+const BEAT_PEAK = 1;
 
 // THUMPS is lub-dub: two knocks close together and then a long rest, with the
 // second quieter than the first.
@@ -214,17 +237,24 @@ export const BEAT_PERIOD = 1050;
 // "selected", or as something loading; every interface the reader has ever used
 // pulses that way. Two thumps and a silence is a heart, unmistakably, and it
 // costs exactly the same arithmetic.
+//
+// THE THUMPS THEMSELVES ARE THE SAME LENGTH AT BOTH RATES. Only the rest between
+// beats changes, which is what a slower heart actually is -- stretching the knock
+// as well would turn it into a swell.
 const THUMPS: readonly (readonly [number, number])[] = [[0, 1], [220, 0.78]];
 const ATTACK = 50;
 const DECAY = 150;
 
-// heartbeat is that envelope, from 0 at rest to 1 at the top of a thump. The
-// collapsing ring is launched by the FIRST thump only -- two rings in flight at
-// once reads as a ripple in water, which is a different thing entirely -- so
-// this is what the second thump is drawn with: a brightening of the rim, with no
-// ring of its own.
-export function heartbeat(now: number): number {
-	const t = phase(now, BEAT_PERIOD);
+// heartbeat is that envelope, from 0 at rest to 1 at the top of a thump.
+//
+// IT IS THE WHOLE OF THE PULSE NOW. It used to drive a ring that travelled from
+// the creature's rim to its centre, and the travel was the wrong idea: a shape
+// crossing the token pulled the eye away from the token, and it collapsed onto
+// the face at the end of every beat. What the shader draws instead is a gradient
+// anchored at the rim with a short fall-off inward, and this is its brightness --
+// so nothing MOVES, it just beats.
+export function heartbeat(now: number, period: number): number {
+	const t = phase(now, period);
 
 	let peak = 0;
 	for (const [at, height] of THUMPS) {
@@ -242,50 +272,14 @@ export function heartbeat(now: number): number {
 	return peak;
 }
 
-export interface Pulse {
-	// depth is how far the ring has collapsed: 0 at the creature's rim, 1
-	// arrived at its centre.
-	depth: number;
-
-	// alpha fades IN at the rim and OUT at the centre, so the ring sweeps
-	// through the token rather than popping into existence on its edge and
-	// stopping dead in its middle.
-	alpha: number;
+// slowBeat and fastBeat are the two rates as the shader takes them: one number
+// each, both read every frame and handed to every instance at once.
+export function slowBeat(now: number): number {
+	return SLOW_PEAK * heartbeat(now, SLOW_PERIOD);
 }
 
-// SLOW_PERIOD and SLOW_TRAVEL are the very-bloody sweep: one ring, a long way
-// apart, gentle. It is a creature that is in trouble rather than one that is
-// going, and the difference between it and the heartbeat has to be legible at a
-// glance across a table with both on it.
-const SLOW_PERIOD = 2400;
-const SLOW_TRAVEL = 1000;
-const SLOW_PEAK = 0.4;
-
-// BEAT_TRAVEL is how long the heart's ring takes to reach the centre. It runs
-// well past the thump that launched it and is gone before the next beat.
-const BEAT_TRAVEL = 620;
-const BEAT_PEAK = 0.85;
-
-// slowPulse and beatPulse are the two rates. They are separate functions rather
-// than one parameterised one because they are read together, every frame, into
-// one uniform -- and a caller that had to remember which arguments meant which
-// band is a caller that will one day pass the heartbeat's numbers to the sweep.
-export function slowPulse(now: number): Pulse {
-	return sweep(phase(now, SLOW_PERIOD), SLOW_TRAVEL, SLOW_PEAK);
-}
-
-export function beatPulse(now: number): Pulse {
-	return sweep(phase(now, BEAT_PERIOD), BEAT_TRAVEL, BEAT_PEAK);
-}
-
-function sweep(t: number, travel: number, peak: number): Pulse {
-	if (t > travel) {
-		return { depth: 1, alpha: 0 };
-	}
-
-	const depth = t / travel;
-
-	return { depth, alpha: peak * Math.sin(Math.PI * depth) };
+export function fastBeat(now: number): number {
+	return BEAT_PEAK * heartbeat(now, BEAT_PERIOD);
 }
 
 // phase is where in a repeating window the clock is. It is written once because

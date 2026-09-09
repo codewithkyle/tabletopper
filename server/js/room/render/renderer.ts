@@ -33,7 +33,7 @@ import { startFrames } from "./frame.ts";
 import { pawnExtents } from "./path.ts";
 import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
 import { cellCentre } from "./path.ts";
-import { beatPulse, heartbeat, slowPulse } from "./wounds.ts";
+import { fastBeat, slowBeat } from "./wounds.ts";
 import { stressPawns } from "./stress.ts";
 import type { Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
@@ -208,7 +208,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	// than a per-instance value because the pawn buffer is rebuilt when the
 	// table changes and never per frame; see pawn-pass.ts. The object is reused
 	// for the reason everything else in this loop is.
-	const pulse: PawnPulse = { slowDepth: 0, slowAlpha: 0, beatDepth: 0, beatAlpha: 0, beat: 0 };
+	const pulse: PawnPulse = { slow: 0, heart: 0 };
 
 	const drawn: Drawn[] = [];
 	let synthetic: Drawn[] = [];
@@ -299,8 +299,8 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// holds: a button or a finger is down, the crossfade is partway
 		// through, tiles or pictures are queued for upload, or the benchmark is
 		// driving. drawPawns folds in two more of its own -- blood that is
-		// still drying, and a creature whose pulse is still collapsing -- and
-		// only the last of those has no end in sight. See the note beside it.
+		// still drying, and a creature with a heartbeat -- and only the last of
+		// those has no end in sight. See the note beside it.
 		return input.dragging() || layers.fading() || uploading || loading || sweeping;
 	}
 
@@ -369,13 +369,8 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		decals.build(viewedID, now, sprites, decalPass);
 		decalPass.draw(camera, sprites.texture(), canvas.width, canvas.height, dpr);
 
-		const slow = slowPulse(now);
-		const heart = beatPulse(now);
-		pulse.slowDepth = slow.depth;
-		pulse.slowAlpha = slow.alpha;
-		pulse.beatDepth = heart.depth;
-		pulse.beatAlpha = heart.alpha;
-		pulse.beat = heartbeat(now);
+		pulse.slow = slowBeat(now);
+		pulse.heart = fastBeat(now);
 
 		floorMarks.draw(camera, canvas.width, canvas.height, dpr);
 		pawnPass.draw(camera, canvas.width, canvas.height, dpr, pulse);
@@ -465,8 +460,8 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// creature on the viewed floor at a quarter of its hit points or less,
 		// still alive. That is a wider window than it sounds -- it is most
 		// monsters for most of a fight -- and it is deliberate: while it holds,
-		// the pulse is the most important thing on the table. Everything else
-		// is finite by construction.
+		// the heartbeat is the most important thing on the table. Everything
+		// else is finite by construction.
 		return sprites.end() || pawnPass.beating() || decals.settling(now);
 	}
 

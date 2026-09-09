@@ -27,9 +27,9 @@
 // A WOUNDED CREATURE IS DRAWN DIFFERENTLY RATHER THAN RINGED, and the whole of
 // that happens in here. Blood soaks in from the rim of the disc and pools toward
 // its bottom, the colour drains toward a cold grey, one of the nine splatters is
-// composited over the portrait, and a ring collapses inward from the rim to the
-// centre. Nothing about it leaves the pawn's own circle: what is OUTSIDE a pawn
-// is its conditions, and health is not one of those. See wounds.ts.
+// composited over the portrait, and a glow on the inside of the rim beats.
+// Nothing about it leaves the pawn's own circle: what is OUTSIDE a pawn is its
+// conditions, and health is not one of those. See wounds.ts.
 //
 // THE PULSE PHASE IS A UNIFORM AND NOT AN ATTRIBUTE, which is the one thing that
 // makes the above free. This buffer is rebuilt when the table changes; a
@@ -51,7 +51,10 @@ import type { Grid, HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { KIND_COLORS } from "./sprites.ts";
 import { SKULL } from "./sprites.ts";
-import { BEAT_NONE, beats, bleeds, bloodSprite, hurt, seed } from "./wounds.ts";
+import {
+	BEAT_NONE, BLOOD_DRIED, BLOOD_FRESH,
+	beats, bleeds, bloodSprite, hurt, seed,
+} from "./wounds.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
 import { pawnExtents, radians } from "./path.ts";
@@ -101,9 +104,11 @@ const STAIN_ALPHA = 0.62;
 // droplets round the edge.
 const BLOOD_INNER = 0.25;
 
-// PULSE_SOFT is the collapsing ring's half width, in the same fraction. Wide
-// enough to survive a pawn drawn thirty pixels across.
-const PULSE_SOFT = 0.1;
+// PULSE_REACH is how far in from the rim the heartbeat's glow reaches, as a
+// fraction of the radius. Short, because the fall-off is the whole shape: a glow
+// that got most of the way to the middle would be the token changing colour
+// rather than a creature having a pulse.
+const PULSE_REACH = 0.24;
 
 // SPRITE_EDGE is the sprite layer's size. It is written here rather than
 // imported so this module's arithmetic does not depend on how the cache was
@@ -166,26 +171,21 @@ flat in float v_edge;
 
 uniform sampler2DArray u_sprites;
 
-// u_pulse is the collapsing ring's phase for both rates at once: the slow sweep
-// a very bloodied creature gets in xy, the heartbeat a dying one gets in zw,
-// each as how far it has travelled from the rim and how bright it is. u_beat is
-// the heartbeat's own envelope, which is what the second thump is drawn with --
-// it has no ring of its own, because two rings in flight at once reads as a
-// ripple in water rather than as a heart.
-uniform vec4 u_pulse;
-uniform float u_beat;
+// u_pulse is how hard the heart is beating right now at each of its two rates:
+// the slow one a badly hurt creature has in x, the fast one a dying creature has
+// in y. Nothing here is a position -- see wounds.ts -- so this is brightness and
+// only brightness.
+uniform vec2 u_pulse;
 
 const vec3 LUMA = vec3(0.299, 0.587, 0.114);
 
 // BLOOD is what soaks into the rim, PALLOR is the cold cast the colour drains
-// toward, PULSE is the collapsing ring, and STAIN is what the splatter over a
-// portrait is tinted to. The art the last of those samples is a single hue with
-// no desaturation in it, so its red channel carries the whole of the shape's
-// shading and multiplying is what keeps every fold in it.
+// toward, and PULSE is the heartbeat's glow. What a splatter over a portrait is
+// tinted to is NOT here: it changes when the creature dies, so it arrives per
+// instance instead.
 const vec3 BLOOD = vec3(0.42, 0.03, 0.03);
 const vec3 PALLOR = vec3(0.82, 0.88, 1.0);
 const vec3 PULSE = vec3(1.0, 0.24, 0.2);
-const vec3 STAIN = vec3(0.78, 0.09, 0.07);
 
 out vec4 outColor;
 
@@ -247,20 +247,15 @@ void main() {
 			rgb = mix(rgb, PALLOR * dot(rgb, LUMA), 0.35 * wounded);
 		}
 
-		// THE PULSE COLLAPSING INWARD: one ring, launched at the rim, arriving
-		// at the centre. Inward rather than outward is the point of it -- life
-		// draining to a point, and a mark that can never reach the ring stack
-		// outside the pawn because it never leaves the disc.
+		// THE PULSE, WHICH IS A GRADIENT ON THE INSIDE OF THE RIM AND DOES NOT
+		// MOVE. Bright at the creature's edge, falling off quickly inward, and
+		// the only thing that changes is how hard it is lit -- so the shape
+		// stays out of the middle of the portrait, where the face is, and the
+		// eye reads a beat rather than something crossing the token.
 		float beating = v_wound.y;
 		if (beating > 0.5) {
-			vec2 pulse = beating < 1.5 ? u_pulse.xy : u_pulse.zw;
-			float ring = 1.0 - smoothstep(0.0, ${PULSE_SOFT}, abs(r - (1.0 - pulse.x)));
-			rgb = mix(rgb, PULSE, ring * pulse.y);
-
-			// The second thump gets a flush at the rim instead of a ring.
-			if (beating > 1.5) {
-				rgb = mix(rgb, PULSE, smoothstep(0.55, 1.0, r) * u_beat * 0.3);
-			}
+			float amount = beating < 1.5 ? u_pulse.x : u_pulse.y;
+			rgb = mix(rgb, PULSE, smoothstep(1.0 - ${PULSE_REACH}, 1.0, r) * amount);
 		}
 	} else if (shape < 1.5) {
 		cover = picture.a;
@@ -284,7 +279,10 @@ void main() {
 			discard;
 		}
 
-		rgb = STAIN * picture.r;
+		// THE TINT RIDES IN ON v_border, which a stain has no other use for. It
+		// is arterial red on the living and the floor's own dried maroon on a
+		// corpse; see BLOOD_DRIED in wounds.ts.
+		rgb = v_border.rgb * picture.r;
 	}
 
 	// Desaturation is the GM's marker for a pawn players cannot see, and the
@@ -298,7 +296,7 @@ void main() {
 }
 `;
 
-const names = ["u_clip", "u_sprites", "u_scale", "u_pulse", "u_beat"] as const;
+const names = ["u_clip", "u_sprites", "u_scale", "u_pulse"] as const;
 
 // Drawn is one pawn as this pass needs it. It is deliberately NOT room.Pawn:
 // the stress test's five hundred synthetic pawns are not in the store and never
@@ -334,17 +332,13 @@ export interface Drawn {
 	health: HPBand | null;
 }
 
-// PawnPulse is the collapsing ring's phase, read once per frame and handed to
-// every instance at once. See the note at the top of this file for why it is a
-// uniform rather than a per-instance value.
+// PawnPulse is how hard the heart is beating right now, at each of its two
+// rates, read once per frame and handed to every instance at once. See the note
+// at the top of this file for why it is a uniform rather than a per-instance
+// value.
 export interface PawnPulse {
-	slowDepth: number;
-	slowAlpha: number;
-	beatDepth: number;
-	beatAlpha: number;
-
-	// beat is the heartbeat envelope, which the second thump is drawn with.
-	beat: number;
+	slow: number;
+	heart: number;
 }
 
 export interface PawnPass {
@@ -545,13 +539,15 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 						const turn = radians(mark % 360);
 						const [bx, by] = fitFactors(stain.w, stain.h, halfW, halfH, true);
 
-						// A CORPSE KEEPS ITS BLOOD RED -- no grey of its own --
-						// while the body under it goes grey. A pawn nobody can
-						// see has even this desaturated, because that marker is
-						// about whether the thing is on the table at all.
+						// A CORPSE KEEPS ITS BLOOD, DRIED, and keeps it in
+						// colour -- no grey of its own -- while the body under it
+						// goes black and white. A pawn nobody can see has even
+						// this desaturated, because that marker is about whether
+						// the thing is on the table at all rather than about what
+						// has happened to it.
 						push(
 							pawn.x, pawn.y, halfW, halfH,
-							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
+							dead ? BLOOD_DRIED : BLOOD_FRESH, 0,
 							stain.layer, SHAPE_STAIN, opacity * STAIN_ALPHA,
 							pawn.hidden ? HIDDEN_GREY : 0,
 							bx, by, stain.w / SPRITE_EDGE, stain.h / SPRITE_EDGE,
@@ -597,12 +593,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 			gl.uniform1i(at.u_sprites, 0);
 			gl.uniform1f(at.u_scale, cam.zoom * dpr);
-			gl.uniform4f(
-				at.u_pulse,
-				pulse?.slowDepth ?? 0, pulse?.slowAlpha ?? 0,
-				pulse?.beatDepth ?? 0, pulse?.beatAlpha ?? 0,
-			);
-			gl.uniform1f(at.u_beat, pulse?.beat ?? 0);
+			gl.uniform2f(at.u_pulse, pulse?.slow ?? 0, pulse?.heart ?? 0);
 			gl.uniformMatrix3fv(at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
 
 			gl.enable(gl.BLEND);

@@ -31,7 +31,10 @@ import type { Pawn } from "../protocol.ts";
 import type { HPBand } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
-import { BLOOD_VARIANTS, bloodSprite, healthOf, seed, splatters, worsened } from "./wounds.ts";
+import {
+	BLOOD_DRIED as DRIED, BLOOD_FRESH as FRESH,
+	BLOOD_VARIANTS, bloodSprite, healthOf, seed, splatters, worsened,
+} from "./wounds.ts";
 import { pawnExtents } from "./path.ts";
 
 // BLOOD_PRIORITY is behind every pawn picture, which ask at zero. A portrait
@@ -57,14 +60,6 @@ const POOL_DRY_MS = 9000;
 const WET_ALPHA = 0.85;
 const REST_ALPHA = 0.38;
 const POOL_REST_ALPHA = 0.5;
-
-// FRESH and DRIED are what the sheet's pure red is multiplied by. The art has no
-// desaturation anywhere in it -- the green and blue channels are essentially
-// zero -- so the red channel carries all of the shape's shading and a tint
-// against it recolours the whole set from one texture. That is what drying is,
-// and it is the door through which a green-blooded ooze walks later.
-const FRESH: readonly [number, number, number] = [1, 0.13, 0.1];
-const DRIED: readonly [number, number, number] = [0.34, 0.06, 0.05];
 
 // JITTER is how far from the pawn's centre a mark may land, as a fraction of its
 // radius, and SPREAD_MIN/MAX are how big it is drawn against the same radius. A

@@ -10,8 +10,8 @@ import { test } from "node:test";
 
 import type { HPBand } from "../protocol.ts";
 import {
-	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW,
-	bandOf, beatPulse, beats, bleeds, healthOf, heartbeat, hurt, slowPulse, splatters, worsened,
+	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW, SLOW_PERIOD,
+	bandOf, beats, bleeds, fastBeat, healthOf, heartbeat, hurt, slowBeat, splatters, worsened,
 } from "./wounds.ts";
 
 test("the bands sit exactly where the server puts them", () => {
@@ -116,9 +116,9 @@ test("only a creature in trouble is marked, and a corpse is marked otherwise", (
 	assert.equal(worse[worse.length - 1], 1);
 });
 
-// The pulse collapses INWARD, which is what keeps it inside the disc where the
-// creature's own state lives -- outward would sail into the ring stack the
-// conditions own.
+// The pulse is a glow on the inside of the rim -- it beats without moving, so it
+// stays out of the middle of the portrait where the face is, and it stays inside
+// the disc where the creature's own state lives.
 test("the pulse starts at very bloodied and becomes a heart at the end", () => {
 	assert.equal(beats(null), BEAT_NONE);
 	assert.equal(beats("healthy"), BEAT_NONE);
@@ -162,74 +162,90 @@ test("nothing above the halfway line sheds blood", () => {
 // as something loading; every interface the reader has ever used pulses that
 // way. What makes this a heart is the silence between beats, so that is what is
 // pinned here rather than the shape of the thumps.
-test("the heartbeat is two knocks and a silence", () => {
-	let silent = 0;
-	let peaks = 0;
+test("the heartbeat is two knocks and a silence, at either rate", () => {
+	for (const period of [BEAT_PERIOD, SLOW_PERIOD]) {
+		let silent = 0;
+		let peaks = 0;
 
-	for (let t = 0; t < BEAT_PERIOD; t++) {
-		const value = heartbeat(t);
+		for (let t = 0; t < period; t++) {
+			const value = heartbeat(t, period);
 
-		assert.ok(value >= 0 && value <= 1, `envelope left its range at ${t}ms`);
+			assert.ok(value >= 0 && value <= 1, `envelope left its range at ${t}ms`);
 
-		if (value === 0) {
-			silent++;
+			if (value === 0) {
+				silent++;
+			}
+			if (value > heartbeat(t - 1, period) && value >= heartbeat(t + 1, period)) {
+				peaks++;
+			}
 		}
-		if (value > heartbeat(t - 1) && value >= heartbeat(t + 1)) {
-			peaks++;
-		}
+
+		assert.equal(peaks, 2, `a heart that does not go lub-dub is a pulsing ring at ${period}ms`);
+		assert.ok(silent / period > 0.55, `only ${silent}ms of ${period}ms was rest`);
 	}
-
-	assert.equal(peaks, 2, "a heart that does not go lub-dub is a pulsing ring");
-	assert.ok(silent / BEAT_PERIOD > 0.55, `only ${silent}ms of ${BEAT_PERIOD}ms was rest`);
 
 	// And it repeats rather than drifting, at whatever time the page has been
 	// open for -- performance.now() is milliseconds since the tab loaded, and
 	// the beat has to look the same an hour in.
-	assert.equal(heartbeat(50), heartbeat(50 + BEAT_PERIOD * 3600));
+	assert.equal(heartbeat(50, BEAT_PERIOD), heartbeat(50 + BEAT_PERIOD * 3600, BEAT_PERIOD));
 });
 
-test("both pulses sweep from the rim to the centre and fade at each end", () => {
-	for (const pulse of [slowPulse, beatPulse]) {
-		const start = pulse(0);
-		assert.equal(start.depth, 0, "the ring did not start at the creature's own rim");
-
-		// It fades IN at the rim and OUT at the centre, so it sweeps through the
-		// token rather than popping into existence on its edge and stopping dead
-		// in its middle.
-		assert.ok(start.alpha < 0.01, "the ring popped into existence at the rim");
-
-		let travelled = 0;
-		let brightest = 0;
-		for (let t = 0; t < BEAT_PERIOD * 8; t++) {
-			const { depth, alpha } = pulse(t);
-
-			assert.ok(depth >= 0 && depth <= 1, `the ring left the disc at ${t}ms`);
-			assert.ok(alpha >= 0 && alpha <= 1, `the ring left its range at ${t}ms`);
-
-			travelled = Math.max(travelled, depth);
-			brightest = Math.max(brightest, alpha);
-		}
-
-		assert.equal(travelled, 1, "the ring never reached the centre");
-		assert.ok(brightest > 0.3, "the ring was never actually visible");
-	}
-});
-
-// The slow sweep and the heart have to be told apart at a glance across a table
-// with both on it, which means they cannot share a rate. Counting how often each
-// one STARTS is the difference a person actually sees; how long each takes to
-// cross the disc is close enough between the two to prove nothing.
-test("a dying creature pulses more than twice as often as a bloodied one", () => {
-	const sweeps = (pulse: (now: number) => { alpha: number }): number => {
-		let started = 0;
-		for (let t = 1; t < 12_000; t++) {
-			if (pulse(t).alpha > 0 && pulse(t - 1).alpha === 0) {
-				started++;
+// THE KNOCK IS THE SAME LENGTH AT BOTH RATES and only the rest between beats
+// changes, which is what a slower heart actually is. Stretching the thump as
+// well would turn it into a swell.
+test("a slower heart is a longer rest and not a longer knock", () => {
+	const knock = (period: number): number => {
+		let moving = 0;
+		for (let t = 0; t < period; t++) {
+			if (heartbeat(t, period) > 0) {
+				moving++;
 			}
 		}
 
-		return started;
+		return moving;
 	};
 
-	assert.ok(sweeps(beatPulse) > sweeps(slowPulse) * 2);
+	assert.equal(knock(SLOW_PERIOD), knock(BEAT_PERIOD));
+});
+
+// The two rates have to be told apart at a glance across a table carrying both,
+// and they are told apart twice over: a dying creature beats more often AND
+// harder than a badly hurt one.
+test("a dying creature beats faster and harder than a bloodied one", () => {
+	const over = 12_000;
+
+	const started = (beat: (now: number) => number): number => {
+		let count = 0;
+		for (let t = 1; t < over; t++) {
+			if (beat(t) > 0 && beat(t - 1) === 0) {
+				count++;
+			}
+		}
+
+		return count;
+	};
+
+	const loudest = (beat: (now: number) => number): number => {
+		let peak = 0;
+		for (let t = 0; t < over; t++) {
+			peak = Math.max(peak, beat(t));
+		}
+
+		return peak;
+	};
+
+	assert.ok(started(fastBeat) > started(slowBeat) * 1.5, "the two rates were too close to tell apart");
+	assert.ok(loudest(fastBeat) > loudest(slowBeat), "a dying creature beat no harder than a bloodied one");
+
+	// The slow one still has to be worth drawing. It is the whole signal for a
+	// creature at a quarter of its hit points, which is most monsters for most
+	// of a fight.
+	assert.ok(loudest(slowBeat) > 0.5, "a bloodied creature's pulse was too faint to see");
+
+	// And neither ever leaves the range the shader multiplies by.
+	for (const beat of [slowBeat, fastBeat]) {
+		for (let t = 0; t < over; t += 7) {
+			assert.ok(beat(t) >= 0 && beat(t) <= 1, `a beat left its range at ${t}ms`);
+		}
+	}
 });
