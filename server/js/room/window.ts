@@ -75,6 +75,19 @@ const windows = new Map<string, RoomWindow>();
 // with the menu bar above it.
 let topZ = 20;
 
+// nextZ hands out the level above everything on the table so far.
+//
+// IT IS EXPORTED FOR THE PAWN MENU, which is not a window and still has to come
+// out on top of them. A popup given a fixed number in its own markup is above
+// the windows until somebody has raised twenty of them and then is silently
+// underneath one, which is the kind of bug that only appears an hour into a
+// session. One counter for the table has no such hour.
+export function nextZ(): number {
+	topZ += 1;
+
+	return topZ;
+}
+
 let titles = 0;
 
 // mountWindows wires the room page up. It runs whether or not the room has a
@@ -379,8 +392,7 @@ class RoomWindow {
 	}
 
 	raise(): void {
-		topZ += 1;
-		this.el.style.zIndex = String(topZ);
+		this.el.style.zIndex = String(nextZ());
 	}
 
 	private paint(): void {

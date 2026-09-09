@@ -290,8 +290,9 @@ a creature standing in a square.
   back, or drops a marquee, and answers whether it did any of those. Only when it
   did is the browser's own context menu suppressed, so a right click on empty
   table is still a right click on a web page. *(Reworked below: the menu is
-  suppressed unconditionally, and a right click with nothing to abandon opens
-  the window for the pawn under it.)*
+  suppressed unconditionally, and a right click with nothing to abandon asks
+  about the pawn under it -- by opening its window as of Rework 4, and by
+  putting up a menu of its own as of Rework 11.)*
 - **A token is never snapped.** `snapPawn` returns an object's centre untouched
   on both sides -- `internal/room/snap.go` and its port in `render/path.ts` -- so
   a rug, a door, a road sign and a wagon are placed against what the cartographer
@@ -347,7 +348,9 @@ a creature standing in a square.
 ### Rework 4, the pawn window is the pawn's whole surface (2026-09-08)
 
 Eight items, of which six are the same move: everything that was behind an Edit
-button in a modal is now in the window a right click opens.
+button in a modal is now in the window a right click opens. *(Rework 11 moved
+the opening gesture to a double left click; the right button puts up a menu
+whose first item opens the same window.)*
 
 - **The canvas has no browser menu.** `onContextMenu` in `render/input.ts`
   prevents the default unconditionally and before the tool is asked, which
@@ -365,7 +368,8 @@ button in a modal is now in the window a right click opens.
   placing an encounter pressed it to stop. It uses the same `hitTest` as a left
   click, so it picks the goblin standing on the rug rather than the rug, and it
   does not touch the selection: answering "let me look at that" by throwing away
-  what somebody had picked out would make it a destructive gesture.
+  what somebody had picked out would make it a destructive gesture. *(Rework 11:
+  what it asks for is a menu. Everything else in this item still holds.)*
 - **What a pawn's window IS lives in `js/room/pawn-window.ts`.** Four things
   reach for it -- the overlay's Details button, a right click, the retitle that
   follows a rename and the close that follows a removal -- and two of those aim
@@ -667,6 +671,66 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   without normalising, a drag across full opacity would flip the box between
   `#ff0000` and `#ff0000cc` -- two spellings of the same setting, in a box whose
   whole job is to show what the alpha currently is.
+
+### Rework 11, a double click opens a pawn and the right button asks (2026-09-08)
+
+- **A double left click on a pawn opens its window, and the right button no
+  longer does.** This came out of playing at a real table rather than out of
+  review: people reached for a double click without being told to, found
+  nothing under it, and never discovered the right click that worked. The
+  gesture people look for is the one the app should have.
+- **The pair is counted in `pawns.ts` and not taken from the browser's
+  `dblclick`.** Every primary pointerdown on the canvas is `preventDefault`-ed
+  -- without it the middle button's scroll puck appears over the map and stays
+  there -- and a prevented pointerdown suppresses the compatibility mouse
+  events a `dblclick` is assembled from, which browsers do not agree about.
+  What is given up is the platform's own double click speed, which a page
+  cannot read anyway; `DOUBLE_MS` is 400, a little under the half second the
+  platforms default to.
+- **A gesture that was not a click breaks the pair.** `release` asks
+  `clickedPawn` once, for every kind of gesture, and a drag, a resize and a
+  marquee all answer nothing -- so click, quick drag, click is three things
+  that happened rather than one gesture, and the branch handling each does not
+  have to remember to say so.
+- **`Panning` now carries an anchor**, which is what makes the gesture work for
+  a player. A monster is not theirs to drag, so their press is handed to the
+  camera and never becomes a `Pressing` -- and without the anchor the viewer
+  most likely to be asking "what is that" is the one it would not work for.
+- **Shift is left out of it.** Two shift clicks on one pawn put it into a
+  selection and take it straight back out, which somebody does on purpose; a
+  window landing on the table halfway through picking a group is not.
+- **The right button puts up a context menu**, at the pointer, about the one
+  pawn under it. Open details for everybody; Move to floor and Remove pawn for
+  the GM. The two GM items previously had nowhere to be asked for: the
+  overlay's floor select and Remove appear only for a selection of several, and
+  the Delete key acts on the selection and needs a keyboard.
+- **It acts on the pawn under the pointer and never on the selection**, which
+  is what the right click asked about, and is why the removal's confirmation
+  names the pawn.
+- **The two mutations are ordinary htmx buttons that this only writes
+  `hx-vals` onto and presses.** Removing pawns is confirmed, the confirmation
+  is the app's confirm modal, and `hx-confirm` is read off the element making
+  the request -- so a DELETE built in the client would skip the dialog, and
+  `window.confirm` is banned. The floor move goes the same way and posts to the
+  same route the overlay's whole-selection control does: one route, a list of
+  one.
+- **The floor rows are a `<template>` cloned per layer**, for the reason a
+  window's chrome is one: `server/js` is not a Tailwind source, so a class
+  named in `pawn-menu.ts` would never be emitted. The row is styled in templ
+  and the client writes only text, a data attribute and `[hidden]` into it --
+  including the badge that says which floor the pawn is already on, without
+  which the list is five names with nothing to tell them apart.
+- **The menu is stacked with `nextZ()`, exported from `window.ts`.** A popup
+  given a fixed z-index in its own markup sits above the windows until somebody
+  has raised twenty of them, and then silently goes under one. One counter for
+  the table has no such hour.
+- **It is placed again when the floor submenu unfolds.** Opening the list
+  changes the menu's height, and a menu turned back at the bottom edge has to
+  be turned back by more.
+- **Fixed on the way past: the overlay's group "Move to floor" select had no
+  `name`.** htmx collects values from named fields, so the layer never left the
+  browser and the route answered 404 with an empty body -- a control that
+  looked like it worked and did nothing.
 
 ## End state
 
@@ -970,8 +1034,9 @@ button whose `hx-vals` the client sets to the selected ids.
 
 *(Reworked above. Rework 5 took the condition dots and all three buttons off the
 single-pawn label and made it hover-only and never a token's; the pawn window
-is opened by a right click and the stat block from a button in that window. The
-Edit button and the modal it opened went in Rework 4.)*
+is opened by a double click, or from the right button's menu, and the stat block
+from a button in that window. The Edit button and the modal it opened went in
+Rework 4.)*
 
 ### Stress
 
@@ -1086,7 +1151,8 @@ this stay open while the GM works, or is it a task they finish?
 
 The pawn panel's trigger lives on the selection overlay rather than in a menu,
 because a pawn window is about one pawn and the overlay is where that pawn is
-named -- and, since Rework 4, on a right click anywhere on that pawn. Both go
+named -- and, since Rework 11, on a double click anywhere on that pawn or on
+the first item of the menu the right button puts up. All three go
 through `pawnWindow` in `js/room/pawn-window.ts`, which is the one place the id,
 the URL, the heading and the opening size are spelled:
 

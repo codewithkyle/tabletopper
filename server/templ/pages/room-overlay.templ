@@ -18,6 +18,7 @@ templ roomOverlay(data RoomPageData) {
 			if data.IsGM() {
 				<select
 					data-overlay-layer
+					name="layer"
 					aria-label="Move to floor"
 					class="select select-xs w-full"
 					hx-post={ "/rooms/" + data.ID + "/pawns/layer" }

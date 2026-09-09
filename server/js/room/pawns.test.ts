@@ -29,6 +29,18 @@ const keydown: ((e: { key: string }) => void)[] = [];
 
 (globalThis as unknown as { window: unknown }).window = { devicePixelRatio: 1 };
 
+// THE DOUBLE CLICK IS MEASURED ON performance.now AND THESE TESTS OWN IT. The
+// skew runs at zero, so every drag test below still sees real elapsed time and
+// the throttle in moveDrag behaves as it does in a browser; the one test that
+// needs two clicks to be too far apart pushes it forward by hand.
+let skew = 0;
+const realNow = performance.now.bind(performance);
+performance.now = () => realNow() + skew;
+
+function wait(ms: number): void {
+	skew += ms;
+}
+
 const { createTable, hitTest } = await import("./pawns.ts");
 
 const GROUND = "01LAYERGROUND";
@@ -172,6 +184,7 @@ function table(
 
 	const sent: Record<string, unknown>[] = [];
 	const opened: string[] = [];
+	const menus: string[] = [];
 	let removals = 0;
 
 	const controller = createTable({
@@ -191,12 +204,15 @@ function table(
 		details: (p) => {
 			opened.push(p.id);
 		},
+		menu: (p) => {
+			menus.push(p.id);
+		},
 		remove: () => {
 			removals += 1;
 		},
 	});
 
-	return { controller, sent, state, opened, removals: () => removals };
+	return { controller, sent, state, opened, menus, removals: () => removals };
 }
 
 // A CLICK STILL SELECTS, which is the whole reason the threshold exists: a
@@ -495,11 +511,11 @@ test("a token commits where the hand let go and a creature commits to the lattic
 
 // RIGHT CLICK IS ESCAPE FOR A HAND THAT IS ALREADY ON THE MOUSE, and placement
 // wins over everything else: a GM halfway through putting down an encounter
-// pressed it to STOP, and opening a window over the table they were working on
+// pressed it to STOP, and putting a menu over the table they were working on
 // would be the opposite of what they asked for.
 test("the right button abandons placement rather than opening anything", () => {
 	const goblin = pawn({ id: "goblin", x: 0, y: 0 });
-	const { controller, opened } = table([goblin]);
+	const { controller, menus } = table([goblin]);
 
 	controller.arm({
 		kind: "object", id: "01ASSET", name: "Barrel", image: "",
@@ -510,7 +526,7 @@ test("the right button abandons placement rather than opening anything", () => {
 	controller.tool.secondary(at(0, 0), at(0, 0));
 
 	assert.equal(controller.isArmed(), false, "placement survived a right click");
-	assert.deepEqual(opened, [], "a window opened over the encounter being placed");
+	assert.deepEqual(menus, [], "a menu opened over the encounter being placed");
 });
 
 // AND IT PUTS A DRAG BACK, which is the other half of what Escape does. The
@@ -519,7 +535,7 @@ test("the right button abandons placement rather than opening anything", () => {
 // drawing.
 test("the right button puts a dragged pawn back", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
-	const { controller, sent, opened } = table([goblin]);
+	const { controller, sent, menus } = table([goblin]);
 
 	controller.tool.press(at(32, 32), at(0, 0), NONE);
 	controller.tool.drag(at(300, 300), at(268, 268), NONE);
@@ -529,22 +545,27 @@ test("the right button puts a dragged pawn back", () => {
 	const move = sent.at(-1);
 	assert.equal(move?.type, "pawn.move");
 	assert.deepEqual([move?.x, move?.y], [32, 32], "the pawn did not go back where it started");
-	assert.deepEqual(opened, [], "abandoning a drag also opened a window");
+	assert.deepEqual(menus, [], "abandoning a drag also opened a menu");
 });
 
 // WITH NOTHING TO ABANDON IT IS A QUESTION ABOUT WHAT IS UNDER THE POINTER,
 // which is the one thing a right click does that Escape cannot.
-test("the right button on a pawn opens its window", () => {
+//
+// AND IT ASKS FOR A MENU RATHER THAN OPENING THE WINDOW, which is the change
+// playtesting bought: the window is what a DOUBLE click opens, and it is the
+// first item on this menu for anybody who learnt the old gesture.
+test("the right button on a pawn asks for its menu and opens nothing", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
-	const { controller, opened } = table([goblin]);
+	const { controller, menus, opened } = table([goblin]);
 
 	controller.tool.secondary(at(32, 32), at(0, 0));
-	assert.deepEqual(opened, ["goblin"]);
+	assert.deepEqual(menus, ["goblin"]);
+	assert.deepEqual(opened, [], "the right button opened the window behind the menu");
 
-	// Empty table opens nothing, and the browser's own menu is gone either way
+	// Empty table asks nothing, and the browser's own menu is gone either way
 	// -- that is input.ts's decision and not this module's.
 	controller.tool.secondary(at(900, 900), at(0, 0));
-	assert.deepEqual(opened, ["goblin"]);
+	assert.deepEqual(menus, ["goblin"]);
 });
 
 // IT IS THE HIT TEST AND NOT A SEPARATE RULE, so a right click picks the same
@@ -552,10 +573,10 @@ test("the right button on a pawn opens its window", () => {
 test("the right button follows the draw order", () => {
 	const rug = pawn({ id: "rug", kind: "object", width: 256, height: 256, x: 0, y: 0, z: 9 });
 	const goblin = pawn({ id: "goblin", x: 0, y: 0, z: 1 });
-	const { controller, opened } = table([rug, goblin]);
+	const { controller, menus } = table([rug, goblin]);
 
 	controller.tool.secondary(at(0, 0), at(0, 0));
-	assert.deepEqual(opened, ["goblin"]);
+	assert.deepEqual(menus, ["goblin"]);
 });
 
 // A RIGHT CLICK IS NOT A SELECTION. Answering "let me look at that" by throwing
@@ -569,6 +590,123 @@ test("the right button leaves the selection alone", () => {
 	controller.tool.secondary(at(32, 32), at(0, 0));
 
 	assert.deepEqual(controller.selection.ids(), ["wagon"]);
+});
+
+// A DOUBLE CLICK IS WHAT OPENS A PAWN NOW, and the six tests below are the
+// whole of the gesture: it takes two, it takes them close together, it takes
+// them on the same pawn, it does not take a third, it survives a hand that may
+// not move the thing it is asking about, and Shift is left out of it.
+//
+// THE PAIR IS COUNTED HERE RATHER THAN BY THE BROWSER, so these are pinning a
+// rule this module owns rather than one it inherits -- see DOUBLE_MS.
+
+// click is a press and a release that went nowhere, which is exactly what the
+// tool calls a click.
+type Controller = ReturnType<typeof table>["controller"];
+
+function click(controller: Controller, x: number, y: number, mods = NONE): void {
+	controller.tool.press(at(x, y), at(x, y), mods);
+	controller.tool.release(at(x, y), at(x, y), mods);
+}
+
+test("a double click opens the pawn's window and one click does not", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	click(controller, 32, 32);
+	assert.deepEqual(opened, [], "one click opened a window");
+
+	click(controller, 32, 32);
+	assert.deepEqual(opened, ["goblin"]);
+
+	// THE SELECTION IS STILL THE PAWN. Opening the window is on top of what the
+	// clicks already meant, not instead of it -- a GM who double-clicks a
+	// goblin to read it and then presses Delete is holding the goblin.
+	assert.deepEqual(controller.selection.ids(), ["goblin"]);
+});
+
+// A FINGER RESTING ON THE BUTTON IS NOT A REQUEST FOR TWO WINDOWS. Forgetting
+// the pair on the way out is what makes the third click the first half of the
+// next one rather than the second half of this one.
+test("a third click is not a second double click", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	click(controller, 32, 32);
+	click(controller, 32, 32);
+	click(controller, 32, 32);
+
+	assert.deepEqual(opened, ["goblin"]);
+});
+
+test("two clicks far enough apart are two clicks", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	click(controller, 32, 32);
+	wait(500);
+	click(controller, 32, 32);
+
+	assert.deepEqual(opened, []);
+});
+
+test("two clicks on two pawns are two clicks", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const orc = pawn({ id: "orc", x: 400, y: 400 });
+	const { controller, opened } = table([goblin, orc]);
+
+	click(controller, 32, 32);
+	click(controller, 400, 400);
+
+	assert.deepEqual(opened, []);
+});
+
+// CLICK, QUICK DRAG, CLICK IS THREE THINGS THAT HAPPENED. Without this the
+// window opens on the far side of a move the GM made on purpose, which is the
+// one moment they are least likely to want a panel over the table.
+test("a drag between two clicks breaks the pair", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	click(controller, 32, 32);
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(168, 168), NONE);
+	controller.tool.release(at(200, 200), at(168, 168), NONE);
+
+	click(controller, 32, 32);
+
+	assert.deepEqual(opened, []);
+});
+
+// A PLAYER DOUBLE-CLICKING A MONSTER IS THE CASE THE PANNING ANCHOR EXISTS FOR.
+// The press was handed to the camera -- a monster is not theirs to drag -- so
+// there is no Pressing gesture for the pair to be counted on, and the viewer
+// most likely to be asking "what is that" is the one it would not work for.
+test("a player opens a monster they may not move", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin], { role: "player", user: "01PLAYER" });
+
+	click(controller, 32, 32);
+	click(controller, 32, 32);
+
+	assert.deepEqual(opened, ["goblin"]);
+	assert.deepEqual(controller.selection.ids(), [], "a player selected a monster they may not move");
+});
+
+// SHIFT IS BUILDING A SELECTION. Two shift clicks on one pawn put it into a
+// group and take it straight back out, which is something somebody does on
+// purpose -- and a window landing on the table halfway through picking a group
+// is not.
+test("shift clicks never open anything", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, opened } = table([goblin]);
+
+	click(controller, 32, 32, SHIFT);
+	click(controller, 32, 32, SHIFT);
+
+	assert.deepEqual(opened, []);
+	assert.deepEqual(controller.selection.ids(), [], "the second shift click did not toggle it back out");
 });
 
 // THE LABEL FOLLOWS THE HOVER AND LETS GO OF A SELECTION. A pawn somebody has

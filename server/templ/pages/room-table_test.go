@@ -407,3 +407,103 @@ func TestTheLayerNameAsksOnceAndThenOnlyListens(t *testing.T) {
 		t.Errorf("the answer stopped listening for the socket:\n%s", answer)
 	}
 }
+
+// THE MENU IS THREE ITEMS AND TWO OF THEM ARE THE GM'S. A player right-clicking
+// a monster is asking to read it, which is the item everybody gets; moving a
+// pawn between floors and taking it off the table are refused server-side for
+// anybody else, so rendering them for a player would be offering a 403.
+func TestThePawnMenuOffersReadingToEverybodyAndTheRestToTheGM(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	for _, want := range []string{"Open details", "Move to floor", "Remove pawn"} {
+		if !strings.Contains(gm, want) {
+			t.Errorf("the GM's pawn menu has no %q:\n%s", want, gm)
+		}
+	}
+
+	player := renderToString(t, roomPawnMenu(testRoomPage(room.RolePlayer)))
+
+	if !strings.Contains(player, "Open details") {
+		t.Errorf("a player cannot open a pawn from its menu:\n%s", player)
+	}
+	for _, gone := range []string{"Move to floor", "Remove pawn", "hx-delete", "hx-post", "<template"} {
+		if strings.Contains(player, gone) {
+			t.Errorf("a player's pawn menu carries %q:\n%s", gone, player)
+		}
+	}
+}
+
+// THE REMOVAL IS AN htmx BUTTON SO THAT IT GOES THROUGH THE CONFIRM MODAL.
+// hx-confirm is read off the element making the request, so a DELETE built in
+// the client would skip the dialog -- and window.confirm is banned. The
+// attribute here is only the fallback wording: pawn-menu.ts rewrites it with
+// the pawn's name each time the menu opens, because this removes the one under
+// the pointer rather than the selection.
+func TestThePawnMenuRemovesThroughTheConfirmModal(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	for _, want := range []string{
+		`hx-delete="/rooms/` + testTableRoomID + `/pawns"`,
+		"hx-confirm=",
+		`data-confirm-label="Remove"`,
+		`hx-vals=""`,
+	} {
+		if !strings.Contains(gm, want) {
+			t.Errorf("the removal is missing %s:\n%s", want, gm)
+		}
+	}
+}
+
+// THE FLOOR MOVE IS A BUTTON NOBODY SEES, for the reason the Delete key's is:
+// the rows in the submenu are cloned per layer and a cloned element has never
+// been through htmx, so it cannot carry a route. It carries a floor id, and
+// pressing it writes that id onto the one button that HAS been processed.
+func TestThePawnMenuMovesFloorsThroughAHiddenButton(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	if !strings.Contains(gm, `hx-post="/rooms/`+testTableRoomID+`/pawns/layer"`) {
+		t.Errorf("the menu does not post to the layer route:\n%s", gm)
+	}
+	if !strings.Contains(gm, "data-pawn-menu-move hidden") {
+		t.Errorf("the move button is not hidden:\n%s", gm)
+	}
+}
+
+// THE FLOORS ARE A <template> AND THE LIST SHIPS EMPTY, which is the whole
+// reason this component exists rather than a select: server/js is not a
+// Tailwind source, so a class named in pawn-menu.ts would never be emitted. The
+// row is styled here and cloned there, and the client writes nothing into it
+// but text, a data attribute and [hidden].
+func TestThePawnMenusFloorsAreClonedFromMarkupAndNotBuiltInJS(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	if !strings.Contains(gm, `<ul data-pawn-menu-layers`) {
+		t.Errorf("there is no list for the floors to go in:\n%s", gm)
+	}
+	if !strings.Contains(gm, `<template data-pawn-menu-template>`) {
+		t.Errorf("there is no row template to clone:\n%s", gm)
+	}
+	for _, want := range []string{"data-pawn-menu-layer", "data-pawn-menu-layer-name", "data-pawn-menu-here"} {
+		if !strings.Contains(gm, want) {
+			t.Errorf("the row template has no %s:\n%s", want, gm)
+		}
+	}
+
+	// The list is filled when the menu opens, so no floor may be named in the
+	// page render: the marker attribute is bare here and carries an id only
+	// once a row has been cloned.
+	if strings.Contains(gm, "data-pawn-menu-layer=") {
+		t.Errorf("a floor was rendered into the page:\n%s", gm)
+	}
+}
+
+// IT ARRIVES CLOSED. The menu is one element reused for every pawn, so the
+// render is the state before anybody has asked it anything -- and [hidden] is
+// what pawn-menu.ts toggles, because it cannot write a class name.
+func TestThePawnMenuStartsHidden(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	if !strings.Contains(gm, "data-pawn-menu hidden") {
+		t.Errorf("the menu is on screen before anybody asked for it:\n%s", gm)
+	}
+}

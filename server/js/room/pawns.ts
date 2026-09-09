@@ -46,6 +46,22 @@ import { compareStack } from "./render/scene.ts";
 // fight is over.
 const DRAG_THRESHOLD = 4;
 
+// DOUBLE_MS is how long the second click of a double click has to arrive in.
+//
+// IT IS COUNTED HERE RATHER THAN TAKEN FROM THE BROWSER'S OWN dblclick, and the
+// reason is one line in input.ts: every primary pointerdown on the canvas is
+// preventDefault-ed, because otherwise the middle button's scroll puck appears
+// over the map and stays there. A prevented pointerdown suppresses the
+// compatibility mouse events a dblclick is assembled from, and browsers do not
+// agree about how much of that chain survives. Two presses on the same pawn is
+// something this module already knows about, so it counts them itself.
+//
+// WHAT IS LOST BY COUNTING IS THE PLATFORM'S OWN DOUBLE CLICK SPEED, which is a
+// real accessibility setting and is not readable from a page. 400 milliseconds
+// is a little under the defaults, which sit around half a second, and is long
+// enough that it is not a race.
+const DOUBLE_MS = 400;
+
 // DRAG_HZ is how often a drag reports itself when snapping is OFF. With
 // snapping on the hovered cell is the clock and this never runs: the hot path
 // quantises itself, which is the whole reason cell-change is the trigger.
@@ -164,13 +180,32 @@ export interface TableDeps {
 	// table, and a hand grabbing one is aiming in screen pixels.
 	scale: () => number;
 
-	// details opens a pawn's window, which is what a right click on one means.
+	// details opens a pawn's window, which is what a DOUBLE click on one means.
+	//
+	// IT USED TO BE THE RIGHT BUTTON AND IS NOT ANY MORE. Playtesters reached
+	// for the double click without being told to and found nothing under it,
+	// which is the only kind of evidence about a gesture worth having. The
+	// right button now puts up a menu, and Open details is the first thing on
+	// it -- so the gesture people looked for works, and the one they were
+	// taught still gets them there.
 	//
 	// IT IS A CALLBACK AND NOT A URL BUILT HERE. This module knows what is
 	// under a pointer; it does not know which room it is in, what a fragment
 	// path looks like, or how large a window opens. Those belong to the wiring
 	// that already holds all three.
 	details: (pawn: Pawn) => void;
+
+	// menu is the right button asking about the pawn under it, at the point on
+	// screen where the question was asked.
+	//
+	// THE POINT IS IN CSS PIXELS AND NOT MAP PIXELS, because what gets placed
+	// there is a list of words: it is the size of its own text at every zoom,
+	// and it is gone before the camera can move out from under it.
+	//
+	// WHAT IS ON IT IS NOT THIS MODULE'S BUSINESS, for the reason details is a
+	// callback too. The items are a floor list and a removal, and both of those
+	// are markup with a room id in it.
+	menu: (pawn: Pawn, screen: Point) => void;
 
 	// remove is the Delete key asking for the selection to be taken off the
 	// table.
@@ -265,12 +300,22 @@ interface Marqueeing {
 	to: Point;
 }
 
-// Panning is the camera's gesture, watched only so that the click which ends it
-// can clear the selection.
+// Panning is the camera's gesture, watched so that the click which ends it can
+// clear the selection -- and so that a click on a pawn nobody here may move is
+// still a click on a pawn.
 interface Panning {
 	kind: "pan";
 	screen: Point;
 	moved: boolean;
+
+	// anchor is what the press landed on, whether or not this viewer may move
+	// it, and null for empty table.
+	//
+	// IT EXISTS FOR THE DOUBLE CLICK. A player asking to read a monster gets no
+	// Pressing gesture -- the press was handed to the camera, because a monster
+	// is not theirs to drag -- and without this the pair could not be counted
+	// for the one viewer most likely to be making it.
+	anchor: string | null;
 }
 
 type Gesture = Pressing | Dragging | Shaping | Marqueeing | Panning | null;
@@ -292,6 +337,10 @@ export function createTable(deps: TableDeps): Table {
 	let hovered: string | null = null;
 	let armed: Armed | null = null;
 	let pointer: Point | null = null;
+
+	// lastClick is half of a double click: which pawn, and when. See countClick
+	// for what breaks a pair.
+	let lastClick: { id: string; at: number } | null = null;
 	let changed: (() => void) | null = null;
 
 	// Scratch, so nothing in the frame path allocates.
@@ -615,6 +664,50 @@ export function createTable(deps: TableDeps): Table {
 		}
 	}
 
+	// countClick records a click on a pawn and answers whether it completed a
+	// pair. Null is a gesture that was not a click on anything, and it breaks
+	// whatever pair was half made: click, quick drag, click is three things
+	// that happened rather than one gesture.
+	//
+	// A THIRD CLICK IS NOT A SECOND DOUBLE. Forgetting the pair on the way out
+	// is what keeps a finger resting on the button from opening the same window
+	// again and again.
+	function countClick(id: string | null): boolean {
+		const now = performance.now();
+
+		if (id === null) {
+			lastClick = null;
+
+			return false;
+		}
+
+		if (lastClick !== null && lastClick.id === id && now - lastClick.at <= DOUBLE_MS) {
+			lastClick = null;
+
+			return true;
+		}
+
+		lastClick = { id, at: now };
+
+		return false;
+	}
+
+	// clickedPawn is what a finished gesture was a click ON, and null for every
+	// gesture that was not one. Two of the five can end in a click and they end
+	// in it differently: a press is a pawn this viewer may move, and a pan that
+	// went nowhere is either empty table or a pawn they may not.
+	function clickedPawn(active: Gesture): Pawn | null {
+		if (active?.kind === "press") {
+			return pawn(active.anchor);
+		}
+
+		if (active?.kind === "pan" && !active.moved && active.anchor !== null) {
+			return pawn(active.anchor);
+		}
+
+		return null;
+	}
+
 	// THE KEYS ARE HEARD ON THE DOCUMENT AND THE TABLE IS NOT THE ONLY THING ON
 	// IT. A GM typing a goblin's new name into a pawn window is pressing Delete
 	// to rub out a letter, not to rub out the goblin -- so a key that arrives
@@ -708,7 +801,7 @@ export function createTable(deps: TableDeps): Table {
 			// Empty table, or something this viewer may not move. The camera
 			// takes the gesture; this watches it only so that a click which
 			// went nowhere can clear the selection.
-			gesture = { kind: "pan", screen: { x: screen.x, y: screen.y }, moved: false };
+			gesture = { kind: "pan", screen: { x: screen.x, y: screen.y }, moved: false, anchor: hit?.id ?? null };
 
 			return false;
 		},
@@ -771,6 +864,13 @@ export function createTable(deps: TableDeps): Table {
 				return;
 			}
 
+			// ASKED ONCE, FOR EVERY KIND OF GESTURE, AND BEFORE ANY OF THEM ARE
+			// HANDLED. A drag, a resize and a marquee all answer null here,
+			// which is what makes the pair break by itself rather than by a
+			// line remembering to break it in each of the branches below.
+			const clicked = clickedPawn(active);
+			const twice = countClick(clicked?.id ?? null);
+
 			switch (active.kind) {
 				case "drag":
 					commit(active, false);
@@ -785,17 +885,25 @@ export function createTable(deps: TableDeps): Table {
 				case "press": {
 					// It stayed a click. Shift toggles one pawn in or out;
 					// anything else selects it alone.
-					const hit = pawn(active.anchor);
-					if (!hit) {
+					if (!clicked) {
 						return;
 					}
 
 					if (mods.shift) {
-						selection.toggle(hit.id);
+						selection.toggle(clicked.id);
 					} else {
-						selection.set([hit.id]);
+						selection.set([clicked.id]);
 					}
 					announce();
+
+					// AND THE SECOND OF A PAIR OPENS THE PAWN. Shift is left
+					// out of it: two shift clicks on one pawn put it into a
+					// selection and take it straight back out, which is
+					// something somebody does on purpose, and a window landing
+					// on the table halfway through picking a group is not.
+					if (twice && !mods.shift) {
+						deps.details(clicked);
+					}
 
 					return;
 				}
@@ -819,6 +927,15 @@ export function createTable(deps: TableDeps): Table {
 						announce();
 					}
 
+					// A PAWN THIS VIEWER MAY NOT MOVE IS STILL A PAWN THEY MAY
+					// READ, which is the whole reason Panning carries an
+					// anchor. A player double-clicking a monster gets its
+					// window; the selection they never had is still cleared
+					// above, because the press was the camera's.
+					if (twice && !mods.shift && clicked) {
+						deps.details(clicked);
+					}
+
 					return;
 			}
 		},
@@ -826,6 +943,10 @@ export function createTable(deps: TableDeps): Table {
 		cancel() {
 			const active = gesture;
 			gesture = null;
+
+			// A pointer the browser took away is not a click, so it is not half
+			// of a double one either.
+			countClick(null);
 
 			if (active?.kind === "drag") {
 				commit(active, true);
@@ -843,22 +964,31 @@ export function createTable(deps: TableDeps): Table {
 
 		// THE RIGHT BUTTON IS A WAY OUT BEFORE IT IS A WAY IN. A GM halfway
 		// through placing an encounter who right-clicks a goblin meant to stop
-		// placing; opening a window over the table they were working on would be
+		// placing; putting a menu over the table they were working on would be
 		// the opposite of what the press asked for. So abandoning spends the
 		// click, and only a click with nothing to abandon asks about what is
 		// under it.
 		//
+		// WHAT IT ASKS FOR IS A MENU AND NOT A WINDOW. Opening the editor was
+		// what this used to do, and it is now what the menu's first item does:
+		// the other two are moving the pawn to another floor and taking it off
+		// the table, neither of which had a home that was not a keyboard key or
+		// a control that only appears for a multiple selection.
+		//
 		// IT DOES NOT SELECT. A right click is a question about one pawn, and
 		// answering it by throwing away whatever the GM had selected would make
 		// "let me look at that" a destructive gesture.
-		secondary(map) {
+		secondary(map, screen) {
 			if (abandon()) {
 				return;
 			}
 
 			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y);
 			if (hit) {
-				deps.details(hit);
+				// THE POINT IS COPIED. input.ts hands the same scratch object
+				// to every call, and a menu that read it a frame later would
+				// read wherever the pointer had got to.
+				deps.menu(hit, { x: screen.x, y: screen.y });
 			}
 		},
 

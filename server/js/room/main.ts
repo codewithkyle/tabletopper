@@ -30,10 +30,12 @@ import { leaveKicked } from "./exit.ts";
 import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
+import { mountPawnMenu } from "./pawn-menu.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import type { Event, Role, State } from "./protocol.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { pawnWindow } from "./pawn-window.ts";
+import type { Named } from "./pawn-window.ts";
 import type { Overlay } from "./overlay.ts";
 import type { Table } from "./pawns.ts";
 
@@ -58,6 +60,22 @@ if (mount) {
 	const roomID = mount.dataset.room ?? "";
 	const role: Role = mount.dataset.role === "gm" ? "gm" : "player";
 	const user = mount.dataset.user ?? "";
+
+	// ONE WAY INTO A PAWN'S WINDOW AND NOT TWO. A double click opens it and so
+	// does the first item on the right-click menu; pawn-window.ts is the file
+	// that says what one of those windows IS, and an id spelled differently in
+	// either place is a window that opens twice and never closes.
+	const openDetails = (pawn: Named): void => {
+		openWindow(pawnWindow(roomID, pawn));
+	};
+
+	// The menu the right button puts up. It is mounted before the table because
+	// the table is what asks for it, and it needs nothing the renderer holds:
+	// the point it opens at arrives with the question.
+	const menu = mountPawnMenu(mount, {
+		layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
+		details: openDetails,
+	});
 
 	// THE THREE OF THESE REFER TO EACH OTHER AND THE CYCLE IS BROKEN WITH
 	// CALLBACKS RATHER THAN WITH ORDER. The table needs a socket to send a move
@@ -89,12 +107,19 @@ if (mount) {
 		// no canvas, so nothing asks for a handle and the number is never used.
 		scale: () => renderer?.mapPerPixel() ?? 1,
 
-		// A RIGHT CLICK ON A PAWN OPENS ITS WINDOW, and this is where the room
+		// A DOUBLE CLICK ON A PAWN OPENS ITS WINDOW, and this is where the room
 		// id lives. The canvas knows which pawn; pawn-window.ts knows what one
 		// of these windows is; neither of them knows which table is being
 		// looked at.
-		details: (pawn) => {
-			openWindow(pawnWindow(roomID, pawn));
+		details: openDetails,
+
+		// AND THE RIGHT BUTTON ASKS THE MENU, which is the other half of the
+		// same split: the canvas found the pawn and worked out where on screen
+		// the question was asked, and everything about what a menu offers --
+		// the floors, the removal, who may see which -- belongs to markup that
+		// has the room in it.
+		menu: (pawn, screen) => {
+			menu?.open(pawn, screen);
 		},
 
 		// AND DELETE PRESSES THE OVERLAY'S OWN BUTTON, which is what carries the

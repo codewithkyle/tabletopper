@@ -20,10 +20,10 @@
 // exception is a multiple selection, where the label is not describing a pawn
 // at all: it is the count and the two controls that act on the group.
 //
-// IT CARRIES NO BUTTONS. Everything about a pawn is in its window, which a
-// right click on the table opens; a row of buttons on a thing that follows the
-// pointer is a row of buttons that moves out from under the hand reaching for
-// it.
+// IT CARRIES NO BUTTONS WHILE IT IS DESCRIBING ONE PAWN. Everything about a
+// pawn is in its window, which a double click on the table opens and the right
+// click's menu offers; a row of buttons on a thing that follows the pointer is
+// a row of buttons that moves out from under the hand reaching for it.
 //
 // NO CLASS NAME IS WRITTEN IN THIS FILE, which server/js cannot do: it is not a
 // Tailwind source, so a class named here would never be emitted. Everything

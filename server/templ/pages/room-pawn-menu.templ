@@ -1,0 +1,53 @@
+package pages
+
+templ roomPawnMenu(data RoomPageData) {
+	<ul
+		data-pawn-menu
+		hidden
+		class="menu menu-sm absolute top-0 left-0 z-30 w-56 rounded-box border border-base-300 bg-panel/95 p-1 shadow-panel backdrop-blur-sm"
+	>
+		<li data-pawn-menu-name class="menu-title truncate"></li>
+		<li>
+			<button type="button" data-pawn-menu-details>Open details</button>
+		</li>
+		if data.IsGM() {
+			<li>
+				<details data-pawn-menu-floors>
+					<summary>Move to floor</summary>
+					<ul data-pawn-menu-layers class="max-h-40 flex-nowrap overflow-y-auto"></ul>
+				</details>
+			</li>
+			<li>
+				<button
+					type="button"
+					data-pawn-menu-remove
+					class="text-error"
+					hx-delete={ "/rooms/" + data.ID + "/pawns" }
+					hx-swap="none"
+					hx-vals=""
+					hx-confirm="Remove it from the table. This cannot be undone."
+					data-confirm-heading="Remove from the table?"
+					data-confirm-label="Remove"
+				>Remove pawn</button>
+			</li>
+		}
+	</ul>
+	if data.IsGM() {
+		<button
+			type="button"
+			data-pawn-menu-move
+			hidden
+			hx-post={ "/rooms/" + data.ID + "/pawns/layer" }
+			hx-swap="none"
+			hx-vals=""
+		>Move to floor</button>
+		<template data-pawn-menu-template>
+			<li>
+				<button type="button" data-pawn-menu-layer>
+					<span data-pawn-menu-layer-name class="min-w-0 flex-1 truncate"></span>
+					<span data-pawn-menu-here hidden class="badge badge-xs badge-ghost">Here</span>
+				</button>
+			</li>
+		</template>
+	}
+}
