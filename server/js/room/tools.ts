@@ -29,6 +29,19 @@
 // a gesture which quietly stops working the day the list is renamed. The mode a
 // room OPENS in is read the same way, off the button that was rendered pressed.
 //
+// AND THERE IS A LETTER PER MODE, WHICH IS A DIFFERENT KIND OF KEY ENTIRELY.
+// V, H and M switch the tool and stay switched; the space bar borrows one and
+// gives it back. That difference is why they are matched differently: a letter
+// is a MNEMONIC and is matched on KeyboardEvent.key, so the key printed V works
+// wherever a layout puts it, and the space bar is a POSITION and is matched on
+// KeyboardEvent.code, so it is the same slab under the thumb on every layout.
+//
+// WHICH LETTER BELONGS TO WHICH TOOL IS THE MARKUP'S TO SAY as well, for the
+// reason the behaviours are: data-room-tool-key, read at mount into a map.
+//
+// A MODIFIER MAKES IT SOMEBODY ELSE'S KEY. Ctrl-V is a paste and Cmd-H hides
+// the window, and neither of those is a request for the select tool.
+//
 // THE SPACE BAR IS A HELD KEY AND NOT A TOGGLE, which is the gesture every
 // drawing program has trained every hand to expect: hold it, shove the map
 // across, let go, and carry on from the tool you were already in. It is
@@ -106,6 +119,17 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	const pans = root.querySelector("[data-room-tool-pans]");
 	const measures = root.querySelector("[data-room-tool-measures]");
 
+	// The shortcuts, keyed by the letter the markup put on each button. A tool
+	// with no letter is simply not in here, which is a tool with no shortcut
+	// rather than one that needs a branch.
+	const keys = new Map<string, Element>();
+	for (const button of buttons) {
+		const key = button.getAttribute("data-room-tool-key");
+		if (key) {
+			keys.set(key.toLowerCase(), button);
+		}
+	}
+
 	// The canvas, for the cursor alone. A closed room and a browser without
 	// WebGL2 both render none, and the modes go on working without one.
 	const canvas = mount.querySelector("[data-tabletop-canvas]");
@@ -160,19 +184,39 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	}
 
 	function onKeyDown(e: KeyboardEvent): void {
-		if (e.code !== PAN_KEY || typing(e.target)) {
+		if (typing(e.target)) {
 			return;
 		}
 
-		// Every time, including the repeats a held key produces: the default is
-		// what a focused button would take as a press.
-		e.preventDefault();
+		if (e.code === PAN_KEY) {
+			// Every time, including the repeats a held key produces: the
+			// default is what a focused button would take as a press.
+			e.preventDefault();
 
-		if (held) {
+			if (!held) {
+				held = true;
+				paint();
+			}
+
 			return;
 		}
 
-		held = true;
+		// A repeat is a finger resting on the key, and switching to the tool
+		// already chosen a dozen times over is a dozen frames asked for.
+		if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) {
+			return;
+		}
+
+		const button = keys.get(e.key.toLowerCase());
+		if (!button) {
+			return;
+		}
+
+		// NOT PREVENTED, deliberately. A bare letter has no default worth
+		// taking -- unlike the space bar, which a focused button reads as a
+		// press -- and taking it would be taking it from the browser's own
+		// find-as-you-type as well.
+		chosen = button;
 		paint();
 	}
 

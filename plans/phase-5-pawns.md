@@ -871,6 +871,50 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   everything below that line is the table's contents. The hover hit test still
   runs underneath it: the label over the pawn a GM is stretching a line towards
   is half of what makes the number mean anything.
+- **A letter per mode: V select, H move, M measure.** They are Photoshop's,
+  Illustrator's and Figma's, so a GM who has ever opened one of those already
+  knows two of the three, and a mode switched twenty times a minute should not
+  need the pointer to leave the table to switch it. Fog and Draw get theirs when
+  they are real.
+- **A letter is matched on `KeyboardEvent.key` and the space bar on `.code`,
+  which is the right way round for both.** A letter is a MNEMONIC -- it is what
+  the tooltip printed -- so the key labelled V works wherever a layout puts it. A
+  held key is a POSITION, so the space bar is the same slab under the thumb on
+  every layout. Which letter belongs to which tool is `data-room-tool-key` in the
+  markup, read into a map at mount, for the reason `Pans` and `Measures` are:
+  three names spelled in Go and again in TypeScript are three shortcuts that
+  quietly stop working the day the list is renamed.
+- **A modifier makes it somebody else's key.** Ctrl-V is a paste and Cmd-H hides
+  the window; neither is a request for the select tool. Repeats are dropped too,
+  because a finger resting on a letter is a dozen frames asked for. Nothing is
+  prevented -- a bare letter has no default worth taking, unlike the space bar,
+  which a focused button reads as a press.
+- **Middle mouse and the wheel were already every mode's and stayed that way.**
+  `PAN_BUTTONS` holds the middle button and it never consults the tool at all;
+  the wheel handler never did either. That is the escape hatch that makes a
+  modal pointer survivable, and the measure tool needed nothing added to it.
+- **The second click ends the measurement rather than re-anchoring it.** Down,
+  read, up: the same two clicks a wall is measured with in every CAD program
+  there has ever been, and the gesture ends where the eye already is instead of
+  at a key. Escape, the right button and choosing another tool all still work
+  and all still do the same thing. A third click starts a fresh one, so asking
+  one question after another is clicking rather than reaching for Escape between
+  them.
+- **The tooltip shows the key cap, in DaisyUI's own `kbd kbd-xs`.** A shortcut
+  nobody is told about is a shortcut nobody presses, and the tooltip is the only
+  place the pill says anything at all. That needed the rich tooltip -- a
+  `tooltip-content` child rather than a `data-tip` string, because an attribute
+  cannot hold a `<kbd>`.
+- **`tooltipBody` is spelled in Go and that is the opposite of the usual rule.**
+  A class written outside `templ/**/*.templ` is never emitted, which is why
+  `surfacePanel` lives in a `.templ` file -- and here that is exactly what is
+  wanted. `.tooltip > .tooltip-content` is already in the build as part of
+  `.tooltip` itself, and writing the word in markup makes Tailwind read it as a
+  tooltip MODIFIER and emit the whole family: measured at 12.8KB and seventeen
+  selectors -- `tooltip-accent`, `tooltip-bottom`, `tooltip-error` and the rest
+  -- for a page that renders none of them. With the const it is five added
+  selectors and 1.65KB, every one of them pointable: `.kbd`, `.kbd-xs` and the
+  three colour utilities on the cap.
 - Verified in headless chromium against the real rendered pill: it opens on
   Select and is not the ruler; clicking Measure lights it, answers
   `measuring=true` and `panning=false`, and asks for a frame; holding the space
@@ -879,7 +923,13 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   choosing Select answers `measuring=false` and asks for a frame; Move is the
   camera and never the ruler; exactly one button carries
   `data-room-tool-measures`, it is Measure, and no button carries both flags.
-  `make check` is green at 232 JS tests, and the CSS build gained no selectors.
+  V, H and M switch the mode and report the right `panning`/`measuring` pair;
+  an upper-case letter is the same key; Ctrl-M and Cmd-M are not; a letter typed
+  into a field is not; and the space bar still beats a chosen letter and hands it
+  back. The tooltip renders "Measure M" on one 26px row with an 18x16 cap, shows
+  at opacity 1, and the cap's letter reads on it in both themes -- 4.98:1 under
+  caramellatte and 11.50:1 under coffee. `make check` is green at 233 JS tests,
+  and the CSS build gained five selectors and 1.65KB.
 
 ## End state
 

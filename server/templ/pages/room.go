@@ -51,6 +51,21 @@ import (
 // bg-table is the table, bg-panel is the chrome, and nothing on this page names
 // a step of the base ramp directly any more.
 
+// tooltipBody is DaisyUI's rich tooltip: a child element instead of a data-tip
+// string, which is what lets a tooltip hold a <kbd> rather than only words.
+//
+// IT IS SPELLED IN GO ON PURPOSE, WHICH IS THE OPPOSITE OF THE USUAL RULE. A
+// class name written outside templ/**/*.templ is never emitted -- that is why
+// surfacePanel lives in a .templ file -- and here that is exactly what is
+// wanted: the rule this class needs, `.tooltip > .tooltip-content`, is already
+// in the build as part of .tooltip itself, and writing the word in markup
+// instead makes Tailwind treat it as a tooltip MODIFIER and emit the entire
+// family. Measured: 12.8KB and seventeen selectors -- tooltip-accent,
+// tooltip-bottom, tooltip-error and the rest -- for a page that renders none of
+// them. The utilities beside it stay in the markup, because those do have to be
+// emitted.
+const tooltipBody = "tooltip-content"
+
 // roomLockID is the menu item the two lock routes swap. It is a constant
 // because the item carries it as an id and derives its own hx-target from it,
 // and a target that has drifted from its id fails silently: htmx finds nothing
@@ -504,14 +519,31 @@ type RoomTool struct {
 	// touching the table's contents. Exactly one tool has it, and unlike Pans
 	// the space bar does not borrow it -- see tools.ts.
 	Measures bool
+
+	// Key is the letter that switches to this mode, lower case, or empty for a
+	// mode not worth reaching for yet.
+	//
+	// IT IS THE LETTER ON THE KEY AND NOT THE POSITION OF IT, which is the
+	// opposite of the space bar and is the right way round for both. A mnemonic
+	// is the letter somebody read in the tooltip -- V for select, H for the
+	// hand, M for measure, which is what every drawing program has trained
+	// every hand on -- so the client matches KeyboardEvent.key and an AZERTY
+	// keyboard's V works where its V is printed. The space bar is held rather
+	// than read, so it matches KeyboardEvent.code and lands in the same place
+	// on every layout.
+	//
+	// V, H AND M ARE BORROWED AND NOT INVENTED. They are Photoshop's,
+	// Illustrator's and Figma's select, hand and measure, and a GM who has ever
+	// opened one of those already knows two of the three.
+	Key string
 }
 
 // RoomTools is the five modes, in the order a hand reaches for them.
 func RoomTools() []RoomTool {
 	return []RoomTool{
-		{Name: DefaultRoomTool, Label: "Select"},
-		{Name: RoomToolMove, Label: "Move", Pans: true},
-		{Name: RoomToolMeasure, Label: "Measure", Measures: true},
+		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
+		{Name: RoomToolMove, Label: "Move", Pans: true, Key: "h"},
+		{Name: RoomToolMeasure, Label: "Measure", Measures: true, Key: "m"},
 		{Name: "fog", Label: "Fog"},
 		{Name: "draw", Label: "Draw"},
 	}
@@ -522,6 +554,13 @@ func RoomTools() []RoomTool {
 // default is named in one place.
 func (t RoomTool) Pressed() string {
 	return strconv.FormatBool(t.Name == DefaultRoomTool)
+}
+
+// KeyLabel is the shortcut as it is printed on the key cap, which is the case
+// the tooltip shows it in and the opposite of the case the client listens for.
+// A person reads V and presses v; both are this one field.
+func (t RoomTool) KeyLabel() string {
+	return strings.ToUpper(t.Key)
 }
 
 // RoomWindow is a floating panel over the table: the player list, a monster's

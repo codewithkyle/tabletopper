@@ -3290,6 +3290,34 @@
       height: var(--size);
       padding-inline: calc(var(--size) / 2 - var(--border));
     }
+  }
+  .kbd {
+    box-shadow: none;
+    @layer daisyui.l1.l2.l3 {
+      display: inline-flex;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-field);
+      background-color: var(--color-base-200);
+      vertical-align: middle;
+      color: var(--color-base-content);
+      padding-inline: 0.5em;
+      border: var(--border) solid var(--color-base-content);
+      @supports (color: color-mix(in lab, red, red)) {
+        border: var(--border) solid color-mix(in srgb, var(--color-base-content) 20%, #0000);
+      }
+      border-bottom: calc(var(--border) + 1px) solid var(--color-base-content);
+      @supports (color: color-mix(in lab, red, red)) {
+        border-bottom: calc(var(--border) + 1px) solid color-mix(in srgb, var(--color-base-content) 20%, #0000);
+      }
+      --size: calc(var(--size-selector, 0.25rem) * 6);
+      font-size: 0.875rem;
+      height: var(--size);
+      min-width: var(--size);
+    }
+  }
+  @layer daisyui.l1.l2.l3 {
     .fieldset {
       display: grid;
       gap: calc(0.25rem * 1.5);
@@ -3990,6 +4018,12 @@
       border-color: color-mix(in oklab, var(--color-error) 60%, transparent);
     }
   }
+  .border-neutral-content\/30 {
+    border-color: var(--color-neutral-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-neutral-content) 30%, transparent);
+    }
+  }
   .border-primary {
     border-color: var(--color-primary);
   }
@@ -4049,6 +4083,12 @@
   }
   .bg-green-500 {
     background-color: var(--color-green-500);
+  }
+  .bg-neutral-content\/15 {
+    background-color: var(--color-neutral-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-neutral-content) 15%, transparent);
+    }
   }
   .bg-orange-500 {
     background-color: var(--color-orange-500);
@@ -4383,6 +4423,10 @@
       --size: calc(var(--size-selector, 0.25rem) * 4);
       font-size: 0.625rem;
     }
+    .kbd-xs {
+      --size: calc(var(--size-selector, 0.25rem) * 4);
+      font-size: 0.625rem;
+    }
     .otp-lg {
       font-size: 2rem;
       --otp-size: calc(var(--size-field, 0.25rem) * 12);
@@ -4538,6 +4582,9 @@
   }
   .text-hint {
     color: var(--color-hint);
+  }
+  .text-neutral-content {
+    color: var(--color-neutral-content);
   }
   .text-primary {
     color: var(--color-primary);

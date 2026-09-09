@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -566,8 +567,12 @@ func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 	// four of them are the gestures a table is made of -- a room that opened in
 	// a mode where none of them worked would have to be switched out of before
 	// it could be played.
-	if !strings.Contains(page, `data-room-tool="`+DefaultRoomTool+`" aria-label="Select" aria-pressed="true"`) {
-		t.Errorf("the room does not open on %q", DefaultRoomTool)
+	// The attributes between the two are not pinned, because what matters is
+	// which button carries the pressed state and not what else the markup has
+	// learned to render onto it since.
+	pressed := regexp.MustCompile(`data-room-tool="([a-z]+)"[^>]*aria-pressed="true"`).FindStringSubmatch(page)
+	if pressed == nil || pressed[1] != DefaultRoomTool {
+		t.Errorf("the room does not open on %q: %v", DefaultRoomTool, pressed)
 	}
 
 	// It floats over the table, so it is inside the region it acts on.
@@ -639,6 +644,51 @@ func TestExactlyOneToolIsTheRuler(t *testing.T) {
 	}
 	if measures != 1 {
 		t.Errorf("%d tools in the list measure, want exactly 1", measures)
+	}
+}
+
+// AND THE LETTER THAT SWITCHES TO A MODE IS RENDERED TOO, so tools.ts reads a
+// map out of the markup rather than carrying three names of its own. A letter
+// is a mnemonic and is matched on KeyboardEvent.key, which is why it is stored
+// as the lower case the client compares against and shown as the upper case
+// printed on the key cap.
+func TestEveryToolShortcutIsItsOwnLetter(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	seen := map[string]string{}
+	keyed := 0
+
+	for _, tool := range RoomTools() {
+		if tool.Key == "" {
+			continue
+		}
+		keyed++
+
+		if tool.Key != strings.ToLower(tool.Key) || len([]rune(tool.Key)) != 1 {
+			t.Errorf("%q has shortcut %q, want one lower-case letter", tool.Name, tool.Key)
+		}
+		if other, taken := seen[tool.Key]; taken {
+			t.Errorf("%q and %q both answer to %q", other, tool.Name, tool.Key)
+		}
+		seen[tool.Key] = tool.Name
+
+		if !strings.Contains(page, `data-room-tool-key="`+tool.Key+`"`) {
+			t.Errorf("%q renders no shortcut attribute:\n%s", tool.Name, page)
+		}
+
+		// AND IT IS SHOWN WHERE THE NAME IS. A shortcut nobody is told about is
+		// a shortcut nobody presses, and the tooltip is the only place the pill
+		// says anything at all.
+		if !strings.Contains(page, ">"+tool.KeyLabel()+"</kbd>") {
+			t.Errorf("%q does not print %q in its tooltip", tool.Name, tool.KeyLabel())
+		}
+	}
+
+	if got := strings.Count(page, "data-room-tool-key="); got != keyed {
+		t.Errorf("%d buttons carry a shortcut, want %d", got, keyed)
+	}
+	if seen[DefaultRoomTool] == "" && seen["v"] != DefaultRoomTool {
+		t.Errorf("the default tool has no shortcut")
 	}
 }
 

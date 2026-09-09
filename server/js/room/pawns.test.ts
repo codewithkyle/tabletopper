@@ -443,21 +443,41 @@ test("a measurement snaps to nothing at either end", () => {
 	assert.deepEqual([ruler?.x0, ruler?.y0, ruler?.x1, ruler?.y1], [37, 91, 52, 103]);
 });
 
-// A press with one already down MOVES the point, because the next question at a
-// table is nearly always asked from where the last one was answered.
-test("a second press moves the point rather than putting the ruler away", () => {
+// THE TOOL IS TWO CLICKS AND THE SECOND IS THE FULL STOP, which is how a wall
+// is measured in every CAD program there has ever been: the gesture ends where
+// the eye already is rather than at a key.
+test("a second press ends the measurement", () => {
 	const { controller } = table([], { measuring: true });
 
 	controller.tool.press(at(0, 0), at(0, 0), NONE);
 	controller.tool.hover(at(64, 0));
 
+	assert.equal(controller.tool.press(at(320, 0), at(0, 0), NONE), true, "the second press was given away");
+
+	assert.deepEqual(controller.rulers([]), [], "the second press left the ruler up");
+	assert.deepEqual(controller.outlines([]), [], "the second press left the point down");
+
+	// And the pointer travelling afterwards does not start one by itself.
+	controller.tool.hover(at(640, 0));
+	assert.deepEqual(controller.rulers([]), [], "the ruler came back on its own");
+});
+
+// A THIRD PRESS IS A NEW MEASUREMENT, so a GM asking one question after another
+// is clicking rather than reaching for Escape between them.
+test("a press after the end starts a fresh measurement", () => {
+	const { controller } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+
 	controller.tool.press(at(320, 0), at(0, 0), NONE);
+	controller.tool.hover(at(384, 0));
 
 	const [ruler, ...rest] = controller.rulers([]);
 
-	assert.deepEqual(rest, [], "the second press left the first ruler behind");
-	assert.deepEqual([ruler?.x0, ruler?.x1], [320, 320], "the point did not move");
-	assert.equal(ruler?.label, "0 ft.", "a fresh point measured something");
+	assert.deepEqual(rest, [], "the new measurement drew more than one ruler");
+	assert.deepEqual([ruler?.x0, ruler?.x1], [320, 384]);
+	assert.equal(ruler?.label, "5 ft.");
 });
 
 // THE RULER TOUCHES NOTHING ON THE TABLE. It takes the primary button the way

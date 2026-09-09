@@ -397,10 +397,14 @@ type Gesture = Pressing | Dragging | Shaping | Marqueeing | null;
 // IT IS NOT A GESTURE AND THAT IS THE WHOLE POINT OF IT. Every one of the four
 // above lives between a press and a release; this one is put down by a press and
 // outlives it, so a GM can let go of the mouse, lean over the table and read the
-// number. What ends it is another press -- which moves the point rather than
-// clearing it, because the next question is almost always asked from where the
-// last one was answered -- or Escape, or the right button, or choosing another
-// tool.
+// number. What ends it is another press, or Escape, or the right button, or
+// choosing another tool.
+//
+// SO THE TOOL IS TWO CLICKS AND THE SECOND ONE IS THE FULL STOP. Down, read,
+// up: the same shape as the two clicks that measure a wall in every CAD program
+// there has ever been, and the gesture is over where the eye already is rather
+// than at a key. The three ways out are still there and still do the same
+// thing; this is the one that is already under the hand.
 //
 // BOTH POINTS ARE RAW MAP PIXELS AND NEITHER IS SNAPPED. A ruler is not a move:
 // a creature walks in squares, and a fireball's radius, a bow's range and the
@@ -905,11 +909,10 @@ export function createTable(deps: TableDeps): Table {
 			// THE RULER TAKES THE PRESS AND LEAVES NO GESTURE BEHIND, so the
 			// release that follows finds nothing to finish: the point is down
 			// and the line follows the pointer from here whether the button is
-			// held or not. A press with one already down MOVES it rather than
-			// clearing it, because the next question at a table is nearly
-			// always asked from where the last one was answered -- and the ways
-			// to be rid of it are the ways to be rid of anything else, which is
-			// abandon.
+			// held or not. The SECOND press is the end of it, which makes the
+			// tool the two clicks a wall is measured with everywhere else -- and
+			// leaves Escape, the right button and choosing another tool doing
+			// exactly what they already did, which is abandon.
 			//
 			// IT IS BELOW PLACEMENT because arming is a mode you are IN and the
 			// tool is a mode you are in as well: a GM who has just picked a
@@ -918,14 +921,9 @@ export function createTable(deps: TableDeps): Table {
 			// everything below this line touches the table's contents, which is
 			// the half of the table a ruler is not allowed to disturb.
 			if (deps.measuring()) {
-				if (measured) {
-					measured.from.x = map.x;
-					measured.from.y = map.y;
-					measured.to.x = map.x;
-					measured.to.y = map.y;
-				} else {
-					measured = { from: { x: map.x, y: map.y }, to: { x: map.x, y: map.y } };
-				}
+				measured = measurement()
+					? null
+					: { from: { x: map.x, y: map.y }, to: { x: map.x, y: map.y } };
 
 				gesture = null;
 

@@ -159,13 +159,22 @@ templ roomBarItem(item RoomMenuItem) {
 templ roomToolbar(data RoomPageData) {
 	<div data-room-tools class={ surfacePanel + " absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-full p-1" }>
 		for _, t := range RoomTools() {
-			<div class="tooltip tooltip-left" data-tip={ t.Label }>
+			<div class="tooltip tooltip-left">
+				<div class={ tooltipBody + " flex items-center justify-center gap-1.5 whitespace-nowrap" }>
+					<span>{ t.Label }</span>
+					if t.Key != "" {
+						<kbd class="kbd kbd-xs border-neutral-content/30 bg-neutral-content/15 text-neutral-content">{ t.KeyLabel() }</kbd>
+					}
+				</div>
 				<button
 					type="button"
 					class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
 					data-room-tool={ t.Name }
 					data-room-tool-pans?={ t.Pans }
 					data-room-tool-measures?={ t.Measures }
+					if t.Key != "" {
+						data-room-tool-key={ t.Key }
+					}
 					aria-label={ t.Label }
 					aria-pressed={ t.Pressed() }
 				>
