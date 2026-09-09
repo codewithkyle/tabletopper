@@ -300,6 +300,66 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	equalStrings(t, "revealing twice", summary(again), []string{"pawn.updated to gm"})
 }
 
+// THE TABLE AND THE TRACKER ANSWER TO DIFFERENT FLAGS, and a pawn on another
+// floor is where the two come apart. Players are sent the ACTIVE layer's
+// visible pawns, so a goblin in the cellar is not on their table either way --
+// but projectInitiative keeps an entry for a pawn downstairs and drops one for
+// a pawn that is hidden, so hiding it still takes a line out of their turn
+// order. Emitting on the table's question alone left them reading the name of a
+// creature the GM had just put away.
+func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
+	w := newWorld(t)
+	cellar := w.addLayer("Cellar")
+
+	goblin := w.spawn(Pawn{Name: "Goblin", LayerID: cellar, Visible: true})
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
+
+	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
+
+	// Nothing crossed the shown line, so there is no pawn.removed: the players
+	// never had it on their table to take away.
+	equalStrings(t, "hiding a pawn downstairs", summary(hide), []string{
+		"pawn.updated to gm",
+		"initiative.updated to players",
+	})
+
+	players := delivered(hide, w.gm, w.pc)
+	tracker, ok := players[len(players)-1].(*InitiativeUpdated)
+	if !ok {
+		t.Fatalf("the last event a player received was %T", players[len(players)-1])
+	}
+	if len(tracker.Initiative.Entries) != 0 {
+		t.Fatalf("the players' tracker still names the hidden pawn: %+v", tracker.Initiative.Entries)
+	}
+
+	// And the GM's own turn order is untouched, which is why it went to
+	// players alone.
+	if len(w.s.Initiative.Entries) != 1 {
+		t.Fatalf("the GM's tracker holds %d entries, want 1", len(w.s.Initiative.Entries))
+	}
+}
+
+// Moving a tracked pawn between floors says nothing about the turn order,
+// because an entry for a creature that walked downstairs stays: the players
+// know it exists and it still has a turn.
+func TestMovingAPawnBetweenFloorsLeavesTheTrackerAlone(t *testing.T) {
+	w := newWorld(t)
+	cellar := w.addLayer("Cellar")
+
+	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
+
+	ems := w.apply(&PawnSetLayer{IDs: []ulid.ULID{goblin}, Layer: cellar}, w.gm)
+	equalStrings(t, "sending a tracked pawn downstairs", summary(ems), []string{
+		"pawn.updated to gm",
+		"pawn.removed to players",
+	})
+
+	if got := len(projectInitiative(w.s).Entries); got != 1 {
+		t.Fatalf("the players' tracker holds %d entries after a floor move, want 1", got)
+	}
+}
+
 // A SELECTION IS HIDDEN AND REVEALED IN ONE COMMAND, which is what the canvas
 // overlay's toggle sends: the ambush waiting round the corner goes away together
 // or the reveal is eight separate moments.

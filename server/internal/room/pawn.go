@@ -634,6 +634,30 @@ func (c *PawnSetVisible) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		}
 	}
 
+	// WHETHER THE TURN ORDER CHANGED IS A DIFFERENT QUESTION FROM WHETHER A
+	// PAWN APPEARED, and getting the two confused leaves a player's tracker
+	// naming a creature the GM has hidden.
+	//
+	// THE TABLE ASKS Shown AND THE TRACKER ASKS Visible, which is the whole of
+	// it. What players are SENT is the active layer's visible pawns, so a
+	// goblin in the cellar is not on their table whatever its flag says --
+	// while projectInitiative keeps an entry for a pawn on another floor and
+	// drops one for a pawn that is hidden, deliberately: a creature that walked
+	// downstairs still has a turn, and a hidden one is a creature they have not
+	// met. So hiding a tracked goblin in the cellar moves nothing across the
+	// shown line and still takes a line out of their turn order.
+	//
+	// IT IS ASKED BEFORE THE FLAGS ARE WRITTEN, because "did this change" has
+	// no answer afterwards.
+	tracked := false
+	for _, id := range c.IDs {
+		if s.Pawn(id).Visible != c.Visible && s.hasEntryFor(id) {
+			tracked = true
+
+			break
+		}
+	}
+
 	before := s.shownSet()
 	for _, id := range c.IDs {
 		s.Pawn(id).Visible = c.Visible
@@ -652,28 +676,13 @@ func (c *PawnSetVisible) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 
 	out = append(out, s.shownTransitions(before)...)
 
-	// A HIDDEN PAWN'S TURN IS NOT IN THE PLAYERS' TRACKER, so revealing or
-	// hiding one changes a second thing on their screen. The GM's tracker did
-	// not change, which is why this goes to players alone -- and it goes once
-	// however many pawns moved across the line.
-	if s.trackedTransition(before) {
+	// The GM's tracker did not change, which is why this goes to players alone
+	// -- and it goes once however many pawns were hidden.
+	if tracked {
 		out = append(out, to(ToPlayers, &InitiativeUpdated{Initiative: projectInitiative(s)}))
 	}
 
 	return out, nil
-}
-
-// trackedTransition reports whether any pawn the tracker names has just changed
-// which audience can see it, which is the one thing that makes the players'
-// turn order different from the one they were last sent.
-func (s *State) trackedTransition(before map[ulid.ULID]bool) bool {
-	for _, p := range s.Pawns {
-		if before[p.ID] != s.Shown(p) && s.hasEntryFor(p.ID) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // PawnSetLayer moves pawns between floors.
