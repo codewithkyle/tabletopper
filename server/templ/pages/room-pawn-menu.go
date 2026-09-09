@@ -47,3 +47,17 @@ package pages
 // tell them apart makes the GM open the pawn's window to find out where it is
 // before they can decide where to send it, which is the window this menu exists
 // to save them.
+//
+// THE HEADING ROW CARRIES block AND w-full, AND A LONG NAME IS WHY. DaisyUI
+// makes every row a flex item of a wrapping column, so a row with no width of
+// its own is sized to its content -- and a heading set to nowrap has a minimum
+// width of the entire name. That one row then decides the width of the flex
+// line, every other row is stretched to match it, and the hover backgrounds,
+// the floor list and the Here badge all run out past the panel's border onto
+// open table. Measured in a browser against this stylesheet: a 53-character
+// name drew 426px rows inside a 224px menu.
+//
+// w-full is the width the name cannot argue with. block is what makes truncate
+// mean what it says, because text-overflow belongs to a block container and on
+// the flex box a row is otherwise given, the name is cut off mid-letter with no
+// ellipsis to admit that anything was cut.

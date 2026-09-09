@@ -731,6 +731,20 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   `name`.** htmx collects values from named fields, so the layer never left the
   browser and the route answered 404 with an empty body -- a control that
   looked like it worked and did nothing.
+- **A long name is trimmed rather than left to set the menu's width**
+  (found in play, 2026-09-08). DaisyUI makes every row a flex item of a
+  wrapping column, so a row with no width of its own is as wide as its content
+  -- and the heading, set to `nowrap`, has a minimum width of the whole name.
+  That row decided the width of the flex line, every other row was stretched to
+  match it, and the hover backgrounds, the floor list and the "Here" badge ran
+  out past the panel's border onto open table: measured in a browser against
+  the built stylesheet, a 53-character name drew 426px rows inside a 224px
+  menu. The heading now carries `block w-full truncate` -- `w-full` is the
+  width the name cannot argue with, and `block` is what makes `truncate` mean
+  what it says, because `text-overflow` belongs to a block container and the
+  flex box a row is otherwise given would cut the name off mid-letter with no
+  ellipsis. The floor rows were already safe: `min-w-0` on the name span is
+  what caps them.
 
 ## End state
 

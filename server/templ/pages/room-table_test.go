@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -505,5 +507,26 @@ func TestThePawnMenuStartsHidden(t *testing.T) {
 
 	if !strings.Contains(gm, "data-pawn-menu hidden") {
 		t.Errorf("the menu is on screen before anybody asked for it:\n%s", gm)
+	}
+}
+
+// A LONG NAME IS TRIMMED RATHER THAN ALLOWED TO SET THE MENU'S WIDTH. DaisyUI
+// makes every row a flex item of a wrapping column, and a row with no width of
+// its own is as wide as its content -- so a name nobody shortened widens the
+// heading row, stretches every row below it to match, and puts the hover
+// backgrounds, the floor list and the Here badge out past the border. The three
+// classes below are the whole fix and none of them is decoration.
+func TestThePawnMenusHeadingIsTrimmedRatherThanWidening(t *testing.T) {
+	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
+
+	heading := regexp.MustCompile(`data-pawn-menu-name class="([^"]*)"`).FindStringSubmatch(gm)
+	if heading == nil {
+		t.Fatalf("the menu has no heading row to trim:\n%s", gm)
+	}
+
+	for _, class := range []string{"block", "w-full", "truncate"} {
+		if !slices.Contains(strings.Fields(heading[1]), class) {
+			t.Errorf("the heading is missing %q, so a long name sets the width of the whole menu: %q", class, heading[1])
+		}
 	}
 }
