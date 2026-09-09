@@ -71,17 +71,34 @@ const POOL_REST_ALPHA = 0.5;
 // EVERYTHING BELOW IS MEASURED AGAINST THE CREATURE THAT SHED IT, so a dragon
 // throws more blood than a goblin without any of it being written down twice.
 //
-// JITTER is how far from the pawn's centre a mark may land, as a fraction of its
-// radius. HIT_SPREAD_MIN and HIT_SPREAD_MAX are how big one is drawn against the
-// same radius, and a hit picks between them by how bad it was.
+// HIT_SPREAD_MIN and HIT_SPREAD_MAX are how big a mark is drawn against the
+// pawn's radius, and a hit picks between them by how bad it was.
 //
 // THE SMALLEST IS SMALLER THAN ANYTHING THAT USED TO BE ON THE FLOOR. It has to
 // be: every hit marks now, so the mark for a scratch has to read as a fleck
 // rather than as a splatter, or a fight fills the room with blood that all means
 // the same thing.
-const JITTER = 0.55;
 const HIT_SPREAD_MIN = 0.5;
 const HIT_SPREAD_MAX = 1.6;
+
+// SHOW IS WHERE A MARK'S OUTER EDGE GOES, as a multiple of the pawn's radius,
+// and it is what decides how far from the centre the mark is thrown rather than
+// a scatter chosen on its own.
+//
+// THE PAWN IS DRAWN OVER THE FLOOR, WHICH MAKES A SMALL MARK IN THE MIDDLE AN
+// INVISIBLE ONE. A scratch throws the smallest mark there is, so if it lands
+// under the token it is never seen at all -- which is the bug this replaced a
+// plain scatter to fix. Putting the EDGE at a fixed reach instead means the
+// offset falls out of the size: a fleck is thrown out to the creature's rim and
+// peeks past it, and a mark big enough to cover the token sits over the middle
+// and spills out on every side. Nothing has to be tuned twice.
+//
+// SPREAD_FLOOR keeps the biggest marks off the exact centre so that a death's
+// four do not stack, and WANDER is the slop on all of it, so a burst is blood
+// rather than a compass rose.
+const SHOW = 1.45;
+const SPREAD_FLOOR = 0.35;
+const WANDER = 0.22;
 
 // DEATH_SPREAD is the spray, POOL_SPREAD the pool underneath it. THE POOL IS THE
 // BIGGEST THING THE FLOOR EVER GETS and no hit may reach it: dying is the one
@@ -94,16 +111,24 @@ const POOL_SPREAD = 2.4;
 const VARY_MIN = 0.85;
 const VARY_MAX = 1.15;
 
-// HIT_FAINT is how dim the smallest hit lands, against a full-strength one, and
-// SCATTER_FLOOR is how tightly it is thrown. Both of them move with the hit: a
-// scratch drops something small and dim directly under the creature, and a blow
-// that takes a third of it throws blood a token's width away.
+// HIT_FAINT is how dim the smallest hit lands, against a full-strength one.
 //
-// THREE THINGS MOVING TOGETHER IS WHAT MAKES IT READ. Size alone is a mark you
-// have to compare against its neighbours to judge; size, weight and scatter at
-// once is a hit you can tell was heavy without looking at anything else.
+// SIZE AND WEIGHT MOVING TOGETHER IS WHAT MAKES IT READ. Size alone is a mark
+// you would have to compare against its neighbours to judge; a scratch that is
+// both small AND faint is one you can tell was a scratch on its own.
 const HIT_FAINT = 0.55;
-const SCATTER_FLOOR = 0.6;
+
+// TAU is a whole turn. A burst is spread around the creature by giving each mark
+// its own sector of one, which is what keeps three marks from landing on top of
+// each other however the wander falls.
+//
+// SECTOR is how much of its own sector a mark may use, and the margin it leaves
+// is the point of it: sectors that TOUCH are not a spread, because the two marks
+// either side of a boundary can both land on it and end up a couple of degrees
+// apart. A mark alone gets the whole turn, since there is nothing to keep it
+// away from.
+const TAU = Math.PI * 2;
+const SECTOR = 0.7;
 
 // CAP is how many marks one floor holds. Past it the oldest is faded out over
 // EVICT_MS and dropped -- a long session should stain a room, not bury it.
@@ -222,16 +247,27 @@ export function newDecals(): Decals {
 
 		const weight = dead ? 1 : HIT_FAINT + (1 - HIT_FAINT) * strength;
 		const reach = dead ? DEATH_SPREAD : HIT_SPREAD_MIN + (HIT_SPREAD_MAX - HIT_SPREAD_MIN) * strength;
-		const scatter = JITTER * (dead ? 1 : SCATTER_FLOOR + (1 - SCATTER_FLOOR) * strength);
 
 		for (let i = 0; i < count; i++) {
 			const next = generator(pawn, i);
-			const spread = reach * (VARY_MIN + next() * (VARY_MAX - VARY_MIN));
+			const half = radius * reach * (VARY_MIN + next() * (VARY_MAX - VARY_MIN));
+
+			// THROWN OUT BY WHATEVER IT TAKES TO BE SEEN. The distance is not a
+			// scatter of its own: it is whatever puts this mark's outer edge at
+			// SHOW, so the smaller the mark the further out it goes. See SHOW.
+			//
+			// AND EACH MARK OF A BURST OWNS A SECTOR of the turn, so a hit that
+			// throws three of them throws them around the creature rather than
+			// into one pile on whichever side the numbers happened to fall.
+			const push = Math.max(radius * SPREAD_FLOOR, radius * SHOW - half);
+			const slice = count > 1 ? SECTOR : 1;
+			const angle = ((i + (1 - slice) / 2 + slice * next()) * TAU) / count;
+			const distance = push + (next() - 0.5) * WANDER * radius;
 
 			list.push({
-				x: pawn.x + (next() - 0.5) * 2 * scatter * radius,
-				y: pawn.y + (next() - 0.5) * 2 * scatter * radius,
-				half: radius * spread,
+				x: pawn.x + Math.cos(angle) * distance,
+				y: pawn.y + Math.sin(angle) * distance,
+				half,
 				rotation: Math.floor(next() * 360),
 				sprite: bloodSprite(Math.floor(next() * BLOOD_VARIANTS)),
 				born: now,

@@ -162,6 +162,68 @@ test("a heavy blow is bigger and bolder than a scratch", () => {
 	assert.ok(boldest(large) > boldest(small), "a scratch was as bold as a heavy blow");
 });
 
+// A MEDIUM CREATURE IS ONE CELL ACROSS, so its own radius is half a cell. The
+// two tests below are about where a mark lands relative to that edge.
+const RADIUS = CELL / 2;
+
+// Marks are drawn UNDER the pawn, so a small one in the middle is one nobody
+// ever sees -- and a scratch throws the smallest mark there is. Every mark has
+// to reach past the creature's own edge, whatever its size.
+test("every mark reaches past the edge of the pawn that shed it", () => {
+	for (const [name, hp] of [["a scratch", 99], ["a solid hit", 80], ["a crit", 41], ["a death", 0]] as const) {
+		const decals = newDecals();
+		decals.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+		decals.watch([pawn({ hp, maxHp: 100 })], GROUND, CELL, 10);
+
+		for (const mark of drawn(decals, 5000)) {
+			const from = Math.hypot(mark.x - 100, mark.y - 200);
+
+			assert.ok(from + mark.half > RADIUS * 1.3, `${name} left a mark buried under the token`);
+		}
+	}
+});
+
+// AND THE OFFSET IS THE SIZE, NOT A SCATTER OF ITS OWN. A fleck is thrown out to
+// the creature's rim because that is the only way it is visible; a mark big
+// enough to cover the token sits over the middle and spills out on every side.
+test("a small mark is thrown to the rim and a big one sits over the middle", () => {
+	const nearest = (hp: number): number => {
+		const decals = newDecals();
+		decals.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+		decals.watch([pawn({ hp, maxHp: 100 })], GROUND, CELL, 10);
+
+		return Math.min(...drawn(decals, 5000).map((mark) => Math.hypot(mark.x - 100, mark.y - 200)));
+	};
+
+	assert.ok(nearest(99) > nearest(41), "a scratch sat no further out than a crit");
+	assert.ok(nearest(99) > RADIUS * 0.7, "a scratch was not thrown anywhere near the rim");
+	assert.ok(nearest(41) < RADIUS * 0.6, "a crit was thrown out instead of covering the token");
+});
+
+// Three marks at once go AROUND the creature rather than into one pile on
+// whichever side the numbers happened to fall: each owns a sector of the turn.
+test("a burst is thrown around the creature and not into one pile", () => {
+	const decals = newDecals();
+	decals.watch([pawn({ hp: 100, maxHp: 100 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 20, maxHp: 100 })], GROUND, CELL, 10);
+
+	const marks = drawn(decals, 5000);
+	assert.ok(marks.length >= 3, "the test did not actually throw a burst");
+
+	// IT IS THE ANGLES THAT ARE SPREAD, not the distances. Three marks big
+	// enough to cover the token OVERLAP, and should: what would read as a pile
+	// is three of them thrown to the same side of the creature.
+	const angles = marks.map((mark) => Math.atan2(mark.y - 200, mark.x - 100));
+
+	for (let i = 0; i < angles.length; i++) {
+		for (let j = i + 1; j < angles.length; j++) {
+			const apart = Math.abs(((angles[i] - angles[j] + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+
+			assert.ok(apart > Math.PI / 6, "two marks of one burst were thrown the same way");
+		}
+	}
+});
+
 // A CREATURE NOBODY WROTE HIT POINTS FOR CANNOT BE SEEN TO BE HIT. There is no
 // number to take the difference of, so nothing is drawn and nothing is guessed.
 test("a pawn with no hit points at all sheds nothing", () => {
