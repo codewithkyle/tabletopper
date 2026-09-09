@@ -606,6 +606,42 @@ func TestExactlyOneToolHandsThePointerToTheCamera(t *testing.T) {
 	}
 }
 
+// AND WHICH ONE IS THE RULER IS RENDERED THE SAME WAY, for the same reason and
+// with one difference the client cares about: the space bar borrows the panning
+// tool and does not borrow this one, so a measurement survives the map being
+// shoved across. Two flags rather than a name per reader is what keeps Fog and
+// Draw from needing anything here but a third.
+func TestExactlyOneToolIsTheRuler(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	if got := strings.Count(page, "data-room-tool-measures"); got != 1 {
+		t.Fatalf("%d tools measure, want exactly 1", got)
+	}
+	if !strings.Contains(page, `data-room-tool="`+RoomToolMeasure+`"`) {
+		t.Fatalf("the pill has no %q tool:\n%s", RoomToolMeasure, page)
+	}
+
+	measures := 0
+	for _, tool := range RoomTools() {
+		if tool.Measures {
+			measures++
+		}
+		if tool.Measures && tool.Name != RoomToolMeasure {
+			t.Errorf("%q measures as well as %q", tool.Name, RoomToolMeasure)
+		}
+
+		// NO TOOL DOES BOTH. panning is asked of the lit button and measuring
+		// of the chosen one, and a button that answered yes to both would put
+		// the table in two modes the moment the space bar went down.
+		if tool.Pans && tool.Measures {
+			t.Errorf("%q both pans and measures", tool.Name)
+		}
+	}
+	if measures != 1 {
+		t.Errorf("%d tools in the list measure, want exactly 1", measures)
+	}
+}
+
 // The floors menu swaps the layer the PLAYERS are shown, which is the GM's
 // alone -- so a player's page renders neither the button nor the list, and the
 // client finds nothing to mount rather than a control it has to hide.

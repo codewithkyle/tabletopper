@@ -815,6 +815,72 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   Escape. The CSS build gained three rules and no component family:
   `.max-h-72` and the two `aria-expanded:` utilities.
 
+### Rework 13, the measure tool is a free ruler (2026-09-08)
+
+- **A press puts a point down and the line follows the pointer from there.** It
+  is deliberately not a drag. The question a table asks between turns -- how far
+  is the ogre, does the fireball catch both of them -- is asked with a hand off
+  the mouse and an eye on the map, so the point stays down when the button comes
+  up and the ruler goes on following the cursor on `hover`. A second press MOVES
+  the point rather than clearing it, because the next question is nearly always
+  asked from where the last one was answered, and Escape or the right button put
+  it away the way they put away everything else on this table.
+- **It measures the hypotenuse and counts no squares.** `feetBetween` in
+  `render/path.ts` sits beside `cellsMoved` and `feetMoved` and disagrees with
+  them on purpose: a move is a creature walking through cells, scored by the
+  table's diagonal rule, and three cells diagonally is fifteen feet; a ruler is a
+  line on a map, and the same three cells are twenty-one. Neither end snaps, and
+  the grid's `diagonals` setting has no say -- 5-10-5 is a rule about walking,
+  and nothing walks along a ruler.
+- **So it highlights no cells either.** The tinted squares under a drag are how
+  far that walk got. A free measurement crosses squares without counting them, so
+  painting them would be the grid answering a question nobody asked it. The
+  `Ruler` slot is shared with the drag ruler, which is why the cell array is
+  truncated rather than assumed empty.
+- **Everything else is the drag ruler's own graphics, unchanged.** The same
+  `Ruler` record, the same `path-pass` line with its dark halo, the same
+  `distanceLabel`, the same near-white `SELF_COLOR`. The point indicator is one
+  more `Outline` through the ring pass -- a 4px circle at a fixed size on screen,
+  the same units the resize handles use -- because a ring is the shape this
+  canvas already speaks in.
+- **The pill answers two questions now, and it answers them about different
+  buttons.** `panning()` is asked of the LIT button, because the space bar
+  lighting Move is exactly what being in Move for as long as it is down means.
+  `measuring()` is asked of the CHOSEN one, because the hold borrows the pointer
+  without changing the tool -- a ruler that vanished every time the map was
+  shoved twenty feet sideways would be a ruler nobody could use across a
+  battlemap, and measuring something further away than the screen is precisely
+  the case.
+- **What each tool does is a flag in `RoomTools()`, not a name spelled in two
+  languages.** `Measures` joins `Pans`, rendered as `data-room-tool-measures`,
+  and `tools.ts` finds it by the attribute. Fog and Draw need a third and a
+  fourth when they arrive and nothing else. `TestExactlyOneToolIsTheRuler` pins
+  that exactly one tool carries it, that it is `RoomToolMeasure`, and that no
+  tool both pans and measures -- which would put the table in two modes the
+  moment the space bar went down.
+- **A ruler is forgotten rather than hidden when the tool changes.** `measurement()`
+  in `pawns.ts` clears it the moment `deps.measuring()` goes false, and every
+  reader goes through that function, so there is no order in which a stale one
+  can be drawn. `tools.onChange` exists for the one frame that needs asking for:
+  the pill is a button in the corner and the canvas hears nothing about a click
+  on it, so a mode changed with the pointer sitting still would otherwise leave
+  the last tool's ruler on screen.
+- **The ruler touches nothing on the table.** It sits below placement in `press`
+  -- a GM who just picked a monster out of the spawn dialog means to put it down,
+  whatever the pill says -- and above the handles and the hit test, because
+  everything below that line is the table's contents. The hover hit test still
+  runs underneath it: the label over the pawn a GM is stretching a line towards
+  is half of what makes the number mean anything.
+- Verified in headless chromium against the real rendered pill: it opens on
+  Select and is not the ruler; clicking Measure lights it, answers
+  `measuring=true` and `panning=false`, and asks for a frame; holding the space
+  bar lights Move, answers `panning=true` with `cursor: grab` AND leaves
+  `measuring=true`; releasing comes back to Measure with the cursor cleared;
+  choosing Select answers `measuring=false` and asks for a frame; Move is the
+  camera and never the ruler; exactly one button carries
+  `data-room-tool-measures`, it is Measure, and no button carries both flags.
+  `make check` is green at 232 JS tests, and the CSS build gained no selectors.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

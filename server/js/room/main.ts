@@ -120,6 +120,12 @@ if (mount) {
 		// rather than a table nothing can be done to.
 		panning: () => tools?.panning() ?? false,
 
+		// AND WHETHER THE RULER IS THE MODE, which is the same question asked of
+		// the same pill and is deliberately not the same answer: the space bar
+		// borrows the pointer without changing which tool is chosen, so a
+		// measurement survives being panned across. See tools.ts.
+		measuring: () => tools?.measuring() ?? false,
+
 		// A CAMERA THAT HAS NOT STARTED IS ONE MAP PIXEL PER SCREEN PIXEL,
 		// which is the identity rather than a guess: with no renderer there is
 		// no canvas, so nothing asks for a handle and the number is never used.
@@ -148,6 +154,13 @@ if (mount) {
 	});
 
 	renderer = mountRenderer(mount, state, table);
+
+	// A MODE CHANGED WITH THE POINTER SITTING STILL IS STILL A FRAME. The measure
+	// tool leaves a ruler on the table and choosing another tool is what puts it
+	// away -- and nothing else would ask for the frame that stops drawing it,
+	// because the pill is a button in the corner and the canvas hears nothing
+	// about it.
+	tools?.onChange(() => renderer?.invalidate());
 
 	// The bar's floor control belongs to the renderer's view rather than to the
 	// store, because half of what it shows -- which floor this GM is looking at

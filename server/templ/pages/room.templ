@@ -165,6 +165,7 @@ templ roomToolbar(data RoomPageData) {
 					class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
 					data-room-tool={ t.Name }
 					data-room-tool-pans?={ t.Pans }
+					data-room-tool-measures?={ t.Measures }
 					aria-label={ t.Label }
 					aria-pressed={ t.Pressed() }
 				>
@@ -183,7 +184,7 @@ templ roomToolbar(data RoomPageData) {
 
 templ roomToolIcon(name string) {
 	switch name {
-		case "measure":
+		case RoomToolMeasure:
 			@rulerIcon()
 		case "fog":
 			@cloudIcon()

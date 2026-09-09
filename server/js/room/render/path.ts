@@ -383,6 +383,25 @@ export function feetMoved(dx: number, dy: number, grid: Grid): number {
 	return cellsMoved(dx, dy, grid.diagonals) * Math.max(0, grid.feetPerCell);
 }
 
+// feetBetween is the straight-line distance between two map points in the
+// table's own units, with the lattice ignored entirely.
+//
+// IT IS THE ONE MEASUREMENT ON THIS TABLE THAT DOES NOT COUNT SQUARES, and it
+// exists for the ruler in the pill rather than for a move. A move is a creature
+// walking through cells and is scored by the rule the table plays under -- that
+// is cellsMoved, and it is why two squares diagonally can be ten feet or
+// fifteen. A GM asking how far the dragon's breath reaches is asking about a
+// line on a map, and a line does not care which squares it crosses.
+//
+// SO IT IS PYTHAGORAS AND NOTHING ELSE. The cell size is what turns pixels into
+// feet, and the diagonal rule has no say: a hypotenuse that came back as three
+// squares would be the grid answering a question nobody asked it.
+export function feetBetween(dx: number, dy: number, grid: Grid): number {
+	const cell = Math.max(1, grid.cellSize);
+
+	return (Math.hypot(dx, dy) / cell) * Math.max(0, grid.feetPerCell);
+}
+
 // distanceLabel is the string the canvas draws under a drag. It is built here
 // rather than in the pass because the glyph atlas holds exactly the characters
 // this can produce -- the ten digits, a space, an f, a t and a full stop -- and

@@ -69,9 +69,16 @@ const roomLockID = "room-lock"
 // bar borrows it for as long as it is down, which is the gesture every drawing
 // program has trained every hand to expect; a mode you can leave switched on is
 // what a trackpad, a tablet and a GM dragging halfway across a battlemap need.
+//
+// AND MEASURE IS THE THIRD REAL ONE. It puts a point down where it is clicked
+// and runs a ruler from there to the pointer, which is the question a table asks
+// between turns -- how far is the ogre, does the fireball reach both of them --
+// and it is asked without moving anything, which is why it is a mode of its own
+// rather than something a drag does.
 const (
 	DefaultRoomTool = "select"
 	RoomToolMove    = "move"
+	RoomToolMeasure = "measure"
 )
 
 // RoomPageData is the whole page, with every conversion already done. The
@@ -463,20 +470,28 @@ func comingSoon(labels ...string) []RoomMenuItem {
 // live two clicks deep. It floats over the table rather than sitting in the bar
 // for the same reason: it belongs to the surface it acts on.
 //
-// THE CANVAS ASKS ABOUT ONE OF THESE AND ONLY ONE. Select is everything the
-// table has always done -- a press on a pawn drags it, a press on empty floor
-// draws a marquee, a click picks one out -- and Move is that table with the
-// pointer taken away from it: every gesture is the camera's, and the selection
-// somebody built is still there when they come back. The other three name
-// features that do not exist, so the table goes on behaving as Select while one
-// of them is lit; gating it on them would mean a GM who pressed Measure found a
-// table where nothing worked and nothing said why. Phase 6 builds the three.
+// THE CANVAS ASKS ABOUT THESE ONE AT A TIME. Select is everything the table has
+// always done -- a press on a pawn drags it, a press on empty floor draws a
+// marquee, a click picks one out. Move is that table with the pointer taken away
+// from it: every gesture is the camera's, and the selection somebody built is
+// still there when they come back. Measure takes the primary button too, and
+// spends it on a ruler instead. Fog and Draw name features that do not exist, so
+// the table goes on behaving as Select while one of them is lit; gating it on
+// them would mean a GM who pressed Fog found a table where nothing worked and
+// nothing said why.
 //
-// PANS IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN TYPESCRIPT.
-// server/js/room/tools.ts has to know which of these buttons is the camera's,
-// because that is the one the space bar borrows -- and a name written out in
-// both languages is a space bar that quietly stops working the day this list is
-// reordered or renamed. The attribute is the contract; see roomToolbar.
+// WHAT A TOOL DOES IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN
+// TYPESCRIPT. server/js/room/tools.ts has to know which of these buttons is the
+// camera's, because that is the one the space bar borrows, and the table has to
+// know which one is the ruler -- and a name written out in both languages is a
+// gesture that quietly stops working the day this list is reordered or renamed.
+// The attributes are the contract; see roomToolbar.
+//
+// A BEHAVIOUR PER FLAG AND NOT A NAME PER READER, which is the part worth
+// keeping as Fog and Draw arrive. Each of these says what the mode DOES, so the
+// client asks a question it can answer from the markup alone, and a tool whose
+// flag nobody reads yet is a button that behaves as Select -- which is what the
+// two unbuilt ones already are.
 type RoomTool struct {
 	Name  string
 	Label string
@@ -484,6 +499,11 @@ type RoomTool struct {
 	// Pans is the mode that gives every gesture to the camera. Exactly one
 	// tool has it, and the space bar is a temporary switch to that one.
 	Pans bool
+
+	// Measures is the mode whose primary button lays down a ruler rather than
+	// touching the table's contents. Exactly one tool has it, and unlike Pans
+	// the space bar does not borrow it -- see tools.ts.
+	Measures bool
 }
 
 // RoomTools is the five modes, in the order a hand reaches for them.
@@ -491,7 +511,7 @@ func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select"},
 		{Name: RoomToolMove, Label: "Move", Pans: true},
-		{Name: "measure", Label: "Measure"},
+		{Name: RoomToolMeasure, Label: "Measure", Measures: true},
 		{Name: "fog", Label: "Fog"},
 		{Name: "draw", Label: "Draw"},
 	}

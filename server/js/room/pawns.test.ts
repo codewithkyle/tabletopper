@@ -177,7 +177,10 @@ test("hit testing ignores another floor", () => {
 // and to recording versions of the two things it asks the page to do.
 function table(
 	pawns: Pawn[],
-	over: Partial<{ role: "gm" | "player"; user: string; grid: Grid; scale: number; panning: boolean }> = {},
+	over: Partial<{
+		role: "gm" | "player"; user: string; grid: Grid;
+		scale: number; panning: boolean; measuring: boolean;
+	}> = {},
 ) {
 	const state: State = empty();
 	state.pawns = pawns;
@@ -190,8 +193,10 @@ function table(
 	let removals = 0;
 
 	// The pill's mode, which a test can throw mid-gesture: letting go of the
-	// space bar halfway through a marquee is a thing hands do.
+	// space bar halfway through a marquee is a thing hands do, and switching
+	// away from the ruler is how one is put away.
 	let panning = over.panning ?? false;
+	let measuring = over.measuring ?? false;
 
 	const controller = createTable({
 		state,
@@ -203,6 +208,7 @@ function table(
 		},
 		invalidate: () => {},
 		panning: () => panning,
+		measuring: () => measuring,
 
 		// ONE MAP PIXEL PER SCREEN PIXEL, so a handle's grab radius in these
 		// tests is the constant itself and the arithmetic is readable.
@@ -228,6 +234,9 @@ function table(
 		removals: () => removals,
 		pan: (on: boolean) => {
 			panning = on;
+		},
+		measure: (on: boolean) => {
+			measuring = on;
 		},
 	};
 }
@@ -373,6 +382,148 @@ test("a drag survives the tool changing under it", () => {
 	controller.tool.release(at(90, 90), at(58, 58), NONE);
 
 	assert.equal(sent[sent.length - 1]?.type, "pawn.move", "the drag was abandoned mid-flight");
+});
+
+// THE RULER IS NOT A GESTURE, which is the one thing about it that is easy to
+// build wrong: the point stays down when the button comes up, and the line goes
+// on following the pointer while the hand is off the mouse entirely. That is
+// what "how far is that" is asked with.
+test("the measure tool puts a point down and runs a line to the pointer", () => {
+	const { controller } = table([], { measuring: true });
+
+	assert.equal(controller.tool.press(at(100, 100), at(0, 0), NONE), true, "the ruler gave the press away");
+	controller.tool.release(at(100, 100), at(0, 0), NONE);
+
+	// Three cells to the right, with the button already up.
+	controller.tool.hover(at(292, 100));
+
+	const [ruler, ...rest] = controller.rulers([]);
+
+	assert.deepEqual(rest, [], "one measurement drew more than one ruler");
+	assert.deepEqual([ruler?.x0, ruler?.y0], [100, 100]);
+	assert.deepEqual([ruler?.x1, ruler?.y1], [292, 100]);
+	assert.equal(ruler?.label, "15 ft.");
+
+	// And the end that is not under the pointer is marked.
+	const [point, ...others] = controller.outlines([]);
+
+	assert.deepEqual(others, [], "the ruler drew more than the one point");
+	assert.deepEqual([point?.x, point?.y], [100, 100]);
+	assert.equal(point?.rect, false, "the point is not a ring");
+});
+
+// IT COUNTS NO SQUARES AND HIGHLIGHTS NONE. A move is a creature walking
+// through cells and is scored by the table's diagonal rule; a ruler is a line
+// across a map, and three cells diagonally is twenty-one feet rather than the
+// fifteen the same walk costs.
+test("a measurement is a straight line and not a square count", () => {
+	const { controller } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.hover(at(192, 192));
+
+	const [ruler] = controller.rulers([]);
+
+	assert.equal(ruler?.label, "21 ft.");
+	assert.deepEqual(ruler?.cells, [], "the free ruler tinted cells");
+});
+
+// AND NEITHER END IS SNAPPED, which is the whole reason it is a mode of its own:
+// a fireball's radius, a bow's range and the gap between two rocks are not
+// measured in squares, and a ruler that jumped to the lattice could not answer
+// any of them.
+test("a measurement snaps to nothing at either end", () => {
+	const { controller } = table([], { measuring: true });
+
+	controller.tool.press(at(37, 91), at(0, 0), NONE);
+	controller.tool.hover(at(52, 103));
+
+	const [ruler] = controller.rulers([]);
+
+	assert.deepEqual([ruler?.x0, ruler?.y0, ruler?.x1, ruler?.y1], [37, 91, 52, 103]);
+});
+
+// A press with one already down MOVES the point, because the next question at a
+// table is nearly always asked from where the last one was answered.
+test("a second press moves the point rather than putting the ruler away", () => {
+	const { controller } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.hover(at(64, 0));
+
+	controller.tool.press(at(320, 0), at(0, 0), NONE);
+
+	const [ruler, ...rest] = controller.rulers([]);
+
+	assert.deepEqual(rest, [], "the second press left the first ruler behind");
+	assert.deepEqual([ruler?.x0, ruler?.x1], [320, 320], "the point did not move");
+	assert.equal(ruler?.label, "0 ft.", "a fresh point measured something");
+});
+
+// THE RULER TOUCHES NOTHING ON THE TABLE. It takes the primary button the way
+// Move does and spends it on itself: no drag, no selection, no box, and the
+// group somebody had picked out is still picked out afterwards.
+test("the measure tool moves nothing and selects nothing", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const ogre = pawn({ id: "ogre", x: 900, y: 900 });
+	const { controller, sent } = table([goblin, ogre], { measuring: true });
+
+	controller.selection.set(["ogre"]);
+
+	assert.equal(controller.tool.press(at(32, 32), at(0, 0), NONE), true, "the ruler gave a pawn away");
+	controller.tool.drag(at(200, 200), at(168, 168), NONE);
+	controller.tool.release(at(200, 200), at(168, 168), NONE);
+
+	assert.deepEqual(sent, [], "the ruler moved something");
+	assert.deepEqual(controller.selection.ids(), ["ogre"], "the ruler changed the selection");
+});
+
+// AND IT IS PUT AWAY THE WAY EVERYTHING ELSE ON THIS TABLE IS.
+test("Escape puts the ruler away", () => {
+	const { controller } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.hover(at(192, 0));
+
+	press("Escape");
+
+	assert.deepEqual(controller.rulers([]), [], "Escape left the ruler up");
+	assert.deepEqual(controller.outlines([]), [], "Escape left the point down");
+});
+
+// CHOOSING ANOTHER TOOL IS THE OTHER WAY, and it FORGETS rather than hides: a
+// GM who measured, moved a goblin and came back to the ruler is asking a new
+// question, not resuming the one they left.
+test("leaving the measure tool forgets the measurement", () => {
+	const { controller, measure } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.hover(at(192, 0));
+
+	measure(false);
+	assert.deepEqual(controller.rulers([]), [], "another tool kept the ruler up");
+
+	measure(true);
+	assert.deepEqual(controller.rulers([]), [], "the old ruler came back");
+});
+
+// THE SPACE BAR IS NOT ANOTHER TOOL. It borrows the pointer for the camera and
+// leaves the chosen tool alone, which is what lets a GM shove the map along a
+// corridor with the ruler still stretched across it -- the whole gesture for
+// measuring something further away than the screen.
+test("panning with the space bar does not put the ruler away", () => {
+	const { controller, pan } = table([], { measuring: true });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.hover(at(192, 0));
+
+	pan(true);
+
+	assert.equal(controller.tool.press(at(400, 400), at(0, 0), NONE), false, "the hold did not reach the camera");
+
+	const [ruler] = controller.rulers([]);
+
+	assert.deepEqual([ruler?.x0, ruler?.x1], [0, 192], "the pan moved or dropped the ruler");
 });
 
 // ONE DELTA, TAKEN FROM THE ANCHOR, APPLIED TO EVERYTHING. A wagon with three

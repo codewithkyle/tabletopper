@@ -15,6 +15,12 @@
 // shoving the map around is not a reason to throw away the group somebody spent
 // a minute building.
 //
+// UNDER THE MEASURE TOOL A PRESS IS A RULER, which is the one mode that takes
+// the primary button and puts something of its own on the table. It is not a
+// gesture: the point stays down when the button comes up and the line goes on
+// following the pointer, because the question it answers -- how far is that --
+// is asked with a hand off the mouse and an eye on the map. See measurement.
+//
 // NOTHING HERE ALLOCATES PER FRAME. The ghosts, the outlines and the ruler are
 // written into arrays the caller owns and reuses, because they are read once
 // per frame for as long as a hand is moving.
@@ -38,6 +44,7 @@ import {
 	cellsMoved,
 	containsPoint,
 	distanceLabel,
+	feetBetween,
 	pawnExtents,
 	snapPawn,
 	snapsToGrid,
@@ -107,6 +114,20 @@ const ACTOR_COLORS: readonly (readonly [number, number, number])[] = [
 // palette: your own drag is the one you are looking at, and it reads against
 // both themes.
 const SELF_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
+
+// MEASURE_POINT is the radius of the mark the measure tool leaves where it was
+// clicked, in CSS pixels, and MEASURE_WIDTH is that ring's thickness in device
+// pixels -- the same two units the resize handles are drawn in, and for the same
+// reason: it is a control-sized thing rather than a table-sized one, so it stays
+// the size of a fingertip at every zoom.
+//
+// A RING AND NOT A CROSS OR A PIN. The end of the ruler is under the pointer,
+// which is already drawn by the operating system; what needs marking is the end
+// that is not, and a small circle is the one shape on this canvas that is
+// already spoken here -- a selection is a ring, a condition is a ring, a rotate
+// handle is a ring.
+const MEASURE_POINT = 4;
+const MEASURE_WIDTH = 2;
 
 // Outline is one ring or rectangle for the ring pass: a selection, a ghost, or
 // the marquee.
@@ -232,6 +253,20 @@ export interface TableDeps {
 	// not a mode for throwing away their work.
 	panning: () => boolean;
 
+	// measuring is whether the ruler in the pill is the tool that was chosen.
+	//
+	// IT IS ASKED AT A PRESS AND ALSO ON THE WAY TO A FRAME, which is the one
+	// difference from panning: a measurement stays on the table after the button
+	// comes up, so what puts it away is the tool ceasing to be the chosen one.
+	// Reading it per frame is how that happens without a subscription.
+	//
+	// THE SPACE BAR DOES NOT TURN IT OFF, deliberately. The hold borrows the
+	// pointer for the camera and does not change which tool is chosen, so a GM
+	// can shove the map along a corridor with the ruler still stretched across
+	// it -- which is exactly what measuring something further away than the
+	// screen is.
+	measuring: () => boolean;
+
 	// remove is the Delete key asking for the selection to be taken off the
 	// table.
 	//
@@ -356,6 +391,25 @@ interface Marqueeing {
 
 type Gesture = Pressing | Dragging | Shaping | Marqueeing | null;
 
+// Measured is the measure tool's ruler: where it was put down, and where the
+// pointer has got to since.
+//
+// IT IS NOT A GESTURE AND THAT IS THE WHOLE POINT OF IT. Every one of the four
+// above lives between a press and a release; this one is put down by a press and
+// outlives it, so a GM can let go of the mouse, lean over the table and read the
+// number. What ends it is another press -- which moves the point rather than
+// clearing it, because the next question is almost always asked from where the
+// last one was answered -- or Escape, or the right button, or choosing another
+// tool.
+//
+// BOTH POINTS ARE RAW MAP PIXELS AND NEITHER IS SNAPPED. A ruler is not a move:
+// a creature walks in squares, and a fireball's radius, a bow's range and the
+// gap between two bits of scenery do not. See feetBetween.
+interface Measured {
+	from: Point;
+	to: Point;
+}
+
 // Preview is somebody else's drag, as it arrived.
 interface Preview {
 	positions: { id: string; x: number; y: number }[];
@@ -373,6 +427,7 @@ export function createTable(deps: TableDeps): Table {
 	let hovered: string | null = null;
 	let armed: Armed | null = null;
 	let pointer: Point | null = null;
+	let measured: Measured | null = null;
 
 	// lastClick is half of a double click: which pawn, and when. See countClick
 	// for what breaks a pair.
@@ -400,6 +455,38 @@ export function createTable(deps: TableDeps): Table {
 
 	function announce(): void {
 		changed?.();
+		deps.invalidate();
+	}
+
+	// measurement is the ruler the measure tool put down, and null the moment
+	// that tool is not the chosen one any more.
+	//
+	// IT FORGETS RATHER THAN HIDES, which is what makes leaving the tool and
+	// coming back a fresh start instead of a resurrected line somebody drew
+	// before the fight moved. Doing it here rather than on a change event is
+	// what keeps tools.ts from having to notify anybody: every reader of a
+	// measurement goes through this function, so there is no order in which a
+	// stale one can be drawn.
+	function measurement(): Measured | null {
+		if (measured && !deps.measuring()) {
+			measured = null;
+		}
+
+		return measured;
+	}
+
+	// aim moves the far end of the ruler to the pointer. It is called from the
+	// drag AND from the hover, because a measurement follows the cursor whether
+	// or not a button is down -- the click that started it is the only press it
+	// wants.
+	function aim(map: Point): void {
+		const line = measurement();
+		if (!line) {
+			return;
+		}
+
+		line.to.x = map.x;
+		line.to.y = map.y;
 		deps.invalidate();
 	}
 
@@ -678,6 +765,18 @@ export function createTable(deps: TableDeps): Table {
 			return true;
 		}
 
+		// AND A RULER IS PUT AWAY THE SAME WAY EVERYTHING ELSE IS. It is the
+		// only one of these that outlives the button that made it, so it is
+		// also the only one somebody has to ask to be rid of -- and the two
+		// gestures they already know for "stop that" are the two that arrive
+		// here.
+		if (measurement()) {
+			measured = null;
+			announce();
+
+			return true;
+		}
+
 		switch (gesture?.kind) {
 			case "drag":
 				commit(gesture, true);
@@ -803,6 +902,36 @@ export function createTable(deps: TableDeps): Table {
 				return true;
 			}
 
+			// THE RULER TAKES THE PRESS AND LEAVES NO GESTURE BEHIND, so the
+			// release that follows finds nothing to finish: the point is down
+			// and the line follows the pointer from here whether the button is
+			// held or not. A press with one already down MOVES it rather than
+			// clearing it, because the next question at a table is nearly
+			// always asked from where the last one was answered -- and the ways
+			// to be rid of it are the ways to be rid of anything else, which is
+			// abandon.
+			//
+			// IT IS BELOW PLACEMENT because arming is a mode you are IN and the
+			// tool is a mode you are in as well: a GM who has just picked a
+			// monster out of the spawn dialog means to put it down, whatever
+			// the pill says. It is above the handles and the hit test because
+			// everything below this line touches the table's contents, which is
+			// the half of the table a ruler is not allowed to disturb.
+			if (deps.measuring()) {
+				if (measured) {
+					measured.from.x = map.x;
+					measured.from.y = map.y;
+					measured.to.x = map.x;
+					measured.to.y = map.y;
+				} else {
+					measured = { from: { x: map.x, y: map.y }, to: { x: map.x, y: map.y } };
+				}
+
+				gesture = null;
+
+				return true;
+			}
+
 			// A HANDLE IS TESTED BEFORE THE TABLE IS, because a handle sits ON
 			// the edge of the token it belongs to: whichever of the two the
 			// press is nearer, somebody aiming at a five-pixel box meant the
@@ -858,6 +987,8 @@ export function createTable(deps: TableDeps): Table {
 
 		drag(map, screen, mods) {
 			pointer = { x: map.x, y: map.y };
+
+			aim(map);
 
 			// A PRESS BECOMES A DRAG HERE AND NOWHERE ELSE, which is what keeps
 			// a click from moving anything: under four device pixels this
@@ -1052,6 +1183,14 @@ export function createTable(deps: TableDeps): Table {
 		hover(map) {
 			pointer = map ? { x: map.x, y: map.y } : null;
 
+			if (map) {
+				aim(map);
+			}
+
+			// AND THE HIT TEST STILL RUNS UNDER THE RULER. Measuring does not
+			// take away reading the table: the label over the pawn a GM is
+			// stretching a line towards is half of what makes the number mean
+			// anything.
 			const found = map ? hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y) : null;
 			const next = found?.id ?? null;
 
@@ -1202,6 +1341,21 @@ export function createTable(deps: TableDeps): Table {
 				});
 			}
 
+			// WHERE THE RULER WAS PUT DOWN. It is the end of the line the
+			// pointer is NOT at, and the only one that needs marking -- a
+			// fixed size on screen, because it is a control rather than
+			// anything on the table.
+			const line = measurement();
+			if (line) {
+				const radius = MEASURE_POINT * deps.scale();
+
+				add({
+					x: line.from.x, y: line.from.y, halfW: radius, halfH: radius,
+					color: SELF_COLOR, alpha: 0.95, thickness: MEASURE_WIDTH,
+					rect: false, rotation: 0,
+				});
+			}
+
 			// A MARQUEE THAT HAS NOT OPENED IS NOT DRAWN, because until the
 			// threshold is crossed it is a point: a rectangle of no width over
 			// the spot somebody is clicking.
@@ -1244,6 +1398,29 @@ export function createTable(deps: TableDeps): Table {
 
 				count++;
 			};
+
+			// THE MEASURE TOOL'S RULER, AND IT IS THE ONE THAT HIGHLIGHTS NO
+			// CELLS. Everything else here is a move -- a creature walking
+			// through squares, scored by the rule the table plays under -- and
+			// the tinted squares are how far that walk got. A free measurement
+			// crosses squares without counting them, so painting them would be
+			// the grid answering a question nobody asked it. The slot is a
+			// shared one and may have come back from a drag with cells still in
+			// it, which is what the truncation is for.
+			const line = measurement();
+			if (line) {
+				const slot = out[count] ?? (out[count] = { cells: [], x0: 0, y0: 0, x1: 0, y1: 0, label: "", color: SELF_COLOR });
+
+				slot.cells.length = 0;
+				slot.x0 = line.from.x;
+				slot.y0 = line.from.y;
+				slot.x1 = line.to.x;
+				slot.y1 = line.to.y;
+				slot.label = distanceLabel(feetBetween(line.to.x - line.from.x, line.to.y - line.from.y, g));
+				slot.color = SELF_COLOR;
+
+				count++;
+			}
 
 			if (gesture?.kind === "drag") {
 				const origin = gesture.origins.get(gesture.anchor);

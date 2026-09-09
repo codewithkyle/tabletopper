@@ -17,6 +17,7 @@ import {
 	cellCentre,
 	cellsMoved,
 	distanceLabel,
+	feetBetween,
 	feetMoved,
 	footprintOf,
 	pawnExtents,
@@ -272,6 +273,45 @@ test("alternating charges the straights at face value", () => {
 
 test("a table with ten foot cells doubles every answer", () => {
 	assert.equal(feetMoved(3, 3, grid({ feetPerCell: 10 })), 30);
+});
+
+// THE FREE RULER AND THE MOVE DISAGREE ABOUT A DIAGONAL, AND BOTH ARE RIGHT.
+// Three cells across and three down is three squares of walking -- fifteen feet
+// under either diagonal rule -- and a line drawn across it is twenty-one, which
+// is what a bow, a breath weapon and a gap between two rocks are measured in.
+test("a free measurement is the hypotenuse and not the square count", () => {
+	const g = grid();
+
+	assert.equal(feetMoved(3, 3, g), 15);
+	assert.equal(Math.round(feetBetween(3 * 64, 3 * 64, g)), 21);
+});
+
+// It is measured in map pixels, so the cell size is the whole of the
+// conversion: one cell across is one cell's worth of feet, whatever the lattice
+// is set to and wherever the grid's origin was nudged to.
+test("a free measurement is cells of pixels turned into feet", () => {
+	assert.equal(feetBetween(64, 0, grid()), 5);
+	assert.equal(feetBetween(0, -128, grid()), 10);
+	assert.equal(feetBetween(64, 0, grid({ feetPerCell: 10 })), 10);
+	assert.equal(feetBetween(64, 0, grid({ offsetX: -17, offsetY: 5 })), 5);
+});
+
+// AND IT IGNORES THE DIAGONAL RULE ENTIRELY, which is the one thing that would
+// look like a bug and be one: 5-10-5 is a rule about walking, and nothing walks
+// along a ruler.
+test("a free measurement does not know which diagonal rule the table uses", () => {
+	const equal = feetBetween(64, 64, grid({ diagonals: "equal" }));
+	const alternating = feetBetween(64, 64, grid({ diagonals: "alternating" }));
+
+	assert.equal(equal, alternating);
+});
+
+// A measurement of nothing is nothing rather than a division by a cell size the
+// grid could have been left at zero.
+test("a free measurement of no distance is no distance", () => {
+	assert.equal(feetBetween(0, 0, grid()), 0);
+	assert.equal(feetBetween(0, 0, grid({ cellSize: 0 })), 0);
+	assert.equal(Number.isFinite(feetBetween(64, 64, grid({ cellSize: 0 }))), true);
 });
 
 test("cells and their centres are inverses under an offset", () => {
