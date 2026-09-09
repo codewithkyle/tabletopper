@@ -261,6 +261,53 @@ func TestResolvingAMonsterWithNoPictureLeavesTheImageEmpty(t *testing.T) {
 	}
 }
 
+// THE PICTURE A CHARACTER PAWN ARRIVES WITH, in the three steps it has. The
+// last one is the one worth pinning: the account placeholder is not a picture,
+// and a pawn that took it would put four identical grey discs on the table for
+// a party of four who have no portraits. Empty is what reaches the canvas, and
+// the canvas draws each of them their own initials.
+func TestACharacterPawnFallsBackFromPortraitToAccountToNothing(t *testing.T) {
+	portrait := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVWX")
+
+	cases := map[string]struct {
+		asset *ulid.ULID
+		seat  *room.Player
+		want  string
+	}{
+		"the character's own portrait wins": {
+			asset: &portrait,
+			seat:  &room.Player{Avatar: "https://img.clerk.com/kyle"},
+			want:  "/assets/images/" + portrait.String(),
+		},
+		"no portrait falls back to the account picture": {
+			seat: &room.Player{Avatar: "https://img.clerk.com/kyle"},
+			want: "https://img.clerk.com/kyle",
+		},
+		"the shared placeholder is refused": {
+			seat: &room.Player{Avatar: room.DefaultAvatar},
+			want: "",
+		},
+		"a portrait still wins over the placeholder": {
+			asset: &portrait,
+			seat:  &room.Player{Avatar: room.DefaultAvatar},
+			want:  "/assets/images/" + portrait.String(),
+		},
+		"a character belonging to nobody at the table has no seat to ask": {
+			want: "",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			row := queries.GetCharacterForRoomRow{Name: "Ilyana", Size: "medium", AssetID: tc.asset}
+
+			if got := characterPawn(row, tc.seat).Image; got != tc.want {
+				t.Errorf("image = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 // THE SIZE COLUMN IS A VARCHAR WRITTEN BY FORMS AND IMPORTERS, so resolution
 // normalises rather than refuses. A row somebody would like to put on a table
 // is not a bug report.

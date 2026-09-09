@@ -73,9 +73,19 @@ type UserSession struct {
 	// renaming yourself -- and watching the phone show the old value until its
 	// session expired a week later.
 	//
-	// ProfileImageURL is the one that is still a copy on the sessions row, and
-	// that is right for it: it comes from Clerk, this app has no way to change
-	// it, and a login is the only thing that ever refreshes it.
+	// ProfileImageURL above is BOTH SOURCES ALREADY RESOLVED, by AvatarURL, and
+	// the two halves are stored differently for the reason this note gives.
+	//
+	// CLERK'S COPY IS STILL ON THE SESSIONS ROW, and that is still right for
+	// it: it comes from Clerk, nothing in this app writes it, and a login is
+	// the only thing that ever refreshes it.
+	//
+	// THE UPLOAD IS ON THE JOIN, because it is exactly the value that argument
+	// does not cover. users.avatar_asset_id is written by a button on the
+	// homepage, so a copy would mean uploading a picture on a laptop and
+	// watching the phone show the old one until its session expired a week
+	// later -- which is what happened to the name before 20260907170000 moved
+	// it onto the join.
 	//
 	// The join is to users on its primary key, inside a lookup that already
 	// runs on every request. It is the cheapest correct answer, and there is no
@@ -134,7 +144,7 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		CharacterID:     row.CharacterID,
 		RoomID:          row.RoomID,
 		Username:        row.Username,
-		ProfileImageURL: row.ProfileImageURL,
+		ProfileImageURL: AvatarURL(row.AvatarAssetID, row.ProfileImageURL),
 		Hash:            hash,
 		CreatedAt:       row.CreatedAt,
 		RefreshedAt:     row.RefreshedAt,
@@ -147,6 +157,38 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 		Onboarded: row.OnboardedAt.Valid,
 		token:     token,
 	}, nil
+}
+
+// AvatarURL is which picture an account shows, out of the two it may have.
+//
+// THE UPLOAD WINS AND CLERK'S IS THE FALLBACK. users.avatar_asset_id is a
+// picture somebody chose here; profile_image_url is what Clerk said at the last
+// login, or the shared placeholder when Clerk had nothing. An account that has
+// never uploaded is every account today, so the fallback is the common path.
+//
+// THE UPLOAD IS AN OVERRIDE AND NOT A REPLACEMENT, which is the whole reason
+// these are two columns rather than one. Clerk's copy goes on being refreshed
+// by every login underneath the override, so clearing the upload later falls
+// back to whatever Clerk has NOW rather than to whatever it had on the day the
+// upload happened.
+//
+// IT IS RESOLVED ON THE READ AND NOT COPIED ONTO THE SESSION ROW, unlike the
+// Clerk URL beside it. The note on UserSession.ProfileImageURL says the copy is
+// right for a value this app cannot change -- and this is exactly the value it
+// can. One user has several sessions, so a copy would mean uploading a picture
+// on a laptop and watching the phone show the old one until its session expired
+// a week later.
+//
+// THE PATH IS THE IMAGE ROUTE'S AND HAS TO STAY IN STEP WITH IT: see the
+// GET /assets/images/{id} registration in routes.go. That route is deliberately
+// unscoped -- any signed-in user may fetch any asset's image -- which is what
+// lets everybody at a table see whose pawn is whose.
+func AvatarURL(uploaded *ulid.ULID, clerk string) string {
+	if uploaded != nil {
+		return "/assets/images/" + uploaded.String()
+	}
+
+	return clerk
 }
 
 // Create starts a session for u and sets its cookie. u carries the user in:

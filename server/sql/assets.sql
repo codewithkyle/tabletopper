@@ -15,6 +15,16 @@ INSERT INTO assets
 (id, owner_id, file_path, type, file_name, name, size_bytes)
 VALUES (?, ?, ?, 'character', ?, ?, ?);
 
+-- An account's own picture, which is `profile` and deliberately not `avatar`.
+-- The Avatars page lists `type = 'avatar'` with no exception clause and offers a
+-- Delete on every row it shows; a profile picture listed there would be
+-- spawnable as an NPC's face and deletable in one click, and the delete would
+-- leave users.avatar_asset_id pointing at nothing. See 20260909120000.
+-- name: InsertProfilePicture :exec
+INSERT INTO assets
+(id, owner_id, file_path, type, file_name, name, size_bytes)
+VALUES (?, ?, ?, 'profile', ?, ?, ?);
+
 -- A monster's picture, and it is its own type rather than a token: `token` is
 -- for one-off images placed on a map that belong to no monster, and this one is
 -- what the manual card, the editor bar and eventually the pawn are all drawn
@@ -69,13 +79,22 @@ WHERE id = ? AND owner_id = ? AND type = 'map';
 -- `character` is here because it is where a character's portrait went, and the
 -- portrait was being served from this statement as `avatar` the day before. It
 -- is a picture every player at the table sees, like the four beside it.
+-- `profile` is here for the same reason and is the newest member: an account's
+-- own picture is drawn on its pawn, in the player list, and beside the welcome
+-- on its homepage, so it is at least as public as a portrait.
+--
+-- ADDING A MEMBER TO THE ENUM IS NOT ADDING IT HERE, and this list is where
+-- that gets forgotten. A type absent from it reads as an asset that does not
+-- exist: the row misses, the route answers 404, the object sits in the bucket,
+-- and nothing logs. `profile` shipped that way and the symptom was a broken
+-- picture on the homepage.
 -- type comes back because a map is the one member here whose file_path must
 -- never be served: it is the original PNG or JPEG, up to 128 MiB, and the only
 -- picture a map has at an image route is the preview the tiler builds. See
 -- serveImage, which refuses the case.
 -- name: GetImage :one
 SELECT id, type, file_path, preview_path, updated_at FROM assets
-WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character');
+WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character', 'profile');
 
 -- Everything the tile route needs to decide whether a requested tile exists,
 -- and where it is. The four numbers are the pyramid's whole shape: the level

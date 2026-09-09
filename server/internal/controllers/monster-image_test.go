@@ -7,6 +7,8 @@ import (
 	"image/color"
 	"image/png"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -173,14 +175,61 @@ func TestGetImageServesMonsterImagesAndNotJournalOnes(t *testing.T) {
 		served[strings.Trim(strings.TrimSpace(member), "'")] = true
 	}
 
-	for _, want := range []string{"map", "avatar", "token", "monster"} {
-		if !served[want] {
-			t.Errorf("%q images are not served by /assets/images/{id}, so every one of them renders broken", want)
+	// EVERY MEMBER OF THE ENUM IS ACCOUNTED FOR, one way or the other, and that
+	// is the point of reading them rather than listing them here. A hardcoded
+	// want-list is a test that passes for a member nobody thought about: this
+	// asserted four names while `character` and `profile` were both absent from
+	// it, and `profile` shipped missing from the statement -- the row missed,
+	// the route answered 404, the object sat in the bucket, and nothing logged.
+	//
+	// So a new member fails this until somebody puts it on one side or the
+	// other, which is the decision being forced rather than a name being typed
+	// twice.
+	withheld := map[string]string{
+		// A journal image belongs to one entry of one character's diary and is
+		// reached through the share's own reader route.
+		"journal": "reached through the share reader, not the account-wide route",
+		// Music is not an image and has a route of its own.
+		"music": "not an image",
+	}
+
+	for _, member := range assetTypes(t) {
+		why, kept := withheld[member]
+
+		switch {
+		case kept && served[member]:
+			t.Errorf("%q images are served by /assets/images/{id}, but they are %s", member, why)
+		case !kept && !served[member]:
+			t.Errorf("%q images are not served by /assets/images/{id}, so every one of them renders broken", member)
 		}
 	}
-	if served["journal"] {
-		t.Error("journal images are served by the account-wide image route, which is not where they belong")
+}
+
+// assetTypes is every member of the assets type enum, read off the generated
+// models rather than written out.
+//
+// THE GENERATED FILE IS ALWAYS THERE, because this package does not compile
+// without it -- the same argument namedStatements makes for reading sql/ off
+// the disk instead of restating it.
+func assetTypes(t *testing.T) []string {
+	t.Helper()
+
+	source, err := os.ReadFile(filepath.Join("..", "queries", "models.go"))
+	if err != nil {
+		t.Fatalf("cannot read the generated models: %v", err)
 	}
+
+	found := regexp.MustCompile(`AssetsType\w+\s+AssetsType = "(\w+)"`).FindAllStringSubmatch(string(source), -1)
+	if len(found) == 0 {
+		t.Fatal("no assets type constants in internal/queries/models.go")
+	}
+
+	members := make([]string, 0, len(found))
+	for _, m := range found {
+		members = append(members, m[1])
+	}
+
+	return members
 }
 
 // The two keys a monster's picture can be reached by are one key, which is what

@@ -142,6 +142,20 @@ type Player struct {
 	Connected     bool       `json:"connected"`
 }
 
+// DefaultAvatar is the picture an account with none of its own carries, and it
+// is named here because Avatar above is the field that carries it.
+//
+// IT IS A PLACEHOLDER WEARING THE SHAPE OF A PICTURE, which is why anything
+// that has a better placeholder of its own has to be able to tell. An <img> in
+// the player list needs a URL that resolves, so the session and the users row
+// both hold this rather than an empty string -- and a pawn on the canvas, which
+// draws initials when it has no picture, must not mistake it for one. See
+// characterPawn in internal/hub.
+//
+// IT IS ALSO THE COLUMN DEFAULT IN THE SCHEMA, so rows written before anything
+// read this constant hold the same string.
+const DefaultAvatar = "/images/default-avatar.webp"
+
 // Pawn is anything on the table: a player's character, a monster from the
 // manual, an unnamed npc, or an object like a wagon or a door.
 //

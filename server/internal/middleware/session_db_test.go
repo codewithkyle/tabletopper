@@ -63,7 +63,8 @@ func (r *sessionRows) Columns() []string {
 	return []string{
 		"id", "profile_image_url", "user_id", "character_id", "room_id",
 		"created_at", "refreshed_at",
-		"username", "theme", "timezone", "date_format", "time_format", "onboarded_at",
+		"username", "avatar_asset_id",
+		"theme", "timezone", "date_format", "time_format", "onboarded_at",
 	}
 }
 
@@ -88,6 +89,7 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 		now.Add(-time.Hour),          // created_at
 		now,                          // refreshed_at, so Refresh skips its UPDATE
 		[]byte("gm"),                 // username, off the join to users
+		nil,                          // avatar_asset_id: no uploaded picture
 		[]byte("system"),             // theme
 		[]byte("UTC"),                // timezone
 		[]byte("iso"),                // date_format

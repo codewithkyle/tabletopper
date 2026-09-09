@@ -33,7 +33,7 @@ templ homepageContent(session session.UserSession) {
 			<div class="w-full flex flex-row flex-nowrap items-center justify-between">
 				<h1 class="font-[Lobster] text-[10rem] font-bold text-primary opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">Tabletopper</h1>
 				<div id="user-badge" class={ surfacePanel + " -mt-4 flex flex-row flex-nowrap items-center rounded-full px-3 py-2 opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]" }>
-					<img class="mr-3 size-12 overflow-hidden rounded-full" src={ session.ProfileImageURL }/>
+					@AccountAvatar(session)
 					<p class="inline-block mr-8 text-xs font-medium">
 						Welcome
 						<br/>
@@ -117,5 +117,31 @@ templ footer(signedIn bool) {
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M3 11h18"></path><path d="M5 11v-4a3 3 0 0 1 3 -3h8a3 3 0 0 1 3 3v4"></path><path d="M7 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M17 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path><path d="M10 17h4"></path></svg>
 			</a>
 		</div>
+	</div>
+}
+
+templ AccountAvatar(session session.UserSession) {
+	<div id="account-avatar" class="relative mr-3 shrink-0">
+		<img class="size-12 overflow-hidden rounded-full object-cover" src={ session.ProfileImageURL } alt=""/>
+		<label
+			aria-label="Replace profile picture"
+			class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm"
+			data-tip="Replace picture"
+			for="account-avatar-file"
+		>
+			@pencilIcon()
+			<input
+				class="absolute h-0 w-0 opacity-0"
+				id="account-avatar-file"
+				type="file"
+				name="avatar"
+				accept="image/png, image/jpeg, image/webp"
+				required
+				hx-post="/account/avatar"
+				hx-target="#account-avatar"
+				hx-swap="outerHTML"
+				hx-encoding="multipart/form-data"
+			/>
+		</label>
 	</div>
 }

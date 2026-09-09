@@ -658,6 +658,134 @@ func unsupportedImage(w http.ResponseWriter) {
 	errUnsupportedImage.alert(w)
 }
 
+// UploadAccountAvatar is the picture beside the welcome on the homepage, which
+// is the one picture in this app that a person had no way to choose until now.
+//
+// IT OVERRIDES CLERK RATHER THAN OVERWRITING IT. users.profile_image_url goes on
+// holding whatever Clerk said at the last login and goes on being refreshed by
+// the next one; this writes a second column that session.AvatarURL prefers. So
+// somebody who signed up through Discord and would rather not be their Discord
+// avatar at the table gets to say so, without the app having to reach into an
+// identity provider it does not own.
+//
+// IT IS THE SAME SHAPE AS UploadCharacterAvatar FOR THAT HANDLER'S REASONS: the
+// row is the ledger for what lives in R2 so it is written before the object, a
+// failure after the row is written is rolled back by a compensating delete, and
+// a replacement goes to the SAME KEY off the stored file_path -- so nothing is
+// ever orphaned, nothing needs sweeping, and the second upload cannot land
+// beside the first while the row goes on naming the first.
+//
+// THERE IS NO OWNERSHIP LOOKUP TO DO FIRST, which is the one way it differs.
+// The character handler reads the character before it touches the body, because
+// the id in the path could name anybody's; the only account this can write is
+// the one that is signed in, so the session IS the check and there is nothing
+// to look up before the decode.
+//
+// It answers with the re-rendered avatar and not the whole badge, which is the
+// mutation case the fragment rules name -- a POST replying with the thing it
+// just changed. The badge is deliberately not the target: it carries the
+// homepage's fade-in, and swapping it would replay that animation on every
+// upload.
+func (a *App) UploadAccountAvatar(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	src, filename, ok := readImageUpload(w, r, "avatar", imageLimits)
+	if !ok {
+		return
+	}
+
+	picture, err := images.EncodeWebP(images.Square(src, avatarSize))
+	if err != nil {
+		slog.Error("Failed to encode account avatar as webp", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	current, err := a.Queries.GetUserAvatar(ctx, sess.UserID)
+	if err != nil {
+		slog.Error("Failed to read the account's avatar", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+
+	// THE PATH DECIDES AND NOT THE POINTER, which is GetUserAvatar's own note:
+	// the column has no foreign key behind it, so it can name an asset that is
+	// gone, and the join hands that back as an id with no file_path. Branching
+	// on the id alone would write the replacement to an empty key and report
+	// success. Falling through to the insert mints a new asset and relinks the
+	// account, so uploading again is what repairs it.
+	if current.AvatarAssetID != nil && current.FilePath.Valid {
+		if err := a.Storage.UploadImage(ctx, current.FilePath.String, picture); err != nil {
+			slog.Error("Failed to upload account avatar", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+
+		err := a.Queries.UpdateAssetFileName(ctx, queries.UpdateAssetFileNameParams{
+			ID:        *current.AvatarAssetID,
+			OwnerID:   sess.UserID,
+			FileName:  filename,
+			SizeBytes: int64(len(picture)),
+		})
+		if err != nil {
+			slog.Error("Failed to update account avatar asset", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+	} else {
+		assetID := ulid.Make()
+		err := a.Queries.InsertProfilePicture(ctx, queries.InsertProfilePictureParams{
+			ID:        assetID,
+			OwnerID:   sess.UserID,
+			FilePath:  storage.AvatarKey(sess.UserID, assetID),
+			FileName:  assetName(filename),
+			Name:      assetName(filename),
+			SizeBytes: int64(len(picture)),
+		})
+		if err != nil {
+			slog.Error("Failed to insert account avatar into DB", "error", err)
+			htmx.ServerError(w)
+			return
+		}
+
+		discard := func(c context.Context) error {
+			return a.Storage.Delete(c, storage.AvatarKey(sess.UserID, assetID))
+		}
+
+		if err := a.Storage.UploadImage(ctx, storage.AvatarKey(sess.UserID, assetID), picture); err != nil {
+			slog.Error("Failed to upload account avatar", "error", err)
+			a.discardAsset(ctx, sess.UserID, assetID, discard)
+			htmx.ServerError(w)
+			return
+		}
+
+		err = a.Queries.SetUserAvatar(ctx, queries.SetUserAvatarParams{
+			ID:            sess.UserID,
+			AvatarAssetID: &assetID,
+		})
+		if err != nil {
+			slog.Error("Failed to link avatar to account", "error", err)
+			a.discardAsset(ctx, sess.UserID, assetID, discard)
+			htmx.ServerError(w)
+			return
+		}
+
+		// The session was built before this upload existed, so its resolved
+		// picture is still Clerk's. A REPLACEMENT needs no such line: the
+		// asset id did not change, so neither did the URL.
+		sess.ProfileImageURL = session.AvatarURL(&assetID, sess.ProfileImageURL)
+	}
+
+	htmx.Toast(w, "Updated your profile picture")
+
+	// THE URL IS THE SAME ONE ON A REPLACEMENT, which is what serveImage's
+	// no-cache ETag is for: the browser still asks, the row's updated_at has
+	// moved, and the new bytes come back at the address the old ones had.
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.AccountAvatar(sess))
+}
+
 func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)

@@ -135,8 +135,8 @@ func TestTheMembersWindowFallsBackToTheSessionRows(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
 		{
-			columns: []string{"user_id", "username", "profile_image_url", "character_name"},
-			values:  []driver.Value{testMemberID.Bytes(), "ari", "/images/default-avatar.webp", "Ilyana"},
+			columns: []string{"user_id", "username", "profile_image_url", "avatar_asset_id", "character_name"},
+			values:  []driver.Value{testMemberID.Bytes(), "ari", "/images/default-avatar.webp", nil, "Ilyana"},
 		},
 	}}
 	app := newRoomApp(db)

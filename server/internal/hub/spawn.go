@@ -338,8 +338,20 @@ func (h *Hub) resolveParty(ctx context.Context, roomID ulid.ULID, who room.Actor
 //
 // THE PORTRAIT WINS AND THE ACCOUNT PICTURE IS THE FALLBACK. A character with
 // a portrait is drawn as that character; one without is drawn as the person
-// playing them, which is who everybody at the table is looking for anyway. Only
-// a player with neither falls through to the initials disc.
+// playing them, which is who everybody at the table is looking for anyway.
+//
+// AND THE SHARED PLACEHOLDER IS NOT A PICTURE, which is the third step and the
+// one that has to be spelled out. An account with no picture of its own carries
+// room.DefaultAvatar rather than an empty string, because the player list draws
+// an <img> and an <img> needs a URL that resolves. A pawn is not an <img>: the
+// canvas draws a disc of the character's initials in the player colour when it
+// has nothing, which tells four portrait-less party members apart where four
+// copies of the same grey file cannot. So the placeholder is refused here and
+// the better placeholder is reached.
+//
+// EMPTY IS THEREFORE A REAL ANSWER OUT OF THIS FUNCTION, and the client already
+// expects it -- an NPC spawned from a name with no token has been arriving that
+// way since the spawn dialog existed. See sprites.initials.
 func characterPawn(row queries.GetCharacterForRoomRow, seat *room.Player) *room.Pawn {
 	hp := int(row.CurrentHP)
 	maxHP := int(row.MaxHP)
@@ -347,7 +359,7 @@ func characterPawn(row queries.GetCharacterForRoomRow, seat *room.Player) *room.
 	owner := row.OwnerID
 
 	image := imageURL(row.AssetID)
-	if image == "" && seat != nil {
+	if image == "" && seat != nil && seat.Avatar != room.DefaultAvatar {
 		image = seat.Avatar
 	}
 

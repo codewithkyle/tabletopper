@@ -10,7 +10,8 @@
 -- name: GetSession :one
 SELECT s.id, s.profile_image_url, s.user_id, s.character_id, s.room_id,
        s.created_at, s.refreshed_at,
-       u.username, u.theme, u.timezone, u.date_format, u.time_format, u.onboarded_at
+       u.username, u.avatar_asset_id,
+       u.theme, u.timezone, u.date_format, u.time_format, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 WHERE s.expires_at > NOW() AND s.hash = ?;
@@ -104,7 +105,7 @@ WHERE room_id = ? AND user_id = ?;
 -- list keys on the user and cannot, which is one more way this fallback is not
 -- the real answer.
 -- name: ListRoomMembers :many
-SELECT DISTINCT s.user_id, u.username, s.profile_image_url, c.name AS character_name
+SELECT DISTINCT s.user_id, u.username, s.profile_image_url, u.avatar_asset_id, c.name AS character_name
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 LEFT JOIN characters c ON c.id = s.character_id

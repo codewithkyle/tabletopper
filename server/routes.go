@@ -93,6 +93,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /characters/{id}/edit/spells/{level}", auth.RequireSession(app.CharacterSpellLevelPage))
 	mux.HandleFunc("DELETE /characters/{id}", auth.RequireSession(app.DeleteCharacter))
 	mux.HandleFunc("POST /characters/{id}/avatar", auth.RequireSession(app.UploadCharacterAvatar))
+	// The account's own picture, which overrides the one Clerk supplies. It is a
+	// mutation answering with the avatar it just changed, so it keeps a resource
+	// URL and stays off /fragment/.
+	mux.HandleFunc("POST /account/avatar", auth.RequireSession(app.UploadAccountAvatar))
 
 	// The character editor autosaves a panel at a time. Each of these owns a
 	// disjoint set of columns and writes only those; none of them shares a

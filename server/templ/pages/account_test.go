@@ -206,6 +206,54 @@ func TestASignedOutPageIsNotThemed(t *testing.T) {
 	}
 }
 
+// THE BADGE ON THE PROFILE WIDGET IS THE CHARACTER CARD'S, in the one place a
+// person could not previously choose their own picture. It posts to the account
+// route rather than a character's, and it swaps the avatar rather than the
+// badge around it -- the badge carries the homepage's fade-in, and swapping it
+// would replay that animation on every upload.
+func TestTheProfileWidgetCarriesTheUploadBadge(t *testing.T) {
+	markup := renderHomepage(t, session.UserSession{
+		UserID:          ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
+		Username:        "kyle",
+		ProfileImageURL: "/images/default-avatar.webp",
+	})
+
+	for _, want := range []string{
+		`hx-post="/account/avatar"`,
+		`hx-target="#account-avatar"`,
+		`hx-encoding="multipart/form-data"`,
+		`name="avatar"`,
+		`accept="image/png, image/jpeg, image/webp"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the profile widget is missing %s", want)
+		}
+	}
+
+	if strings.Contains(markup, `hx-target="#user-badge"`) {
+		t.Error("the upload swaps the whole badge, which replays the page's fade-in")
+	}
+}
+
+// The picture the widget draws is the RESOLVED one, so an account that has
+// uploaded is drawn as its upload rather than as whatever Clerk supplied.
+func TestTheProfileWidgetDrawsTheResolvedPicture(t *testing.T) {
+	uploaded := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVWX")
+
+	markup := renderHomepage(t, session.UserSession{
+		UserID:          ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
+		Username:        "kyle",
+		ProfileImageURL: session.AvatarURL(&uploaded, "https://img.clerk.com/kyle"),
+	})
+
+	if !strings.Contains(markup, `src="/assets/images/`+uploaded.String()+`"`) {
+		t.Error("the widget does not draw the uploaded picture")
+	}
+	if strings.Contains(markup, "img.clerk.com") {
+		t.Error("the widget still draws the Clerk picture the upload overrides")
+	}
+}
+
 func renderHomepage(t *testing.T, sess session.UserSession) string {
 	t.Helper()
 

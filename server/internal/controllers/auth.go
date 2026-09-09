@@ -7,15 +7,11 @@ import (
 	"net/http"
 
 	"tabletopper/internal/queries"
+	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 
 	"github.com/oklog/ulid/v2"
 )
-
-// defaultAvatarURL is what a user without a picture of their own gets. It is
-// also the column default in the schema; this copy is for the row and the
-// session, which are written with an explicit value.
-const defaultAvatarURL = "/images/default-avatar.webp"
 
 // Authorize is where Clerk hands a signed-in browser back to us. It verifies
 // Clerk's own session cookie, finds or creates our user row, and starts one
@@ -54,7 +50,7 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		sess.UserID = ulid.Make()
 		sess.Username = identity.Username
 		if sess.ProfileImageURL == "" {
-			sess.ProfileImageURL = defaultAvatarURL
+			sess.ProfileImageURL = room.DefaultAvatar
 		}
 		err := a.Queries.CreateUser(ctx, queries.CreateUserParams{
 			ID:              sess.UserID,

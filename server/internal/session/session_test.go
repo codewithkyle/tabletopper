@@ -95,6 +95,47 @@ func (r roomResult) RowsAffected() (int64, error) { return r.rows, nil }
 // The handler renders from the copy the middleware took a moment earlier, so a
 // join that wrote the row and left the copy alone would seat somebody at a
 // table and then draw them the page of somebody who is not in one.
+// WHICH PICTURE AN ACCOUNT SHOWS, and the whole of the rule is that an upload
+// wins. Clerk's copy is never destroyed by one, so clearing the upload later
+// falls back to whatever Clerk has by then rather than to a value frozen on the
+// day somebody uploaded.
+func TestAnUploadedPictureWinsOverTheOneClerkSupplied(t *testing.T) {
+	uploaded := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVWX")
+
+	cases := map[string]struct {
+		uploaded *ulid.ULID
+		clerk    string
+		want     string
+	}{
+		"an upload is served from the asset route": {
+			uploaded: &uploaded,
+			clerk:    "https://img.clerk.com/kyle",
+			want:     "/assets/images/" + uploaded.String(),
+		},
+		"no upload falls back to Clerk": {
+			clerk: "https://img.clerk.com/kyle",
+			want:  "https://img.clerk.com/kyle",
+		},
+		"no upload and no Clerk picture is the shared placeholder": {
+			clerk: "/images/default-avatar.webp",
+			want:  "/images/default-avatar.webp",
+		},
+		"an upload beats the placeholder too": {
+			uploaded: &uploaded,
+			clerk:    "/images/default-avatar.webp",
+			want:     "/assets/images/" + uploaded.String(),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			if got := AvatarURL(tc.uploaded, tc.clerk); got != tc.want {
+				t.Errorf("AvatarURL = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestJoinRoomWritesTheRowAndTheCopy(t *testing.T) {
 	db := &roomRecordingDB{t: t, rows: 1}
 	store := NewStore(queries.New(db), false)

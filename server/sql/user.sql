@@ -2,6 +2,31 @@
 SELECT id, username, profile_image_url FROM users
 WHERE clerk_id = ?;
 
+-- GetUserAvatar is what the upload handler asks before it writes: the asset this
+-- account's picture is stored in, and where that asset's bytes live.
+--
+-- THE LEFT JOIN IS WHY BOTH COLUMNS COME BACK. users.avatar_asset_id has no
+-- foreign key behind it -- nothing in this schema does -- so it can name a row
+-- that has been deleted, and the join hands that back as an id with no
+-- file_path. The handler branches on the PATH and not on the id, which turns a
+-- dangling pointer into a fresh upload rather than a write to an empty key.
+--
+-- The join is scoped to the owner as well as the id, so a pointer that somehow
+-- named somebody else's asset reads as no picture rather than as a key this
+-- account is about to overwrite.
+-- name: GetUserAvatar :one
+SELECT u.avatar_asset_id, a.file_path FROM users u
+LEFT JOIN assets a ON a.id = u.avatar_asset_id AND a.owner_id = u.id
+WHERE u.id = ?;
+
+-- SetUserAvatar points the account at the asset holding its picture. It is only
+-- ever called with a freshly inserted id: a REPLACEMENT overwrites the object
+-- the row already names and leaves the pointer alone.
+-- name: SetUserAvatar :exec
+UPDATE users
+SET avatar_asset_id = sqlc.arg(avatar_asset_id)
+WHERE id = sqlc.arg(id);
+
 -- name: CreateUser :exec
 INSERT INTO users
 (id, username, clerk_id, profile_image_url)

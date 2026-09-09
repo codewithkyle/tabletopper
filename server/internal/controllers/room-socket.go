@@ -311,7 +311,7 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 			ID:       m.UserID.String(),
 			Name:     pages.MemberName(isGM, m.CharacterName.String, m.Username),
 			Username: m.Username,
-			Avatar:   m.ProfileImageURL,
+			Avatar:   session.AvatarURL(m.AvatarAssetID, m.ProfileImageURL),
 			IsGM:     isGM,
 		})
 	}
