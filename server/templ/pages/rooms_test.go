@@ -213,17 +213,70 @@ func TestAJoinPageWithNoCharactersOffersNoForm(t *testing.T) {
 	}
 }
 
-// THE BAR IS THE APPLICATION'S SHAPE AND IT IS SETTLED BEFORE THE FEATURES ARE.
-// Seven headings, in this order, whoever is looking -- a GM learns where things
-// are by muscle memory, and a menu that appears later moves everything under
-// it. What varies by role is inside the Room menu and nowhere else.
-func TestTheBarHasTheSameSevenMenusForEveryone(t *testing.T) {
-	want := []string{"Room", "Tabletop", "Fog", "Initiative", "Window", "View", "Help"}
-
-	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+// THE BAR IS THE APPLICATION'S SHAPE AND EACH ROLE GETS THE HALF THEY CAN ACT
+// ON. Room, Tabletop, Tools, View and Help are everybody's and never move --
+// muscle memory is real and a heading that shifts is a heading that has to be
+// found again. What is between Tabletop and Window is the part that belongs to
+// one role: the GM runs the fog and the tracker, and the player has a sheet and
+// a journal.
+//
+// A PLAYER'S BAR ONCE CARRIED FOG AND INITIATIVE AS EMPTY DRAWERS, on the
+// reasoning that a shared shape teaches everyone where things are. It taught
+// them nothing, because no item under either heading has ever been a player's,
+// and it cost them two menus of dead lines between the two that work.
+func TestTheBarGivesEachRoleTheHeadingsTheyCanAct(t *testing.T) {
+	for role, want := range map[room.Role][]string{
+		room.RoleGM:     {"Room", "Tabletop", "Fog", "Initiative", "Tools", "View", "Help"},
+		room.RolePlayer: {"Room", "Tabletop", "Character", "Tools", "View", "Help"},
+	} {
 		got := menuLabels(testRoomPage(role))
 		if strings.Join(got, ",") != strings.Join(want, ",") {
 			t.Errorf("%s sees %v, want %v", role, got, want)
+		}
+	}
+}
+
+// THE CHARACTER MENU IS THE PLAYER'S AND IS NOT ON THE GM'S BAR AT ALL. Neither
+// item is built, which is the point of it existing now: the sheet and the
+// journal are the two things a player currently leaves the room to read, so
+// where they will live is worth settling before they are written.
+func TestTheCharacterMenuIsThePlayersAlone(t *testing.T) {
+	got := itemLabels(t, testRoomPage(room.RolePlayer), "Character")
+	want := []string{"Character sheet", "Journal"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("the Character menu is %v, want %v", got, want)
+	}
+
+	for _, m := range testRoomPage(room.RoleGM).Menus() {
+		if m.Label == "Character" {
+			t.Error("the GM's bar carries a Character menu; they are running the table, not playing at it")
+		}
+	}
+}
+
+// TOOLS IS ON BOTH BARS AND IS NOT THE SAME LIST. The dice tray is everybody's;
+// the Monster Manual is the stat blocks of what the party is currently fighting,
+// which is the one document at a table that only works while one side of it
+// cannot read it.
+func TestTheMonsterManualIsTheGMsAndTheDiceTrayIsEverybodys(t *testing.T) {
+	gm := itemLabels(t, testRoomPage(room.RoleGM), "Tools")
+	want := []string{"Monster Manual", "Dice tray"}
+	if strings.Join(gm, ",") != strings.Join(want, ",") {
+		t.Errorf("the GM's Tools menu is %v, want %v", gm, want)
+	}
+
+	player := itemLabels(t, testRoomPage(room.RolePlayer), "Tools")
+	want = []string{"Dice tray"}
+	if strings.Join(player, ",") != strings.Join(want, ",") {
+		t.Errorf("the player's Tools menu is %v, want %v", player, want)
+	}
+}
+
+// AND THE GM'S TWO ARE NOT ON THE PLAYER'S.
+func TestFogAndInitiativeAreTheGMsAlone(t *testing.T) {
+	for _, m := range testRoomPage(room.RolePlayer).Menus() {
+		if m.Label == "Fog" || m.Label == "Initiative" {
+			t.Errorf("a player's bar carries %s; nothing under it is ever theirs", m.Label)
 		}
 	}
 }
@@ -236,10 +289,10 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
 	for heading, want := range map[string][]string{
-		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear tabletop"},
+		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear blood", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Clear tracker"},
-		"Window":     {"Monster Manual", "Dice tray"},
+		"Tools":      {"Monster Manual", "Dice tray"},
 		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Fit map", "Toggle fullscreen"},
 		"Help":       {"Report issue", "Privacy policy", "Terms of service"},
 	} {
@@ -277,9 +330,11 @@ func TestSpawnPawnsPostsThePartyAndIsTheGMsAlone(t *testing.T) {
 		t.Errorf("Spawn pawns is not a plain post: %+v", spawn)
 	}
 
+	// And it is not on the player's menu at all -- see
+	// TestAPlayersTabletopMenuIsTheirsAndTouchesNothing, which pins what is.
 	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
-		if !item.Disabled {
-			t.Errorf("a player's %q is live; nothing under Tabletop is theirs", item.Label)
+		if item.Label == "Spawn pawns" {
+			t.Error("a player's Tabletop menu offers Spawn pawns")
 		}
 	}
 }
@@ -318,9 +373,63 @@ func TestClearTabletopIsConfirmedAndIsTheGMsAlone(t *testing.T) {
 	}
 
 	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
-		if item.Label == "Clear tabletop" && !item.Disabled {
-			t.Error("a player can clear the tabletop")
+		if item.Label == "Clear tabletop" {
+			t.Error("a player's Tabletop menu offers Clear tabletop")
 		}
+	}
+}
+
+// CLEAR BLOOD IS THE ONE LINE IN THIS MENU THAT IS NOT A COMMAND TO THE ROOM,
+// and both roles get the same one. The marks on the floor were drawn by each
+// browser out of hit points it watched change, so there is nothing to post and
+// nobody else's table to touch -- which is why it is an action rather than the
+// hx-post every other live item under Tabletop is, and why it carries no
+// confirmation.
+//
+// IT SITS ABOVE CLEAR TABLETOP AND NOT BESIDE IT. One tidies what this viewer
+// is looking at; the other empties the room for everybody, and the two being
+// adjacent and similarly worded is exactly the mis-click worth spending a line
+// of order on. Clear tabletop stays last, alone, in the error colour.
+//
+// THE ACTION NAME IS SPELLED OUT IN THREE PLACES AND PINNED HERE. It is the
+// contract across a bundle boundary: public/js/room.js switches on it and turns
+// it into a "room:blood" window event, and render/renderer.ts listens. A rename
+// in one of the three is a menu item that silently stops working.
+func TestClearBloodIsEveryonesAndAsksTheRoomForNothing(t *testing.T) {
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		var blood RoomMenuItem
+		items := menuNamed(t, testRoomPage(role), "Tabletop").Items
+		for _, item := range items {
+			if item.Label == "Clear blood" {
+				blood = item
+			}
+		}
+
+		if blood.Label == "" {
+			t.Fatalf("%s has no Clear blood: %v", role, itemLabels(t, testRoomPage(role), "Tabletop"))
+		}
+		if blood.Action != "clear-blood" {
+			t.Errorf("%s's Clear blood has action %q, want clear-blood", role, blood.Action)
+		}
+		if blood.Post != "" || blood.Confirm != "" || blood.Danger {
+			t.Errorf("%s's Clear blood is drawn as a mutation: %+v", role, blood)
+		}
+		if blood.Disabled {
+			t.Errorf("%s's Clear blood is disabled", role)
+		}
+	}
+
+	// It is not the last line of the GM's menu; Clear tabletop is, and the two
+	// must not be neighbours a slip can cross.
+	gm := itemLabels(t, testRoomPage(room.RoleGM), "Tabletop")
+	if gm[len(gm)-1] != "Clear tabletop" {
+		t.Errorf("the GM's Tabletop menu ends with %q, want Clear tabletop", gm[len(gm)-1])
+	}
+
+	// And the markup renders it as an action the bar can dispatch.
+	page := markup(t, Room(testRoomPage(room.RolePlayer)))
+	if !strings.Contains(page, `data-room-action="clear-blood"`) {
+		t.Error("a player's page has no Clear blood the bar can dispatch")
 	}
 }
 
@@ -414,8 +523,12 @@ func TestEveryCameraItemSendsTheOneViewAction(t *testing.T) {
 }
 
 // THE ROOM MENU IS THE ONE THAT DIFFERS BY ROLE. The GM owns the room, so they
-// get the lock, the code and the close; a player is only in it, so they get a
-// way out and nothing else.
+// get the lock and the close; a player is only in it, so they get a way out.
+//
+// THE CODE IS ON BOTH, WHICH IS THE ONE ACT OF OWNERSHIP THAT IS NOT ONE. It is
+// the room's address rather than a key to it, and the person who most often has
+// to read it out is the player whose browser fell over. Who may come in is
+// still the GM's, and the lock is what says so.
 func TestTheRoomMenuGivesTheGMTheRoomAndThePlayerTheDoor(t *testing.T) {
 	gm := itemLabels(t, testRoomPage(room.RoleGM), "Room")
 	want := []string{"Lock room", "Player List", "Copy room code", "Back to rooms", "Close room"}
@@ -424,7 +537,7 @@ func TestTheRoomMenuGivesTheGMTheRoomAndThePlayerTheDoor(t *testing.T) {
 	}
 
 	player := itemLabels(t, testRoomPage(room.RolePlayer), "Room")
-	want = []string{"Player List", "Leave room"}
+	want = []string{"Player List", "Copy room code", "Leave room"}
 	if strings.Join(player, ",") != strings.Join(want, ",") {
 		t.Errorf("the player's Room menu is %v, want %v", player, want)
 	}
@@ -471,22 +584,28 @@ func TestTheLockItemNamesTheRouteItIsNotIn(t *testing.T) {
 	}
 }
 
-// THE CODE IS THE GM'S. A player who is already in the room has no use for it,
-// and it is the one thing on this page that admits somebody else -- so it must
-// not be in a player's markup at all, not even in an attribute a script reads.
-func TestThePlayersPageNeverCarriesTheRoomCode(t *testing.T) {
+// WHAT IS THE GM'S IS WHAT ACTS ON THE ROOM, AND THE CODE IS NOT ONE OF THOSE.
+// A player's markup carries the code and the item that copies it, because the
+// question they ask with it -- what do I type back in, what do I send the person
+// running late -- is not a decision the GM was ever making. What it must not
+// carry is the lock and the close, which are the two things that change who may
+// be at the table.
+func TestThePlayersPageActsOnTheRoomInNoWayButLeaving(t *testing.T) {
 	player := markup(t, Room(testRoomPage(room.RolePlayer)))
 
-	if strings.Contains(player, "AB2C") {
-		t.Error("the player's page carries the room code")
-	}
-	for _, forbidden := range []string{"copy-code", "/lock", "/close"} {
+	for _, forbidden := range []string{"/lock", "/close"} {
 		if strings.Contains(player, forbidden) {
 			t.Errorf("the player's page carries the GM's %q", forbidden)
 		}
 	}
 	if !strings.Contains(player, "/leave") {
 		t.Error("the player's page has no way out of the room")
+	}
+
+	for _, want := range []string{"AB2C", "copy-code"} {
+		if !strings.Contains(player, want) {
+			t.Errorf("the player's page cannot copy the room code; %q is missing", want)
+		}
 	}
 }
 
@@ -506,23 +625,28 @@ func TestTheHelpMenuOpensTheDocumentsInASecondTab(t *testing.T) {
 // disabled item says "this belongs here and does not work yet"; one that looks
 // live and does nothing says "this is broken".
 func TestUnbuiltItemsAreDisabledRatherThanInert(t *testing.T) {
-	page := markup(t, Room(testRoomPage(room.RoleGM)))
+	// BOTH BARS, because they are two lists now and the player's is the one
+	// whose every unbuilt item was added last -- Character sheet and Journal
+	// are the two lines most likely to be reached for and not yet there.
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		page := markup(t, Room(testRoomPage(role)))
 
-	for _, m := range testRoomPage(room.RoleGM).Menus() {
-		for _, item := range m.Items {
-			if !item.Disabled {
-				continue
-			}
-			if !strings.Contains(page, "<button type=\"button\" disabled>"+item.Label+"</button>") {
-				t.Errorf("%q in the %s menu is not drawn as a disabled control", item.Label, m.Label)
+		for _, m := range testRoomPage(role).Menus() {
+			for _, item := range m.Items {
+				if !item.Disabled {
+					continue
+				}
+				if !strings.Contains(page, "<button type=\"button\" disabled>"+item.Label+"</button>") {
+					t.Errorf("%s's %q in the %s menu is not drawn as a disabled control", role, item.Label, m.Label)
+				}
 			}
 		}
-	}
 
-	// menu-disabled is what greys the line the button sits on; without it the
-	// row still highlights on hover and reads as clickable.
-	if !strings.Contains(page, `class="menu-disabled"`) {
-		t.Error("no disabled item carries menu-disabled")
+		// menu-disabled is what greys the line the button sits on; without it
+		// the row still highlights on hover and reads as clickable.
+		if !strings.Contains(page, `class="menu-disabled"`) {
+			t.Errorf("no disabled item on %s's bar carries menu-disabled", role)
+		}
 	}
 }
 

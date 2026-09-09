@@ -73,10 +73,13 @@ func TestAMemberReachesTheRoomPageAsAPlayer(t *testing.T) {
 	if !strings.Contains(body, "/leave") {
 		t.Error("the player's page has no way out of the room")
 	}
-	// THE CODE IS THE GM'S. A player who is already in the room has no use for
-	// it, and it is what admits somebody else.
-	if strings.Contains(body, "AB2C") {
-		t.Error("the player's page prints the room code")
+	// THE CODE IS THE TABLE'S ADDRESS AND NOT A KEY TO IT. A player gets it,
+	// because the questions they ask with it -- what do I type back in after my
+	// browser fell over, what do I send the person running late -- were going to
+	// the GM in a chat window and were never the GM's decision to make. Who may
+	// come in still is, and the lock below is what says so.
+	if !strings.Contains(body, "AB2C") {
+		t.Error("the player's page does not carry the room code")
 	}
 	for _, forbidden := range []string{"/close", "/lock", "/unlock"} {
 		if strings.Contains(body, forbidden) {

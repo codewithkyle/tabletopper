@@ -495,6 +495,47 @@ test("clearing a floor takes its blood with it", () => {
 	assert.equal(decals.settling(10), false);
 });
 
+// WIPING TAKES EVERY FLOOR AND NOT THE ONE BEING LOOKED AT. Somebody reaching
+// for Clear blood wants a clean table, and a version of it that left the cellar
+// red would have to be pressed once per floor by a person who cannot see the
+// floors they are pressing it for.
+test("a wipe cleans the whole tower and not the storey in front of you", () => {
+	const decals = newDecals();
+
+	// Blood lands on the floor being watched, so a fight on each floor is two
+	// fights with a walk downstairs between them.
+	const upstairs = pawn({ id: "01UP", hp: 7, maxHp: 7 });
+	decals.watch([upstairs], GROUND, CELL, 0);
+	decals.watch([{ ...upstairs, hp: 0 }], GROUND, CELL, 10);
+
+	const downstairs = pawn({ id: "01DOWN", layerId: CELLAR, hp: 7, maxHp: 7 });
+	decals.watch([downstairs], CELLAR, CELL, 20);
+	decals.watch([{ ...downstairs, hp: 0 }], CELLAR, CELL, 30);
+
+	assert.ok(drawn(decals, 30).length > 0, "the ground floor never bled");
+	assert.ok(drawn(decals, 30, CELLAR).length > 0, "the cellar never bled");
+
+	decals.wipe();
+
+	assert.deepEqual(drawn(decals, 30), [], "the ground floor kept its blood");
+	assert.deepEqual(drawn(decals, 30, CELLAR), [], "the cellar kept its blood");
+	assert.equal(decals.settling(30), false);
+});
+
+// AND IT IS NOT A RESYNC. Forgetting what every pawn was last seen at would make
+// the next snapshot look like first sight, and first sight does not bleed -- so
+// a hit that landed while somebody was tidying would be the one hit of the
+// evening that left no mark.
+test("a wipe does not swallow the next hit", () => {
+	const decals = newDecals();
+
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.wipe();
+
+	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
+	assert.ok(drawn(decals, 10).length > 0, "the hit after a wipe was read as first sight");
+});
+
 // A body being carried off does not clean the floor. The pawn goes; what it shed
 // is scenery now.
 test("blood outlives the creature that shed it", () => {

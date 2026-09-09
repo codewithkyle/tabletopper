@@ -265,6 +265,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	readClearColor();
 	window.addEventListener("theme:change", readClearColor);
 	window.addEventListener("room:view", onViewCommand as EventListener);
+	window.addEventListener("room:blood", onBloodCommand);
 
 	frames.invalidate();
 
@@ -598,6 +599,27 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		frames.invalidate();
 	}
 
+	// THE TABLETOP MENU'S CLEAR BLOOD, AND IT ANSWERS TO NOBODY BUT THE PERSON
+	// WHO PRESSED IT. It comes over the same window-event gap the camera items
+	// do -- see onViewCommand above and public/js/room.js at the other end --
+	// because a menu item in one bundle and a renderer in another cannot import
+	// each other. It carries nothing, because there is only one thing it means.
+	//
+	// EVERY FLOOR AND NOT THE VIEWED ONE. What somebody reaching for this wants
+	// is a clean table, and a version of it that left last week's cellar red
+	// would have to be pressed once per floor by somebody who cannot see the
+	// floors they are pressing it for.
+	//
+	// NOTHING IS SENT AND NOTHING IS ASKED. Blood is not room state: it was
+	// drawn here out of hit points this browser watched change, so there is no
+	// command, no confirmation and no effect on anybody else's table. See wipe
+	// in decals.ts, and the note beside it about why what a pawn was last seen
+	// at is kept.
+	function onBloodCommand(): void {
+		decals.wipe();
+		frames.invalidate();
+	}
+
 	// THE CLEAR COLOUR IS THE PAGE'S OWN, read from the element the canvas
 	// covers, so the table and the chrome around it are the same shade and a
 	// theme change moves both. It is resolved through a one pixel 2D canvas
@@ -678,6 +700,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		stop() {
 			window.removeEventListener("theme:change", readClearColor);
 			window.removeEventListener("room:view", onViewCommand as EventListener);
+			window.removeEventListener("room:blood", onBloodCommand);
 			input.stop();
 			frames.stop();
 			tiles.dispose();

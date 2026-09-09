@@ -104,9 +104,20 @@ type RoomPageData struct {
 	ID   string
 	Name string
 
-	// Code is empty for a closed room, and only the GM is ever given it. A
-	// player who is already in the room has no use for it, and it is the one
-	// thing on this page that admits somebody else.
+	// Code is empty for a closed room, and everybody at an open one is given
+	// it.
+	//
+	// IT USED TO BE THE GM'S ALONE, on the reasoning that it is the one thing
+	// on this page that admits somebody else. That reasoning was about a room
+	// nobody had joined yet. Once a player is in, the code is not a key they
+	// are being handed -- it is the address of the table they are already
+	// sitting at, and the questions they actually ask with it are "what do I
+	// type back in after my browser crashed" and "what do I send the person
+	// who is running late". Both of those went to the GM in a chat window
+	// before this, and neither is a decision the GM was making.
+	//
+	// WHO MAY GET IN IS STILL THE GM'S, and it is the lock rather than the
+	// secrecy of four characters that says so.
 	Code string
 
 	Locked bool
@@ -274,28 +285,100 @@ type RoomMenuItem struct {
 	Disabled bool
 }
 
-// Menus is the whole bar, in order. The seven headings are fixed; what varies
-// inside them is the Room menu, which is the only one whose contents depend on
-// who is looking and on whether the room is open.
+// Menus is the whole bar, in order.
+//
+// THE TWO ROLES GET TWO BARS, AND THAT IS A REVERSAL. Every heading used to be
+// on every bar, with the difference expressed as greyed items inside them, on
+// the reasoning that a menu appearing later moves everything under it and a GM
+// learns where things are by muscle memory. That reasoning holds for the GM and
+// held for the player only as long as the player's bar was a sketch of a
+// feature nobody had built. It is built now, and what it produced for a player
+// was four headings of nothing: Tabletop, five dead lines; Fog, two; Initiative,
+// two. A menu that has never once had a live item in it is not teaching anybody
+// where anything is -- it is a filing cabinet of empty drawers between them and
+// the two menus that work.
+//
+// SO A HEADING IS ON THE BAR OF WHOEVER CAN ACT ON IT. Fog and Initiative are
+// the GM's table to run, so they are on the GM's bar. Character is the player's
+// own sheet and their own journal, so it is on theirs, in the slot those two
+// vacated. Room, Tools, View and Help are everybody's and do not move -- though
+// what is INSIDE Tools depends on the role too; see toolsMenu.
+//
+// WHAT IS STILL DISABLED IS STILL HERE, which is the part of the old reasoning
+// that survives: an unbuilt item under a heading whose owner will use it says
+// "this belongs here and is coming". An unbuilt heading in front of somebody who
+// will never own it says nothing at all.
 func (d RoomPageData) Menus() []RoomMenu {
-	return []RoomMenu{
-		d.roomMenu(),
-		d.tabletopMenu(),
-		{Label: "Fog", Items: comingSoon("Fill fog", "Clear fog")},
-		{Label: "Initiative", Items: comingSoon("Sync tracker", "Clear tracker")},
-		{Label: "Window", Items: comingSoon("Monster Manual", "Dice tray")},
+	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
+
+	if d.IsGM() {
+		menus = append(menus,
+			RoomMenu{Label: "Fog", Items: comingSoon("Fill fog", "Clear fog")},
+			RoomMenu{Label: "Initiative", Items: comingSoon("Sync tracker", "Clear tracker")},
+		)
+	} else {
+		menus = append(menus, characterMenu())
+	}
+
+	return append(menus,
+		d.toolsMenu(),
 		d.viewMenu(),
 		helpMenu(),
+	)
+}
+
+// toolsMenu is the reference material a table reaches for mid-session: things
+// you look something up in or roll something with, rather than things you do to
+// the room. Neither is built.
+//
+// IT WAS CALLED "WINDOW" AND THAT WAS A NAME FOR THE MECHANISM RATHER THAN THE
+// CONTENTS. Both of these open as floating windows, but so does the player list
+// under Room and so do Layers and Grid & settings under Tabletop -- so "Window"
+// grouped nothing, and a heading that describes how its items are drawn is a
+// heading nobody reads twice. Tools says what a person would go looking for.
+//
+// THE MONSTER MANUAL IS THE GM'S. It is the stat blocks of what the party is
+// fighting, which is the one document at a table that only works while one side
+// of it cannot read it -- and unlike the room code, that is not a secret the app
+// is trying to keep from a determined player. It is simply not a thing a player
+// has any use for, and putting it on their bar would be offering them the
+// answers to the encounter they are in.
+//
+// THE DICE TRAY IS EVERYBODY'S, which is what keeps this a heading on both bars
+// rather than another GM-only one.
+func (d RoomPageData) toolsMenu() RoomMenu {
+	if !d.IsGM() {
+		return RoomMenu{Label: "Tools", Items: comingSoon("Dice tray")}
 	}
+
+	return RoomMenu{Label: "Tools", Items: comingSoon("Monster Manual", "Dice tray")}
+}
+
+// characterMenu is the player's own two documents, and neither is built.
+//
+// IT IS THE PLAYER'S AND NOT THE GM'S, which is why it is not simply a heading
+// added to the shared bar. A GM at a table they are running has no sheet on the
+// screen and no journal in the game; what they have is a monster manual, which
+// is already a window under Window. These two are the things a player reaches
+// for over and over during a session and currently has to leave the room to
+// read -- which is the whole reason they get a heading rather than a line under
+// somebody else's.
+func characterMenu() RoomMenu {
+	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
 }
 
 // roomMenu is the room itself, and it is three different menus.
 //
-// THE GM OWNS THE ROOM AND A PLAYER IS ONLY IN IT. So the GM gets the lock, the
-// code and the close, and a player gets a way out -- there is nothing else a
-// player may do to a room they do not own. A closed room is a fourth case
-// inside the first: its code is gone, so there is nothing to copy, nothing to
-// lock and nothing left to close.
+// THE GM OWNS THE ROOM AND A PLAYER IS ONLY IN IT. So the GM gets the lock and
+// the close, and a player gets a way out -- there is nothing else a player may
+// do to a room they do not own. A closed room is a fourth case inside the
+// first: its code is gone, so there is nothing to copy, nothing to lock and
+// nothing left to close.
+//
+// THE CODE IS THE EXCEPTION AND IS EVERYBODY'S. It is not an act on the room,
+// which is what the split above is about; it is the room's name, and the person
+// who most often needs to read it out is the player whose browser just fell
+// over. See Code above for why it stopped being the GM's.
 //
 // BACK TO ROOMS IS HERE RATHER THAN AS AN ARROW IN THE CORNER, which is the one
 // place this page departs from every other page in the app. A menu bar owns the
@@ -319,10 +402,11 @@ func (d RoomPageData) roomMenu() RoomMenu {
 		Height: 260,
 	}})
 
+	if !d.Closed {
+		items = append(items, RoomMenuItem{Label: "Copy room code", Action: "copy-code", Value: d.Code})
+	}
+
 	if d.IsGM() {
-		if !d.Closed {
-			items = append(items, RoomMenuItem{Label: "Copy room code", Action: "copy-code", Value: d.Code})
-		}
 		items = append(items, RoomMenuItem{Label: "Back to rooms", Href: "/rooms"})
 		if !d.Closed {
 			items = append(items, RoomMenuItem{
@@ -381,16 +465,27 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 // tracker DURING a session is what the Fog and Initiative menus are for; those
 // items stay exactly as they are.
 //
-// A PLAYER SEES EVERY LINE DISABLED. Putting something on the table is the GM's
-// act and only theirs, refused in PawnSpawn.Authorize rather than by the
-// absence of a button, so a player who opens this menu is told these exist and
-// are not theirs. That is true, and it is the shape the Fog and Initiative
-// menus already have.
+// CLEAR BLOOD IS THE ONE LINE IN HERE A PLAYER GETS, AND IT IS THEIRS ALONE.
+// Every other item is a command to the room; this one changes nothing that is
+// sent, stored or shared. The floor decals are drawn from what each browser
+// watched happen, so wiping them is a viewer saying "I have looked at that long
+// enough" -- and a table where one person clears the blood and everybody else's
+// map goes clean would be a table where a preference had become a mutation.
+// It is in the Tabletop menu rather than View because what it removes is on the
+// table, not in the camera.
+//
+// A PLAYER USED TO SEE EVERY LINE DISABLED, on the reasoning that a greyed item
+// tells them the feature exists and is not theirs. Five of them said that at
+// once, which is not information, it is a wall -- and a player has no use for
+// knowing that Grid & settings exists, because there is no version of this app
+// in which they open it. So their menu is now the one thing in here they can
+// actually do. Putting something ON the table is still the GM's and is still
+// refused in PawnSpawn.Authorize rather than by the absence of a button.
 func (d RoomPageData) tabletopMenu() RoomMenu {
+	blood := RoomMenuItem{Label: "Clear blood", Action: roomBloodAction}
+
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tabletop", Items: comingSoon(
-			"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear tabletop",
-		)}
+		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood}}
 	}
 
 	return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{
@@ -410,6 +505,7 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
+		blood,
 		{
 			Label:          "Clear tabletop",
 			Post:           d.ClearPath(),
@@ -444,9 +540,19 @@ func (d RoomPageData) viewMenu() RoomMenu {
 	}}
 }
 
-// roomViewAction is the data-room-action every camera item carries. It is a
-// constant so the template test and the menu cannot disagree about it.
-const roomViewAction = "view"
+// roomViewAction is the data-room-action every camera item carries, and
+// roomBloodAction is Clear blood's. Both are constants so the template test and
+// the menu cannot disagree about them.
+//
+// EACH ONE IS A WINDOW EVENT ACROSS A BUNDLE BOUNDARY. The bar is served as
+// written from public/js and the renderer is bundled from js/room; neither can
+// import the other, so the name is the contract and it is spelled out at both
+// ends. public/js/room.js turns these into "room:view" and "room:blood";
+// render/renderer.ts listens for both.
+const (
+	roomViewAction  = "view"
+	roomBloodAction = "clear-blood"
+)
 
 // helpMenu is the two documents every page in the app already links to, and the
 // issue report that does not exist yet.

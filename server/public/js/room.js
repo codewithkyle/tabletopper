@@ -115,6 +115,9 @@ function run(action, value) {
         case "view":
             view(value);
             break;
+        case "clear-blood":
+            clearBlood();
+            break;
         case "fullscreen":
             toggleFullscreen();
             break;
@@ -146,6 +149,24 @@ function view(action) {
     }
 
     window.dispatchEvent(new CustomEvent(VIEW_EVENT, { detail: { action } }));
+}
+
+// Clearing the blood crosses the same gap and carries nothing, because there is
+// only one thing it can mean.
+//
+// IT IS A VIEWER'S OWN AND IT IS NOT A COMMAND TO THE ROOM. Every mark on the
+// floor was drawn by this browser out of hit points it watched change, so there
+// is nothing on the server to delete and nobody else's table to touch -- which
+// is why this is a window event and not the hx-post every other destructive
+// item in the bar is. Somebody who wants it back plays on; the next hit bleeds.
+//
+// THERE IS NO CONFIRMATION IN FRONT OF IT for the same reason. The confirm
+// modal is for what cannot be undone, and this undoes nothing that was ever
+// anywhere else.
+const BLOOD_EVENT = "room:blood";
+
+function clearBlood() {
+    window.dispatchEvent(new CustomEvent(BLOOD_EVENT));
 }
 
 // navigator.clipboard is only defined in a secure context, which is https and

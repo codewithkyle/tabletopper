@@ -195,6 +195,22 @@ export interface Decals {
 	// gesture at a table and it would be strange for the blood to survive it.
 	clear(layerID: string): void;
 
+	// wipe drops every floor's marks, and it is the viewer asking rather than
+	// the room.
+	//
+	// IT IS THE ONE THING IN HERE NOBODY ELSE SEES. What is on these floors was
+	// never sent: each browser drew it out of hit points it watched change, so
+	// two people at one table have two slightly different floors already -- the
+	// one who was reconnecting through the ogre fight has less blood than the
+	// one who sat and watched it. Wiping is the same kind of local act, which
+	// is why it is a menu item every viewer gets rather than the GM's command.
+	//
+	// WHAT A PAWN WAS LAST SEEN AT IS KEPT. Forgetting it as well would make
+	// the next arriving snapshot look like first sight, and first sight does not
+	// bleed -- so the hit that landed while the floor was being cleaned would be
+	// the one hit of the evening that left no mark.
+	wipe(): void;
+
 	// resync forgets what every pawn's hit points were, WITHOUT dropping a drop
 	// of what is already on the floor.
 	//
@@ -431,6 +447,10 @@ export function newDecals(): Decals {
 
 		clear(layerID) {
 			byLayer.delete(layerID);
+		},
+
+		wipe() {
+			byLayer.clear();
 		},
 
 		resync() {

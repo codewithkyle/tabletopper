@@ -375,18 +375,40 @@ func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 	}
 }
 
-// A player gets the same four lines, disabled. The bar's shape does not change
-// with who is looking -- only the Room menu does that -- and a player who opens
-// this menu is told these exist and are not theirs.
-func TestAPlayersTabletopMenuOpensNothing(t *testing.T) {
-	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
-		if !item.Disabled {
-			t.Errorf("%q is live for a player", item.Label)
-		}
-		if item.Window.ID != "" || item.Post != "" {
-			t.Errorf("%q does something for a player", item.Label)
-		}
+// A PLAYER'S TABLETOP MENU IS ONE LINE AND IT IS THE ONE THAT ASKS THE ROOM FOR
+// NOTHING. It used to be five greyed lines saying "these exist and are not
+// yours", which is a wall rather than information -- there is no version of this
+// app where a player opens Grid & settings. What is left is the only thing under
+// this heading that was ever theirs: their own view of their own floor.
+func TestAPlayersTabletopMenuIsTheirsAndTouchesNothing(t *testing.T) {
+	items := menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items
+
+	if len(items) != 1 || items[0].Label != "Clear blood" {
+		t.Fatalf("a player's Tabletop menu is %v, want [Clear blood]", labelsOf(items))
 	}
+
+	// It is a client-side action, so nothing here reaches the room: no post, no
+	// window, no modal, and nothing to confirm because nothing is destroyed.
+	blood := items[0]
+	if blood.Post != "" || blood.Window.ID != "" || blood.Modal.URL != "" || blood.Href != "" {
+		t.Errorf("Clear blood asks the room for something: %+v", blood)
+	}
+	if blood.Disabled {
+		t.Error("a player's Clear blood is disabled; it is the one thing in here they can do")
+	}
+	if blood.Confirm != "" {
+		t.Errorf("Clear blood is confirmed at %q; it destroys nothing that was ever sent", blood.Confirm)
+	}
+}
+
+// labelsOf is a menu's lines, for a failure message.
+func labelsOf(items []RoomMenuItem) []string {
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		out = append(out, item.Label)
+	}
+
+	return out
 }
 
 // THE ANSWER MUST NOT RE-ARM THE TRIGGER THAT ASKED FOR IT, and this is a
