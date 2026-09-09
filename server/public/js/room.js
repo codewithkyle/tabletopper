@@ -1,4 +1,10 @@
-// The room page's menu bar and its tool pill. Loaded by that page and no other.
+// The room page's menu bar. Loaded by that page and no other.
+//
+// THE TOOL PILL USED TO BE HERE AND IS NOT ANY MORE. It kept its own
+// aria-pressed and nothing read it; now that two of its modes are real, the
+// state belongs in the bundle that has the canvas in it --
+// server/js/room/tools.ts -- because a control and the thing it controls in two
+// scripts that cannot import each other is a contract with nobody to enforce it.
 //
 // THE BAR IS SEVEN <details> ELEMENTS AND THIS MAKES THEM BEHAVE LIKE A MENU
 // BAR. A <details> opens and closes on its own with no script at all, which is
@@ -10,22 +16,17 @@
 //
 // NO CLASS NAME IS WRITTEN IN THIS FILE. server/public/js is deliberately not a
 // Tailwind @source, so a class written here would never be emitted -- see the
-// note at the bottom of css/app.css. Everything below toggles a property the
-// browser owns (details.open, aria-pressed) and the styling for both is
-// rendered in templ.
+// note at the bottom of css/app.css. What it toggles is a property the browser
+// owns, details.open, and the styling for that is rendered in templ.
 import { toast } from "./toast.js";
 
 const bar = document.querySelector("[data-room-bar]");
-const tools = document.querySelector("[data-room-tools]");
 
-// Both are absent on every page but the room's, and this module is only loaded
-// there -- but a page that loads it and renders neither should do nothing
+// The bar is absent on every page but the room's, and this module is only
+// loaded there -- but a page that loads it and renders no bar should do nothing
 // rather than throw on the first query.
 if (bar) {
     wireMenus(bar);
-}
-if (tools) {
-    wireTools(tools);
 }
 
 function wireMenus(root) {
@@ -180,25 +181,4 @@ function toggleFullscreen() {
     }
 
     document.documentElement.requestFullscreen().catch(() => {});
-}
-
-// The tool pill is a radio group written as buttons, because a radio input
-// cannot hold an SVG. aria-pressed is the state, which is both what a screen
-// reader reads and what the markup styles -- see the aria-pressed: utilities in
-// room.templ.
-//
-// NOTHING READS THE SELECTION YET. The canvas that will ask which tool is
-// active does not exist, so this keeps the state and no more. That is
-// deliberate: the control is real and the feature behind it is not.
-function wireTools(root) {
-    root.addEventListener("click", (e) => {
-        const chosen = e.target.closest("[data-room-tool]");
-        if (!chosen) {
-            return;
-        }
-
-        for (const button of root.querySelectorAll("[data-room-tool]")) {
-            button.setAttribute("aria-pressed", String(button === chosen));
-        }
-    });
 }

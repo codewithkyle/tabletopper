@@ -1,0 +1,33 @@
+package pages
+
+templ roomLayerTool() {
+	<div class="tooltip tooltip-left" data-tip="Floors">
+		<button
+			type="button"
+			data-layer-tool
+			aria-label="Floors"
+			aria-expanded="false"
+			class="btn btn-circle btn-ghost btn-sm aria-expanded:bg-primary aria-expanded:text-primary-content"
+		>
+			@layersIcon()
+		</button>
+	</div>
+}
+
+templ roomLayerMenu() {
+	<ul
+		data-layer-menu
+		hidden
+		class="menu menu-sm absolute top-0 left-0 z-30 max-h-72 w-56 flex-nowrap overflow-y-auto rounded-box border border-base-300 bg-panel/95 p-1 shadow-panel backdrop-blur-sm"
+	>
+		<li data-layer-menu-heading class="menu-title">Show to players</li>
+	</ul>
+	<template data-layer-menu-template>
+		<li>
+			<button type="button" data-layer-menu-choice>
+				<span data-layer-menu-name class="min-w-0 flex-1 truncate"></span>
+				<span data-layer-menu-active hidden class="badge badge-xs badge-ghost">Active</span>
+			</button>
+		</li>
+	</template>
+}

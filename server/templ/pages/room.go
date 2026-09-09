@@ -57,10 +57,22 @@ import (
 // to swap and the item stops changing.
 const roomLockID = "room-lock"
 
-// DefaultRoomTool is the pointer mode a room opens in. Move, because the first
-// thing anybody does at a table is push something around, and because it is the
-// only one of the four that cannot damage anything.
-const DefaultRoomTool = "move"
+// DefaultRoomTool is the pointer mode a room opens in, and RoomToolMove is the
+// one that hands the table to the camera.
+//
+// IT OPENS ON SELECT BECAUSE THAT IS WHAT A HAND DOES FIRST. Picking a goblin
+// out, dragging it a cell, drawing a box around four of them: those are the
+// gestures a table is made of, and a room that opened on a mode where none of
+// them worked would have to be switched out of before it could be played.
+//
+// AND MOVE IS STILL THERE BECAUSE PANNING CANNOT ONLY BE A HELD KEY. The space
+// bar borrows it for as long as it is down, which is the gesture every drawing
+// program has trained every hand to expect; a mode you can leave switched on is
+// what a trackpad, a tablet and a GM dragging halfway across a battlemap need.
+const (
+	DefaultRoomTool = "select"
+	RoomToolMove    = "move"
+)
 
 // RoomPageData is the whole page, with every conversion already done. The
 // controller turns a nullable code column, a nullable closed_at and an owner id
@@ -451,22 +463,34 @@ func comingSoon(labels ...string) []RoomMenuItem {
 // live two clicks deep. It floats over the table rather than sitting in the bar
 // for the same reason: it belongs to the surface it acts on.
 //
-// THE CANVAS DOES NOT ASK IT WHICH MODE IT IS IN, and that is the honest state
-// rather than an oversight. Move is what the table does now: a press on a pawn
-// drags it, a press on empty floor pans, and Shift-drag draws a marquee. The
-// other three name features that do not exist, so gating the table on them
-// would mean a GM who pressed Measure found a table where nothing worked and
-// nothing said why. Phase 6 builds the three and wires the pill to all four at
-// once.
+// THE CANVAS ASKS ABOUT ONE OF THESE AND ONLY ONE. Select is everything the
+// table has always done -- a press on a pawn drags it, a press on empty floor
+// draws a marquee, a click picks one out -- and Move is that table with the
+// pointer taken away from it: every gesture is the camera's, and the selection
+// somebody built is still there when they come back. The other three name
+// features that do not exist, so the table goes on behaving as Select while one
+// of them is lit; gating it on them would mean a GM who pressed Measure found a
+// table where nothing worked and nothing said why. Phase 6 builds the three.
+//
+// PANS IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN TYPESCRIPT.
+// server/js/room/tools.ts has to know which of these buttons is the camera's,
+// because that is the one the space bar borrows -- and a name written out in
+// both languages is a space bar that quietly stops working the day this list is
+// reordered or renamed. The attribute is the contract; see roomToolbar.
 type RoomTool struct {
 	Name  string
 	Label string
+
+	// Pans is the mode that gives every gesture to the camera. Exactly one
+	// tool has it, and the space bar is a temporary switch to that one.
+	Pans bool
 }
 
-// RoomTools is the four modes, in the order a hand reaches for them.
+// RoomTools is the five modes, in the order a hand reaches for them.
 func RoomTools() []RoomTool {
 	return []RoomTool{
-		{Name: DefaultRoomTool, Label: "Move"},
+		{Name: DefaultRoomTool, Label: "Select"},
+		{Name: RoomToolMove, Label: "Move", Pans: true},
 		{Name: "measure", Label: "Measure"},
 		{Name: "fog", Label: "Fog"},
 		{Name: "draw", Label: "Draw"},

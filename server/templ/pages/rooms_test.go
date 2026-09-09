@@ -549,7 +549,7 @@ func TestTheRoomIsABarAndATable(t *testing.T) {
 	}
 }
 
-// The tool pill is four modes with exactly one pressed, and it is over the
+// The tool pill is five modes with exactly one pressed, and it is over the
 // table rather than in the bar because a pointer mode is switched constantly
 // while both hands are busy.
 func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
@@ -561,13 +561,75 @@ func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 	if got := strings.Count(page, `aria-pressed="true"`); got != 1 {
 		t.Errorf("%d tools are pressed, want exactly 1", got)
 	}
-	if !strings.Contains(page, `data-room-tool="`+DefaultRoomTool+`" aria-label="Move" aria-pressed="true"`) {
+
+	// IT OPENS ON SELECT, because picking a pawn out and drawing a box round
+	// four of them are the gestures a table is made of -- a room that opened in
+	// a mode where none of them worked would have to be switched out of before
+	// it could be played.
+	if !strings.Contains(page, `data-room-tool="`+DefaultRoomTool+`" aria-label="Select" aria-pressed="true"`) {
 		t.Errorf("the room does not open on %q", DefaultRoomTool)
 	}
 
 	// It floats over the table, so it is inside the region it acts on.
 	if strings.Index(page, `id="tabletop"`) > strings.Index(page, "data-room-tools") {
 		t.Error("the tool pill is outside the table region")
+	}
+}
+
+// WHICH TOOL HANDS THE POINTER TO THE CAMERA IS RENDERED RATHER THAN SPELLED
+// AGAIN IN TYPESCRIPT. server/js/room/tools.ts finds it by this attribute,
+// because that is the button the space bar borrows -- and a name written out in
+// both languages is a space bar that quietly stops working the day this list is
+// renamed. Exactly one tool carries it, and nothing about the page says so
+// except the list itself.
+func TestExactlyOneToolHandsThePointerToTheCamera(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	if got := strings.Count(page, "data-room-tool-pans"); got != 1 {
+		t.Fatalf("%d tools pan, want exactly 1", got)
+	}
+	if !strings.Contains(page, `data-room-tool="`+RoomToolMove+`" data-room-tool-pans`) {
+		t.Errorf("the panning tool is not %q:\n%s", RoomToolMove, page)
+	}
+
+	pans := 0
+	for _, tool := range RoomTools() {
+		if tool.Pans {
+			pans++
+		}
+		if tool.Pans && tool.Name == DefaultRoomTool {
+			t.Error("the room opens in the mode that takes the pointer away from the table")
+		}
+	}
+	if pans != 1 {
+		t.Errorf("%d tools in the list pan, want exactly 1", pans)
+	}
+}
+
+// The floors menu swaps the layer the PLAYERS are shown, which is the GM's
+// alone -- so a player's page renders neither the button nor the list, and the
+// client finds nothing to mount rather than a control it has to hide.
+func TestTheFloorMenuIsTheGMsAlone(t *testing.T) {
+	gm := markup(t, Room(testRoomPage(room.RoleGM)))
+	player := markup(t, Room(testRoomPage(room.RolePlayer)))
+
+	for _, needed := range []string{"data-layer-tool", "data-layer-menu", "data-layer-menu-template", "data-layer-menu-choice"} {
+		if !strings.Contains(gm, needed) {
+			t.Errorf("the GM has no %s to swap floors with", needed)
+		}
+		if strings.Contains(player, needed) {
+			t.Errorf("a player was rendered %s", needed)
+		}
+	}
+
+	// It is placed against the table rather than inside the pill, which is
+	// positioned and z-indexed and would trap it under any window sitting over
+	// that corner.
+	if strings.Index(gm, "data-layer-menu") < strings.Index(gm, "data-room-tools") {
+		t.Error("the floors menu is rendered before the pill it belongs to")
+	}
+	if strings.Index(gm, `id="tabletop"`) > strings.Index(gm, "data-layer-menu") {
+		t.Error("the floors menu is outside the table region")
 	}
 }
 

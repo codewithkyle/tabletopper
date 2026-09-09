@@ -31,7 +31,9 @@ import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
+import { mountLayerTool } from "./layer-tool.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
+import { mountTools } from "./tools.ts";
 import type { Event, Role, State } from "./protocol.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { pawnWindow } from "./pawn-window.ts";
@@ -56,6 +58,11 @@ if (mount) {
 	// arrives inside a window nothing here rendered.
 	mountColorFields();
 
+	// The tool pill. It is mounted before anything that reads it, needs neither
+	// a socket nor a canvas, and a closed room still switches modes with it --
+	// which is the same reason the windows are mounted above.
+	const tools = mountTools(mount);
+
 	const state = empty();
 	const roomID = mount.dataset.room ?? "";
 	const role: Role = mount.dataset.role === "gm" ? "gm" : "player";
@@ -68,6 +75,12 @@ if (mount) {
 	const openDetails = (pawn: Named): void => {
 		openWindow(pawnWindow(roomID, pawn));
 	};
+
+	// The floors menu in that pill, which is the GM's and renders nothing at all
+	// for anybody else. It reads the store rather than the renderer: which floor
+	// is ACTIVE is the room's, and the local choice of which one to look at
+	// belongs to the control in the bar.
+	mountLayerTool(mount, state);
 
 	// The menu the right button puts up. It is mounted before the table because
 	// the table is what asks for it, and it needs nothing the renderer holds:
@@ -101,6 +114,11 @@ if (mount) {
 			socket?.send(command);
 		},
 		invalidate: () => renderer?.invalidate(),
+
+		// WHICH MODE THE PILL IS IN, ASKED AT EVERY PRESS. A page that rendered
+		// no pill answers no, which is the table behaving as it always has
+		// rather than a table nothing can be done to.
+		panning: () => tools?.panning() ?? false,
 
 		// A CAMERA THAT HAS NOT STARTED IS ONE MAP PIXEL PER SCREEN PIXEL,
 		// which is the identity rather than a guess: with no renderer there is

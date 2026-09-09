@@ -3,9 +3,17 @@
 //
 // THIS IS A STATE MACHINE AND THE STATES ARE THE FOUR THINGS A PRESS CAN
 // BECOME. A press on a movable pawn is a click until the hand has moved four
-// device pixels, at which point it is a drag; a press with Shift on empty table
-// is a marquee; a press on anything else is the camera's, and this only watches
-// it to know whether the click that ends it should clear the selection.
+// device pixels, at which point it is a drag; a press on a handle is a resize or
+// a turn; a press on anything else -- empty table, or a pawn this viewer may not
+// move -- is a click until the hand has travelled that same distance and a
+// marquee after that.
+//
+// AND UNDER THE MOVE TOOL A PRESS IS NONE OF THEM. The pill has a mode that
+// hands the pointer to the camera and takes it away from the table's contents,
+// and the space bar is a hold of that mode; deps.panning is the whole of what
+// this module knows about either. What is left alone by it is the selection --
+// shoving the map around is not a reason to throw away the group somebody spent
+// a minute building.
 //
 // NOTHING HERE ALLOCATES PER FRAME. The ghosts, the outlines and the ruler are
 // written into arrays the caller owns and reuses, because they are read once
@@ -37,6 +45,7 @@ import {
 } from "./render/path.ts";
 import type { Handle } from "./handles.ts";
 import { SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
+import { typing } from "./keys.ts";
 import { compareStack } from "./render/scene.ts";
 
 // DRAG_THRESHOLD is how far the hand moves before a press stops being a click,
@@ -207,6 +216,22 @@ export interface TableDeps {
 	// are markup with a room id in it.
 	menu: (pawn: Pawn, screen: Point) => void;
 
+	// panning is whether the pointer belongs to the camera and to nothing
+	// else, which is the Move tool in the pill and the space bar while it is
+	// held. See tools.ts.
+	//
+	// IT IS ASKED AT THE MOMENT OF A PRESS AND NEVER AGAIN DURING ONE. A
+	// gesture that has begun finishes under the tool it began in: letting go of
+	// the space bar halfway through a marquee must not turn the box into a pan,
+	// and pressing it halfway through a drag must not drop the goblin.
+	//
+	// WHAT IT TURNS OFF IS THE POINTER AND NOT THE PANEL. Move takes away
+	// dragging, selecting, marqueeing and placing -- everything the primary
+	// button does to the table's CONTENTS -- and leaves the selection somebody
+	// built exactly where it was, because a mode for shoving the map around is
+	// not a mode for throwing away their work.
+	panning: () => boolean;
+
 	// remove is the Delete key asking for the selection to be taken off the
 	// table.
 	//
@@ -294,17 +319,28 @@ interface Shaping {
 	moved: boolean;
 }
 
+// Marqueeing is a press on empty table, or on a pawn this viewer may not move:
+// a click until the hand has travelled, and a rubber band around everything it
+// crosses after that.
+//
+// IT IS ONE GESTURE AND NOT TWO BECAUSE THE HAND DOES NOT DECLARE WHICH IT
+// MEANT. A press on empty floor is a click that clears the selection and a
+// group selection that has not started moving yet, and which of them it was is
+// only known when the button comes back up -- the same shape as a press on a
+// goblin, which is a selection until it has moved four pixels and a drag after
+// that.
+//
+// THE SELECT TOOL TAKES THIS PRESS AWAY FROM THE CAMERA, which is the trade the
+// tool makes: the primary button draws boxes, and panning is the space bar, the
+// middle button, or the Move tool. Under Move there is no gesture here at all.
 interface Marqueeing {
 	kind: "marquee";
 	from: Point;
 	to: Point;
-}
 
-// Panning is the camera's gesture, watched so that the click which ends it can
-// clear the selection -- and so that a click on a pawn nobody here may move is
-// still a click on a pawn.
-interface Panning {
-	kind: "pan";
+	// screen is where the press was in CSS pixels, which is what the threshold
+	// is measured in -- a hand's jitter is a screen-space quantity and does not
+	// get larger as the map is zoomed out.
 	screen: Point;
 	moved: boolean;
 
@@ -312,13 +348,13 @@ interface Panning {
 	// it, and null for empty table.
 	//
 	// IT EXISTS FOR THE DOUBLE CLICK. A player asking to read a monster gets no
-	// Pressing gesture -- the press was handed to the camera, because a monster
-	// is not theirs to drag -- and without this the pair could not be counted
-	// for the one viewer most likely to be making it.
+	// Pressing gesture -- a monster is not theirs to drag -- and without this
+	// the pair could not be counted for the one viewer most likely to be making
+	// it.
 	anchor: string | null;
 }
 
-type Gesture = Pressing | Dragging | Shaping | Marqueeing | Panning | null;
+type Gesture = Pressing | Dragging | Shaping | Marqueeing | null;
 
 // Preview is somebody else's drag, as it arrived.
 interface Preview {
@@ -693,15 +729,15 @@ export function createTable(deps: TableDeps): Table {
 	}
 
 	// clickedPawn is what a finished gesture was a click ON, and null for every
-	// gesture that was not one. Two of the five can end in a click and they end
-	// in it differently: a press is a pawn this viewer may move, and a pan that
-	// went nowhere is either empty table or a pawn they may not.
+	// gesture that was not one. Two of the four can end in a click and they end
+	// in it differently: a press is a pawn this viewer may move, and a marquee
+	// that never opened is either empty table or a pawn they may not.
 	function clickedPawn(active: Gesture): Pawn | null {
 		if (active?.kind === "press") {
 			return pawn(active.anchor);
 		}
 
-		if (active?.kind === "pan" && !active.moved && active.anchor !== null) {
+		if (active?.kind === "marquee" && !active.moved && active.anchor !== null) {
 			return pawn(active.anchor);
 		}
 
@@ -746,6 +782,17 @@ export function createTable(deps: TableDeps): Table {
 	const tool: Tool = {
 		press(map, screen, mods) {
 			pointer = { x: map.x, y: map.y };
+
+			// THE CAMERA'S MODE IS ANSWERED FIRST AND WITHOUT RECORDING
+			// ANYTHING, which is what makes it the mode it says it is: no
+			// placement, no drag, no marquee, and no gesture left behind for the
+			// release to act on. Returning false is how input.ts is told to pan
+			// with this pointer.
+			if (deps.panning()) {
+				gesture = null;
+
+				return false;
+			}
 
 			if (armed) {
 				place(map);
@@ -792,18 +839,21 @@ export function createTable(deps: TableDeps): Table {
 				return true;
 			}
 
-			if (mods.shift) {
-				gesture = { kind: "marquee", from: { x: map.x, y: map.y }, to: { x: map.x, y: map.y } };
+			// Empty table, or something this viewer may not move. It is a
+			// click that clears the selection until the hand travels, and a
+			// marquee after that -- and the camera is refused either way,
+			// because a select tool whose drag panned would have no gesture
+			// left to draw a box with.
+			gesture = {
+				kind: "marquee",
+				from: { x: map.x, y: map.y },
+				to: { x: map.x, y: map.y },
+				screen: { x: screen.x, y: screen.y },
+				moved: false,
+				anchor: hit?.id ?? null,
+			};
 
-				return true;
-			}
-
-			// Empty table, or something this viewer may not move. The camera
-			// takes the gesture; this watches it only so that a click which
-			// went nowhere can clear the selection.
-			gesture = { kind: "pan", screen: { x: screen.x, y: screen.y }, moved: false, anchor: hit?.id ?? null };
-
-			return false;
+			return true;
 		},
 
 		drag(map, screen, mods) {
@@ -839,16 +889,19 @@ export function createTable(deps: TableDeps): Table {
 					return;
 
 				case "marquee":
+					// A PRESS BECOMES A BOX ON THE SAME THRESHOLD A PRESS ON A
+					// GOBLIN BECOMES A DRAG. Under it there is nothing to draw
+					// and nothing to select: the release is a click, and a hand
+					// that shook while clicking empty table has not asked for a
+					// selection of whatever it shook over.
+					if (!active.moved && !past(active.screen, screen)) {
+						return;
+					}
+
+					active.moved = true;
 					active.to.x = map.x;
 					active.to.y = map.y;
 					announce();
-
-					return;
-
-				case "pan":
-					if (past(active.screen, screen)) {
-						active.moved = true;
-					}
 
 					return;
 			}
@@ -909,6 +962,26 @@ export function createTable(deps: TableDeps): Table {
 				}
 
 				case "marquee": {
+					if (!active.moved) {
+						// It stayed a click. On empty table that is how a
+						// selection is put down -- and with Shift it is not,
+						// because Shift is building one and a miss is a miss.
+						if (!mods.shift && selection.clear()) {
+							announce();
+						}
+
+						// A PAWN THIS VIEWER MAY NOT MOVE IS STILL A PAWN THEY
+						// MAY READ, which is the whole reason this gesture
+						// carries an anchor. A player double-clicking a monster
+						// gets its window; the selection they never had is
+						// still cleared above.
+						if (twice && !mods.shift && clicked) {
+							deps.details(clicked);
+						}
+
+						return;
+					}
+
 					const rect = marqueeRect(active);
 					const found = marqueeSelect(state.pawns, deps.viewed(), rect, role, user);
 
@@ -921,22 +994,6 @@ export function createTable(deps: TableDeps): Table {
 
 					return;
 				}
-
-				case "pan":
-					if (!active.moved && selection.clear()) {
-						announce();
-					}
-
-					// A PAWN THIS VIEWER MAY NOT MOVE IS STILL A PAWN THEY MAY
-					// READ, which is the whole reason Panning carries an
-					// anchor. A player double-clicking a monster gets its
-					// window; the selection they never had is still cleared
-					// above, because the press was the camera's.
-					if (twice && !mods.shift && clicked) {
-						deps.details(clicked);
-					}
-
-					return;
 			}
 		},
 
@@ -1145,7 +1202,10 @@ export function createTable(deps: TableDeps): Table {
 				});
 			}
 
-			if (gesture?.kind === "marquee") {
+			// A MARQUEE THAT HAS NOT OPENED IS NOT DRAWN, because until the
+			// threshold is crossed it is a point: a rectangle of no width over
+			// the spot somebody is clicking.
+			if (gesture?.kind === "marquee" && gesture.moved) {
 				const rect = marqueeRect(gesture);
 				add({
 					x: (rect.x1 + rect.x2) / 2,
@@ -1450,17 +1510,6 @@ function armedShape(armed: Armed, cellSize: number): Ghostable {
 // not exist -- so `target instanceof HTMLElement` is a ReferenceError rather
 // than a false. What is actually being asked, does this thing take text, is
 // answered by the two properties either way.
-const TYPES_INTO = new Set(["INPUT", "TEXTAREA", "SELECT"]);
-
-function typing(target: EventTarget | null): boolean {
-	const el = target as { tagName?: string; isContentEditable?: boolean } | null;
-	if (!el?.tagName) {
-		return false;
-	}
-
-	return el.isContentEditable === true || TYPES_INTO.has(el.tagName);
-}
-
 function blankOutline(): Outline {
 	return {
 		x: 0, y: 0, halfW: 0, halfH: 0,

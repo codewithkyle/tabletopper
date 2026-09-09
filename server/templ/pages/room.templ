@@ -54,7 +54,7 @@ templ roomContent(data RoomPageData) {
 				if data.IsGM() {
 					@roomRemoveKey(data)
 				}
-				@roomToolbar()
+				@roomToolbar(data)
 				if data.Debug {
 					@roomDebug()
 				}
@@ -156,7 +156,7 @@ templ roomBarItem(item RoomMenuItem) {
 	</li>
 }
 
-templ roomToolbar() {
+templ roomToolbar(data RoomPageData) {
 	<div data-room-tools class={ surfacePanel + " absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-full p-1" }>
 		for _, t := range RoomTools() {
 			<div class="tooltip tooltip-left" data-tip={ t.Label }>
@@ -164,6 +164,7 @@ templ roomToolbar() {
 					type="button"
 					class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
 					data-room-tool={ t.Name }
+					data-room-tool-pans?={ t.Pans }
 					aria-label={ t.Label }
 					aria-pressed={ t.Pressed() }
 				>
@@ -171,7 +172,13 @@ templ roomToolbar() {
 				</button>
 			</div>
 		}
+		if data.IsGM() {
+			@roomLayerTool()
+		}
 	</div>
+	if data.IsGM() {
+		@roomLayerMenu()
+	}
 }
 
 templ roomToolIcon(name string) {
@@ -182,8 +189,10 @@ templ roomToolIcon(name string) {
 			@cloudIcon()
 		case "draw":
 			@brushIcon()
-		default:
+		case RoomToolMove:
 			@moveIcon()
+		default:
+			@clickIcon()
 	}
 }
 

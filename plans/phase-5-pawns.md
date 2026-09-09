@@ -746,6 +746,75 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   ellipsis. The floor rows were already safe: `min-w-0` on the name span is
   what caps them.
 
+### Rework 12, the pill has a select tool and the space bar pans (2026-09-08)
+
+- **Select is a real tool and it is what a room opens in.** The pill kept its
+  own `aria-pressed` in `server/public/js/room.js` and the canvas never asked
+  which button was pressed; two of the five modes are real now, so the state
+  moved into the bundle the canvas is in (`server/js/room/tools.ts`) and the
+  stub in `public/js` is gone. A control and the thing it controls in two
+  scripts that cannot import each other is a contract with nobody to enforce it.
+- **The group selection is a plain drag.** It used to need Shift, which is a key
+  nobody finds on their own. A press on empty table -- or on a pawn this viewer
+  may not move -- is now a click until the hand travels four device pixels and a
+  marquee after that, which is the same threshold a press on a goblin uses to
+  become a drag. Shift still means what it means everywhere else: a marquee held
+  with it adds to the selection instead of replacing it, and a shift click that
+  caught nothing leaves the selection alone.
+- **`Panning` and `Marqueeing` merged into one gesture.** They were the same
+  press described twice -- the camera's, watched for the click that clears the
+  selection, and the rubber band -- and which one it was is only known when the
+  button comes back up. The merged `Marqueeing` keeps the anchor that makes a
+  double click work for a player who may not drag what they are asking about.
+- **Move is now the camera's mode and nothing else's.** `deps.panning()` is
+  asked first in `press`, before placement and before the hit test, and it
+  records no gesture at all: no drag, no marquee, no selection, no spawn. What
+  it deliberately leaves alone is the selection, because shoving the map across
+  is not a reason to throw away the group somebody spent a minute building.
+- **The mode is read at the press and never again during a gesture.** The space
+  bar is a key a hand lets go of, and letting go of it halfway through a marquee
+  must not turn the box into a pan.
+- **The space bar is a held switch to Move**, which is the gesture every drawing
+  program has trained every hand to expect. It is taken everywhere except a text
+  field -- `keys.ts` is the one answer to "is this key the page's", now that
+  `pawns.ts` and `tools.ts` both ask -- and taking it means the browser does not
+  get it, because a focused button would read it as a press. Enter is what a
+  keyboard is left with for buttons. A blur releases the hold, which is the one
+  way it could get stuck. The canvas cursor goes to `grab` while it is down:
+  the pill is in the corner and a GM panning is looking at the map.
+- **Which tool pans is rendered rather than spelled again in TypeScript.**
+  `room.go` puts `data-room-tool-pans` on exactly one button and `tools.ts`
+  finds it by that attribute -- a name written out in both languages is a space
+  bar that quietly stops working the day the list is renamed. The mode a room
+  opens in is read the same way, off the button rendered pressed.
+- **Measure, Fog and Draw leave the table on Select.** Their features are not
+  built, and gating the pointer on them would drop a GM into a mode where
+  nothing works and nothing says why. Phase 6 builds the three.
+- **A floors menu in the pill swaps the ACTIVE layer.** The bar picks the floor
+  this GM is looking at and the layers window is where floors are made; neither
+  is the thing a GM does over and over while running a fight, which is putting
+  the party on the roof and letting the players see the roof. It is the same
+  POST the radio in that window makes, so there is one route and one event, and
+  the GM's own view follows because activating a layer clears the local
+  override. It is the GM's or it is nothing.
+- **The menu is a sibling of the table rather than a child of the pill.** The
+  pill is positioned and z-indexed, so it is a stacking context, and a dropdown
+  inside it could never rise above a window sitting under that corner -- and a
+  DaisyUI dropdown inside the tooltip wrapper every other button has would put a
+  tooltip over its own list. It is placed against the button by
+  `layer-tool.ts` and raised with `nextZ()`, exactly as the right-click menu is.
+- Verified in headless chromium against the built stylesheet: the pill renders
+  five modes with Select pressed; the space bar lights Move, answers
+  `panning=true` and sets `cursor: grab`, and releasing it comes back to Select;
+  a space bar pressed in a field changes nothing; pressing Draw while the bar is
+  held lands on Draw when it is let go; a blur releases the hold. The floors
+  menu opens 224px wide at the button's top edge, ends 5px inside the table,
+  truncates a 51-character floor name with an ellipsis, shows one "Active"
+  badge inside the right edge, posts `/rooms/{id}/layers/{layer}/activate` for
+  any floor but the live one, and closes on a choice, an outside press and
+  Escape. The CSS build gained three rules and no component family:
+  `.max-h-72` and the two `aria-expanded:` utilities.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

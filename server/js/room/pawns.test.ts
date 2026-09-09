@@ -1,11 +1,13 @@
 // What a pointer on the table means.
 //
-// THE FOUR THINGS PINNED HERE ARE THE FOUR THAT ARE EASY TO GET SUBTLY WRONG.
+// THE FIVE THINGS PINNED HERE ARE THE FIVE THAT ARE EASY TO GET SUBTLY WRONG.
 // Hit testing has to match what was drawn or a click lands on the wrong pawn;
 // the drag threshold has to exist or a click moves things; the delta has to be
-// the ANCHOR'S so a wagon's passengers keep their seats; and a cancelled drag
-// has to SEND something, because the event it produces is what tells everybody
-// else to drop the ghosts they are drawing.
+// the ANCHOR'S so a wagon's passengers keep their seats; a cancelled drag has to
+// SEND something, because the event it produces is what tells everybody else to
+// drop the ghosts they are drawing; and the two pointer modes have to differ in
+// exactly one way -- who gets the press -- with the selection surviving the trip
+// through the one that does not want it.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -175,7 +177,7 @@ test("hit testing ignores another floor", () => {
 // and to recording versions of the two things it asks the page to do.
 function table(
 	pawns: Pawn[],
-	over: Partial<{ role: "gm" | "player"; user: string; grid: Grid; scale: number }> = {},
+	over: Partial<{ role: "gm" | "player"; user: string; grid: Grid; scale: number; panning: boolean }> = {},
 ) {
 	const state: State = empty();
 	state.pawns = pawns;
@@ -187,6 +189,10 @@ function table(
 	const menus: string[] = [];
 	let removals = 0;
 
+	// The pill's mode, which a test can throw mid-gesture: letting go of the
+	// space bar halfway through a marquee is a thing hands do.
+	let panning = over.panning ?? false;
+
 	const controller = createTable({
 		state,
 		role: over.role ?? "gm",
@@ -196,6 +202,7 @@ function table(
 			sent.push(command as unknown as Record<string, unknown>);
 		},
 		invalidate: () => {},
+		panning: () => panning,
 
 		// ONE MAP PIXEL PER SCREEN PIXEL, so a handle's grab radius in these
 		// tests is the constant itself and the arithmetic is readable.
@@ -212,7 +219,17 @@ function table(
 		},
 	});
 
-	return { controller, sent, state, opened, menus, removals: () => removals };
+	return {
+		controller,
+		sent,
+		state,
+		opened,
+		menus,
+		removals: () => removals,
+		pan: (on: boolean) => {
+			panning = on;
+		},
+	};
 }
 
 // A CLICK STILL SELECTS, which is the whole reason the threshold exists: a
@@ -244,8 +261,8 @@ test("shift-clicking toggles rather than replacing", () => {
 	assert.deepEqual(controller.selection.ids(), ["a", "b"]);
 });
 
-// Empty table with nothing under it is the camera's gesture, and the click that
-// ends it clears what was chosen.
+// Empty table under the select tool is a press this module keeps, and the click
+// that ends it clears what was chosen.
 test("a click on empty table clears the selection", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller } = table([goblin]);
@@ -255,23 +272,107 @@ test("a click on empty table clears the selection", () => {
 	const claimed = controller.tool.press(at(900, 900), at(0, 0), NONE);
 	controller.tool.release(at(900, 900), at(0, 0), NONE);
 
-	assert.equal(claimed, false, "the camera was refused a pan from empty table");
+	assert.equal(claimed, true, "the camera took a press the marquee needs");
 	assert.deepEqual(controller.selection.ids(), []);
 });
 
-// A pan that actually panned is not a click, and must not throw the selection
-// away on the way past.
-test("a drag from empty table keeps the selection", () => {
+// THE GROUP SELECTION IS A PLAIN DRAG AND NO LONGER A HELD KEY. Dragging a box
+// round four goblins is the gesture every other tool on a canvas has, and the
+// press it is made of is the one the camera used to take.
+test("a drag from empty table marquees", () => {
+	const a = pawn({ id: "a", x: 100, y: 100 });
+	const b = pawn({ id: "b", x: 900, y: 900 });
+	const { controller } = table([a, b]);
+
+	assert.equal(controller.tool.press(at(0, 0), at(0, 0), NONE), true);
+	controller.tool.drag(at(200, 200), at(200, 200), NONE);
+	controller.tool.release(at(200, 200), at(200, 200), NONE);
+
+	assert.deepEqual(controller.selection.ids(), ["a"]);
+});
+
+// A HAND SHAKES ON THE WAY OFF THE BUTTON, and under the threshold that is a
+// click rather than a box a pixel wide over whatever it was resting on.
+test("a click that shook is a click and not a marquee", () => {
+	const goblin = pawn({ id: "goblin", x: 0, y: 0 });
+	const { controller } = table([goblin]);
+
+	controller.selection.set(["goblin"]);
+
+	controller.tool.press(at(900, 900), at(400, 400), NONE);
+	controller.tool.drag(at(902, 902), at(402, 402), NONE);
+	controller.tool.release(at(902, 902), at(402, 402), NONE);
+
+	assert.deepEqual(controller.selection.ids(), [], "a click on empty table did not clear the selection");
+	assert.deepEqual(controller.outlines([]), [], "a click drew a marquee");
+});
+
+// A MARQUEE THAT CAUGHT NOTHING IS A SELECTION OF NOTHING. Dragging a box
+// across empty floor is how somebody says "none of them" without hunting for a
+// patch of table to click.
+test("a marquee that found nothing clears the selection", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller } = table([goblin]);
 
 	controller.selection.set(["goblin"]);
 
 	controller.tool.press(at(900, 900), at(0, 0), NONE);
-	controller.tool.drag(at(800, 900), at(100, 0), NONE);
-	controller.tool.release(at(800, 900), at(100, 0), NONE);
+	controller.tool.drag(at(1200, 1200), at(300, 300), NONE);
+	controller.tool.release(at(1200, 1200), at(300, 300), NONE);
+
+	assert.deepEqual(controller.selection.ids(), []);
+});
+
+// THE MOVE TOOL IS THE CAMERA'S AND THE TABLE HEARS NOTHING. Every press is
+// refused, whatever it landed on -- so nothing is dragged, nothing is picked
+// out, and no box is drawn.
+test("the move tool gives every press to the camera", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, sent } = table([goblin], { panning: true });
+
+	assert.equal(controller.tool.press(at(32, 32), at(0, 0), NONE), false, "a press on a pawn was kept");
+	controller.tool.drag(at(200, 200), at(168, 168), NONE);
+	controller.tool.release(at(200, 200), at(168, 168), NONE);
+
+	assert.equal(controller.tool.press(at(900, 900), at(0, 0), NONE), false, "a press on empty table was kept");
+	controller.tool.drag(at(1200, 1200), at(300, 300), NONE);
+	controller.tool.release(at(1200, 1200), at(300, 300), NONE);
+
+	assert.deepEqual(sent, [], "the camera's mode moved something");
+	assert.deepEqual(controller.selection.ids(), [], "the camera's mode selected something");
+	assert.deepEqual(controller.outlines([]), [], "the camera's mode drew a marquee");
+});
+
+// AND IT LEAVES THE SELECTION WHERE IT FOUND IT. Shoving the map across to see
+// where the party is going is not a reason to throw away the four goblins
+// somebody just picked out.
+test("the move tool keeps the selection", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller } = table([goblin], { panning: true });
+
+	controller.selection.set(["goblin"]);
+
+	controller.tool.press(at(900, 900), at(0, 0), NONE);
+	controller.tool.release(at(900, 900), at(0, 0), NONE);
 
 	assert.deepEqual(controller.selection.ids(), ["goblin"]);
+});
+
+// A GESTURE FINISHES UNDER THE TOOL IT BEGAN IN, which is why the mode is asked
+// at the press and never again: the space bar is a key a hand lets go of, and
+// letting go of it halfway through a drag must not drop the goblin.
+test("a drag survives the tool changing under it", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, sent, pan } = table([goblin]);
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(90, 90), at(58, 58), NONE);
+
+	pan(true);
+
+	controller.tool.release(at(90, 90), at(58, 58), NONE);
+
+	assert.equal(sent[sent.length - 1]?.type, "pawn.move", "the drag was abandoned mid-flight");
 });
 
 // ONE DELTA, TAKEN FROM THE ANCHOR, APPLIED TO EVERYTHING. A wagon with three
@@ -393,17 +494,35 @@ test("a press on a rider grabs the rider and not the wagon", () => {
 	assert.equal(sent[sent.length - 1]?.anchor, "rider");
 });
 
-// Shift on empty table draws a box, and the box selects on release.
-test("a shift-drag marquees", () => {
+// SHIFT NO LONGER STARTS THE BOX AND STILL SAYS WHAT IT MEANS EVERYWHERE ELSE:
+// it adds. A marquee held with Shift takes what it crossed on top of what was
+// already picked out, and one without it replaces the lot.
+test("a shift-drag adds to the selection rather than replacing it", () => {
 	const a = pawn({ id: "a", x: 100, y: 100 });
 	const b = pawn({ id: "b", x: 900, y: 900 });
 	const { controller } = table([a, b]);
+
+	controller.selection.set(["b"]);
 
 	assert.equal(controller.tool.press(at(0, 0), at(0, 0), SHIFT), true);
 	controller.tool.drag(at(200, 200), at(200, 200), SHIFT);
 	controller.tool.release(at(200, 200), at(200, 200), SHIFT);
 
-	assert.deepEqual(controller.selection.ids(), ["a"]);
+	assert.deepEqual(controller.selection.ids(), ["b", "a"]);
+});
+
+// AND A SHIFT CLICK THAT CAUGHT NOTHING IS NOT A REASON TO EMPTY IT. A miss
+// while building a group is a miss.
+test("a shift click on empty table keeps the selection", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller } = table([goblin]);
+
+	controller.selection.set(["goblin"]);
+
+	controller.tool.press(at(900, 900), at(0, 0), SHIFT);
+	controller.tool.release(at(900, 900), at(0, 0), SHIFT);
+
+	assert.deepEqual(controller.selection.ids(), ["goblin"]);
 });
 
 // PLACEMENT SURVIVES A SPAWN, which is the whole reason arming is worth a round
@@ -436,13 +555,34 @@ test("arming places on every click until Escape", () => {
 	assert.equal(sent.length, 2, "a click after Escape still placed something");
 });
 
-// A player cannot start a drag on a pawn they do not own -- the press is the
-// camera's, and the server would refuse the move anyway.
-test("a player pressing somebody else's pawn pans instead", () => {
-	const goblin = pawn({ id: "goblin", x: 32, y: 32, ownerId: null });
-	const { controller } = table([goblin], { role: "player", user: "01ME" });
+// PLACING IS NOT PANNING. A GM with a goblin on the cursor who holds the space
+// bar to see where the rest of the room is has not asked to drop it there.
+test("the move tool places nothing", () => {
+	const { controller, sent } = table([], { panning: true });
 
-	assert.equal(controller.tool.press(at(32, 32), at(0, 0), NONE), false);
+	controller.arm({
+		kind: "monster", id: "01MONSTER", name: "Goblin", image: "",
+		visible: false, size: "medium", width: 0, height: 0,
+	});
+
+	assert.equal(controller.tool.press(at(90, 90), at(0, 0), NONE), false);
+
+	assert.deepEqual(sent, []);
+	assert.equal(controller.isArmed(), true, "the camera's mode disarmed what was held");
+});
+
+// A player cannot start a drag on a pawn they do not own, and the server would
+// refuse the move anyway. What the press becomes instead is the same thing a
+// press on empty table is: a click that selects nothing, or a marquee.
+test("a player pressing somebody else's pawn selects nothing", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32, ownerId: null });
+	const { controller, sent } = table([goblin], { role: "player", user: "01ME" });
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(168, 168), NONE);
+	controller.tool.release(at(200, 200), at(168, 168), NONE);
+
+	assert.deepEqual(sent, [], "a player moved a pawn that is not theirs");
 	assert.deepEqual(controller.selection.ids(), []);
 });
 
@@ -679,10 +819,10 @@ test("a drag between two clicks breaks the pair", () => {
 	assert.deepEqual(opened, []);
 });
 
-// A PLAYER DOUBLE-CLICKING A MONSTER IS THE CASE THE PANNING ANCHOR EXISTS FOR.
-// The press was handed to the camera -- a monster is not theirs to drag -- so
-// there is no Pressing gesture for the pair to be counted on, and the viewer
-// most likely to be asking "what is that" is the one it would not work for.
+// A PLAYER DOUBLE-CLICKING A MONSTER IS THE CASE THE MARQUEE'S ANCHOR EXISTS
+// FOR. A monster is not theirs to drag, so there is no Pressing gesture for the
+// pair to be counted on, and the viewer most likely to be asking "what is that"
+// is the one it would not work for.
 test("a player opens a monster they may not move", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller, opened } = table([goblin], { role: "player", user: "01PLAYER" });

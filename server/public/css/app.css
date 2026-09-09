@@ -3462,6 +3462,9 @@
   .max-h-48 {
     max-height: calc(var(--spacing) * 48);
   }
+  .max-h-72 {
+    max-height: calc(var(--spacing) * 72);
+  }
   .max-h-\[calc\(100dvh-9rem\)\] {
     max-height: calc(100dvh - 9rem);
   }
@@ -4852,6 +4855,12 @@
   }
   .focus-visible\:-outline-offset-2:focus-visible {
     outline-offset: calc(2px * -1);
+  }
+  .aria-expanded\:bg-primary[aria-expanded="true"] {
+    background-color: var(--color-primary);
+  }
+  .aria-expanded\:text-primary-content[aria-expanded="true"] {
+    color: var(--color-primary-content);
   }
   .aria-pressed\:bg-primary[aria-pressed="true"] {
     background-color: var(--color-primary);
