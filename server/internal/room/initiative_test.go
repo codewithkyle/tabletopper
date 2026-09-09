@@ -6,14 +6,22 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// The first press of the button starts round one. There is no turn ending, so
-// only the start-of-turn conditions on the first combatant tick.
-func TestTheFirstAdvanceStartsRoundOne(t *testing.T) {
+// THE FIGHT BEGINS WHEN THE ORDER DOES. A tracker with lines in it is in round
+// one from the moment it is built, and nobody is acting yet -- so a GM who
+// gives the turn to whoever rolled highest by clicking a card, rather than by
+// pressing Next, is in round one rather than in no round at all.
+//
+// The first press of the button ends nothing, so only the start-of-turn
+// conditions on the first combatant tick.
+func TestATrackerWithLinesInItIsInRoundOne(t *testing.T) {
 	w := newWorld(t)
 	first, second := w.twoInTheOrder()
 
-	if w.s.Initiative.Round != 0 || w.s.Initiative.Active != nil {
-		t.Fatal("a freshly set tracker is already running")
+	if w.s.Initiative.Round != 1 {
+		t.Fatalf("a freshly built tracker is in round %d, want 1", w.s.Initiative.Round)
+	}
+	if w.s.Initiative.Active != nil {
+		t.Fatal("a freshly built tracker has already given somebody the turn")
 	}
 
 	w.apply(&InitiativeNext{}, w.gm)
@@ -25,6 +33,53 @@ func TestTheFirstAdvanceStartsRoundOne(t *testing.T) {
 		t.Fatal("the first advance did not land on the first entry")
 	}
 	_ = second
+}
+
+// AND AN EMPTY TRACKER IS IN NO ROUND AT ALL, which is the other half of the
+// same rule and is what the counter in the menu bar reads to decide whether to
+// draw anything.
+func TestAnEmptyTrackerIsInNoRound(t *testing.T) {
+	w := newWorld(t)
+	w.twoInTheOrder()
+
+	w.apply(&InitiativeNext{}, w.gm)
+	w.apply(&InitiativeClear{}, w.gm)
+
+	if w.s.Initiative.Round != 0 {
+		t.Fatalf("a cleared tracker is in round %d, want 0", w.s.Initiative.Round)
+	}
+}
+
+// A LINE ARRIVING MID-FIGHT DOES NOT START THE FIGHT AGAIN, and neither does
+// the acting line going. The round is what the party's spell durations are
+// counted in, so the only thing that resets it is the tracker emptying.
+func TestTheRoundSurvivesAnEditAndTheLossOfTheActingLine(t *testing.T) {
+	w := newWorld(t)
+	first, second := w.twoInTheOrder()
+
+	w.apply(&InitiativeNext{}, w.gm)
+	w.apply(&InitiativeNext{}, w.gm)
+	w.apply(&InitiativeNext{}, w.gm)
+
+	if w.s.Initiative.Round != 2 {
+		t.Fatalf("round = %d before the edit, want 2", w.s.Initiative.Round)
+	}
+
+	// The acting line is taken out, which leaves nobody acting.
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
+		{ID: second, PawnIDs: nil, Name: "Ogre"},
+	}}, w.gm)
+
+	if w.s.Initiative.Round != 2 {
+		t.Fatalf("removing the acting line put the fight in round %d, want 2", w.s.Initiative.Round)
+	}
+
+	w.apply(&InitiativeNext{}, w.gm)
+
+	if w.s.Initiative.Round != 2 {
+		t.Fatalf("advancing onto a fight with no acting line reset it to round %d, want 2", w.s.Initiative.Round)
+	}
+	_ = first
 }
 
 // The order wraps and the round goes up when it does, which is what makes "how

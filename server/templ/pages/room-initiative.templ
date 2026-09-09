@@ -1,12 +1,16 @@
 package pages
 
-const initiativeStrip = "pointer-events-auto flex max-w-full items-start gap-1 rounded-box border border-base-300 bg-panel/95 px-1.5 py-1 shadow-panel backdrop-blur-sm"
+const initiativeColumn = "flex shrink-0 flex-col items-center"
 
-const initiativeEntryBox = "flex shrink-0 flex-col items-center gap-1 rounded-box p-1"
+const initiativeTile = "block w-18 shrink-0 p-1 shadow-panel"
 
-const initiativeDisc = "relative block shrink-0 overflow-hidden rounded-full border border-base-300 bg-base-300"
+const initiativePortraitBox = "relative block aspect-[2/3] w-full overflow-hidden rounded-sm bg-black/40"
 
-const initiativeName = "w-full truncate text-center text-[10px] leading-tight"
+const initiativeStaticName = "absolute inset-0 grid place-content-center px-0.5 text-center text-[10px] leading-tight text-white"
+
+const initiativePlate = "block w-18 truncate rounded-b-md px-1 text-center text-xs leading-6 font-medium"
+
+const initiativeUnderlay = "absolute inset-x-0 bottom-0 bg-black/55 px-0.5 text-center text-[10px] leading-4 text-white"
 
 templ RoomInitiative(data RoomInitiativeData) {
 	<div
@@ -22,12 +26,10 @@ templ RoomInitiative(data RoomInitiativeData) {
 			data-reorder
 		}
 	>
-		<div class={ initiativeStrip }>
-			<div data-entries class="flex min-w-0 items-start gap-1 overflow-x-auto">
-				for _, e := range data.Entries {
-					@initiativeEntry(data, e)
-				}
-			</div>
+		<div data-entries class="pointer-events-auto flex max-w-full items-start gap-2 overflow-x-auto p-1 select-none">
+			for _, e := range data.Entries {
+				@initiativeEntry(data, e)
+			}
 		</div>
 		if data.IsGM {
 			<button
@@ -52,9 +54,11 @@ templ RoomInitiative(data RoomInitiativeData) {
 templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 	<div
 		data-entry={ e.ID }
-		class={ initiativeEntryBox,
-			templ.KV("w-24 bg-primary/15 ring-2 ring-primary", e.Active),
-			templ.KV("w-16", !e.Active) }
+		class={ initiativeColumn }
+		title={ e.Name }
+		if e.Side != "" {
+			data-side={ e.Side }
+		}
 		if e.Active {
 			data-turn-active
 		}
@@ -65,28 +69,24 @@ templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 		if data.IsGM {
 			<button
 				type="button"
-				class="flex w-full cursor-pointer flex-col items-center gap-1"
+				data-entry-tile
+				class={ initiativeTile, "cursor-pointer", templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
 				aria-label={ data.ActivateLabel(e) }
 				hx-post={ data.ActivatePath(e) }
 				hx-swap="none"
 			>
-				@initiativeFace(e)
+				@initiativePortrait(data, e)
 			</button>
 		} else {
-			<div class="flex w-full flex-col items-center gap-1">
-				@initiativeFace(e)
+			<div
+				data-entry-tile
+				class={ initiativeTile, templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
+			>
+				@initiativePortrait(data, e)
 			</div>
 		}
-		if e.Hidden {
-			<span class="badge badge-xs badge-warning">Hidden</span>
-		}
-		if e.Grouped() {
-			@initiativePips(e)
-		}
-		if data.ShowHP(e) {
-			<span class="max-w-full truncate text-[10px] leading-none text-base-content/60">{ e.HP }</span>
-		}
 		if e.Active {
+			<span data-entry-plate class={ initiativePlate }>{ e.Name }</span>
 			@initiativeTurn(data, e)
 		}
 		if data.IsGM {
@@ -101,23 +101,10 @@ templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 	</div>
 }
 
-templ initiativeFace(e RoomInitiativeEntry) {
-	if e.Face() {
-		@initiativePortrait(e)
-		<span data-entry-name class={ initiativeName }>{ e.Name }</span>
-	} else {
-		<span class={ initiativeDisc, templ.KV("size-16", e.Active), templ.KV("size-12", !e.Active) }>
-			<span class="absolute inset-0 grid place-content-center px-1">
-				<span data-entry-name class="line-clamp-3 text-center text-[9px] leading-tight">{ e.Name }</span>
-			</span>
-		</span>
-	}
-}
-
-templ initiativePortrait(e RoomInitiativeEntry) {
+templ initiativePortrait(data RoomInitiativeData, e RoomInitiativeEntry) {
 	<span
 		data-portrait
-		class={ initiativeDisc, templ.KV("size-16", e.Active), templ.KV("size-12", !e.Active) }
+		class={ initiativePortraitBox }
 		if e.Band != "" {
 			data-band={ e.Band }
 		}
@@ -125,27 +112,33 @@ templ initiativePortrait(e RoomInitiativeEntry) {
 			data-blood={ e.Blood }
 		}
 	>
-		<span data-face class="absolute inset-0 grid place-content-center">
-			<span class={ "font-serif font-bold text-base-content/50", templ.KV("text-xl", e.Active), templ.KV("text-base", !e.Active) }>
-				{ characterInitial(e.Name) }
+		<span data-face class="absolute inset-0 block">
+			<span data-entry-name class={ initiativeStaticName }>
+				<span class="line-clamp-4">{ e.Name }</span>
 			</span>
 			if e.Image != "" {
 				<img src={ e.Image } alt="" class="absolute inset-0 h-full w-full object-cover select-none"/>
 			}
 		</span>
-		<span data-pulse aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-full"></span>
+		<span data-pulse aria-hidden="true" class="pointer-events-none absolute inset-0"></span>
 		<span
 			data-skull
 			aria-hidden="true"
-			class={ "pointer-events-none absolute inset-0 grid place-content-center leading-none",
-				templ.KV("text-[2.8rem]", e.Active),
-				templ.KV("text-[2.1rem]", !e.Active) }
+			class="pointer-events-none absolute inset-0 grid place-content-center text-[2.8rem] leading-none"
 		></span>
+		if e.Grouped() {
+			@initiativePips(e)
+		} else if data.ShowHP(e) {
+			<span class={ initiativeUnderlay, "truncate" }>{ e.HP }</span>
+		}
+		if e.Hidden {
+			<span class="badge badge-xs badge-warning absolute top-0.5 left-1/2 -translate-x-1/2">Hidden</span>
+		}
 	</span>
 }
 
 templ initiativePips(e RoomInitiativeEntry) {
-	<span data-entry-pips class="flex max-w-full flex-wrap items-center justify-center gap-0.5">
+	<span data-entry-pips class={ initiativeUnderlay, "flex flex-wrap items-center justify-center gap-0.5 py-0.5" }>
 		for _, p := range e.Pips {
 			<span
 				data-pip
@@ -156,28 +149,28 @@ templ initiativePips(e RoomInitiativeEntry) {
 			></span>
 		}
 		if e.Count != "" {
-			<span class="text-[10px] leading-none text-base-content/60">{ e.Count }</span>
+			{ e.Count }
 		}
 	</span>
 }
 
 templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
+	if !data.IsGM && e.Mine {
+		<span data-turn-timer data-turn-tone="plain" class="pt-1 font-mono text-xs leading-none tabular-nums">0:00</span>
+		<button
+			type="button"
+			data-turn-next
+			class="btn btn-xs btn-primary mt-1 w-18"
+			hx-post={ data.NextPath() }
+			hx-swap="none"
+		>End turn</button>
+	}
 	if len(e.Conditions) > 0 {
-		<span class="flex max-w-full flex-wrap justify-center gap-0.5">
+		<span class="flex max-w-64 flex-wrap justify-center gap-0.5 pt-1">
 			for _, c := range e.Conditions {
 				@pawnConditionChip(c)
 			}
 		</span>
-	}
-	if !data.IsGM && e.Mine {
-		<span data-turn-timer data-turn-tone="plain" class="font-mono text-xs leading-none tabular-nums">0:00</span>
-		<button
-			type="button"
-			data-turn-next
-			class="btn btn-xs btn-primary"
-			hx-post={ data.NextPath() }
-			hx-swap="none"
-		>End turn</button>
 	}
 }
 

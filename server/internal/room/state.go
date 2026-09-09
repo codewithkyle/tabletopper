@@ -713,6 +713,27 @@ func (s *State) Normalize() {
 		s.Table.InitiativeGrouping = GroupMonsters
 	}
 
+	// A TRACKER WITH LINES IN IT IS IN ROUND ONE AT THE EARLIEST, and an empty
+	// one is in no round at all.
+	//
+	// THE FIGHT BEGINS WHEN THE ORDER DOES, not when somebody presses the
+	// button. Sync built the order and everybody at the table is in round one
+	// from that moment: a GM who gives the turn to whoever rolled highest by
+	// clicking their card, rather than by pressing Next, was walking a whole
+	// lap with the counter reading nothing before it turned over to 1 -- and
+	// the number is what the party's spell durations are counted in.
+	//
+	// IT IS HERE RATHER THAN IN THE FOUR COMMANDS because it is a fact about
+	// the shape of the state and not about any one of them, and because a
+	// snapshot written before this rule existed comes back repaired for free.
+	// The empty half of it is dropMembers' as well, which is the same rule
+	// arriving from the other direction.
+	if len(s.Initiative.Entries) == 0 {
+		s.Initiative.Round = 0
+	} else if s.Initiative.Round < 1 {
+		s.Initiative.Round = 1
+	}
+
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Pawns, func(a, b Pawn) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Strokes, func(a, b Stroke) int { return a.ID.Compare(b.ID) })

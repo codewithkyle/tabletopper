@@ -8,11 +8,34 @@ import "strconv"
 // A TURN ORDER IS SCANNED AND NOT READ. The question a fight asks of it, twenty
 // times a round, is "whose go is it and who is next" -- and a face answers that
 // in the time a name takes to be focused on. This rebuild is built on every
-// creature having a picture, so the picture is the whole design: a round
-// portrait, the name under it small and truncated, and nothing else on a
-// resting line. Everything a GM might also want -- armour class, the floor, the
-// full condition list -- is one double click away in the pawn window, which
-// already exists.
+// creature having a picture, so the picture is the whole design: a tall
+// portrait in a coloured frame, and nothing else on a resting line. Everything
+// a GM might also want -- armour class, the floor, the full condition list --
+// is one double click away in the pawn window, which already exists.
+//
+// EACH CARD IS ITS OWN OBJECT AND THERE IS NO PANEL BEHIND THEM. A shared strip
+// makes twelve creatures one widget with faces printed on it; twelve separate
+// cards floating over the map are twelve creatures. That is the old app's
+// tracker and it is deliberately being kept -- it reads the way a party bar in
+// a video game reads, which is the reading a fight actually wants.
+//
+// THE FRAME IS COLOURED BY WHAT THE CREATURE IS: monsters red, NPCs green, the
+// party blue, and a line with no creature behind it a neutral dark. It is the
+// fastest question the strip answers -- "how much of this row is trying to kill
+// us" -- and it is answered without reading a word. The three colours are the
+// old app's own, fixed rather than themed, because they are information in the
+// way the blood is information; see the note in server/css/app.css.
+//
+// ONLY THE ACTING CARD IS LIT AND ONLY IT IS NAMED. The rest are turned down,
+// which is one filter rather than a border, a badge and a size change -- and a
+// row where eleven cards are dim is a row where the twelfth needs nothing else
+// to be found. The name plate hangs under the lit card in the frame's own
+// colour, so the card that is being read is the one carrying its own label.
+//
+// EVERY CARD IS THE SAME SIZE, WHICH IS WHAT MAKES THE DRAG WORK. The acting
+// card used to be wider than the rest; that reflows the row on every turn and
+// moves the drop target out from under a pointer that was already reaching for
+// it.
 //
 // IT IS NOT A WINDOW AND THERE IS NO EDITOR BESIDE IT. The rule that a panel
 // which is not the table is a floating window was made about the player list: a
@@ -104,6 +127,18 @@ const (
 	EntryNamed = "named"
 )
 
+// What a line IS, as against what shape it takes. The three values are
+// room.PawnKind's own words, so the attribute the stylesheet keys on is the
+// same string the protocol uses and there is no table in between.
+//
+// A LINE WITH NO CREATURE CARRIES NONE OF THEM and takes the neutral frame. An
+// object cannot be in the turn order at all, so PawnObject has no entry here.
+const (
+	SidePlayer  = "player"
+	SideMonster = "monster"
+	SideNPC     = "npc"
+)
+
 // InitiativePipMax is how many members a group draws one dot each for before
 // the dots become a count. Twenty four-pixel discs under a portrait is a
 // texture rather than a reading.
@@ -139,8 +174,17 @@ type RoomInitiativeEntry struct {
 	ID   string
 	Name string
 
-	// Kind is EntrySolo, EntryGroup or EntryNamed.
+	// Kind is EntrySolo, EntryGroup or EntryNamed: the SHAPE of the line.
 	Kind string
+
+	// Side is what the creature is -- SidePlayer, SideMonster or SideNPC --
+	// and it is what colours the frame. It is empty for a line with no
+	// creature behind it, which takes the neutral frame.
+	//
+	// A GROUP READS IT OFF ITS FIRST MEMBER, which is safe because grouping
+	// only ever puts monsters together: every member of a group got there by
+	// having the same monster key.
+	Side string
 
 	// Image is the portrait, and Band is what room.Health answered for the
 	// creature it belongs to -- empty for a viewer who was told nothing, which
@@ -260,35 +304,23 @@ func (d RoomInitiativeData) ActivateLabel(e RoomInitiativeEntry) string {
 	return "Give the turn to " + e.Name
 }
 
-// Face is whether this line has a portrait to draw at all. A named line does
-// not, and takes its own text in the disc's place at the size the portrait
-// would have been, so the strip's rhythm survives.
-func (e RoomInitiativeEntry) Face() bool { return e.Kind != EntryNamed }
-
 // Grouped is whether the dots under the portrait are drawn.
 func (e RoomInitiativeEntry) Grouped() bool { return e.Kind == EntryGroup }
 
-// ShowHP is who reads the hit-point text: the GM on every line, and a player on
-// the acting line alone.
+// ShowHP is who reads the hit-point text: the GM on every card, and a player on
+// the acting one alone.
 //
-// A PLAYER READS IT ON THE ACTING LINE BECAUSE THAT LINE IS BIG ENOUGH TO CARRY
-// IT and because what is happening to the creature acting right now is the
-// thing everybody at the table is already discussing. On the other eleven it
-// would be a column of numbers under a row of faces, which is the spreadsheet
-// this design exists to not be.
+// A PLAYER READS IT ON THE ACTING CARD BECAUSE THAT IS THE CREATURE THE WHOLE
+// TABLE IS ALREADY TALKING ABOUT. On the other eleven it would be a row of
+// numbers stamped across a row of portraits, which is the spreadsheet this
+// design exists to not be -- and a resting card is meant to be scanned past.
+//
+// WHAT A PLAYER LOSES BY IT IS NOTHING THEY CANNOT SEE. The blood is on every
+// card at every moment, for everybody, because the canvas draws it from the
+// same number; this is the digits, and the digits are the room's label setting
+// speaking.
 func (d RoomInitiativeData) ShowHP(e RoomInitiativeEntry) bool {
 	return e.HP != "" && (d.IsGM || e.Active)
-}
-
-// InitiativeRoundText is the counter's text: the number, or a dash for a
-// tracker that has been built and not started. The counter itself is in the
-// menu bar; see room-initiative-round.go.
-func InitiativeRoundText(round int) string {
-	if round < 1 {
-		return "--"
-	}
-
-	return strconv.Itoa(round)
 }
 
 // InitiativePips turns a group's members into dots, or into a count when there

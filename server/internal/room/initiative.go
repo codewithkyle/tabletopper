@@ -384,10 +384,15 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	var next int
 	switch {
 	case from < 0:
-		// The first press of the button. Round one begins and nobody's turn
-		// just ended, so only the start-of-turn conditions tick. It still
-		// skips: a fight opened on a corpse is a fight whose first turn is
-		// spent pressing the button again.
+		// Nobody was acting, so nobody's turn just ended and only the
+		// start-of-turn conditions tick. It still skips: a fight opened on a
+		// corpse is a fight whose first turn is spent pressing the button
+		// again.
+		//
+		// THE ROUND IS NOT SET HERE. A tracker with lines in it is already in
+		// round one -- Normalize holds that -- and this branch is reached
+		// again mid-fight whenever the acting line has gone, which is a
+		// removal or a sync and not the fight starting over.
 		next = 0
 		for i := 0; i < n; i++ {
 			if !s.skips(s.Initiative.Entries[i]) {
@@ -396,7 +401,6 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 				break
 			}
 		}
-		s.Initiative.Round = 1
 
 	default:
 		// Walk forward until something is worth acting on. steps is at most n,

@@ -12,6 +12,7 @@ import (
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -335,6 +336,52 @@ func TestAPlayerOutOfTurnMayNotAdvance(t *testing.T) {
 // Sync applies -- a monster joins the line whose members share its key -- and it
 // is exercised here rather than through the route because putting a pawn on the
 // table goes through the hub's resolver and its database.
+// WHAT COLOURS A CARD'S FRAME IS WHAT THE CREATURE IS. The row answers "how
+// much of this is trying to kill us" before anybody reads a word, and the words
+// are room.PawnKind's own so there is no table between the protocol and the
+// attribute the stylesheet keys on.
+func TestACardsSideIsItsCreaturesKind(t *testing.T) {
+	entry := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVV0")
+	pawn := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVV1")
+	second := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVV2")
+
+	for _, kind := range []room.PawnKind{room.PawnPlayer, room.PawnMonster, room.PawnNPC} {
+		view := &hub.InitiativeView{Pawns: map[ulid.ULID]room.Pawn{
+			pawn: {ID: pawn, Kind: kind, Name: "Somebody"},
+		}}
+
+		got := initiativeEntryData(room.RoleGM, ulid.ULID{}, view,
+			room.InitiativeEntry{ID: entry, PawnIDs: []ulid.ULID{pawn}, Name: "Somebody"})
+
+		if got.Side != string(kind) {
+			t.Errorf("a %s is drawn on the %q side", kind, got.Side)
+		}
+	}
+
+	// A GROUP READS IT OFF ITS FIRST MEMBER, which is safe because grouping
+	// only ever puts monsters together.
+	view := &hub.InitiativeView{Pawns: map[ulid.ULID]room.Pawn{
+		pawn:   {ID: pawn, Kind: room.PawnMonster, Name: "Goblin"},
+		second: {ID: second, Kind: room.PawnMonster, Name: "Goblin"},
+	}}
+
+	got := initiativeEntryData(room.RoleGM, ulid.ULID{}, view,
+		room.InitiativeEntry{ID: entry, PawnIDs: []ulid.ULID{pawn, second}, Name: "Goblin"})
+
+	if got.Kind != pages.EntryGroup || got.Side != pages.SideMonster {
+		t.Errorf("a group of goblins is a %q on the %q side", got.Kind, got.Side)
+	}
+
+	// AND A LINE WITH NO CREATURE IS ON NOBODY'S SIDE. A lair action takes the
+	// neutral frame.
+	lair := initiativeEntryData(room.RoleGM, ulid.ULID{}, &hub.InitiativeView{},
+		room.InitiativeEntry{ID: entry, Name: "Lair action"})
+
+	if lair.Side != "" {
+		t.Errorf("a lair action was put on the %q side", lair.Side)
+	}
+}
+
 func TestAddPutsAMonsterInItsGroup(t *testing.T) {
 	manual := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU1")
 	first := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU2")

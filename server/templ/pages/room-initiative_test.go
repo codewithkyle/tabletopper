@@ -22,7 +22,7 @@ func turnStrip(isGM bool) RoomInitiativeData {
 		IsGM:   isGM,
 		Entries: []RoomInitiativeEntry{
 			{
-				ID: testTurnEntryA, Name: "Ari", Kind: EntrySolo,
+				ID: testTurnEntryA, Name: "Ari", Kind: EntrySolo, Side: SidePlayer,
 				Image: "/assets/ari.webp", Band: "bloody", Blood: "4",
 				HP: "6 / 14", Active: true, Mine: !isGM, Solo: testTurnPawnA,
 				Conditions: []RoomPawnCondition{
@@ -30,7 +30,7 @@ func turnStrip(isGM bool) RoomInitiativeData {
 				},
 			},
 			{
-				ID: testTurnEntryB, Name: "Goblin", Kind: EntrySolo,
+				ID: testTurnEntryB, Name: "Goblin", Kind: EntrySolo, Side: SideMonster,
 				Image: "/assets/goblin.webp", Band: "dead", Blood: "7",
 				HP: "0 / 7", Hidden: isGM, Solo: "01BX5ZZKBKACTAV9WEVGEMMVW4",
 			},
@@ -205,6 +205,72 @@ func TestTheStripsControlsAreTheGMsAlone(t *testing.T) {
 	}
 }
 
+// THE FASTEST QUESTION A ROW OF CARDS ANSWERS IS "HOW MUCH OF THIS IS TRYING TO
+// KILL US", and it is answered by the colour of the frame without reading a
+// word. The three words are room.PawnKind's own, so the attribute the
+// stylesheet keys on is the string the protocol already carries.
+func TestEachCardIsColouredByWhatItIs(t *testing.T) {
+	markup := html(t, RoomInitiative(turnStrip(true)))
+
+	for _, want := range []string{`data-side="player"`, `data-side="monster"`} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the strip is missing %s:\n%s", want, markup)
+		}
+	}
+
+	// A LINE WITH NO CREATURE BEHIND IT CARRIES NONE OF THEM and takes the
+	// neutral frame. A lair action is not on anybody's side.
+	lair := turnStrip(true)
+	lair.Entries = []RoomInitiativeEntry{{ID: testTurnEntryA, Name: "Lair action", Kind: EntryNamed}}
+
+	if strings.Contains(html(t, RoomInitiative(lair)), "data-side") {
+		t.Error("a line with no creature was put on a side")
+	}
+}
+
+// ONLY THE ACTING CARD IS NAMED, which is the old tracker's rule: the plate
+// hangs under the lit card in the frame's own colour, and eleven dim portraits
+// need no labels to be scanned past.
+//
+// EVERY CARD STILL CARRIES ITS NAME THOUGH. It is the text behind the portrait,
+// which shows through for a creature with no picture -- and it is what the
+// right-click menu reads for its heading, so a card without one is a menu with
+// a blank title.
+func TestOnlyTheActingCardWearsItsNamePlate(t *testing.T) {
+	markup := html(t, RoomInitiative(turnStrip(true)))
+
+	if n := strings.Count(markup, "data-entry-plate"); n != 1 {
+		t.Errorf("%d cards wear a name plate, want one", n)
+	}
+	if n := strings.Count(markup, "data-entry-name"); n != 2 {
+		t.Errorf("%d cards carry their name, want two", n)
+	}
+}
+
+// AND EVERY CARD IS THE SAME SIZE. The acting card used to be wider than the
+// rest, which reflows the row on every turn and moves the drop target out from
+// under a pointer that was already reaching for it.
+func TestEveryCardIsTheSameSize(t *testing.T) {
+	markup := html(t, RoomInitiative(turnStrip(true)))
+
+	if n := strings.Count(markup, initiativeTile); n != 2 {
+		t.Errorf("%d cards are drawn at the one size, want two", n)
+	}
+}
+
+// THERE IS NO PANEL BEHIND THE ROW. A shared strip makes twelve creatures one
+// widget with faces printed on it; twelve separate cards over the map are twelve
+// creatures, which is the reading a fight wants.
+func TestTheCardsFloatWithNothingBehindThem(t *testing.T) {
+	markup := html(t, RoomInitiative(turnStrip(true)))
+
+	for _, panel := range []string{"bg-panel", "backdrop-blur", "border-base-300"} {
+		if strings.Contains(markup, panel) {
+			t.Errorf("the row is drawn on a panel (%s):\n%s", panel, markup)
+		}
+	}
+}
+
 // THE HIT-POINT TEXT IS THE GM'S ON EVERY LINE AND A PLAYER'S ON THE ACTING
 // LINE ALONE. On the other eleven it would be a column of numbers under a row
 // of faces, which is the spreadsheet this design exists to not be.
@@ -319,17 +385,6 @@ func classValues(markup string) []string {
 
 		out = append(out, rest[:shut])
 		rest = rest[shut:]
-	}
-}
-
-// THE ROUND COUNTER READS AS A DASH BEFORE THE FIGHT STARTS, because zero is a
-// round nobody is in.
-func TestTheRoundCounterReadsAsADashBeforeTheFirstTurn(t *testing.T) {
-	if got := InitiativeRoundText(0); got != "--" {
-		t.Errorf("round 0 prints %q", got)
-	}
-	if got := InitiativeRoundText(3); got != "3" {
-		t.Errorf("round 3 prints %q", got)
 	}
 }
 

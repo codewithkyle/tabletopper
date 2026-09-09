@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"tabletopper/internal/htmx"
@@ -106,9 +107,13 @@ func (a *App) RoomInitiativeRoundFragment(w http.ResponseWriter, r *http.Request
 	// an empty string prints nothing: a room that is not in a fight is every
 	// room most of the time, and a bar permanently reading "Round --" is a
 	// label for a thing that is not happening.
+	//
+	// THERE IS NO "BUILT BUT NOT STARTED" TO PRINT A DASH FOR. A tracker with
+	// lines in it is in round one from the moment it is built -- see
+	// State.Normalize -- so this is a number or it is nothing.
 	round := ""
 	if len(view.Initiative.Entries) > 0 {
-		round = pages.InitiativeRoundText(view.Initiative.Round)
+		round = strconv.Itoa(view.Initiative.Round)
 	}
 
 	render(w, r, pages.RoomInitiativeRound(pages.RoomInitiativeRoundData{
@@ -507,6 +512,12 @@ func initiativeEntryData(role room.Role, user ulid.ULID, view *hub.InitiativeVie
 	if len(members) > 1 {
 		out.Kind = pages.EntryGroup
 	}
+
+	// WHAT COLOURS THE FRAME, and it is read off the first member because a
+	// group is only ever monsters: every member of one got there by having the
+	// same monster key. The words are room.PawnKind's own, so there is no
+	// table between the protocol and the attribute the stylesheet keys on.
+	out.Side = string(members[0].Kind)
 
 	for _, p := range members {
 		if p.OwnerID != nil && *p.OwnerID == user {

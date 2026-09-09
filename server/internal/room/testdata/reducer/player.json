@@ -2813,7 +2813,7 @@
               }
             ],
             "active": null,
-            "round": 0
+            "round": 1
           }
         }
       ],
@@ -3022,7 +3022,7 @@
             }
           ],
           "active": null,
-          "round": 0
+          "round": 1
         },
         "fog": [],
         "strokes": []
@@ -3061,7 +3061,7 @@
               }
             ],
             "active": null,
-            "round": 0
+            "round": 1
           }
         }
       ],
@@ -3268,7 +3268,7 @@
             }
           ],
           "active": null,
-          "round": 0
+          "round": 1
         },
         "fog": [],
         "strokes": []

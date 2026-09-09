@@ -303,6 +303,78 @@
    That is the note above running in reverse, and it is the largest single move
    the stylesheet has made in either direction. */
 
+/* THE TURN-ORDER CARD, WHICH IS THE OLD APP'S CARD ON PURPOSE.
+
+   Each line of the tracker is a tall portrait in a coloured frame, floating over
+   the map on its own -- no panel behind the row, because a shared strip makes
+   twelve creatures one widget with faces printed on it and twelve separate cards
+   are twelve creatures. The frame's colour is what the creature IS: red for a
+   monster, green for an NPC, blue for the party, and a neutral dark for a line
+   with no creature behind it at all.
+
+   THE THREE COLOURS ARE FIXED RATHER THAN THEMED, and that is the decision worth
+   writing down. --color-error and friends flip lightness between caramellatte and
+   coffee -- a deep red in one and a pale salmon in the other -- so a themed card
+   would be a saturated frame on a light page and a washed pastel on a dark one,
+   and the row would stop reading as hostile-versus-party in exactly the theme
+   most tables run. These are information in the way the blood above is
+   information, so they are constants: the old app's own --danger-500,
+   --success-500 and --primary-500, unchanged, white text on all three.
+
+   ONLY THE ACTING CARD IS LIT. The rest are turned down with one filter, which
+   is the whole of the distinction -- no border, no badge, no size change. A row
+   where eleven cards are dim is a row where the twelfth needs nothing else to be
+   found, and every card staying the same size is what keeps the drop target from
+   moving out from under a pointer already reaching for it.
+
+   IT IS GENTLER THAN THE OLD APP'S saturate(0.25) brightness(0.6) because this
+   tracker has something that one did not: the wounds above. A resting card still
+   has to show that its goblin is bleeding, and a quarter of the saturation left
+   is not enough red to see. */
+
+:root {
+  --side-player: hsl(217 91% 60%);
+  --side-monster: hsl(350 89% 60%);
+  --side-npc: hsl(160 84% 39%);
+  --side-none: hsl(220 14% 24%);
+}
+
+[data-entry] {
+  --side: var(--side-none);
+}
+
+[data-entry][data-side="player"] {
+  --side: var(--side-player);
+}
+
+[data-entry][data-side="monster"] {
+  --side: var(--side-monster);
+}
+
+[data-entry][data-side="npc"] {
+  --side: var(--side-npc);
+}
+
+/* The frame and the name plate under it are one shape in two elements, which is
+   why they take the colour together: the plate is the bottom of the card and the
+   card is square along that edge while it is showing. */
+[data-entry-tile],
+[data-entry-plate] {
+  background-color: var(--side);
+  color: rgb(255 255 255);
+}
+
+/* White on a mid-tone green is the weakest of the three pairings, and the plate
+   is the only place any of them carries text. The shadow is what makes twelve
+   pixels of it legible without moving the colour off the one the old app used. */
+[data-entry-plate] {
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
+}
+
+[data-entry]:not([data-turn-active]) [data-entry-tile] {
+  filter: saturate(0.5) brightness(0.62);
+}
+
 /* THE WOUNDS ON A TURN-ORDER PORTRAIT, AND THEY ARE THE PAWN SHADER'S NUMBERS.
 
    The strip over the table draws one face per line of the initiative order, and
@@ -495,8 +567,8 @@
    server/js/room/render/sprites.ts renders that same character to a canvas at
    0.8 of a sprite, so the mark on the strip and the mark on the table are the
    same typeface doing the same thing and neither needs an asset. The element it
-   sits in carries the size, which is 70 percent of the portrait's diameter at
-   both of the two sizes a line is drawn at. */
+   sits in carries the size, which is 70 percent of the card's width -- one
+   number, because every card is drawn at one size. */
 [data-band="dead"] [data-skull]::after {
   content: "💀";
   line-height: 1;
