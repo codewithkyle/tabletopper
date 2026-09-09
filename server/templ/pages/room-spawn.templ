@@ -10,10 +10,13 @@ templ RoomSpawn(data RoomSpawnData) {
 	<room-spawn id="room-spawn" class={ roomSpawnBox }>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<h2 class="m-0 text-lg font-semibold">Spawn</h2>
-			<div class="join">
-				@roomSpawnKind(data, RoomSpawnMonsters, "Monsters")
-				@roomSpawnKind(data, RoomSpawnTokens, "Tokens")
-				@roomSpawnKind(data, RoomSpawnNPCs, "NPCs")
+			<div class="flex flex-wrap items-center gap-2">
+				<div class="join">
+					@roomSpawnKind(data, RoomSpawnMonsters, "Monsters")
+					@roomSpawnKind(data, RoomSpawnTokens, "Tokens")
+					@roomSpawnKind(data, RoomSpawnNPCs, "NPCs")
+				</div>
+				@roomSpawnAction(data)
 			</div>
 		</div>
 		<div class="flex items-center gap-3">
@@ -43,6 +46,34 @@ templ RoomSpawn(data RoomSpawnData) {
 			>Close</button>
 		</div>
 	</room-spawn>
+}
+
+templ roomSpawnAction(data RoomSpawnData) {
+	if data.IsMonsters() {
+		<button
+			type="button"
+			class="btn btn-sm btn-primary"
+			hx-get={ data.NewMonsterPath() }
+			hx-target="#room-spawn"
+			hx-swap="outerHTML"
+		>{ data.ActionLabel() }</button>
+	} else {
+		<label for={ data.UploadID() } class="btn btn-sm btn-primary relative">
+			{ data.ActionLabel() }
+			<input
+				class="absolute top-0 left-0 h-0 w-0 opacity-0"
+				id={ data.UploadID() }
+				type="file"
+				name="image"
+				accept={ imageAccept }
+				required
+				hx-post={ data.UploadPath() }
+				hx-target={ "#" + data.ResultsID() }
+				hx-swap="afterbegin"
+				hx-encoding="multipart/form-data"
+			/>
+		</label>
+	}
 }
 
 templ roomSpawnShown() {
@@ -79,11 +110,11 @@ templ RoomSpawnList(data RoomSpawnData) {
 			}
 		} else if data.IsNPCs() {
 			for _, a := range data.Avatars {
-				@roomSpawnAvatarCard(data, a)
+				@RoomSpawnAvatarCard(a)
 			}
 		} else {
 			for _, t := range data.Tokens {
-				@roomSpawnTokenCard(t)
+				@RoomSpawnTokenCard(t)
 			}
 		}
 		<div class="col-span-full hidden only:flex flex-col items-center justify-center gap-2 px-6 py-10 text-center">
@@ -119,7 +150,7 @@ templ roomSpawnMonsterCard(m MonsterSummary) {
 	</button>
 }
 
-templ roomSpawnTokenCard(t RoomSpawnToken) {
+templ RoomSpawnTokenCard(t RoomSpawnToken) {
 	<button
 		type="button"
 		class={ roomSpawnCard }
@@ -136,11 +167,11 @@ templ roomSpawnTokenCard(t RoomSpawnToken) {
 	</button>
 }
 
-templ roomSpawnAvatarCard(data RoomSpawnData, a RoomSpawnAvatar) {
+templ RoomSpawnAvatarCard(a RoomSpawnAvatar) {
 	<button
 		type="button"
 		class={ roomSpawnCard }
-		hx-get={ data.NPCPath(a.ID) }
+		hx-get={ a.NPCPath() }
 		hx-include="[name='q']"
 		hx-target="#room-spawn"
 		hx-swap="outerHTML"
@@ -209,6 +240,79 @@ templ RoomSpawnNPC(data RoomSpawnNPCData) {
 			>Place NPC</button>
 		</div>
 	</room-spawn>
+}
+
+templ RoomSpawnMonster(data RoomSpawnMonsterData) {
+	<room-spawn id="room-spawn" class={ roomSpawnBox }>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="m-0 text-lg font-semibold">New monster</h2>
+		</div>
+		<form
+			class="flex min-h-0 flex-1 flex-col gap-3"
+			hx-post={ data.CreatePath() }
+			hx-encoding="multipart/form-data"
+			hx-target="#room-spawn"
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + data.ErrorTarget() + ",swap:outerHTML" }
+		>
+			<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1">
+				@PanelFormErrors(data.Panel(), data.Errors)
+				<div class="flex items-end gap-3">
+					@roomSpawnPicture()
+					@roomSpawnText("spawn-monster-name", "Name", data.NameLimit(), named("name"))
+				</div>
+				<div class="grid grid-cols-2 gap-3">
+					@roomSpawnNumber("spawn-monster-hp", "Hit points", data.HPValue(), "1", data.HPMax(), named("hp"))
+					@roomSpawnNumber("spawn-monster-ac", "Armour class", data.ACValue(), "0", data.ACMax(), named("ac"))
+				</div>
+				<label class="flex min-w-0 flex-col gap-1" for="spawn-monster-size">
+					<span class="text-xs text-base-content/60">Size</span>
+					<select id="spawn-monster-size" name="size" class="select select-sm w-full" required>
+						for _, option := range sizeOptions {
+							<option value={ option.Value } selected?={ option.Value == data.SizeValue() }>{ option.Label }</option>
+						}
+					</select>
+				</label>
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-get={ data.BackPath() }
+					hx-target="#room-spawn"
+					hx-swap="outerHTML"
+				>Back</button>
+				<button
+					type="button"
+					class="btn ms-auto border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Create monster</button>
+			</div>
+		</form>
+	</room-spawn>
+}
+
+templ roomSpawnPicture() {
+	<monster-image-picker class="relative block size-20 shrink-0">
+		<label
+			class="grid size-20 cursor-pointer place-content-center overflow-hidden rounded-field border border-dashed border-base-content/40 bg-base-content/5"
+			for="spawn-monster-image"
+		>
+			@photoIcon()
+			<input
+				class="absolute top-0 left-0 h-0 w-0 opacity-0"
+				id="spawn-monster-image"
+				type="file"
+				name="image"
+				accept={ imageAccept }
+				required
+				aria-label="Picture"
+				hx-on:change="const picked = event.target.files[0]; const shown = event.target.closest('monster-image-picker').querySelector('img'); shown.hidden = !picked; if (picked) shown.src = URL.createObjectURL(picked)"
+			/>
+		</label>
+		<img class="pointer-events-none absolute inset-0 size-full rounded-field object-cover select-none" alt="" hidden/>
+	</monster-image-picker>
 }
 
 templ roomSpawnFace(src string, name string) {

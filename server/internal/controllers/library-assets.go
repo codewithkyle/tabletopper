@@ -252,19 +252,33 @@ func (a *App) libraryList(ctx context.Context, ownerID ulid.ULID, kind libraryKi
 // fragment rules name -- a POST replying with the thing it created. The
 // alternative is a POST that returns nothing followed by a GET to fetch it.
 func (a *App) uploadLibrary(w http.ResponseWriter, r *http.Request, kind libraryKind) {
+	card, ok := a.storeLibraryAsset(w, r, kind)
+	if !ok {
+		return
+	}
+
+	htmx.Toast(w, card.Name+" uploaded.")
+	render(w, r, pages.LibraryAssetCard(card))
+}
+
+// storeLibraryAsset is the work behind that, split out for storeMap's reason:
+// the spawn dialog uploads a token and a face from inside a room and answers
+// with ITS card rather than the manager's. What is written is identical -- the
+// picture is the account's, and it is on the manager's page afterwards.
+func (a *App) storeLibraryAsset(w http.ResponseWriter, r *http.Request, kind libraryKind) (pages.LibraryAsset, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 
 	src, filename, ok := readImageUpload(w, r, "image", imageLimits)
 	if !ok {
-		return
+		return pages.LibraryAsset{}, false
 	}
 
 	encoded, width, height, err := kind.encode(src)
 	if err != nil {
 		slog.Error("Failed to encode library asset as webp", "error", err, "kind", kind.Slug)
 		htmx.ServerError(w)
-		return
+		return pages.LibraryAsset{}, false
 	}
 
 	assetID := ulid.Make()
@@ -285,7 +299,7 @@ func (a *App) uploadLibrary(w http.ResponseWriter, r *http.Request, kind library
 	if err != nil {
 		slog.Error("Failed to insert library asset", "error", err, "kind", kind.Slug)
 		htmx.ServerError(w)
-		return
+		return pages.LibraryAsset{}, false
 	}
 
 	if err := a.Storage.UploadImage(ctx, key, encoded); err != nil {
@@ -294,18 +308,17 @@ func (a *App) uploadLibrary(w http.ResponseWriter, r *http.Request, kind library
 			return a.Storage.Delete(c, key)
 		})
 		htmx.ServerError(w)
-		return
+		return pages.LibraryAsset{}, false
 	}
 
-	htmx.Toast(w, name+" uploaded.")
-	render(w, r, pages.LibraryAssetCard(pages.LibraryAsset{
+	return pages.LibraryAsset{
 		ID:       assetID.String(),
 		Name:     name,
 		FileName: name,
 		Kind:     kind.Slug,
 		Width:    width,
 		Height:   height,
-	}))
+	}, true
 }
 
 // replaceLibrary swaps the picture behind an existing row.

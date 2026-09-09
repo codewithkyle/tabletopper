@@ -57,6 +57,22 @@ WHERE m.id = ? AND m.owner_id = ?;
 INSERT INTO monsters (id, owner_id, name)
 VALUES (?, ?, ?);
 
+-- name: CreateQuickMonster :exec
+-- SIX COLUMNS, AND THE THREE EXTRA ONES ARE WHY THIS IS NOT
+-- CreateMonsterFromName. That statement is the manual's own dialog, which asks
+-- for a name and sends the person to the editor to fill the rest in a panel at
+-- a time; there is a test holding it to three columns so that a fourth cannot
+-- drift in behind somebody's back.
+--
+-- THIS ONE IS THE SPAWN DIALOG AT A LIVE TABLE, and the difference is that
+-- nobody is going to the editor. A monster invented mid-session is invented
+-- because it is about to be fought, so the four things a fight needs -- a
+-- picture, a name, a size and a stat line -- are asked for at once and the row
+-- arrives placeable. Everything this still does not name carries a DEFAULT, and
+-- the editor is where the rest of the block gets written if it ever does.
+INSERT INTO monsters (id, owner_id, name, size, ac, hp)
+VALUES (?, ?, ?, ?, ?, ?);
+
 -- name: CopyMonster :execresult
 -- THE IMPORT, which is the one statement in this file that reads one account's
 -- monster and writes another's. It is what the button on a shared monster's

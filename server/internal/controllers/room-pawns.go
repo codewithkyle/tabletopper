@@ -12,6 +12,7 @@ import (
 
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
+	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -114,7 +115,7 @@ func (a *App) spawnData(w http.ResponseWriter, r *http.Request) (pages.RoomSpawn
 		data.Monsters = monsters
 
 	case pages.RoomSpawnNPCs:
-		avatars, err := a.spawnAvatars(ctx, sess.UserID, term)
+		avatars, err := a.spawnAvatars(ctx, sess.UserID, data.RoomID, term)
 		if err != nil {
 			slog.Error("Failed to list avatars for the spawn dialog", "error", err)
 			htmx.ServerError(w)
@@ -213,7 +214,7 @@ func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) (
 // them in two walls for that reason and the dialog follows it. A face carries
 // no pixel size because it does not land as a picture: it lands as a creature
 // of whatever size the form beside it chose.
-func (a *App) spawnAvatars(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.RoomSpawnAvatar, error) {
+func (a *App) spawnAvatars(ctx context.Context, ownerID ulid.ULID, roomID string, term string) ([]pages.RoomSpawnAvatar, error) {
 	rows, err := a.libraryAssets(ctx, ownerID, queries.AssetsTypeAvatar, term)
 	if err != nil {
 		return nil, err
@@ -222,9 +223,10 @@ func (a *App) spawnAvatars(ctx context.Context, ownerID ulid.ULID, term string) 
 	out := make([]pages.RoomSpawnAvatar, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, pages.RoomSpawnAvatar{
-			ID:    row.ID.String(),
-			Name:  row.Name,
-			Image: "/assets/images/" + row.ID.String(),
+			RoomID: roomID,
+			ID:     row.ID.String(),
+			Name:   row.Name,
+			Image:  "/assets/images/" + row.ID.String(),
 		})
 	}
 
@@ -288,14 +290,295 @@ func (a *App) RoomSpawnNPCFragment(w http.ResponseWriter, r *http.Request) {
 		RoomID: row.ID.String(),
 		Query:  term,
 		Avatar: pages.RoomSpawnAvatar{
-			ID:    asset.ID.String(),
-			Name:  asset.Name,
-			Image: "/assets/images/" + asset.ID.String(),
+			RoomID: row.ID.String(),
+			ID:     asset.ID.String(),
+			Name:   asset.Name,
+			Image:  "/assets/images/" + asset.ID.String(),
 		},
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.RoomSpawnNPC(data))
+}
+
+// THE DIALOG CAN ADD TO ITSELF, which is what the four routes below are.
+//
+// NOBODY PREPARES FOR EVERY SESSION. A party talks to a shopkeeper nobody wrote
+// down, walks into a room with a cart in it, or picks a fight with something
+// the GM invented while they were talking; the alternative to answering that
+// from inside the dialog is a second tab, the asset manager, and a table
+// waiting. So each wall can add one of its own kind.
+//
+// WHAT THEY WRITE IS THE ACCOUNT'S AND NOT THE ROOM'S. A token uploaded here is
+// on the Tokens page afterwards and a monster written here is in the manual,
+// the same as if either had been done a week earlier -- there is no such thing
+// as a picture that belongs to one table.
+//
+// SO WHY IS THE ROOM IN THE PATH? Because the CARD that comes back is this
+// dialog's. UploadRoomMap made the same trade a file over: identical work to
+// the manager's upload, a different representation afterwards, and the room in
+// the URL because the representation names it. An avatar card fetches a form
+// whose URL carries the room, and the monster form answers with the whole
+// dialog, which is built from it.
+
+// UploadSpawnToken is the Upload token button on the token wall.
+func (a *App) UploadSpawnToken(w http.ResponseWriter, r *http.Request) {
+	if _, ok := a.spawnRoom(w, r); !ok {
+		return
+	}
+
+	card, ok := a.storeLibraryAsset(w, r, tokenKind)
+	if !ok {
+		return
+	}
+
+	htmx.Toast(w, card.Name+" uploaded.")
+	render(w, r, pages.RoomSpawnTokenCard(pages.RoomSpawnToken{
+		ID:     card.ID,
+		Name:   card.Name,
+		Image:  "/assets/images/" + card.ID,
+		Width:  card.Width,
+		Height: card.Height,
+	}))
+}
+
+// UploadSpawnAvatar is the Upload avatar button on the NPC wall.
+func (a *App) UploadSpawnAvatar(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := a.spawnRoom(w, r)
+	if !ok {
+		return
+	}
+
+	card, ok := a.storeLibraryAsset(w, r, avatarKind)
+	if !ok {
+		return
+	}
+
+	htmx.Toast(w, card.Name+" uploaded.")
+	render(w, r, pages.RoomSpawnAvatarCard(pages.RoomSpawnAvatar{
+		RoomID: roomID,
+		ID:     card.ID,
+		Name:   card.Name,
+		Image:  "/assets/images/" + card.ID,
+	}))
+}
+
+// RoomSpawnMonsterFragment is the quick-create form, in the dialog's own slot.
+func (a *App) RoomSpawnMonsterFragment(w http.ResponseWriter, r *http.Request) {
+	roomID, ok := a.spawnRoom(w, r)
+	if !ok {
+		return
+	}
+
+	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len([]rune(term)) > pages.AssetNameLimit {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomSpawnMonster(pages.RoomSpawnMonsterData{RoomID: roomID, Query: term}))
+}
+
+// CreateSpawnMonster writes one monster into the manual and answers with the
+// monster wall it came from, which now has it on it.
+//
+// IT ANSWERS WITH THE DIALOG AND NOT WITH ONE CARD, which is the one place
+// these four part company. The two uploads leave their wall on screen and
+// prepend to it; this form REPLACED the wall, so a card would have nowhere to
+// go -- and a GM who has just invented a monster is about to place it, which
+// means what they need back is the grid it is now in.
+//
+// EVERY REFUSAL IS A 422 INTO THE FORM'S OWN ERROR BLOCK, which is the one code
+// the dialog carries an hx-status route for. The form is left alone, so what
+// was typed is still in it when the message appears above.
+func (a *App) CreateSpawnMonster(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	roomID, ok := a.spawnRoom(w, r)
+	if !ok {
+		return
+	}
+
+	data := pages.RoomSpawnMonsterData{RoomID: roomID}
+
+	if problem := parseUploadForm(w, r, imageLimits); problem != nil && problem != errNotMultipart {
+		rejectSpawnMonster(w, r, data, problem.Message)
+
+		return
+	}
+
+	name := strings.TrimSpace(r.PostFormValue("name"))
+	switch {
+	case name == "":
+		rejectSpawnMonster(w, r, data, "Name is required.")
+
+		return
+	// Characters, not bytes: the column is varchar(128) and MySQL counts
+	// characters there.
+	case len([]rune(name)) > pages.MonsterNameLimit:
+		rejectSpawnMonster(w, r, data, "Name must be 128 characters or fewer.")
+
+		return
+	}
+
+	hp, ok := spawnMonsterCount(w, r, data, "hp", "Hit points", 1, pages.MonsterHPLimit)
+	if !ok {
+		return
+	}
+
+	// The pawn's limit and not the column's -- see RoomSpawnMonsterData.ACMax.
+	ac, ok := spawnMonsterCount(w, r, data, "ac", "Armour class", 0, room.ACLimit)
+	if !ok {
+		return
+	}
+
+	// THE SIZE IS NORMALISED AND NEVER REFUSED, which is NormalizeSize's whole
+	// job: the column is free text as far as MySQL is concerned, and a word
+	// that is not one of the six is a select somebody edited rather than a
+	// message worth writing.
+	size := pages.NormalizeSize(r.PostFormValue("size"))
+
+	// THE PICTURE IS DECODED BEFORE THE MONSTER EXISTS, which is
+	// newMonsterPicture's rule and holds here for its reason: a file that will
+	// not open is the one failure a person can fix, and fixing it means the
+	// form is still open with everything else in it, so nothing may have been
+	// written by the time they are told.
+	picture, filename, ok := a.spawnMonsterPicture(w, r, data)
+	if !ok {
+		return
+	}
+
+	id := ulid.Make()
+	err := a.Queries.CreateQuickMonster(ctx, queries.CreateQuickMonsterParams{
+		ID:      id,
+		OwnerID: sess.UserID,
+		Name:    name,
+		Size:    size,
+		AC:      uint8(ac),
+		HP:      uint16(hp),
+	})
+	if err != nil {
+		slog.Error("Failed to create a monster from the spawn dialog", "error", err)
+		htmx.ServerError(w)
+
+		return
+	}
+
+	// A PICTURE THAT WILL NOT STORE DOES NOT UNDO THE MONSTER. The row is
+	// written and the GM is about to place it; what they lose is the face on
+	// the card, which the editor can put back, and what they would lose the
+	// other way is the monster they just described.
+	created := name + " is in your manual."
+	if _, err := a.attachMonsterImage(ctx, sess.UserID, id, picture, filename); err != nil {
+		slog.Error("Failed to attach a new monster's picture", "error", err, "monsterID", id.String())
+		created = name + " is in your manual, but the picture could not be saved. Add it again from the editor."
+	}
+
+	monsters, err := a.spawnMonsters(ctx, sess.UserID, "")
+	if err != nil {
+		slog.Error("Failed to list monsters after a quick create", "error", err)
+		htmx.ServerError(w)
+
+		return
+	}
+
+	htmx.Toast(w, created)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomSpawn(pages.RoomSpawnData{
+		RoomID:   roomID,
+		Kind:     pages.RoomSpawnMonsters,
+		Monsters: monsters,
+	}))
+}
+
+// spawnMonsterPicture is the form's file, which is required here and optional
+// in the manual's own dialog -- see RoomSpawnMonsterData for why.
+func (a *App) spawnMonsterPicture(w http.ResponseWriter, r *http.Request, data pages.RoomSpawnMonsterData) ([]byte, string, bool) {
+	file, filename, problem := openOptionalImageUpload(r, "image", imageLimits)
+	if problem != nil {
+		rejectSpawnMonster(w, r, data, problem.Message)
+
+		return nil, "", false
+	}
+	if file == nil {
+		rejectSpawnMonster(w, r, data, "A picture is required.")
+
+		return nil, "", false
+	}
+	defer file.Close()
+
+	src, err := decodeUpload(r.Context(), file)
+	if errors.Is(err, context.DeadlineExceeded) {
+		slog.Warn("Gave up waiting for a decode slot", "field", "image")
+		rejectSpawnMonster(w, r, data, "The server is busy. Try again in a moment.")
+
+		return nil, "", false
+	}
+	if err != nil {
+		slog.Warn("Failed to decode a new monster's picture", "error", err)
+		rejectSpawnMonster(w, r, data, errUnsupportedImage.Message)
+
+		return nil, "", false
+	}
+
+	encoded, err := images.EncodeWebP(images.Square(src, monsterImageSize))
+	if err != nil {
+		slog.Error("Failed to encode a new monster's picture as webp", "error", err)
+		htmx.ServerError(w)
+
+		return nil, "", false
+	}
+
+	return encoded, filename, true
+}
+
+// spawnMonsterCount is one of the form's two numbers, bounded by the manual's
+// own limit. An empty box is the low end rather than a message: the browser
+// refuses it first, and a request that got past that meant the minimum.
+func spawnMonsterCount(w http.ResponseWriter, r *http.Request, data pages.RoomSpawnMonsterData, field, caption string, low, high int) (int, bool) {
+	raw := strings.TrimSpace(r.PostFormValue(field))
+	if raw == "" {
+		return low, true
+	}
+
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < low || value > high {
+		rejectSpawnMonster(w, r, data, caption+" must be a whole number between "+strconv.Itoa(low)+" and "+strconv.Itoa(high)+".")
+
+		return 0, false
+	}
+
+	return value, true
+}
+
+// rejectSpawnMonster answers with the form's error block under a 422.
+func rejectSpawnMonster(w http.ResponseWriter, r *http.Request, data pages.RoomSpawnMonsterData, message string) {
+	data.Errors = []string{message}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	render(w, r, pages.PanelFormErrors(data.Panel(), data.Errors))
+}
+
+// spawnRoom is the check every one of the four starts with: the asker is this
+// room's GM, and the room id as the string the cards are built from.
+func (a *App) spawnRoom(w http.ResponseWriter, r *http.Request) (string, bool) {
+	roomID := r.PathValue("id")
+	if roomID == "" {
+		roomID = r.URL.Query().Get("room")
+	}
+
+	row, _, ok := a.gmTable(r.Context(), r, roomID)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return "", false
+	}
+
+	return row.ID.String(), true
 }
 
 // SpawnParty places a pawn for everybody connected who joined with a character.

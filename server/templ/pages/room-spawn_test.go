@@ -125,7 +125,7 @@ func TestAnAvatarCardOpensTheFormRatherThanArming(t *testing.T) {
 	body := renderToString(t, RoomSpawnList(RoomSpawnData{
 		RoomID:  "01ROOM",
 		Kind:    RoomSpawnNPCs,
-		Avatars: []RoomSpawnAvatar{{ID: "01AVATAR", Name: "Innkeeper", Image: "/assets/images/01AVATAR"}},
+		Avatars: []RoomSpawnAvatar{{RoomID: "01ROOM", ID: "01AVATAR", Name: "Innkeeper", Image: "/assets/images/01AVATAR"}},
 	}))
 
 	if strings.Contains(body, "data-spawn-pick") {
@@ -133,5 +133,74 @@ func TestAnAvatarCardOpensTheFormRatherThanArming(t *testing.T) {
 	}
 	if !strings.Contains(body, "/fragment/room/spawn-npc?room=01ROOM&amp;asset=01AVATAR") {
 		t.Errorf("an avatar card does not open the form:\n%s", body)
+	}
+}
+
+// EACH WALL CAN ADD ONE OF ITS OWN KIND, because nobody prepares for every
+// session: the two picture walls upload, and the monster wall writes a monster.
+// What they must not do is offer the wrong one -- an Upload token button on the
+// monster wall would put a picture in the library and no monster in the manual.
+func TestEachWallAddsItsOwnKind(t *testing.T) {
+	cases := map[string]struct {
+		kind string
+		want string
+		post string
+	}{
+		"monsters": {kind: RoomSpawnMonsters, want: "Create monster", post: "/fragment/room/spawn-monster?room=01ROOM"},
+		"tokens":   {kind: RoomSpawnTokens, want: "Upload token", post: "/rooms/01ROOM/spawn/tokens"},
+		"npcs":     {kind: RoomSpawnNPCs, want: "Upload avatar", post: "/rooms/01ROOM/spawn/avatars"},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			body := renderToString(t, RoomSpawn(RoomSpawnData{RoomID: "01ROOM", Kind: tc.kind}))
+
+			if !strings.Contains(body, tc.want) {
+				t.Errorf("the %s wall does not offer %q:\n%s", name, tc.want, body)
+			}
+			if !strings.Contains(body, tc.post) {
+				t.Errorf("the %s wall does not reach %q:\n%s", name, tc.post, body)
+			}
+			for other, unwanted := range map[string]string{"monsters": "Create monster", "tokens": "Upload token", "npcs": "Upload avatar"} {
+				if other != name && strings.Contains(body, unwanted) {
+					t.Errorf("the %s wall also offers %q", name, unwanted)
+				}
+			}
+		})
+	}
+}
+
+// AN UPLOADED CARD IS THE SAME CARD THE WALL RENDERS, which is what the two
+// exported components are for: the route answers with one of them and htmx
+// prepends it, so a picture uploaded mid-session is picked exactly like one
+// gathered a week earlier.
+func TestAnUploadedCardIsThePickCard(t *testing.T) {
+	token := renderToString(t, RoomSpawnTokenCard(RoomSpawnToken{ID: "01TOKEN", Name: "Cart", Image: "/x", Width: 300, Height: 100}))
+	if !strings.Contains(token, "data-spawn-pick") || !strings.Contains(token, `data-spawn-source="token"`) {
+		t.Errorf("an uploaded token does not arm the canvas:\n%s", token)
+	}
+
+	face := renderToString(t, RoomSpawnAvatarCard(RoomSpawnAvatar{RoomID: "01ROOM", ID: "01AVATAR", Name: "Aldric"}))
+	if !strings.Contains(face, "/fragment/room/spawn-npc?room=01ROOM&amp;asset=01AVATAR") {
+		t.Errorf("an uploaded face does not open the form:\n%s", face)
+	}
+}
+
+// THE QUICK-CREATE FORM WRITES A MONSTER AND NOT A PAWN, so its controls carry
+// the names the handler reads off a multipart POST rather than the data hooks
+// the NPC form is read through by a script.
+func TestTheQuickMonsterFormPostsToTheManual(t *testing.T) {
+	body := renderToString(t, RoomSpawnMonster(RoomSpawnMonsterData{RoomID: "01ROOM"}))
+
+	for _, want := range []string{`name="image"`, `name="name"`, `name="hp"`, `name="ac"`, `name="size"`, "/rooms/01ROOM/spawn/monsters"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the form has no %s:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "data-spawn-pick") {
+		t.Error("the quick-create form arms the canvas; it writes a row and comes back to the wall")
+	}
+	if strings.Contains(body, "data-spawn-shown") {
+		t.Error("the quick-create form asks whether players see it, and it places nothing")
 	}
 }

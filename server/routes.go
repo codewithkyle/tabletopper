@@ -491,6 +491,14 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// that swapped it would regularly replace the field somebody had moved on
 	// to; the socket is what brings every open copy back into step, including
 	// the one the change came from.
+	// THE SPAWN DIALOG ADDING TO ITSELF. Each of these writes something the
+	// ACCOUNT owns -- a token, a face, a monster -- and answers with the card
+	// or the dialog this room's GM is looking at, which is why the room is in
+	// the path. It is UploadRoomMap's trade: identical work to the asset
+	// manager's own route, a different representation on the way back.
+	mux.HandleFunc("POST /rooms/{id}/spawn/tokens", auth.RequireSession(app.UploadSpawnToken))
+	mux.HandleFunc("POST /rooms/{id}/spawn/avatars", auth.RequireSession(app.UploadSpawnAvatar))
+	mux.HandleFunc("POST /rooms/{id}/spawn/monsters", auth.RequireSession(app.CreateSpawnMonster))
 	mux.HandleFunc("POST /rooms/{id}/pawns/party", auth.RequireSession(app.SpawnParty))
 	mux.HandleFunc("POST /rooms/{id}/pawns/layer", auth.RequireSession(app.MovePawnsToLayer))
 	mux.HandleFunc("POST /rooms/{id}/pawns/shown", auth.RequireSession(app.SetPawnsShown))
@@ -753,6 +761,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/spawn", auth.Fragment(app.RoomSpawnFragment))
 	mux.HandleFunc("GET /fragment/room/spawn-list", auth.Fragment(app.RoomSpawnListFragment))
 	mux.HandleFunc("GET /fragment/room/spawn-npc", auth.Fragment(app.RoomSpawnNPCFragment))
+	mux.HandleFunc("GET /fragment/room/spawn-monster", auth.Fragment(app.RoomSpawnMonsterFragment))
 	mux.HandleFunc("GET /fragment/room/pawn", auth.Fragment(app.RoomPawnFragment))
 	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))

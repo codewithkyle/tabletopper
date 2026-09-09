@@ -128,10 +128,25 @@ type RoomSpawnToken struct {
 // rather than an omission. An avatar is stored square and lands as a CREATURE,
 // which is measured in cells off the size select on the form -- so the picture's
 // own dimensions say nothing about how much table it covers.
+//
+// IT DOES CARRY THE ROOM, which a token card does not, and the reason is what
+// each card DOES. A token card arms the canvas out of its own data attributes
+// and needs nothing else; an avatar card fetches a form, and the URL of that
+// form names the room. Holding it here is what lets the upload route answer
+// with one card and no page data around it -- see RoomMapChoice, which carries
+// its room and its layer for the same reason.
 type RoomSpawnAvatar struct {
-	ID    string
-	Name  string
-	Image string
+	RoomID string
+	ID     string
+	Name   string
+	Image  string
+}
+
+// NPCPath is the form behind this face, which is what its card fetches. The
+// card includes the search box as well, so the Back button on the form can
+// carry the term back to the wall it came from.
+func (a RoomSpawnAvatar) NPCPath() string {
+	return "/fragment/room/spawn-npc?room=" + a.RoomID + "&asset=" + a.ID
 }
 
 // WidthText and HeightText are the two data attributes the card prints. An
@@ -175,15 +190,55 @@ func (d RoomSpawnData) ListPath() string {
 	return "/fragment/room/spawn-list?room=" + d.RoomID + "&kind=" + d.Kind
 }
 
-// NPCPath is the form behind one face, which is what an avatar card fetches.
-// The card includes the search box as well, so the Back button on the form can
-// carry the term back to the wall it came from.
-func (d RoomSpawnData) NPCPath(assetID string) string {
-	return "/fragment/room/spawn-npc?room=" + d.RoomID + "&asset=" + assetID
-}
-
 // ResultsID is the element the search replaces.
 func (d RoomSpawnData) ResultsID() string { return roomSpawnResultsID }
+
+// NOBODY PREPARES FOR EVERY SESSION, which is what the control beside the kind
+// switch is for. A party talks to a shopkeeper nobody wrote down, walks into a
+// room with a cart in it, or picks a fight with something the GM invented on
+// the spot -- and the alternative to answering that here is leaving the table,
+// opening the asset manager in another tab and coming back. So each wall can
+// add to itself: two of them upload a picture, and the third writes a monster.
+//
+// WHAT IT ADDS IS THE ACCOUNT'S AND NOT THE ROOM'S. A token uploaded here is on
+// the Tokens page afterwards and a monster written here is in the manual, the
+// same as if it had been done a week earlier. The room is in these URLs because
+// the CARD that comes back is this dialog's -- see UploadRoomMap, which is the
+// same trade a file over.
+
+// ActionLabel is what the control says, which is the difference between adding
+// a picture and writing a creature.
+func (d RoomSpawnData) ActionLabel() string {
+	switch d.Kind {
+	case RoomSpawnMonsters:
+		return "Create monster"
+	case RoomSpawnNPCs:
+		return "Upload avatar"
+	default:
+		return "Upload token"
+	}
+}
+
+// UploadPath is where the two picture walls post their file. It answers with
+// the one card it just made, prepended to the grid.
+func (d RoomSpawnData) UploadPath() string {
+	if d.IsNPCs() {
+		return "/rooms/" + d.RoomID + "/spawn/avatars"
+	}
+
+	return "/rooms/" + d.RoomID + "/spawn/tokens"
+}
+
+// NewMonsterPath is the quick-create form, which is a second step for the same
+// reason the NPC form is one: a monster invented at the table needs a picture,
+// a name and a stat line, and none of that fits beside a search box.
+func (d RoomSpawnData) NewMonsterPath() string {
+	return "/fragment/room/spawn-monster?room=" + d.RoomID
+}
+
+// UploadID is the file input the label opens. The kind is in it because both
+// walls render the same control and two elements cannot share an id.
+func (d RoomSpawnData) UploadID() string { return "spawn-upload-" + d.Kind }
 
 // SearchLabel is the placeholder and the accessible name, which differ by kind
 // because "Search" over a grid of pictures says nothing about what is in it.
@@ -277,12 +332,7 @@ type RoomSpawnNPCData struct {
 // BackPath is the avatar wall this face came off, with the term it was filtered
 // by.
 func (d RoomSpawnNPCData) BackPath() string {
-	path := "/fragment/room/spawn?room=" + d.RoomID + "&kind=" + RoomSpawnNPCs
-	if d.Query == "" {
-		return path
-	}
-
-	return path + "&q=" + url.QueryEscape(d.Query)
+	return backToWall(d.RoomID, RoomSpawnNPCs, d.Query)
 }
 
 // The form's opening values, as the strings an input takes.
@@ -305,12 +355,111 @@ func (d RoomSpawnNPCData) HPMax() string { return strconv.Itoa(room.HPLimit) }
 
 func (d RoomSpawnNPCData) ACMax() string { return strconv.Itoa(room.ACLimit) }
 
-// npcField is the hook the room bundle reads one of the form's four controls
-// by. They are data attributes rather than names because nothing here is a
-// form: the values are read out of the DOM when the Place button arms the
-// canvas, and there is no submission for a name to belong to.
+// RoomSpawnMonsterPanel names the quick-create form's error block, which is the
+// one thing on it the server writes into after it is on screen.
+const RoomSpawnMonsterPanel = "spawn-monster"
+
+// RoomSpawnMonsterData is the quick-create form: a monster written at the table
+// and put into the manual, in one step, because the party is waiting.
+//
+// IT IS A REAL MONSTER AND NOT A ONE-OFF. What this writes is a monsters row
+// like any other -- it is on the manual page afterwards, it opens in the
+// editor, it can be shared and imported -- and the six fields here are the ones
+// a fight needs. The rest of the block carries its column default and is filled
+// in later or never.
+//
+// THE PICTURE IS REQUIRED HERE AND OPTIONAL IN THE MANUAL'S OWN DIALOG, which
+// is the one place the two creates disagree. That dialog ends on the editor,
+// where a monster with no picture is a form with an empty circle on it; this
+// one ends on a wall of pictures, where it is a card with a letter on it that
+// the GM then has to find again among thirty others.
+//
+// THERE IS NO MAXIMUM HIT POINTS FIELD, and the reason is the schema rather
+// than the form: monsters.hp is one column, because a monster in a manual is a
+// template and its hit points ARE its maximum. The pawn is where the two part
+// company -- it spawns at full and takes damage from there, which is
+// resolveMonster writing the same number into both.
+type RoomSpawnMonsterData struct {
+	RoomID string
+
+	// Query is the term the monster wall was filtered by, carried for the
+	// reason RoomSpawnNPCData.Query is: Back returns to the wall that was being
+	// looked at.
+	Query string
+
+	// Errors is what a refused submission comes back with, rendered above the
+	// form. It is empty every other time.
+	Errors []string
+}
+
+// CreatePath is the manual, from this dialog. It is a POST to a room because
+// what comes back is this dialog rather than a monster -- see UploadPath.
+func (d RoomSpawnMonsterData) CreatePath() string {
+	return "/rooms/" + d.RoomID + "/spawn/monsters"
+}
+
+// BackPath is the monster wall this form was opened from, with the term it was
+// filtered by.
+func (d RoomSpawnMonsterData) BackPath() string {
+	return backToWall(d.RoomID, RoomSpawnMonsters, d.Query)
+}
+
+func (d RoomSpawnMonsterData) Panel() string { return RoomSpawnMonsterPanel }
+
+func (d RoomSpawnMonsterData) ErrorTarget() string { return "#" + panelErrorsID(RoomSpawnMonsterPanel) }
+
+// The form's opening values and its limits, as the strings an input takes. The
+// limits are the manual's own -- see MonsterHPLimit and MonsterACLimit -- so the
+// browser refuses what the columns would.
+func (d RoomSpawnMonsterData) HPValue() string { return strconv.Itoa(NPCDefaultHP) }
+
+func (d RoomSpawnMonsterData) ACValue() string { return strconv.Itoa(NPCDefaultAC) }
+
+func (d RoomSpawnMonsterData) SizeValue() string { return DefaultSize }
+
+func (d RoomSpawnMonsterData) NameLimit() string { return strconv.Itoa(MonsterNameLimit) }
+
+func (d RoomSpawnMonsterData) HPMax() string { return strconv.Itoa(MonsterHPLimit) }
+
+// THE ARMOUR CLASS IS CAPPED LOWER HERE THAN IN THE EDITOR, and it is the only
+// number on this form that is. A monsters row takes up to MonsterACLimit, which
+// is the column's own 255; a PAWN takes up to room.ACLimit, which is 99, and
+// checkPawn refuses anything past it. A monster written anywhere else can sit
+// in the manual at 200 and simply never be placed -- but this form exists to
+// put something on the table in the next few seconds, so it will not write a
+// number the table would then refuse.
+func (d RoomSpawnMonsterData) ACMax() string { return strconv.Itoa(room.ACLimit) }
+
+// backToWall is the dialog one of the two forms was opened from, with the
+// search that produced it. The term is baked in rather than included live,
+// because neither form has a search box of its own for htmx to read.
+func backToWall(roomID string, kind string, query string) string {
+	path := "/fragment/room/spawn?room=" + roomID + "&kind=" + kind
+	if query == "" {
+		return path
+	}
+
+	return path + "&q=" + url.QueryEscape(query)
+}
+
+// npcField and named are the two ways the shared field components below are
+// told what a control is, and the difference between them is the difference
+// between the two forms.
+//
+// THE NPC FORM IS NOT A FORM. Nothing on it is submitted: the values are read
+// out of the DOM at the moment the Place button arms the canvas, and the spawn
+// itself goes over the socket. So its controls carry data attributes, which is
+// what a script looks things up by everywhere else in this app.
+//
+// THE MONSTER FORM IS ONE. It posts multipart to the manual and comes back with
+// the dialog, so its controls carry the names the handler reads off the
+// request, and there is no script involved at all.
 func npcField(name string) templ.Attributes {
 	return templ.Attributes{"data-npc-" + name: true}
+}
+
+func named(name string) templ.Attributes {
+	return templ.Attributes{"name": name}
 }
 
 // monsterImageURL is a monster's picture, or nothing when it has none. The

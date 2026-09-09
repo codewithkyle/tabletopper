@@ -161,6 +161,73 @@ func TestTheSpawnFragmentRefusesAKindItDoesNotKnow(t *testing.T) {
 	}
 }
 
+// THE DIALOG'S THREE ADD ROUTES ARE THE GM'S ALONE, and it matters more here
+// than on the walls they sit above: these WRITE. A player who reached one would
+// be uploading into the GM's library and inventing monsters in their manual
+// from a room they were only sitting in.
+func TestTheSpawnAddRoutesAreTheGMsAlone(t *testing.T) {
+	for name, handler := range map[string]func(*App) http.HandlerFunc{
+		"tokens":   func(a *App) http.HandlerFunc { return a.UploadSpawnToken },
+		"avatars":  func(a *App) http.HandlerFunc { return a.UploadSpawnAvatar },
+		"monsters": func(a *App) http.HandlerFunc { return a.CreateSpawnMonster },
+	} {
+		t.Run(name, func(t *testing.T) {
+			app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+
+			rec := tableRequest(t, handler(app), http.MethodPost,
+				"/rooms/"+testRoomID.String()+"/spawn/"+name,
+				map[string]string{"id": testRoomID.String()}, url.Values{"name": {"Goblin"}},
+				memberSession(testRoomID))
+
+			if rec.Code != http.StatusNotFound {
+				t.Errorf("a player got %d, want 404", rec.Code)
+			}
+		})
+	}
+}
+
+// THE QUICK-CREATE FORM IS CHECKED BEFORE THE MONSTER EXISTS, which is the
+// manual's own dialog's rule: a refusal has to leave the form open with what
+// was typed still in it, so nothing may have been written by the time it is
+// sent. A picture is required here, unlike in that dialog -- this form ends on
+// a wall of pictures rather than in the editor.
+func TestTheQuickMonsterFormRefusesAndWritesNothing(t *testing.T) {
+	cases := map[string]struct {
+		form url.Values
+		want string
+	}{
+		"no name":    {form: url.Values{"hp": {"7"}}, want: "Name is required."},
+		"no picture": {form: url.Values{"name": {"Goblin"}}, want: "A picture is required."},
+		"silly hp":   {form: url.Values{"name": {"Goblin"}, "hp": {"70000"}}, want: "Hit points"},
+		"silly ac":   {form: url.Values{"name": {"Goblin"}, "ac": {"200"}}, want: "Armour class"},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+			app := tableApp(t, db)
+
+			rec := tableRequest(t, app.CreateSpawnMonster, http.MethodPost,
+				"/rooms/"+testRoomID.String()+"/spawn/monsters",
+				map[string]string{"id": testRoomID.String()}, tc.form, gmSession())
+
+			if rec.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status = %d, want 422: %s", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), tc.want) {
+				t.Errorf("the refusal does not mention %q:\n%s", tc.want, rec.Body.String())
+			}
+			// The room lookup behind the GM check is the only statement that
+			// may have run; nothing may have been WRITTEN.
+			for _, query := range db.queries() {
+				if strings.Contains(query, "INSERT") || strings.Contains(query, "UPDATE") {
+					t.Errorf("a refused form still wrote: %s", query)
+				}
+			}
+		})
+	}
+}
+
 // THE FACE IS LOOKED UP BY ITS TYPE AS WELL AS ITS OWNER, so an id that names
 // something else in the same library -- a token, a map -- is not found rather
 // than placed. A malformed one never reaches a statement at all.
