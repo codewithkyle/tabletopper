@@ -3499,6 +3499,9 @@
   .h-\[62vh\] {
     height: 62vh;
   }
+  .h-auto {
+    height: auto;
+  }
   .h-dvh {
     height: 100dvh;
   }
@@ -4677,6 +4680,9 @@
   .opacity-0 {
     opacity: 0%;
   }
+  .opacity-80 {
+    opacity: 80%;
+  }
   .shadow-panel {
     --tw-shadow: var(--panel-shadow-edge), var(--panel-shadow-lift);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -5360,6 +5366,14 @@
 }
 .initiative-chosen {
   cursor: grabbing;
+}
+[data-turn-next]:has([data-turn-tone="warning"]) {
+  --btn-color: var(--color-warning);
+  --btn-fg: var(--color-warning-content);
+}
+[data-turn-next]:has([data-turn-tone="danger"]) {
+  --btn-color: var(--color-error);
+  --btn-fg: var(--color-error-content);
 }
 @layer base {
   :where(:root),:root:has(input.theme-controller[value=caramellatte]:checked),[data-theme=caramellatte] {

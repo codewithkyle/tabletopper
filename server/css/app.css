@@ -609,3 +609,39 @@
 .initiative-chosen {
   cursor: grabbing;
 }
+
+/* THE TURN CLOCK'S TWO STEPS, AND THEY REPAINT THE WHOLE BUTTON.
+
+   js/room/initiative.ts writes plain, warning or danger onto [data-turn-timer]
+   once a second -- turnTone(), which steps at 60 seconds and again at 120 --
+   and these are the rules that read it.
+
+   COLOURING THE DIGITS ALONE DOES NOT WORK, which is why the button takes it
+   instead: they sit inside End turn on a filled primary, and coffee's primary
+   is already amber, so warning text on it is warning text on itself. The two
+   variables below are the ones btn-warning and btn-error are themselves defined
+   as -- background, border, shadow and outline all derive from --btn-color and
+   the label from --btn-fg -- so two declarations move all of it and the
+   foreground stays the contrast partner of the background rather than a colour
+   picked to sit on it.
+
+   IT IS :has() BECAUSE THE ATTRIBUTE IS ON THE DIGITS. write() sets the tone on
+   whatever it found by [data-turn-timer], and that is the span; the button asks
+   about its own child rather than the script learning where the button is.
+
+   AND IT FADES RATHER THAN SNAPS, at no cost: .btn already transitions colour,
+   background, border and shadow over 200ms, so a step arrives as the button
+   warming rather than as a flash over the table.
+
+   TWO STEPS AND NOT THREE, which is turnTone()'s own decision: a green under
+   thirty seconds answers a question nobody is asking, and what a table wants to
+   see is that a turn has run long. */
+[data-turn-next]:has([data-turn-tone="warning"]) {
+  --btn-color: var(--color-warning);
+  --btn-fg: var(--color-warning-content);
+}
+
+[data-turn-next]:has([data-turn-tone="danger"]) {
+  --btn-color: var(--color-error);
+  --btn-fg: var(--color-error-content);
+}

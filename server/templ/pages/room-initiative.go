@@ -265,6 +265,13 @@ func (d RoomInitiativeData) SyncPath() string {
 // operated rather than read. What is left is the element the N key presses --
 // see initiative.ts, which learns no route -- and the Initiative menu, which
 // posts the same URL and prints the key beside its label.
+//
+// THE CLOCK IS INSIDE THAT BUTTON, on the player's copy. The two were stacked a
+// few pixels apart -- a line of digits above a control small enough to miss on a
+// phone -- and the one thing a player looks at during their turn and the one
+// thing they press are better as a single target the width of the card: the
+// label over the running time. initiative.ts finds the digits by
+// [data-turn-timer] wherever they sit, so nothing but the markup moved.
 func (d RoomInitiativeData) NextPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/next"
 }

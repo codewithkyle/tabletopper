@@ -156,14 +156,16 @@ templ initiativePips(e RoomInitiativeEntry) {
 
 templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
 	if !data.IsGM && e.Mine {
-		<span data-turn-timer data-turn-tone="plain" class="pt-1 font-mono text-xs leading-none tabular-nums">0:00</span>
 		<button
 			type="button"
 			data-turn-next
-			class="btn btn-xs btn-primary mt-1 w-18"
+			class="btn btn-primary mt-1 h-auto w-18 flex-col gap-0.5 px-1 py-1.5"
 			hx-post={ data.NextPath() }
 			hx-swap="none"
-		>End turn</button>
+		>
+			<span class="text-xs leading-none">End turn</span>
+			<span data-turn-timer data-turn-tone="plain" class="font-mono text-xs leading-none tabular-nums opacity-80">0:00</span>
+		</button>
 	}
 	if len(e.Conditions) > 0 {
 		<span class="flex max-w-64 flex-wrap justify-center gap-0.5 pt-1">

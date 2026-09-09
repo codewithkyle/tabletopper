@@ -17,6 +17,8 @@
 // something asserted here against a second implementation of the platform.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 // El is the whole of the DOM this module uses. It has to be installed as
@@ -155,6 +157,42 @@ test("the tone turns at a minute and again at two", () => {
 	assert.equal(turnTone(60), "warning");
 	assert.equal(turnTone(119), "warning");
 	assert.equal(turnTone(120), "danger");
+});
+
+// AND EVERY TONE IT CAN REACH IS ONE THE STYLESHEET PAINTS. The attribute was
+// written onto the clock once a second for a whole phase with no rule anywhere
+// reading it: the tone stepped at a minute, nothing changed colour, and nothing
+// failed -- the same silent shape as a listener for an event nobody dispatches.
+//
+// THE TWO HALVES CANNOT SEE EACH OTHER. server/js writes the value and
+// server/css reads it, and no import runs between them, so the seam is checked
+// here against the built stylesheet rather than assumed.
+test("the stylesheet paints every tone the clock can reach", () => {
+	const css = readFileSync(
+		join(new URL(".", import.meta.url).pathname, "..", "..", "public", "css", "app.css"),
+		"utf8",
+	);
+
+	const tones = new Set<string>();
+	for (let seconds = 0; seconds <= 600; seconds += 1) {
+		tones.add(turnTone(seconds));
+	}
+
+	assert.deepEqual([...tones], ["plain", "warning", "danger"]);
+
+	for (const tone of tones) {
+		// plain IS THE BUTTON AS RENDERED, so it is the one tone with no rule
+		// of its own -- and the reason an unpainted step is invisible instead
+		// of obvious.
+		if (tone === "plain") {
+			continue;
+		}
+
+		assert.ok(
+			css.includes(`data-turn-tone="${tone}"`),
+			`nothing in public/css/app.css reads data-turn-tone="${tone}"`,
+		);
+	}
 });
 
 // strip is a mounted fight: the root, the acting line, the clock and the
