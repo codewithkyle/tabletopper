@@ -115,6 +115,24 @@ const ACTOR_COLORS: readonly (readonly [number, number, number])[] = [
 // both themes.
 const SELF_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
 
+// SELECT_COLOR is what the marquee, the outline round a selected pawn and the
+// resize handles are all drawn in.
+//
+// IT IS BLUE BECAUSE WHITE HAS A MAP IT CANNOT BE SEEN ON. The near-white above
+// reads against both themes, which is a statement about the page and not about
+// the table: the canvas underneath is somebody's battle map, and a snowfield, a
+// frozen lake or a sheet of fog is a near-white rectangle a near-white hairline
+// disappears into. Hue survives what luminance does not -- there is no common
+// map that is this blue over its whole surface -- and it stays light, so it is
+// still legible over a dungeon floor.
+//
+// IT IS NOT ACTOR_COLORS[0], though the two are near neighbours. That palette
+// says WHOSE drag a ghost is, and a selection saying "yours" in a colour the
+// palette hands out would be a claim about a person rather than about the
+// pointer. Selection is not a member of that set; it is the one thing on the
+// table that belongs to whoever is looking.
+export const SELECT_COLOR: readonly [number, number, number] = [0.4, 0.78, 1.0];
+
 // MEASURE_POINT is the radius of the mark the measure tool leaves where it was
 // clicked, in CSS pixels, and MEASURE_WIDTH is that ring's thickness in device
 // pixels -- the same two units the resize handles are drawn in, and for the same
@@ -1334,7 +1352,7 @@ export function createTable(deps: TableDeps): Table {
 
 				add({
 					x: p.x, y: p.y, halfW, halfH,
-					color: SELF_COLOR, alpha: 0.95, thickness: 2,
+					color: SELECT_COLOR, alpha: 0.95, thickness: 2,
 					rect: p.kind === "object", rotation: at.rotation,
 				});
 			}
@@ -1364,7 +1382,7 @@ export function createTable(deps: TableDeps): Table {
 					y: (rect.y1 + rect.y2) / 2,
 					halfW: Math.abs(rect.x2 - rect.x1) / 2,
 					halfH: Math.abs(rect.y2 - rect.y1) / 2,
-					color: SELF_COLOR, alpha: 0.8, thickness: 1, rect: true, rotation: 0,
+					color: SELECT_COLOR, alpha: 0.8, thickness: 1, rect: true, rotation: 0,
 				});
 			}
 

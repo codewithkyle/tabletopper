@@ -38,14 +38,17 @@ import { stressPawns } from "./stress.ts";
 import type { Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
 import { HANDLE_HALF } from "../handles.ts";
-import { GHOST_ALPHA } from "../pawns.ts";
+import { GHOST_ALPHA, SELECT_COLOR } from "../pawns.ts";
 import { apply, wireInput } from "./input.ts";
 import { screenToWorld, worldToScreen } from "./camera.ts";
 
-// HANDLE_COLOR and HANDLE_WIDTH are how a resize control is drawn: the same
-// near-white the selection outline uses, so the set reads as one thing, and a
-// heavier line, because a five-pixel box outlined at a hairline is a smudge.
-const HANDLE_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
+// HANDLE_WIDTH is how heavy a resize control's line is, and it is heavier than
+// the outline's because a five-pixel box drawn at a hairline is a smudge.
+//
+// THE COLOUR IS THE SELECTION'S, IMPORTED RATHER THAN COPIED. A handle is part
+// of the frame round a selected pawn, so the set has to read as one thing, and
+// the two constants drifted apart the moment one of them was retuned. See
+// SELECT_COLOR in pawns.ts.
 const HANDLE_WIDTH = 2;
 
 // VIEW_ZOOM_STEP is what the View menu's Zoom in and Zoom out move by. It is
@@ -446,7 +449,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 			for (const handle of table.handles(handles)) {
 				rings.add(
 					handle.x, handle.y, half, half,
-					HANDLE_COLOR, 1, HANDLE_WIDTH,
+					SELECT_COLOR, 1, HANDLE_WIDTH,
 					handle.turns ? RING_ELLIPSE : RING_RECT, handle.rotation,
 				);
 			}
