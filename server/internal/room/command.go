@@ -206,6 +206,7 @@ var wireCommands = map[string]func() Command{
 	"pawn.setLayer":        func() Command { return &PawnSetLayer{} },
 	"pawn.remove":          func() Command { return &PawnRemove{} },
 	"initiative.set":       func() Command { return &InitiativeSet{} },
+	"initiative.sync":      func() Command { return &InitiativeSync{} },
 	"initiative.next":      func() Command { return &InitiativeNext{} },
 	"initiative.clear":     func() Command { return &InitiativeClear{} },
 	"fog.setEnabled":       func() Command { return &FogSetEnabled{} },
@@ -411,7 +412,7 @@ func cloneInitiative(i Initiative) Initiative {
 	i.Active = cloneID(i.Active)
 	i.Entries = make([]InitiativeEntry, len(src))
 	for n, e := range src {
-		e.PawnID = cloneID(e.PawnID)
+		e.PawnIDs = cloneSlice(e.PawnIDs)
 		i.Entries[n] = e
 	}
 

@@ -268,7 +268,7 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	w := newWorld(t)
 
 	goblin := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
-	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 
 	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
 	equalStrings(t, "hiding", summary(hide), []string{
@@ -312,7 +312,7 @@ func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
 	cellar := w.addLayer("Cellar")
 
 	goblin := w.spawn(Pawn{Name: "Goblin", LayerID: cellar, Visible: true})
-	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 
 	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
 
@@ -347,7 +347,7 @@ func TestMovingAPawnBetweenFloorsLeavesTheTrackerAlone(t *testing.T) {
 	cellar := w.addLayer("Cellar")
 
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
-	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 
 	ems := w.apply(&PawnSetLayer{IDs: []ulid.ULID{goblin}, Layer: cellar}, w.gm)
 	equalStrings(t, "sending a tracked pawn downstairs", summary(ems), []string{
@@ -369,8 +369,8 @@ func TestHidingASelectionIsOneCommandAndOneTrackerEvent(t *testing.T) {
 	first := w.spawn(Pawn{Name: "First goblin", X: 96, Y: 96, Visible: true})
 	second := w.spawn(Pawn{Name: "Second goblin", X: 160, Y: 96, Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "First goblin", PawnID: &first, Initiative: 12},
-		{Name: "Second goblin", PawnID: &second, Initiative: 11},
+		{Name: "First goblin", PawnIDs: []ulid.ULID{first}, Initiative: 12},
+		{Name: "Second goblin", PawnIDs: []ulid.ULID{second}, Initiative: 11},
 	}}, w.gm)
 
 	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{first, second}, Visible: false}, w.gm)
@@ -464,8 +464,8 @@ func TestRemovingPawnsEmitsOneTrackerEvent(t *testing.T) {
 	first := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	second := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "First", PawnID: &first},
-		{Name: "Second", PawnID: &second},
+		{Name: "First", PawnIDs: []ulid.ULID{first}},
+		{Name: "Second", PawnIDs: []ulid.ULID{second}},
 	}}, w.gm)
 
 	ems := w.apply(&PawnRemove{IDs: []ulid.ULID{first, second}}, w.gm)

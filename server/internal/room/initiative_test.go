@@ -66,8 +66,8 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 	}}, w.gm)
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "Goblin", PawnID: &goblin},
-		{Name: "Ogre", PawnID: &ogre},
+		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}},
+		{Name: "Ogre", PawnIDs: []ulid.ULID{ogre}},
 	}}, w.gm)
 
 	// The goblin's turn begins: only its start-of-turn condition ticks.
@@ -118,9 +118,9 @@ func TestDeletingTheActiveCombatantAdvancesTheTurn(t *testing.T) {
 	third := w.spawn(Pawn{Name: "Third", Visible: true})
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "First", PawnID: &first},
-		{Name: "Second", PawnID: &second},
-		{Name: "Third", PawnID: &third},
+		{Name: "First", PawnIDs: []ulid.ULID{first}},
+		{Name: "Second", PawnIDs: []ulid.ULID{second}},
+		{Name: "Third", PawnIDs: []ulid.ULID{third}},
 	}}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
@@ -202,7 +202,7 @@ func TestTheTrackerRefusesWhatItCannotName(t *testing.T) {
 	w := newWorld(t)
 	missing := testID(999)
 
-	w.refuse(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Ghost", PawnID: &missing}}}, w.gm, CodeNotFound)
+	w.refuse(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Ghost", PawnIDs: []ulid.ULID{missing}}}}, w.gm, CodeNotFound)
 	w.refuse(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin"}}, Active: &missing}, w.gm, CodeInvalid)
 	w.refuse(&InitiativeSet{Entries: []InitiativeEntry{{Name: "  "}}}, w.gm, CodeInvalid)
 	w.refuse(&InitiativeNext{}, w.gm, CodeInvalid)
@@ -216,8 +216,8 @@ func (w *world) twoInTheOrder() (first, second ulid.ULID) {
 	b := w.spawn(Pawn{Name: "Second", Visible: true})
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "First", PawnID: &a, Initiative: 18},
-		{Name: "Second", PawnID: &b, Initiative: 12},
+		{Name: "First", PawnIDs: []ulid.ULID{a}, Initiative: 18},
+		{Name: "Second", PawnIDs: []ulid.ULID{b}, Initiative: 12},
 	}}, w.gm)
 
 	return w.s.Initiative.Entries[0].ID, w.s.Initiative.Entries[1].ID

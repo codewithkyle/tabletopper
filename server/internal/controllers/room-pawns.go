@@ -1254,16 +1254,7 @@ func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer str
 		out.SizeValue = string(pawn.Size)
 	}
 
-	for _, c := range pawn.Conditions {
-		out.Conditions = append(out.Conditions, pages.RoomPawnCondition{
-			ID:           c.ID.String(),
-			Name:         c.Name,
-			Color:        string(c.Color),
-			Duration:     pages.PawnDurationValue(c.Duration),
-			DurationText: pages.PawnDurationText(c.Duration),
-			Clear:        string(c.Clear),
-		})
-	}
+	out.Conditions = pawnConditions(pawn.Conditions)
 
 	// THE TWO GM-ONLY FIELDS, and they are set here rather than in the markup
 	// because a template that decided them would be a second place the rule
@@ -1283,6 +1274,30 @@ func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer str
 // layerName is the floor a pawn stands on, which is worth showing because a
 // pawn's window outlives the GM's view of its floor. An unavailable table is an
 // empty string rather than a guess -- the panel simply omits the line.
+// pawnConditions is one pawn's conditions as chips and rows. It is shared with
+// the initiative strip, which prints the same chips on the acting line: two
+// copies of this mapping would be two places for a duration to be formatted
+// differently in.
+func pawnConditions(conditions []room.Condition) []pages.RoomPawnCondition {
+	out := make([]pages.RoomPawnCondition, 0, len(conditions))
+	for _, c := range conditions {
+		out = append(out, pages.RoomPawnCondition{
+			ID:           c.ID.String(),
+			Name:         c.Name,
+			Color:        string(c.Color),
+			Duration:     pages.PawnDurationValue(c.Duration),
+			DurationText: pages.PawnDurationText(c.Duration),
+			Clear:        string(c.Clear),
+		})
+	}
+
+	if len(out) == 0 {
+		return nil
+	}
+
+	return out
+}
+
 // hpText is the printed line, and the whole of what the setting changes here:
 // the numbers when the viewer is shown them, and nothing when they are not --
 // in which case Band carries the word instead, or is empty in a room that

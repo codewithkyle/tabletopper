@@ -55,11 +55,12 @@ type RoomInfo struct {
 // bytes and it changes when a person clicks a menu item, so there is nothing to
 // win by sending less and a partial-update reducer to lose.
 type Table struct {
-	Layers         []Layer    `json:"layers"`
-	ActiveLayer    ulid.ULID  `json:"activeLayer"`
-	Grid           Grid       `json:"grid"`
-	PawnLabels     PawnLabels `json:"pawnLabels"`
-	PlayersCanDraw bool       `json:"playersCanDraw"`
+	Layers             []Layer            `json:"layers"`
+	ActiveLayer        ulid.ULID          `json:"activeLayer"`
+	Grid               Grid               `json:"grid"`
+	PawnLabels         PawnLabels         `json:"pawnLabels"`
+	PlayersCanDraw     bool               `json:"playersCanDraw"`
+	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
 }
 
 // Layer is a floor or a scene: a named slot holding at most one map, with its
@@ -258,15 +259,53 @@ type Initiative struct {
 	Round   int               `json:"round"`
 }
 
-// InitiativeEntry is one line of the tracker. PawnID is nil for a free-text
-// entry, which is how lair actions and "the volcano erupts" get a slot in the
-// order without a pawn on the table.
+// InitiativeEntry is one line of the tracker.
+//
+// IT NAMES A LIST OF PAWNS AND NOT ONE PAWN, and the list is what makes grouped
+// combat expressible at all. A solo line holds one id, the goblins hold nine,
+// and a free-text line holds none -- which is how a lair action and "the
+// volcano erupts" get a slot in the order without a pawn on the table.
+//
+// THE ALTERNATIVES WERE EACH TRIED ON PAPER. A REPRESENTATIVE PAWN -- one id,
+// with the group re-derived around it -- makes the line lie the moment the
+// representative dies, and turns the count into a query rather than a fact. A
+// RENDER-TIME COLLAPSE -- thirteen lines drawn as three -- leaves the turn
+// stepping through nine goblins one at a time behind a card that says nothing
+// changed, which is the opposite of what grouped means. A PARALLEL GROUP TABLE
+// is a second place for the same relationship to be wrong in.
+//
+// EVERY LOOP OVER IT IS A LOOP THAT ALREADY HAD A NIL CHECK IN IT, which is the
+// whole cost of the change.
 type InitiativeEntry struct {
-	ID         ulid.ULID  `json:"id"`
-	PawnID     *ulid.ULID `json:"pawnId"`
-	Name       string     `json:"name"`
-	Initiative int        `json:"initiative"`
+	ID         ulid.ULID   `json:"id"`
+	PawnIDs    []ulid.ULID `json:"pawnIds"`
+	Name       string      `json:"name"`
+	Initiative int         `json:"initiative"`
 }
+
+// InitiativeGrouping is how a sync turns monsters into lines of the tracker,
+// and it is a table setting rather than a build-time choice because which kind
+// of fight this is changes between fights.
+//
+// GROUPED IS THE DEFAULT BECAUSE IT IS HOW MOST TABLES RUN MOST FIGHTS. Nine
+// goblins on nine counts is nine turns of bookkeeping for one decision.
+// Individual is there because some fights deserve it, and a GM switches between
+// them mid-session the way they switch any other table setting.
+//
+// IT APPLIES TO MONSTERS AND NOT TO NPCS. The kinds exist to draw that line: an
+// NPC is a named individual -- the captain, the informant -- and grouping two of
+// them under one line would be the app deciding they are interchangeable.
+// Players are never grouped.
+type InitiativeGrouping string
+
+const (
+	GroupMonsters   InitiativeGrouping = "grouped"
+	GroupIndividual InitiativeGrouping = "individual"
+)
+
+func (InitiativeGrouping) Values() []string { return []string{"grouped", "individual"} }
+
+func (g InitiativeGrouping) Valid() bool { return inValues(g, g.Values()) }
 
 // FogShape is one rectangle or polygon on one layer. Shapes are the source of
 // truth and the mask texture each client rasterises is a cache, which is what
@@ -600,6 +639,9 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 			// is a player sketching the plan on the tavern table, and a GM who
 			// does not want that turns it off once.
 			PlayersCanDraw: true,
+
+			// And monsters are grouped by default; see InitiativeGrouping.
+			InitiativeGrouping: GroupMonsters,
 		},
 	}
 
@@ -662,6 +704,15 @@ func (s *State) Normalize() {
 		s.Table.PawnLabels = LabelsDefault
 	}
 
+	// AND A ROOM WRITTEN BEFORE THERE WAS A GROUPING SETTING GETS THE DEFAULT,
+	// which is every snapshot older than this. It is the same repair as the two
+	// above and it is the cheap one: the setting is read when the GM presses
+	// Sync and changes no projection, so a room that comes back grouped is a
+	// room whose next sync groups.
+	if !s.Table.InitiativeGrouping.Valid() {
+		s.Table.InitiativeGrouping = GroupMonsters
+	}
+
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Pawns, func(a, b Pawn) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Strokes, func(a, b Stroke) int { return a.ID.Compare(b.ID) })
@@ -672,6 +723,10 @@ func (s *State) Normalize() {
 	s.Strokes = emptied(s.Strokes)
 	s.Table.Layers = emptied(s.Table.Layers)
 	s.Initiative.Entries = emptied(s.Initiative.Entries)
+
+	for i := range s.Initiative.Entries {
+		s.Initiative.Entries[i].PawnIDs = emptied(s.Initiative.Entries[i].PawnIDs)
+	}
 
 	for i := range s.Pawns {
 		s.Pawns[i].Conditions = emptied(s.Pawns[i].Conditions)

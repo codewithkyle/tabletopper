@@ -217,6 +217,36 @@ func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
 
+// InitiativePath is the strip over the table, which EVERYBODY in the room
+// fetches. It is the one live surface on this page that is not the canvas and
+// not a window, for the reason written out in room-initiative.go: a turn order
+// is read by the whole table every few seconds for the minutes a fight lasts,
+// and a window would have to be opened by each person from a menu the players
+// do not have.
+func (d RoomPageData) InitiativePath() string {
+	return "/fragment/room/initiative?room=" + d.ID
+}
+
+// InitiativeEntryPath is the Add entry dialog, which is the GM's.
+func (d RoomPageData) InitiativeEntryPath() string {
+	return "/fragment/room/initiative/entry?room=" + d.ID
+}
+
+// The three tracker verbs that live in the menu rather than on a line of the
+// strip. Sync builds the order and grows it; Next advances the turn for a GM
+// who would rather press a menu than the button; Clear is the end of the fight.
+func (d RoomPageData) InitiativeSyncPath() string {
+	return "/rooms/" + d.ID + "/initiative/sync"
+}
+
+func (d RoomPageData) InitiativeNextPath() string {
+	return "/rooms/" + d.ID + "/initiative/next"
+}
+
+func (d RoomPageData) InitiativeClearPath() string {
+	return "/rooms/" + d.ID + "/initiative/clear"
+}
+
 // IsGM is the one question the markup asks of the role, written here so that
 // the comparison lives beside the type rather than in a template.
 func (d RoomPageData) IsGM() bool {
@@ -314,7 +344,7 @@ func (d RoomPageData) Menus() []RoomMenu {
 	if d.IsGM() {
 		menus = append(menus,
 			RoomMenu{Label: "Fog", Items: comingSoon("Fill fog", "Clear fog")},
-			RoomMenu{Label: "Initiative", Items: comingSoon("Sync tracker", "Clear tracker")},
+			d.initiativeMenu(),
 		)
 	} else {
 		menus = append(menus, characterMenu())
@@ -512,6 +542,41 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid.",
 			ConfirmHeading: "Clear the tabletop?",
 			ConfirmLabel:   "Clear tabletop",
+			Danger:         true,
+		},
+	}}
+}
+
+// initiativeMenu is the four verbs that are not a gesture on a line of the
+// strip. Everything else about the turn order is done to the strip itself:
+// dragged into order, clicked to give somebody the turn, right-clicked to take
+// a line out.
+//
+// SYNC TRACKER IS THE MAIN ROAD AND IS FIRST. It builds the order from every
+// creature a player can see on a floor a player is standing on, and pressing it
+// again mid-fight brings in the reinforcements and takes out the corpses --
+// which is why there is no "add these creatures" checklist anywhere. What Sync
+// cannot reach is a line with no creature behind it, and that is Add entry.
+//
+// NEXT TURN IS IN HERE AS WELL AS ON THE STRIP because the strip's button is
+// small and at the far end of a row of faces, and because a menu item is where
+// somebody looks for a verb they have not used before. The key is N, and it
+// presses the button rather than knowing the route; see initiative.ts.
+//
+// CLEAR TRACKER KEEPS ITS CONFIRMATION, where taking one line out does not. A
+// line is undone by pressing Sync, which is three items above it; the whole
+// fight is not.
+func (d RoomPageData) initiativeMenu() RoomMenu {
+	return RoomMenu{Label: "Initiative", Items: []RoomMenuItem{
+		{Label: "Sync tracker", Post: d.InitiativeSyncPath()},
+		{Label: "Add entry", Modal: RoomModal{URL: d.InitiativeEntryPath(), Size: "sm"}},
+		{Label: "Next turn", Post: d.InitiativeNextPath()},
+		{
+			Label:          "Clear tracker",
+			Post:           d.InitiativeClearPath(),
+			Confirm:        "The whole turn order goes, on every screen. Nothing on the tabletop is touched, and Sync tracker builds it again.",
+			ConfirmHeading: "Clear the initiative tracker?",
+			ConfirmLabel:   "Clear tracker",
 			Danger:         true,
 		},
 	}}

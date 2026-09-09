@@ -3,6 +3,8 @@ package room
 import (
 	"errors"
 	"testing"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // A snapshot goes out and comes back the same. It is the same marshaller that
@@ -166,8 +168,8 @@ func busyWorld(t *testing.T) *world {
 	}}, w.gm)
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "Ari", PawnID: &ari, Initiative: 18},
-		{Name: "Goblin", PawnID: &goblin, Initiative: 12},
+		{Name: "Ari", PawnIDs: []ulid.ULID{ari}, Initiative: 18},
+		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12},
 		{Name: "Lair action", Initiative: 20},
 	}}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)

@@ -30,7 +30,8 @@
         "diagonals": "equal"
       },
       "pawnLabels": "default",
-      "playersCanDraw": true
+      "playersCanDraw": true,
+      "initiativeGrouping": "grouped"
     },
     "players": [
       {
@@ -114,7 +115,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -191,7 +193,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -232,7 +235,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -316,7 +320,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -364,7 +369,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -448,7 +454,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -496,7 +503,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -587,7 +595,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -642,7 +651,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -733,7 +743,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -788,7 +799,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -879,7 +891,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -934,7 +947,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1025,7 +1039,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -1080,7 +1095,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1171,7 +1187,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "full",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -1226,7 +1243,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1331,7 +1349,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1455,7 +1474,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1603,7 +1623,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1774,7 +1795,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -1939,7 +1961,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -2133,7 +2156,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -2350,7 +2374,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "full",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -2534,7 +2559,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         },
         {
@@ -2617,7 +2643,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -2752,7 +2779,7 @@
       }
     },
     {
-      "name": "roll for initiative",
+      "name": "the GM builds the turn order from the table",
       "events": [
         {
           "type": "initiative.updated",
@@ -2762,19 +2789,273 @@
             "entries": [
               {
                 "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
+                "name": "Ari",
+                "initiative": 0
+              },
+              {
+                "id": "01000000000000000000000009",
+                "pawnIds": [
+                  "01000000000000000000000004"
+                ],
+                "name": "Rin",
+                "initiative": 0
+              },
+              {
+                "id": "0100000000000000000000000A",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
+                "name": "Goblin",
+                "initiative": 0
+              }
+            ],
+            "active": null,
+            "round": 0
+          }
+        }
+      ],
+      "state": {
+        "schema": 2,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 303,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "01000000000000000000000008",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 0
+            },
+            {
+              "id": "01000000000000000000000009",
+              "pawnIds": [
+                "01000000000000000000000004"
+              ],
+              "name": "Rin",
+              "initiative": 0
+            },
+            {
+              "id": "0100000000000000000000000A",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 0
+            }
+          ],
+          "active": null,
+          "round": 0
+        },
+        "fog": [],
+        "strokes": []
+      }
+    },
+    {
+      "name": "roll for initiative",
+      "events": [
+        {
+          "type": "initiative.updated",
+          "seq": 19,
+          "by": "010000000000000000000000Z9",
+          "initiative": {
+            "entries": [
+              {
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "01000000000000000000000009",
-                "pawnId": "01000000000000000000000005",
+                "id": "0100000000000000000000000C",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
                 "name": "Goblin",
                 "initiative": 14
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
@@ -2835,7 +3116,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -2963,20 +3245,24 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
@@ -2993,30 +3279,34 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 19,
+          "seq": 20,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
               {
-                "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "01000000000000000000000009",
-                "pawnId": "01000000000000000000000005",
+                "id": "0100000000000000000000000C",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
                 "name": "Goblin",
                 "initiative": 14
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
             ],
-            "active": "01000000000000000000000008",
+            "active": "0100000000000000000000000B",
             "round": 1
           }
         }
@@ -3072,7 +3362,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -3200,25 +3491,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 1
         },
         "fog": [],
@@ -3230,7 +3525,7 @@
       "events": [
         {
           "type": "pawn.moved",
-          "seq": 20,
+          "seq": 21,
           "by": "010000000000000000000000ZA",
           "pawns": [
             {
@@ -3292,7 +3587,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -3420,25 +3716,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 1
         },
         "fog": [],
@@ -3499,7 +3799,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -3627,25 +3928,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 1
         },
         "fog": [],
@@ -3657,30 +3962,34 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 21,
+          "seq": 22,
           "by": "010000000000000000000000ZA",
           "initiative": {
             "entries": [
               {
-                "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "01000000000000000000000009",
-                "pawnId": "01000000000000000000000005",
+                "id": "0100000000000000000000000C",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
                 "name": "Goblin",
                 "initiative": 14
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
             ],
-            "active": "01000000000000000000000009",
+            "active": "0100000000000000000000000C",
             "round": 1
           }
         }
@@ -3736,7 +4045,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -3864,25 +4174,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000009",
+          "active": "0100000000000000000000000C",
           "round": 1
         },
         "fog": [],
@@ -3891,242 +4205,6 @@
     },
     {
       "name": "the goblin takes a hit",
-      "events": [
-        {
-          "type": "pawn.updated",
-          "seq": 22,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 653,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          }
-        }
-      ],
-      "state": {
-        "schema": 2,
-        "seq": 0,
-        "room": {
-          "id": "010000000000000000000000Z8",
-          "name": "The Sunless Citadel",
-          "locked": true
-        },
-        "table": {
-          "layers": [
-            {
-              "id": "01000000000000000000000001",
-              "name": "Ground floor",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001J",
-                "width": 4096,
-                "height": 4096,
-                "tileSize": 512,
-                "maxZoom": 3
-              },
-              "fogEnabled": false,
-              "fogPrefill": true
-            },
-            {
-              "id": "01000000000000000000000002",
-              "name": "Cellar, flooded",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001K",
-                "width": 2048,
-                "height": 2048,
-                "tileSize": 512,
-                "maxZoom": 2
-              },
-              "fogEnabled": false,
-              "fogPrefill": true
-            }
-          ],
-          "activeLayer": "01000000000000000000000001",
-          "grid": {
-            "lines": "solid",
-            "cellSize": 70,
-            "offsetX": -12,
-            "offsetY": 8,
-            "color": "#334455ff",
-            "snap": "cells",
-            "feetPerCell": 5,
-            "diagonals": "equal"
-          },
-          "pawnLabels": "default",
-          "playersCanDraw": true
-        },
-        "players": [
-          {
-            "id": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "avatar": "",
-            "characterId": null,
-            "characterName": "",
-            "role": "gm",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZA",
-            "name": "Ari",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZC",
-            "characterName": "Ilyana",
-            "role": "player",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZB",
-            "name": "Rin",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZD",
-            "characterName": "Brannor",
-            "role": "player",
-            "connected": true
-          }
-        ],
-        "pawns": [
-          {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          },
-          {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 653,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          },
-          {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000001",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
-          }
-        ],
-        "initiative": {
-          "entries": [
-            {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
-              "name": "Ari",
-              "initiative": 19
-            },
-            {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
-              "name": "Goblin",
-              "initiative": 14
-            },
-            {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
-              "name": "Lair action",
-              "initiative": 20
-            }
-          ],
-          "active": "01000000000000000000000009",
-          "round": 1
-        },
-        "fog": [],
-        "strokes": []
-      }
-    },
-    {
-      "name": "and goes prone",
       "events": [
         {
           "type": "pawn.updated",
@@ -4150,16 +4228,257 @@
             "maxHp": 7,
             "hpBand": "bloody",
             "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          }
+        }
+      ],
+      "state": {
+        "schema": 2,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": "bloody",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 19
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 14
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 20
+            }
+          ],
+          "active": "0100000000000000000000000C",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": []
+      }
+    },
+    {
+      "name": "and goes prone",
+      "events": [
+        {
+          "type": "pawn.updated",
+          "seq": 24,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": "bloody",
+            "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -4223,7 +4542,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -4321,14 +4641,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -4366,25 +4686,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000009",
+          "active": "0100000000000000000000000C",
           "round": 1
         },
         "fog": [],
@@ -4396,7 +4720,7 @@
       "events": [
         {
           "type": "pawn.moved",
-          "seq": 24,
+          "seq": 25,
           "by": "010000000000000000000000Z9",
           "pawns": [
             {
@@ -4458,7 +4782,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -4556,14 +4881,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -4601,25 +4926,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000009",
+          "active": "0100000000000000000000000C",
           "round": 1
         },
         "fog": [],
@@ -4631,30 +4960,34 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 25,
+          "seq": 26,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
               {
-                "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "01000000000000000000000009",
-                "pawnId": "01000000000000000000000005",
+                "id": "0100000000000000000000000C",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
                 "name": "Goblin",
                 "initiative": 14
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
             ],
-            "active": "0100000000000000000000000A",
+            "active": "0100000000000000000000000D",
             "round": 1
           }
         }
@@ -4710,7 +5043,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -4808,14 +5142,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -4853,25 +5187,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "0100000000000000000000000A",
+          "active": "0100000000000000000000000D",
           "round": 1
         },
         "fog": [],
@@ -4883,30 +5221,34 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 26,
+          "seq": 27,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
               {
-                "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "01000000000000000000000009",
-                "pawnId": "01000000000000000000000005",
+                "id": "0100000000000000000000000C",
+                "pawnIds": [
+                  "01000000000000000000000005"
+                ],
                 "name": "Goblin",
                 "initiative": 14
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
             ],
-            "active": "01000000000000000000000008",
+            "active": "0100000000000000000000000B",
             "round": 2
           }
         }
@@ -4962,7 +5304,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -5060,14 +5403,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -5105,25 +5448,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -5135,7 +5482,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 27,
+          "seq": 28,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000006",
@@ -5213,7 +5560,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -5311,14 +5659,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -5379,25 +5727,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -5409,7 +5761,7 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 28,
+          "seq": 29,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000006"
         }
@@ -5465,7 +5817,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -5563,14 +5916,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -5608,25 +5961,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -5638,7 +5995,7 @@
       "events": [
         {
           "type": "pinged",
-          "seq": 29,
+          "seq": 30,
           "by": "010000000000000000000000ZA",
           "layer": "01000000000000000000000001",
           "x": 512,
@@ -5696,7 +6053,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -5794,14 +6152,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -5839,25 +6197,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -5869,7 +6231,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 30,
+          "seq": 31,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -5914,7 +6276,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -5969,7 +6332,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -6067,14 +6431,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -6112,25 +6476,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -6142,7 +6510,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 31,
+          "seq": 32,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -6187,7 +6555,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -6242,7 +6611,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -6340,14 +6710,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -6385,25 +6755,29 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [],
@@ -6415,10 +6789,10 @@
       "events": [
         {
           "type": "fog.added",
-          "seq": 32,
+          "seq": 33,
           "by": "010000000000000000000000Z9",
           "shape": {
-            "id": "0100000000000000000000000D",
+            "id": "0100000000000000000000000G",
             "layerId": "01000000000000000000000001",
             "kind": "rect",
             "mode": "hide",
@@ -6482,7 +6856,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -6580,14 +6955,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -6625,30 +7000,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000D",
+            "id": "0100000000000000000000000G",
             "layerId": "01000000000000000000000001",
             "kind": "rect",
             "mode": "hide",
@@ -6668,10 +7047,10 @@
       "events": [
         {
           "type": "fog.added",
-          "seq": 33,
+          "seq": 34,
           "by": "010000000000000000000000Z9",
           "shape": {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -6739,7 +7118,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -6837,14 +7217,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -6882,30 +7262,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000D",
+            "id": "0100000000000000000000000G",
             "layerId": "01000000000000000000000001",
             "kind": "rect",
             "mode": "hide",
@@ -6917,7 +7301,7 @@
             ]
           },
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -6941,9 +7325,9 @@
       "events": [
         {
           "type": "fog.removed",
-          "seq": 34,
+          "seq": 35,
           "by": "010000000000000000000000Z9",
-          "id": "0100000000000000000000000D"
+          "id": "0100000000000000000000000G"
         }
       ],
       "state": {
@@ -6997,7 +7381,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -7095,14 +7480,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -7140,30 +7525,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -7187,7 +7576,7 @@
       "events": [
         {
           "type": "stroke.began",
-          "seq": 35,
+          "seq": 36,
           "by": "010000000000000000000000Z9",
           "stroke": {
             "id": "010000000000000000000000W4",
@@ -7256,7 +7645,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -7354,14 +7744,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -7399,30 +7789,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -7461,7 +7855,7 @@
       "events": [
         {
           "type": "stroke.extended",
-          "seq": 36,
+          "seq": 37,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000W4",
           "points": [
@@ -7523,7 +7917,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -7621,14 +8016,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -7666,30 +8061,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -7732,7 +8131,7 @@
       "events": [
         {
           "type": "stroke.ended",
-          "seq": 37,
+          "seq": 38,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000W4"
         }
@@ -7788,7 +8187,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -7886,14 +8286,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -7931,30 +8331,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -7997,7 +8401,7 @@
       "events": [
         {
           "type": "stroke.began",
-          "seq": 38,
+          "seq": 39,
           "by": "010000000000000000000000ZA",
           "stroke": {
             "id": "010000000000000000000000W5",
@@ -8066,7 +8470,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -8164,14 +8569,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -8209,30 +8614,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -8289,7 +8698,7 @@
       "events": [
         {
           "type": "stroke.erased",
-          "seq": 39,
+          "seq": 40,
           "by": "010000000000000000000000ZA",
           "ids": [
             "010000000000000000000000W5"
@@ -8347,7 +8756,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -8445,14 +8855,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -8490,30 +8900,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -8556,7 +8970,7 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 40,
+          "seq": 41,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000007"
         }
@@ -8612,7 +9026,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -8710,14 +9125,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -8732,30 +9147,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -8798,7 +9217,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 41,
+          "seq": 42,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -8843,30 +9262,31 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
-        },
-        {
-          "type": "pawn.removed",
-          "seq": 42,
-          "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000003"
         },
         {
           "type": "pawn.removed",
           "seq": 43,
           "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000004"
+          "id": "01000000000000000000000003"
         },
         {
           "type": "pawn.removed",
           "seq": 44,
           "by": "010000000000000000000000Z9",
+          "id": "01000000000000000000000004"
+        },
+        {
+          "type": "pawn.removed",
+          "seq": 45,
+          "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000005"
         },
         {
           "type": "pawn.spawned",
-          "seq": 45,
+          "seq": 46,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000007",
@@ -8944,7 +9364,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -9003,30 +9424,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -9069,7 +9494,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 46,
+          "seq": 47,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -9114,18 +9539,19 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         },
         {
           "type": "pawn.removed",
-          "seq": 47,
+          "seq": 48,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000007"
         },
         {
           "type": "pawn.spawned",
-          "seq": 48,
+          "seq": 49,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000003",
@@ -9153,7 +9579,7 @@
         },
         {
           "type": "pawn.spawned",
-          "seq": 49,
+          "seq": 50,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000004",
@@ -9181,7 +9607,7 @@
         },
         {
           "type": "pawn.spawned",
-          "seq": 50,
+          "seq": 51,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000005",
@@ -9203,14 +9629,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -9274,7 +9700,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -9372,14 +9799,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -9394,30 +9821,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -9460,7 +9891,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 51,
+          "seq": 52,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000007",
@@ -9538,7 +9969,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -9636,14 +10068,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -9681,30 +10113,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -9747,7 +10183,7 @@
       "events": [
         {
           "type": "snapshot",
-          "seq": 52,
+          "seq": 53,
           "by": "010000000000000000000000ZA",
           "state": {
             "schema": 2,
@@ -9800,7 +10236,8 @@
                 "diagonals": "equal"
               },
               "pawnLabels": "default",
-              "playersCanDraw": true
+              "playersCanDraw": true,
+              "initiativeGrouping": "grouped"
             },
             "players": [
               {
@@ -9898,14 +10335,14 @@
                 "ac": null,
                 "conditions": [
                   {
-                    "id": "0100000000000000000000000B",
+                    "id": "0100000000000000000000000E",
                     "name": "Prone",
                     "color": "white",
                     "duration": -1,
                     "clear": "end"
                   },
                   {
-                    "id": "0100000000000000000000000C",
+                    "id": "0100000000000000000000000F",
                     "name": "Blessed",
                     "color": "yellow",
                     "duration": 2,
@@ -9943,30 +10380,34 @@
             "initiative": {
               "entries": [
                 {
-                  "id": "01000000000000000000000008",
-                  "pawnId": "01000000000000000000000003",
+                  "id": "0100000000000000000000000B",
+                  "pawnIds": [
+                    "01000000000000000000000003"
+                  ],
                   "name": "Ari",
                   "initiative": 19
                 },
                 {
-                  "id": "01000000000000000000000009",
-                  "pawnId": "01000000000000000000000005",
+                  "id": "0100000000000000000000000C",
+                  "pawnIds": [
+                    "01000000000000000000000005"
+                  ],
                   "name": "Goblin",
                   "initiative": 14
                 },
                 {
-                  "id": "0100000000000000000000000A",
-                  "pawnId": null,
+                  "id": "0100000000000000000000000D",
+                  "pawnIds": [],
                   "name": "Lair action",
                   "initiative": 20
                 }
               ],
-              "active": "01000000000000000000000008",
+              "active": "0100000000000000000000000B",
               "round": 2
             },
             "fog": [
               {
-                "id": "0100000000000000000000000E",
+                "id": "0100000000000000000000000H",
                 "layerId": "01000000000000000000000001",
                 "kind": "poly",
                 "mode": "reveal",
@@ -10061,7 +10502,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -10159,14 +10601,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -10204,30 +10646,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -10319,7 +10765,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -10417,14 +10864,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -10462,30 +10909,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -10528,7 +10979,7 @@
       "events": [
         {
           "type": "player.updated",
-          "seq": 53,
+          "seq": 54,
           "player": {
             "id": "010000000000000000000000ZB",
             "name": "Rin",
@@ -10591,7 +11042,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -10689,14 +11141,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -10734,30 +11186,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -10800,7 +11256,7 @@
       "events": [
         {
           "type": "player.updated",
-          "seq": 54,
+          "seq": 55,
           "player": {
             "id": "010000000000000000000000ZB",
             "name": "Rin",
@@ -10863,7 +11319,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -10961,14 +11418,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -11006,30 +11463,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -11072,7 +11533,7 @@
       "events": [
         {
           "type": "player.joined",
-          "seq": 55,
+          "seq": 56,
           "player": {
             "id": "0100000000000000000000012C",
             "name": "Wren",
@@ -11135,7 +11596,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -11242,14 +11704,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -11287,30 +11749,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -11353,7 +11819,7 @@
       "events": [
         {
           "type": "player.left",
-          "seq": 56,
+          "seq": 57,
           "id": "0100000000000000000000012C"
         }
       ],
@@ -11408,7 +11874,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -11506,14 +11973,14 @@
             "ac": null,
             "conditions": [
               {
-                "id": "0100000000000000000000000B",
+                "id": "0100000000000000000000000E",
                 "name": "Prone",
                 "color": "white",
                 "duration": -1,
                 "clear": "end"
               },
               {
-                "id": "0100000000000000000000000C",
+                "id": "0100000000000000000000000F",
                 "name": "Blessed",
                 "color": "yellow",
                 "duration": 2,
@@ -11551,30 +12018,34 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "01000000000000000000000009",
-              "pawnId": "01000000000000000000000005",
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
               "name": "Goblin",
               "initiative": 14
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -11617,30 +12088,32 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 57,
+          "seq": 58,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000005"
         },
         {
           "type": "initiative.updated",
-          "seq": 58,
+          "seq": 59,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
               {
-                "id": "01000000000000000000000008",
-                "pawnId": "01000000000000000000000003",
+                "id": "0100000000000000000000000B",
+                "pawnIds": [
+                  "01000000000000000000000003"
+                ],
                 "name": "Ari",
                 "initiative": 19
               },
               {
-                "id": "0100000000000000000000000A",
-                "pawnId": null,
+                "id": "0100000000000000000000000D",
+                "pawnIds": [],
                 "name": "Lair action",
                 "initiative": 20
               }
             ],
-            "active": "01000000000000000000000008",
+            "active": "0100000000000000000000000B",
             "round": 2
           }
         }
@@ -11696,7 +12169,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -11801,24 +12275,26 @@
         "initiative": {
           "entries": [
             {
-              "id": "01000000000000000000000008",
-              "pawnId": "01000000000000000000000003",
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
               "name": "Ari",
               "initiative": 19
             },
             {
-              "id": "0100000000000000000000000A",
-              "pawnId": null,
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
               "name": "Lair action",
               "initiative": 20
             }
           ],
-          "active": "01000000000000000000000008",
+          "active": "0100000000000000000000000B",
           "round": 2
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -11861,7 +12337,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 59,
+          "seq": 60,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [],
@@ -11921,7 +12397,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12030,7 +12507,7 @@
         },
         "fog": [
           {
-            "id": "0100000000000000000000000E",
+            "id": "0100000000000000000000000H",
             "layerId": "01000000000000000000000001",
             "kind": "poly",
             "mode": "reveal",
@@ -12073,7 +12550,7 @@
       "events": [
         {
           "type": "fog.cleared",
-          "seq": 60,
+          "seq": 61,
           "by": "010000000000000000000000Z9",
           "layer": "01000000000000000000000001"
         }
@@ -12129,7 +12606,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12264,7 +12742,7 @@
       "events": [
         {
           "type": "stroke.cleared",
-          "seq": 61,
+          "seq": 62,
           "by": "010000000000000000000000Z9",
           "layer": "01000000000000000000000001"
         }
@@ -12320,7 +12798,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12436,7 +12915,7 @@
       "events": [
         {
           "type": "player.left",
-          "seq": 62,
+          "seq": 63,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000ZB"
         }
@@ -12492,7 +12971,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12599,19 +13079,19 @@
       "events": [
         {
           "type": "fog.cleared",
-          "seq": 63,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000002"
-        },
-        {
-          "type": "stroke.cleared",
           "seq": 64,
           "by": "010000000000000000000000Z9",
           "layer": "01000000000000000000000002"
         },
         {
-          "type": "table.updated",
+          "type": "stroke.cleared",
           "seq": 65,
+          "by": "010000000000000000000000Z9",
+          "layer": "01000000000000000000000002"
+        },
+        {
+          "type": "table.updated",
+          "seq": 66,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -12642,7 +13122,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -12683,7 +13164,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12790,7 +13272,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 66,
+          "seq": 67,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -12814,7 +13296,8 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         }
       ],
@@ -12848,7 +13331,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -12955,37 +13439,37 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 67,
+          "seq": 68,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000003"
         },
         {
           "type": "pawn.removed",
-          "seq": 68,
+          "seq": 69,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000004"
         },
         {
           "type": "pawn.removed",
-          "seq": 69,
+          "seq": 70,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000007"
         },
         {
           "type": "fog.cleared",
-          "seq": 70,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000001"
-        },
-        {
-          "type": "stroke.cleared",
           "seq": 71,
           "by": "010000000000000000000000Z9",
           "layer": "01000000000000000000000001"
         },
         {
-          "type": "table.updated",
+          "type": "stroke.cleared",
           "seq": 72,
+          "by": "010000000000000000000000Z9",
+          "layer": "01000000000000000000000001"
+        },
+        {
+          "type": "table.updated",
+          "seq": 73,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -13009,12 +13493,13 @@
               "diagonals": "equal"
             },
             "pawnLabels": "default",
-            "playersCanDraw": true
+            "playersCanDraw": true,
+            "initiativeGrouping": "grouped"
           }
         },
         {
           "type": "initiative.updated",
-          "seq": 73,
+          "seq": 74,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [],
@@ -13053,7 +13538,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -13090,7 +13576,7 @@
       "events": [
         {
           "type": "room.updated",
-          "seq": 74,
+          "seq": 75,
           "room": {
             "id": "010000000000000000000000Z8",
             "name": "The Sunless Citadel",
@@ -13128,7 +13614,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {
@@ -13165,7 +13652,7 @@
       "events": [
         {
           "type": "room.closed",
-          "seq": 75
+          "seq": 76
         }
       ],
       "state": {
@@ -13198,7 +13685,8 @@
             "diagonals": "equal"
           },
           "pawnLabels": "default",
-          "playersCanDraw": true
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped"
         },
         "players": [
           {

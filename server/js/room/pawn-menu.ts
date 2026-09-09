@@ -84,6 +84,14 @@ export function mountPawnMenu(mount: HTMLElement, deps: PawnMenuDeps): PawnMenu 
 	// the reason the Delete key's button is: it is not part of the panel, it is
 	// never seen, and it exists only because a request needs an element.
 	const mover = mount.querySelector("[data-pawn-menu-move]");
+
+	// AND THE ONE THAT PUTS THIS PAWN IN THE TURN ORDER. Sync tracker covers
+	// every creature a player can see on a floor a player is standing on, which
+	// is the fight; this is the other case -- a creature that is hidden, or
+	// waiting on an empty floor to burst in, that the GM wants in the order
+	// anyway. It is here rather than in a dialog because this is where the GM
+	// already is when they are looking at that goblin.
+	const turner = mount.querySelector("[data-pawn-menu-add-turn]");
 	const template = mount.querySelector("[data-pawn-menu-template]");
 	const shell = template instanceof HTMLTemplateElement ? template : null;
 
@@ -221,6 +229,22 @@ export function mountPawnMenu(mount: HTMLElement, deps: PawnMenuDeps): PawnMenu 
 		mover.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 	}
 
+	// addTurn presses the hidden button with the pawn written onto it, which is
+	// moveTo's shape and is the same reason: htmx reads the verb attribute when
+	// it PROCESSES an element, so a request built here would be a second way for
+	// a refusal to reach the reader.
+	function addTurn(): void {
+		const pawn = target;
+		close();
+
+		if (!pawn || !(turner instanceof HTMLElement)) {
+			return;
+		}
+
+		turner.setAttribute("hx-vals", JSON.stringify({ pawn: pawn.id }));
+		turner.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+	}
+
 	// vals is the id in the shape the route reads: one comma-separated field,
 	// because that is what the overlay's whole selection posts and there is no
 	// second route for a list of one.
@@ -239,6 +263,12 @@ export function mountPawnMenu(mount: HTMLElement, deps: PawnMenuDeps): PawnMenu 
 			if (pawn) {
 				deps.details(pawn);
 			}
+
+			return;
+		}
+
+		if (e.target.closest("[data-pawn-menu-turn]")) {
+			addTurn();
 
 			return;
 		}

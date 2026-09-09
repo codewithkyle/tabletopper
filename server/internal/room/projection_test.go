@@ -73,7 +73,7 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(string(tc.setting), func(t *testing.T) {
 			w := newWorld(t)
-			w.apply(&TableSetOptions{PawnLabels: tc.setting, PlayersCanDraw: true}, w.gm)
+			w.apply(&TableSetOptions{PawnLabels: tc.setting, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, w.gm)
 
 			for _, kind := range kinds {
 				p := Pawn{Kind: kind, Name: string(kind), Visible: true, HP: intp(5), MaxHP: intp(20), AC: intp(15)}
@@ -251,7 +251,7 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Ambusher", Visible: false, HP: intp(5), MaxHP: intp(5)})
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Downstairs", LayerID: cellar, Visible: true, HP: intp(5), MaxHP: intp(5)})
 
-	ems := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true}, w.gm)
+	ems := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, w.gm)
 
 	// The table, then one pawn per monster or npc the players can actually
 	// see. Not the player's own pawn, whose projection did not change; not the
@@ -271,7 +271,7 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 	}
 
 	// Setting it to what it already is emits the table and nothing else.
-	again := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false}, w.gm)
+	again := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false, InitiativeGrouping: GroupMonsters}, w.gm)
 	equalStrings(t, "emissions", summary(again), []string{"table.updated to all"})
 }
 

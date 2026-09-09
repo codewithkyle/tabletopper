@@ -12,6 +12,7 @@
     "@tiptap/markdown": "3.31.3",
     "@tiptap/pm": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
+    "sortablejs": "1.15.6",
     "vanilla-colorful": "0.7.2"
   },
   "devDependencies": {

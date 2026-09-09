@@ -527,6 +527,33 @@ func (d RoomPawnData) RemoveVals() string {
 	return `{"ids": "` + d.Pawn.ID + `"}`
 }
 
+// AddTurnPath, AddTurnVals and AddTurnLabel are the header's Add to initiative
+// button, which is the GM's.
+//
+// IT IS HERE AS WELL AS ON THE RIGHT-CLICK MENU, and the pair is decision 19 of
+// the turn-order design rather than two ways to do one thing. Sync tracker
+// covers every creature a player can see on a floor a player is standing on,
+// which is the fight; what neither Sync nor a checklist reaches is the creature
+// the GM is looking at RIGHT NOW that Sync would not take -- one that is hidden,
+// or waiting on an empty floor to burst in. This window and that menu are the
+// two places a GM is already looking at one pawn.
+//
+// IT IS NOT DISABLED FOR A PAWN THAT IS ALREADY IN THE ORDER, because this
+// panel is not told what is in the order and asking would be a second read on
+// every refetch of every open window. The route answers that one with a
+// sentence in the alert modal.
+func (d RoomPawnData) AddTurnPath() string {
+	return "/rooms/" + d.RoomID + "/initiative"
+}
+
+func (d RoomPawnData) AddTurnVals() string {
+	return `{"pawn": "` + d.Pawn.ID + `"}`
+}
+
+func (d RoomPawnData) AddTurnLabel() string {
+	return "Add " + d.Pawn.Name + " to the initiative tracker"
+}
+
 // ConditionRowPath is where the Add condition button fetches an empty row.
 //
 // IT IS A FRAGMENT AND NOT A CLIENT-SIDE CLONE, which is the shape the

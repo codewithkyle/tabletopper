@@ -38,7 +38,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.clearLayerMap", &TableClearLayerMap{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setActiveLayer", &TableSetActiveLayer{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setGrid", &TableSetGrid{Grid: w.s.Table.Grid}, ok, CodeForbidden, CodeForbidden},
-		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull}, ok, CodeForbidden, CodeForbidden},
+		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull, InitiativeGrouping: GroupMonsters}, ok, CodeForbidden, CodeForbidden},
 		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
 
 		// Putting something on the table is the GM's act, a player's own
@@ -55,6 +55,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"pawn.remove", &PawnRemove{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
 
 		{"initiative.set", &InitiativeSet{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.sync", &InitiativeSync{}, ok, CodeForbidden, CodeForbidden},
 
 		// The one command whose player column depends on the state rather than
 		// on ownership of a thing named in it: whoever's turn it is may end it.
@@ -153,7 +154,7 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	// The owner's pawn is up in the tracker, which is what makes the
 	// initiative.next row's middle column mean anything.
 	w.apply(&InitiativeSet{
-		Entries: []InitiativeEntry{{Name: "Ari", PawnID: &fx.owned, Initiative: 18}},
+		Entries: []InitiativeEntry{{Name: "Ari", PawnIDs: []ulid.ULID{fx.owned}, Initiative: 18}},
 	}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
 

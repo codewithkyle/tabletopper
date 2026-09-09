@@ -26,6 +26,8 @@ export type GridLines = "off" | "solid" | "dashed";
 
 export type HPBand = "healthy" | "bruised" | "bloody" | "veryBloody" | "nearDeath" | "dead";
 
+export type InitiativeGrouping = "grouped" | "individual";
+
 export type PawnKind = "player" | "monster" | "npc" | "object";
 
 export type PawnLabels = "none" | "default" | "full";
@@ -77,7 +79,7 @@ export interface Initiative {
 
 export interface InitiativeEntry {
 	id: string;
-	pawnId: string | null;
+	pawnIds: string[];
 	name: string;
 	initiative: number;
 }
@@ -178,6 +180,7 @@ export interface Table {
 	grid: Grid;
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
+	initiativeGrouping: InitiativeGrouping;
 }
 
 
@@ -235,6 +238,11 @@ export interface InitiativeSet {
 	cid: string;
 	entries: InitiativeEntry[];
 	active: string | null;
+}
+
+export interface InitiativeSync {
+	type: "initiative.sync";
+	cid: string;
 }
 
 export interface PawnDrag {
@@ -435,6 +443,7 @@ export interface TableSetOptions {
 	cid: string;
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
+	initiativeGrouping: InitiativeGrouping;
 }
 
 export type Command =
@@ -446,6 +455,7 @@ export type Command =
 	| InitiativeClear
 	| InitiativeNext
 	| InitiativeSet
+	| InitiativeSync
 	| PawnDrag
 	| PawnMove
 	| PawnRemove

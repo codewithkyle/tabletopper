@@ -107,12 +107,7 @@ func (s *State) Clone() State {
 		c.Pawns[i] = clonePawn(p)
 	}
 
-	c.Initiative.Active = cloneID(s.Initiative.Active)
-	c.Initiative.Entries = make([]InitiativeEntry, len(s.Initiative.Entries))
-	for i, e := range s.Initiative.Entries {
-		e.PawnID = cloneID(e.PawnID)
-		c.Initiative.Entries[i] = e
-	}
+	c.Initiative = cloneInitiative(s.Initiative)
 
 	c.Fog = make([]FogShape, len(s.Fog))
 	for i, f := range s.Fog {
@@ -214,6 +209,42 @@ func (s *State) Project(role Role) State {
 	c.Normalize()
 
 	return c
+}
+
+// Health is the band an interface draws a creature's injuries from, and it is
+// the Go twin of healthOf in server/js/room/render/wounds.ts.
+//
+// THE NUMBER WINS WHERE BOTH ARRIVE, which is every player character in every
+// room and every monster in a room whose labels are full. The band is what a
+// viewer was given INSTEAD of the numbers, so it is only read when there is no
+// number to read -- and nil is the third answer, for a creature this viewer was
+// told nothing about at all.
+//
+// IT IS NOT hpBand AND IT IS NOT A SECOND COPY OF IT EITHER. hpBand turns a
+// pair of numbers into a band; this decides WHICH of a projected pawn's two
+// answers to ask, and then asks hpBand. The pair is the same one bandOf and
+// healthOf make on the client, which is what stops a card and the sprite beside
+// it from disagreeing.
+func Health(p Pawn) *HPBand {
+	if p.HP != nil {
+		return hpBand(p.HP, p.MaxHP)
+	}
+
+	return p.HPBand
+}
+
+// Dead is a creature this viewer can see is finished.
+//
+// IT READS THE BAND RATHER THAN THE NUMBER, so that it answers the same for a
+// GM holding "0 / 7" and for a player who was handed the word. A pawn nobody
+// told this viewer anything about is not dead as far as they are concerned,
+// which is the honest reading and is also what keeps the skip rule from
+// silently passing over a monster in a room with its labels off -- the skip is
+// decided on the GM's copy, where the numbers always are.
+func Dead(p Pawn) bool {
+	b := Health(p)
+
+	return b != nil && *b == BandDead
 }
 
 func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {

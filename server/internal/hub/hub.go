@@ -362,6 +362,55 @@ func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role
 	}
 }
 
+// InitiativeView is the turn tracker as one role may see it, the pawns it
+// names, and the table those pawns were projected against.
+//
+// THE THREE ARE ANSWERED TOGETHER BECAUSE THE STRIP DRAWS THEM TOGETHER. A card
+// is a pawn's portrait, its name and its wounds under a line of the tracker, so
+// a fragment that fetched the tracker and then asked for each pawn separately
+// would be quoting a turn order from one instant and a goblin's hit points from
+// another -- and would be applying a second, different filter on the way. See
+// room.ProjectedInitiative, which is where that second filter would have been
+// the bug.
+//
+// PAWNS IS KEYED BY ID because the caller looks up one pawn per member of every
+// line, and a slice would be a scan per pip.
+type InitiativeView struct {
+	Initiative room.Initiative
+	Pawns      map[ulid.ULID]room.Pawn
+	Table      room.Table
+}
+
+// Initiative is the live turn tracker for the strip over the table.
+//
+// IT LOADS THE ROOM, which is Table's rule rather than Pawn's. The strip is
+// fetched on every page load, by everybody, and the socket connects a moment
+// later and would have loaded the room anyway; making the first fetch answer
+// with an empty tracker so that the second one could be right buys nothing.
+//
+// THE ROLE IS A PARAMETER AND THE PROJECTION IS NOT OPTIONAL, for the reason
+// spelled out on Pawn above: a fragment route is a second door into state the
+// socket projects on the way out, and a hidden monster must not come back
+// through it as a line in somebody's turn order.
+func (h *Hub) Initiative(ctx context.Context, roomID ulid.ULID, role room.Role) (*InitiativeView, bool) {
+	a, err := h.room(ctx, roomID)
+	if err != nil {
+		return nil, false
+	}
+
+	reply := make(chan *InitiativeView, 1)
+	if err := a.post(ctx, initiativeView{role: role, reply: reply}); err != nil {
+		return nil, false
+	}
+
+	select {
+	case view := <-reply:
+		return view, view != nil
+	case <-ctx.Done():
+		return nil, false
+	}
+}
+
 // spawn is what resolving a spawn needs out of the running room. It is
 // unexported because nothing outside this package resolves a command.
 func (h *Hub) spawn(ctx context.Context, roomID ulid.ULID) (*SpawnView, bool) {

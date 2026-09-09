@@ -78,6 +78,14 @@ type (
 		reply chan *room.Pawn
 	}
 
+	// initiativeView is the turn tracker as one role may see it, together
+	// with the pawns it names. The two travel together because they are
+	// filtered together; see room.ProjectedInitiative.
+	initiativeView struct {
+		role  room.Role
+		reply chan *InitiativeView
+	}
+
 	// spawnView is what resolving a spawn needs and only the room knows: who
 	// is at the table, which floor is active, and how big its map is.
 	spawnView struct{ reply chan *SpawnView }
@@ -236,6 +244,9 @@ func (a *actor) handle(m any) bool {
 
 	case pawnView:
 		m.reply <- a.state.ProjectedPawn(m.id, m.role)
+
+	case initiativeView:
+		m.reply <- a.initiative(m.role)
 
 	case spawnView:
 		m.reply <- a.spawn()
@@ -844,6 +855,18 @@ func (a *actor) spawn() *SpawnView {
 	return view
 }
 
+// initiative is the tracker, the pawns it names and the table, projected for
+// one role and read in one pass on this goroutine.
+func (a *actor) initiative(role room.Role) *InitiativeView {
+	tracker, pawns := a.state.ProjectedInitiative(role)
+
+	return &InitiativeView{
+		Initiative: tracker,
+		Pawns:      pawns,
+		Table:      a.state.Clone().Table,
+	}
+}
+
 // drain answers whatever arrived in the instant between this room deciding to
 // retire and removing itself from the hub's map. Every sender selects on done
 // as well as on the inbox, so the window is one scheduling gap wide -- but a
@@ -867,6 +890,8 @@ func (a *actor) drain() {
 			case tableView:
 				m.reply <- nil
 			case pawnView:
+				m.reply <- nil
+			case initiativeView:
 				m.reply <- nil
 			case spawnView:
 				m.reply <- nil

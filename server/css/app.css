@@ -302,3 +302,238 @@
 
    That is the note above running in reverse, and it is the largest single move
    the stylesheet has made in either direction. */
+
+/* THE WOUNDS ON A TURN-ORDER PORTRAIT, AND THEY ARE THE PAWN SHADER'S NUMBERS.
+
+   The strip over the table draws one face per line of the initiative order, and
+   a face wears exactly what the sprite on the table wears: blood soaking in from
+   the rim, the colour draining out, a pulse inside the rim at two rates, one of
+   the nine splatters, and a skull. It is the same scale from the same numbers,
+   because both sides read one band -- room.Health in the Go, healthOf in
+   server/js/room/render/wounds.ts -- and the server renders that band onto the
+   element as data-band. Nothing here computes anything.
+
+   EVERY VALUE BELOW IS wounds.ts's, unchanged: hurt() is 0.45, 0.75 and 1;
+   SLOW_PERIOD is 1800ms and BEAT_PERIOD is 1050ms; bleeds() is the three bands
+   that carry a splatter; BLOOD_FRESH and BLOOD_DRIED are the two reds. A change
+   to one file is a change to both.
+
+   NOTHING ABOVE THE HALFWAY LINE IS MARKED AT ALL, which is hurt()'s most
+   important entry: a strip where every creature looks wounded is a strip with no
+   signal in it. AND A CORPSE IS NOT RIM-MARKED EITHER -- the grey and the skull
+   say more, and a red rim under a full grey would be greyed away in the same
+   breath. What a corpse keeps is the blood ON it, dried.
+
+   IT IS CSS AND NOT JAVASCRIPT because all of it hangs off that one attribute,
+   and it is HERE rather than in a .templ file for the reason every rule in this
+   file is: server/js is not a Tailwind source, so a class named in a script is
+   never emitted, and prose in a template is a class-name candidate. The two
+   Sortable classes at the bottom are named in js/room/initiative.ts and defined
+   here for exactly that reason.
+
+   THE PULSE IS A GRADIENT THAT BEATS AND NOTHING TRAVELS, which is the shader's
+   rule as well: a shape crossing the token pulls the eye off the token, and a
+   ring collapsing inward arrives on the face at the end of every beat -- the one
+   part of a portrait that has to stay legible. So the geometry is fixed, bright
+   at the rim and falling off inward, and only its brightness moves. The rhythm
+   is lub-dub rather than a sine, because a sine reads as "selected" or as
+   something loading and two thumps and a silence reads as a heart.
+
+   AND THE REDUCED-MOTION CASE KEEPS THE GLOW AT ITS BRIGHT END rather than
+   dropping it. The pulse is information; the animation is only how it is
+   delivered. */
+
+:root {
+  --blood-fresh: rgb(255 33 26);
+  --blood-fresh-clear: rgb(255 33 26 / 0);
+  --blood-dried: rgb(87 15 13);
+  --blood-dried-clear: rgb(87 15 13 / 0);
+}
+
+[data-portrait],
+[data-pip] {
+  --wound: 0;
+  --splatter: 0;
+  --blood: var(--blood-fresh);
+  --blood-clear: var(--blood-fresh-clear);
+  --pip: var(--color-success);
+  --pip-alpha: 1;
+}
+
+/* The six bands. They come after the defaults above rather than being written
+   at a higher specificity, because both selectors match the same element and the
+   later one wins -- which is also why healthy and bruised need no block at all:
+   they are the defaults, and that is what "nothing above the halfway line is
+   marked" means in a stylesheet. */
+[data-band="bloody"] {
+  --wound: 0.45;
+  --pip: var(--color-warning);
+}
+
+[data-band="veryBloody"] {
+  --wound: 0.75;
+  --splatter: 1;
+  --pip: var(--color-error);
+}
+
+[data-band="nearDeath"] {
+  --wound: 1;
+  --splatter: 1;
+  --pip: var(--color-error);
+}
+
+[data-band="dead"] {
+  --splatter: 1;
+  --blood: var(--blood-dried);
+  --blood-clear: var(--blood-dried-clear);
+  --pip: var(--color-base-content);
+  --pip-alpha: 0.3;
+}
+
+/* The colour going out of the creature. This is the shader's mix(rgb, luma,
+   grey) in the one form CSS has of it, and it is on the FACE rather than on the
+   portrait so that the blood over it is not desaturated in the same pass. */
+[data-portrait] [data-face] {
+  filter: saturate(calc(1 - var(--wound)));
+}
+
+[data-band="dead"] [data-face] {
+  filter: grayscale(1) brightness(0.6);
+}
+
+/* The splatter: one of the nine, shaped by its own alpha and faded out toward
+   the middle, so it soaks in from the edges rather than covering the face.
+
+   THE PAINT IS THE GRADIENT AND THE PICTURE IS THE MASK, which is one mask and
+   one gradient rather than two masks composited -- the intersection falls out of
+   the paint being transparent where the rim mask would have been. A splatter is
+   dense in the middle, which is exactly where a face is. */
+[data-portrait]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 50% 50%, var(--blood-clear) 25%, var(--blood) 62%);
+  -webkit-mask-image: var(--splatter-image, none);
+  mask-image: var(--splatter-image, none);
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+[data-portrait][data-blood]::before {
+  opacity: var(--splatter);
+}
+
+/* The blood at the rim, pooling toward the bottom of the disc as the shader's
+   does: a ring that is transparent through the middle, and a second gradient
+   anchored below the portrait that is what "pooling" is. */
+[data-portrait]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: var(--wound);
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--blood-clear) 45%, var(--blood) 100%),
+    radial-gradient(75% 55% at 50% 105%, var(--blood) 0%, var(--blood-clear) 100%);
+}
+
+/* The pulse. Fixed geometry, brightness only; see the note at the top. */
+[data-portrait] [data-pulse] {
+  opacity: 0;
+  box-shadow: inset 0 0 10px 2px var(--blood);
+}
+
+[data-band="veryBloody"] [data-pulse] {
+  opacity: 0.55;
+}
+
+[data-band="nearDeath"] [data-pulse] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-band="veryBloody"] [data-pulse] {
+    animation: initiative-beat-slow 1800ms linear infinite;
+  }
+
+  [data-band="nearDeath"] [data-pulse] {
+    animation: initiative-beat-fast 1050ms linear infinite;
+  }
+}
+
+/* Lub-dub, as percentages of each period. The two knocks are the same LENGTH at
+   both rates and only the rest between them changes, which is what a slower
+   heart actually is -- stretching the knock as well would turn it into a swell.
+   The second knock is quieter than the first. These are THUMPS, ATTACK and DECAY
+   in wounds.ts, arithmetic already done: 50ms to the top of a knock and 150ms
+   back down, with the second beginning at 220ms. */
+@keyframes initiative-beat-slow {
+  0% { opacity: 0; }
+  2.8% { opacity: 0.55; }
+  11.1% { opacity: 0; }
+  12.2% { opacity: 0; }
+  15% { opacity: 0.43; }
+  23.3% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes initiative-beat-fast {
+  0% { opacity: 0; }
+  4.8% { opacity: 1; }
+  19% { opacity: 0; }
+  21% { opacity: 0; }
+  25.7% { opacity: 0.78; }
+  40% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* The skull, and it is the 💀 GLYPH RATHER THAN A FILE. drawSkull in
+   server/js/room/render/sprites.ts renders that same character to a canvas at
+   0.8 of a sprite, so the mark on the strip and the mark on the table are the
+   same typeface doing the same thing and neither needs an asset. The element it
+   sits in carries the size, which is 70 percent of the portrait's diameter at
+   both of the two sizes a line is drawn at. */
+[data-band="dead"] [data-skull]::after {
+  content: "💀";
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6));
+}
+
+/* One member of a group. It is the same band treatment at dot size, so six up
+   and three down is six coloured discs and three grey ones with one rule set
+   doing both. */
+[data-pip] {
+  background-color: var(--pip);
+  opacity: var(--pip-alpha);
+}
+
+/* The nine splatters, which live under /images/blood at 256 square and are the
+   same files the sprite cache loads. Which one a creature wears is chosen from
+   its pawn id in Go -- see InitiativeBloodVariant -- so everybody at the table
+   sees the same one, and it is deliberately not the one the canvas chose for the
+   marks on the floor. */
+[data-blood="1"] { --splatter-image: url("/images/blood/1.webp"); }
+[data-blood="2"] { --splatter-image: url("/images/blood/2.webp"); }
+[data-blood="3"] { --splatter-image: url("/images/blood/3.webp"); }
+[data-blood="4"] { --splatter-image: url("/images/blood/4.webp"); }
+[data-blood="5"] { --splatter-image: url("/images/blood/5.webp"); }
+[data-blood="6"] { --splatter-image: url("/images/blood/6.webp"); }
+[data-blood="7"] { --splatter-image: url("/images/blood/7.webp"); }
+[data-blood="8"] { --splatter-image: url("/images/blood/8.webp"); }
+[data-blood="9"] { --splatter-image: url("/images/blood/9.webp"); }
+
+/* The two classes SortableJS is told to use while a line is being dragged. They
+   are options rather than defaults, so nothing is written into the DOM that we
+   did not name -- and they are here because js/room/initiative.ts, where they
+   are named, is not a Tailwind source. */
+.initiative-ghost {
+  opacity: 0.3;
+}
+
+.initiative-chosen {
+  cursor: grabbing;
+}

@@ -23,6 +23,7 @@ templ RoomGrid(data RoomGridData) {
 		@gridRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
 		@gridRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
 		@gridRadios("pawnLabels", "What a pawn is labelled with", PawnLabelChoices(), data.PawnLabels)
+		@gridRadios("initiativeGrouping", "How monsters take their turns", InitiativeGroupingChoices(), data.InitiativeGrouping)
 		@gridToggle("playersCanDraw", "Players may draw on the tabletop", data.PlayersCanDraw)
 	</form>
 }

@@ -17,7 +17,14 @@ function layer(id: string, map: MapRef | null): Layer {
 }
 
 function table(active: string, layers: Layer[]): Table {
-	return { layers, activeLayer: active, grid: grid(), pawnLabels: "default", playersCanDraw: true };
+	return {
+		layers,
+		activeLayer: active,
+		grid: grid(),
+		pawnLabels: "default",
+		playersCanDraw: true,
+		initiativeGrouping: "grouped",
+	};
 }
 
 function grid(): Table["grid"] {

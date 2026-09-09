@@ -584,7 +584,7 @@ func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 		url.Values{
 			"gridLines": {"solid"}, "cellSize": {"4"}, "offsetX": {"0"}, "offsetY": {"0"},
 			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-			"diagonals": {"equal"}, "pawnLabels": {"default"},
+			"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 		}, session.UserSession{UserID: testOwnerID})
 
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -612,7 +612,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 		url.Values{
 			"gridLines": {"dashed"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
 			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"},
-			"diagonals": {"alternating"}, "pawnLabels": {"none"}, "playersCanDraw": {"on"},
+			"diagonals": {"alternating"}, "pawnLabels": {"none"}, "initiativeGrouping": {"grouped"}, "playersCanDraw": {"on"},
 		}, session.UserSession{UserID: testOwnerID})
 
 	if rec.Code != http.StatusOK {
@@ -653,7 +653,7 @@ func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
 		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-		"diagonals": {"equal"}, "pawnLabels": {"default"},
+		"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -683,7 +683,7 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 		url.Values{
 			"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
 			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-			"diagonals": {"equal"}, "pawnLabels": {"default"},
+			"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 		}, session.UserSession{UserID: testOwnerID})
 
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -700,7 +700,7 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"  3355ffcc  "},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"},
+		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -720,7 +720,7 @@ func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"sixty four"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"#000000FF"},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"},
+		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 

@@ -507,6 +507,27 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/hp", auth.RequireSession(app.UpdatePawnHP))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/name", auth.RequireSession(app.RenamePawn))
 
+	// THE TURN ORDER. Eight routes, and seven of them are the GM's; the core
+	// refuses the rest of the room rather than the mux, which is what lets Next
+	// be the one exception without a rule of its own here -- whoever owns a
+	// pawn in the acting line may end its turn.
+	//
+	// SYNC AND CLEAR ARE POSTS BECAUSE THEY ARE MENU ITEMS. A menu item is a
+	// button carrying hx-post; making a clear the one DELETE would mean a
+	// second branch in the item markup for one route. It is ClearTabletop's
+	// reasoning, one menu along.
+	//
+	// EVERY ONE OF THEM ANSWERS 204 AND REDRAWS NOTHING. Each ends in
+	// initiative.updated, the strip listens for it, and the tab that sent the
+	// command is corrected by the same event as the tab beside it.
+	mux.HandleFunc("POST /rooms/{id}/initiative", auth.RequireSession(app.AddInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/sync", auth.RequireSession(app.SyncInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/order", auth.RequireSession(app.OrderInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/next", auth.RequireSession(app.NextInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/clear", auth.RequireSession(app.ClearInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/{entry}/activate", auth.RequireSession(app.ActivateInitiative))
+	mux.HandleFunc("DELETE /rooms/{id}/initiative/{entry}", auth.RequireSession(app.RemoveInitiative))
+
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
 	//
@@ -766,6 +787,22 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
 	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
+
+	// The turn order, and the two halves of it split the way the pawn
+	// fragments above do.
+	//
+	// THE STRIP IS EVERYBODY'S AND IS PROJECTED FOR THEM. It is the only live
+	// surface on the room page that is neither the canvas nor a window, because
+	// a turn order is read by the whole table every few seconds for the minutes
+	// a fight lasts. hub.Initiative answers it with the copy the asking role
+	// may see: a hidden monster has no line in a player's copy and a hidden
+	// goblin is missing from its group's dots, which is the same rule the
+	// socket applies on the way out.
+	//
+	// THE ADD DIALOG IS THE GM'S, like the layer manager: it is a control for
+	// the fight rather than a reading of it.
+	mux.HandleFunc("GET /fragment/room/initiative", auth.Fragment(app.RoomInitiativeFragment))
+	mux.HandleFunc("GET /fragment/room/initiative/entry", auth.Fragment(app.RoomInitiativeEntryFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have

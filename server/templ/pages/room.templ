@@ -50,6 +50,12 @@ templ roomContent(data RoomPageData) {
 					</p>
 				}
 				@roomOverlay(data)
+				if !data.Closed {
+					@roomInitiativeMount(data)
+					if data.IsGM() {
+						@roomInitiativeMenu(data)
+					}
+				}
 				@roomPawnMenu(data)
 				if data.IsGM() {
 					@roomRemoveKey(data)

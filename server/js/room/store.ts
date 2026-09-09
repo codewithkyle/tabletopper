@@ -181,6 +181,7 @@ export function empty(): State {
 			},
 			pawnLabels: "default",
 			playersCanDraw: true,
+			initiativeGrouping: "grouped",
 		},
 		players: [],
 		pawns: [],

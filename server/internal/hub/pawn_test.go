@@ -33,7 +33,7 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 
-	tb.send(gm, "opt", &room.TableSetOptions{PawnLabels: room.LabelsDefault, PlayersCanDraw: true})
+	tb.send(gm, "opt", &room.TableSetOptions{PawnLabels: room.LabelsDefault, PlayersCanDraw: true, InitiativeGrouping: room.GroupMonsters})
 	frames(t, gm)
 	frames(t, player)
 

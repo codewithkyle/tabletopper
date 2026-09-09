@@ -65,6 +65,20 @@ templ pawnActions(data RoomPawnData) {
 				</button>
 			</div>
 		}
+		if data.IsGM && !data.Pawn.Object {
+			<div class="tooltip tooltip-left" data-tip="Add to initiative">
+				<button
+					type="button"
+					class="btn btn-square btn-ghost btn-xs text-base-content/60"
+					aria-label={ data.AddTurnLabel() }
+					hx-post={ data.AddTurnPath() }
+					hx-vals={ data.AddTurnVals() }
+					hx-swap="none"
+				>
+					@swordsIcon()
+				</button>
+			</div>
+		}
 		if data.IsGM {
 			<div class="tooltip tooltip-left" data-tip="Remove">
 				<button

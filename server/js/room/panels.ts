@@ -31,8 +31,28 @@
 // holds the whole projected room in store.ts, which is what the debug panel
 // reads. That escape hatch exists and needs no change to the protocol.
 
-import type { Event } from "./protocol.ts";
+import type { Event, InitiativeEntry } from "./protocol.ts";
 import { PAWN_WINDOW } from "./pawn-window.ts";
+
+// tracked is the set of pawn ids the turn order names, and it is the one piece
+// of state this file holds.
+//
+// THE STRIP LISTENS FOR room:initiative AND DAMAGE ARRIVES AS pawn.updated. A
+// line of the turn order wears its creature's wounds -- blood, pallor, a pulse,
+// a skull -- and every one of those is read off hit points that change through
+// the pawn family, which raises room:pawn with an id and nothing else. Without
+// this, the blood on the strip would be stale until the turn advanced, which is
+// the one thing that treatment cannot afford.
+//
+// IT IS THE PANEL-SIDE MIRROR OF THE FILTER EACH PAWN WINDOW CARRIES. A window
+// cares about one id and says so in its own markup; a strip cares about a SET,
+// and a set is not something an hx-trigger filter can hold -- so it is asked for
+// here instead.
+//
+// IT STAYS INSIDE THE HOT-PATH RULE. Hit points, conditions and names change a
+// few times a round. pawn.moved and pawn.dragging are not in the switch below
+// and panels.test.ts asserts they raise nothing at all.
+let tracked = new Set<string>();
 
 // panelEvents is which DOM event each family of protocol events raises. A
 // family that no panel listens for is simply absent.
@@ -52,11 +72,17 @@ const everything = ["room:players", "room:initiative", "room:info", "room:tablet
 
 export function announce(event: Event): void {
 	if (event.type === "snapshot") {
+		track(event.state.initiative.entries);
+
 		for (const name of everything) {
 			window.dispatchEvent(new CustomEvent(name));
 		}
 
 		return;
+	}
+
+	if (event.type === "initiative.updated") {
+		track(event.initiative.entries);
 	}
 
 	// THE PAWN EVENTS CARRY AN ID AND THE REST DO NOT, and the id is what makes
@@ -102,4 +128,23 @@ export function announce(event: Event): void {
 
 function pawnChanged(id: string): void {
 	window.dispatchEvent(new CustomEvent("room:pawn", { detail: { id } }));
+
+	if (tracked.has(id)) {
+		window.dispatchEvent(new CustomEvent("room:initiative"));
+	}
+}
+
+// track refreshes the set from a tracker that has just arrived. It is rebuilt
+// rather than added to, because a line leaving the order is exactly as
+// interesting as one joining it: a goblin taken out of the tracker should stop
+// costing a refetch every time it is hit.
+function track(entries: readonly InitiativeEntry[]): void {
+	const ids = new Set<string>();
+	for (const entry of entries) {
+		for (const id of entry.pawnIds) {
+			ids.add(id);
+		}
+	}
+
+	tracked = ids;
 }

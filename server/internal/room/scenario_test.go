@@ -51,7 +51,7 @@ func scenario(r *recorder) {
 	grid.Color = "#334455ff"
 	r.do("line the grid up with the map", &TableSetGrid{Grid: grid}, gm)
 
-	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true}, gm)
+	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 
 	// --- The party arrives. ---
 
@@ -112,13 +112,19 @@ func scenario(r *recorder) {
 		ID: wagon, Width: intp(96), Height: intp(320), Rotation: intp(-90),
 	}, gm)
 
-	r.do("hide the numbers again now the fight is on", &TableSetOptions{PawnLabels: LabelsDefault, PlayersCanDraw: true}, gm)
+	r.do("hide the numbers again now the fight is on", &TableSetOptions{PawnLabels: LabelsDefault, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 
 	// --- The fight. ---
 
+	// SYNC BUILDS THE ORDER FROM THE TABLE and the GM drags it into shape
+	// afterwards, which is the pair of gestures the feature is made of. Ari,
+	// Rin and the goblin go in; the ambusher is hidden and the wagon is an
+	// object, so neither does.
+	r.do("the GM builds the turn order from the table", &InitiativeSync{}, gm)
+
 	r.do("roll for initiative", &InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "Ari", PawnID: &ari, Initiative: 19},
-		{Name: "Goblin", PawnID: &goblin, Initiative: 14},
+		{Name: "Ari", PawnIDs: []ulid.ULID{ari}, Initiative: 19},
+		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 14},
 		{Name: "Lair action", Initiative: 20},
 	}}, gm)
 

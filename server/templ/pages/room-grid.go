@@ -54,6 +54,8 @@ type RoomGridData struct {
 	PawnLabels     string
 	PlayersCanDraw bool
 
+	InitiativeGrouping string
+
 	Errors []string
 }
 
@@ -184,6 +186,27 @@ func GridDiagonalChoices() []Choice {
 // described or calculated, and "Healthy, bruised, bloody" is what that reads
 // like on the table. The full list is six long and the hint gives the ends of
 // it rather than all of it; internal/room's HPBand has them all.
+// InitiativeGroupingChoices is how a sync turns monsters into lines of the
+// turn order, and it is here rather than in the markup for the reason every
+// other hint in this file is: Tailwind reads a .templ file as text and takes a
+// class-name candidate from every word in it, so a sentence about a card or a
+// list in a template is a DaisyUI component family in the stylesheet.
+//
+// GROUPED IS FIRST AND IS THE DEFAULT because it is how most tables run most
+// fights. The hints are written as the fight rather than as the feature: what a
+// GM is choosing between is nine turns of bookkeeping and one, and the goblins
+// are what makes that concrete.
+//
+// IT SAYS MONSTERS AND MEANS MONSTERS. An NPC is a named individual and is
+// never grouped with another; players never are either. See
+// room.InitiativeGrouping.
+func InitiativeGroupingChoices() []Choice {
+	return []Choice{
+		{Value: "grouped", Label: "Grouped", Hint: "Nine goblins take one turn together, on one line, with a dot each for how hurt they are."},
+		{Value: "individual", Label: "One at a time", Hint: "Every monster gets a line of its own. Switch to this for a fight where each of them matters."},
+	}
+}
+
 func PawnLabelChoices() []Choice {
 	return []Choice{
 		{Value: "none", Label: "None", Hint: "No panel over any pawn, for anybody. Every pawn's window is still yours."},

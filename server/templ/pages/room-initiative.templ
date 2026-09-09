@@ -1,0 +1,255 @@
+package pages
+
+const initiativeStrip = "pointer-events-auto flex max-w-full items-start gap-1 rounded-box border border-base-300 bg-panel/95 px-1.5 py-1 shadow-panel backdrop-blur-sm"
+
+const initiativeEntryBox = "flex shrink-0 flex-col items-center gap-1 rounded-box p-1"
+
+const initiativeDisc = "relative block shrink-0 overflow-hidden rounded-full border border-base-300 bg-base-300"
+
+const initiativeName = "w-full truncate text-center text-[10px] leading-tight"
+
+templ RoomInitiative(data RoomInitiativeData) {
+	<div
+		id={ RoomInitiativeID }
+		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center p-2"
+		hx-get={ data.Path() }
+		hx-trigger={ data.Trigger() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		hidden?={ data.Empty }
+		data-turns
+		if data.IsGM {
+			data-reorder
+		}
+	>
+		<div class={ initiativeStrip }>
+			@initiativeRound(data)
+			<div data-entries class="flex min-w-0 items-start gap-1 overflow-x-auto">
+				for _, e := range data.Entries {
+					@initiativeEntry(data, e)
+				}
+			</div>
+			if data.IsGM {
+				<div class="flex shrink-0 items-center self-stretch pl-0.5">
+					<button
+						type="button"
+						data-turn-next
+						class="btn btn-xs btn-primary"
+						hx-post={ data.NextPath() }
+						hx-swap="none"
+					>Next</button>
+				</div>
+			}
+		</div>
+		if data.IsGM {
+			<button
+				type="button"
+				data-turn-order
+				hidden
+				hx-post={ data.OrderPath() }
+				hx-swap="none"
+				hx-vals=""
+			>Reorder</button>
+		}
+	</div>
+}
+
+templ initiativeRound(data RoomInitiativeData) {
+	<div class="flex shrink-0 flex-col items-center justify-center px-1">
+		<span class="text-[9px] leading-none tracking-wide text-base-content/55 uppercase">Round</span>
+		<span class="text-sm leading-tight font-semibold tabular-nums">{ data.Round }</span>
+	</div>
+}
+
+templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
+	<div
+		data-entry={ e.ID }
+		class={ initiativeEntryBox,
+			templ.KV("w-24 bg-primary/15 ring-2 ring-primary", e.Active),
+			templ.KV("w-16", !e.Active) }
+		if e.Active {
+			data-turn-active
+		}
+		if e.Solo != "" {
+			data-entry-solo={ e.Solo }
+		}
+	>
+		if data.IsGM {
+			<button
+				type="button"
+				class="flex w-full cursor-pointer flex-col items-center gap-1"
+				aria-label={ data.ActivateLabel(e) }
+				hx-post={ data.ActivatePath(e) }
+				hx-swap="none"
+			>
+				@initiativeFace(e)
+			</button>
+		} else {
+			<div class="flex w-full flex-col items-center gap-1">
+				@initiativeFace(e)
+			</div>
+		}
+		if e.Hidden {
+			<span class="badge badge-xs badge-warning">Hidden</span>
+		}
+		if e.Grouped() {
+			@initiativePips(e)
+		}
+		if data.ShowHP(e) {
+			<span class="max-w-full truncate text-[10px] leading-none text-base-content/60">{ e.HP }</span>
+		}
+		if e.Active {
+			@initiativeTurn(data, e)
+		}
+		if data.IsGM {
+			<button
+				type="button"
+				data-entry-remove
+				hidden
+				hx-delete={ data.RemovePath(e) }
+				hx-swap="none"
+			>Remove</button>
+		}
+	</div>
+}
+
+templ initiativeFace(e RoomInitiativeEntry) {
+	if e.Face() {
+		@initiativePortrait(e)
+		<span data-entry-name class={ initiativeName }>{ e.Name }</span>
+	} else {
+		<span class={ initiativeDisc, templ.KV("size-16", e.Active), templ.KV("size-12", !e.Active) }>
+			<span class="absolute inset-0 grid place-content-center px-1">
+				<span data-entry-name class="line-clamp-3 text-center text-[9px] leading-tight">{ e.Name }</span>
+			</span>
+		</span>
+	}
+}
+
+templ initiativePortrait(e RoomInitiativeEntry) {
+	<span
+		data-portrait
+		class={ initiativeDisc, templ.KV("size-16", e.Active), templ.KV("size-12", !e.Active) }
+		if e.Band != "" {
+			data-band={ e.Band }
+		}
+		if e.Blood != "" {
+			data-blood={ e.Blood }
+		}
+	>
+		<span data-face class="absolute inset-0 grid place-content-center">
+			<span class={ "font-serif font-bold text-base-content/50", templ.KV("text-xl", e.Active), templ.KV("text-base", !e.Active) }>
+				{ characterInitial(e.Name) }
+			</span>
+			if e.Image != "" {
+				<img src={ e.Image } alt="" class="absolute inset-0 h-full w-full object-cover select-none"/>
+			}
+		</span>
+		<span data-pulse aria-hidden="true" class="pointer-events-none absolute inset-0 rounded-full"></span>
+		<span
+			data-skull
+			aria-hidden="true"
+			class={ "pointer-events-none absolute inset-0 grid place-content-center leading-none",
+				templ.KV("text-[2.8rem]", e.Active),
+				templ.KV("text-[2.1rem]", !e.Active) }
+		></span>
+	</span>
+}
+
+templ initiativePips(e RoomInitiativeEntry) {
+	<span data-entry-pips class="flex max-w-full flex-wrap items-center justify-center gap-0.5">
+		for _, p := range e.Pips {
+			<span
+				data-pip
+				class="block size-1.5 shrink-0 rounded-full"
+				if p.Band != "" {
+					data-band={ p.Band }
+				}
+			></span>
+		}
+		if e.Count != "" {
+			<span class="text-[10px] leading-none text-base-content/60">{ e.Count }</span>
+		}
+	</span>
+}
+
+templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
+	if len(e.Conditions) > 0 {
+		<span class="flex max-w-full flex-wrap justify-center gap-0.5">
+			for _, c := range e.Conditions {
+				@pawnConditionChip(c)
+			}
+		</span>
+	}
+	if !data.IsGM && e.Mine {
+		<span data-turn-timer data-turn-tone="plain" class="font-mono text-xs leading-none tabular-nums">0:00</span>
+		<button
+			type="button"
+			data-turn-next
+			class="btn btn-xs btn-primary"
+			hx-post={ data.NextPath() }
+			hx-swap="none"
+		>End turn</button>
+	}
+}
+
+templ roomInitiativeMount(data RoomPageData) {
+	<div
+		id={ RoomInitiativeID }
+		hidden
+		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center p-2"
+		hx-get={ data.InitiativePath() }
+		hx-trigger={ InitiativeLoadTrigger }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		data-turns
+	></div>
+}
+
+templ roomInitiativeMenu(data RoomPageData) {
+	<ul
+		data-entry-menu
+		hidden
+		class="menu menu-sm absolute top-0 left-0 z-30 w-52 rounded-box border border-base-300 bg-panel/95 p-1 shadow-panel backdrop-blur-sm"
+	>
+		<li data-entry-menu-name class="menu-title block w-full truncate text-xs"></li>
+		<li data-entry-menu-details hidden>
+			<button type="button">Open pawn panel</button>
+		</li>
+		<li>
+			<button type="button" data-entry-menu-remove class="text-error">Remove from tracker</button>
+		</li>
+	</ul>
+}
+
+templ RoomInitiativeEntryForm(data RoomInitiativeEntryData) {
+	<form
+		class="flex flex-col gap-3"
+		hx-post={ data.SavePath() }
+		hx-swap="none"
+		hx-status:422={ "target:#errors-" + RoomInitiativeEntryPanel + ",swap:outerHTML" }
+	>
+		<h2 class="font-serif text-lg font-bold">Add to the turn order</h2>
+		@PanelFormErrors(RoomInitiativeEntryPanel, data.Errors)
+		<label class="flex flex-col gap-0.5">
+			<span class="text-xs text-base-content/60">What acts on this count</span>
+			<input
+				type="text"
+				name="name"
+				required
+				autocomplete="off"
+				maxlength={ EntryNameMax }
+				placeholder="Lair action"
+				class="input input-sm w-full"
+			/>
+		</label>
+		<div class="flex justify-end gap-2">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button type="submit" class="btn btn-primary">Add</button>
+		</div>
+	</form>
+}

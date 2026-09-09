@@ -367,8 +367,9 @@ func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 // TableSetOptions carries both room-wide options at once, because they are one
 // settings panel and sending the panel is the singleton rule again.
 type TableSetOptions struct {
-	PawnLabels     PawnLabels `json:"pawnLabels"`
-	PlayersCanDraw bool       `json:"playersCanDraw"`
+	PawnLabels         PawnLabels         `json:"pawnLabels"`
+	PlayersCanDraw     bool               `json:"playersCanDraw"`
+	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
 }
 
 func (c *TableSetOptions) Authorize(s *State, a Actor) error {
@@ -379,10 +380,21 @@ func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Emission, error) 
 	if !c.PawnLabels.Valid() {
 		return nil, invalid("Bad setting", "That is not a pawn label setting.")
 	}
+	if !c.InitiativeGrouping.Valid() {
+		return nil, invalid("Bad setting", "That is not an initiative grouping.")
+	}
 
 	changed := s.Table.PawnLabels != c.PawnLabels
 	s.Table.PawnLabels = c.PawnLabels
 	s.Table.PlayersCanDraw = c.PlayersCanDraw
+
+	// THE GROUPING CHANGES NOTHING THAT IS ALREADY IN THE TRACKER, and it emits
+	// nothing extra. It is read when the GM presses Sync and it reaches no
+	// projection, so a fight in progress goes on being however it was built --
+	// which is the point: a fight regrouping itself under the GM's hands
+	// mid-round is worse than a fight they chose to rebuild, and Clear then
+	// Sync is two presses and is unambiguous.
+	s.Table.InitiativeGrouping = c.InitiativeGrouping
 	s.Normalize()
 
 	out := []Emission{tableUpdated(s)}

@@ -54,7 +54,7 @@ func TestRemovingALayerEmptiesItInOrder(t *testing.T) {
 
 	goblin := w.spawn(Pawn{Name: "Goblin", LayerID: cellar, Visible: true})
 	w.spawn(Pawn{Name: "Ambusher", LayerID: cellar, Visible: false})
-	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin}}}, w.gm)
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: cellar, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(700), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
@@ -131,7 +131,7 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 	w.spawn(Pawn{Name: "Ambusher", LayerID: ground, Visible: false})
 	w.spawn(Pawn{Name: "Downstairs", LayerID: cellar, Visible: true})
 
-	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin}}}, w.gm)
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: ground, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(701), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
@@ -236,9 +236,9 @@ func TestTheTrackerKeepsCombatantsOnOtherFloors(t *testing.T) {
 	hidden := w.spawn(Pawn{Name: "Ambusher", Visible: false})
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
-		{Name: "Ogre", PawnID: &here},
-		{Name: "Goblin", PawnID: &fallen},
-		{Name: "Ambusher", PawnID: &hidden},
+		{Name: "Ogre", PawnIDs: []ulid.ULID{here}},
+		{Name: "Goblin", PawnIDs: []ulid.ULID{fallen}},
+		{Name: "Ambusher", PawnIDs: []ulid.ULID{hidden}},
 	}}, w.gm)
 
 	entries := w.s.Project(RolePlayer).Initiative.Entries

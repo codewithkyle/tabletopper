@@ -31,6 +31,8 @@ import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
+import { mountEntryMenu } from "./initiative-menu.ts";
+import { mountTurns, type Turns } from "./initiative.ts";
 import { mountLayerTool } from "./layer-tool.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import { mountTools } from "./tools.ts";
@@ -81,6 +83,17 @@ if (mount) {
 	// is ACTIVE is the room's, and the local choice of which one to look at
 	// belongs to the control in the bar.
 	mountLayerTool(mount, state);
+
+	// The turn order's four client-side jobs -- the clock, the scroll, the drag
+	// and the N key -- and the menu a right click puts up on one of its lines.
+	//
+	// BOTH ARE MOUNTED BEFORE THE SOCKET AND NEITHER NEEDS ONE. The strip fetches
+	// itself over HTTP on load, so a room whose connection has not opened yet
+	// still draws the fight that was in progress; and a closed room renders no
+	// strip at all, which is what makes both of these a no-op rather than a
+	// special case.
+	const turns: Turns | null = mountTurns(mount, state);
+	mountEntryMenu(mount, { details: openDetails });
 
 	// The menu the right button puts up. It is mounted before the table because
 	// the table is what asks for it, and it needs nothing the renderer holds:
@@ -206,7 +219,7 @@ if (mount) {
 
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table, overlay);
+		socket = start(path, state, renderer, table, overlay, turns);
 	}
 }
 
@@ -229,6 +242,7 @@ function start(
 	renderer: Renderer | null,
 	table: Table,
 	overlay: Overlay | null,
+	turns: Turns | null,
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
@@ -291,6 +305,17 @@ function start(
 			// comparison starts again from here.
 			if (event.type === "snapshot") {
 				renderer?.bloodResync();
+			}
+
+			// AND THE TURN CLOCK IS TOLD WHEN THE TURN MIGHT HAVE MOVED. It
+			// compares the active entry with the one it last saw, so a
+			// tracker edited mid-turn does not restart the clock and a
+			// snapshot arriving after a reconnect does not either. The strip
+			// itself is markup and refetches on its own; this is the one part
+			// of it that is a fact about this browser rather than about the
+			// room.
+			if (event.type === "snapshot" || event.type === "initiative.updated") {
+				turns?.changed();
 			}
 
 			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people

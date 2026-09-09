@@ -18,6 +18,9 @@ templ roomPawnMenu(data RoomPageData) {
 				</details>
 			</li>
 			<li>
+				<button type="button" data-pawn-menu-turn>Add to initiative</button>
+			</li>
+			<li>
 				<button
 					type="button"
 					data-pawn-menu-remove
@@ -41,6 +44,14 @@ templ roomPawnMenu(data RoomPageData) {
 			hx-swap="none"
 			hx-vals=""
 		>Move to floor</button>
+		<button
+			type="button"
+			data-pawn-menu-add-turn
+			hidden
+			hx-post={ "/rooms/" + data.ID + "/initiative" }
+			hx-swap="none"
+			hx-vals=""
+		>Add to initiative</button>
 		<template data-pawn-menu-template>
 			<li>
 				<button type="button" data-pawn-menu-layer>
