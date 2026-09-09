@@ -17,10 +17,16 @@
 // sprite cache holds a hundred and twenty-eight layers anyway.
 
 import type { Drawn } from "./pawn-pass.ts";
-import type { Pawn } from "../protocol.ts";
+import type { HPBand, Pawn } from "../protocol.ts";
 
 const KINDS: Pawn["kind"][] = ["player", "monster", "npc", "object"];
 const SIZES: Pawn["size"][] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+
+// HEALTH is the six bands plus the room that tells you nothing, so a stress run
+// puts wound rings and skulls on roughly five sixths of the table. That is more
+// injury than a real fight has and is the point: the ring pass is measured under
+// a load nobody will ever hand it.
+const HEALTH: (HPBand | null)[] = [null, "healthy", "bruised", "bloody", "veryBloody", "nearDeath", "dead"];
 
 // SPREAD is how far across the map they are scattered, in cells. Thirty by
 // thirty is a battle map's worth, which puts them in and out of the viewport as
@@ -63,7 +69,7 @@ export function stressPawns(count: number, from: readonly Drawn[], cellSize: num
 			height: object ? cell * (1 + Math.floor(next() * 4)) : 0,
 			rotation: object ? Math.floor(next() * 360) : 0,
 			hidden: next() < 0.15,
-			dead: next() < 0.1,
+			health: HEALTH[Math.floor(next() * HEALTH.length)] ?? null,
 		});
 	}
 

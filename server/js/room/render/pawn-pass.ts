@@ -31,7 +31,7 @@
 // ratio is what the quad is fitted to.
 
 import type { Camera } from "./camera.ts";
-import type { Grid, Pawn } from "../protocol.ts";
+import type { Grid, HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { KIND_COLORS } from "./sprites.ts";
 import { SKULL } from "./sprites.ts";
@@ -57,7 +57,7 @@ const BORDER_PIXELS = 2;
 // HIDDEN_ALPHA is how a pawn players cannot see looks to the GM. Desaturated as
 // well, so "hidden" is legible at a glance rather than a shade of the same
 // thing -- a GM scanning a table has to be able to tell without hovering.
-const HIDDEN_ALPHA = 0.6;
+export const HIDDEN_ALPHA = 0.6;
 const HIDDEN_GREY = 0.7;
 
 // SKULL_SCALE is the dead-creature mark, as a fraction of the pawn's diameter.
@@ -203,10 +203,12 @@ export interface Drawn {
 	// a player's, because they are never sent one.
 	hidden: boolean;
 
-	// dead draws the skull. It is false when the viewer was told nothing about
-	// the creature's health at all -- neither a number nor a band -- which is
-	// the honest answer for a table whose labels are off.
-	dead: boolean;
+	// health is the band the viewer was told this creature is in, and null when
+	// they were told nothing about it at all -- neither a number nor a band --
+	// which is the honest answer for a table whose labels are off. "dead" is
+	// what draws the skull here; the rest of the scale is read by the wound ring
+	// and the blood, neither of which is this pass's business. See wounds.ts.
+	health: HPBand | null;
 }
 
 export interface PawnPass {
@@ -340,8 +342,9 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 				const [halfW, halfH] = pawnExtents(pawn, grid.cellSize);
 				const object = pawn.kind === "object";
 
+				const dead = pawn.health === "dead";
 				const opacity = alpha * (pawn.hidden ? HIDDEN_ALPHA : 1);
-				const grey = pawn.hidden ? HIDDEN_GREY : pawn.dead ? 1 : 0;
+				const grey = pawn.hidden ? HIDDEN_GREY : dead ? 1 : 0;
 
 				// The picture, or the initials that stand in for it -- both
 				// while one is loading and for a pawn that has none at all.
@@ -373,7 +376,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					cos, sin,
 				);
 
-				if (pawn.dead && !object) {
+				if (dead && !object) {
 					const skull = sprites.glyph(SKULL);
 					if (skull) {
 						const size = halfW * SKULL_SCALE;

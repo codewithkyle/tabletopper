@@ -270,6 +270,17 @@ function start(
 				overlay?.refresh();
 			}
 
+			// WIPING A FLOOR WIPES ITS BLOOD. The marks the canvas puts down
+			// when somebody is hurt are the viewer's own -- they are never sent
+			// anywhere and no event carries them -- so this is the only way they
+			// are ever cleared other than a reload. stroke.cleared is the right
+			// event for it twice over: it is what the GM's "wipe the drawing"
+			// sends, and TableClear sends one per floor, so packing the table
+			// away at the end of an evening cleans it.
+			if (event.type === "stroke.cleared") {
+				renderer?.bloodCleared(event.layer);
+			}
+
 			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people
 			// are dragging live outside the store on purpose -- pawn.dragging
 			// is transient and the reducer never sees it -- so this is the one

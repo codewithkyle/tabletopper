@@ -1222,7 +1222,7 @@ export function createTable(deps: TableDeps): Table {
 		slot.height = p.height;
 		slot.rotation = p.rotation;
 		slot.hidden = false;
-		slot.dead = false;
+		slot.health = null;
 
 		return count + 1;
 	}
@@ -1649,7 +1649,7 @@ function blankDrawn(): Drawn {
 	return {
 		id: "", kind: "monster", name: "", image: "",
 		x: 0, y: 0, z: 0, size: "medium",
-		width: 0, height: 0, rotation: 0, hidden: false, dead: false,
+		width: 0, height: 0, rotation: 0, hidden: false, health: null,
 	};
 }
 

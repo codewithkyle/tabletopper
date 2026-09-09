@@ -96,30 +96,33 @@ test("a pawn players cannot see is marked hidden", () => {
 // instead, and "dead" is one of the six bands the server sends -- so a player
 // gets the skull the GM gets. A room whose labels are off sends neither, and
 // that is the case that draws nothing.
-test("dead is whichever health the viewer was told", () => {
+test("health is whichever the viewer was told, and the number wins", () => {
 	const out: Drawn[] = [];
 
+	// A GM is sent numbers and gets the band worked out from them; a player is
+	// sent the band itself. Both arrive here as one field, which is what lets
+	// the skull, the wound ring and the blood all read the same thing.
 	visiblePawns([pawn({ hp: 0 })], GROUND, out);
-	assert.equal(out[0].dead, true);
+	assert.equal(out[0].health, "dead");
 
-	visiblePawns([pawn({ hp: 1 })], GROUND, out);
-	assert.equal(out[0].dead, false);
+	visiblePawns([pawn({ hp: 1, maxHp: 7 })], GROUND, out);
+	assert.equal(out[0].health, "veryBloody");
 
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: "dead" })], GROUND, out);
-	assert.equal(out[0].dead, true, "a player was not shown the band they were sent");
+	assert.equal(out[0].health, "dead", "a player was not shown the band they were sent");
 
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: "nearDeath" })], GROUND, out);
-	assert.equal(out[0].dead, false);
+	assert.equal(out[0].health, "nearDeath");
 
-	// Labels off: no number and no band, so there is nothing to draw a skull
-	// from and nothing is inferred.
+	// Labels off: no number and no band, so there is nothing to draw a skull, a
+	// ring or a splatter from, and nothing is inferred.
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: null })], GROUND, out);
-	assert.equal(out[0].dead, false, "a skull was drawn from no health at all");
+	assert.equal(out[0].health, null, "health was invented out of nothing at all");
 
 	// The number wins where both arrive, which is a monster in a room whose
 	// labels are full and every player character in every room.
 	visiblePawns([pawn({ hp: 4, maxHp: 7, hpBand: "dead" })], GROUND, out);
-	assert.equal(out[0].dead, false);
+	assert.equal(out[0].health, "bruised");
 });
 
 // A creature's footprint is its size category and an object's is its picture.

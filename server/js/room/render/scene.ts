@@ -13,6 +13,7 @@
 
 import type { Pawn } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
+import { healthOf } from "./wounds.ts";
 
 // Stacked is the part of a pawn that decides what is on top of what. It is a
 // Pick rather than Pawn because the stress test's synthetic pawns are not in
@@ -106,14 +107,14 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 		// desaturated draw is for.
 		drawn.hidden = !pawn.visible;
 
-		// DEAD IS WHATEVER HEALTH THE VIEWER WAS ACTUALLY GIVEN, WHICHEVER OF
-		// THE TWO IT WAS. A monster in a room that hides its hit points arrives
-		// with hp null and a band instead, and "dead" is one of the six bands
-		// the server sends -- so reading it here withholds nothing: the label
-		// beside the pawn already prints the word. The band is the ONLY
-		// fallback, which is what keeps the room that sends neither -- labels
-		// set to none -- drawing no skull at all.
-		drawn.dead = pawn.hp !== null ? pawn.hp <= 0 : pawn.hpBand === "dead";
+		// HEALTH IS WHATEVER THE VIEWER WAS ACTUALLY GIVEN, WHICHEVER OF THE
+		// TWO IT WAS. A monster in a room that hides its hit points arrives with
+		// hp null and a band instead -- so reading it here withholds nothing:
+		// the label beside the pawn already prints the word. The band is the
+		// ONLY fallback, which is what keeps the room that sends neither --
+		// labels set to none -- drawing no skull, no wound ring and no blood at
+		// all. See healthOf in wounds.ts, which is where the rule lives.
+		drawn.health = healthOf(pawn);
 
 		count++;
 	}
@@ -123,8 +124,12 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 	return out;
 }
 
-// ringRadius is the outer radius of the nth condition ring, in map pixels. They
-// are concentric, outside the pawn's own border, one gap apart.
+// ringRadius is the outer radius of the nth ring round a creature, in map
+// pixels. They are concentric, outside the pawn's own border, one gap apart.
+//
+// INDEX 0 IS THE WOUND RING WHERE THERE IS ONE and the conditions start at 1;
+// where there is not, the conditions start at 0. The renderer decides that, and
+// this only has to space them.
 export function ringRadius(half: number, index: number, worldPerDevicePixel: number): number {
 	return half + (RING_GAP + index * (RING_WIDTH + RING_GAP)) * worldPerDevicePixel;
 }
@@ -144,6 +149,6 @@ function blank(): Drawn {
 		height: 0,
 		rotation: 0,
 		hidden: false,
-		dead: false,
+		health: null,
 	};
 }
