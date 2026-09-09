@@ -704,6 +704,7 @@ test("arming places on every click until Escape", () => {
 	controller.arm({
 		kind: "monster", id: "01MONSTER", name: "Goblin", image: "",
 		visible: false, size: "medium", width: 0, height: 0,
+		hp: 0, maxHp: 0, ac: 0,
 	});
 
 	controller.tool.press(at(90, 90), at(0, 0), NONE);
@@ -726,6 +727,28 @@ test("arming places on every click until Escape", () => {
 	assert.equal(sent.length, 2, "a click after Escape still placed something");
 });
 
+// AN NPC IS THE ONE KIND THAT CARRIES ITS OWN STAT LINE, because a face out of
+// the avatar library has no row anywhere for the hub to read one from. A
+// monster's numbers stay off the wire in the same breath: those are in the
+// manual, and a browser describing them would be a browser the server had to
+// distrust.
+test("an armed NPC sends the numbers the form asked for", () => {
+	const { controller, sent } = table([]);
+
+	controller.arm({
+		kind: "npc", id: "01AVATAR", name: "Innkeeper", image: "/assets/images/01AVATAR",
+		visible: true, size: "small", width: 0, height: 0,
+		hp: 9, maxHp: 12, ac: 13,
+	});
+
+	controller.tool.press(at(90, 90), at(0, 0), NONE);
+
+	assert.equal(sent[0]?.type, "pawn.spawn");
+	assert.equal(sent[0]?.assetId, "01AVATAR");
+	assert.equal(sent[0]?.size, "small");
+	assert.deepEqual([sent[0]?.hp, sent[0]?.maxHp, sent[0]?.ac], [9, 12, 13]);
+});
+
 // PLACING IS NOT PANNING. A GM with a goblin on the cursor who holds the space
 // bar to see where the rest of the room is has not asked to drop it there.
 test("the move tool places nothing", () => {
@@ -734,6 +757,7 @@ test("the move tool places nothing", () => {
 	controller.arm({
 		kind: "monster", id: "01MONSTER", name: "Goblin", image: "",
 		visible: false, size: "medium", width: 0, height: 0,
+		hp: 0, maxHp: 0, ac: 0,
 	});
 
 	assert.equal(controller.tool.press(at(90, 90), at(0, 0), NONE), false);
@@ -831,6 +855,7 @@ test("the right button abandons placement rather than opening anything", () => {
 	controller.arm({
 		kind: "object", id: "01ASSET", name: "Barrel", image: "",
 		visible: true, size: "medium", width: 64, height: 64,
+		hp: 0, maxHp: 0, ac: 0,
 	});
 	assert.equal(controller.isArmed(), true);
 

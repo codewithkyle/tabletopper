@@ -47,6 +47,7 @@ import (
 var spawnKinds = map[string]bool{
 	pages.RoomSpawnMonsters: true,
 	pages.RoomSpawnTokens:   true,
+	pages.RoomSpawnNPCs:     true,
 }
 
 // RoomSpawnFragment is the Spawn dialog, in the content modal.
@@ -101,7 +102,8 @@ func (a *App) spawnData(w http.ResponseWriter, r *http.Request) (pages.RoomSpawn
 
 	data := pages.RoomSpawnData{RoomID: row.ID.String(), Kind: kind, Query: term}
 
-	if kind == pages.RoomSpawnMonsters {
+	switch kind {
+	case pages.RoomSpawnMonsters:
 		monsters, err := a.spawnMonsters(ctx, sess.UserID, term)
 		if err != nil {
 			slog.Error("Failed to list monsters for the spawn dialog", "error", err)
@@ -111,17 +113,26 @@ func (a *App) spawnData(w http.ResponseWriter, r *http.Request) (pages.RoomSpawn
 		}
 		data.Monsters = monsters
 
-		return data, true
-	}
+	case pages.RoomSpawnNPCs:
+		avatars, err := a.spawnAvatars(ctx, sess.UserID, term)
+		if err != nil {
+			slog.Error("Failed to list avatars for the spawn dialog", "error", err)
+			htmx.ServerError(w)
 
-	tokens, err := a.spawnTokens(ctx, sess.UserID, term)
-	if err != nil {
-		slog.Error("Failed to list tokens for the spawn dialog", "error", err)
-		htmx.ServerError(w)
+			return pages.RoomSpawnData{}, false
+		}
+		data.Avatars = avatars
 
-		return pages.RoomSpawnData{}, false
+	default:
+		tokens, err := a.spawnTokens(ctx, sess.UserID, term)
+		if err != nil {
+			slog.Error("Failed to list tokens for the spawn dialog", "error", err)
+			htmx.ServerError(w)
+
+			return pages.RoomSpawnData{}, false
+		}
+		data.Tokens = tokens
 	}
-	data.Tokens = tokens
 
 	return data, true
 }
@@ -154,23 +165,28 @@ func (a *App) monsterRows(ctx context.Context, ownerID ulid.ULID, term string) (
 	})
 }
 
-// spawnTokens is the token library, whole or searched.
-func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.RoomSpawnToken, error) {
-	var rows []queries.Asset
-	var err error
-
+// libraryAssets is one kind of the account's library, whole or searched, which
+// is the half the two picture walls below have in common. The type is a
+// parameter rather than a second copy of this because it is also the scope: a
+// term that matched a map must not put one in a wall of faces.
+func (a *App) libraryAssets(ctx context.Context, ownerID ulid.ULID, kind queries.AssetsType, term string) ([]queries.Asset, error) {
 	if term == "" {
-		rows, err = a.Queries.GetLibraryAssets(ctx, queries.GetLibraryAssetsParams{
+		return a.Queries.GetLibraryAssets(ctx, queries.GetLibraryAssetsParams{
 			OwnerID: ownerID,
-			Type:    queries.AssetsTypeToken,
-		})
-	} else {
-		rows, err = a.Queries.SearchLibraryAssets(ctx, queries.SearchLibraryAssetsParams{
-			OwnerID: ownerID,
-			Type:    queries.AssetsTypeToken,
-			Term:    journalSearchPattern(term),
+			Type:    kind,
 		})
 	}
+
+	return a.Queries.SearchLibraryAssets(ctx, queries.SearchLibraryAssetsParams{
+		OwnerID: ownerID,
+		Type:    kind,
+		Term:    journalSearchPattern(term),
+	})
+}
+
+// spawnTokens is the token library, whole or searched.
+func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.RoomSpawnToken, error) {
+	rows, err := a.libraryAssets(ctx, ownerID, queries.AssetsTypeToken, term)
 	if err != nil {
 		return nil, err
 	}
@@ -187,6 +203,99 @@ func (a *App) spawnTokens(ctx context.Context, ownerID ulid.ULID, term string) (
 	}
 
 	return out, nil
+}
+
+// spawnAvatars is the face library, whole or searched.
+//
+// IT IS THE AVATARS AND NOT THE TOKENS, which is the whole of what makes the
+// third half a different half. An avatar is a portrait -- a shopkeeper, a
+// captain, a cultist -- and a token is a picture of a thing; the manager keeps
+// them in two walls for that reason and the dialog follows it. A face carries
+// no pixel size because it does not land as a picture: it lands as a creature
+// of whatever size the form beside it chose.
+func (a *App) spawnAvatars(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.RoomSpawnAvatar, error) {
+	rows, err := a.libraryAssets(ctx, ownerID, queries.AssetsTypeAvatar, term)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]pages.RoomSpawnAvatar, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, pages.RoomSpawnAvatar{
+			ID:    row.ID.String(),
+			Name:  row.Name,
+			Image: "/assets/images/" + row.ID.String(),
+		})
+	}
+
+	return out, nil
+}
+
+// RoomSpawnNPCFragment is the second step behind one face: the stat line a
+// portrait has nowhere to read one from.
+//
+// IT IS THE WHOLE DIALOG AND NOT THE GRID, which is the kind switch's swap
+// rather than the search's. Picking a face changes the heading, the controls
+// and the actions, so what comes back is the dialog in its second state --
+// see the RoomSpawnNPCData comment for why the visibility switch is on it.
+func (a *App) RoomSpawnNPCFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	row, _, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	assetID, err := ulid.Parse(r.URL.Query().Get("asset"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len([]rune(term)) > pages.AssetNameLimit {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	// THE LIBRARY IS THE ASKER'S OWN AND THE TYPE IS PART OF THE LOOKUP, which
+	// is what stops a map's id or a token's being handed to this route and
+	// coming back as a face to spawn.
+	asset, err := a.Queries.GetLibraryAsset(ctx, queries.GetLibraryAssetParams{
+		ID:      assetID,
+		OwnerID: sess.UserID,
+		Type:    queries.AssetsTypeAvatar,
+	})
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			slog.Error("Failed to read an avatar for the spawn dialog", "error", err)
+			htmx.ServerError(w)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	data := pages.RoomSpawnNPCData{
+		RoomID: row.ID.String(),
+		Query:  term,
+		Avatar: pages.RoomSpawnAvatar{
+			ID:    asset.ID.String(),
+			Name:  asset.Name,
+			Image: "/assets/images/" + asset.ID.String(),
+		},
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomSpawnNPC(data))
 }
 
 // SpawnParty places a pawn for everybody connected who joined with a character.

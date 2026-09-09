@@ -12,17 +12,21 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// TURNING A REFERENCE INTO A PAWN. The wire says "this monster", "this token",
+// TURNING A REFERENCE INTO A PAWN. The wire says "this monster", "this face",
 // "my character"; a pawn is a name, a picture, a size and a stat line, and
 // every one of those is a column. This file is the half of pawn.spawn that has
 // a database, and it runs on the caller's goroutine for resolve.go's reason.
 //
-// FOUR KINDS AND FOUR SOURCES. A monster comes from the GM's manual, a token
-// from the GM's library, a character from its owner's sheet, and an object from
-// the same library as a token with the picture's own pixel size instead of a
-// creature size. What they have in common is the shape of the answer and
-// nothing else, which is why this is four functions rather than one with a
-// switch inside it.
+// FOUR KINDS AND FOUR SOURCES. A monster comes from the GM's manual, an NPC
+// from the GM's avatars, a character from its owner's sheet, and an object from
+// the GM's tokens with the picture's own pixel size instead of a creature size.
+// What they have in common is the shape of the answer and nothing else, which
+// is why this is four functions rather than one with a switch inside it.
+//
+// THE TWO PICTURE LIBRARIES ARE NOT INTERCHANGEABLE and the lookup enforces it.
+// An avatar is a face and lands as somebody; a token is a picture of a thing
+// and lands as something. Each resolver names the type it reads, so an id from
+// the wrong wall is not found rather than quietly placed.
 //
 // WHAT IT DOES NOT DECIDE: where the pawn stands, which floor it is on, whether
 // players can see it, what its id is, or whether the actor is allowed any of
@@ -30,14 +34,19 @@ import (
 // state. This only knows rows.
 
 const (
-	// npcHP and npcAC are what a token spawned as a creature arrives with.
+	// npcHP and npcAC are what an NPC arrives with when the spawn carried no
+	// stat line of its own.
 	//
-	// A TOKEN IS A PICTURE AND HAS NO STAT LINE, so there is nothing to read
-	// and something has to be written. One hit point and armour class ten is
-	// the least misleading pair available: it is obviously a placeholder rather
-	// than a plausible monster, so a GM who meant to fill it in and did not
+	// A FACE IS A PICTURE AND HAS NO STAT LINE, so there is nothing to read and
+	// something has to be written. One hit point and armour class ten is the
+	// least misleading pair available: it is obviously a placeholder rather
+	// than a plausible creature, so a GM who meant to fill it in and did not
 	// finds out on the first hit rather than after a fight balanced against
 	// numbers nobody chose.
+	//
+	// THE DIALOG OPENS ON THESE TWO NUMBERS, deliberately -- see NPCDefaultHP
+	// and NPCDefaultAC in templ/pages. What the form sends is what lands; this
+	// is only what a client that sent nothing gets, and it is the same thing.
 	npcHP = 1
 	npcAC = 10
 )
@@ -66,7 +75,7 @@ func (h *Hub) resolveSpawn(ctx context.Context, roomID ulid.ULID, who room.Actor
 	case room.PawnMonster:
 		return h.resolveMonster(ctx, who, cmd)
 	case room.PawnNPC:
-		return h.resolveToken(ctx, who, cmd)
+		return h.resolveNPC(ctx, who, cmd)
 	case room.PawnObject:
 		return h.resolveObject(ctx, roomID, who, cmd)
 	case room.PawnPlayer:
@@ -114,10 +123,21 @@ func (h *Hub) resolveMonster(ctx context.Context, who room.Actor, cmd *room.Pawn
 	return nil
 }
 
-// resolveToken places a token as a creature: an NPC with a picture, a size and
-// a placeholder stat line the GM fills in from the pawn's own dialog.
-func (h *Hub) resolveToken(ctx context.Context, who room.Actor, cmd *room.PawnSpawn) error {
-	asset, err := h.libraryToken(ctx, who, cmd.AssetID)
+// resolveNPC places a face as a creature: a portrait out of the avatar
+// library, at the size the dialog chose, with the stat line the dialog typed.
+//
+// THE PICTURE COMES OUT OF THE AVATARS AND NOT THE TOKENS, which is the
+// library the asset manager keeps faces in and the one the dialog's NPCs wall
+// reads. A token is a picture of a THING and lands as an object; the two walls
+// are separate because the two outcomes are.
+//
+// THE STAT LINE IS THE ONE THING HERE TAKEN OFF THE WIRE, and it is taken
+// because there is nowhere else to take it from: no manual row, no sheet, just
+// a face and a name. It is not trusted on arrival -- checkPawn holds these to
+// the same limits as a stat line typed into the pawn's own panel, and clampHP
+// is what stops a creature standing at twelve of ten.
+func (h *Hub) resolveNPC(ctx context.Context, who room.Actor, cmd *room.PawnSpawn) error {
+	asset, err := h.libraryPicture(ctx, who, cmd.AssetID, queries.AssetsTypeAvatar)
 	if err != nil {
 		return err
 	}
@@ -127,14 +147,24 @@ func (h *Hub) resolveToken(ctx context.Context, who room.Actor, cmd *room.PawnSp
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "That spawn named nothing to place."}
 	}
 
-	hp, ac := npcHP, npcAC
+	hp, maxHP, ac := npcHP, npcHP, npcAC
+	if cmd.MaxHP != nil {
+		maxHP = *cmd.MaxHP
+		hp = maxHP
+	}
+	if cmd.HP != nil {
+		hp = *cmd.HP
+	}
+	if cmd.AC != nil {
+		ac = *cmd.AC
+	}
 
 	cmd.Pawn = &room.Pawn{
 		Name:  name,
 		Image: imageURL(assetID(asset)),
 		Size:  creatureSize(string(cmd.Size)),
 		HP:    &hp,
-		MaxHP: &hp,
+		MaxHP: &maxHP,
 		AC:    &ac,
 	}
 
@@ -160,7 +190,7 @@ func (h *Hub) resolveObject(ctx context.Context, roomID ulid.ULID, who room.Acto
 		return &room.Error{Code: room.CodeInvalid, Heading: "Nothing to place", Message: "An object needs a picture from your library."}
 	}
 
-	asset, err := h.libraryToken(ctx, who, cmd.AssetID)
+	asset, err := h.libraryPicture(ctx, who, cmd.AssetID, queries.AssetsTypeToken)
 	if err != nil {
 		return err
 	}
@@ -377,10 +407,14 @@ func characterPawn(row queries.GetCharacterForRoomRow, seat *room.Player) *room.
 	}
 }
 
-// libraryToken reads a token out of the asker's library. An absent id is not an
-// error: an NPC may be a name with no picture at all, which draws as a disc
-// with its initials.
-func (h *Hub) libraryToken(ctx context.Context, who room.Actor, id *ulid.ULID) (*queries.Asset, error) {
+// libraryPicture reads one picture out of the asker's library. An absent id is
+// not an error: an NPC may be a name with no picture at all, which draws as a
+// disc with its initials.
+//
+// THE KIND IS PART OF THE LOOKUP AND NOT A CHECK AFTERWARDS, which is what
+// stops a token's id reaching the NPC resolver and coming back as a face -- the
+// statement simply does not find it, and the caller says the row is gone.
+func (h *Hub) libraryPicture(ctx context.Context, who room.Actor, id *ulid.ULID, kind queries.AssetsType) (*queries.Asset, error) {
 	if id == nil {
 		return nil, nil
 	}
@@ -388,10 +422,10 @@ func (h *Hub) libraryToken(ctx context.Context, who room.Actor, id *ulid.ULID) (
 	asset, err := h.queries.GetLibraryAsset(ctx, queries.GetLibraryAssetParams{
 		ID:      *id,
 		OwnerID: who.ID,
-		Type:    queries.AssetsTypeToken,
+		Type:    kind,
 	})
 	if err != nil {
-		return nil, missing(err, "Token gone", "That token is no longer in your library.")
+		return nil, missing(err, "Picture gone", "That picture is no longer in your library.")
 	}
 
 	return &asset, nil

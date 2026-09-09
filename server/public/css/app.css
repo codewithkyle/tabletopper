@@ -32,6 +32,8 @@
     --text-xl--line-height: calc(1.75 / 1.25);
     --text-2xl: 1.5rem;
     --text-2xl--line-height: calc(2 / 1.5);
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: calc(2.25 / 1.875);
     --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
@@ -3171,6 +3173,9 @@
       border-block-end-width: calc(var(--border, 1px) * var(--join-h));
     }
   }
+  .ms-auto {
+    margin-inline-start: auto;
+  }
   @layer daisyui.l1.l2.l3 {
     .fieldset-legend {
       margin-bottom: calc(0.25rem * -1);
@@ -3390,6 +3395,9 @@
   .inline-block {
     display: inline-block;
   }
+  .aspect-5\/6 {
+    aspect-ratio: 5/6;
+  }
   .aspect-square {
     aspect-ratio: 1 / 1;
   }
@@ -3441,6 +3449,10 @@
     width: calc(var(--spacing) * 12);
     height: calc(var(--spacing) * 12);
   }
+  .size-20 {
+    width: calc(var(--spacing) * 20);
+    height: calc(var(--spacing) * 20);
+  }
   .size-full {
     width: 100%;
     height: 100%;
@@ -3463,9 +3475,6 @@
   .h-10 {
     height: calc(var(--spacing) * 10);
   }
-  .h-16 {
-    height: calc(var(--spacing) * 16);
-  }
   .h-44 {
     height: calc(var(--spacing) * 44);
   }
@@ -3481,9 +3490,6 @@
   .h-screen {
     height: 100vh;
   }
-  .max-h-16 {
-    max-height: calc(var(--spacing) * 16);
-  }
   .max-h-40 {
     max-height: calc(var(--spacing) * 40);
   }
@@ -3498,6 +3504,9 @@
   }
   .max-h-\[calc\(100vh-4rem\)\] {
     max-height: calc(100vh - 4rem);
+  }
+  .max-h-full {
+    max-height: 100%;
   }
   .min-h-0 {
     min-height: 0px;
@@ -4208,10 +4217,6 @@
     object-fit: cover;
   }
   @layer daisyui.l1.l2 {
-    .checkbox-sm {
-      padding: 0.1875rem;
-      --size: calc(var(--size-selector, 0.25rem) * 5);
-    }
     .radio-xs {
       padding: 0.125rem;
     }
@@ -4389,6 +4394,10 @@
   .text-2xl {
     font-size: var(--text-2xl);
     line-height: var(--tw-leading, var(--text-2xl--line-height));
+  }
+  .text-3xl {
+    font-size: var(--text-3xl);
+    line-height: var(--tw-leading, var(--text-3xl--line-height));
   }
   .text-base {
     font-size: var(--text-base);
@@ -4744,6 +4753,12 @@
     user-select: none;
   }
   @layer daisyui.l1.l2 {
+    .toggle-sm:is([type="checkbox"]) {
+      --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
+    .toggle-sm:has([type="checkbox"]) {
+      --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
     .toggle-xs:is([type="checkbox"]) {
       --size: calc(var(--size-selector, 0.25rem) * 4);
     }
@@ -4999,6 +5014,9 @@
   @media (width >= 40rem) {
     .sm\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
   @container (width >= 18rem) {

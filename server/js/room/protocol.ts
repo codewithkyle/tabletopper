@@ -295,6 +295,9 @@ export interface PawnSpawn {
 	assetId?: string | null;
 	name?: string;
 	size?: Size;
+	hp?: number | null;
+	maxHp?: number | null;
+	ac?: number | null;
 }
 
 export interface PawnSpawnCharacters {

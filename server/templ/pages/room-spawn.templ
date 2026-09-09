@@ -2,9 +2,9 @@ package pages
 
 const roomSpawnBox = "flex h-[62vh] w-full flex-col gap-3"
 
-const roomSpawnGrid = "grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto p-1 sm:grid-cols-3"
+const roomSpawnGrid = "grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto p-1 sm:grid-cols-4"
 
-const roomSpawnCard = "flex flex-col items-center gap-1.5 rounded-box border border-base-300 p-2 text-center hover:border-primary focus-visible:border-primary"
+const roomSpawnCard = "flex aspect-5/6 flex-col items-center gap-1 overflow-hidden rounded-box border border-base-300 p-2 text-center hover:border-primary focus-visible:border-primary"
 
 templ RoomSpawn(data RoomSpawnData) {
 	<room-spawn id="room-spawn" class={ roomSpawnBox }>
@@ -13,14 +13,15 @@ templ RoomSpawn(data RoomSpawnData) {
 			<div class="join">
 				@roomSpawnKind(data, RoomSpawnMonsters, "Monsters")
 				@roomSpawnKind(data, RoomSpawnTokens, "Tokens")
+				@roomSpawnKind(data, RoomSpawnNPCs, "NPCs")
 			</div>
 		</div>
-		<div class="flex flex-wrap items-center gap-2">
+		<div class="flex items-center gap-3">
 			<input
 				type="search"
 				name="q"
 				value={ data.Query }
-				class="input input-sm w-48"
+				class="input input-sm min-w-0 flex-1"
 				placeholder={ data.SearchLabel() }
 				aria-label={ data.SearchLabel() }
 				aria-controls={ data.ResultsID() }
@@ -31,10 +32,7 @@ templ RoomSpawn(data RoomSpawnData) {
 				hx-target={ "#" + data.ResultsID() }
 				hx-swap="outerHTML"
 			/>
-			<label class="flex items-center gap-1.5 text-xs">
-				<input type="checkbox" data-spawn-shown checked class="checkbox checkbox-sm"/>
-				Players see it
-			</label>
+			@roomSpawnShown()
 		</div>
 		@RoomSpawnList(data)
 		<div class="flex flex-wrap items-center gap-2">
@@ -45,6 +43,20 @@ templ RoomSpawn(data RoomSpawnData) {
 			>Close</button>
 		</div>
 	</room-spawn>
+}
+
+templ roomSpawnShown() {
+	<label class="flex shrink-0 items-center gap-2">
+		<input
+			type="checkbox"
+			data-spawn-shown
+			checked
+			aria-label="Players see it"
+			class="toggle toggle-sm peer shrink-0 checked:text-success"
+		/>
+		<span class="w-12 text-xs text-warning peer-checked:hidden">Hidden</span>
+		<span class="hidden w-12 text-xs text-base-content/60 peer-checked:inline">Visible</span>
+	</label>
 }
 
 templ roomSpawnKind(data RoomSpawnData, kind string, caption string) {
@@ -64,6 +76,10 @@ templ RoomSpawnList(data RoomSpawnData) {
 		if data.IsMonsters() {
 			for _, m := range data.Monsters {
 				@roomSpawnMonsterCard(m)
+			}
+		} else if data.IsNPCs() {
+			for _, a := range data.Avatars {
+				@roomSpawnAvatarCard(data, a)
 			}
 		} else {
 			for _, t := range data.Tokens {
@@ -92,6 +108,7 @@ templ roomSpawnMonsterCard(m MonsterSummary) {
 		data-spawn-source="monster"
 		data-spawn-id={ m.ID }
 		data-spawn-name={ m.Name }
+		data-spawn-image={ monsterImageURL(m.ImageID) }
 	>
 		@roomSpawnThumb(monsterImageURL(m.ImageID), m.Name)
 		<span class="w-full truncate text-xs font-semibold">{ m.Name }</span>
@@ -110,6 +127,7 @@ templ roomSpawnTokenCard(t RoomSpawnToken) {
 		data-spawn-source="token"
 		data-spawn-id={ t.ID }
 		data-spawn-name={ t.Name }
+		data-spawn-image={ t.Image }
 		data-spawn-width={ t.WidthText() }
 		data-spawn-height={ t.HeightText() }
 	>
@@ -118,12 +136,122 @@ templ roomSpawnTokenCard(t RoomSpawnToken) {
 	</button>
 }
 
+templ roomSpawnAvatarCard(data RoomSpawnData, a RoomSpawnAvatar) {
+	<button
+		type="button"
+		class={ roomSpawnCard }
+		hx-get={ data.NPCPath(a.ID) }
+		hx-include="[name='q']"
+		hx-target="#room-spawn"
+		hx-swap="outerHTML"
+	>
+		@roomSpawnThumb(a.Image, a.Name)
+		<span class="w-full truncate text-xs font-semibold">{ a.Name }</span>
+	</button>
+}
+
 templ roomSpawnThumb(src string, name string) {
-	<span class="grid h-16 w-full place-content-center overflow-hidden rounded-field bg-base-content/5">
+	<span class="grid min-h-0 w-full flex-1 place-content-center overflow-hidden rounded-field bg-base-content/5">
 		if src != "" {
-			<img src={ src } alt="" class="max-h-16 w-auto object-contain select-none"/>
+			<img src={ src } alt="" class="max-h-full w-auto object-contain select-none"/>
 		} else {
 			<span class="font-serif text-xl text-base-content/50">{ characterInitial(name) }</span>
 		}
 	</span>
+}
+
+templ RoomSpawnNPC(data RoomSpawnNPCData) {
+	<room-spawn id="room-spawn" class={ roomSpawnBox }>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<h2 class="m-0 truncate text-lg font-semibold">{ data.Avatar.Name }</h2>
+			@roomSpawnShown()
+		</div>
+		<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1">
+			<div class="flex items-end gap-3">
+				@roomSpawnFace(data.Avatar.Image, data.Avatar.Name)
+				@roomSpawnText("spawn-npc-name", "Name", data.NameLimit(), npcField("name"))
+			</div>
+			<div class="grid grid-cols-2 gap-3">
+				@roomSpawnNumber("spawn-npc-hp", "Hit points", data.HPValue(), "0", data.HPMax(), npcField("hp"))
+				@roomSpawnNumber("spawn-npc-maxhp", "Max hit points", data.HPValue(), "1", data.HPMax(), npcField("maxhp"))
+				@roomSpawnNumber("spawn-npc-ac", "Armour class", data.ACValue(), "0", data.ACMax(), npcField("ac"))
+				<label class="flex min-w-0 flex-col gap-1" for="spawn-npc-size">
+					<span class="text-xs text-base-content/60">Size</span>
+					<select id="spawn-npc-size" class="select select-sm w-full" { npcField("size")... }>
+						for _, option := range sizeOptions {
+							<option value={ option.Value } selected?={ option.Value == data.SizeValue() }>{ option.Label }</option>
+						}
+					</select>
+				</label>
+			</div>
+		</div>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-get={ data.BackPath() }
+				hx-target="#room-spawn"
+				hx-swap="outerHTML"
+			>Back</button>
+			<button
+				type="button"
+				class="btn ms-auto border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+			<button
+				type="button"
+				class="btn btn-primary"
+				data-spawn-pick
+				data-spawn-source="npc"
+				data-spawn-id={ data.Avatar.ID }
+				data-spawn-name={ data.Avatar.Name }
+				data-spawn-image={ data.Avatar.Image }
+			>Place NPC</button>
+		</div>
+	</room-spawn>
+}
+
+templ roomSpawnFace(src string, name string) {
+	<span class="grid size-20 shrink-0 place-content-center overflow-hidden rounded-field bg-base-content/5">
+		if src != "" {
+			<img src={ src } alt="" class="size-20 object-cover select-none"/>
+		} else {
+			<span class="font-serif text-3xl text-base-content/50">{ characterInitial(name) }</span>
+		}
+	</span>
+}
+
+templ roomSpawnText(id string, caption string, limit string, attrs templ.Attributes) {
+	<label class="flex min-w-0 flex-1 flex-col gap-1" for={ id }>
+		<span class="text-xs text-base-content/60">{ caption }</span>
+		<input
+			id={ id }
+			type="text"
+			class="input input-sm validator peer w-full"
+			maxlength={ limit }
+			autocomplete="off"
+			required
+			{ attrs... }
+		/>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Give this one a name.</span>
+	</label>
+}
+
+templ roomSpawnNumber(id string, caption string, value string, low string, high string, attrs templ.Attributes) {
+	<label class="flex min-w-0 flex-col gap-1" for={ id }>
+		<span class="text-xs text-base-content/60">{ caption }</span>
+		<input
+			id={ id }
+			type="number"
+			inputmode="numeric"
+			class="input input-sm validator peer w-full"
+			value={ value }
+			min={ low }
+			max={ high }
+			step="1"
+			required
+			{ attrs... }
+		/>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number from { low } to { high }.</span>
+	</label>
 }

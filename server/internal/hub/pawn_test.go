@@ -383,20 +383,52 @@ func TestObjectWithNoAssetIsRefused(t *testing.T) {
 	}
 }
 
-// A token placed as a creature arrives with the size the dialog chose and a
-// placeholder stat line, because a picture has no hit points to read.
-func TestResolvingATokenTakesTheSizeFromTheWire(t *testing.T) {
+// AN NPC IS THE ONE KIND THAT TAKES ITS WHOLE DESCRIPTION OFF THE WIRE, because
+// a face out of the avatar library is a picture and a name and nothing else.
+// The size and the three numbers all come from the form beside the wall.
+func TestResolvingAnNPCTakesTheStatLineFromTheWire(t *testing.T) {
 	asset := testID(10)
-	h := stubbedHub(t, tokenRow(asset, "Bandit"))
+	h := stubbedHub(t, avatarRow(asset, "Bandit"))
 
-	cmd := &room.PawnSpawn{Kind: room.PawnNPC, AssetID: &asset, Size: room.SizeLarge}
-	if err := h.resolveToken(context.Background(), room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
+	hp, maxHP, ac := 9, 12, 13
+	cmd := &room.PawnSpawn{
+		Kind:    room.PawnNPC,
+		AssetID: &asset,
+		Size:    room.SizeLarge,
+		HP:      &hp,
+		MaxHP:   &maxHP,
+		AC:      &ac,
+	}
+	if err := h.resolveNPC(context.Background(), room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
 		t.Fatalf("resolution failed: %v", err)
 	}
 
 	if cmd.Pawn.Size != room.SizeLarge {
 		t.Errorf("size = %q, want large", cmd.Pawn.Size)
 	}
+	if cmd.Pawn.HP == nil || *cmd.Pawn.HP != hp {
+		t.Errorf("hit points = %v, want %d", cmd.Pawn.HP, hp)
+	}
+	if cmd.Pawn.MaxHP == nil || *cmd.Pawn.MaxHP != maxHP {
+		t.Errorf("maximum hit points = %v, want %d", cmd.Pawn.MaxHP, maxHP)
+	}
+	if cmd.Pawn.AC == nil || *cmd.Pawn.AC != ac {
+		t.Errorf("armour class = %v, want %d", cmd.Pawn.AC, ac)
+	}
+}
+
+// A SPAWN THAT DESCRIBED NOTHING STILL LANDS, on the placeholder the form
+// itself opens on. It is what a client that skipped the form would get, and it
+// is deliberately obviously wrong rather than plausibly wrong.
+func TestResolvingAnNPCWithNoStatLineFallsBackToThePlaceholder(t *testing.T) {
+	asset := testID(11)
+	h := stubbedHub(t, avatarRow(asset, "Innkeeper"))
+
+	cmd := &room.PawnSpawn{Kind: room.PawnNPC, AssetID: &asset, Size: room.SizeMedium}
+	if err := h.resolveNPC(context.Background(), room.Actor{ID: gmID, Role: room.RoleGM}, cmd); err != nil {
+		t.Fatalf("resolution failed: %v", err)
+	}
+
 	if cmd.Pawn.HP == nil || *cmd.Pawn.HP != npcHP || cmd.Pawn.AC == nil || *cmd.Pawn.AC != npcAC {
 		t.Errorf("stat line = %v/%v, want the placeholder", cmd.Pawn.HP, cmd.Pawn.AC)
 	}
@@ -509,6 +541,20 @@ func tokenRow(id ulid.ULID, name string) stubRow {
 			time.Unix(0, 0), time.Unix(0, 0),
 		},
 	}
+}
+
+// avatarRow is the same shape as tokenRow with the type column that tells the
+// two libraries apart. The statement scopes by it, so the resolver that asks
+// for a face and the one that asks for a token cannot be handed each other's
+// row.
+func avatarRow(id ulid.ULID, name string) stubRow {
+	row := tokenRow(id, name)
+	row.values[3] = []byte("avatars/x.webp")
+	row.values[5] = []byte("avatar")
+	row.values[6] = []byte("face.png")
+	row.values[10], row.values[11] = int64(256), int64(256)
+
+	return row
 }
 
 type stubConnector struct{ row stubRow }

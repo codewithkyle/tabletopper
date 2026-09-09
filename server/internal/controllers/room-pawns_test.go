@@ -124,6 +124,7 @@ func TestTheSpawnFragmentsAreTheGMsAlone(t *testing.T) {
 	for name, handler := range map[string]func(*App) http.HandlerFunc{
 		"spawn":      func(a *App) http.HandlerFunc { return a.RoomSpawnFragment },
 		"spawn-list": func(a *App) http.HandlerFunc { return a.RoomSpawnListFragment },
+		"spawn-npc":  func(a *App) http.HandlerFunc { return a.RoomSpawnNPCFragment },
 	} {
 		t.Run(name, func(t *testing.T) {
 			app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
@@ -139,7 +140,7 @@ func TestTheSpawnFragmentsAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// THE KIND IS MATCHED AGAINST THE TWO VALUES BEFORE ANYTHING REACHES A
+// THE KIND IS MATCHED AGAINST THE THREE VALUES BEFORE ANYTHING REACHES A
 // STATEMENT, which is the rule every kind-parameterised route in this app
 // follows. A bad one is an empty 404 rather than http.NotFound, which writes a
 // page-shaped body into a fragment slot.
@@ -156,6 +157,26 @@ func TestTheSpawnFragmentRefusesAKindItDoesNotKnow(t *testing.T) {
 		}
 		if rec.Body.Len() != 0 {
 			t.Errorf("kind %q answered with a body: %s", kind, rec.Body.String())
+		}
+	}
+}
+
+// THE FACE IS LOOKED UP BY ITS TYPE AS WELL AS ITS OWNER, so an id that names
+// something else in the same library -- a token, a map -- is not found rather
+// than placed. A malformed one never reaches a statement at all.
+func TestTheNPCFragmentRefusesAnAssetItCannotName(t *testing.T) {
+	for _, asset := range []string{"", "not-a-ulid", "01BX5ZZKBKACTAV9WEVGEMMVT0; DROP"} {
+		app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+
+		rec := tableRequest(t, app.RoomSpawnNPCFragment, http.MethodGet,
+			"/fragment/room/spawn-npc?room="+testRoomID.String()+"&asset="+url.QueryEscape(asset),
+			nil, nil, gmSession())
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("asset %q got %d, want 404", asset, rec.Code)
+		}
+		if rec.Body.Len() != 0 {
+			t.Errorf("asset %q answered with a body: %s", asset, rec.Body.String())
 		}
 	}
 }

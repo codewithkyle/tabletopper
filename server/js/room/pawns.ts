@@ -203,6 +203,18 @@ export interface Armed {
 	// so the thing following the pointer is the thing about to be placed.
 	width: number;
 	height: number;
+
+	// hp, maxHp and ac are the NPC form's three numbers, and they are the one
+	// part of this spec that IS sent.
+	//
+	// AN NPC IS THE ONLY KIND WITH NOTHING TO READ. A monster's stat line is a
+	// row in the manual and a character's is a row on the sheet, both of which
+	// the hub reads for itself; a face out of the avatar library has neither,
+	// so the numbers travel from the form that asked for them. They are zero
+	// for every other kind and place() does not put them on the wire.
+	hp: number;
+	maxHp: number;
+	ac: number;
 }
 
 // Ghostable is the part of a pawn a ghost is built from. It is a Pick rather
@@ -758,6 +770,14 @@ export function createTable(deps: TableDeps): Table {
 		// is, is the picture named by assetId, and how big it is, is a column
 		// beside that picture -- so there is nothing here for a browser to say
 		// about it and nothing for the server to have to distrust.
+		//
+		// AND A STAT LINE FOR AN NPC AND NOTHING ELSE, for the mirror of that
+		// reason: a face has no row to read hit points off, and every other
+		// kind does. The server holds these to the same limits as a number
+		// typed into a pawn's own panel; what stops a silly one leaving here is
+		// the dialog, which will not arm on a field the browser refuses.
+		const npc = armed.kind === "npc";
+
 		deps.send({
 			type: "pawn.spawn",
 			kind: armed.kind,
@@ -768,8 +788,11 @@ export function createTable(deps: TableDeps): Table {
 			size: armed.kind === "object" ? undefined : armed.size,
 			monsterId: armed.kind === "monster" ? armed.id : undefined,
 			characterId: armed.kind === "player" ? armed.id : undefined,
-			assetId: armed.kind === "npc" || armed.kind === "object" ? armed.id || undefined : undefined,
-			name: armed.kind === "npc" || armed.kind === "object" ? armed.name : undefined,
+			assetId: npc || armed.kind === "object" ? armed.id || undefined : undefined,
+			name: npc || armed.kind === "object" ? armed.name : undefined,
+			hp: npc ? armed.hp : undefined,
+			maxHp: npc ? armed.maxHp : undefined,
+			ac: npc ? armed.ac : undefined,
 		});
 	}
 

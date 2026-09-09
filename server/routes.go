@@ -752,6 +752,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// contradict in one window the setting the GM chose in another.
 	mux.HandleFunc("GET /fragment/room/spawn", auth.Fragment(app.RoomSpawnFragment))
 	mux.HandleFunc("GET /fragment/room/spawn-list", auth.Fragment(app.RoomSpawnListFragment))
+	mux.HandleFunc("GET /fragment/room/spawn-npc", auth.Fragment(app.RoomSpawnNPCFragment))
 	mux.HandleFunc("GET /fragment/room/pawn", auth.Fragment(app.RoomPawnFragment))
 	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))

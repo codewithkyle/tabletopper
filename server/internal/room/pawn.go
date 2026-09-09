@@ -154,6 +154,20 @@ type PawnSpawn struct {
 	Name        string     `json:"name,omitempty"`
 	Size        Size       `json:"size,omitempty"`
 
+	// HP, MaxHP and AC are the NPC form's three numbers, and they are read by
+	// that one resolver and ignored by every other.
+	//
+	// A CREATURE WITH A ROW BEHIND IT DOES NOT TAKE A STAT LINE OFF THE WIRE.
+	// A monster's hit points are a column in the manual and a character's are a
+	// column on the sheet; both are read when the spawn resolves, so a browser
+	// that sent these alongside a monsterId has described something the server
+	// never looks at. An NPC is the one kind with nothing to read -- a face out
+	// of the avatar library is a picture and a name -- which is why the dialog
+	// asks, and why the asking stops here.
+	HP    *int `json:"hp,omitempty"`
+	MaxHP *int `json:"maxHp,omitempty"`
+	AC    *int `json:"ac,omitempty"`
+
 	Pawn *Pawn `json:"-"`
 }
 
