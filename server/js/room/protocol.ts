@@ -278,7 +278,7 @@ export interface PawnSetLayer {
 export interface PawnSetVisible {
 	type: "pawn.setVisible";
 	cid: string;
-	id: string;
+	ids: string[];
 	visible: boolean;
 }
 

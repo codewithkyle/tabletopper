@@ -91,10 +91,12 @@ test("a pawn players cannot see is marked hidden", () => {
 	assert.equal(out[0].hidden, true);
 });
 
-// DEAD IS A NUMBER THE VIEWER WAS ACTUALLY GIVEN. A monster in a room that
-// hides its hit points arrives with hp null, and inferring death from a band
-// would leak exactly what the setting exists to withhold.
-test("dead is only what the viewer was told", () => {
+// DEAD IS WHATEVER HEALTH THE VIEWER WAS GIVEN, WHICHEVER OF THE TWO IT WAS. A
+// monster in a room that hides its hit points arrives with hp null and a band
+// instead, and "dead" is one of the six bands the server sends -- so a player
+// gets the skull the GM gets. A room whose labels are off sends neither, and
+// that is the case that draws nothing.
+test("dead is whichever health the viewer was told", () => {
 	const out: Drawn[] = [];
 
 	visiblePawns([pawn({ hp: 0 })], GROUND, out);
@@ -104,7 +106,20 @@ test("dead is only what the viewer was told", () => {
 	assert.equal(out[0].dead, false);
 
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: "dead" })], GROUND, out);
-	assert.equal(out[0].dead, false, "a band was read as a hit-point count");
+	assert.equal(out[0].dead, true, "a player was not shown the band they were sent");
+
+	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: "nearDeath" })], GROUND, out);
+	assert.equal(out[0].dead, false);
+
+	// Labels off: no number and no band, so there is nothing to draw a skull
+	// from and nothing is inferred.
+	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: null })], GROUND, out);
+	assert.equal(out[0].dead, false, "a skull was drawn from no health at all");
+
+	// The number wins where both arrive, which is a monster in a room whose
+	// labels are full and every player character in every room.
+	visiblePawns([pawn({ hp: 4, maxHp: 7, hpBand: "dead" })], GROUND, out);
+	assert.equal(out[0].dead, false);
 });
 
 // A creature's footprint is its size category and an object's is its picture.

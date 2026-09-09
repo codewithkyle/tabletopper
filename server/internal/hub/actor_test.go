@@ -96,7 +96,7 @@ func TestHidingAPawnUpdatesTheGMAndRemovesItForPlayers(t *testing.T) {
 
 	pawn := ulidField(t, spawned[0].Body["pawn"].(map[string]any), "id")
 
-	tb.send(gm, "2", &room.PawnSetVisible{ID: pawn, Visible: false})
+	tb.send(gm, "2", &room.PawnSetVisible{IDs: []ulid.ULID{pawn}, Visible: false})
 
 	only(t, gm, "pawn.updated")
 	removed := only(t, player, "pawn.removed")

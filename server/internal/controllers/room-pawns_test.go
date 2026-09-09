@@ -264,6 +264,13 @@ func TestEveryIDReachesTheCore(t *testing.T) {
 				return url.Values{"ids": {testPawnA.String(), testPawnB.String()}, "layer": {layer.String()}}
 			},
 		},
+		"shown": {
+			fn:     func(a *App) http.HandlerFunc { return a.SetPawnsShown },
+			method: http.MethodPost,
+			form: func(ulid.ULID) url.Values {
+				return url.Values{"ids": {testPawnA.String(), testPawnB.String()}, "shown": {"on"}}
+			},
+		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
@@ -320,6 +327,25 @@ func TestTheIDListIsBoundedAndValidated(t *testing.T) {
 				t.Errorf("answered with a body: %s", rec.Body.String())
 			}
 		})
+	}
+}
+
+// HIDING AND REVEALING A SELECTION IS THE GM'S, and it is the one thing on the
+// group panel a player must never reach: a player who could hide a pawn could
+// take a monster off everybody else's table.
+func TestSettingPawnVisibilityIsRefusedForAPlayer(t *testing.T) {
+	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+
+	rec := tableRequest(t, app.SetPawnsShown, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/pawns/shown",
+		map[string]string{"id": testRoomID.String()},
+		url.Values{"ids": {testPawnA.String()}, "shown": {"on"}}, memberSession(testRoomID))
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
+	}
+	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "hide or reveal pawns") {
+		t.Errorf("the alert does not say what was refused: %q", trigger)
 	}
 }
 

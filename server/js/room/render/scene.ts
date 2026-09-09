@@ -106,11 +106,14 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 		// desaturated draw is for.
 		drawn.hidden = !pawn.visible;
 
-		// DEAD IS A NUMBER THE VIEWER WAS ACTUALLY GIVEN. A monster in a room
-		// that hides its hit points arrives with hp null, and the honest answer
-		// is that the player does not know it is down -- inferring it from a
-		// band would leak the thing the setting exists to withhold.
-		drawn.dead = pawn.hp !== null && pawn.hp <= 0;
+		// DEAD IS WHATEVER HEALTH THE VIEWER WAS ACTUALLY GIVEN, WHICHEVER OF
+		// THE TWO IT WAS. A monster in a room that hides its hit points arrives
+		// with hp null and a band instead, and "dead" is one of the six bands
+		// the server sends -- so reading it here withholds nothing: the label
+		// beside the pawn already prints the word. The band is the ONLY
+		// fallback, which is what keeps the room that sends neither -- labels
+		// set to none -- drawing no skull at all.
+		drawn.dead = pawn.hp !== null ? pawn.hp <= 0 : pawn.hpBand === "dead";
 
 		count++;
 	}

@@ -180,6 +180,12 @@ if (mount) {
 			bounds: () => table.bounds(),
 			project: (x, y, out) => view.toScreen(x, y, out),
 			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
+
+			// A PLAYER'S STORE NEVER HOLDS A HIDDEN PAWN, so this reads true
+			// for anything they could have selected. It costs nothing to be
+			// right there anyway: the button it answers for is the GM's, and
+			// a player's page renders none.
+			anyShown: (ids) => state.pawns.some((pawn) => pawn.visible && ids.includes(pawn.id)),
 			labels: () => state.table.pawnLabels,
 		});
 
@@ -200,7 +206,7 @@ if (mount) {
 
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table);
+		socket = start(path, state, renderer, table, overlay);
 	}
 }
 
@@ -217,7 +223,13 @@ function touchesPawns(type: Event["type"]): boolean {
 	return type === "snapshot" || type === "table.updated" || (type.startsWith("pawn.") && type !== "pawn.dragging");
 }
 
-function start(path: string, state: State, renderer: Renderer | null, table: Table): Socket {
+function start(
+	path: string,
+	state: State,
+	renderer: Renderer | null,
+	table: Table,
+	overlay: Overlay | null,
+): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 
 	const socket = new Socket(path, {
@@ -247,6 +259,15 @@ function start(path: string, state: State, renderer: Renderer | null, table: Tab
 			// knows an event happened.
 			if (touchesPawns(event.type)) {
 				renderer?.pawnsChanged();
+
+				// AND THE PANEL OVER THE TABLE, which is otherwise rewritten
+				// only when the pointer does something. What it says is read
+				// off the pawns -- the hovered one's hit points, and whether
+				// the selection is hidden or shown -- so a change that arrived
+				// over the wire leaves it describing a pawn as it was: a
+				// goblin still at full health after somebody else hit it, and
+				// a Hide button that has already been pressed.
+				overlay?.refresh();
 			}
 
 			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people

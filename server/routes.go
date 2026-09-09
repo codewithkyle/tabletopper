@@ -489,6 +489,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// the one the change came from.
 	mux.HandleFunc("POST /rooms/{id}/pawns/party", auth.RequireSession(app.SpawnParty))
 	mux.HandleFunc("POST /rooms/{id}/pawns/layer", auth.RequireSession(app.MovePawnsToLayer))
+	mux.HandleFunc("POST /rooms/{id}/pawns/shown", auth.RequireSession(app.SetPawnsShown))
 	mux.HandleFunc("DELETE /rooms/{id}/pawns", auth.RequireSession(app.RemovePawns))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}", auth.RequireSession(app.UpdatePawn))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/hp", auth.RequireSession(app.UpdatePawnHP))

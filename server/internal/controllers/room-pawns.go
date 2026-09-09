@@ -369,7 +369,7 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 	// the GM's every open window as well.
 	if who.Role == room.RoleGM {
 		if shown := r.FormValue("shown") != ""; shown != pawn.Visible {
-			cmd := &room.PawnSetVisible{ID: pawnID, Visible: shown}
+			cmd := &room.PawnSetVisible{IDs: []ulid.ULID{pawnID}, Visible: shown}
 			if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
 				a.refusePawnForm(w, r, pawnID, "hide or reveal a pawn", err)
 
@@ -568,6 +568,43 @@ func (a *App) MovePawnsToLayer(w http.ResponseWriter, r *http.Request) {
 
 	if err := a.Hub.Dispatch(r.Context(), roomID, who, &room.PawnSetLayer{IDs: ids, Layer: layer}); err != nil {
 		a.rejectCommand(w, "move pawns between layers", err)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// SetPawnsShown is the group hide and reveal, from the canvas overlay's toggle.
+//
+// IT IS THE OVERLAY'S AND NOT THE PANEL'S. A single pawn's visibility is a
+// switch inside its own window and rides along with the rest of that form in
+// UpdatePawn, which is where every other field of a pawn is saved; this route
+// exists for the gesture that has no form -- marquee eight goblins, press once,
+// and the ambush is on the table. Both end at the same command with a list.
+//
+// THE STATE IS ON THE REQUEST RATHER THAN INFERRED. "shown" is present or it is
+// not, exactly as the pawn panel's own checkbox posts it, so what the GM saw on
+// the button is what they get: a toggle that read the room's own answer here
+// would flip twice when two GMs pressed it at once, and land where neither of
+// them meant.
+//
+// A 204 AND NO BODY, because what changes arrives over the socket -- pawn
+// updates for the GM, and pawns appearing or disappearing for everybody else.
+func (a *App) SetPawnsShown(w http.ResponseWriter, r *http.Request) {
+	who, roomID, ok := a.pawnActor(w, r)
+	if !ok {
+		return
+	}
+
+	ids, ok := pawnIDs(w, r)
+	if !ok {
+		return
+	}
+
+	cmd := &room.PawnSetVisible{IDs: ids, Visible: r.FormValue("shown") != ""}
+	if err := a.Hub.Dispatch(r.Context(), roomID, who, cmd); err != nil {
+		a.rejectCommand(w, "hide or reveal pawns", err)
 
 		return
 	}

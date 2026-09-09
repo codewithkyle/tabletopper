@@ -50,7 +50,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"pawn.drag", &PawnDrag{Anchor: fx.owned}, ok, ok, CodeForbidden},
 		{"pawn.update", &PawnUpdate{ID: fx.owned}, ok, ok, CodeForbidden},
 		{"pawn.setConditions", &PawnSetConditions{ID: fx.owned}, ok, ok, CodeForbidden},
-		{"pawn.setVisible", &PawnSetVisible{ID: fx.owned}, ok, CodeForbidden, CodeForbidden},
+		{"pawn.setVisible", &PawnSetVisible{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.setLayer", &PawnSetLayer{IDs: []ulid.ULID{fx.owned}, Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.remove", &PawnRemove{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
 

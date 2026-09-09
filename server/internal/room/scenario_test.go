@@ -137,8 +137,8 @@ func scenario(r *recorder) {
 	r.do("end of the goblin's turn", &InitiativeNext{}, gm)
 	r.do("round two", &InitiativeNext{}, gm)
 
-	r.do("the ambusher steps out", &PawnSetVisible{ID: ambusher, Visible: true}, gm)
-	r.do("no, back into the dark", &PawnSetVisible{ID: ambusher, Visible: false}, gm)
+	r.do("the ambusher steps out", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: true}, gm)
+	r.do("no, back into the dark", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: false}, gm)
 
 	r.do("somebody points at the door", &Ping{Layer: ground, X: 512, Y: 96}, pc)
 

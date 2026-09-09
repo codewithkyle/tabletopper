@@ -203,9 +203,9 @@ export interface Drawn {
 	// a player's, because they are never sent one.
 	hidden: boolean;
 
-	// dead draws the skull. It is false when the viewer was told no hit points
-	// at all, which is the honest answer -- a player who cannot see a monster's
-	// health cannot see that it has run out either.
+	// dead draws the skull. It is false when the viewer was told nothing about
+	// the creature's health at all -- neither a number nor a band -- which is
+	// the honest answer for a table whose labels are off.
 	dead: boolean;
 }
 

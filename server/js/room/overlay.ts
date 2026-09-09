@@ -18,7 +18,7 @@
 // What a label is for is telling you what you are pointing AT, which is a
 // question you stop asking the moment you have picked the thing. The one
 // exception is a multiple selection, where the label is not describing a pawn
-// at all: it is the count and the two controls that act on the group.
+// at all: it is the count and the three controls that act on the group.
 //
 // IT CARRIES NO BUTTONS WHILE IT IS DESCRIBING ONE PAWN. Everything about a
 // pawn is in its window, which a double click on the table opens and the right
@@ -51,6 +51,21 @@ export interface OverlayDeps {
 	// layers is the room's floors, for the GM's Move to floor control.
 	layers: () => { id: string; name: string }[];
 
+	// anyShown is whether ANY of these pawns is currently visible to players,
+	// which is the whole of what the group's hide-and-reveal button needs.
+	//
+	// ANY RATHER THAN ALL, because a mixed selection has to resolve to one of
+	// the two words and "Hide" is the one that finishes the job: pressing it
+	// leaves nothing on the table the players can see, which is what somebody
+	// who marqueed a corridor full of goblins and reached for this meant. All
+	// would leave the visible ones visible and read as a button that did
+	// nothing.
+	//
+	// IT IS ASKED OF THE STORE AND NOT REMEMBERED, so a pawn another GM
+	// revealed a moment ago is counted -- the socket event that arrived is
+	// what refreshes this panel.
+	anyShown: (ids: string[]) => boolean;
+
 	// labels is the room's one setting for this panel, and reading it here is
 	// the ONLY branch in the client on what a viewer may know.
 	//
@@ -62,7 +77,7 @@ export interface OverlayDeps {
 	// pawn is never projected -- there is nothing missing from it to notice.
 	//
 	// IT DOES NOT TAKE THE GROUP PANEL AWAY, because that one is not a label.
-	// What it holds is a count and the GM's two controls for acting on a
+	// What it holds is a count and the GM's three controls for acting on a
 	// selection: a toolbar that happens to follow what is selected, rather than
 	// anything a viewer is being told about a pawn.
 	labels: () => string;
@@ -123,6 +138,7 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 	// are nulls rather than hidden elements. The Delete key's button is looked
 	// up on the MOUNT rather than on the panel, because it is not part of it.
 	const removeButton = root.querySelector("[data-overlay-remove]");
+	const shownButton = root.querySelector("[data-overlay-shown]");
 	const layerSelect = root.querySelector("[data-overlay-layer]");
 	const removeKey = mount.querySelector("[data-pawn-remove]");
 
@@ -209,7 +225,35 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 		removeButton?.setAttribute("hx-vals", values);
 		layerSelect?.setAttribute("hx-vals", values);
 
+		armShown(chosen);
 		fillLayers();
+	}
+
+	// armShown writes both halves of the hide-and-reveal button: what it says,
+	// and the state it asks for.
+	//
+	// THE STATE GOES ON THE REQUEST RATHER THAN BEING WORKED OUT AT THE OTHER
+	// END, and the word on the button is the same answer read twice. A route
+	// that toggled whatever it found would flip twice when two GMs pressed it
+	// at once and land where neither of them meant; this way a press does what
+	// the person could read.
+	//
+	// THE FIELD IS CALLED shown AND NOT visible, which is not a preference: a
+	// form field is a candidate the stylesheet's extractor takes off an
+	// attribute, and `visible` is a utility class. The pawn's own panel posts
+	// the same name for the same switch.
+	function armShown(chosen: string[]): void {
+		if (!(shownButton instanceof HTMLElement)) {
+			return;
+		}
+
+		const hide = deps.anyShown(chosen);
+
+		shownButton.textContent = hide ? "Hide" : "Reveal";
+		shownButton.setAttribute("hx-vals", JSON.stringify({
+			ids: chosen.join(","),
+			shown: hide ? "" : "on",
+		}));
 	}
 
 	// armRemoveKey keeps the hidden button in step with the selection, so the

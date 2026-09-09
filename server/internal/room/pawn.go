@@ -205,6 +205,14 @@ func (c *PawnSpawn) Apply(s *State, _ Actor, env Env) ([]Emission, error) {
 // PawnSpawnCharacters is the "spawn the party" button. It has no wire fields at
 // all: who is at the table and which character each of them joined with are
 // facts the hub holds, so it resolves the whole list and Apply places it.
+//
+// THE PARTY ARRIVES SHOWN, ALWAYS, and that is the one place a spawn is not
+// asked. PawnSpawn carries a visibility off the wire because the dialog behind
+// it has a switch: a GM sets an ambush up before the players are meant to know
+// about it. This button is the opposite gesture -- it puts the people who are
+// sitting at the table onto the table -- and a party that landed hidden would
+// be five players told nothing happened, followed by the GM revealing each of
+// them one at a time to undo a default nobody chose.
 type PawnSpawnCharacters struct {
 	Pawns []Pawn `json:"-"`
 }
@@ -222,6 +230,7 @@ func (c *PawnSpawnCharacters) Apply(s *State, a Actor, env Env) ([]Emission, err
 	for _, p := range c.Pawns {
 		p = clonePawn(p)
 		p.Kind = PawnPlayer
+		p.Visible = true
 
 		em, err := s.addPawn(p, env)
 		if err != nil {
@@ -598,50 +607,73 @@ func (c *PawnSetConditions) Apply(s *State, a Actor, env Env) ([]Emission, error
 
 // PawnSetVisible is the GM's hide and reveal. It is the command the whole
 // two-audience design exists for.
+//
+// IT TAKES A LIST FOR PawnSetLayer's REASON AND SENDS ONE FOR THE SAME ONE. The
+// canvas overlay hides a whole selection at once -- the eight goblins waiting
+// round the corner go away together or the reveal is eight separate moments --
+// and the pawn's own dialog sends a list of one rather than there being a
+// second command for it. Doing it in one command is also what keeps the tracker
+// to a single event: eight commands would have every player re-render the turn
+// order eight times to reach the same answer.
 type PawnSetVisible struct {
-	ID      ulid.ULID `json:"id"`
-	Visible bool      `json:"visible"`
+	IDs     []ulid.ULID `json:"ids"`
+	Visible bool        `json:"visible"`
 }
 
 func (c *PawnSetVisible) Authorize(s *State, a Actor) error {
-	return requireGM(a, "hide or reveal a pawn")
+	return requireGM(a, "hide or reveal pawns")
 }
 
 func (c *PawnSetVisible) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	p, err := s.requirePawn(c.ID)
-	if err != nil {
+	if err := checkSelection(len(c.IDs)); err != nil {
 		return nil, err
 	}
+	for _, id := range c.IDs {
+		if _, err := s.requirePawn(id); err != nil {
+			return nil, err
+		}
+	}
 
-	was := s.Shown(*p)
-	p.Visible = c.Visible
+	before := s.shownSet()
+	for _, id := range c.IDs {
+		s.Pawn(id).Visible = c.Visible
+	}
 	s.Normalize()
 
-	p = s.Pawn(c.ID)
-	now := s.Shown(*p)
-
-	// The GM sees an ordinary update, because to them nothing appeared or
-	// disappeared -- a flag changed on a pawn that was on their screen before
-	// and is on it after.
-	out := []Emission{to(ToGM, &PawnUpdated{Pawn: clonePawn(*p)})}
-	if was == now {
-		return out, nil
+	// The GM sees ordinary updates, because to them nothing appeared or
+	// disappeared -- a flag changed on pawns that were on their screen before
+	// and are on it after.
+	var out []Emission
+	for _, p := range s.Pawns {
+		if slices.Contains(c.IDs, p.ID) {
+			out = append(out, to(ToGM, &PawnUpdated{Pawn: clonePawn(p)}))
+		}
 	}
 
-	if now {
-		out = append(out, to(ToPlayers, &PawnSpawned{Pawn: projectPawn(clonePawn(*p), s.Table)}))
-	} else {
-		out = append(out, to(ToPlayers, &PawnRemoved{ID: c.ID}))
-	}
+	out = append(out, s.shownTransitions(before)...)
 
 	// A HIDDEN PAWN'S TURN IS NOT IN THE PLAYERS' TRACKER, so revealing or
 	// hiding one changes a second thing on their screen. The GM's tracker did
-	// not change, which is why this goes to players alone.
-	if s.hasEntryFor(c.ID) {
+	// not change, which is why this goes to players alone -- and it goes once
+	// however many pawns moved across the line.
+	if s.trackedTransition(before) {
 		out = append(out, to(ToPlayers, &InitiativeUpdated{Initiative: projectInitiative(s)}))
 	}
 
 	return out, nil
+}
+
+// trackedTransition reports whether any pawn the tracker names has just changed
+// which audience can see it, which is the one thing that makes the players'
+// turn order different from the one they were last sent.
+func (s *State) trackedTransition(before map[ulid.ULID]bool) bool {
+	for _, p := range s.Pawns {
+		if before[p.ID] != s.Shown(p) && s.hasEntryFor(p.ID) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // PawnSetLayer moves pawns between floors.

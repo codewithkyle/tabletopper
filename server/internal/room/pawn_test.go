@@ -270,7 +270,7 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	goblin := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnID: &goblin, Initiative: 12}}}, w.gm)
 
-	hide := w.apply(&PawnSetVisible{ID: goblin, Visible: false}, w.gm)
+	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
 	equalStrings(t, "hiding", summary(hide), []string{
 		"pawn.updated to gm",
 		"pawn.removed to players",
@@ -288,7 +288,7 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 		t.Fatalf("the players' tracker still names the hidden pawn: %+v", tracker.Initiative.Entries)
 	}
 
-	reveal := w.apply(&PawnSetVisible{ID: goblin, Visible: true}, w.gm)
+	reveal := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: true}, w.gm)
 	equalStrings(t, "revealing", summary(reveal), []string{
 		"pawn.updated to gm",
 		"pawn.spawned to players",
@@ -296,8 +296,104 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	})
 
 	// Setting it to what it already is changes nothing for players.
-	again := w.apply(&PawnSetVisible{ID: goblin, Visible: true}, w.gm)
+	again := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: true}, w.gm)
 	equalStrings(t, "revealing twice", summary(again), []string{"pawn.updated to gm"})
+}
+
+// A SELECTION IS HIDDEN AND REVEALED IN ONE COMMAND, which is what the canvas
+// overlay's toggle sends: the ambush waiting round the corner goes away together
+// or the reveal is eight separate moments.
+func TestHidingASelectionIsOneCommandAndOneTrackerEvent(t *testing.T) {
+	w := newWorld(t)
+
+	first := w.spawn(Pawn{Name: "First goblin", X: 96, Y: 96, Visible: true})
+	second := w.spawn(Pawn{Name: "Second goblin", X: 160, Y: 96, Visible: true})
+	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
+		{Name: "First goblin", PawnID: &first, Initiative: 12},
+		{Name: "Second goblin", PawnID: &second, Initiative: 11},
+	}}, w.gm)
+
+	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{first, second}, Visible: false}, w.gm)
+	equalStrings(t, "hiding two", summary(hide), []string{
+		"pawn.updated to gm",
+		"pawn.updated to gm",
+		"pawn.removed to players",
+		"pawn.removed to players",
+		"initiative.updated to players",
+	})
+
+	players := delivered(hide, w.gm, w.pc)
+	if tracker := players[len(players)-1].(*InitiativeUpdated); len(tracker.Initiative.Entries) != 0 {
+		t.Fatalf("the players' tracker still names a hidden pawn: %+v", tracker.Initiative.Entries)
+	}
+
+	reveal := w.apply(&PawnSetVisible{IDs: []ulid.ULID{first, second}, Visible: true}, w.gm)
+	equalStrings(t, "revealing two", summary(reveal), []string{
+		"pawn.updated to gm",
+		"pawn.updated to gm",
+		"pawn.spawned to players",
+		"pawn.spawned to players",
+		"initiative.updated to players",
+	})
+}
+
+// A MIXED SELECTION IS SET RATHER THAN FLIPPED, so the pawn that was already in
+// the asked-for state is left alone and only the other one moves audiences.
+func TestHidingAMixedSelectionSetsRatherThanToggles(t *testing.T) {
+	w := newWorld(t)
+
+	seen := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
+	hidden := w.spawn(Pawn{Name: "Ambusher", X: 160, Y: 96, Visible: false})
+
+	ems := w.apply(&PawnSetVisible{IDs: []ulid.ULID{seen, hidden}, Visible: false}, w.gm)
+	equalStrings(t, "hiding a mixed selection", summary(ems), []string{
+		"pawn.updated to gm",
+		"pawn.updated to gm",
+		"pawn.removed to players",
+	})
+
+	if w.s.Pawn(seen).Visible || w.s.Pawn(hidden).Visible {
+		t.Fatal("a pawn is still visible after the whole selection was hidden")
+	}
+}
+
+// A pawn nobody put on the table is a not-found, and it refuses the whole
+// command rather than hiding the ones it did recognise.
+func TestHidingRefusesAnUnknownPawnBeforeChangingAnything(t *testing.T) {
+	w := newWorld(t)
+
+	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
+
+	w.refuse(&PawnSetVisible{IDs: []ulid.ULID{goblin, testID(999)}, Visible: false}, w.gm, CodeNotFound)
+
+	if !w.s.Pawn(goblin).Visible {
+		t.Fatal("the goblin was hidden by a command that was refused")
+	}
+}
+
+// THE PARTY ARRIVES ON THE TABLE RATHER THAN BEHIND THE SCREEN. Spawn pawns
+// carries no visibility off the wire, and a party that landed hidden would be
+// the players told nothing happened.
+func TestTheSpawnedPartyIsVisible(t *testing.T) {
+	w := newWorld(t)
+
+	ems := w.apply(&PawnSpawnCharacters{Pawns: []Pawn{
+		{Name: "Ari", Size: SizeMedium, LayerID: w.layer, X: 96, Y: 96, OwnerID: &testPlayerID, CharacterID: &testCharID},
+		{Name: "Rin", Size: SizeMedium, LayerID: w.layer, X: 160, Y: 96, OwnerID: &testOtherID, CharacterID: &testOtherChar},
+	}}, w.gm)
+
+	equalStrings(t, "spawning the party", summary(ems), []string{
+		"pawn.spawned to gm",
+		"pawn.spawned to players",
+		"pawn.spawned to gm",
+		"pawn.spawned to players",
+	})
+
+	for _, p := range w.s.Pawns {
+		if !p.Visible {
+			t.Fatalf("%s was spawned hidden", p.Name)
+		}
+	}
 }
 
 // Deleting a pawn takes its line out of the tracker, and one tracker event

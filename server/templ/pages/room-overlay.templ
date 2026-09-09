@@ -26,17 +26,27 @@ templ roomOverlay(data RoomPageData) {
 					hx-swap="none"
 					hx-vals=""
 				></select>
-				<button
-					type="button"
-					data-overlay-remove
-					class="btn btn-xs btn-error"
-					hx-delete={ "/rooms/" + data.ID + "/pawns" }
-					hx-swap="none"
-					hx-vals=""
-					hx-confirm="Remove them from the table. This cannot be undone."
-					data-confirm-heading="Remove these pawns?"
-					data-confirm-label="Remove"
-				>Remove</button>
+				<div class="flex gap-1">
+					<button
+						type="button"
+						data-overlay-shown
+						class="btn btn-xs flex-1"
+						hx-post={ "/rooms/" + data.ID + "/pawns/shown" }
+						hx-swap="none"
+						hx-vals=""
+					></button>
+					<button
+						type="button"
+						data-overlay-remove
+						class="btn btn-xs btn-error flex-1"
+						hx-delete={ "/rooms/" + data.ID + "/pawns" }
+						hx-swap="none"
+						hx-vals=""
+						hx-confirm="Remove them from the table. This cannot be undone."
+						data-confirm-heading="Remove these pawns?"
+						data-confirm-label="Remove"
+					>Remove</button>
+				</div>
 			}
 		</div>
 	</div>
