@@ -121,21 +121,15 @@ const initiativeBloodVariants = 9
 type RoomInitiativeData struct {
 	RoomID string
 
-	// IsGM decides four things at once: whether the lines are draggable,
-	// whether they can be clicked to activate, whether Next turn is drawn, and
-	// whether hit points are printed on every line rather than on the acting
-	// one alone.
+	// IsGM decides three things at once: whether the lines are draggable,
+	// whether they can be clicked to activate, and whether hit points are
+	// printed on every line rather than on the acting one alone.
 	IsGM bool
 
 	// Empty renders the whole strip hidden. An empty tracker is no strip at
 	// all -- not an empty panel -- because the table underneath it is what the
 	// room is for.
 	Empty bool
-
-	// Round is what the counter at the leading edge prints, and it is
-	// everybody's. A tracker that has been built but not started reads as a
-	// dash rather than as zero, which is a round nobody is in.
-	Round string
 
 	Entries []RoomInitiativeEntry
 }
@@ -218,6 +212,15 @@ func (d RoomInitiativeData) SyncPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/sync"
 }
 
+// NextPath is rendered as a hidden button on the GM's strip and as End turn on
+// a player's own acting line.
+//
+// THE GM'S IS HIDDEN BECAUSE NOTHING THERE IS PRESSED. A Next button used to
+// sit at the far end of the row; it was a control inside a display, it moved
+// every time the order changed, and it was the only thing on this surface a GM
+// operated rather than read. What is left is the element the N key presses --
+// see initiative.ts, which learns no route -- and the Initiative menu, which
+// posts the same URL and prints the key beside its label.
 func (d RoomInitiativeData) NextPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/next"
 }
@@ -278,7 +281,8 @@ func (d RoomInitiativeData) ShowHP(e RoomInitiativeEntry) bool {
 }
 
 // InitiativeRoundText is the counter's text: the number, or a dash for a
-// tracker that has been built and not started.
+// tracker that has been built and not started. The counter itself is in the
+// menu bar; see room-initiative-round.go.
 func InitiativeRoundText(round int) string {
 	if round < 1 {
 		return "--"

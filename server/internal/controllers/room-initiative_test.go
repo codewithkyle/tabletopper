@@ -113,6 +113,34 @@ func TestTheStripIsFetchedByAnybodyInTheRoom(t *testing.T) {
 	}
 }
 
+// AND SO IS THE ROUND COUNTER IN THE BAR. The round is the one thing about a
+// fight that is not projected: a player who can see none of the monsters still
+// knows which round it is, because their own character is in it.
+func TestTheRoundCounterIsFetchedByAnybodyInTheRoom(t *testing.T) {
+	app, _ := initiativeApp(t)
+
+	for name, sess := range map[string]session.UserSession{
+		"the GM":   {UserID: testOwnerID},
+		"a player": memberSession(testRoomID),
+	} {
+		rec := tableRequest(t, app.RoomInitiativeRoundFragment, http.MethodGet,
+			"/fragment/room/initiative/round?room="+testRoomID.String(), nil, nil, sess)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s got status %d, want 200; body: %s", name, rec.Code, rec.Body.String())
+		}
+		if !strings.Contains(rec.Body.String(), `id="room-initiative-round"`) {
+			t.Errorf("%s was not sent the counter:\n%s", name, rec.Body.String())
+		}
+
+		// The fixture builds two lines and starts nobody's turn, so this is a
+		// tracker that exists and has not been advanced: a dash, not a zero.
+		if !strings.Contains(rec.Body.String(), "Round") {
+			t.Errorf("%s was sent a counter with no round in it:\n%s", name, rec.Body.String())
+		}
+	}
+}
+
 // AND THE ADD DIALOG IS THE GM'S, like the layer manager: it is a control for
 // the fight rather than a reading of it.
 func TestTheAddEntryDialogIsTheGMsAlone(t *testing.T) {

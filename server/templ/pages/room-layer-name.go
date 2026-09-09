@@ -14,6 +14,11 @@ package pages
 // IT FETCHES ITSELF ON LOAD, so the page render does not have to reach into the
 // hub -- and so that a room whose actor is not loaded yet is not booted by
 // drawing its chrome.
+//
+// IT NO LONGER CARRIES THE AUTO MARGIN THAT PUSHES THE RIGHT-HAND GROUP OVER.
+// The round counter sits ahead of it now and carries it instead; two elements
+// with an auto left margin split the free space between them, which would leave
+// the round stranded in the middle of the bar. See RoomInitiativeRoundData.
 type RoomLayerNameData struct {
 	RoomID string
 

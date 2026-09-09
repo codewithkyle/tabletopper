@@ -23,25 +23,20 @@ templ RoomInitiative(data RoomInitiativeData) {
 		}
 	>
 		<div class={ initiativeStrip }>
-			@initiativeRound(data)
 			<div data-entries class="flex min-w-0 items-start gap-1 overflow-x-auto">
 				for _, e := range data.Entries {
 					@initiativeEntry(data, e)
 				}
 			</div>
-			if data.IsGM {
-				<div class="flex shrink-0 items-center self-stretch pl-0.5">
-					<button
-						type="button"
-						data-turn-next
-						class="btn btn-xs btn-primary"
-						hx-post={ data.NextPath() }
-						hx-swap="none"
-					>Next</button>
-				</div>
-			}
 		</div>
 		if data.IsGM {
+			<button
+				type="button"
+				data-turn-next
+				hidden
+				hx-post={ data.NextPath() }
+				hx-swap="none"
+			>Next turn</button>
 			<button
 				type="button"
 				data-turn-order
@@ -51,13 +46,6 @@ templ RoomInitiative(data RoomInitiativeData) {
 				hx-vals=""
 			>Reorder</button>
 		}
-	</div>
-}
-
-templ initiativeRound(data RoomInitiativeData) {
-	<div class="flex shrink-0 flex-col items-center justify-center px-1">
-		<span class="text-[9px] leading-none tracking-wide text-base-content/55 uppercase">Round</span>
-		<span class="text-sm leading-tight font-semibold tabular-nums">{ data.Round }</span>
 	</div>
 }
 

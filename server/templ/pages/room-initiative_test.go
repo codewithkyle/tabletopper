@@ -20,7 +20,6 @@ func turnStrip(isGM bool) RoomInitiativeData {
 	return RoomInitiativeData{
 		RoomID: testTurnRoomID,
 		IsGM:   isGM,
-		Round:  "3",
 		Entries: []RoomInitiativeEntry{
 			{
 				ID: testTurnEntryA, Name: "Ari", Kind: EntrySolo,
@@ -88,7 +87,7 @@ func TestTheStripsFilterIsParseable(t *testing.T) {
 // AN EMPTY TRACKER IS NO STRIP AT ALL, not an empty panel: the table underneath
 // it is what the room is for.
 func TestAnEmptyTrackerRendersHidden(t *testing.T) {
-	markup := html(t, RoomInitiative(RoomInitiativeData{RoomID: testTurnRoomID, Round: "--", Empty: true}))
+	markup := html(t, RoomInitiative(RoomInitiativeData{RoomID: testTurnRoomID, Empty: true}))
 
 	if !strings.Contains(markup, "hidden") {
 		t.Errorf("an empty tracker is not hidden:\n%s", markup)
@@ -161,9 +160,9 @@ func TestTheTimerAndEndTurnBelongToTheActingPlayerAlone(t *testing.T) {
 		t.Errorf("the acting player was given no clock:\n%s", player)
 	}
 
-	// THE KEY PRESSES THE BUTTON THAT IS ALREADY ON THE SCREEN, so the player's
-	// End turn and the GM's Next carry the same hook and the client learns no
-	// route.
+	// THE KEY PRESSES THE BUTTON THAT IS ALREADY ON THE SCREEN, so the
+	// player's End turn and the GM's hidden one carry the same hook and the
+	// client learns no route.
 	if strings.Count(player, "data-turn-next") != 1 {
 		t.Errorf("the player's screen has %d turn buttons, want one", strings.Count(player, "data-turn-next"))
 	}
@@ -181,16 +180,20 @@ func TestTheTimerAndEndTurnBelongToTheActingPlayerAlone(t *testing.T) {
 	if strings.Count(gm, "data-turn-next") != 1 {
 		t.Errorf("the GM's screen has %d turn buttons, want one", strings.Count(gm, "data-turn-next"))
 	}
+
+	// AND THE GM'S IS NEVER SEEN. A Next button used to sit at the far end of
+	// the row; it was a control inside a display and it moved every time the
+	// order changed. What is left is the element the key presses.
+	if !strings.Contains(gm, "data-turn-next hidden") {
+		t.Errorf("the GM's turn button is drawn on the strip:\n%s", gm)
+	}
 }
 
-// THE ROUND IS EVERYBODY'S AND THE CONTROLS ARE THE GM'S.
-func TestTheRoundIsEverybodysAndTheControlsAreNot(t *testing.T) {
+// THE CONTROLS ARE THE GM'S. What a player gets on this surface is the reading
+// and the one button that ends their own turn.
+func TestTheStripsControlsAreTheGMsAlone(t *testing.T) {
 	for name, isGM := range map[string]bool{"the GM": true, "a player": false} {
 		markup := html(t, RoomInitiative(turnStrip(isGM)))
-
-		if !strings.Contains(markup, "Round") {
-			t.Errorf("%s cannot see the round:\n%s", name, markup)
-		}
 
 		hasDrag := strings.Contains(markup, "data-reorder")
 		hasOrder := strings.Contains(markup, "data-turn-order")

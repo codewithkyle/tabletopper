@@ -20,11 +20,17 @@
 // acting line for its owner alone; this file writes digits into whatever it
 // finds, so the rule is in one place.
 //
-// THE KEY PRESSES THE BUTTON THAT IS ALREADY ON THE SCREEN rather than posting.
+// THE KEY PRESSES THE BUTTON THAT IS ALREADY IN THE PAGE rather than posting.
 // initiative.next is authorized for the GM or for whoever owns a pawn in the
 // acting line, so the button exists on exactly the screens where the key should
 // work: a player pressing N out of turn finds no button and nothing happens,
 // instead of a 403 in the alert modal. This file learns no route and no rule.
+//
+// ON THE GM'S SCREEN THAT BUTTON IS HIDDEN, and on a player's it is the End
+// turn on their own acting line. The strip carried a visible Next until it did
+// not: it was a control inside a display, it moved every time the order
+// changed, and what a GM running a fight actually presses is this key. The
+// Initiative menu is the other door, and prints the key beside its label.
 //
 // A REFETCH MID-DRAG WOULD DROP THE HELD LINE, so the strip's own hx-trigger
 // declines while data-dragging is set and this is what sets it. An update that

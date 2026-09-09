@@ -298,6 +298,16 @@ type RoomMenuItem struct {
 	Action string
 	Value  string
 
+	// Key is the keyboard shortcut this item names, drawn as a kbd at the far
+	// end of the row. It is a LABEL and not a binding: the key itself is bound
+	// where the gesture lives -- N is initiative.ts, which presses the button
+	// the strip already renders -- and this only tells somebody reading the
+	// menu that the shortcut exists.
+	//
+	// IT IS PRINTED AS WRITTEN, so it is written the way a keyboard is read:
+	// one capital letter for a letter key, a word for a named one.
+	Key string
+
 	// Window is the floating panel this item opens, and an item that carries
 	// one carries nothing else. See RoomWindow.
 	Window RoomWindow
@@ -550,7 +560,8 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 // initiativeMenu is the four verbs that are not a gesture on a line of the
 // strip. Everything else about the turn order is done to the strip itself:
 // dragged into order, clicked to give somebody the turn, right-clicked to take
-// a line out.
+// a line out. Nothing on the strip is a labelled control any more except the one
+// button a player gets to end their own turn.
 //
 // SYNC TRACKER IS THE MAIN ROAD AND IS FIRST. It builds the order from every
 // creature a player can see on a floor a player is standing on, and pressing it
@@ -558,10 +569,17 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 // which is why there is no "add these creatures" checklist anywhere. What Sync
 // cannot reach is a line with no creature behind it, and that is Add entry.
 //
-// NEXT TURN IS IN HERE AS WELL AS ON THE STRIP because the strip's button is
-// small and at the far end of a row of faces, and because a menu item is where
-// somebody looks for a verb they have not used before. The key is N, and it
-// presses the button rather than knowing the route; see initiative.ts.
+// NEXT TURN IS HERE BECAUSE IT IS NOWHERE ELSE. The strip used to carry a Next
+// button at the far end of the row and it has been taken off: it was a control
+// sitting inside a display, it moved every time the order changed, and it was
+// the only thing on that surface a GM pressed rather than read. What advances
+// the turn now is the N key, which is the gesture a GM running a fight actually
+// uses, and this item -- which is where somebody who has not learned the key
+// yet will look for the verb. The kbd beside the label is how they learn it.
+//
+// THE KEY IS NOT BOUND TO THIS ITEM. N presses the hidden button the strip
+// renders, which exists on exactly the screens where the key should work; see
+// initiative.ts. This item is a second door to the same route.
 //
 // CLEAR TRACKER KEEPS ITS CONFIRMATION, where taking one line out does not. A
 // line is undone by pressing Sync, which is three items above it; the whole
@@ -570,7 +588,7 @@ func (d RoomPageData) initiativeMenu() RoomMenu {
 	return RoomMenu{Label: "Initiative", Items: []RoomMenuItem{
 		{Label: "Sync tracker", Post: d.InitiativeSyncPath()},
 		{Label: "Add entry", Modal: RoomModal{URL: d.InitiativeEntryPath(), Size: "sm"}},
-		{Label: "Next turn", Post: d.InitiativeNextPath()},
+		{Label: "Next turn", Post: d.InitiativeNextPath(), Key: "N"},
 		{
 			Label:          "Clear tracker",
 			Post:           d.InitiativeClearPath(),

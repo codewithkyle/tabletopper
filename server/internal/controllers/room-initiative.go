@@ -14,7 +14,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE TURN ORDER, AND IT IS EIGHT ROUTES OVER TWO COMMANDS.
+// THE TURN ORDER, AND IT IS NINE ROUTES OVER TWO COMMANDS.
 //
 // initiative.set IS STILL THE ONLY EDITING COMMAND, which is the decision phase
 // 2 made and this file is what it costs: reorder, add, activate and remove each
@@ -67,6 +67,55 @@ func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.RoomInitiative(initiativeData(row.ID, role, sess.UserID, view)))
+}
+
+// RoomInitiativeRoundFragment is the round counter in the menu bar, which
+// everybody in the room fetches.
+//
+// IT IS A SECOND FETCH OF THE SAME TRACKER AND NOT A FIELD ON THE FIRST. The
+// counter sits at the right-hand end of the room bar and the strip sits over
+// the table, which are two places in the document with a whole page between
+// them; htmx swaps one element per response, so a fragment that carried both
+// would have to be an out-of-band swap -- a second swap semantics on this page
+// for one number. Two GETs of a tracker already in memory is the cheaper half
+// of that trade.
+//
+// IT ANSWERS EVERY ROLE THE SAME. The round is the one thing about a fight
+// that is not projected: a player who can see none of the monsters still knows
+// which round it is, because their own character is in it.
+func (a *App) RoomInitiativeRoundFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
+	if err != nil || a.Hub == nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	view, ok := a.Hub.Initiative(ctx, row.ID, role)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// AN EMPTY TRACKER IS AN EMPTY COUNTER, and the counter's own rule is that
+	// an empty string prints nothing: a room that is not in a fight is every
+	// room most of the time, and a bar permanently reading "Round --" is a
+	// label for a thing that is not happening.
+	round := ""
+	if len(view.Initiative.Entries) > 0 {
+		round = pages.InitiativeRoundText(view.Initiative.Round)
+	}
+
+	render(w, r, pages.RoomInitiativeRound(pages.RoomInitiativeRoundData{
+		RoomID:  row.ID.String(),
+		Round:   round,
+		Fetched: true,
+	}))
 }
 
 // RoomInitiativeEntryFragment is the Add entry dialog, which is the GM's.
@@ -419,7 +468,6 @@ func initiativeData(roomID ulid.ULID, role room.Role, user ulid.ULID, view *hub.
 		RoomID: roomID.String(),
 		IsGM:   role == room.RoleGM,
 		Empty:  len(view.Initiative.Entries) == 0,
-		Round:  pages.InitiativeRoundText(view.Initiative.Round),
 	}
 
 	for _, e := range view.Initiative.Entries {

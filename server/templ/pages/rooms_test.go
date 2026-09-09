@@ -636,7 +636,7 @@ func TestUnbuiltItemsAreDisabledRatherThanInert(t *testing.T) {
 				if !item.Disabled {
 					continue
 				}
-				if !strings.Contains(page, "<button type=\"button\" disabled>"+item.Label+"</button>") {
+				if !strings.Contains(page, "<button type=\"button\" disabled><span>"+item.Label+"</span>") {
 					t.Errorf("%s's %q in the %s menu is not drawn as a disabled control", role, item.Label, m.Label)
 				}
 			}

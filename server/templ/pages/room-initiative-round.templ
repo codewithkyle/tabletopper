@@ -1,0 +1,19 @@
+package pages
+
+templ RoomInitiativeRound(data RoomInitiativeRoundData) {
+	<span
+		id={ RoomInitiativeRoundID }
+		hx-get={ data.Path() }
+		hx-trigger={ data.Trigger() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		class="ml-auto flex items-center"
+	>
+		if data.Round != "" {
+			<span class="flex items-center gap-1 px-2">
+				<span class="text-[10px] tracking-wide text-base-content/55 uppercase">Round</span>
+				<span class="text-xs font-semibold tabular-nums">{ data.Round }</span>
+			</span>
+		}
+	</span>
+}

@@ -803,6 +803,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// the fight rather than a reading of it.
 	mux.HandleFunc("GET /fragment/room/initiative", auth.Fragment(app.RoomInitiativeFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/entry", auth.Fragment(app.RoomInitiativeEntryFragment))
+	mux.HandleFunc("GET /fragment/room/initiative/round", auth.Fragment(app.RoomInitiativeRoundFragment))
 
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have
