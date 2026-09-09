@@ -37,7 +37,7 @@ templ RoomPawnFragment(data RoomPawnData) {
 templ pawnActions(data RoomPawnData) {
 	<div class="flex shrink-0 items-center gap-0.5">
 		if data.IsGM && data.Pawn.MonsterID != "" {
-			<div class="tooltip tooltip-bottom" data-tip="Stat block">
+			<div class="tooltip tooltip-left" data-tip="Stat block">
 				<button
 					type="button"
 					class="btn btn-square btn-ghost btn-xs text-base-content/60"
@@ -53,7 +53,7 @@ templ pawnActions(data RoomPawnData) {
 			</div>
 		}
 		if data.CanRename() {
-			<div class="tooltip tooltip-bottom" data-tip="Rename">
+			<div class="tooltip tooltip-left" data-tip="Rename">
 				<button
 					type="button"
 					class="btn btn-square btn-ghost btn-xs text-base-content/60"
@@ -66,7 +66,7 @@ templ pawnActions(data RoomPawnData) {
 			</div>
 		}
 		if data.IsGM {
-			<div class="tooltip tooltip-bottom" data-tip="Remove">
+			<div class="tooltip tooltip-left" data-tip="Remove">
 				<button
 					type="button"
 					class="btn btn-square btn-ghost btn-xs text-base-content/60 hover:text-error"

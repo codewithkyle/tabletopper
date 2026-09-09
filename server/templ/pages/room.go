@@ -507,6 +507,21 @@ func (t RoomTool) Pressed() string {
 // be closed. min-w-0 on the bar makes its automatic minimum size zero, the
 // column stays the width the client set, and the heading truncates the way it
 // was always meant to.
+//
+// THE BODY SCROLLS DOWN AND NEVER ACROSS: overflow-y-auto with overflow-x
+// hidden, rather than overflow-auto on both axes. A window is a column of
+// controls whose width the reader chose by dragging its edge, so a horizontal
+// bar there is never the answer to anything -- the panel inside is supposed to
+// reflow, and a sideways scrollbar is how a panel that has not reflowed reports
+// it. Clipping makes that a visible bug in the panel instead of a scrollbar the
+// reader has to use.
+//
+// WHICH MEANS A TOOLTIP INSIDE A WINDOW POINTS INWARD, and every one of them
+// here is tooltip-left. DaisyUI positions a tip absolutely inside the element
+// it belongs to and leaves it in the layout at zero opacity, so a tip centred
+// over a button at the panel's right edge overhangs that edge -- and an
+// overhang is horizontal overflow whether or not anybody is hovering. Pointing
+// left puts the whole tip over the panel, where there is always room for it.
 type RoomWindow struct {
 	// ID is the stable identity: one window per id, and the key its position
 	// and size are remembered under. It is deliberately not the URL, which

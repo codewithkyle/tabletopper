@@ -589,3 +589,90 @@ func TestTheEmptyErrorSlotTakesNoRoom(t *testing.T) {
 		t.Errorf("a block with something to say is hidden:\n%s", full)
 	}
 }
+
+// A WINDOW SCROLLS DOWN AND NEVER ACROSS.
+//
+// A panel in a window is a column of controls whose width the reader chose by
+// dragging an edge, so a horizontal scrollbar is never the answer to anything:
+// it is how a panel that failed to reflow reports itself. Clipping makes that a
+// visible bug in the panel rather than a bar the reader has to use.
+func TestAWindowScrollsDownAndNotAcross(t *testing.T) {
+	body := html(t, roomWindowTemplate())
+
+	if !strings.Contains(body, "overflow-x-hidden") || !strings.Contains(body, "overflow-y-auto") {
+		t.Errorf("the window body does not clip its horizontal overflow:\n%s", body)
+	}
+}
+
+// WHICH IS WHY EVERY TOOLTIP IN A WINDOW POINTS LEFT. DaisyUI positions a tip
+// absolutely inside the element it belongs to and leaves it in the layout at
+// zero opacity, so a tip centred over a button at the panel's right edge
+// overhangs that edge whether or not anybody is hovering -- and an overhang
+// inside a scroll container is horizontal overflow. Pointing left puts the whole
+// tip over the panel, where there is always room for it.
+func TestEveryTooltipInAWindowPointsIntoThePanel(t *testing.T) {
+	data := testPawnPanel()
+	data.Pawn.MonsterID = "01BX5ZZKBKACTAV9WEVGEMMVT9"
+
+	for name, body := range map[string]string{
+		"the pawn panel": html(t, RoomPawnFragment(data)),
+		"the chrome":     html(t, roomWindowTemplate()),
+		"a condition":    html(t, RoomPawnConditionRow(data.Pawn.ID, data.Pawn.Conditions[0])),
+	} {
+		if strings.Count(body, `class="tooltip`) != strings.Count(body, "tooltip-left") {
+			t.Errorf("%s carries a tooltip that is not tooltip-left:\n%s", name, body)
+		}
+	}
+}
+
+// The condition row stacks rather than overflowing: five controls need about
+// 260 pixels of fixed width between them, which is more than a 320 pixel window
+// has once its padding and its scrollbar are taken off. A fixed grid track is
+// what it used to be and is what cannot shrink.
+func TestAConditionRowCanShrinkToTheWindow(t *testing.T) {
+	body := html(t, RoomPawnConditionRow(testPawnID, RoomPawnCondition{
+		ID: "01BX5ZZKBKACTAV9WEVGEMMVT5", Name: "Prone", Color: "red", Duration: "-1", Clear: "end",
+	}))
+
+	if strings.Contains(body, "grid-cols-[") {
+		t.Errorf("the condition row is a fixed grid and cannot reflow:\n%s", body)
+	}
+	if !strings.Contains(body, "@sm:flex-row") {
+		t.Errorf("the condition row never becomes one line:\n%s", body)
+	}
+}
+
+// VISIBILITY AND THE FLOOR ARE THE TWO CONTROLS A GM REACHES FOR MID-FIGHT, so
+// they are the first row of the editor rather than the last. Under the
+// conditions they sat below the fold of the default window on any pawn carrying
+// two or three of them, which reads as a control that does not exist.
+func TestTheGMsTwoLiveControlsComeBeforeTheConditions(t *testing.T) {
+	data := testPawnPanel()
+	data.LayerID = "01BX5ZZKBKACTAV9WEVGEMMVT1"
+	data.Layers = []RoomPawnLayer{
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: "Ground floor"},
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: "Cellar"},
+	}
+
+	body := html(t, RoomPawnFragment(data))
+
+	conditions := strings.Index(body, `name="conditionName"`)
+	if conditions < 0 {
+		t.Fatalf("the panel has no conditions:\n%s", body)
+	}
+	for _, control := range []string{`name="shown"`, `name="layer"`} {
+		at := strings.Index(body, control)
+		if at < 0 {
+			t.Fatalf("the GM has no %s control:\n%s", control, body)
+		}
+		if at > conditions {
+			t.Errorf("%s is below the conditions", control)
+		}
+	}
+
+	// The floor first and the switch after it: the select is the one that can
+	// use a long row, and a floor name is as long as the GM made it.
+	if strings.Index(body, `name="layer"`) > strings.Index(body, `name="shown"`) {
+		t.Error("the visibility switch comes before the floor select")
+	}
+}

@@ -13,6 +13,14 @@ templ pawnEditor(data RoomPawnData) {
 		hx-sync="this:queue last"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
+		if data.IsGM {
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+				if len(data.Layers) > 1 {
+					@pawnLayerSelect(data)
+				}
+				@pawnVisibleSwitch(data)
+			</div>
+		}
 		if data.Pawn.Object {
 			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnPixels(data.Field("width"), "width", "Width", data.Pawn.Width)
@@ -30,14 +38,6 @@ templ pawnEditor(data RoomPawnData) {
 		}
 		if !data.Pawn.Object {
 			@pawnConditionsEditor(data)
-		}
-		if data.IsGM {
-			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-				@pawnVisibleSwitch(data)
-				if len(data.Layers) > 1 {
-					@pawnLayerSelect(data)
-				}
-			</div>
 		}
 	</form>
 }
@@ -186,7 +186,7 @@ templ pawnConditionsEditor(data RoomPawnData) {
 }
 
 templ RoomPawnConditionRow(pawnID string, c RoomPawnCondition) {
-	<div data-condition-row class="grid grid-cols-[minmax(0,1fr)_auto_4rem_auto] items-center gap-1">
+	<div data-condition-row class="flex flex-col gap-1 @sm:flex-row @sm:items-center">
 		<input type="hidden" name="conditionId" value={ c.ID }/>
 		<input
 			type="text"
@@ -197,30 +197,30 @@ templ RoomPawnConditionRow(pawnID string, c RoomPawnCondition) {
 			maxlength="64"
 			autocomplete="off"
 			aria-label="Condition"
-			class="input input-xs w-full"
+			class="input input-xs min-w-0 @sm:flex-1"
 		/>
-		<select name="conditionColor" aria-label="Colour" class="select select-xs w-20">
-			for _, color := range ConditionColors {
-				<option value={ color } selected?={ color == c.Color }>{ ConditionColorLabel(color) }</option>
-			}
-		</select>
-		<input
-			type="number"
-			name="conditionDuration"
-			value={ c.Duration }
-			min="-1"
-			max="999"
-			step="1"
-			aria-label="Turns, or -1 until removed"
-			class="input input-xs w-full"
-		/>
-		<div class="flex items-center gap-1">
-			<select name="conditionClear" aria-label="Counts down at" class="select select-xs w-24">
+		<div class="flex min-w-0 items-center gap-1 @sm:shrink-0">
+			<select name="conditionColor" aria-label="Colour" class="select select-xs min-w-0 flex-1 @sm:w-20 @sm:flex-none">
+				for _, color := range ConditionColors {
+					<option value={ color } selected?={ color == c.Color }>{ ConditionColorLabel(color) }</option>
+				}
+			</select>
+			<input
+				type="number"
+				name="conditionDuration"
+				value={ c.Duration }
+				min="-1"
+				max="999"
+				step="1"
+				aria-label="Turns, or -1 until removed"
+				class="input input-xs w-12 shrink-0"
+			/>
+			<select name="conditionClear" aria-label="Counts down at" class="select select-xs min-w-0 flex-1 @sm:w-24 @sm:flex-none">
 				for _, option := range ConditionClears {
 					<option value={ option.Value } selected?={ option.Value == c.Clear }>{ option.Label }</option>
 				}
 			</select>
-			<div class="tooltip tooltip-left" data-tip="Remove condition">
+			<div class="tooltip tooltip-left shrink-0" data-tip="Remove condition">
 				<button
 					type="button"
 					class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"

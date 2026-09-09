@@ -2695,20 +2695,6 @@
   .sticky {
     position: sticky;
   }
-  @layer daisyui.l1.l2 {
-    .tooltip-bottom > .tooltip-content {
-      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem));
-      inset: var(--tt-off) auto auto 50%;
-    }
-    .tooltip-bottom[data-tip]:before {
-      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem));
-      inset: var(--tt-off) auto auto 50%;
-    }
-    .tooltip-bottom:after {
-      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem)) rotate(180deg);
-      inset: var(--tt-tail) auto auto 50%;
-    }
-  }
   .inset-0 {
     inset: 0px;
   }
@@ -3512,17 +3498,14 @@
   .w-11 {
     width: calc(var(--spacing) * 11);
   }
+  .w-12 {
+    width: calc(var(--spacing) * 12);
+  }
   .w-14 {
     width: calc(var(--spacing) * 14);
   }
   .w-16 {
     width: calc(var(--spacing) * 16);
-  }
-  .w-20 {
-    width: calc(var(--spacing) * 20);
-  }
-  .w-24 {
-    width: calc(var(--spacing) * 24);
   }
   .w-28 {
     width: calc(var(--spacing) * 28);
@@ -3701,9 +3684,6 @@
   .grid-cols-\[auto_1fr\] {
     grid-template-columns: auto 1fr;
   }
-  .grid-cols-\[minmax\(0\,1fr\)_auto_4rem_auto\] {
-    grid-template-columns: minmax(0,1fr) auto 4rem auto;
-  }
   .grid-cols-\[repeat\(auto-fill\,minmax\(11rem\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fill,minmax(11rem,1fr));
   }
@@ -3840,6 +3820,9 @@
   }
   .overflow-x-auto {
     overflow-x: auto;
+  }
+  .overflow-x-hidden {
+    overflow-x: hidden;
   }
   .overflow-y-auto {
     overflow-y: auto;
@@ -4922,6 +4905,29 @@
   @container (width >= 22rem) {
     .\@\[22rem\]\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @container (width >= 24rem) {
+    .\@sm\:w-20 {
+      width: calc(var(--spacing) * 20);
+    }
+    .\@sm\:w-24 {
+      width: calc(var(--spacing) * 24);
+    }
+    .\@sm\:flex-1 {
+      flex: 1;
+    }
+    .\@sm\:flex-none {
+      flex: none;
+    }
+    .\@sm\:shrink-0 {
+      flex-shrink: 0;
+    }
+    .\@sm\:flex-row {
+      flex-direction: row;
+    }
+    .\@sm\:items-center {
+      align-items: center;
     }
   }
   @container (width >= 33rem) {

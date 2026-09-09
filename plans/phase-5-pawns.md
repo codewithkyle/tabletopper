@@ -588,6 +588,41 @@ sized for a full page. In a 260-pixel window they are the wrong shape.
   `peer-checked` so the word is right the instant it is clicked rather than a
   round trip later.
 
+### Rework 9, a window scrolls down and never across (2026-09-08)
+
+- **The window body is `overflow-y-auto` with `overflow-x` hidden.** A panel in
+  a window is a column of controls whose width the reader chose by dragging an
+  edge, so a horizontal scrollbar is never the answer to anything: it is how a
+  panel that failed to reflow reports itself. Clipping turns that into a visible
+  bug in the panel rather than a bar somebody has to use.
+- **Every tooltip in a window is `tooltip-left`.** DaisyUI positions a tip
+  absolutely inside the element it belongs to and leaves it in the layout at
+  zero opacity, so a tip centred over a button at the panel's right edge
+  overhangs that edge whether or not anybody is hovering -- and inside a scroll
+  container an overhang IS horizontal overflow. That was Rework 8's own
+  `tooltip-bottom` header row, and it is the reason the pawn window grew a
+  scrollbar on every kind of pawn at once. Pointing left puts the whole tip over
+  the panel, where there is always room.
+- **The condition row stacks.** Five controls -- name, colour, turns, what it
+  counts down against, remove -- need about 260 pixels of fixed width between
+  them before the name has anywhere to go, which is more than a 320 pixel window
+  has once its padding and its scrollbar are off. The name is on its own line
+  now with the four small controls under it, back to one line at a container
+  width where the name is still readable, and every control in it can shrink so
+  the 200 pixel minimum window clips nothing.
+- **The floor select and visibility are the first row of the editor**, in that
+  order, not the last. They are the two controls a GM reaches for mid-fight and
+  everything else in that form is set once; under the condition rows and the Add
+  condition button they were below the fold of the default window. The select
+  takes the row and the switch sits at its end, because a floor name is as long
+  as the GM made it and a switch is two words at most. They are not in the
+  header beside the icon buttons, which is where they belong visually, for a
+  mechanical reason: both are form controls the editor's POST has to carry, its
+  trigger listens on its own form, and a control outside a form raises no events
+  into it. The floor select is unchanged otherwise -- it has always been the
+  GM's and has always been drawn only when the room has more than one floor,
+  which is why a one-floor room shows no such control.
+
 ## End state
 
 - The GM opens a Spawn dialog, searches monsters or tokens, picks one, and

@@ -41,6 +41,23 @@ import (
 // times to get to "Goblin archer". A player's character has no such button at
 // all -- see RoomPawn.Character.
 //
+// THE FLOOR SELECT AND VISIBILITY ARE THE FIRST ROW OF THE EDITOR, in that
+// order, above the size and the armour class: they are the two controls a GM
+// reaches for mid-fight and everything else in the form is set once. They were
+// at the bottom, under the condition rows and the Add condition button, which
+// on a pawn with three conditions is below the fold of the default window.
+//
+// THE FLOOR TAKES THE ROW AND THE SWITCH SITS AT ITS END, which is why the
+// select carries flex-1 and the switch does not shrink. A floor name is as long
+// as the GM made it and a switch is two words at most, so the one that can use
+// the space gets it.
+//
+// THEY ARE NOT IN THE HEADER BESIDE THE BUTTONS, which is where they would sit
+// most naturally, and the reason is mechanical: both are form controls that the
+// editor's POST has to carry, the editor's trigger listens on its own form, and
+// a control outside a form does not raise events into it. The header's three
+// buttons each make a request of their own, so they have no such constraint.
+//
 // EVERY BUTTON IN THE HEADER IS AN ICON WITH A TOOLTIP AND AN ACCESSIBLE NAME.
 // The header is one line shared with a portrait, a name and a floor, and a
 // worded button on it is a button that pushes the name it belongs to out of
@@ -304,6 +321,15 @@ type RoomPawn struct {
 }
 
 // RoomPawnCondition is one chip in the panel and one row in the form.
+//
+// THE ROW IS FIVE CONTROLS AND THEY DO NOT FIT ON ONE LINE IN A 320 PIXEL
+// WINDOW. A name, a colour, a number of turns, what it counts down against and
+// a remove button need about 260 pixels of fixed width between them before the
+// name has anywhere to go, so the row was overflowing its panel sideways and
+// the window was answering with a horizontal scrollbar. It stacks now -- the
+// name on its own line, the four small controls under it -- and goes back to
+// one line at a container width where the name still has room to be read. Every
+// control in it can shrink, so the minimum window size clips nothing.
 //
 // DURATION IS CARRIED TWICE AND THAT IS NOT REDUNDANCY. The form's number input
 // takes the protocol's own value, where -1 means "until somebody removes it";
