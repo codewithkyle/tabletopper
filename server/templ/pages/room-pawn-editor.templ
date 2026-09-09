@@ -5,7 +5,7 @@ import "strconv"
 templ pawnEditor(data RoomPawnData) {
 	<form
 		id={ data.FormID() }
-		class="flex flex-col gap-2"
+		class="flex flex-col gap-1.5"
 		hx-post={ data.SavePath() }
 		hx-trigger={ pawnSaveTrigger }
 		hx-target={ "#errors-" + data.Panel() }
@@ -14,16 +14,16 @@ templ pawnEditor(data RoomPawnData) {
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
 		if data.Pawn.Object {
-			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
+			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnPixels(data.Field("width"), "width", "Width", data.Pawn.Width)
 				@pawnPixels(data.Field("height"), "height", "Height", data.Pawn.Height)
 			</div>
-			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
+			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnDegrees(data.Field("rotation"), data.Pawn.Rotation)
 				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
 			</div>
 		} else {
-			<div class="grid grid-cols-1 gap-2 @2xs:grid-cols-2">
+			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
 				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
 			</div>
@@ -32,10 +32,12 @@ templ pawnEditor(data RoomPawnData) {
 			@pawnConditionsEditor(data)
 		}
 		if data.IsGM {
-			@toggleField("shown", "Players can see this pawn", data.Shown)
-			if len(data.Layers) > 1 {
-				@pawnLayerSelect(data)
-			}
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+				@pawnVisibleSwitch(data)
+				if len(data.Layers) > 1 {
+					@pawnLayerSelect(data)
+				}
+			</div>
 		}
 	</form>
 }
@@ -64,95 +66,113 @@ templ RoomPawnRename(data RoomPawnRenameData) {
 	</div>
 }
 
+templ pawnField(id string, caption string) {
+	<label class="flex min-w-0 flex-col gap-0.5" for={ id }>
+		<span class="text-[10px] text-base-content/60">{ caption }</span>
+		{ children... }
+	</label>
+}
+
 templ pawnNumberField(id string, name string, caption string, value string) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ id }>{ caption }</label>
+	@pawnField(id, caption) {
 		<input
 			id={ id }
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input input-sm validator peer w-full"
+			class="input input-xs validator peer w-full"
 			value={ value }
 			min="0"
 			max="9999"
 			step="1"
 		/>
-		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
-	</div>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from 0 to 9999.</span>
+	}
 }
 
 templ pawnSizeField(id string, value string) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ id }>Size</label>
-		<select id={ id } name="size" class="select select-sm w-full" required>
+	@pawnField(id, "Size") {
+		<select id={ id } name="size" class="select select-xs w-full" required>
 			for _, option := range sizeOptions {
 				<option value={ option.Value } selected?={ option.Value == value }>{ option.Label }</option>
 			}
 		</select>
-	</div>
+	}
 }
 
 templ pawnPixels(id string, name string, caption string, value string) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ id }>{ caption }</label>
+	@pawnField(id, caption) {
 		<input
 			id={ id }
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input input-sm validator peer w-full"
+			class="input input-xs validator peer w-full"
 			value={ value }
 			min="1"
 			max={ strconv.Itoa(ObjectPixelsMax) }
 			step="1"
 			required
 		/>
-		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a whole number of pixels.</p>
-	</div>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number of pixels.</span>
+	}
 }
 
 templ pawnDegrees(id string, value string) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ id }>Angle</label>
+	@pawnField(id, "Angle") {
 		<input
 			id={ id }
 			name="rotation"
 			type="number"
 			inputmode="numeric"
-			class="input input-sm validator peer w-full"
+			class="input input-xs validator peer w-full"
 			value={ value }
 			min="0"
 			max="359"
 			step="1"
 			required
 		/>
-		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter degrees clockwise, 0 to 359.</p>
-	</div>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter degrees clockwise, 0 to 359.</span>
+	}
+}
+
+templ pawnVisibleSwitch(data RoomPawnData) {
+	<label class="flex shrink-0 items-center gap-1.5">
+		<input
+			type="checkbox"
+			name="shown"
+			value="on"
+			checked?={ data.Shown }
+			aria-label={ data.VisibleLabel() }
+			class="toggle toggle-xs peer shrink-0 checked:text-success"
+		/>
+		<span class="text-[10px] text-warning peer-checked:hidden">Hidden</span>
+		<span class="hidden text-[10px] text-base-content/60 peer-checked:inline">Visible</span>
+	</label>
 }
 
 templ pawnLayerSelect(data RoomPawnData) {
-	<div class="fieldset">
-		<label class="fieldset-legend" for={ data.Field("layer") }>Floor</label>
-		<select id={ data.Field("layer") } name="layer" class="select select-sm w-full">
+	<label class="flex min-w-0 flex-1 items-center gap-1.5" for={ data.Field("layer") }>
+		<span class="shrink-0 text-[10px] text-base-content/60">Floor</span>
+		<select id={ data.Field("layer") } name="layer" class="select select-xs min-w-0 flex-1">
 			for _, l := range data.Layers {
 				<option value={ l.ID } selected?={ l.ID == data.LayerID }>{ l.Name }</option>
 			}
 		</select>
-	</div>
+	</label>
 }
 
 templ pawnConditionsEditor(data RoomPawnData) {
-	<div class="fieldset">
-		<span class="fieldset-legend">Conditions</span>
-		<div id={ data.ConditionsID() } class="flex flex-col gap-1.5">
+	<div class="flex flex-col gap-1">
+		<span class="text-[10px] text-base-content/60">Conditions</span>
+		<div id={ data.ConditionsID() } class="flex flex-col gap-1">
 			for _, c := range data.Pawn.Conditions {
 				@RoomPawnConditionRow(data.Pawn.ID, c)
 			}
 		</div>
 		<button
 			type="button"
-			class="btn btn-xs mt-1.5 self-start border-base-content/50"
+			class="btn btn-xs self-start border-base-content/50"
 			hx-get={ data.ConditionRowPath() }
 			hx-target={ "#" + data.ConditionsID() }
 			hx-swap="beforeend"
@@ -200,14 +220,16 @@ templ RoomPawnConditionRow(pawnID string, c RoomPawnCondition) {
 					<option value={ option.Value } selected?={ option.Value == c.Clear }>{ option.Label }</option>
 				}
 			</select>
-			<button
-				type="button"
-				class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
-				aria-label="Remove condition"
-				data-remove-closest="[data-condition-row]"
-			>
-				@kickIcon()
-			</button>
+			<div class="tooltip tooltip-left" data-tip="Remove condition">
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
+					aria-label="Remove condition"
+					data-remove-closest="[data-condition-row]"
+				>
+					@trashLineIcon()
+				</button>
+			</div>
 		</div>
 	</div>
 }

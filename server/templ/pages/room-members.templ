@@ -49,19 +49,21 @@ templ roomMemberRow(data RoomMembersData, m RoomMember) {
 				<span class="badge badge-xs badge-neutral shrink-0">GM</span>
 			}
 			if data.CanKick && !m.IsGM {
-				<button
-					type="button"
-					class="btn btn-ghost btn-xs shrink-0 px-1 text-base-content/50 hover:text-error"
-					aria-label={ "Remove " + m.Name + " from the room" }
-					hx-post={ data.KickPath(m) }
-					hx-target="#room-members"
-					hx-swap="outerHTML"
-					hx-confirm={ data.KickPrompt(m) }
-					data-confirm-heading="Remove this player?"
-					data-confirm-label="Remove"
-				>
-					@kickIcon()
-				</button>
+				<div class="tooltip tooltip-left shrink-0" data-tip="Remove from the room">
+					<button
+						type="button"
+						class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
+						aria-label={ "Remove " + m.Name + " from the room" }
+						hx-post={ data.KickPath(m) }
+						hx-target="#room-members"
+						hx-swap="outerHTML"
+						hx-confirm={ data.KickPrompt(m) }
+						data-confirm-heading="Remove this player?"
+						data-confirm-label="Remove"
+					>
+						@kickIcon()
+					</button>
+				</div>
 			}
 		</div>
 	</li>

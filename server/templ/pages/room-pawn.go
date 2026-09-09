@@ -38,7 +38,14 @@ import (
 // a session and read every second of it, so it is a heading with a button
 // beside it rather than an input taking up a row for ever; and an autosaving
 // text field that renames a pawn on every pause mid-word would rename it four
-// times to get to "Goblin archer".
+// times to get to "Goblin archer". A player's character has no such button at
+// all -- see RoomPawn.Character.
+//
+// EVERY BUTTON IN THE HEADER IS AN ICON WITH A TOOLTIP AND AN ACCESSIBLE NAME.
+// The header is one line shared with a portrait, a name and a floor, and a
+// worded button on it is a button that pushes the name it belongs to out of
+// view at 260 pixels. The tip says what it does on hover; the aria-label says
+// which pawn it does it to, because eight goblins are eight of these.
 //
 // TWO OF THESE ARE OPEN AT ONCE AS A MATTER OF COURSE, which is what makes
 // every id in this file carry the pawn's own: the panel's element, its error
@@ -227,6 +234,18 @@ type RoomPawn struct {
 	// height instead of a creature size, and no conditions at all, because a
 	// wagon cannot be poisoned.
 	Object bool
+
+	// Character is a pawn that IS somebody at the table -- a player's own
+	// character -- and the only thing it decides is that there is no Rename
+	// button on it.
+	//
+	// A CHARACTER'S NAME IS NOT THE GM'S TO CHANGE AND IS NOT CHANGED MID-GAME.
+	// It came from the sheet its player wrote, every other player reads it in
+	// the turn order and the chat, and the one plausible reason to edit it here
+	// -- a typo -- is a thing to fix on the sheet, where it will still be right
+	// next session. A goblin is the opposite case: "Goblin" becomes "Goblin
+	// archer" the moment there are two of them, which is what the button is for.
+	Character bool
 
 	// HP is "12 / 20" when the viewer is given numbers, and empty when they are
 	// not. Band is the word -- Very bloody -- when a word is all they get.
@@ -434,6 +453,39 @@ func (d RoomPawnData) RemovePath() string {
 func (d RoomPawnData) RemoveLabel() string {
 	return "Remove " + d.Pawn.Name + " from the table"
 }
+
+// CanRename draws the Rename button, and it is narrower than CanEdit by exactly
+// one case: a player's character. See RoomPawn.Character.
+func (d RoomPawnData) CanRename() bool {
+	return d.CanEdit && !d.Pawn.Character
+}
+
+// HasActions is whether the header's button row has anything in it, and it
+// exists so that the row is not rendered empty.
+//
+// AN EMPTY FLEX CHILD IS NOT FREE. The header is a flex row with a gap, and a
+// container holding no buttons still takes a gap beside itself -- which is a
+// few pixels of nothing between a player's portrait and the right-hand edge, on
+// the one panel that has no buttons at all.
+func (d RoomPawnData) HasActions() bool {
+	return d.IsGM || d.CanRename()
+}
+
+// The accessible names for the three icon buttons in the header, each naming
+// the pawn it acts on.
+//
+// THEY ARE LONGER THAN THE TOOLTIPS BESIDE THEM AND THAT IS THE POINT. A tip is
+// read next to the thing it points at, so "Remove" is unambiguous; a screen
+// reader announces the button with no such context, and eight goblins in a room
+// means eight buttons that would all announce as "Remove". They live in Go
+// rather than in the markup for the reason every string here does: Tailwind
+// reads a .templ file as text and takes a class-name candidate out of ordinary
+// prose in an attribute value.
+func (d RoomPawnData) StatBlockLabel() string { return "Stat block for " + d.Pawn.Name }
+
+func (d RoomPawnData) RenameLabel() string { return "Rename " + d.Pawn.Name }
+
+func (d RoomPawnData) VisibleLabel() string { return "Players can see " + d.Pawn.Name }
 
 // RemovePrompt names what is about to go, because "Are you sure?" over a table
 // of goblins is a question nobody can answer safely.

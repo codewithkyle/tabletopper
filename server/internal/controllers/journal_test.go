@@ -96,7 +96,7 @@ func TestSaveJournalEntryIsSilent(t *testing.T) {
 	if got := rec.Header().Get("HX-Trigger"); got != "" {
 		t.Errorf("HX-Trigger = %q, want none", got)
 	}
-	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-journal"></div>` {
+	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-journal" hidden></div>` {
 		t.Errorf("body = %q, want the cleared error block", body)
 	}
 }

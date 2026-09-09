@@ -230,7 +230,7 @@ func TestSaveReconcilesAfterTheUpdate(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-journal"></div>` {
+	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-journal" hidden></div>` {
 		t.Errorf("body = %q, want the cleared error block", body)
 	}
 }

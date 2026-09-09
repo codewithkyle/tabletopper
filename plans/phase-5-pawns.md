@@ -468,7 +468,8 @@ Five items, and the last of them is why the first four are safe.
 - **The three buttons are one row in the header**: Stat block with a label, and
   Rename and Remove as icons beside it. Remove was at the bottom of the panel,
   which put the destructive control below the fold of the default window; its
-  confirm is unchanged.
+  confirm is unchanged. *(Rework 8: all three are icons, and a character has no
+  Rename.)*
 - **There is no Save button, and that is the change the rest depended on.** The
   old one sat below every other control, which in a 320 by 520 window meant below
   the fold: the fields looked broken because the thing that committed them could
@@ -544,6 +545,48 @@ Five items, and the last of them is why the first four are safe.
   majority of those rooms were on. A room that had been set to either extreme
   comes back in the middle once. The alternative is bumping `Schema`, which
   throws every pawn on every table away to save the GM one click.
+
+### Rework 8, the window panels are compact and the buttons are icons (2026-09-08)
+
+The pawn window was built with the character sheet's field components, which are
+sized for a full page. In a 260-pixel window they are the wrong shape.
+
+- **Every control in the panel is the extra-small one**, which is what the
+  tabletop settings window already used. `fieldset` and `fieldset-legend` are
+  gone from it: between them they cost about a rem of vertical padding per
+  field, for a legend that is a ten-pixel caption here. What replaced them is
+  the settings window's own shape -- a `label` holding a caption span and the
+  control -- and `TestEveryControlInThePanelIsCompact` fails on an `input-sm`
+  or a `fieldset-legend` reappearing.
+- **The empty error slot is `hidden`.** It was a zero-height `div` between the
+  header and the hit-point row, and its parents are flex columns with a gap --
+  so an element with nothing in it was taking a gap on each side of itself. The
+  reasoning now lives in `templ/pages/panel-form-errors.go`, which is also the
+  home the component never had.
+- **The header's three buttons are icons with tooltips.** Stat block was the
+  last worded button and it is the tabler book; Rename is the tabler label;
+  Remove is the tabler outline trash, which also replaces the layer manager's
+  filled one and the condition row's kick icon. A worded button on that line
+  pushes the pawn's own name out of view at 260 pixels.
+- **Every icon button in every room window carries a tooltip AND an
+  aria-label**, and the two are different strings deliberately: the tip is read
+  beside the thing it points at, so "Remove" is unambiguous, while a screen
+  reader announces the button with no such context and eight goblins would be
+  eight buttons announcing "Remove". That covers the pawn window's four, the
+  layer manager's three, the member list's kick and the window chrome's
+  `─ □ ✕`. The tips point INTO the panel -- `tooltip-bottom` in a title bar,
+  `tooltip-left` at a right-hand edge -- because a window is `overflow-hidden`
+  and a tip pointing out of one is a tip that is clipped.
+- **A player's character has no Rename button.** The name came off the sheet its
+  player wrote, every other player reads it in the turn order, and the one
+  plausible reason to change it here is a typo -- which is a thing to fix on the
+  sheet, where it will still be right next session. `RoomPawn.Character` is the
+  pawn kind narrowed to that one question.
+- **Visibility is a switch that says which state it is in.** "Players can see
+  this pawn" beside a checkbox made the reader work out what the position of the
+  box meant; the switch now has "Hidden" or "Visible" beside it, swapped by
+  `peer-checked` so the word is right the instant it is clicked rather than a
+  round trip later.
 
 ## End state
 
@@ -711,7 +754,7 @@ edit.
 | --- | --- | --- | --- |
 | `GET /fragment/room/spawn?room={id}&kind={monsters\|tokens}&q=` | `Fragment` | `RoomSpawnFragment` | GM only. Search box in the shape of `assetSearchBox`, results as pick cards. `kind` is matched against the two values before any statement. The tokens view carries a Creature or Object choice; Object reveals width and height fields in cells, defaulting to 1 and 1. A card arms placement with `hx-on:click` dispatching a `room:arm` window event carrying `{kind, id, name, visible, footprintW, footprintH}` read from the dialog's controls, then `modal:close`. A Spawn party button posts to the party route. |
 | `POST /rooms/{id}/pawns/party` | `RequireSession` | `SpawnParty` | GM only. Dispatches `pawn.spawnCharacters`. `htmx.CloseModal`. |
-| `GET /fragment/room/pawn?room={id}&pawn={id}` | `Fragment` | `RoomPawnFragment` | Any member; the projection decides what they see. Reads the live pawn via `hub.Pawn(ctx, roomID, pawnID, role)`, PROJECTED FOR THE ROLE; 404 empty if absent or not shown to the requester. Renders the panel that goes in a window, which is the pawn's whole surface: a header carrying the name, the Stat block button and the icon buttons for Rename and Remove; then readings for a viewer, and for somebody who may edit it the hit-point row plus an autosaving editor carrying creature size or pixel size and angle, AC, conditions, and for the GM visibility and a floor select. Every id in it carries the pawn's own, because two are open at once. See the last section of this document for the trigger it carries and why. |
+| `GET /fragment/room/pawn?room={id}&pawn={id}` | `Fragment` | `RoomPawnFragment` | Any member; the projection decides what they see. Reads the live pawn via `hub.Pawn(ctx, roomID, pawnID, role)`, PROJECTED FOR THE ROLE; 404 empty if absent or not shown to the requester. Renders the panel that goes in a window, which is the pawn's whole surface: a header carrying the name and three icon buttons -- Stat block, Rename and Remove, each with a tooltip and an aria-label, and no Rename on a player's character; then readings for a viewer, and for somebody who may edit it the hit-point row plus an autosaving editor carrying creature size or pixel size and angle, AC, conditions, and for the GM visibility and a floor select. Every id in it carries the pawn's own, because two are open at once. See the last section of this document for the trigger it carries and why. |
 | `GET /fragment/room/pawn/rename?room={id}&pawn={id}` | `Fragment` | `RoomPawnRenameFragment` | The rename dialog for the content modal, prefilled with the name the pawn has now. Same permission as the panel: the projection decides whether the asker may see the pawn, `mayEditPawn` whether they may change it. |
 | `POST /rooms/{id}/pawns/{pawn}` | `RequireSession` | `UpdatePawn` | The panel's editor, autosaving. Parses it, dispatches `pawn.update`, then `pawn.setConditions`, then `pawn.setVisible` when the GM toggled it, then `pawn.setLayer` when the GM changed the floor, and answers with the panel's ERROR SLOT -- empty on success, the message under a 422. It carries neither the name nor the hit points. NOT `htmx.CloseModal`: there is no modal, and sending it would dismiss whatever else was open. |
 | `POST /rooms/{id}/pawns/{pawn}/hp` | `RequireSession` | `UpdatePawnHP` | The hit-point row, both boxes. Evaluates the arithmetic in each against the live value, dispatches one `pawn.update` carrying whichever of the two was filled in, and answers with the error slot. An empty box is untouched rather than zero. NOT `htmx.CloseModal`: there is no modal open, and sending it would dismiss whatever else was. |

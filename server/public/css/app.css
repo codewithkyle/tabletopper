@@ -2695,6 +2695,20 @@
   .sticky {
     position: sticky;
   }
+  @layer daisyui.l1.l2 {
+    .tooltip-bottom > .tooltip-content {
+      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem));
+      inset: var(--tt-off) auto auto 50%;
+    }
+    .tooltip-bottom[data-tip]:before {
+      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem));
+      inset: var(--tt-off) auto auto 50%;
+    }
+    .tooltip-bottom:after {
+      transform: translateX(var(--tt-trans, -50%)) translateY(var(--tt-pos, -0.25rem)) rotate(180deg);
+      inset: var(--tt-tail) auto auto 50%;
+    }
+  }
   .inset-0 {
     inset: 0px;
   }
@@ -3489,6 +3503,9 @@
   .w-6 {
     width: calc(var(--spacing) * 6);
   }
+  .w-7 {
+    width: calc(var(--spacing) * 7);
+  }
   .w-8 {
     width: calc(var(--spacing) * 8);
   }
@@ -3788,6 +3805,9 @@
   }
   .gap-x-8 {
     column-gap: calc(var(--spacing) * 8);
+  }
+  .gap-y-1 {
+    row-gap: var(--spacing);
   }
   .gap-y-1\.5 {
     row-gap: calc(var(--spacing) * 1.5);
@@ -4687,6 +4707,12 @@
   .peer-checked\:grid:is(:where(.peer):checked ~ *) {
     display: grid;
   }
+  .peer-checked\:hidden:is(:where(.peer):checked ~ *) {
+    display: none;
+  }
+  .peer-checked\:inline:is(:where(.peer):checked ~ *) {
+    display: inline;
+  }
   .peer-user-invalid\:block:is(:where(.peer):user-invalid ~ *) {
     display: block;
   }
@@ -4698,6 +4724,9 @@
   }
   .only\:flex:only-child {
     display: flex;
+  }
+  .checked\:text-success:checked {
+    color: var(--color-success);
   }
   .focus-within\:border-primary:focus-within {
     border-color: var(--color-primary);
@@ -4892,11 +4921,6 @@
   }
   @container (width >= 22rem) {
     .\@\[22rem\]\:grid-cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @container (width >= 24rem) {
-    .\@sm\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }

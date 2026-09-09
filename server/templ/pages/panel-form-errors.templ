@@ -2,7 +2,7 @@ package pages
 
 templ PanelFormErrors(panel string, messages []string) {
 	if len(messages) > 0 {
-		<div id={ "errors-" + panel } class="mb-4 rounded-field border-2 border-error/60 p-4 text-error">
+		<div id={ panelErrorsID(panel) } class="mb-4 rounded-field border-2 border-error/60 p-4 text-error">
 			<p class="mb-2 font-semibold">Could not save:</p>
 			<ul class="pl-4">
 				for _, message := range messages {
@@ -11,6 +11,6 @@ templ PanelFormErrors(panel string, messages []string) {
 			</ul>
 		</div>
 	} else {
-		<div id={ "errors-" + panel }></div>
+		<div id={ panelErrorsID(panel) } hidden></div>
 	}
 }

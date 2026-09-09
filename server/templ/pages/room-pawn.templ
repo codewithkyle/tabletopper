@@ -3,13 +3,13 @@ package pages
 templ RoomPawnFragment(data RoomPawnData) {
 	<article
 		id={ data.ElementID() }
-		class="@container flex flex-col gap-2"
+		class="@container flex flex-col gap-1.5"
 		hx-get={ data.Path() }
 		hx-trigger={ data.Trigger() }
 		hx-sync="this:queue last"
 		hx-swap="outerHTML"
 	>
-		<header class="flex items-center gap-2">
+		<header class="flex items-center gap-1.5">
 			@pawnPortrait(data.Pawn)
 			<div class="min-w-0 flex-1">
 				<p class="m-0 truncate text-sm font-semibold">{ data.Pawn.Name }</p>
@@ -20,7 +20,9 @@ templ RoomPawnFragment(data RoomPawnData) {
 			if data.Pawn.Hidden {
 				<span class="badge badge-xs badge-warning shrink-0">Hidden</span>
 			}
-			@pawnActions(data)
+			if data.HasActions() {
+				@pawnActions(data)
+			}
 		</header>
 		@PanelFormErrors(data.Panel(), []string{})
 		if data.CanEdit {
@@ -35,47 +37,56 @@ templ RoomPawnFragment(data RoomPawnData) {
 templ pawnActions(data RoomPawnData) {
 	<div class="flex shrink-0 items-center gap-0.5">
 		if data.IsGM && data.Pawn.MonsterID != "" {
-			<button
-				type="button"
-				class="btn btn-xs border-base-content/50"
-				data-window={ data.StatBlockWindow() }
-				data-window-url={ data.StatBlockPath() }
-				data-window-title={ data.Pawn.Name }
-				data-window-width="380"
-				data-window-height="520"
-			>Stat block</button>
+			<div class="tooltip tooltip-bottom" data-tip="Stat block">
+				<button
+					type="button"
+					class="btn btn-square btn-ghost btn-xs text-base-content/60"
+					aria-label={ data.StatBlockLabel() }
+					data-window={ data.StatBlockWindow() }
+					data-window-url={ data.StatBlockPath() }
+					data-window-title={ data.Pawn.Name }
+					data-window-width="380"
+					data-window-height="520"
+				>
+					@bookIcon()
+				</button>
+			</div>
 		}
-		if data.CanEdit {
-			<button
-				type="button"
-				class="btn btn-square btn-ghost btn-xs text-base-content/60"
-				aria-label="Rename"
-				data-modal-open={ data.RenamePath() }
-				data-modal-size="sm"
-			>
-				@pencilIcon()
-			</button>
+		if data.CanRename() {
+			<div class="tooltip tooltip-bottom" data-tip="Rename">
+				<button
+					type="button"
+					class="btn btn-square btn-ghost btn-xs text-base-content/60"
+					aria-label={ data.RenameLabel() }
+					data-modal-open={ data.RenamePath() }
+					data-modal-size="sm"
+				>
+					@labelIcon()
+				</button>
+			</div>
 		}
 		if data.IsGM {
-			<button
-				type="button"
-				class="btn btn-square btn-ghost btn-xs text-base-content/60 hover:text-error"
-				aria-label={ data.RemoveLabel() }
-				hx-delete={ data.RemovePath() }
-				hx-vals={ data.RemoveVals() }
-				hx-swap="none"
-				hx-confirm={ data.RemovePrompt() }
-				data-confirm-heading="Remove this pawn?"
-				data-confirm-label="Remove"
-			>
-				@trashIcon()
-			</button>
+			<div class="tooltip tooltip-bottom" data-tip="Remove">
+				<button
+					type="button"
+					class="btn btn-square btn-ghost btn-xs text-base-content/60 hover:text-error"
+					aria-label={ data.RemoveLabel() }
+					hx-delete={ data.RemovePath() }
+					hx-vals={ data.RemoveVals() }
+					hx-swap="none"
+					hx-confirm={ data.RemovePrompt() }
+					data-confirm-heading="Remove this pawn?"
+					data-confirm-label="Remove"
+				>
+					@trashLineIcon()
+				</button>
+			</div>
 		}
 	</div>
 }
 
 templ pawnReadings(data RoomPawnData) {
-	<dl class="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 @sm:grid-cols-2">
+	<dl class="m-0 grid grid-cols-1 gap-x-2 gap-y-1 @2xs:grid-cols-2">
 		@pawnStat("Hit points") {
 			if data.Pawn.HP != "" {
 				{ data.Pawn.HP }
@@ -114,7 +125,7 @@ templ pawnReadings(data RoomPawnData) {
 
 templ pawnPortrait(pawn RoomPawn) {
 	<div class="avatar avatar-placeholder shrink-0">
-		<div class="relative w-8 rounded-full border border-base-300 bg-base-300 text-base-content">
+		<div class="relative w-7 rounded-full border border-base-300 bg-base-300 text-base-content">
 			<span class="text-xs font-semibold">{ characterInitial(pawn.Name) }</span>
 			if pawn.Image != "" {
 				<img src={ pawn.Image } alt="" class="absolute inset-0 h-full w-full rounded-full object-cover select-none"/>
@@ -125,8 +136,8 @@ templ pawnPortrait(pawn RoomPawn) {
 
 templ pawnStat(caption string) {
 	<div class="min-w-0">
-		<dt class="text-[10px] tracking-wide text-base-content/55 uppercase">{ caption }</dt>
-		<dd class="m-0 truncate text-sm">
+		<dt class="text-[10px] leading-tight tracking-wide text-base-content/55 uppercase">{ caption }</dt>
+		<dd class="m-0 truncate text-xs">
 			{ children... }
 		</dd>
 	</div>
@@ -134,7 +145,7 @@ templ pawnStat(caption string) {
 
 templ pawnHPForm(data RoomPawnData) {
 	<form
-		class="fieldset"
+		class="flex flex-col gap-0.5"
 		hx-post={ data.HPPath() }
 		hx-trigger="change"
 		hx-sync="this:queue last"
@@ -142,10 +153,10 @@ templ pawnHPForm(data RoomPawnData) {
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
 	>
-		<label class="fieldset-legend" for={ data.Field("hp") }>Hit points</label>
-		<div class="flex items-center gap-1.5">
+		<label class="text-[10px] text-base-content/60" for={ data.Field("hp") }>Hit points</label>
+		<div class="flex items-center gap-1">
 			@pawnHPBox(data.Field("hp"), "hp", "Hit points", data.Pawn.HPValue)
-			<span class="shrink-0 text-base-content/45">/</span>
+			<span class="shrink-0 text-xs text-base-content/45">/</span>
 			@pawnHPBox(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
 		</div>
 	</form>
@@ -162,7 +173,7 @@ templ pawnHPBox(id string, name string, caption string, value string) {
 		inputmode="numeric"
 		autocomplete="off"
 		maxlength={ HPEntryMax }
-		class="input input-sm min-w-0 flex-1"
+		class="input input-xs min-w-0 flex-1"
 	/>
 }
 

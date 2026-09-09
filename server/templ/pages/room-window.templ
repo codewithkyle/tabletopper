@@ -12,20 +12,26 @@ templ roomWindowTemplate() {
 				class="relative z-10 flex h-7 min-w-0 cursor-grab touch-none items-center gap-0.5 border-b border-base-300 bg-panel/70 pr-0.5 pl-2 select-none"
 			>
 				<h2 data-window-title class="min-w-0 flex-1 truncate text-xs font-semibold"></h2>
-				<button type="button" data-window-action="minimize" class="btn btn-ghost btn-xs px-1" aria-label="Minimize">
-					@windowMinimizeIcon()
-				</button>
-				<button type="button" data-window-action="maximize" class="btn btn-ghost btn-xs px-1" aria-label="Maximize">
-					<span data-window-icon="maximize" class="contents">
-						@windowMaximizeIcon()
-					</span>
-					<span data-window-icon="restore" class="contents" hidden>
-						@windowRestoreIcon()
-					</span>
-				</button>
-				<button type="button" data-window-action="close" class="btn btn-ghost btn-xs px-1" aria-label="Close">
-					@windowCloseIcon()
-				</button>
+				<div class="tooltip tooltip-bottom shrink-0" data-tip="Minimize">
+					<button type="button" data-window-action="minimize" class="btn btn-ghost btn-xs px-1" aria-label="Minimize">
+						@windowMinimizeIcon()
+					</button>
+				</div>
+				<div class="tooltip tooltip-bottom shrink-0" data-tip="Maximize">
+					<button type="button" data-window-action="maximize" class="btn btn-ghost btn-xs px-1" aria-label="Maximize">
+						<span data-window-icon="maximize" class="contents">
+							@windowMaximizeIcon()
+						</span>
+						<span data-window-icon="restore" class="contents" hidden>
+							@windowRestoreIcon()
+						</span>
+					</button>
+				</div>
+				<div class="tooltip tooltip-bottom shrink-0" data-tip="Close">
+					<button type="button" data-window-action="close" class="btn btn-ghost btn-xs px-1" aria-label="Close">
+						@windowCloseIcon()
+					</button>
+				</div>
 			</header>
 			<div data-window-body class="min-h-0 overflow-auto">
 				<div data-window-state="loading" class="grid h-full min-h-16 place-content-center">

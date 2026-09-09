@@ -552,8 +552,9 @@ func assertSavedToast(t *testing.T, rec *httptest.ResponseRecorder, panel string
 
 	// A save answers with the panel's error block, empty. That is what clears a
 	// message an earlier save left there; 204 would leave it on screen over a
-	// panel that has since saved.
-	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-`+panel+`"></div>` {
+	// panel that has since saved. It is `hidden`, because an empty block still
+	// takes a gap on each side of itself in a flex or grid panel.
+	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-`+panel+`" hidden></div>` {
 		t.Errorf("body = %q, want the cleared error block", body)
 	}
 

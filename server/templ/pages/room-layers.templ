@@ -41,37 +41,43 @@ templ layerRow(data RoomLayersData, l RoomLayer) {
 				hx-patch={ data.NamePath(l) }
 				hx-trigger="change"
 			/>
-			<button
-				type="button"
-				class="btn btn-ghost btn-xs shrink-0 px-1"
-				aria-label={ "Move " + l.Name + " up" }
-				disabled?={ l.Top }
-				hx-post={ data.MovePath(l) }
-				hx-vals={ data.MoveVals(l, 1) }
-			>
-				@chevronUpIcon()
-			</button>
-			<button
-				type="button"
-				class="btn btn-ghost btn-xs shrink-0 px-1"
-				aria-label={ "Move " + l.Name + " down" }
-				disabled?={ l.Bottom }
-				hx-post={ data.MovePath(l) }
-				hx-vals={ data.MoveVals(l, -1) }
-			>
-				@chevronDownIcon()
-			</button>
-			<button
-				type="button"
-				class="btn btn-ghost btn-xs shrink-0 px-1 text-base-content/50 hover:text-error"
-				aria-label={ "Delete " + l.Name }
-				hx-delete={ data.LayerPath(l) }
-				hx-confirm={ data.RemovePrompt(l) }
-				data-confirm-heading="Delete this layer?"
-				data-confirm-label="Delete layer"
-			>
-				@trashXIcon()
-			</button>
+			<div class="tooltip tooltip-left shrink-0" data-tip="Move up">
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs px-1"
+					aria-label={ "Move " + l.Name + " up" }
+					disabled?={ l.Top }
+					hx-post={ data.MovePath(l) }
+					hx-vals={ data.MoveVals(l, 1) }
+				>
+					@chevronUpIcon()
+				</button>
+			</div>
+			<div class="tooltip tooltip-left shrink-0" data-tip="Move down">
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs px-1"
+					aria-label={ "Move " + l.Name + " down" }
+					disabled?={ l.Bottom }
+					hx-post={ data.MovePath(l) }
+					hx-vals={ data.MoveVals(l, -1) }
+				>
+					@chevronDownIcon()
+				</button>
+			</div>
+			<div class="tooltip tooltip-left shrink-0" data-tip="Delete floor">
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-error"
+					aria-label={ "Delete " + l.Name }
+					hx-delete={ data.LayerPath(l) }
+					hx-confirm={ data.RemovePrompt(l) }
+					data-confirm-heading="Delete this layer?"
+					data-confirm-label="Delete layer"
+				>
+					@trashLineIcon()
+				</button>
+			</div>
 		</div>
 		<div class="mt-1.5 flex items-center gap-2 pl-6">
 			if l.HasMap() && !l.MapMissing() {

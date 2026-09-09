@@ -782,6 +782,11 @@ func pawnView(pawn *room.Pawn, role room.Role, layer string) pages.RoomPawn {
 		Object: pawn.Kind == room.PawnObject,
 		HP:     pages.PawnHPText(pawn.HP, pawn.MaxHP),
 		Layer:  layer,
+
+		// The kind, narrowed to the one question the panel asks of it: is this
+		// somebody's character. It is not the kind itself, because a template
+		// holding a protocol value would be a second place the enum lives.
+		Character: pawn.Kind == room.PawnPlayer,
 	}
 
 	if pawn.HPBand != nil {

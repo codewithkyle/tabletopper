@@ -1257,7 +1257,7 @@ func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 		`hx-trigger="input delay:1s`,
 		`hx-target="#errors-journal"`,
 		`hx-status:422="target:#errors-journal,swap:outerHTML"`,
-		`<div id="errors-journal"></div>`,
+		`<div id="errors-journal" hidden></div>`,
 	} {
 		if !strings.Contains(markup, want) {
 			t.Errorf("missing %s\n%s", want, markup)

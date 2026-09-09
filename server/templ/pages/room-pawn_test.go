@@ -471,3 +471,121 @@ func TestEveryBandHasAWord(t *testing.T) {
 		t.Errorf("a band this build does not know printed %q", got)
 	}
 }
+
+// A PLAYER'S CHARACTER HAS NO RENAME BUTTON. The name came off the sheet its
+// player wrote and every other player reads it in the turn order; the one
+// plausible reason to change it here is a typo, which is a thing to fix on the
+// sheet where it will still be right next session. A goblin is the opposite
+// case, which is what the button is for.
+func TestACharacterIsNotRenamedFromItsPawnPanel(t *testing.T) {
+	data := testPawnPanel()
+	data.Pawn.Character = true
+
+	if body := decoded(t, RoomPawnFragment(data)); strings.Contains(body, data.RenamePath()) {
+		t.Errorf("a character's panel offers a rename:\n%s", body)
+	}
+
+	// Everything else about the panel is unchanged: this is one button, not a
+	// read-only pawn.
+	if body := decoded(t, RoomPawnFragment(data)); !strings.Contains(body, `name="hp"`) {
+		t.Error("a character's panel lost its editor with its rename button")
+	}
+
+	data.Pawn.Character = false
+	if body := decoded(t, RoomPawnFragment(data)); !strings.Contains(body, data.RenamePath()) {
+		t.Errorf("a monster's panel has no rename:\n%s", body)
+	}
+}
+
+// EVERY ICON BUTTON IN THE PANEL CARRIES A TOOLTIP AND AN ACCESSIBLE NAME, and
+// the two are different strings on purpose. The tip is read beside the thing it
+// points at, so "Remove" is unambiguous; a screen reader announces the button
+// with no such context, and eight goblins on a table means eight buttons that
+// would otherwise all announce as "Remove".
+func TestEveryIconButtonInThePanelIsLabelledTwice(t *testing.T) {
+	data := testPawnPanel()
+	data.Pawn.MonsterID = "01BX5ZZKBKACTAV9WEVGEMMVT9"
+
+	body := html(t, RoomPawnFragment(data))
+
+	for tip, label := range map[string]string{
+		"Stat block":       data.StatBlockLabel(),
+		"Rename":           data.RenameLabel(),
+		"Remove":           data.RemoveLabel(),
+		"Remove condition": "Remove condition",
+	} {
+		if !strings.Contains(body, `data-tip="`+tip+`"`) {
+			t.Errorf("no tooltip %q in the panel:\n%s", tip, body)
+		}
+		if !strings.Contains(body, `aria-label="`+label+`"`) {
+			t.Errorf("no accessible name %q in the panel", label)
+		}
+	}
+
+	// A tip with no tooltip class around it renders nothing at all, which is
+	// the failure a data-tip typo produces and the one nobody notices.
+	if strings.Count(body, "data-tip=") != strings.Count(body, `class="tooltip`) {
+		t.Errorf("a data-tip is not inside a tooltip:\n%s", body)
+	}
+}
+
+// THE VISIBILITY CONTROL SAYS WHICH STATE IT IS IN, in words, and it swaps them
+// without waiting for the socket. A switch labelled "Players can see this pawn"
+// makes the reader work out what the position of the switch means; two words
+// behind peer-checked do not, and the answer is right the instant it is
+// clicked rather than a round trip later.
+func TestTheVisibilityControlReadsVisibleOrHidden(t *testing.T) {
+	body := html(t, RoomPawnFragment(testPawnPanel()))
+
+	if !strings.Contains(body, "toggle") {
+		t.Errorf("the visibility control is not a switch:\n%s", body)
+	}
+	for _, word := range []string{">Visible<", ">Hidden<"} {
+		if !strings.Contains(body, word) {
+			t.Errorf("the switch never says %q:\n%s", word, body)
+		}
+	}
+	if !strings.Contains(body, "peer-checked:hidden") || !strings.Contains(body, "peer-checked:inline") {
+		t.Error("the two words are not swapped by the switch's own state")
+	}
+}
+
+// SPACE IN A 260 PIXEL WINDOW IS THE SCARCE THING, so every control in this
+// panel is the extra-small one -- the size the tabletop settings window already
+// uses. A single `input-sm` here is a row a third taller than the rows above
+// and below it, which is how a panel drifts back to being too tall.
+func TestEveryControlInThePanelIsCompact(t *testing.T) {
+	data := testPawnPanel()
+	data.LayerID = "01BX5ZZKBKACTAV9WEVGEMMVT1"
+	data.Layers = []RoomPawnLayer{
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: "Ground floor"},
+		{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: "Cellar"},
+	}
+	data.Pawn.MonsterID = "01BX5ZZKBKACTAV9WEVGEMMVT9"
+
+	for _, body := range []string{
+		html(t, RoomPawnFragment(data)),
+		html(t, RoomPawnConditionRow(data.Pawn.ID, data.Pawn.Conditions[0])),
+	} {
+		for _, bulky := range []string{"input-sm", "select-sm", "btn-sm", "input-md", "select-md", "fieldset-legend"} {
+			if strings.Contains(body, bulky) {
+				t.Errorf("the panel carries %q:\n%s", bulky, body)
+			}
+		}
+	}
+}
+
+// The empty error block is display:none rather than a zero-height element,
+// because its parents are flex columns with a gap: an invisible child still
+// takes a gap on each side of itself, which is two gaps of nothing above the
+// hit-point row on every panel that has nothing to complain about.
+func TestTheEmptyErrorSlotTakesNoRoom(t *testing.T) {
+	body := html(t, PanelFormErrors("pawn-x", nil))
+	if body != `<div id="errors-pawn-x" hidden></div>` {
+		t.Errorf("the empty error block is %q", body)
+	}
+
+	if full := html(t, PanelFormErrors("pawn-x", []string{"No."})); strings.Contains(full, "hidden") {
+		t.Errorf("a block with something to say is hidden:\n%s", full)
+	}
+}
