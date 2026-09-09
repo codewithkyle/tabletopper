@@ -9,7 +9,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { HPBand } from "../protocol.ts";
-import { BEAT_PERIOD, bandOf, echo, healthOf, heartbeat, splatters, woundRing, worsened } from "./wounds.ts";
+import {
+	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW,
+	bandOf, beatPulse, beats, bleeds, healthOf, heartbeat, hurt, slowPulse, splatters, worsened,
+} from "./wounds.ts";
 
 test("the bands sit exactly where the server puts them", () => {
 	const cases: [number, number, HPBand][] = [
@@ -96,23 +99,53 @@ test("worsening is one way", () => {
 	assert.equal(worsened("dead", "dead"), false, "standing still shed blood");
 });
 
-// THE MISSING ENTRIES ARE THE FEATURE. A table where every creature carries a
-// red ring is a table with no signal in it, so nothing above the halfway line is
-// marked at all -- and a corpse is not either, because the skull and the
-// desaturated draw already say more than a ring could.
-test("only a creature in trouble is ringed, and only near death beats", () => {
-	assert.equal(woundRing(null), null);
-	assert.equal(woundRing("healthy"), null);
-	assert.equal(woundRing("bruised"), null, "a scratch drew a wound ring");
-	assert.equal(woundRing("dead"), null, "a corpse drew a wound ring");
+// THE MISSING ENTRIES ARE THE FEATURE. A table where every creature looks
+// wounded is a table with no signal in it, so nothing above the halfway line is
+// marked at all -- and a corpse is not either, because the grey and the skull it
+// already carries say more than a red rim could, and a red rim under a full grey
+// would be greyed away in the same breath.
+test("only a creature in trouble is marked, and a corpse is marked otherwise", () => {
+	assert.equal(hurt(null), 0);
+	assert.equal(hurt("healthy"), 0);
+	assert.equal(hurt("bruised"), 0, "a scratch marked the portrait");
+	assert.equal(hurt("dead"), 0, "a corpse was given a red rim under its grey");
 
-	assert.equal(woundRing("bloody")?.beats, false);
-	assert.equal(woundRing("veryBloody")?.beats, false);
-	assert.equal(woundRing("nearDeath")?.beats, true);
+	// And it gets worse on the way down, never better.
+	const worse = (["bloody", "veryBloody", "nearDeath"] as const).map(hurt);
+	assert.deepEqual(worse, [...worse].sort((a, b) => a - b));
+	assert.equal(worse[worse.length - 1], 1);
+});
 
-	// It gets louder on the way down and never quieter.
-	const weights = (["bloody", "veryBloody", "nearDeath"] as const).map((band) => woundRing(band)?.thickness ?? 0);
-	assert.deepEqual(weights, [...weights].sort((a, b) => a - b));
+// The pulse collapses INWARD, which is what keeps it inside the disc where the
+// creature's own state lives -- outward would sail into the ring stack the
+// conditions own.
+test("the pulse starts at very bloodied and becomes a heart at the end", () => {
+	assert.equal(beats(null), BEAT_NONE);
+	assert.equal(beats("healthy"), BEAT_NONE);
+	assert.equal(beats("bruised"), BEAT_NONE);
+	assert.equal(beats("bloody"), BEAT_NONE, "a creature at half health had a pulse");
+
+	assert.equal(beats("veryBloody"), BEAT_SLOW);
+	assert.equal(beats("nearDeath"), BEAT_HEART);
+
+	// A CORPSE DOES NOT BEAT. It is the only entry here that would be actively
+	// wrong rather than merely noisy, and it is the frame loop's floor: a table
+	// of dead things has to be able to go quiet.
+	assert.equal(beats("dead"), BEAT_NONE, "a corpse had a heartbeat");
+});
+
+test("blood only shows on a portrait once the creature is badly hurt", () => {
+	assert.equal(bleeds(null), false);
+	assert.equal(bleeds("healthy"), false);
+	assert.equal(bleeds("bruised"), false);
+	assert.equal(bleeds("bloody"), false);
+
+	assert.equal(bleeds("veryBloody"), true);
+	assert.equal(bleeds("nearDeath"), true);
+
+	// A corpse keeps its blood while the body under it goes grey, which is the
+	// one place the two are deliberately out of step.
+	assert.equal(bleeds("dead"), true);
 });
 
 // The same line the ring draws: the first blood on the floor and the first ring
@@ -155,18 +188,48 @@ test("the heartbeat is two knocks and a silence", () => {
 	assert.equal(heartbeat(50), heartbeat(50 + BEAT_PERIOD * 3600));
 });
 
-test("the echo leaves once a beat and fades on the way out", () => {
-	const first = echo(0);
-	assert.ok(first);
-	assert.equal(first.grow, 0, "the ring did not start at the pawn's own edge");
+test("both pulses sweep from the rim to the centre and fade at each end", () => {
+	for (const pulse of [slowPulse, beatPulse]) {
+		const start = pulse(0);
+		assert.equal(start.depth, 0, "the ring did not start at the creature's own rim");
 
-	const later = echo(300);
-	assert.ok(later);
-	assert.ok(later.grow > first.grow, "the ring did not travel");
-	assert.ok(later.alpha < first.alpha, "the ring did not fade");
+		// It fades IN at the rim and OUT at the centre, so it sweeps through the
+		// token rather than popping into existence on its edge and stopping dead
+		// in its middle.
+		assert.ok(start.alpha < 0.01, "the ring popped into existence at the rim");
 
-	// It is gone well before the next beat, which is what keeps two rings from
-	// being in flight at once -- that reads as a ripple in water rather than as
-	// a heart.
-	assert.equal(echo(BEAT_PERIOD - 1), null);
+		let travelled = 0;
+		let brightest = 0;
+		for (let t = 0; t < BEAT_PERIOD * 8; t++) {
+			const { depth, alpha } = pulse(t);
+
+			assert.ok(depth >= 0 && depth <= 1, `the ring left the disc at ${t}ms`);
+			assert.ok(alpha >= 0 && alpha <= 1, `the ring left its range at ${t}ms`);
+
+			travelled = Math.max(travelled, depth);
+			brightest = Math.max(brightest, alpha);
+		}
+
+		assert.equal(travelled, 1, "the ring never reached the centre");
+		assert.ok(brightest > 0.3, "the ring was never actually visible");
+	}
+});
+
+// The slow sweep and the heart have to be told apart at a glance across a table
+// with both on it, which means they cannot share a rate. Counting how often each
+// one STARTS is the difference a person actually sees; how long each takes to
+// cross the disc is close enough between the two to prove nothing.
+test("a dying creature pulses more than twice as often as a bloodied one", () => {
+	const sweeps = (pulse: (now: number) => { alpha: number }): number => {
+		let started = 0;
+		for (let t = 1; t < 12_000; t++) {
+			if (pulse(t).alpha > 0 && pulse(t - 1).alpha === 0) {
+				started++;
+			}
+		}
+
+		return started;
+	};
+
+	assert.ok(sweeps(beatPulse) > sweeps(slowPulse) * 2);
 });

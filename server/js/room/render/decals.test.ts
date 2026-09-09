@@ -9,7 +9,8 @@ import { test } from "node:test";
 import type { Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import type { DecalTarget } from "./decals.ts";
-import { CAP, newDecals, spriteFor } from "./decals.ts";
+import { CAP, newDecals } from "./decals.ts";
+import { bloodSprite } from "./wounds.ts";
 
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
@@ -329,10 +330,13 @@ test("blood outlives the creature that shed it", () => {
 });
 
 test("the nine splatters are addressed as the sheet numbers them", () => {
-	assert.equal(spriteFor(0), "/images/blood/1.webp");
-	assert.equal(spriteFor(8), "/images/blood/9.webp");
+	assert.equal(bloodSprite(0), "/images/blood/1.webp");
+	assert.equal(bloodSprite(8), "/images/blood/9.webp");
 
 	// Wrapped rather than out of range, so an off-by-one is a repeated splatter
-	// and never a 404 the loader remembers for the rest of the session.
-	assert.equal(spriteFor(9), "/images/blood/1.webp");
+	// and never a 404 the loader remembers for the rest of the session -- and a
+	// negative index wraps too, because the pawn overlay picks its splatter from
+	// a hash rather than from a counter.
+	assert.equal(bloodSprite(9), "/images/blood/1.webp");
+	assert.equal(bloodSprite(-1), "/images/blood/9.webp");
 });

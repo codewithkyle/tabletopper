@@ -23,6 +23,7 @@ import { createGridPass } from "./grid-pass.ts";
 import { createDecalPass } from "./decal-pass.ts";
 import { createPathPass } from "./path-pass.ts";
 import { HIDDEN_ALPHA, createPawnPass } from "./pawn-pass.ts";
+import type { PawnPulse } from "./pawn-pass.ts";
 import { createRingPass, RING_ELLIPSE, RING_RECT } from "./ring-pass.ts";
 import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
@@ -32,7 +33,7 @@ import { startFrames } from "./frame.ts";
 import { pawnExtents } from "./path.ts";
 import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
 import { cellCentre } from "./path.ts";
-import { echo, healthOf, heartbeat, woundRing } from "./wounds.ts";
+import { beatPulse, heartbeat, slowPulse } from "./wounds.ts";
 import { stressPawns } from "./stress.ts";
 import type { Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
@@ -46,15 +47,6 @@ import { screenToWorld, worldToScreen } from "./camera.ts";
 // heavier line, because a five-pixel box outlined at a hairline is a smudge.
 const HANDLE_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
 const HANDLE_WIDTH = 2;
-
-// BEAT_THICKEN is how much heavier a near-death ring gets at the top of a
-// thump, in device pixels, and BEAT_FLOOR is how faint it goes between them --
-// not to nothing, because a ring that vanished would read as a pawn losing its
-// ring rather than as a heart beating. BEAT_ECHO is how far the ring thrown off
-// by each beat travels, in device pixels, before it has gone.
-const BEAT_THICKEN = 1.5;
-const BEAT_FLOOR = 0.45;
-const BEAT_ECHO = 9;
 
 // VIEW_ZOOM_STEP is what the View menu's Zoom in and Zoom out move by. It is
 // larger than a wheel notch because a menu item is a deliberate act and
@@ -212,6 +204,12 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	// and these are every way it can change: the reducer said so, the floor
 	// moved, the cell size moved, or a picture landed and with it the aspect
 	// ratio a quad is fitted to.
+	// THE PULSE IS READ ONCE A FRAME FOR THE WHOLE TABLE. It is a uniform rather
+	// than a per-instance value because the pawn buffer is rebuilt when the
+	// table changes and never per frame; see pawn-pass.ts. The object is reused
+	// for the reason everything else in this loop is.
+	const pulse: PawnPulse = { slowDepth: 0, slowAlpha: 0, beatDepth: 0, beatAlpha: 0, beat: 0 };
+
 	const drawn: Drawn[] = [];
 	let synthetic: Drawn[] = [];
 	let pawnsDirty = true;
@@ -301,8 +299,8 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// holds: a button or a finger is down, the crossfade is partway
 		// through, tiles or pictures are queued for upload, or the benchmark is
 		// driving. drawPawns folds in two more of its own -- blood that is
-		// still drying, and a heart that is still beating -- and only the last
-		// of those has no end in sight. See the note beside it.
+		// still drying, and a creature whose pulse is still collapsing -- and
+		// only the last of those has no end in sight. See the note beside it.
 		return input.dragging() || layers.fading() || uploading || loading || sweeping;
 	}
 
@@ -311,9 +309,13 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	//
 	// THE ORDER IS THE ORDER OF THE TABLE, as it is for the tiles and the grid.
 	// Blood is the floor itself and goes under everything; a highlight is on the
-	// floor and goes under the pawn standing on it; a wound or condition ring is
-	// on the pawn and goes over it; the ruler's line and its distance are read
-	// against everything else and go last.
+	// floor and goes under the pawn standing on it; a condition ring is on the
+	// pawn and goes over it; the ruler's line and its distance are read against
+	// everything else and go last.
+	//
+	// A WOUND IS IN NONE OF THOSE LAYERS, because it is not a layer: it is drawn
+	// INTO the pawn by the pawn's own shader. See wounds.ts -- what is outside a
+	// pawn is its conditions, and health is not one of them.
 	function drawPawns(viewedID: string, now: number): boolean {
 		const tableGrid = state.table.grid;
 		const cell = Math.max(1, tableGrid.cellSize);
@@ -367,8 +369,16 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		decals.build(viewedID, now, sprites, decalPass);
 		decalPass.draw(camera, sprites.texture(), canvas.width, canvas.height, dpr);
 
+		const slow = slowPulse(now);
+		const heart = beatPulse(now);
+		pulse.slowDepth = slow.depth;
+		pulse.slowAlpha = slow.alpha;
+		pulse.beatDepth = heart.depth;
+		pulse.beatAlpha = heart.alpha;
+		pulse.beat = heartbeat(now);
+
 		floorMarks.draw(camera, canvas.width, canvas.height, dpr);
-		pawnPass.draw(camera, canvas.width, canvas.height, dpr);
+		pawnPass.draw(camera, canvas.width, canvas.height, dpr, pulse);
 
 		// THE RINGS ARE BUILT PER FRAME AND THE PAWNS ARE NOT, which is not an
 		// inconsistency: there are a handful of rings and hundreds of pawns,
@@ -376,75 +386,23 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// changes at the rate a hand moves rather than at the rate the table
 		// does.
 		rings.begin();
-
-		// beating is the ONE thing in this renderer that asks for frames with no
-		// end in sight, and it is deliberately the narrowest condition that
-		// could: a creature on the floor being looked at, at a twentieth of its
-		// hit points, not yet dead. It resolves within a round or two, in both
-		// directions, and while it holds it is the most important thing on the
-		// table. Everything else here is finite by construction.
-		let beating = false;
-
 		for (const pawn of state.pawns) {
-			if (pawn.layerId !== viewedID || pawn.kind === "object") {
-				continue;
-			}
-
-			const wound = woundRing(healthOf(pawn));
-			const shown = Math.min(pawn.conditions.length, CONDITION_RINGS_MAX);
-			if (!wound && shown === 0) {
+			if (pawn.layerId !== viewedID || pawn.kind === "object" || pawn.conditions.length === 0) {
 				continue;
 			}
 
 			const [halfW] = pawnExtents(pawn, cell);
+			const shown = Math.min(pawn.conditions.length, CONDITION_RINGS_MAX);
 
 			// A HIDDEN PAWN'S RINGS ARE AS FAINT AS THE PAWN IS. This is the GM's
-			// copy alone -- nobody else is sent it -- and a heartbeat at full
-			// strength round a half-drawn ambusher would be louder than the
-			// creature it belongs to.
+			// copy alone -- nobody else is sent one -- and rings at full strength
+			// round a half-drawn ambusher are louder than the creature they
+			// belong to.
 			const visible = pawn.visible ? 1 : HIDDEN_ALPHA;
-
-			// THE INNERMOST RING IS THE BODY AND THE ONES OUTSIDE IT ARE WHAT IS
-			// HAPPENING TO IT. A wound takes the first slot when there is one and
-			// the conditions step out past it, so the whole set stays a stack
-			// that can be counted rather than two things sharing a radius.
-			let index = 0;
-
-			if (wound) {
-				let thickness = wound.thickness;
-				let alpha = visible;
-
-				if (wound.beats) {
-					beating = true;
-
-					const beat = heartbeat(now);
-					thickness += BEAT_THICKEN * beat;
-					alpha *= BEAT_FLOOR + (1 - BEAT_FLOOR) * beat;
-
-					// AND A RING THROWN OFF EACH BEAT, which is what makes the
-					// pulse read as something coming from inside the creature
-					// rather than as a line getting thicker.
-					const pulse = echo(now);
-					if (pulse) {
-						const out = ringRadius(halfW, 0, worldPerDevicePixel)
-							+ pulse.grow * BEAT_ECHO * worldPerDevicePixel;
-
-						rings.add(
-							pawn.x, pawn.y, out, out,
-							wound.color, visible * pulse.alpha, RING_WIDTH, RING_ELLIPSE,
-						);
-					}
-				}
-
-				const radius = ringRadius(halfW, 0, worldPerDevicePixel);
-				rings.add(pawn.x, pawn.y, radius, radius, wound.color, alpha, thickness, RING_ELLIPSE);
-
-				index = 1;
-			}
 
 			for (let i = 0; i < shown; i++) {
 				const colour = CONDITION_COLORS[pawn.conditions[i].color] ?? CONDITION_COLORS.white;
-				const radius = ringRadius(halfW, index + i, worldPerDevicePixel);
+				const radius = ringRadius(halfW, i, worldPerDevicePixel);
 
 				rings.add(pawn.x, pawn.y, radius, radius, colour, visible, RING_WIDTH, RING_ELLIPSE);
 			}
@@ -502,7 +460,14 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 
 		// sprites.end() FIRST AND ALWAYS, because it is what drains the loader
 		// as well as what answers the question -- and || would skip it.
-		return sprites.end() || beating || decals.settling(now);
+		//
+		// pawnPass.beating() is the one answer here with no end in sight: a
+		// creature on the viewed floor at a quarter of its hit points or less,
+		// still alive. That is a wider window than it sounds -- it is most
+		// monsters for most of a fight -- and it is deliberate: while it holds,
+		// the pulse is the most important thing on the table. Everything else
+		// is finite by construction.
+		return sprites.end() || pawnPass.beating() || decals.settling(now);
 	}
 
 	// settleMap notices the viewed map changing and frames it when framing is

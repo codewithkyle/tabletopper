@@ -31,13 +31,8 @@ import type { Pawn } from "../protocol.ts";
 import type { HPBand } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
-import { healthOf, splatters, worsened } from "./wounds.ts";
+import { BLOOD_VARIANTS, bloodSprite, healthOf, seed, splatters, worsened } from "./wounds.ts";
 import { pawnExtents } from "./path.ts";
-
-// VARIANTS is how many splatters the sheet was cut into. They live under
-// /images/blood and are 256 square, which is the sprite cache's layer size, so
-// each is an ordinary cache entry and none of it is special-cased.
-const VARIANTS = 9;
 
 // BLOOD_PRIORITY is behind every pawn picture, which ask at zero. A portrait
 // that has not arrived is a pawn drawn as initials; a splatter that has not
@@ -185,7 +180,7 @@ export function newDecals(): Decals {
 				y: pawn.y + (next() - 0.5) * 2 * JITTER * radius,
 				half: radius * spread,
 				rotation: Math.floor(next() * 360),
-				sprite: spriteFor(Math.floor(next() * VARIANTS)),
+				sprite: bloodSprite(Math.floor(next() * BLOOD_VARIANTS)),
 				born: now,
 				dry: DRY_MS,
 				rest: REST_ALPHA,
@@ -210,7 +205,7 @@ export function newDecals(): Decals {
 			y: pawn.y + (next() - 0.5) * 0.3 * radius,
 			half,
 			rotation: Math.floor(next() * 360),
-			sprite: spriteFor(Math.floor(next() * VARIANTS)),
+			sprite: bloodSprite(Math.floor(next() * BLOOD_VARIANTS)),
 			born: now,
 			dry,
 			rest,
@@ -359,35 +354,17 @@ export function newDecals(): Decals {
 	};
 }
 
-// spriteFor is the URL of one of the nine. They are numbered from one because
-// that is what the sheet they were cut from looks like.
-export function spriteFor(variant: number): string {
-	return `/images/blood/${(variant % VARIANTS) + 1}.webp`;
-}
-
 // generator is a small deterministic source, seeded off the pawn's id, the band
 // it landed in and which mark of the burst this is. Math.random would put
 // different blood on every screen at the table for no gain.
 function generator(id: string, band: HPBand, nth: number): () => number {
-	let state = hash(`${id}:${band}:${nth}`);
+	let state = seed(`${id}:${band}:${nth}`);
 
 	return () => {
 		state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
 
 		return state / 0x100000000;
 	};
-}
-
-// hash is FNV-1a, which is enough to turn a ULID into a seed and short enough to
-// read.
-function hash(text: string): number {
-	let value = 0x811c9dc5;
-	for (let i = 0; i < text.length; i++) {
-		value ^= text.charCodeAt(i);
-		value = Math.imul(value, 0x01000193) >>> 0;
-	}
-
-	return value >>> 0;
 }
 
 function clamp(value: number): number {

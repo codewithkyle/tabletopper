@@ -124,12 +124,14 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 	return out;
 }
 
-// ringRadius is the outer radius of the nth ring round a creature, in map
-// pixels. They are concentric, outside the pawn's own border, one gap apart.
+// ringRadius is the outer radius of the nth condition ring, in map pixels. They
+// are concentric, outside the pawn's own border, one gap apart.
 //
-// INDEX 0 IS THE WOUND RING WHERE THERE IS ONE and the conditions start at 1;
-// where there is not, the conditions start at 0. The renderer decides that, and
-// this only has to space them.
+// EVERY RING OUT HERE IS A CONDITION AND NOTHING ELSE SHARES THE STACK, which is
+// what makes it countable. How hurt a creature is used to take index 0 and push
+// them all out by one; it is drawn inside the disc now, by the pawn's own
+// shader, for that reason and because the red it needed is the red a condition
+// ring is already drawn in. See wounds.ts.
 export function ringRadius(half: number, index: number, worldPerDevicePixel: number): number {
 	return half + (RING_GAP + index * (RING_WIDTH + RING_GAP)) * worldPerDevicePixel;
 }

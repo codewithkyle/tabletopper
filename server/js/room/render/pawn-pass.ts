@@ -24,6 +24,22 @@
 // quad's own local space and never learns the angle at all. A creature's is
 // always zero: a disc has no facing.
 //
+// A WOUNDED CREATURE IS DRAWN DIFFERENTLY RATHER THAN RINGED, and the whole of
+// that happens in here. Blood soaks in from the rim of the disc and pools toward
+// its bottom, the colour drains toward a cold grey, one of the nine splatters is
+// composited over the portrait, and a ring collapses inward from the rim to the
+// centre. Nothing about it leaves the pawn's own circle: what is OUTSIDE a pawn
+// is its conditions, and health is not one of those. See wounds.ts.
+//
+// THE PULSE PHASE IS A UNIFORM AND NOT AN ATTRIBUTE, which is the one thing that
+// makes the above free. This buffer is rebuilt when the table changes; a
+// per-instance animated value would rebuild every pawn on the table sixty times
+// a second to move one ring. So the instance carries only how hurt the creature
+// is and whether it beats -- both of which change when its hit points do, which
+// is a rebuild already -- and the phase arrives per frame for all of them at
+// once. Every dying creature therefore beats in step, which is a choice rather
+// than a compromise: together reads as urgent, out of phase reads as noise.
+//
 // THE INSTANCE BUFFER IS REBUILT WHEN THE TABLE CHANGES AND NOT PER FRAME. A
 // pan or a zoom changes the matrix and nothing else, which is the common case
 // by a wide margin; what forces a rebuild is a pawn moving, appearing, changing
@@ -35,6 +51,7 @@ import type { Grid, HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { KIND_COLORS } from "./sprites.ts";
 import { SKULL } from "./sprites.ts";
+import { BEAT_NONE, beats, bleeds, bloodSprite, hurt, seed } from "./wounds.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
 import { pawnExtents, radians } from "./path.ts";
@@ -46,8 +63,9 @@ import { compareStack } from "./scene.ts";
 // THE ANGLE ARRIVES PRE-RESOLVED. A cosine and a sine per instance rather than
 // a degree per instance, because the shader would otherwise compute the same
 // two transcendentals for all four corners of every quad in every frame, and
-// the buffer is rebuilt only when the table changes.
-const FLOATS_PER_INSTANCE = 18;
+// the buffer is rebuilt only when the table changes. The wound rides in beside
+// it, in the two floats that pair makes spare.
+const FLOATS_PER_INSTANCE = 20;
 
 // BORDER_PIXELS is the ring round a creature, in DEVICE pixels rather than map
 // pixels, so it is the same weight at every zoom. A border that scaled with the
@@ -63,6 +81,30 @@ const HIDDEN_GREY = 0.7;
 // SKULL_SCALE is the dead-creature mark, as a fraction of the pawn's diameter.
 const SKULL_SCALE = 0.7;
 
+// SHAPE_DISC, SHAPE_RECT and SHAPE_STAIN are what an instance is. The first two
+// are a creature and an object; the third is the blood on a portrait, which is a
+// picture clipped to the creature's disc and faded out toward its middle.
+const SHAPE_DISC = 0;
+const SHAPE_RECT = 1;
+const SHAPE_STAIN = 2;
+
+// STAIN_ALPHA is how much of the portrait the blood is allowed to take. Low
+// enough that the picture underneath is still what identifies the creature --
+// two goblins that look MORE alike when they are hurt would be a worse table,
+// not a bloodier one.
+const STAIN_ALPHA = 0.62;
+
+// BLOOD_INNER is how far in from the rim the stain reaches before it has faded
+// to nothing, as a fraction of the radius. It is the whole reason this works: a
+// splatter is dense in the middle, which is exactly where a face is, so the part
+// that would cover it is thrown away and what survives is the arms and the
+// droplets round the edge.
+const BLOOD_INNER = 0.25;
+
+// PULSE_SOFT is the collapsing ring's half width, in the same fraction. Wide
+// enough to survive a pawn drawn thirty pixels across.
+const PULSE_SOFT = 0.1;
+
 // SPRITE_EDGE is the sprite layer's size. It is written here rather than
 // imported so this module's arithmetic does not depend on how the cache was
 // built; a test pins the two together.
@@ -76,7 +118,7 @@ layout(location = 1) in vec4 a_rect;
 layout(location = 2) in vec4 a_border;
 layout(location = 3) in vec4 a_style;
 layout(location = 4) in vec4 a_fit;
-layout(location = 5) in vec2 a_spin;
+layout(location = 5) in vec4 a_spin;
 
 uniform mat3 u_clip;
 uniform float u_scale;
@@ -85,6 +127,7 @@ out vec2 v_local;
 flat out vec4 v_border;
 flat out vec4 v_style;
 flat out vec4 v_fit;
+flat out vec2 v_wound;
 flat out float v_edge;
 
 void main() {
@@ -92,6 +135,7 @@ void main() {
 	v_border = a_border;
 	v_style = a_style;
 	v_fit = a_fit;
+	v_wound = a_spin.zw;
 
 	// The border is a device-pixel width turned into local units, which is why
 	// it is computed here and not in the fragment shader: the half extent is a
@@ -117,9 +161,31 @@ in vec2 v_local;
 flat in vec4 v_border;
 flat in vec4 v_style;
 flat in vec4 v_fit;
+flat in vec2 v_wound;
 flat in float v_edge;
 
 uniform sampler2DArray u_sprites;
+
+// u_pulse is the collapsing ring's phase for both rates at once: the slow sweep
+// a very bloodied creature gets in xy, the heartbeat a dying one gets in zw,
+// each as how far it has travelled from the rim and how bright it is. u_beat is
+// the heartbeat's own envelope, which is what the second thump is drawn with --
+// it has no ring of its own, because two rings in flight at once reads as a
+// ripple in water rather than as a heart.
+uniform vec4 u_pulse;
+uniform float u_beat;
+
+const vec3 LUMA = vec3(0.299, 0.587, 0.114);
+
+// BLOOD is what soaks into the rim, PALLOR is the cold cast the colour drains
+// toward, PULSE is the collapsing ring, and STAIN is what the splatter over a
+// portrait is tinted to. The art the last of those samples is a single hue with
+// no desaturation in it, so its red channel carries the whole of the shape's
+// shading and multiplying is what keeps every fold in it.
+const vec3 BLOOD = vec3(0.42, 0.03, 0.03);
+const vec3 PALLOR = vec3(0.82, 0.88, 1.0);
+const vec3 PULSE = vec3(1.0, 0.24, 0.2);
+const vec3 STAIN = vec3(0.78, 0.09, 0.07);
 
 out vec4 outColor;
 
@@ -159,23 +225,80 @@ void main() {
 
 		float border = smoothstep(1.0 - v_edge - aa, 1.0 - v_edge, r);
 		rgb = mix(rgb, v_border.rgb, border * v_border.a);
-	} else {
+
+		float wounded = v_wound.x;
+		if (wounded > 0.0) {
+			// BLOOD SOAKING IN FROM THE RIM, POOLED TOWARD THE BOTTOM. The
+			// gravity term is what stops this reading as a ring somebody
+			// blurred: +y is down on screen, because the clip matrix flips it.
+			// THE REACH AND THE STRENGTH ARE SEPARATE. Scaling both by the same
+			// number made the first band -- the one that has to be noticed at
+			// all, because it is the first -- a thin darkening at the very edge
+			// that read as a shadow. So a wound reaches a good way in from the
+			// start and gets DEEPER rather than wider on the way down.
+			float low = 0.55 + 0.45 * v_local.y;
+			float rim = smoothstep(1.0 - (0.3 + 0.35 * wounded), 1.0, r) * low;
+			rgb = mix(rgb, BLOOD, clamp(rim, 0.0, 1.0) * wounded);
+
+			// AND THE COLOUR GOING OUT OF IT, toward a COLD grey rather than a
+			// neutral one. Neutral is spoken for twice on this same axis --
+			// 0.7 for a pawn players cannot see, 1.0 for a corpse -- and a
+			// third meaning there would be three states that look alike.
+			rgb = mix(rgb, PALLOR * dot(rgb, LUMA), 0.35 * wounded);
+		}
+
+		// THE PULSE COLLAPSING INWARD: one ring, launched at the rim, arriving
+		// at the centre. Inward rather than outward is the point of it -- life
+		// draining to a point, and a mark that can never reach the ring stack
+		// outside the pawn because it never leaves the disc.
+		float beating = v_wound.y;
+		if (beating > 0.5) {
+			vec2 pulse = beating < 1.5 ? u_pulse.xy : u_pulse.zw;
+			float ring = 1.0 - smoothstep(0.0, ${PULSE_SOFT}, abs(r - (1.0 - pulse.x)));
+			rgb = mix(rgb, PULSE, ring * pulse.y);
+
+			// The second thump gets a flush at the rim instead of a ring.
+			if (beating > 1.5) {
+				rgb = mix(rgb, PULSE, smoothstep(0.55, 1.0, r) * u_beat * 0.3);
+			}
+		}
+	} else if (shape < 1.5) {
 		cover = picture.a;
 		if (cover <= 0.0) {
 			discard;
 		}
 		rgb = picture.rgb;
+	} else {
+		// THE BLOOD ON A PORTRAIT: a splatter clipped to the creature's disc and
+		// faded out toward its middle, so it soaks in from the edges rather than
+		// covering the face. What identifies a pawn is its picture, and an
+		// effect that made two goblins look MORE alike when they were hurt would
+		// be a worse table rather than a bloodier one.
+		float r = length(v_local);
+		float aa = max(fwidth(r), 1e-5);
+
+		cover = picture.a
+			* (1.0 - smoothstep(1.0 - aa, 1.0, r))
+			* smoothstep(${BLOOD_INNER}, 1.0, r);
+		if (cover <= 0.0) {
+			discard;
+		}
+
+		rgb = STAIN * picture.r;
 	}
 
 	// Desaturation is the GM's marker for a pawn players cannot see, and the
-	// whole of what a dead creature is drawn as under its skull.
-	rgb = mix(rgb, vec3(dot(rgb, vec3(0.299, 0.587, 0.114))), grey);
+	// whole of what a dead creature is drawn as under its skull. A CORPSE KEEPS
+	// ITS BLOOD RED while the body under it goes grey -- the stain is pushed
+	// with no grey of its own -- and a pawn nobody can see has even that
+	// desaturated with the rest of it.
+	rgb = mix(rgb, vec3(dot(rgb, LUMA)), grey);
 
 	outColor = vec4(rgb, cover * alpha);
 }
 `;
 
-const names = ["u_clip", "u_sprites", "u_scale"] as const;
+const names = ["u_clip", "u_sprites", "u_scale", "u_pulse", "u_beat"] as const;
 
 // Drawn is one pawn as this pass needs it. It is deliberately NOT room.Pawn:
 // the stress test's five hundred synthetic pawns are not in the store and never
@@ -211,6 +334,19 @@ export interface Drawn {
 	health: HPBand | null;
 }
 
+// PawnPulse is the collapsing ring's phase, read once per frame and handed to
+// every instance at once. See the note at the top of this file for why it is a
+// uniform rather than a per-instance value.
+export interface PawnPulse {
+	slowDepth: number;
+	slowAlpha: number;
+	beatDepth: number;
+	beatAlpha: number;
+
+	// beat is the heartbeat envelope, which the second thump is drawn with.
+	beat: number;
+}
+
 export interface PawnPass {
 	// build rebuilds the instance buffer. It is called when the table changes
 	// rather than every frame; see the note at the top of this file.
@@ -220,7 +356,14 @@ export interface PawnPass {
 	// arithmetic, drawn at half.
 	build(pawns: readonly Drawn[], grid: Grid, sprites: SpriteCache, alpha?: number): void;
 
-	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number, pulse?: PawnPulse): void;
+
+	// beating says whether anything in the buffer has a pulse, which is the
+	// frame loop's question: a table with a creature dying on it animates, and
+	// one without goes quiet. It is answered from the last build rather than
+	// per frame because whether a creature beats changes only when its hit
+	// points do -- and that is a rebuild.
+	beating(): boolean;
 
 	dispose(): void;
 }
@@ -248,7 +391,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 	}
 
 	gl.enableVertexAttribArray(5);
-	gl.vertexAttribPointer(5, 2, gl.FLOAT, false, stride, 64);
+	gl.vertexAttribPointer(5, 4, gl.FLOAT, false, stride, 64);
 	gl.vertexAttribDivisor(5, 1);
 
 	gl.bindVertexArray(null);
@@ -261,6 +404,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 	let data = new Float32Array(64 * FLOATS_PER_INSTANCE);
 	let count = 0;
 	let texture: WebGLTexture | null = null;
+	let pulsing = false;
 
 	// order is the draw order, reused so a rebuild allocates nothing.
 	let order: number[] = [];
@@ -285,7 +429,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 		border: readonly [number, number, number], borderAlpha: number,
 		layer: number, shape: number, alpha: number, grey: number,
 		kx: number, ky: number, uvW: number, uvH: number,
-		cos: number, sin: number,
+		cos: number, sin: number, wounded: number, beat: number,
 	): void {
 		const at = count * FLOATS_PER_INSTANCE;
 
@@ -311,6 +455,8 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 
 		data[at + 16] = cos;
 		data[at + 17] = sin;
+		data[at + 18] = wounded;
+		data[at + 19] = beat;
 
 		count++;
 	}
@@ -318,11 +464,12 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 	return {
 		build(pawns, grid, sprites, alpha = 1) {
 			count = 0;
+			pulsing = false;
 			texture = sprites.texture();
 
-			// Two instances each at worst: the pawn and, for a dead creature,
-			// the skull over it.
-			reserve(pawns.length * 2);
+			// Three instances each at worst: the pawn, the blood on a badly
+			// wounded one, and the skull over a dead one.
+			reserve(pawns.length * 3);
 
 			// SORTED BY compareStack, which puts every object under every
 			// creature and then orders within a kind by z and by id. It is the
@@ -345,6 +492,15 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 				const dead = pawn.health === "dead";
 				const opacity = alpha * (pawn.hidden ? HIDDEN_ALPHA : 1);
 				const grey = pawn.hidden ? HIDDEN_GREY : dead ? 1 : 0;
+
+				// A WOUND IS A CREATURE'S ALONE. A wagon and a door have hit
+				// points and can be broken apart, and there is no blood in
+				// either of them.
+				const wounded = object ? 0 : hurt(pawn.health);
+				const beat = object ? BEAT_NONE : beats(pawn.health);
+				if (beat !== BEAT_NONE) {
+					pulsing = true;
+				}
 
 				// The picture, or the initials that stand in for it -- both
 				// while one is loading and for a pawn that has none at all.
@@ -369,12 +525,40 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					pawn.x, pawn.y, halfW, halfH,
 					KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc,
 					object ? 0 : 1,
-					layer, object ? 1 : 0, opacity, grey,
+					layer, object ? SHAPE_RECT : SHAPE_DISC, opacity, grey,
 					kx, ky,
 					slot ? slot.w / SPRITE_EDGE : 1,
 					slot ? slot.h / SPRITE_EDGE : 1,
-					cos, sin,
+					cos, sin, wounded, beat,
 				);
+
+				// THE BLOOD ON THE PORTRAIT, which is a second instance for the
+				// skull's reason: one instance samples one layer, and this is a
+				// different picture over the same disc. Which splatter and how
+				// far it is turned are both hashed off the pawn's own id, so
+				// every creature wears its own wounds and wears the same ones on
+				// everybody's screen.
+				if (!object && bleeds(pawn.health)) {
+					const mark = seed(pawn.id);
+					const stain = sprites.sprite(bloodSprite(mark), 1);
+					if (stain) {
+						const turn = radians(mark % 360);
+						const [bx, by] = fitFactors(stain.w, stain.h, halfW, halfH, true);
+
+						// A CORPSE KEEPS ITS BLOOD RED -- no grey of its own --
+						// while the body under it goes grey. A pawn nobody can
+						// see has even this desaturated, because that marker is
+						// about whether the thing is on the table at all.
+						push(
+							pawn.x, pawn.y, halfW, halfH,
+							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
+							stain.layer, SHAPE_STAIN, opacity * STAIN_ALPHA,
+							pawn.hidden ? HIDDEN_GREY : 0,
+							bx, by, stain.w / SPRITE_EDGE, stain.h / SPRITE_EDGE,
+							Math.cos(turn), Math.sin(turn), 0, BEAT_NONE,
+						);
+					}
+				}
 
 				if (dead && !object) {
 					const skull = sprites.glyph(SKULL);
@@ -388,16 +572,18 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 						push(
 							pawn.x, pawn.y, size, size,
 							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
-							skull.layer, 1, opacity, 0,
+							skull.layer, SHAPE_RECT, opacity, 0,
 							sx, sy, skull.w / SPRITE_EDGE, skull.h / SPRITE_EDGE,
-							1, 0,
+							1, 0, 0, BEAT_NONE,
 						);
 					}
 				}
 			}
 		},
 
-		draw(cam, deviceWidth, deviceHeight, dpr) {
+		beating: () => pulsing,
+
+		draw(cam, deviceWidth, deviceHeight, dpr, pulse) {
 			if (count === 0 || !texture) {
 				return;
 			}
@@ -411,6 +597,12 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 			gl.uniform1i(at.u_sprites, 0);
 			gl.uniform1f(at.u_scale, cam.zoom * dpr);
+			gl.uniform4f(
+				at.u_pulse,
+				pulse?.slowDepth ?? 0, pulse?.slowAlpha ?? 0,
+				pulse?.beatDepth ?? 0, pulse?.beatAlpha ?? 0,
+			);
+			gl.uniform1f(at.u_beat, pulse?.beat ?? 0);
 			gl.uniformMatrix3fv(at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
 
 			gl.enable(gl.BLEND);
