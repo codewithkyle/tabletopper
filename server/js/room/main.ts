@@ -21,7 +21,7 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
-import { fanOut, refusals } from "./effects.ts";
+import { fanOut, refusals, touchesPawns } from "./effects.ts";
 import { createFog } from "./fog.ts";
 import { createTable } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
@@ -318,19 +318,6 @@ if (mount) {
 	if (path !== "") {
 		socket = start(path, state, renderer, table, overlay, turns, follow);
 	}
-}
-
-// touchesPawns is which events move something the pawn pass has already put in
-// its buffer. A snapshot replaces the whole table; the pawn family is itself;
-// table.updated carries the grid, whose cell size is every pawn's radius.
-//
-// pawn.dragging is deliberately absent. It is a preview nobody has committed
-// to, it is drawn from a buffer of its own, and it is one of the three hot paths
-// in the protocol -- rebuilding the whole table's instances twenty times a
-// second for a ghost is exactly what the split between the two buffers exists to
-// avoid.
-function touchesPawns(type: Event["type"]): boolean {
-	return type === "snapshot" || type === "table.updated" || (type.startsWith("pawn.") && type !== "pawn.dragging");
 }
 
 function start(

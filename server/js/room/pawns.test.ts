@@ -1499,3 +1499,58 @@ test("the GM is concealed from nothing", () => {
 
 	assert.equal(controller.concealed(goblin), false);
 });
+
+// THE RECTANGLE HAS TO BE VISIBLE WHILE IT IS BEING DRAGGED, which the polygon
+// got for free -- its rubber band goes through marks() -- and the rectangle did
+// not: fog.outline() existed and nothing called it, so the tool worked and drew
+// nothing. Everything else about the gesture passed its tests.
+test("a fog rectangle is previewed while it is dragged", () => {
+	const { controller } = table([], FOG_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 130), at(0, 0), NONE);
+
+	const [box, ...rest] = controller.outlines([]);
+	assert.equal(rest.length, 0, "something else is on the table as well");
+	assert.ok(box, "the rectangle in hand is not drawn");
+
+	// The snapped corners are 0,0 and 192,128, so the box is centred between
+	// them and half as wide.
+	assert.equal(box.rect, true);
+	assert.deepEqual([box.x, box.y, box.halfW, box.halfH], [96, 64, 96, 64]);
+});
+
+test("a fog rectangle that has not left its first vertex is not drawn", () => {
+	const { controller } = table([], FOG_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(10, 10), at(0, 0), NONE);
+
+	assert.deepEqual(controller.outlines([]), []);
+});
+
+test("the fog rectangle goes when the gesture does", () => {
+	const { controller } = table([], FOG_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 130), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 130), at(0, 0));
+
+	assert.deepEqual(controller.outlines([]), [], "an abandoned rectangle is still on the table");
+});
+
+// The preview says which way the gesture works, and it says it in hue: both
+// tones are light, because a dark outline on a dark dungeon cannot be aimed
+// with.
+test("the fog rectangle is coloured by the mode it will send", () => {
+	const { controller, chooseFog } = table([], FOG_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 130), at(0, 0), NONE);
+	const uncover = controller.outlines([])[0].color;
+
+	chooseFog("rect", "hide");
+	const cover = controller.outlines([])[0].color;
+
+	assert.notDeepEqual(uncover, cover);
+});

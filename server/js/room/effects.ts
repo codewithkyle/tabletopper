@@ -22,6 +22,40 @@ export function fanOut(effects: readonly Effect[]): Effect {
 	};
 }
 
+// touchesPawns is which events move something the pawn pass has already put in
+// its buffer. A snapshot replaces the whole table; the pawn family is itself;
+// table.updated carries the grid, whose cell size is every pawn's radius.
+//
+// THE FOG FAMILY IS IN HERE AND IT IS NOT OBVIOUS WHY. Fog moves no pawn. What
+// it moves is which pawns a PLAYER is drawn at all: a creature under the cover
+// is left out of the buffer entirely rather than painted over, so that the hover
+// label and the marquee cannot find what the screen does not show. That makes
+// uncovering a room a change to the buffer, and without this line the goblins in
+// it stay invisible until something else happens to rebuild it -- which, in the
+// bug this line fixes, was the next time anybody moved a pawn.
+//
+// table.updated already covered the two FLAGS, which is why the first shape
+// drawn on a sleeping floor looked right and every one after it did not: waking
+// the floor emits a table.updated and the rest emit fog.added alone.
+//
+// pawn.dragging is deliberately absent. It is a preview nobody has committed
+// to, it is drawn from a buffer of its own, and it is one of the three hot paths
+// in the protocol -- rebuilding the whole table's instances twenty times a
+// second for a ghost is exactly what the split between the two buffers exists to
+// avoid.
+//
+// IT LIVES HERE RATHER THAN IN main.ts, where it was written, because main.ts
+// runs on import: it reads the document at module scope, so nothing in it can be
+// unit tested. This is a pure predicate over event names and belongs beside the
+// fan-out it is asked inside.
+export function touchesPawns(type: Event["type"]): boolean {
+	if (type === "snapshot" || type === "table.updated" || type.startsWith("fog.")) {
+		return true;
+	}
+
+	return type.startsWith("pawn.") && type !== "pawn.dragging";
+}
+
 export interface RefusalDeps {
 	// alert opens the alert modal with the server's own heading and message.
 	alert(heading: string, message: string): void;

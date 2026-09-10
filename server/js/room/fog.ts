@@ -60,14 +60,23 @@ const EARS_MAX = 100_000;
 // snapCorner puts one point on the grid's vertices, unless the grid does not
 // snap or Alt is held. Alt is the bypass for the diagonal corridor that no
 // lattice has a corner for.
+//
+// IT ROUNDS ON EVERY PATH, AND THAT IS NOT TIDINESS. A point arrives here as
+// map pixels off screenToWorld, which is a float; FogAdd.Points is []int in Go,
+// and encoding/json refuses a fraction outright rather than truncating it. So a
+// corner that went out unrounded came back as "Bad command" -- which is what a
+// room with snapping switched off did, because snapAxis hands a value straight
+// back in that mode and rounds in the other two. The rounding belongs here
+// rather than in snapAxis, whose other callers place a pawn and want the
+// unrounded answer.
 export function snapCorner(grid: Grid, x: number, y: number, alt: boolean): [number, number] {
 	if (alt) {
 		return [Math.round(x), Math.round(y)];
 	}
 
 	return [
-		snapAxis(grid.cellSize, grid.offsetX, VERTEX_FOOTPRINT, grid.snap, x),
-		snapAxis(grid.cellSize, grid.offsetY, VERTEX_FOOTPRINT, grid.snap, y),
+		Math.round(snapAxis(grid.cellSize, grid.offsetX, VERTEX_FOOTPRINT, grid.snap, x)),
+		Math.round(snapAxis(grid.cellSize, grid.offsetY, VERTEX_FOOTPRINT, grid.snap, y)),
 	];
 }
 
@@ -418,7 +427,11 @@ export interface Fog {
 
 	abandon(): boolean;
 
-	outlines(out: Outline[]): Outline[];
+	// outline is the rectangle in hand, or null. It is ONE outline and not a
+	// list because there is only ever one rectangle being dragged, and it is a
+	// reused object for the reason everything else on the frame path is.
+	outline(): Outline | null;
+
 	marks(out: Segment[]): Segment[];
 
 	// covered is the concealment question, asked of a point in map pixels on the
@@ -444,6 +457,14 @@ export function createFog(deps: FogDeps): Fog {
 	// pointer is where the rubber band ends: the last place the pointer was seen
 	// over the table, in map pixels, or null when it has left.
 	let pointer: Point | null = null;
+
+	// The rectangle preview, reused. It is read on every frame of a drag and
+	// nothing on that path allocates.
+	const box: Outline = {
+		x: 0, y: 0, halfW: 0, halfH: 0,
+		color: REVEAL_COLOR, alpha: PREVIEW_ALPHA, thickness: PREVIEW_WIDTH,
+		rect: true, rotation: 0,
+	};
 
 	function layer(): { fogEnabled: boolean; fogPrefill: boolean } | null {
 		const id = deps.viewed();
@@ -648,29 +669,27 @@ export function createFog(deps: FogDeps): Fog {
 			return true;
 		},
 
-		outlines(out) {
+		outline() {
 			if (gesture?.kind !== "rect") {
-				return out;
+				return null;
 			}
 
+			// A RECTANGLE OF NO WIDTH IS NOT DRAWN, which is the marquee's rule
+			// and matters more here: the corners snap, so the first half cell of
+			// a drag is a rectangle that has not left its first vertex.
 			const halfW = Math.abs(gesture.x1 - gesture.x0) / 2;
 			const halfH = Math.abs(gesture.y1 - gesture.y0) / 2;
 			if (halfW <= 0 || halfH <= 0) {
-				return out;
+				return null;
 			}
 
-			out.push({
-				x: (gesture.x0 + gesture.x1) / 2,
-				y: (gesture.y0 + gesture.y1) / 2,
-				halfW, halfH,
-				color: previewColor(),
-				alpha: PREVIEW_ALPHA,
-				thickness: PREVIEW_WIDTH,
-				rect: true,
-				rotation: 0,
-			});
+			box.x = (gesture.x0 + gesture.x1) / 2;
+			box.y = (gesture.y0 + gesture.y1) / 2;
+			box.halfW = halfW;
+			box.halfH = halfH;
+			box.color = previewColor();
 
-			return out;
+			return box;
 		},
 
 		marks(out) {

@@ -1562,6 +1562,16 @@ export function createTable(deps: TableDeps): Table {
 				});
 			}
 
+			// AND THE FOG RECTANGLE BEING DRAGGED, which is the marquee's twin:
+			// a box that follows the pointer and is gone when the button comes
+			// up. It goes through this accessor rather than a pass of its own
+			// because a rectangle is a rectangle, and the ring pass already
+			// draws one.
+			const fogBox = deps.fog?.outline();
+			if (fogBox) {
+				add(fogBox);
+			}
+
 			out.length = count;
 
 			return out;

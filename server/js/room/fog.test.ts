@@ -167,9 +167,32 @@ test("a corner snaps to the grid's own offset", () => {
 
 // The two bypasses. Both have to work or a diagonal corridor cannot be drawn at
 // all -- there is no vertex on the line it runs along.
+//
+// THE INPUTS ARE FRACTIONS BECAUSE THE REAL ONES ARE. A corner arrives as map
+// pixels off screenToWorld, and an earlier version of this test handed it whole
+// numbers -- which passed against a snapCorner that did not round, and shipped a
+// room with snapping switched off that answered "Bad command" to every shape.
 test("Alt and a grid that does not snap both leave a corner where it fell", () => {
-	assert.deepEqual(snapCorner(grid(), 70, 71, true), [70, 71]);
-	assert.deepEqual(snapCorner(grid({ snap: "off" }), 70, 71, false), [70, 71]);
+	assert.deepEqual(snapCorner(grid(), 70.4, 71.6, true), [70, 72]);
+	assert.deepEqual(snapCorner(grid({ snap: "off" }), 70.4, 71.6, false), [70, 72]);
+});
+
+// EVERY MODE ANSWERS WHOLE NUMBERS, and this is the test that says why: the
+// points travel to a Go []int, and encoding/json refuses a fraction outright
+// rather than truncating it. There is nothing on the screen that would say so --
+// the shape simply never appears and the alert modal says the command was the
+// wrong shape.
+test("a corner is a whole number under every snapping mode", () => {
+	for (const snap of ["cells", "halfCells", "off"] as const) {
+		for (const alt of [false, true]) {
+			// An odd cell size, so half a cell is itself a fraction and the
+			// halfCells lattice cannot land on an integer by luck.
+			const [x, y] = snapCorner(grid({ snap, cellSize: 65, offsetX: 3 }), 70.4, 71.6, alt);
+
+			assert.ok(Number.isInteger(x), `${snap} alt=${alt} answered x=${x}`);
+			assert.ok(Number.isInteger(y), `${snap} alt=${alt} answered y=${y}`);
+		}
+	}
 });
 
 // THE MASK IS THE UNION AND NOT THE MAP. A clear drawn past the edge of the

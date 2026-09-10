@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Event } from "./protocol.ts";
-import { fanOut, refusals } from "./effects.ts";
+import { fanOut, refusals, touchesPawns } from "./effects.ts";
 
 // A refusal reaches the person. The server writes a heading and a message for
 // them and the client used to throw both away.
@@ -59,4 +59,31 @@ test("the fan-out runs every effect in order", () => {
 	effect({ type: "room.closed", seq: 2 });
 
 	assert.deepEqual(seen, ["first", "second", "first", "second"]);
+});
+
+// WHAT REBUILDS THE PAWN BUFFER, AND WHY FOG IS IN THE LIST. A pawn under the
+// cover is left out of the buffer rather than painted over, so uncovering a room
+// changes which pawns are drawn without changing a single pawn -- and the bug
+// this pins is a player watching an uncovered room stay empty until the next
+// time anybody moved anything.
+test("the fog family rebuilds the pawn buffer", () => {
+	for (const type of ["fog.added", "fog.removed", "fog.cleared"] as const) {
+		assert.equal(touchesPawns(type), true, type + " does not rebuild the pawns");
+	}
+});
+
+test("the pawn family and the whole table rebuild it too", () => {
+	assert.equal(touchesPawns("snapshot"), true);
+	assert.equal(touchesPawns("table.updated"), true);
+	assert.equal(touchesPawns("pawn.moved"), true);
+	assert.equal(touchesPawns("pawn.updated"), true);
+});
+
+// A GHOST IS DRAWN FROM A BUFFER OF ITS OWN and arrives twenty times a second.
+// Rebuilding the whole table's instances for one is what the split between the
+// two buffers exists to avoid.
+test("a drag preview does not rebuild the pawn buffer", () => {
+	assert.equal(touchesPawns("pawn.dragging"), false);
+	assert.equal(touchesPawns("player.joined"), false);
+	assert.equal(touchesPawns("initiative.updated"), false);
 });

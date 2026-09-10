@@ -167,8 +167,16 @@ prefill flag, and the two menu routes.
 9. **Corners snap to the grid's vertices unless Alt is held.** A fog reveal is
    a room, and rooms are drawn on the grid; snapping the corners to cell
    vertices gives clean edges with no effort, and Alt is the bypass for a
-   diagonal corridor. Snapping is off when the grid's snap is `off`, and the
-   snapped integers are what go on the wire.
+   diagonal corridor. Snapping is off when the grid's snap is `off`.
+
+   **INTEGERS ARE WHAT GO ON THE WIRE AND `snapCorner` IS WHERE THAT IS MADE
+   TRUE.** A corner arrives as map pixels off `screenToWorld`, which is a
+   float; `FogAdd.Points` is `[]int`, and `encoding/json` refuses a fraction
+   outright rather than truncating it. `snapAxis` rounds in its two snapping
+   modes and hands the value straight back in `off`, so a room with snapping
+   switched off answered "Bad command" to every shape until `snapCorner`
+   rounded on every path. The rounding is here rather than in `snapAxis`,
+   whose other caller places a pawn and wants the unrounded answer.
 10. **The first shape on a floor whose fog is off turns the fog on AND sets the
     prefill to match the mode, IN `FogAdd` ITSELF.** *Changed.* Drawing on a
     floor with fog disabled would otherwise do nothing visible, and nothing on
@@ -318,8 +326,15 @@ position decision 5 gives.
 
 `fog.ts` exports `createFog(deps)` with `press(map, mods)`, `drag(map, mods)`,
 `release(map, mods)`, `secondary()`, `hover(map)`, `key(e): boolean`,
-`abandon(): boolean`, `outlines(out)`, `marks(out)`, `covered(x, y)` and
+`abandon(): boolean`, `outline()`, `marks(out)`, `covered(x, y)` and
 `concealed(pawn)`.
+
+**The rectangle preview is `outline()` and it is ONE outline.** `Table.outlines`
+fills reused slots and truncates to a count, so a fog accessor that pushed onto
+the array would have its work thrown away by the truncation -- which is exactly
+what shipped first: `outlines(out)` existed, nothing called it, and the tool
+worked while drawing nothing. There is only ever one rectangle in hand, so it is
+a single reused object added through the same helper the marquee uses.
 
 **There is no `active()`.** A half-drawn polygon does not keep the frame loop
 awake: the rubber band follows the POINTER, every pointermove asks for a frame
@@ -395,6 +410,16 @@ what notices the shapes changed. Player-side hit testing, hovering and the
 marquee filter through `concealed`, so a pawn under the cover is not found by
 any of them.
 
+**`touchesPawns` gains the fog family, and that is not optional.** The pawn
+instance buffer is rebuilt on a change rather than per frame, and concealment
+decides what goes INTO it -- so uncovering a room changes the buffer without
+changing a single pawn. Without the fog events in that predicate a player
+watches an uncovered room stay empty until the next time anybody moves anything,
+which is what shipped first: `table.updated` covered the two flags, so the
+FIRST shape on a sleeping floor looked right and every one after it did not.
+It moved from `main.ts` to `effects.ts` to be testable at all; `main.ts` reads
+the document at module scope.
+
 ## Tests
 
 **TypeScript**:
@@ -412,6 +437,13 @@ any of them.
   `fog.add`; the right button mid-rectangle sends nothing; a player's hover,
   press and marquee skip a concealed pawn and skip neither their own nor one
   on a cleared patch.
+- `pawns.test.ts` also pins the rectangle preview: that a drag produces one
+  outline centred between its snapped corners, that a drag that has not left
+  its first vertex produces none, that abandoning it takes it off the table,
+  and that the two modes are different colours.
+- `effects.test.ts` gains `touchesPawns`: the three fog events rebuild the pawn
+  buffer, the pawn family and `snapshot` and `table.updated` do, and
+  `pawn.dragging` does not.
 - `tools.test.ts` gains nothing, and that is deliberate: it tests the pure half
   of that module -- `showing` and `typing` -- because `mountTools` is DOM-bound
   and node has no DOM. `fogging()` is `measuring()`'s twin line and is covered
