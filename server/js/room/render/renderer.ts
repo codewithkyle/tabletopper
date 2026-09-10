@@ -33,6 +33,8 @@ import { createStrokePass } from "./stroke-pass.ts";
 import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
 import { newDecals } from "./decals.ts";
+import { newPings } from "./pings.ts";
+import type { RingTarget } from "./pings.ts";
 import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
 import { pawnExtents } from "./path.ts";
@@ -43,7 +45,7 @@ import { stressPawns } from "./stress.ts";
 import type { Label, Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
 import { HANDLE_HALF } from "../handles.ts";
-import { GHOST_ALPHA, SELECT_COLOR } from "../pawns.ts";
+import { GHOST_ALPHA, SELECT_COLOR, actorColor } from "../pawns.ts";
 import { apply, wireInput } from "./input.ts";
 import { screenToWorld, worldToScreen } from "./camera.ts";
 
@@ -125,6 +127,13 @@ export interface Renderer {
 	// and that difference is not a hit -- it is everything that happened while
 	// nobody was watching. See resync in decals.ts.
 	bloodResync(): void;
+
+	// pinged is somebody pointing at a square, straight off the wire and
+	// without a reducer in between: a ping is transient, so there is no state
+	// for one to change and nothing to restore on a reconnect.
+	//
+	// THE PINGER'S OWN COMES THROUGH HERE TOO. See add in pings.ts.
+	pinged(layerID: string, x: number, y: number, by: string): void;
 
 	// showBlood is the account setting: whether this viewer's floor is marked
 	// at all. main.ts reads it off the page on load and off the settings dialog
@@ -234,6 +243,23 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 	// decals.ts.
 	let decalPass = createDecalPass(gl);
 	const decals = newDecals();
+
+	// AND THE PINGS ARE A POOL WITH NO PASS OF THEIR OWN. A ping is a hollow
+	// circle, which the ring pass already draws three times a frame for things
+	// that are not pings, so what this adds is a fourth batch through it rather
+	// than a fifth program. The pool is the other thing in here the store does
+	// not keep -- a ping is transient on the server too -- and a lost context
+	// leaves it alone for decals' reason.
+	const pings = newPings();
+
+	// The adapter, allocated once. It closes over `rings` rather than capturing
+	// it, which is what keeps it working across a context restore: that
+	// reassigns the pass, and this reads the binding at the moment it draws.
+	const pingRings: RingTarget = {
+		ellipse(x, y, radius, color, alpha, thickness) {
+			rings.add(x, y, radius, radius, color, alpha, thickness, RING_ELLIPSE);
+		},
+	};
 
 	// TWO PATH PASSES, UNDER AND OVER. The highlighted cells are the floor and
 	// go beneath the pawns standing on them; the line and the distance label
@@ -720,6 +746,29 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 			rings.draw(camera, canvas.width, canvas.height, dpr);
 		}
 
+		// THE PINGS GO OVER THE CREATURES AND UNDER THE PLAYER'S COVER.
+		//
+		// OVER THE CREATURES BECAUSE THE THING BEING POINTED AT IS USUALLY A
+		// CREATURE. The drawing goes UNDER them -- a circle round three goblins
+		// has the goblins standing in it -- but a ring closing on a square
+		// somebody is standing on has to be visible over the token standing
+		// there, or it is pointing at nothing.
+		//
+		// AND UNDER THE COVER BECAUSE A PING IS SOMEBODY ELSE'S AND CAN POINT
+		// INTO FOG. The marks and the labels below this go OVER the cover, and
+		// the note there says why: a measurement is the viewer's own mark on
+		// their own screen, so reading it over the fog is how somebody measures
+		// the distance to a door they have not opened. A ping is the opposite --
+		// it arrives from another person and lands wherever they pressed -- so a
+		// GM pinging into an unrevealed room must be pointing at nothing as far
+		// as the players are concerned. Same rule as a stroke, same reason.
+		//
+		// AN EMPTY BATCH COSTS THE COUNT CHECK IN draw() AND NOTHING ELSE, which
+		// is what makes a table nobody is pointing at free.
+		rings.begin();
+		pings.build(viewedID, now, cell, pingRings);
+		rings.draw(camera, canvas.width, canvas.height, dpr);
+
 		// AND THE PLAYER'S FOG IS A COVER AND IT GOES OVER EVERYTHING IT HIDES:
 		// the map, the grid, the blood, the pawns, the rings round them and the
 		// ghosts of somebody else's drag. At full alpha in the table's own
@@ -765,7 +814,14 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 		// a heartbeat is running it is the most important thing on the table,
 		// and a turn lasts as long as a turn lasts. Everything else here is
 		// finite by construction.
-		return sprites.end() || pawnPass.beating() || decals.settling(now) || glowing;
+		// pings.settling SWEEPS AS WELL AS ANSWERS and so is read into a local
+		// rather than left in the chain below, where a short circuit would skip
+		// it. build only ever sees the floor being LOOKED at, so without this a
+		// ping left on a floor the GM walked away from would sit in the map
+		// until the tab closed.
+		const pointing = pings.settling(now);
+
+		return sprites.end() || pawnPass.beating() || decals.settling(now) || pointing || glowing;
 	}
 
 	// drawFog puts the cover down. It is called at TWO points in drawPawns and
@@ -1027,6 +1083,16 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 			}
 
 			travel = { x: camera.x, y: camera.y, zoom: camera.zoom, from: performance.now() };
+			frames.invalidate();
+		},
+
+		pinged(layerID, x, y, by) {
+			// performance.now() RATHER THAN THE EVENT'S OWN CLOCK, because
+			// there isn't one: a Pinged carries no timestamp, and one from the
+			// server would be on a different clock from the frame loop's
+			// anyway. What this measures is "when it got here", which for a
+			// gesture that lasts a second is the only reading that matters.
+			pings.add(layerID, x, y, actorColor(by), performance.now());
 			frames.invalidate();
 		},
 

@@ -30,6 +30,7 @@ import { announce } from "./panels.ts";
 import { fanOut, refusals, touchesPawns } from "./effects.ts";
 import { createDraw } from "./draw.ts";
 import { mountDrawTool } from "./draw-tool.ts";
+import { mountPingSound } from "./ping-sound.ts";
 import { createFog } from "./fog.ts";
 import { actorColor, createTable, hexColor } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
@@ -141,6 +142,13 @@ if (mount) {
 	// pill overrides it for the session.
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
 
+	// AND THE PING'S NOISE, which is not a pill and not a tool: it is the menu
+	// row that mutes it plus the blip itself. It is mounted here with the two
+	// pills because it is the same kind of thing -- a control the room page
+	// rendered and this bundle drives -- and it needs nothing either of them
+	// has.
+	const sound = mountPingSound();
+
 	let overlay: Overlay | null = null;
 	let follow: Follow | null = null;
 
@@ -216,6 +224,11 @@ if (mount) {
 		// borrows the pointer without changing which tool is chosen, so a
 		// measurement survives being panned across. See tools.ts.
 		measuring: () => tools?.measuring() ?? false,
+
+		// AND WHETHER THE POINTER IS THE MODE, asked of the same pill and
+		// answered no by a page that renders no pill -- which is a table where
+		// nothing can be pointed at rather than one where every press points.
+		pinging: () => tools?.pinging() ?? false,
 
 		// A CAMERA THAT HAS NOT STARTED IS ONE MAP PIXEL PER SCREEN PIXEL,
 		// which is the identity rather than a guess: with no renderer there is
@@ -356,9 +369,33 @@ if (mount) {
 	// nowhere, which is the right amount of nothing to happen.
 	mountDialogs(table.arm);
 
+	// WHAT A PING MEANS TO THIS VIEWER, decided here because this is the only
+	// place that holds all four facts: who they are, which floor they are
+	// looking at, the canvas that draws the rings and the thing that makes the
+	// noise.
+	//
+	// THE RINGS ARE FOR EVERYBODY AND THE BLIP IS NOT.
+	//
+	// NOT FOR YOUR OWN, because you already know: the rings ARE the confirmation
+	// that the round trip landed, and a note on every one of your own presses
+	// turns a tool into a noise.
+	//
+	// NOT FOR A FLOOR YOU ARE NOT LOOKING AT, because a sound with nothing to
+	// see is the worst feedback there is -- the viewer hears something, looks at
+	// the map, and nothing happened. Only a GM can be on another floor at all;
+	// a player is always on the active one, which is the only floor they can be
+	// pinged on.
+	const pinged = (layer: string, x: number, y: number, by: string) => {
+		renderer?.pinged(layer, x, y, by);
+
+		if (by !== user && layer === viewed()) {
+			sound.play();
+		}
+	};
+
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table, overlay, turns, follow);
+		socket = start(path, state, renderer, table, overlay, turns, follow, pinged);
 	}
 }
 
@@ -370,6 +407,7 @@ function start(
 	overlay: Overlay | null,
 	turns: Turns | null,
 	follow: Follow | null,
+	pinged: (layer: string, x: number, y: number, by: string) => void,
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 	let socket: Socket | null = null;
@@ -417,6 +455,20 @@ function start(
 		(event) => {
 			if (event.type === "stroke.cleared") {
 				renderer?.bloodCleared(event.layer);
+			}
+		},
+
+		// SOMEBODY POINTING AT A SQUARE, straight to the renderer. It is not
+		// reduced, not stored and not in the snapshot -- Pinged is Transient()
+		// on the server -- so this is the only thing in the app that ever hears
+		// about one, and there is nothing to keep in step with.
+		//
+		// THIS VIEWER'S OWN COMES BACK OFF THE WIRE LIKE ANYBODY ELSE'S and is
+		// drawn here rather than at the press, so a ping is in the same place at
+		// the same time on every screen. See Ping.Apply in internal/room.
+		(event) => {
+			if (event.type === "pinged") {
+				pinged(event.layer, event.x, event.y, event.by ?? "");
 			}
 		},
 

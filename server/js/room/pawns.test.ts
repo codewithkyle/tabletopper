@@ -194,6 +194,7 @@ function table(
 		// And the pen's: whether the Draw tool is the one chosen, what its own
 		// pill says it is doing, and what is already drawn on the floor.
 		inking: boolean; drawMode: DrawMode; strokes: Stroke[];
+		pinging: boolean;
 	}> = {},
 ) {
 	const state: State = empty();
@@ -220,6 +221,7 @@ function table(
 	let measuring = over.measuring ?? false;
 	let fogging = over.fogging ?? false;
 	let inking = over.inking ?? false;
+	let pinging = over.pinging ?? false;
 	const drawOptions = { mode: over.drawMode ?? "pen", color: "#FF0000", width: 4 };
 	const options = { shape: over.shape ?? "rect", mode: over.mode ?? "reveal" };
 
@@ -268,6 +270,7 @@ function table(
 		invalidate: () => {},
 		panning: () => panning,
 		measuring: () => measuring,
+		pinging: () => pinging,
 
 		// ONE MAP PIXEL PER SCREEN PIXEL, so a handle's grab radius in these
 		// tests is the constant itself and the arithmetic is readable.
@@ -302,6 +305,9 @@ function table(
 		},
 		drawTool: (on: boolean) => {
 			inking = on;
+		},
+		pingTool: (on: boolean) => {
+			pinging = on;
 		},
 		chooseDraw: (mode: DrawMode) => {
 			drawOptions.mode = mode;
@@ -2308,4 +2314,73 @@ test("the fog's marks and the cone's do not tread on each other", () => {
 	controller.tool.hover(at(200, 200));
 
 	assert.ok(controller.marks([]).length > 0, "the fog's polygon lost its lines");
+});
+
+// THE PING IS THE SMALLEST TOOL ON THE PILL and these are the whole of its
+// behaviour: one command per press, on the floor being looked at, at integers,
+// and not one thing else touched on the way past.
+
+const PING_ON = { pinging: true } as const;
+
+// ROUNDED, because the command carries integers: see checkCoord, which bounds an
+// int rather than a float. A ping at 199.6 is a ping at 200.
+test("a press points at the square under it and sends nothing else", () => {
+	const { controller, sent } = table([], PING_ON);
+
+	controller.tool.press(at(199.6, -40.2), at(0, 0), NONE);
+	controller.tool.drag(at(240, -40), at(0, 0), NONE);
+	controller.tool.release(at(240, -40), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "ping", layer: GROUND, x: 200, y: -40 }]);
+});
+
+// IT CLAIMS THE PRESS. Returning false would let the camera have the gesture
+// too, which means every attempt to shove the map sideways in this mode throws
+// a ping at wherever the drag started.
+test("the camera keeps out of a ping", () => {
+	const { controller } = table([], PING_ON);
+
+	assert.equal(controller.tool.press(at(10, 10), at(0, 0), NONE), true);
+});
+
+// AND NOTHING ON THE TABLE IS TOUCHED. A goblin under the pointer is a goblin
+// somebody is pointing AT, which is the one gesture on the pill that has to
+// leave what it is aimed at alone.
+test("pointing at a goblin neither moves it nor picks it out", () => {
+	const { controller, sent } = table([pawn({ x: 0, y: 0 })], PING_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(0, 0), NONE);
+	controller.tool.release(at(200, 200), at(0, 0), NONE);
+
+	assert.deepEqual(sent.map((c) => c.type), ["ping"]);
+	assert.deepEqual(controller.selection.ids(), []);
+	assert.equal(controller.ghosts([]).length, 0);
+});
+
+// A SELECTION SOMEBODY BUILT SURVIVES POINTING AT SOMETHING, which is Move's
+// rule and is right here for the same reason: a mode that is borrowed for one
+// click should not cost the work done before it.
+test("a ping leaves a selection where it was", () => {
+	const harness = table([pawn({ x: 0, y: 0 })], {});
+
+	harness.controller.tool.press(at(0, 0), at(0, 0), NONE);
+	harness.controller.tool.release(at(0, 0), at(0, 0), NONE);
+	assert.deepEqual(harness.controller.selection.ids(), ["01PAWN"]);
+
+	harness.pingTool(true);
+	harness.controller.tool.press(at(400, 400), at(0, 0), NONE);
+
+	assert.deepEqual(harness.controller.selection.ids(), ["01PAWN"]);
+});
+
+// The mode is asked at the press and nowhere else, so a pill nobody has touched
+// points at nothing.
+test("with the pointer unchosen a press pings nothing", () => {
+	const { controller, sent } = table([], {});
+
+	controller.tool.press(at(10, 10), at(0, 0), NONE);
+	controller.tool.release(at(10, 10), at(0, 0), NONE);
+
+	assert.deepEqual(sent.filter((c) => c.type === "ping"), []);
 });

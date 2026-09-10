@@ -334,6 +334,11 @@ export interface TableDeps {
 	// screen is.
 	measuring: () => boolean;
 
+	// pinging is whether the pill's pointer is the chosen mode. It is asked at
+	// the moment of a press, like the other two, so a mode changed mid-gesture
+	// cannot turn half of one into a ping.
+	pinging: () => boolean;
+
 	// fog is the Fog tool, or null for a viewer who has none -- which is every
 	// player, whose pill does not render the button.
 	//
@@ -1112,6 +1117,36 @@ export function createTable(deps: TableDeps): Table {
 			if (deps.draw?.press(map, mods)) {
 				inking = true;
 				gesture = null;
+
+				return true;
+			}
+
+			// AND THE POINTER LAST OF THE THREE, in the pill's own order. It is
+			// the whole of the ping tool: a press is sent, and there is no
+			// gesture to remember because there is nothing to send on the drag
+			// and nothing to finish on the release. drag() and release() find a
+			// null gesture and do nothing, which is what the ruler already
+			// relies on.
+			//
+			// IT IS THE PRESS AND NOT THE RELEASE, because a ping is a tap and
+			// the table acts on presses.
+			//
+			// AND IT CLAIMS THE PRESS. Returning false would let the camera have
+			// the gesture too, which sounds generous and means every attempt to
+			// shove the map sideways in this mode throws a ping at wherever the
+			// drag started. The middle button and the space bar still pan, which
+			// is how somebody moves around without leaving the tool.
+			//
+			// THE COORDINATES ARE ROUNDED because the command carries integers:
+			// see checkCoord, which bounds an int rather than a float.
+			if (deps.pinging()) {
+				gesture = null;
+				deps.send({
+					type: "ping",
+					layer: deps.viewed(),
+					x: Math.round(map.x),
+					y: Math.round(map.y),
+				});
 
 				return true;
 			}

@@ -96,6 +96,7 @@ const (
 	RoomToolMeasure = "measure"
 	RoomToolFog     = "fog"
 	RoomToolDraw    = "draw"
+	RoomToolPing    = "ping"
 )
 
 // RoomPageData is the whole page, with every conversion already done. The
@@ -329,6 +330,18 @@ type RoomMenu struct {
 type RoomMenuItem struct {
 	Label string
 	ID    string
+
+	// AltLabel is the item's other reading, for a row whose wording depends on
+	// something only the browser knows. BOTH are rendered and the room bundle
+	// shows one of them with [hidden].
+	//
+	// THE COPY STAYS IN GO, which is the whole point of the field. server/js is
+	// not a Tailwind source, so a class written there is never emitted -- but
+	// the deeper reason is that a label rewritten from TypeScript is a second
+	// place the app's words live, and the two spellings of one row drift apart
+	// the first time somebody edits the one they can find. Rendering both means
+	// there is exactly one file with the wording in it, and it is this one.
+	AltLabel string
 
 	Href   string
 	NewTab bool
@@ -576,9 +589,10 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 // refused in PawnSpawn.Authorize rather than by the absence of a button.
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	blood := RoomMenuItem{Label: "Clear blood", Action: roomBloodAction}
+	sound := RoomMenuItem{ID: roomPingSoundID, Label: "Mute pings", AltLabel: "Unmute pings"}
 
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood}}
+		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood, sound}}
 	}
 
 	return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{
@@ -598,7 +612,14 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
+
+		// THE TWO VIEWER-LOCAL LINES SIT TOGETHER, between what puts something
+		// on the table and what takes everything off it. Neither is a command
+		// to the room: one wipes marks this browser drew for itself, the other
+		// is what this device sounds like. They are the whole of a player's
+		// menu for that reason.
 		blood,
+		sound,
 		{
 			Label:          "Clear drawing",
 			Post:           d.DrawingClearPath(),
@@ -738,6 +759,26 @@ const (
 	roomBloodAction = "clear-blood"
 )
 
+// roomPingSoundID is the Mute pings row, and it is an id rather than a
+// data-room-action because THE WHOLE OF THAT ITEM BELONGS TO ONE BUNDLE.
+//
+// The two actions above are split across the bundle boundary and have to be:
+// public/js/room.js owns the click and render/renderer.ts owns the camera and
+// the blood, so a window event is the only way across. Nothing about muting a
+// sound is split -- the preference, the wording and the noise itself are all in
+// server/js/room/ping-sound.ts -- so the menu bar's script never needs to hear
+// about it, and giving it an action would mean inventing an event name for a
+// message with no second reader.
+//
+// It carries no action for that reason, which is also why the template renders
+// data-room-action only when there is one: public/js/room.js finds an item by
+// that attribute and would answer an empty one with a console error.
+//
+// A PLAYER GETS THIS ROW TOO. Everything else in the Tabletop menu is a command
+// to the room; this and Clear blood are the two lines that change nothing
+// anybody else can see.
+const roomPingSoundID = "room-ping-sound"
+
 // helpMenu is the account's own settings, the two documents every page in the
 // app already links to, and the issue report that does not exist yet.
 //
@@ -797,8 +838,8 @@ func comingSoon(labels ...string) []RoomMenuItem {
 // marquee, a click picks one out. Move is that table with the pointer taken away
 // from it: every gesture is the camera's, and the selection somebody built is
 // still there when they come back. Measure takes the primary button too, and
-// spends it on a ruler instead. Fog takes it and cuts the cover with it, and
-// Draw takes it and lays down ink.
+// spends it on a ruler instead. Fog takes it and cuts the cover with it, Draw
+// takes it and lays down ink, and Ping takes it and points at a square.
 //
 // WHAT A TOOL DOES IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN
 // TYPESCRIPT. server/js/room/tools.ts has to know which of these buttons is the
@@ -842,6 +883,27 @@ type RoomTool struct {
 	// their mind about it.
 	Draws bool
 
+	// Pings is the mode whose primary button points at a square for everybody
+	// looking at that floor. Exactly one tool has it, and the space bar does
+	// not borrow it -- though unlike the other three there is nothing in hand
+	// for a borrow to cut in half, and this is here for the symmetry rather
+	// than for a gesture it protects.
+	//
+	// IT IS EVERYBODY'S, like Draws and unlike Fogs, and the core agrees:
+	// Ping.Authorize is requirePlayerLayer alone, so anybody may point at a
+	// floor they are looking at. Pointing is how a player says "that door"
+	// without being able to move anything.
+	//
+	// AND IT IS A MODE RATHER THAN A HELD CHORD BECAUSE EVERY CHORD IS TAKEN.
+	// Shift is the marquee and the rotation step, Alt is a drag without its
+	// riders and the fog's corner snap, Ctrl is undo, and the space bar is the
+	// pan. A chord that meant "ping" in Select and "leave the riders behind"
+	// in a drag would be a gesture whose meaning depends on what the hand is
+	// over. The cost of a mode is that it can be left switched on, and this is
+	// the one mode where that costs nothing: a stray press puts a ring on the
+	// table for a second and changes not one thing about it.
+	Pings bool
+
 	// GM is a mode nobody else is offered. The template drops these from a
 	// player's pill entirely rather than disabling them, because a disabled
 	// button in a five-button pill is a permanent question with no answer --
@@ -866,12 +928,13 @@ type RoomTool struct {
 	Key string
 }
 
-// RoomTools is the five modes, in the order a hand reaches for them.
+// RoomTools is the six modes, in the order a hand reaches for them.
 //
 // F FOR FOG IS NOT BORROWED FROM ANYWHERE, unlike V, H and M. No drawing
 // program has a fog tool to have taught anybody a letter for one, so it is the
 // first letter of the word, which is what is left when there is no convention
-// to follow.
+// to follow. D and P are the same: the first letter of the word, chosen once
+// nothing better was available to borrow.
 func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
@@ -879,6 +942,7 @@ func RoomTools() []RoomTool {
 		{Name: RoomToolMeasure, Label: "Measure", Measures: true, Key: "m"},
 		{Name: RoomToolFog, Label: "Fog", Fogs: true, GM: true, Key: "f"},
 		{Name: RoomToolDraw, Label: "Draw", Draws: true, Key: "d"},
+		{Name: RoomToolPing, Label: "Ping", Pings: true, Key: "p"},
 	}
 }
 

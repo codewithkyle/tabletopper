@@ -376,29 +376,36 @@ func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 	}
 }
 
-// A PLAYER'S TABLETOP MENU IS ONE LINE AND IT IS THE ONE THAT ASKS THE ROOM FOR
-// NOTHING. It used to be five greyed lines saying "these exist and are not
-// yours", which is a wall rather than information -- there is no version of this
-// app where a player opens Grid & settings. What is left is the only thing under
-// this heading that was ever theirs: their own view of their own floor.
+// A PLAYER'S TABLETOP MENU IS THE LINES THAT ASK THE ROOM FOR NOTHING. It used
+// to be five greyed lines saying "these exist and are not yours", which is a
+// wall rather than information -- there is no version of this app where a player
+// opens Grid & settings. What is left is what was always theirs: their own view
+// of their own floor, and what their own browser does about it.
+//
+// THE RULE RATHER THAN THE LIST IS WHAT THIS PINS. Both of these change
+// something no other person at the table can see -- the blood is drawn from hit
+// points this browser watched change, and the mute is this device's -- so a
+// third line under this heading is fine if and only if it is the same kind of
+// thing. One that posted, opened a window, or wanted confirming would be a
+// command to the room wearing a preference's clothes.
 func TestAPlayersTabletopMenuIsTheirsAndTouchesNothing(t *testing.T) {
 	items := menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items
 
-	if len(items) != 1 || items[0].Label != "Clear blood" {
-		t.Fatalf("a player's Tabletop menu is %v, want [Clear blood]", labelsOf(items))
+	want := []string{"Clear blood", "Mute pings"}
+	if !slices.Equal(labelsOf(items), want) {
+		t.Fatalf("a player's Tabletop menu is %v, want %v", labelsOf(items), want)
 	}
 
-	// It is a client-side action, so nothing here reaches the room: no post, no
-	// window, no modal, and nothing to confirm because nothing is destroyed.
-	blood := items[0]
-	if blood.Post != "" || blood.Window.ID != "" || blood.Modal.URL != "" || blood.Href != "" {
-		t.Errorf("Clear blood asks the room for something: %+v", blood)
-	}
-	if blood.Disabled {
-		t.Error("a player's Clear blood is disabled; it is the one thing in here they can do")
-	}
-	if blood.Confirm != "" {
-		t.Errorf("Clear blood is confirmed at %q; it destroys nothing that was ever sent", blood.Confirm)
+	for _, item := range items {
+		if item.Post != "" || item.Window.ID != "" || item.Modal.URL != "" || item.Href != "" {
+			t.Errorf("%s asks the room for something: %+v", item.Label, item)
+		}
+		if item.Disabled {
+			t.Errorf("a player's %s is disabled; these are the lines they can use", item.Label)
+		}
+		if item.Confirm != "" {
+			t.Errorf("%s is confirmed at %q; it destroys nothing that was ever sent", item.Label, item.Confirm)
+		}
 	}
 }
 

@@ -183,7 +183,9 @@ templ roomBarItem(item RoomMenuItem) {
 		} else {
 			<button
 				type="button"
-				data-room-action={ item.Action }
+				if item.Action != "" {
+					data-room-action={ item.Action }
+				}
 				if item.Value != "" {
 					data-room-value={ item.Value }
 				}
@@ -196,6 +198,9 @@ templ roomBarItem(item RoomMenuItem) {
 
 templ roomBarItemLabel(item RoomMenuItem) {
 	<span>{ item.Label }</span>
+	if item.AltLabel != "" {
+		<span hidden>{ item.AltLabel }</span>
+	}
 	if item.Key != "" {
 		<kbd class="kbd kbd-xs ml-auto">{ item.Key }</kbd>
 	}
@@ -220,6 +225,7 @@ templ roomToolbar(data RoomPageData) {
 						data-room-tool-measures?={ t.Measures }
 						data-room-tool-fogs?={ t.Fogs }
 						data-room-tool-draws?={ t.Draws }
+						data-room-tool-pings?={ t.Pings }
 						if t.Key != "" {
 							data-room-tool-key={ t.Key }
 						}
@@ -386,6 +392,8 @@ templ roomToolIcon(name string) {
 			@cloudIcon()
 		case "draw":
 			@brushIcon()
+		case RoomToolPing:
+			@pingIcon()
 		case RoomToolMove:
 			@moveIcon()
 		default:
