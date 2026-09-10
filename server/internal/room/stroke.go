@@ -1,6 +1,7 @@
 package room
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/oklog/ulid/v2"
@@ -125,7 +126,7 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return nil, invalid("Too many strokes", "This room already holds as many strokes as it can.")
 	}
 	if c.Width < 1 || c.Width > StrokeWidthMax {
-		return nil, invalid("Bad stroke", "A stroke is between 1 and 64 pixels wide.")
+		return nil, invalid("Bad stroke", fmt.Sprintf("A stroke is between 1 and %d pixels wide.", StrokeWidthMax))
 	}
 	if err := checkColor("stroke colour", c.Color); err != nil {
 		return nil, err

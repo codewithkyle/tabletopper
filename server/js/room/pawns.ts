@@ -393,10 +393,10 @@ export interface Table {
 	// the pen instead of a round trip behind it; see draw.ts.
 	inHand(): Stroke | null;
 
-	// labels is the text on the table: the distance across every shape on the
-	// viewed floor, and across the one in hand. They go through the OVER path
-	// pass, so a number reads over the creatures standing inside the shape it
-	// belongs to.
+	// labels is the text on the table, which is the distance across the shape
+	// somebody is dragging out and nothing else. It goes through the OVER path
+	// pass, so the number reads over any creature already standing where the
+	// shape is being aimed.
 	labels(out: Label[]): Label[];
 
 	// concealed is whether this viewer is shown nothing of a pawn, which is a
@@ -1610,9 +1610,17 @@ export function createTable(deps: TableDeps): Table {
 		},
 
 		labels(out) {
-			out.length = 0;
+			// NOT EMPTIED FIRST, unlike marks: the draw tool fills reused slots
+			// and truncates, which is outlines()' shape and is what keeps a drag
+			// from allocating two label objects on every frame. A page with no
+			// draw tool truncates it here instead.
+			if (!deps.draw) {
+				out.length = 0;
 
-			return deps.draw?.labels(out) ?? out;
+				return out;
+			}
+
+			return deps.draw.labels(out);
 		},
 
 		concealed,

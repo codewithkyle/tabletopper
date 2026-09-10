@@ -1979,16 +1979,16 @@ test("changing the pill mid-stroke does not recolour the line", () => {
 // easier to rub out than a hairline. The distance test is draw.test.ts's; this
 // is that it is asked with the stroke's own width.
 test("a fat line is easier for the eraser to catch than a thin one", () => {
-	const fat = drawn({ id: "01FAT", width: 64, points: [0, 0, 100, 0] });
+	const fat = drawn({ id: "01FAT", width: 24, points: [0, 0, 100, 0] });
 	const thin = drawn({ id: "01THIN", width: 2, points: [0, 200, 100, 200] });
 
 	const { controller, sent } = table([], { ...ERASE_ON, strokes: [fat, thin] });
 
-	// Twenty pixels off each line: inside the fat one's ink, well outside the
+	// Fifteen pixels off each line: inside the fat one's ink, well outside the
 	// thin one's.
-	controller.tool.press(at(50, 20), at(0, 0), NONE);
-	controller.tool.drag(at(50, 220), at(0, 0), NONE);
-	controller.tool.release(at(50, 220), at(0, 0), NONE);
+	controller.tool.press(at(50, 15), at(0, 0), NONE);
+	controller.tool.drag(at(50, 215), at(0, 0), NONE);
+	controller.tool.release(at(50, 215), at(0, 0), NONE);
 
 	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01FAT"] }]);
 });
@@ -2149,19 +2149,42 @@ test("a shape being dragged carries its distance", () => {
 	assert.deepEqual(controller.labels([]).map((l) => l.text), ["20 ft."]);
 });
 
-// AND IT STAYS ON IT AFTERWARDS. A circle sitting on the table for ten rounds
-// is what the party is standing in, and the number is what says how big it is.
-test("shapes on the floor carry their distance and the pen does not", () => {
+// AND IT GOES WHEN THE SHAPE LANDS. The number is what a shape is sized WITH;
+// once it is made, the shape itself is the answer, and an evening's play would
+// otherwise leave half a dozen permanent figures over the map.
+test("a shape on the floor carries no distance", () => {
 	const strokes = [
 		drawn({ id: "01CIRCLE", kind: "circle", points: [0, 0, 256, 0] }),
 		drawn({ id: "01RECT", kind: "rect", points: [0, 0, 384, 128] }),
-		drawn({ id: "01PEN", kind: "free", points: [0, 0, 50, 50, 90, 20] }),
-		drawn({ id: "01ELSEWHERE", kind: "circle", layerId: CELLAR, points: [0, 0, 256, 0] }),
+		drawn({ id: "01CONE", kind: "cone", points: [0, 0, 0, 384] }),
 	];
 
 	const { controller } = table([], { inking: true, strokes });
 
-	assert.deepEqual(controller.labels([]).map((l) => l.text), ["20 ft.", "30 ft.", "10 ft."]);
+	assert.deepEqual(controller.labels([]), []);
+});
+
+// The number is on the table for exactly as long as the button is down.
+test("a shape's distance goes the moment it lands", () => {
+	const { controller } = table([], CIRCLE_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(256, 0), at(0, 0), NONE);
+	assert.equal(controller.labels([]).length, 1, "no number while it is in hand");
+
+	controller.tool.release(at(256, 0), at(0, 0), NONE);
+	assert.deepEqual(controller.labels([]), [], "the number outlived the drag");
+});
+
+// AND AN ABANDONED ONE TAKES ITS NUMBER WITH IT.
+test("an abandoned shape's distance goes with it", () => {
+	const { controller } = table([], RECT_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 200), at(0, 0));
+
+	assert.deepEqual(controller.labels([]), []);
 });
 
 // THE CONE. Its gesture is the rectangle's and the circle's -- press, drag,

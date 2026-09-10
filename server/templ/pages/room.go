@@ -963,6 +963,11 @@ var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
 // a circle grows from the press rather than from a corner, and the figure under
 // it is a radius rather than a width. Both are how a spell is written.
 //
+// "AS YOU GO" IS DOING WORK IN TWO OF THEM. The number is on the table for
+// exactly as long as the button is down and goes when the shape lands, so a
+// hint that said "it says its radius" would be promising something the shape
+// does not keep.
+//
 // THE CONE'S HINT IS THE ONE THAT MATTERS MOST, because it is the rule that
 // makes the number worth reading: the base is as wide as the shape is long,
 // which is the cone every spell in the book is written as. Somebody who did not
@@ -974,8 +979,8 @@ var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
-		{Value: "rect", Label: "Rectangle", Hint: "Drag a box. It says how far across it is."},
-		{Value: "circle", Label: "Circle", Hint: "Drag out from the centre. It says its radius."},
+		{Value: "rect", Label: "Rectangle", Hint: "Drag a box. It measures both sides as you go."},
+		{Value: "circle", Label: "Circle", Hint: "Drag out from the centre. It measures the radius as you go."},
 		{Value: "cone", Label: "Cone", Hint: "Drag from the point. It is as wide as it is long."},
 		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
 	}

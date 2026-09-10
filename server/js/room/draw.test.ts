@@ -199,10 +199,12 @@ test("the eraser finds a line under the pointer", () => {
 // be aimed at down its middle.
 test("a fat line is hit across its whole width", () => {
 	const thin = line({ width: 2 });
-	const fat = line({ width: 64 });
+	const fat = line({ width: 24 });
 
-	assert.equal(strokeHit(thin, 50, 20, 6, []), false);
-	assert.equal(strokeHit(fat, 50, 20, 6, []), true);
+	// Fifteen pixels off the centre line: outside a hairline's seven pixels of
+	// reach, inside a fat brush's eighteen.
+	assert.equal(strokeHit(thin, 50, 15, 6, []), false);
+	assert.equal(strokeHit(fat, 50, 15, 6, []), true);
 });
 
 // PAST THE END OF A SEGMENT THE DISTANCE IS TO THE ENDPOINT, which is what

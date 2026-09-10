@@ -15,8 +15,8 @@ fading ring in the way of the shape tools' verification.
 Six things moved from the sketch and each is marked *Changed* below: strokes
 gain a kind, shapes do not stream, the colour is a picker rather than eight
 swatches, the width is a slider, both of those open beside the pill rather
-than inside it, and the distance label is a persisted property of a shape
-rather than a drag affordance.
+than inside it, and shapes carry a measured distance while they are being
+drawn.
 
 ## Already built
 
@@ -31,7 +31,8 @@ Server, and none of it needs changing except where decision 1 says so:
   phase wants and so is left alone; `stroke.clear` names a floor.
 - `Table.PlayersCanDraw` defaults to **true** (`state.go`) and is already a
   toggle on Grid & settings reading "Players may draw on the tabletop".
-- `StrokeWidthMax` 64, `StrokeChunkMax` 512, `StrokePointsMax` 20,000,
+- `StrokeWidthMax` 64 -- *moved to 24 by this phase; see decision 13* --
+  `StrokeChunkMax` 512, `StrokePointsMax` 20,000,
   `StrokesMax` 5,000, `StrokePointsBudget` 200,000, `CoordLimit` a million.
   `checkColor` accepts `#RRGGBB` and `#RRGGBBAA`; `checkPoints` bounds a flat
   pair array; `strokeBudget` bounds the room and the author.
@@ -85,10 +86,9 @@ Not built: any stroke rendering, the draw tool, the options pill, the
   from its centre. The **cone** is dragged from its point. All three preview
   live under the hand, land on the other screens when the button comes up, and
   are abandoned by Escape or the right button.
-- The circle and the cone carry a **distance in feet**, and it stays on them:
-  a 20 ft. circle sitting on the table is what the party is standing in for
-  the next ten rounds. The rectangle carries one per edge. The pen carries
-  none.
+- Every shape carries a **distance in feet while it is being dragged** -- the
+  circle its radius, the cone its length, the rectangle one per edge -- and the
+  number goes when the button comes up. The pen carries none.
 - **Erase** rubs out whole strokes under the pointer. A player's eraser takes
   out only their own lines; the GM's takes out anybody's.
 - **Ctrl+Z** removes the viewer's newest finished stroke on the floor they are
@@ -108,11 +108,15 @@ Not built: any stroke rendering, the draw tool, the options pill, the
 
    **The alternative was tessellating on the client and sending a polyline,
    which costs nothing on the wire and loses the shape.** A circle sent as
-   sixty-four points is sixty-four points forever: it cannot be re-measured,
-   so the label could only ever exist while the hand was still on the mouse.
-   The whole reason the label was asked for is to size a spell, and a spell
-   lasts longer than the drag -- so the geometry has to survive, and four
-   integers is a cheaper thing to keep than a hundred and thirty.
+   sixty-four points is sixty-four points forever: it is a polygon, it facets
+   when you zoom past the resolution it was cut at, and it can never be
+   re-measured, re-cut or edited. Four integers is a cheaper thing to keep than
+   a hundred and thirty, and it is the only version that is still a circle.
+
+   *This decision was first argued from the label, which used to stay on the
+   shape and no longer does -- see decision 5. It survives that change intact:
+   the reasons above never depended on it, and the label is recomputed from the
+   geometry during the drag either way.*
 
 2. **Every shape is exactly four integers, and they are always two points.**
 
@@ -159,8 +163,8 @@ Not built: any stroke rendering, the draw tool, the options pill, the
    the tool is for. Rectangle and Circle say what they draw because there is
    nothing else they are for.
 
-5. **A shape carries its distance and the pen carries none.** *Changed.* The
-   sketch had no labels at all. What each says:
+5. **A shape being dragged carries its distance and the pen carries none.**
+   *Changed.* The sketch had no labels at all. What each says:
 
    - **Circle**: the radius. Spells are written "20-foot radius", so that is
      the number that can be read straight off.
@@ -178,8 +182,16 @@ Not built: any stroke rendering, the draw tool, the options pill, the
    with a separate reason.
 
    Labels are drawn through the **over** instance of the path pass, which is
-   the same one the ruler's own label uses, so they read over the pawns
-   standing in the shape.
+   the same one the ruler's own label uses, so the number reads over any
+   creature already standing where the shape is being aimed.
+
+   **The number is a drag affordance and it goes when the shape lands.**
+   *Changed after checkpoint 4, at the table.* It stayed on the shape at first,
+   on the reasoning that a 20 ft. circle sitting there is what the party is
+   standing in. An evening of play is what settled it: half a dozen templates
+   on a floor is half a dozen permanent figures over the map, and what the
+   number is FOR is sizing the shape while it is being made. Once it is made,
+   the shape itself is the answer.
 
 6. **Everything tessellates into one stroke pass at buffer-build time.** The
    pass is the sketch's decision 1 and is unchanged: instanced segments, each
@@ -285,9 +297,17 @@ Not built: any stroke rendering, the draw tool, the options pill, the
     would refetch and reset it, and `localStorage` would be a third place a
     colour lives.
 
-13. **The width is a folded `range`, 1 to 64, defaulting to 4.** Sixty-four is
-    `StrokeWidthMax` and the panel simply exposes the whole of it. Four map
-    pixels is a pen line on a seventy-pixel cell.
+13. **The width is a folded `range`, 1 to `StrokeWidthMax`, defaulting to 4.**
+    The panel exposes the whole of the protocol's range and no more, reading
+    the maximum rather than repeating it -- a slider whose top end raised an
+    alert modal would be a control that lies.
+
+    *`StrokeWidthMax` moved from 64 to 24 after checkpoint 5, at the table.*
+    On a seventy-pixel cell a sixty-four pixel line is very nearly a whole
+    square wide: it is a fill rather than a line, and the top half of the
+    slider was range nobody would ever aim at. Twenty-four is a third of a cell,
+    which is a fat marker. A line already drawn wider keeps its width -- nothing
+    clamps on load.
 
     This is the one place in the room markup where the word `range` is
     legitimately a DaisyUI component: `class="range range-xs"` on the input.

@@ -44,8 +44,19 @@ const (
 	CellSizeMin = 8
 	CellSizeMax = 512
 
-	// StrokeWidthMax is a brush, not a fill tool.
-	StrokeWidthMax = 64
+	// StrokeWidthMax is a brush, not a fill tool, and twenty-four map pixels is
+	// where it stops being one.
+	//
+	// IT WAS SIXTY-FOUR AND THAT WAS A GUESS AT A SAFE CEILING RATHER THAN A
+	// USEFUL ONE. On a seventy-pixel cell a sixty-four pixel line is very nearly
+	// a whole square wide: it is not a line anybody draws with, it is a fill,
+	// and the top half of the slider was range nobody would ever aim at.
+	// Twenty-four is a third of a cell, which is a fat marker.
+	//
+	// A LINE ALREADY DRAWN WIDER KEEPS ITS WIDTH. Nothing clamps on load, and
+	// rewriting somebody's drawing to enforce a bound that has moved would cost
+	// them the thing the bound was protecting. What this refuses is new ones.
+	StrokeWidthMax = 24
 
 	// StrokeChunkMax bounds one begin or extend, which is what keeps a frame
 	// well under the socket's cap while a fast stylus is drawing. Points go out

@@ -143,8 +143,8 @@ export interface Draw {
 	// of a cone being dragged, and nothing else.
 	marks(out: Segment[]): Segment[];
 
-	// labels is the distance across every shape on the viewed floor, and across
-	// the one in hand. See Label.
+	// labels is the distance across the shape in hand, and nothing else: the
+	// number is what a shape is sized WITH, and it goes when the shape lands.
 	labels(out: Label[]): Label[];
 
 	// inHand is the stroke this viewer is drawing right now, from LOCAL points,
@@ -1065,47 +1065,45 @@ export function createDraw(deps: DrawDeps): Draw {
 			return out;
 		},
 
-		// THE DISTANCE ACROSS EVERY SHAPE, and it is recomputed per frame rather
-		// than stored. The grid is what turns map pixels into feet and a GM can
-		// retune it mid-session, so a cached number would be the right answer to
-		// last week's cell size. Forty short strings a frame is nursery garbage;
-		// a cache keyed on the grid would have to be re-validated every frame
-		// anyway, which is the work it was meant to save.
+		// THE NUMBER IS A DRAG AFFORDANCE AND NOT A PROPERTY OF THE SHAPE. It is
+		// on the table while a shape is in hand -- a GM drags until it reads
+		// thirty feet and lets go -- and it goes when the button comes up.
+		//
+		// IT USED TO STAY, and that was wrong in a way only the table showed: an
+		// evening's play leaves half a dozen templates on a floor, and half a
+		// dozen permanent figures over the map is a map nobody can read. What
+		// the number is FOR is sizing the shape while it is being made; once it
+		// is made, the shape itself is the answer.
+		//
+		// AND THAT IS WHY IT IS NOT CACHED. There is at most one of these at a
+		// time and it changes on every frame of a drag, so a stored number would
+		// be one frame stale and nothing else.
 		labels(out) {
 			let count = 0;
 
-			const add = (text: string, x: number, y: number, color: string): void => {
-				const slot = out[count] ?? (out[count] = blankLabel());
-				parseColor(color, tint);
-
-				slot.text = text;
-				slot.x = x;
-				slot.y = y;
-				slot.color[0] = tint[0];
-				slot.color[1] = tint[1];
-				slot.color[2] = tint[2];
-				slot.alpha = 1;
-				count++;
-			};
-
-			const grid = deps.grid();
-			const viewed = deps.viewed();
-
-			for (const stroke of deps.state.strokes) {
-				if (stroke.layerId !== viewed) {
-					continue;
-				}
-
-				measure(stroke.kind, stroke.points, grid, stroke.color, add);
-			}
-
-			// AND THE SHAPE IN HAND, which is the whole point of the number: a
-			// GM drags until it reads thirty feet and lets go.
 			if (shaping) {
 				measure(
 					shaping.kind,
 					[shaping.x0, shaping.y0, shaping.x1, shaping.y1],
-					grid, deps.options().color, add,
+					deps.grid(), deps.options().color,
+					(text, x, y, color) => {
+						// THE SLOTS ARE REUSED, which is why the array is
+						// truncated at the end rather than emptied at the
+						// start: a caller that cleared it first would throw
+						// away every slot and allocate two fresh ones on every
+						// frame of a drag. It is the shape outlines() has.
+						const slot = out[count] ?? (out[count] = blankLabel());
+						parseColor(color, tint);
+
+						slot.text = text;
+						slot.x = x;
+						slot.y = y;
+						slot.color[0] = tint[0];
+						slot.color[1] = tint[1];
+						slot.color[2] = tint[2];
+						slot.alpha = 1;
+						count++;
+					},
 				);
 			}
 
