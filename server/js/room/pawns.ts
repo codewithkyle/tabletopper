@@ -1596,7 +1596,13 @@ export function createTable(deps: TableDeps): Table {
 		marks(out) {
 			out.length = 0;
 
-			return deps.fog?.marks(out) ?? out;
+			// TWO TOOLS PUT LINES HERE AND ONLY ONE CAN BE CHOSEN AT A TIME, so
+			// the two calls are an append rather than a choice: whichever tool
+			// is in hand fills the array and the other adds nothing.
+			deps.fog?.marks(out);
+			deps.draw?.marks(out);
+
+			return out;
 		},
 
 		inHand() {

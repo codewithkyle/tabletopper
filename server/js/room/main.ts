@@ -137,7 +137,8 @@ if (mount) {
 	// THE COLOUR IT OPENS ON IS THIS VIEWER'S OWN, which is the colour their
 	// drag ghosts and their ruler are already drawn in for everybody else at the
 	// table -- so a line somebody draws is recognisably theirs before anybody is
-	// told whose it is. The picker that overrides it is checkpoint 3.
+	// told whose it is. It is a starting value and not a rule: the picker on the
+	// pill overrides it for the session.
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
 
 	let overlay: Overlay | null = null;

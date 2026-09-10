@@ -2163,3 +2163,126 @@ test("shapes on the floor carry their distance and the pen does not", () => {
 
 	assert.deepEqual(controller.labels([]).map((l) => l.text), ["20 ft.", "30 ft.", "10 ft."]);
 });
+
+// THE CONE. Its gesture is the rectangle's and the circle's -- press, drag,
+// release -- and what makes it different is where the two points are and that
+// its preview is three lines rather than a ring.
+
+const CONE_ON = { inking: true, drawMode: "cone" } as const;
+
+// THE POINT STAYS PUT AND THE BASE FOLLOWS THE DRAG, which is the gesture: a
+// caster stands at the press and the spell reaches to the pointer.
+test("a cone lands as its point then the middle of its base", () => {
+	const { controller, sent } = table([], CONE_ON);
+
+	controller.tool.press(at(100, 100), at(0, 0), NONE);
+	controller.tool.drag(at(100, 400), at(0, 0), NONE);
+	controller.tool.release(at(100, 400), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{
+		type: "stroke.begin", id: sent[0].id, layer: GROUND, kind: "cone",
+		color: "#FF0000", width: 4, points: [100, 100, 100, 400],
+	}]);
+});
+
+test("a cone with no length sends nothing", () => {
+	const { controller, sent } = table([], CONE_ON);
+
+	controller.tool.press(at(50, 50), at(0, 0), NONE);
+	controller.tool.release(at(50.3, 50.3), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+test("Escape and the right button drop a cone silently", () => {
+	const escaped = table([], CONE_ON);
+	escaped.controller.tool.press(at(0, 0), at(0, 0), NONE);
+	escaped.controller.tool.drag(at(0, 200), at(0, 0), NONE);
+	press("Escape");
+	escaped.controller.tool.release(at(0, 200), at(0, 0), NONE);
+	assert.deepEqual(escaped.sent, []);
+
+	const clicked = table([], CONE_ON);
+	clicked.controller.tool.press(at(0, 0), at(0, 0), NONE);
+	clicked.controller.tool.drag(at(0, 200), at(0, 0), NONE);
+	clicked.controller.tool.secondary(at(0, 200), at(0, 0));
+	clicked.controller.tool.release(at(0, 200), at(0, 0), NONE);
+	assert.deepEqual(clicked.sent, []);
+});
+
+// A CONE IS THREE LINES AND NOT A RING. The ring pass draws boxes and ellipses
+// and nothing else, so the preview goes through marks() the way the fog's
+// half-drawn polygon does.
+test("a cone previews as three lines and no outline", () => {
+	const { controller } = table([], CONE_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(0, 100), at(0, 0), NONE);
+
+	assert.deepEqual(controller.outlines([]), [], "a cone took the ring pass");
+
+	const sides = controller.marks([]);
+	assert.equal(sides.length, 3);
+
+	// The three sides of the isosceles triangle: point to one base corner,
+	// across the base, and back to the point.
+	assert.deepEqual(
+		sides.map((s) => [s.x0, s.y0, s.x1, s.y1]),
+		[[0, 0, -50, 100], [-50, 100, 50, 100], [50, 100, 0, 0]],
+	);
+});
+
+test("the cone preview is the colour it will land in", () => {
+	const { controller, chooseBrush } = table([], CONE_ON);
+
+	chooseBrush("#0000FF", 4);
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(0, 100), at(0, 0), NONE);
+
+	assert.deepEqual(controller.marks([])[0].color, [0, 0, 1]);
+});
+
+test("a cone that has not left its point previews nothing", () => {
+	const { controller } = table([], CONE_ON);
+
+	controller.tool.press(at(50, 50), at(0, 0), NONE);
+	controller.tool.drag(at(50, 50), at(0, 0), NONE);
+
+	assert.deepEqual(controller.marks([]), []);
+	assert.deepEqual(controller.outlines([]), []);
+});
+
+test("an abandoned cone takes its preview off the table", () => {
+	const { controller } = table([], CONE_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(0, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(0, 200), at(0, 0));
+
+	assert.deepEqual(controller.marks([]), []);
+});
+
+// The cone in hand carries its number, and it is the same number a spell is
+// written with: drag until it reads thirty feet and let go.
+test("a cone being dragged carries its length", () => {
+	const { controller } = table([], CONE_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(0, 384), at(0, 0), NONE);
+
+	assert.deepEqual(controller.labels([]).map((l) => l.text), ["30 ft."]);
+});
+
+// AND ONE TOOL AT A TIME MEANS THE TWO MARKS ACCESSORS NEVER COLLIDE. The fog
+// is the GM's other line-drawing tool and its polygon goes through the same
+// array; a cone in hand while the fog tool is chosen is not a thing that can
+// happen, and the append rather than a choice is what keeps either working.
+test("the fog's marks and the cone's do not tread on each other", () => {
+	const { controller } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.hover(at(200, 200));
+
+	assert.ok(controller.marks([]).length > 0, "the fog's polygon lost its lines");
+});

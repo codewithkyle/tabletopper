@@ -963,14 +963,20 @@ var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
 // a circle grows from the press rather than from a corner, and the figure under
 // it is a radius rather than a width. Both are how a spell is written.
 //
-// THE CONE JOINS THIS LIST WHEN IT IS BUILT. A button that named an unbuilt
-// mode would be a permanent question with no answer in a pill that has no room
-// to explain itself, which is the reasoning RoomTool.GM already carries.
+// THE CONE'S HINT IS THE ONE THAT MATTERS MOST, because it is the rule that
+// makes the number worth reading: the base is as wide as the shape is long,
+// which is the cone every spell in the book is written as. Somebody who did not
+// know that would drag it into a triangle and wonder what the figure meant.
+//
+// IT SAYS Cone AND NOT Triangle for the same reason. The word names what the
+// tool is for; Rectangle and Circle say what they draw because there is nothing
+// else they are for.
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
 		{Value: "rect", Label: "Rectangle", Hint: "Drag a box. It says how far across it is."},
 		{Value: "circle", Label: "Circle", Hint: "Drag out from the centre. It says its radius."},
+		{Value: "cone", Label: "Cone", Hint: "Drag from the point. It is as wide as it is long."},
 		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
 	}
 }

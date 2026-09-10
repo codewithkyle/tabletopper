@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { Grid, Stroke, StrokeKind } from "./protocol.ts";
-import { circleSegments, measure, strokeHit, strokeSegments } from "./draw.ts";
+import { circleSegments, coneCorners, measure, strokeHit, strokeSegments } from "./draw.ts";
 import { GLYPHS } from "./render/glyphs.ts";
 
 function stroke(kind: StrokeKind, points: number[]): Pick<Stroke, "kind" | "points"> {
@@ -116,11 +116,64 @@ test("a shape with fewer than two points draws nothing", () => {
 	assert.deepEqual(strokeSegments(stroke("circle", [5, 5, 5, 5]), []), []);
 });
 
-// The cone is checkpoint 5. Until then it expands to nothing rather than
-// throwing, which is what keeps a stroke from a build ahead of this one from
-// taking the frame down with it.
-test("a cone draws nothing until its expansion is written", () => {
-	assert.deepEqual(strokeSegments(stroke("cone", [0, 0, 40, 40]), []), []);
+// THE CONE. Its base is as wide as it is long, which is the cone every spell in
+// the book is written as -- so the number under it is the number on the spell.
+test("a cone's base is as wide as the cone is long", () => {
+	// A hundred map pixels straight down.
+	const out = coneCorners(0, 0, 0, 100, []);
+
+	assert.deepEqual(out, [0, 0, -50, 100, 50, 100]);
+
+	const width = Math.hypot(out[4] - out[2], out[5] - out[3]);
+	assert.equal(width, 100, "the base is not the same as the length");
+});
+
+// AND IT IS ISOSCELES AT EVERY ANGLE, so turning the pointer through a full
+// circle turns the shape with it and never changes what it is worth.
+test("a cone keeps its proportions through a full turn", () => {
+	const length = 120;
+
+	for (let deg = 0; deg < 360; deg += 15) {
+		const a = (deg * Math.PI) / 180;
+		const bx = Math.cos(a) * length;
+		const by = Math.sin(a) * length;
+
+		const out = coneCorners(0, 0, bx, by, []);
+		assert.equal(out.length, 6, `${deg}deg`);
+
+		// The two sides are equal, the base is the length, and the base is
+		// square to the axis.
+		const left = Math.hypot(out[2], out[3]);
+		const right = Math.hypot(out[4], out[5]);
+		assert.ok(Math.abs(left - right) < 1e-9, `${deg}deg: not isosceles`);
+
+		const base = Math.hypot(out[4] - out[2], out[5] - out[3]);
+		assert.ok(Math.abs(base - length) < 1e-9, `${deg}deg: base is ${base}`);
+
+		// The axis and the base are perpendicular: their dot product is zero.
+		const dot = bx * (out[4] - out[2]) + by * (out[5] - out[3]);
+		assert.ok(Math.abs(dot) < 1e-6, `${deg}deg: the base is not square to the axis`);
+	}
+});
+
+test("a cone of no length has no corners", () => {
+	assert.deepEqual(coneCorners(40, 40, 40, 40, []), []);
+});
+
+// The expansion is the three sides, and it closes back to the point.
+test("a cone is three closed segments", () => {
+	const out = strokeSegments(stroke("cone", [0, 0, 0, 100]), []);
+
+	assert.deepEqual(out, [
+		0, 0, -50, 100,
+		-50, 100, 50, 100,
+		50, 100, 0, 0,
+	]);
+});
+
+test("a cone with no length draws nothing", () => {
+	assert.deepEqual(strokeSegments(stroke("cone", [7, 7, 7, 7]), []), []);
+	assert.deepEqual(strokeSegments(stroke("cone", [0, 0]), []), []);
 });
 
 // THE ERASER'S HIT TEST. It is a distance to the ink rather than to the centre
@@ -291,4 +344,56 @@ test("a circle's label sits above its rim and a rectangle's above its top edge",
 	const rect: [number, number][] = [];
 	measure("rect", [0, 100, 200, 300], grid(), "#FFF", (_t, x, y) => rect.push([x, y]));
 	assert.deepEqual(rect, [[100, 100], [0, 200]], "the two labels are not on the two edges");
+});
+
+// A CONE SAYS ITS LENGTH, which by coneCorners is also how wide it is at the far
+// end -- so "30 ft." is a thirty-foot cone in the sense the spell means.
+test("a cone says the distance from its point to its base", () => {
+	// Six cells on a 64-pixel, 5-foot grid.
+	assert.deepEqual(said("cone", [0, 0, 0, 384]), ["30 ft."]);
+});
+
+// AND THE NUMBER DOES NOT CHANGE WITH DIRECTION. A cone aimed down a corridor
+// and one aimed diagonally across a room are the same spell.
+test("a cone reads the same at every angle", () => {
+	const length = 384;
+
+	for (let deg = 0; deg < 360; deg += 15) {
+		const a = (deg * Math.PI) / 180;
+		const said_ = said("cone", [0, 0, Math.round(Math.cos(a) * length), Math.round(Math.sin(a) * length)]);
+
+		assert.deepEqual(said_, ["30 ft."], `${deg}deg`);
+	}
+});
+
+test("a cone with no length says nothing", () => {
+	assert.deepEqual(said("cone", [10, 10, 10, 10]), []);
+});
+
+// THE LABEL SITS ABOVE THE WHOLE SHAPE WHICHEVER WAY IT POINTS, which is the
+// one anchor rule every single-number shape follows. A cone pointing up and one
+// pointing down both put their number clear of the ink.
+test("a cone's label is above it at every angle", () => {
+	const length = 200;
+
+	for (let deg = 0; deg < 360; deg += 15) {
+		const a = (deg * Math.PI) / 180;
+		const bx = Math.round(Math.cos(a) * length);
+		const by = Math.round(Math.sin(a) * length);
+
+		const at: [number, number][] = [];
+		measure("cone", [0, 0, bx, by], grid(), "#FFF", (_t, x, y) => at.push([x, y]));
+		assert.equal(at.length, 1, `${deg}deg`);
+
+		const corners = coneCorners(0, 0, bx, by, []);
+		let minX = Infinity, maxX = -Infinity, minY = Infinity;
+		for (let i = 0; i + 1 < corners.length; i += 2) {
+			minX = Math.min(minX, corners[i]);
+			maxX = Math.max(maxX, corners[i]);
+			minY = Math.min(minY, corners[i + 1]);
+		}
+
+		assert.ok(at[0][1] <= minY + 1e-9, `${deg}deg: the label is inside the cone`);
+		assert.ok(at[0][0] >= minX - 1e-9 && at[0][0] <= maxX + 1e-9, `${deg}deg: the label is off to one side`);
+	}
 });

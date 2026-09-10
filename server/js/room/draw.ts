@@ -22,7 +22,7 @@
 import type { Grid, Role, State, Stroke, StrokeKind } from "./protocol.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Modifiers } from "./render/input.ts";
-import type { Label, Outline } from "./pawns.ts";
+import type { Label, Outline, Segment } from "./pawns.ts";
 import type { Point } from "./render/camera.ts";
 import { distanceLabel, feetBetween } from "./render/path.ts";
 import { parseColor } from "./render/grid-pass.ts";
@@ -71,11 +71,14 @@ const ERASE_WIDTH = 1.5;
 // DrawMode is what a gesture does. The three shape modes are the StrokeKind of
 // the same name, which is why they are spelled the same: press reads the mode
 // and puts it straight into the command.
-export type DrawMode = "pen" | "rect" | "circle" | "erase";
+export type DrawMode = "pen" | "rect" | "circle" | "cone" | "erase";
 
 // SHAPES is which modes are placed rather than drawn, and it is the one test
 // that separates them. It is the client's twin of StrokeKind.Shape() in Go.
-const SHAPES: readonly DrawMode[] = ["rect", "circle"];
+const SHAPES: readonly DrawMode[] = ["rect", "circle", "cone"];
+
+// Shaped is the three modes above, as the kind they send.
+type Shaped = "rect" | "circle" | "cone";
 
 export interface DrawOptions {
 	mode: DrawMode;
@@ -130,7 +133,15 @@ export interface Draw {
 	// outline is the shape being dragged, or the eraser's cursor, or null. It is
 	// ONE reused object because there is only ever one of them: the two never
 	// coexist, since each belongs to a different mode.
+	//
+	// A CONE IS NOT ONE OF THEM. The ring pass draws ellipses and rectangles,
+	// which is a box and a ring and nothing else -- a triangle goes through
+	// marks() instead, the way the fog's polygon does.
 	outline(): Outline | null;
+
+	// marks is the loose lines this tool wants over the table: the three sides
+	// of a cone being dragged, and nothing else.
+	marks(out: Segment[]): Segment[];
 
 	// labels is the distance across every shape on the viewed floor, and across
 	// the one in hand. See Label.
@@ -221,12 +232,67 @@ export function strokeSegments(stroke: { kind: StrokeKind; points: readonly numb
 			return out;
 		}
 
+		case "cone": {
+			if (p.length < 4) {
+				return out;
+			}
+
+			const corners = coneCorners(p[0], p[1], p[2], p[3], []);
+			if (corners.length === 0) {
+				return out;
+			}
+
+			out.push(corners[0], corners[1], corners[2], corners[3]);
+			out.push(corners[2], corners[3], corners[4], corners[5]);
+			out.push(corners[4], corners[5], corners[0], corners[1]);
+
+			return out;
+		}
+
 		default:
-			// The cone is checkpoint 5. A kind with no expansion draws nothing
-			// rather than throwing: this runs inside a frame, and a stroke from
-			// a build ahead of this one is not worth a black table.
+			// A kind this build has never heard of draws nothing rather than
+			// throwing: this runs inside a frame, and a stroke from a build
+			// ahead of this one is not worth a black table.
 			return out;
 	}
+}
+
+// coneCorners writes a cone's three vertices into out -- the apex, then the two
+// ends of its base -- from the two points a cone is stored as.
+//
+// THE BASE IS AS WIDE AS THE CONE IS LONG, and that is the whole shape of this
+// function. A cone in the rules is written by ONE number, and at the far end it
+// is as wide as it reaches; leaving the width free would be a shape with two
+// things to aim at and a label that answered neither. So the only free
+// parameters are where the point is and where the middle of the base is, which
+// is exactly the four integers the wire carries.
+//
+// IT IS AN ISOSCELES TRIANGLE AT EVERY ANGLE. The base is perpendicular to the
+// axis, so turning the pointer through a full circle turns the shape with it
+// and never changes what it is worth.
+export function coneCorners(
+	ax: number, ay: number, bx: number, by: number, out: number[],
+): number[] {
+	out.length = 0;
+
+	const dx = bx - ax;
+	const dy = by - ay;
+	const length = Math.hypot(dx, dy);
+	if (length <= 0) {
+		return out;
+	}
+
+	// The axis, and the perpendicular to it. Half the length each way from the
+	// base's midpoint is a base the same width as the cone is long.
+	const half = length / 2;
+	const nx = (-dy / length) * half;
+	const ny = (dx / length) * half;
+
+	out.push(ax, ay);
+	out.push(bx + nx, by + ny);
+	out.push(bx - nx, by - ny);
+
+	return out;
 }
 
 // circleSegments is how finely a circle is cut up, and the answer is "finely
@@ -341,6 +407,9 @@ function segmentDistanceSquared(
 // whole reason the labels exist:
 //
 //   Circle -- the RADIUS, because a spell is written "20-foot radius sphere".
+//   Cone   -- the LENGTH from the point to the base, which by coneCorners is
+//             also how wide it is at the far end. A thirty-foot cone reads
+//             "30 ft.", which is the number on the spell.
 //   Rect   -- one per axis, because a wall or a room is two measurements.
 //
 // A PEN STROKE SAYS NOTHING. A freehand squiggle has no distance anybody asked
@@ -358,6 +427,12 @@ export function measure(
 		return;
 	}
 
+	// ONE ANCHOR RULE FOR EVERY SINGLE-NUMBER SHAPE: horizontally centred on the
+	// shape and at the TOP of it, whichever way round it was drawn. The pass
+	// lifts a label above whatever point it is given, so this puts the number
+	// just clear of the ink at every angle -- which a cone needs and a circle
+	// gets for free, since a circle's top is the same place however it was
+	// dragged.
 	if (kind === "circle") {
 		const dx = points[2] - points[0];
 		const dy = points[3] - points[1];
@@ -366,11 +441,31 @@ export function measure(
 			return;
 		}
 
-		// ABOVE THE TOP OF THE CIRCLE, and the same anchor whether it is in hand
-		// or on the table -- so the number does not jump when the button comes
-		// up. The pass lifts a label above whatever it is given, so this puts it
-		// just clear of the rim.
 		add(distanceLabel(feetBetween(dx, dy, grid)), points[0], points[1] - r, color);
+
+		return;
+	}
+
+	if (kind === "cone") {
+		const dx = points[2] - points[0];
+		const dy = points[3] - points[1];
+		if (dx === 0 && dy === 0) {
+			return;
+		}
+
+		const corners = coneCorners(points[0], points[1], points[2], points[3], []);
+		if (corners.length === 0) {
+			return;
+		}
+
+		let minX = Infinity, maxX = -Infinity, minY = Infinity;
+		for (let i = 0; i + 1 < corners.length; i += 2) {
+			minX = Math.min(minX, corners[i]);
+			maxX = Math.max(maxX, corners[i]);
+			minY = Math.min(minY, corners[i + 1]);
+		}
+
+		add(distanceLabel(feetBetween(dx, dy, grid)), (minX + maxX) / 2, minY, color);
 
 		return;
 	}
@@ -436,7 +531,11 @@ export function createDraw(deps: DrawDeps): Draw {
 	// shaping is the rectangle or circle under the hand, or null. Unlike a pen
 	// stroke it has NOT left this browser: a shape is one message sent when the
 	// button comes up, so abandoning one sends nothing at all.
-	let shaping: { kind: "rect" | "circle"; x0: number; y0: number; x1: number; y1: number } | null = null;
+	let shaping: { kind: Shaped; x0: number; y0: number; x1: number; y1: number } | null = null;
+
+	// Scratch for the cone's three corners, so the preview allocates nothing
+	// beyond the segments themselves.
+	const corners: number[] = [];
 
 	// The shape's preview, reused, and the tuple its colour is written into.
 	//
@@ -573,7 +672,7 @@ export function createDraw(deps: DrawDeps): Draw {
 	// of half a pixel rounds to the same place and would send a shape nobody
 	// could see or point at to rub out. The server refuses a zero-size shape as
 	// well; this is what keeps the refusal off the screen.
-	function place(shape: { kind: "rect" | "circle"; x0: number; y0: number; x1: number; y1: number }): void {
+	function place(shape: { kind: Shaped; x0: number; y0: number; x1: number; y1: number }): void {
 		const layer = deps.viewed();
 		if (layer === "") {
 			return;
@@ -709,7 +808,7 @@ export function createDraw(deps: DrawDeps): Draw {
 			// room.StrokeBegin.
 			if (SHAPES.includes(mode)) {
 				shaping = {
-					kind: mode as "rect" | "circle",
+					kind: mode as Shaped,
 					x0: Math.round(map.x), y0: Math.round(map.y),
 					x1: Math.round(map.x), y1: Math.round(map.y),
 				};
@@ -884,6 +983,12 @@ export function createDraw(deps: DrawDeps): Draw {
 			}
 
 			if (shaping) {
+				// A CONE IS THREE LINES AND NOT A RING, so it declines here and
+				// is drawn through marks() below.
+				if (shaping.kind === "cone") {
+					return null;
+				}
+
 				paintPreview();
 
 				if (shaping.kind === "rect") {
@@ -930,6 +1035,34 @@ export function createDraw(deps: DrawDeps): Draw {
 			ring.halfH = reach;
 
 			return ring;
+		},
+
+		// THE CONE UNDER THE HAND, as its three sides. It goes through the same
+		// pass the fog's half-drawn polygon does, which puts it over everything
+		// on the table -- a preview is a mark ON the table rather than a thing
+		// on it, and it has to be visible against whatever it is being aimed at.
+		marks(out) {
+			if (!deps.drawing() || shaping?.kind !== "cone") {
+				return out;
+			}
+
+			coneCorners(shaping.x0, shaping.y0, shaping.x1, shaping.y1, corners);
+			if (corners.length === 0) {
+				return out;
+			}
+
+			paintPreview();
+
+			for (let i = 0; i < 3; i++) {
+				const j = (i + 1) % 3;
+				out.push({
+					x0: corners[i * 2], y0: corners[i * 2 + 1],
+					x1: corners[j * 2], y1: corners[j * 2 + 1],
+					color: previewColor, alpha: 0.95, width: PREVIEW_WIDTH,
+				});
+			}
+
+			return out;
 		},
 
 		// THE DISTANCE ACROSS EVERY SHAPE, and it is recomputed per frame rather
