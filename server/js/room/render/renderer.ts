@@ -22,6 +22,7 @@ import { createGlyphAtlas } from "./glyphs.ts";
 import { createGridPass } from "./grid-pass.ts";
 import { createDecalPass } from "./decal-pass.ts";
 import { createPathPass } from "./path-pass.ts";
+import { AURA_DISC, AURA_RECT, auraColor, auraTurn, createAuraPass } from "./aura-pass.ts";
 import { HIDDEN_ALPHA, createPawnPass } from "./pawn-pass.ts";
 import type { PawnPulse } from "./pawn-pass.ts";
 import { createRingPass, RING_ELLIPSE, RING_RECT } from "./ring-pass.ts";
@@ -31,9 +32,9 @@ import { newDecals } from "./decals.ts";
 import { newLayerView } from "./layers.ts";
 import { startFrames } from "./frame.ts";
 import { pawnExtents } from "./path.ts";
-import { CONDITION_RINGS_MAX, RING_WIDTH, ringRadius, visiblePawns } from "./scene.ts";
+import { CONDITION_RINGS_MAX, RING_WIDTH, actingPawnIds, ringRadius, visiblePawns } from "./scene.ts";
 import { cellCentre } from "./path.ts";
-import { fastBeat, slowBeat } from "./wounds.ts";
+import { fastBeat, healthOf, slowBeat } from "./wounds.ts";
 import { stressPawns } from "./stress.ts";
 import type { Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
@@ -194,6 +195,13 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	// would mean rebuilding the whole table at the rate of a hand.
 	const ghostPass = createPawnPass(gl);
 	const rings = createRingPass(gl);
+
+	// THE AURA IS THE RING PASS'S OPPOSITE NUMBER AND SO IT IS ITS OWN PASS. A
+	// condition is a hairline drawn OVER a creature and an aura is a soft band
+	// drawn UNDER one, which is two draws either side of the pawns whatever else
+	// is true -- and the shader has nothing in common with the outline's. See
+	// aura-pass.ts.
+	const auras = createAuraPass(gl);
 	const atlas = createGlyphAtlas(gl);
 
 	// THE BLOOD IS A PASS AND A POOL. The pass draws tinted quads off the sprite
@@ -356,9 +364,10 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// The reasons to draw again, and the loop stops when none of them
 		// holds: a button or a finger is down, the crossfade is partway
 		// through, tiles or pictures are queued for upload, or the benchmark is
-		// driving. drawPawns folds in two more of its own -- blood that is
-		// still drying, and a creature with a heartbeat -- and only the last of
-		// those has no end in sight. See the note beside it.
+		// driving. drawPawns folds in three more of its own -- blood that is
+		// still drying, a creature with a heartbeat, and somebody's turn -- and
+		// only the last two of those have no end in sight. See the note beside
+		// them.
 		return input.dragging() || layers.fading() || uploading || loading || sweeping || travel !== null;
 	}
 
@@ -367,9 +376,10 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	//
 	// THE ORDER IS THE ORDER OF THE TABLE, as it is for the tiles and the grid.
 	// Blood is the floor itself and goes under everything; a highlight is on the
-	// floor and goes under the pawn standing on it; a condition ring is on the
-	// pawn and goes over it; the ruler's line and its distance are read against
-	// everything else and go last.
+	// floor and goes under the pawn standing on it; the aura round whoever is
+	// acting is the light they are standing in and goes under them too; a
+	// condition ring is on the pawn and goes over it; the ruler's line and its
+	// distance are read against everything else and go last.
 	//
 	// A WOUND IS IN NONE OF THOSE LAYERS, because it is not a layer: it is drawn
 	// INTO the pawn by the pawn's own shader. See wounds.ts -- what is outside a
@@ -431,6 +441,50 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		pulse.heart = fastBeat(now);
 
 		floorMarks.draw(camera, canvas.width, canvas.height, dpr);
+
+		// WHOEVER IS ACTING WEARS A RING, AND IT GOES UNDER THEM. It is the mark
+		// the turn-order strip puts on the acting line, drawn round the creature
+		// that line stands for: the same component turning at the same six
+		// seconds a revolution, in the variant a floor wants rather than the one
+		// a card wants. See aura-pass.ts.
+		//
+		// UNDER, because that is where the DOM version is: the padding round the
+		// content, with the content on top of it. A glow over a token would be a
+		// wash of gold across the one face at the table that has to stay legible.
+		//
+		// A GROUPED LINE MARKS ALL OF THEM. Nine goblins acting on one count are
+		// nine ids on one entry and nine rings on the floor, which is the same
+		// answer the camera frames itself against -- see actingPawnIds.
+		const acting = actingPawnIds(state.initiative);
+		let glowing = false;
+
+		auras.begin();
+		if (acting.length > 0) {
+			for (const pawn of state.pawns) {
+				if (pawn.layerId !== viewedID || !acting.includes(pawn.id)) {
+					continue;
+				}
+
+				const [halfW, halfH] = pawnExtents(pawn, cell);
+
+				// AN AMBUSHER'S AURA IS AS FAINT AS THE AMBUSHER, which is the
+				// condition rings' rule and matters more here: this is the GM's copy
+				// alone, and a ring at full strength is the loudest thing on the
+				// table -- it would announce a creature the players cannot see to
+				// anybody looking over the GM's shoulder.
+				auras.add(
+					pawn.x, pawn.y, halfW, halfH,
+					auraColor(healthOf(pawn)), pawn.visible ? 1 : HIDDEN_ALPHA,
+					pawn.kind === "object" ? AURA_RECT : AURA_DISC,
+					pawn.kind === "object" ? pawn.rotation : 0,
+				);
+
+				glowing = true;
+			}
+		}
+
+		auras.draw(camera, canvas.width, canvas.height, dpr, auraTurn(now));
+
 		pawnPass.draw(camera, canvas.width, canvas.height, dpr, pulse);
 
 		// THE RINGS ARE BUILT PER FRAME AND THE PAWNS ARE NOT, which is not an
@@ -514,13 +568,14 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// sprites.end() FIRST AND ALWAYS, because it is what drains the loader
 		// as well as what answers the question -- and || would skip it.
 		//
-		// pawnPass.beating() is the one answer here with no end in sight: a
-		// creature on the viewed floor at a quarter of its hit points or less,
-		// still alive. That is a wider window than it sounds -- it is most
-		// monsters for most of a fight -- and it is deliberate: while it holds,
-		// the heartbeat is the most important thing on the table. Everything
-		// else is finite by construction.
-		return sprites.end() || pawnPass.beating() || decals.settling(now);
+		// pawnPass.beating() and glowing are the two answers with no end in
+		// sight. The first is a creature on the viewed floor at a quarter of its
+		// hit points or less, still alive; the second is somebody's turn. Both
+		// are deliberate and both are bounded by the thing they are about: while
+		// a heartbeat is running it is the most important thing on the table,
+		// and a turn lasts as long as a turn lasts. Everything else here is
+		// finite by construction.
+		return sprites.end() || pawnPass.beating() || decals.settling(now) || glowing;
 	}
 
 	// settleMap notices the viewed map changing and frames it when framing is
@@ -807,6 +862,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 			ghostPass.dispose();
 			decalPass.dispose();
 			rings.dispose();
+			auras.dispose();
 			floorMarks.dispose();
 			overMarks.dispose();
 			sprites.dispose();

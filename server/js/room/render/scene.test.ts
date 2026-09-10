@@ -12,7 +12,8 @@ import { test } from "node:test";
 
 import type { Drawn } from "./pawn-pass.ts";
 import type { Pawn } from "../protocol.ts";
-import { CONDITION_RINGS_MAX, RING_GAP, RING_WIDTH, compareStack, ringRadius, visiblePawns } from "./scene.ts";
+import type { Initiative } from "../protocol.ts";
+import { CONDITION_RINGS_MAX, RING_GAP, RING_WIDTH, actingPawnIds, compareStack, ringRadius, visiblePawns } from "./scene.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
 import { fitFactors } from "./pawn-pass.ts";
 import { pawnExtents } from "./path.ts";
@@ -245,4 +246,52 @@ test("z orders two of a kind and the id breaks a tie", () => {
 	// the same order on every client rather than however the array was built.
 	assert.ok(compareStack({ ...early, z: 2 }, late) > 0);
 	assert.equal(compareStack(late, late), 0);
+});
+
+// WHOSE TURN IT IS, WHICH IS A LIST AND NOT A CREATURE. Grouped initiative puts
+// nine goblins on one count, so every one of the nine is acting and every one
+// of them is marked.
+function order(over: Partial<Initiative> = {}): Initiative {
+	return {
+		entries: [
+			{ id: "01HERO", pawnIds: ["hero"], name: "Ilya", initiative: 18 },
+			{ id: "01MOB", pawnIds: ["a", "b", "c"], name: "Goblins", initiative: 12 },
+			{ id: "01LAIR", pawnIds: [], name: "Lair action", initiative: 20 },
+		],
+		active: null,
+		round: 1,
+		...over,
+	};
+}
+
+test("a solo line is acting on its own", () => {
+	assert.deepEqual(actingPawnIds(order({ active: "01HERO" })), ["hero"]);
+});
+
+test("a grouped line hands over every creature on it", () => {
+	assert.deepEqual(actingPawnIds(order({ active: "01MOB" })), ["a", "b", "c"]);
+});
+
+// "Lair action" and "the volcano erupts" are lines in the order with nothing on
+// the table behind them. There is nothing to draw a ring round, and that is a
+// normal turn rather than a broken one.
+test("a line with no creature behind it marks nobody", () => {
+	assert.deepEqual(actingPawnIds(order({ active: "01LAIR" })), []);
+});
+
+test("nothing is acting outside a fight", () => {
+	assert.deepEqual(actingPawnIds(order()), []);
+});
+
+// A tracker cleared while an event was in flight, or an id from a room this
+// browser has already left. It answers "nobody" rather than throwing, because
+// the caller is a frame of the render loop.
+test("an active line that is not in the order marks nobody", () => {
+	assert.deepEqual(actingPawnIds(order({ active: "01GONE" })), []);
+});
+
+// The empty answer is read on every frame outside a fight, which is most of a
+// session, so it is one array rather than one per frame.
+test("the empty answer allocates nothing", () => {
+	assert.equal(actingPawnIds(order()), actingPawnIds(order({ active: "01GONE" })));
 });

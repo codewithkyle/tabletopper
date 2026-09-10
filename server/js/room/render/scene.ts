@@ -11,7 +11,7 @@
 // therefore the GM's: they may view a floor other than the active one to
 // prepare it, and everything about that choice lives on the client.
 
-import type { Pawn } from "../protocol.ts";
+import type { Initiative, Pawn } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
 import { healthOf } from "./wounds.ts";
 
@@ -128,6 +128,36 @@ export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn
 	out.length = count;
 
 	return out;
+}
+
+// NOBODY is the answer when no line of the turn order is acting, and it is one
+// frozen array rather than a fresh empty one per frame. actingPawnIds is read
+// on every frame the tracker is open; an empty array allocated there is an
+// empty array allocated sixty times a second for the length of a fight.
+const NOBODY: readonly string[] = Object.freeze([]);
+
+// actingPawnIds is the creatures whose turn it is, and it is empty far more
+// often than it is not: outside a fight, and on a line that stands for nothing
+// on the table.
+//
+// A LINE IS A LIST AND NOT A CREATURE, which is what grouped initiative means.
+// Nine goblins acting on one count are nine ids on one entry, so the turn
+// belongs to all nine and every one of them is marked -- and a free-text line
+// like "Lair action" is an entry with none, which is why the empty answer is a
+// normal one rather than a failure. See actingBounds in ../follow.ts, which
+// takes the same list and frames a camera on it.
+//
+// IT IS A LOOKUP OVER THE ENTRIES AND NOT AN INDEX, because a turn order is
+// about a dozen lines long and building a map to search a dozen things is more
+// work than searching them.
+export function actingPawnIds(initiative: Initiative): readonly string[] {
+	if (initiative.active === null) {
+		return NOBODY;
+	}
+
+	const entry = initiative.entries.find((line) => line.id === initiative.active);
+
+	return entry ? entry.pawnIds : NOBODY;
 }
 
 // ringRadius is the outer radius of the nth condition ring, in map pixels. They

@@ -328,6 +328,60 @@ func TestANamedLineHasNoPortraitAndNoPawn(t *testing.T) {
 	}
 }
 
+// THE ACTING LINE IS THE ONLY ONE THAT GLOWS. A row where every card wore a
+// ring of light would be a row with nothing in it saying whose go it is, which
+// is the one question the strip exists to answer.
+func TestOnlyTheActingLineWearsAnAura(t *testing.T) {
+	markup := decoded(t, RoomInitiative(turnStrip(true)))
+
+	if n := strings.Count(markup, "data-turn-aura"); n != 1 {
+		t.Errorf("%d lines wear an aura, want one:\n%s", n, markup)
+	}
+	if !strings.Contains(markup, `class="aura aura-silver"`) {
+		t.Errorf("the acting line does not carry the component:\n%s", markup)
+	}
+}
+
+// AND IT SAYS NOTHING ABOUT THE CREATURE. aura-silver carries its own greys, so
+// the attribute is a bare hook for the corner radius and carries no value at
+// all -- a health band on it would be a sixth reading of a number this line
+// already renders five ways.
+func TestTheAuraCarriesNoReadingOfTheCreature(t *testing.T) {
+	markup := decoded(t, RoomInitiative(turnStrip(true)))
+
+	if strings.Contains(markup, `data-turn-aura="`) {
+		t.Errorf("the aura carries a value it has nothing to do with:\n%s", markup)
+	}
+}
+
+// AND IT IS ROUND THE WHOLE CARD. The frame and the name plate under it are one
+// shape -- the frame is square along that edge precisely so they read as one --
+// and a ring of light round the top half of it would look like a bug rather
+// than like a turn. The End turn button is NOT in it: it is a control beside
+// the card and not part of the creature.
+func TestTheAuraHoldsTheFrameAndThePlateAndNothingElse(t *testing.T) {
+	markup := decoded(t, RoomInitiative(turnStrip(false)))
+
+	aura := strings.Index(markup, "data-turn-aura")
+	frame := strings.Index(markup, "data-entry-tile")
+	plate := strings.Index(markup, "data-entry-plate")
+	next := strings.Index(markup, "data-turn-next")
+
+	if aura < 0 || frame < 0 || plate < 0 || next < 0 {
+		t.Fatalf("the acting line is missing a part:\n%s", markup)
+	}
+	if !(aura < frame && frame < plate && plate < next) {
+		t.Errorf("the acting card is not framed, plated and then buttoned:\n%s", markup)
+	}
+
+	// Two closing tags between the name plate and the button: the plate's own,
+	// and the aura shutting behind it. One would mean the button is inside the
+	// glow; three would mean the entry closed early.
+	if n := strings.Count(markup[plate:next], "</span>"); n != 2 {
+		t.Errorf("the aura shuts %d tags after the plate, want two:\n%s", n-1, markup)
+	}
+}
+
 // THE WORD "CARD" APPEARS NOWHERE IN THE RENDERED MARKUP, and it is the trap
 // this feature walks straight into -- a card is what everybody calls these.
 // `card` is a DaisyUI component and Tailwind reads a .templ file as text, so

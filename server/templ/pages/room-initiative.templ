@@ -4,6 +4,8 @@ const initiativeColumn = "flex w-18 shrink-0 flex-col items-center"
 
 const initiativeTile = "block w-18 shrink-0 p-1 shadow-panel"
 
+const initiativeAura = "aura aura-silver"
+
 const initiativePortraitBox = "relative block aspect-[2/3] w-full overflow-hidden rounded-sm bg-black/40"
 
 const initiativeStaticName = "absolute inset-0 grid place-content-center px-0.5 text-center text-[10px] leading-tight text-white"
@@ -26,7 +28,7 @@ templ RoomInitiative(data RoomInitiativeData) {
 			data-reorder
 		}
 	>
-		<div data-entries class="pointer-events-auto flex max-w-full items-start gap-2 overflow-x-auto p-1 select-none">
+		<div data-entries class="pointer-events-auto flex max-w-full items-start gap-2 overflow-x-auto p-4 select-none">
 			for _, e := range data.Entries {
 				@initiativeEntry(data, e)
 			}
@@ -67,28 +69,14 @@ templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 			data-entry-solo={ e.Solo }
 		}
 	>
-		if data.IsGM {
-			<button
-				type="button"
-				data-entry-tile
-				class={ initiativeTile, "cursor-pointer", templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
-				aria-label={ data.ActivateLabel(e) }
-				hx-post={ data.ActivatePath(e) }
-				hx-swap="none"
-			>
-				@initiativePortrait(data, e)
-			</button>
-		} else {
-			<div
-				data-entry-tile
-				class={ initiativeTile, templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
-			>
-				@initiativePortrait(data, e)
-			</div>
-		}
 		if e.Active {
-			<span data-entry-plate class={ initiativePlate }>{ e.Name }</span>
+			<span data-turn-aura class={ initiativeAura }>
+				@initiativeFrame(data, e)
+				<span data-entry-plate class={ initiativePlate }>{ e.Name }</span>
+			</span>
 			@initiativeTurn(data, e)
+		} else {
+			@initiativeFrame(data, e)
 		}
 		if data.IsGM {
 			<button
@@ -100,6 +88,28 @@ templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 			>Remove</button>
 		}
 	</div>
+}
+
+templ initiativeFrame(data RoomInitiativeData, e RoomInitiativeEntry) {
+	if data.IsGM {
+		<button
+			type="button"
+			data-entry-tile
+			class={ initiativeTile, "cursor-pointer", templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
+			aria-label={ data.ActivateLabel(e) }
+			hx-post={ data.ActivatePath(e) }
+			hx-swap="none"
+		>
+			@initiativePortrait(data, e)
+		</button>
+	} else {
+		<div
+			data-entry-tile
+			class={ initiativeTile, templ.KV("rounded-md", !e.Active), templ.KV("rounded-t-md", e.Active) }
+		>
+			@initiativePortrait(data, e)
+		</div>
+	}
 }
 
 templ initiativePortrait(data RoomInitiativeData, e RoomInitiativeEntry) {

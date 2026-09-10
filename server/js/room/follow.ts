@@ -32,6 +32,7 @@
 
 import type { Event, State } from "./protocol.ts";
 import type { Rect } from "./render/camera.ts";
+import { actingPawnIds } from "./render/scene.ts";
 import { boundsOf } from "./render/path.ts";
 
 export interface Follow {
@@ -101,13 +102,13 @@ export function mountFollow(state: State, options: FollowOptions): Follow {
 // IT IS ONE PASS OVER THE PAWNS AND NOT ONE LOOKUP PER ID, because the store
 // holds an array and there is no index on it. A turn change is not a hot path.
 export function actingBounds(state: State, viewed: string): Rect | null {
-	const active = state.initiative.active;
-	if (active === null) {
-		return null;
-	}
-
-	const entry = state.initiative.entries.find((line) => line.id === active);
-	if (!entry || entry.pawnIds.length === 0) {
+	// WHICH CREATURES ARE ACTING IS NOT THIS MODULE'S QUESTION. The canvas has
+	// to answer it on every frame of a fight, to draw the aura round whoever is
+	// up, so the answer lives beside the drawing and this reads it -- and a line
+	// with no creature behind it comes back empty from there rather than being
+	// tested for twice. See actingPawnIds in render/scene.ts.
+	const acting = actingPawnIds(state.initiative);
+	if (acting.length === 0) {
 		return null;
 	}
 
@@ -115,7 +116,7 @@ export function actingBounds(state: State, viewed: string): Rect | null {
 	let box: Rect | null = null;
 
 	for (const pawn of state.pawns) {
-		if (pawn.layerId !== viewed || !entry.pawnIds.includes(pawn.id)) {
+		if (pawn.layerId !== viewed || !acting.includes(pawn.id)) {
 			continue;
 		}
 

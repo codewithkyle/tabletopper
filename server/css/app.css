@@ -598,6 +598,50 @@
 [data-blood="8"] { --splatter-image: url("/images/blood/8.webp"); }
 [data-blood="9"] { --splatter-image: url("/images/blood/9.webp"); }
 
+/* THE MARK ON WHOEVER IS ACTING, and it is DaisyUI's `aura aura-silver` with
+   two things set on it and nothing else. What the component does, in its own
+   words: a box padded by --aura-padding, filled with a conic gradient that
+   turns once every six seconds; aura-silver makes that gradient a band of greys
+   cycling twice round the circle, dark to bright and back; and two more copies
+   of the whole thing behind it, blurred by a quarter of a rem at 70 per cent
+   and by a whole rem at 30, which is the halo.
+
+   IT CARRIES ITS OWN COLOURS, which is why there is nothing here about health.
+   A line of the turn order already says how hurt a creature is five ways over
+   -- blood at the rim, the colour draining out, a pulse, a splatter, a skull --
+   and a sixth reading of the same number in the same square inch is not
+   information. What the aura answers is the one question none of those does,
+   which is whose go it is.
+
+   IT WRAPS THE FRAME AND THE NAME PLATE TOGETHER, because those two elements
+   are one card and a glow round the top half of a card is a glow round the
+   wrong shape.
+
+   IT IS WORN AT THE COMPONENT'S OWN WIDTH, which is --aura-padding's default
+   0.125rem and nothing set here. A fine metal edge round the card is what the
+   band is; the halo behind it is what makes it findable, and that is sized by
+   the two blurs rather than by the padding, so widening the band buys legibility
+   the card was not short of.
+
+   THE RADIUS IS SET RATHER THAN LEFT ALONE. The component falls back to
+   --radius-box, which is the roundness of a dialog, and the card inside it is
+   rounded-md at both ends -- a glow rounder than the thing it is drawn round
+   reads as a second shape behind the first.
+
+   AND THE ROW CARRIES p-4 FOR THIS. The strip scrolls sideways, so it clips at
+   its own padding box, and the outer glow reaches a rem beyond the card. At the
+   p-1 it had before, the halo was sliced off in a straight line across the top
+   of whichever card was acting.
+
+   THE PAWN ON THE TABLE WEARS THE SAME COMPONENT IN ANOTHER VARIANT, drawn by a
+   shader because a pawn is not an element: aura-dual, in gold, with a longer
+   tail, and reddening as the creature bleeds -- because out there nothing on
+   the OUTSIDE of a token says so, where in here five things do. See
+   server/js/room/render/aura-pass.ts. */
+[data-turn-aura] {
+  --aura-radius: 0.375rem;
+}
+
 /* The two classes SortableJS is told to use while a line is being dragged. They
    are options rather than defaults, so nothing is written into the DOM that we
    did not name -- and they are here because js/room/initiative.ts, where they

@@ -32,6 +32,29 @@ import "strconv"
 // to be found. The name plate hangs under the lit card in the frame's own
 // colour, so the card that is being read is the one carrying its own label.
 //
+// AND THE ACTING CARD GLOWS. It wears DaisyUI's `aura aura-silver` -- a band of
+// greys that turns once round the card every six seconds -- and that is the
+// whole of it. The component carries its own colours, so there is nothing on
+// this line to tint and nothing for a stylesheet to be told about a creature.
+//
+// IT SAYS NOTHING ABOUT HEALTH, DELIBERATELY. Every other mark on a line is a
+// reading of one number -- blood at the rim, the colour draining out, a pulse,
+// a splatter, a skull -- and a sixth reading of it in the same square inch is
+// not information. The aura is here for the one question none of those answers,
+// which is whose go it is.
+//
+// THE PAWN ON THE TABLE WEARS THE SAME COMPONENT AND NOT THE SAME VARIANT. Out
+// there it is drawn by a shader, in gold, with a comet's tail, and it DOES
+// redden as the creature bleeds -- because on the floor there is nothing else
+// on the OUTSIDE of a token saying so, where in here there are five such
+// things. Same mechanic, same six seconds, two surfaces that are never seen at
+// one scale. See server/js/room/render/aura-pass.ts.
+//
+// IT IS WRAPPED ROUND THE FRAME AND THE PLATE TOGETHER, which is why the acting
+// line's two elements are inside one span and a resting line's frame stands on
+// its own. They are one card, and half a card in a ring of light would read as
+// a rendering bug.
+//
 // EVERY CARD IS THE SAME SIZE, WHICH IS WHAT MAKES THE DRAG WORK. The acting
 // card used to be wider than the rest; that reflows the row on every turn and
 // moves the drop target out from under a pointer that was already reaching for
