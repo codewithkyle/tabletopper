@@ -50,6 +50,7 @@ import {
 	snapsToGrid,
 	supercover,
 } from "./render/path.ts";
+import type { Fog } from "./fog.ts";
 import type { Handle } from "./handles.ts";
 import { SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
 import { typing } from "./keys.ts";
@@ -162,6 +163,22 @@ export interface Outline {
 	// rotation is degrees clockwise about the centre, which an outline round a
 	// turned token needs and the marquee never has.
 	rotation: number;
+}
+
+// Segment is one straight line for the over-marks path pass, in map pixels: a
+// side of the fog polygon being clicked out, or the rubber band to the pointer.
+//
+// IT IS NOT A Ruler, which carries the cells under it and a distance to print.
+// A fog outline is a line and nothing else, and folding it into the ruler would
+// have meant a Ruler with an empty label that highlights no squares.
+export interface Segment {
+	x0: number;
+	y0: number;
+	x1: number;
+	y1: number;
+	color: readonly [number, number, number];
+	alpha: number;
+	width: number;
 }
 
 // Ruler is one drag's path: the cells it crosses, the line across them, and how
@@ -297,6 +314,20 @@ export interface TableDeps {
 	// screen is.
 	measuring: () => boolean;
 
+	// fog is the Fog tool, or null for a viewer who has none -- which is every
+	// player, whose pill does not render the button.
+	//
+	// THE TABLE OWNS THE GESTURES AND THE FOG OWNS ITS OWN. Every pointer event
+	// arrives here first because this is what input.ts was given, and the four
+	// that mean something to a half-drawn shape are handed straight on. What
+	// this module does NOT do is know what a fog shape is; see fog.ts.
+	//
+	// IT IS ALSO WHERE CONCEALMENT COMES FROM, for a player. The draw, the
+	// hover, the hit test and the marquee all ask it whether a pawn is under
+	// the cover, and all four ask the same function -- so a goblin a player
+	// cannot see is a goblin they cannot label, click or sweep up either.
+	fog: Fog | null;
+
 	// remove is the Delete key asking for the selection to be taken off the
 	// table.
 	//
@@ -322,6 +353,16 @@ export interface Table {
 	ghosts(out: Drawn[]): Drawn[];
 	outlines(out: Outline[]): Outline[];
 	rulers(out: Ruler[]): Ruler[];
+
+	// marks is the loose lines over the table: the fog polygon in hand, and
+	// nothing else yet. They are drawn through the same pass the ruler's line
+	// is, which is what puts them over everything including the cover.
+	marks(out: Segment[]): Segment[];
+
+	// concealed is whether this viewer is shown nothing of a pawn, which is a
+	// question about the fog and never about the pawn's own visible flag -- a
+	// hidden pawn does not reach a player at all. It is false for every GM.
+	concealed(pawn: Pawn): boolean;
 
 	// handles is the resize and rotate controls, which exist for exactly one
 	// selected object the viewer may move and are empty every other time.
@@ -467,6 +508,13 @@ export function createTable(deps: TableDeps): Table {
 	let armed: Armed | null = null;
 	let pointer: Point | null = null;
 	let measured: Measured | null = null;
+
+	// fogging is whether the pointer that is down was taken by the FOG rather
+	// than by anything in this file. It is not "is the Fog tool chosen", which
+	// is deps.fog's own question: a gesture that began under the fog finishes
+	// under it whatever the pill does halfway through, which is the rule every
+	// other mode here follows.
+	let fogging = false;
 
 	// lastClick is half of a double click: which pawn, and when. See countClick
 	// for what breaks a pair.
@@ -816,9 +864,26 @@ export function createTable(deps: TableDeps): Table {
 	// THE ORDER MATTERS. A GM placing an encounter presses it to stop placing,
 	// and a GM mid-drag presses it to put the pawn back. Placement wins, because
 	// it is the mode you are IN rather than the gesture you are making.
+	// concealed is the fog's answer about one pawn, and it is a named function
+	// rather than four inline arrows so that the draw, the hover, the hit test
+	// and the marquee cannot drift apart -- which is the failure this feature
+	// has: a creature nobody can see that a marquee still picks up.
+	function concealed(pawn: Pawn): boolean {
+		return deps.fog?.concealed(pawn) ?? false;
+	}
+
 	function abandon(): boolean {
 		if (armed) {
 			arm(null);
+
+			return true;
+		}
+
+		// AND THE FOG IS ASKED BEFORE THE RULER, for the reason placement is
+		// asked before both: a half-drawn polygon is the most recent thing the
+		// hand started, and Escape means the most recent thing.
+		if (deps.fog?.abandon()) {
+			fogging = false;
 
 			return true;
 		}
@@ -912,6 +977,13 @@ export function createTable(deps: TableDeps): Table {
 			return;
 		}
 
+		// ENTER, BACKSPACE AND CTRL-Z BELONG TO THE FOG WHILE THE FOG TOOL IS
+		// CHOSEN, and to nothing at all otherwise -- fog.key answers false for
+		// every other tool, so none of the three is taken from the page.
+		if (deps.fog?.key(e)) {
+			return;
+		}
+
 		if (e.key === "Escape") {
 			abandon();
 
@@ -957,6 +1029,22 @@ export function createTable(deps: TableDeps): Table {
 				// THE MODE SURVIVES A SPAWN, which is the whole reason arming
 				// is worth a round trip: an encounter is eight goblins and
 				// eight clicks, not eight visits to a dialog.
+				return true;
+			}
+
+			// AND THE FOG TAKES IT NEXT, above the ruler for the reason the
+			// ruler is above the hit test: everything below this line touches
+			// the table's CONTENTS, and a GM cutting fog is not aiming at a
+			// goblin. It is below placement because arming is the mode you are
+			// most recently in.
+			//
+			// THE GESTURE IS REMEMBERED HERE AND NOWHERE ELSE. input.ts sends
+			// the drag and the release to whoever took the press, and this flag
+			// is what routes them past four branches that know nothing of fog.
+			if (deps.fog?.press(map, mods)) {
+				fogging = true;
+				gesture = null;
+
 				return true;
 			}
 
@@ -1006,7 +1094,7 @@ export function createTable(deps: TableDeps): Table {
 				return true;
 			}
 
-			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y);
+			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y, concealed);
 
 			if (hit && mayMove(hit, role, user)) {
 				gesture = {
@@ -1041,6 +1129,12 @@ export function createTable(deps: TableDeps): Table {
 			pointer = { x: map.x, y: map.y };
 
 			aim(map);
+
+			if (fogging) {
+				deps.fog?.drag(map, mods);
+
+				return;
+			}
 
 			// A PRESS BECOMES A DRAG HERE AND NOWHERE ELSE, which is what keeps
 			// a click from moving anything: under four device pixels this
@@ -1092,6 +1186,13 @@ export function createTable(deps: TableDeps): Table {
 
 		release(map, screen, mods) {
 			pointer = { x: map.x, y: map.y };
+
+			if (fogging) {
+				fogging = false;
+				deps.fog?.release(map, mods);
+
+				return;
+			}
 
 			const active = gesture;
 			gesture = null;
@@ -1166,7 +1267,7 @@ export function createTable(deps: TableDeps): Table {
 					}
 
 					const rect = marqueeRect(active);
-					const found = marqueeSelect(state.pawns, deps.viewed(), rect, role, user);
+					const found = marqueeSelect(state.pawns, deps.viewed(), rect, role, user, concealed);
 
 					if (mods.shift) {
 						selection.add(found);
@@ -1181,6 +1282,16 @@ export function createTable(deps: TableDeps): Table {
 		},
 
 		cancel() {
+			// A POINTER THE BROWSER TOOK AWAY PUTS A HALF-DRAWN RECTANGLE BACK.
+			// A polygon is not in the pointer's hands -- it is a list of clicks
+			// and it survives -- and fog.abandon is what knows the difference.
+			if (fogging) {
+				fogging = false;
+				deps.fog?.abandon();
+
+				return;
+			}
+
 			const active = gesture;
 			gesture = null;
 
@@ -1219,11 +1330,24 @@ export function createTable(deps: TableDeps): Table {
 		// answering it by throwing away whatever the GM had selected would make
 		// "let me look at that" a destructive gesture.
 		secondary(map, screen) {
+			// THE FOG IS ASKED FIRST AND IT CAN ANSWER TWO WAYS, which is the
+			// one place on this table where the right button means two things.
+			// A polygon in hand CLOSES on it -- the gesture every mapping tool
+			// has, and the one this table was asked for -- and a rectangle in
+			// hand is abandoned by it, which is what the right button means
+			// everywhere else here. With nothing in hand it declines and the
+			// click goes on to mean what it always meant.
+			if (deps.fog?.secondary()) {
+				fogging = false;
+
+				return;
+			}
+
 			if (abandon()) {
 				return;
 			}
 
-			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y);
+			const hit = hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y, concealed);
 			if (hit) {
 				// THE POINT IS COPIED. input.ts hands the same scratch object
 				// to every call, and a menu that read it a frame later would
@@ -1234,6 +1358,7 @@ export function createTable(deps: TableDeps): Table {
 
 		hover(map) {
 			pointer = map ? { x: map.x, y: map.y } : null;
+			deps.fog?.hover(map);
 
 			if (map) {
 				aim(map);
@@ -1243,7 +1368,7 @@ export function createTable(deps: TableDeps): Table {
 			// take away reading the table: the label over the pawn a GM is
 			// stretching a line towards is half of what makes the number mean
 			// anything.
-			const found = map ? hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y) : null;
+			const found = map ? hitTest(state.pawns, deps.viewed(), grid(), map.x, map.y, concealed) : null;
 			const next = found?.id ?? null;
 
 			if (next !== hovered) {
@@ -1252,6 +1377,13 @@ export function createTable(deps: TableDeps): Table {
 			}
 		},
 
+		// A HALF-DRAWN FOG POLYGON IS NOT IN HERE, deliberately. What active()
+		// buys is a frame loop that keeps running with nothing moving -- a
+		// paused drag, a placement waiting for a click -- and a polygon needs
+		// none of it: the rubber band follows the POINTER, every pointermove
+		// asks for a frame of its own, and a GM who stops to think about the
+		// next corner would otherwise leave the tab rendering at sixty frames a
+		// second until they made up their mind.
 		active() {
 			return gesture !== null || armed !== null || previews.size > 0;
 		},
@@ -1362,6 +1494,14 @@ export function createTable(deps: TableDeps): Table {
 
 			return out;
 		},
+
+		marks(out) {
+			out.length = 0;
+
+			return deps.fog?.marks(out) ?? out;
+		},
+
+		concealed,
 
 		outlines(out) {
 			let count = 0;
@@ -1676,11 +1816,20 @@ export function hitTest(
 	grid: Grid,
 	x: number,
 	y: number,
+	concealed?: (pawn: Pawn) => boolean,
 ): Pawn | null {
 	let best: Pawn | null = null;
 
 	for (const p of pawns) {
 		if (p.layerId !== layerID) {
+			continue;
+		}
+
+		// A CONCEALED PAWN IS SKIPPED RATHER THAN RETURNED AND DISCARDED, which
+		// is the difference between "the fog eats the click" and "the click goes
+		// through the fog". A goblin standing under the cover on top of a crate
+		// the player CAN see must leave them the crate.
+		if (concealed?.(p)) {
 			continue;
 		}
 		if (best && compareStack(p, best) < 0) {

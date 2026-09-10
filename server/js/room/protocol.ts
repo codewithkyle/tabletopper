@@ -181,6 +181,7 @@ export interface Table {
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
 	initiativeGrouping: InitiativeGrouping;
+	fogPrefill: boolean;
 }
 
 
@@ -469,6 +470,7 @@ export interface TableSetOptions {
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
 	initiativeGrouping: InitiativeGrouping;
+	fogPrefill: boolean;
 }
 
 export type Command =

@@ -1,6 +1,10 @@
 package pages
 
-import "tabletopper/templ/layouts"
+import (
+	"strconv"
+
+	"tabletopper/templ/layouts"
+)
 
 templ Room(data RoomPageData) {
 	@layouts.Base(data.Name+" | Tabletopper", "/js/room.js", data.Bundle()) {
@@ -128,6 +132,10 @@ templ roomBarItem(item RoomMenuItem) {
 			<button
 				type="button"
 				hx-post={ item.Post }
+				if item.Layered {
+					data-room-layered
+					hx-vals={ emptyVals }
+				}
 				if item.ID != "" {
 					hx-target={ "#" + item.ID }
 					hx-swap="outerHTML"
@@ -194,33 +202,39 @@ templ roomBarItemLabel(item RoomMenuItem) {
 }
 
 templ roomToolbar(data RoomPageData) {
-	<div data-room-tools class={ surfacePanel + " absolute top-3 right-3 z-10 flex flex-col gap-1 rounded-full p-1" }>
-		for _, t := range RoomTools() {
-			<div class="tooltip tooltip-left">
-				<div class={ tooltipBody + " flex items-center justify-center gap-1.5 whitespace-nowrap" }>
-					<span>{ t.Label }</span>
-					if t.Key != "" {
-						<kbd class="kbd kbd-xs border-neutral-content/30 bg-neutral-content/15 text-neutral-content">{ t.KeyLabel() }</kbd>
-					}
+	<div class="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
+		<div data-room-tools class={ surfacePanel + " flex flex-col gap-1 rounded-full p-1" }>
+			for _, t := range data.Tools() {
+				<div class="tooltip tooltip-left">
+					<div class={ tooltipBody + " flex items-center justify-center gap-1.5 whitespace-nowrap" }>
+						<span>{ t.Label }</span>
+						if t.Key != "" {
+							<kbd class="kbd kbd-xs border-neutral-content/30 bg-neutral-content/15 text-neutral-content">{ t.KeyLabel() }</kbd>
+						}
+					</div>
+					<button
+						type="button"
+						class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+						data-room-tool={ t.Name }
+						data-room-tool-pans?={ t.Pans }
+						data-room-tool-measures?={ t.Measures }
+						data-room-tool-fogs?={ t.Fogs }
+						if t.Key != "" {
+							data-room-tool-key={ t.Key }
+						}
+						aria-label={ t.Label }
+						aria-pressed={ t.Pressed() }
+					>
+						@roomToolIcon(t.Name)
+					</button>
 				</div>
-				<button
-					type="button"
-					class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
-					data-room-tool={ t.Name }
-					data-room-tool-pans?={ t.Pans }
-					data-room-tool-measures?={ t.Measures }
-					if t.Key != "" {
-						data-room-tool-key={ t.Key }
-					}
-					aria-label={ t.Label }
-					aria-pressed={ t.Pressed() }
-				>
-					@roomToolIcon(t.Name)
-				</button>
-			</div>
-		}
+			}
+			if data.IsGM() {
+				@roomLayerTool()
+			}
+		</div>
 		if data.IsGM() {
-			@roomLayerTool()
+			@roomFogOptions()
 		}
 	</div>
 	if data.IsGM() {
@@ -228,11 +242,52 @@ templ roomToolbar(data RoomPageData) {
 	}
 }
 
+templ roomFogOptions() {
+	<div data-fog-options hidden class={ surfacePanel + " flex flex-col gap-1 rounded-box p-1" }>
+		@roomFogGroup("data-fog-shape", FogShapeChoices())
+		<div class="mx-1 h-px bg-base-content/15"></div>
+		@roomFogGroup("data-fog-mode", FogModeChoices())
+	</div>
+}
+
+templ roomFogGroup(attr string, choices []Choice) {
+	for i, c := range choices {
+		<div class="tooltip tooltip-left">
+			<div class={ tooltipBody + " flex flex-col gap-0.5 text-left" }>
+				<span>{ c.Label }</span>
+				<span class="opacity-70">{ c.Hint }</span>
+			</div>
+			<button
+				type="button"
+				class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+				{ templ.Attributes{attr: c.Value}... }
+				aria-label={ c.Label }
+				aria-pressed={ strconv.FormatBool(i == 0) }
+			>
+				@roomFogIcon(c.Value)
+			</button>
+		</div>
+	}
+}
+
+templ roomFogIcon(name string) {
+	switch name {
+		case "rect":
+			@rectangleIcon()
+		case "poly":
+			@polygonIcon()
+		case "hide":
+			@eyeOffIcon()
+		default:
+			@eyeIcon()
+	}
+}
+
 templ roomToolIcon(name string) {
 	switch name {
 		case RoomToolMeasure:
 			@rulerIcon()
-		case "fog":
+		case RoomToolFog:
 			@cloudIcon()
 		case "draw":
 			@brushIcon()

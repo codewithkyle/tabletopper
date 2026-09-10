@@ -8,14 +8,18 @@
 // the table reads its meaning from rather than a radio group that agreed with
 // nothing.
 //
-// THERE ARE FIVE BUTTONS AND THE TABLE ASKS TWO QUESTIONS OF THEM. Is the
+// THERE ARE FIVE BUTTONS AND THE TABLE ASKS THREE QUESTIONS OF THEM. Is the
 // camera taking this gesture -- which Move answers yes to and nothing else does
-// -- and is the ruler the mode we are in, which is Measure. Select is the table
-// as it has always behaved, and Fog and Draw are buttons whose features are not
-// built, so they leave it on Select rather than dropping the GM into a mode
-// where nothing works and nothing says why.
+// -- is the ruler the mode we are in, which is Measure, and is the fog, which is
+// Fog. Select is the table as it has always behaved, and Draw is a button whose
+// feature is not built, so it leaves the table on Select rather than dropping
+// somebody into a mode where nothing works and nothing says why.
 //
-// THE TWO QUESTIONS ARE ASKED OF DIFFERENT BUTTONS ON PURPOSE. panning is asked
+// FOG IS THE GM'S BUTTON AND A PLAYER'S PILL DOES NOT RENDER IT, which is why
+// fogging() is written to answer false for a pill that has no fog button rather
+// than to test a role it has never heard of.
+//
+// THE QUESTIONS ARE ASKED OF DIFFERENT BUTTONS ON PURPOSE. panning is asked
 // of the button that is LIT, because the space bar lighting Move is exactly what
 // it means to be in Move for as long as it is down. measuring is asked of the
 // button that was CHOSEN, because the hold borrows the pointer rather than
@@ -23,8 +27,8 @@
 // twenty feet sideways would be a ruler nobody could use across a battlemap.
 //
 // WHAT EACH BUTTON DOES IS THE MARKUP'S TO SAY. room.go renders
-// data-room-tool-pans and data-room-tool-measures onto exactly one tool each and
-// this finds them by those attributes, because the alternative is the names
+// data-room-tool-pans, data-room-tool-measures and data-room-tool-fogs onto
+// exactly one tool each and this finds them by those attributes, because the alternative is the names
 // "move" and "measure" written out in Go and again in TypeScript -- and that is
 // a gesture which quietly stops working the day the list is renamed. The mode a
 // room OPENS in is read the same way, off the button that was rendered pressed.
@@ -72,8 +76,16 @@ export interface Tools {
 	// switching to another tool is how one is put away.
 	measuring(): boolean;
 
+	// fogging is whether the fog is the tool that was chosen, and it is asked of
+	// the CHOSEN button for measuring's reason: the space bar borrows the
+	// pointer for the camera and must not put a half-drawn polygon away. It is
+	// false on every player's page, whose pill renders no fog button at all.
+	fogging(): boolean;
+
 	// onChange runs when the mode changes: a click on the pill, or the space bar
-	// going down or up.
+	// going down or up. Every caller is kept, because two things listen now --
+	// the canvas, which draws what the chosen tool put on it, and the fog
+	// options pill, which is only on screen while the fog is chosen.
 	//
 	// IT EXISTS FOR ONE FRAME. The table draws what the chosen tool put on it --
 	// a ruler, once Measure has been used -- and a mode changed with the pointer
@@ -118,6 +130,7 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	const buttons = Array.from(root.querySelectorAll("[data-room-tool]"));
 	const pans = root.querySelector("[data-room-tool-pans]");
 	const measures = root.querySelector("[data-room-tool-measures]");
+	const fogs = root.querySelector("[data-room-tool-fogs]");
 
 	// The shortcuts, keyed by the letter the markup put on each button. A tool
 	// with no letter is simply not in here, which is a tool with no shortcut
@@ -138,7 +151,7 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	// mode is the two of them together; see showing.
 	let chosen = buttons.find((b) => b.getAttribute("aria-pressed") === "true") ?? buttons[0] ?? null;
 	let held = false;
-	let changed: (() => void) | null = null;
+	const changed: (() => void)[] = [];
 
 	function lit(): Element | null {
 		return showing(chosen, pans, held);
@@ -152,6 +165,10 @@ export function mountTools(mount: HTMLElement): Tools | null {
 		return measures !== null && chosen === measures;
 	}
 
+	function fogging(): boolean {
+		return fogs !== null && chosen === fogs;
+	}
+
 	function paint(): void {
 		const current = lit();
 
@@ -163,7 +180,9 @@ export function mountTools(mount: HTMLElement): Tools | null {
 			canvas.style.cursor = panning() ? GRAB : "";
 		}
 
-		changed?.();
+		for (const fn of changed) {
+			fn();
+		}
 	}
 
 	function onClick(e: Event): void {
@@ -251,9 +270,10 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	return {
 		panning,
 		measuring,
+		fogging,
 
 		onChange(fn) {
-			changed = fn;
+			changed.push(fn);
 		},
 
 		stop() {

@@ -55,12 +55,27 @@ type RoomInfo struct {
 // bytes and it changes when a person clicks a menu item, so there is nothing to
 // win by sending less and a partial-update reducer to lose.
 type Table struct {
-	Layers             []Layer            `json:"layers"`
-	ActiveLayer        ulid.ULID          `json:"activeLayer"`
-	Grid               Grid               `json:"grid"`
+	Layers      []Layer   `json:"layers"`
+	ActiveLayer ulid.ULID `json:"activeLayer"`
+	Grid        Grid      `json:"grid"`
+
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
+
+	// FogPrefill is whether a floor ADDED FROM NOW ON starts covered, and it
+	// is the whole of what the room-wide switch means.
+	//
+	// IT CHANGES NO FLOOR THAT ALREADY EXISTS, which is the difference between
+	// a default and a master switch. A GM who has spent an evening uncovering
+	// four floors and then reaches for this one must not lose that evening,
+	// and the per-floor answer -- cover this one, uncover this one -- is two
+	// items on the Fog menu rather than a setting.
+	//
+	// FALSE IS THE DEFAULT AND FALSE IS THE ZERO VALUE, which is why adding
+	// this field needed no snapshot migration: every room written before it
+	// existed reads back with the switch off, which is where it ships.
+	FogPrefill bool `json:"fogPrefill"`
 }
 
 // Layer is a floor or a scene: a named slot holding at most one map, with its

@@ -24,7 +24,8 @@ templ RoomGrid(data RoomGridData) {
 		@gridRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
 		@gridRadios("pawnLabels", "What a pawn is labelled with", PawnLabelChoices(), data.PawnLabels)
 		@gridRadios("initiativeGrouping", "How monsters take their turns", InitiativeGroupingChoices(), data.InitiativeGrouping)
-		@gridToggle("playersCanDraw", "Players may draw on the tabletop", data.PlayersCanDraw)
+		@gridToggle("playersCanDraw", "Players may draw on the tabletop", "", data.PlayersCanDraw)
+		@gridToggle("fogPrefill", "Prefill fog", "A floor added from now on starts covered. Floors that are already here do not change.", data.FogPrefill)
 	</form>
 }
 
@@ -105,9 +106,14 @@ templ gridRadios(name string, caption string, choices []Choice, chosen string) {
 	</fieldset>
 }
 
-templ gridToggle(name string, caption string, on bool) {
-	<label class="flex items-center gap-2">
-		<input type="checkbox" name={ name } value="on" checked?={ on } class="toggle toggle-xs shrink-0"/>
-		<span class="text-xs">{ caption }</span>
+templ gridToggle(name string, caption string, hint string, on bool) {
+	<label class="flex items-start gap-2">
+		<input type="checkbox" name={ name } value="on" checked?={ on } class="toggle toggle-xs mt-0.5 shrink-0"/>
+		<span class="min-w-0 text-xs leading-tight">
+			{ caption }
+			if hint != "" {
+				<span class="block text-[10px] text-base-content/50">{ hint }</span>
+			}
+		</span>
 	</label>
 }

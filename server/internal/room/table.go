@@ -46,11 +46,22 @@ func (c *TableAddLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return nil, err
 	}
 
-	// The new layer inherits NewState's fog defaults rather than the layer
-	// below it: fog off, prefill true. Inheriting would mean a GM who fogged
-	// the ground floor gets a cellar that is already covered, which reads as
-	// the app having done something they did not ask for.
-	s.Table.Layers = append(s.Table.Layers, Layer{ID: env.id(), Name: c.Name, FogPrefill: true})
+	// THE NEW LAYER INHERITS FROM THE ROOM AND NOT FROM THE LAYER BELOW IT. A
+	// GM who fogged the ground floor and then adds a cellar has said nothing
+	// about the cellar, so a cellar that arrived already covered would read as
+	// the app having done something they did not ask for. What it does read is
+	// the room-wide switch in Grid & settings, which is a GM saying "floors in
+	// this room start covered" once and meaning it every time.
+	//
+	// PREFILL TRUE EITHER WAY, because prefill means nothing until fog is on:
+	// off, the floor is clear whatever this says, and the first shape drawn on
+	// it sets the flag to match itself. See FogAdd.
+	s.Table.Layers = append(s.Table.Layers, Layer{
+		ID:         env.id(),
+		Name:       c.Name,
+		FogEnabled: s.Table.FogPrefill,
+		FogPrefill: true,
+	})
 	s.Normalize()
 
 	return []Emission{tableUpdated(s)}, nil
@@ -370,6 +381,7 @@ type TableSetOptions struct {
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
+	FogPrefill         bool               `json:"fogPrefill"`
 }
 
 func (c *TableSetOptions) Authorize(s *State, a Actor) error {
@@ -395,6 +407,11 @@ func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Emission, error) 
 	// mid-round is worse than a fight they chose to rebuild, and Clear then
 	// Sync is two presses and is unambiguous.
 	s.Table.InitiativeGrouping = c.InitiativeGrouping
+
+	// AND THE PREFILL CHANGES NOTHING THAT IS ALREADY ON THE TABLE either, for
+	// a reason of its own: it is a default for the next floor rather than a
+	// switch over the floors there are. See Table.FogPrefill.
+	s.Table.FogPrefill = c.FogPrefill
 	s.Normalize()
 
 	out := []Emission{tableUpdated(s)}

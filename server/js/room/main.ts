@@ -22,6 +22,7 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
 import { fanOut, refusals } from "./effects.ts";
+import { createFog } from "./fog.ts";
 import { createTable } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
 import { mountDialogs } from "./dialogs.ts";
@@ -34,6 +35,8 @@ import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
 import { mountEntryMenu } from "./initiative-menu.ts";
+import { mountFogMenu } from "./fog-menu.ts";
+import { mountFogTool } from "./fog-tool.ts";
 import { mountFollow, type Follow } from "./follow.ts";
 import { mountTurns, type Turns } from "./initiative.ts";
 import { mountLayerTool } from "./layer-tool.ts";
@@ -114,19 +117,49 @@ if (mount) {
 	// each is a closure over a `let` rather than a constructor argument.
 	let socket: Socket | null = null;
 	let renderer: Renderer | null = null;
+
+	// The fog tool's options pill. It is mounted before the table because the
+	// fog reads it and the table holds the fog, and it needs nothing either of
+	// them has: four buttons and which of them is pressed.
+	const fogTool = mountFogTool(mount, tools);
+
 	let overlay: Overlay | null = null;
 	let follow: Follow | null = null;
+
+	// The viewed floor, in one place: the GM's local choice lives in the
+	// renderer and nowhere else, and four things now ask for it.
+	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
+
+	// THE FOG IS BUILT HERE AND HANDED TO THE TABLE, rather than built by the
+	// table, because everything it needs is in this file: the socket to send a
+	// shape, the renderer to say which floor, the pill to say what the gesture
+	// means. pawns.ts hands it the four pointer events and asks it one question
+	// about concealment; it knows nothing else about fog. See fog.ts.
+	const fog = createFog({
+		state,
+		role,
+		user,
+		viewed,
+		grid: () => state.table.grid,
+		send: (command) => {
+			socket?.send(command);
+		},
+		invalidate: () => renderer?.invalidate(),
+		fogging: () => tools?.fogging() ?? false,
+		options: fogTool.options,
+	});
 
 	const table = createTable({
 		state,
 		role,
 		user,
+		fog,
 
 		// THE VIEWED FLOOR IS THE RENDERER'S AND NOT THE STORE'S, because the
 		// GM's local choice to look at another floor exists only in there. A
 		// player has no such choice and falls back to the active layer, which
 		// is the only one they hold pawns for anyway.
-		viewed: () => renderer?.view.viewed()?.id ?? state.table.activeLayer,
+		viewed,
 		send: (command) => {
 			socket?.send(command);
 		},
@@ -170,7 +203,7 @@ if (mount) {
 		remove: () => overlay?.remove(),
 	});
 
-	renderer = mountRenderer(mount, state, table);
+	renderer = mountRenderer(mount, state, role, table);
 
 	// A MODE CHANGED WITH THE POINTER SITTING STILL IS STILL A FRAME. The measure
 	// tool leaves a ruler on the table and choosing another tool is what puts it
@@ -188,6 +221,14 @@ if (mount) {
 		const bar = mountLayerBar(mount, state, renderer);
 		if (bar) {
 			renderer.onSettled(bar.refresh);
+		}
+
+		// AND THE FOG MENU FOLLOWS THE SAME SETTLING, for the same reason the
+		// bar does: Fill fog and Clear fog act on the floor being LOOKED at, and
+		// that is a fact only the renderer holds. See fog-menu.ts.
+		const fogMenu = mountFogMenu(viewed);
+		if (fogMenu) {
+			renderer.onSettled(fogMenu.refresh);
 		}
 
 		// AND THE TABLE FOLLOWS THE SAME SETTLING, to drop a selection made on

@@ -80,11 +80,24 @@ export const RING_WIDTH = 2;
 // array of five hundred objects per rebuild is the allocation the second
 // performance rule is about. The objects inside it are reused too: a rebuild
 // overwrites the fields rather than replacing the entry.
-export function visiblePawns(pawns: readonly Pawn[], layerID: string, out: Drawn[]): Drawn[] {
+export function visiblePawns(
+	pawns: readonly Pawn[], layerID: string, out: Drawn[],
+	concealed?: (pawn: Pawn) => boolean,
+): Drawn[] {
 	let count = 0;
 
 	for (const pawn of pawns) {
 		if (pawn.layerId !== layerID) {
+			continue;
+		}
+
+		// FOG IS THE SECOND WAY A PAWN CAN BE ON THIS FLOOR AND NOT ON THIS
+		// SCREEN, and it is the opposite of the first. A pawn the GM has hidden
+		// never reached a player's store at all, so hidden is only ever drawn on
+		// the GM's copy, faintly; a pawn under the cover HAS reached them and is
+		// dropped here. The callback is undefined for a GM and for a floor with
+		// no fog on it.
+		if (concealed?.(pawn)) {
 			continue;
 		}
 

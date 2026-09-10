@@ -29,7 +29,8 @@
     },
     "pawnLabels": "default",
     "playersCanDraw": true,
-    "initiativeGrouping": "grouped"
+    "initiativeGrouping": "grouped",
+    "fogPrefill": false
   },
   "players": [
     {

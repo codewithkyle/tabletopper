@@ -54,6 +54,13 @@ type RoomGridData struct {
 	PawnLabels     string
 	PlayersCanDraw bool
 
+	// FogPrefill is the room-wide default for a floor ADDED FROM NOW ON, and
+	// the caption says so. It sits in this window rather than on the Fog menu
+	// because it is a setting rather than a verb: it changes no floor that
+	// exists, and the two things a GM does to a floor they can see -- cover it,
+	// uncover it -- are the two items on that menu.
+	FogPrefill bool
+
 	InitiativeGrouping string
 
 	Errors []string

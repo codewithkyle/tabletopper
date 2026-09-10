@@ -21,6 +21,7 @@ function table(active: string, layers: Layer[]): Table {
 		layers,
 		activeLayer: active,
 		grid: grid(),
+		fogPrefill: false,
 		pawnLabels: "default",
 		playersCanDraw: true,
 		initiativeGrouping: "grouped",

@@ -716,6 +716,7 @@ func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridD
 		Diagonals:      string(t.Grid.Diagonals),
 		PawnLabels:     string(t.PawnLabels),
 		PlayersCanDraw: t.PlayersCanDraw,
+		FogPrefill:     t.FogPrefill,
 
 		InitiativeGrouping: string(t.InitiativeGrouping),
 
@@ -771,6 +772,7 @@ func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {
 		PawnLabels:         room.PawnLabels(r.FormValue("pawnLabels")),
 		PlayersCanDraw:     r.FormValue("playersCanDraw") != "",
 		InitiativeGrouping: room.InitiativeGrouping(r.FormValue("initiativeGrouping")),
+		FogPrefill:         r.FormValue("fogPrefill") != "",
 	}
 
 	return grid, options, problems

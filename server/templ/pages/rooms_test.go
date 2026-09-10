@@ -735,13 +735,23 @@ func TestTheRoomIsABarAndATable(t *testing.T) {
 // The tool pill is five modes with exactly one pressed, and it is over the
 // table rather than in the bar because a pointer mode is switched constantly
 // while both hands are busy.
+// toolButtons matches a pressed tool in the main pill and captures its name.
+// The attributes between the two are not pinned, because what matters is which
+// button carries the pressed state and not what else the markup has learned to
+// render onto it since.
+var toolButtons = regexp.MustCompile(`data-room-tool="([a-z]+)"[^>]*aria-pressed="true"`)
+
 func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
 	if got := strings.Count(page, "data-room-tool="); got != len(RoomTools()) {
 		t.Errorf("the pill has %d buttons, want %d", got, len(RoomTools()))
 	}
-	if got := strings.Count(page, `aria-pressed="true"`); got != 1 {
+
+	// THE PRESSED COUNT IS SCOPED TO THE TOOLS and not to the page, because the
+	// page has a second pill on it: the fog tool's own options, which carry
+	// aria-pressed for the same reason and start on one each.
+	if got := len(toolButtons.FindAllString(page, -1)); got != 1 {
 		t.Errorf("%d tools are pressed, want exactly 1", got)
 	}
 
@@ -752,7 +762,7 @@ func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 	// The attributes between the two are not pinned, because what matters is
 	// which button carries the pressed state and not what else the markup has
 	// learned to render onto it since.
-	pressed := regexp.MustCompile(`data-room-tool="([a-z]+)"[^>]*aria-pressed="true"`).FindStringSubmatch(page)
+	pressed := toolButtons.FindStringSubmatch(page)
 	if pressed == nil || pressed[1] != DefaultRoomTool {
 		t.Errorf("the room does not open on %q: %v", DefaultRoomTool, pressed)
 	}

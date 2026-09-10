@@ -14,13 +14,15 @@
 
 import { ROOM_BLOOD, ROOM_VIEW, THEME_CHANGE } from "../../../public/js/events.js";
 import type { Camera, Point, Rect, Viewport } from "./camera.ts";
-import type { MapRef, State } from "../protocol.ts";
+import type { MapRef, Role, State } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
+import type { Segment } from "../pawns.ts";
 import type { LayerView } from "./layers.ts";
 import { clampToMap, fit, focusTarget, newCamera, zoomAt, zoomTo } from "./camera.ts";
 import { createContext } from "./gl.ts";
 import { createGlyphAtlas } from "./glyphs.ts";
 import { createGridPass } from "./grid-pass.ts";
+import { createFogPass } from "./fog-pass.ts";
 import { createDecalPass } from "./decal-pass.ts";
 import { createPathPass } from "./path-pass.ts";
 import { AURA_DISC, AURA_RECT, auraColor, auraTurn, createAuraPass } from "./aura-pass.ts";
@@ -173,7 +175,7 @@ export interface Renderer {
 // browser without WebGL2 or a page that rendered no canvas. Neither is an
 // error: the room's menus, windows and player list are ordinary HTML and go on
 // working, and the caller has nothing to do about it.
-export function mountRenderer(mount: HTMLElement, state: State, table?: Table): Renderer | null {
+export function mountRenderer(mount: HTMLElement, state: State, role: Role, table?: Table): Renderer | null {
 	const found = mount.querySelector("[data-tabletop-canvas]");
 	if (!(found instanceof HTMLCanvasElement)) {
 		return null;
@@ -238,6 +240,13 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	let floorMarks = createPathPass(gl, atlas);
 	let overMarks = createPathPass(gl, atlas);
 
+	// THE FOG IS A MASK AND A COVER, and the cover is the grid pass's own shape:
+	// one full-viewport triangle over an infinite table rather than a quad the
+	// size of the map. What it is drawn AFTER depends on who is looking; see
+	// drawPawns. It comes back empty on a restored context like every other
+	// cache here, and the next frame rasterises the floor's shapes again.
+	let fog = createFogPass(gl);
+
 	// teardown frees every GPU resource the passes hold, and rebuild makes
 	// them again on a context the browser has restored. Both caches come back
 	// empty -- the tiles and the pictures refetch -- and the pawn buffer is
@@ -252,6 +261,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		auras.dispose();
 		floorMarks.dispose();
 		overMarks.dispose();
+		fog.dispose();
 		sprites.dispose();
 		atlas?.dispose();
 	}
@@ -268,6 +278,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		decalPass = createDecalPass(gl);
 		floorMarks = createPathPass(gl, atlas);
 		overMarks = createPathPass(gl, atlas);
+		fog = createFogPass(gl);
 
 		pawnsDirty = true;
 		lastEpoch = -1;
@@ -348,6 +359,14 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	// for the reason everything else in this loop is.
 	const pulse: PawnPulse = { slow: 0, heart: 0 };
 
+	// THE TWO ALPHAS ARE THE WHOLE DIFFERENCE BETWEEN THE TWO ROLES. A player's
+	// cover is opaque, so a hidden floor is the exact shade of the desk it sits
+	// on and nothing on their screen says where the map ends. The GM's is half,
+	// which is the old client's mix and reads as "hidden from them" rather than
+	// as damage to the picture.
+	const PLAYER_FOG_ALPHA = 1;
+	const GM_FOG_ALPHA = 0.5;
+
 	const drawn: Drawn[] = [];
 	let synthetic: Drawn[] = [];
 	let pawnsDirty = true;
@@ -371,6 +390,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	const outlines: Outline[] = [];
 	const rulers: Ruler[] = [];
 	const handles: Handle[] = [];
+	const segments: Segment[] = [];
 
 	const frames = startFrames({
 		mount,
@@ -440,6 +460,18 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 			}
 		}
 
+		// THE MASK IS BROUGHT UP TO DATE BEFORE THE FRAME AND NOT DURING IT,
+		// because syncing binds another framebuffer and another viewport. Doing
+		// it here means the two lines below put both back, rather than every
+		// pass after the fog having to distrust what it was handed.
+		//
+		// A floor with its fog off is not synced at all. Most rooms have no fog
+		// on any floor, and the cost of the feature for them is this branch.
+		const fogged = layers.viewed();
+		if (fogged?.fogEnabled) {
+			fog.sync(state.fog, fogged.id, map, fogged.fogPrefill, state.table.grid.cellSize);
+		}
+
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(clear.r, clear.g, clear.b, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT);
@@ -501,7 +533,13 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		overMarks.begin(worldPerCssPixel);
 
 		if (rebuilding) {
-			visiblePawns(state.pawns, viewedID, drawn);
+			// A PAWN UNDER THE COVER IS NOT DRAWN AT ALL for a player, rather
+			// than drawn and then painted over. Painting over would work for
+			// the picture and not for the rest of it: a concealed creature
+			// would still be in the buffer, still be labelled on hover and
+			// still be swept up by a marquee. One filter, asked in all four
+			// places; see pawns.ts.
+			visiblePawns(state.pawns, viewedID, drawn, table?.concealed);
 
 			// AND THIS IS WHERE BLOOD IS SHED, on the frame after the event that
 			// changed somebody's hit points. It reads state.pawns rather than
@@ -531,6 +569,14 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// over scenery that has been there for ten minutes.
 		decals.build(viewedID, now, sprites, decalPass);
 		decalPass.draw(camera, sprites.texture(), canvas.width, canvas.height, dpr);
+
+		// THE GM'S FOG IS A TINT AND IT GOES UNDER THE CREATURES. What it marks
+		// is "the party cannot see this", which is a fact about the floor rather
+		// than about what is standing on it -- so it is drawn on the floor, at
+		// half alpha, and the goblin the GM is walking through it stays solid
+		// and legible on top. A cover over the pawns would hide the half of the
+		// table the GM is actually working in.
+		drawFog("gm");
 
 		pulse.slow = slowBeat(now);
 		pulse.heart = fastBeat(now);
@@ -651,6 +697,24 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 			rings.draw(camera, canvas.width, canvas.height, dpr);
 		}
 
+		// AND THE PLAYER'S FOG IS A COVER AND IT GOES OVER EVERYTHING IT HIDES:
+		// the map, the grid, the blood, the pawns, the rings round them and the
+		// ghosts of somebody else's drag. At full alpha in the table's own
+		// colour, so a covered floor is the exact shade of the empty desk and
+		// there is no edge of the map anywhere on their screen.
+		//
+		// IT IS BEFORE THE RULER AND NOT AFTER IT. A measurement is the
+		// viewer's own mark on their own screen and reading it over the fog is
+		// how somebody measures the distance to a door they have not opened.
+		drawFog("player");
+
+		// The fog polygon a GM is clicking out goes here for the same reason,
+		// and through the same pass: it is a mark on the table rather than a
+		// thing on it.
+		for (const segment of table ? table.marks(segments) : []) {
+			overMarks.line(segment.x0, segment.y0, segment.x1, segment.y1, segment.width, segment.color, segment.alpha);
+		}
+
 		// And the ruler's line and its distance, last, because they are read
 		// against everything else.
 		for (const ruler of rulers) {
@@ -671,6 +735,22 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		// and a turn lasts as long as a turn lasts. Everything else here is
 		// finite by construction.
 		return sprites.end() || pawnPass.beating() || decals.settling(now) || glowing;
+	}
+
+	// drawFog puts the cover down. It is called at TWO points in drawPawns and
+	// draws at exactly one of them: the parameter is whose cover this position
+	// is for, and a call for the other role returns without touching the canvas.
+	// The two positions are far apart in the draw order and each is explained
+	// where it sits.
+	//
+	// A FLOOR WITH ITS FOG OFF DRAWS NOTHING AT ALL, which is what makes this
+	// feature cost a room that is not using it exactly one branch per frame.
+	function drawFog(whose: Role): void {
+		if (whose !== role || !layers.viewed()?.fogEnabled) {
+			return;
+		}
+
+		fog.draw(camera, canvas.width, canvas.height, dpr, clear, role === "gm" ? GM_FOG_ALPHA : PLAYER_FOG_ALPHA);
 	}
 
 	// settleMap notices the viewed map changing and frames it when framing is

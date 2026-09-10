@@ -115,7 +115,8 @@ func (c *FogAdd) Authorize(s *State, a Actor) error {
 }
 
 func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	if _, err := s.requireLayer(c.Layer); err != nil {
+	l, err := s.requireLayer(c.Layer)
+	if err != nil {
 		return nil, err
 	}
 	if !c.Kind.Valid() {
@@ -155,9 +156,41 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		Points:  slices.Clone(c.Points),
 	}
 	s.Fog = append(s.Fog, shape)
+
+	// THE FIRST SHAPE ON A FLOOR WITH FOG OFF TURNS THE FOG ON, and sets which
+	// way round it works from the shape itself. Without this a GM picks the
+	// tool, drags a rectangle, and nothing happens anywhere on the screen --
+	// and nothing says why, because "this floor's fog is off" is a flag they
+	// have never seen and would have no reason to look for.
+	//
+	// THE MODE DECIDES THE PREFILL because the mode is the GM saying which
+	// half of the floor they mean. A reveal is a hole, and a hole only means
+	// anything in something solid, so the floor becomes covered. A hide is a
+	// patch, and a patch only means anything on something clear, so the floor
+	// becomes clear. Either way the shape they just drew is the thing they
+	// then see.
+	//
+	// IT IS HERE AND NOT IN THE CLIENT, so it is one message rather than three
+	// and one state rather than three orderings of it. A second GM's browser
+	// learns the flag and the shape in the same breath.
+	woke := !l.FogEnabled
+	if woke {
+		l.FogEnabled = true
+		l.FogPrefill = c.Mode == FogReveal
+	}
+
 	s.Normalize()
 
-	return []Emission{to(ToAll, &FogAdded{Shape: cloneShape(shape)})}, nil
+	emissions := make([]Emission, 0, 2)
+
+	// The table goes FIRST on the one add that carries it: a client that
+	// learned of the shape before it learned the floor was covered would draw
+	// one frame of a hole in nothing.
+	if woke {
+		emissions = append(emissions, tableUpdated(s))
+	}
+
+	return append(emissions, to(ToAll, &FogAdded{Shape: cloneShape(shape)})), nil
 }
 
 // FogRemove takes one shape back off.

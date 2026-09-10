@@ -12,7 +12,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { Grid, Pawn, State } from "./protocol.ts";
+import type { FogMode, FogShape, Grid, Pawn, ShapeKind, State } from "./protocol.ts";
 import { empty } from "./store.ts";
 
 // createTable listens for Escape on the document and reads the device pixel
@@ -44,6 +44,7 @@ function wait(ms: number): void {
 }
 
 const { createTable, hitTest } = await import("./pawns.ts");
+const { createFog } = await import("./fog.ts");
 
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
@@ -92,9 +93,9 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 
 // press is a key arriving on the document, optionally from a control. The
 // listener createTable installed is the only one there is.
-function press(key: string, target: unknown = null): void {
+function press(key: string, target: unknown = null, mods: Record<string, boolean> = {}): void {
 	for (const fn of keydown) {
-		(fn as (e: unknown) => void)({ key, target });
+		(fn as (e: unknown) => void)({ key, target, ...mods });
 	}
 }
 
@@ -180,12 +181,24 @@ function table(
 	over: Partial<{
 		role: "gm" | "player"; user: string; grid: Grid;
 		scale: number; panning: boolean; measuring: boolean;
+
+		// The fog's half of the harness: whether the Fog tool is the one
+		// chosen, what the options pill says, and how the ground floor's own
+		// two flags are set.
+		fogging: boolean; shape: ShapeKind; mode: FogMode;
+		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[];
 	}> = {},
 ) {
 	const state: State = empty();
 	state.pawns = pawns;
 	state.table.grid = over.grid ?? grid();
 	state.table.activeLayer = GROUND;
+	state.table.layers = [{
+		id: GROUND, name: "Ground floor", map: null,
+		fogEnabled: over.fogEnabled ?? false,
+		fogPrefill: over.fogPrefill ?? true,
+	}];
+	state.fog = over.fog ?? [];
 
 	const sent: Record<string, unknown>[] = [];
 	const opened: string[] = [];
@@ -197,15 +210,35 @@ function table(
 	// away from the ruler is how one is put away.
 	let panning = over.panning ?? false;
 	let measuring = over.measuring ?? false;
+	let fogging = over.fogging ?? false;
+	const options = { shape: over.shape ?? "rect", mode: over.mode ?? "reveal" };
+
+	const send = (command: unknown) => {
+		sent.push(command as Record<string, unknown>);
+	};
+
+	// THE REAL FOG AND NOT A STUB. What these tests are about is the seam --
+	// which gesture reaches which module, and whether a concealed pawn is
+	// skipped in all four places -- so a fake fog would be testing the fake.
+	const fog = createFog({
+		state,
+		role: over.role ?? "gm",
+		user: over.user ?? GM,
+		viewed: () => GROUND,
+		grid: () => state.table.grid,
+		send,
+		invalidate: () => {},
+		fogging: () => fogging,
+		options: () => options,
+	});
 
 	const controller = createTable({
 		state,
 		role: over.role ?? "gm",
 		user: over.user ?? GM,
+		fog,
 		viewed: () => GROUND,
-		send: (command) => {
-			sent.push(command as unknown as Record<string, unknown>);
-		},
+		send,
 		invalidate: () => {},
 		panning: () => panning,
 		measuring: () => measuring,
@@ -237,6 +270,13 @@ function table(
 		},
 		measure: (on: boolean) => {
 			measuring = on;
+		},
+		fogTool: (on: boolean) => {
+			fogging = on;
+		},
+		chooseFog: (shape: ShapeKind, mode: FogMode) => {
+			options.shape = shape;
+			options.mode = mode;
 		},
 	};
 }
@@ -1249,4 +1289,213 @@ test("a resize abandoned with the right button sends nothing", () => {
 	controller.tool.secondary(at(300, 0), at(0, 0));
 	assert.deepEqual(sent, []);
 	assert.deepEqual(controller.ghosts([]), [], "the proposal outlived the gesture");
+});
+
+// THE FOG'S HALF OF THE TABLE. What is pinned here is the seam rather than the
+// geometry, which fog.test.ts owns: which gesture reaches the fog, what leaves
+// the client when one finishes, and the four places a player must not find a
+// pawn that is under the cover.
+
+const FOG_ON = { fogging: true, fogEnabled: true, fogPrefill: true } as const;
+
+// A cleared square over the middle of a 64 pixel grid, so a pawn at 32,32 is
+// inside it and one at 300,300 is not.
+function cleared(): FogShape {
+	return {
+		id: "01CLEARED", layerId: GROUND, kind: "rect", mode: "reveal",
+		points: [0, 0, 128, 128],
+	};
+}
+
+test("a fog rectangle sends its corners snapped and normalised", () => {
+	const { controller, sent } = table([], FOG_ON);
+
+	// Dragged up and to the left, from inside one cell to inside another.
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+	controller.tool.drag(at(70, 70), at(0, 0), NONE);
+	controller.tool.release(at(70, 70), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{
+		type: "fog.add", layer: GROUND, kind: "rect", mode: "reveal",
+		points: [64, 64, 192, 192],
+	}]);
+});
+
+// A CLICK IS NOT A RECTANGLE, and the test is on the snapped corners rather
+// than on how far the hand moved: a drag across half a cell snaps to nothing
+// and would send a shape nobody could see.
+test("a fog rectangle that snaps to nothing sends nothing", () => {
+	const { controller, sent } = table([], FOG_ON);
+
+	controller.tool.press(at(70, 70), at(0, 0), NONE);
+	controller.tool.drag(at(80, 80), at(0, 0), NONE);
+	controller.tool.release(at(80, 80), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// THE RIGHT BUTTON MEANS TWO THINGS INSIDE THIS ONE TOOL, and both are here. A
+// rectangle has nothing half-made to commit, so it is abandoned; a polygon does,
+// so it closes.
+test("the right button abandons a fog rectangle", () => {
+	const { controller, sent } = table([], FOG_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 200), at(0, 0));
+	controller.tool.release(at(200, 200), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+test("the right button closes a fog polygon", () => {
+	const { controller, sent } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 200), at(0, 0));
+
+	assert.deepEqual(sent, [{
+		type: "fog.add", layer: GROUND, kind: "poly", mode: "reveal",
+		points: [0, 0, 192, 0, 192, 192],
+	}]);
+});
+
+test("a fog polygon of two corners is not a shape", () => {
+	const { controller, sent } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 0), at(0, 0));
+
+	assert.deepEqual(sent, []);
+});
+
+test("Escape drops a fog polygon that was half drawn", () => {
+	const { controller, sent } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+
+	press("Escape");
+	controller.tool.secondary(at(200, 200), at(0, 0));
+
+	assert.deepEqual(sent, [], "the ring came back after it was abandoned");
+});
+
+test("Backspace takes back a fog polygon's last corner", () => {
+	const { controller, sent } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+	press("Backspace");
+	controller.tool.press(at(0, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(0, 200), at(0, 0));
+
+	assert.deepEqual(sent, [{
+		type: "fog.add", layer: GROUND, kind: "poly", mode: "reveal",
+		points: [0, 0, 192, 0, 0, 192],
+	}]);
+});
+
+// A CORNER ON TOP OF THE LAST ONE IS NOT A CORNER. Snapping makes this common
+// rather than rare: two clicks in the same cell land on the same vertex.
+test("two clicks in one cell are one fog corner", () => {
+	const { controller, sent } = table([], { ...FOG_ON, shape: "poly" });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.press(at(10, 10), at(0, 0), NONE);
+	controller.tool.press(at(200, 0), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 0), at(0, 0));
+
+	assert.deepEqual(sent, [], "a doubled corner made a triangle out of a line");
+});
+
+test("Ctrl-Z takes back the newest shape on the floor being viewed", () => {
+	const mine = cleared();
+	const upstairs = { ...cleared(), id: "01UPSTAIRS", layerId: CELLAR };
+	const { sent } = table([], { ...FOG_ON, fog: [mine, upstairs] });
+
+	press("z", null, { ctrlKey: true });
+
+	assert.deepEqual(sent, [{ type: "fog.remove", id: "01CLEARED" }],
+		"the undo reached across to another floor");
+});
+
+test("the fog takes no gesture while another tool is chosen", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, sent } = table([goblin], { fogEnabled: true, fogPrefill: true });
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+	assert.deepEqual(controller.selection.ids(), ["goblin"], "the select tool stopped selecting");
+});
+
+// THE FOUR CONCEALMENT GATES. A pawn under the cover is not drawn, not
+// labelled, not clickable and not swept up -- and a gate that was forgotten is
+// the failure this feature has, because the other three still look right.
+test("a player finds nothing under the cover", () => {
+	const goblin = pawn({ id: "goblin", x: 400, y: 400 });
+	const { controller } = table([goblin], {
+		role: "player", user: "01PLAYER", fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+
+	assert.equal(controller.concealed(goblin), true);
+
+	controller.tool.hover(at(400, 400));
+	assert.equal(controller.focus(), null, "a concealed pawn was labelled");
+
+	controller.tool.press(at(400, 400), at(0, 0), NONE);
+	controller.tool.release(at(400, 400), at(0, 0), NONE);
+	assert.deepEqual(controller.selection.ids(), [], "a concealed pawn was clicked");
+});
+
+test("a player's marquee does not sweep up what it cannot see", () => {
+	const mine = pawn({ id: "mine", x: 400, y: 400, ownerId: "01PLAYER" });
+	const theirs = pawn({ id: "theirs", x: 420, y: 420 });
+	const { controller } = table([mine, theirs], {
+		role: "player", user: "01PLAYER", fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+
+	controller.tool.press(at(300, 300), at(0, 0), NONE);
+	controller.tool.drag(at(500, 500), at(90, 90), NONE);
+	controller.tool.release(at(500, 500), at(90, 90), NONE);
+
+	// A PLAYER'S OWN PAWN IS NEVER CONCEALED FROM THEM. Somebody who walks into
+	// an unlit room and watches their own token vanish has been told the app is
+	// broken rather than that the room is dark.
+	assert.deepEqual(controller.selection.ids(), ["mine"]);
+});
+
+test("a pawn on the cleared part of the floor is not concealed", () => {
+	const goblin = pawn({ id: "goblin", x: 64, y: 64 });
+	const { controller } = table([goblin], {
+		role: "player", user: "01PLAYER", fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+
+	assert.equal(controller.concealed(goblin), false);
+});
+
+test("a floor whose fog is off conceals nothing", () => {
+	const goblin = pawn({ id: "goblin", x: 400, y: 400 });
+	const { controller } = table([goblin], {
+		role: "player", user: "01PLAYER", fogEnabled: false, fogPrefill: true,
+	});
+
+	assert.equal(controller.concealed(goblin), false);
+});
+
+test("the GM is concealed from nothing", () => {
+	const goblin = pawn({ id: "goblin", x: 400, y: 400 });
+	const { controller } = table([goblin], { fogEnabled: true, fogPrefill: true });
+
+	assert.equal(controller.concealed(goblin), false);
 });

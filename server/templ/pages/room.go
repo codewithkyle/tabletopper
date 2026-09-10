@@ -94,6 +94,7 @@ const (
 	DefaultRoomTool = "select"
 	RoomToolMove    = "move"
 	RoomToolMeasure = "measure"
+	RoomToolFog     = "fog"
 )
 
 // RoomPageData is the whole page, with every conversion already done. The
@@ -239,6 +240,17 @@ func (d RoomPageData) GridPath() string {
 	return "/fragment/room/grid?room=" + d.ID
 }
 
+// The Fog menu's two paths. Neither names a layer: the floor they act on is the
+// one this GM is looking at, which exists only in the browser, and it travels as
+// a form value the room bundle fills in. See RoomMenuItem.Layered.
+func (d RoomPageData) FogFillPath() string {
+	return "/rooms/" + d.ID + "/fog/fill"
+}
+
+func (d RoomPageData) FogClearPath() string {
+	return "/rooms/" + d.ID + "/fog/clear"
+}
+
 func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
@@ -348,6 +360,19 @@ type RoomMenuItem struct {
 	// error colour and sits last.
 	Danger bool
 
+	// Layered marks an item that acts on the floor the GM is LOOKING AT rather
+	// than on a fixed resource. It renders data-room-layered and an empty
+	// hx-vals, and the room bundle writes the viewed floor's id into that
+	// attribute every time the floor settles.
+	//
+	// THE FLOOR CANNOT BE IN THE PATH, which is the whole reason this field
+	// exists. htmx captures a path when it processes an element, so an
+	// attribute rewritten afterwards is ignored -- the wall the layer bar hit
+	// and answered with htmx.ajax. hx-vals is read when the request is built
+	// rather than when the element is processed, so it is the one place a
+	// changing value can live on a button that still carries hx-confirm.
+	Layered bool
+
 	Disabled bool
 }
 
@@ -378,10 +403,7 @@ func (d RoomPageData) Menus() []RoomMenu {
 	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
 
 	if d.IsGM() {
-		menus = append(menus,
-			RoomMenu{Label: "Fog", Items: comingSoon("Fill fog", "Clear fog")},
-			d.initiativeMenu(),
-		)
+		menus = append(menus, d.fogMenu(), d.initiativeMenu())
 	} else {
 		menus = append(menus, characterMenu())
 	}
@@ -583,6 +605,46 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 	}}
 }
 
+// fogMenu is the two verbs that are not a gesture on the canvas. Everything else
+// about fog is drawn with the Fog tool and travels over the socket; these two
+// are the whole floor at once, which is not a thing a hand draws.
+//
+// BOTH ACT ON THE FLOOR THIS GM IS LOOKING AT, not on the one the players are
+// standing on. Covering the first floor while the party is still in the cellar
+// is what a GM does between scenes, and a menu that quietly did it to the cellar
+// instead would be worse than no menu. That is what Layered means; see
+// RoomMenuItem.
+//
+// BOTH ARE BEHIND THE CONFIRM MODAL because both throw away every shape on the
+// floor and neither can be undone. Fill is not the gentler of the two: a GM who
+// presses it an hour into a dungeon has covered the dungeon AND forgotten every
+// room they uncovered, and the wording says exactly that rather than "are you
+// sure".
+//
+// THE PREFILL SWITCH IS NOT HERE. It is a default for the next floor rather than
+// a verb on this one, so it lives in Grid & settings with the other settings.
+func (d RoomPageData) fogMenu() RoomMenu {
+	return RoomMenu{Label: "Fog", Items: []RoomMenuItem{
+		{
+			Label:          "Fill fog",
+			Post:           d.FogFillPath(),
+			Layered:        true,
+			Confirm:        "The floor you are looking at is covered, and every area you have uncovered on it is forgotten. This cannot be undone.",
+			ConfirmHeading: "Cover this floor?",
+			ConfirmLabel:   "Fill fog",
+		},
+		{
+			Label:          "Clear fog",
+			Post:           d.FogClearPath(),
+			Layered:        true,
+			Confirm:        "The floor you are looking at is uncovered for everybody, and every area you have uncovered on it is forgotten. This cannot be undone.",
+			ConfirmHeading: "Uncover this floor?",
+			ConfirmLabel:   "Clear fog",
+			Danger:         true,
+		},
+	}}
+}
+
 // initiativeMenu is the four verbs that are not a gesture on a line of the
 // strip. Everything else about the turn order is done to the strip itself:
 // dragged into order, clicked to give somebody the turn, right-clicked to take
@@ -752,6 +814,17 @@ type RoomTool struct {
 	// the space bar does not borrow it -- see tools.ts.
 	Measures bool
 
+	// Fogs is the mode whose primary button cuts fog rather than touching the
+	// table's contents. Exactly one tool has it, and like Measures the space
+	// bar does not borrow it: a half-drawn polygon survives a shove of the map.
+	Fogs bool
+
+	// GM is a mode nobody else is offered. The template drops these from a
+	// player's pill entirely rather than disabling them, because a disabled
+	// button in a five-button pill is a permanent question with no answer --
+	// and unlike a menu heading, a pill has no room to explain itself.
+	GM bool
+
 	// Key is the letter that switches to this mode, lower case, or empty for a
 	// mode not worth reaching for yet.
 	//
@@ -771,13 +844,62 @@ type RoomTool struct {
 }
 
 // RoomTools is the five modes, in the order a hand reaches for them.
+//
+// F FOR FOG IS NOT BORROWED FROM ANYWHERE, unlike V, H and M. No drawing
+// program has a fog tool to have taught anybody a letter for one, so it is the
+// first letter of the word, which is what is left when there is no convention
+// to follow.
 func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
 		{Name: RoomToolMove, Label: "Move", Pans: true, Key: "h"},
 		{Name: RoomToolMeasure, Label: "Measure", Measures: true, Key: "m"},
-		{Name: "fog", Label: "Fog"},
+		{Name: RoomToolFog, Label: "Fog", Fogs: true, GM: true, Key: "f"},
 		{Name: "draw", Label: "Draw"},
+	}
+}
+
+// Tools is the pill this viewer gets: every mode for the GM, and the ones that
+// are not theirs alone for a player.
+func (d RoomPageData) Tools() []RoomTool {
+	all := RoomTools()
+	if d.IsGM() {
+		return all
+	}
+
+	mine := make([]RoomTool, 0, len(all))
+	for _, t := range all {
+		if !t.GM {
+			mine = append(mine, t)
+		}
+	}
+
+	return mine
+}
+
+// FogShapeChoices and FogModeChoices are the second pill: what a fog gesture
+// draws, and which way round it works.
+//
+// THEY ARE THE TOOL'S STATE AND NOT THE ROOM'S. Nothing here is sent anywhere
+// or stored anywhere -- the client keeps both and writes them into fog.add when
+// a shape is finished -- which is why they are two little lists here rather than
+// fields on the table.
+//
+// THE POLYGON'S HINT IS WHERE THE GESTURE IS EXPLAINED, because it is the one
+// gesture in this app that nothing else teaches: click a corner at a time, and
+// the right button closes the ring. Enter does the same and is not mentioned;
+// a tooltip that lists two ways to do one thing is a tooltip nobody finishes.
+func FogShapeChoices() []Choice {
+	return []Choice{
+		{Value: "rect", Label: "Rectangle", Hint: "Drag a box."},
+		{Value: "poly", Label: "Polygon", Hint: "Click each corner. Right click closes it."},
+	}
+}
+
+func FogModeChoices() []Choice {
+	return []Choice{
+		{Value: "reveal", Label: "Uncover", Hint: "Cut a hole in the fog."},
+		{Value: "hide", Label: "Cover", Hint: "Put the fog back."},
 	}
 }
 
@@ -794,6 +916,12 @@ func (t RoomTool) Pressed() string {
 func (t RoomTool) KeyLabel() string {
 	return strings.ToUpper(t.Key)
 }
+
+// emptyVals is what a Layered item's hx-vals holds until the room bundle writes
+// the viewed floor into it. It is an empty OBJECT and not an empty string
+// because htmx parses the attribute as JSON on its way to building the request,
+// and "" is not JSON.
+const emptyVals = "{}"
 
 // RoomWindow is a floating panel over the table: the player list, a monster's
 // stat block, the layer manager. It is what a menu item carries instead of a

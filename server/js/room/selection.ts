@@ -158,6 +158,7 @@ export function marqueeSelect(
 	rect: Rect,
 	role: Role,
 	user: string,
+	concealed?: (pawn: Pawn) => boolean,
 ): string[] {
 	const x1 = Math.min(rect.x1, rect.x2);
 	const x2 = Math.max(rect.x1, rect.x2);
@@ -168,6 +169,14 @@ export function marqueeSelect(
 
 	for (const pawn of pawns) {
 		if (pawn.layerId !== layerID || !mayMove(pawn, role, user)) {
+			continue;
+		}
+
+		// AND A BOX DRAGGED ACROSS THE FOG PICKS UP NOTHING UNDER IT. This one
+		// is the least visible of the four concealment gates and the most
+		// telling: a player who swept an empty-looking corridor and found four
+		// goblins in their selection has been told where the goblins are.
+		if (concealed?.(pawn)) {
 			continue;
 		}
 		if (pawn.x < x1 || pawn.x > x2 || pawn.y < y1 || pawn.y > y2) {

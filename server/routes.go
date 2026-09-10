@@ -465,6 +465,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
 	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
+	mux.HandleFunc("POST /rooms/{id}/fog/fill", auth.RequireSession(app.FillLayerFog))
+	mux.HandleFunc("POST /rooms/{id}/fog/clear", auth.RequireSession(app.ClearLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/tabletop/clear", auth.RequireSession(app.ClearTabletop))
 
 	// WHAT IS ON THE TABLE. Same rule as the layer routes above and for the
