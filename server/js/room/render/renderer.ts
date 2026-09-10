@@ -122,6 +122,16 @@ export interface Renderer {
 	// nobody was watching. See resync in decals.ts.
 	bloodResync(): void;
 
+	// showBlood is the account setting: whether this viewer's floor is marked
+	// at all. main.ts reads it off the page on load and off the settings dialog
+	// every time it is saved.
+	//
+	// TURNING IT OFF CLEANS WHAT IS ALREADY DOWN, which is decals' decision and
+	// not this one -- see show in decals.ts. What this owes it is the frame:
+	// nothing about the table changed, so nobody else is going to ask for one,
+	// and without it the floor stays bloody until the next pan.
+	showBlood(on: boolean): void;
+
 	// stress adds synthetic pawns beside the real ones, for the benchmark.
 	// Nothing about them is sent anywhere; see stress.ts.
 	stress(count: number): number;
@@ -831,6 +841,11 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 
 		bloodResync() {
 			decals.resync();
+		},
+
+		showBlood(on) {
+			decals.show(on);
+			frames.invalidate();
 		},
 
 		toScreen: (x, y, out) => worldToScreen(camera, viewport, x, y, out),

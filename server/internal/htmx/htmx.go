@@ -112,3 +112,39 @@ func Theme(w http.ResponseWriter, palette string) {
 		"theme:change": map[string]string{"palette": palette},
 	})
 }
+
+// Settings hands the page back the settings it is already obeying, after they
+// have been saved from a dialog that floated over it.
+//
+// IT IS Theme's ARGUMENT APPLIED TO THE REST OF THE FORM. The response to a save
+// swaps a fragment inside a dialog, so everything OUTSIDE that dialog is still
+// running on the answers it was rendered with -- and three of those answers are
+// being obeyed right now by something the reader is looking at. The greeting on
+// the homepage carries the old name. A tabletop is following the turn, or not
+// following it, on the strength of an attribute rendered before the reader
+// changed their mind. And it is drawing blood, or not, on the same.
+//
+// THE OTHER FOUR ARE NOT HERE AND DO NOT WANT TO BE. The zone, the date order
+// and the clock are read when a timestamp is rendered, and nothing re-renders
+// the timestamps already on the page -- that is a reload, which is the thing
+// this whole mechanism exists to avoid. The theme has its own event because it
+// is one attribute on <html> that every page carries and no component owns.
+//
+// NOBODY HAS TO BE LISTENING. This raises one event on window; a page with no
+// greeting and no tabletop hears it and does nothing, which is what let the
+// settings dialog be opened from the room's Help menu without the room growing
+// a copy of the homepage's markup to be swapped into. That copy is what this
+// replaced: an out-of-band <span id="account-name"> that only one page in the
+// app has ever had an element for.
+//
+// The detail is an object for the reason Theme's is: htmx passes an object
+// through as it stands and wraps anything else as {value: ...}.
+func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool) {
+	trigger(w, map[string]any{
+		"settings:change": map[string]any{
+			"name":       name,
+			"followTurn": followTurn,
+			"showBlood":  showBlood,
+		},
+	})
+}

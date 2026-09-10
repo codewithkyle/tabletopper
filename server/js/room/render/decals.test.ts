@@ -560,3 +560,62 @@ test("the nine splatters are addressed as the sheet numbers them", () => {
 	assert.equal(bloodSprite(9), "/images/blood/1.webp");
 	assert.equal(bloodSprite(-1), "/images/blood/9.webp");
 });
+
+// THE ACCOUNT SETTING, which is the one thing in here a person asks for by
+// name. Everything else in this file is a rule about a fight; this is a rule
+// about whether the fight is drawn in blood at all.
+test("a viewer who turned it off is not bled for", () => {
+	const decals = newDecals();
+	decals.show(false);
+
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
+
+	assert.equal(drawn(decals, 10).length, 0);
+});
+
+// SAYING SO MID-FIGHT CLEANS THE FLOOR AS WELL. "No blood please" is about the
+// four rounds already down there, not only about the fifth -- and it costs the
+// table nothing, because none of it was ever anybody else's.
+test("turning it off takes down what is already there", () => {
+	const decals = newDecals();
+
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
+	assert.ok(drawn(decals, 10).length > 0, "nothing was on the floor to take down");
+
+	decals.show(false);
+	assert.equal(drawn(decals, 10).length, 0);
+});
+
+// AND TURNING IT BACK ON DOES NOT PAY OUT THE ARREARS. The hit points are
+// recorded while it is off, so what resumes is the next blow -- not one
+// enormous mark for everything that landed while nobody was drawing it. This is
+// the same failure resync exists to prevent, arrived at from the other side.
+test("turning it back on starts from the table as it stands", () => {
+	const decals = newDecals();
+	decals.show(false);
+
+	decals.watch([pawn({ hp: 40, maxHp: 40 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 4, maxHp: 40 })], GROUND, CELL, 10);
+
+	decals.show(true);
+	assert.equal(drawn(decals, 20).length, 0, "the fight it did not draw was paid out in one blow");
+
+	decals.watch([pawn({ hp: 1, maxHp: 40 })], GROUND, CELL, 30);
+	assert.ok(drawn(decals, 30).length > 0, "the next hit after it came back did not mark");
+});
+
+// The floor goes quiet as well, which is what the frame loop reads. A viewer who
+// turned the blood off should not be paying for frames that draw nothing; see
+// settling, and frame.ts.
+test("a floor with the blood turned off has nothing left to settle", () => {
+	const decals = newDecals();
+
+	decals.watch([pawn({ hp: 7, maxHp: 7 })], GROUND, CELL, 0);
+	decals.watch([pawn({ hp: 3, maxHp: 7 })], GROUND, CELL, 10);
+	assert.ok(decals.settling(10), "a fresh mark is not settling");
+
+	decals.show(false);
+	assert.equal(decals.settling(10), false);
+});

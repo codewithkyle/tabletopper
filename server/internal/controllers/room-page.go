@@ -50,6 +50,7 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 		Version:    a.hubVersion(),
 		Debug:      a.Config.Development(),
 		FollowTurn: sess.Prefs.FollowTurn,
+		ShowBlood:  sess.Prefs.ShowBlood,
 	}))
 }
 

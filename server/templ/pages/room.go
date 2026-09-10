@@ -163,11 +163,26 @@ type RoomPageData struct {
 	// the room, so two people at one table can disagree about it.
 	//
 	// IT IS RENDERED AS A BARE ATTRIBUTE THAT IS EITHER THERE OR NOT, which is
-	// the same shape Socket uses for "do not connect": the client mounts the
-	// module when it finds the attribute and mounts nothing at all when it does
-	// not, so there is no flag to read at every turn and no half-on state. A
-	// value of "false" in an attribute would be a third thing to get wrong.
+	// the same shape Socket uses for "do not connect". A value of "false" in an
+	// attribute would be a third thing to get wrong.
+	//
+	// IT IS THE PAGE'S OPENING ANSWER AND NOT THE LAST WORD. Settings in the
+	// Help menu opens the dialog this came from, and the save arrives back as
+	// an event the client applies to the table it is sitting on -- so the
+	// attribute says how the room STARTED rather than how it is now. See
+	// helpMenu below, and htmx.Settings.
 	FollowTurn bool
+
+	// ShowBlood marks the floor where a creature is hit and pools it where one
+	// dies. Same session, same shape, same argument as FollowTurn: it is one
+	// viewer's answer about one viewer's canvas, and it can be changed from the
+	// Help menu in the middle of the fight that prompted it.
+	//
+	// TURNING IT OFF WITHHOLDS NOTHING FROM ANYBODY. Every mark is drawn by
+	// this browser out of hit points it watched change -- no event carries one
+	// and no row records one -- so this attribute reaches the renderer and
+	// stops there. See decals.ts.
+	ShowBlood bool
 }
 
 // Bundle is the room module's URL with the build on it. It is a method rather
@@ -648,15 +663,32 @@ const (
 	roomBloodAction = "clear-blood"
 )
 
-// helpMenu is the two documents every page in the app already links to, and the
-// issue report that does not exist yet.
+// helpMenu is the account's own settings, the two documents every page in the
+// app already links to, and the issue report that does not exist yet.
 //
-// BOTH OPEN IN A SECOND TAB, which is the one place in this app that is true.
-// Everywhere else these are ordinary links; here, following one would take
-// somebody out of a game that is in progress, and coming back is a navigation
-// rather than a close.
+// SETTINGS IS IN HERE BECAUSE THE ALTERNATIVE WAS THE HOMEPAGE. It is the same
+// dialog the gear at the bottom of the homepage opens -- the same fragment, the
+// same form, the same save -- and until it was on this bar the only way to reach
+// it from a table was to leave the table. Two of the settings on it govern the
+// tabletop that is running: whether the camera follows the turn, and whether the
+// floor takes blood. Somebody who wants the blood turned off wants it turned off
+// during the fight that made them want it.
+//
+// AND IT IS UNDER HELP RATHER THAN UNDER ROOM, which is the distinction the
+// whole bar is arranged on. Room, Tabletop, Fog, Initiative, Tools and View act
+// on THIS TABLE and everybody at it sees what they did. This acts on the person
+// sitting in front of the screen and nobody else can tell -- which is the same
+// thing Privacy policy and Terms of service have in common with it, and the
+// reason they are the menu it already sits in.
+//
+// THE TWO DOCUMENTS OPEN IN A SECOND TAB, which is the one place in this app
+// that is true. Everywhere else these are ordinary links; here, following one
+// would take somebody out of a game that is in progress, and coming back is a
+// navigation rather than a close. Settings does not, because it is a dialog over
+// the table and closing it puts the reader back where they were.
 func helpMenu() RoomMenu {
 	return RoomMenu{Label: "Help", Items: []RoomMenuItem{
+		{Label: "Settings", Modal: RoomModal{URL: AccountSettingsPath}},
 		{Label: "Report issue", Disabled: true},
 		{Label: "Privacy policy", Href: "/privacy", NewTab: true},
 		{Label: "Terms of service", Href: "/tos", NewTab: true},

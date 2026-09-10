@@ -1,11 +1,22 @@
 // THE CAMERA FOLLOWS THE TURN. Notice the acting line change, work out which
 // pawns that line stands for, and hand the renderer the box they fit in.
 //
-// IT IS A SETTING AND IT IS THE ACCOUNT'S, so this module is mounted only for a
-// viewer who asked for it -- see main.ts, which reads the attribute the room
-// page rendered off the session. There is no switch in here and no default: a
-// module that is not mounted is the whole of "off", which costs nothing and
-// cannot be half on.
+// IT IS A SETTING AND IT IS THE ACCOUNT'S. main.ts reads the attribute the room
+// page rendered off the session and hands it to following below.
+//
+// IT USED TO BE OFF BY NOT BEING MOUNTED, and that was better right up until the
+// setting could be changed without leaving the table. Settings in the room's
+// Help menu opens the account dialog over the tabletop, so the answer can arrive
+// mid-fight -- and a module mounted at that moment would have no idea which turn
+// it had already missed. The first initiative.updated after it woke up would
+// find `seen` empty, decide the turn had moved, and yank the camera onto a
+// creature whose go began five minutes ago.
+//
+// SO IT IS ALWAYS MOUNTED AND IT ALWAYS WATCHES. What `on` gates is the camera
+// move and nothing else: the acting line is tracked whether or not anybody
+// asked to be taken to it, which is what makes turning the setting on in the
+// middle of a round do nothing at all until the NEXT turn -- the correct amount
+// of nothing.
 //
 // IT COMPARES THE ACTIVE ID RATHER THAN REACTING TO THE EVENT, for the reason
 // the turn clock does. initiative.updated is raised by every change to the
@@ -40,6 +51,11 @@ export interface Follow {
 	// caller. It is the shape table.preview takes for the same reason: what
 	// counts as a turn moving is this module's business and not main.ts's.
 	event(event: Event): void;
+
+	// following is the account setting, set from the page on load and again
+	// whenever the settings dialog is saved over the table. See the note at the
+	// top for why this is a switch rather than a mount.
+	following(on: boolean): void;
 }
 
 export interface FollowOptions {
@@ -59,6 +75,10 @@ export function mountFollow(state: State, options: FollowOptions): Follow {
 	// whether that is news.
 	let seen: string | null = null;
 
+	// on is the setting. It starts true because that is the column's default,
+	// and main.ts says otherwise before a single event has arrived.
+	let on = true;
+
 	function event(e: Event): void {
 		if (e.type === "snapshot") {
 			seen = state.initiative.active;
@@ -77,13 +97,25 @@ export function mountFollow(state: State, options: FollowOptions): Follow {
 
 		seen = active;
 
+		// AND THE SETTING IS READ HERE, AFTER seen HAS BEEN UPDATED. Everything
+		// above this line is bookkeeping about where the fight has got to, and
+		// it is done whether or not anybody wants the camera moved -- see the
+		// note at the top of the file.
+		if (!on) {
+			return;
+		}
+
 		const box = actingBounds(state, options.viewed());
 		if (box) {
 			options.focus(box);
 		}
 	}
 
-	return { event };
+	function following(next: boolean): void {
+		on = next;
+	}
+
+	return { event, following };
 }
 
 // actingBounds is the box the acting line occupies on the floor being looked

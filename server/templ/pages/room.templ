@@ -41,6 +41,9 @@ templ roomContent(data RoomPageData) {
 				if data.FollowTurn {
 					data-follow-turn
 				}
+				if data.ShowBlood {
+					data-show-blood
+				}
 				if data.Socket != "" {
 					data-socket={ data.Socket }
 				}

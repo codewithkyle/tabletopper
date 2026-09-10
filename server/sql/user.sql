@@ -52,11 +52,12 @@ SET username = sqlc.arg(username),
     timezone = sqlc.arg(timezone),
     date_format = sqlc.arg(date_format),
     time_format = sqlc.arg(time_format),
-    follow_turn = sqlc.arg(follow_turn)
+    follow_turn = sqlc.arg(follow_turn),
+    show_blood = sqlc.arg(show_blood)
 WHERE id = sqlc.arg(id);
 
 -- name: CompleteOnboarding :exec
--- The welcome dialog answered. It writes the same six columns the settings
+-- The welcome dialog answered. It writes the same seven columns the settings
 -- dialog does and stamps the account as set up in one statement, so there is no
 -- window where the settings took and the stamp did not -- which would reopen
 -- the dialog over the answer that had just been given.
@@ -71,6 +72,7 @@ SET username = sqlc.arg(username),
     date_format = sqlc.arg(date_format),
     time_format = sqlc.arg(time_format),
     follow_turn = sqlc.arg(follow_turn),
+    show_blood = sqlc.arg(show_blood),
     onboarded_at = COALESCE(onboarded_at, NOW())
 WHERE id = sqlc.arg(id);
 

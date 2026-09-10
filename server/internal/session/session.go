@@ -154,6 +154,7 @@ func (s *Store) FromRequest(r *http.Request) (UserSession, error) {
 			string(row.DateFormat),
 			string(row.TimeFormat),
 			row.FollowTurn,
+			row.ShowBlood,
 		),
 		Onboarded: row.OnboardedAt.Valid,
 		token:     token,

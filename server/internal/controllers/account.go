@@ -17,11 +17,18 @@ import (
 // The account settings dialog and the save behind it.
 //
 // EVERYTHING ON THE DIALOG COMES OFF THE SESSION AND NEVER OUT OF THE DATABASE.
-// The session query joins users, so the display name and the four preferences
+// The session query joins users, so the display name and the six preferences
 // arrive with every request already; loading them again here would be a round
 // trip to fetch what the caller was handed on the way in. It also means the
 // dialog and the page it opens over cannot disagree, because they were both
 // rendered from the same read.
+//
+// IT IS OPENED FROM TWO PLACES NOW: the gear at the bottom of the homepage, and
+// Settings in the room's Help menu. That second one is why nothing in the reply
+// to a save is addressed to a particular page any more -- see announceSettings.
+// It is also why the two settings that govern a canvas rather than a page are
+// worth changing at all: somebody who wants the blood turned off wants it turned
+// off DURING the fight that made them want it, not at the next table.
 //
 // STORAGE USED IS THE ONE EXCEPTION, and it has to be. It is an aggregate over
 // the assets table, so there is nothing on the session that could carry it and
@@ -43,7 +50,9 @@ import (
 // repaints the page the reader is looking at now, because the response only
 // swapped a fragment inside the dialog and <html> still carries the old
 // attribute. Every page after this one is rendered with the new value by the
-// shell, from the session, with nothing running on the client.
+// shell, from the session, with nothing running on the client. The name, the
+// turn camera and the blood are applied twice for the same reason and by the
+// same argument; htmx.Settings is where it is written down.
 //
 // The dates already on the page are left as they are. Re-rendering them would
 // mean reloading, which is the thing this avoids, and unlike the theme they are
@@ -103,7 +112,7 @@ func formatBytes(n int64) string {
 	return fmt.Sprintf("%.1f %s", size, unit)
 }
 
-// SaveAccountSettings writes all six, or none of them.
+// SaveAccountSettings writes all seven, or none of them.
 //
 // EVERY PICKER IS VALIDATED AGAINST THE LIST THAT OFFERED IT, and a value that
 // is not on one is a rejection rather than a silent fallback. The read path
@@ -116,7 +125,7 @@ func formatBytes(n int64) string {
 // that is about what arrived rather than about a stale page. It is trimmed,
 // required, and bounded by its column -- see accountDisplayName.
 //
-// All six are collected before any of them is written, so a form carrying one
+// All seven are collected before any of them is written, so a form carrying one
 // bad field changes nothing. There is no partial save to explain.
 func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -140,6 +149,7 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
 		FollowTurn: updated.FollowTurn,
+		ShowBlood:  updated.ShowBlood,
 	})
 	if err != nil {
 		slog.Error("Failed to save account settings", "error", err)
@@ -176,7 +186,7 @@ func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
 }
 
-// CompleteOnboarding is the welcome dialog's Save. It writes the same six
+// CompleteOnboarding is the welcome dialog's Save. It writes the same seven
 // columns SaveAccountSettings does and stamps the account as set up, in ONE
 // statement -- two would have a window in which the settings landed and the
 // stamp did not, and the dialog would reopen over the answer just given.
@@ -202,6 +212,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		DateFormat: queries.UsersDateFormat(updated.DateFormat),
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
 		FollowTurn: updated.FollowTurn,
+		ShowBlood:  updated.ShowBlood,
 	})
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err)
@@ -241,24 +252,28 @@ func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 }
 
 // announceSettings is the reply both saves share: repaint, dismiss, say so,
-// clear the error block, and correct the greeting behind the dialog.
+// clear the error block, and hand the page behind the dialog the answers it is
+// already acting on.
 //
 // THE ERROR BLOCK IS NOT BUSYWORK -- the form targets it, so rendering it empty
-// is what clears a complaint the previous attempt left.
+// is what clears a complaint the previous attempt left. It is also the only
+// markup in this reply.
 //
-// THE GREETING IS AN OUT-OF-BAND SWAP AND THE THEME IS A HEADER, which is not
-// an inconsistency: the theme is one attribute on <html> that no component
-// owns, and the name is an element that one does. Both exist for the same
-// reason -- the response only swapped a fragment inside a dialog, and the page
-// underneath it is still showing what it was rendered with.
+// EVERYTHING ELSE IS A HEADER, and the greeting used to be the exception. It was
+// an out-of-band <span id="account-name">, which worked exactly as long as the
+// homepage was the only place either dialog could be opened from -- htmx reports
+// an out-of-band target it cannot find, so the moment a second opener existed
+// that swap was markup addressed to a page that was not there. The room's Help
+// menu is that second opener. See htmx.Settings, which says the same thing in an
+// event that a page without a greeting can simply not listen for.
 func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name string, p prefs.Preferences, message string) {
 	htmx.Theme(w, p.Theme.Palette())
+	htmx.Settings(w, name, p.FollowTurn, p.ShowBlood)
 	htmx.CloseModal(w)
 	htmx.Toast(w, message)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.PanelFormErrors(panel, nil))
-	render(w, r, pages.AccountName(name, true))
 }
 
 // accountSettingsInput reads the fields and reports what it could not accept.
@@ -302,17 +317,18 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 	}
 	p.TimeFormat = timeFormat
 
-	// THE ONE FIELD WITH NOTHING TO REJECT. An unticked box sends no value at
+	// THE TWO FIELDS WITH NOTHING TO REJECT. An unticked box sends no value at
 	// all -- that is how HTML has always posted a checkbox -- so absence is the
-	// answer rather than a missing field, and there is no list to check the
+	// answer rather than a missing field, and there is no list to check either
 	// answer against.
 	//
-	// IT IS THE REASON THE TOGGLE IS ON BOTH DIALOGS AND NOT JUST THE SETTINGS
-	// ONE. Both saves come through here, so a welcome form that did not carry
-	// the box would post nothing for it and this would read that as "off" --
-	// turning a setting that is on by default off for every new account, on the
-	// dialog that exists to welcome them.
+	// IT IS THE REASON BOTH TOGGLES ARE ON BOTH DIALOGS AND NOT JUST THE
+	// SETTINGS ONE. Both saves come through here, so a welcome form that did
+	// not carry a box would post nothing for it and this would read that as
+	// "off" -- turning a setting that is on by default off for every new
+	// account, on the dialog that exists to welcome them.
 	p.FollowTurn = r.PostFormValue("follow_turn") != ""
+	p.ShowBlood = r.PostFormValue("show_blood") != ""
 
 	return name, p, problems
 }
@@ -356,6 +372,7 @@ func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.
 		DateFormat: string(p.DateFormat),
 		TimeFormat: string(p.TimeFormat),
 		FollowTurn: p.FollowTurn,
+		ShowBlood:  p.ShowBlood,
 	}
 
 	for _, theme := range prefs.Themes() {

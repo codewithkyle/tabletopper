@@ -66,7 +66,11 @@ function fight(): State {
 }
 
 // watched mounts a follow over a state and records every box it asked for.
-function watched(state: State, viewed = GROUND): { boxes: Rect[]; send(event: Event): void } {
+function watched(state: State, viewed = GROUND): {
+	boxes: Rect[];
+	send(event: Event): void;
+	following(on: boolean): void;
+} {
 	const boxes: Rect[] = [];
 	const follow = mountFollow(state, {
 		viewed: () => viewed,
@@ -79,6 +83,9 @@ function watched(state: State, viewed = GROUND): { boxes: Rect[]; send(event: Ev
 		boxes,
 		send(event) {
 			follow.event(event);
+		},
+		following(on) {
+			follow.following(on);
 		},
 	};
 }
@@ -268,4 +275,61 @@ test("a hidden pawn is still framed", () => {
 	const box = actingBounds(state, GROUND);
 
 	assert.ok(box && box.x1 === 68, "the hidden ambusher was left out of the box");
+});
+
+// THE ACCOUNT SETTING. It is a switch on a module that is always mounted, and
+// the next three tests are the reason it is not a module that is only mounted
+// when the answer is yes.
+test("a viewer who turned it off is not taken anywhere", () => {
+	const state = fight();
+	const seen = watched(state);
+
+	seen.following(false);
+
+	state.initiative.active = "01MOBLINE";
+	seen.send(updated());
+
+	assert.equal(seen.boxes.length, 0);
+});
+
+// THE ACTING LINE IS TRACKED WHILE IT IS OFF, which is the whole of it. Turning
+// the setting on in the middle of somebody's go should do nothing until the
+// NEXT turn -- a module mounted at that moment would find nothing recorded,
+// read the turn in progress as news, and yank the camera onto a creature whose
+// go began five minutes ago.
+test("turning it on mid-turn does not chase the go already in progress", () => {
+	const state = fight();
+	const seen = watched(state);
+
+	seen.following(false);
+
+	state.initiative.active = "01MOBLINE";
+	seen.send(updated());
+
+	seen.following(true);
+
+	// A condition added, a line renamed, a drag that reordered the strip: every
+	// one of those is an initiative.updated and none of them moved the turn.
+	seen.send(updated());
+
+	assert.equal(seen.boxes.length, 0);
+});
+
+// And once it is on, the next real turn is followed like any other.
+test("the turn after it comes back is followed", () => {
+	const state = fight();
+	const seen = watched(state);
+
+	seen.following(false);
+
+	state.initiative.active = "01MOBLINE";
+	seen.send(updated());
+
+	seen.following(true);
+
+	state.initiative.active = "01HEROLINE";
+	seen.send(updated());
+
+	assert.equal(seen.boxes.length, 1);
+	assert.ok(seen.boxes[0].x1 === 968, "the camera did not frame the hero whose turn it now is");
 });

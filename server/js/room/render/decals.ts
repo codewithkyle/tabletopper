@@ -34,6 +34,13 @@
 // Somebody who joined halfway through gets a different arrangement of the marks
 // made after they arrived, which is a difference nobody at a table can perceive
 // and not worth a byte on the wire to fix.
+//
+// AND IT IS WHY A VIEWER CAN SIMPLY DECLINE IT. There is an account setting for
+// whether this is drawn at all, and because none of it was ever anybody else's,
+// turning it off is a switch in here rather than a negotiation with the room:
+// the GM goes on running the same fight, the player beside them goes on seeing
+// the same floor, and this browser stops marking. See show below, and ShowBlood
+// in internal/prefs.
 
 import type { Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
@@ -211,6 +218,25 @@ export interface Decals {
 	// the one hit of the evening that left no mark.
 	wipe(): void;
 
+	// show is the account setting, and it is the only thing in here a person
+	// asks for directly.
+	//
+	// TURNING IT OFF CLEANS THE FLOOR AS WELL AS STOPPING THE BLEEDING, because
+	// "no blood please" said in the middle of a fight is about the four rounds
+	// of it already down there, not only about the fifth. It is wipe, in other
+	// words, plus a switch -- and wipe is right rather than merely convenient:
+	// what is on these floors is this viewer's own, so dropping it costs the
+	// table nothing.
+	//
+	// WHAT A PAWN WAS LAST SEEN AT GOES ON BEING RECORDED WHILE IT IS OFF, and
+	// that is the whole reason this is a switch inside watch rather than a
+	// caller that stops calling. A browser that stopped looking would come back
+	// to hit points forty points below what it remembered the moment somebody
+	// turned it on again, and would read the whole fight it missed as one blow.
+	// That is exactly the case resync exists for; keeping the memory current is
+	// cheaper and cannot be forgotten.
+	show(on: boolean): void;
+
 	// resync forgets what every pawn's hit points were, WITHOUT dropping a drop
 	// of what is already on the floor.
 	//
@@ -226,6 +252,12 @@ export interface Decals {
 
 export function newDecals(): Decals {
 	const byLayer = new Map<string, Decal[]>();
+
+	// showing is the account setting. It starts true because that is the
+	// column's default and because a renderer built before the page has been
+	// read should bleed rather than not -- main.ts sets it from the attribute
+	// the room page rendered, and again on every save of the settings dialog.
+	let showing = true;
 
 	// seen is the hit points each pawn was last known to have, and it is what
 	// makes this a DIFFERENCE rather than a state. A pawn met for the first time
@@ -355,6 +387,15 @@ export function newDecals(): Decals {
 					continue;
 				}
 
+				// A VIEWER WHO TURNED IT OFF IS NOT BLED FOR, and the line
+				// above is why this guard is here and not at the caller: the
+				// hit points have already been recorded, so turning the
+				// setting back on mid-fight starts from the table as it stands
+				// rather than from whatever this browser last drew.
+				if (!showing) {
+					continue;
+				}
+
 				// A PAWN PLAYERS CANNOT SEE DOES NOT BLEED EITHER, and this is
 				// the GM's copy alone -- nobody else is sent it. An ambusher
 				// waiting in the dark is not on the table as far as the table is
@@ -451,6 +492,14 @@ export function newDecals(): Decals {
 
 		wipe() {
 			byLayer.clear();
+		},
+
+		show(on) {
+			showing = on;
+
+			if (!on) {
+				byLayer.clear();
+			}
 		},
 
 		resync() {

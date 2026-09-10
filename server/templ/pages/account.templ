@@ -62,14 +62,8 @@ templ AccountWelcomeFragment(data AccountSettingsData) {
 	</div>
 }
 
-templ AccountName(name string, oob bool) {
-	<span
-		id="account-name"
-		if oob {
-			hx-swap-oob="true"
-		}
-		class="mt-1 inline-block text-xl font-bold text-primary"
-	>{ name }</span>
+templ AccountName(name string) {
+	<span id="account-name" class="mt-1 inline-block text-xl font-bold text-primary">{ name }</span>
 }
 
 templ accountSettingsFields(data AccountSettingsData) {
@@ -78,23 +72,30 @@ templ accountSettingsFields(data AccountSettingsData) {
 	@zoneField(data.Zones, data.Zone)
 	@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
 	@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
-	@followTurnField(data.FollowTurn)
+	@tabletopFields(data)
 }
 
-templ followTurnField(checked bool) {
+templ tabletopFields(data AccountSettingsData) {
 	<div class="fieldset">
-		<span class="fieldset-legend">Combat camera</span>
-		<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
-			<label class="col-start-1 row-start-1 font-medium" for="follow-turn">Follow the turn</label>
-			<input
-				id="follow-turn"
-				name="follow_turn"
-				type="checkbox"
-				class="toggle col-start-2 row-start-1"
-				checked?={ checked }
-			/>
-			<p class="col-span-2 m-0 text-sm text-base-content/75">Move the tabletop to whoever is acting when the turn changes. A line that several creatures share is framed as a whole.</p>
+		<span class="fieldset-legend">Tabletop</span>
+		<div class="grid gap-4">
+			@tabletopToggle("follow-turn", "follow_turn", "Follow the turn", "Move the tabletop to whoever's turn it is.", data.FollowTurn)
+			@tabletopToggle("show-blood", "show_blood", "Show blood", "Mark the tabletop where a creature is hit with a splatter of blood, and a pool of it where one dies.", data.ShowBlood)
 		</div>
+	</div>
+}
+
+templ tabletopToggle(id string, name string, label string, description string, checked bool) {
+	<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
+		<label class="col-start-1 row-start-1 font-medium" for={ id }>{ label }</label>
+		<input
+			id={ id }
+			name={ name }
+			type="checkbox"
+			class="toggle col-start-2 row-start-1"
+			checked?={ checked }
+		/>
+		<p class="col-span-2 m-0 text-sm text-base-content/75">{ description }</p>
 	</div>
 }
 

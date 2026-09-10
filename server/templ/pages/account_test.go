@@ -42,6 +42,7 @@ func testAccountSettings() AccountSettingsData {
 		},
 		TimeFormat: "24h",
 		FollowTurn: true,
+		ShowBlood:  true,
 	}
 }
 
@@ -301,6 +302,7 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 		`name="date_format"`,
 		`name="time_format"`,
 		`name="follow_turn"`,
+		`name="show_blood"`,
 		`<optgroup label="Americas">`,
 		`<option value="dark" selected>Dark</option>`,
 		`<option value="America/Chicago" selected>Chicago</option>`,
@@ -316,40 +318,71 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 	}
 }
 
-// THE CAMERA TOGGLE OPENS ON WHAT IS STORED, exactly as the four pickers do.
-// A dialog that always drew it ticked would read as "this is on" to somebody who
-// had turned it off, and saving without touching it would turn it back on.
-func TestTheCameraToggleOpensOnWhatIsStored(t *testing.T) {
-	on := collapseWhitespace(renderSettings(t))
-	if !strings.Contains(on, `name="follow_turn" type="checkbox" class="toggle col-start-2 row-start-1" checked`) {
-		t.Errorf("a stored true did not render ticked\n%s", on)
+// BOTH TOGGLES OPEN ON WHAT IS STORED, exactly as the four pickers do. A dialog
+// that always drew one ticked would read as "this is on" to somebody who had
+// turned it off, and saving without touching it would turn it back on.
+func TestTheTableTogglesOpenOnWhatIsStored(t *testing.T) {
+	tests := []struct {
+		name  string
+		field string
+		off   func(*AccountSettingsData)
+	}{
+		{name: "the camera", field: "follow_turn", off: func(d *AccountSettingsData) { d.FollowTurn = false }},
+		{name: "the blood", field: "show_blood", off: func(d *AccountSettingsData) { d.ShowBlood = false }},
 	}
 
-	data := testAccountSettings()
-	data.FollowTurn = false
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ticked := `name="` + tc.field + `" type="checkbox" class="toggle col-start-2 row-start-1" checked`
 
-	var buf bytes.Buffer
-	if err := AccountSettingsFragment(data).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
+			on := collapseWhitespace(renderSettings(t))
+			if !strings.Contains(on, ticked) {
+				t.Errorf("a stored true did not render ticked\n%s", on)
+			}
 
-	off := collapseWhitespace(buf.String())
-	if strings.Contains(off, `name="follow_turn" type="checkbox" class="toggle col-start-2 row-start-1" checked`) {
-		t.Errorf("a stored false rendered ticked\n%s", off)
-	}
-	if !strings.Contains(off, `name="follow_turn"`) {
-		t.Errorf("the toggle is missing altogether\n%s", off)
+			data := testAccountSettings()
+			tc.off(&data)
+
+			var buf bytes.Buffer
+			if err := AccountSettingsFragment(data).Render(context.Background(), &buf); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+
+			off := collapseWhitespace(buf.String())
+			if strings.Contains(off, ticked) {
+				t.Errorf("a stored false rendered ticked\n%s", off)
+			}
+			if !strings.Contains(off, `name="`+tc.field+`"`) {
+				t.Errorf("the toggle is missing altogether\n%s", off)
+			}
+
+			// AND THE OTHER ONE IS UNTOUCHED. They are two checkboxes of the
+			// same shape a few lines apart, and a template that had crossed
+			// them would pass every assertion above.
+			for _, other := range tests {
+				if other.field == tc.field {
+					continue
+				}
+				if !strings.Contains(off, `name="`+other.field+`" type="checkbox" class="toggle col-start-2 row-start-1" checked`) {
+					t.Errorf("turning off %s also unticked %s\n%s", tc.field, other.field, off)
+				}
+			}
+		})
 	}
 }
 
-// AN UNTICKED CHECKBOX POSTS NOTHING, so the control has to be on the welcome
-// form as well or that dialog's save reads its absence as "off" -- turning a
-// setting that is on by default off for every new account. The shared-fields
+// AN UNTICKED CHECKBOX POSTS NOTHING, so both controls have to be on the welcome
+// form as well or that dialog's save reads their absence as "off" -- turning
+// settings that are on by default off for every new account. The shared-fields
 // assertion above covers the presence; this is the reason written down where
-// somebody removing it from one dialog will read it.
-func TestTheWelcomeDialogCarriesTheCameraToggle(t *testing.T) {
-	if !strings.Contains(collapseWhitespace(renderWelcome(t)), `name="follow_turn"`) {
-		t.Error("the welcome dialog would post no answer for a setting its save writes")
+// somebody removing one from a dialog will read it.
+func TestTheWelcomeDialogCarriesBothTableToggles(t *testing.T) {
+	welcome := collapseWhitespace(renderWelcome(t))
+
+	for _, field := range []string{"follow_turn", "show_blood"} {
+		if !strings.Contains(welcome, `name="`+field+`"`) {
+			t.Errorf("the welcome dialog would post no answer for %s, which its save writes", field)
+		}
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 )
 
 templ Homepage(session session.UserSession) {
-	@layouts.Base("Tabletopper", "/js/zone-detect.js") {
+	@layouts.Base("Tabletopper", "/js/zone-detect.js", "/js/account-name.js") {
 		@homepageContent(session)
 	}
 }
@@ -37,7 +37,7 @@ templ homepageContent(session session.UserSession) {
 					<p class="inline-block mr-8 text-xs font-medium">
 						Welcome
 						<br/>
-						@AccountName(session.Username, false)
+						@AccountName(session.Username)
 					</p>
 					<div class="tooltip" data-tip="Logout">
 						<form method="post" action="/logout" class="contents">
@@ -77,7 +77,7 @@ templ footer(signedIn bool) {
 				<button
 					type="button"
 					class="btn btn-ghost btn-circle"
-					data-modal-open="/fragment/account/settings"
+					data-modal-open={ AccountSettingsPath }
 				>
 					@settingsIcon()
 				</button>

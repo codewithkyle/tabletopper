@@ -212,21 +212,50 @@ if (mount) {
 			view.onFrame(overlay.place);
 		}
 
-		// AND THE CAMERA FOLLOWS THE TURN, for a reader who asked it to. The
-		// attribute is rendered by the room page out of the account settings,
-		// so somebody who turned it off mounts nothing rather than mounting
-		// something that checks a flag -- there is no half-on state to reason
-		// about, and a page with no renderer never reaches here at all.
+		// AND THE TWO ACCOUNT SETTINGS THAT ARE ABOUT A TABLE RATHER THAN A
+		// PAGE. Both are rendered onto the mount by the room page out of the
+		// session, and both are read HERE rather than by the module that obeys
+		// them, so there is one place that knows the page carries an answer at
+		// all. See RoomPageData in templ/pages/room.go.
 		//
 		// THE VIEWED FLOOR IS THE RENDERER'S, exactly as it is for the table
 		// above: a GM looking at another floor is not looking at the fight, and
 		// the follow declines rather than dragging them back to it.
-		if (mount.dataset.followTurn !== undefined) {
-			follow = mountFollow(state, {
-				viewed: () => view.view.viewed()?.id ?? state.table.activeLayer,
-				focus: (rect) => view.focus(rect),
-			});
-		}
+		follow = mountFollow(state, {
+			viewed: () => view.view.viewed()?.id ?? state.table.activeLayer,
+			focus: (rect) => view.focus(rect),
+		});
+
+		follow.following(mount.dataset.followTurn !== undefined);
+		view.showBlood(mount.dataset.showBlood !== undefined);
+
+		// AND NEITHER ANSWER IS FINAL, which is the reason both are a switch on
+		// a module that is always mounted rather than a module that is only
+		// mounted when the answer is yes. Settings in the room's Help menu
+		// opens the account dialog over the table, and the save comes back as
+		// this event -- so somebody can turn the blood off in the middle of the
+		// fight that made them want to, which is the only moment anybody ever
+		// wants to. See htmx.Settings, which raises it.
+		//
+		// ON window, for the reason theme.js gives: htmx dispatches an
+		// HX-Trigger event on the element that made the request and on document
+		// when that element has been swapped away, and window is downstream of
+		// both.
+		//
+		// THE NAME IN THE DETAIL IS NOT THIS BUNDLE'S. It is the homepage's
+		// greeting, read by public/js/account-name.js, and the room has nowhere
+		// to put it.
+		//
+		// A MISSING FIELD IS "ON" AND NOT "OFF", which is what the comparisons
+		// below are for. Both columns default to true, so an event from a
+		// server that does not send one of them yet should leave a reader with
+		// the setting they already had rather than quietly switching it off.
+		window.addEventListener("settings:change", (e) => {
+			const detail = (e as CustomEvent<{ followTurn?: boolean; showBlood?: boolean }>).detail;
+
+			follow?.following(detail?.followTurn !== false);
+			view.showBlood(detail?.showBlood !== false);
+		});
 	}
 
 	// The spawn dialog's own behaviour, and the bridge that turns a picked card

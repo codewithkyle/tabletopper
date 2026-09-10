@@ -11,7 +11,8 @@
 SELECT s.id, s.profile_image_url, s.user_id, s.character_id, s.room_id,
        s.created_at, s.refreshed_at,
        u.username, u.avatar_asset_id,
-       u.theme, u.timezone, u.date_format, u.time_format, u.follow_turn, u.onboarded_at
+       u.theme, u.timezone, u.date_format, u.time_format,
+       u.follow_turn, u.show_blood, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 WHERE s.expires_at > NOW() AND s.hash = ?;

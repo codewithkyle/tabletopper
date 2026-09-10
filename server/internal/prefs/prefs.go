@@ -1,14 +1,14 @@
 // Package prefs is the account settings a reader chooses once and every page
 // obeys: the theme it paints in, the zone, date order and clock its timestamps
-// are written in, and whether the camera at a table goes to whoever is acting.
-// It holds the tokens the database stores, the layouts they mean, and nothing
-// that talks to a database or an HTTP request.
+// are written in, whether the camera at a table goes to whoever is acting, and
+// whether that table draws blood. It holds the tokens the database stores, the
+// layouts they mean, and nothing that talks to a database or an HTTP request.
 //
-// THE LAST OF THOSE IS NOT A RENDERING AND IT BELONGS HERE ANYWAY. Four of
-// these settings decide what a page looks like and the fifth decides what a
-// canvas does, but all five are one account's answer to "how do I like this",
-// all five are read off the same join on every request, and splitting them by
-// what they happen to affect would be two packages with one shape.
+// THE LAST TWO ARE NOT RENDERINGS AND THEY BELONG HERE ANYWAY. Four of these
+// settings decide what a page looks like and two decide what a canvas does, but
+// all six are one account's answer to "how do I like this", all six are read
+// off the same join on every request, and splitting them by what they happen to
+// affect would be two packages with one shape.
 //
 // WHAT IS STORED IS INTENT AND WHAT IS RETURNED IS A RENDERING, and the gap
 // between the two is the whole point of the package. The column says "dark",
@@ -119,9 +119,10 @@ var Default = Preferences{
 	DateFormat: DateDMYText,
 	TimeFormat: Time12H,
 	FollowTurn: true,
+	ShowBlood:  true,
 }
 
-// Preferences is one reader's five settings. It is a value, copied freely, and
+// Preferences is one reader's six settings. It is a value, copied freely, and
 // carries no location pointer: Location resolves through the zone table, which
 // is already a map of loaded locations, so caching one here would only add a
 // field the zero value has to lie about.
@@ -146,6 +147,24 @@ type Preferences struct {
 	// than through New or Default has it off -- see New, which is the reason
 	// there is only one way to build one of these.
 	FollowTurn bool
+
+	// ShowBlood is whether this reader's tabletop marks the floor when
+	// somebody is hit. It is the second setting here that is about a canvas
+	// rather than a page, and it is the account's for the same reason
+	// FollowTurn is: what one person can stomach looking at for four hours is
+	// not the table's decision, and a GM running a knife fight has no business
+	// deciding it for the player beside them.
+	//
+	// NOTHING ON THE SERVER OBEYS IT, and there is nothing there that could.
+	// Every mark is drawn by one browser out of hit points it watched change --
+	// no event carries a splatter and no row records one -- so this column is
+	// read by the page that renders the tabletop and honoured entirely on the
+	// client. See the decals in server/js/room/render/decals.ts.
+	//
+	// ITS ZERO VALUE IS WRONG IN THE SAME WAY FollowTurn's IS, and for the same
+	// reason: on is the default, so a Preferences assembled field by field
+	// somewhere other than New quietly turns it off.
+	ShowBlood bool
 }
 
 // New normalises the stored columns into Preferences, falling back field by
@@ -156,7 +175,7 @@ type Preferences struct {
 //
 // The write path is the parsers below, which do report an unknown value, so
 // nothing unrecognised gets stored in the first place.
-func New(theme, timezone, dateFormat, timeFormat string, followTurn bool) Preferences {
+func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood bool) Preferences {
 	p := Default
 
 	if v, ok := ParseTheme(theme); ok {
@@ -172,12 +191,14 @@ func New(theme, timezone, dateFormat, timeFormat string, followTurn bool) Prefer
 		p.TimeFormat = v
 	}
 
-	// A BOOLEAN HAS NOTHING TO NORMALISE, which is why this is an assignment
-	// standing beside four parses. It is in here rather than set by the caller
-	// afterwards so that every Preferences in the app is built by one function:
-	// a field left to the caller is a field the second caller forgets, and the
-	// zero value of this one silently turns the setting off.
+	// A BOOLEAN HAS NOTHING TO NORMALISE, which is why these are assignments
+	// standing beside four parses. They are in here rather than set by the
+	// caller afterwards so that every Preferences in the app is built by one
+	// function: a field left to the caller is a field the second caller
+	// forgets, and the zero value of either of these silently turns the setting
+	// off.
 	p.FollowTurn = followTurn
+	p.ShowBlood = showBlood
 
 	return p
 }

@@ -294,7 +294,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 		"Initiative": {"Sync tracker", "Add entry", "Next turn", "Clear tracker"},
 		"Tools":      {"Monster Manual", "Dice tray"},
 		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Fit map", "Toggle fullscreen"},
-		"Help":       {"Report issue", "Privacy policy", "Terms of service"},
+		"Help":       {"Settings", "Report issue", "Privacy policy", "Terms of service"},
 	} {
 		got := itemLabels(t, data, heading)
 		if strings.Join(got, ",") != strings.Join(want, ",") {
@@ -483,24 +483,43 @@ func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
 	}
 }
 
-// THE FOLLOW SETTING CROSSES INTO THE BUNDLE AS AN ATTRIBUTE THAT IS THERE OR
-// IS NOT, which is the same shape data-socket uses to say "do not connect". The
-// client mounts follow.ts when it finds it and mounts nothing at all when it
-// does not, so a spelling that drifted from main.ts is a feature that is simply
-// off for everybody with nothing anywhere reporting it.
-func TestTheCameraFollowsTheTurnOnlyForAnAccountThatAskedForIt(t *testing.T) {
-	following := testRoomPage(room.RoleGM)
-	following.FollowTurn = true
-
-	if !strings.Contains(renderToString(t, roomContent(following)), "data-follow-turn") {
-		t.Error("the room page did not tell the bundle to follow the turn")
+// THE TWO TABLE SETTINGS CROSS INTO THE BUNDLE AS ATTRIBUTES THAT ARE THERE OR
+// ARE NOT, which is the same shape data-socket uses to say "do not connect".
+// main.ts reads each one once, on load, so a spelling that drifted from it is a
+// setting that is simply off for everybody with nothing anywhere reporting it.
+//
+// THE PAGE IS THE OPENING ANSWER AND NOT THE LAST WORD. Settings in the Help
+// menu can change either of these without a reload -- see htmx.Settings -- so
+// what is pinned here is where the room STARTS.
+func TestTheTableSettingsCrossAsAttributesThatAreThereOrAreNot(t *testing.T) {
+	tests := []struct {
+		name string
+		attr string
+		on   func(*RoomPageData)
+	}{
+		{name: "the camera", attr: "data-follow-turn", on: func(d *RoomPageData) { d.FollowTurn = true }},
+		{name: "the blood", attr: "data-show-blood", on: func(d *RoomPageData) { d.ShowBlood = true }},
 	}
 
-	// And off is the attribute's absence rather than a value the client would
-	// have to read and compare.
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			data := testRoomPage(room.RoleGM)
+			tc.on(&data)
+
+			if !strings.Contains(renderToString(t, roomContent(data)), tc.attr) {
+				t.Errorf("the room page did not carry %s", tc.attr)
+			}
+		})
+	}
+
+	// And off is each attribute's absence rather than a value the client would
+	// have to read and compare. The fixture answers false to both, so one
+	// render covers them.
 	off := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
-	if strings.Contains(off, "data-follow-turn") {
-		t.Errorf("an account that turned it off still got the attribute:\n%s", off)
+	for _, tc := range tests {
+		if strings.Contains(off, tc.attr) {
+			t.Errorf("an account that turned %s off still got the attribute:\n%s", tc.attr, off)
+		}
 	}
 }
 
@@ -638,6 +657,24 @@ func TestTheHelpMenuOpensTheDocumentsInASecondTab(t *testing.T) {
 	for _, path := range []string{"/privacy", "/tos"} {
 		if !strings.Contains(page, `href="`+path+`" target="_blank" rel="noopener noreferrer"`) {
 			t.Errorf("%s does not open in a second tab", path)
+		}
+	}
+}
+
+// AND SETTINGS DOES NOT LEAVE THE TABLE AT ALL, which is the whole reason it is
+// on this bar. It is the content modal on the same fragment the gear at the
+// bottom of the homepage opens -- one dialog, one form, one save -- and both
+// halves of the room can reach it, because the settings on it are the account's
+// and not the GM's to hand out.
+func TestSettingsOpensTheAccountDialogOverTheTable(t *testing.T) {
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		page := markup(t, Room(testRoomPage(role)))
+
+		if !strings.Contains(page, `data-modal-open="`+AccountSettingsPath+`"><span>Settings</span>`) {
+			t.Errorf("%s cannot open the settings dialog from the Help menu", role)
+		}
+		if strings.Contains(page, `href="`+AccountSettingsPath) {
+			t.Errorf("%s is sent to the settings dialog as a link; it is a dialog over the table", role)
 		}
 	}
 }

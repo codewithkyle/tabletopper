@@ -193,7 +193,7 @@ func TestTheZeroValueStillRenders(t *testing.T) {
 // New is the read path and never fails: a column holding something this build
 // does not know about should cost one wrong field, not a blank page.
 func TestNewFallsBackFieldByField(t *testing.T) {
-	p := New("dark", "nonsense/Nowhere", "iso", "", true)
+	p := New("dark", "nonsense/Nowhere", "iso", "", true, true)
 
 	if p.Theme != ThemeDark {
 		t.Errorf("Theme = %q, want %q", p.Theme, ThemeDark)
@@ -210,6 +210,9 @@ func TestNewFallsBackFieldByField(t *testing.T) {
 	if !p.FollowTurn {
 		t.Error("FollowTurn = false, want the stored true: a boolean has nothing to fall back to")
 	}
+	if !p.ShowBlood {
+		t.Error("ShowBlood = false, want the stored true: a boolean has nothing to fall back to")
+	}
 }
 
 // The camera setting is on for an account that has never been asked, and that
@@ -224,11 +227,40 @@ func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.FollowTurn {
 		t.Error("Default.FollowTurn = false, want true")
 	}
-	if p := New("", "", "", "", false); p.FollowTurn {
+	if p := New("", "", "", "", false, true); p.FollowTurn {
 		t.Error("New ignored a stored false")
 	}
 	if (Preferences{}).FollowTurn {
 		t.Error("the zero value has it on; the note on the field is wrong")
+	}
+}
+
+// And so is the blood, for the same three reasons and with the same trap under
+// it. The user asked for it on for everybody, the column's default is what
+// delivers that to accounts that already exist, and Preferences{} is still the
+// one way to get it wrong.
+func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
+	if !Default.ShowBlood {
+		t.Error("Default.ShowBlood = false, want true")
+	}
+	if p := New("", "", "", "", true, false); p.ShowBlood {
+		t.Error("New ignored a stored false")
+	}
+	if (Preferences{}).ShowBlood {
+		t.Error("the zero value has it on; the note on the field is wrong")
+	}
+}
+
+// The two switches are independent, which is worth a test because they are
+// adjacent booleans of the same type in one call and a transposed pair of
+// arguments would compile, pass every test above, and turn one setting into the
+// other for everybody.
+func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
+	if p := New("", "", "", "", true, false); !p.FollowTurn || p.ShowBlood {
+		t.Errorf("New(followTurn: true, showBlood: false) = %+v", p)
+	}
+	if p := New("", "", "", "", false, true); p.FollowTurn || !p.ShowBlood {
+		t.Errorf("New(followTurn: false, showBlood: true) = %+v", p)
 	}
 }
 

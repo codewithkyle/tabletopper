@@ -1,12 +1,20 @@
 package pages
 
 // The account settings dialog: the account's display name, four pickers over
-// the values in internal/prefs, and one toggle.
+// the values in internal/prefs, and two toggles.
 //
 // IT IS A DIALOG AND NOT A PAGE because there is nothing else on it. A field,
-// four selects and a Save is a question, and a question belongs in the content
-// modal beside "New Character" and "Share this entry" rather than in a route
-// with a heading, a layout and a way back.
+// four selects, two switches and a Save is a question, and a question belongs in
+// the content modal beside "New Character" and "Share this entry" rather than in
+// a route with a heading, a layout and a way back.
+//
+// AND BECAUSE A DIALOG CAN BE OPENED OVER SOMETHING. Two of the settings on it
+// govern a tabletop that is running -- whether the camera follows the turn, and
+// whether the floor takes blood -- and the moment somebody wants either changed
+// is the middle of the fight that made them want it. A page would have meant
+// leaving the table to say so. See helpMenu in room.go, which is the second
+// place this opens from, and announceSettings in internal/controllers, which is
+// what makes the answer land on the table without a reload.
 
 // accountSettingsID is the element the dialog renders into, and the target its
 // own form swaps. It is unexported for the reason journalShareID is: the id
@@ -18,12 +26,18 @@ const accountSettingsID = "account-settings"
 // handler builds the same block on a rejected save.
 const AccountSettingsPanel = "account-settings"
 
-// The welcome dialog: the same four pickers behind a different message, a
+// AccountSettingsPath is where the dialog is fetched from, and it is a constant
+// because two places open it now: the gear at the bottom of the homepage and
+// Settings in the room's Help menu. A URL spelled in two files is a URL that
+// gets moved in one of them.
+const AccountSettingsPath = "/fragment/account/settings"
+
+// The welcome dialog: the same six controls behind a different message, a
 // different pair of buttons and a different route.
 //
 // IT IS A SECOND WRAPPER AND NOT A SECOND COPY. accountSettingsFields is the
 // fields, and both dialogs call it -- a fragment is never a second copy of
-// markup, and five controls that drifted apart would be five places for the
+// markup, and six controls that drifted apart would be six places for the
 // stored value to stop being the one on screen.
 //
 // What differs is everything around them: this one explains why it is asking,
@@ -43,19 +57,19 @@ const (
 // name rather than rejecting it.
 const DisplayNameLimit = 128
 
-// AccountName, in account.templ, is the greeting on the homepage and the same
-// element the two settings saves hand back out of band, so a rename lands on
-// the page the dialog is open over.
+// AccountName, in account.templ, is the greeting on the homepage, and it is
+// rendered once by the page and never again.
 //
-// oob IS FALSE ON THE PAGE AND TRUE IN THE REPLY, and there is one component
-// rather than two because a fragment is never a second copy of markup -- two
-// spans that drifted apart would be a greeting that changed font when it was
-// renamed.
+// IT WAS SWAPPED OUT OF BAND BY THE SAVE AND IS NOT ANY MORE. That worked
+// exactly as long as the homepage was the only place either dialog could be
+// opened from, because htmx reports an out-of-band target it cannot find as an
+// error -- and the room's Help menu now opens the settings dialog too. What
+// arrives instead is an event carrying the new name, which a page with no
+// greeting is allowed to ignore; the listener is public/js/account-name.js,
+// loaded by the homepage alone because the homepage alone has the element.
 //
-// THE ONLY PLACE THAT OPENS EITHER DIALOG IS THE HOMEPAGE, which is what makes
-// the out-of-band swap safe: htmx reports an oob target it cannot find as an
-// error, so a caller from another page would write one to the console on every
-// save. If one is ever added, this element goes with it.
+// THE ID IS THEREFORE FOR THAT SCRIPT AND NOT FOR HTMX, which is the only thing
+// about this component that changed shape.
 
 // ZoneGroup is one <optgroup> of the time zone picker, and ZoneOption is one
 // city in it.
@@ -135,13 +149,22 @@ type AccountSettingsData struct {
 	TimeFormats []Option
 	TimeFormat  string
 
-	// FollowTurn is the one control on this dialog that is not about how a page
-	// is rendered: it moves the reader's camera onto whoever is acting when the
-	// turn moves at a table.
+	// FollowTurn is the first of the two controls on this dialog that are not
+	// about how a page is rendered: it moves the reader's camera onto whoever
+	// is acting when the turn moves at a table.
 	//
 	// IT IS A TOGGLE AND NOT A PICKER, so it has no list of options beside it --
-	// which is why it is a bare bool where its four neighbours are a value and
-	// the set it came from. There is no second member to offer.
+	// which is why it and ShowBlood are bare bools where their four neighbours
+	// are a value and the set it came from. There is no second member to offer.
+	//
+	// THE TWO OF THEM SHARE ONE LEGEND, AND IT IS "Tabletop". They had a
+	// heading each -- "Combat camera" and "Blood" -- which described what each
+	// switch does and told a reader nothing about how they differ from the four
+	// pickers above them. One heading does: everything under it is about the
+	// table this account is sitting at rather than about how a page is drawn,
+	// which is the only distinction on this dialog worth a heading at all. Two
+	// legends over one switch each was also two headings' worth of chrome for
+	// two lines of content. See tabletopFields.
 	//
 	// IT IS ON THE WELCOME DIALOG TOO, and that is not decoration. An unticked
 	// checkbox posts nothing at all, so a welcome form that left this control
@@ -151,6 +174,22 @@ type AccountSettingsData struct {
 	// accountSettingsFields, which is the one copy of the controls both dialogs
 	// render.
 	FollowTurn bool
+
+	// ShowBlood is the other one: whether this reader's tabletop marks the
+	// floor when a creature is hit.
+	//
+	// IT IS A TOGGLE FOR THE SAME REASON AND ON BOTH DIALOGS FOR THE SAME
+	// REASON, and the note above FollowTurn is the whole of both arguments.
+	//
+	// THE DIALOG DOES NOT SAY IT IS PRIVATE AND DOES NOT NEED TO. Turning it
+	// off changes nothing for anybody else at the table -- every mark is drawn
+	// by one browser out of hit points it watched change, so there is no
+	// splatter on the wire to suppress and nothing on the server that would
+	// know -- but that is true of every control on this dialog. It is the
+	// ACCOUNT's settings; a line explaining that one of them is the reader's
+	// own would imply the others might not be. See ShowBlood in internal/prefs
+	// for where the guarantee is actually written down.
+	ShowBlood bool
 
 	Storage string
 }

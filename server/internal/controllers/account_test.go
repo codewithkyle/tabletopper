@@ -25,6 +25,7 @@ func settingsForm() url.Values {
 		"date_format": {"iso"},
 		"time_format": {"24h"},
 		"follow_turn": {"on"},
+		"show_blood":  {"on"},
 	}
 }
 
@@ -108,7 +109,7 @@ func TestOneBadFieldStopsTheWholeSave(t *testing.T) {
 	}
 }
 
-func TestAValidSaveWritesTheSixColumnsOnce(t *testing.T) {
+func TestAValidSaveWritesTheSevenColumnsOnce(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
 	rec := saveSettings(t, db, settingsForm())
@@ -121,7 +122,7 @@ func TestAValidSaveWritesTheSixColumnsOnce(t *testing.T) {
 	}
 
 	call := db.calls[0]
-	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn"}; !equalStrings(setColumns(t, call.query), want) {
+	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood"}; !equalStrings(setColumns(t, call.query), want) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 
@@ -133,6 +134,7 @@ func TestAValidSaveWritesTheSixColumnsOnce(t *testing.T) {
 		"Europe/London",
 		queries.UsersDateFormat("iso"),
 		queries.UsersTimeFormat("24h"),
+		true,
 		true,
 		testOwnerID,
 	}
@@ -160,9 +162,9 @@ func TestASaveClosesTheDialogRepaintsAndSaysSo(t *testing.T) {
 		t.Fatalf("HX-Trigger is not JSON: %q", rec.Header().Get("HX-Trigger"))
 	}
 
-	// All three ride one header. Setting it by hand rather than through
+	// All four ride one header. Setting it by hand rather than through
 	// internal/htmx would have kept whichever was written last.
-	for _, name := range []string{"modal:close", "flash:toast", "theme:change"} {
+	for _, name := range []string{"modal:close", "flash:toast", "theme:change", "settings:change"} {
 		if _, ok := events[name]; !ok {
 			t.Errorf("no %s in %v", name, events)
 		}
@@ -350,7 +352,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 		t.Fatalf("statements run = %d, want 1", len(db.calls))
 	}
 
-	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "onboarded_at"}
+	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "onboarded_at"}
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
@@ -384,34 +386,60 @@ func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {
 }
 
 // AN UNTICKED BOX POSTS NOTHING, which is how HTML has always sent a checkbox
-// and is the one place this setting could go wrong: absence has to read as off
-// and not as "the field was missing, keep what was there".
-func TestUntickingTheCameraTogglePutsItAway(t *testing.T) {
-	db := &recordingDB{rows: 1}
-
-	form := settingsForm()
-	form.Del("follow_turn")
-	rec := saveSettings(t, db, form)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want 200\n%s", rec.Code, rec.Body.String())
+// and is the one place either of these settings could go wrong: absence has to
+// read as off and not as "the field was missing, keep what was there".
+//
+// THE TWO ARE UNTICKED SEPARATELY because they are adjacent booleans written by
+// one statement, and a reader that took the wrong form value for one of them
+// would pass a test that unticked both.
+func TestUntickingATogglePutsItAway(t *testing.T) {
+	tests := []struct {
+		name  string
+		field string
+		arg   int
+		other int
+	}{
+		// The columns are written in the statement's order: follow_turn is the
+		// fifth of the seven and show_blood the sixth. See
+		// UpdateUserPreferences.
+		{name: "the camera", field: "follow_turn", arg: 5, other: 6},
+		{name: "the blood", field: "show_blood", arg: 6, other: 5},
 	}
-	if len(db.calls) != 1 {
-		t.Fatalf("statements run = %d, want 1", len(db.calls))
-	}
 
-	// The columns are written in the statement's order and follow_turn is the
-	// fifth of the six; see UpdateUserPreferences.
-	if got := db.calls[0].args[5]; got != false {
-		t.Errorf("follow_turn = %#v, want false", got)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &recordingDB{rows: 1}
+
+			form := settingsForm()
+			form.Del(tc.field)
+			rec := saveSettings(t, db, form)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200\n%s", rec.Code, rec.Body.String())
+			}
+			if len(db.calls) != 1 {
+				t.Fatalf("statements run = %d, want 1", len(db.calls))
+			}
+
+			if got := db.calls[0].args[tc.arg]; got != false {
+				t.Errorf("%s = %#v, want false", tc.field, got)
+			}
+
+			// AND ONLY THAT ONE WENT AWAY. A reader that had crossed the two
+			// fields would put the right answer in the wrong column and this is
+			// what catches it.
+			if got := db.calls[0].args[tc.other]; got != true {
+				t.Errorf("arg %d = %#v, want the other toggle left on", tc.other, got)
+			}
+		})
 	}
 }
 
-// AND THE WELCOME DIALOG CARRIES THE SAME BOX FOR EXACTLY THAT REASON. It saves
-// through the same reader, so a welcome form that had left the control out
+// AND THE WELCOME DIALOG CARRIES BOTH BOXES FOR EXACTLY THAT REASON. It saves
+// through the same reader, so a welcome form that had left either control out
 // would post nothing for it, and this would store "off" for every account on
 // the dialog that exists to welcome them.
-func TestTheWelcomeDialogSavesTheCameraSettingToo(t *testing.T) {
+func TestTheWelcomeDialogSavesTheTableSettingsToo(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
 	welcomePost(t, db, "/account/welcome", settingsForm(),
@@ -422,6 +450,9 @@ func TestTheWelcomeDialogSavesTheCameraSettingToo(t *testing.T) {
 	}
 	if got := db.calls[0].args[5]; got != true {
 		t.Errorf("follow_turn = %#v, want true", got)
+	}
+	if got := db.calls[0].args[6]; got != true {
+		t.Errorf("show_blood = %#v, want true", got)
 	}
 }
 
@@ -503,4 +534,74 @@ func TestStorageReadsAsSomethingAPersonWouldSay(t *testing.T) {
 			t.Errorf("formatBytes(%d) = %q, want %q", c.bytes, got, c.want)
 		}
 	}
+}
+
+// THE REPLY IS ADDRESSED TO NO PARTICULAR PAGE, and that is what lets the room's
+// Help menu open this dialog at all.
+//
+// THE GREETING USED TO BE AN OUT-OF-BAND SWAP of <span id="account-name">, which
+// exists on the homepage and nowhere else. htmx reports an out-of-band target it
+// cannot find, so the moment a second page could open the dialog that swap was
+// markup sent to a page that has no slot for it. The name rides the event now,
+// and a page with no greeting simply does not listen. See htmx.Settings.
+func TestTheSaveSendsNoMarkupAddressedToTheHomepage(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	form := settingsForm()
+	form.Set("username", "Vex")
+	rec := saveSettings(t, db, form)
+
+	if body := rec.Body.String(); strings.Contains(body, "hx-swap-oob") || strings.Contains(body, `id="account-name"`) {
+		t.Errorf("the reply carries the homepage's greeting:\n%s", body)
+	}
+
+	// The error block is the whole of the body, and it is not busywork: the
+	// form targets it, so rendering it empty is what clears whatever the
+	// previous attempt complained about.
+	if !strings.Contains(rec.Body.String(), "errors-account-settings") {
+		t.Errorf("the reply does not clear the error block:\n%s", rec.Body.String())
+	}
+
+	if got := settingsChange(t, rec)["name"]; got != "Vex" {
+		t.Errorf("the new name did not reach the page: %#v", got)
+	}
+}
+
+// AND THE TWO SETTINGS THE TABLE IS ALREADY OBEYING COME BACK WITH IT, which is
+// the whole reason the dialog is reachable from a room. Somebody who wants the
+// blood turned off wants it turned off during the fight that made them want to,
+// and the reply only swapped a fragment inside a dialog -- the tabletop behind
+// it is still running on the attributes the page was rendered with.
+func TestTheSaveHandsTheTableBackTheSettingsItIsObeying(t *testing.T) {
+	db := &recordingDB{rows: 1}
+
+	form := settingsForm()
+	form.Del("show_blood")
+	rec := saveSettings(t, db, form)
+
+	change := settingsChange(t, rec)
+	if got := change["followTurn"]; got != true {
+		t.Errorf("followTurn = %#v, want true", got)
+	}
+	if got := change["showBlood"]; got != false {
+		t.Errorf("showBlood = %#v, want the false that was just saved", got)
+	}
+}
+
+// settingsChange is the one event in a save's reply that carries the settings
+// themselves, read off the header both other events also ride on.
+func settingsChange(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+
+	var events map[string]any
+	if err := json.Unmarshal([]byte(rec.Header().Get("HX-Trigger")), &events); err != nil {
+		t.Fatalf("HX-Trigger is not JSON: %q", rec.Header().Get("HX-Trigger"))
+	}
+
+	change, ok := events["settings:change"].(map[string]any)
+	if !ok {
+		t.Fatalf("settings:change detail = %#v, want an object", events["settings:change"])
+	}
+
+	return change
 }
