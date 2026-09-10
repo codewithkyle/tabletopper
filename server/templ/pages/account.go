@@ -1,5 +1,11 @@
 package pages
 
+import (
+	"strconv"
+
+	"tabletopper/internal/prefs"
+)
+
 // The account settings dialog: the account's display name, four pickers over
 // the values in internal/prefs, and two toggles.
 //
@@ -191,5 +197,51 @@ type AccountSettingsData struct {
 	// for where the guarantee is actually written down.
 	ShowBlood bool
 
+	// PingVolume is how loud a ping is on this reader's tabletop, as a
+	// percentage, and it is the first control on this dialog that is neither a
+	// list nor a box.
+	//
+	// A RANGE ALWAYS POSTS, which is why it does not need FollowTurn's warning:
+	// a slider on the form sends its position whether or not it was touched. It
+	// is on both dialogs anyway, because accountSettingsFields is the one copy
+	// of the controls and there is nothing to be gained by hiding a volume from
+	// somebody being welcomed.
+	//
+	// THE MUTE IS THE BOTTOM OF THE RANGE and there is no separate switch. "How
+	// loud" and "at all" are one question, and a dial whose left stop is silence
+	// answers both without a second control that could disagree with it -- which
+	// is exactly what a Mute item in the room's Tabletop menu turned out to be
+	// when this landed, and it was removed.
+	PingVolume int
+
 	Storage string
+}
+
+// PingVolumeMax and PingVolumeStep are the slider's range as the markup wants
+// them, read from internal/prefs rather than repeated: the same two numbers are
+// what ParsePingVolume refuses a posted value against, and a form offering a
+// position the parser rejects would be a form that cannot be saved.
+var (
+	PingVolumeMax  = strconv.Itoa(prefs.PingVolumeMax)
+	PingVolumeStep = strconv.Itoa(prefs.PingVolumeStep)
+)
+
+// PingVolumeOutputID is the element the slider writes its reading into, named
+// here because two attributes have to agree about it: the output's id and the
+// slider's data-range-output. public/js/range-output.js follows the second to
+// the first, and a pair that drifted would be a reading that silently stopped
+// moving -- which looks exactly like a slider nobody has touched.
+//
+// THE READING IS HIDDEN FROM A SCREEN READER AND THAT IS THE POINT OF SAYING SO.
+// <output> has an implicit role of status, which is a polite live region, and
+// the control it reads is a range -- which already announces its own value as it
+// moves. Left alone the pair announces every step twice, once as the slider's
+// value and once as the region changing. The number on screen is a convenience
+// for somebody who can see the thumb; it is not information anybody else is
+// missing.
+const PingVolumeOutputID = "ping-volume-value"
+
+// PingVolumeValue is this reader's position, as the markup wants it.
+func (d AccountSettingsData) PingVolumeValue() string {
+	return strconv.Itoa(d.PingVolume)
 }

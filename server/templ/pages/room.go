@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
 )
 
@@ -186,6 +187,32 @@ type RoomPageData struct {
 	// and no row records one -- so this attribute reaches the renderer and
 	// stops there. See decals.ts.
 	ShowBlood bool
+
+	// PingVolume is how loud a ping is on this viewer's tabletop, as a
+	// percentage, and zero is silence. Same session, same shape, same argument
+	// again -- one viewer's answer about one viewer's canvas, changeable from the
+	// Help menu.
+	//
+	// IT IS A NUMBER AND SO IT IS A VALUE RATHER THAN A PRESENCE, which is the
+	// one way it differs from its two neighbours. They are rendered as bare
+	// attributes and read by whether they are there at all; this carries a
+	// reading, and an ABSENT attribute has to mean full volume rather than
+	// silence -- a page from a build that did not send it must not be a page
+	// where pings stopped working. See PingVolumeAttr and ping-sound.ts.
+	//
+	// SO ITS ZERO VALUE IS SILENCE, and that is the trap on this field. The two
+	// booleans above have the same shape of problem and prefs.New is what closes
+	// it for both: every Preferences the app holds comes out of that one
+	// function, which clamps and defaults, so a room built from a session always
+	// carries a real reading. A RoomPageData assembled field by field somewhere
+	// else does not, and it renders a table where pings are inaudible with
+	// nothing on screen to say so.
+	PingVolume int
+}
+
+// PingVolumeAttr is the value the room page renders for the tabletop to read.
+func (d RoomPageData) PingVolumeAttr() string {
+	return strconv.Itoa(prefs.ClampPingVolume(d.PingVolume))
 }
 
 // Bundle is the room module's URL with the build on it. It is a method rather
@@ -330,18 +357,6 @@ type RoomMenu struct {
 type RoomMenuItem struct {
 	Label string
 	ID    string
-
-	// AltLabel is the item's other reading, for a row whose wording depends on
-	// something only the browser knows. BOTH are rendered and the room bundle
-	// shows one of them with [hidden].
-	//
-	// THE COPY STAYS IN GO, which is the whole point of the field. server/js is
-	// not a Tailwind source, so a class written there is never emitted -- but
-	// the deeper reason is that a label rewritten from TypeScript is a second
-	// place the app's words live, and the two spellings of one row drift apart
-	// the first time somebody edits the one they can find. Rendering both means
-	// there is exactly one file with the wording in it, and it is this one.
-	AltLabel string
 
 	Href   string
 	NewTab bool
@@ -589,10 +604,9 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 // refused in PawnSpawn.Authorize rather than by the absence of a button.
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	blood := RoomMenuItem{Label: "Clear blood", Action: roomBloodAction}
-	sound := RoomMenuItem{ID: roomPingSoundID, Label: "Mute pings", AltLabel: "Unmute pings"}
 
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood, sound}}
+		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood}}
 	}
 
 	return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{
@@ -612,14 +626,7 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
-
-		// THE TWO VIEWER-LOCAL LINES SIT TOGETHER, between what puts something
-		// on the table and what takes everything off it. Neither is a command
-		// to the room: one wipes marks this browser drew for itself, the other
-		// is what this device sounds like. They are the whole of a player's
-		// menu for that reason.
 		blood,
-		sound,
 		{
 			Label:          "Clear drawing",
 			Post:           d.DrawingClearPath(),
@@ -758,26 +765,6 @@ const (
 	roomViewAction  = "view"
 	roomBloodAction = "clear-blood"
 )
-
-// roomPingSoundID is the Mute pings row, and it is an id rather than a
-// data-room-action because THE WHOLE OF THAT ITEM BELONGS TO ONE BUNDLE.
-//
-// The two actions above are split across the bundle boundary and have to be:
-// public/js/room.js owns the click and render/renderer.ts owns the camera and
-// the blood, so a window event is the only way across. Nothing about muting a
-// sound is split -- the preference, the wording and the noise itself are all in
-// server/js/room/ping-sound.ts -- so the menu bar's script never needs to hear
-// about it, and giving it an action would mean inventing an event name for a
-// message with no second reader.
-//
-// It carries no action for that reason, which is also why the template renders
-// data-room-action only when there is one: public/js/room.js finds an item by
-// that attribute and would answer an empty one with a console error.
-//
-// A PLAYER GETS THIS ROW TOO. Everything else in the Tabletop menu is a command
-// to the room; this and Clear blood are the two lines that change nothing
-// anybody else can see.
-const roomPingSoundID = "room-ping-sound"
 
 // helpMenu is the account's own settings, the two documents every page in the
 // app already links to, and the issue report that does not exist yet.

@@ -48,6 +48,7 @@ templ roomContent(data RoomPageData) {
 				if data.ShowBlood {
 					data-show-blood
 				}
+				data-ping-volume={ data.PingVolumeAttr() }
 				if data.Socket != "" {
 					data-socket={ data.Socket }
 				}
@@ -198,9 +199,6 @@ templ roomBarItem(item RoomMenuItem) {
 
 templ roomBarItemLabel(item RoomMenuItem) {
 	<span>{ item.Label }</span>
-	if item.AltLabel != "" {
-		<span hidden>{ item.AltLabel }</span>
-	}
 	if item.Key != "" {
 		<kbd class="kbd kbd-xs ml-auto">{ item.Key }</kbd>
 	}

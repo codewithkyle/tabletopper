@@ -3,6 +3,7 @@ package pages
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,7 +22,8 @@ func testAccountSettings() AccountSettingsData {
 			{Value: "light", Label: "Light"},
 			{Value: "dark", Label: "Dark"},
 		},
-		Theme: "dark",
+		Theme:      "dark",
+		PingVolume: prefs.PingVolumeMax,
 		Zones: []ZoneGroup{
 			{Label: "Universal", Zones: []ZoneOption{{Value: "UTC", Label: "UTC"}}},
 			{Label: "Americas", Zones: []ZoneOption{
@@ -303,6 +305,7 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 		`name="time_format"`,
 		`name="follow_turn"`,
 		`name="show_blood"`,
+		`name="ping_volume"`,
 		`<optgroup label="Americas">`,
 		`<option value="dark" selected>Dark</option>`,
 		`<option value="America/Chicago" selected>Chicago</option>`,
@@ -371,6 +374,86 @@ func TestTheTableTogglesOpenOnWhatIsStored(t *testing.T) {
 	}
 }
 
+// THE SOUNDS SECTION IS ONE SLIDER AND THE BOTTOM OF IT IS THE MUTE. That is the
+// whole design: "how loud" and "at all" are one question, so there is no separate
+// switch beside it and no second control in the room -- one was built in the
+// Tabletop menu first and removed, because two controls over one setting are two
+// things that can disagree about it.
+func TestThePingVolumeSliderRunsFromSilentToFull(t *testing.T) {
+	markup := collapseWhitespace(renderSettings(t))
+
+	for _, want := range []string{
+		`<span class="fieldset-legend">Sounds</span>`,
+		`name="ping_volume" type="range" min="0"`,
+		`max="` + PingVolumeMax + `"`,
+		`step="` + PingVolumeStep + `"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the Sounds section is missing %s\n%s", want, markup)
+		}
+	}
+}
+
+// IT OPENS ON WHAT IS STORED, exactly as the pickers and the toggles do. A slider
+// that always drew full would read as "this is loud" to somebody who had turned
+// it down, and saving without touching it would turn it back up.
+func TestThePingVolumeSliderOpensOnWhatIsStored(t *testing.T) {
+	full := collapseWhitespace(renderSettings(t))
+	if !strings.Contains(full, `value="`+PingVolumeMax+`"`) {
+		t.Errorf("a stored full volume did not reach the slider\n%s", full)
+	}
+
+	data := testAccountSettings()
+	data.PingVolume = 30
+
+	quiet := collapseWhitespace(markup(t, AccountSettingsFragment(data)))
+	if !strings.Contains(quiet, `value="30"`) {
+		t.Errorf("a stored 30 did not reach the slider\n%s", quiet)
+	}
+}
+
+// THE READING IS LIVE AND THE PAIRING IS WHAT MAKES IT SO. The slider names the
+// element it writes into and that element carries the id, and
+// public/js/range-output.js follows the one to the other -- so a drifted pair is
+// a number that silently stops moving, which looks exactly like a slider nobody
+// has touched.
+//
+// AND THE SERVER PAINTS IT FIRST. The script writes nothing until somebody moves
+// the thumb, deliberately: the reading and the slider are rendered from one value
+// here, so a first paint in JavaScript would be a second copy of that number in a
+// second language.
+func TestThePingVolumeSliderWritesIntoItsOwnReading(t *testing.T) {
+	data := testAccountSettings()
+	data.PingVolume = 30
+
+	rendered := collapseWhitespace(markup(t, AccountSettingsFragment(data)))
+
+	if !strings.Contains(rendered, `data-range-output="`+PingVolumeOutputID+`"`) {
+		t.Errorf("the slider names no reading\n%s", rendered)
+	}
+	if !strings.Contains(rendered, `id="`+PingVolumeOutputID+`"`) {
+		t.Errorf("the reading the slider names is not on the page\n%s", rendered)
+	}
+
+	// The unit is the markup's and the number is the script's, which is why they
+	// are separate nodes: replacing the whole output would eat the per cent sign.
+	if !strings.Contains(rendered, `<span data-range-value>30</span>%`) {
+		t.Errorf("the reading did not open on the stored value\n%s", rendered)
+	}
+}
+
+// AND EVERY POSITION IT OFFERS HAS TO BE ONE THE SAVE ACCEPTS. The form's step
+// and the parser's modulus are the same two numbers read from the same place, and
+// this is what says so: a slider offering a value ParsePingVolume rejects would be
+// a dialog that cannot be saved from one of its own stops.
+func TestEveryPositionOnTheSliderCanBeSaved(t *testing.T) {
+	for v := 0; v <= prefs.PingVolumeMax; v += prefs.PingVolumeStep {
+		if got, ok := prefs.ParsePingVolume(strconv.Itoa(v)); !ok || got != v {
+			t.Errorf("the save refuses %d, which the slider offers (got %d, ok %v)", v, got, ok)
+		}
+	}
+}
+
 // AN UNTICKED CHECKBOX POSTS NOTHING, so both controls have to be on the welcome
 // form as well or that dialog's save reads their absence as "off" -- turning
 // settings that are on by default off for every new account. The shared-fields
@@ -379,7 +462,7 @@ func TestTheTableTogglesOpenOnWhatIsStored(t *testing.T) {
 func TestTheWelcomeDialogCarriesBothTableToggles(t *testing.T) {
 	welcome := collapseWhitespace(renderWelcome(t))
 
-	for _, field := range []string{"follow_turn", "show_blood"} {
+	for _, field := range []string{"follow_turn", "show_blood", "ping_volume"} {
 		if !strings.Contains(welcome, `name="`+field+`"`) {
 			t.Errorf("the welcome dialog would post no answer for %s, which its save writes", field)
 		}

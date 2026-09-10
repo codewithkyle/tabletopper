@@ -88,66 +88,57 @@ func TestEveryToolHasAnIconOfItsOwn(t *testing.T) {
 	}
 }
 
-// MUTING IS EVERY VIEWER'S, like Clear blood and unlike everything else under
-// Tabletop. Nothing about it is sent, stored on the server or visible to
-// anybody else at the table, so there is no role that should be denied it.
-func TestEverybodyGetsTheMutePingsRow(t *testing.T) {
+// AND THERE IS NO MUTE IN THE ROOM. One was built here first -- a Tabletop menu
+// row toggling a localStorage flag -- and it was removed when the volume became
+// an account setting: a slider whose bottom stop is silence already answers "at
+// all" as well as "how loud", and two controls over one setting are two things
+// that can disagree about it. See PingVolume in internal/prefs and the Sounds
+// fieldset in account.templ.
+func TestTheRoomOffersNoSecondPingControl(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
-		var found bool
-		for _, item := range menuNamed(t, testRoomPage(role), "Tabletop").Items {
-			if item.ID != roomPingSoundID {
-				continue
+		for _, menu := range testRoomPage(role).Menus() {
+			for _, item := range menu.Items {
+				if strings.Contains(strings.ToLower(item.Label), "ping") {
+					t.Errorf("the %s's %s menu offers %q", role, menu.Label, item.Label)
+				}
 			}
-			found = true
-
-			if item.Label == "" || item.AltLabel == "" {
-				t.Errorf("the %s's mute row reads %q / %q, want both", role, item.Label, item.AltLabel)
-			}
-
-			// IT CARRIES NO ACTION, and that is the design rather than an
-			// omission: public/js/room.js finds a menu item by
-			// data-room-action, and everything about this row -- the
-			// preference, the wording and the noise -- lives in one bundle.
-			// See roomPingSoundID.
-			if item.Action != "" {
-				t.Errorf("the mute row carries the action %q; it belongs to the room bundle alone", item.Action)
-			}
-		}
-
-		if !found {
-			t.Errorf("the %s's Tabletop menu has no mute row", role)
 		}
 	}
 }
 
-// AND THE MARKUP IS A CONTRACT WITH ping-sound.ts, which finds the row by id and
-// shows one of its two readings with [hidden]. A third span in there, or the two
-// swapped, and the menu would offer to unmute a sound that is playing.
-func TestTheMutePingsRowRendersBothReadingsWithTheSecondHidden(t *testing.T) {
+// THE TABLETOP READS THE SETTING OFF THE PAGE, and it is a VALUE rather than a
+// bare attribute like its two neighbours -- so an absent one has to mean full
+// volume. A page from a build that did not render it must not be a page where
+// pings went quiet.
+func TestTheRoomPageCarriesThePingVolume(t *testing.T) {
+	data := testRoomPage(room.RolePlayer)
+	data.PingVolume = 40
+
+	if got := data.PingVolumeAttr(); got != "40" {
+		t.Errorf("the page renders the volume as %q, want %q", got, "40")
+	}
+	if !strings.Contains(markup(t, Room(data)), `data-ping-volume="40"`) {
+		t.Error("the tabletop is not told how loud a ping is")
+	}
+
+	// CLAMPED ON THE WAY OUT, because the column is a byte and this is the read
+	// path: a stored 200 should render a room at full volume rather than a
+	// slider position nothing in the client would believe.
+	data.PingVolume = 400
+	if got := data.PingVolumeAttr(); got != "100" {
+		t.Errorf("a stored 400 renders as %q, want %q", got, "100")
+	}
+}
+
+// THE SETTINGS DIALOG OPENS OVER THE TABLE, from Settings in the Help menu, so
+// the room has to carry the script that makes its volume slider read out. It is
+// in the base layout rather than on the two pages that can open the dialog,
+// because a reading that stopped moving is a failure nobody would report -- the
+// number is still there and still correct until the thumb is touched.
+func TestTheRoomCarriesTheScriptTheVolumeSliderNeeds(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RolePlayer)))
 
-	open := strings.Index(page, `id="`+roomPingSoundID+`"`)
-	if open < 0 {
-		t.Fatalf("the page renders no #%s", roomPingSoundID)
-	}
-	end := strings.Index(page[open:], "</li>")
-	if end < 0 {
-		t.Fatal("the mute row never closes")
-	}
-	row := page[open : open+end]
-
-	if got := strings.Count(row, "<span"); got != 2 {
-		t.Fatalf("the mute row holds %d spans, want 2:\n%s", got, row)
-	}
-	if strings.Contains(row, "data-room-action") {
-		t.Errorf("the mute row carries data-room-action:\n%s", row)
-	}
-
-	first, second := strings.Index(row, "<span"), strings.LastIndex(row, "<span")
-	if strings.Contains(row[first:second], "hidden") {
-		t.Errorf("the mute row opens on its hidden reading:\n%s", row)
-	}
-	if !strings.Contains(row[second:], "hidden") {
-		t.Errorf("the mute row shows both readings at once:\n%s", row)
+	if !strings.Contains(page, "/js/range-output.js") {
+		t.Error("a settings dialog opened over the table would have a dead volume reading")
 	}
 }

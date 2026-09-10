@@ -1,39 +1,20 @@
-// The mute, which is the only part of the ping's noise that has rules. The blip
-// itself is four constants and an envelope; what can be WRONG is whether a
-// browser that refuses storage takes the room down with it, and whether asking
-// for quiet is still quiet after a reload.
+// The shape of the sound and the setting that scales it, which are the two
+// things here that can be wrong without anybody being able to point at why.
 //
-// EVERY ONE OF THESE IS A REAL BROWSER. A private window throws on the first
-// read; a browser set to block site data throws on the write; and both of those
-// arrive as an exception out of a getter rather than as a null.
+// IT SHIPPED AS A SINGLE BOOP. The pitch was stepped halfway through a note that
+// was already decaying exponentially from its peak, so the second note arrived at
+// 2.5 percent of peak -- scheduled, and 32 dB down. The user heard one note and
+// said so.
+//
+// SO THE TESTS ASK "DOES THE LEVEL RISE TWICE", not "are the constants these
+// numbers". Retuning the pitches, the lengths or the volume is somebody's ear's
+// business; a second note nobody can hear is a defect at any tuning.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { AudioRamp, MuteStore } from "./ping-sound.ts";
-import { BLIP, KEY, PEAK, newMute, voice } from "./ping-sound.ts";
-
-function store(initial: Record<string, string> = {}): MuteStore & { held: Record<string, string> } {
-	const held = { ...initial };
-
-	return {
-		held,
-		getItem: (key) => held[key] ?? null,
-		setItem: (key, value) => {
-			held[key] = value;
-		},
-	};
-}
-
-// AND THE SHAPE OF THE SOUND, which is the other thing here that can be wrong
-// without anybody being able to point at why. It shipped as a single boop: the
-// pitch was stepped halfway through a note that was already decaying
-// exponentially from its peak, so the second note arrived at 2.5 percent of
-// peak -- scheduled, and 32 dB down. The user heard one note and said so.
-//
-// SO THE TEST IS "DOES THE LEVEL RISE TWICE", not "are the constants these
-// numbers". Retuning the pitches, the lengths or the volume is somebody's ear's
-// business; a second note nobody can hear is a defect at any tuning.
+import type { AudioRamp } from "./ping-sound.ts";
+import { BLIP, FULL, PEAK, gainFor, voice } from "./ping-sound.ts";
 
 interface Point {
 	how: string;
@@ -46,16 +27,16 @@ function ramp(): AudioRamp & { points: Point[] } {
 
 	return {
 		points,
-		setValueAtTime: (value, at) => points.push({ how: "set", value, at }),
-		linearRampToValueAtTime: (value, at) => points.push({ how: "linear", value, at }),
-		exponentialRampToValueAtTime: (value, at) => points.push({ how: "exp", value, at }),
+		setValueAtTime: (value: number, at: number) => points.push({ how: "set", value, at }),
+		linearRampToValueAtTime: (value: number, at: number) => points.push({ how: "linear", value, at }),
+		exponentialRampToValueAtTime: (value: number, at: number) => points.push({ how: "exp", value, at }),
 	};
 }
 
-function sounded(at = 0) {
+function sounded(at = 0, peak = PEAK) {
 	const pitch = ramp();
 	const level = ramp();
-	voice(pitch, level, at);
+	voice(pitch, level, at, peak);
 
 	return { pitch: pitch.points, level: level.points };
 }
@@ -104,7 +85,7 @@ test("the only fade is the tail", () => {
 
 // AN EXPONENTIAL RAMP CANNOT REACH ZERO AND CANNOT START FROM IT: a ramp to zero
 // is silently ignored, and one from zero is invalid. Both fail as silence, which
-// is indistinguishable from a working mute.
+// is indistinguishable from a volume turned all the way down.
 test("nothing ramps exponentially to or from nothing", () => {
 	const { level } = sounded();
 
@@ -128,75 +109,58 @@ test("the sound is scheduled from now and not from zero", () => {
 	assert.equal(late.level[late.level.length - 1].at, 1234.5 + BLIP);
 });
 
-// A PING'S WHOLE JOB IS TO REACH SOMEBODY WHO IS NOT LOOKING, so a feature that
-// shipped silent would ship switched off for everybody who never finds the menu.
-test("a browser that has never been asked is not muted", () => {
-	assert.equal(newMute(store()).muted(), false);
+// THE VOLUME SCALES THE STRIKE AND NOTHING ELSE. The dip between the notes and
+// the tail after them are "as close to nothing as a ramp may get", which is a
+// property of the ramp rather than of how loud somebody wanted this -- so a
+// quieter sound is the same shape, not a shorter one.
+test("turning it down changes the level and not the shape", () => {
+	const loud = sounded(0, PEAK);
+	const soft = sounded(0, PEAK / 4);
+
+	assert.deepEqual(loud.level.map((p) => p.at), soft.level.map((p) => p.at));
+	assert.deepEqual(loud.level.map((p) => p.how), soft.level.map((p) => p.how));
+	assert.equal(Math.max(...soft.level.map((p) => p.value)), PEAK / 4);
 });
 
-test("asking for quiet is still quiet after a reload", () => {
-	const held = store();
-
-	assert.equal(newMute(held).toggle(), true);
-	assert.equal(held.held[KEY], "1");
-	assert.equal(newMute(held).muted(), true);
+// THE ENDS OF THE SLIDER ARE EXACT. Full is the level the sound was tuned at, and
+// the bottom is the mute -- a curve that merely got very close to zero would be a
+// mute you could still hear through headphones in a quiet room.
+test("the two ends of the range are exactly full and exactly silent", () => {
+	assert.equal(gainFor(FULL), PEAK);
+	assert.equal(gainFor(0), 0);
 });
 
-test("and asking again puts it back", () => {
-	const held = store({ [KEY]: "1" });
-	const mute = newMute(held);
+// SQUARED AND NOT LINEAR, because loudness is not. Halfway down is about half as
+// loud to an ear rather than "slightly less", which is what puts the middle of
+// the range in the middle of the travel.
+test("the middle of the slider is quieter than half", () => {
+	const half = gainFor(FULL / 2);
 
-	assert.equal(mute.muted(), true);
-	assert.equal(mute.toggle(), false);
-	assert.equal(mute.muted(), false);
-	assert.equal(newMute(held).muted(), false);
+	assert.ok(half < PEAK / 2, `${half} is not below half of ${PEAK}`);
+	assert.ok(half > 0);
 });
 
-// ONLY "1" IS MUTED. Anything else is a key some other build wrote, a key a
-// person typed into devtools, or a value that meant something once -- and the
-// safe reading of all three is the default.
-test("a value nobody here wrote is not a mute", () => {
-	for (const value of ["0", "", "true", "yes", "null"]) {
-		assert.equal(newMute(store({ [KEY]: value })).muted(), false, value);
+test("the volume only ever goes one way as the slider does", () => {
+	let previous = -1;
+	for (let percent = 0; percent <= FULL; percent += 5) {
+		const level = gainFor(percent);
+		assert.ok(level > previous, `${percent}% is not louder than the step below it`);
+		previous = level;
 	}
 });
 
-// A PRIVATE WINDOW THROWS ON THE READ, and a room that would not open in one
-// would be a room somebody could not join from a shared machine.
-test("a browser that refuses to be read opens unmuted", () => {
-	const angry: MuteStore = {
-		getItem() {
-			throw new Error("nope");
-		},
-		setItem() {},
-	};
-
-	assert.equal(newMute(angry).muted(), false);
+// A NUMBER FROM OUTSIDE IS CLAMPED RATHER THAN TRUSTED. It comes off an attribute
+// the page rendered and out of an event's detail, and neither is a promise.
+test("a setting outside the range is brought into it", () => {
+	assert.equal(gainFor(FULL + 40), PEAK);
+	assert.equal(gainFor(-10), 0);
 });
 
-// AND ONE THAT REFUSES THE WRITE STILL GOES QUIET. Somebody who asked for quiet
-// gets quiet; the only thing they lose is that the next reload asks again, and
-// telling them so is worse than not.
-test("a browser that refuses to be written to still mutes for the session", () => {
-	const angry: MuteStore = {
-		getItem: () => null,
-		setItem() {
-			throw new Error("nope");
-		},
-	};
-
-	const mute = newMute(angry);
-
-	assert.equal(mute.toggle(), true);
-	assert.equal(mute.muted(), true);
-});
-
-// AND A BROWSER WITH NO STORAGE AT ALL is the same case one step earlier:
-// reading the localStorage PROPERTY throws before any key is asked for.
-test("no storage at all is a working session that forgets", () => {
-	const mute = newMute(null);
-
-	assert.equal(mute.muted(), false);
-	assert.equal(mute.toggle(), true);
-	assert.equal(mute.muted(), true);
+// AND SOMETHING THAT IS NOT A NUMBER AT ALL IS FULL, NOT SILENT. A page from a
+// build that does not send the setting, or a value somebody put in devtools, must
+// still be a page where pings work: a feature that fails quiet is a feature
+// nobody reports as broken.
+test("an unreadable setting is full volume", () => {
+	assert.equal(gainFor(Number.NaN), PEAK);
+	assert.equal(gainFor(Number.POSITIVE_INFINITY), PEAK);
 });

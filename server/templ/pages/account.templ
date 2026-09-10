@@ -73,6 +73,44 @@ templ accountSettingsFields(data AccountSettingsData) {
 	@selectField("date_format", "Date format", data.DateFormats, data.DateFormat, true)
 	@selectField("time_format", "Clock", data.TimeFormats, data.TimeFormat, true)
 	@tabletopFields(data)
+	@soundFields(data)
+}
+
+templ soundFields(data AccountSettingsData) {
+	<div class="fieldset">
+		<span class="fieldset-legend">Sounds</span>
+		<div class="grid gap-1">
+			<label class="font-medium" for="ping-volume">Ping volume</label>
+			<p class="m-0 text-sm text-base-content/75">
+				How loud it is when somebody points at the tabletop. All the way down is silent.
+			</p>
+			<div class="mt-2 flex items-center gap-3">
+				<div class="min-w-0 flex-1">
+					<input
+						id="ping-volume"
+						name="ping_volume"
+						type="range"
+						min="0"
+						max={ PingVolumeMax }
+						step={ PingVolumeStep }
+						value={ data.PingVolumeValue() }
+						data-range-output={ PingVolumeOutputID }
+						class="range range-sm w-full"
+					/>
+					<div class="flex justify-between text-xs text-base-content/60">
+						<span>Silent</span>
+						<span>Full</span>
+					</div>
+				</div>
+				<output
+					id={ PingVolumeOutputID }
+					for="ping-volume"
+					aria-hidden="true"
+					class="w-12 shrink-0 text-right font-mono text-sm"
+				><span data-range-value>{ data.PingVolumeValue() }</span>%</output>
+			</div>
+		</div>
+	</div>
 }
 
 templ tabletopFields(data AccountSettingsData) {

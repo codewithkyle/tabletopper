@@ -4968,6 +4968,9 @@
     }
   }
   @layer daisyui.l1.l2 {
+    .range-sm {
+      --range-thumb-size: calc(var(--size-selector, 0.25rem) * 5);
+    }
     .range-xs {
       --range-thumb-size: calc(var(--size-selector, 0.25rem) * 4);
     }

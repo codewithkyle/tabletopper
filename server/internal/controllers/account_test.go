@@ -26,6 +26,7 @@ func settingsForm() url.Values {
 		"time_format": {"24h"},
 		"follow_turn": {"on"},
 		"show_blood":  {"on"},
+		"ping_volume": {"40"},
 	}
 }
 
@@ -109,7 +110,7 @@ func TestOneBadFieldStopsTheWholeSave(t *testing.T) {
 	}
 }
 
-func TestAValidSaveWritesTheSevenColumnsOnce(t *testing.T) {
+func TestAValidSaveWritesTheEightColumnsOnce(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
 	rec := saveSettings(t, db, settingsForm())
@@ -122,7 +123,7 @@ func TestAValidSaveWritesTheSevenColumnsOnce(t *testing.T) {
 	}
 
 	call := db.calls[0]
-	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood"}; !equalStrings(setColumns(t, call.query), want) {
+	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume"}; !equalStrings(setColumns(t, call.query), want) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 
@@ -136,6 +137,7 @@ func TestAValidSaveWritesTheSevenColumnsOnce(t *testing.T) {
 		queries.UsersTimeFormat("24h"),
 		true,
 		true,
+		uint8(40),
 		testOwnerID,
 	}
 	if len(call.args) != len(wantArgs) {
@@ -352,7 +354,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 		t.Fatalf("statements run = %d, want 1", len(db.calls))
 	}
 
-	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "onboarded_at"}
+	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume", "onboarded_at"}
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}

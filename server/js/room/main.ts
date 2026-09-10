@@ -30,7 +30,7 @@ import { announce } from "./panels.ts";
 import { fanOut, refusals, touchesPawns } from "./effects.ts";
 import { createDraw } from "./draw.ts";
 import { mountDrawTool } from "./draw-tool.ts";
-import { mountPingSound } from "./ping-sound.ts";
+import { FULL, newPingSound } from "./ping-sound.ts";
 import { createFog } from "./fog.ts";
 import { actorColor, createTable, hexColor } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
@@ -142,12 +142,17 @@ if (mount) {
 	// pill overrides it for the session.
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
 
-	// AND THE PING'S NOISE, which is not a pill and not a tool: it is the menu
-	// row that mutes it plus the blip itself. It is mounted here with the two
-	// pills because it is the same kind of thing -- a control the room page
-	// rendered and this bundle drives -- and it needs nothing either of them
-	// has.
-	const sound = mountPingSound();
+	// AND THE PING'S NOISE. It has no control of its own in the room: how loud it
+	// is an account setting, so what reaches it is a number -- once from the
+	// attribute the room page rendered, and again from the settings dialog on
+	// every save.
+	//
+	// FULL IS WHAT AN ABSENT OR UNREADABLE ATTRIBUTE MEANS, and it matters which
+	// way round: a page served by a build that does not render it yet has to be a
+	// page where pings still work. See FULL in ping-sound.ts.
+	const sound = newPingSound();
+	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);
+	sound.volume(Number.isFinite(rendered) ? rendered : FULL);
 
 	let overlay: Overlay | null = null;
 	let follow: Follow | null = null;
@@ -356,10 +361,23 @@ if (mount) {
 		// server that does not send one of them yet should leave a reader with
 		// the setting they already had rather than quietly switching it off.
 		window.addEventListener(SETTINGS_CHANGE, (e) => {
-			const detail = (e as CustomEvent<{ followTurn?: boolean; showBlood?: boolean }>).detail;
+			const detail = (e as CustomEvent<{
+				followTurn?: boolean;
+				showBlood?: boolean;
+				pingVolume?: number;
+			}>).detail;
 
 			follow?.following(detail?.followTurn !== false);
 			view.showBlood(detail?.showBlood !== false);
+
+			// THE VOLUME IS LEFT ALONE RATHER THAN DEFAULTED when it is missing,
+			// which is the same rule as the two above stated for a number: an
+			// event from a server that does not send this yet should leave the
+			// reader at the level they already had. Defaulting it would turn a
+			// mute back on every time somebody saved an unrelated setting.
+			if (typeof detail?.pingVolume === "number") {
+				sound.volume(detail.pingVolume);
+			}
 		});
 	}
 

@@ -141,12 +141,13 @@ func Theme(w http.ResponseWriter, palette string) {
 //
 // The detail is an object for the reason Theme's is: htmx passes an object
 // through as it stands and wraps anything else as {value: ...}.
-func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool) {
+func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool, pingVolume int) {
 	trigger(w, map[string]any{
 		events.SettingsChange: map[string]any{
 			"name":       name,
 			"followTurn": followTurn,
 			"showBlood":  showBlood,
+			"pingVolume": pingVolume,
 		},
 	})
 }

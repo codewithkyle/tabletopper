@@ -193,7 +193,7 @@ func TestTheZeroValueStillRenders(t *testing.T) {
 // New is the read path and never fails: a column holding something this build
 // does not know about should cost one wrong field, not a blank page.
 func TestNewFallsBackFieldByField(t *testing.T) {
-	p := New("dark", "nonsense/Nowhere", "iso", "", true, true)
+	p := New("dark", "nonsense/Nowhere", "iso", "", true, true, PingVolumeMax)
 
 	if p.Theme != ThemeDark {
 		t.Errorf("Theme = %q, want %q", p.Theme, ThemeDark)
@@ -227,7 +227,7 @@ func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.FollowTurn {
 		t.Error("Default.FollowTurn = false, want true")
 	}
-	if p := New("", "", "", "", false, true); p.FollowTurn {
+	if p := New("", "", "", "", false, true, PingVolumeMax); p.FollowTurn {
 		t.Error("New ignored a stored false")
 	}
 	if (Preferences{}).FollowTurn {
@@ -243,7 +243,7 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.ShowBlood {
 		t.Error("Default.ShowBlood = false, want true")
 	}
-	if p := New("", "", "", "", true, false); p.ShowBlood {
+	if p := New("", "", "", "", true, false, PingVolumeMax); p.ShowBlood {
 		t.Error("New ignored a stored false")
 	}
 	if (Preferences{}).ShowBlood {
@@ -256,10 +256,10 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 // arguments would compile, pass every test above, and turn one setting into the
 // other for everybody.
 func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
-	if p := New("", "", "", "", true, false); !p.FollowTurn || p.ShowBlood {
+	if p := New("", "", "", "", true, false, PingVolumeMax); !p.FollowTurn || p.ShowBlood {
 		t.Errorf("New(followTurn: true, showBlood: false) = %+v", p)
 	}
-	if p := New("", "", "", "", false, true); p.FollowTurn || !p.ShowBlood {
+	if p := New("", "", "", "", false, true, PingVolumeMax); p.FollowTurn || !p.ShowBlood {
 		t.Errorf("New(followTurn: false, showBlood: true) = %+v", p)
 	}
 }

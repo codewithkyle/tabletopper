@@ -380,18 +380,18 @@ func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 // to be five greyed lines saying "these exist and are not yours", which is a
 // wall rather than information -- there is no version of this app where a player
 // opens Grid & settings. What is left is what was always theirs: their own view
-// of their own floor, and what their own browser does about it.
+// of their own floor.
 //
-// THE RULE RATHER THAN THE LIST IS WHAT THIS PINS. Both of these change
-// something no other person at the table can see -- the blood is drawn from hit
-// points this browser watched change, and the mute is this device's -- so a
-// third line under this heading is fine if and only if it is the same kind of
-// thing. One that posted, opened a window, or wanted confirming would be a
-// command to the room wearing a preference's clothes.
+// THE RULE RATHER THAN THE LIST IS WHAT THIS PINS. What is in here changes
+// something no other person at the table can see -- the blood is drawn by this
+// browser out of hit points it watched change -- so a second line under this
+// heading is fine if and only if it is the same kind of thing. One that posted,
+// opened a window, or wanted confirming would be a command to the room wearing a
+// preference's clothes.
 func TestAPlayersTabletopMenuIsTheirsAndTouchesNothing(t *testing.T) {
 	items := menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items
 
-	want := []string{"Clear blood", "Mute pings"}
+	want := []string{"Clear blood"}
 	if !slices.Equal(labelsOf(items), want) {
 		t.Fatalf("a player's Tabletop menu is %v, want %v", labelsOf(items), want)
 	}

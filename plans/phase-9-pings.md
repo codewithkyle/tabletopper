@@ -13,8 +13,15 @@ moved. Decided: the modifier question (there is no modifier gesture, decision
 1), the name question (there is no name, decision 7), the camera question
 (nothing moves, decision 11) and the easing. Moved, each marked *Changed*
 below: the ring converges rather than expands, the sound is synthesised rather
-than a file, the mute is a menu item rather than a pill button, and there is
-no ping options pill at all.
+than a file, the sound's control is not a pill button, and there is no ping
+options pill at all.
+
+**Both checkpoints built 2026-09-10**, and two things changed at the table
+after they were. The sound shipped as a single boop -- the envelope, not the
+pitches; see decision 8 -- and the mute became a volume in the account
+settings, which supersedes decision 9 outright. Both are written up where they
+happened rather than at the top, because what is worth keeping is the argument
+that turned out to be wrong and not the fact that one did.
 
 ## Already built
 
@@ -75,9 +82,10 @@ Not built: any ping rendering, a Ping button, `pinging()`, and the sound.
   pinger's own colour, drawn over the creatures and under a player's fog cover.
 - It appears **in the same place at the same time on every screen**, including
   the pinger's, because it is drawn from the wire and never locally.
-- A ping **makes a short blip**, except your own and except one on a floor you
-  are not looking at.
-- **Tabletop > Mute pings** silences it for this browser and remembers that.
+- A ping **makes a short blip** -- two rising notes -- except your own and
+  except one on a floor you are not looking at.
+- **Settings > Sounds > Ping volume** runs it from full down to silent, and the
+  bottom of that slider is the only mute there is.
 - Nothing about a ping is stored, restored, reduced, or in a snapshot, and a
   room nobody is pinging costs one branch a frame.
 
@@ -246,7 +254,18 @@ Not built: any ping rendering, a Ping button, `pinging()`, and the sound.
 
    Instead: one lazily created `AudioContext`, one sine oscillator through one
    gain node, a two-note rise. Pitch, length and volume become constants that
-   can be changed by editing a line:
+   can be changed by editing a line.
+
+   **AND THE FIRST BUILD OF IT WAS A SINGLE BOOP, WHICH IS WORTH RECORDING
+   BECAUSE THE FREQUENCIES WERE NEVER THE PROBLEM.** The pitch was stepped to
+   the second note 45 ms into a 90 ms note whose gain was already decaying
+   exponentially from its peak -- so the second note arrived at 2.5 percent of
+   peak, 32 dB down. Scheduled, and inaudible. The fix is the envelope: hold the
+   level flat across both notes, dip to nothing between them, and decay only on
+   the tail. `voice()` is exported as a pure function over an `AudioRamp`
+   interface so the shape can be tested, and the two assertions that matter --
+   the level rises to peak twice, and the second pitch lands between a dip and a
+   rise rather than under a fade -- both fail on the original.
 
    ```ts
    const LOW = 1046.5;   // C6
@@ -263,45 +282,49 @@ Not built: any ping rendering, a Ping button, `pinging()`, and the sound.
    resume, or a viewer who has never clicked all end in silence rather than in
    an exception on the socket's fan-out.
 
-9. **The mute is a Tabletop menu item, remembered in `localStorage`, and there
-   is no ping options pill.** *Changed* on both halves.
+9. **How loud is an account setting, and the bottom of the slider is the
+   mute.** *Superseded 2026-09-10, after this was built the other way and run
+   at a table.*
 
-   **THERE IS NOTHING TO CONFIGURE ABOUT A PING**, so a pill would exist to
-   hold one mute button -- and it would be the wrong home for it, because a
-   pill is only on screen while its tool is chosen and the moment you want to
-   mute is the moment somebody **else** is pinging. That is the argument
-   against the sketch's placement and it is the same shape as the argument for
-   `Clear blood` being a menu item: what a viewer does to their own experience
-   of the table belongs where every viewer can reach it.
+   **WHAT THIS DECISION SAID FIRST, AND WHY IT WAS WRONG.** It put a
+   `Mute pings` row in the Tabletop menu backed by `localStorage`, on the
+   reasoning that a sound is about the room somebody is sitting in -- headphones,
+   a voice call, somebody asleep upstairs -- rather than about the person, and
+   that the moment you want to mute is the moment somebody **else** is pinging,
+   which rules out a pill that is only on screen while its own tool is chosen.
 
-   It sits beside `Clear blood` in the Tabletop menu, for every role, as a
-   `data-room-action` -- which means `public/js/room.js` dispatches it and the
-   room bundle hears it, the way `clear-blood` already works. That costs one
-   name in `internal/events` and its twin in `public/js/events.js`:
+   That reasoning about *placement* still holds and the room's menu was a
+   reasonable home for a switch. What it got wrong is that the setting is not a
+   switch. A ping that is too loud is not a ping you want silenced; it is a ping
+   you want quieter, and a binary control cannot say so. Once the answer is a
+   number, the argument for keeping it out of the account dies with it: a volume
+   is exactly the kind of thing somebody sets once and expects to find set on
+   their other machine, which is `ShowBlood`'s case and not the exception to it.
 
-   ```
-   PingSound = "room:ping-sound"     // Go
-   ROOM_PING_SOUND = "room:ping-sound"  // events.js
-   ```
+   So: a **Sounds** section in the settings dialog, one range from silent to
+   full, and `users.ping_volume` beside `follow_turn` and `show_blood`. The menu
+   row, its id and `RoomMenuItem.AltLabel` were removed with it -- **a slider
+   whose bottom stop is silence already answers "at all" as well as "how loud",
+   and two controls over one setting are two things that can disagree about
+   it.** There is now no ping control in the room, and a test pins that.
 
-   **THE HALF AFTER THE COLON IS CHECKED AGAINST TAILWIND** the way every other
-   event name here is: an attribute value in a `.templ` is scanned for class
-   candidates and split on `:`, so `room:table` would have emitted DaisyUI's
-   table family. `ping-sound` is not a component name and neither half of it is.
+   **THE COST IS REAL AND IT IS THE ONE THING TO WATCH.** Muting mid-session is
+   now Help > Settings, a slider and a save, rather than two clicks in the menu
+   over the table. If that turns out to bite, the answer is a room-local
+   *session* mute layered over the account's standing level -- not a second
+   control that writes the same value.
 
-   The item's label swaps between `Mute pings` and `Unmute pings`, which is
-   `Lock room`/`Unlock room`'s shape done on the client instead of the server:
-   one text node, which is all `server/js` is allowed to write.
+   The cross-bundle event this decision used to need is gone with the row. It
+   costs a migration, a seventh field on `prefs.Preferences`, a `pingVolume` on
+   `htmx.Settings`, and `data-ping-volume` on the tabletop, none of which is new
+   machinery: it is `ShowBlood`'s path with a number on it.
 
-   **IT IS THIS BROWSER'S RATHER THAN THIS ACCOUNT'S**, which is where it parts
-   company with `ShowBlood`. Blood is about content -- what a person can stand
-   to look at for four hours -- and follows them between machines. A sound is
-   about the room they are sitting in: whether they have headphones on, whether
-   they are in a voice call, whether somebody is asleep upstairs. That is a
-   fact about a device and an evening, not about a person, and it is toggled
-   mid-session rather than set once. So `localStorage`, wrapped in try and
-   catch on both sides, defaulting to **on** -- a private window opens
-   unmuted and throws nothing.
+   **THE CURVE IS SQUARED AND THE MUTE IS EXACT.** Halfway down a linear gain
+   slider is six decibels, which reads as "slightly less" and puts every setting
+   anybody would choose in the bottom third of the travel; squared is twelve,
+   which is about half as loud to an ear. Zero is zero rather than very nearly
+   zero, because it is the mute and a curve that merely approached silence would
+   be audible through headphones in a quiet room.
 
 10. **Your own ping is silent, and so is one on a floor you are not looking
     at.** Both are drawn-or-not decisions made in `main.ts`, which is the one
@@ -348,10 +371,13 @@ other.
 ### Modules
 
 - **`js/room/render/pings.ts`** (new). The pool: `add`, `build`, `settling`,
-  `clear`, and a `RingTarget` interface. No WebGL, no timer, no DOM.
-- **`js/room/ping-sound.ts`** (new). The blip and the mute: `play()`,
-  `muted()`, `toggle()`. Owns its `AudioContext` and its `localStorage` key,
-  and every entry point is wrapped.
+  and a `RingTarget` interface. No WebGL, no timer, no DOM. *As built it also
+  exports `ringAt`, a pure function of one ring's age, because that is the part
+  worth testing; `clear` was dropped, because nothing needs it.*
+- **`js/room/ping-sound.ts`** (new). The blip and the level: `play()` and
+  `volume(percent)`, plus the exported `voice()` and `gainFor()` the tests
+  drive. It owns its `AudioContext` and NOTHING ELSE -- no storage, no DOM, no
+  control of its own -- and every entry point is wrapped.
 - **`js/room/tools.ts`**. `pinging()`, read off `data-room-tool-pings`, false
   on a page with no such button.
 - **`js/room/pawns.ts`**. A `pinging: () => boolean` dep and the four lines in
@@ -370,17 +396,32 @@ other.
   },
   ```
 
-- **`js/room/ping-menu.ts`** or a dozen lines in `main.ts`: the
-  `ROOM_PING_SOUND` listener that flips the mute and rewrites the item's label,
-  plus the label's first paint at mount.
-- **`public/js/room.js`**. One `case "ping-sound":` in `run`.
+  *As built this is a `pinged` callback handed to `start()`, because the two
+  silences need the viewer's id and the viewed floor and `start()` holds
+  neither.* It also reads `data-ping-volume` at mount and applies `pingVolume`
+  from every `settings:change`.
+
+### Server, for the volume
+
+Decision 9's supersession is the only server work in the phase and it is
+`ShowBlood`'s path with a number on it: a `ping_volume` column, a seventh field
+on `prefs.Preferences` with a forgiving `ClampPingVolume` for the read path and
+a strict `ParsePingVolume` for the write path, `pingVolume` on `htmx.Settings`,
+`data-ping-volume` on the tabletop, and a **Sounds** fieldset holding one range.
+
+The fixtures that had to learn the column are worth naming, because three of
+them fail in ways that do not mention it: `middleware/session_db_test.go`'s
+fake driver (whose own comment predicts exactly this), `controllers/
+account_test.go`'s `settingsForm` and its two column-list assertions, and
+`templ/pages`'s `testRoomPage` -- which needs the field set at all, because
+**this one's zero value is silence.**
 
 ### Templates
 
 - `templ/pages/room.go`: `RoomToolPing = "ping"`, `RoomTool.Pings`, the sixth
   entry in `RoomTools()` (`{Name: RoomToolPing, Label: "Ping", Pings: true,
-  Key: "p"}`, no `GM`), `roomPingSoundAction`, `roomPingSoundID`, and the
-  `Mute pings` item in the Tabletop menu for every role.
+  Key: "p"}`, no `GM`), and `PingVolume` with its `PingVolumeAttr()`.
+- `templ/pages/account.templ`: the **Sounds** fieldset and its range.
 - `templ/pages/room.templ`: `data-room-tool-pings?={ t.Pings }` beside the
   other four, and a `case RoomToolPing` in `roomToolIcon`.
 - `templ/pages/icons.templ`: `pingIcon` -- concentric arcs closing on a dot.
@@ -435,33 +476,44 @@ draws.
   **rounded** map point, on the **viewed** layer, and claims the press; the
   same press moves no pawn, selects nothing and clears nothing; a drag and a
   release after it send nothing more; with ping mode off no `ping` is sent.
-- `tools.test.ts` gains: `pinging()` is true only when the button carrying
-  `data-room-tool-pings` is the chosen one, false while the space bar borrows
-  the pointer, and false on a pill with no ping button.
-- `ping-sound.test.ts`: muted by default false; `toggle` flips and persists;
-  a `localStorage` that throws on read leaves it unmuted, and one that throws
-  on write leaves the session muted without an exception.
+- `tools.test.ts` gains nothing, *as built*: node has no DOM and that file says
+  so, so `pinging()` is verified by a headless probe against the real dumped
+  room page -- including that the space bar borrows the pointer without
+  unchoosing Ping.
+- `ping-sound.test.ts`: the level rises to peak once per note; the second pitch
+  lands between a dip and a rise rather than under a fade; the only fade is the
+  tail; nothing ramps exponentially to or from nothing; turning it down changes
+  the level and not the shape; both ends of the slider are exact; the middle is
+  quieter than half; an out-of-range setting is clamped and an unreadable one is
+  FULL rather than silent.
 
 **Go**
 
 - Nothing in `internal/room`. Say so in the review: `Ping` is covered by
   `authorize_test.go`, `layer_test.go`, `validate_test.go`, `reduce_test.go`
   and `scenario_test.go`, all of which pass today.
-- `internal/events`: `TestTheBrowserAgreesOnEveryEventName` covers the new
-  name with no new test, and fails if either half is added without the other.
-- Template tests: exactly one tool carries `data-room-tool-pings`; the Ping
-  tool renders for a player as well as a GM and carries `data-room-tool-key`
-  `p`; `Mute pings` renders in the Tabletop menu for both roles and carries
-  `data-room-action`. These are `room-draw_test.go`'s three tests with a
-  different attribute in them.
+- `internal/events` needs nothing, *as built*: decision 9's supersession took
+  the cross-bundle event with it.
+- Template tests: exactly one tool carries `data-room-tool-pings`; the Ping tool
+  renders for a player as well as a GM and answers to `p`; every tool draws a
+  different icon -- which is not a nicety, because `roomToolIcon` has a DEFAULT
+  case and a tool whose case is forgotten renders as a second Select button with
+  nothing in the build to say so. Plus, for the volume: the room offers no ping
+  control at all, the page carries `data-ping-volume` and clamps it, the Sounds
+  slider opens on what is stored, and **every position the slider offers is one
+  `ParsePingVolume` accepts** -- a form that cannot be saved from one of its own
+  stops is the failure that pins the step and the modulus together.
 
 ## Out of scope
 
 A camera pull, and an edge indicator for a ping off screen (decision 11).
 Telling a GM on another floor that somebody pointed (decision 10). Naming the
 pinger on the table, and the letters in the glyph atlas that would take
-(decision 7). A ping pinned to a pawn, so that it follows the goblin rather
-than the square. A ping that persists until dismissed -- that is drawing, and
+(decision 7). A room-local session mute layered over the account's standing
+level, which is the answer if reaching the settings dialog mid-session turns
+out to bite (decision 9). A ping pinned to a pawn, so that it follows the
+goblin rather than the square. A ping that persists until dismissed -- that is
+drawing, and
 drawing is `plans/phase-8-drawing.md`. A per-player mute enforced by the
 server, which would be the room deciding what one person hears. A ping in the
 initiative flow, and any sound for anything other than a ping.

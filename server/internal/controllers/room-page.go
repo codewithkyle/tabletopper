@@ -51,6 +51,7 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 		Debug:      a.Config.Development(),
 		FollowTurn: sess.Prefs.FollowTurn,
 		ShowBlood:  sess.Prefs.ShowBlood,
+		PingVolume: sess.Prefs.PingVolume,
 	}))
 }
 

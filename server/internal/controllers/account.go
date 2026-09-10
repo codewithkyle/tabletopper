@@ -150,6 +150,7 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
 		FollowTurn: updated.FollowTurn,
 		ShowBlood:  updated.ShowBlood,
+		PingVolume: uint8(updated.PingVolume),
 	})
 	if err != nil {
 		slog.Error("Failed to save account settings", "error", err)
@@ -213,6 +214,7 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
 		FollowTurn: updated.FollowTurn,
 		ShowBlood:  updated.ShowBlood,
+		PingVolume: uint8(updated.PingVolume),
 	})
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err)
@@ -268,7 +270,7 @@ func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 // event that a page without a greeting can simply not listen for.
 func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name string, p prefs.Preferences, message string) {
 	htmx.Theme(w, p.Theme.Palette())
-	htmx.Settings(w, name, p.FollowTurn, p.ShowBlood)
+	htmx.Settings(w, name, p.FollowTurn, p.ShowBlood, p.PingVolume)
 	htmx.CloseModal(w)
 	htmx.Toast(w, message)
 
@@ -330,6 +332,18 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 	p.FollowTurn = r.PostFormValue("follow_turn") != ""
 	p.ShowBlood = r.PostFormValue("show_blood") != ""
 
+	// AND THE ONE FIELD THAT IS NEITHER A LIST NOR A BOX. A range input always
+	// posts a value when it is on the form, so this is checked rather than
+	// assumed -- but an ABSENT field is the default rather than a refusal, for
+	// the reason above: a dialog that does not carry the slider would otherwise
+	// post nothing and mute a setting nobody was asked about. See
+	// prefs.ParsePingVolume.
+	pingVolume, ok := prefs.ParsePingVolume(r.PostFormValue("ping_volume"))
+	if !ok {
+		problems = append(problems, "Choose one of the offered ping volumes.")
+	}
+	p.PingVolume = pingVolume
+
 	return name, p, problems
 }
 
@@ -373,6 +387,7 @@ func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.
 		TimeFormat: string(p.TimeFormat),
 		FollowTurn: p.FollowTurn,
 		ShowBlood:  p.ShowBlood,
+		PingVolume: p.PingVolume,
 	}
 
 	for _, theme := range prefs.Themes() {

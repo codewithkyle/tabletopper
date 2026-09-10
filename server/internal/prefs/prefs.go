@@ -1,14 +1,15 @@
 // Package prefs is the account settings a reader chooses once and every page
 // obeys: the theme it paints in, the zone, date order and clock its timestamps
-// are written in, whether the camera at a table goes to whoever is acting, and
-// whether that table draws blood. It holds the tokens the database stores, the
-// layouts they mean, and nothing that talks to a database or an HTTP request.
+// are written in, whether the camera at a table goes to whoever is acting,
+// whether that table draws blood, and how loud it is. It holds the tokens the
+// database stores, the layouts they mean, and nothing that talks to a database
+// or an HTTP request.
 //
-// THE LAST TWO ARE NOT RENDERINGS AND THEY BELONG HERE ANYWAY. Four of these
-// settings decide what a page looks like and two decide what a canvas does, but
-// all six are one account's answer to "how do I like this", all six are read
-// off the same join on every request, and splitting them by what they happen to
-// affect would be two packages with one shape.
+// THE LAST THREE ARE NOT RENDERINGS AND THEY BELONG HERE ANYWAY. Four of these
+// settings decide what a page looks like and three decide what a canvas does,
+// but all seven are one account's answer to "how do I like this", all seven are
+// read off the same join on every request, and splitting them by what they
+// happen to affect would be two packages with one shape.
 //
 // WHAT IS STORED IS INTENT AND WHAT IS RETURNED IS A RENDERING, and the gap
 // between the two is the whole point of the package. The column says "dark",
@@ -19,6 +20,7 @@
 package prefs
 
 import (
+	"strconv"
 	"time"
 
 	// The zone database, compiled into the binary.
@@ -120,9 +122,26 @@ var Default = Preferences{
 	TimeFormat: Time12H,
 	FollowTurn: true,
 	ShowBlood:  true,
+	PingVolume: PingVolumeMax,
 }
 
-// Preferences is one reader's six settings. It is a value, copied freely, and
+// PingVolumeMax is full volume and PingVolumeStep is how coarsely the slider
+// moves, both as percentages of the sound's own level.
+//
+// THE BOTTOM OF THE RANGE IS THE MUTE, which is why there is no separate switch
+// beside it. "How loud" and "at all" are one question with one answer, and a dial
+// whose left stop is silence says so without a second control that can disagree
+// with it.
+//
+// TEN STEPS RATHER THAN A HUNDRED. A percentage of a sound that is already quiet
+// does not have a hundred distinguishable positions, and eleven stops means the
+// mute is a stop somebody lands on rather than a pixel they have to find.
+const (
+	PingVolumeMax  = 100
+	PingVolumeStep = 10
+)
+
+// Preferences is one reader's seven settings. It is a value, copied freely, and
 // carries no location pointer: Location resolves through the zone table, which
 // is already a map of loaded locations, so caching one here would only add a
 // field the zero value has to lie about.
@@ -165,6 +184,23 @@ type Preferences struct {
 	// reason: on is the default, so a Preferences assembled field by field
 	// somewhere other than New quietly turns it off.
 	ShowBlood bool
+
+	// PingVolume is how loud a ping is on this reader's tabletop, as a
+	// percentage of the sound's own level, and zero is silence.
+	//
+	// IT IS THE THIRD SETTING HERE ABOUT A CANVAS RATHER THAN A PAGE and it is
+	// the account's for FollowTurn's reason: a GM does not get to decide how
+	// much noise comes out of somebody else's laptop.
+	//
+	// NOTHING ON THE SERVER OBEYS IT AND THERE IS NOTHING THERE THAT COULD. A
+	// ping is one transient event carrying a point and a person; the noise is
+	// synthesised by the browser that receives it, so no event and no row knows
+	// a sound happened. See server/js/room/ping-sound.ts.
+	//
+	// ITS ZERO VALUE IS WRONG IN THE SAME WAY THE TWO BOOLEANS ABOVE ARE, and
+	// worse: a Preferences assembled field by field somewhere other than New is
+	// not merely quieter, it is silent.
+	PingVolume int
 }
 
 // New normalises the stored columns into Preferences, falling back field by
@@ -175,7 +211,7 @@ type Preferences struct {
 //
 // The write path is the parsers below, which do report an unknown value, so
 // nothing unrecognised gets stored in the first place.
-func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood bool) Preferences {
+func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood bool, pingVolume int) Preferences {
 	p := Default
 
 	if v, ok := ParseTheme(theme); ok {
@@ -200,7 +236,28 @@ func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood b
 	p.FollowTurn = followTurn
 	p.ShowBlood = showBlood
 
+	// AND THE VOLUME IS CLAMPED RATHER THAN REJECTED, which is this function's
+	// contract: it is the read path, so a column this build does not like should
+	// render a slightly wrong page rather than refuse to render one. A byte
+	// holding 120 is a slider at full; a negative one cannot reach here through
+	// the database and is silence if it ever does.
+	p.PingVolume = ClampPingVolume(pingVolume)
+
 	return p
+}
+
+// ClampPingVolume brings a number into range. It is exported because the room
+// page reads the stored value straight onto the tabletop and wants the same
+// answer New would have given.
+func ClampPingVolume(v int) int {
+	if v < 0 {
+		return 0
+	}
+	if v > PingVolumeMax {
+		return PingVolumeMax
+	}
+
+	return v
 }
 
 // Themes, DateFormats and TimeFormats are the members in the order the settings
@@ -244,6 +301,31 @@ func ParseTimeFormat(s string) (TimeFormat, bool) {
 		}
 	}
 	return Default.TimeFormat, false
+}
+
+// ParsePingVolume reads the slider's posted value, reporting whether it was one
+// of the positions the form offers.
+//
+// IT IS STRICTER THAN ClampPingVolume ON PURPOSE, and the split is the one the
+// three parsers above already draw: this is the WRITE path, where a value that
+// is not a position the page rendered means a stale page or a hand-made request
+// and is worth saying so about. The read path clamps, because by then the number
+// is already stored and refusing to draw the room over it helps nobody.
+//
+// AN EMPTY STRING IS THE DEFAULT AND NOT A REFUSAL. A dialog that does not carry
+// this field posts nothing for it, and reading that as zero would mute a setting
+// nobody was asked about -- which is the trap the two checkboxes above document.
+func ParsePingVolume(s string) (int, bool) {
+	if s == "" {
+		return Default.PingVolume, true
+	}
+
+	v, err := strconv.Atoi(s)
+	if err != nil || v < 0 || v > PingVolumeMax || v%PingVolumeStep != 0 {
+		return Default.PingVolume, false
+	}
+
+	return v, true
 }
 
 // Layout is the Go reference-time layout for a date on its own. It is exported

@@ -42,14 +42,17 @@ func TestTriggerMergesWithAnExistingHeader(t *testing.T) {
 // THE SETTINGS EVENT IS WHAT REPLACED AN OUT-OF-BAND SWAP, so the shape of it
 // is the contract with two listeners that cannot see this file:
 // public/js/account-name.js reads the name, and server/js/room/main.ts reads the
-// two booleans. A renamed field is a setting that silently stops applying.
+// two booleans and the volume. A renamed field is a setting that silently stops
+// applying.
 //
-// THE BOOLEANS ARE BOOLEANS AND NOT STRINGS, which is the one thing a
-// map[string]any could get wrong here: the room reads `detail.showBlood !==
-// false`, and the string "false" is not false.
+// EVERY VALUE KEEPS ITS OWN TYPE, which is the one thing a map[string]any could
+// get wrong here: the room reads `detail.showBlood !== false`, and the string
+// "false" is not false; it reads `typeof detail.pingVolume === "number"`, and
+// the string "0" is not a number -- so a volume sent as a string would leave
+// every reader at whatever they had.
 func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 	rec := httptest.NewRecorder()
-	Settings(rec, `Say "hi"`, true, false)
+	Settings(rec, `Say "hi"`, true, false, 40)
 
 	var events map[string]map[string]any
 	if err := json.Unmarshal([]byte(rec.Header().Get("HX-Trigger")), &events); err != nil {
@@ -69,6 +72,13 @@ func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 	if got := detail["showBlood"]; got != false {
 		t.Errorf("showBlood = %#v, want the boolean false", got)
 	}
+
+	// JSON has one number type and encoding/json unmarshals it into float64, so
+	// the assertion is on the value rather than on the Go type. What matters to
+	// the reader is that it arrives as a JSON number at all.
+	if got := detail["pingVolume"]; got != float64(40) {
+		t.Errorf("pingVolume = %#v, want the number 40", got)
+	}
 }
 
 // AND IT MERGES WITH THE REST OF THE REPLY. A save raises four events -- the
@@ -78,7 +88,7 @@ func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 func TestASavesEventsAllSurviveEachOther(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Theme(rec, "coffee")
-	Settings(rec, "kyle", true, true)
+	Settings(rec, "kyle", true, true, 100)
 	CloseModal(rec)
 	Toast(rec, "Settings saved.")
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
 )
 
@@ -16,6 +17,13 @@ func testRoomPage(role room.Role) RoomPageData {
 		Name: "Curse of Strahd",
 		Code: "AB2C",
 		Role: role,
+
+		// THE VOLUME IS SET BECAUSE ITS ZERO VALUE IS SILENCE. Every other field
+		// on this fixture can be left off and mean "not that"; this one would
+		// mean "muted", which is a page nobody's session produces -- prefs.New
+		// clamps and defaults, so a real room always renders a real reading. See
+		// PingVolume in room.go.
+		PingVolume: prefs.PingVolumeMax,
 	}
 }
 
@@ -289,7 +297,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
 	for heading, want := range map[string][]string{
-		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear blood", "Mute pings", "Clear drawing", "Clear tabletop"},
+		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear blood", "Clear drawing", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Add entry", "Next turn", "Clear tracker"},
 		"Tools":      {"Monster Manual", "Dice tray"},
