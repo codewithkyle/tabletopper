@@ -31,8 +31,18 @@
 // holds the whole projected room in store.ts, which is what the debug panel
 // reads. That escape hatch exists and needs no change to the protocol.
 
-import type { Event, InitiativeEntry } from "./protocol.ts";
+import {
+	ROOM_INFO,
+	ROOM_INITIATIVE,
+	ROOM_PAWN,
+	ROOM_PLAYERS,
+	ROOM_TABLETOP,
+	WINDOW_CLOSE,
+	WINDOW_RETITLE,
+} from "../../public/js/events.js";
+import type { Event, InitiativeEntry, Pawn } from "./protocol.ts";
 import { PAWN_WINDOW } from "./pawn-window.ts";
+import { openWindows } from "./window.ts";
 
 // tracked is the set of pawn ids the turn order names, and it is the one piece
 // of state this file holds.
@@ -57,18 +67,18 @@ let tracked = new Set<string>();
 // panelEvents is which DOM event each family of protocol events raises. A
 // family that no panel listens for is simply absent.
 const panelEvents: Partial<Record<Event["type"], string>> = {
-	"player.joined": "room:players",
-	"player.updated": "room:players",
-	"player.left": "room:players",
-	"initiative.updated": "room:initiative",
-	"room.updated": "room:info",
-	"table.updated": "room:tabletop",
+	"player.joined": ROOM_PLAYERS,
+	"player.updated": ROOM_PLAYERS,
+	"player.left": ROOM_PLAYERS,
+	"initiative.updated": ROOM_INITIATIVE,
+	"room.updated": ROOM_INFO,
+	"table.updated": ROOM_TABLETOP,
 };
 
 // A snapshot changes everything at once, so it raises everything at once. This
 // is the first join and every resync, which is exactly when a panel drawn from
 // a stale fetch would be wrong.
-const everything = ["room:players", "room:initiative", "room:info", "room:tabletop"];
+const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP];
 
 export function announce(event: Event): void {
 	if (event.type === "snapshot") {
@@ -77,6 +87,8 @@ export function announce(event: Event): void {
 		for (const name of everything) {
 			window.dispatchEvent(new CustomEvent(name));
 		}
+
+		reconcilePawnWindows(event.state.pawns);
 
 		return;
 	}
@@ -98,7 +110,7 @@ export function announce(event: Event): void {
 			// A window's heading is set from the trigger that opened it, so a
 			// rename reaches the body and not the bar. This is the other half.
 			window.dispatchEvent(
-				new CustomEvent("window:retitle", {
+				new CustomEvent(WINDOW_RETITLE, {
 					detail: { id: PAWN_WINDOW + event.pawn.id, title: event.pawn.name },
 				}),
 			);
@@ -114,7 +126,7 @@ export function announce(event: Event): void {
 			// from outside the fragment, because the fragment is what stopped
 			// existing.
 			window.dispatchEvent(
-				new CustomEvent("window:close", { detail: { id: PAWN_WINDOW + event.id } }),
+				new CustomEvent(WINDOW_CLOSE, { detail: { id: PAWN_WINDOW + event.id } }),
 			);
 
 			return;
@@ -126,11 +138,41 @@ export function announce(event: Event): void {
 	}
 }
 
+// reconcilePawnWindows is the snapshot reaching the pawn windows, which listen
+// for one id each and would otherwise hear nothing from it.
+//
+// AFTER A RECONNECT EVERY OPEN PAWN WINDOW WAS STALE. A laptop lid shut for
+// three rounds comes back to a snapshot that raises the four panel events and
+// no room:pawn -- so each window went on showing pre-disconnect hit points and
+// conditions until that one pawn next changed. And a pawn removed while the
+// tab was away left its window open for good: the fragment 404s, noSwap keeps
+// the stale markup, and the window is remembered on every save. So each open
+// pawn window is either told to refetch or told to close, by whether its pawn
+// is in the state that just arrived.
+function reconcilePawnWindows(pawns: readonly Pawn[]): void {
+	let present: Set<string> | null = null;
+
+	for (const id of openWindows()) {
+		if (!id.startsWith(PAWN_WINDOW)) {
+			continue;
+		}
+
+		present ??= new Set(pawns.map((p) => p.id));
+
+		const pawn = id.slice(PAWN_WINDOW.length);
+		if (present.has(pawn)) {
+			window.dispatchEvent(new CustomEvent(ROOM_PAWN, { detail: { id: pawn } }));
+		} else {
+			window.dispatchEvent(new CustomEvent(WINDOW_CLOSE, { detail: { id } }));
+		}
+	}
+}
+
 function pawnChanged(id: string): void {
-	window.dispatchEvent(new CustomEvent("room:pawn", { detail: { id } }));
+	window.dispatchEvent(new CustomEvent(ROOM_PAWN, { detail: { id } }));
 
 	if (tracked.has(id)) {
-		window.dispatchEvent(new CustomEvent("room:initiative"));
+		window.dispatchEvent(new CustomEvent(ROOM_INITIATIVE));
 	}
 }
 

@@ -5,11 +5,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log/slog"
-	"math"
 	"slices"
 	"time"
 
-	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 
 	"github.com/oklog/ulid/v2"
@@ -61,34 +59,32 @@ type (
 		reply chan error
 	}
 
-	// roster is the player list, for the members fragment.
-	roster struct{ reply chan []room.Player }
-
-	// tableView is the table and the pawn count per layer, for the layer
-	// manager and the grid form.
-	tableView struct{ reply chan *TableView }
-
-	// pawnView is one pawn as one role may see it, for the pawn window and
-	// the stat block route. The role is carried rather than assumed because
-	// the answer is different for the two of them, and getting that wrong is
-	// the one mistake in this phase that leaks.
-	pawnView struct {
-		id    ulid.ULID
-		role  room.Role
-		reply chan *room.Pawn
+	// ask is a question put to the room and answered on its goroutine: the
+	// player list, the table, one pawn, the tracker, what a spawn needs. The
+	// function runs with the state in hand and whatever it returns is sent
+	// back; see Hub.view for the typed wrapper every caller goes through.
+	//
+	// ONE MESSAGE AND NOT ONE PER VIEW, and the reason is drain. Every view
+	// used to be a struct of its own with a case in handle and a case in
+	// drain, and nothing checked that the two lists agreed -- a view added to
+	// one and forgotten in the other was a reply channel nobody wrote, which
+	// hung its HTTP caller until the browser gave up, and only when a room
+	// happened to be retiring. With one message there is one case in each,
+	// and a new view is a closure rather than a type.
+	ask struct {
+		fn    func(*actor) any
+		reply chan any
 	}
 
-	// initiativeView is the turn tracker as one role may see it, together
-	// with the pawns it names. The two travel together because they are
-	// filtered together; see room.ProjectedInitiative.
-	initiativeView struct {
-		role  room.Role
-		reply chan *InitiativeView
+	// saved is the snapshot writer reporting back: which state it wrote, as
+	// the change count the blob was encoded at, and whether the row took it.
+	// It arrives on a channel of its own rather than the inbox so that the
+	// two synchronous ends of a room can wait for it without handling
+	// anything else.
+	saved struct {
+		changes uint64
+		err     error
 	}
-
-	// spawnView is what resolving a spawn needs and only the room knows: who
-	// is at the table, which floor is active, and how big its map is.
-	spawnView struct{ reply chan *SpawnView }
 
 	// shutdown snapshots and closes every connection with going-away, so the
 	// browsers reconnect to the next process rather than showing an error.
@@ -137,6 +133,35 @@ type actor struct {
 
 	dirty bool
 
+	// THE SNAPSHOT IS WRITTEN OFF THIS GOROUTINE, and these four are how the
+	// room knows where that write stands. changes counts every state event
+	// since the room loaded; a blob is encoded at one value of it, and dirty
+	// clears only when the acknowledged value is still the current one --
+	// otherwise something landed while the write was in flight and the next
+	// tick writes again. One write is in flight at a time, so a slow database
+	// costs the table nothing but a later save; it used to cost every command
+	// two seconds while the room waited on the UPDATE.
+	changes uint64
+	saving  bool
+	saved   chan saved
+
+	// saveFailures is how many writes in a row the row has refused, so that
+	// a database that has stopped taking snapshots is one line a minute in
+	// the log rather than one every five seconds, and so that the count is
+	// in it.
+	saveFailures int
+
+	// sizeWarned is whether the last blob was over the soft ceiling, so the
+	// warning about it is written on the crossing and not on every tick.
+	sizeWarned bool
+
+	// sheet writes player pawns' hit points back to their character sheets,
+	// and lastHP is what it was last asked to write per character -- so an
+	// update that changed a pawn's name, conditions or layer costs no
+	// statement at all.
+	sheet  *sheetWriter
+	lastHP map[ulid.ULID]int
+
 	// drags is the coalescing buffer: at most one pending drag per anchor
 	// pawn, flushed on a timer. A fast mouse and a slow one then cost the same
 	// bandwidth, which is what keeps the one hot path in the protocol bounded.
@@ -148,8 +173,24 @@ type actor struct {
 	// grace period so that a refresh or a flaky connection is instant.
 	emptySince time.Time
 
+	// kicked is who was removed and when, kept for kickGrace after the fact.
+	//
+	// IT CLOSES THE RACE THE DATABASE CANNOT. A kick clears the person's
+	// session rows, and a tab of theirs that was in reconnect backoff at that
+	// instant never saw the close reason: it comes back, and if its upgrade
+	// read the rows before the clear committed, the membership check passes
+	// and join would seat them again. A join for an id in this map is refused
+	// with the kick's own reason, whatever the rows said a moment ago.
+	kicked map[ulid.ULID]time.Time
+
 	entropy *ulid.MonotonicEntropy
 }
+
+// kickGrace is how long a kick is remembered by the room itself. The
+// reconnect it exists to refuse arrives within the client's backoff ceiling,
+// which is fifteen seconds; a person the GM has removed who is invited back
+// with the code inside this window is refused once and tries again.
+const kickGrace = 30 * time.Second
 
 func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 	timer := time.NewTimer(time.Hour)
@@ -166,6 +207,10 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 		seqPlayer: seq,
 		drags:     make(map[ulid.ULID]command),
 		dragTimer: timer,
+		kicked:    make(map[ulid.ULID]time.Time),
+		saved:     make(chan saved, 1),
+		sheet:     newSheetWriter(h.writeHP),
+		lastHP:    make(map[ulid.ULID]int),
 
 		// EMPTY FROM THE MOMENT IT LOADS, because a room can be loaded by
 		// something that never connects: a GM toggling the lock from a page
@@ -206,13 +251,23 @@ func (a *actor) run() {
 		case <-a.dragTimer.C:
 			a.flushDrags()
 
+		case m := <-a.saved:
+			a.acked(m)
+
 		case <-save.C:
 			// The same tick asks both questions, which is why there is one
 			// timer rather than two: a room that has been empty for the grace
 			// period has just been written back by the line above it, so
 			// unloading costs nothing more.
+			//
+			// A ROOM WITH A WRITE IN FLIGHT OR A WRITE OWED DOES NOT UNLOAD.
+			// The first would leave its acknowledgement for nobody; the
+			// second is a room whose row has been refusing it, and keeping it
+			// in memory until the database takes it is what keeps the table
+			// from being lost to an outage that ends an hour later.
 			a.save()
-			if a.idle() && a.hub.retire(a) {
+			if a.idle() && !a.saving && !a.dirty && a.hub.retire(a) {
+				a.sheet.stop()
 				a.drain()
 
 				return
@@ -236,24 +291,13 @@ func (a *actor) handle(m any) bool {
 	case dispatch:
 		m.reply <- a.exec(m.who, m.cmd, nil, "")
 
-	case roster:
-		m.reply <- a.players()
-
-	case tableView:
-		m.reply <- a.table()
-
-	case pawnView:
-		m.reply <- a.state.ProjectedPawn(m.id, m.role)
-
-	case initiativeView:
-		m.reply <- a.initiative(m.role)
-
-	case spawnView:
-		m.reply <- a.spawn()
+	case ask:
+		m.reply <- m.fn(a)
 
 	case shutdown:
 		a.stopAll(closeGoingAway, reasonRestarting)
-		a.save()
+		a.saveNow()
+		a.sheet.stop()
 		a.hub.forget(a)
 		a.drain()
 		close(m.done)
@@ -263,7 +307,8 @@ func (a *actor) handle(m any) bool {
 	case closeRoom:
 		a.exec(room.Actor{}, &room.RoomClose{}, nil, "")
 		a.stopAll(closeNormal, reasonClosed)
-		a.save()
+		a.saveNow()
+		a.sheet.stop()
 		a.hub.forget(a)
 		a.drain()
 		close(m.done)
@@ -281,7 +326,35 @@ func (a *actor) handle(m any) bool {
 // set -- the people already here learn about the arrival -- and only then is it
 // added and sent the snapshot, which therefore carries the sequence number that
 // join event was given. Everything after it is strictly newer.
+//
+// A JOIN CAN BE REFUSED, and a refusal is a close rather than an error frame:
+// the connection was never seated, so there is no sequence to stamp a frame
+// with and no snapshot for it to precede. Three things refuse. A person the
+// room removed inside kickGrace is closed with the kick's reason, which is
+// what stops their browser from trying again. Past the per-person cap or the
+// room's, the connection is closed with reasonLimit, which the client treats
+// the same way -- a fifth tab that reconnected on its backoff for ever would
+// be a fifth tab costing the room a snapshot every fifteen seconds.
+//
+// THE CAPS ARE COUNTED HERE AND NOT IN attach, because conns belongs to this
+// goroutine and a count taken anywhere else is a count taken under a race.
 func (a *actor) join(c *client) {
+	if at, ok := a.kicked[c.who.ID]; ok {
+		if time.Since(at) < kickGrace {
+			c.stop(closePolicy, reasonKicked)
+
+			return
+		}
+		delete(a.kicked, c.who.ID)
+	}
+
+	if len(a.conns) >= a.hub.opts.ConnsPerRoom || a.count(c.who.ID) >= a.hub.opts.ConnsPerUser {
+		slog.Warn("Refusing a connection over the cap", "room", a.id, "user", c.who.ID, "room_conns", len(a.conns))
+		c.stop(closePolicy, reasonLimit)
+
+		return
+	}
+
 	a.emptySince = time.Time{}
 
 	a.exec(c.who, &room.PlayerJoin{Player: c.player}, nil, "")
@@ -433,6 +506,7 @@ func (a *actor) emit(ems []room.Emission, who room.Actor, sender, only *client) 
 
 		if counted {
 			a.dirty = true
+			a.changes++
 		}
 
 		// The effect runs between emissions rather than after all of them,
@@ -618,20 +692,46 @@ func (a *actor) effect(em room.Emission) {
 		return
 	}
 
-	if _, ok := em.Event.(*room.PlayerKicked); !ok {
-		return
-	}
+	switch ev := em.Event.(type) {
+	case *room.PlayerKicked:
+		a.kicked[em.Player] = time.Now()
+		a.forget(em.Player)
+		a.drop(em.Player, reasonKicked)
 
-	a.forget(em.Player)
+	case *room.PlayerLeft:
+		// A PERSON WHO PRESSED LEAVE IN ONE TAB MEANT IT IN ALL OF THEM. The
+		// row is gone from the state, so a tab of theirs still connected
+		// would be a socket whose every command is checked against an id the
+		// player list no longer names -- and a reconnect from it would seat
+		// them again. After a kick this finds nothing: the kicked event ran
+		// first and took the connections with it.
+		a.drop(ev.ID, reasonLeft)
+	}
+}
+
+// drop closes every connection one person has in this room, with one reason.
+func (a *actor) drop(user ulid.ULID, reason string) {
 	for c := range a.conns {
-		if c.who.ID == em.Player {
-			c.stop(closePolicy, reasonKicked)
+		if c.who.ID == user {
+			c.stop(closePolicy, reason)
 			delete(a.conns, c)
 		}
 	}
 	if len(a.conns) == 0 {
 		a.emptySince = time.Now()
 	}
+}
+
+// count is how many connections one person has in this room.
+func (a *actor) count(user ulid.ULID) int {
+	n := 0
+	for c := range a.conns {
+		if c.who.ID == user {
+			n++
+		}
+	}
+
+	return n
 }
 
 // writeThrough puts a player pawn's hit points back on the character sheet, so
@@ -644,36 +744,29 @@ func (a *actor) effect(em room.Emission) {
 // character, and the same rule applied to a player pawn is what keeps a
 // temporary buff out of the sheet.
 //
-// IT RUNS ON EVERY UPDATE RATHER THAN ON A CHANGE, and the alternative was
-// worse than the cost. Knowing that hit points changed means carrying the pawn
-// as it was before Apply ran alongside the event, through a path whose entire
-// value is that an event carries the entity and nothing else. What this saves
-// instead is a statement that writes the value already there, at the rate a GM
-// renames a pawn -- a few times a session.
+// ONLY WHEN THE NUMBER CHANGED. Every pawn.updated arrives here -- a rename, a
+// condition ticking over on initiative.next, a move between floors -- and the
+// room remembers what it last asked the writer for per character, so those
+// cost nothing. The first update after a load always writes, which is one
+// statement that puts the value already there.
 //
-// OFF THE ROOM'S GOROUTINE, for forget's reason: a table full of people must
-// not wait on an UPDATE. A failure is a log line, because the table is still
-// right and the sheet catches up the next time anything edits the pawn.
+// OFF THE ROOM'S GOROUTINE AND IN ORDER. A table full of people must not wait
+// on an UPDATE, and two edits fifty milliseconds apart must not race each
+// other to the row -- "23" then "16" is one damage entry corrected, and a
+// sheet that ended up reading 23 would be wrong until the next hit. See
+// sheetWriter, which keeps the latest value per character and writes one
+// statement at a time.
 func (a *actor) writeThrough(p room.Pawn) {
 	character, hp, owed := writeThroughHP(p)
-	if !owed || a.hub.queries == nil {
+	if !owed || a.sheet == nil {
+		return
+	}
+	if last, known := a.lastHP[character]; known && last == hp {
 		return
 	}
 
-	q := a.hub.queries
-
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
-		defer cancel()
-
-		_, err := q.UpdateCharacterCurrentHP(ctx, queries.UpdateCharacterCurrentHPParams{
-			CurrentHP: uint16(max(0, min(hp, math.MaxUint16))),
-			ID:        character,
-		})
-		if err != nil {
-			slog.Error("Failed to write a pawn's hit points back to its sheet", "character", character, "error", err)
-		}
-	}()
+	a.lastHP[character] = hp
+	a.sheet.put(character, hp)
 }
 
 // writeThroughHP is the decision on its own: whose sheet, what number, and
@@ -712,20 +805,83 @@ func (a *actor) forget(user ulid.ULID) {
 	}()
 }
 
-// save writes the snapshot when there is something new in it. A failure leaves
-// the room dirty, so the next tick tries again rather than losing the change.
+// snapshotSoftLimit is the size past which a room's snapshot is worth a line
+// in the log. The point budgets in internal/room keep a room well under it;
+// this is the line that says so if something new starts to grow.
+const snapshotSoftLimit = 8 << 20
+
+// save starts writing the snapshot when there is something new in it and no
+// write is already on its way. The write runs on a goroutine of its own and
+// reports back through the saved channel; see acked.
 func (a *actor) save() {
+	if !a.dirty || a.saving {
+		return
+	}
+
+	blob, ok := a.encode()
+	if !ok {
+		return
+	}
+
+	a.saving = true
+	store, id, seq, changes := a.hub.store, a.id, a.seqGM, a.changes
+	report := a.saved
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer cancel()
+
+		// The channel has one slot and one write is in flight at a time, so
+		// this never blocks -- not even when the room has gone.
+		report <- saved{changes: changes, err: store.Save(ctx, id, blob, seq)}
+	}()
+}
+
+// acked is the writer reporting back. A failure leaves the room dirty, so the
+// next tick tries again rather than losing the change; a success clears it
+// only when nothing has changed since the blob was encoded.
+func (a *actor) acked(m saved) {
+	a.saving = false
+
+	if m.err != nil {
+		a.saveFailures++
+		// The first failure and then one a minute at the default interval,
+		// with the count, so a row that has stopped taking snapshots is
+		// visible without flooding the log.
+		if a.saveFailures == 1 || a.saveFailures%12 == 0 {
+			slog.Error("Failed to save a snapshot", "room", a.id, "consecutive", a.saveFailures, "error", m.err)
+		}
+
+		return
+	}
+
+	a.saveFailures = 0
+	if m.changes == a.changes {
+		a.dirty = false
+	}
+}
+
+// saveNow is the synchronous save the two endings of a room make: it waits
+// for any write in flight, then writes whatever is still owed on this
+// goroutine, because after it returns there is no goroutine to report to.
+func (a *actor) saveNow() {
+	if a.saving {
+		select {
+		case m := <-a.saved:
+			a.acked(m)
+		case <-time.After(storeTimeout + time.Second):
+			// The writer's own deadline is storeTimeout, so it has already
+			// failed; its report lands in a slot nobody reads again.
+			a.saving = false
+		}
+	}
+
 	if !a.dirty {
 		return
 	}
 
-	// The state carries its own sequence, which is what a reload restores
-	// from; the column beside it is for whoever is reading the table by hand.
-	a.state.Seq = a.seqGM
-	blob, err := room.Marshal(a.state)
-	if err != nil {
-		slog.Error("Failed to encode a snapshot", "room", a.id, "error", err)
-
+	blob, ok := a.encode()
+	if !ok {
 		return
 	}
 
@@ -733,12 +889,34 @@ func (a *actor) save() {
 	defer cancel()
 
 	if err := a.hub.store.Save(ctx, a.id, blob, a.seqGM); err != nil {
-		slog.Error("Failed to save a snapshot", "room", a.id, "error", err)
+		slog.Error("Failed to save a snapshot on the way out", "room", a.id, "error", err)
 
 		return
 	}
 
 	a.dirty = false
+}
+
+// encode is the blob a save writes, made on this goroutine because it reads
+// the state. The state carries its own sequence, which is what a reload
+// restores from; the column beside it is for whoever is reading the table by
+// hand.
+func (a *actor) encode() ([]byte, bool) {
+	a.state.Seq = a.seqGM
+	blob, err := room.Marshal(a.state)
+	if err != nil {
+		slog.Error("Failed to encode a snapshot", "room", a.id, "error", err)
+
+		return nil, false
+	}
+
+	over := len(blob) > snapshotSoftLimit
+	if over && !a.sizeWarned {
+		slog.Error("A room's snapshot has grown past the soft ceiling", "room", a.id, "bytes", len(blob))
+	}
+	a.sizeWarned = over
+
+	return blob, true
 }
 
 // idle reports whether this room has been empty for longer than the grace
@@ -808,6 +986,9 @@ func (a *actor) table() *TableView {
 // pawn is one pawn as the asking role may see it, which is the protocol's own
 // question and is therefore asked of the protocol. See room.ProjectedPawn for
 // why there is no way to reach the unprojected one from here.
+func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
+	return a.state.ProjectedPawn(id, role)
+}
 
 // SpawnView is what resolution needs from a running room: who is at the table
 // and what they brought, which floor is active, and the geometry a row of party
@@ -885,15 +1066,7 @@ func (a *actor) drain() {
 				m.c.stop(closeGoingAway, reasonRestarting)
 			case dispatch:
 				m.reply <- errGone
-			case roster:
-				m.reply <- nil
-			case tableView:
-				m.reply <- nil
-			case pawnView:
-				m.reply <- nil
-			case initiativeView:
-				m.reply <- nil
-			case spawnView:
+			case ask:
 				m.reply <- nil
 			case shutdown:
 				close(m.done)

@@ -28,6 +28,7 @@
 // NO CLASS NAME IS WRITTEN HERE. server/js is not a Tailwind source, and there
 // is nothing in this file that touches presentation at all.
 
+import { MODAL_CLOSE } from "../../public/js/events.js";
 import type { Armed } from "./pawns.ts";
 import type { PawnKind, Size } from "./protocol.ts";
 
@@ -94,7 +95,7 @@ export function mountDialogs(arm: (armed: Armed | null) => void): Arming {
 		}
 
 		arm(read(dialog, card));
-		window.dispatchEvent(new CustomEvent("modal:close"));
+		window.dispatchEvent(new CustomEvent(MODAL_CLOSE));
 	}
 
 	document.addEventListener("click", onClick);

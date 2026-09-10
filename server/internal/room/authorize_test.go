@@ -61,6 +61,10 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		// on ownership of a thing named in it: whoever's turn it is may end it.
 		{"initiative.next", &InitiativeNext{}, ok, ok, CodeForbidden},
 		{"initiative.clear", &InitiativeClear{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.activate", &InitiativeActivate{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.remove", &InitiativeRemove{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.reorder", &InitiativeReorder{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.add", &InitiativeAdd{Name: "Lair action"}, ok, CodeForbidden, CodeForbidden},
 
 		{"fog.setEnabled", &FogSetEnabled{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"fog.setPrefill", &FogSetPrefill{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},

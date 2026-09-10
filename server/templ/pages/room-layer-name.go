@@ -1,5 +1,7 @@
 package pages
 
+import "tabletopper/internal/events"
+
 // THE ACTIVE LAYER'S NAME, IN THE MENU BAR. It is the one piece of table state
 // that has to be glanceable: a GM who has forgotten which floor is live moves
 // pawns onto one nobody can see, and a player whose map changed under them
@@ -47,7 +49,7 @@ func (d RoomLayerNameData) Path() string {
 // Trigger is what the span listens for, which is one event more on the page
 // render than it is in the answer. See Fetched.
 func (d RoomLayerNameData) Trigger() string {
-	const live = "room:tabletop from:window"
+	const live = events.Tabletop + " from:window"
 
 	if d.Fetched {
 		return live

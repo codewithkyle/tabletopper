@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"tabletopper/internal/htmx"
+	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -76,7 +77,41 @@ func (a *App) RoomSocket(w http.ResponseWriter, r *http.Request) {
 		CharacterID:   characterID,
 		CharacterName: a.characterName(ctx, sess.UserID, characterID),
 		Role:          role,
-	})
+	}, a.stillMember(r, row.ID, role))
+}
+
+// stillMember is the check the upgrade just ran, packaged so the hub can run
+// it again for as long as the socket lives.
+//
+// IT RE-READS THE SESSION FROM THE COOKIE rather than reusing the one on the
+// context, because the cookie is the one thing about the request that stays
+// true: the session row behind it is what a logout ends, what a leave in
+// another tab clears the room off, and what a kick clears too. A request whose
+// cookie no longer names a live session is a socket that should not be open,
+// whoever it was opened by.
+//
+// THE ROLE MUST NOT HAVE CHANGED EITHER. A room has one owner, so it cannot in
+// practice -- but the check is one comparison and the failure it would let
+// through is a player socket carrying a GM's authority, which is the one
+// failure this whole route exists to prevent.
+//
+// A CLOSED ROOM ENDS THE GM'S SOCKET AS WELL. roomMember still answers the GM
+// for a closed room, because the page renders for them with Reopen in the
+// menu; the upgrade refuses it separately above, and so does this.
+func (a *App) stillMember(r *http.Request, roomID ulid.ULID, role room.Role) hub.Membership {
+	return func(ctx context.Context) bool {
+		sess, err := a.Sessions.FromRequest(r.WithContext(ctx))
+		if err != nil {
+			return false
+		}
+
+		row, now, err := a.roomMember(ctx, sess, roomID.String())
+		if err != nil || now != role || row.ClosedAt.Valid {
+			return false
+		}
+
+		return true
+	}
 }
 
 // roomCharacter is the character this person joined THIS room with, which is
@@ -225,6 +260,30 @@ func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "player")
 
 		return
+	}
+
+	// THE MEMBERSHIP IS CLEARED FIRST AND SYNCHRONOUSLY, before the room is
+	// told. The hub clears it too, on a goroutine of its own -- that is the
+	// belt for a kick sent over the socket -- but a tab of the kicked person's
+	// in reconnect backoff can arrive at the upgrade in the window between the
+	// event and that write, pass the membership check against rows the clear
+	// had not yet reached, and be seated again by the join. Writing the rows
+	// here, with the request in hand, closes that window from this side; the
+	// room's own kick grace closes it from the other.
+	//
+	// ONLY FOR THE GM. A player posting this is refused by Authorize a moment
+	// later, and clearing anybody's rows on their say-so would be the kick
+	// happening without the permission check.
+	if role == room.RoleGM && playerID != sess.UserID {
+		if _, err := a.Queries.ClearUserRoomSessions(ctx, queries.ClearUserRoomSessionsParams{
+			RoomID: &row.ID,
+			UserID: playerID,
+		}); err != nil {
+			slog.Error("Failed to clear a kicked player's membership", "error", err)
+			htmx.ServerError(w)
+
+			return
+		}
 	}
 
 	who := room.Actor{ID: sess.UserID, Role: role}

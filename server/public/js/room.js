@@ -19,6 +19,7 @@
 // note at the bottom of css/app.css. What it toggles is a property the browser
 // owns, details.open, and the styling for that is rendered in templ.
 import { toast } from "./toast.js";
+import { ROOM_BLOOD, ROOM_VIEW } from "./events.js";
 
 const bar = document.querySelector("[data-room-bar]");
 
@@ -129,10 +130,10 @@ function run(action, value) {
 // THE VIEW ITEMS AND THE CAMERA ARE IN DIFFERENT BUNDLES. This file is served
 // as it is written; the renderer is TypeScript bundled into
 // /static/room.js from server/js/room/. Neither can import the other, so what
-// crosses between them is a window event -- the same shape as the "alert:pending"
+// crosses between them is a window event -- the same shape as the PENDING_ALERT
 // contract between the room bundle and alert-modal.js.
 //
-// THE EVENT NAME IS THE CONTRACT and it is spelled out in both files. The
+// THE EVENT NAME IS THE CONTRACT and both sides import it from events.js. The
 // listener is in server/js/room/render/renderer.ts; the values are the ones
 // pages.viewMenu sends, and an unknown one is ignored there rather than here,
 // because the renderer is what knows which of them it can honour.
@@ -141,7 +142,7 @@ function run(action, value) {
 // listener, and the event lands nowhere. That is the right amount of nothing to
 // happen: the menu item is still there, still says what it does, and the reason
 // it did not is on the table in front of them.
-const VIEW_EVENT = "room:view";
+const VIEW_EVENT = ROOM_VIEW;
 
 function view(action) {
     if (!action) {
@@ -163,7 +164,7 @@ function view(action) {
 // THERE IS NO CONFIRMATION IN FRONT OF IT for the same reason. The confirm
 // modal is for what cannot be undone, and this undoes nothing that was ever
 // anywhere else.
-const BLOOD_EVENT = "room:blood";
+const BLOOD_EVENT = ROOM_BLOOD;
 
 function clearBlood() {
     window.dispatchEvent(new CustomEvent(BLOOD_EVENT));

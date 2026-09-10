@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+
+	"tabletopper/internal/events"
 )
 
 // trigger adds events to the response's HX-Trigger header, merging with any
@@ -39,7 +41,7 @@ func trigger(w http.ResponseWriter, events map[string]any) {
 // target alone for every 4xx and 5xx.
 func Error(w http.ResponseWriter, heading string, msg string, status int) {
 	trigger(w, map[string]any{
-		"alert": map[string]string{"heading": heading, "message": msg},
+		events.Alert: map[string]string{"heading": heading, "message": msg},
 	})
 	w.WriteHeader(status)
 }
@@ -71,7 +73,7 @@ func Refresh(w http.ResponseWriter) {
 // Toast queues a toast for the page. It only sets the header, so a handler
 // can follow it with a body or a Redirect.
 func Toast(w http.ResponseWriter, msg string) {
-	trigger(w, map[string]any{"flash:toast": msg})
+	trigger(w, map[string]any{events.Toast: msg})
 }
 
 // CloseModal dismisses #content-modal, which is how a form inside it reports
@@ -82,7 +84,7 @@ func Toast(w http.ResponseWriter, msg string) {
 // handler almost always queues a Toast beside it and a bare Set would drop
 // whichever was written first.
 func CloseModal(w http.ResponseWriter) {
-	trigger(w, map[string]any{"modal:close": true})
+	trigger(w, map[string]any{events.ModalClose: true})
 }
 
 // Theme repaints the page the reader is already on after they change the
@@ -109,7 +111,7 @@ func CloseModal(w http.ResponseWriter) {
 // the wrap.
 func Theme(w http.ResponseWriter, palette string) {
 	trigger(w, map[string]any{
-		"theme:change": map[string]string{"palette": palette},
+		events.ThemeChange: map[string]string{"palette": palette},
 	})
 }
 
@@ -141,7 +143,7 @@ func Theme(w http.ResponseWriter, palette string) {
 // through as it stands and wraps anything else as {value: ...}.
 func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool) {
 	trigger(w, map[string]any{
-		"settings:change": map[string]any{
+		events.SettingsChange: map[string]any{
 			"name":       name,
 			"followTurn": followTurn,
 			"showBlood":  showBlood,

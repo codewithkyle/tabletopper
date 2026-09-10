@@ -12,6 +12,32 @@ import (
 	"github.com/coder/websocket"
 )
 
+const (
+	// pingInterval is how often the server pings a socket, and pingTimeout is
+	// how long it waits for the pong. A peer that vanished without a FIN -- a
+	// laptop lid, a NAT table, a mobile radio -- otherwise stays "connected"
+	// until the kernel's own keepalive fires hours later or the room happens
+	// to write to it, and in a quiet room the room never does. Forty seconds
+	// end to end is short enough that the player list is honest and long
+	// enough that a table of browsers costs the server nothing to keep.
+	pingInterval = 30 * time.Second
+	pingTimeout  = 10 * time.Second
+
+	// membershipInterval is how often a live socket asks whether it should
+	// still be open. The upgrade checked the session and the room row once;
+	// a logout, a leave from another tab and a deleted room all change the
+	// answer without touching the socket, and this is what lets each of them
+	// land on a connection that has been open since the start of the evening.
+	membershipInterval = 2 * time.Minute
+)
+
+// Membership is the socket's own membership check, run again on a timer for
+// as long as the connection lives. It is a closure built by the HTTP handler
+// that upgraded the socket, because that handler has the two things the check
+// needs and the hub does not: the request's cookie and the rooms row. A nil
+// Membership is never re-checked, which is what the tests pass.
+type Membership func(ctx context.Context) bool
+
 // closeCode is why a connection is being dropped, in the three values this
 // design uses. It is a type of our own rather than the library's so that the
 // actor -- which decides every one of these -- does not import a WebSocket
@@ -37,8 +63,15 @@ const (
 // exactly -- a kicked browser must not reconnect -- and a reason that drifted
 // between the two sides would put somebody back in a room they were removed
 // from.
+//
+// THREE OF THEM END THE CLIENT and the rest are reconnected from. kicked is
+// the GM removing somebody; left is that person having pressed Leave in
+// another tab; limit is a connection past the per-person or per-room cap. The
+// client's socket.ts compares all three by exact string.
 const (
 	reasonKicked     = "kicked"
+	reasonLeft       = "left"
+	reasonLimit      = "limit"
 	reasonSlow       = "slow"
 	reasonClosed     = "closed"
 	reasonRestarting = "restarting"
@@ -118,7 +151,7 @@ func (c *client) stop(code closeCode, reason string) {
 
 // attach runs one socket for as long as it lives. It is the only function in
 // the package that touches both a WebSocket and a room.
-func (h *Hub) attach(w http.ResponseWriter, r *http.Request, a *actor, p room.Player) {
+func (h *Hub) attach(w http.ResponseWriter, r *http.Request, a *actor, p room.Player, member Membership) {
 	// No AcceptOptions, and the omission is the policy: the library's default
 	// origin check requires the Origin header's host to equal the request's
 	// host, which is exactly what this app wants -- the socket is same-origin
@@ -154,6 +187,12 @@ func (h *Hub) attach(w http.ResponseWriter, r *http.Request, a *actor, p room.Pl
 		writePump(ctx, ws, c)
 	}()
 
+	// THE WATCHDOG. Cancelling the context is what ends the read below, and
+	// the read ending is the connection ending -- so a peer that stopped
+	// answering pings and a person who stopped being a member are both closed
+	// by the same line that closes everybody else.
+	go watch(ctx, ws, member, c, cancel)
+
 	h.readPump(ctx, ws, a, c)
 
 	// The read loop ending is the connection ending, whichever side caused it.
@@ -165,6 +204,72 @@ func (h *Hub) attach(w http.ResponseWriter, r *http.Request, a *actor, p room.Pl
 	leaveCtx, leaveCancel := context.WithTimeout(context.WithoutCancel(r.Context()), storeTimeout)
 	defer leaveCancel()
 	_ = a.post(leaveCtx, leave{c: c})
+}
+
+// pinger is the one method of *websocket.Conn the watchdog uses, named so a
+// test can hand it something that fails on cue.
+type pinger interface {
+	Ping(ctx context.Context) error
+}
+
+// watch is the keepalive and the membership re-check on one goroutine, with
+// one way out: end is called and the socket's context is cancelled, which is
+// what makes readPump return and attach post the leave.
+//
+// A PING IS SENT BY THIS SIDE AND ANSWERED BY THE LIBRARY ON THE OTHER, so
+// the client needs nothing for this to work; the browser's WebSocket answers
+// pings on its own. What the client cannot know without it is that a NAT
+// mapping has died under it, which is why socket.ts sends a frame of its own
+// on the same cadence.
+//
+// A MEMBERSHIP THAT FAILS IS CLOSED WITH THE POLICY CODE AND NO REASON. There
+// is no one thing it means -- the room was deleted, the session ended, the
+// person left in another tab -- and the client reconnects, which is the right
+// answer for every one of them: the upgrade refuses it with a 404, the page
+// sends the browser to the join form, and the reason lands where a person can
+// read it.
+func watch(ctx context.Context, ws pinger, member Membership, c *client, end func()) {
+	watchOn(ctx, ws, member, c, end, pingInterval, membershipInterval)
+}
+
+func watchOn(ctx context.Context, ws pinger, member Membership, c *client, end func(), ping, recheck time.Duration) {
+	pings := time.NewTicker(ping)
+	defer pings.Stop()
+
+	var rechecks <-chan time.Time
+	if member != nil {
+		t := time.NewTicker(recheck)
+		defer t.Stop()
+		rechecks = t.C
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		case <-pings.C:
+			pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
+			err := ws.Ping(pingCtx)
+			cancel()
+			if err != nil {
+				end()
+
+				return
+			}
+
+		case <-rechecks:
+			checkCtx, cancel := context.WithTimeout(ctx, storeTimeout)
+			ok := member(checkCtx)
+			cancel()
+			if !ok {
+				c.stop(closePolicy, "")
+				end()
+
+				return
+			}
+		}
+	}
 }
 
 // writePump is the only writer on the socket, which is what makes the ordering

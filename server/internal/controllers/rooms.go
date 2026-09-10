@@ -187,6 +187,17 @@ func (a *App) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// THE LIVE ROOM IS ENDED AS WELL, as CloseRoom ends it. Without this the
+	// goroutine plays on over a row that is gone: commands apply, events
+	// broadcast, and its save matches zero rows and reports success, so the
+	// GM sees the room gone from the list while everybody in it goes on
+	// playing for as long as the last socket stays open. Close tells them,
+	// drops them, and unloads it; the one save it makes on the way out lands
+	// on nothing, which is fine.
+	if a.Hub != nil {
+		a.Hub.Close(ctx, roomID)
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

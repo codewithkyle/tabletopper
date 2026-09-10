@@ -822,8 +822,8 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hp, hasHP, badHP := evaluateHP(r.FormValue("hp"), pawn.HP, "Hit points")
-	maxHP, hasMax, badMax := evaluateHP(r.FormValue("maxHp"), pawn.MaxHP, "Maximum hit points")
+	hp, hasHP, badHP := evaluateHP(hpEntry(r, "hp"), pawn.HP, "Hit points")
+	maxHP, hasMax, badMax := evaluateHP(hpEntry(r, "maxHp"), pawn.MaxHP, "Maximum hit points")
 
 	var problems []string
 	for _, bad := range []string{badHP, badMax} {
@@ -1349,103 +1349,35 @@ func mayEditPawn(role room.Role, user ulid.ULID, pawn *room.Pawn) bool {
 	return pawn.OwnerID != nil && *pawn.OwnerID == user
 }
 
-// hpEntryLimit is how long a hit-point entry may be. It is not a rule about hit
-// points -- the core decides those -- but a bound on the arithmetic, so a
-// pasted essay is refused as an entry rather than summed a digit at a time. It
-// is js/room/hp.ts's LIMIT and the maxlength the box carries.
-const hpEntryLimit = 24
-
-// evaluateHP is the arithmetic a hit-point box takes: 12 sets, -7 subtracts,
-// and 23-7-4 is worked out.
+// hpEntry is what one hit-point box asked for: the change it carried when it
+// carried one, and the number in it otherwise.
 //
-// THE SIGN IS THE OPERATOR AND THE ABSENCE OF ONE IS ALSO A DECISION. "7" in a
-// box showing 12 means seven, not nineteen; a GM setting a monster's hit points
-// to a number reads it off a sheet, and a GM applying damage types the minus
-// sign they would say out loud. Clamping is left to the core, which does it
-// against the max hit points it holds rather than the ones this happens to have
-// been handed.
-//
-// THE CLIENT EVALUATES THE SAME STRINGS AND THIS IS THE AUTHORITY. js/room/hp.ts
-// resolves the box on blur so the number appears without a round trip; every
-// case it answers, this has to answer the same way, and hp.test.ts and
-// TestTheHitPointBoxTakesASum are the two halves of that agreement. A request
-// still arrives carrying a sum whenever that script has not run.
-//
-// AN EMPTY BOX IS NOT A CHANGE, which is the false in the middle answer. A pawn
-// may have no hit points recorded at all, and somebody clearing a box to retype
-// it must not blur their way into setting the goblin to zero.
-func evaluateHP(entry string, current *int, what string) (int, bool, string) {
-	text := strings.Join(strings.Fields(entry), " ")
-	text = strings.ReplaceAll(text, " +", "+")
-	text = strings.ReplaceAll(text, "+ ", "+")
-	text = strings.ReplaceAll(text, " -", "-")
-	text = strings.ReplaceAll(text, "- ", "-")
-
-	if text == "" {
-		return 0, false, ""
+// THE CHANGE TRAVELS BESIDE THE NUMBER, in a hidden twin the panel renders and
+// js/room/hp.ts fills. The box shows the resolved number so the person sees it
+// the moment they leave the field, but that number was counted from the one
+// last RENDERED -- and the panel declines refetches while a box has the caret,
+// so the box can be reading 16 while this room holds 10 because a player just
+// edited their own sheet. Applying "-4" to the room's 10 is the right answer;
+// applying the box's 12 would have been a lost update on the one field that is
+// typed every round. A request without the twin -- the script did not run, or
+// the entry was a number -- reads the box, as it always did.
+func hpEntry(r *http.Request, name string) string {
+	if entry := strings.TrimSpace(r.FormValue(name + "Entry")); entry != "" {
+		return entry
 	}
 
-	total, ok := sumTerms(text)
-	if !ok {
-		return 0, false, what + " has to be a number, or a change such as -7 or 23-7."
-	}
-
-	if text[0] != '+' && text[0] != '-' {
-		return total, true, ""
-	}
-
-	from := 0
-	if current != nil {
-		from = *current
-	}
-
-	return from + total, true, ""
+	return r.FormValue(name)
 }
 
-// sumTerms adds a chain of signed whole numbers, left to right, and answers
-// false for anything that is not one. There is no precedence to get wrong: the
-// only operators are plus and minus, which is the whole of what a table does to
-// a hit-point total.
-func sumTerms(text string) (int, bool) {
-	if len(text) > hpEntryLimit {
-		return 0, false
+// evaluateHP is the arithmetic a hit-point box takes, and it is the core's:
+// see room.EvaluateHP. The wrapper puts the box's caption on the refusal.
+func evaluateHP(entry string, current *int, what string) (int, bool, string) {
+	value, present, refusal := room.EvaluateHP(entry, current)
+	if refusal != "" {
+		refusal = what + " " + refusal
 	}
 
-	total, sign, term, digits := 0, 1, 0, 0
-
-	for i := 0; i < len(text); i++ {
-		c := text[i]
-
-		if c == '+' || c == '-' {
-			// A sign is only an operator after a number, and only ever the
-			// first character otherwise -- so "23--7" and a bare "-" are
-			// refused rather than read as something nobody typed.
-			if i > 0 && digits == 0 {
-				return 0, false
-			}
-
-			total += sign * term
-			sign, term, digits = 1, 0, 0
-			if c == '-' {
-				sign = -1
-			}
-
-			continue
-		}
-
-		if c < '0' || c > '9' {
-			return 0, false
-		}
-
-		term = term*10 + int(c-'0')
-		digits++
-	}
-
-	if digits == 0 {
-		return 0, false
-	}
-
-	return total + sign*term, true
+	return value, present, refusal
 }
 
 // pawnUpdateForm turns the editor into the plain-field command. Every field is

@@ -117,6 +117,14 @@ export interface Overlay {
 // does not cover the thing it is describing.
 const LIFT = 8;
 
+// removePrompt is the confirm text for removing a selection, with the count in
+// it. The markup carries the wording for a page whose script has not run.
+export function removePrompt(count: number): string {
+	const what = count === 1 ? "the selected pawn" : `the ${count} selected pawns`;
+
+	return `Remove ${what} from the table. This cannot be undone.`;
+}
+
 export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | null {
 	const found = mount.querySelector("[data-pawn-overlay]");
 	if (!(found instanceof HTMLElement)) {
@@ -268,9 +276,12 @@ export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | n
 	}
 
 	// armRemoveKey keeps the hidden button in step with the selection, so the
-	// Delete key never removes something that is no longer chosen.
+	// Delete key never removes something that is no longer chosen -- and the
+	// confirmation says how many, so a GM who believed nothing was selected
+	// reads the number before pressing Remove.
 	function armRemoveKey(chosen: string[]): void {
 		removeKey?.setAttribute("hx-vals", vals(chosen));
+		removeKey?.setAttribute("hx-confirm", removePrompt(chosen.length));
 	}
 
 	// vals is the ids in the shape the route reads.

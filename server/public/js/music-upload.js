@@ -21,6 +21,8 @@
 // row is rendered by templ and toggled through the hidden attribute, and the bar
 // moves by its value rather than by its width.
 
+import { ALERT } from "./events.js";
+
 const input = document.querySelector("[data-music-input]");
 const label = document.querySelector("[data-music-label]");
 const progress = document.querySelector("[data-music-progress]");
@@ -44,7 +46,7 @@ if (input) {
 
 function alertUser(heading, message) {
     window.dispatchEvent(
-        new CustomEvent("alert", { detail: { heading, message } }),
+        new CustomEvent(ALERT, { detail: { heading, message } }),
     );
 }
 

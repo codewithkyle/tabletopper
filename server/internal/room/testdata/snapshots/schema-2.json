@@ -1,0 +1,118 @@
+{
+  "schema": 2,
+  "seq": 0,
+  "room": {
+    "id": "010000000000000000000000Z8",
+    "name": "The Sunless Citadel",
+    "locked": false
+  },
+  "table": {
+    "layers": [
+      {
+        "id": "01000000000000000000000001",
+        "name": "Ground floor",
+        "map": null,
+        "fogEnabled": false,
+        "fogPrefill": true
+      }
+    ],
+    "activeLayer": "01000000000000000000000001",
+    "grid": {
+      "lines": "solid",
+      "cellSize": 64,
+      "offsetX": 0,
+      "offsetY": 0,
+      "color": "#000000FF",
+      "snap": "cells",
+      "feetPerCell": 5,
+      "diagonals": "equal"
+    },
+    "pawnLabels": "default",
+    "playersCanDraw": true,
+    "initiativeGrouping": "grouped"
+  },
+  "players": [
+    {
+      "id": "010000000000000000000000Z9",
+      "name": "Kyle",
+      "avatar": "",
+      "characterId": null,
+      "characterName": "",
+      "role": "gm",
+      "connected": true
+    },
+    {
+      "id": "010000000000000000000000ZA",
+      "name": "Ari",
+      "avatar": "",
+      "characterId": "010000000000000000000000ZC",
+      "characterName": "Ilyana",
+      "role": "player",
+      "connected": true
+    },
+    {
+      "id": "010000000000000000000000ZB",
+      "name": "Rin",
+      "avatar": "",
+      "characterId": "010000000000000000000000ZD",
+      "characterName": "Brannor",
+      "role": "player",
+      "connected": true
+    }
+  ],
+  "pawns": [
+    {
+      "id": "01000000000000000000000002",
+      "kind": "monster",
+      "layerId": "01000000000000000000000001",
+      "name": "Goblin",
+      "image": "",
+      "x": 96,
+      "y": 96,
+      "z": 1,
+      "size": "medium",
+      "width": 0,
+      "height": 0,
+      "rotation": 0,
+      "visible": true,
+      "hp": null,
+      "maxHp": null,
+      "hpBand": null,
+      "ac": null,
+      "conditions": [],
+      "ownerId": null,
+      "monsterId": null,
+      "characterId": null
+    },
+    {
+      "id": "01000000000000000000000003",
+      "kind": "object",
+      "layerId": "01000000000000000000000001",
+      "name": "Wagon",
+      "image": "",
+      "x": 200,
+      "y": 200,
+      "z": 2,
+      "size": "",
+      "width": 128,
+      "height": 256,
+      "rotation": 0,
+      "visible": true,
+      "hp": null,
+      "maxHp": null,
+      "hpBand": null,
+      "ac": null,
+      "conditions": [],
+      "ownerId": null,
+      "monsterId": null,
+      "characterId": null
+    }
+  ],
+  "initiative": {
+    "entries": [],
+    "active": null,
+    "round": 0
+  },
+  "fog": [],
+  "strokes": []
+}

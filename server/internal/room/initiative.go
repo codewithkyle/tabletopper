@@ -601,51 +601,6 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		}
 	}
 
-	grouped := s.Table.InitiativeGrouping != GroupIndividual
-
-	// WHERE A REINFORCEMENT GOES. Three more goblins arriving in round four are
-	// more goblins, not a second goblin turn -- so a new monster whose key
-	// matches a line already in the order joins it. The key is recomputed from
-	// the members rather than stored, so there is nothing to keep in step.
-	joins := map[string]int{}
-	if grouped {
-		for i, e := range entries {
-			key := s.groupKey(e)
-			if key == "" {
-				continue
-			}
-			if _, seen := joins[key]; !seen {
-				joins[key] = i
-			}
-		}
-	}
-
-	var added []InitiativeEntry
-	opened := map[string]int{}
-
-	take := func(p Pawn) {
-		if grouped && p.Kind == PawnMonster {
-			key := MonsterKey(p)
-			if i, ok := joins[key]; ok {
-				entries[i].PawnIDs = append(entries[i].PawnIDs, p.ID)
-
-				return
-			}
-			if i, ok := opened[key]; ok {
-				added[i].PawnIDs = append(added[i].PawnIDs, p.ID)
-
-				return
-			}
-			opened[key] = len(added)
-		}
-
-		added = append(added, InitiativeEntry{
-			ID:      env.id(),
-			PawnIDs: []ulid.ULID{p.ID},
-			Name:    p.Name,
-		})
-	}
-
 	wanted := func(p Pawn) bool {
 		return p.Visible && floors[p.LayerID] && !already[p.ID]
 	}
@@ -655,9 +610,15 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	// GM drags -- but a fresh tracker has to start in SOME order, and one that
 	// begins with the people who are going to be dragging is a better place to
 	// start than one that interleaves by id.
+	//
+	// WHERE A REINFORCEMENT GOES IS enlist's RULE, shared with initiative.add:
+	// three more goblins arriving in round four are more goblins, not a second
+	// goblin turn, so a monster whose key matches a line already in the order
+	// joins it -- whether that line was there before this sync or was opened
+	// by the goblin before it.
 	for _, p := range s.Pawns {
 		if p.Kind == PawnPlayer && wanted(p) {
-			take(p)
+			entries = s.enlist(entries, p, env)
 		}
 	}
 	for _, p := range s.Pawns {
@@ -665,11 +626,9 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 			continue
 		}
 		if wanted(p) && !Dead(p) {
-			take(p)
+			entries = s.enlist(entries, p, env)
 		}
 	}
-
-	entries = append(entries, added...)
 
 	if len(entries) > InitiativeMax {
 		return nil, invalid("Too many entries", "The tracker holds at most 200 entries.")
@@ -691,6 +650,33 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 
 	return initiativeUpdated(s), nil
+}
+
+// enlist puts one pawn into the order: onto the line whose members share its
+// key when the table is grouped and it is a monster, and onto a fresh line at
+// the end otherwise. It is the one rule for where a creature goes, and both
+// the sync and initiative.add call it.
+//
+// THE KEY IS RECOMPUTED FROM THE MEMBERS RATHER THAN STORED, so there is
+// nothing to keep in step, and the first line that matches is the one joined
+// -- which for a line this same pass opened a moment ago is that line.
+func (s *State) enlist(entries []InitiativeEntry, p Pawn, env Env) []InitiativeEntry {
+	if s.Table.InitiativeGrouping != GroupIndividual && p.Kind == PawnMonster {
+		key := MonsterKey(p)
+		for i, e := range entries {
+			if s.groupKey(e) == key {
+				entries[i].PawnIDs = append(entries[i].PawnIDs, p.ID)
+
+				return entries
+			}
+		}
+	}
+
+	return append(entries, InitiativeEntry{
+		ID:      env.id(),
+		PawnIDs: []ulid.ULID{p.ID},
+		Name:    p.Name,
+	})
 }
 
 func (s *State) groupKey(e InitiativeEntry) string { return GroupKey(e, s.Pawn) }
@@ -749,6 +735,168 @@ func (c *InitiativeClear) Authorize(s *State, a Actor) error {
 
 func (c *InitiativeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Initiative = Initiative{}
+	s.Normalize()
+
+	return initiativeUpdated(s), nil
+}
+
+// THE FOUR GESTURES OF THE STRIP, AS COMMANDS. Each of them used to be an HTTP
+// handler that read the tracker through the hub, edited a copy, and dispatched
+// initiative.set with the result -- two trips into the room's goroutine, a
+// window between them a second GM tab could slip through, and a copy of a rule
+// the core already had. A command is one trip, atomic on the room, and the
+// rule is written once. initiative.set stays for the editor, which really does
+// replace the whole thing.
+
+// InitiativeActivate gives the turn to one line.
+//
+// THE GM CAN ACTIVATE A CORPSE, deliberately. Skipping the dead is what Next
+// does, not a rule about what may be acting -- a GM who wants to spend a
+// moment on the goblin that just fell over is allowed to.
+type InitiativeActivate struct {
+	Entry ulid.ULID `json:"entry"`
+}
+
+func (c *InitiativeActivate) Authorize(s *State, a Actor) error {
+	return requireGM(a, "change whose turn it is")
+}
+
+func (c *InitiativeActivate) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+	if s.entry(c.Entry) == nil {
+		return nil, notFound("Entry gone", "That line is no longer in the initiative tracker.")
+	}
+
+	id := c.Entry
+	s.Initiative.Active = &id
+	s.Normalize()
+
+	return initiativeUpdated(s), nil
+}
+
+// InitiativeRemove takes one line out.
+//
+// REMOVING THE ACTING LINE MOVES THE TURN TO THE NEXT ONE IN THE OLD ORDER,
+// wrapping, or to nothing when it was the last. That is what dropped does when
+// a PAWN is removed, and this is the case where the line goes and the pawn
+// stays -- so it is the same successor rule, over lines rather than members.
+type InitiativeRemove struct {
+	Entry ulid.ULID `json:"entry"`
+}
+
+func (c *InitiativeRemove) Authorize(s *State, a Actor) error {
+	return requireGM(a, "remove an entry from the initiative tracker")
+}
+
+func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+	entries := s.Initiative.Entries
+	at := slices.IndexFunc(entries, func(e InitiativeEntry) bool { return e.ID == c.Entry })
+	if at < 0 {
+		return nil, notFound("Entry gone", "That line is no longer in the initiative tracker.")
+	}
+
+	active := s.Initiative.Active
+	if active != nil && *active == c.Entry {
+		active = nil
+		if n := len(entries); n > 1 {
+			next := entries[(at+1)%n].ID
+			active = &next
+		}
+	}
+
+	s.Initiative.Entries = slices.Delete(slices.Clone(entries), at, at+1)
+	s.Initiative.Active = active
+	s.Normalize()
+
+	return initiativeUpdated(s), nil
+}
+
+// InitiativeReorder is where a drop lands: the whole order, as ids, in the
+// order the GM dragged them into.
+//
+// AN ID SET THAT IS NOT EXACTLY THE TRACKER'S IS REFUSED. The drag raced a
+// change -- a second tab synced, a pawn was removed -- and reordering what came
+// back would put the tracker into a shape nobody asked for. The refusal lands
+// in the alert modal and the refetch that follows the event is the answer.
+type InitiativeReorder struct {
+	IDs []ulid.ULID `json:"ids"`
+}
+
+func (c *InitiativeReorder) Authorize(s *State, a Actor) error {
+	return requireGM(a, "reorder the initiative tracker")
+}
+
+func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+	if len(c.IDs) != len(s.Initiative.Entries) {
+		return nil, invalid("Order out of date", "The tracker changed while you were dragging. Try again.")
+	}
+
+	byID := make(map[ulid.ULID]InitiativeEntry, len(s.Initiative.Entries))
+	for _, e := range s.Initiative.Entries {
+		byID[e.ID] = e
+	}
+
+	entries := make([]InitiativeEntry, 0, len(c.IDs))
+	for _, id := range c.IDs {
+		e, found := byID[id]
+		if !found {
+			return nil, invalid("Order out of date", "The tracker changed while you were dragging. Try again.")
+		}
+		delete(byID, id)
+		entries = append(entries, e)
+	}
+
+	s.Initiative.Entries = entries
+	s.Normalize()
+
+	return initiativeUpdated(s), nil
+}
+
+// InitiativeAdd appends one line: either a name, from the Add entry dialog, or
+// a pawn, from that pawn's own menu.
+//
+// IT TAKES ONE OR THE OTHER AND NEVER BOTH. A named line is a lair action and
+// has no creature; a pawn line is a creature and takes its name from the pawn.
+// A request carrying both is one this server did not write.
+//
+// A PAWN JOINS ITS GROUP by enlist's rule, which is the sync's rule: in a
+// grouped fight a monster is appended to the line whose members share its
+// key, if there is one.
+type InitiativeAdd struct {
+	Name string     `json:"name"`
+	Pawn *ulid.ULID `json:"pawn"`
+}
+
+func (c *InitiativeAdd) Authorize(s *State, a Actor) error {
+	return requireGM(a, "add an entry to the initiative tracker")
+}
+
+func (c *InitiativeAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+	if (c.Name == "") == (c.Pawn == nil) {
+		return nil, invalid("Bad entry", "An entry is a name or a pawn, and not both.")
+	}
+	if len(s.Initiative.Entries) >= InitiativeMax {
+		return nil, invalid("Too many entries", "The tracker holds at most 200 entries.")
+	}
+
+	entries := slices.Clone(s.Initiative.Entries)
+
+	if c.Pawn == nil {
+		if err := checkRequiredName("tracker entry", c.Name); err != nil {
+			return nil, err
+		}
+		entries = append(entries, InitiativeEntry{ID: env.id(), Name: c.Name})
+	} else {
+		p, err := s.requirePawn(*c.Pawn)
+		if err != nil {
+			return nil, err
+		}
+		if s.hasEntryFor(p.ID) {
+			return nil, invalid("Already in the order", "That creature already has a turn in the initiative tracker.")
+		}
+		entries = s.enlist(entries, *p, env)
+	}
+
+	s.Initiative.Entries = entries
 	s.Normalize()
 
 	return initiativeUpdated(s), nil

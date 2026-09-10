@@ -36,6 +36,15 @@ export interface SocketHandlers {
 const backoffFloor = 500;
 const backoffCeiling = 15_000;
 
+// ENDED_REASONS are the close reasons a client must not reconnect after. The
+// GM removed this person; this person pressed Leave in another tab; or this
+// tab is one past the number of connections one person may hold. Everything
+// else -- a restart, a dropped connection, a laptop lid -- reconnects.
+//
+// THE WORDS ARE THE SERVER'S, in internal/hub/conn.go, and a Go test reads this
+// file to hold the two lists together.
+export const ENDED_REASONS: ReadonlySet<string> = new Set(["kicked", "left", "limit"]);
+
 export class Socket {
 	private readonly url: string;
 	private readonly handlers: SocketHandlers;
@@ -137,9 +146,9 @@ export class Socket {
 		ws.addEventListener("close", (e) => {
 			this.ws = null;
 
-			// 1008 with this reason is the one close a client must not answer
-			// by coming back: the GM removed them from the room.
-			if (e.reason === "kicked") {
+			// 1008 with one of these reasons is a close a client must not
+			// answer by coming back; see ENDED_REASONS.
+			if (ENDED_REASONS.has(e.reason)) {
 				this.ended = true;
 			}
 			if (this.ended) {
@@ -214,7 +223,12 @@ export class Socket {
 	// BUFFERING WOULD BE THE HARDER HALF OF A REPLAY LOG AND BUY NOTHING. The
 	// snapshot that answers this replaces everything, so a frame held back
 	// while it was in flight is a frame the snapshot already contains.
-	private resync(): void {
+	//
+	// IT IS PUBLIC FOR ONE CALLER: a refusal with the not_found code, which is
+	// the server saying this client is holding something that is gone. The
+	// snapshot is the honest answer to that, and it is the same answer a gap
+	// gets.
+	resync(): void {
 		if (this.resyncing) {
 			return;
 		}

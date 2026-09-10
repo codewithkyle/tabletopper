@@ -48,7 +48,17 @@ type memStore struct {
 	seqs    []uint64
 	saveErr error
 
+	// saveDelay holds every Save for that long before it answers, and
+	// inFlight counts the ones held, for the test that asks whether the room
+	// waits on its database.
+	saveDelay time.Duration
+	inFlight  int
+
 	cleared [][2]ulid.ULID
+
+	// preserved is every snapshot the hub asked to keep because it could not
+	// read it.
+	preserved [][]byte
 }
 
 func (m *memStore) Load(ctx context.Context, id ulid.ULID) (Loaded, error) {
@@ -60,7 +70,20 @@ func (m *memStore) Load(ctx context.Context, id ulid.ULID) (Loaded, error) {
 
 func (m *memStore) Save(ctx context.Context, id ulid.ULID, blob []byte, seq uint64) error {
 	m.mu.Lock()
+	delay := m.saveDelay
+	m.inFlight++
+	m.mu.Unlock()
+
+	if delay > 0 {
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+		}
+	}
+
+	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.inFlight--
 
 	if m.saveErr != nil {
 		return m.saveErr
@@ -71,6 +94,20 @@ func (m *memStore) Save(ctx context.Context, id ulid.ULID, blob []byte, seq uint
 	return nil
 }
 
+func (m *memStore) saving() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.inFlight
+}
+
+func (m *memStore) failSaves(err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.saveErr = err
+}
+
 func (m *memStore) ClearMembership(ctx context.Context, id, user ulid.ULID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -78,6 +115,22 @@ func (m *memStore) ClearMembership(ctx context.Context, id, user ulid.ULID) erro
 	m.cleared = append(m.cleared, [2]ulid.ULID{id, user})
 
 	return nil
+}
+
+func (m *memStore) Preserve(ctx context.Context, id ulid.ULID, snapshot []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.preserved = append(m.preserved, snapshot)
+
+	return nil
+}
+
+func (m *memStore) kept() [][]byte {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return append([][]byte(nil), m.preserved...)
 }
 
 func (m *memStore) saved() int {

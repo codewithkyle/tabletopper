@@ -1,5 +1,7 @@
 package pages
 
+import "tabletopper/internal/events"
+
 // THE ROUND COUNTER LIVES IN THE MENU BAR, NOT ON THE STRIP.
 //
 // IT WAS AT THE LEADING EDGE OF THE TURN ORDER AND IT WAS IN THE WAY. The strip
@@ -85,7 +87,7 @@ func (d RoomInitiativeRoundData) Path() string {
 // of the document; nothing here is ever held, so the filter would be a
 // condition on an attribute this span cannot have.
 func (d RoomInitiativeRoundData) Trigger() string {
-	const live = "room:initiative from:window"
+	const live = events.Initiative + " from:window"
 
 	if d.Fetched {
 		return live

@@ -68,6 +68,23 @@ const (
 	// points and this allows a thousand of them.
 	FogPointsMax = 2_000
 
+	// StrokePointsBudget and FogPointsBudget bound the two collections as a
+	// WHOLE, in coordinates, which the per-item limits above do not. Five
+	// thousand strokes of twenty thousand points is a hundred million integers
+	// the per-item rules would accept, and the JSON of that is hundreds of
+	// megabytes -- past what the snapshot column will take, at which point the
+	// room can never be saved again and a restart loses hours. Two hundred
+	// thousand coordinates is about a megabyte and a half of JSON and more
+	// drawing than any session produces.
+	//
+	// THE STROKE BUDGET IS THE ONE A PLAYER CAN REACH. Drawing is on for
+	// players by default, so it is also shared out: one player may hold at most
+	// a PlayerStrokeShare-th of it, and the rest is the table's. Fog is the
+	// GM's alone and needs no share.
+	StrokePointsBudget = 200_000
+	FogPointsBudget    = 200_000
+	PlayerStrokeShare  = 4
+
 	// PawnsMax is the table's population. The renderer's stress target is five
 	// hundred and this is twice it.
 	PawnsMax = 1_000
@@ -281,6 +298,47 @@ func checkCondition(c Condition) error {
 func checkObjectSize(w, h int) error {
 	if w < 1 || w > ObjectPixelsMax || h < 1 || h > ObjectPixelsMax {
 		return invalid("Bad size", fmt.Sprintf("An object is between 1 and %d pixels on each side.", ObjectPixelsMax))
+	}
+
+	return nil
+}
+
+// strokeBudget refuses a stroke that would take the room, or its author, past
+// the point budget. adding is the coordinates about to land.
+//
+// IT IS A SCAN OF EVERY STROKE ON EVERY CHUNK, and that is fine: at most five
+// thousand strokes, arriving at ten chunks a second per hand, is a few
+// microseconds per chunk, and a running total would be one more number to keep
+// in step with a collection that four commands edit.
+func (s *State) strokeBudget(a Actor, adding int) error {
+	total, mine := 0, 0
+	for _, st := range s.Strokes {
+		total += len(st.Points)
+		if st.By == a.ID {
+			mine += len(st.Points)
+		}
+	}
+
+	if total+adding > StrokePointsBudget {
+		return invalid("Drawing full", "This room holds as much drawing as it can. Erase something first.")
+	}
+	if !a.GM() && mine+adding > StrokePointsBudget/PlayerStrokeShare {
+		return invalid("Drawing full", "You have drawn as much as one player may. Erase something of yours first.")
+	}
+
+	return nil
+}
+
+// fogBudget is strokeBudget for the fog, which has no per-author share because
+// only the GM draws it.
+func (s *State) fogBudget(adding int) error {
+	total := 0
+	for _, f := range s.Fog {
+		total += len(f.Points)
+	}
+
+	if total+adding > FogPointsBudget {
+		return invalid("Fog full", "This room holds as much fog as it can. Clear some first.")
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -8,7 +9,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -229,6 +232,37 @@ func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	// reachable at all.
 	if owner, ok := boundRoomID(db.calls[0].args[1]); !ok || owner != testOwnerID {
 		t.Errorf("the delete is not owner-scoped: %v", db.calls[0].args)
+	}
+}
+
+// DELETING A ROOM ENDS THE LIVE ONE. Without this the goroutine played on over
+// a row that was gone: commands applied, events broadcast, the GM saw the room
+// vanish from the list, and everybody in it went on playing until the last
+// socket dropped.
+func TestDeleteRoomClosesTheLiveRoom(t *testing.T) {
+	db := &roomDB{rows: 1}
+	app := newRoomApp(db)
+	app.Hub = hub.New(nil, hub.Options{Store: emptyRoomStore{}})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	gm := room.Actor{ID: testOwnerID, Role: room.RoleGM}
+	if err := app.Hub.Dispatch(ctx, testRoomID, gm, &room.PlayerJoin{Player: room.Player{ID: testOwnerID, Name: "kyle", Role: room.RoleGM}}); err != nil {
+		t.Fatalf("loading the room: %v", err)
+	}
+	if _, live := app.Hub.Players(ctx, testRoomID); !live {
+		t.Fatal("the room is not live before the delete")
+	}
+
+	rec := roomRequest(t, app.DeleteRoom, http.MethodDelete, "/rooms/"+testRoomID.String(),
+		map[string]string{"id": testRoomID.String()}, session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+
+	if _, live := app.Hub.Players(ctx, testRoomID); live {
+		t.Error("the room is still live after the delete")
 	}
 }
 

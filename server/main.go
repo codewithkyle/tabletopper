@@ -133,7 +133,28 @@ func run() error {
 		return fmt.Errorf("server: %w", err)
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// THE ROOMS ARE SAVED ON EVERY PATH OUT OF HERE, and on a budget of their
+	// own. This is what the whole snapshot design exists for -- a deploy in
+	// the middle of Saturday's game -- so it must not depend on the HTTP drain
+	// having gone well or having left any of a shared deadline unspent. A drain
+	// held up by a long upload used to return an error before the rooms were
+	// reached, and a drain that succeeded slowly handed them a context that
+	// was already done.
+	//
+	// AFTER THE SERVER HAS DRAINED, not before, which the defer guarantees by
+	// running last. Shutdown closes every socket with going-away so the
+	// browsers reconnect to the next process instead of showing an error, and
+	// a room closed while the listener was still open would be reopened by the
+	// reconnect that followed.
+	defer func() {
+		roomsCtx, cancel := context.WithTimeout(context.Background(), roomsShutdownBudget)
+		defer cancel()
+		rooms.Shutdown(roomsCtx)
+
+		slog.Info("Server shutdown complete")
+	}()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), httpShutdownBudget)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		_ = server.Close()
@@ -143,14 +164,13 @@ func run() error {
 		return fmt.Errorf("server: %w", err)
 	}
 
-	// AFTER THE SERVER HAS DRAINED, not before. Shutdown closes every socket
-	// with going-away so the browsers reconnect to the next process instead of
-	// showing an error, and a room closed while the listener was still open
-	// would be reopened by the reconnect that followed. It shares the same
-	// deadline: a room that misses it loses only what changed since its last
-	// debounced save.
-	rooms.Shutdown(shutdownCtx)
-
-	slog.Info("Server shutdown complete")
 	return nil
 }
+
+// The two halves of the shutdown budget. They are separate rather than one
+// shared ten seconds so that a slow HTTP drain cannot spend the time the rooms
+// need to write themselves back; see the deferred block in run.
+const (
+	httpShutdownBudget  = 5 * time.Second
+	roomsShutdownBudget = 5 * time.Second
+)

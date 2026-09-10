@@ -1,0 +1,822 @@
+[
+  {
+    "hp": 0,
+    "maxHp": 1,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 1,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 2,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 2,
+    "band": "bloody"
+  },
+  {
+    "hp": 2,
+    "maxHp": 2,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 3,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 3,
+    "band": "bloody"
+  },
+  {
+    "hp": 2,
+    "maxHp": 3,
+    "band": "bruised"
+  },
+  {
+    "hp": 3,
+    "maxHp": 3,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 7,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 7,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 2,
+    "maxHp": 7,
+    "band": "bloody"
+  },
+  {
+    "hp": 3,
+    "maxHp": 7,
+    "band": "bloody"
+  },
+  {
+    "hp": 4,
+    "maxHp": 7,
+    "band": "bruised"
+  },
+  {
+    "hp": 5,
+    "maxHp": 7,
+    "band": "bruised"
+  },
+  {
+    "hp": 6,
+    "maxHp": 7,
+    "band": "healthy"
+  },
+  {
+    "hp": 7,
+    "maxHp": 7,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 10,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 10,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 2,
+    "maxHp": 10,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 3,
+    "maxHp": 10,
+    "band": "bloody"
+  },
+  {
+    "hp": 4,
+    "maxHp": 10,
+    "band": "bloody"
+  },
+  {
+    "hp": 5,
+    "maxHp": 10,
+    "band": "bloody"
+  },
+  {
+    "hp": 6,
+    "maxHp": 10,
+    "band": "bruised"
+  },
+  {
+    "hp": 7,
+    "maxHp": 10,
+    "band": "bruised"
+  },
+  {
+    "hp": 8,
+    "maxHp": 10,
+    "band": "healthy"
+  },
+  {
+    "hp": 9,
+    "maxHp": 10,
+    "band": "healthy"
+  },
+  {
+    "hp": 10,
+    "maxHp": 10,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 13,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 13,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 2,
+    "maxHp": 13,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 3,
+    "maxHp": 13,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 4,
+    "maxHp": 13,
+    "band": "bloody"
+  },
+  {
+    "hp": 5,
+    "maxHp": 13,
+    "band": "bloody"
+  },
+  {
+    "hp": 6,
+    "maxHp": 13,
+    "band": "bloody"
+  },
+  {
+    "hp": 7,
+    "maxHp": 13,
+    "band": "bruised"
+  },
+  {
+    "hp": 8,
+    "maxHp": 13,
+    "band": "bruised"
+  },
+  {
+    "hp": 9,
+    "maxHp": 13,
+    "band": "bruised"
+  },
+  {
+    "hp": 10,
+    "maxHp": 13,
+    "band": "healthy"
+  },
+  {
+    "hp": 11,
+    "maxHp": 13,
+    "band": "healthy"
+  },
+  {
+    "hp": 12,
+    "maxHp": 13,
+    "band": "healthy"
+  },
+  {
+    "hp": 13,
+    "maxHp": 13,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 20,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 20,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 2,
+    "maxHp": 20,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 3,
+    "maxHp": 20,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 4,
+    "maxHp": 20,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 5,
+    "maxHp": 20,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 6,
+    "maxHp": 20,
+    "band": "bloody"
+  },
+  {
+    "hp": 7,
+    "maxHp": 20,
+    "band": "bloody"
+  },
+  {
+    "hp": 8,
+    "maxHp": 20,
+    "band": "bloody"
+  },
+  {
+    "hp": 9,
+    "maxHp": 20,
+    "band": "bloody"
+  },
+  {
+    "hp": 10,
+    "maxHp": 20,
+    "band": "bloody"
+  },
+  {
+    "hp": 11,
+    "maxHp": 20,
+    "band": "bruised"
+  },
+  {
+    "hp": 12,
+    "maxHp": 20,
+    "band": "bruised"
+  },
+  {
+    "hp": 13,
+    "maxHp": 20,
+    "band": "bruised"
+  },
+  {
+    "hp": 14,
+    "maxHp": 20,
+    "band": "bruised"
+  },
+  {
+    "hp": 15,
+    "maxHp": 20,
+    "band": "bruised"
+  },
+  {
+    "hp": 16,
+    "maxHp": 20,
+    "band": "healthy"
+  },
+  {
+    "hp": 17,
+    "maxHp": 20,
+    "band": "healthy"
+  },
+  {
+    "hp": 18,
+    "maxHp": 20,
+    "band": "healthy"
+  },
+  {
+    "hp": 19,
+    "maxHp": 20,
+    "band": "healthy"
+  },
+  {
+    "hp": 20,
+    "maxHp": 20,
+    "band": "healthy"
+  },
+  {
+    "hp": 0,
+    "maxHp": 100,
+    "band": "dead"
+  },
+  {
+    "hp": 1,
+    "maxHp": 100,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 2,
+    "maxHp": 100,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 3,
+    "maxHp": 100,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 4,
+    "maxHp": 100,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 5,
+    "maxHp": 100,
+    "band": "nearDeath"
+  },
+  {
+    "hp": 6,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 7,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 8,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 9,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 10,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 11,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 12,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 13,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 14,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 15,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 16,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 17,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 18,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 19,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 20,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 21,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 22,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 23,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 24,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 25,
+    "maxHp": 100,
+    "band": "veryBloody"
+  },
+  {
+    "hp": 26,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 27,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 28,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 29,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 30,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 31,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 32,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 33,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 34,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 35,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 36,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 37,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 38,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 39,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 40,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 41,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 42,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 43,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 44,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 45,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 46,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 47,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 48,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 49,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 50,
+    "maxHp": 100,
+    "band": "bloody"
+  },
+  {
+    "hp": 51,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 52,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 53,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 54,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 55,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 56,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 57,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 58,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 59,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 60,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 61,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 62,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 63,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 64,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 65,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 66,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 67,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 68,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 69,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 70,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 71,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 72,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 73,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 74,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 75,
+    "maxHp": 100,
+    "band": "bruised"
+  },
+  {
+    "hp": 76,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 77,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 78,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 79,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 80,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 81,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 82,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 83,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 84,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 85,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 86,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 87,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 88,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 89,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 90,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 91,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 92,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 93,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 94,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 95,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 96,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 97,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 98,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 99,
+    "maxHp": 100,
+    "band": "healthy"
+  },
+  {
+    "hp": 100,
+    "maxHp": 100,
+    "band": "healthy"
+  }
+]

@@ -1,5 +1,5 @@
 // The <dialog id="alert-modal"> in the base layout, driven entirely by the
-// server: internal/htmx writes an "alert" HX-Trigger on the error
+// server: internal/htmx writes an ALERT HX-Trigger on the error
 // responses, and htmx dispatches it here.
 //
 // Deliberately a separate dialog from the confirm one rather than a second
@@ -8,6 +8,7 @@
 // alert overwrites the confirm's text and steals its close event, settling
 // htmx's promise with whichever button the user pressed on the wrong message.
 import { openDialog } from "./modal.js";
+import { ALERT, PENDING_ALERT } from "./events.js";
 
 // PENDING_KEY is an alert parked by the page BEFORE this one, for the case the
 // server has no response to hang an HX-Trigger on: the room client is told over
@@ -17,10 +18,8 @@ import { openDialog } from "./modal.js";
 // toast.js uses for a toast that arrives with an HX-Redirect.
 //
 // THE KEY IS A CONTRACT WITH server/js/room/exit.ts, which writes it from the
-// other bundle. It is spelled out in both files because there is nothing both
-// of them import; the constant has the same name on both sides so a search
-// finds the pair.
-const PENDING_KEY = "alert:pending";
+// other bundle; both import it from events.js.
+const PENDING_KEY = PENDING_ALERT;
 
 const dialog = document.getElementById("alert-modal");
 const headingEl = dialog.querySelector("[data-modal-heading]");
@@ -36,7 +35,7 @@ function show(heading, message) {
 // with bubbles set, so they climb to window; when that element has already
 // been swapped away htmx dispatches on document instead, which is also on the
 // path to window. Both cases land here.
-window.addEventListener("alert", (e) => {
+window.addEventListener(ALERT, (e) => {
     show(e.detail?.heading, e.detail?.message);
 });
 

@@ -69,6 +69,15 @@ func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd
 // library being read -- and a command cannot carry an owner it chose for
 // itself, which is what a `json:"-"` field would eventually be asked to do.
 func (h *Hub) resolveMap(ctx context.Context, who room.Actor, cmd *room.TableSetLayerMap) error {
+	// RESOLUTION RUNS BEFORE AUTHORIZATION, as it does for the two spawns, and
+	// the same rule applies: only the GM may set a layer's map, so there is
+	// nothing to look up for anybody else. Leaving Map nil hands the refusal to
+	// Authorize, and a player's socket sending this at the rate limit costs the
+	// database nothing.
+	if !who.GM() {
+		return nil
+	}
+
 	if h.queries == nil {
 		return notBuilt("Maps are not ready", "This server cannot read maps.")
 	}

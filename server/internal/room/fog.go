@@ -143,6 +143,9 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkPoints("fog shape", c.Points, minPoints, FogPointsMax); err != nil {
 		return nil, err
 	}
+	if err := s.fogBudget(len(c.Points)); err != nil {
+		return nil, err
+	}
 
 	shape := FogShape{
 		ID:      env.id(),

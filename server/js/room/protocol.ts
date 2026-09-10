@@ -223,6 +223,19 @@ export interface FogSetPrefill {
 	prefill: boolean;
 }
 
+export interface InitiativeActivate {
+	type: "initiative.activate";
+	cid: string;
+	entry: string;
+}
+
+export interface InitiativeAdd {
+	type: "initiative.add";
+	cid: string;
+	name: string;
+	pawn: string | null;
+}
+
 export interface InitiativeClear {
 	type: "initiative.clear";
 	cid: string;
@@ -231,6 +244,18 @@ export interface InitiativeClear {
 export interface InitiativeNext {
 	type: "initiative.next";
 	cid: string;
+}
+
+export interface InitiativeRemove {
+	type: "initiative.remove";
+	cid: string;
+	entry: string;
+}
+
+export interface InitiativeReorder {
+	type: "initiative.reorder";
+	cid: string;
+	ids: string[];
 }
 
 export interface InitiativeSet {
@@ -452,8 +477,12 @@ export type Command =
 	| FogRemove
 	| FogSetEnabled
 	| FogSetPrefill
+	| InitiativeActivate
+	| InitiativeAdd
 	| InitiativeClear
 	| InitiativeNext
+	| InitiativeRemove
+	| InitiativeReorder
 	| InitiativeSet
 	| InitiativeSync
 	| PawnDrag

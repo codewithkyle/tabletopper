@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
@@ -44,6 +45,10 @@ type Store interface {
 	// rows stop pointing at the room, so the homepage stops offering to take
 	// them back to it and a reload lands on the join page.
 	ClearMembership(ctx context.Context, roomID, userID ulid.ULID) error
+
+	// Preserve keeps a snapshot this build could not read, so that the fresh
+	// room's first save does not overwrite the only copy of the old table.
+	Preserve(ctx context.Context, roomID ulid.ULID, snapshot []byte) error
 }
 
 // Loaded is the rooms row, minus everything the hub has no use for.
@@ -71,13 +76,32 @@ func (d dbStore) Load(ctx context.Context, roomID ulid.ULID) (Loaded, error) {
 }
 
 func (d dbStore) Save(ctx context.Context, roomID ulid.ULID, snapshot []byte, seq uint64) error {
-	_, err := d.q.SaveRoomSnapshot(ctx, queries.SaveRoomSnapshotParams{
+	result, err := d.q.SaveRoomSnapshot(ctx, queries.SaveRoomSnapshotParams{
 		Snapshot:    snapshot,
 		SnapshotSeq: seq,
 		ID:          roomID,
 	})
 	if err != nil {
 		return fmt.Errorf("hub: save snapshot: %w", err)
+	}
+
+	// A SAVE THAT MATCHED NO ROW IS NOT AN ERROR AND IS NOT SILENT EITHER. It
+	// is a room saving into a row that was deleted, which DeleteRoom now ends
+	// by closing the live room -- so this is the line that says so if some
+	// other path ever deletes a row out from under a running room.
+	if rows, err := result.RowsAffected(); err == nil && rows == 0 {
+		slog.Warn("Saved a snapshot for a room that has no row", "room", roomID)
+	}
+
+	return nil
+}
+
+func (d dbStore) Preserve(ctx context.Context, roomID ulid.ULID, snapshot []byte) error {
+	if err := d.q.KeepFailedSnapshot(ctx, queries.KeepFailedSnapshotParams{
+		SnapshotFailed: snapshot,
+		ID:             roomID,
+	}); err != nil {
+		return fmt.Errorf("hub: keep failed snapshot: %w", err)
 	}
 
 	return nil
@@ -95,12 +119,33 @@ func (d dbStore) ClearMembership(ctx context.Context, roomID, userID ulid.ULID) 
 	return nil
 }
 
-// hydrate turns a loaded row into the state the room goroutine will own.
+// sheetHP is the production WriteHP: one column on the characters row, and the
+// clamp that keeps a number the protocol allows inside the column that holds
+// it.
+func sheetHP(q *queries.Queries) func(ctx context.Context, character ulid.ULID, hp int) error {
+	return func(ctx context.Context, character ulid.ULID, hp int) error {
+		_, err := q.UpdateCharacterCurrentHP(ctx, queries.UpdateCharacterCurrentHPParams{
+			CurrentHP: uint16(max(0, min(hp, math.MaxUint16))),
+			ID:        character,
+		})
+
+		return err
+	}
+}
+
+// hydrate turns a loaded row into the state the room goroutine will own, and
+// reports whether the snapshot it was given had to be thrown away.
 //
-// EVERY DECODE FAILURE STARTS THE ROOM FRESH, and the three are told apart only
-// by what gets logged. An empty snapshot is the ordinary first join to a room
-// nobody has opened and is not worth a line; a schema break or unreadable JSON
-// means a live table just lost its pawns, which is worth a loud one.
+// EVERY DECODE FAILURE STARTS THE ROOM FRESH, and the three are told apart by
+// what gets logged and by the second answer. An empty snapshot is the ordinary
+// first join to a room nobody has opened and is not worth a line; a snapshot
+// from a schema this build cannot read, or one that is not JSON, means a live
+// table just lost its pawns, which is worth a loud one -- and is worth keeping,
+// which is what the caller does with a true.
+//
+// A SNAPSHOT FROM AN OLDER SCHEMA IS NOT A FAILURE. room.Unmarshal migrates it,
+// so the room comes back with its table; what still fails is a snapshot from a
+// NEWER schema, which is a rollback, and bytes that do not decode at all.
 //
 // THE ROW OVERWRITES THE SNAPSHOT for the name and the lock. Both are columns
 // that HTTP routes write while the room is not even loaded -- a GM can rename a
@@ -111,18 +156,22 @@ func (d dbStore) ClearMembership(ctx context.Context, roomID, userID ulid.ULID) 
 // the table and is being read because the process restarted, so a Connected
 // that survived would show a player list full of people who are not there until
 // each of them happened to reconnect.
-func hydrate(roomID ulid.ULID, l Loaded) *room.State {
+func hydrate(roomID ulid.ULID, l Loaded) (*room.State, bool) {
+	failed := false
+
 	s, err := room.Unmarshal(l.Snapshot)
 	switch {
 	case err == nil:
 	case errors.Is(err, room.ErrEmpty):
 		s = room.NewState(roomID, l.Name, room.Env{})
 	case errors.Is(err, room.ErrSchema):
-		slog.Warn("Starting a room fresh: its snapshot is from another schema", "room", roomID, "error", err)
+		slog.Error("Starting a room fresh and keeping the snapshot: it is from a schema this build cannot read", "room", roomID, "error", err)
 		s = room.NewState(roomID, l.Name, room.Env{})
+		failed = true
 	default:
-		slog.Error("Starting a room fresh: its snapshot could not be read", "room", roomID, "error", err)
+		slog.Error("Starting a room fresh and keeping the snapshot: it could not be read", "room", roomID, "error", err)
 		s = room.NewState(roomID, l.Name, room.Env{})
+		failed = true
 	}
 
 	s.Room.ID = roomID
@@ -133,5 +182,5 @@ func hydrate(roomID ulid.ULID, l Loaded) *room.State {
 	}
 	s.Normalize()
 
-	return s
+	return s, failed
 }

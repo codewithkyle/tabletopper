@@ -656,7 +656,7 @@ func (d RoomPageData) viewMenu() RoomMenu {
 // EACH ONE IS A WINDOW EVENT ACROSS A BUNDLE BOUNDARY. The bar is served as
 // written from public/js and the renderer is bundled from js/room; neither can
 // import the other, so the name is the contract and it is spelled out at both
-// ends. public/js/room.js turns these into "room:view" and "room:blood";
+// ends. public/js/room.js turns these into events.View and events.Blood;
 // render/renderer.ts listens for both.
 const (
 	roomViewAction  = "view"

@@ -8,7 +8,7 @@
 // answer. Without this the reader picks Dark, closes the dialog, and sits on a
 // light page until they navigate.
 //
-// internal/htmx raises it as {"theme:change": {"palette": "..."}}, on window for
+// internal/htmx raises it as {THEME_CHANGE: {"palette": "..."}}, on window for
 // the reason alert-modal.js gives: htmx dispatches HX-Trigger events on the
 // requesting element with bubbles set, and on document when that element has
 // been swapped away, so window is on both paths.
@@ -16,7 +16,9 @@
 // An empty palette is the "system" setting and means removing the attribute
 // rather than writing one, because the OS preference lives in a CSS media query
 // that only applies while :root carries no data-theme.
-window.addEventListener("theme:change", (e) => {
+import { THEME_CHANGE } from "./events.js";
+
+window.addEventListener(THEME_CHANGE, (e) => {
     const palette = e.detail?.palette ?? "";
 
     if (palette) {

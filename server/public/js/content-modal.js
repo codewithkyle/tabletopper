@@ -1,8 +1,8 @@
 // The reusable <dialog id="content-modal"> in the base layout. Fire a
-// "modal:open" event carrying a URL and it fetches that URL through htmx and
+// MODAL_OPEN event carrying a URL and it fetches that URL through htmx and
 // swaps the response into the dialog:
 //
-//     window.dispatchEvent(new CustomEvent("modal:open", {
+//     window.dispatchEvent(new CustomEvent(MODAL_OPEN, {
 //         detail: { url: "/fragment/character/new", size: "lg" },
 //     }));
 //
@@ -12,8 +12,9 @@
 // The content is server-rendered and its actions are ordinary htmx -- because
 // htmx performs the swap itself, hx-* attributes inside the response are
 // processed on arrival with no htmx.process() call here. A response that
-// should dismiss the dialog says so with an HX-Trigger of {"modal:close":true}.
+// should dismiss the dialog says so with an HX-Trigger of MODAL_CLOSE.
 import { openDialog } from "./modal.js";
+import { MODAL_CLOSE, MODAL_OPEN } from "./events.js";
 
 const dialog = document.getElementById("content-modal");
 const box = dialog.querySelector("[data-modal-box]");
@@ -112,7 +113,7 @@ document.addEventListener("click", (e) => {
     }
 
     window.dispatchEvent(
-        new CustomEvent("modal:open", {
+        new CustomEvent(MODAL_OPEN, {
             detail: {
                 url: trigger.dataset.modalOpen,
                 size: trigger.dataset.modalSize,
@@ -121,7 +122,7 @@ document.addEventListener("click", (e) => {
     );
 });
 
-window.addEventListener("modal:open", (e) => {
+window.addEventListener(MODAL_OPEN, (e) => {
     const url = e.detail?.url;
     if (!url) {
         console.error("modal:open fired without a url", e.detail);
@@ -145,7 +146,7 @@ window.addEventListener("modal:open", (e) => {
 // succeeds, and the response closes the dialog with an HX-Trigger header
 // rather than the client guessing from the status code. A validation failure
 // just re-renders the form and says nothing, so the modal stays open.
-window.addEventListener("modal:close", () => {
+window.addEventListener(MODAL_CLOSE, () => {
     dialog.close();
 });
 
@@ -225,7 +226,7 @@ dialog.addEventListener("close", () => {
 const autoOpen = document.querySelector("[data-modal-autoopen]");
 if (autoOpen) {
     window.dispatchEvent(
-        new CustomEvent("modal:open", {
+        new CustomEvent(MODAL_OPEN, {
             detail: {
                 url: autoOpen.dataset.modalAutoopen,
                 size: autoOpen.dataset.modalSize,

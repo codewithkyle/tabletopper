@@ -13,7 +13,7 @@
 // place the dialog could be opened from, and wrong the moment the room's Help
 // menu could open it too. An event is what a page is allowed not to care about.
 //
-// internal/htmx raises it as {"settings:change": {"name": "...", ...}}, on
+// internal/htmx raises it as {SETTINGS_CHANGE: {"name": "...", ...}}, on
 // window for the reason theme.js gives: htmx dispatches HX-Trigger events on the
 // requesting element with bubbles set, and on document when that element has
 // been swapped away, so window is on both paths. The other fields in the detail
@@ -22,10 +22,12 @@
 // AN EMPTY NAME IS NOT A RENAME. The save refuses a blank display name before it
 // writes anything, so nothing should ever arrive here empty -- and if something
 // did, leaving the greeting alone is better than greeting nobody.
+import { SETTINGS_CHANGE } from "./events.js";
+
 const greeting = document.getElementById("account-name");
 
 if (greeting) {
-    window.addEventListener("settings:change", (e) => {
+    window.addEventListener(SETTINGS_CHANGE, (e) => {
         const name = e.detail?.name ?? "";
 
         if (name !== "") {

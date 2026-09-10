@@ -12,6 +12,7 @@
 // strokes and pawns are later phases and each is one more call in this list,
 // against the same camera matrix.
 
+import { ROOM_BLOOD, ROOM_VIEW, THEME_CHANGE } from "../../../public/js/events.js";
 import type { Camera, Point, Rect, Viewport } from "./camera.ts";
 import type { MapRef, State } from "../protocol.ts";
 import type { Drawn } from "./pawn-pass.ts";
@@ -161,7 +162,8 @@ export interface Renderer {
 	// onSettled fires when the viewed layer, or whether it is the active one,
 	// has changed -- after the frame that worked it out. The menu bar's floor
 	// control follows it rather than reading the store, because the override
-	// that makes the two differ lives in here and nowhere else.
+	// that makes the two differ lives in here and nowhere else; the table
+	// follows it too, to drop a selection made on the floor just left.
 	onSettled(fn: () => void): void;
 
 	stop(): void;
@@ -194,37 +196,114 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	}
 
 	const gl: WebGL2RenderingContext = context;
-	const grid = createGridPass(gl);
-	const tiles = createTilePass(gl, () => frames.invalidate());
-	const sprites = createSpriteCache(gl, () => frames.invalidate());
-	const pawnPass = createPawnPass(gl);
+
+	// EVERYTHING ON THE GPU IS BUILT BY ONE FUNCTION THAT CAN RUN TWICE. A
+	// four-hour session on a laptop loses its context -- GPU power switching, a
+	// driver reset, the browser reclaiming a backgrounded tab's memory -- and
+	// after that every gl call is a silent no-op: the canvas freezes on its
+	// last frame or goes black and nothing says why. So the passes are `let`
+	// bindings that rebuild() reassigns when the browser hands the context
+	// back, and the frame loop sits out the gap. See onContextLost below.
+	let grid = createGridPass(gl);
+	let tiles = createTilePass(gl, () => frames.invalidate());
+	let sprites = createSpriteCache(gl, () => frames.invalidate());
+	let pawnPass = createPawnPass(gl);
 
 	// A SECOND PAWN PASS FOR THE GHOSTS, because they are the one thing on the
 	// table that changes every frame. The committed pawns are rebuilt on a
 	// change and the previews are rebuilt continuously; sharing one buffer
 	// would mean rebuilding the whole table at the rate of a hand.
-	const ghostPass = createPawnPass(gl);
-	const rings = createRingPass(gl);
+	let ghostPass = createPawnPass(gl);
+	let rings = createRingPass(gl);
 
 	// THE AURA IS THE RING PASS'S OPPOSITE NUMBER AND SO IT IS ITS OWN PASS. A
 	// condition is a hairline drawn OVER a creature and an aura is a soft band
 	// drawn UNDER one, which is two draws either side of the pawns whatever else
 	// is true -- and the shader has nothing in common with the outline's. See
 	// aura-pass.ts.
-	const auras = createAuraPass(gl);
-	const atlas = createGlyphAtlas(gl);
+	let auras = createAuraPass(gl);
+	let atlas = createGlyphAtlas(gl);
 
 	// THE BLOOD IS A PASS AND A POOL. The pass draws tinted quads off the sprite
 	// cache; the pool decides what is on the floor and how dry it is, and it is
-	// the only thing here that keeps state the store does not. See decals.ts.
-	const decalPass = createDecalPass(gl);
+	// the only thing here that keeps state the store does not -- which is also
+	// why it is the one thing here a lost context does not take with it. See
+	// decals.ts.
+	let decalPass = createDecalPass(gl);
 	const decals = newDecals();
 
 	// TWO PATH PASSES, UNDER AND OVER. The highlighted cells are the floor and
 	// go beneath the pawns standing on them; the line and the distance label
 	// are the ruler and go on top. See path-pass.ts.
-	const floorMarks = createPathPass(gl, atlas);
-	const overMarks = createPathPass(gl, atlas);
+	let floorMarks = createPathPass(gl, atlas);
+	let overMarks = createPathPass(gl, atlas);
+
+	// teardown frees every GPU resource the passes hold, and rebuild makes
+	// them again on a context the browser has restored. Both caches come back
+	// empty -- the tiles and the pictures refetch -- and the pawn buffer is
+	// marked stale so the next frame builds it against the new sprite cache.
+	function teardown(): void {
+		tiles.dispose();
+		grid.dispose();
+		pawnPass.dispose();
+		ghostPass.dispose();
+		decalPass.dispose();
+		rings.dispose();
+		auras.dispose();
+		floorMarks.dispose();
+		overMarks.dispose();
+		sprites.dispose();
+		atlas?.dispose();
+	}
+
+	function rebuild(): void {
+		grid = createGridPass(gl);
+		tiles = createTilePass(gl, () => frames.invalidate());
+		sprites = createSpriteCache(gl, () => frames.invalidate());
+		pawnPass = createPawnPass(gl);
+		ghostPass = createPawnPass(gl);
+		rings = createRingPass(gl);
+		auras = createAuraPass(gl);
+		atlas = createGlyphAtlas(gl);
+		decalPass = createDecalPass(gl);
+		floorMarks = createPathPass(gl, atlas);
+		overMarks = createPathPass(gl, atlas);
+
+		pawnsDirty = true;
+		lastEpoch = -1;
+	}
+
+	// lost is whether the context is gone, and while it is the frame loop
+	// draws nothing: a frame drawn into a lost context is a frame's worth of
+	// no-ops, and the loop stopping is what lets the restore start it again.
+	let lost = false;
+	const restoring = mount.querySelector("[data-tabletop-restoring]");
+
+	// preventDefault IS THE WHOLE OF THE FIRST HALF. Without it the browser
+	// does not try to restore the context at all; with it, webglcontextrestored
+	// follows once the GPU is back, which is the second half.
+	function onContextLost(e: Event): void {
+		e.preventDefault();
+		lost = true;
+		if (restoring instanceof HTMLElement) {
+			restoring.hidden = false;
+		}
+	}
+
+	// THE OLD PASSES ARE NOT DISPOSED ON RESTORE. Their handles belonged to the
+	// lost context and are already gone; deleting them would be more calls
+	// into nothing. They are dropped and built again.
+	function onContextRestored(): void {
+		rebuild();
+		lost = false;
+		if (restoring instanceof HTMLElement) {
+			restoring.hidden = true;
+		}
+		readClearColor();
+	}
+
+	canvas.addEventListener("webglcontextlost", onContextLost);
+	canvas.addEventListener("webglcontextrestored", onContextRestored);
 
 	const layers = newLayerView(mount.dataset.role === "gm");
 
@@ -254,7 +333,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	const target: Camera = newCamera();
 	let travel: { x: number; y: number; zoom: number; from: number } | null = null;
 
-	let settled: (() => void) | null = null;
+	const settled: (() => void)[] = [];
 	let framed: (() => void) | null = null;
 	let lastViewed = "";
 	let lastFollowing = true;
@@ -310,13 +389,17 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 	});
 
 	readClearColor();
-	window.addEventListener("theme:change", readClearColor);
-	window.addEventListener("room:view", onViewCommand as EventListener);
-	window.addEventListener("room:blood", onBloodCommand);
+	window.addEventListener(THEME_CHANGE, readClearColor);
+	window.addEventListener(ROOM_VIEW, onViewCommand as EventListener);
+	window.addEventListener(ROOM_BLOOD, onBloodCommand);
 
 	frames.invalidate();
 
 	function drawFrame(): boolean {
+		if (lost) {
+			return false;
+		}
+
 		const now = performance.now();
 
 		layers.update(state.table, now);
@@ -326,7 +409,9 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		if (viewedID !== lastViewed || following !== lastFollowing) {
 			lastViewed = viewedID;
 			lastFollowing = following;
-			settled?.();
+			for (const fn of settled) {
+				fn();
+			}
 		}
 
 		const painted = layers.draws();
@@ -796,7 +881,7 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		view: layers,
 
 		onSettled(fn) {
-			settled = fn;
+			settled.push(fn);
 		},
 
 		onFrame(fn) {
@@ -866,22 +951,14 @@ export function mountRenderer(mount: HTMLElement, state: State, table?: Table): 
 		},
 
 		stop() {
-			window.removeEventListener("theme:change", readClearColor);
-			window.removeEventListener("room:view", onViewCommand as EventListener);
-			window.removeEventListener("room:blood", onBloodCommand);
+			window.removeEventListener(THEME_CHANGE, readClearColor);
+			window.removeEventListener(ROOM_VIEW, onViewCommand as EventListener);
+			window.removeEventListener(ROOM_BLOOD, onBloodCommand);
+			canvas.removeEventListener("webglcontextlost", onContextLost);
+			canvas.removeEventListener("webglcontextrestored", onContextRestored);
 			input.stop();
 			frames.stop();
-			tiles.dispose();
-			grid.dispose();
-			pawnPass.dispose();
-			ghostPass.dispose();
-			decalPass.dispose();
-			rings.dispose();
-			auras.dispose();
-			floorMarks.dispose();
-			overMarks.dispose();
-			sprites.dispose();
-			atlas?.dispose();
+			teardown();
 		},
 	};
 }

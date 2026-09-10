@@ -1,10 +1,12 @@
 package pages
 
+import "tabletopper/internal/events"
+
 templ RoomLayers(data RoomLayersData) {
 	<div
 		id="room-layers"
 		hx-get={ data.Path() }
-		hx-trigger="room:tabletop from:window"
+		hx-trigger={ events.Tabletop + " from:window" }
 		hx-sync="this:queue last"
 		hx-swap="outerHTML"
 		class="flex flex-col gap-2"

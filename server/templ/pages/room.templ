@@ -57,6 +57,9 @@ templ roomContent(data RoomPageData) {
 					<p data-tabletop-unsupported hidden class="absolute inset-0 m-0 grid place-content-center px-6 text-center text-base-content/60">
 						This browser cannot draw the tabletop. It needs WebGL2, which every current browser supports; updating this one, or switching hardware acceleration back on, should bring it back.
 					</p>
+					<p data-tabletop-restoring hidden class="absolute inset-0 m-0 grid place-content-center px-6 text-center text-base-content/60">
+						The graphics context was lost. Restoring the tabletop; nothing on it has changed.
+					</p>
 				}
 				@roomOverlay(data)
 				if !data.Closed {

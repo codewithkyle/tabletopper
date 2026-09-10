@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -12,17 +13,125 @@ import (
 // snapshot rather than in a column beside it, so a snapshot that gets copied,
 // dumped or pasted somewhere carries its own version with it.
 //
-// THERE IS NO MIGRATION PATH AND THAT IS DELIBERATE FOR NOW. A snapshot from a
-// different schema starts the room fresh, which costs a GM the pawns they had
-// placed and costs nobody a session, because the only time the number changes
-// is a deploy that changed the shape. When a second schema exists, the answer
-// is a migration function per step and this constant is what selects it -- not
-// a best-effort decode, which is how a room comes back half-populated.
+// A SNAPSHOT FROM AN OLDER SCHEMA IS MIGRATED, ONE STEP AT A TIME. Unmarshal
+// reads the number, runs migrations[n] for every n from the one found up to
+// this one, and only then decodes into State -- so a room written before a
+// shape change comes back with its table rather than empty. A snapshot from a
+// NEWER schema is ErrSchema and starts the room fresh: that is a rollback, and
+// the hub keeps the bytes it could not read so nothing is lost when the
+// forward build returns.
+//
+// BUMPING THIS NUMBER MEANS WRITING A MIGRATION, and the test over the golden
+// snapshots in testdata is what says so: every past schema has one there, and
+// each has to decode to today's shape.
+//
 // SCHEMA 2 MOVED AN OBJECT'S SIZE FROM CELLS TO MAP PIXELS. footprintW and
 // footprintH became width and height, and a 2 that meant two cells would decode
 // as two pixels -- an invisible wagon rather than a decode error, which is
 // exactly the kind of failure a version number exists to turn into a loud one.
 const Schema = 2
+
+// fields is a snapshot half-decoded: the top-level object as raw JSON per key,
+// which is the shape a migration edits. Nothing below the keys a step touches
+// is decoded, so a step written for schema 1 goes on working however the
+// shape changes after it.
+type fields map[string]json.RawMessage
+
+// migrations is one step per past schema, keyed by the schema it reads and
+// producing the next. A step edits the raw fields in place and may fail, which
+// Unmarshal reports as an unreadable snapshot.
+var migrations = map[int]func(fields) error{
+	1: migrateFootprints,
+}
+
+// migrateFootprints is schema 1 to 2: an object's footprintW and footprintH,
+// in cells, become width and height in map pixels at the room's own cell
+// size, and every pawn gains a rotation of zero. A creature's footprint was
+// derived from its size category and is dropped -- see Pawn, which says why a
+// creature has a Size and an object has a Width.
+func migrateFootprints(f fields) error {
+	var table struct {
+		Grid struct {
+			CellSize int `json:"cellSize"`
+		} `json:"grid"`
+	}
+	if raw, ok := f["table"]; ok {
+		if err := json.Unmarshal(raw, &table); err != nil {
+			return fmt.Errorf("table: %w", err)
+		}
+	}
+	cell := max(1, table.Grid.CellSize)
+
+	raw, ok := f["pawns"]
+	if !ok {
+		return nil
+	}
+
+	var pawns []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &pawns); err != nil {
+		return fmt.Errorf("pawns: %w", err)
+	}
+
+	for _, p := range pawns {
+		var kind string
+		var w, h int
+		_ = json.Unmarshal(p["kind"], &kind)
+		_ = json.Unmarshal(p["footprintW"], &w)
+		_ = json.Unmarshal(p["footprintH"], &h)
+		delete(p, "footprintW")
+		delete(p, "footprintH")
+
+		width, height := 0, 0
+		if kind == string(PawnObject) {
+			width, height = max(1, w)*cell, max(1, h)*cell
+		}
+
+		p["width"] = number(width)
+		p["height"] = number(height)
+		p["rotation"] = number(0)
+	}
+
+	out, err := json.Marshal(pawns)
+	if err != nil {
+		return fmt.Errorf("pawns: %w", err)
+	}
+	f["pawns"] = out
+
+	return nil
+}
+
+func number(n int) json.RawMessage {
+	return json.RawMessage(strconv.Itoa(n))
+}
+
+// migrate brings half-decoded fields from the schema they carry up to this
+// build's, and answers ErrSchema for one this build has never seen.
+func migrate(f fields) error {
+	found := 0
+	if raw, ok := f["schema"]; ok {
+		if err := json.Unmarshal(raw, &found); err != nil {
+			return fmt.Errorf("schema: %w", err)
+		}
+	}
+
+	if found > Schema {
+		return fmt.Errorf("%w: found %d, want %d", ErrSchema, found, Schema)
+	}
+
+	for n := found; n < Schema; n++ {
+		step, ok := migrations[n]
+		if !ok {
+			return fmt.Errorf("%w: found %d and there is no migration from it", ErrSchema, found)
+		}
+		if err := step(f); err != nil {
+			return fmt.Errorf("room: migrating a snapshot from schema %d: %w", n, err)
+		}
+	}
+
+	f["schema"] = number(Schema)
+
+	return nil
+}
 
 var (
 	// ErrEmpty is the column default. A room row is created with an empty JSON
@@ -58,20 +167,26 @@ func Unmarshal(b []byte) (*State, error) {
 	// The emptiness test is on the decoded object rather than on the bytes,
 	// because the column default is written by MySQL as json_object() and
 	// comes back with whatever spacing the server chose.
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(b, &fields); err != nil {
+	var f fields
+	if err := json.Unmarshal(b, &f); err != nil {
 		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
 	}
-	if len(fields) == 0 {
+	if len(f) == 0 {
 		return nil, ErrEmpty
 	}
 
-	var s State
-	if err := json.Unmarshal(b, &s); err != nil {
+	if err := migrate(f); err != nil {
+		return nil, err
+	}
+
+	migrated, err := json.Marshal(f)
+	if err != nil {
 		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
 	}
-	if s.Schema != Schema {
-		return nil, fmt.Errorf("%w: found %d, want %d", ErrSchema, s.Schema, Schema)
+
+	var s State
+	if err := json.Unmarshal(migrated, &s); err != nil {
+		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
 	}
 
 	s.Normalize()

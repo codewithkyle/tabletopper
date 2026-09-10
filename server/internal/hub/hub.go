@@ -8,6 +8,7 @@ package hub
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -82,6 +83,21 @@ type Options struct {
 
 	// OverWindow is the span the over count is measured across.
 	OverWindow time.Duration
+
+	// WriteHP is the one statement the room runs against a character sheet:
+	// a player pawn's hit points, written back so the sheet says what
+	// happened at the table. New fills it from the queries when it is left
+	// nil, as it does Store; a test passes one of its own, and a test that
+	// passes nothing gets a room that writes no sheets.
+	WriteHP func(ctx context.Context, character ulid.ULID, hp int) error
+
+	// ConnsPerUser and ConnsPerRoom cap open sockets. Every join costs the
+	// room goroutine an apply, a broadcast and a whole projected snapshot, and
+	// the rate limit is per socket -- so without these one person with a
+	// script is N sockets multiplying both. A GM with three tabs is the most
+	// anybody honest opens; sixty-four is more people than any table seats.
+	ConnsPerUser int
+	ConnsPerRoom int
 }
 
 func (o Options) withDefaults() Options {
@@ -112,6 +128,12 @@ func (o Options) withDefaults() Options {
 	if o.OverWindow <= 0 {
 		o.OverWindow = time.Minute
 	}
+	if o.ConnsPerUser <= 0 {
+		o.ConnsPerUser = 4
+	}
+	if o.ConnsPerRoom <= 0 {
+		o.ConnsPerRoom = 64
+	}
 	if o.Version == "" {
 		o.Version = Version()
 	}
@@ -133,6 +155,7 @@ type Hub struct {
 	queries *queries.Queries
 	opts    Options
 	version string
+	writeHP func(ctx context.Context, character ulid.ULID, hp int) error
 
 	mu     sync.Mutex
 	rooms  map[ulid.ULID]*actor
@@ -146,12 +169,16 @@ func New(q *queries.Queries, opts Options) *Hub {
 	if opts.Store == nil {
 		opts.Store = NewStore(q)
 	}
+	if opts.WriteHP == nil && q != nil {
+		opts.WriteHP = sheetHP(q)
+	}
 
 	return &Hub{
 		store:   opts.Store,
 		queries: q,
 		opts:    opts,
 		version: opts.Version,
+		writeHP: opts.WriteHP,
 		rooms:   make(map[ulid.ULID]*actor),
 	}
 }
@@ -261,28 +288,71 @@ func (h *Hub) Close(ctx context.Context, roomID ulid.ULID) {
 	}
 }
 
-// Players is the live player list for the members fragment, and ok is false
-// when the room is not running -- which is the caller's cue to fall back to the
-// session rows.
-func (h *Hub) Players(ctx context.Context, roomID ulid.ULID) ([]room.Player, bool) {
+// find is a live room or nil, and it never loads one.
+func (h *Hub) find(roomID ulid.ULID) *actor {
 	h.mu.Lock()
-	a, ok := h.rooms[roomID]
-	h.mu.Unlock()
-	if !ok {
+	defer h.mu.Unlock()
+
+	return h.rooms[roomID]
+}
+
+// view asks a room one question and waits for the answer, which is a copy the
+// caller may keep: it was made on the room's goroutine and nothing else holds
+// it. ok is false when the room is not there to ask, when it went away between
+// being found and answering, or when the caller's context ran out first.
+//
+// load IS THE ONE THING THE CALLERS DIFFER ON, and each of them says why on
+// its own doorstep. A passive read -- the player list, one pawn -- answers
+// false for a room that is not running, because booting a room to draw a
+// panel would let a stale tab start a room nobody is in. A read that is one
+// click from a Dispatch -- the layer manager, the tracker -- loads, because
+// the Dispatch was going to.
+//
+// EVERYTHING BELOW THIS IS A CLOSURE OVER ONE OF THE ACTOR'S OWN METHODS. The
+// message type is the same for all of them, so the room's drain answers every
+// one of them the same way and a view cannot be forgotten there.
+func view[T any](ctx context.Context, h *Hub, roomID ulid.ULID, load bool, fn func(*actor) *T) (*T, bool) {
+	var a *actor
+	if load {
+		loaded, err := h.room(ctx, roomID)
+		if err != nil {
+			return nil, false
+		}
+		a = loaded
+	} else if a = h.find(roomID); a == nil {
 		return nil, false
 	}
 
-	reply := make(chan []room.Player, 1)
-	if err := a.post(ctx, roster{reply: reply}); err != nil {
+	reply := make(chan any, 1)
+	if err := a.post(ctx, ask{fn: func(a *actor) any { return fn(a) }, reply: reply}); err != nil {
 		return nil, false
 	}
 
 	select {
-	case players := <-reply:
-		return players, players != nil
+	case answer := <-reply:
+		value, _ := answer.(*T)
+
+		return value, value != nil
 	case <-ctx.Done():
 		return nil, false
 	}
+}
+
+// Players is the live player list for the members fragment, and ok is false
+// when the room is not running -- which is the caller's cue to fall back to the
+// session rows. It does not load the room: a page load must not start a room
+// nobody is in.
+func (h *Hub) Players(ctx context.Context, roomID ulid.ULID) ([]room.Player, bool) {
+	players, ok := view(ctx, h, roomID, false, func(a *actor) *[]room.Player {
+		p := a.players()
+
+		return &p
+	})
+	if !ok {
+		return nil, false
+	}
+
+	return *players, true
 }
 
 // TableView is the room's table plus how many pawns stand on each layer. It is
@@ -298,32 +368,16 @@ type TableView struct {
 // Table is the live table for the layer manager and the grid form.
 //
 // IT LOADS THE ROOM RATHER THAN ANSWERING FALSE, which is the opposite of what
-// Players does a few lines up, and the difference is what the caller is about
-// to do. The player list is a passive read and booting a room to draw one would
-// mean a page load could start a room nobody is in. Somebody opening the layer
-// manager is one click away from Dispatch, which loads the room anyway; making
-// them wait for the fragment to be wrong first buys nothing.
+// Players does, and the difference is what the caller is about to do.
+// Somebody opening the layer manager is one click away from Dispatch, which
+// loads the room anyway; making them wait for the fragment to be wrong first
+// buys nothing.
 //
 // The false it can still answer is a hub that is shutting down or a room whose
 // snapshot will not load, which is the caller's cue to say so rather than to
 // draw an empty table.
 func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
-	a, err := h.room(ctx, roomID)
-	if err != nil {
-		return nil, false
-	}
-
-	reply := make(chan *TableView, 1)
-	if err := a.post(ctx, tableView{reply: reply}); err != nil {
-		return nil, false
-	}
-
-	select {
-	case view := <-reply:
-		return view, view != nil
-	case <-ctx.Done():
-		return nil, false
-	}
+	return view(ctx, h, roomID, true, (*actor).table)
 }
 
 // Pawn is one pawn as the asking role may see it, for the fragments that draw
@@ -342,24 +396,7 @@ func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
 // room is running by definition; loading one to answer would mean a stale
 // window in a reloaded tab could start a room that nobody is in.
 func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
-	h.mu.Lock()
-	a, ok := h.rooms[roomID]
-	h.mu.Unlock()
-	if !ok {
-		return nil, false
-	}
-
-	reply := make(chan *room.Pawn, 1)
-	if err := a.post(ctx, pawnView{id: pawnID, role: role, reply: reply}); err != nil {
-		return nil, false
-	}
-
-	select {
-	case p := <-reply:
-		return p, p != nil
-	case <-ctx.Done():
-		return nil, false
-	}
+	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }
 
 // InitiativeView is the turn tracker as one role may see it, the pawns it
@@ -393,49 +430,26 @@ type InitiativeView struct {
 // socket projects on the way out, and a hidden monster must not come back
 // through it as a line in somebody's turn order.
 func (h *Hub) Initiative(ctx context.Context, roomID ulid.ULID, role room.Role) (*InitiativeView, bool) {
-	a, err := h.room(ctx, roomID)
-	if err != nil {
-		return nil, false
-	}
-
-	reply := make(chan *InitiativeView, 1)
-	if err := a.post(ctx, initiativeView{role: role, reply: reply}); err != nil {
-		return nil, false
-	}
-
-	select {
-	case view := <-reply:
-		return view, view != nil
-	case <-ctx.Done():
-		return nil, false
-	}
+	return view(ctx, h, roomID, true, func(a *actor) *InitiativeView { return a.initiative(role) })
 }
 
 // spawn is what resolving a spawn needs out of the running room. It is
 // unexported because nothing outside this package resolves a command.
 func (h *Hub) spawn(ctx context.Context, roomID ulid.ULID) (*SpawnView, bool) {
-	a, err := h.room(ctx, roomID)
-	if err != nil {
-		return nil, false
-	}
-
-	reply := make(chan *SpawnView, 1)
-	if err := a.post(ctx, spawnView{reply: reply}); err != nil {
-		return nil, false
-	}
-
-	select {
-	case view := <-reply:
-		return view, view != nil
-	case <-ctx.Done():
-		return nil, false
-	}
+	return view(ctx, h, roomID, true, (*actor).spawn)
 }
 
 // Shutdown snapshots every live room and closes every connection with
 // going-away, which is what turns a deploy into a reconnect rather than an
 // error. Every room gets the same deadline, and one that misses it loses only
 // what changed since its last save.
+//
+// THE MESSAGE IS POSTED WITH A CONTEXT THAT CANNOT ALREADY BE DONE, and only
+// the wait is bounded by the caller's. post selects between the inbox and the
+// context, Go picks between ready cases at random, and a caller whose deadline
+// had already passed -- the HTTP drain having spent the shared budget -- would
+// have had roughly half its rooms never told to save at all. This is the path
+// the whole snapshot design exists for, so the telling is unconditional.
 func (h *Hub) Shutdown(ctx context.Context) {
 	h.mu.Lock()
 	h.closed = true
@@ -451,8 +465,11 @@ func (h *Hub) Shutdown(ctx context.Context) {
 		go func() {
 			defer wg.Done()
 
+			postCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), storeTimeout)
+			defer cancel()
+
 			done := make(chan struct{})
-			if err := a.post(ctx, shutdown{done: done}); err != nil {
+			if err := a.post(postCtx, shutdown{done: done}); err != nil {
 				return
 			}
 			select {
@@ -492,7 +509,10 @@ func (h *Hub) room(ctx context.Context, roomID ulid.ULID) (*actor, error) {
 	if err != nil {
 		return nil, err
 	}
-	state := hydrate(roomID, loaded)
+	state, failed := hydrate(roomID, loaded)
+	if failed {
+		h.preserve(roomID, loaded.Snapshot)
+	}
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -509,6 +529,28 @@ func (h *Hub) room(ctx context.Context, roomID ulid.ULID) (*actor, error) {
 	go a.run()
 
 	return a, nil
+}
+
+// preserve keeps a snapshot hydrate could not read, off the calling goroutine
+// and before the room it belongs to can save over it.
+//
+// BEFORE, BECAUSE THE FIRST SAVE IS AT LEAST ONE INTERVAL AWAY and this is one
+// statement with the same deadline. It is still a race on paper; it is not one
+// in practice, and a failure here is a log line rather than a refusal to load
+// the room, because a table that cannot be opened at all is worse than one
+// that came back empty.
+func (h *Hub) preserve(roomID ulid.ULID, snapshot []byte) {
+	store := h.store
+	kept := append([]byte(nil), snapshot...)
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer cancel()
+
+		if err := store.Preserve(ctx, roomID, kept); err != nil {
+			slog.Error("Failed to keep an unreadable snapshot", "room", roomID, "error", err)
+		}
+	}()
 }
 
 // retire is a room asking permission to stop, called from its own goroutine.
@@ -587,7 +629,11 @@ func (a *actor) post(ctx context.Context, m any) error {
 // Serve upgrades one request to a WebSocket and runs it until either side ends
 // it. It answers the response itself, including the refusal when the room
 // cannot be loaded, so the caller has nothing left to write.
-func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, roomID ulid.ULID, p room.Player) {
+//
+// member is re-run on a timer for the life of the socket and a false answer
+// closes it; see Membership. The caller has already run it once, which is how
+// it knows p is a member at all.
+func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, roomID ulid.ULID, p room.Player, member Membership) {
 	ctx := r.Context()
 
 	a, err := h.room(ctx, roomID)
@@ -597,5 +643,5 @@ func (h *Hub) Serve(w http.ResponseWriter, r *http.Request, roomID ulid.ULID, p 
 		return
 	}
 
-	h.attach(w, r, a, p)
+	h.attach(w, r, a, p, member)
 }

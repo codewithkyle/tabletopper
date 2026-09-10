@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "seq": 17,
+  "room": {"id": "010000000000000000000003E8", "name": "The Sunless Citadel", "locked": false},
+  "table": {
+    "layers": [{"id": "01000000000000000000000001", "name": "Ground floor", "map": null, "fogEnabled": false, "fogPrefill": true}],
+    "activeLayer": "01000000000000000000000001",
+    "grid": {"visible": true, "cellSize": 50, "offsetX": 0, "offsetY": 0, "color": "#000000FF", "snap": "cells", "feetPerCell": 5, "diagonals": "equal"},
+    "monsterHp": "band",
+    "playersCanDraw": true
+  },
+  "players": [
+    {"id": "010000000000000000000003E9", "name": "Kyle", "avatar": "", "characterId": null, "characterName": "", "role": "gm", "connected": true}
+  ],
+  "pawns": [
+    {"id": "01000000000000000000000002", "kind": "monster", "layerId": "01000000000000000000000001", "name": "Goblin", "image": "", "x": 75, "y": 75, "z": 1, "size": "small", "footprintW": 1, "footprintH": 1, "visible": true, "hp": 7, "maxHp": 7, "hpBand": null, "ac": 15, "conditions": [], "ownerId": null, "monsterId": null, "characterId": null},
+    {"id": "01000000000000000000000003", "kind": "object", "layerId": "01000000000000000000000001", "name": "Wagon", "image": "", "x": 200, "y": 150, "z": 2, "size": "", "footprintW": 2, "footprintH": 4, "visible": true, "hp": null, "maxHp": null, "hpBand": null, "ac": null, "conditions": [], "ownerId": null, "monsterId": null, "characterId": null}
+  ],
+  "initiative": {"entries": [], "active": null, "round": 0},
+  "fog": [],
+  "strokes": []
+}

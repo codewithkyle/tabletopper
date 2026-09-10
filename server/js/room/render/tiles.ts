@@ -37,6 +37,15 @@ export const LAYERS = 96;
 // behind a queue of tiles that have left it.
 const IN_FLIGHT = 8;
 
+// RETRY_FLOOR and RETRY_CEILING bound the backoff after a fetch that failed
+// for a reason a retry might fix: a 5xx, a dropped connection. The first retry
+// waits a second and each one after doubles, up to a minute. Without this a
+// server restart or a wifi flap in the middle of a fight was a request storm
+// from every client at the table -- eight in flight, refilled at frame rate --
+// until the server was healthy again, which is the moment it least needs it.
+const RETRY_FLOOR = 1_000;
+const RETRY_CEILING = 60_000;
+
 // UPLOADS_PER_FRAME bounds the one part of the arrival path that is synchronous
 // and on the main thread. Decoding happens off-thread in createImageBitmap;
 // texSubImage3D does not, so a burst of twenty arrivals uploaded in one frame
@@ -343,11 +352,29 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 	const inFlight = new Map<string, AbortController>();
 	const ready: { key: string; bitmap: ImageBitmap }[] = [];
 
-	// missing is a 404 and is never retried. The tile route answers 404 for a
-	// coordinate outside the pyramid, and asking again every frame for the rest
-	// of the session would be a request per frame for ever.
+	// missing is a 404, or bytes the decoder refused, and is never retried. The
+	// tile route answers 404 for a coordinate outside the pyramid, and a
+	// picture that would not decode will not decode next time either; asking
+	// again every frame for the rest of the session would be a request per
+	// frame for ever.
 	const missing = new Set<string>();
 	const wantedThisFrame = new Set<string>();
+
+	// failures counts the retryable failures per key and retryAt is when the
+	// next attempt may be made, in performance.now() time.
+	const failures = new Map<string, number>();
+	const retryAt = new Map<string, number>();
+
+	function failed(key: string): void {
+		const n = (failures.get(key) ?? 0) + 1;
+		failures.set(key, n);
+		retryAt.set(key, performance.now() + Math.min(RETRY_CEILING, RETRY_FLOOR * 2 ** (n - 1)));
+	}
+
+	function recovered(key: string): void {
+		failures.delete(key);
+		retryAt.delete(key);
+	}
 
 	let total = 0;
 	let stopped = false;
@@ -357,6 +384,11 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 		inFlight.set(item.key, controller);
 		total++;
 
+		// decoding is which half a failure lands in. A fetch that failed may
+		// succeed next time and is backed off; bytes the decoder refused will
+		// be refused next time too and are given up on.
+		let decoding = false;
+
 		fetch(item.url, { credentials: "same-origin", signal: controller.signal })
 			.then((response) => {
 				if (response.status === 404) {
@@ -365,23 +397,41 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 					return null;
 				}
 				if (!response.ok) {
+					failed(item.key);
+
 					return null;
 				}
 
 				return response.blob();
 			})
-			.then((blob) => (blob ? decode(blob) : null))
+			.then((blob) => {
+				if (!blob) {
+					return null;
+				}
+				decoding = true;
+
+				return decode(blob);
+			})
 			.then((bitmap) => {
 				if (bitmap) {
+					recovered(item.key);
 					ready.push({ key: item.key, bitmap });
 					invalidate();
 				}
 			})
-			.catch(() => {
-				// An abort, a dropped connection, or an image the decoder
-				// refused. None of them is worth a message: the tile is drawn
-				// from its ancestor and asked for again the next time it is
-				// wanted.
+			.catch((err: unknown) => {
+				// An abort is the loader's own doing and costs the tile
+				// nothing. Anything else is either the network, which is
+				// backed off, or the decoder, which is final. The tile is
+				// drawn from its ancestor either way.
+				if (err instanceof DOMException && err.name === "AbortError") {
+					return;
+				}
+				if (decoding) {
+					missing.add(item.key);
+				} else {
+					failed(item.key);
+				}
 			})
 			.finally(() => {
 				inFlight.delete(item.key);
@@ -398,6 +448,11 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 			wantedThisFrame.add(key);
 
 			if (missing.has(key) || inFlight.has(key)) {
+				return;
+			}
+
+			const until = retryAt.get(key);
+			if (until !== undefined && until > performance.now()) {
 				return;
 			}
 

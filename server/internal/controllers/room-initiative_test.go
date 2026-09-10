@@ -178,7 +178,9 @@ func TestADropReordersTheTracker(t *testing.T) {
 
 // AN ID SET THAT IS NOT EXACTLY THE TRACKER'S IS REFUSED. The drag raced a
 // change, and reordering what came back would put the tracker into a shape
-// nobody asked for.
+// nobody asked for. The refusal is the core's and lands in the alert modal --
+// a sentence saying the tracker changed -- rather than the silent 404 a
+// request this server did not write gets.
 func TestADropThatRacedAChangeIsRefused(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -191,8 +193,11 @@ func TestADropThatRacedAChangeIsRefused(t *testing.T) {
 			"/rooms/"+testRoomID.String()+"/initiative/order", map[string]string{},
 			url.Values{"entries": {value}}, session.UserSession{UserID: testOwnerID})
 
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("%s got status %d, want 404", name, rec.Code)
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Errorf("%s got status %d, want 422 with the refusal in the alert", name, rec.Code)
+		}
+		if !strings.Contains(rec.Header().Get("HX-Trigger"), "Order out of date") {
+			t.Errorf("%s: the refusal did not reach the alert: %q", name, rec.Header().Get("HX-Trigger"))
 		}
 	}
 }
@@ -298,8 +303,11 @@ func TestAddTakesANameOrAPawnAndNotBoth(t *testing.T) {
 		url.Values{"name": {"Both"}, "pawn": {testPawnA.String()}},
 		session.UserSession{UserID: testOwnerID})
 
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("a request carrying both gave status %d, want 404", rec.Code)
+	// The core refuses a request carrying both, and the refusal reaches the
+	// alert rather than the dialog: a pawn add is the pawn menu's, which has
+	// no error block to draw into.
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("a request carrying both gave status %d, want 422", rec.Code)
 	}
 }
 
@@ -379,59 +387,5 @@ func TestACardsSideIsItsCreaturesKind(t *testing.T) {
 
 	if lair.Side != "" {
 		t.Errorf("a lair action was put on the %q side", lair.Side)
-	}
-}
-
-func TestAddPutsAMonsterInItsGroup(t *testing.T) {
-	manual := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU1")
-	first := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU2")
-	second := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU3")
-	ogre := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU4")
-	line := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVU5")
-
-	goblin := func(id ulid.ULID) room.Pawn {
-		return room.Pawn{ID: id, Kind: room.PawnMonster, Name: "Goblin", MonsterID: &manual}
-	}
-
-	view := func(grouping room.InitiativeGrouping) *hub.InitiativeView {
-		return &hub.InitiativeView{
-			Pawns: map[ulid.ULID]room.Pawn{
-				first:  goblin(first),
-				second: goblin(second),
-				ogre:   {ID: ogre, Kind: room.PawnMonster, Name: "Ogre"},
-			},
-			Table: room.Table{InitiativeGrouping: grouping},
-		}
-	}
-
-	held := []room.InitiativeEntry{{ID: line, PawnIDs: []ulid.ULID{first}, Name: "Goblin"}}
-
-	// GROUPED: the second goblin joins the first one's line rather than taking
-	// a turn of its own.
-	got, ok := withPawn(append([]room.InitiativeEntry(nil), held...), view(room.GroupMonsters), second)
-	if !ok {
-		t.Fatal("adding a second goblin was refused")
-	}
-	if len(got) != 1 || len(got[0].PawnIDs) != 2 {
-		t.Fatalf("the second goblin made %d lines holding %v", len(got), got)
-	}
-
-	// A DIFFERENT MONSTER IS A DIFFERENT LINE, which is what the key is for.
-	got, _ = withPawn(append([]room.InitiativeEntry(nil), held...), view(room.GroupMonsters), ogre)
-	if len(got) != 2 || got[1].Name != "Ogre" {
-		t.Fatalf("the ogre did not get a line of its own: %v", got)
-	}
-
-	// AND INDIVIDUAL IS ALWAYS A NEW LINE, because that is what the setting
-	// says the fight is being run as.
-	got, _ = withPawn(append([]room.InitiativeEntry(nil), held...), view(room.GroupIndividual), second)
-	if len(got) != 2 {
-		t.Fatalf("the second goblin was grouped in individual mode: %v", got)
-	}
-
-	// A CREATURE THAT IS ALREADY IN THE ORDER IS REFUSED, and the route turns
-	// that into a sentence rather than a second turn.
-	if _, ok := withPawn(append([]room.InitiativeEntry(nil), held...), view(room.GroupMonsters), first); ok {
-		t.Fatal("a pawn already in the order was added again")
 	}
 }

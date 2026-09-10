@@ -189,6 +189,7 @@ templ pawnHPBox(id string, name string, caption string, value string) {
 		maxlength={ HPEntryMax }
 		class="input input-xs min-w-0 flex-1"
 	/>
+	<input type="hidden" name={ name + "Entry" } value=""/>
 }
 
 templ pawnConditionChip(c RoomPawnCondition) {

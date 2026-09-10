@@ -321,3 +321,30 @@ func TestTheCanvasClampMatchesTheObjectSizeLimit(t *testing.T) {
 		t.Errorf("the canvas clamps a resize at %d and the core refuses past %d", written, ObjectPixelsMax)
 	}
 }
+
+// THE SELECTION CAP, pinned the same way. selection.ts caps a marquee, an
+// add and a drag set at its own copy of SelectionMax, so the server never sees
+// a move it would refuse; a copy that drifted would be a selection the server
+// refuses whole.
+func TestTheSelectionCapMatchesTheServers(t *testing.T) {
+	const source = "../../js/room/selection.ts"
+
+	body, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatalf("reading %s: %v", source, err)
+	}
+
+	found := regexp.MustCompile(`SELECTION_MAX = ([0-9_]+)`).FindSubmatch(body)
+	if found == nil {
+		t.Fatalf("%s no longer declares SELECTION_MAX", source)
+	}
+
+	written, err := strconv.Atoi(strings.ReplaceAll(string(found[1]), "_", ""))
+	if err != nil {
+		t.Fatalf("SELECTION_MAX is %q, which is not a number", found[1])
+	}
+
+	if written != SelectionMax {
+		t.Errorf("the client caps a selection at %d and the core refuses past %d", written, SelectionMax)
+	}
+}

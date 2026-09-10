@@ -20,6 +20,8 @@
 // a class named here would never be emitted. The chrome is a <template> in
 // room.templ and everything below sets text, [hidden], and inline geometry.
 
+import { WINDOW_CLOSE, WINDOW_RETITLE } from "../../public/js/events.js";
+
 const SNAP = 10;
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 120;
@@ -162,14 +164,14 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 	// AN ID THAT IS NOT OPEN IS NOT AN ERROR. Ten clients each have a different
 	// set of windows open and the socket event reaches all of them, so most of
 	// these land on nothing at all. That is the normal case.
-	window.addEventListener("window:close", (e) => {
+	window.addEventListener(WINDOW_CLOSE, (e) => {
 		const id = (e as CustomEvent<{ id?: string }>).detail?.id;
 		if (id) {
 			windows.get(id)?.close();
 		}
 	});
 
-	window.addEventListener("window:retitle", (e) => {
+	window.addEventListener(WINDOW_RETITLE, (e) => {
 		const detail = (e as CustomEvent<{ id?: string; title?: string }>).detail;
 		if (detail?.id && detail.title) {
 			windows.get(detail.id)?.retitle(detail.title);
@@ -182,6 +184,13 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 	for (const spec of restored()) {
 		openWindow(spec);
 	}
+}
+
+// openWindows is the ids of every window on the table, for the panel bridge:
+// a snapshot has to reach the pawn windows that are open, and close the ones
+// whose pawn is gone.
+export function openWindows(): string[] {
+	return [...windows.keys()];
 }
 
 // openWindow shows a window, or brings the one that is already open forward.

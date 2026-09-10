@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -48,72 +49,38 @@ func removePath(values url.Values) string {
 // blur so the number appears without a round trip, and this resolves it again
 // because this is what holds the pawn; the two answering differently is a
 // number that changes when the panel refetches.
-func TestTheHitPointBoxTakesASum(t *testing.T) {
-	twelve := 12
+// THE TWIN IS READ FIRST. A relative entry travels as itself beside the number
+// the box resolved it to, and the route applies the change to the number the
+// room holds -- which is not the number the box was counting from when a
+// player has edited their own sheet in the meantime.
+func TestARelativeEntryIsAppliedToTheRoomsNumberAndNotTheBoxes(t *testing.T) {
+	form := url.Values{"hp": {"12"}, "hpEntry": {"-4"}}
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	cases := []struct {
-		entry   string
-		from    *int
-		want    int
-		absent  bool
-		refused bool
-	}{
-		{entry: "12", from: &twelve, want: 12},
-		{entry: "0", from: &twelve, want: 0},
-		{entry: "-7", from: &twelve, want: 5},
-		{entry: "+3", from: &twelve, want: 15},
-		{entry: "  -7  ", from: &twelve, want: 5},
-
-		// The entry the field is built for: the value is already in the box and
-		// the damage is typed on the end of it.
-		{entry: "12-7", from: &twelve, want: 5},
-		{entry: "12-7-4", from: &twelve, want: 1},
-		{entry: "12 - 7", from: &twelve, want: 5},
-		{entry: "-7-4", from: &twelve, want: 1},
-
-		// Past zero is left to the core, which clamps against the max hit
-		// points it holds rather than the ones a request happened to carry.
-		{entry: "-99", from: &twelve, want: -87},
-
-		// A pawn whose hit points were projected away cannot be edited by the
-		// person who cannot see them, but the arithmetic still has to have an
-		// answer rather than a panic.
-		{entry: "+3", from: nil, want: 3},
-
-		// An empty box is not a change. Blurring a field somebody has cleared
-		// must not set the pawn to zero.
-		{entry: "", from: &twelve, absent: true},
-		{entry: "   ", from: &twelve, absent: true},
-
-		{entry: "lots", from: &twelve, refused: true},
-		{entry: "7hp", from: &twelve, refused: true},
-		{entry: "--7", from: &twelve, refused: true},
-		{entry: "12-", from: &twelve, refused: true},
-		{entry: "-", from: &twelve, refused: true},
-		{entry: "7.5", from: &twelve, refused: true},
-		{entry: "12 7", from: &twelve, refused: true},
-		{entry: strings.Repeat("1", 25), from: &twelve, refused: true},
+	if got := hpEntry(r, "hp"); got != "-4" {
+		t.Errorf("hpEntry = %q, want the change the twin carried", got)
 	}
 
-	for _, tc := range cases {
-		got, ok, bad := evaluateHP(tc.entry, tc.from, "Hit points")
+	// The route's own arithmetic then counts from what the room holds.
+	ten := 10
+	value, present, refusal := evaluateHP(hpEntry(r, "hp"), &ten, "Hit points")
+	if refusal != "" || !present || value != 6 {
+		t.Errorf("evaluateHP(-4 against 10) = %d, %v, %q; want 6", value, present, refusal)
+	}
 
-		if (bad != "") != tc.refused {
-			t.Errorf("evaluateHP(%q) refusal = %q, want refused = %v", tc.entry, bad, tc.refused)
+	// A box that carried a number and an empty twin reads the box, which is
+	// every request from a script that did not run and every absolute entry.
+	form = url.Values{"hp": {"12"}, "hpEntry": {""}}
+	r = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if got := hpEntry(r, "hp"); got != "12" {
+		t.Errorf("hpEntry = %q, want the box", got)
+	}
 
-			continue
-		}
-		if tc.refused {
-			continue
-		}
-		if ok == tc.absent {
-			t.Errorf("evaluateHP(%q) present = %v, want absent = %v", tc.entry, ok, tc.absent)
-
-			continue
-		}
-		if ok && got != tc.want {
-			t.Errorf("evaluateHP(%q) = %d, want %d", tc.entry, got, tc.want)
-		}
+	// And a refusal names the box.
+	if _, _, refusal := evaluateHP("lots", &ten, "Hit points"); !strings.HasPrefix(refusal, "Hit points ") {
+		t.Errorf("refusal = %q, want it to name the box", refusal)
 	}
 }
 

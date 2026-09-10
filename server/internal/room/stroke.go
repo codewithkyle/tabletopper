@@ -113,6 +113,9 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkPoints("stroke", c.Points, 1, StrokeChunkMax); err != nil {
 		return nil, err
 	}
+	if err := s.strokeBudget(a, len(c.Points)); err != nil {
+		return nil, err
+	}
 
 	stroke := Stroke{
 		ID:      c.ID,
@@ -151,6 +154,9 @@ func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	if len(st.Points)+len(c.Points) > StrokePointsMax {
 		return nil, invalid("Stroke too long", "That stroke has grown past what one line can hold.")
+	}
+	if err := s.strokeBudget(a, len(c.Points)); err != nil {
+		return nil, err
 	}
 
 	st.Points = append(st.Points, c.Points...)

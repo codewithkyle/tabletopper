@@ -333,6 +333,11 @@ export interface Table {
 	// preview consumes the events that start and end somebody else's ghosts.
 	preview(event: Event): void;
 
+	// floorChanged is the renderer settling on another floor. A selection is of
+	// things the viewer can see, and one that survived a floor change would be
+	// pawns the outlines no longer draw and the Delete key still removes.
+	floorChanged(): void;
+
 	arm(armed: Armed | null): void;
 	isArmed(): boolean;
 
@@ -677,7 +682,7 @@ export function createTable(deps: TableDeps): Table {
 			anchor: active.anchor,
 			x: point.x,
 			y: point.y,
-			others: active.ids.filter((id) => id !== active.anchor),
+			others: followers(active),
 		});
 	}
 
@@ -704,10 +709,18 @@ export function createTable(deps: TableDeps): Table {
 			anchor: active.anchor,
 			x,
 			y,
-			others: active.ids.filter((id) => id !== active.anchor),
+			others: followers(active),
 		});
 
 		announce();
+	}
+
+	// followers is the rest of a drag set, minus anything that has left the
+	// table since the drag began. The server answers a move naming a pawn that
+	// is gone with not_found for the whole move, so six goblins dragged across
+	// the room would snap back on release because somebody else removed one.
+	function followers(active: Dragging): string[] {
+		return active.ids.filter((id) => id !== active.anchor && pawn(id) !== null);
 	}
 
 	// moveShape is a hand on a handle: it works out what the pointer is asking
@@ -1573,6 +1586,19 @@ export function createTable(deps: TableDeps): Table {
 						hovered = null;
 					}
 
+					// AND IT CANNOT STAY IN A HAND. A drag in progress that
+					// still named it would be refused whole on release; the
+					// anchor going is the gesture going, and a follower going
+					// is one fewer follower.
+					if (event.type === "pawn.removed" && gesture?.kind === "drag") {
+						if (gesture.anchor === event.id) {
+							gesture = null;
+						} else {
+							gesture.ids = gesture.ids.filter((id) => id !== event.id);
+							gesture.origins.delete(event.id);
+						}
+					}
+
 					// AND THE OVERLAY IS REWRITTEN WHATEVER CHANGED, because
 					// what it says about a pawn -- its hit points, its
 					// conditions, its name -- moved even when the selection did
@@ -1593,6 +1619,16 @@ export function createTable(deps: TableDeps): Table {
 
 					return;
 				}
+			}
+		},
+
+		floorChanged() {
+			const present = new Set(state.pawns.filter(onFloor).map((p) => p.id));
+			if (hovered && !present.has(hovered)) {
+				hovered = null;
+			}
+			if (selection.prune(present)) {
+				announce();
 			}
 		},
 

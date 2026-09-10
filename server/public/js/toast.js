@@ -3,7 +3,7 @@
 // shell is created on first use so a page with no toasts carries no markup.
 //
 // The server raises a toast with an HX-Trigger header carrying
-// {"flash:toast": "..."} (see internal/htmx). htmx dispatches that as a
+// {TOAST: "..."} (see internal/htmx). htmx dispatches that as a
 // DOM event too, but the header is read here directly, because the same
 // response may also carry HX-Redirect or HX-Refresh -- and a toast shown a
 // moment before the page navigates away is never seen. In that case it is
@@ -38,7 +38,9 @@
 // rather than reasoned about -- the toast paints over the dialog, and a hit
 // test at the same point lands on the dialog behind it.
 
-const PENDING_KEY = "flash:toast";
+import { TOAST } from "./events.js";
+
+const PENDING_KEY = TOAST;
 const DEFAULT_SECONDS = 5;
 
 // Whether this browser has the top layer on offer. Everything above is a

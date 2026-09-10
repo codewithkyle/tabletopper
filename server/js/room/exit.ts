@@ -14,11 +14,9 @@
 // reads.
 //
 // THE KEY IS A CONTRACT WITH server/public/js/alert-modal.js, which is the
-// other half of this and is in a different bundle. It is written in both files
-// because there is no third place both of them import; changing it means
-// changing it twice, and the constant's name is the same on both sides so a
-// search finds the pair.
-const PENDING_ALERT = "alert:pending";
+// other half of this and is in a different bundle; both import it from
+// public/js/events.js, and a test holds the two bundles to that.
+import { PENDING_ALERT } from "../../public/js/events.js";
 
 // The heading is ours and the message is the server's. room.KickReason is a
 // sentence chosen for the person reading it, and it travels on the event so

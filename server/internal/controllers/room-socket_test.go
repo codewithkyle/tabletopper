@@ -227,6 +227,7 @@ func (emptyRoomStore) Save(context.Context, ulid.ULID, []byte, uint64) error { r
 func (emptyRoomStore) ClearMembership(context.Context, ulid.ULID, ulid.ULID) error {
 	return nil
 }
+func (emptyRoomStore) Preserve(context.Context, ulid.ULID, []byte) error { return nil }
 
 // THE KICK IS THE GM'S ONE MODERATION TOOL, and every refusal it can produce
 // belongs to internal/room rather than to the handler -- so what these check is
@@ -289,6 +290,25 @@ func TestTheGMCanRemoveAPlayerAndGetsTheListBack(t *testing.T) {
 	}
 	if !strings.Contains(body, "Game Master") {
 		t.Errorf("the GM went with them:\n%s", body)
+	}
+
+	// THE MEMBERSHIP IS CLEARED BEFORE THE ROOM IS TOLD, on this request. The
+	// hub clears it too, on a goroutine of its own, but a tab of the kicked
+	// person's in reconnect backoff can pass the upgrade's membership check
+	// against rows that write has not reached yet. Writing them here first
+	// closes that window from the handler's side.
+	cleared := -1
+	for i, call := range db.calls {
+		if strings.Contains(call.query, "UPDATE sessions") && strings.Contains(call.query, "user_id = ?") {
+			cleared = i
+		}
+	}
+	if cleared < 0 {
+		t.Fatalf("the kick did not clear the player's session rows: %v", db.queries())
+	}
+	assertBoundToRoom(t, db.calls[cleared], testRoomID)
+	if user, ok := boundRoomID(db.calls[cleared].args[1]); !ok || user != testMemberID {
+		t.Errorf("the clear is not scoped to the kicked player: %v", db.calls[cleared].args)
 	}
 }
 

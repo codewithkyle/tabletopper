@@ -19,7 +19,9 @@
 // that file and has no custom element registry to define into.
 import "vanilla-colorful/hex-alpha-color-picker.js";
 
+import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
+import { fanOut, refusals } from "./effects.ts";
 import { createTable } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
 import { mountDialogs } from "./dialogs.ts";
@@ -188,6 +190,13 @@ if (mount) {
 			renderer.onSettled(bar.refresh);
 		}
 
+		// AND THE TABLE FOLLOWS THE SAME SETTLING, to drop a selection made on
+		// the floor just left. Without this a GM who selected four cellar
+		// goblins, switched floors to set up the next scene and pressed Delete
+		// believing nothing was selected would be asked to confirm removing
+		// what they could not see.
+		renderer.onSettled(() => table.floorChanged());
+
 		const view = renderer;
 		overlay = mountOverlay(mount, {
 			focus: () => table.focus(),
@@ -250,7 +259,7 @@ if (mount) {
 		// below are for. Both columns default to true, so an event from a
 		// server that does not send one of them yet should leave a reader with
 		// the setting they already had rather than quietly switching it off.
-		window.addEventListener("settings:change", (e) => {
+		window.addEventListener(SETTINGS_CHANGE, (e) => {
 			const detail = (e as CustomEvent<{ followTurn?: boolean; showBlood?: boolean }>).detail;
 
 			follow?.following(detail?.followTurn !== false);
@@ -293,105 +302,127 @@ function start(
 	follow: Follow | null,
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
+	let socket: Socket | null = null;
 
-	const socket = new Socket(path, {
-		event(event) {
-			// REDUCE FIRST, THEN TELL EVERYBODY. A panel that refetched before
-			// the store had applied the event would be reading the server
-			// again anyway, but the canvas and the debug panel both read the
-			// store -- and an order that put either first would show the room
-			// one frame behind for no reason.
-			reduce(state, event);
-			announce(event);
-			debug?.event(event);
+	// THE FAN-OUT, IN THE ORDER IT HAS TO RUN. The reducer goes first, because
+	// everything after it reads the store; the navigation goes last, because
+	// nothing runs after it. Each entry is handed the whole event and decides
+	// for itself, so a new family of events is a new entry here rather than a
+	// new branch inside one of the others. See effects.ts.
+	const effect = fanOut([
+		// REDUCE FIRST, THEN TELL EVERYBODY. A panel that refetched before the
+		// store had applied the event would be reading the server again
+		// anyway, but the canvas and the debug panel both read the store --
+		// and an order that put either first would show the room one frame
+		// behind for no reason.
+		(event) => reduce(state, event),
+		announce,
+		(event) => debug?.event(event),
 
-			// THE RENDERER IS TOLD RATHER THAN SUBSCRIBED. It holds a reference
-			// to the same state object the reducer just mutated, so there is
-			// nothing to hand it; all it needs is to know that looking again is
-			// worth a frame. Asking on every event is right because the frame
-			// loop collapses however many arrive between two frames into one.
-			renderer?.invalidate();
+		// THE RENDERER IS TOLD RATHER THAN SUBSCRIBED. It holds a reference to
+		// the same state object the reducer just mutated, so there is nothing
+		// to hand it; all it needs is to know that looking again is worth a
+		// frame. Asking on every event is right because the frame loop
+		// collapses however many arrive between two frames into one.
+		() => renderer?.invalidate(),
 
-			// AND THE PAWNS ARE TOLD SEPARATELY, because their instance buffer
-			// is rebuilt on a change rather than per frame -- a pan is the
-			// common case by a wide margin and rebuilds nothing. The reducer
-			// mutates the store in place, which is what keeps a pawn moving
-			// from allocating and is also why there is nothing to subscribe to;
-			// this is the subscription, in one line, at the one place that
-			// knows an event happened.
+		// AND THE PAWNS ARE TOLD SEPARATELY, because their instance buffer is
+		// rebuilt on a change rather than per frame -- a pan is the common case
+		// by a wide margin and rebuilds nothing. The overlay is rewritten with
+		// them: what it says is read off the pawns, and a change that arrived
+		// over the wire would otherwise leave it describing a goblin still at
+		// full health after somebody else hit it.
+		(event) => {
 			if (touchesPawns(event.type)) {
 				renderer?.pawnsChanged();
-
-				// AND THE PANEL OVER THE TABLE, which is otherwise rewritten
-				// only when the pointer does something. What it says is read
-				// off the pawns -- the hovered one's hit points, and whether
-				// the selection is hidden or shown -- so a change that arrived
-				// over the wire leaves it describing a pawn as it was: a
-				// goblin still at full health after somebody else hit it, and
-				// a Hide button that has already been pressed.
 				overlay?.refresh();
 			}
+		},
 
-			// WIPING A FLOOR WIPES ITS BLOOD. The marks the canvas puts down
-			// when somebody is hurt are the viewer's own -- they are never sent
-			// anywhere and no event carries them -- so this is the only way they
-			// are ever cleared other than a reload. stroke.cleared is the right
-			// event for it twice over: it is what the GM's "wipe the drawing"
-			// sends, and TableClear sends one per floor, so packing the table
-			// away at the end of an evening cleans it.
+		// WIPING A FLOOR WIPES ITS BLOOD. The marks the canvas puts down when
+		// somebody is hurt are the viewer's own -- no event carries them -- so
+		// this is the only way they are ever cleared other than a reload.
+		// stroke.cleared is what the GM's "wipe the drawing" sends, and
+		// TableClear sends one per floor, so packing the table away cleans it.
+		(event) => {
 			if (event.type === "stroke.cleared") {
 				renderer?.bloodCleared(event.layer);
 			}
+		},
 
-			// AND A SNAPSHOT IS NOT A ROUND OF COMBAT. It arrives on the first
-			// join and on every reconnect, and what it carries is the table as
-			// it is NOW -- which, after a laptop lid has been shut for three
-			// rounds, differs from what the canvas remembers by everything that
-			// happened in them. Bleeding for that difference would put one
-			// enormous mark on the floor for a fight that took place while
-			// nobody was looking, so the marks already down stay and the
-			// comparison starts again from here.
+		// AND A SNAPSHOT IS NOT A ROUND OF COMBAT. It arrives on the first join
+		// and on every reconnect, and what it carries is the table as it is
+		// NOW -- which, after a laptop lid has been shut for three rounds,
+		// differs from what the canvas remembers by everything that happened
+		// in them. The marks already down stay and the comparison starts again
+		// from here.
+		(event) => {
 			if (event.type === "snapshot") {
 				renderer?.bloodResync();
 			}
+		},
 
-			// AND THE TURN CLOCK IS TOLD WHEN THE TURN MIGHT HAVE MOVED. It
-			// compares the active entry with the one it last saw, so a
-			// tracker edited mid-turn does not restart the clock and a
-			// snapshot arriving after a reconnect does not either. The strip
-			// itself is markup and refetches on its own; this is the one part
-			// of it that is a fact about this browser rather than about the
-			// room.
+		// THE TURN CLOCK IS TOLD WHEN THE TURN MIGHT HAVE MOVED. It compares
+		// the active entry with the one it last saw, so a tracker edited
+		// mid-turn does not restart the clock and a snapshot after a reconnect
+		// does not either.
+		(event) => {
 			if (event.type === "snapshot" || event.type === "initiative.updated") {
 				turns?.changed();
 			}
+		},
 
-			// AND THE CAMERA GOES TO WHOEVER IS UP, for a reader who asked for
-			// that. It is handed the whole event rather than being called from
-			// inside the branch above, because what counts as the turn MOVING
-			// is not what counts as the strip needing a clock: a reorder and a
-			// reconnect both land in that branch and neither is a new turn.
-			// See follow.ts.
-			follow?.event(event);
+		// The camera, whoever's turn it is, and the ghosts other people are
+		// dragging. Each of these already reads the whole event.
+		(event) => follow?.event(event),
+		(event) => table.preview(event),
 
-			// SOMEBODY ELSE'S DRAG, AND WHAT ENDS ONE. The ghosts other people
-			// are dragging live outside the store on purpose -- pawn.dragging
-			// is transient and the reducer never sees it -- so this is the one
-			// consumer, and it also hears the committed moves that tell it a
-			// preview is over.
-			table.preview(event);
+		// A REFUSAL IS SHOWN. The server wrote a heading and a message for the
+		// person reading it; the alert modal is where every other refusal in
+		// the app lands, and this is the socket's door into it.
+		refusals({
+			alert: (heading, message) => {
+				window.dispatchEvent(new CustomEvent(ALERT, { detail: { heading, message } }));
+			},
+			resync: () => socket?.resync(),
+		}),
 
-			// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
-			// nothing below it would run -- and in development the frame that
-			// explains why the tab just changed page is worth having in the
-			// log first.
+		// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
+		// nothing after it would run -- and in development the frame that
+		// explains why the tab just changed page is worth having in the log
+		// first.
+		(event) => {
 			if (event.type === "player.kicked") {
 				leaveKicked(event.reason);
 			}
 		},
+	]);
+
+	socket = new Socket(path, {
+		event: effect,
 
 		status(status: Status, detail: string) {
 			debug?.status(status, detail);
+
+			// THE TWO ENDINGS THAT ARE NOT A KICK. A person who pressed Leave
+			// in another tab has left in this one too, so this tab goes where
+			// that one went. A tab past the connection cap is told why, and
+			// then sits: it holds no socket, and every control on it will be
+			// refused, but closing somebody's tab for them is not this file's.
+			if (status !== "ended") {
+				return;
+			}
+			if (detail === "left") {
+				location.assign("/");
+			}
+			if (detail === "limit") {
+				window.dispatchEvent(new CustomEvent(ALERT, {
+					detail: {
+						heading: "Too many tabs",
+						message: "You already have as many connections to this room as one person may hold. Close another tab and reload this one.",
+					},
+				}));
+			}
 		},
 	});
 

@@ -1,10 +1,12 @@
 package pages
 
+import "tabletopper/internal/events"
+
 templ RoomMembers(data RoomMembersData) {
 	<ul
 		id="room-members"
 		hx-get={ data.Path() }
-		hx-trigger="room:players from:window"
+		hx-trigger={ events.Players + " from:window" }
 		hx-sync="this:queue last"
 		hx-swap="outerHTML"
 		class="menu w-full gap-0.5 p-0"

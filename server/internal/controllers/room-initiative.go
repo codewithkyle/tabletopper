@@ -15,23 +15,16 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE TURN ORDER, AND IT IS NINE ROUTES OVER TWO COMMANDS.
+// THE TURN ORDER, AND IT IS NINE ROUTES OVER EIGHT COMMANDS.
 //
-// initiative.set IS STILL THE ONLY EDITING COMMAND, which is the decision phase
-// 2 made and this file is what it costs: reorder, add, activate and remove each
-// read the live tracker through hub.Initiative, change one thing, and dispatch
-// the whole thing back. The read and the dispatch are two trips into the room's
-// goroutine and a second GM tab can slip between them; the loser's edit is
-// overwritten by the winner's, which is the race two tabs already have on the
-// layer manager and is harmless -- both tabs are corrected by the same event a
-// moment later.
-//
-// SYNC IS THE ONE EXCEPTION AND IT IS A COMMAND. Every clause of what a sync
-// does is a rule about room state that only the room holds -- which floors have
-// players on them, which pawns are visible, which are dead, what the grouping
-// setting is, and what is already in the order -- so the window between a read
-// and a dispatch is the whole table there rather than one line. See
-// room.InitiativeSync.
+// EVERY GESTURE IS ONE COMMAND AND ONE TRIP INTO THE ROOM. A drop is
+// initiative.reorder, a click is initiative.activate, the x on a line is
+// initiative.remove and the Add entry dialog is initiative.add; each of them
+// carries what the request said and nothing read back from the room first, so
+// a second GM tab cannot slip between a read and a write, and the rules --
+// which line is the successor, where a reinforcement goes -- are written once
+// in internal/room beside the sync that already had them. initiative.set is
+// still there for the editor, which really does replace the whole thing.
 //
 // EVERY MUTATION ANSWERS 204 AND REDRAWS NOTHING. Each of them ends in
 // initiative.updated, and the strip refetches from that -- so the tab that sent
@@ -143,14 +136,14 @@ func (a *App) RoomInitiativeEntryFragment(w http.ResponseWriter, r *http.Request
 // in reinforcements and take out the corpses.
 func (a *App) SyncInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "sync the initiative tracker",
-		func(*hub.InitiativeView) (room.Command, bool) { return &room.InitiativeSync{}, true })
+		func() (room.Command, bool) { return &room.InitiativeSync{}, true })
 }
 
 // NextInitiative advances the turn, and it is the one route here that is not
 // the GM's alone: the core lets whoever owns a pawn in the acting line end it.
 func (a *App) NextInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "advance the turn",
-		func(*hub.InitiativeView) (room.Command, bool) { return &room.InitiativeNext{}, true })
+		func() (room.Command, bool) { return &room.InitiativeNext{}, true })
 }
 
 // ClearInitiative empties the tracker, behind the confirm modal.
@@ -160,72 +153,32 @@ func (a *App) NextInitiative(w http.ResponseWriter, r *http.Request) {
 // would mean a second branch in RoomMenuItem's markup for one route.
 func (a *App) ClearInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "clear the initiative tracker",
-		func(*hub.InitiativeView) (room.Command, bool) { return &room.InitiativeClear{}, true })
+		func() (room.Command, bool) { return &room.InitiativeClear{}, true })
 }
 
 // OrderInitiative is where a drop lands: the whole order, as ids, in the order
-// the GM dragged them into.
-//
-// AN ID SET THAT IS NOT EXACTLY THE TRACKER'S IS REFUSED. The drag raced a
-// change -- a second tab synced, a pawn was removed -- and reordering what came
-// back would put the tracker into a shape nobody asked for. The refusal lands
-// in the alert modal and the refetch that follows the event is the answer.
+// the GM dragged them into. The core refuses a set of ids that is not exactly
+// the tracker's, which is a drag that raced a change.
 func (a *App) OrderInitiative(w http.ResponseWriter, r *http.Request) {
-	a.initiativeCommand(w, r, "reorder the initiative tracker", func(view *hub.InitiativeView) (room.Command, bool) {
+	a.initiativeCommand(w, r, "reorder the initiative tracker", func() (room.Command, bool) {
 		ids, ok := entryIDs(r)
 		if !ok {
 			return nil, false
 		}
 
-		if len(ids) != len(view.Initiative.Entries) {
-			return nil, false
-		}
-
-		byID := map[ulid.ULID]room.InitiativeEntry{}
-		for _, e := range view.Initiative.Entries {
-			byID[e.ID] = e
-		}
-
-		entries := make([]room.InitiativeEntry, 0, len(ids))
-		for _, id := range ids {
-			e, found := byID[id]
-			if !found {
-				return nil, false
-			}
-			delete(byID, id)
-			entries = append(entries, e)
-		}
-
-		return &room.InitiativeSet{Entries: entries, Active: view.Initiative.Active}, true
+		return &room.InitiativeReorder{IDs: ids}, true
 	})
 }
 
-// ActivateInitiative gives the turn to one line. It is the same entries and a
-// new active, which is why it is a set like everything else here.
-//
-// THE GM CAN ACTIVATE A CORPSE, deliberately. Skipping the dead is what the
-// Next button does, not a rule about what may be acting -- a GM who wants to
-// spend a moment on the goblin that just fell over is allowed to.
+// ActivateInitiative gives the turn to one line.
 func (a *App) ActivateInitiative(w http.ResponseWriter, r *http.Request) {
-	a.initiativeCommand(w, r, "change whose turn it is", func(view *hub.InitiativeView) (room.Command, bool) {
+	a.initiativeCommand(w, r, "change whose turn it is", func() (room.Command, bool) {
 		entry, err := ulid.Parse(r.PathValue("entry"))
 		if err != nil {
 			return nil, false
 		}
 
-		found := false
-		for _, e := range view.Initiative.Entries {
-			if e.ID == entry {
-				found = true
-
-				break
-			}
-		}
-		if !found {
-			return nil, false
-		}
-
-		return &room.InitiativeSet{Entries: view.Initiative.Entries, Active: &entry}, true
+		return &room.InitiativeActivate{Entry: entry}, true
 	})
 }
 
@@ -234,61 +187,24 @@ func (a *App) ActivateInitiative(w http.ResponseWriter, r *http.Request) {
 // IT IS NOT CONFIRMED, and that is deliberate: it is undone by pressing Sync
 // tracker, which is one menu away. Clear tracker keeps its confirmation,
 // because Clear is the whole fight.
-//
-// REMOVING THE ACTING LINE MOVES THE TURN TO THE NEXT ONE IN THE OLD ORDER,
-// wrapping, or to nothing when it was the last. That is what the core does when
-// the PAWN is removed, written out once more here because this is the case
-// where the line goes and the pawn stays.
 func (a *App) RemoveInitiative(w http.ResponseWriter, r *http.Request) {
-	a.initiativeCommand(w, r, "remove an entry from the initiative tracker", func(view *hub.InitiativeView) (room.Command, bool) {
+	a.initiativeCommand(w, r, "remove an entry from the initiative tracker", func() (room.Command, bool) {
 		entry, err := ulid.Parse(r.PathValue("entry"))
 		if err != nil {
 			return nil, false
 		}
 
-		at := -1
-		for i, e := range view.Initiative.Entries {
-			if e.ID == entry {
-				at = i
-
-				break
-			}
-		}
-		if at < 0 {
-			return nil, false
-		}
-
-		entries := make([]room.InitiativeEntry, 0, len(view.Initiative.Entries)-1)
-		entries = append(entries, view.Initiative.Entries[:at]...)
-		entries = append(entries, view.Initiative.Entries[at+1:]...)
-
-		active := view.Initiative.Active
-		if active != nil && *active == entry {
-			active = nil
-			if len(entries) > 0 {
-				// The successor is read out of the OLD order, because "the next
-				// combatant" is a fact about the order the GM built.
-				next := view.Initiative.Entries[(at+1)%len(view.Initiative.Entries)].ID
-				if next != entry {
-					active = &next
-				}
-			}
-		}
-
-		return &room.InitiativeSet{Entries: entries, Active: active}, true
+		return &room.InitiativeRemove{Entry: entry}, true
 	})
 }
 
 // AddInitiative appends one line: either a name, from the Add entry dialog, or
 // a pawn, from that pawn's own menu.
 //
-// IT TAKES ONE OR THE OTHER AND NEVER BOTH. A named line is a lair action and
-// has no creature; a pawn line is a creature and takes its name from the pawn.
-// A request carrying both is one this server did not write.
-//
-// IN GROUPED MODE A MONSTER JOINS ITS GROUP, which is the same rule Sync
-// applies and is applied here by dispatching the sync-shaped result: the pawn
-// is appended to the line whose members share its key, if there is one.
+// IT TAKES ONE OR THE OTHER AND NEVER BOTH, and the core refuses a request
+// carrying both; this route answers the empty dialog with the dialog's own
+// error block, because that one is a person who pressed Add too soon rather
+// than a request this server did not write.
 func (a *App) AddInitiative(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -301,14 +217,8 @@ func (a *App) AddInitiative(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
 	pawnText := strings.TrimSpace(r.FormValue("pawn"))
 
-	if (name == "") == (pawnText == "") {
-		if pawnText == "" {
-			renderPanelBlock(w, r, pages.RoomInitiativeEntryPanel, []string{"An entry needs a name."})
-
-			return
-		}
-
-		w.WriteHeader(http.StatusNotFound)
+	if name == "" && pawnText == "" {
+		renderPanelBlock(w, r, pages.RoomInitiativeEntryPanel, []string{"An entry needs a name."})
 
 		return
 	}
@@ -318,38 +228,20 @@ func (a *App) AddInitiative(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	view, ok := a.Hub.Initiative(ctx, roomID, room.RoleGM)
-	if !ok {
-		htmx.NotFound(w, "room")
-
-		return
-	}
-
-	entries := append([]room.InitiativeEntry(nil), view.Initiative.Entries...)
-
-	if name != "" {
-		entries = append(entries, room.InitiativeEntry{Name: name})
-	} else {
+	cmd := &room.InitiativeAdd{Name: name}
+	if pawnText != "" {
 		pawn, err := ulid.Parse(pawnText)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 
 			return
 		}
-
-		entries, ok = withPawn(entries, view, pawn)
-		if !ok {
-			htmx.Error(w, "Already in the order",
-				"That creature already has a turn in the initiative tracker.", http.StatusUnprocessableEntity)
-
-			return
-		}
+		cmd.Pawn = &pawn
 	}
 
-	cmd := &room.InitiativeSet{Entries: entries, Active: view.Initiative.Active}
 	if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
 		var refusal *room.Error
-		if name != "" && errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
+		if pawnText == "" && errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
 			renderPanelBlock(w, r, pages.RoomInitiativeEntryPanel, []string{refusal.Message})
 
 			return
@@ -363,73 +255,22 @@ func (a *App) AddInitiative(w http.ResponseWriter, r *http.Request) {
 	// THE DIALOG CLOSES ITSELF AND THE STRIP REDRAWS FROM THE EVENT. There is
 	// nothing to swap: the line that was just added arrives on every screen in
 	// the room, this one included, over the socket.
-	if name != "" {
+	if pawnText == "" {
 		htmx.CloseModal(w)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// withPawn is where a pawn joins the order: into the group whose members share
-// its key when the table is grouped and it is a monster, and onto the end
-// otherwise. It answers false for a pawn that is already in the order, which is
-// the one thing initiative.set refuses that a reader would want a sentence
-// about.
-func withPawn(entries []room.InitiativeEntry, view *hub.InitiativeView, pawn ulid.ULID) ([]room.InitiativeEntry, bool) {
-	for _, e := range entries {
-		for _, id := range e.PawnIDs {
-			if id == pawn {
-				return nil, false
-			}
-		}
-	}
-
-	p, found := view.Pawns[pawn]
-	if !found {
-		p = room.Pawn{ID: pawn}
-	}
-
-	lookup := func(id ulid.ULID) *room.Pawn {
-		found, ok := view.Pawns[id]
-		if !ok {
-			return nil
-		}
-
-		return &found
-	}
-
-	if view.Table.InitiativeGrouping != room.GroupIndividual && p.Kind == room.PawnMonster {
-		key := room.MonsterKey(p)
-		for i, e := range entries {
-			if room.GroupKey(e, lookup) != key {
-				continue
-			}
-
-			joined := append([]ulid.ULID(nil), e.PawnIDs...)
-			entries[i].PawnIDs = append(joined, pawn)
-
-			return entries, true
-		}
-	}
-
-	return append(entries, room.InitiativeEntry{PawnIDs: []ulid.ULID{pawn}, Name: p.Name}), true
-}
-
 // initiativeCommand is the shape every mutation in this file has: establish the
-// asker and the room, read the live tracker, build the command, send it, and
-// answer 204 or the refusal.
-//
-// THE TRACKER IS READ AS THE GM whatever the asker's role, because what is
-// being edited is the room's own order and not a projection of it. The only
-// non-GM route here is Next, which builds a command that carries nothing, and
-// every other one is refused by requireGM in the core a moment later.
+// asker and the room, build the command from the request, send it, and answer
+// 204 or the refusal. It is layerCommand's shape, one file over.
 //
 // build answers false for a request this server did not write -- an entry id
-// that is not an id, a set of ids that is not the tracker's. That is a 404
-// rather than a message, because the only thing that produces one is somebody
-// posting by hand or a drag that raced a change, and the strip is about to
-// refetch either way.
-func (a *App) initiativeCommand(w http.ResponseWriter, r *http.Request, action string, build func(*hub.InitiativeView) (room.Command, bool)) {
+// that is not an id, an order with nothing in it. That is a 404 rather than a
+// message, because the only thing that produces one is somebody posting by
+// hand.
+func (a *App) initiativeCommand(w http.ResponseWriter, r *http.Request, action string, build func() (room.Command, bool)) {
 	ctx := r.Context()
 
 	who, roomID, ok := a.pawnActor(w, r)
@@ -437,14 +278,7 @@ func (a *App) initiativeCommand(w http.ResponseWriter, r *http.Request, action s
 		return
 	}
 
-	view, ok := a.Hub.Initiative(ctx, roomID, room.RoleGM)
-	if !ok {
-		htmx.NotFound(w, "room")
-
-		return
-	}
-
-	cmd, ok := build(view)
+	cmd, ok := build()
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 

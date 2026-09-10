@@ -112,7 +112,7 @@ func TestAnUnreadableSnapshotStartsTheRoomFreshFromTheRow(t *testing.T) {
 		{"bytes that are not JSON at all", "not json"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			s := hydrate(roomID, Loaded{Name: "The Sunless Citadel", Snapshot: json.RawMessage(c.snapshot)})
+			s, _ := hydrate(roomID, Loaded{Name: "The Sunless Citadel", Snapshot: json.RawMessage(c.snapshot)})
 
 			if s.Room.Name != "The Sunless Citadel" {
 				t.Errorf("name = %q, want the row's", s.Room.Name)
@@ -145,7 +145,7 @@ func TestARestartRestoresTheStateTheSequenceAndNobodysConnection(t *testing.T) {
 	// The row is the writer of record for the name and the lock, and a GM can
 	// change either while the room is not even loaded -- so the snapshot's copy
 	// of them is a souvenir and the row wins.
-	after := hydrate(roomID, Loaded{Name: "The Forge of Fury", Locked: true, Snapshot: blob})
+	after, _ := hydrate(roomID, Loaded{Name: "The Forge of Fury", Locked: true, Snapshot: blob})
 
 	if after.Seq != 41 {
 		t.Errorf("seq = %d, want the saved 41", after.Seq)
@@ -280,4 +280,96 @@ func TestARoomNobodyConnectedToStillUnloads(t *testing.T) {
 	}
 
 	eventually(t, "the room to unload", func() bool { return !tb.live(roomID) })
+}
+
+// The path the whole snapshot design exists for, on its worst day: the caller's
+// context is already done. The rooms are told to save regardless, because the
+// telling does not depend on that context -- only the wait does.
+func TestShutdownTellsEveryRoomToSaveEvenWhenTheCallersContextIsAlreadyDone(t *testing.T) {
+	tb := newTabletop(t, Options{})
+
+	tb.join(gmID, "Kyle", room.RoleGM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	tb.Shutdown(ctx)
+
+	eventually(t, "the room to save on shutdown", func() bool { return tb.store.saved() == 1 })
+}
+
+// The snapshot is written off the room's goroutine. A database that takes a
+// second to answer used to be a second every command at the table waited,
+// every five seconds, for the whole of a fight.
+func TestASlowSaveDoesNotStallTheRoom(t *testing.T) {
+	tb := newTabletop(t, Options{SnapshotInterval: 20 * time.Millisecond})
+	tb.store.saveDelay = 500 * time.Millisecond
+
+	tb.join(gmID, "Kyle", room.RoleGM)
+	eventually(t, "a save to be in flight", func() bool { return tb.store.saving() > 0 })
+
+	started := time.Now()
+	err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, &room.RoomSetName{Name: "The Forge of Fury"})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	if took := time.Since(started); took > 200*time.Millisecond {
+		t.Errorf("a command took %v while a save was in flight; the room was waiting on the database", took)
+	}
+
+	// And the change that landed during the write is not lost: the room stays
+	// dirty and the next tick writes it.
+	eventually(t, "the second save", func() bool { return tb.store.saved() >= 2 })
+}
+
+// A room whose row has been refusing its snapshot stays loaded, empty or not,
+// until the database takes it. Unloading would throw the table away, and an
+// outage that ends an hour later would find nothing to come back to.
+func TestARoomWithAWriteOwedStaysLoadedUntilTheDatabaseTakesIt(t *testing.T) {
+	tb := newTabletop(t, Options{
+		SnapshotInterval: 20 * time.Millisecond,
+		UnloadGrace:      40 * time.Millisecond,
+	})
+	tb.store.failSaves(errors.New("the database is away"))
+
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	tb.leave(gm)
+
+	time.Sleep(200 * time.Millisecond)
+	if !tb.live(roomID) {
+		t.Fatal("the room unloaded with a snapshot it had never managed to write")
+	}
+
+	tb.store.failSaves(nil)
+	eventually(t, "the room to save and unload", func() bool { return tb.store.saved() > 0 && !tb.live(roomID) })
+}
+
+// A SNAPSHOT THAT CANNOT BE READ IS KEPT, not overwritten. The fresh room's
+// first save used to land on the column the bad blob came from, and the only
+// copy of the old table was gone the moment anybody moved a pawn.
+func TestAnUnreadableSnapshotIsKeptBeforeTheFreshRoomSavesOverIt(t *testing.T) {
+	for _, c := range []struct{ name, snapshot string }{
+		{"a snapshot from a newer schema", `{"schema":99,"seq":7,"room":{"id":"","name":"later","locked":false}}`},
+		{"bytes that are not JSON", "not json"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			tb := newTabletop(t, Options{SnapshotInterval: 20 * time.Millisecond})
+			tb.store.loaded = Loaded{Name: "The Sunless Citadel", Snapshot: json.RawMessage(c.snapshot)}
+
+			tb.join(gmID, "Kyle", room.RoleGM)
+
+			eventually(t, "the bad snapshot to be kept", func() bool { return len(tb.store.kept()) == 1 })
+			if got := string(tb.store.kept()[0]); got != c.snapshot {
+				t.Errorf("kept %q, want the bytes as they were", got)
+			}
+		})
+	}
+
+	// And an ordinary first join keeps nothing: the empty object is the column
+	// default and not a failure.
+	tb := newTabletop(t, Options{})
+	tb.store.loaded = Loaded{Name: "The Sunless Citadel", Snapshot: json.RawMessage("{}")}
+	tb.join(gmID, "Kyle", room.RoleGM)
+	if got := tb.store.kept(); len(got) != 0 {
+		t.Errorf("an empty snapshot was kept as a failure: %q", got)
+	}
 }

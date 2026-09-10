@@ -28,7 +28,7 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 			p = room.Player{ID: gmID, Name: "Kyle", Role: room.RoleGM}
 		}
 
-		tb.Serve(w, r, roomID, p)
+		tb.Serve(w, r, roomID, p, nil)
 	}))
 	defer srv.Close()
 

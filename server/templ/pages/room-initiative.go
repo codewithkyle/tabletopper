@@ -1,6 +1,10 @@
 package pages
 
-import "strconv"
+import (
+	"strconv"
+
+	"tabletopper/internal/events"
+)
 
 // THE TURN ORDER IS A STRIP OF FACES ACROSS THE TOP OF THE TABLE, and every
 // decision in this file follows from that one.
@@ -125,7 +129,7 @@ const RoomInitiativeID = "room-initiative"
 // so either one ends the expression early and leaves the rest parsed as trigger
 // modifiers -- which is not an error, it is a strip that has quietly stopped
 // refetching. See RoomPawnData.Trigger, which learned this the same way.
-const InitiativeTrigger = "room:initiative[!this.hasAttribute('data-dragging')] from:window"
+const InitiativeTrigger = events.Initiative + "[!this.hasAttribute('data-dragging')] from:window"
 
 // InitiativeLoadTrigger is the placeholder's, which fetches once on load and
 // then behaves like the fragment it is replaced by. The fragment's own root

@@ -143,6 +143,21 @@ func scenario(r *recorder) {
 	r.do("end of the goblin's turn", &InitiativeNext{}, gm)
 	r.do("round two", &InitiativeNext{}, gm)
 
+	// THE FOUR STRIP GESTURES, each a command of its own so that a drop, a
+	// click, a delete and an add are atomic on the room rather than a read and
+	// a set with a second tab's window between them.
+	r.do("a lair action is added by name", &InitiativeAdd{Name: "The volcano erupts"}, gm)
+	r.do("and the ambusher from its own menu", &InitiativeAdd{Pawn: &ambusher}, gm)
+
+	upsideDown := make([]ulid.ULID, 0, len(w.s.Initiative.Entries))
+	for i := len(w.s.Initiative.Entries) - 1; i >= 0; i-- {
+		upsideDown = append(upsideDown, w.s.Initiative.Entries[i].ID)
+	}
+	r.do("the GM drags the order upside down", &InitiativeReorder{IDs: upsideDown}, gm)
+
+	r.do("and gives the turn to the volcano", &InitiativeActivate{Entry: entryNamed(w.s, "The volcano erupts")}, gm)
+	r.do("then takes it out of the fight", &InitiativeRemove{Entry: entryNamed(w.s, "The volcano erupts")}, gm)
+
 	r.do("the ambusher steps out", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: true}, gm)
 	r.do("no, back into the dark", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: false}, gm)
 
@@ -214,4 +229,15 @@ func scenario(r *recorder) {
 
 	r.hub("unlock on the way out", &RoomSetLocked{Locked: false})
 	r.hub("and close the room", &RoomClose{})
+}
+
+// entryNamed finds a line of the tracker by the name the scenario gave it.
+func entryNamed(s *State, name string) ulid.ULID {
+	for _, e := range s.Initiative.Entries {
+		if e.Name == name {
+			return e.ID
+		}
+	}
+
+	return ulid.ULID{}
 }

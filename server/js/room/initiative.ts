@@ -34,8 +34,9 @@
 //
 // A REFETCH MID-DRAG WOULD DROP THE HELD LINE, so the strip's own hx-trigger
 // declines while data-dragging is set and this is what sets it. An update that
-// arrives during a drag is lost and the POST on the drop brings a fresh one back
-// a moment later; see InitiativeTrigger in templ/pages/room-initiative.go.
+// arrives during a drag is lost; the POST on the drop brings a fresh one back a
+// moment later, and a drop that made no POST raises the refetch itself. See
+// InitiativeTrigger in templ/pages/room-initiative.go.
 //
 // NO CLASS NAME IS WRITTEN IN THIS FILE. server/js is not a Tailwind source, so
 // a class named here would never be emitted -- which is why the two Sortable
@@ -43,6 +44,7 @@
 
 import Sortable from "sortablejs";
 
+import { ROOM_INITIATIVE } from "../../public/js/events.js";
 import { typing } from "./keys.ts";
 import type { State } from "./protocol.ts";
 
@@ -262,7 +264,15 @@ export function mountTurns(mount: HTMLElement, state: State, now = () => perform
 				root.removeAttribute("data-dragging");
 				dropped = now();
 
+				// A LINE DROPPED WHERE IT WAS STILL ENDS A DRAG, and a drag
+				// is a span in which the strip declined every refetch. The
+				// POST a reorder makes brings a fresh strip back; a drop that
+				// reorders nothing makes no POST, so the strip is asked to
+				// catch up here instead -- otherwise it keeps the old acting
+				// line and stale blood until the next tracker event.
 				if (event.oldIndex === event.newIndex) {
+					window.dispatchEvent(new CustomEvent(ROOM_INITIATIVE));
+
 					return;
 				}
 

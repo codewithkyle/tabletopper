@@ -105,3 +105,12 @@ WHERE id = ? AND closed_at IS NULL;
 UPDATE rooms
 SET snapshot = ?, snapshot_seq = ?, snapshot_at = NOW()
 WHERE id = ?;
+
+-- KeepFailedSnapshot is the hub preserving a snapshot it could not read, before
+-- the room's first save overwrites the column it came from. It is written once
+-- per failure and read by nobody in the app: it is there for the forward build
+-- or the person who has to put a table back. See 20260909150000.
+-- name: KeepFailedSnapshot :exec
+UPDATE rooms
+SET snapshot_failed = ?, snapshot_failed_at = NOW()
+WHERE id = ?;

@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 	"strings"
+	"tabletopper/internal/events"
 
 	"github.com/a-h/templ"
 )
@@ -405,7 +406,7 @@ func (d RoomPawnData) RenamePath() string {
 // them one at a time keeping only the newest. Never "replace": that cancels the
 // request in flight, and htmx reports every cancellation as a console error.
 func (d RoomPawnData) Trigger() string {
-	return "room:pawn[detail.id === '" + d.Pawn.ID + "' && !" + typingInPanel + "] from:window"
+	return events.Pawn + "[detail.id === '" + d.Pawn.ID + "' && !" + typingInPanel + "] from:window"
 }
 
 // typingInPanel is the half of the filter above that asks whether this panel

@@ -1,0 +1,206 @@
+[
+  {
+    "entry": "12",
+    "current": 12,
+    "value": 12,
+    "refused": false
+  },
+  {
+    "entry": "12",
+    "current": null,
+    "value": 12,
+    "refused": false
+  },
+  {
+    "entry": "0",
+    "current": 12,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "0",
+    "current": null,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "-7",
+    "current": 12,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "-7",
+    "current": null,
+    "value": -7,
+    "refused": false
+  },
+  {
+    "entry": "+3",
+    "current": 12,
+    "value": 15,
+    "refused": false
+  },
+  {
+    "entry": "+3",
+    "current": null,
+    "value": 3,
+    "refused": false
+  },
+  {
+    "entry": "  -7  ",
+    "current": 12,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "  -7  ",
+    "current": null,
+    "value": -7,
+    "refused": false
+  },
+  {
+    "entry": "12-7",
+    "current": 12,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "12-7",
+    "current": null,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "12-7-4",
+    "current": 12,
+    "value": 1,
+    "refused": false
+  },
+  {
+    "entry": "12-7-4",
+    "current": null,
+    "value": 1,
+    "refused": false
+  },
+  {
+    "entry": "12 - 7",
+    "current": 12,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "12 - 7",
+    "current": null,
+    "value": 5,
+    "refused": false
+  },
+  {
+    "entry": "-7-4",
+    "current": 12,
+    "value": 1,
+    "refused": false
+  },
+  {
+    "entry": "-7-4",
+    "current": null,
+    "value": -11,
+    "refused": false
+  },
+  {
+    "entry": "-99",
+    "current": 12,
+    "value": -87,
+    "refused": false
+  },
+  {
+    "entry": "-99",
+    "current": null,
+    "value": -99,
+    "refused": false
+  },
+  {
+    "entry": "+0",
+    "current": 12,
+    "value": 12,
+    "refused": false
+  },
+  {
+    "entry": "+0",
+    "current": null,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "lots",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "lots",
+    "current": null,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "7hp",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "7hp",
+    "current": null,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "--7",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "--7",
+    "current": null,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "12-",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "12-",
+    "current": null,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "+",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "+",
+    "current": null,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "1+2+3+4+5+6+7+8+9+10+11+12",
+    "current": 12,
+    "value": null,
+    "refused": true
+  },
+  {
+    "entry": "1+2+3+4+5+6+7+8+9+10+11+12",
+    "current": null,
+    "value": null,
+    "refused": true
+  }
+]
