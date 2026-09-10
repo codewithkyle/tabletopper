@@ -181,13 +181,13 @@ func scenario(r *recorder) {
 	r.do("that rectangle was in the wrong place", &FogRemove{ID: hidden}, gm)
 
 	r.do("the GM sketches the plan", &StrokeBegin{
-		ID: testID(900), Layer: ground, Color: "#ff0000ff", Width: 6, Points: []int{100, 100, 140, 130},
+		ID: testID(900), Layer: ground, Kind: StrokeFree, Color: "#ff0000ff", Width: 6, Points: []int{100, 100, 140, 130},
 	}, gm)
 	r.do("and keeps drawing", &StrokeExtend{ID: testID(900), Points: []int{180, 170, 220, 190}}, gm)
 	r.do("and lifts the pen", &StrokeEnd{ID: testID(900)}, gm)
 
 	r.do("Ari draws over it", &StrokeBegin{
-		ID: testID(901), Layer: ground, Color: "#00ff00ff", Width: 3, Points: []int{300, 100, 320, 140},
+		ID: testID(901), Layer: ground, Kind: StrokeFree, Color: "#00ff00ff", Width: 3, Points: []int{300, 100, 320, 140},
 	}, pc)
 	r.do("and rubs her own line out", &StrokeErase{IDs: []ulid.ULID{testID(901)}}, pc)
 

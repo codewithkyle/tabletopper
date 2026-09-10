@@ -31,7 +31,7 @@
 // move itself is a single command at the end. See decision 7.
 
 import type { Drawn } from "./render/pawn-pass.ts";
-import type { Event, Grid, Pawn, PawnKind, Role, Size, State } from "./protocol.ts";
+import type { Event, Grid, Pawn, PawnKind, Role, Size, State, Stroke } from "./protocol.ts";
 import type { Modifiers, Tool } from "./render/input.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Point, Rect } from "./render/camera.ts";
@@ -50,6 +50,7 @@ import {
 	snapsToGrid,
 	supercover,
 } from "./render/path.ts";
+import type { Draw } from "./draw.ts";
 import type { Fog } from "./fog.ts";
 import type { Handle } from "./handles.ts";
 import { SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
@@ -328,6 +329,15 @@ export interface TableDeps {
 	// cannot see is a goblin they cannot label, click or sweep up either.
 	fog: Fog | null;
 
+	// draw is the pen, and it is here for the reason the fog is: every pointer
+	// event arrives at this module first, and the ones that mean something to a
+	// line in hand are handed straight on. What this module does NOT do is know
+	// what a stroke is; see draw.ts.
+	//
+	// IT IS EVERYBODY'S, unlike the fog. Whether a player may actually draw is
+	// the room's setting and the core's refusal, not a null here.
+	draw: Draw | null;
+
 	// remove is the Delete key asking for the selection to be taken off the
 	// table.
 	//
@@ -358,6 +368,11 @@ export interface Table {
 	// nothing else yet. They are drawn through the same pass the ruler's line
 	// is, which is what puts them over everything including the cover.
 	marks(out: Segment[]): Segment[];
+
+	// inHand is the stroke this viewer is drawing right now, or null. It is
+	// the LOCAL copy rather than the store's, which is what keeps the ink under
+	// the pen instead of a round trip behind it; see draw.ts.
+	inHand(): Stroke | null;
 
 	// concealed is whether this viewer is shown nothing of a pawn, which is a
 	// question about the fog and never about the pawn's own visible flag -- a
@@ -515,6 +530,11 @@ export function createTable(deps: TableDeps): Table {
 	// under it whatever the pill does halfway through, which is the rule every
 	// other mode here follows.
 	let fogging = false;
+
+	// inking is the same flag for the pen: whether the pointer that is down was
+	// taken by draw.ts. A gesture that began under the pen finishes under it,
+	// whatever the pill does halfway through.
+	let inking = false;
 
 	// lastClick is half of a double click: which pawn, and when. See countClick
 	// for what breaks a pair.
@@ -888,6 +908,16 @@ export function createTable(deps: TableDeps): Table {
 			return true;
 		}
 
+		// AND THE PEN IS ASKED BESIDE THE FOG, for the same reason. Escape mid
+		// stroke is the most recent thing the hand started -- and abandoning a
+		// line is not "send nothing", because the first point went out on the
+		// press and is already on every other screen. See draw.ts.
+		if (deps.draw?.abandon()) {
+			inking = false;
+
+			return true;
+		}
+
 		// AND A RULER IS PUT AWAY THE SAME WAY EVERYTHING ELSE IS. It is the
 		// only one of these that outlives the button that made it, so it is
 		// also the only one somebody has to ask to be rid of -- and the two
@@ -983,6 +1013,9 @@ export function createTable(deps: TableDeps): Table {
 		if (deps.fog?.key(e)) {
 			return;
 		}
+		if (deps.draw?.key(e)) {
+			return;
+		}
 
 		if (e.key === "Escape") {
 			abandon();
@@ -1043,6 +1076,16 @@ export function createTable(deps: TableDeps): Table {
 			// is what routes them past four branches that know nothing of fog.
 			if (deps.fog?.press(map, mods)) {
 				fogging = true;
+				gesture = null;
+
+				return true;
+			}
+
+			// AND THE PEN NEXT, in the pill's own order and above the ruler for
+			// the ruler's reason: a hand drawing on the map is not aiming at a
+			// goblin either.
+			if (deps.draw?.press(map, mods)) {
+				inking = true;
 				gesture = null;
 
 				return true;
@@ -1136,6 +1179,12 @@ export function createTable(deps: TableDeps): Table {
 				return;
 			}
 
+			if (inking) {
+				deps.draw?.drag(map, mods);
+
+				return;
+			}
+
 			// A PRESS BECOMES A DRAG HERE AND NOWHERE ELSE, which is what keeps
 			// a click from moving anything: under four device pixels this
 			// returns without touching the table, and the release that follows
@@ -1190,6 +1239,13 @@ export function createTable(deps: TableDeps): Table {
 			if (fogging) {
 				fogging = false;
 				deps.fog?.release(map, mods);
+
+				return;
+			}
+
+			if (inking) {
+				inking = false;
+				deps.draw?.release(map, mods);
 
 				return;
 			}
@@ -1292,6 +1348,16 @@ export function createTable(deps: TableDeps): Table {
 				return;
 			}
 
+			// A POINTER THE BROWSER TOOK AWAY MID-STROKE RUBS THE LINE OUT, and
+			// that is draw.abandon rather than an end: a half-line nobody meant
+			// to draw is not a line worth leaving on everybody's table.
+			if (inking) {
+				inking = false;
+				deps.draw?.abandon();
+
+				return;
+			}
+
 			const active = gesture;
 			gesture = null;
 
@@ -1339,6 +1405,12 @@ export function createTable(deps: TableDeps): Table {
 			// click goes on to mean what it always meant.
 			if (deps.fog?.secondary()) {
 				fogging = false;
+
+				return;
+			}
+
+			if (deps.draw?.secondary()) {
+				inking = false;
 
 				return;
 			}
@@ -1499,6 +1571,10 @@ export function createTable(deps: TableDeps): Table {
 			out.length = 0;
 
 			return deps.fog?.marks(out) ?? out;
+		},
+
+		inHand() {
+			return deps.draw?.inHand() ?? null;
 		},
 
 		concealed,
@@ -1863,6 +1939,24 @@ export function actorColor(id: string): readonly [number, number, number] {
 	}
 
 	return ACTOR_COLORS[hash % ACTOR_COLORS.length] ?? ACTOR_COLORS[0];
+}
+
+// hexColor turns one of these palette entries into the #RRGGBB the protocol
+// carries. It is here beside the palette rather than in draw.ts because what it
+// converts is a colour this file owns, and the pen's default is that colour.
+//
+// SIX DIGITS AND NOT EIGHT. checkColor accepts both, and a stroke has no alpha:
+// two overlapping segments of a translucent line blend twice and show a darker
+// dot at every joint. See render/stroke-pass.ts.
+export function hexColor(rgb: readonly [number, number, number]): string {
+	let out = "#";
+	for (const channel of rgb) {
+		out += Math.round(Math.min(Math.max(channel, 0), 1) * 255)
+			.toString(16)
+			.padStart(2, "0");
+	}
+
+	return out.toUpperCase();
 }
 
 // expired drops previews nobody has updated. It is exported so the frame can

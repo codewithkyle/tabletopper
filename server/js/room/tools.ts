@@ -8,16 +8,17 @@
 // the table reads its meaning from rather than a radio group that agreed with
 // nothing.
 //
-// THERE ARE FIVE BUTTONS AND THE TABLE ASKS THREE QUESTIONS OF THEM. Is the
+// THERE ARE FIVE BUTTONS AND THE TABLE ASKS FOUR QUESTIONS OF THEM. Is the
 // camera taking this gesture -- which Move answers yes to and nothing else does
-// -- is the ruler the mode we are in, which is Measure, and is the fog, which is
-// Fog. Select is the table as it has always behaved, and Draw is a button whose
-// feature is not built, so it leaves the table on Select rather than dropping
-// somebody into a mode where nothing works and nothing says why.
+// -- is the ruler the mode we are in, which is Measure, is it the fog, which is
+// Fog, and is it the pen, which is Draw. Select is the table as it has always
+// behaved and is the only one of the five that answers no to all four.
 //
 // FOG IS THE GM'S BUTTON AND A PLAYER'S PILL DOES NOT RENDER IT, which is why
 // fogging() is written to answer false for a pill that has no fog button rather
-// than to test a role it has never heard of.
+// than to test a role it has never heard of. DRAW IS EVERYBODY'S: whether a
+// player may actually draw is the room's setting, refused by the core with an
+// alert, and not a button that comes and goes underneath a hand using it.
 //
 // THE QUESTIONS ARE ASKED OF DIFFERENT BUTTONS ON PURPOSE. panning is asked
 // of the button that is LIT, because the space bar lighting Move is exactly what
@@ -27,8 +28,9 @@
 // twenty feet sideways would be a ruler nobody could use across a battlemap.
 //
 // WHAT EACH BUTTON DOES IS THE MARKUP'S TO SAY. room.go renders
-// data-room-tool-pans, data-room-tool-measures and data-room-tool-fogs onto
-// exactly one tool each and this finds them by those attributes, because the alternative is the names
+// data-room-tool-pans, data-room-tool-measures, data-room-tool-fogs and
+// data-room-tool-draws onto exactly one tool each and this finds them by those
+// attributes, because the alternative is the names
 // "move" and "measure" written out in Go and again in TypeScript -- and that is
 // a gesture which quietly stops working the day the list is renamed. The mode a
 // room OPENS in is read the same way, off the button that was rendered pressed.
@@ -82,6 +84,11 @@ export interface Tools {
 	// false on every player's page, whose pill renders no fog button at all.
 	fogging(): boolean;
 
+	// drawing is whether the pen is the tool that was chosen, asked of the
+	// CHOSEN button for the same reason again: shoving the map along a corridor
+	// mid-stroke must not cut the line in half.
+	drawing(): boolean;
+
 	// onChange runs when the mode changes: a click on the pill, or the space bar
 	// going down or up. Every caller is kept, because two things listen now --
 	// the canvas, which draws what the chosen tool put on it, and the fog
@@ -131,6 +138,7 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	const pans = root.querySelector("[data-room-tool-pans]");
 	const measures = root.querySelector("[data-room-tool-measures]");
 	const fogs = root.querySelector("[data-room-tool-fogs]");
+	const draws = root.querySelector("[data-room-tool-draws]");
 
 	// The shortcuts, keyed by the letter the markup put on each button. A tool
 	// with no letter is simply not in here, which is a tool with no shortcut
@@ -167,6 +175,10 @@ export function mountTools(mount: HTMLElement): Tools | null {
 
 	function fogging(): boolean {
 		return fogs !== null && chosen === fogs;
+	}
+
+	function drawing(): boolean {
+		return draws !== null && chosen === draws;
 	}
 
 	function paint(): void {
@@ -271,6 +283,7 @@ export function mountTools(mount: HTMLElement): Tools | null {
 		panning,
 		measuring,
 		fogging,
+		drawing,
 
 		onChange(fn) {
 			changed.push(fn);

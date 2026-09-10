@@ -95,6 +95,7 @@ const (
 	RoomToolMove    = "move"
 	RoomToolMeasure = "measure"
 	RoomToolFog     = "fog"
+	RoomToolDraw    = "draw"
 )
 
 // RoomPageData is the whole page, with every conversion already done. The
@@ -784,10 +785,8 @@ func comingSoon(labels ...string) []RoomMenuItem {
 // marquee, a click picks one out. Move is that table with the pointer taken away
 // from it: every gesture is the camera's, and the selection somebody built is
 // still there when they come back. Measure takes the primary button too, and
-// spends it on a ruler instead. Fog and Draw name features that do not exist, so
-// the table goes on behaving as Select while one of them is lit; gating it on
-// them would mean a GM who pressed Fog found a table where nothing worked and
-// nothing said why.
+// spends it on a ruler instead. Fog takes it and cuts the cover with it, and
+// Draw takes it and lays down ink.
 //
 // WHAT A TOOL DOES IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN
 // TYPESCRIPT. server/js/room/tools.ts has to know which of these buttons is the
@@ -818,6 +817,18 @@ type RoomTool struct {
 	// table's contents. Exactly one tool has it, and like Measures the space
 	// bar does not borrow it: a half-drawn polygon survives a shove of the map.
 	Fogs bool
+
+	// Draws is the mode whose primary button lays down ink. Exactly one tool
+	// has it, and the space bar does not borrow it for the reason it does not
+	// borrow the other two: shoving the map along a corridor mid-stroke must
+	// not cut the line in half.
+	//
+	// IT IS NOT A GM TOOL. Whether a player may draw is Table.PlayersCanDraw,
+	// which the core reads and refuses against with an alert -- so a player at
+	// a table where drawing is off finds the button and is told why, rather
+	// than finding a button that appears and disappears as the GM changes
+	// their mind about it.
+	Draws bool
 
 	// GM is a mode nobody else is offered. The template drops these from a
 	// player's pill entirely rather than disabling them, because a disabled
@@ -855,7 +866,7 @@ func RoomTools() []RoomTool {
 		{Name: RoomToolMove, Label: "Move", Pans: true, Key: "h"},
 		{Name: RoomToolMeasure, Label: "Measure", Measures: true, Key: "m"},
 		{Name: RoomToolFog, Label: "Fog", Fogs: true, GM: true, Key: "f"},
-		{Name: "draw", Label: "Draw"},
+		{Name: RoomToolDraw, Label: "Draw", Draws: true, Key: "d"},
 	}
 }
 

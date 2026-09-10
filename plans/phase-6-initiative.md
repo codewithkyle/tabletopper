@@ -9,8 +9,9 @@ whose turn it is ends it.
 
 This was the last quarter of a plan that also held fog, strokes and pings. That
 plan was split on 2026-09-09, after phase 5 shipped, into this one, phase 7
-(fog) and phase 8 (strokes and pings). Nothing in it was built before the
-split.
+(fog) and phase 8 (strokes and pings); phase 8 was split again on 2026-09-10
+into drawing (phase 8) and pings (phase 9). Nothing in it was built before the
+first split.
 
 ## Two revisions, both before any of it was built
 

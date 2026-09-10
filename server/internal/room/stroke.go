@@ -6,7 +6,11 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE STROKE FAMILY: freehand drawing on a layer.
+// THE STROKE FAMILY: drawing on a layer, freehand or as a shape.
+//
+// A STROKE IS A LINE OR A SHAPE AND THE KIND IS WHAT SAYS WHICH. Only a free
+// stroke grows, which is why only a free stroke is extended; see StrokeBegin
+// and StrokeKind.
 //
 // THE CLIENT MINTS THE ID. It has to: it begins a stroke and then sends chunks
 // of it at roughly ten hertz, and it cannot wait for a round trip to learn what
@@ -68,13 +72,26 @@ type StrokeCleared struct {
 
 func (*StrokeCleared) eventType() string { return "stroke.cleared" }
 
-// StrokeBegin starts a line.
+// StrokeBegin starts a line, or places a whole shape.
+//
+// A SHAPE NEVER STREAMS, AND THAT IS FORCED BY stroke.extend RATHER THAN
+// CHOSEN. Extend APPENDS -- it is the one delta in this protocol -- and a
+// rubber-banded rectangle changes its SECOND corner on every frame, which an
+// append cannot express. So the client sends a shape once, when the button
+// comes up, and it arrives complete: Apply marks it Done, and the extend that
+// would grow it is refused by the rule that already refuses a finished stroke.
+//
+// The cost is that other people see a shape appear whole instead of watching it
+// grow, and the alternative was a transient preview event -- a fourth hot path
+// for a gesture that lasts a second, to animate something nobody at a table
+// would notice was missing.
 type StrokeBegin struct {
-	ID     ulid.ULID `json:"id"`
-	Layer  ulid.ULID `json:"layer"`
-	Color  string    `json:"color"`
-	Width  int       `json:"width"`
-	Points []int     `json:"points"`
+	ID     ulid.ULID  `json:"id"`
+	Layer  ulid.ULID  `json:"layer"`
+	Kind   StrokeKind `json:"kind"`
+	Color  string     `json:"color"`
+	Width  int        `json:"width"`
+	Points []int      `json:"points"`
 }
 
 // Authorize reads the room's own setting rather than the role. Players drawing
@@ -101,6 +118,9 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if s.Stroke(c.ID) != nil {
 		return nil, invalid("Bad stroke", "A stroke with that id is already on the table.")
 	}
+	if !c.Kind.Valid() {
+		return nil, invalid("Bad stroke", "That is not a kind of drawing.")
+	}
 	if len(s.Strokes) >= StrokesMax {
 		return nil, invalid("Too many strokes", "This room already holds as many strokes as it can.")
 	}
@@ -110,8 +130,25 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkColor("stroke colour", c.Color); err != nil {
 		return nil, err
 	}
+
+	// A SHAPE IS EXACTLY TWO POINTS, not two or more. The client reads four
+	// numbers out of one without checking -- a rectangle's opposite corners, a
+	// circle's centre and rim, a cone's apex and base midpoint -- and a fifth
+	// number is a client that thinks it is sending something else. It is the
+	// rule FogAdd applies to a rectangle, for the same reason.
+	if c.Kind.Shape() && len(c.Points) != 4 {
+		return nil, invalid("Bad stroke", "That shape is two points.")
+	}
 	if err := checkPoints("stroke", c.Points, 1, StrokeChunkMax); err != nil {
 		return nil, err
+	}
+
+	// AND A SHAPE OF NO SIZE IS A CLICK RATHER THAN A DRAG. The client already
+	// drops one; this is the server not taking its word for it, because a
+	// circle whose rim is its centre draws nothing and can never be pointed at
+	// to be rubbed out.
+	if c.Kind.Shape() && c.Points[0] == c.Points[2] && c.Points[1] == c.Points[3] {
+		return nil, invalid("Bad stroke", "That shape has no size.")
 	}
 	if err := s.strokeBudget(a, len(c.Points)); err != nil {
 		return nil, err
@@ -121,9 +158,11 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		ID:      c.ID,
 		By:      a.ID,
 		LayerID: c.Layer,
+		Kind:    c.Kind,
 		Color:   c.Color,
 		Width:   c.Width,
 		Points:  slices.Clone(c.Points),
+		Done:    c.Kind.Shape(),
 	}
 	s.Strokes = append(s.Strokes, stroke)
 	s.Normalize()

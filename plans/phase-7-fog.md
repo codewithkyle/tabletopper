@@ -9,8 +9,9 @@ covers a floor and cuts reveals out of it, and the players see only what has
 been uncovered.
 
 It was the first quarter of a plan that also held strokes, pings and
-initiative, split on 2026-09-09 after phase 5 shipped. Phase 6 is initiative
-and phase 8 is strokes and pings. Nothing here was built before the split.
+initiative, split on 2026-09-09 after phase 5 shipped. Phase 6 is initiative,
+phase 8 is drawing and phase 9 is pings -- those last two were one plan until
+2026-09-10. Nothing here was built before the split.
 
 **Revised 2026-09-09** against the GM's own description of the feature. Four
 decisions moved and they are marked below: the prefill is one room-wide switch
@@ -500,4 +501,4 @@ the document at module scope.
 Server-side fog-aware projection (still deferred in the overview), a brush or
 eraser tool for fog, per-shape editing after the fact, a reveal that follows a
 pawn's light radius, dynamic lighting and line of sight, fog on a per-player
-basis, and strokes and pings, which are phase 8.
+basis, and drawing and pings, which are phases 8 and 9.

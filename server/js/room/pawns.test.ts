@@ -45,6 +45,7 @@ function wait(ms: number): void {
 
 const { createTable, hitTest } = await import("./pawns.ts");
 const { createFog } = await import("./fog.ts");
+const { createDraw } = await import("./draw.ts");
 
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
@@ -187,6 +188,9 @@ function table(
 		// two flags are set.
 		fogging: boolean; shape: ShapeKind; mode: FogMode;
 		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[];
+
+		// And the pen's: whether the Draw tool is the one chosen.
+		inking: boolean;
 	}> = {},
 ) {
 	const state: State = empty();
@@ -211,6 +215,7 @@ function table(
 	let panning = over.panning ?? false;
 	let measuring = over.measuring ?? false;
 	let fogging = over.fogging ?? false;
+	let inking = over.inking ?? false;
 	const options = { shape: over.shape ?? "rect", mode: over.mode ?? "reveal" };
 
 	const send = (command: unknown) => {
@@ -232,11 +237,23 @@ function table(
 		options: () => options,
 	});
 
+	// THE REAL PEN TOO, for the fog's reason: what is under test is which
+	// gesture reaches which module.
+	const draw = createDraw({
+		viewed: () => GROUND,
+		send,
+		invalidate: () => {},
+		scale: () => over.scale ?? 1,
+		drawing: () => inking,
+		options: () => ({ color: "#FF0000", width: 4 }),
+	});
+
 	const controller = createTable({
 		state,
 		role: over.role ?? "gm",
 		user: over.user ?? GM,
 		fog,
+		draw,
 		viewed: () => GROUND,
 		send,
 		invalidate: () => {},
@@ -273,6 +290,9 @@ function table(
 		},
 		fogTool: (on: boolean) => {
 			fogging = on;
+		},
+		drawTool: (on: boolean) => {
+			inking = on;
 		},
 		chooseFog: (shape: ShapeKind, mode: FogMode) => {
 			options.shape = shape;
@@ -1553,4 +1573,162 @@ test("the fog rectangle is coloured by the mode it will send", () => {
 	const cover = controller.outlines([])[0].color;
 
 	assert.notDeepEqual(uncover, cover);
+});
+
+// THE PEN. What is under test here is the seam again -- which gesture reaches
+// draw.ts and what leaves the client when one finishes -- and not the geometry,
+// which draw.test.ts owns.
+
+const PEN_ON = { inking: true } as const;
+
+test("the pen is not the tool unless it is chosen", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller, sent } = table([goblin]);
+
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [], "a press under the Select tool drew something");
+	assert.deepEqual(controller.selection.ids(), ["goblin"]);
+});
+
+// A LINE BEGINS ON THE PRESS AND NOT ON THE RELEASE, which is the whole
+// difference between this tool and the fog: everybody else at the table watches
+// it form.
+test("a pen stroke begins, extends and ends", () => {
+	const { controller, sent } = table([], PEN_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 100), at(0, 0), NONE);
+	controller.tool.release(at(100, 100), at(0, 0), NONE);
+
+	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin", "stroke.extend", "stroke.end"]);
+
+	const begin = sent[0];
+	assert.equal(begin.layer, GROUND);
+	assert.equal(begin.kind, "free");
+	assert.equal(begin.color, "#FF0000");
+	assert.equal(begin.width, 4);
+	assert.deepEqual(begin.points, [0, 0]);
+
+	assert.deepEqual(sent[1].points, [100, 0, 100, 100]);
+
+	// One id across all three, minted by the client before anything answered.
+	assert.equal(typeof begin.id, "string");
+	assert.equal(sent[1].id, begin.id);
+	assert.equal(sent[2].id, begin.id);
+});
+
+// A tap is a dot: one point, no run of them, and no extend to carry one.
+test("a pen click is a stroke of one point", () => {
+	const { controller, sent } = table([], PEN_ON);
+
+	controller.tool.press(at(48, 48), at(0, 0), NONE);
+	controller.tool.release(at(48, 48), at(0, 0), NONE);
+
+	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin", "stroke.end"]);
+	assert.deepEqual(sent[0].points, [48, 48]);
+});
+
+// DECIMATION IS MEASURED IN MAP PIXELS AT THE CURRENT ZOOM. A hand that has not
+// moved a screen pixel has not drawn anything, however many times the pointer
+// reported itself.
+test("the pen drops points the hand did not really move", () => {
+	const { controller, sent } = table([], { ...PEN_ON, scale: 20 });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	for (let i = 1; i <= 8; i++) {
+		controller.tool.drag(at(i, 0), at(0, 0), NONE);
+	}
+	controller.tool.release(at(8, 0), at(0, 0), NONE);
+
+	// Every one of those eight was inside twenty map pixels of the start, so
+	// the only point that survives is the one the hand lifted at.
+	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin", "stroke.extend", "stroke.end"]);
+	assert.deepEqual(sent[1].points, [8, 0]);
+});
+
+// THE LAST POINT IS KEPT WHATEVER THE THRESHOLD SAYS, so a line ends where the
+// hand lifted rather than at the last sample far enough from the one before it.
+test("the pen keeps the point it was lifted at", () => {
+	const { controller, sent } = table([], { ...PEN_ON, scale: 50 });
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(10, 0), at(0, 0), NONE);
+	controller.tool.release(at(10, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent[1].points, [10, 0]);
+});
+
+// ABANDONING A LINE IS ENDING IT AND THEN RUBBING IT OUT. The begin already
+// went out on the press, so there is nothing to un-begin -- and ending it first
+// is what makes the erase legal for a player, whose own stroke this is.
+test("Escape mid-stroke ends the line and rubs it out", () => {
+	const { controller, sent } = table([], PEN_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 100), at(0, 0), NONE);
+	press("Escape");
+
+	assert.deepEqual(sent.map((c) => c.type), [
+		"stroke.begin", "stroke.extend", "stroke.end", "stroke.erase",
+	]);
+	assert.deepEqual(sent[3].ids, [sent[0].id]);
+});
+
+test("the right button mid-stroke rubs the line out too", () => {
+	const { controller, sent } = table([], PEN_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 100), at(0, 0), NONE);
+	controller.tool.secondary(at(100, 100), at(0, 0));
+
+	assert.deepEqual(sent.map((c) => c.type).at(-1), "stroke.erase");
+	assert.deepEqual(sent.at(-1)?.ids, [sent[0].id]);
+});
+
+// A pointer the browser took away mid-stroke is the same case, and it must not
+// leave a line on everybody's table that nobody meant to draw.
+test("a cancelled pointer rubs the line out", () => {
+	const { controller, sent } = table([], PEN_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 100), at(0, 0), NONE);
+	controller.tool.cancel();
+
+	assert.deepEqual(sent.map((c) => c.type).at(-1), "stroke.erase");
+});
+
+// THE INK UNDER THE PEN IS LOCAL AND THE ECHO IS IGNORED. inHand is what the
+// renderer draws while a line is being made; the store's copy takes over the
+// moment it is finished.
+test("the stroke in hand is local until it is finished", () => {
+	const { controller } = table([], PEN_ON);
+
+	assert.equal(controller.inHand(), null);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(100, 0), at(0, 0), NONE);
+
+	const line = controller.inHand();
+	assert.equal(line?.kind, "free");
+	assert.equal(line?.layerId, GROUND);
+	assert.deepEqual(line?.points, [0, 0, 100, 0]);
+
+	controller.tool.release(at(100, 0), at(0, 0), NONE);
+	assert.equal(controller.inHand(), null);
+});
+
+// A gesture that began under the pen finishes under it, which is the rule every
+// other mode on this table follows.
+test("a stroke survives the tool being switched away mid-gesture", () => {
+	const { controller, sent, drawTool } = table([], PEN_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	drawTool(false);
+	controller.tool.drag(at(100, 0), at(0, 0), NONE);
+	controller.tool.release(at(100, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin", "stroke.extend", "stroke.end"]);
 });

@@ -337,18 +337,26 @@ type FogShape struct {
 	Points  []int     `json:"points"`
 }
 
-// Stroke is a drawn polyline. The client mints the id, because it references
-// the stroke in chunks before the server has answered the first one; the server
-// validates that the id parses and is unused, which is the whole of the trust
-// it extends.
+// Stroke is one drawn thing on one layer: a freehand line, or a shape. The
+// client mints the id, because it references the stroke in chunks before the
+// server has answered the first one; the server validates that the id parses
+// and is unused, which is the whole of the trust it extends.
+//
+// THE KIND SAYS WHAT THE POINTS MEAN, the way a fog shape's does. A free
+// stroke's points are the polyline; every other kind is exactly two points and
+// the client works the geometry out from them. Keeping a circle as a centre and
+// a rim point rather than as the sixty-four points it is drawn with is what
+// lets the distance under it be recomputed at any time -- which is the whole
+// reason a shape is a shape here and not a tessellated line.
 type Stroke struct {
-	ID      ulid.ULID `json:"id"`
-	By      ulid.ULID `json:"by"`
-	LayerID ulid.ULID `json:"layerId"`
-	Color   string    `json:"color"`
-	Width   int       `json:"width"`
-	Points  []int     `json:"points"`
-	Done    bool      `json:"done"`
+	ID      ulid.ULID  `json:"id"`
+	By      ulid.ULID  `json:"by"`
+	LayerID ulid.ULID  `json:"layerId"`
+	Kind    StrokeKind `json:"kind"`
+	Color   string     `json:"color"`
+	Width   int        `json:"width"`
+	Points  []int      `json:"points"`
+	Done    bool       `json:"done"`
 }
 
 // GridLines is how the grid is drawn, and off is one of the ways. It is a
@@ -580,6 +588,34 @@ const (
 
 func (ShapeKind) Values() []string { return []string{"rect", "poly"} }
 func (k ShapeKind) Valid() bool    { return inValues(k, k.Values()) }
+
+// StrokeKind is what a stroke's points mean, and it is the one thing that
+// separates a line somebody drew from a shape they placed.
+//
+// FREE IS THE ONLY ONE THAT GROWS. Its points are the polyline and they arrive
+// in chunks, which is what stroke.extend exists for. The other three arrive
+// whole, in exactly two points, and are finished the moment they exist -- see
+// StrokeBegin.
+//
+// A CONE AND NOT A TRIANGLE. Its base is as wide as it is long, which is the
+// cone every spell in the book is written as, so the distance the client draws
+// under it is the number printed on the spell. Left free it would be a shape
+// with two things to aim at and a label that answered neither.
+type StrokeKind string
+
+const (
+	StrokeFree   StrokeKind = "free"
+	StrokeRect   StrokeKind = "rect"
+	StrokeCircle StrokeKind = "circle"
+	StrokeCone   StrokeKind = "cone"
+)
+
+func (StrokeKind) Values() []string { return []string{"free", "rect", "circle", "cone"} }
+func (k StrokeKind) Valid() bool    { return inValues(k, k.Values()) }
+
+// Shape is whether this kind is placed whole rather than drawn. It is the test
+// StrokeBegin uses for the point count, for Done, and for nothing else.
+func (k StrokeKind) Shape() bool { return k != StrokeFree }
 
 // FogMode is whether a shape uncovers the map or covers it. Which one a layer
 // starts as is FogPrefill: a prefilled layer is covered and reveals are cut out

@@ -74,7 +74,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 
 		// Drawing is a room setting rather than a role, so all three may begin
 		// a stroke while the setting is on.
-		{"stroke.begin", &StrokeBegin{ID: testID(500), Layer: w.layer, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, ok, ok, ok},
+		{"stroke.begin", &StrokeBegin{ID: testID(500), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, ok, ok, ok},
 
 		// Extending and ending are own-stroke, and that includes the GM: the
 		// person drawing the line is still drawing it, and taking it away is
@@ -150,7 +150,7 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	fx.owned = w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID, CharacterID: &testCharID})
 
 	fx.stroke = testID(400)
-	w.apply(&StrokeBegin{ID: fx.stroke, Layer: w.layer, Color: "#ff0000", Width: 3, Points: []int{0, 0, 10, 10}}, w.pc)
+	w.apply(&StrokeBegin{ID: fx.stroke, Layer: w.layer, Kind: StrokeFree, Color: "#ff0000", Width: 3, Points: []int{0, 0, 10, 10}}, w.pc)
 
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 100, 100}}, w.gm)
 	fx.shape = w.s.Fog[0].ID

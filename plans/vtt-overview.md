@@ -557,8 +557,10 @@ The phase plans beside this document settled most of what was open when it
 was written. There were six; on 2026-09-09, after phase 5 shipped, the sixth
 -- fog, strokes, pings and initiative in one plan -- was split into initiative
 (phase 6), fog (phase 7) and strokes with pings (phase 8), so that each ships
-as one feature with one verification. In brief, so this document stays the
-summary:
+as one feature with one verification. On 2026-09-10 phase 8 was split again,
+into drawing (phase 8) and pings (phase 9), when the drawing half grew a pen,
+three measured shapes, an eraser and a colour picker. In brief, so this
+document stays the summary:
 
 - **Snapshot storage**: three columns on the `rooms` row (phase 1).
 - **Reaching a room**: `/rooms` lists the GM's persistent, named rooms;

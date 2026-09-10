@@ -123,29 +123,102 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 	t.Run("a stroke stops at the maximum width", func(t *testing.T) {
 		w := newWorld(t)
 
-		w.apply(&StrokeBegin{ID: testID(600), Layer: w.layer, Color: "#ffffff", Width: StrokeWidthMax, Points: []int{0, 0}}, w.gm)
-		w.refuse(&StrokeBegin{ID: testID(601), Layer: w.layer, Color: "#ffffff", Width: StrokeWidthMax + 1, Points: []int{0, 0}}, w.gm, CodeInvalid)
-		w.refuse(&StrokeBegin{ID: testID(602), Layer: w.layer, Color: "#ffffff", Width: 0, Points: []int{0, 0}}, w.gm, CodeInvalid)
+		w.apply(&StrokeBegin{ID: testID(600), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: StrokeWidthMax, Points: []int{0, 0}}, w.gm)
+		w.refuse(&StrokeBegin{ID: testID(601), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: StrokeWidthMax + 1, Points: []int{0, 0}}, w.gm, CodeInvalid)
+		w.refuse(&StrokeBegin{ID: testID(602), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 0, Points: []int{0, 0}}, w.gm, CodeInvalid)
+	})
+
+	t.Run("a stroke needs a kind the set holds", func(t *testing.T) {
+		w := newWorld(t)
+
+		for i, kind := range []StrokeKind{StrokeFree, StrokeRect, StrokeCircle, StrokeCone} {
+			w.apply(&StrokeBegin{
+				ID: testID(650 + i), Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40},
+			}, w.gm)
+		}
+
+		for i, kind := range []StrokeKind{"", "poly", "Free", "square"} {
+			w.refuse(&StrokeBegin{
+				ID: testID(660 + i), Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40},
+			}, w.gm, CodeInvalid)
+		}
+	})
+
+	// A SHAPE IS TWO POINTS AND A FREE STROKE IS ANY NUMBER OF THEM, which is
+	// the one rule that reads the kind rather than the count.
+	t.Run("a shape is exactly two points", func(t *testing.T) {
+		w := newWorld(t)
+
+		for i, kind := range []StrokeKind{StrokeRect, StrokeCircle, StrokeCone} {
+			w.refuse(&StrokeBegin{
+				ID: testID(670 + i), Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{0, 0},
+			}, w.gm, CodeInvalid)
+			w.refuse(&StrokeBegin{
+				ID: testID(680 + i), Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40, 80, 80},
+			}, w.gm, CodeInvalid)
+
+			// And a shape whose two points are the same place is a click
+			// rather than a drag: it draws nothing and could never be pointed
+			// at to be rubbed out.
+			w.refuse(&StrokeBegin{
+				ID: testID(690 + i), Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{40, 40, 40, 40},
+			}, w.gm, CodeInvalid)
+		}
+
+		// The same three point counts are all fine freehand.
+		w.apply(&StrokeBegin{ID: testID(695), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+		w.apply(&StrokeBegin{ID: testID(696), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40, 80, 80}}, w.gm)
+		w.apply(&StrokeBegin{ID: testID(697), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{40, 40, 40, 40}}, w.gm)
+	})
+
+	// A shape arrives whole, so it is finished the moment it exists and the
+	// command that would grow it has nothing to say to it.
+	t.Run("a shape is born finished and cannot be extended", func(t *testing.T) {
+		w := newWorld(t)
+
+		w.apply(&StrokeBegin{ID: testID(750), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+		if w.s.Stroke(testID(750)).Done {
+			t.Error("a freehand stroke arrived finished; its author has not lifted the pen")
+		}
+		w.apply(&StrokeExtend{ID: testID(750), Points: []int{8, 8}}, w.gm)
+
+		for i, kind := range []StrokeKind{StrokeRect, StrokeCircle, StrokeCone} {
+			id := testID(760 + i)
+			w.apply(&StrokeBegin{
+				ID: id, Layer: w.layer, Kind: kind,
+				Color: "#ffffff", Width: 2, Points: []int{0, 0, 64, 64},
+			}, w.gm)
+
+			if !w.s.Stroke(id).Done {
+				t.Errorf("a %s arrived unfinished; a shape is placed whole", kind)
+			}
+			w.refuse(&StrokeExtend{ID: id, Points: []int{8, 8}}, w.gm, CodeInvalid)
+		}
 	})
 
 	t.Run("one stroke chunk stops at the chunk limit", func(t *testing.T) {
 		w := newWorld(t)
 
-		w.apply(&StrokeBegin{ID: testID(610), Layer: w.layer, Color: "#ffffff", Width: 2, Points: points(StrokeChunkMax)}, w.gm)
-		w.refuse(&StrokeBegin{ID: testID(611), Layer: w.layer, Color: "#ffffff", Width: 2, Points: points(StrokeChunkMax + 2)}, w.gm, CodeInvalid)
+		w.apply(&StrokeBegin{ID: testID(610), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: points(StrokeChunkMax)}, w.gm)
+		w.refuse(&StrokeBegin{ID: testID(611), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: points(StrokeChunkMax + 2)}, w.gm, CodeInvalid)
 	})
 
 	t.Run("a point array has to be pairs", func(t *testing.T) {
 		w := newWorld(t)
 
-		w.refuse(&StrokeBegin{ID: testID(620), Layer: w.layer, Color: "#ffffff", Width: 2, Points: []int{0, 0, 5}}, w.gm, CodeInvalid)
-		w.refuse(&StrokeBegin{ID: testID(621), Layer: w.layer, Color: "#ffffff", Width: 2, Points: []int{}}, w.gm, CodeInvalid)
+		w.refuse(&StrokeBegin{ID: testID(620), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0, 5}}, w.gm, CodeInvalid)
+		w.refuse(&StrokeBegin{ID: testID(621), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{}}, w.gm, CodeInvalid)
 	})
 
 	t.Run("one whole stroke stops at the total limit", func(t *testing.T) {
 		w := newWorld(t)
 		id := testID(630)
-		w.apply(&StrokeBegin{ID: id, Layer: w.layer, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+		w.apply(&StrokeBegin{ID: id, Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
 		// Filled rather than drawn: forty chunks would test the loop.
 		w.s.Stroke(id).Points = points(StrokePointsMax - 2)
@@ -180,7 +253,7 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		w := newWorld(t)
 		w.s.Strokes = make([]Stroke, StrokesMax)
 
-		w.refuse(&StrokeBegin{ID: testID(640), Layer: w.layer, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm, CodeInvalid)
+		w.refuse(&StrokeBegin{ID: testID(640), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm, CodeInvalid)
 	})
 
 	t.Run("the table stops at its pawn count", func(t *testing.T) {

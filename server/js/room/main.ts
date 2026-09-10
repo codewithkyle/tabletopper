@@ -22,8 +22,9 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
 import { fanOut, refusals, touchesPawns } from "./effects.ts";
+import { DEFAULT_WIDTH, createDraw } from "./draw.ts";
 import { createFog } from "./fog.ts";
-import { createTable } from "./pawns.ts";
+import { actorColor, createTable, hexColor } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
 import { mountDialogs } from "./dialogs.ts";
 import { mountOverlay } from "./overlay.ts";
@@ -149,11 +150,31 @@ if (mount) {
 		options: fogTool.options,
 	});
 
+	// AND THE PEN, BUILT HERE FOR THE FOG'S REASON: the socket to send a line,
+	// the renderer to say which floor and how far a screen pixel goes, the pill
+	// to say whether the tool is chosen.
+	//
+	// THE COLOUR IS THIS VIEWER'S OWN, which is the colour their drag ghosts and
+	// their ruler are already drawn in for everybody else at the table -- so a
+	// line somebody draws is recognisably theirs before anybody is told whose it
+	// is. The picker that overrides it is checkpoint 3.
+	const draw = createDraw({
+		viewed,
+		send: (command) => {
+			socket?.send(command);
+		},
+		invalidate: () => renderer?.invalidate(),
+		scale: () => renderer?.mapPerPixel() ?? 1,
+		drawing: () => tools?.drawing() ?? false,
+		options: () => ({ color: hexColor(actorColor(user)), width: DEFAULT_WIDTH }),
+	});
+
 	const table = createTable({
 		state,
 		role,
 		user,
 		fog,
+		draw,
 
 		// THE VIEWED FLOOR IS THE RENDERER'S AND NOT THE STORE'S, because the
 		// GM's local choice to look at another floor exists only in there. A

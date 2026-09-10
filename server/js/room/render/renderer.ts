@@ -29,6 +29,7 @@ import { AURA_DISC, AURA_RECT, auraColor, auraTurn, createAuraPass } from "./aur
 import { HIDDEN_ALPHA, createPawnPass } from "./pawn-pass.ts";
 import type { PawnPulse } from "./pawn-pass.ts";
 import { createRingPass, RING_ELLIPSE, RING_RECT } from "./ring-pass.ts";
+import { createStrokePass } from "./stroke-pass.ts";
 import { createSpriteCache, CONDITION_COLORS } from "./sprites.ts";
 import { createTilePass } from "./tile-pass.ts";
 import { newDecals } from "./decals.ts";
@@ -247,6 +248,11 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 	// cache here, and the next frame rasterises the floor's shapes again.
 	let fog = createFogPass(gl);
 
+	// THE DRAWING IS TWO BUFFERS AND ONE PROGRAM, and the finished one is
+	// rebuilt on a change rather than per frame -- which is the same bargain the
+	// pawn buffer makes and for the same reason. See stroke-pass.ts.
+	let strokes = createStrokePass(gl);
+
 	// teardown frees every GPU resource the passes hold, and rebuild makes
 	// them again on a context the browser has restored. Both caches come back
 	// empty -- the tiles and the pictures refetch -- and the pawn buffer is
@@ -262,6 +268,7 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 		floorMarks.dispose();
 		overMarks.dispose();
 		fog.dispose();
+		strokes.dispose();
 		sprites.dispose();
 		atlas?.dispose();
 	}
@@ -279,6 +286,7 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 		floorMarks = createPathPass(gl, atlas);
 		overMarks = createPathPass(gl, atlas);
 		fog = createFogPass(gl);
+		strokes = createStrokePass(gl);
 
 		pawnsDirty = true;
 		lastEpoch = -1;
@@ -569,6 +577,20 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 		// over scenery that has been there for ten minutes.
 		decals.build(viewedID, now, sprites, decalPass);
 		decalPass.draw(camera, sprites.texture(), canvas.width, canvas.height, dpr);
+
+		// THE DRAWING IS ON THE FLOOR AND GOES UNDER THE CREATURES, which is
+		// where a mark somebody made on the map belongs: a circle round three
+		// goblins has the goblins standing IN it rather than behind it. It is
+		// above the blood for the same reason the ruler's cells are -- a line
+		// drawn deliberately outranks a stain that arrived on its own.
+		//
+		// AND IT IS ABOVE THE FOG FOR NEITHER ROLE. The GM's tint goes over it
+		// two lines below, so a note left in an unrevealed room reads as hidden
+		// on the GM's screen too; the player's cover goes over everything, so it
+		// is not on their screen at all.
+		strokes.sync(state.strokes, viewedID);
+		strokes.live(state.strokes, viewedID, table?.inHand() ?? null);
+		strokes.draw(camera, canvas.width, canvas.height, dpr);
 
 		// THE GM'S FOG IS A TINT AND IT GOES UNDER THE CREATURES. What it marks
 		// is "the party cannot see this", which is a fact about the floor rather

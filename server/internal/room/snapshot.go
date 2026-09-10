@@ -29,7 +29,13 @@ import (
 // footprintH became width and height, and a 2 that meant two cells would decode
 // as two pixels -- an invisible wagon rather than a decode error, which is
 // exactly the kind of failure a version number exists to turn into a loud one.
-const Schema = 2
+//
+// SCHEMA 3 GAVE A STROKE A KIND. Every stroke written before it is freehand,
+// and an empty kind is not a member of the set -- so without the step a room
+// comes back holding strokes whose kind fails Valid(), and the drawing on the
+// table is a collection of things nothing knows how to draw. A zero value would
+// have decoded silently, which is the failure this number exists to make loud.
+const Schema = 3
 
 // fields is a snapshot half-decoded: the top-level object as raw JSON per key,
 // which is the shape a migration edits. Nothing below the keys a step touches
@@ -42,6 +48,7 @@ type fields map[string]json.RawMessage
 // Unmarshal reports as an unreadable snapshot.
 var migrations = map[int]func(fields) error{
 	1: migrateFootprints,
+	2: migrateStrokeKinds,
 }
 
 // migrateFootprints is schema 1 to 2: an object's footprintW and footprintH,
@@ -96,6 +103,38 @@ func migrateFootprints(f fields) error {
 		return fmt.Errorf("pawns: %w", err)
 	}
 	f["pawns"] = out
+
+	return nil
+}
+
+// migrateStrokeKinds is schema 2 to 3: every stroke gains a kind, and every
+// stroke that existed before the field did is freehand, because freehand was
+// the only thing a stroke could be.
+//
+// IT WRITES THE KIND EVEN ONTO A STROKE THAT SOMEHOW HAS ONE. A snapshot at
+// schema 2 cannot have been written by a build that knew about kinds, so an
+// existing value would be something a person pasted in -- and taking their word
+// for it would be trusting the one input this whole file exists to distrust.
+func migrateStrokeKinds(f fields) error {
+	raw, ok := f["strokes"]
+	if !ok {
+		return nil
+	}
+
+	var strokes []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &strokes); err != nil {
+		return fmt.Errorf("strokes: %w", err)
+	}
+
+	for _, st := range strokes {
+		st["kind"] = json.RawMessage(`"` + string(StrokeFree) + `"`)
+	}
+
+	out, err := json.Marshal(strokes)
+	if err != nil {
+		return fmt.Errorf("strokes: %w", err)
+	}
+	f["strokes"] = out
 
 	return nil
 }

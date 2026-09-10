@@ -56,7 +56,7 @@ func TestRemovingALayerEmptiesItInOrder(t *testing.T) {
 	w.spawn(Pawn{Name: "Ambusher", LayerID: cellar, Visible: false})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: cellar, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
-	w.apply(&StrokeBegin{ID: testID(700), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(700), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
 	ems := w.apply(&TableRemoveLayer{Layer: cellar}, w.gm)
 
@@ -133,7 +133,7 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: ground, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
-	w.apply(&StrokeBegin{ID: testID(701), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(701), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
 	cell := w.s.Table.Grid.CellSize
 	ems := w.apply(&TableClear{}, w.gm)
@@ -197,7 +197,7 @@ func TestAPlayerCannotActOnAnotherLayer(t *testing.T) {
 	cellar := w.addLayer("Cellar")
 
 	w.refuse(&Ping{Layer: cellar, X: 10, Y: 10}, w.pc, CodeForbidden)
-	w.refuse(&StrokeBegin{ID: testID(710), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.pc, CodeForbidden)
+	w.refuse(&StrokeBegin{ID: testID(710), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.pc, CodeForbidden)
 
 	// fog.add is GM-only anyway, and the layer rule is checked first, so a
 	// player naming another floor is refused for the more specific reason.
@@ -205,7 +205,7 @@ func TestAPlayerCannotActOnAnotherLayer(t *testing.T) {
 
 	// The GM is the one person entitled to work on a floor nobody is watching.
 	w.apply(&Ping{Layer: cellar, X: 10, Y: 10}, w.gm)
-	w.apply(&StrokeBegin{ID: testID(711), Layer: cellar, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(711), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 }
 
 // Moving pawns between floors is GM-only, because a player who moved their own

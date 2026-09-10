@@ -177,11 +177,11 @@ func busyWorld(t *testing.T) *world {
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 512, 512}}, w.gm)
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapePoly, Mode: FogReveal, Points: []int{64, 64, 192, 64, 192, 192}}, w.gm)
 
-	w.apply(&StrokeBegin{ID: testID(800), Layer: w.layer, Color: "#ff0000ff", Width: 4, Points: []int{0, 0, 8, 8}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(800), Layer: w.layer, Kind: StrokeFree, Color: "#ff0000ff", Width: 4, Points: []int{0, 0, 8, 8}}, w.gm)
 	w.apply(&StrokeExtend{ID: testID(800), Points: []int{16, 16}}, w.gm)
 	w.apply(&StrokeEnd{ID: testID(800)}, w.gm)
-	w.apply(&StrokeBegin{ID: testID(801), Layer: w.layer, Color: "#00ff00", Width: 2, Points: []int{4, 4}}, w.pc)
-	w.apply(&StrokeBegin{ID: testID(802), Layer: cellar, Color: "#0000ff", Width: 2, Points: []int{4, 4}}, w.gm)
+	w.apply(&StrokeBegin{ID: testID(801), Layer: w.layer, Kind: StrokeFree, Color: "#00ff00", Width: 2, Points: []int{4, 4}}, w.pc)
+	w.apply(&StrokeBegin{ID: testID(802), Layer: cellar, Kind: StrokeFree, Color: "#0000ff", Width: 2, Points: []int{4, 4}}, w.gm)
 
 	w.apply(&RoomSetLocked{Locked: true}, w.gm)
 

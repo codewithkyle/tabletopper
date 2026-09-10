@@ -40,6 +40,8 @@ export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan"
 
 export type Snap = "off" | "cells" | "halfCells";
 
+export type StrokeKind = "free" | "rect" | "circle" | "cone";
+
 
 // The entities. These are the objects that appear inside a snapshot and
 // inside the events that carry a whole entity.
@@ -168,6 +170,7 @@ export interface Stroke {
 	id: string;
 	by: string;
 	layerId: string;
+	kind: StrokeKind;
 	color: string;
 	width: number;
 	points: number[];
@@ -373,6 +376,7 @@ export interface StrokeBegin {
 	cid: string;
 	id: string;
 	layer: string;
+	kind: StrokeKind;
 	color: string;
 	width: number;
 	points: number[];
