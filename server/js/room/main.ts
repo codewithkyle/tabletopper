@@ -14,10 +14,16 @@
 // room whose socket has not opened yet should show a table rather than a blank
 // rectangle that fills in a moment later.
 
-// The colour picker registers <hex-alpha-color-picker> at module scope, so
-// the import is here rather than in color.ts -- node runs the tests beside
-// that file and has no custom element registry to define into.
+// The colour pickers register their custom elements at module scope, so the
+// imports are here rather than in color.ts and draw-tool.ts -- node runs the
+// tests beside those files and has no custom element registry to define into.
+//
+// TWO ELEMENTS AND NOT ONE, and the difference is alpha. The grid is a lattice
+// drawn OVER a picture and is almost never wanted opaque, so its picker has an
+// alpha track; a stroke is a mark ON the map, and a translucent one blends
+// twice wherever two of its segments overlap -- see render/stroke-pass.ts.
 import "vanilla-colorful/hex-alpha-color-picker.js";
+import "vanilla-colorful/hex-color-picker.js";
 
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";

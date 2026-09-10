@@ -2,6 +2,8 @@ package pages
 
 import (
 	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -143,5 +145,154 @@ func TestTheDrawOptionsPillStartsOnThePenForEveryRole(t *testing.T) {
 		if pressed[0][1] != "pen" {
 			t.Errorf("the pill opens on %q, want \"pen\"", pressed[0][1])
 		}
+	}
+}
+
+// BOTH FOLDED CONTROLS START FOLDED AND SAY WHAT THEY OPEN. A panel that
+// rendered open would be a hundred and seventy-six pixels of picker over the
+// corner of the map on every page load.
+func TestTheDrawPanelsStartFoldedAndAreLabelled(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	for _, panel := range []struct{ name, id string }{
+		{"color", DrawColorPanelID},
+		{"width", DrawWidthPanelID},
+	} {
+		markup := regexp.MustCompile(`data-draw-popout="` + panel.name + `"[^>]*>`).FindString(page)
+		if markup == "" {
+			t.Fatalf("there is no %s panel", panel.name)
+		}
+		if !strings.Contains(markup, "hidden") {
+			t.Errorf("the %s panel does not start folded: %s", panel.name, markup)
+		}
+
+		button := regexp.MustCompile(`data-draw-open="` + panel.name + `"[^>]*>`).FindString(page)
+		if button == "" {
+			t.Fatalf("there is no button for the %s panel", panel.name)
+		}
+		if !strings.Contains(button, `aria-expanded="false"`) {
+			t.Errorf("the %s button does not start collapsed: %s", panel.name, button)
+		}
+		if !strings.Contains(button, `aria-controls="`+panel.id+`"`) {
+			t.Errorf("the %s button does not say which panel it opens: %s", panel.name, button)
+		}
+		if !strings.Contains(page, `id="`+panel.id+`"`) {
+			t.Errorf("nothing on the page has the id %q the button points at", panel.id)
+		}
+	}
+}
+
+// THE PANELS OPEN TO THE LEFT OF THE PILL, AND WHERE THEY OPEN IS THE TEMPLATE'S
+// TO SAY. draw-tool.ts measures nothing and writes no position -- it only
+// toggles [hidden] -- so if these classes go, the panel appears on top of the
+// pill and nothing in TypeScript would notice.
+func TestTheDrawPanelsOpenBesideThePill(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	for _, name := range []string{"color", "width"} {
+		panel := regexp.MustCompile(`<div[^>]*data-draw-popout="` + name + `"[^>]*>`).FindString(page)
+		for _, want := range []string{"absolute", "right-full", "top-1/2", "-translate-y-1/2"} {
+			if !strings.Contains(panel, want) {
+				t.Errorf("the %s panel has no %s, so it would not sit beside the pill: %s", name, want, panel)
+			}
+		}
+	}
+}
+
+// THE SLIDER STOPS WHERE THE SERVER DOES. A stroke wider than StrokeWidthMax is
+// refused by the core, so a slider that went past it would be a control whose
+// top end raises an alert modal.
+func TestTheBrushSliderStopsAtTheProtocolsWidth(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	slider := regexp.MustCompile(`<input[^>]*data-draw-width[^>]*>`).FindString(page)
+	if slider == "" {
+		t.Fatal("there is no brush size slider")
+	}
+
+	if !strings.Contains(slider, `max="`+strconv.Itoa(room.StrokeWidthMax)+`"`) {
+		t.Errorf("the slider does not stop at StrokeWidthMax: %s", slider)
+	}
+	if !strings.Contains(slider, `min="1"`) {
+		t.Errorf("the slider goes below one map pixel: %s", slider)
+	}
+
+	// AND IT RENDERS THE WIDTH THE PEN OPENS ON, because draw-tool.ts READS
+	// this value rather than writing one -- so the slider and the pen cannot
+	// open on two different numbers. A slider with no value would leave the pen
+	// on its own no-markup fallback.
+	if !strings.Contains(slider, `value="`+DrawWidthDefault+`"`) {
+		t.Errorf("the slider renders no starting width: %s", slider)
+	}
+	if !strings.Contains(page, `data-draw-width-value`) {
+		t.Error("the slider has no number beside it")
+	}
+}
+
+// THE COLOUR PICKER HAS NO ALPHA, which is the whole reason it is a different
+// element from the grid's. Two overlapping segments of a translucent line blend
+// twice and show a darker dot at every joint; see render/stroke-pass.ts.
+func TestTheDrawPickerHasNoAlpha(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+
+	if !strings.Contains(page, "<hex-color-picker") {
+		t.Error("the drawing pill has no colour picker")
+	}
+
+	panel := regexp.MustCompile(`data-draw-popout="color"[\s\S]*?</div>`).FindString(page)
+	if strings.Contains(panel, "hex-alpha-color-picker") {
+		t.Error("the drawing pill uses the alpha picker")
+	}
+}
+
+// A COLOUR PICKER MUST NOT BE TOLD HOW TO LAY ITSELF OUT, and this is the test
+// for a bug that shipped once and failed silently.
+//
+// vanilla-colorful sizes its two halves with `:host{display:flex;
+// flex-direction:column}` inside its shadow root, and a class on the host from
+// OUTSIDE that root beats a :host rule whatever the specificity. So a `block`
+// on the element turns the column off, `flex-grow` on the saturation square
+// stops meaning anything, and the picker collapses to a thin hue strip with its
+// two pointers floating on it. Nothing errors, no test that only looked for the
+// element would notice, and the CSS selector diff is clean because `block` was
+// already in the build.
+//
+// Sizing it is fine and is how both pickers get their height. Telling it its
+// display is not.
+func TestNeitherColorPickerIsGivenADisplayUtility(t *testing.T) {
+	// Every Tailwind utility that would replace the flex column. `flex` itself
+	// is what the element already is, so it is not in the list.
+	breaking := []string{
+		"block", "inline", "inline-block", "inline-flex",
+		"grid", "inline-grid", "contents", "flow-root", "table", "list-item",
+	}
+
+	rendered := map[string]string{
+		"room": markup(t, Room(testRoomPage(room.RoleGM))),
+		"grid": markup(t, RoomGrid(RoomGridData{})),
+	}
+
+	seen := 0
+	for where, page := range rendered {
+		for _, picker := range regexp.MustCompile(`<hex(-alpha)?-color-picker[^>]*>`).FindAllString(page, -1) {
+			seen++
+
+			class := regexp.MustCompile(`class="([^"]*)"`).FindStringSubmatch(picker)
+			if class == nil {
+				continue
+			}
+
+			for _, word := range strings.Fields(class[1]) {
+				if slices.Contains(breaking, word) {
+					t.Errorf("the %s picker carries %q, which overrides its own :host display: %s", where, word, picker)
+				}
+			}
+		}
+	}
+
+	// Both pages render one, so a regex that stopped matching would otherwise
+	// leave this test passing while it checked nothing.
+	if seen != 2 {
+		t.Fatalf("found %d colour pickers across the two pages, want 2", seen)
 	}
 }

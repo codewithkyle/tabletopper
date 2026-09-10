@@ -900,6 +900,46 @@ func (d RoomPageData) Tools() []RoomTool {
 	return mine
 }
 
+// The two folded controls on the drawing pill, and the numbers the width one
+// runs between.
+//
+// THEY ARE FOLDED BECAUSE THE PILL IS ON SCREEN THE WHOLE TIME SOMEBODY IS
+// DRAWING. A picker is a hundred and seventy-six pixels square and a slider
+// wide enough to aim at is two hundred; either one left open would be a panel
+// covering the corner of the map for the sake of a setting changed once every
+// few minutes. So each is a round button that opens a panel BESIDE the pill --
+// to the left, where the main pill's tooltips already open, anchored to the row
+// of the button that opened it, and only one at a time.
+//
+// THE IDS EXIST FOR aria-controls AND FOR NOTHING ELSE. The room bundle finds
+// both panels by their data attribute, the way it finds everything else on this
+// page; what an id buys is a button that says out loud which panel it opens.
+//
+// NEITHER PICKER MAY BE GIVEN A display UTILITY, and that is the one thing
+// about this markup that fails silently. vanilla-colorful lays itself out with
+// `:host{display:flex;flex-direction:column}` inside its shadow root, and a
+// class on the host from OUTSIDE that root wins over a :host rule whatever the
+// specificity -- so `block` turns the column off, `flex-grow` on the saturation
+// square stops meaning anything, and the picker renders as a thin hue strip
+// with its two pointers floating on it. Size it and position it; do not tell it
+// how to lay itself out. There is a test.
+//
+// THE MAXIMUM IS room.StrokeWidthMax, READ RATHER THAN REPEATED. It is the
+// server's number -- a stroke wider than it is refused -- and a slider that
+// went past it would be a control whose top end raises an alert modal.
+const (
+	DrawColorPanelID = "draw-color-panel"
+	DrawWidthPanelID = "draw-width-panel"
+
+	// DrawWidthDefault is four map pixels, which is a pen line on a
+	// seventy-pixel cell. server/js/room/draw.ts opens on the same number and
+	// says so.
+	DrawWidthDefault = "4"
+)
+
+// DrawWidthMax is the slider's top end, as the markup wants it.
+var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
+
 // DrawModeChoices is the drawing tool's own second pill: what a gesture on the
 // table does.
 //

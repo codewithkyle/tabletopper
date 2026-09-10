@@ -255,6 +255,58 @@ templ roomFogOptions() {
 templ roomDrawOptions() {
 	<div data-draw-options hidden class={ surfacePanel + " flex flex-col gap-1 rounded-box p-1" }>
 		@roomDrawGroup("data-draw-mode", DrawModeChoices())
+		<div class="mx-1 h-px bg-base-content/15"></div>
+		<div class="relative flex justify-center">
+			<button
+				type="button"
+				data-draw-open="color"
+				aria-expanded="false"
+				aria-controls={ DrawColorPanelID }
+				aria-label="Choose a colour"
+				class="btn btn-circle btn-ghost btn-sm"
+			>
+				<span class="size-4 rounded-full border border-base-content/30 bg-white p-px">
+					<span data-draw-swatch class="block size-full rounded-full"></span>
+				</span>
+			</button>
+			<div
+				id={ DrawColorPanelID }
+				data-draw-popout="color"
+				hidden
+				class={ surfacePanel + " absolute top-1/2 right-full mr-2 -translate-y-1/2 rounded-box p-2" }
+			>
+				<hex-color-picker data-draw-picker class="h-44 w-44"></hex-color-picker>
+			</div>
+		</div>
+		<div class="relative flex justify-center">
+			<button
+				type="button"
+				data-draw-open="width"
+				aria-expanded="false"
+				aria-controls={ DrawWidthPanelID }
+				aria-label="Choose a brush size"
+				class="btn btn-circle btn-ghost btn-sm"
+			>
+				@brushSizeIcon()
+			</button>
+			<div
+				id={ DrawWidthPanelID }
+				data-draw-popout="width"
+				hidden
+				class={ surfacePanel + " absolute top-1/2 right-full mr-2 flex w-48 -translate-y-1/2 items-center gap-2 rounded-box px-3 py-2" }
+			>
+				<input
+					type="range"
+					data-draw-width
+					min="1"
+					max={ DrawWidthMax }
+					value={ DrawWidthDefault }
+					aria-label="Brush size in map pixels"
+					class="range range-xs"
+				/>
+				<span data-draw-width-value class="w-5 shrink-0 text-right font-mono text-xs">{ DrawWidthDefault }</span>
+			</div>
+		</div>
 	</div>
 }
 

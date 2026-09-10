@@ -37,8 +37,10 @@ import { ulid } from "./ulid.ts";
 const CHUNK_MS = 100;
 const CHUNK_POINTS = 64;
 
-// DEFAULT_WIDTH is the pen until the options pill exists to change it. Four map
-// pixels is a pen line on a seventy-pixel cell.
+// DEFAULT_WIDTH is what the pen draws with on a page that renders no options
+// pill at all -- a closed room. Everywhere else the width is read out of the
+// slider the template rendered, so that the control and the pen cannot open on
+// two different numbers; see draw-tool.ts.
 export const DEFAULT_WIDTH = 4;
 
 // ERASE_RADIUS is how close the pointer has to come to a line to take it out,

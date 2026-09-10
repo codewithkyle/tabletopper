@@ -2798,6 +2798,9 @@
   .top-0\.5 {
     top: calc(var(--spacing) * 0.5);
   }
+  .top-1\/2 {
+    top: calc(1 / 2 * 100%);
+  }
   .top-3 {
     top: calc(var(--spacing) * 3);
   }
@@ -2809,6 +2812,9 @@
   }
   .right-3 {
     right: calc(var(--spacing) * 3);
+  }
+  .right-full {
+    right: 100%;
   }
   .bottom-0 {
     bottom: 0px;
@@ -3306,6 +3312,9 @@
   .mt-\[min\(14vh\,7rem\)\] {
     margin-top: min(14vh, 7rem);
   }
+  .mr-2 {
+    margin-right: calc(var(--spacing) * 2);
+  }
   .mr-3 {
     margin-right: calc(var(--spacing) * 3);
   }
@@ -3627,6 +3636,9 @@
   .w-1\.5 {
     width: calc(var(--spacing) * 1.5);
   }
+  .w-5 {
+    width: calc(var(--spacing) * 5);
+  }
   .w-6 {
     width: calc(var(--spacing) * 6);
   }
@@ -3653,6 +3665,9 @@
   }
   .w-32 {
     width: calc(var(--spacing) * 32);
+  }
+  .w-44 {
+    width: calc(var(--spacing) * 44);
   }
   .w-48 {
     width: calc(var(--spacing) * 48);
@@ -3749,6 +3764,10 @@
   }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+  .-translate-y-1\/2 {
+    --tw-translate-y: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
   @layer daisyui.l1.l2.l3 {
@@ -4116,6 +4135,12 @@
       border-color: color-mix(in oklab, var(--color-base-content) 25%, transparent);
     }
   }
+  .border-base-content\/30 {
+    border-color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-base-content) 30%, transparent);
+    }
+  }
   .border-base-content\/40 {
     border-color: var(--color-base-content);
     @supports (color: color-mix(in lab, red, red)) {
@@ -4372,6 +4397,9 @@
   }
   .p-8 {
     padding: calc(var(--spacing) * 8);
+  }
+  .p-px {
+    padding: 1px;
   }
   @layer daisyui.l1.l2.l3 {
     .menu-title {
@@ -4935,6 +4963,16 @@
     .aura:has( > .checkbox,  > .toggle,  > .badge) {
       --aura-radius: var(--radius-selector);
     }
+    .aura:has( > .btn,  > .input,  > .select) {
+      --aura-radius: var(--radius-field);
+    }
+  }
+  @layer daisyui.l1.l2 {
+    .range-xs {
+      --range-thumb-size: calc(var(--size-selector, 0.25rem) * 4);
+    }
+  }
+  @layer daisyui.l1.l2.l3 {
     .aura:has( > .btn,  > .input,  > .select) {
       --aura-radius: var(--radius-field);
     }

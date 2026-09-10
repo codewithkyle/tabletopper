@@ -305,6 +305,10 @@ function table(
 		chooseDraw: (mode: DrawMode) => {
 			drawOptions.mode = mode;
 		},
+		chooseBrush: (color: string, width: number) => {
+			drawOptions.color = color;
+			drawOptions.width = width;
+		},
 		chooseFog: (shape: ShapeKind, mode: FogMode) => {
 			options.shape = shape;
 			options.mode = mode;
@@ -1931,4 +1935,59 @@ test("Ctrl+Z under another tool is not the drawing's", () => {
 	press("z", null, { ctrlKey: true });
 
 	assert.deepEqual(sent, []);
+});
+
+// THE PILL'S COLOUR AND WIDTH REACH THE WIRE, which is the whole of what the
+// two folded panels are for. What they look like and how they fold is
+// draw-tool.ts's, and it is DOM-bound the way mountTools is -- so what is
+// pinned here is the seam: the options a pill hands over are the options a line
+// is drawn with.
+test("a stroke goes out in the colour and width the pill was left on", () => {
+	const { controller, sent, chooseBrush } = table([], PEN_ON);
+
+	chooseBrush("#00FF88", 21);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.release(at(0, 0), at(0, 0), NONE);
+
+	assert.equal(sent[0].color, "#00FF88");
+	assert.equal(sent[0].width, 21);
+});
+
+// THE OPTIONS ARE READ WHEN A LINE STARTS AND NOT WHEN IT ENDS, which is the
+// opposite of the fog's rule and right for the opposite reason: a fog shape is
+// one message sent at the end, and a stroke's colour is already on everybody's
+// screen by the time the hand lifts. Changing the pill mid-stroke must not
+// recolour the line being drawn.
+test("changing the pill mid-stroke does not recolour the line", () => {
+	const { controller, sent, chooseBrush } = table([], PEN_ON);
+
+	chooseBrush("#FF0000", 4);
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+
+	chooseBrush("#0000FF", 40);
+	controller.tool.drag(at(100, 0), at(0, 0), NONE);
+	controller.tool.release(at(100, 0), at(0, 0), NONE);
+
+	assert.equal(sent[0].color, "#FF0000");
+	assert.equal(sent[0].width, 4);
+});
+
+// AND THE WIDTH IS WHAT THE ERASER AIMS WITH TOO: a sixty-four pixel brush is
+// hit where it is drawn rather than down its centre line, so a fat line is
+// easier to rub out than a hairline. The distance test is draw.test.ts's; this
+// is that it is asked with the stroke's own width.
+test("a fat line is easier for the eraser to catch than a thin one", () => {
+	const fat = drawn({ id: "01FAT", width: 64, points: [0, 0, 100, 0] });
+	const thin = drawn({ id: "01THIN", width: 2, points: [0, 200, 100, 200] });
+
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [fat, thin] });
+
+	// Twenty pixels off each line: inside the fat one's ink, well outside the
+	// thin one's.
+	controller.tool.press(at(50, 20), at(0, 0), NONE);
+	controller.tool.drag(at(50, 220), at(0, 0), NONE);
+	controller.tool.release(at(50, 220), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01FAT"] }]);
 });
