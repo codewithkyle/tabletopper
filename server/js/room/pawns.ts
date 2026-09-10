@@ -182,6 +182,25 @@ export interface Segment {
 	width: number;
 }
 
+// Label is one piece of text on the table, in map pixels, drawn through the
+// same pass the ruler's own distance is.
+//
+// THE VOCABULARY IS FOURTEEN CHARACTERS. render/glyphs.ts rasterises
+// `0123456789 ft.` and nothing else, so a label says a distance and can never
+// say anything about it -- no "radius", no "x". A character with no quad in the
+// atlas renders a hole rather than an error.
+export interface Label {
+	text: string;
+	x: number;
+	y: number;
+
+	// MUTABLE AND WRITTEN IN PLACE, unlike an Outline's. Labels are refilled
+	// every frame from the shapes on the floor, and a fresh tuple per label per
+	// frame is garbage the frame path does not need to make.
+	color: [number, number, number];
+	alpha: number;
+}
+
 // Ruler is one drag's path: the cells it crosses, the line across them, and how
 // far that is.
 export interface Ruler {
@@ -373,6 +392,12 @@ export interface Table {
 	// the LOCAL copy rather than the store's, which is what keeps the ink under
 	// the pen instead of a round trip behind it; see draw.ts.
 	inHand(): Stroke | null;
+
+	// labels is the text on the table: the distance across every shape on the
+	// viewed floor, and across the one in hand. They go through the OVER path
+	// pass, so a number reads over the creatures standing inside the shape it
+	// belongs to.
+	labels(out: Label[]): Label[];
 
 	// concealed is whether this viewer is shown nothing of a pawn, which is a
 	// question about the fog and never about the pawn's own visible flag -- a
@@ -1576,6 +1601,12 @@ export function createTable(deps: TableDeps): Table {
 
 		inHand() {
 			return deps.draw?.inHand() ?? null;
+		},
+
+		labels(out) {
+			out.length = 0;
+
+			return deps.draw?.labels(out) ?? out;
 		},
 
 		concealed,

@@ -178,6 +178,7 @@ if (mount) {
 		role,
 		user,
 		viewed,
+		grid: () => state.table.grid,
 		send: (command) => {
 			socket?.send(command);
 		},

@@ -249,6 +249,7 @@ function table(
 		role: over.role ?? "gm",
 		user: over.user ?? GM,
 		viewed: () => GROUND,
+		grid: () => state.table.grid,
 		send,
 		invalidate: () => {},
 		scale: () => over.scale ?? 1,
@@ -1990,4 +1991,175 @@ test("a fat line is easier for the eraser to catch than a thin one", () => {
 	controller.tool.release(at(50, 220), at(0, 0), NONE);
 
 	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01FAT"] }]);
+});
+
+// THE SHAPES. What is under test is the seam: which gesture reaches draw.ts,
+// what leaves the client when one lands, and what the preview looks like while
+// it is in hand. The geometry and the labels are draw.test.ts's.
+
+const RECT_ON = { inking: true, drawMode: "rect" } as const;
+const CIRCLE_ON = { inking: true, drawMode: "circle" } as const;
+
+// ONE COMMAND AND NOT TWO. A shape arrives Done -- StrokeBegin marks every kind
+// but free finished the moment it exists -- so there is no stroke.end to send,
+// and no stroke.extend either: a shape never grows.
+test("a rectangle lands in one command with its corners normalised", () => {
+	const { controller, sent } = table([], RECT_ON);
+
+	// Dragged up and to the left.
+	controller.tool.press(at(300, 260), at(0, 0), NONE);
+	controller.tool.drag(at(100, 60), at(0, 0), NONE);
+	controller.tool.release(at(100, 60), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{
+		type: "stroke.begin", id: sent[0].id, layer: GROUND, kind: "rect",
+		color: "#FF0000", width: 4, points: [100, 60, 300, 260],
+	}]);
+});
+
+// A CIRCLE IS NOT NORMALISED. Its first point is the CENTRE and its second is
+// on the rim; swapping them would turn the shape inside out.
+test("a circle lands as its centre then a point on its rim", () => {
+	const { controller, sent } = table([], CIRCLE_ON);
+
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+	controller.tool.drag(at(120, 140), at(0, 0), NONE);
+	controller.tool.release(at(120, 140), at(0, 0), NONE);
+
+	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin"]);
+	assert.equal(sent[0].kind, "circle");
+	assert.deepEqual(sent[0].points, [200, 200, 120, 140]);
+});
+
+// A CLICK IS NOT A SHAPE. The test is on the ROUNDED coordinates, because those
+// are what go on the wire: a drag of half a pixel rounds to the same place and
+// would send something nobody could see or point at to rub out.
+test("a shape with no size sends nothing", () => {
+	for (const over of [RECT_ON, CIRCLE_ON]) {
+		const { controller, sent } = table([], over);
+
+		controller.tool.press(at(50, 50), at(0, 0), NONE);
+		controller.tool.release(at(50.4, 50.4), at(0, 0), NONE);
+
+		assert.deepEqual(sent, [], over.drawMode);
+	}
+});
+
+// A rectangle needs BOTH axes: one of them alone is a line, which the server
+// would take and nobody meant to draw.
+test("a rectangle with only one axis sends nothing", () => {
+	const { controller, sent } = table([], RECT_ON);
+
+	controller.tool.press(at(0, 100), at(0, 0), NONE);
+	controller.tool.drag(at(300, 100), at(0, 0), NONE);
+	controller.tool.release(at(300, 100), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// ABANDONING A SHAPE SENDS NOTHING, which is the opposite of abandoning a pen
+// stroke and right for the opposite reason: nothing has left this browser, so
+// there is nothing on anybody else's table to take back.
+test("Escape and the right button both drop a shape silently", () => {
+	for (const over of [RECT_ON, CIRCLE_ON]) {
+		const escaped = table([], over);
+		escaped.controller.tool.press(at(0, 0), at(0, 0), NONE);
+		escaped.controller.tool.drag(at(200, 200), at(0, 0), NONE);
+		press("Escape");
+		escaped.controller.tool.release(at(200, 200), at(0, 0), NONE);
+		assert.deepEqual(escaped.sent, [], `Escape mid-${over.drawMode}`);
+
+		const clicked = table([], over);
+		clicked.controller.tool.press(at(0, 0), at(0, 0), NONE);
+		clicked.controller.tool.drag(at(200, 200), at(0, 0), NONE);
+		clicked.controller.tool.secondary(at(200, 200), at(0, 0));
+		clicked.controller.tool.release(at(200, 200), at(0, 0), NONE);
+		assert.deepEqual(clicked.sent, [], `right button mid-${over.drawMode}`);
+	}
+});
+
+// THE PREVIEW IS WHAT MAKES A SHAPE AIMABLE, and it is the ring pass's own two
+// shapes: a box for the rectangle and an ellipse for the circle.
+test("a rectangle previews as a box between its corners", () => {
+	const { controller } = table([], RECT_ON);
+
+	controller.tool.press(at(100, 60), at(0, 0), NONE);
+	controller.tool.drag(at(300, 260), at(0, 0), NONE);
+
+	const box = controller.outlines([])[0];
+	assert.equal(box?.rect, true);
+	assert.deepEqual([box?.x, box?.y], [200, 160], "not centred between the corners");
+	assert.deepEqual([box?.halfW, box?.halfH], [100, 100]);
+});
+
+// A CIRCLE GROWS AROUND THE PRESS. That is the gesture, and it is why the
+// preview is anchored at the first point rather than between the two.
+test("a circle previews as a ring around where it was pressed", () => {
+	const { controller } = table([], CIRCLE_ON);
+
+	controller.tool.press(at(200, 200), at(0, 0), NONE);
+	controller.tool.drag(at(200 + 60, 200 + 80), at(0, 0), NONE);
+
+	const ring = controller.outlines([])[0];
+	assert.equal(ring?.rect, false);
+	assert.deepEqual([ring?.x, ring?.y], [200, 200], "the ring moved off the press");
+	assert.equal(ring?.halfW, 100, "a 3-4-5 rim is not a radius of 100");
+	assert.equal(ring?.halfW, ring?.halfH, "the circle is an ellipse");
+});
+
+test("a shape that has not left its first point previews nothing", () => {
+	for (const over of [RECT_ON, CIRCLE_ON]) {
+		const { controller } = table([], over);
+
+		controller.tool.press(at(50, 50), at(0, 0), NONE);
+		controller.tool.drag(at(50, 50), at(0, 0), NONE);
+
+		assert.deepEqual(controller.outlines([]), [], over.drawMode);
+	}
+});
+
+test("the preview is the colour the shape will land in", () => {
+	const { controller, chooseBrush } = table([], RECT_ON);
+
+	chooseBrush("#00FF00", 4);
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(0, 0), NONE);
+
+	assert.deepEqual(controller.outlines([])[0].color, [0, 1, 0]);
+});
+
+test("an abandoned shape takes its preview off the table", () => {
+	const { controller } = table([], RECT_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(200, 200), at(0, 0), NONE);
+	controller.tool.secondary(at(200, 200), at(0, 0));
+
+	assert.deepEqual(controller.outlines([]), []);
+});
+
+// THE NUMBER IS ON THE TABLE WHILE THE SHAPE IS IN HAND, which is the whole
+// point of it: a GM drags until it reads thirty feet and lets go.
+test("a shape being dragged carries its distance", () => {
+	const { controller } = table([], CIRCLE_ON);
+
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(256, 0), at(0, 0), NONE);
+
+	assert.deepEqual(controller.labels([]).map((l) => l.text), ["20 ft."]);
+});
+
+// AND IT STAYS ON IT AFTERWARDS. A circle sitting on the table for ten rounds
+// is what the party is standing in, and the number is what says how big it is.
+test("shapes on the floor carry their distance and the pen does not", () => {
+	const strokes = [
+		drawn({ id: "01CIRCLE", kind: "circle", points: [0, 0, 256, 0] }),
+		drawn({ id: "01RECT", kind: "rect", points: [0, 0, 384, 128] }),
+		drawn({ id: "01PEN", kind: "free", points: [0, 0, 50, 50, 90, 20] }),
+		drawn({ id: "01ELSEWHERE", kind: "circle", layerId: CELLAR, points: [0, 0, 256, 0] }),
+	];
+
+	const { controller } = table([], { inking: true, strokes });
+
+	assert.deepEqual(controller.labels([]).map((l) => l.text), ["20 ft.", "30 ft.", "10 ft."]);
 });

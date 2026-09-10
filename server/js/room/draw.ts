@@ -19,11 +19,13 @@
 // hertz, because watching somebody's line form is most of what drawing together
 // is. So abandoning is not "send nothing" here -- see abandon.
 
-import type { Role, State, Stroke, StrokeKind } from "./protocol.ts";
+import type { Grid, Role, State, Stroke, StrokeKind } from "./protocol.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Modifiers } from "./render/input.ts";
-import type { Outline } from "./pawns.ts";
+import type { Label, Outline } from "./pawns.ts";
 import type { Point } from "./render/camera.ts";
+import { distanceLabel, feetBetween } from "./render/path.ts";
+import { parseColor } from "./render/grid-pass.ts";
 import { typing } from "./keys.ts";
 import { ulid } from "./ulid.ts";
 
@@ -49,6 +51,12 @@ export const DEFAULT_WIDTH = 4;
 // the map underneath is scaled to.
 const ERASE_RADIUS = 6;
 
+// PREVIEW_WIDTH is how heavy the outline of a shape being dragged is, in CSS
+// pixels. It matches the marquee's and the fog's, because all three are the
+// same thing: a box that follows the pointer and is gone when the button comes
+// up.
+const PREVIEW_WIDTH = 2;
+
 // ERASE_COLOR and ERASE_WIDTH draw the cursor ring. It is pale for the reason
 // the fog's previews are -- a dark ring over a dark dungeon cannot be aimed
 // with -- and it is the only thing that makes an invisible hit radius usable.
@@ -60,7 +68,14 @@ const ERASE_WIDTH = 1.5;
 // the opposite of the fog's rule and is right for the opposite reason: a fog
 // shape is one message sent at the end, and a stroke's colour is already on
 // everybody's screen by the time the hand lifts.
-export type DrawMode = "pen" | "erase";
+// DrawMode is what a gesture does. The three shape modes are the StrokeKind of
+// the same name, which is why they are spelled the same: press reads the mode
+// and puts it straight into the command.
+export type DrawMode = "pen" | "rect" | "circle" | "erase";
+
+// SHAPES is which modes are placed rather than drawn, and it is the one test
+// that separates them. It is the client's twin of StrokeKind.Shape() in Go.
+const SHAPES: readonly DrawMode[] = ["rect", "circle"];
 
 export interface DrawOptions {
 	mode: DrawMode;
@@ -73,6 +88,11 @@ export interface DrawDeps {
 	role: Role;
 	user: string;
 	viewed: () => string;
+
+	// grid is what turns map pixels into the feet a label reads in. It is asked
+	// per frame rather than held, because a GM retuning the cell size while a
+	// circle sits on the table has changed what that circle is worth.
+	grid: () => Grid;
 	send: (command: Outgoing) => void;
 	invalidate: () => void;
 
@@ -107,9 +127,14 @@ export interface Draw {
 	// it leaving. The eraser's ring follows it.
 	hover(map: Point | null): void;
 
-	// outline is the eraser's cursor, or null. It is ONE reused object for the
-	// reason everything else on the frame path is.
+	// outline is the shape being dragged, or the eraser's cursor, or null. It is
+	// ONE reused object because there is only ever one of them: the two never
+	// coexist, since each belongs to a different mode.
 	outline(): Outline | null;
+
+	// labels is the distance across every shape on the viewed floor, and across
+	// the one in hand. See Label.
+	labels(out: Label[]): Label[];
 
 	// inHand is the stroke this viewer is drawing right now, from LOCAL points,
 	// or null. The renderer draws it instead of the store's copy of the same
@@ -126,6 +151,11 @@ export interface Draw {
 //
 // A SINGLE POINT IS ONE SEGMENT OF NO LENGTH, which the shader draws as a round
 // cap: a dot, which is what a click with a pen is.
+//
+// A SHAPE IS TWO POINTS AND THE KIND SAYS WHAT THEY MEAN -- a rectangle's
+// opposite corners, a circle's centre and a point on its rim. Keeping them that
+// way rather than storing the segments is what lets the distance under a shape
+// be recomputed at any time, which is the whole reason a shape is a shape here.
 export function strokeSegments(stroke: { kind: StrokeKind; points: readonly number[] }, out: number[]): number[] {
 	const p = stroke.points;
 
@@ -147,13 +177,73 @@ export function strokeSegments(stroke: { kind: StrokeKind; points: readonly numb
 			return out;
 		}
 
+		case "rect": {
+			if (p.length < 4) {
+				return out;
+			}
+
+			const x0 = Math.min(p[0], p[2]);
+			const y0 = Math.min(p[1], p[3]);
+			const x1 = Math.max(p[0], p[2]);
+			const y1 = Math.max(p[1], p[3]);
+
+			out.push(x0, y0, x1, y0);
+			out.push(x1, y0, x1, y1);
+			out.push(x1, y1, x0, y1);
+			out.push(x0, y1, x0, y0);
+
+			return out;
+		}
+
+		case "circle": {
+			if (p.length < 4) {
+				return out;
+			}
+
+			const r = Math.hypot(p[2] - p[0], p[3] - p[1]);
+			if (r <= 0) {
+				return out;
+			}
+
+			const n = circleSegments(r);
+			let px = p[0] + r;
+			let py = p[1];
+
+			for (let i = 1; i <= n; i++) {
+				const a = (i / n) * Math.PI * 2;
+				const x = p[0] + Math.cos(a) * r;
+				const y = p[1] + Math.sin(a) * r;
+				out.push(px, py, x, y);
+				px = x;
+				py = y;
+			}
+
+			return out;
+		}
+
 		default:
-			// The three shapes are checkpoints 4 and 5. A kind with no expansion
-			// draws nothing rather than throwing: this runs inside a frame, and
-			// a stroke from a build ahead of this one is not worth a black
-			// table.
+			// The cone is checkpoint 5. A kind with no expansion draws nothing
+			// rather than throwing: this runs inside a frame, and a stroke from
+			// a build ahead of this one is not worth a black table.
 			return out;
 	}
+}
+
+// circleSegments is how finely a circle is cut up, and the answer is "finely
+// enough that nobody can see it".
+//
+// A CHORD OF FOUR MAP PIXELS ON A CIRCLE OF RADIUS r BULGES BY ABOUT 2/r MAP
+// PIXELS at its middle, so a hundred-pixel circle is wrong by a fiftieth of a
+// map pixel -- below a device pixel at any zoom this camera reaches. That is
+// what makes tessellating here rather than drawing circles through the ring
+// pass an invisible simplification: one buffer, one z-position, one rebuild
+// path for every kind of stroke.
+//
+// THE CLAMP IS AT BOTH ENDS. Twenty-four keeps a tiny circle from being an
+// octagon; five hundred and twelve keeps a circle drawn across a whole map from
+// putting thousands of instances in the buffer for an accuracy nobody asked for.
+export function circleSegments(radius: number): number {
+	return Math.max(24, Math.min(512, Math.ceil((Math.PI * 2 * radius) / 4)));
 }
 
 // bounds is a cache of every stroke's bounding box, keyed by the stroke object
@@ -244,6 +334,71 @@ function segmentDistanceSquared(
 	return nx * nx + ny * ny;
 }
 
+// measure works out what a shape's labels say and where they sit, and hands
+// each to `add`. It is the one place the conventions live.
+//
+// WHAT EACH SHAPE SAYS IS THE NUMBER THE SPELL IS WRITTEN WITH, which is the
+// whole reason the labels exist:
+//
+//   Circle -- the RADIUS, because a spell is written "20-foot radius sphere".
+//   Rect   -- one per axis, because a wall or a room is two measurements.
+//
+// A PEN STROKE SAYS NOTHING. A freehand squiggle has no distance anybody asked
+// for, and a label per line would bury the table in text.
+//
+// EVERY NUMBER IS A STRAIGHT LINE AND NOT A COUNT OF SQUARES. feetBetween is
+// Pythagoras with the diagonal rule ignored, which is what a radius and a
+// wall's length are; cellsMoved is for a creature walking through cells and is
+// a different question. See path.ts.
+export function measure(
+	kind: StrokeKind, points: readonly number[], grid: Grid, color: string,
+	add: (text: string, x: number, y: number, color: string) => void,
+): void {
+	if (points.length < 4) {
+		return;
+	}
+
+	if (kind === "circle") {
+		const dx = points[2] - points[0];
+		const dy = points[3] - points[1];
+		const r = Math.hypot(dx, dy);
+		if (r <= 0) {
+			return;
+		}
+
+		// ABOVE THE TOP OF THE CIRCLE, and the same anchor whether it is in hand
+		// or on the table -- so the number does not jump when the button comes
+		// up. The pass lifts a label above whatever it is given, so this puts it
+		// just clear of the rim.
+		add(distanceLabel(feetBetween(dx, dy, grid)), points[0], points[1] - r, color);
+
+		return;
+	}
+
+	if (kind !== "rect") {
+		return;
+	}
+
+	const x0 = Math.min(points[0], points[2]);
+	const y0 = Math.min(points[1], points[3]);
+	const x1 = Math.max(points[0], points[2]);
+	const y1 = Math.max(points[1], points[3]);
+
+	// ONE PER AXIS AND BOTH HORIZONTAL. The atlas has no rotated text and the
+	// pass draws none, so the height's number sits at the middle of the left
+	// edge rather than running down it.
+	if (x1 > x0) {
+		add(distanceLabel(feetBetween(x1 - x0, 0, grid)), (x0 + x1) / 2, y0, color);
+	}
+	if (y1 > y0) {
+		add(distanceLabel(feetBetween(0, y1 - y0, grid)), x0, (y0 + y1) / 2, color);
+	}
+}
+
+function blankLabel(): Label {
+	return { text: "", x: 0, y: 0, color: [1, 1, 1], alpha: 1 };
+}
+
 export function createDraw(deps: DrawDeps): Draw {
 	// The line in hand: the local copy, which is what is drawn until the server
 	// says it is finished.
@@ -277,6 +432,37 @@ export function createDraw(deps: DrawDeps): Draw {
 
 	// Scratch for the hit test's segments, so a sweep allocates nothing.
 	const segments: number[] = [];
+
+	// shaping is the rectangle or circle under the hand, or null. Unlike a pen
+	// stroke it has NOT left this browser: a shape is one message sent when the
+	// button comes up, so abandoning one sends nothing at all.
+	let shaping: { kind: "rect" | "circle"; x0: number; y0: number; x1: number; y1: number } | null = null;
+
+	// The shape's preview, reused, and the tuple its colour is written into.
+	//
+	// THE TUPLE IS HELD SEPARATELY BECAUSE Outline.color IS READONLY, and it has
+	// to be mutable here: pawns.ts copies the reference into its own slot and
+	// the renderer re-reads it every frame, so replacing the tuple would leave
+	// last frame's colour in the slot until the next Object.assign.
+	const previewColor: [number, number, number] = [1, 1, 1];
+	const preview: Outline = {
+		x: 0, y: 0, halfW: 0, halfH: 0,
+		color: previewColor, alpha: 0.95, thickness: PREVIEW_WIDTH,
+		rect: false, rotation: 0,
+	};
+
+	// tint is the scratch parseColor writes into, shared by the preview and the
+	// labels because neither is on screen while the other is being built.
+	const tint = new Float32Array(4);
+
+	// paintPreview reads the pill's colour into the preview, so the shape being
+	// dragged is the colour it will land in.
+	function paintPreview(): void {
+		parseColor(deps.options().color, tint);
+		previewColor[0] = tint[0];
+		previewColor[1] = tint[1];
+		previewColor[2] = tint[2];
+	}
 
 	// erasable is which strokes this viewer may rub out, and it is the client
 	// half of a rule the server enforces in StrokeErase: the GM may take out
@@ -375,6 +561,54 @@ export function createDraw(deps: DrawDeps): Draw {
 		deps.invalidate();
 	}
 
+	// place sends the finished shape, or refuses one that has no size.
+	//
+	// ONE COMMAND AND NOT TWO. A shape arrives Done -- StrokeBegin.Apply marks
+	// every kind but free finished the moment it exists -- so there is no
+	// stroke.end to send, and sending one would be a second broadcast per shape
+	// that told everybody something they already knew.
+	//
+	// A RECTANGLE NEEDS BOTH AXES AND A CIRCLE NEEDS A RADIUS, and the test is
+	// on the ROUNDED coordinates because those are what go on the wire: a drag
+	// of half a pixel rounds to the same place and would send a shape nobody
+	// could see or point at to rub out. The server refuses a zero-size shape as
+	// well; this is what keeps the refusal off the screen.
+	function place(shape: { kind: "rect" | "circle"; x0: number; y0: number; x1: number; y1: number }): void {
+		const layer = deps.viewed();
+		if (layer === "") {
+			return;
+		}
+
+		if (shape.kind === "rect") {
+			if (shape.x0 === shape.x1 || shape.y0 === shape.y1) {
+				return;
+			}
+		} else if (shape.x0 === shape.x1 && shape.y0 === shape.y1) {
+			return;
+		}
+
+		const { color, width } = deps.options();
+
+		deps.send({
+			type: "stroke.begin",
+			id: ulid(),
+			layer,
+			kind: shape.kind,
+			color,
+			width,
+			// A RECTANGLE IS NORMALISED ON THE WAY OUT, so one dragged up and to
+			// the left is the same four integers as one dragged down and to the
+			// right. A circle is not: its first point is the CENTRE and its
+			// second is on the rim, and swapping them would turn it inside out.
+			points: shape.kind === "rect"
+				? [
+					Math.min(shape.x0, shape.x1), Math.min(shape.y0, shape.y1),
+					Math.max(shape.x0, shape.x1), Math.max(shape.y0, shape.y1),
+				]
+				: [shape.x0, shape.y0, shape.x1, shape.y1],
+		});
+	}
+
 	function abandon(): boolean {
 		// A SWEEP DROPPED PART-WAY SENDS NOTHING, which is the opposite of what
 		// abandoning a line does and is right for the same reason: nothing has
@@ -382,6 +616,15 @@ export function createDraw(deps: DrawDeps): Draw {
 		// take back.
 		if (rubbing) {
 			rubbing = null;
+			deps.invalidate();
+
+			return true;
+		}
+
+		// AND SO DOES A SHAPE, for the same reason: it is one message sent on
+		// release, so a shape dropped part-way was never anywhere but here.
+		if (shaping) {
+			shaping = null;
 			deps.invalidate();
 
 			return true;
@@ -449,9 +692,27 @@ export function createDraw(deps: DrawDeps): Draw {
 			// THE ERASER IS A MODE OF THIS TOOL AND NOT A TOOL OF ITS OWN,
 			// which is what lets a hand switch between drawing and rubbing out
 			// without leaving the pill's second row.
-			if (deps.options().mode === "erase") {
+			const mode = deps.options().mode;
+
+			if (mode === "erase") {
 				rubbing = new Set();
 				rub(map);
+				deps.invalidate();
+
+				return true;
+			}
+
+			// A SHAPE IS DRAGGED OUT AND SENT WHOLE. Nothing leaves the browser
+			// until the button comes up, which is why Escape and the right
+			// button abandon one for free -- and why the other people at the
+			// table see it appear complete rather than growing. See
+			// room.StrokeBegin.
+			if (SHAPES.includes(mode)) {
+				shaping = {
+					kind: mode as "rect" | "circle",
+					x0: Math.round(map.x), y0: Math.round(map.y),
+					x1: Math.round(map.x), y1: Math.round(map.y),
+				};
 				deps.invalidate();
 
 				return true;
@@ -508,6 +769,14 @@ export function createDraw(deps: DrawDeps): Draw {
 				return;
 			}
 
+			if (shaping) {
+				shaping.x1 = Math.round(map.x);
+				shaping.y1 = Math.round(map.y);
+				deps.invalidate();
+
+				return;
+			}
+
 			if (!local) {
 				return;
 			}
@@ -533,6 +802,18 @@ export function createDraw(deps: DrawDeps): Draw {
 					deps.send({ type: "stroke.erase", ids });
 				}
 				deps.invalidate();
+
+				return;
+			}
+
+			if (shaping) {
+				shaping.x1 = Math.round(map.x);
+				shaping.y1 = Math.round(map.y);
+
+				const done = shaping;
+				shaping = null;
+				deps.invalidate();
+				place(done);
 
 				return;
 			}
@@ -591,11 +872,54 @@ export function createDraw(deps: DrawDeps): Draw {
 			pointer = map ? { x: map.x, y: map.y } : null;
 		},
 
-		// THE ERASER SHOWS ITS REACH. The radius is a few pixels on the screen
-		// and there is nothing else on the table that says where it ends, so
-		// without the ring the tool is aimed by guessing.
+		// The shape under the hand, or the eraser's reach. Never both: each
+		// belongs to a different mode, so one reused object serves them.
+		//
+		// THE ERASER SHOWS ITS REACH because the radius is a few pixels on the
+		// screen and nothing else on the table says where it ends -- without the
+		// ring the tool is aimed by guessing.
 		outline() {
-			if (!deps.drawing() || deps.options().mode !== "erase" || !pointer) {
+			if (!deps.drawing()) {
+				return null;
+			}
+
+			if (shaping) {
+				paintPreview();
+
+				if (shaping.kind === "rect") {
+					// A RECTANGLE OF NO WIDTH IS NOT DRAWN, which is the
+					// marquee's rule: the first pixel of a drag is a box that
+					// has not left its first corner.
+					const halfW = Math.abs(shaping.x1 - shaping.x0) / 2;
+					const halfH = Math.abs(shaping.y1 - shaping.y0) / 2;
+					if (halfW <= 0 || halfH <= 0) {
+						return null;
+					}
+
+					preview.x = (shaping.x0 + shaping.x1) / 2;
+					preview.y = (shaping.y0 + shaping.y1) / 2;
+					preview.halfW = halfW;
+					preview.halfH = halfH;
+					preview.rect = true;
+
+					return preview;
+				}
+
+				const r = Math.hypot(shaping.x1 - shaping.x0, shaping.y1 - shaping.y0);
+				if (r <= 0) {
+					return null;
+				}
+
+				preview.x = shaping.x0;
+				preview.y = shaping.y0;
+				preview.halfW = r;
+				preview.halfH = r;
+				preview.rect = false;
+
+				return preview;
+			}
+
+			if (deps.options().mode !== "erase" || !pointer) {
 				return null;
 			}
 
@@ -606,6 +930,55 @@ export function createDraw(deps: DrawDeps): Draw {
 			ring.halfH = reach;
 
 			return ring;
+		},
+
+		// THE DISTANCE ACROSS EVERY SHAPE, and it is recomputed per frame rather
+		// than stored. The grid is what turns map pixels into feet and a GM can
+		// retune it mid-session, so a cached number would be the right answer to
+		// last week's cell size. Forty short strings a frame is nursery garbage;
+		// a cache keyed on the grid would have to be re-validated every frame
+		// anyway, which is the work it was meant to save.
+		labels(out) {
+			let count = 0;
+
+			const add = (text: string, x: number, y: number, color: string): void => {
+				const slot = out[count] ?? (out[count] = blankLabel());
+				parseColor(color, tint);
+
+				slot.text = text;
+				slot.x = x;
+				slot.y = y;
+				slot.color[0] = tint[0];
+				slot.color[1] = tint[1];
+				slot.color[2] = tint[2];
+				slot.alpha = 1;
+				count++;
+			};
+
+			const grid = deps.grid();
+			const viewed = deps.viewed();
+
+			for (const stroke of deps.state.strokes) {
+				if (stroke.layerId !== viewed) {
+					continue;
+				}
+
+				measure(stroke.kind, stroke.points, grid, stroke.color, add);
+			}
+
+			// AND THE SHAPE IN HAND, which is the whole point of the number: a
+			// GM drags until it reads thirty feet and lets go.
+			if (shaping) {
+				measure(
+					shaping.kind,
+					[shaping.x0, shaping.y0, shaping.x1, shaping.y1],
+					grid, deps.options().color, add,
+				);
+			}
+
+			out.length = count;
+
+			return out;
 		},
 
 		inHand() {

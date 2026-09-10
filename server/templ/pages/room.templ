@@ -332,6 +332,10 @@ templ roomDrawGroup(attr string, choices []Choice) {
 
 templ roomDrawIcon(name string) {
 	switch name {
+		case "rect":
+			@rectangleIcon()
+		case "circle":
+			@circleIcon()
 		case "erase":
 			@eraserIcon()
 		default:

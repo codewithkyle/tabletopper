@@ -40,7 +40,7 @@ import { CONDITION_RINGS_MAX, RING_WIDTH, actingPawnIds, ringRadius, visiblePawn
 import { cellCentre } from "./path.ts";
 import { fastBeat, healthOf, slowBeat } from "./wounds.ts";
 import { stressPawns } from "./stress.ts";
-import type { Outline, Ruler, Table } from "../pawns.ts";
+import type { Label, Outline, Ruler, Table } from "../pawns.ts";
 import type { Handle } from "../handles.ts";
 import { HANDLE_HALF } from "../handles.ts";
 import { GHOST_ALPHA, SELECT_COLOR } from "../pawns.ts";
@@ -399,6 +399,7 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 	const rulers: Ruler[] = [];
 	const handles: Handle[] = [];
 	const segments: Segment[] = [];
+	const labels: Label[] = [];
 
 	const frames = startFrames({
 		mount,
@@ -735,6 +736,14 @@ export function mountRenderer(mount: HTMLElement, state: State, role: Role, tabl
 		// thing on it.
 		for (const segment of table ? table.marks(segments) : []) {
 			overMarks.line(segment.x0, segment.y0, segment.x1, segment.y1, segment.width, segment.color, segment.alpha);
+		}
+
+		// THE DISTANCE ACROSS EVERY SHAPE, over the pawns standing in it. A
+		// circle round three goblins is drawn UNDER them -- it is a mark on the
+		// floor -- but the number that says how wide it is has to be read, and a
+		// token sitting on top of it would be a template nobody can size.
+		for (const label of table ? table.labels(labels) : []) {
+			overMarks.label(label.text, label.x, label.y, label.color, label.alpha);
 		}
 
 		// And the ruler's line and its distance, last, because they are read

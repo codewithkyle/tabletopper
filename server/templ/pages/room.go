@@ -958,12 +958,19 @@ var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
 // about this tool a person cannot work out by using it: a line that will not
 // rub out is not broken, it is somebody else's. See room.StrokeErase.
 //
-// THE THREE SHAPES JOIN THIS LIST WHEN THEY ARE BUILT. A button that named an
-// unbuilt mode would be a permanent question with no answer in a pill that has
-// no room to explain itself, which is the reasoning RoomTool.GM already carries.
+// A SHAPE'S HINT SAYS WHERE THE DRAG STARTS AND WHAT THE NUMBER MEANS, because
+// those are the two things about these tools nobody can work out by using them:
+// a circle grows from the press rather than from a corner, and the figure under
+// it is a radius rather than a width. Both are how a spell is written.
+//
+// THE CONE JOINS THIS LIST WHEN IT IS BUILT. A button that named an unbuilt
+// mode would be a permanent question with no answer in a pill that has no room
+// to explain itself, which is the reasoning RoomTool.GM already carries.
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
+		{Value: "rect", Label: "Rectangle", Hint: "Drag a box. It says how far across it is."},
+		{Value: "circle", Label: "Circle", Hint: "Drag out from the centre. It says its radius."},
 		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
 	}
 }
