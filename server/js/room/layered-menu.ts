@@ -1,4 +1,11 @@
-// The Fog menu's two items, kept pointed at the floor this GM is LOOKING at.
+// Every menu item that acts on the floor this GM is LOOKING at, kept pointed
+// at it.
+//
+// IT WAS CALLED fog-menu.ts AND THAT WAS A NAME FOR ITS FIRST CALLER RATHER
+// THAN FOR ITS JOB. Nothing in the body has ever mentioned fog: it finds
+// [data-room-layered] and writes hx-vals. There are three such items now --
+// Fill fog, Clear fog and Clear drawing -- and adding the third took no code at
+// all, which is what the attribute is for.
 //
 // WHICH FLOOR THAT IS EXISTS ONLY HERE. The viewed layer is a local override
 // that is never sent -- mountLayerBar's header spells out why -- so a
@@ -22,11 +29,11 @@
 // NO CLASS NAME IS WRITTEN IN THIS FILE, for the reason layer-bar.ts writes
 // none: server/js is not a Tailwind source.
 
-export interface FogMenu {
+export interface LayeredMenu {
 	refresh(): void;
 }
 
-export function mountFogMenu(viewed: () => string): FogMenu | null {
+export function mountLayeredMenu(viewed: () => string): LayeredMenu | null {
 	const items = Array.from(document.querySelectorAll("[data-room-layered]"));
 	if (items.length === 0) {
 		return null;

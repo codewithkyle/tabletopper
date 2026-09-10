@@ -252,6 +252,10 @@ func (d RoomPageData) FogClearPath() string {
 	return "/rooms/" + d.ID + "/fog/clear"
 }
 
+func (d RoomPageData) DrawingClearPath() string {
+	return "/rooms/" + d.ID + "/drawing/clear"
+}
+
 func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
@@ -596,6 +600,14 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
 		blood,
 		{
+			Label:          "Clear drawing",
+			Post:           d.DrawingClearPath(),
+			Layered:        true,
+			Confirm:        "Every line drawn on the floor you are looking at goes, for everybody at the table. This cannot be undone.",
+			ConfirmHeading: "Clear this floor's drawing?",
+			ConfirmLabel:   "Clear drawing",
+		},
+		{
 			Label:          "Clear tabletop",
 			Post:           d.ClearPath(),
 			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid.",
@@ -886,6 +898,34 @@ func (d RoomPageData) Tools() []RoomTool {
 	}
 
 	return mine
+}
+
+// DrawModeChoices is the drawing tool's own second pill: what a gesture on the
+// table does.
+//
+// IT IS THE TOOL'S STATE AND NOT THE ROOM'S, which is FogShapeChoices' reason
+// exactly: nothing here is sent anywhere or stored anywhere, the client keeps
+// the choice and writes it into what it sends, and a GM who reloads gets the
+// default back.
+//
+// THE ERASER IS A MODE AND NOT A SIXTH TOOL IN THE PILL ABOVE. Drawing and
+// rubbing out are one job done with two hands, switched between constantly --
+// and the main pill is five buttons of pointer MODES, each of which changes
+// what the whole table does. Draw is one of those; what the pen is doing is a
+// question inside it.
+//
+// THE ERASER'S HINT IS WHERE THE RULE IS SAID, because it is the one thing
+// about this tool a person cannot work out by using it: a line that will not
+// rub out is not broken, it is somebody else's. See room.StrokeErase.
+//
+// THE THREE SHAPES JOIN THIS LIST WHEN THEY ARE BUILT. A button that named an
+// unbuilt mode would be a permanent question with no answer in a pill that has
+// no room to explain itself, which is the reasoning RoomTool.GM already carries.
+func DrawModeChoices() []Choice {
+	return []Choice{
+		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
+		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
+	}
 }
 
 // FogShapeChoices and FogModeChoices are the second pill: what a fog gesture

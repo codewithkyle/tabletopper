@@ -1431,6 +1431,7 @@ export function createTable(deps: TableDeps): Table {
 		hover(map) {
 			pointer = map ? { x: map.x, y: map.y } : null;
 			deps.fog?.hover(map);
+			deps.draw?.hover(map);
 
 			if (map) {
 				aim(map);
@@ -1646,6 +1647,15 @@ export function createTable(deps: TableDeps): Table {
 			const fogBox = deps.fog?.outline();
 			if (fogBox) {
 				add(fogBox);
+			}
+
+			// AND THE ERASER'S RING, which is a cursor rather than a gesture:
+			// it is on the table for as long as the mode is chosen and the
+			// pointer is over it, because what it shows is where the eraser
+			// reaches, and a reach nobody can see is a tool aimed by guessing.
+			const eraser = deps.draw?.outline();
+			if (eraser) {
+				add(eraser);
 			}
 
 			out.length = count;

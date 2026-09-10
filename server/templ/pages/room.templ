@@ -237,6 +237,7 @@ templ roomToolbar(data RoomPageData) {
 		if data.IsGM() {
 			@roomFogOptions()
 		}
+		@roomDrawOptions()
 	</div>
 	if data.IsGM() {
 		@roomLayerMenu()
@@ -249,6 +250,41 @@ templ roomFogOptions() {
 		<div class="mx-1 h-px bg-base-content/15"></div>
 		@roomFogGroup("data-fog-mode", FogModeChoices())
 	</div>
+}
+
+templ roomDrawOptions() {
+	<div data-draw-options hidden class={ surfacePanel + " flex flex-col gap-1 rounded-box p-1" }>
+		@roomDrawGroup("data-draw-mode", DrawModeChoices())
+	</div>
+}
+
+templ roomDrawGroup(attr string, choices []Choice) {
+	for i, c := range choices {
+		<div class="tooltip tooltip-left">
+			<div class={ tooltipBody + " flex flex-col gap-0.5 text-left" }>
+				<span>{ c.Label }</span>
+				<span class="opacity-70">{ c.Hint }</span>
+			</div>
+			<button
+				type="button"
+				class="btn btn-circle btn-ghost btn-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+				{ templ.Attributes{attr: c.Value}... }
+				aria-label={ c.Label }
+				aria-pressed={ strconv.FormatBool(i == 0) }
+			>
+				@roomDrawIcon(c.Value)
+			</button>
+		</div>
+	}
+}
+
+templ roomDrawIcon(name string) {
+	switch name {
+		case "erase":
+			@eraserIcon()
+		default:
+			@brushIcon()
+	}
 }
 
 templ roomFogGroup(attr string, choices []Choice) {

@@ -22,7 +22,8 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
 import { fanOut, refusals, touchesPawns } from "./effects.ts";
-import { DEFAULT_WIDTH, createDraw } from "./draw.ts";
+import { createDraw } from "./draw.ts";
+import { mountDrawTool } from "./draw-tool.ts";
 import { createFog } from "./fog.ts";
 import { actorColor, createTable, hexColor } from "./pawns.ts";
 import { empty, reduce } from "./store.ts";
@@ -36,7 +37,7 @@ import { mountHitPoints } from "./hp.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
 import { mountEntryMenu } from "./initiative-menu.ts";
-import { mountFogMenu } from "./fog-menu.ts";
+import { mountLayeredMenu } from "./layered-menu.ts";
 import { mountFogTool } from "./fog-tool.ts";
 import { mountFollow, type Follow } from "./follow.ts";
 import { mountTurns, type Turns } from "./initiative.ts";
@@ -124,6 +125,15 @@ if (mount) {
 	// them has: four buttons and which of them is pressed.
 	const fogTool = mountFogTool(mount, tools);
 
+	// AND THE PEN'S, mounted for the fog pill's reason and rendered for every
+	// role rather than for the GM alone.
+	//
+	// THE COLOUR IT OPENS ON IS THIS VIEWER'S OWN, which is the colour their
+	// drag ghosts and their ruler are already drawn in for everybody else at the
+	// table -- so a line somebody draws is recognisably theirs before anybody is
+	// told whose it is. The picker that overrides it is checkpoint 3.
+	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
+
 	let overlay: Overlay | null = null;
 	let follow: Follow | null = null;
 
@@ -152,13 +162,15 @@ if (mount) {
 
 	// AND THE PEN, BUILT HERE FOR THE FOG'S REASON: the socket to send a line,
 	// the renderer to say which floor and how far a screen pixel goes, the pill
-	// to say whether the tool is chosen.
+	// to say whether the tool is chosen and what it is doing.
 	//
-	// THE COLOUR IS THIS VIEWER'S OWN, which is the colour their drag ghosts and
-	// their ruler are already drawn in for everybody else at the table -- so a
-	// line somebody draws is recognisably theirs before anybody is told whose it
-	// is. The picker that overrides it is checkpoint 3.
+	// IT READS THE STORE, which the fog does too and for the same one purpose:
+	// the eraser and Ctrl+Z both act on lines that are already on the table, and
+	// the store is where those are.
 	const draw = createDraw({
+		state,
+		role,
+		user,
 		viewed,
 		send: (command) => {
 			socket?.send(command);
@@ -166,7 +178,7 @@ if (mount) {
 		invalidate: () => renderer?.invalidate(),
 		scale: () => renderer?.mapPerPixel() ?? 1,
 		drawing: () => tools?.drawing() ?? false,
-		options: () => ({ color: hexColor(actorColor(user)), width: DEFAULT_WIDTH }),
+		options: drawTool.options,
 	});
 
 	const table = createTable({
@@ -244,12 +256,13 @@ if (mount) {
 			renderer.onSettled(bar.refresh);
 		}
 
-		// AND THE FOG MENU FOLLOWS THE SAME SETTLING, for the same reason the
-		// bar does: Fill fog and Clear fog act on the floor being LOOKED at, and
-		// that is a fact only the renderer holds. See fog-menu.ts.
-		const fogMenu = mountFogMenu(viewed);
-		if (fogMenu) {
-			renderer.onSettled(fogMenu.refresh);
+		// AND THE LAYERED MENU ITEMS FOLLOW THE SAME SETTLING, for the same
+		// reason the bar does: Fill fog, Clear fog and Clear drawing all act on
+		// the floor being LOOKED at, and that is a fact only the renderer
+		// holds. See layered-menu.ts.
+		const layered = mountLayeredMenu(viewed);
+		if (layered) {
+			renderer.onSettled(layered.refresh);
 		}
 
 		// AND THE TABLE FOLLOWS THE SAME SETTLING, to drop a selection made on

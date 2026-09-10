@@ -5,9 +5,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	"tabletopper/internal/htmx"
 	"tabletopper/internal/room"
-	"tabletopper/internal/session"
 )
 
 // THE FOG MENU'S TWO VERBS. Everything else about fog happens on the canvas and
@@ -43,7 +41,7 @@ import (
 // that no client ever sees a covered floor with the old holes still in it. Every
 // one of them is a separate broadcast and the party is watching.
 func (a *App) FillLayerFog(w http.ResponseWriter, r *http.Request) {
-	a.fogCommands(w, r, "fill the fog", func(layer ulid.ULID) []room.Command {
+	a.viewedLayerCommands(w, r, "fill the fog", func(layer ulid.ULID) []room.Command {
 		return []room.Command{
 			&room.FogClear{Layer: layer},
 			&room.FogSetPrefill{Layer: layer, Prefill: true},
@@ -63,78 +61,10 @@ func (a *App) FillLayerFog(w http.ResponseWriter, r *http.Request) {
 // first shape drawn on the floor afterwards sets it from that shape's own mode.
 // See room.FogAdd.
 func (a *App) ClearLayerFog(w http.ResponseWriter, r *http.Request) {
-	a.fogCommands(w, r, "clear the fog", func(layer ulid.ULID) []room.Command {
+	a.viewedLayerCommands(w, r, "clear the fog", func(layer ulid.ULID) []room.Command {
 		return []room.Command{
 			&room.FogClear{Layer: layer},
 			&room.FogSetEnabled{Layer: layer, Enabled: false},
 		}
 	})
-}
-
-// fogCommands is layerCommand's shape for a route that is more than one command:
-// establish the asker and the room, read the layer out of the FORM, dispatch the
-// commands in order, and answer 204 or the first refusal.
-//
-// A REFUSAL STOPS THE REST. Every command here is refused for the same two
-// reasons -- not the GM, or no such floor -- so a second one after a refusal
-// would be refused identically and would put a second alert modal behind the
-// first.
-func (a *App) fogCommands(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) []room.Command) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-
-		return
-	}
-
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
-
-		return
-	}
-
-	// AN ABSENT LAYER IS THE ACTIVE ONE, which is what makes these two items
-	// work in a browser where the room bundle never ran -- no WebGL2, a script
-	// that threw, a page still loading. The viewed floor defaults to the active
-	// floor anyway, so the fallback is the same answer the client would have
-	// filled in, and the alternative is a menu item that silently does nothing.
-	//
-	// A layer that is PRESENT and is not an id is a different thing: a request
-	// this server did not write. That is a 404 with nothing in it rather than a
-	// message, because the only thing that produces one is somebody posting by
-	// hand. Whether the floor exists is the core's question and it answers it
-	// into the alert modal.
-	var layer ulid.ULID
-	if raw := r.FormValue("layer"); raw != "" {
-		layer, err = ulid.Parse(raw)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-
-			return
-		}
-	} else {
-		view, ok := a.Hub.Table(ctx, row.ID)
-		if !ok {
-			htmx.NotFound(w, "room")
-
-			return
-		}
-
-		layer = view.Table.ActiveLayer
-	}
-
-	who := room.Actor{ID: sess.UserID, Role: role}
-
-	for _, cmd := range build(layer) {
-		if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
-			a.rejectCommand(w, action, err)
-
-			return
-		}
-	}
-
-	w.WriteHeader(http.StatusNoContent)
 }

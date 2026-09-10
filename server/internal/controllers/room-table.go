@@ -521,6 +521,83 @@ func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// viewedLayerCommands is layerCommand's shape for a menu item that acts on the
+// floor the GM is LOOKING at: establish the asker and the room, read the layer
+// out of the FORM rather than out of the path, dispatch the commands in order,
+// and answer 204 or the first refusal.
+//
+// THE LAYER IS A FORM VALUE, which is the whole reason this exists beside
+// layerCommand rather than being it. The viewed floor is a local override that
+// is never sent -- mountLayerBar spells out why -- so a server-rendered menu
+// item cannot know it, and htmx captures a path when it PROCESSES an element,
+// so a path rewritten afterwards is ignored. hx-vals is read when the request
+// is built, which makes it the one place on a button carrying hx-confirm that a
+// changing value can live.
+//
+// IT TAKES A LIST BECAUSE ONE OF ITS CALLERS SENDS THREE. A REFUSAL STOPS THE
+// REST: every command these routes send is refused for the same two reasons --
+// not the GM, or no such floor -- so a second one after a refusal would be
+// refused identically and would put a second alert modal behind the first.
+func (a *App) viewedLayerCommands(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) []room.Command) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+
+	if a.Hub == nil {
+		htmx.NotFound(w, "room")
+
+		return
+	}
+
+	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
+	if err != nil {
+		htmx.NotFound(w, "room")
+
+		return
+	}
+
+	// AN ABSENT LAYER IS THE ACTIVE ONE, which is what makes these two items
+	// work in a browser where the room bundle never ran -- no WebGL2, a script
+	// that threw, a page still loading. The viewed floor defaults to the active
+	// floor anyway, so the fallback is the same answer the client would have
+	// filled in, and the alternative is a menu item that silently does nothing.
+	//
+	// A layer that is PRESENT and is not an id is a different thing: a request
+	// this server did not write. That is a 404 with nothing in it rather than a
+	// message, because the only thing that produces one is somebody posting by
+	// hand. Whether the floor exists is the core's question and it answers it
+	// into the alert modal.
+	var layer ulid.ULID
+	if raw := r.FormValue("layer"); raw != "" {
+		layer, err = ulid.Parse(raw)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
+	} else {
+		view, ok := a.Hub.Table(ctx, row.ID)
+		if !ok {
+			htmx.NotFound(w, "room")
+
+			return
+		}
+
+		layer = view.Table.ActiveLayer
+	}
+
+	who := room.Actor{ID: sess.UserID, Role: role}
+
+	for _, cmd := range build(layer) {
+		if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
+			a.rejectCommand(w, action, err)
+
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // layerCommand is the shape every mutation in this file has: establish the
 // asker and the room, read the layer out of the path, build the command, send
 // it, and answer 204 or the refusal.

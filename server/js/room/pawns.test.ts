@@ -12,7 +12,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { FogMode, FogShape, Grid, Pawn, ShapeKind, State } from "./protocol.ts";
+import type { FogMode, FogShape, Grid, Pawn, ShapeKind, State, Stroke } from "./protocol.ts";
+import type { DrawMode } from "./draw.ts";
 import { empty } from "./store.ts";
 
 // createTable listens for Escape on the document and reads the device pixel
@@ -50,6 +51,7 @@ const { createDraw } = await import("./draw.ts");
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 const GM = "01GM";
+const PLAYER = "01PLAYER";
 
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
@@ -189,8 +191,9 @@ function table(
 		fogging: boolean; shape: ShapeKind; mode: FogMode;
 		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[];
 
-		// And the pen's: whether the Draw tool is the one chosen.
-		inking: boolean;
+		// And the pen's: whether the Draw tool is the one chosen, what its own
+		// pill says it is doing, and what is already drawn on the floor.
+		inking: boolean; drawMode: DrawMode; strokes: Stroke[];
 	}> = {},
 ) {
 	const state: State = empty();
@@ -203,6 +206,7 @@ function table(
 		fogPrefill: over.fogPrefill ?? true,
 	}];
 	state.fog = over.fog ?? [];
+	state.strokes = over.strokes ?? [];
 
 	const sent: Record<string, unknown>[] = [];
 	const opened: string[] = [];
@@ -216,6 +220,7 @@ function table(
 	let measuring = over.measuring ?? false;
 	let fogging = over.fogging ?? false;
 	let inking = over.inking ?? false;
+	const drawOptions = { mode: over.drawMode ?? "pen", color: "#FF0000", width: 4 };
 	const options = { shape: over.shape ?? "rect", mode: over.mode ?? "reveal" };
 
 	const send = (command: unknown) => {
@@ -240,12 +245,15 @@ function table(
 	// THE REAL PEN TOO, for the fog's reason: what is under test is which
 	// gesture reaches which module.
 	const draw = createDraw({
+		state,
+		role: over.role ?? "gm",
+		user: over.user ?? GM,
 		viewed: () => GROUND,
 		send,
 		invalidate: () => {},
 		scale: () => over.scale ?? 1,
 		drawing: () => inking,
-		options: () => ({ color: "#FF0000", width: 4 }),
+		options: () => drawOptions,
 	});
 
 	const controller = createTable({
@@ -293,6 +301,9 @@ function table(
 		},
 		drawTool: (on: boolean) => {
 			inking = on;
+		},
+		chooseDraw: (mode: DrawMode) => {
+			drawOptions.mode = mode;
 		},
 		chooseFog: (shape: ShapeKind, mode: FogMode) => {
 			options.shape = shape;
@@ -1731,4 +1742,193 @@ test("a stroke survives the tool being switched away mid-gesture", () => {
 	controller.tool.release(at(100, 0), at(0, 0), NONE);
 
 	assert.deepEqual(sent.map((c) => c.type), ["stroke.begin", "stroke.extend", "stroke.end"]);
+});
+
+// THE ERASER AND CTRL+Z. What is under test is the seam again: which lines a
+// sweep picks up, which it must not, and what leaves the client. The distance
+// test itself is draw.test.ts's.
+
+const ERASE_ON = { inking: true, drawMode: "erase" } as const;
+
+function drawn(over: Partial<Stroke> = {}): Stroke {
+	return {
+		id: "01LINE", by: GM, layerId: GROUND, kind: "free",
+		color: "#FF0000", width: 4, points: [0, 0, 100, 0], done: true, ...over,
+	};
+}
+
+// ONE COMMAND PER SWEEP AND NOT ONE PER LINE. A drag across a sketch crosses a
+// dozen strokes, and a dozen erases would be a dozen broadcasts and a dozen
+// re-renders on every screen at the table.
+test("one sweep of the eraser sends one command with everything it crossed", () => {
+	const a = drawn({ id: "01A", points: [0, 0, 0, 100] });
+	const b = drawn({ id: "01B", points: [50, 0, 50, 100] });
+	const away = drawn({ id: "01C", points: [900, 900, 900, 950] });
+
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [a, b, away] });
+
+	controller.tool.press(at(0, 50), at(0, 0), NONE);
+	controller.tool.drag(at(50, 50), at(0, 0), NONE);
+	controller.tool.release(at(50, 50), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01A", "01B"] }]);
+});
+
+// A SWEEP THAT TOUCHED NOTHING SAYS NOTHING, rather than sending an empty list
+// for the server to answer with nothing.
+test("an eraser sweep over empty floor sends nothing", () => {
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [drawn()] });
+
+	controller.tool.press(at(0, 400), at(0, 0), NONE);
+	controller.tool.drag(at(100, 400), at(0, 0), NONE);
+	controller.tool.release(at(100, 400), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// A PLAYER'S ERASER PASSES OVER SOMEBODY ELSE'S LINE. The rule is the server's
+// -- StrokeErase refuses it -- and this is the half that makes the tool feel
+// like a tool rather than like a control that raises an alert modal.
+test("a player's eraser only takes their own lines", () => {
+	const mine = drawn({ id: "01MINE", by: PLAYER });
+	const theirs = drawn({ id: "01THEIRS", by: GM });
+
+	const { controller, sent } = table([], {
+		...ERASE_ON, role: "player", user: PLAYER, strokes: [mine, theirs],
+	});
+
+	controller.tool.press(at(50, 0), at(0, 0), NONE);
+	controller.tool.release(at(50, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01MINE"] }]);
+});
+
+test("the GM's eraser takes anybody's line", () => {
+	const mine = drawn({ id: "01MINE", by: GM });
+	const theirs = drawn({ id: "01THEIRS", by: PLAYER });
+
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [mine, theirs] });
+
+	controller.tool.press(at(50, 0), at(0, 0), NONE);
+	controller.tool.release(at(50, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01MINE", "01THEIRS"] }]);
+});
+
+// AN UNFINISHED LINE IS NOBODY'S TO ERASE, its author's included: somebody is
+// still drawing it, and taking it out from under their hand would leave their
+// next chunk refused with "Stroke gone".
+test("the eraser passes over a line still being drawn", () => {
+	const growing = drawn({ id: "01GROWING", done: false });
+
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [growing] });
+
+	controller.tool.press(at(50, 0), at(0, 0), NONE);
+	controller.tool.release(at(50, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+test("the eraser ignores a line on another floor", () => {
+	const upstairs = drawn({ id: "01UP", layerId: CELLAR });
+
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [upstairs] });
+
+	controller.tool.press(at(50, 0), at(0, 0), NONE);
+	controller.tool.release(at(50, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// A SWEEP DROPPED PART-WAY SENDS NOTHING, which is the opposite of what
+// abandoning a pen stroke does and right for the same reason: nothing has left
+// this browser yet, so there is nothing on anybody else's table to take back.
+test("Escape mid-sweep rubs nothing out", () => {
+	const { controller, sent } = table([], { ...ERASE_ON, strokes: [drawn()] });
+
+	controller.tool.press(at(50, 0), at(0, 0), NONE);
+	press("Escape");
+	controller.tool.release(at(50, 0), at(0, 0), NONE);
+
+	assert.deepEqual(sent, []);
+});
+
+// THE ERASER SHOWS ITS REACH, because a radius of a few screen pixels is
+// otherwise a tool aimed by guessing.
+test("the eraser draws a ring under the pointer", () => {
+	const { controller, chooseDraw } = table([], { ...ERASE_ON, scale: 2 });
+
+	controller.tool.hover(at(80, 90));
+
+	const ring = controller.outlines([]).at(-1);
+	assert.equal(ring?.x, 80);
+	assert.equal(ring?.y, 90);
+	assert.equal(ring?.halfW, 12, "the reach is six CSS pixels at this zoom");
+	assert.equal(ring?.rect, false);
+
+	// The pen has no cursor: what it is about to do is draw where the pointer
+	// already is.
+	chooseDraw("pen");
+	assert.deepEqual(controller.outlines([]), []);
+});
+
+test("the eraser's ring goes when the pointer leaves the table", () => {
+	const { controller } = table([], ERASE_ON);
+
+	controller.tool.hover(at(80, 90));
+	controller.tool.hover(null);
+
+	assert.deepEqual(controller.outlines([]), []);
+});
+
+// CTRL+Z IS THE VIEWER'S OWN NEWEST LINE, and "newest" is the last one in the
+// store because ids are minted in order and the store is sorted by them.
+test("Ctrl+Z takes back the viewer's newest finished line", () => {
+	const first = drawn({ id: "01AAA", by: GM });
+	const second = drawn({ id: "01BBB", by: GM });
+
+	const { controller, sent } = table([], { inking: true, strokes: [first, second] });
+	void controller;
+
+	press("z", null, { ctrlKey: true });
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01BBB"] }]);
+});
+
+// EVEN FOR THE GM. Ctrl+Z means "take back what I just did", and a GM whose
+// undo removed the line a player drew a second ago would have a key that
+// reaches across the table.
+test("Ctrl+Z skips somebody else's line", () => {
+	const mine = drawn({ id: "01AAA", by: GM });
+	const theirs = drawn({ id: "01ZZZ", by: PLAYER });
+
+	const { controller, sent } = table([], { inking: true, strokes: [mine, theirs] });
+	void controller;
+
+	press("z", null, { ctrlKey: true });
+
+	assert.deepEqual(sent, [{ type: "stroke.erase", ids: ["01AAA"] }]);
+});
+
+test("Ctrl+Z skips a line on another floor and one still being drawn", () => {
+	const upstairs = drawn({ id: "01AAA", by: GM, layerId: CELLAR });
+	const growing = drawn({ id: "01BBB", by: GM, done: false });
+
+	const { controller, sent } = table([], { inking: true, strokes: [upstairs, growing] });
+	void controller;
+
+	press("z", null, { ctrlKey: true });
+
+	assert.deepEqual(sent, []);
+});
+
+// AND IT BELONGS TO THIS TOOL WHILE IT IS CHOSEN AND TO NOTHING AT ALL
+// OTHERWISE, which is the rule the fog's three keys follow.
+test("Ctrl+Z under another tool is not the drawing's", () => {
+	const { controller, sent } = table([], { inking: false, strokes: [drawn({ by: GM })] });
+	void controller;
+
+	press("z", null, { ctrlKey: true });
+
+	assert.deepEqual(sent, []);
 });

@@ -101,9 +101,20 @@ func TestTheFogMenuActsOnTheViewedFloorBehindAConfirm(t *testing.T) {
 		}
 	}
 
+	// EVERY LAYERED ITEM RENDERS THE ATTRIBUTE, counted rather than hardcoded:
+	// items on other menus carry Layered too -- Clear drawing does -- and a
+	// fixed number here would be a test about the rest of the bar.
 	page := markup(t, Room(data))
-	if got := strings.Count(page, "data-room-layered"); got != 2 {
-		t.Errorf("the markup carries data-room-layered %d times, want 2", got)
+	want := 0
+	for _, menu := range data.Menus() {
+		for _, item := range menu.Items {
+			if item.Layered {
+				want++
+			}
+		}
+	}
+	if got := strings.Count(page, "data-room-layered"); got != want {
+		t.Errorf("the markup carries data-room-layered %d times; %d items are layered", got, want)
 	}
 	if !strings.Contains(page, `hx-vals="`+emptyVals+`"`) {
 		t.Error("a layered item's hx-vals is not valid JSON, so htmx would throw before the request")
