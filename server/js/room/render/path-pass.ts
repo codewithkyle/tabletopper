@@ -1,9 +1,8 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { GlyphAtlas } from "./glyphs.ts";
 import type { Attribute, QuadBatch } from "../gl/quads.ts";
 import type { Rgb } from "../model/types.ts";
 import { blended } from "../gl/blend.ts";
-import { clipMatrix } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
 import { createQuadBatch } from "../gl/quads.ts";
 import { fragmentSource, uniforms, vertexSource } from "./shaders/path.ts";
@@ -30,7 +29,7 @@ export interface PathPass {
 		width: number, color: Rgb, alpha: number,
 	): void;
 	label(text: string, x: number, y: number, color: Rgb, alpha: number): void;
-	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(frame: FrameContext): void;
 	dispose(): void;
 }
 function push(
@@ -63,7 +62,6 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
 	const batch = createQuadBatch(gl, PATH_QUAD, 128);
 	let scale = 1;
-	const matrix = new Float32Array(9);
 	const flush = () => batch.draw();
 	const blank = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, blank);
@@ -135,7 +133,7 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			}
 			run(text, left, top, height, color, alpha);
 		},
-		draw(cam, deviceWidth, deviceHeight, dpr) {
+		draw(frame) {
 			if (batch.count === 0) {
 				return;
 			}
@@ -144,7 +142,7 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, atlas ? atlas.texture : blank);
 			gl.uniform1i(program.at.u_atlas, 0);
-			gl.uniformMatrix3fv(program.at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniformMatrix3fv(program.at.u_clip, false, frame.clip);
 			blended(gl, flush);
 		},
 		dispose() {

@@ -56,11 +56,20 @@ export function zoomAt(cam: Camera, vp: Viewport, sx: number, sy: number, multip
 export function zoomTo(cam: Camera, vp: Viewport, zoom: number): void {
 	zoomAt(cam, vp, vp.width / 2, vp.height / 2, zoom / cam.zoom);
 }
+export function fitZoom(vp: Viewport, width: number, height: number): number {
+	return Math.min(vp.width / width, vp.height / height) * FIT_MARGIN;
+}
+export function worldPerCssPixel(cam: Camera): number {
+	return 1 / Math.max(cam.zoom, 1e-4);
+}
+export function worldPerDevicePixel(cam: Camera, dpr: number): number {
+	return 1 / Math.max(cam.zoom * dpr, 1e-4);
+}
 export function fit(cam: Camera, vp: Viewport, width: number, height: number): void {
 	if (width < 1 || height < 1 || vp.width < 1 || vp.height < 1) {
 		return;
 	}
-	cam.zoom = clampZoom(Math.min(vp.width / width, vp.height / height) * FIT_MARGIN);
+	cam.zoom = clampZoom(fitZoom(vp, width, height));
 	cam.x = width / 2;
 	cam.y = height / 2;
 }

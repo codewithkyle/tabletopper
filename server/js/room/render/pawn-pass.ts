@@ -1,4 +1,4 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { Grid, HPBand, Pawn } from "../protocol.ts";
 import type { Attribute, QuadBatch } from "../gl/quads.ts";
 import type { Program } from "../gl/program.ts";
@@ -8,7 +8,6 @@ import { SKULL, SPRITE_SIZE } from "./sprites.ts";
 import { BLOOD_DRIED, BLOOD_FRESH, KIND_COLORS } from "../model/color.ts";
 import { BEAT_NONE, beats, bleeds, bloodSprite, hurt, seed } from "../model/health.ts";
 import { blended } from "../gl/blend.ts";
-import { clipMatrix } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
 import { createQuadBatch } from "../gl/quads.ts";
 import { pawnExtents, radians } from "../model/shape.ts";
@@ -47,7 +46,7 @@ export interface PawnPulse {
 }
 export interface PawnPass {
 	build(pawns: readonly Drawn[], grid: Grid, sprites: SpriteCache, alpha?: number): void;
-	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number, pulse?: PawnPulse): void;
+	draw(frame: FrameContext, pulse?: PawnPulse): void;
 	beating(): boolean;
 	dispose(): void;
 }
@@ -87,7 +86,6 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 	let texture: WebGLTexture | null = null;
 	let pulsing = false;
 	let order: number[] = [];
-	const matrix = new Float32Array(9);
 	const flush = () => batch.draw();
 	return {
 		build(pawns, grid, sprites, alpha = 1) {
@@ -169,7 +167,7 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 			}
 		},
 		beating: () => pulsing,
-		draw(cam, deviceWidth, deviceHeight, dpr, pulse) {
+		draw(frame, pulse) {
 			if (batch.count === 0 || !texture) {
 				return;
 			}
@@ -178,9 +176,9 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 			gl.uniform1i(program.at.u_sprites, 0);
-			gl.uniform1f(program.at.u_scale, cam.zoom * dpr);
+			gl.uniform1f(program.at.u_scale, frame.scale);
 			gl.uniform2f(program.at.u_pulse, pulse?.slow ?? 0, pulse?.heart ?? 0);
-			gl.uniformMatrix3fv(program.at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniformMatrix3fv(program.at.u_clip, false, frame.clip);
 			blended(gl, flush);
 		},
 		dispose() {

@@ -1,8 +1,7 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { QuadBatch } from "../gl/quads.ts";
 import type { Stroke } from "../protocol.ts";
 import { blended } from "../gl/blend.ts";
-import { clipMatrix } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
 import { createQuadBatch } from "../gl/quads.ts";
 import { parseColor } from "../model/color.ts";
@@ -14,7 +13,7 @@ const segments: number[] = [];
 export interface StrokePass {
 	sync(strokes: readonly Stroke[], layerID: string): void;
 	live(strokes: readonly Stroke[], layerID: string, own: Stroke | null): void;
-	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(frame: FrameContext): void;
 	dispose(): void;
 }
 export function fillStrokes(batch: QuadBatch, strokes: readonly Stroke[]): void {
@@ -47,7 +46,6 @@ export function createStrokePass(gl: WebGL2RenderingContext): StrokePass {
 	const done = createQuadBatch(gl, layout, 1024);
 	const drawing = createQuadBatch(gl, layout, 64);
 	let key = "";
-	const matrix = new Float32Array(9);
 	const finished: Stroke[] = [];
 	const live: Stroke[] = [];
 	const flush = () => {
@@ -91,13 +89,13 @@ export function createStrokePass(gl: WebGL2RenderingContext): StrokePass {
 			fillStrokes(drawing, live);
 			drawing.upload();
 		},
-		draw(cam, deviceWidth, deviceHeight, dpr) {
+		draw(frame) {
 			if (done.count === 0 && drawing.count === 0) {
 				return;
 			}
 			program.use();
-			gl.uniformMatrix3fv(program.at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
-			gl.uniform1f(program.at.u_minHalf, MIN_HALF_DEVICE / Math.max(cam.zoom * dpr, 1e-4));
+			gl.uniformMatrix3fv(program.at.u_clip, false, frame.clip);
+			gl.uniform1f(program.at.u_minHalf, MIN_HALF_DEVICE * frame.worldPerDevicePixel);
 			blended(gl, flush);
 		},
 		dispose() {

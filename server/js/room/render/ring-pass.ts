@@ -1,8 +1,8 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
+import type { Program } from "../gl/program.ts";
 import type { Rgb } from "../model/types.ts";
 import { SHAPED_QUAD, writeShaped } from "./shaped-quad.ts";
 import { blended } from "../gl/blend.ts";
-import { clipMatrix } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
 import { createQuadBatch } from "../gl/quads.ts";
 import { fragmentSource, uniforms, vertexSource } from "./shaders/ring.ts";
@@ -15,13 +15,15 @@ export interface RingPass {
 		color: Rgb, alpha: number,
 		thickness: number, shape: number, rotation?: number,
 	): void;
-	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(frame: FrameContext): void;
 	dispose(): void;
 }
-export function createRingPass(gl: WebGL2RenderingContext): RingPass {
-	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
+export type RingProgram = Program<(typeof uniforms)[number]>;
+export function createRingProgram(gl: WebGL2RenderingContext): RingProgram {
+	return createProgram(gl, vertexSource, fragmentSource, uniforms);
+}
+export function createRingPass(gl: WebGL2RenderingContext, program: RingProgram): RingPass {
 	const batch = createQuadBatch(gl, SHAPED_QUAD, 64);
-	const matrix = new Float32Array(9);
 	const flush = () => batch.draw();
 	return {
 		begin() {
@@ -30,18 +32,17 @@ export function createRingPass(gl: WebGL2RenderingContext): RingPass {
 		add(x, y, halfW, halfH, color, alpha, thickness, shape, rotation = 0) {
 			writeShaped(batch, x, y, halfW, halfH, color, alpha, thickness, shape, 0, 0, rotation);
 		},
-		draw(cam, deviceWidth, deviceHeight, dpr) {
+		draw(frame) {
 			if (batch.count === 0) {
 				return;
 			}
 			batch.upload();
 			program.use();
-			gl.uniform1f(program.at.u_scale, cam.zoom * dpr);
-			gl.uniformMatrix3fv(program.at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniform1f(program.at.u_scale, frame.scale);
+			gl.uniformMatrix3fv(program.at.u_clip, false, frame.clip);
 			blended(gl, flush);
 		},
 		dispose() {
-			program.dispose();
 			batch.dispose();
 		},
 	};

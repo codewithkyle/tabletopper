@@ -111,7 +111,7 @@ if (mount) {
 		},
 		remove: () => overlay?.remove(),
 	});
-	renderer = mountRenderer(mount, state, role, table);
+	renderer = mountRenderer(mount, state, role, user, table);
 	tools?.onChange(() => renderer?.invalidate());
 	if (renderer) {
 		const bar = mountLayerBar(mount, state, renderer);
@@ -157,8 +157,7 @@ if (mount) {
 		});
 	}
 	mountDialogs(table.arm);
-	const pinged = (layer: string, x: number, y: number, by: string) => {
-		renderer?.pinged(layer, x, y, by);
+	const pinged = (layer: string, by: string) => {
 		if (by !== user && layer === viewed()) {
 			sound.play();
 		}
@@ -176,7 +175,7 @@ function start(
 	overlay: Overlay | null,
 	turns: Turns | null,
 	follow: Follow | null,
-	pinged: (layer: string, x: number, y: number, by: string) => void,
+	pinged: (layer: string, by: string) => void,
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 	let socket: Socket | null = null;
@@ -184,26 +183,15 @@ function start(
 		(event) => reduce(state, event),
 		announce,
 		(event) => debug?.event(event),
-		() => renderer?.invalidate(),
+		(event) => renderer?.event(event),
 		(event) => {
 			if (touchesPawns(event.type)) {
-				renderer?.pawnsChanged();
 				overlay?.refresh();
 			}
 		},
 		(event) => {
-			if (event.type === "stroke.cleared") {
-				renderer?.bloodCleared(event.layer);
-			}
-		},
-		(event) => {
 			if (event.type === "pinged") {
-				pinged(event.layer, event.x, event.y, event.by ?? "");
-			}
-		},
-		(event) => {
-			if (event.type === "snapshot") {
-				renderer?.bloodResync();
+				pinged(event.layer, event.by ?? "");
 			}
 		},
 		(event) => {

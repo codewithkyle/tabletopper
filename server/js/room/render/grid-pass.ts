@@ -1,23 +1,21 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { Grid } from "../protocol.ts";
 import { blended } from "../gl/blend.ts";
 import { createProgram } from "../gl/program.ts";
 import { fullscreenTriangle } from "../gl/fullscreen.ts";
-import { inverseClipMatrix } from "./camera.ts";
 import { parseColor } from "../model/color.ts";
 import { fragmentSource, uniforms, vertexSource } from "./shaders/grid.ts";
 export interface GridPass {
-	draw(cam: Camera, grid: Grid, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(frame: FrameContext, grid: Grid): void;
 	dispose(): void;
 }
 export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
 	const vao = fullscreenTriangle(gl);
-	const matrix = new Float32Array(9);
 	const color = new Float32Array(4);
 	const flush = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 	return {
-		draw(cam, grid, deviceWidth, deviceHeight, dpr) {
+		draw(frame, grid) {
 			if (grid.lines === "off" || grid.cellSize < 1) {
 				return;
 			}
@@ -27,7 +25,7 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 			}
 			program.use();
 			gl.bindVertexArray(vao);
-			gl.uniformMatrix3fv(program.at.u_clipToWorld, false, inverseClipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniformMatrix3fv(program.at.u_clipToWorld, false, frame.clipInverse);
 			gl.uniform2f(program.at.u_offset, wrap(grid.offsetX, grid.cellSize), wrap(grid.offsetY, grid.cellSize));
 			gl.uniform1f(program.at.u_cell, grid.cellSize);
 			gl.uniform4f(program.at.u_color, color[0], color[1], color[2], color[3]);

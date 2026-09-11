@@ -630,36 +630,36 @@ and UI, not events.
 
 Everything else in today's `renderer.ts` moves:
 
-- [ ] `mountRenderer(mount, state, role, user, table: Table)`. The parameter
+- [x] `mountRenderer(mount, state, role, user, table: Table)`. The parameter
       is required and every `table ?` branch goes.
-- [ ] `render/camera-controller.ts`: `target`, `travel`, `advanceTravel`,
+- [x] `render/camera-controller.ts`: `target`, `travel`, `advanceTravel`,
       `focus`, `settleMap`, `onViewCommand`, `sweep` and `advanceSweep`.
       Exposes `update(now, map): boolean` (still moving) and the
       focus/benchmark entry points. `fitZoom` moves to `camera.ts`, is
       exported, and `fit` uses it instead of repeating the expression.
       `mapPerPixel` returns the same value `worldPerCssPixel` is computed
       from.
-- [ ] `readClearColor` and the `THEME_CHANGE` listener into
+- [x] `readClearColor` and the `THEME_CHANGE` listener into
       `render/theme.ts`, with one probe canvas reused across calls.
-- [ ] Rings: three stage instances over a shared `RingBatch` helper, each
+- [x] Rings: three stage instances over a shared `RingBatch` helper, each
       with its own buffer: rings, handles, pings. The `pingRings` adapter in
       the renderer goes away because the pings stage owns a `RingBatch`.
-- [ ] `visiblePawns` and the `drawn`/`synthetic` arrays move into the pawns
+- [x] `visiblePawns` and the `drawn`/`synthetic` arrays move into the pawns
       stage. `stress()` on the renderer forwards to it. The stage computes
       concealment with `concealed` from `model/polygon.ts` using
       `frame.state.fog`, `frame.viewed`, `frame.role` and `frame.user`;
       `Table.concealed` is no longer read by the renderer.
-- [ ] `decals.watch/build` move into the decals stage, gated on
+- [x] `decals.watch/build` move into the decals stage, gated on
       `frame.rebuild`; `bloodCleared`, `bloodResync`, `showBlood`, and the
       `ROOM_BLOOD` listener go with it. The stage handles `stroke.cleared`
       and `snapshot` through `event`. The renderer forwards `showBlood`.
-- [ ] `pings.add` moves into the pings stage, which handles `pinged` through
+- [x] `pings.add` moves into the pings stage, which handles `pinged` through
       `event` and colours it with `actorColor` from `model/color.ts`.
-- [ ] `main.ts`: the four event-matching effects that call the renderer
+- [x] `main.ts`: the four event-matching effects that call the renderer
       collapse to `(event) => renderer?.event(event)`. The `overlay.refresh`
       call that rides on `touchesPawns` today stays as its own effect until
       phase 5.
-- [ ] Tests: a `RecordingGL` stub good enough to construct stages, a test
+- [x] Tests: a `RecordingGL` stub good enough to construct stages, a test
       that `stagesFor` issues draws in the expected order for each role, and
       a test that `settling` is true only while something animates.
 
@@ -866,7 +866,7 @@ button (500 pawns) and record again.
 | baseline | 494 | 188120 | | | | |
 | 1 | 494 | 177068 | | | | |
 | 2 | 508 | 170127 | | | | |
-| 3 | | | | | | |
+| 3 | 519 | 172581 | | | | |
 | 4 | | | | | | |
 | 5 | | | | | | |
 

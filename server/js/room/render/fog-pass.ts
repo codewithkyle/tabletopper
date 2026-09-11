@@ -1,11 +1,10 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { FogShape } from "../protocol.ts";
 import type { MaskRect } from "../model/polygon.ts";
 import { blended } from "../gl/blend.ts";
 import { createVertexStream } from "../gl/vertices.ts";
 import { createProgram } from "../gl/program.ts";
 import { fullscreenTriangle } from "../gl/fullscreen.ts";
-import { inverseClipMatrix } from "./camera.ts";
 import { maskRect, rectTriangles, triangulate } from "../model/polygon.ts";
 import {
 	coverFragmentSource,
@@ -23,10 +22,7 @@ export interface FogPass {
 		map: { width: number; height: number } | null,
 		prefill: boolean, cell: number,
 	): void;
-	draw(
-		cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number,
-		color: { r: number; g: number; b: number }, alpha: number,
-	): void;
+	draw(frame: FrameContext, alpha: number): void;
 	dispose(): void;
 }
 export function createFogPass(gl: WebGL2RenderingContext): FogPass {
@@ -35,7 +31,6 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 	const coverProgram = createProgram(gl, coverVertexSource, coverFragmentSource, coverUniforms);
 	const coverAt = coverProgram.at;
 	const cover = fullscreenTriangle(gl);
-	const matrix = new Float32Array(9);
 	const flush = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 	const mask = createVertexStream(gl, 2, 1024);
 	const texture = gl.createTexture();
@@ -167,21 +162,21 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 			gl.bindBuffer(gl.ARRAY_BUFFER, null);
 			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		},
-		draw(cam, deviceWidth, deviceHeight, dpr, color, alpha) {
+		draw(frame, alpha) {
 			if (alpha <= 0) {
 				return;
 			}
-			gl.viewport(0, 0, deviceWidth, deviceHeight);
+			gl.viewport(0, 0, frame.deviceWidth, frame.deviceHeight);
 			coverProgram.use();
 			gl.bindVertexArray(cover);
-			gl.uniformMatrix3fv(coverAt.u_clipToWorld, false, inverseClipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniformMatrix3fv(coverAt.u_clipToWorld, false, frame.clipInverse);
 			if (sized) {
 				gl.uniform4f(coverAt.u_rect, rect.x, rect.y, rect.width, rect.height);
 			} else {
 				gl.uniform4f(coverAt.u_rect, 0, 0, 0, 0);
 			}
 			gl.uniform1f(coverAt.u_prefill, prefilled ? 1 : 0);
-			gl.uniform4f(coverAt.u_color, color.r, color.g, color.b, alpha);
+			gl.uniform4f(coverAt.u_color, frame.clear[0], frame.clear[1], frame.clear[2], alpha);
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, texture);
 			gl.uniform1i(coverAt.u_openness, 0);

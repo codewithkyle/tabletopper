@@ -1,11 +1,11 @@
-import type { Camera } from "./camera.ts";
+import type { FrameContext } from "./frame-context.ts";
 import type { Rect } from "../model/types.ts";
 import type { TileRange } from "./tiles.ts";
 import type { Attribute } from "../gl/quads.ts";
 import type { Slot, TextureArray } from "../gl/texture-array.ts";
 import type { MapRef } from "../protocol.ts";
 import { blended } from "../gl/blend.ts";
-import { clipMatrix, visibleRect } from "./camera.ts";
+import { visibleRect } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
 import { createQuadBatch } from "../gl/quads.ts";
 import { createTextureArray } from "../gl/texture-array.ts";
@@ -26,7 +26,7 @@ const TILE_QUAD: readonly Attribute[] = [{ size: 4 }, { size: 4 }, { size: 1 }];
 export interface TilePass {
 	begin(): void;
 	end(): boolean;
-	draw(cam: Camera, map: MapRef, alpha: number, deviceWidth: number, deviceHeight: number, dpr: number): void;
+	draw(frame: FrameContext, map: MapRef, alpha: number): void;
 	fetched(): number;
 	dispose(): void;
 }
@@ -36,7 +36,6 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 	const tileSizeByKey = new Map<string, number>();
 	const loader = newLoader(invalidate);
 	const batch = createQuadBatch(gl, TILE_QUAD, 256);
-	const matrix = new Float32Array(9);
 	const view: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
 	const rect: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
 	const uv: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
@@ -71,13 +70,14 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			}
 			loader.begin();
 		},
-		draw(cam, map, alpha, deviceWidth, deviceHeight, dpr) {
+		draw(frame, map, alpha) {
+			const cam = frame.camera;
 			if (map.width < 1 || map.height < 1 || map.tileSize < 1) {
 				return;
 			}
 			const store = storeFor(map.tileSize);
-			const z = levelFor(cam.zoom, dpr, map.maxZoom);
-			visibleRect(cam, { width: deviceWidth / dpr, height: deviceHeight / dpr }, view);
+			const z = levelFor(cam.zoom, frame.dpr, map.maxZoom);
+			visibleRect(cam, frame.viewport, view);
 			visibleRange(map, z, view, range);
 			const wanted = rangeCount(range);
 			if (wanted === 0) {
@@ -123,7 +123,7 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			gl.bindTexture(gl.TEXTURE_2D_ARRAY, store.texture);
 			gl.uniform1i(program.at.u_tiles, 0);
 			gl.uniform1f(program.at.u_alpha, alpha);
-			gl.uniformMatrix3fv(program.at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
+			gl.uniformMatrix3fv(program.at.u_clip, false, frame.clip);
 			blended(gl, flush);
 		},
 		end() {
