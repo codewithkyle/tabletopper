@@ -1,21 +1,16 @@
 package pages
-
 import (
 	"strconv"
-
 	"tabletopper/templ/layouts"
 )
-
 templ Room(data RoomPageData) {
 	@layouts.Base(data.Name+" | Tabletopper", "/js/room.js", data.Bundle()) {
 		@roomContent(data)
 	}
 }
-
 templ RoomLockItem(data RoomPageData) {
 	@roomBarItem(roomLockItem(data))
 }
-
 templ roomContent(data RoomPageData) {
 	<room-page class="relative block h-dvh w-screen overflow-hidden">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -86,7 +81,6 @@ templ roomContent(data RoomPageData) {
 		</div>
 	</room-page>
 }
-
 templ roomLayerPicker() {
 	<div data-layer-bar hidden class="flex items-center gap-1.5 pl-2">
 		<select data-layer-select aria-label="Floor to look at" class="select select-xs max-w-40"></select>
@@ -94,7 +88,6 @@ templ roomLayerPicker() {
 		<button type="button" data-layer-activate hidden class="btn btn-xs">Show to players</button>
 	</div>
 }
-
 templ roomBarMenu(m RoomMenu) {
 	<details data-room-menu class="dropdown">
 		<summary class="btn btn-ghost btn-xs list-none font-normal [&::-webkit-details-marker]:hidden">{ m.Label }</summary>
@@ -105,7 +98,6 @@ templ roomBarMenu(m RoomMenu) {
 		</ul>
 	</details>
 }
-
 templ roomBarItem(item RoomMenuItem) {
 	<li
 		if item.ID != "" {
@@ -196,14 +188,12 @@ templ roomBarItem(item RoomMenuItem) {
 		}
 	</li>
 }
-
 templ roomBarItemLabel(item RoomMenuItem) {
 	<span>{ item.Label }</span>
 	if item.Key != "" {
 		<kbd class="kbd kbd-xs ml-auto">{ item.Key }</kbd>
 	}
 }
-
 templ roomToolbar(data RoomPageData) {
 	<div class="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
 		<div data-room-tools class={ surfacePanel + " flex flex-col gap-1 rounded-full p-1" }>
@@ -247,7 +237,6 @@ templ roomToolbar(data RoomPageData) {
 		@roomLayerMenu()
 	}
 }
-
 templ roomFogOptions() {
 	<div data-fog-options hidden class={ surfacePanel + " flex flex-col gap-1 rounded-box p-1" }>
 		@roomFogGroup("data-fog-shape", FogShapeChoices())
@@ -255,7 +244,6 @@ templ roomFogOptions() {
 		@roomFogGroup("data-fog-mode", FogModeChoices())
 	</div>
 }
-
 templ roomDrawOptions() {
 	<div data-draw-options hidden class={ surfacePanel + " flex flex-col gap-1 rounded-box p-1" }>
 		@roomDrawGroup("data-draw-mode", DrawModeChoices())
@@ -313,7 +301,6 @@ templ roomDrawOptions() {
 		</div>
 	</div>
 }
-
 templ roomDrawGroup(attr string, choices []Choice) {
 	for i, c := range choices {
 		<div class="tooltip tooltip-left">
@@ -333,7 +320,6 @@ templ roomDrawGroup(attr string, choices []Choice) {
 		</div>
 	}
 }
-
 templ roomDrawIcon(name string) {
 	switch name {
 		case "rect":
@@ -348,7 +334,6 @@ templ roomDrawIcon(name string) {
 			@brushIcon()
 	}
 }
-
 templ roomFogGroup(attr string, choices []Choice) {
 	for i, c := range choices {
 		<div class="tooltip tooltip-left">
@@ -368,7 +353,6 @@ templ roomFogGroup(attr string, choices []Choice) {
 		</div>
 	}
 }
-
 templ roomFogIcon(name string) {
 	switch name {
 		case "rect":
@@ -381,7 +365,6 @@ templ roomFogIcon(name string) {
 			@eyeIcon()
 	}
 }
-
 templ roomToolIcon(name string) {
 	switch name {
 		case RoomToolMeasure:
@@ -398,7 +381,6 @@ templ roomToolIcon(name string) {
 			@clickIcon()
 	}
 }
-
 templ roomDebug() {
 	<details
 		data-room-debug

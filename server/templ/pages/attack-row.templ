@@ -1,5 +1,4 @@
 package pages
-
 templ AttackRow(characterID string, attack Attack) {
 	{{ action := "/characters/" + characterID + "/attacks/" + attack.ID }}
 	{{ panel := AttackRowPanel(attack.ID) }}
@@ -91,7 +90,6 @@ templ AttackRow(characterID string, attack Attack) {
 		</div>
 	</form>
 }
-
 templ attacksTable(characterID string, attacks []Attack) {
 	<div id="attack-rows" class="grid gap-3">
 		for _, attack := range attacks {

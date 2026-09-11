@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"context"
 	"database/sql"
@@ -9,56 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
 	sheet, portrait, err := a.loadCharacterSheet(r.Context(), grant.ResourceID, grant.OwnerID)
-	
-	
-	
 	if errors.Is(err, sql.ErrNoRows) {
 		shareUnavailable(w, r)
 		return
@@ -68,7 +23,6 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 		redirectToError(w, r)
 		return
 	}
-
 	if portrait {
 		sheet.Avatar = sharePortraitURL(token)
 	}
@@ -76,22 +30,9 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 		Blurb:  "This sheet is read-only and stays in step with the character as it is edited. Export it as Markdown for your own notes.",
 		Export: shareExportURL(token),
 	}
-
 	shareHeaders(w)
 	render(w, r, pages.SharedCharacterPage(sheet))
 }
-
-
-
-
-
-
-
-
-
-
-
-
 func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.ULID) (pages.SharedCharacterSheet, bool, error) {
 	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
 		ID:      characterID,
@@ -100,7 +41,6 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, err
 	}
-
 	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
@@ -108,7 +48,6 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, fmt.Errorf("attacks: %w", err)
 	}
-
 	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
@@ -116,7 +55,6 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, fmt.Errorf("equipment: %w", err)
 	}
-
 	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
@@ -124,17 +62,12 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, fmt.Errorf("prepared spells: %w", err)
 	}
-
 	levels, err := a.spellLevels(ctx, characterID, ownerID)
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, err
 	}
-
 	return sharedCharacterSheet(character, attacks, equipped, prepared, levels), character.AssetID != nil, nil
 }
-
-
-
 func sharedCharacterSheet(
 	character queries.Character,
 	attacks []queries.Attack,
@@ -144,15 +77,9 @@ func sharedCharacterSheet(
 ) pages.SharedCharacterSheet {
 	derived := characterDerived(character)
 	header := characterHeaderFrom(character, derived)
-
-	
-	
-	
 	header.AvatarID = ""
-
 	ability := pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility))
 	casts := ability != pages.SpellcastingAbilityNone
-
 	sheet := pages.SharedCharacterSheet{
 		Header: header,
 		Identity: sharedFacts(
@@ -215,11 +142,6 @@ func sharedCharacterSheet(
 			pages.SharedFact{Label: "Hair", Value: character.Hair},
 		),
 	}
-
-	
-	
-	
-	
 	if casts {
 		sheet.CoreStats = append(sheet.CoreStats, pages.SharedFact{
 			Label: "Spell Bonus (items, feats)",
@@ -230,48 +152,30 @@ func sharedCharacterSheet(
 			{Label: "Spell Attack", Value: derived.SpellAttackBonus},
 		}
 	}
-
 	return sheet
 }
-
-
-
-
 func sharedFacts(facts ...pages.SharedFact) []pages.SharedFact {
 	kept := make([]pages.SharedFact, 0, len(facts))
 	for _, fact := range facts {
 		if strings.TrimSpace(fact.Value) == "" {
 			continue
 		}
-
 		kept = append(kept, fact)
 	}
-
 	return kept
 }
-
-
-
-
 func countValue[T ~uint8 | ~uint16](count T) string {
 	if count == 0 {
 		return ""
 	}
-
 	return strconv.FormatUint(uint64(count), 10)
 }
-
-
-
-
 func flagValue(on bool) string {
 	if !on {
 		return ""
 	}
-
 	return "Yes"
 }
-
 func sharedBonuses(rows []pages.BonusRow) []pages.SharedBonus {
 	bonuses := make([]pages.SharedBonus, 0, len(rows))
 	for _, row := range rows {
@@ -281,14 +185,8 @@ func sharedBonuses(rows []pages.BonusRow) []pages.SharedBonus {
 			Total: row.Total,
 		})
 	}
-
 	return bonuses
 }
-
-
-
-
-
 func sharedAttacks(rows []queries.Attack) []pages.SharedAttack {
 	attacks := make([]pages.SharedAttack, 0, len(rows))
 	for _, row := range rows {
@@ -306,16 +204,10 @@ func sharedAttacks(rows []queries.Attack) []pages.SharedAttack {
 		if attack.Name == "" {
 			attack.Name = "Unnamed attack"
 		}
-
 		attacks = append(attacks, attack)
 	}
-
 	return attacks
 }
-
-
-
-
 func sharedItems(rows []queries.Inventory) []pages.SharedItem {
 	items := make([]pages.SharedItem, 0, len(rows))
 	for _, row := range rows {
@@ -326,32 +218,23 @@ func sharedItems(rows []queries.Inventory) []pages.SharedItem {
 		if row.Quantity != 1 {
 			item.Quantity = strconv.FormatUint(uint64(row.Quantity), 10)
 		}
-
 		items = append(items, item)
 	}
-
 	return items
 }
-
-
-
-
 func sharedFeatures(rows []pages.Feature) []pages.SharedFact {
 	features := make([]pages.SharedFact, 0, len(rows))
 	for _, row := range rows {
 		if strings.TrimSpace(row.Name) == "" && strings.TrimSpace(row.Value) == "" {
 			continue
 		}
-
 		features = append(features, pages.SharedFact{
 			Label: fallbackString(strings.TrimSpace(row.Name), "Unnamed feature"),
 			Value: row.Value,
 		})
 	}
-
 	return features
 }
-
 func sharedSpellGroups(rows []queries.Spell) []pages.SharedSpellGroup {
 	groups := make([]pages.SharedSpellGroup, 0, pages.MaxSpellLevel+1)
 	for _, group := range preparedSpellGroups(rows) {
@@ -363,39 +246,24 @@ func sharedSpellGroups(rows []queries.Spell) []pages.SharedSpellGroup {
 				Description: spell.Description,
 			})
 		}
-
 		groups = append(groups, pages.SharedSpellGroup{Name: group.Name, Spells: spells})
 	}
-
 	return groups
 }
-
-
-
-
-
-
-
-
 func sharedSpellLevels(levels []pages.SpellLevel) []pages.SharedSpellLevel {
 	active := make([]pages.SharedSpellLevel, 0, len(levels))
 	for _, level := range levels {
 		if level.Count == 0 && level.Slots == "0" {
 			continue
 		}
-
 		active = append(active, pages.SharedSpellLevel{
 			Name:   pages.SpellLevelName(level.Level),
 			Slots:  slotCountLabel(level),
 			Spells: pages.SpellCountLabel(level.Count),
 		})
 	}
-
 	return active
 }
-
-
-
 func slotCountLabel(level pages.SpellLevel) string {
 	if level.Level == 0 {
 		return "Unlimited"
@@ -403,6 +271,5 @@ func slotCountLabel(level pages.SpellLevel) string {
 	if level.Slots == "1" {
 		return "1 slot"
 	}
-
 	return level.Slots + " slots"
 }

@@ -25,7 +25,6 @@ class ZoneDetect extends HTMLElement {
         if (!select) {
             return;
         }
-
         let zone;
         try {
             zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -35,7 +34,6 @@ class ZoneDetect extends HTMLElement {
         if (!zone) {
             return;
         }
-
         // data-alias is the zone's older IANA spelling, and matching it is not
         // belt-and-braces. IANA renames zones and keeps the old name as a link,
         // and ICU -- which is what resolvedOptions() goes through -- still
@@ -55,5 +53,4 @@ class ZoneDetect extends HTMLElement {
         }
     }
 }
-
 customElements.define("zone-detect", ZoneDetect);

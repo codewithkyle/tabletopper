@@ -1,5 +1,4 @@
 package pages
-
 var skills = []BonusEntry{
 	{Key: "acrobatics", Ability: "dex", Abbr: "DEX", Label: "Acrobatics"},
 	{Key: "animal_handling", Ability: "wis", Abbr: "WIS", Label: "Animal Handling"},
@@ -20,7 +19,6 @@ var skills = []BonusEntry{
 	{Key: "stealth", Ability: "dex", Abbr: "DEX", Label: "Stealth"},
 	{Key: "survival", Ability: "wis", Abbr: "WIS", Label: "Survival"},
 }
-
 templ skillsTable(rows []BonusRow, passivePerception string) {
 	<div class="@container grid gap-3">
 		<p class={ surfaceInset + " flex items-center justify-between gap-3 px-3 py-2" }>

@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
@@ -10,22 +9,14 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
-
 	"github.com/oklog/ulid/v2"
 )
-
 var testSpellID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
-
-
-
-
 func spellRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, level string, spellID string) *httptest.ResponseRecorder {
 	t.Helper()
-
 	r := httptest.NewRequest(method, "/characters/spells", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.SetPathValue("id", testCharacterID.String())
@@ -34,13 +25,10 @@ func spellRequest(t *testing.T, handler http.HandlerFunc, method string, form ur
 		r.SetPathValue("spellId", spellID)
 	}
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	handler(rec, r)
-
 	return rec
 }
-
 func fullSpellForm() url.Values {
 	return url.Values{
 		"name":          {"Fireball"},
@@ -53,24 +41,16 @@ func fullSpellForm() url.Values {
 		"prepared":      {"1"},
 	}
 }
-
-
-
-
-
 func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := spellRequest(t, app.SaveSpell, http.MethodPost, fullSpellForm(), "3", testSpellID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "UPDATE spells") {
 		t.Fatalf("did not update spells:\n%s", call.query)
 	}
-
 	want := []string{
 		"casting_range", "casting_time", "components", "description",
 		"duration", "is_prepared", "name", "school",
@@ -78,20 +58,11 @@ func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 	if got := sortedColumns(t, call.query); !reflect.DeepEqual(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
-
-	
-	
-	
 	for _, column := range setColumns(t, call.query) {
 		if column == "level" {
 			t.Error("a spell save writes its own level")
 		}
 	}
-
-	
-	
-	
-	
 	scope := call.args[len(call.args)-4:]
 	for i, want := range []ulid.ULID{testSpellID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -102,14 +73,6 @@ func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Errorf("scope level = %v, want 3", scope[3])
 	}
 }
-
-
-
-
-
-
-
-
 func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -126,13 +89,8 @@ func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			spellRequest(t, app.SaveSpell, http.MethodPost, c.form, "3", testSpellID.String())
-
 			call := db.only(t)
-			
-			
-			
 			got, ok := call.args[7].(bool)
 			if !ok {
 				t.Fatalf("is_prepared arg is %T, want bool", call.args[7])
@@ -143,10 +101,6 @@ func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestSpellSchoolFallsBackRatherThanFailing(t *testing.T) {
 	for _, c := range []struct{ posted, want string }{
 		{"Abjuration", "Abjuration"},
@@ -155,33 +109,20 @@ func TestSpellSchoolFallsBackRatherThanFailing(t *testing.T) {
 		{"evocation", pages.DefaultSpellSchool},
 	} {
 		app, db := newPanelApp(1)
-
 		form := fullSpellForm()
 		form.Set("school", c.posted)
 		spellRequest(t, app.SaveSpell, http.MethodPost, form, "3", testSpellID.String())
-
 		if got := db.only(t).args[1]; got != c.want {
 			t.Errorf("school %q stored as %v, want %v", c.posted, got, c.want)
 		}
 	}
 }
-
-
-
-
-
 func TestAddSpellCannotCarrySpellData(t *testing.T) {
 	app, db := newPanelApp(0)
-
-	
-	
-	
-	
 	rec := spellRequest(t, app.AddSpell, http.MethodPost, fullSpellForm(), "3", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-
 	call := db.only(t)
 	if len(call.args) != 4 {
 		t.Errorf("statement took %d values, want 4: %v", len(call.args), call.args)
@@ -199,20 +140,12 @@ func TestAddSpellCannotCarrySpellData(t *testing.T) {
 	if !strings.Contains(call.query, "FROM characters") {
 		t.Errorf("the insert is not guarded by the characters row:\n%s", call.query)
 	}
-
 	if fields := reflect.TypeOf(queries.InsertSpellParams{}).NumField(); fields != 4 {
 		t.Errorf("InsertSpellParams has %d fields, want 4 (spell, level, character, owner)", fields)
 	}
 }
-
-
-
-
-
-
 func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := spellRequest(t, app.DeleteSpell, http.MethodDelete, nil, "3", testSpellID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d -- 204 is in noSwap and would strand the row", rec.Code, http.StatusOK)
@@ -220,7 +153,6 @@ func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	if body := rec.Body.String(); body != "" {
 		t.Errorf("body = %q, want empty", body)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "DELETE FROM spells") {
 		t.Fatalf("did not delete from spells:\n%s", call.query)
@@ -234,12 +166,6 @@ func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 		t.Errorf("arg[3] = %v, want level 3", call.args[3])
 	}
 }
-
-
-
-
-
-
 func TestMissingSpellRowIsASpell404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -251,7 +177,6 @@ func TestMissingSpellRowIsASpell404(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, _ := newPanelApp(0)
-
 			rec := spellRequest(t, c.handler(app), c.method, fullSpellForm(), "3", testSpellID.String())
 			if rec.Code != http.StatusNotFound {
 				t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -262,12 +187,8 @@ func TestMissingSpellRowIsASpell404(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestUnparseableSpellIDTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := spellRequest(t, app.SaveSpell, http.MethodPost, fullSpellForm(), "3", "not-a-ulid")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -276,12 +197,6 @@ func TestUnparseableSpellIDTouchesNoDatabase(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
-
-
-
 func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 	for _, raw := range []string{"0", "1", "9"} {
 		if _, ok := parseSpellLevel(raw); !ok {
@@ -293,7 +208,6 @@ func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 			t.Errorf("level %q was accepted as %d", raw, level)
 		}
 	}
-
 	for _, c := range []struct {
 		name    string
 		handler func(*App) http.HandlerFunc
@@ -307,7 +221,6 @@ func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := spellRequest(t, c.handler(app), c.method, fullSpellForm(), "10", c.spellID)
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -318,13 +231,8 @@ func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestSlotSaveRefusesCantrips(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := spellRequest(t, app.SaveSpellSlots, http.MethodPost, url.Values{"slots": {"4"}, "used": {"1"}}, "0", "")
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -333,19 +241,12 @@ func TestSlotSaveRefusesCantrips(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
-
-
 func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := spellRequest(t, app.SaveSpellSlots, http.MethodPost, url.Values{"slots": {"4"}, "used": {"1"}}, "3", "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "INSERT INTO spell_slots") {
 		t.Fatalf("did not write spell_slots:\n%s", call.query)
@@ -356,10 +257,6 @@ func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 	if !strings.Contains(call.query, "FROM characters") {
 		t.Errorf("the upsert is not guarded by the characters row:\n%s", call.query)
 	}
-
-	
-	
-	
 	if len(call.args) != 7 {
 		t.Fatalf("statement took %d values, want 7: %v", len(call.args), call.args)
 	}
@@ -374,25 +271,14 @@ func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestUsedIsCappedAtSlots(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	spellRequest(t, app.SaveSpellSlots, http.MethodPost, url.Values{"slots": {"2"}, "used": {"9"}}, "3", "")
-
 	call := db.only(t)
 	if got, ok := call.args[2].(uint8); !ok || got != 2 {
 		t.Errorf("used = %v, want it capped at 2", call.args[2])
 	}
 }
-
-
-
-
-
 func TestSlotCountsAreCoercedNotRejected(t *testing.T) {
 	for _, c := range []struct {
 		raw  string
@@ -413,10 +299,6 @@ func TestSlotCountsAreCoercedNotRejected(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -430,10 +312,8 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	} {
 		t.Run(c.field, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			form := fullSpellForm()
 			form.Set(c.field, strings.Repeat("é", c.limit+1))
-
 			rec := spellRequest(t, app.SaveSpell, http.MethodPost, form, "3", testSpellID.String())
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
@@ -443,14 +323,9 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 			}
 		})
 	}
-
-	
-	
-	
 	app, db := newPanelApp(1)
 	form := fullSpellForm()
 	form.Set("name", strings.Repeat("é", spellNameLimit))
-
 	rec := spellRequest(t, app.SaveSpell, http.MethodPost, form, "3", testSpellID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -459,19 +334,12 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 		t.Errorf("ran %d statements, want 1", len(db.calls))
 	}
 }
-
-
-
-
-
-
 func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
 	body := string(source)
-
 	statement := func(name string) string {
 		start := strings.Index(body, "-- name: "+name)
 		if start < 0 {
@@ -483,7 +351,6 @@ func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 		}
 		return out
 	}
-
 	if got := statement("GetSpellSlots"); !strings.Contains(got, "level = ?") {
 		t.Errorf("GetSpellSlots is not one level:\n%s", got)
 	}
@@ -497,17 +364,11 @@ func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 		t.Errorf("CountSpellsByLevel does not group in SQL:\n%s", got)
 	}
 }
-
-
-
-
-
 func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
 	levels := mergeSpellLevels(
 		[]queries.SpellSlot{{Level: 3, Slots: 4, Used: 1}},
 		[]queries.CountSpellsByLevelRow{{Level: 0, Total: 5}, {Level: 3, Total: 2}},
 	)
-
 	if len(levels) != 10 {
 		t.Fatalf("levels = %d, want 10", len(levels))
 	}
@@ -516,38 +377,27 @@ func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
 			t.Errorf("levels[%d] is level %d -- the slice is not in level order", i, level.Level)
 		}
 	}
-
 	if got := levels[3]; got.Slots != "4" || got.Used != "1" || got.Count != 2 {
 		t.Errorf("level 3 = %+v, want slots 4, used 1, count 2", got)
 	}
 	if got := levels[0]; got.Count != 5 {
 		t.Errorf("cantrips count = %d, want 5", got.Count)
 	}
-	
 	for _, level := range []int{1, 2, 4, 5, 6, 7, 8, 9} {
 		if got := levels[level]; got.Slots != "0" || got.Used != "0" || got.Count != 0 {
 			t.Errorf("untouched level %d = %+v, want zeroes", level, got)
 		}
 	}
 }
-
-
-
-
-
-
-
 func TestEverySpellQueryIsScopedToTheOwner(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	statements := regexp.MustCompile(`(?m)^-- name: (\w+)`).FindAllStringSubmatchIndex(string(source), -1)
 	if len(statements) == 0 {
 		t.Fatal("no named queries in sql/spells.sql")
 	}
-
 	for i, at := range statements {
 		name := string(source[at[2]:at[3]])
 		end := len(source)
@@ -555,28 +405,19 @@ func TestEverySpellQueryIsScopedToTheOwner(t *testing.T) {
 			end = statements[i+1][0]
 		}
 		body := string(source[at[0]:end])
-
 		if !strings.Contains(body, "owner_id") {
 			t.Errorf("%s is not scoped to the owner:\n%s", name, body)
 		}
-		
-		
-		
 		if !strings.Contains(body, "character_id") && !strings.Contains(body, "characters") {
 			t.Errorf("%s is not scoped to the character:\n%s", name, body)
 		}
 	}
 }
-
-
-
-
 func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	body := string(source)
 	start := strings.Index(body, "-- name: ListSpellsAtLevel")
 	if start < 0 {
@@ -586,15 +427,10 @@ func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
 		statement = statement[:end+1]
 	}
-
 	if !strings.Contains(statement, "level = ?") {
 		t.Errorf("the level page is not filtered in the statement:\n%s", statement)
 	}
 }
-
-
-
-
 func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
 	for level, want := range map[int]string{0: "Cantrips", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 9: "9th"} {
 		if got := pages.SpellLevelTab(level); got != want {
@@ -607,11 +443,6 @@ func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestPreparedSpellGroupsFollowTheQueryOrder(t *testing.T) {
 	groups := preparedSpellGroups([]queries.Spell{
 		{ID: ulid.Make(), Level: 0, Name: "Fire Bolt", School: "Evocation"},
@@ -620,7 +451,6 @@ func TestPreparedSpellGroupsFollowTheQueryOrder(t *testing.T) {
 		{ID: ulid.Make(), Level: 3, Name: "Fireball", School: "Evocation"},
 		{ID: ulid.Make(), Level: 3, Name: "Counterspell", School: "Abjuration"},
 	})
-
 	if len(groups) != 3 {
 		t.Fatalf("groups = %d, want 3", len(groups))
 	}
@@ -639,29 +469,18 @@ func TestPreparedSpellGroupsFollowTheQueryOrder(t *testing.T) {
 				i, got.Level, got.Name, len(got.Spells), want.level, want.name, want.spells)
 		}
 	}
-
-	
-	
 	if groups[0].Spells[0].Name != "Fire Bolt" || groups[2].Spells[1].Name != "Counterspell" {
 		t.Errorf("rows did not keep their order within a level: %+v", groups)
 	}
-
-	
 	if got := preparedSpellGroups(nil); len(got) != 0 {
 		t.Errorf("an empty result made %d groups", len(got))
 	}
 }
-
-
-
-
-
 func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	body := string(source)
 	start := strings.Index(body, "-- name: ListPreparedSpells")
 	if start < 0 {
@@ -671,7 +490,6 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
 		statement = statement[:end+1]
 	}
-
 	if !strings.Contains(statement, "is_prepared = TRUE") {
 		t.Errorf("the prepared view is not filtered in the statement:\n%s", statement)
 	}
@@ -679,40 +497,25 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 		t.Errorf("the prepared view is not ordered by level:\n%s", statement)
 	}
 }
-
-
-
-
 func TestSpellsRootRedirectsToCantrips(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
 	r.SetPathValue("id", testCharacterID.String())
 	rec := httptest.NewRecorder()
 	app.CharacterSpellsRedirect(rec, r)
-
 	if want := "/characters/" + testCharacterID.String() + "/edit/spells/0"; rec.Header().Get("Location") != want {
 		t.Errorf("Location = %q, want %q", rec.Header().Get("Location"), want)
 	}
-	
-	
-	
 	if len(db.calls) != 0 {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
-
 func TestSpellsRootWillNotRedirectToAnUnparsedID(t *testing.T) {
 	app, _ := newPanelApp(1)
-
 	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
 	r.SetPathValue("id", "https:
 	rec := httptest.NewRecorder()
 	app.CharacterSpellsRedirect(rec, r)
-
 	if got := rec.Header().Get("Location"); got != "/characters" {
 		t.Errorf("Location = %q, want /characters", got)
 	}

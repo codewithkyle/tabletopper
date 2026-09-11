@@ -31,18 +31,15 @@
 //
 // A slider with no data-range-output is simply not one of these, which is a
 // slider without a reading rather than a case to branch on.
-
 document.addEventListener("input", (e) => {
     const input = e.target;
     if (!(input instanceof HTMLInputElement) || input.type !== "range") {
         return;
     }
-
     const id = input.dataset.rangeOutput;
     if (!id) {
         return;
     }
-
     // The slot rather than the output itself, because the output holds the unit
     // as well and replacing its text would eat the per cent sign.
     const slot = document.getElementById(id)?.querySelector("[data-range-value]");

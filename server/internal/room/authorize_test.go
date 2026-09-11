@@ -1,28 +1,12 @@
 package room
-
 import (
 	"slices"
 	"testing"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
 func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 	w, fx := authorizeWorld(t)
-
 	const ok = ""
-
 	tests := []struct {
 		wire  string
 		cmd   Command
@@ -40,10 +24,6 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.setGrid", &TableSetGrid{Grid: w.s.Table.Grid}, ok, CodeForbidden, CodeForbidden},
 		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull, InitiativeGrouping: GroupMonsters}, ok, CodeForbidden, CodeForbidden},
 		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
-
-		
-		
-		
 		{"pawn.spawn", &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, CharacterID: &testCharID}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.spawnCharacters", &PawnSpawnCharacters{}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.move", &PawnMove{Anchor: fx.owned}, ok, ok, CodeForbidden},
@@ -53,44 +33,28 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"pawn.setVisible", &PawnSetVisible{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.setLayer", &PawnSetLayer{IDs: []ulid.ULID{fx.owned}, Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.remove", &PawnRemove{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
-
 		{"initiative.set", &InitiativeSet{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.sync", &InitiativeSync{}, ok, CodeForbidden, CodeForbidden},
-
-		
-		
 		{"initiative.next", &InitiativeNext{}, ok, ok, CodeForbidden},
 		{"initiative.clear", &InitiativeClear{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.activate", &InitiativeActivate{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.remove", &InitiativeRemove{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.reorder", &InitiativeReorder{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.add", &InitiativeAdd{Name: "Lair action"}, ok, CodeForbidden, CodeForbidden},
-
 		{"fog.setEnabled", &FogSetEnabled{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"fog.setPrefill", &FogSetPrefill{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"fog.add", &FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{0, 0, 64, 64}}, ok, CodeForbidden, CodeForbidden},
 		{"fog.remove", &FogRemove{ID: fx.shape}, ok, CodeForbidden, CodeForbidden},
 		{"fog.clear", &FogClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
-
-		
-		
 		{"stroke.begin", &StrokeBegin{ID: testID(500), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, ok, ok, ok},
-
-		
-		
-		
 		{"stroke.extend", &StrokeExtend{ID: fx.stroke}, CodeForbidden, ok, CodeForbidden},
 		{"stroke.end", &StrokeEnd{ID: fx.stroke}, CodeForbidden, ok, CodeForbidden},
 		{"stroke.erase", &StrokeErase{IDs: []ulid.ULID{fx.stroke}}, ok, ok, CodeForbidden},
 		{"stroke.clear", &StrokeClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
-
 		{"ping", &Ping{Layer: w.layer}, ok, ok, ok},
 		{"player.kick", &PlayerKick{ID: testOtherID}, ok, CodeForbidden, CodeForbidden},
 		{"sync.request", &SyncRequest{}, ok, ok, ok},
 	}
-
-	
-	
 	covered := map[string]bool{}
 	for _, tc := range tests {
 		covered[tc.wire] = true
@@ -100,7 +64,6 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 			t.Errorf("%s has no row in the authorization table", wire)
 		}
 	}
-
 	for _, tc := range tests {
 		for _, cell := range []struct {
 			who   string
@@ -112,18 +75,14 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 			{"another player", w.other, tc.other},
 		} {
 			err := tc.cmd.Authorize(w.s, cell.actor)
-
 			if cell.want == ok {
 				if err != nil {
 					t.Errorf("%s: %s was refused: %v", tc.wire, cell.who, err)
 				}
-
 				continue
 			}
-
 			if err == nil {
 				t.Errorf("%s: %s was allowed, want %s", tc.wire, cell.who, cell.want)
-
 				continue
 			}
 			if e, isRoomError := err.(*Error); !isRoomError || e.Code != cell.want {
@@ -132,47 +91,30 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		}
 	}
 }
-
-
 type authorizeFixture struct {
 	spare  ulid.ULID
 	owned  ulid.ULID
 	stroke ulid.ULID
 	shape  ulid.ULID
 }
-
 func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	t.Helper()
-
 	w := newWorld(t)
 	fx := authorizeFixture{spare: w.addLayer("Cellar")}
-
 	fx.owned = w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID, CharacterID: &testCharID})
-
 	fx.stroke = testID(400)
 	w.apply(&StrokeBegin{ID: fx.stroke, Layer: w.layer, Kind: StrokeFree, Color: "#ff0000", Width: 3, Points: []int{0, 0, 10, 10}}, w.pc)
-
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 100, 100}}, w.gm)
 	fx.shape = w.s.Fog[0].ID
-
-	
-	
 	w.apply(&InitiativeSet{
 		Entries: []InitiativeEntry{{Name: "Ari", PawnIDs: []ulid.ULID{fx.owned}, Initiative: 18}},
 	}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
-
 	return w, fx
 }
-
-
-
-
 func TestAuthorizeNeverMutates(t *testing.T) {
 	w, fx := authorizeWorld(t)
-
 	before := mustJSON(t, w.s)
-
 	for wire, cmd := range WireCommandPrototypes() {
 		for _, a := range []Actor{w.gm, w.pc, w.other} {
 			_ = cmd.Authorize(w.s, a)
@@ -181,37 +123,23 @@ func TestAuthorizeNeverMutates(t *testing.T) {
 			t.Fatalf("%s changed the state from its Authorize", wire)
 		}
 	}
-
-	
-	
 	for wire, cmd := range HubCommandPrototypes() {
 		_ = cmd.Authorize(w.s, w.gm)
 		if got := mustJSON(t, w.s); got != before {
 			t.Fatalf("%s changed the state from its Authorize", wire)
 		}
 	}
-
 	_ = fx
 }
-
-
-
 func TestTheGMCannotBeRemoved(t *testing.T) {
 	w := newWorld(t)
-
 	w.refuse(&PlayerKick{ID: testGMID}, w.gm, CodeForbidden)
-
-	
-	
-	
-	
 	if err := (&PlayerKick{ID: testGMID}).Authorize(w.s, Actor{ID: testPlayerID, Role: RoleGM}); err != nil {
 		t.Fatalf("a GM naming somebody else was refused by Authorize: %v", err)
 	}
 	if _, err := (&PlayerKick{ID: testGMID}).Apply(w.s, Actor{ID: testPlayerID, Role: RoleGM}, w.env); err == nil {
 		t.Fatal("Apply removed the GM's own row")
 	}
-
 	if !slices.ContainsFunc(w.s.Players, func(p Player) bool { return p.ID == testGMID }) {
 		t.Fatal("the GM is no longer in the room")
 	}

@@ -1,61 +1,28 @@
 package controllers
-
 import (
 	"log/slog"
 	"net/http"
 	"strings"
-
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const (
 	attackNameLimit   = 128
 	attackBonusLimit  = 32
 	attackDamageLimit = 64
 	attackNotesLimit  = 65535
 )
-
-
-
-
-
-
-
-
 func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-
 	characterID, ok := panelCharacterID(w, r)
 	if !ok {
 		return
 	}
-
 	attackID := ulid.Make()
-	
-	
-	
-	
 	result, err := a.Queries.InsertAttack(ctx, queries.InsertAttackParams{
 		ID:          attackID,
 		CharacterID: characterID,
@@ -70,7 +37,6 @@ func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "character")
 		return
 	}
-
 	attack, err := a.Queries.GetAttack(ctx, queries.GetAttackParams{
 		ID:          attackID,
 		CharacterID: characterID,
@@ -81,17 +47,12 @@ func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.AttackRow(characterID.String(), attackPageRow(attack)))
 }
-
-
-
 func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-
 	characterID, ok := panelCharacterID(w, r)
 	if !ok {
 		return
@@ -100,18 +61,15 @@ func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-
 	panel := pages.AttackRowPanel(attackID.String())
 	if !parsePanelForm(w, r, panel) {
 		return
 	}
-
 	input, problems := buildAttackInput(r)
 	if len(problems) > 0 {
 		renderPanelBlock(w, r, panel, problems)
 		return
 	}
-
 	result, err := a.Queries.UpdateAttack(ctx, queries.UpdateAttackParams{
 		Name:        input.Name,
 		AttackBonus: input.Bonus,
@@ -123,19 +81,11 @@ func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	
-	
 	finishRow(w, r, panel, attackToastLabel(input.Name), "attack", result, err)
 }
-
-
-
-
-
 func (a *App) DeleteAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-
 	characterID, ok := panelCharacterID(w, r)
 	if !ok {
 		return
@@ -144,7 +94,6 @@ func (a *App) DeleteAttack(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-
 	result, err := a.Queries.DeleteAttack(ctx, queries.DeleteAttackParams{
 		ID:          attackID,
 		CharacterID: characterID,
@@ -159,20 +108,14 @@ func (a *App) DeleteAttack(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "attack")
 		return
 	}
-
 	htmx.Toast(w, "Attack deleted.")
 }
-
-
-
 func attackToastLabel(name string) string {
 	if name == "" {
 		return "Attack"
 	}
-
 	return name
 }
-
 type attackInput struct {
 	Name       string
 	Bonus      string
@@ -181,35 +124,24 @@ type attackInput struct {
 	Mastery    string
 	Notes      string
 }
-
-
-
-
-
-
 func buildAttackInput(r *http.Request) (attackInput, []string) {
 	var problems []string
-
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	if len([]rune(name)) > attackNameLimit {
 		problems = append(problems, "Attack name must be 128 characters or fewer.")
 	}
-
 	bonus := strings.TrimSpace(r.PostFormValue("attack_bonus"))
 	if len([]rune(bonus)) > attackBonusLimit {
 		problems = append(problems, "Attack bonus must be 32 characters or fewer.")
 	}
-
 	damage := strings.TrimSpace(r.PostFormValue("damage"))
 	if len([]rune(damage)) > attackDamageLimit {
 		problems = append(problems, "Damage must be 64 characters or fewer.")
 	}
-
 	notes := strings.TrimSpace(r.PostFormValue("notes"))
 	if len(notes) > attackNotesLimit {
 		problems = append(problems, "Those notes are too long to save.")
 	}
-
 	return attackInput{
 		Name:       name,
 		Bonus:      bonus,
@@ -219,26 +151,21 @@ func buildAttackInput(r *http.Request) (attackInput, []string) {
 		Notes:      notes,
 	}, problems
 }
-
 func attackRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
 	attackID, err := ulid.Parse(r.PathValue("attackId"))
 	if err != nil {
 		htmx.NotFound(w, "attack")
 		return ulid.ULID{}, false
 	}
-
 	return attackID, true
 }
-
 func attackPageRows(rows []queries.Attack) []pages.Attack {
 	attacks := make([]pages.Attack, 0, len(rows))
 	for _, row := range rows {
 		attacks = append(attacks, attackPageRow(row))
 	}
-
 	return attacks
 }
-
 func attackPageRow(row queries.Attack) pages.Attack {
 	return pages.Attack{
 		ID:         row.ID.String(),

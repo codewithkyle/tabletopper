@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 templ EditCharacterInventory(data InventoryPageData) {
 	@layouts.Base("Inventory | Tabletopper") {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabInventory, shellLayout{}) {

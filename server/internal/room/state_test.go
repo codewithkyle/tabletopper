@@ -1,24 +1,16 @@
 package room
-
 import (
 	"strings"
 	"testing"
 )
-
-
-
-
-
 func TestNewStateStartsUsable(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", newEnv())
-
 	if s.Schema != Schema {
 		t.Fatalf("schema = %d, want %d", s.Schema, Schema)
 	}
 	if s.Room.Name != "The Sunless Citadel" {
 		t.Fatalf("room name = %q", s.Room.Name)
 	}
-
 	if len(s.Table.Layers) != 1 {
 		t.Fatalf("a new room has %d layers, want exactly 1", len(s.Table.Layers))
 	}
@@ -31,23 +23,18 @@ func TestNewStateStartsUsable(t *testing.T) {
 	if s.Table.Layers[0].Map != nil {
 		t.Fatal("a new room's layer already has a map")
 	}
-
-	
-	
 	if s.Table.Layers[0].FogEnabled {
 		t.Fatal("a new room starts with fog switched on")
 	}
 	if !s.Table.Layers[0].FogPrefill {
 		t.Fatal("a new room's fog is not prefilled, so turning it on would reveal everything")
 	}
-
 	if s.Table.PawnLabels != LabelsDefault {
 		t.Fatalf("monster hit points default to %q, want %q", s.Table.PawnLabels, LabelsDefault)
 	}
 	if !s.Table.PlayersCanDraw {
 		t.Fatal("players cannot draw in a new room")
 	}
-
 	g := s.Table.Grid
 	if g.Lines != GridLinesSolid || g.CellSize != DefaultCellSize || g.Color != DefaultGridColor ||
 		g.Snap != SnapCells || g.FeetPerCell != DefaultFeetPerCell || g.Diagonals != DiagonalsEqual {
@@ -57,9 +44,6 @@ func TestNewStateStartsUsable(t *testing.T) {
 		t.Fatalf("the default grid does not pass its own validation: %v", err)
 	}
 }
-
-
-
 func TestNormalizeSortsWhatHasNoOrderOfItsOwn(t *testing.T) {
 	s := &State{
 		Pawns:   []Pawn{{ID: testID(3)}, {ID: testID(1)}, {ID: testID(2)}},
@@ -67,7 +51,6 @@ func TestNormalizeSortsWhatHasNoOrderOfItsOwn(t *testing.T) {
 		Strokes: []Stroke{{ID: testID(7)}, {ID: testID(5)}},
 	}
 	s.Normalize()
-
 	if s.Pawns[0].ID != testID(1) || s.Pawns[2].ID != testID(3) {
 		t.Fatal("pawns did not sort by id")
 	}
@@ -78,11 +61,6 @@ func TestNormalizeSortsWhatHasNoOrderOfItsOwn(t *testing.T) {
 		t.Fatal("strokes did not sort by id")
 	}
 }
-
-
-
-
-
 func TestNormalizeLeavesTheOrderedCollectionsAlone(t *testing.T) {
 	s := &State{
 		Fog: []FogShape{{ID: testID(9)}, {ID: testID(2)}},
@@ -91,7 +69,6 @@ func TestNormalizeLeavesTheOrderedCollectionsAlone(t *testing.T) {
 		},
 	}
 	s.Normalize()
-
 	if s.Fog[0].ID != testID(9) {
 		t.Fatal("fog was sorted; a hide drawn over a reveal would now be under it")
 	}
@@ -99,22 +76,16 @@ func TestNormalizeLeavesTheOrderedCollectionsAlone(t *testing.T) {
 		t.Fatal("the turn order was sorted")
 	}
 }
-
-
-
-
 func TestNewStateMarshalsWithNoNullCollections(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
 	s.Pawns = append(s.Pawns, Pawn{ID: testID(1), Kind: PawnMonster, Size: SizeMedium})
 	s.Fog = append(s.Fog, FogShape{ID: testID(2)})
 	s.Strokes = append(s.Strokes, Stroke{ID: testID(3)})
 	s.Normalize()
-
 	b, err := Marshal(s)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-
 	for _, field := range []string{
 		`"players":null`, `"pawns":null`, `"fog":null`, `"strokes":null`,
 		`"layers":null`, `"entries":null`, `"conditions":null`, `"points":null`,
@@ -124,10 +95,6 @@ func TestNewStateMarshalsWithNoNullCollections(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestFootprintIsTheSizeCategory(t *testing.T) {
 	sizes := map[Size]int{
 		SizeTiny: 1, SizeSmall: 1, SizeMedium: 1,
@@ -138,16 +105,10 @@ func TestFootprintIsTheSizeCategory(t *testing.T) {
 			t.Fatalf("a %s creature stands on %d cells, want %d", size, got, want)
 		}
 	}
-
-	
-	
 	if got := Size("enormous").Footprint(); got != 1 {
 		t.Fatalf("an unknown size stands on %d cells, want 1", got)
 	}
 }
-
-
-
 func TestRotationIsFoldedIntoOneTurn(t *testing.T) {
 	for in, want := range map[int]int{
 		0: 0, 45: 45, 359: 359, 360: 0, 361: 1,
@@ -158,21 +119,16 @@ func TestRotationIsFoldedIntoOneTurn(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 	type enum interface {
 		Values() []string
 	}
-
 	enums := map[string]enum{
 		"Role": RoleGM, "Snap": SnapCells, "Diagonals": DiagonalsEqual,
 		"PawnLabels": LabelsDefault, "PawnKind": PawnMonster, "Size": SizeMedium,
 		"HPBand": BandHealthy, "ConditionColor": ColorRed,
 		"ClearTrigger": ClearStart, "ShapeKind": ShapeRect, "FogMode": FogReveal,
 	}
-
 	valid := map[string]func(string) bool{
 		"Role":       func(v string) bool { return Role(v).Valid() },
 		"Snap":       func(v string) bool { return Snap(v).Valid() },
@@ -188,7 +144,6 @@ func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 		"ShapeKind":    func(v string) bool { return ShapeKind(v).Valid() },
 		"FogMode":      func(v string) bool { return FogMode(v).Valid() },
 	}
-
 	for name, e := range enums {
 		values := e.Values()
 		if len(values) == 0 {

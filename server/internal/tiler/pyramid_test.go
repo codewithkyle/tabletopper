@@ -1,17 +1,10 @@
 package tiler
-
 import (
 	"fmt"
 	"testing"
 )
-
-
-
-
-
 func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 	const width, height, tileSize = 12000, 9000, 512
-
 	levels := []struct {
 		pixelsX, pixelsY int
 		tilesX, tilesY   int
@@ -23,11 +16,9 @@ func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 		{750, 563, 2, 2},
 		{375, 282, 1, 1},
 	}
-
 	if got := MaxZoom(width, height, tileSize); got != len(levels)-1 {
 		t.Fatalf("MaxZoom = %d, want %d", got, len(levels)-1)
 	}
-
 	total := 0
 	for z, want := range levels {
 		if got := LevelPixels(width, z); got != want.pixelsX {
@@ -44,16 +35,10 @@ func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 		}
 		total += want.tilesX * want.tilesY
 	}
-
 	if total != 584 {
 		t.Errorf("pyramid is %d tiles, want 584", total)
 	}
 }
-
-
-
-
-
 func TestLevelPixelsCeilsRatherThanFloors(t *testing.T) {
 	if got := LevelPixels(9000, 5); got != 282 {
 		t.Errorf("LevelPixels(9000, 5) = %d, want 282", got)
@@ -62,11 +47,6 @@ func TestLevelPixelsCeilsRatherThanFloors(t *testing.T) {
 		t.Fatalf("the premise moved: 9000>>5 = %d", floored)
 	}
 }
-
-
-
-
-
 func TestSuccessiveHalvingAgreesWithTheClosedForm(t *testing.T) {
 	for _, size := range []int{1, 2, 3, 7, 9, 255, 512, 513, 999, 4500, 9000, 12000, 16383} {
 		stepped := size
@@ -78,11 +58,6 @@ func TestSuccessiveHalvingAgreesWithTheClosedForm(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestMaxZoomWaitsForTheLongerAxis(t *testing.T) {
 	if got := MaxZoom(64, 4, 8); got != 3 {
 		t.Errorf("MaxZoom(64, 4, 8) = %d, want 3", got)
@@ -97,18 +72,12 @@ func TestMaxZoomWaitsForTheLongerAxis(t *testing.T) {
 		t.Errorf("MaxZoom(9, 8, 8) = %d, want 1", got)
 	}
 }
-
-
-
-
 func TestLevelTileSizeIsTheRemainderAtTheEdge(t *testing.T) {
-	
 	for x, want := range []int{8, 8, 1} {
 		if got := LevelTileSize(17, 8, 0, x); got != want {
 			t.Errorf("LevelTileSize(17, 8, 0, %d) = %d, want %d", x, got, want)
 		}
 	}
-	
 	for x, want := range []int{8, 8} {
 		if got := LevelTileSize(16, 8, 0, x); got != want {
 			t.Errorf("LevelTileSize(16, 8, 0, %d) = %d, want %d", x, got, want)
@@ -118,11 +87,6 @@ func TestLevelTileSizeIsTheRemainderAtTheEdge(t *testing.T) {
 		t.Errorf("LevelTileSize past the last tile = %d, want 0", got)
 	}
 }
-
-
-
-
-
 func TestDegenerateArgumentsAnswerWithNoTiles(t *testing.T) {
 	cases := []struct {
 		size, tileSize, z int
@@ -142,9 +106,6 @@ func TestDegenerateArgumentsAnswerWithNoTiles(t *testing.T) {
 			}
 		})
 	}
-
-	
-	
 	for _, z := range []int{40, 62, 63, 1000} {
 		if got := LevelPixels(12000, z); got != 1 {
 			t.Errorf("LevelPixels(12000, %d) = %d, want 1", z, got)

@@ -1,19 +1,4 @@
 package pages
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var creatureTypeOptions = []Option{
 	{Label: "Aberration", Value: "aberration"},
 	{Label: "Beast", Value: "beast"},
@@ -30,81 +15,30 @@ var creatureTypeOptions = []Option{
 	{Label: "Plant", Value: "plant"},
 	{Label: "Undead", Value: "undead"},
 }
-
-
-
-
 const DefaultCreatureType = "humanoid"
-
-
-
-
-
-
 func NormalizeCreatureType(value string) string {
 	for _, option := range creatureTypeOptions {
 		if option.Value == value {
 			return value
 		}
 	}
-
 	return DefaultCreatureType
 }
-
-
-
-
-
-
 func CreatureTypeLabel(value string) string {
 	for _, option := range creatureTypeOptions {
 		if option.Value == value {
 			return option.Label
 		}
 	}
-
 	return ""
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type ChallengeRating struct {
 	Value       string
 	Label       string
 	XP          uint32
 	Proficiency uint8
 }
-
-
-
 const DefaultChallengeRating = "0"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var challengeRatings = []ChallengeRating{
 	{Value: "0", Label: "0", XP: 0, Proficiency: 2},
 	{Value: "1/8", Label: "1/8", XP: 25, Proficiency: 2},
@@ -141,54 +75,30 @@ var challengeRatings = []ChallengeRating{
 	{Value: "29", Label: "29", XP: 135000, Proficiency: 9},
 	{Value: "30", Label: "30", XP: 155000, Proficiency: 9},
 }
-
-
-
-
 func ChallengeRatings() []ChallengeRating { return challengeRatings }
-
-
-
-
-
 func challengeRatingOptions() []Option {
 	options := make([]Option, 0, len(challengeRatings))
 	for _, rating := range challengeRatings {
 		options = append(options, Option{Label: rating.Label, Value: rating.Value})
 	}
-
 	return options
 }
-
-
-
-
-
 func ChallengeRatingLabel(value string) string {
 	for _, rating := range challengeRatings {
 		if rating.Value == value {
 			return rating.Label
 		}
 	}
-
 	return ""
 }
-
-
 func NormalizeChallengeRating(value string) string {
 	for _, rating := range challengeRatings {
 		if rating.Value == value {
 			return value
 		}
 	}
-
 	return DefaultChallengeRating
 }
-
-
-
-
-
 const (
 	MonsterActionKindTrait           = "trait"
 	MonsterActionKindAction          = "action"
@@ -198,47 +108,15 @@ const (
 	MonsterActionKindLairAction      = "lair_action"
 	MonsterActionKindRegionalEffect  = "regional_effect"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type MonsterActionSection struct {
 	Kind     string
 	Heading  string
 	Singular string
 	Intro    string
 }
-
-
 func (s MonsterActionSection) AddLabel() string {
 	return "Add " + s.Singular
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var monsterActionKinds = []MonsterActionSection{
 	{
 		Kind:     MonsterActionKindTrait,
@@ -279,40 +157,15 @@ var monsterActionKinds = []MonsterActionSection{
 		Intro:    "The region containing its lair is warped by its magic, creating one or more of the following effects.",
 	},
 }
-
-
-
 func MonsterActionSections() []MonsterActionSection { return monsterActionKinds }
-
-
-
-
-
 func MonsterActionSectionFor(kind string) (MonsterActionSection, bool) {
 	for _, section := range monsterActionKinds {
 		if section.Kind == kind {
 			return section, true
 		}
 	}
-
 	return MonsterActionSection{}, false
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const (
 	MonsterNameLimit      = 128
 	MonsterTagsLimit      = 128
@@ -323,27 +176,9 @@ const (
 	MonsterLanguagesLimit = 255
 	MonsterHabitatLimit   = 255
 	MonsterTreasureLimit  = 64
-
 	MonsterActionNameLimit = 128
 )
-
-
-
-
-
-
-
 const MonsterProseLimit = 4096
-
-
-
-
-
-
-
-
-
-
 const (
 	MonsterACLimit            = 255
 	MonsterHPLimit            = 9999

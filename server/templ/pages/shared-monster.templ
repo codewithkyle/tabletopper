@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 templ SharedMonsterPage(data SharedMonsterData) {
 	@layouts.Share(SharedMonsterTitle(data.Block.Name), false) {
 		@sharedPageActions(data.Actions)

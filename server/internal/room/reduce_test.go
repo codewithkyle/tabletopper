@@ -1,30 +1,19 @@
 package room
-
 import (
 	"strings"
 	"testing"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
 func TestEveryEventReduces(t *testing.T) {
 	for wire, ev := range EventPrototypes() {
 		s := NewState(testRoomID, "Room", newEnv())
-
 		if err := Reduce(s, ev); err != nil {
 			t.Errorf("%s: %v", wire, err)
 		}
 	}
 }
-
-
-
 func TestReduceNamesAnEventItDoesNotKnow(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
-
 	err := Reduce(s, &unreducedEvent{})
 	if err == nil {
 		t.Fatal("an event with no reduction was accepted")
@@ -33,18 +22,11 @@ func TestReduceNamesAnEventItDoesNotKnow(t *testing.T) {
 		t.Fatalf("the error does not name the event: %v", err)
 	}
 }
-
 type unreducedEvent struct{ Header }
-
 func (*unreducedEvent) eventType() string { return "an.event.nobody.wrote" }
-
-
-
-
 func TestTransientEventsChangeNothing(t *testing.T) {
 	w := busyWorld(t)
 	before := mustJSON(t, w.s)
-
 	transient := []Event{
 		&RoomClosed{},
 		&PlayerKicked{Reason: "gone"},
@@ -52,25 +34,18 @@ func TestTransientEventsChangeNothing(t *testing.T) {
 		&Pinged{Layer: w.layer, X: 5, Y: 5},
 		&ErrorEvent{Code: CodeInvalid},
 	}
-
 	for _, ev := range transient {
 		if err := Reduce(w.s, ev); err != nil {
 			t.Fatalf("%s: %v", ev.eventType(), err)
 		}
 	}
-
 	if got := mustJSON(t, w.s); got != before {
 		t.Fatal("a transient event changed the state")
 	}
 }
-
-
-
-
 func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
 	layer := s.Table.ActiveLayer
-
 	t.Run("a singleton replaces", func(t *testing.T) {
 		if err := Reduce(s, &RoomUpdated{Room: RoomInfo{ID: testRoomID, Name: "Renamed", Locked: true}}); err != nil {
 			t.Fatal(err)
@@ -79,10 +54,8 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 			t.Fatalf("the room is %+v", s.Room)
 		}
 	})
-
 	t.Run("a collection item upserts by id", func(t *testing.T) {
 		pawn := Pawn{ID: testID(1), Kind: PawnMonster, LayerID: layer, Name: "Goblin", Size: SizeSmall, Visible: true}
-
 		if err := Reduce(s, &PawnSpawned{Pawn: pawn}); err != nil {
 			t.Fatal(err)
 		}
@@ -90,14 +63,12 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 		if err := Reduce(s, &PawnUpdated{Pawn: pawn}); err != nil {
 			t.Fatal(err)
 		}
-
 		if len(s.Pawns) != 1 {
 			t.Fatalf("the update added a second pawn: %d", len(s.Pawns))
 		}
 		if s.Pawns[0].Name != "Goblin boss" {
 			t.Fatalf("the pawn is called %q", s.Pawns[0].Name)
 		}
-
 		if err := Reduce(s, &PawnRemoved{ID: testID(1)}); err != nil {
 			t.Fatal(err)
 		}
@@ -105,7 +76,6 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 			t.Fatal("the pawn was not removed")
 		}
 	})
-
 	t.Run("a hot path mutates what is already there", func(t *testing.T) {
 		if err := Reduce(s, &PawnSpawned{Pawn: Pawn{ID: testID(2), Kind: PawnMonster, LayerID: layer, Size: SizeMedium}}); err != nil {
 			t.Fatal(err)
@@ -116,14 +86,9 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 		if p := s.Pawn(testID(2)); p.X != 128 || p.Y != 64 {
 			t.Fatalf("the pawn is at (%d, %d)", p.X, p.Y)
 		}
-
-		
-		
-		
 		if err := Reduce(s, &PawnMoved{Pawns: []PawnPosition{{ID: testID(999), X: 1, Y: 1}}}); err != nil {
 			t.Fatalf("a move naming an absent pawn was an error: %v", err)
 		}
-
 		if err := Reduce(s, &StrokeBegan{Stroke: Stroke{ID: testID(3), LayerID: layer, Points: []int{0, 0}}}); err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +99,6 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 			t.Fatalf("the stroke holds %v after one extension", got)
 		}
 	})
-
 	t.Run("fog keeps the order it arrived in", func(t *testing.T) {
 		s.Fog = nil
 		for _, n := range []int{9, 4, 7} {
@@ -142,7 +106,6 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-
 		want := []ulid.ULID{testID(9), testID(4), testID(7)}
 		for i, id := range want {
 			if s.Fog[i].ID != id {
@@ -151,20 +114,14 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 		}
 	})
 }
-
-
-
 func TestASnapshotEventReplacesTheWholeState(t *testing.T) {
 	w := busyWorld(t)
-
 	client := NewState(testRoomID, "Something else", newEnv())
 	client.Pawns = append(client.Pawns, Pawn{ID: testID(77), Kind: PawnMonster, Size: SizeMedium})
 	client.Normalize()
-
 	if err := Reduce(client, &Snapshot{State: w.s.Project(RolePlayer)}); err != nil {
 		t.Fatal(err)
 	}
-
 	if mustJSON(t, client) != mustJSON(t, w.s.Project(RolePlayer)) {
 		t.Fatal("the client did not end up holding the snapshot it was sent")
 	}

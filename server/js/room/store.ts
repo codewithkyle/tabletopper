@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 import type {
 	Event,
 	FogShape,
@@ -19,31 +6,12 @@ import type {
 	State,
 	Stroke,
 } from "./protocol.ts";
-
-
-
 type Identified = Player | Pawn | FogShape | Stroke;
-
-
-
-
-
-
-
-
-
-
-
-
 export function reduce(state: State, event: Event): void {
 	switch (event.type) {
-		
-		
 		case "snapshot":
 			Object.assign(state, clone(event.state));
 			break;
-
-		
 		case "room.updated":
 			state.room = clone(event.room);
 			break;
@@ -53,10 +21,6 @@ export function reduce(state: State, event: Event): void {
 		case "initiative.updated":
 			state.initiative = clone(event.initiative);
 			break;
-
-		
-		
-		
 		case "player.joined":
 		case "player.updated":
 			upsert(state.players, clone(event.player));
@@ -87,9 +51,6 @@ export function reduce(state: State, event: Event): void {
 			}
 			break;
 		}
-
-		
-		
 		case "fog.cleared":
 			state.fog = state.fog.filter((shape) => shape.layerId !== event.layer);
 			break;
@@ -99,11 +60,6 @@ export function reduce(state: State, event: Event): void {
 		case "stroke.erased":
 			state.strokes = state.strokes.filter((stroke) => !event.ids.includes(stroke.id));
 			break;
-
-		
-		
-		
-		
 		case "pawn.moved":
 			for (const at of event.pawns) {
 				const pawn = byID(state.pawns, at.id);
@@ -120,47 +76,24 @@ export function reduce(state: State, event: Event): void {
 			}
 			break;
 		}
-
-		
-		
-		
-		
-		
-		
-		
 		case "error":
 		case "pinged":
 		case "pawn.dragging":
 		case "player.kicked":
 		case "room.closed":
 			return;
-
 		default: {
 			const unreduced: never = event;
 			throw new Error(`room: no reduction for ${(unreduced as Event).type}`);
 		}
 	}
-
 	normalize(state);
 }
-
-
-
-
-
-
-
-
-
-
 export function normalize(state: State): void {
 	state.players.sort(byIdentifier);
 	state.pawns.sort(byIdentifier);
 	state.strokes.sort(byIdentifier);
 }
-
-
-
 export function empty(): State {
 	return {
 		schema: 0,
@@ -191,32 +124,23 @@ export function empty(): State {
 		strokes: [],
 	};
 }
-
 function upsert<T extends Identified>(into: T[], value: T): void {
 	const at = into.findIndex((existing) => existing.id === value.id);
 	if (at === -1) {
 		into.push(value);
-
 		return;
 	}
-
 	into[at] = value;
 }
-
 function without<T extends Identified>(from: T[], id: string): T[] {
 	return from.filter((value) => value.id !== id);
 }
-
 function byID<T extends Identified>(from: T[], id: string): T | undefined {
 	return from.find((value) => value.id === id);
 }
-
 function byIdentifier(a: Identified, b: Identified): number {
 	return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
-
-
-
 function clone<T>(value: T): T {
 	return structuredClone(value);
 }

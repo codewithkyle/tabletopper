@@ -1,5 +1,4 @@
 package hub
-
 import (
 	"context"
 	"encoding/binary"
@@ -7,160 +6,103 @@ import (
 	"sync"
 	"testing"
 	"time"
-
 	"tabletopper/internal/room"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
 func testID(n uint64) ulid.ULID {
 	var id ulid.ULID
 	id[0] = 1
 	binary.BigEndian.PutUint64(id[8:], n)
-
 	return id
 }
-
 var (
 	roomID   = testID(1)
 	gmID     = testID(2)
 	playerID = testID(3)
 	otherID  = testID(4)
 )
-
-
-
 type memStore struct {
 	mu      sync.Mutex
 	loaded  Loaded
 	loadErr error
-
 	saves   [][]byte
 	seqs    []uint64
 	saveErr error
-
-	
-	
-	
 	saveDelay time.Duration
 	inFlight  int
-
 	cleared [][2]ulid.ULID
-
-	
-	
 	preserved [][]byte
 }
-
 func (m *memStore) Load(ctx context.Context, id ulid.ULID) (Loaded, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	return m.loaded, m.loadErr
 }
-
 func (m *memStore) Save(ctx context.Context, id ulid.ULID, blob []byte, seq uint64) error {
 	m.mu.Lock()
 	delay := m.saveDelay
 	m.inFlight++
 	m.mu.Unlock()
-
 	if delay > 0 {
 		select {
 		case <-time.After(delay):
 		case <-ctx.Done():
 		}
 	}
-
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.inFlight--
-
 	if m.saveErr != nil {
 		return m.saveErr
 	}
 	m.saves = append(m.saves, blob)
 	m.seqs = append(m.seqs, seq)
-
 	return nil
 }
-
 func (m *memStore) saving() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	return m.inFlight
 }
-
 func (m *memStore) failSaves(err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.saveErr = err
 }
-
 func (m *memStore) ClearMembership(ctx context.Context, id, user ulid.ULID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.cleared = append(m.cleared, [2]ulid.ULID{id, user})
-
 	return nil
 }
-
 func (m *memStore) Preserve(ctx context.Context, id ulid.ULID, snapshot []byte) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.preserved = append(m.preserved, snapshot)
-
 	return nil
 }
-
 func (m *memStore) kept() [][]byte {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	return append([][]byte(nil), m.preserved...)
 }
-
 func (m *memStore) saved() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	return len(m.saves)
 }
-
 func (m *memStore) clears() [][2]ulid.ULID {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	return append([][2]ulid.ULID(nil), m.cleared...)
 }
-
-
-
 type tabletop struct {
 	t *testing.T
 	*Hub
 	store *memStore
 }
-
-
-
-
 func newTabletop(t *testing.T, opts Options) *tabletop {
 	t.Helper()
-
 	store := &memStore{loaded: Loaded{Name: "The Sunless Citadel"}}
 	if opts.Store == nil {
 		opts.Store = store
@@ -174,100 +116,65 @@ func newTabletop(t *testing.T, opts Options) *tabletop {
 	if opts.Version == "" {
 		opts.Version = "test-build"
 	}
-
 	h := New(nil, opts)
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		h.Shutdown(ctx)
 	})
-
 	return &tabletop{t: t, Hub: h, store: store}
 }
-
 func (tb *tabletop) ctx() context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	tb.t.Cleanup(cancel)
-
 	return ctx
 }
-
-
 func (tb *tabletop) actor() *actor {
 	tb.t.Helper()
-
 	a, err := tb.room(tb.ctx(), roomID)
 	if err != nil {
 		tb.t.Fatalf("the room would not load: %v", err)
 	}
-
 	return a
 }
-
-
-
-
 func (tb *tabletop) join(id ulid.ULID, name string, role room.Role) *client {
 	tb.t.Helper()
-
 	a := tb.actor()
 	c := newClient(room.Player{ID: id, Name: name, Role: role}, tb.opts.SendBuffer)
 	if err := a.post(tb.ctx(), join{c: c}); err != nil {
 		tb.t.Fatalf("join was refused: %v", err)
 	}
 	tb.settle()
-
 	return c
 }
-
-
 func (tb *tabletop) send(c *client, cid string, cmd room.Command) {
 	tb.t.Helper()
-
 	if err := tb.actor().post(tb.ctx(), command{c: c, cmd: cmd, cid: cid}); err != nil {
 		tb.t.Fatalf("the command was refused: %v", err)
 	}
 	tb.settle()
 }
-
-
 func (tb *tabletop) leave(c *client) {
 	tb.t.Helper()
-
 	if err := tb.actor().post(tb.ctx(), leave{c: c}); err != nil {
 		tb.t.Fatalf("leave was refused: %v", err)
 	}
 	tb.settle()
 }
-
-
-
-
-
-
-
-
 func (tb *tabletop) settle() {
 	tb.t.Helper()
-
 	if _, ok := tb.Players(tb.ctx(), roomID); !ok {
 		tb.t.Fatal("the room was not live when the test tried to synchronise with it")
 	}
 }
-
-
-
 type frame struct {
 	Type string
 	Seq  uint64
 	CID  string
 	Body map[string]any
 }
-
-
 func frames(t *testing.T, c *client) []frame {
 	t.Helper()
-
 	var out []frame
 	for {
 		select {
@@ -276,7 +183,6 @@ func frames(t *testing.T, c *client) []frame {
 			if err := json.Unmarshal(raw, &body); err != nil {
 				t.Fatalf("a frame was not JSON: %v\n%s", err, raw)
 			}
-
 			f := frame{Body: body}
 			f.Type, _ = body["type"].(string)
 			f.CID, _ = body["cid"].(string)
@@ -289,29 +195,21 @@ func frames(t *testing.T, c *client) []frame {
 		}
 	}
 }
-
-
 func types(fs []frame) []string {
 	out := make([]string, 0, len(fs))
 	for _, f := range fs {
 		out = append(out, f.Type)
 	}
-
 	return out
 }
-
-
 func only(t *testing.T, c *client, want ...string) []frame {
 	t.Helper()
-
 	got := frames(t, c)
 	if !equal(types(got), want) {
 		t.Fatalf("frames = %v, want %v", types(got), want)
 	}
-
 	return got
 }
-
 func equal(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -321,16 +219,10 @@ func equal(a, b []string) bool {
 			return false
 		}
 	}
-
 	return true
 }
-
-
-
-
 func eventually(t *testing.T, what string, cond func() bool) {
 	t.Helper()
-
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		if cond() {
@@ -338,6 +230,5 @@ func eventually(t *testing.T, what string, cond func() bool) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-
 	t.Fatalf("timed out waiting for %s", what)
 }

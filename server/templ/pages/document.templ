@@ -1,5 +1,4 @@
 package pages
-
 templ documentCard(title string, actionHref string, actionLabel string) {
 	<div class={ sheetSurface + " max-h-[calc(100vh-4rem)] max-w-[calc(100vw-4rem)]" }>
 		<div class="card-body min-h-0 gap-0 overflow-y-auto p-8">
@@ -11,7 +10,6 @@ templ documentCard(title string, actionHref string, actionLabel string) {
 		</div>
 	</div>
 }
-
 templ documentHeading(text string) {
 	<h2 class="mt-4 mb-3 text-xl font-medium">{ text }</h2>
 }

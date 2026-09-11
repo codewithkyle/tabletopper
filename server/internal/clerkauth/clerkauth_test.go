@@ -1,24 +1,12 @@
 package clerkauth
-
 import (
 	"testing"
-
 	"github.com/clerk/clerk-sdk-go/v2"
 )
-
 func str(s string) *string { return &s }
-
-
 func email(id string, address string) *clerk.EmailAddress {
 	return &clerk.EmailAddress{ID: id, EmailAddress: address}
 }
-
-
-
-
-
-
-
 func TestADisplayNameIsResolvedFromWhateverClerkKnows(t *testing.T) {
 	tests := map[string]struct {
 		user *clerk.User
@@ -65,8 +53,6 @@ func TestADisplayNameIsResolvedFromWhateverClerkKnows(t *testing.T) {
 			},
 			want: "first",
 		},
-		
-		
 		"whitespace is not a username": {
 			user: &clerk.User{Username: str("   "), FirstName: str("Kyle")},
 			want: "Kyle",
@@ -90,7 +76,6 @@ func TestADisplayNameIsResolvedFromWhateverClerkKnows(t *testing.T) {
 			want: FallbackUsername,
 		},
 	}
-
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			if got := displayName(tt.user); got != tt.want {
@@ -99,11 +84,6 @@ func TestADisplayNameIsResolvedFromWhateverClerkKnows(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestADisplayNameIsNeverEmpty(t *testing.T) {
 	for name, user := range map[string]*clerk.User{
 		"nothing":            {},

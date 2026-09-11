@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 templ MusicAssets(tracks []MusicTrack) {
 	@layouts.Base("Music | Asset Manager | Tabletopper", "/js/music-upload.js") {
 		@assetsShell(assetTabMusic, musicUploadButton()) {
@@ -9,7 +7,6 @@ templ MusicAssets(tracks []MusicTrack) {
 		}
 	}
 }
-
 templ MusicCards(tracks []MusicTrack, query string) {
 	@assetCards(musicGrid(query)) {
 		for _, t := range tracks {
@@ -17,7 +14,6 @@ templ MusicCards(tracks []MusicTrack, query string) {
 		}
 	}
 }
-
 templ MusicCard(t MusicTrack) {
 	<asset-card class={ sheetSurface + " block p-4" }>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-3">
@@ -35,7 +31,6 @@ templ MusicCard(t MusicTrack) {
 		</div>
 	</asset-card>
 }
-
 templ musicUploadButton() {
 	<div class="flex flex-wrap items-center justify-end gap-3">
 		<div class="flex min-w-0 items-center gap-2" data-music-progress hidden>

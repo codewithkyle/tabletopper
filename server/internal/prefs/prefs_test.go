@@ -1,28 +1,13 @@
 package prefs
-
 import (
 	"strings"
 	"testing"
 	"time"
 )
-
-
-
-
-
 var (
 	summer = time.Date(2026, 9, 6, 18, 4, 11, 0, time.UTC)
 	winter = time.Date(2026, 1, 5, 18, 4, 11, 0, time.UTC)
 )
-
-
-
-
-
-
-
-
-
 func TestEveryOfferedZoneResolves(t *testing.T) {
 	for _, group := range ZoneGroups {
 		if group.Region == "" {
@@ -31,7 +16,6 @@ func TestEveryOfferedZoneResolves(t *testing.T) {
 		if len(group.Zones) == 0 {
 			t.Errorf("zone group %q offers nothing", group.Region)
 		}
-
 		for _, z := range group.Zones {
 			if z.Label == "" {
 				t.Errorf("zone %q has no label", z.Name)
@@ -42,9 +26,6 @@ func TestEveryOfferedZoneResolves(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestNoZoneIsOfferedTwice(t *testing.T) {
 	seen := map[string]string{}
 	for _, group := range ZoneGroups {
@@ -56,15 +37,11 @@ func TestNoZoneIsOfferedTwice(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestTheDefaultZoneIsOffered(t *testing.T) {
 	if _, ok := ParseTimezone(DefaultTimezone); !ok {
 		t.Fatalf("the default zone %q is not in the picker", DefaultTimezone)
 	}
 }
-
 func TestEveryFormatCombinationRenders(t *testing.T) {
 	tests := []struct {
 		name string
@@ -133,7 +110,6 @@ func TestEveryFormatCombinationRenders(t *testing.T) {
 			want: "2026-09-06, 12:30 AM EDT",
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, got := tt.p.Format(tt.at)
@@ -143,58 +119,37 @@ func TestEveryFormatCombinationRenders(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestAZoneWithNoAbbreviationRendersItsOffset(t *testing.T) {
 	p := Preferences{Timezone: "Asia/Kathmandu", DateFormat: DateISO, TimeFormat: Time24H}
-
 	_, got := p.Format(summer)
 	if want := "2026-09-06, 23:49 +0545"; got != want {
 		t.Errorf("Format() = %q, want %q", got, want)
 	}
 }
-
-
-
-
 func TestTheISOHalfIsAlwaysUTC(t *testing.T) {
 	for _, tz := range []string{"UTC", "America/New_York", "Australia/Sydney", "Asia/Kathmandu"} {
 		p := Preferences{Timezone: tz, DateFormat: DateISO, TimeFormat: Time24H}
-
 		iso, _ := p.Format(summer)
 		if want := "2026-09-06T18:04:11Z"; iso != want {
 			t.Errorf("Format() iso for %s = %q, want %q", tz, iso, want)
 		}
 	}
 }
-
-
-
 func TestTheZeroValueStillRenders(t *testing.T) {
 	var p Preferences
-
 	if p.Location() == nil {
 		t.Fatal("Location() is nil for the zero value")
 	}
-
 	iso, text := p.Format(summer)
 	if iso == "" || text == "" {
 		t.Fatalf("Format() = %q, %q; both should be rendered", iso, text)
 	}
-	
-	
 	if _, want := Default.Format(summer); text != want {
 		t.Errorf("Format() = %q, want the default rendering %q", text, want)
 	}
 }
-
-
-
 func TestNewFallsBackFieldByField(t *testing.T) {
 	p := New("dark", "nonsense/Nowhere", "iso", "", true, true, PingVolumeMax)
-
 	if p.Theme != ThemeDark {
 		t.Errorf("Theme = %q, want %q", p.Theme, ThemeDark)
 	}
@@ -214,15 +169,6 @@ func TestNewFallsBackFieldByField(t *testing.T) {
 		t.Error("ShowBlood = false, want the stored true: a boolean has nothing to fall back to")
 	}
 }
-
-
-
-
-
-
-
-
-
 func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.FollowTurn {
 		t.Error("Default.FollowTurn = false, want true")
@@ -234,11 +180,6 @@ func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 		t.Error("the zero value has it on; the note on the field is wrong")
 	}
 }
-
-
-
-
-
 func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.ShowBlood {
 		t.Error("Default.ShowBlood = false, want true")
@@ -250,11 +191,6 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 		t.Error("the zero value has it on; the note on the field is wrong")
 	}
 }
-
-
-
-
-
 func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
 	if p := New("", "", "", "", true, false, PingVolumeMax); !p.FollowTurn || p.ShowBlood {
 		t.Errorf("New(followTurn: true, showBlood: false) = %+v", p)
@@ -263,9 +199,6 @@ func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
 		t.Errorf("New(followTurn: false, showBlood: true) = %+v", p)
 	}
 }
-
-
-
 func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 	if _, ok := ParseTheme("caramellatte"); ok {
 		t.Error("ParseTheme accepted a DaisyUI theme name; the column stores intent, not a palette")
@@ -279,8 +212,6 @@ func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 	if _, ok := ParseTimeFormat("24"); ok {
 		t.Error("ParseTimeFormat accepted a near miss")
 	}
-	
-	
 	if _, err := time.LoadLocation("America/Nipigon"); err == nil {
 		if _, ok := ParseTimezone("America/Nipigon"); ok {
 			t.Error("ParseTimezone accepted a zone the picker does not list")
@@ -292,9 +223,6 @@ func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestEveryOfferedMemberParses(t *testing.T) {
 	for _, v := range Themes() {
 		if got, ok := ParseTheme(string(v)); !ok || got != v {
@@ -305,8 +233,6 @@ func TestEveryOfferedMemberParses(t *testing.T) {
 		if got, ok := ParseDateFormat(string(v)); !ok || got != v {
 			t.Errorf("ParseDateFormat(%q) = %q, %v", v, got, ok)
 		}
-		
-		
 		if v.Format(summer) == "" {
 			t.Errorf("DateFormat %q renders nothing", v)
 		}
@@ -316,7 +242,6 @@ func TestEveryOfferedMemberParses(t *testing.T) {
 			t.Errorf("ParseTimeFormat(%q) = %q, %v", v, got, ok)
 		}
 	}
-
 	seen := map[string]DateFormat{}
 	for _, v := range DateFormats() {
 		rendered := v.Format(summer)
@@ -326,10 +251,6 @@ func TestEveryOfferedMemberParses(t *testing.T) {
 		seen[rendered] = v
 	}
 }
-
-
-
-
 func TestTheDefaultsAreWhatWasAgreed(t *testing.T) {
 	if Default.Theme != ThemeSystem {
 		t.Errorf("default theme = %q, want %q", Default.Theme, ThemeSystem)
@@ -343,29 +264,17 @@ func TestTheDefaultsAreWhatWasAgreed(t *testing.T) {
 	if Default.TimeFormat != Time12H {
 		t.Errorf("default time format = %q", Default.TimeFormat)
 	}
-	
-	
 	if _, text := Default.Format(summer); !strings.Contains(text, "Sep") {
 		t.Errorf("the default rendering %q does not spell its month", text)
 	}
 }
-
-
-
-
-
-
-
-
 func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 	seen := map[string]string{}
-
 	for _, group := range ZoneGroups {
 		for _, z := range group.Zones {
 			if z.Alias == "" {
 				continue
 			}
-
 			if _, offered := zones[z.Alias]; offered {
 				t.Errorf("%q is both an alias of %q and an offered zone in its own right", z.Alias, z.Name)
 			}
@@ -373,7 +282,6 @@ func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 				t.Errorf("alias %q hangs off both %q and %q", z.Alias, other, z.Name)
 			}
 			seen[z.Alias] = z.Name
-
 			old, err := time.LoadLocation(z.Alias)
 			if err != nil {
 				t.Errorf("alias %q does not resolve: %v", z.Alias, err)
@@ -384,7 +292,6 @@ func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 				t.Errorf("zone %q does not resolve", z.Name)
 				continue
 			}
-
 			for _, at := range []time.Time{summer, winter} {
 				_, want := at.In(current).Zone()
 				_, got := at.In(old).Zone()
@@ -395,10 +302,6 @@ func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 			}
 		}
 	}
-
-	
-	
-	
 	if len(seen) != 5 {
 		t.Errorf("%d aliases, want the 5 that ICU still canonicalises", len(seen))
 	}

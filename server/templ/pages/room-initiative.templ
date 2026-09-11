@@ -1,19 +1,11 @@
 package pages
-
 const initiativeColumn = "flex w-18 shrink-0 flex-col items-center"
-
 const initiativeTile = "block w-18 shrink-0 p-1 shadow-panel"
-
 const initiativeAura = "aura aura-silver"
-
 const initiativePortraitBox = "relative block aspect-[2/3] w-full overflow-hidden rounded-sm bg-black/40"
-
 const initiativeStaticName = "absolute inset-0 grid place-content-center px-0.5 text-center text-[10px] leading-tight text-white"
-
 const initiativePlate = "block w-18 truncate rounded-b-md px-1 text-center text-xs leading-6 font-medium"
-
 const initiativeUnderlay = "absolute inset-x-0 bottom-0 bg-black/55 px-0.5 text-center text-[10px] leading-4 text-white"
-
 templ RoomInitiative(data RoomInitiativeData) {
 	<div
 		id={ RoomInitiativeID }
@@ -53,7 +45,6 @@ templ RoomInitiative(data RoomInitiativeData) {
 		}
 	</div>
 }
-
 templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 	<div
 		data-entry={ e.ID }
@@ -89,7 +80,6 @@ templ initiativeEntry(data RoomInitiativeData, e RoomInitiativeEntry) {
 		}
 	</div>
 }
-
 templ initiativeFrame(data RoomInitiativeData, e RoomInitiativeEntry) {
 	if data.IsGM {
 		<button
@@ -111,7 +101,6 @@ templ initiativeFrame(data RoomInitiativeData, e RoomInitiativeEntry) {
 		</div>
 	}
 }
-
 templ initiativePortrait(data RoomInitiativeData, e RoomInitiativeEntry) {
 	<span
 		data-portrait
@@ -147,7 +136,6 @@ templ initiativePortrait(data RoomInitiativeData, e RoomInitiativeEntry) {
 		}
 	</span>
 }
-
 templ initiativePips(e RoomInitiativeEntry) {
 	<span data-entry-pips class={ initiativeUnderlay, "flex flex-wrap items-center justify-center gap-0.5 py-0.5" }>
 		for _, p := range e.Pips {
@@ -164,7 +152,6 @@ templ initiativePips(e RoomInitiativeEntry) {
 		}
 	</span>
 }
-
 templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
 	if !data.IsGM && e.Mine {
 		<button
@@ -179,7 +166,6 @@ templ initiativeTurn(data RoomInitiativeData, e RoomInitiativeEntry) {
 		</button>
 	}
 }
-
 templ initiativeConditions(chips []RoomPawnCondition) {
 	if len(chips) > 0 {
 		<span class="flex max-w-full flex-wrap justify-center gap-1 px-1">
@@ -189,7 +175,6 @@ templ initiativeConditions(chips []RoomPawnCondition) {
 		</span>
 	}
 }
-
 templ roomInitiativeMount(data RoomPageData) {
 	<div
 		id={ RoomInitiativeID }
@@ -202,7 +187,6 @@ templ roomInitiativeMount(data RoomPageData) {
 		data-turns
 	></div>
 }
-
 templ roomInitiativeMenu(data RoomPageData) {
 	<ul
 		data-entry-menu
@@ -218,7 +202,6 @@ templ roomInitiativeMenu(data RoomPageData) {
 		</li>
 	</ul>
 }
-
 templ RoomInitiativeEntryForm(data RoomInitiativeEntryData) {
 	<form
 		class="flex flex-col gap-3"

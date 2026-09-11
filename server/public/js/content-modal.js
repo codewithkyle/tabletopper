@@ -15,14 +15,12 @@
 // should dismiss the dialog says so with an HX-Trigger of MODAL_CLOSE.
 import { openDialog } from "./modal.js";
 import { MODAL_CLOSE, MODAL_OPEN } from "./events.js";
-
 const dialog = document.getElementById("content-modal");
 const box = dialog.querySelector("[data-modal-box]");
 const body = dialog.querySelector("[data-modal-body]");
 const loadingEl = dialog.querySelector("[data-modal-loading]");
 const errorEl = dialog.querySelector("[data-modal-error]");
 const retryEl = dialog.querySelector("[data-modal-retry]");
-
 // Widths are inline styles rather than max-w-* utilities because
 // server/public/js is deliberately not a Tailwind @source -- see the note at
 // the bottom of css/app.css. A class name written in here would never be
@@ -30,7 +28,6 @@ const retryEl = dialog.querySelector("[data-modal-retry]");
 // that default (.modal-box is max-width: 32rem), so an event with no size
 // behaves exactly as it would without this.
 const SIZES = { sm: "24rem", md: "32rem", lg: "42rem", xl: "56rem" };
-
 // Every load has to name a /fragment/ route, and the modal checks rather than
 // trusting the caller. This is the only place in the app that takes a URL as
 // data -- the detail of an event any component can fire -- so without the check
@@ -42,7 +39,6 @@ const SIZES = { sm: "24rem", md: "32rem", lg: "42rem", xl: "56rem" };
 // Comparing against a leading slash rules out an absolute or protocol-relative
 // URL for free: "//elsewhere.example/fragment/x" does not start with it.
 const FRAGMENT_PREFIX = "/fragment/";
-
 // The ctx of the fetch whose content the dialog is currently expecting.
 //
 // htmx's default hx-sync is "queue first" per source element, and every load
@@ -53,7 +49,6 @@ const FRAGMENT_PREFIX = "/fragment/";
 // the identical object to every event of one request.
 let current = null;
 let lastUrl = null;
-
 // Exactly one of the three is visible. The attribute rather than a class
 // because preflight's [hidden] carries !important, so it wins over the display
 // utilities these elements already have.
@@ -62,7 +57,6 @@ function show(el) {
     errorEl.hidden = el !== errorEl;
     body.hidden = el !== body;
 }
-
 // showModal() hands focus to the first focusable thing in the dialog, and while
 // the fetch is in flight that is the Close button of the loading state -- which
 // this then hides, dropping focus to the dialog itself. So focus follows the
@@ -73,7 +67,6 @@ function focusContent() {
         .querySelector("input:not([type=hidden]), select, textarea, button, a[href]")
         ?.focus();
 }
-
 // GET is not a default here, it is the only option. A /fragment/ route is a
 // GET that returns partial HTML and nothing else, so a method or a body on the
 // opening fetch has nowhere to land: the subtree catch-all in routes.go takes any
@@ -84,7 +77,6 @@ function load(url) {
     current = null;
     show(loadingEl);
     body.replaceChildren();
-
     htmx.ajax("GET", url, {
         target: body,
         // Naming the dialog as the source puts every event for this fetch on
@@ -94,7 +86,6 @@ function load(url) {
         source: dialog,
     });
 }
-
 // A control can also ask for the modal declaratively:
 //
 //     <button data-modal-open="/fragment/character/journal-share?..." data-modal-size="lg">
@@ -111,7 +102,6 @@ document.addEventListener("click", (e) => {
     if (!trigger) {
         return;
     }
-
     window.dispatchEvent(
         new CustomEvent(MODAL_OPEN, {
             detail: {
@@ -121,7 +111,6 @@ document.addEventListener("click", (e) => {
         }),
     );
 });
-
 window.addEventListener(MODAL_OPEN, (e) => {
     const url = e.detail?.url;
     if (!url) {
@@ -141,7 +130,6 @@ window.addEventListener(MODAL_OPEN, (e) => {
     openDialog(dialog);
     load(url);
 });
-
 // The dismissal signal for server-driven flows: a form in the modal posts,
 // succeeds, and the response closes the dialog with an HX-Trigger header
 // rather than the client guessing from the status code. A validation failure
@@ -149,20 +137,17 @@ window.addEventListener(MODAL_OPEN, (e) => {
 window.addEventListener(MODAL_CLOSE, () => {
     dialog.close();
 });
-
 retryEl.addEventListener("click", () => {
     if (lastUrl) {
         load(lastUrl);
     }
 });
-
 dialog.addEventListener("htmx:before:request", (e) => {
     if (e.target !== dialog) {
         return;
     }
     current = e.detail.ctx;
 });
-
 dialog.addEventListener("htmx:before:swap", (e) => {
     // A queued or in-flight load from an earlier open. Let it run to
     // completion so htmx settles its own bookkeeping, but do not let it paint
@@ -171,7 +156,6 @@ dialog.addEventListener("htmx:before:swap", (e) => {
         e.preventDefault();
     }
 });
-
 dialog.addEventListener("htmx:finally:request", (e) => {
     if (e.target !== dialog || e.detail.ctx !== current) {
         return;
@@ -189,7 +173,6 @@ dialog.addEventListener("htmx:finally:request", (e) => {
         focusContent();
     }
 });
-
 // NOTHING VISIBLE IS RESET HERE. .modal-box fades for 0.3s after close(), so
 // anything this handler changes is changed while the box is still on screen and
 // the user watches it happen: clearing the content would empty the box mid-fade,
@@ -203,7 +186,6 @@ dialog.addEventListener("close", () => {
     // Any load still in flight belongs to the modal that just closed.
     current = null;
 });
-
 // A page can also ask for the modal the moment it loads:
 //
 //     <div hidden data-modal-autoopen="/fragment/account/welcome"></div>

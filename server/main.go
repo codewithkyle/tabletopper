@@ -1,5 +1,4 @@
 package main
-
 import (
 	"context"
 	"errors"
@@ -10,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
 	"tabletopper/internal/controllers"
@@ -24,14 +22,12 @@ import (
 	"tabletopper/internal/sweep"
 	"tabletopper/internal/tiling"
 )
-
 func main() {
 	if err := run(); err != nil {
 		slog.Error("Fatal", "error", err)
 		os.Exit(1)
 	}
 }
-
 // run is main with a return value, so every exit path is a returned error
 // and the deferred cleanup runs on all of them.
 func run() error {
@@ -39,12 +35,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-
 	// ctx ends on SIGINT or SIGTERM. Everything long-lived hangs off it: the
 	// three sweepers and the map tiler stop, and the server drains.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-
 	pool, err := database.Open(ctx, cfg.DSN)
 	if err != nil {
 		return err
@@ -54,7 +48,6 @@ func run() error {
 			slog.Error("Failed to close DB pool", "error", err)
 		}
 	}()
-
 	store, err := storage.New(ctx, storage.Config{
 		AccountID:       cfg.R2AccountID,
 		AccessKeyID:     cfg.R2AccessKeyID,
@@ -64,7 +57,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-
 	q := queries.New(pool)
 	sessions := session.NewStore(q, !cfg.Development())
 	sessions.StartCleanup(ctx)
@@ -72,7 +64,6 @@ func run() error {
 	sweep.ExpiredShares(ctx, q)
 	sweep.MusicUploads(ctx, q, store)
 	tiling.Maps(ctx, q, store)
-
 	// THE ROOMS. One goroutine per live room, loaded on the first join and
 	// unloaded ten minutes after the last person leaves. It is constructed
 	// here rather than lazily because Shutdown below has to reach it: a deploy
@@ -80,7 +71,6 @@ func run() error {
 	// process goes, and a hub nothing had built yet would have nothing to
 	// write.
 	rooms := hub.New(q, hub.Options{})
-
 	app := &controllers.App{
 		DB:       pool,
 		Queries:  q,
@@ -100,7 +90,6 @@ func run() error {
 		RoomJoinAttempts: share.NewAttempts(10, time.Minute),
 	}
 	auth := middleware.Auth{Sessions: sessions}
-
 	// THE UPLOAD ROUTES LIFT THESE PER REQUEST rather than the numbers here
 	// being relaxed for everything. ReadTimeout covers the whole body and not
 	// just the headers, and WriteTimeout runs from when the headers were read
@@ -117,13 +106,11 @@ func run() error {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-
 	errCh := make(chan error, 1)
 	go func() {
 		slog.Info("Listening", "addr", cfg.Addr)
 		errCh <- server.ListenAndServe()
 	}()
-
 	select {
 	case <-ctx.Done():
 		slog.Info("Shutting down")
@@ -132,7 +119,6 @@ func run() error {
 		// failed, so ErrServerClosed cannot arrive here.
 		return fmt.Errorf("server: %w", err)
 	}
-
 	// THE ROOMS ARE SAVED ON EVERY PATH OUT OF HERE, and on a budget of their
 	// own. This is what the whole snapshot design exists for -- a deploy in
 	// the middle of Saturday's game -- so it must not depend on the HTTP drain
@@ -150,10 +136,8 @@ func run() error {
 		roomsCtx, cancel := context.WithTimeout(context.Background(), roomsShutdownBudget)
 		defer cancel()
 		rooms.Shutdown(roomsCtx)
-
 		slog.Info("Server shutdown complete")
 	}()
-
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), httpShutdownBudget)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
@@ -163,10 +147,8 @@ func run() error {
 	if err := <-errCh; !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server: %w", err)
 	}
-
 	return nil
 }
-
 // The two halves of the shutdown budget. They are separate rather than one
 // shared ten seconds so that a slow HTTP drain cannot spend the time the rooms
 // need to write themselves back; see the deferred block in run.

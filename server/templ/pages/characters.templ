@@ -1,18 +1,15 @@
 package pages
-
 import (
 	"fmt"
 	"strconv"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/layouts"
 )
-
 templ Characters(characters []queries.Character) {
 	@layouts.Base("Characters | Tabletopper") {
 		@charactersContent(characters)
 	}
 }
-
 templ Character(character queries.Character) {
 	<character-card class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
@@ -114,7 +111,6 @@ templ Character(character queries.Character) {
 		</div>
 	</character-card>
 }
-
 templ charactersContent(characters []queries.Character) {
 	<character-selector class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">

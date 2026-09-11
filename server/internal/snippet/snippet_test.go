@@ -1,19 +1,11 @@
 package snippet
-
 import (
 	"strings"
 	"testing"
 	"unicode/utf8"
 )
-
 const prose = "We spent the morning in the market square before the guards moved us on, " +
 	"and by evening had found Béornegar drinking alone at the Crooked Lantern."
-
-
-
-
-
-
 func TestAnUnaccentedSearchFindsTheAccentedName(t *testing.T) {
 	hit, ok := Find(prose, "Beornegar", 60)
 	if !ok {
@@ -23,8 +15,6 @@ func TestAnUnaccentedSearchFindsTheAccentedName(t *testing.T) {
 		t.Errorf("marked %q, want the writer's own spelling", hit.Match)
 	}
 }
-
-
 func TestTheMarkedTextIsTheWritersSpelling(t *testing.T) {
 	hit, ok := Find("The Crooked Lantern was shut.", "crooked lantern", 40)
 	if !ok {
@@ -34,16 +24,8 @@ func TestTheMarkedTextIsTheWritersSpelling(t *testing.T) {
 		t.Errorf("marked %q, want %q", hit.Match, "Crooked Lantern")
 	}
 }
-
-
-
-
-
-
-
 func TestOffsetsSurviveTheAccentsBeforeTheMatch(t *testing.T) {
 	body := strings.Repeat("Béornegar and Ísolde and Æthelred walked. ", 12) + "The ring was buried here."
-
 	hit, ok := Find(body, "ring", 30)
 	if !ok {
 		t.Fatal("the term was not found past a run of accented names")
@@ -57,18 +39,11 @@ func TestOffsetsSurviveTheAccentsBeforeTheMatch(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestATermThatIsNotInTheTextIsNotAHit(t *testing.T) {
 	if _, ok := Find(prose, "assets", 60); ok {
 		t.Error("a word the entry does not contain was reported as a hit")
 	}
 }
-
-
-
 func TestAnEmptyTermIsNotAHit(t *testing.T) {
 	for _, term := range []string{"", "   "} {
 		if _, ok := Find(prose, term, 60); ok {
@@ -76,8 +51,6 @@ func TestAnEmptyTermIsNotAHit(t *testing.T) {
 		}
 	}
 }
-
-
 func TestTheEllipsisMarksOnlyAWindowThatCut(t *testing.T) {
 	hit, ok := Find(prose, "morning", 60)
 	if !ok {
@@ -89,7 +62,6 @@ func TestTheEllipsisMarksOnlyAWindowThatCut(t *testing.T) {
 	if !strings.HasSuffix(hit.After, "…") {
 		t.Errorf("the tail was cut and not marked: %q", hit.After)
 	}
-
 	whole, ok := Find("A short line.", "short", 60)
 	if !ok {
 		t.Fatal("the term was not found")
@@ -98,15 +70,11 @@ func TestTheEllipsisMarksOnlyAWindowThatCut(t *testing.T) {
 		t.Errorf("a line shorter than the window was marked as cut: %q / %q", whole.Before, whole.After)
 	}
 }
-
-
-
 func TestTheWindowCutsAtAWordBoundary(t *testing.T) {
 	hit, ok := Find(prose, "Crooked", 24)
 	if !ok {
 		t.Fatal("the term was not found")
 	}
-
 	before := strings.TrimPrefix(hit.Before, "…")
 	if before != "" && strings.HasPrefix(before, " ") {
 		t.Errorf("the window opened on a space: %q", hit.Before)
@@ -115,10 +83,6 @@ func TestTheWindowCutsAtAWordBoundary(t *testing.T) {
 		t.Errorf("the window opened inside a word: %q", hit.Before)
 	}
 }
-
-
-
-
 func TestTheFirstMatchIsTheOneShown(t *testing.T) {
 	hit, ok := Find("The ring is first. Then more words follow. The ring is second.", "ring", 12)
 	if !ok {
@@ -131,9 +95,6 @@ func TestTheFirstMatchIsTheOneShown(t *testing.T) {
 		t.Errorf("the window did not open on the first mention: %q", hit.After)
 	}
 }
-
-
-
 func TestAMultiWordTermMatchesAsAPhrase(t *testing.T) {
 	hit, ok := Find(prose, "market square", 40)
 	if !ok {
@@ -143,9 +104,6 @@ func TestAMultiWordTermMatchesAsAPhrase(t *testing.T) {
 		t.Errorf("marked %q, want the whole phrase", hit.Match)
 	}
 }
-
-
-
 func TestContainsFoldsTheSameWayFindDoes(t *testing.T) {
 	if !Contains("Session 12: Béornegar", "beornegar") {
 		t.Error("a title match was missed by case and accent")

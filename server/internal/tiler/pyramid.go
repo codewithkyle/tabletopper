@@ -1,33 +1,8 @@
 package tiler
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func LevelPixels(size int, z int) int {
 	if size <= 0 {
 		return 0
 	}
-	
-	
-	
 	if z >= 62 {
 		return 1
 	}
@@ -37,13 +12,6 @@ func LevelPixels(size int, z int) int {
 	}
 	return (size + step - 1) >> uint(z)
 }
-
-
-
-
-
-
-
 func LevelTiles(size int, tileSize int, z int) int {
 	if tileSize < 1 {
 		return 0
@@ -51,15 +19,6 @@ func LevelTiles(size int, tileSize int, z int) int {
 	pixels := LevelPixels(size, z)
 	return (pixels + tileSize - 1) / tileSize
 }
-
-
-
-
-
-
-
-
-
 func LevelTileSize(size int, tileSize int, z int, x int) int {
 	if tileSize < 1 || x < 0 || x >= LevelTiles(size, tileSize, z) {
 		return 0
@@ -69,10 +28,6 @@ func LevelTileSize(size int, tileSize int, z int, x int) int {
 	}
 	return tileSize
 }
-
-
-
-
 func MaxZoom(width int, height int, tileSize int) int {
 	if tileSize < 1 {
 		return 0

@@ -1,13 +1,11 @@
 /* Tailwind entry stylesheet.
    Source lives here, outside public/; the build output lands in
    server/public/css/app.css, which is what the Dockerfile copies. */
-
 /* source(none) disables Tailwind's automatic file discovery. Without it
    Tailwind walks up to the git root and scans client/ -- the legacy SPA,
    which is full of Brixi class names that would bloat this build with
    utilities nothing on the server renders. Sources are declared below. */
 @import "tailwindcss" source(none);
-
 /* DaisyUI 5.7.28, vendored in css/vendor/. The standalone Tailwind binary
    bundles Node's runtime but not any npm packages, so `@plugin "daisyui"`
    cannot resolve -- the plugin has to be a real file on disk. These two are
@@ -21,14 +19,12 @@
    `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }`, so the
    active theme follows the OS with no JS and no flash. The :not() guard means
    an explicit data-theme would win, if a manual toggle is ever added.
-
    These replace the hand-built "tabletopper" pair, which mirrored the tokens in
    core.css. The page background in core.css reads --color-base-100/200/300 and
    --color-base-content directly, so the desk, the grid and the panel surface
    follow the theme with no dark-mode override of their own. The rest of
    public/css still reads the Brixi tokens (tokens.css) or the parchment ink
    tokens (core.css) and diverges as Phase 5 moves components across.
-
    caramellatte replaced silk because its base ramp carries real warmth
    (chroma 0.016-0.123 against silk's 0.0035-0.0081), which puts it in the same
    family as coffee instead of reading as neutral grey next to it. Its
@@ -39,14 +35,11 @@
    styled itself. The list is empty as of phase 6 and every name is back in the
    build; what follows is the record of why each one was ever on it, kept because
    the reasons are the argument for the mechanic rather than for the names.
-
    Each name left in the phase that retired the markup owning it.
-
    `link` left in phase 1 along with link.css -- DaisyUI's .link sets only
    text-decoration and a focus ring, no colour, so the one <a class="link"> on
    the server-error page now inherits its surrounding text colour instead of
    link.css's Brixi blue.
-
    `input` left in phase 2 with input.css, input.js, input-base.js and
    number-input.js. That group had to go all at once: number-input.js also did
    classList.add("input") on its wrapper, so un-excluding .input while any
@@ -54,7 +47,6 @@
    height:2.5rem, border, padding-inline and background on an element holding a
    label plus a 36px input. The text and number fields are one class name, not
    two, so they migrate together.
-
    `select` left in phase 4 with select.css and select.js. Nothing else had to
    move with it: the only other <select> in the app was the spell school picker
    inside spell-slots-table, a bare element styled by `spell-slots-table select`
@@ -62,11 +54,9 @@
    own, so un-excluding the group could not reach it. That component is gone --
    the spell rows that replaced it carry class="select" like every other picker
    -- so the question no longer arises.
-
    Phase 5 (saving throws) took no name off this list. Its <span class="label">
    was the stat name, and it became a plain <label> carrying utilities -- which
    left skills-table holding .label on its own.
-
    `label` left last, in phase 6 with skills.css and skills.js. It is the only
    one of the four that bought no collision fix on the way out: nothing carries
    class="label" any more, so the 3,233 B DaisyUI now emits for the group is
@@ -79,13 +69,11 @@
 @plugin "./vendor/daisyui.js" {
   themes: caramellatte --default, coffee --prefersdark;
 }
-
 /* coffee ships --border: 1px and caramellatte 2px, so a bordered component
    changed thickness with the OS theme. Both are pinned to 1px, and both are
    named even though coffee's built-in already agrees -- the property being
    asserted is that the two themes match, and leaving one to a default would
    put that at the mercy of a DaisyUI upgrade.
-
    IT WAS PINNED AT 2px UNTIL THE PANELS STOPPED READING IT. --border is what
    .card-border, .input, .select, .textarea, .btn, .badge and .checkbox all
    build their borders out of, and while the sheet panels were card-border it
@@ -93,7 +81,6 @@
    --shadow-panel now (see surfacePanel in templ/pages/sheet-section.templ), and
    2px controls inside a 1px panel put the heaviest line in the layout around
    the input rather than around the thing containing it.
-
    Overriding a built-in theme goes through daisyui-theme.js -- that is what
    the plugin file above is kept for. It re-emits the named theme as a full
    token block later in @layer base, so the properties named here win on
@@ -110,7 +97,6 @@
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.45);
   --panel-shadow-lift: 0 12px 32px -16px rgb(0 0 0 / 0.8);
 }
-
 /* --panel-bg is the elevated surface: cards, sheet sections, the modal, the
    user badge. It is not a DaisyUI token; the plugin passes an unrecognised
    custom property straight through into the theme block, which is the whole
@@ -119,16 +105,13 @@
    `[data-theme=…]`, and the `:root:not([data-theme])` inside the
    prefers-color-scheme media query -- so an explicit theme and an OS-driven one
    both get it, with no selector list of ours to keep in sync.
-
    BOTH THEMES ARE base-200 NOW, WHICH IS A RECESS AND NOT A LIFT. The panel is
    one step DARKER than the base-100 desk in either polarity, so the chrome
    settles into the page rather than floating over it, and the two themes are
    the same construction rather than mirror images of each other.
-
    LIGHT MODE WAS base-100 -- the same shade as the desk -- until the light
    theme was inverted. Two things had made that necessary and neither is true
    any more:
-
      - .validator-hint read --color-error, which over caramellatte's base-200
        measures 2.51:1. It reads --color-hint now, which is error-content and
        measures 8.88:1 over the same shade. See the note on --hint-color below;
@@ -140,11 +123,9 @@
        an inset highlight, so it still reads as a button; coffee ships
        --depth: 0 and has had exactly this arrangement since the panels were
        written, which is the evidence that it holds.
-
    Overriding --color-base-200 globally is still the wrong route and always
    will be. It is the button's fill: moving it moves every button in the app to
    chase one surface.
-
    --table-bg IS THE ROOM'S TABLE, and it is the other half of the inversion.
    Dark mode keeps base-300, the darkest shade, so the table is a void the
    chrome sits above. Light mode takes base-100 -- the lightest -- because
@@ -162,16 +143,13 @@
   --panel-shadow-edge: 0 1px 2px rgb(0 0 0 / 0.05);
   --panel-shadow-lift: 0 10px 26px -14px rgb(0 0 0 / 0.16);
 }
-
 /* Rubik, loaded by the @import at the top of core.css.
-
    This was `body { font-family: var(--font-sans-serif) }` in core.css, reading a
    Brixi token out of tokens.css. Deleting tokens.css would not have broken
    loudly: the read becomes invalid at computed-value time, body falls back to
    inheriting html, and html is preflight's `var(--default-font-family)` --
    which resolves through --font-sans to DaisyUI's system stack. Rubik would
    have disappeared from the whole app with nothing logged.
-
    Declaring it here overrides DaisyUI's --font-sans (verified in the build, not
    assumed -- ours has to win a three-way cascade against the plugin), so
    preflight applies Rubik to html and everything inherits it. It also makes the
@@ -186,25 +164,21 @@
 @theme {
   --color-panel: var(--panel-bg);
 }
-
 /* --color-table is the room's table surface, and it exists for the same reason
    --color-panel does: the shade is a per-theme decision and a utility class in
    markup cannot make one. #tabletop carried bg-base-300, which is right in the
    dark theme and was the whole of what made the light theme look inverted --
    see the note on --table-bg above.
-
    It is read by exactly one element. That is not an argument against the token:
    the alternative is the same decision spelled out twice, once per theme, in a
    selector list of ours to keep in step with DaisyUI's. */
 @theme {
   --color-table: var(--table-bg);
 }
-
 /* --panel-shadow is the drop shadow that makes a panel read as sitting above
    the desk rather than being drawn on it, and like --panel-bg it is declared
    per theme through the plugin above -- for the same reason, and with a bigger
    gap between the two answers.
-
    A shadow is a darkening, so how much of one is legible depends entirely on
    what it falls on. caramellatte's desk is cream: 5% black on the contact edge
    and 16% on the wide falloff is already a visible lift, and the 45%/80% the
@@ -212,15 +186,12 @@
    those light values do nothing at all -- the panel there is base-200, which is
    DARKER than the base-100 desk, so the surface itself gives no lift and the
    shadow is doing all of the work on its own.
-
    Two layers in both, because one cannot do both jobs: a tight 1-2px shadow at
    the contact edge, which is what reads as a physical seam, and a wide
    negative-spread falloff, which is what reads as height. A single mid-sized
    shadow reads as neither and just looks blurry.
-
    This replaces shadow-sm, which is Tailwind's 0 1px 2px rgb(0 0 0 / 0.05) --
    the first of those two layers, at the light theme's strength, on both.
-
    THE TWO LAYERS ARE TWO PROPERTIES BECAUSE ONE WITH A COMMA IN IT DOES NOT
    SURVIVE THE PLUGIN. A declaration inside an @plugin block is read as an
    option, and `a, b` there comes out as two separate declarations of the same
@@ -232,43 +203,34 @@
 @theme {
   --shadow-panel: var(--panel-shadow-edge), var(--panel-shadow-lift);
 }
-
 /* --hint-color is the field-error text on .validator-hint, and it has to be
    picked per theme because --color-error is a *fill* colour, sized for a badge
    or a button, not for small text on a pale surface.
-
    Measured against the panel, rasterised through a canvas so the browser does
    the oklch conversion:
-
      caramellatte  --color-error          rgb(255, 98, 102)   2.51 : 1   fails
      caramellatte  --color-error-content  rgb(128,  21,  24)  8.88 : 1   passes
      coffee        --color-error          rgb(252, 149, 129)  8.16 : 1   passes
      coffee        --color-error-content  rgb( 21,   8,   6)  1.12 : 1   fails
-
    So each theme takes whichever of its own error pair is the readable one
    against its own panel: the dark ink in light mode, the light coral in dark.
    -content is nominally "foreground on an error fill" rather than on base, but
    it is the only red DaisyUI ships per theme that is built to be read rather
    than filled with, and both readings land far the right side of 4.5:1.
-
    Flattening the panel to base-100 was not what fixed this -- on its own it
    moved caramellatte from 2.56 to 2.75, and the light numbers above are the
    base-200 panel it went back to. */
 @theme {
   --color-hint: var(--hint-color);
 }
-
 @theme {
   --font-sans: "Rubik", Ubuntu, "Open Sans", "Noto Sans", Roboto, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, "Helvetica Neue", sans-serif;
 }
-
 /* templ is not a format Tailwind auto-detects, so point it at the source.
    Scan .templ, not the generated _templ.go -- the latter is gitignored.
-
    Be aware of what "scan" means here: Tailwind extracts candidates from every
    word in the file, not from class attributes. Go keywords and prose count
    equally.
-
    Prose could be dealt with, and was: comments in .templ files are banned
    outright. Rewording them one at a time did not hold -- a comment in
    form-field.templ using the words "dropdown" and "list" was worth 6 KB until
@@ -277,21 +239,17 @@
    .status, .swap, .stack and .modal-backdrop out of the build. Deleting a
    scanned .js file shrinks the output the same way: input.js and select.js each
    had a handleBlur, which is where .blur came from.
-
    Go code cannot be dealt with, because the code IS the markup.
    `for _, o := range options` is why .range is in this build -- 14 rules for a
    slider the app does not have. That is the residue, and it is why the check
    below is a habit and not a one-off.
-
    So when a phase adds CSS, diff the emitted selectors, not just the byte
    count, and check that anything new is something the markup actually uses. */
 @source "../templ/**/*.templ";
-
 /* public/js is no longer scanned. It was, because the lit-html components emitted
    class strings client-side and those classes never appeared in a template -- so
    the directory held real usages. All four are server-rendered as of phase 8 and
    the runtime is deleted, so every remaining word in there is incidental.
-
    Removing the line cost 9,197 B and sixteen selectors, none of which any markup
    used: .alert, .toast, .status, .loading, .indicator, .static, .ease-out and a
    full .modal implementation with seven variants. DaisyUI was emitting a modal
@@ -299,19 +257,15 @@
    asked for one. The three <dialog class="modal"> elements base.templ grew
    later put .modal, .modal-box, .modal-action and .loading back in the build
    on their own -- named by a template, which is the mechanic working.
-
    That is the note above running in reverse, and it is the largest single move
    the stylesheet has made in either direction. */
-
 /* THE TURN-ORDER CARD, WHICH IS THE OLD APP'S CARD ON PURPOSE.
-
    Each line of the tracker is a tall portrait in a coloured frame, floating over
    the map on its own -- no panel behind the row, because a shared strip makes
    twelve creatures one widget with faces printed on it and twelve separate cards
    are twelve creatures. The frame's colour is what the creature IS: red for a
    monster, green for an NPC, blue for the party, and a neutral dark for a line
    with no creature behind it at all.
-
    THE THREE COLOURS ARE FIXED RATHER THAN THEMED, and that is the decision worth
    writing down. --color-error and friends flip lightness between caramellatte and
    coffee -- a deep red in one and a pale salmon in the other -- so a themed card
@@ -320,41 +274,33 @@
    most tables run. These are information in the way the blood above is
    information, so they are constants: the old app's own --danger-500,
    --success-500 and --primary-500, unchanged, white text on all three.
-
    ONLY THE ACTING CARD IS LIT. The rest are turned down with one filter, which
    is the whole of the distinction -- no border, no badge, no size change. A row
    where eleven cards are dim is a row where the twelfth needs nothing else to be
    found, and every card staying the same size is what keeps the drop target from
    moving out from under a pointer already reaching for it.
-
    IT IS GENTLER THAN THE OLD APP'S saturate(0.25) brightness(0.6) because this
    tracker has something that one did not: the wounds above. A resting card still
    has to show that its goblin is bleeding, and a quarter of the saturation left
    is not enough red to see. */
-
 :root {
   --side-player: hsl(217 91% 60%);
   --side-monster: hsl(350 89% 60%);
   --side-npc: hsl(160 84% 39%);
   --side-none: hsl(220 14% 24%);
 }
-
 [data-entry] {
   --side: var(--side-none);
 }
-
 [data-entry][data-side="player"] {
   --side: var(--side-player);
 }
-
 [data-entry][data-side="monster"] {
   --side: var(--side-monster);
 }
-
 [data-entry][data-side="npc"] {
   --side: var(--side-npc);
 }
-
 /* The frame and the name plate under it are one shape in two elements, which is
    why they take the colour together: the plate is the bottom of the card and the
    card is square along that edge while it is showing. */
@@ -363,20 +309,16 @@
   background-color: var(--side);
   color: rgb(255 255 255);
 }
-
 /* White on a mid-tone green is the weakest of the three pairings, and the plate
    is the only place any of them carries text. The shadow is what makes twelve
    pixels of it legible without moving the colour off the one the old app used. */
 [data-entry-plate] {
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
 }
-
 [data-entry]:not([data-turn-active]) [data-entry-tile] {
   filter: saturate(0.5) brightness(0.62);
 }
-
 /* THE WOUNDS ON A TURN-ORDER PORTRAIT, AND THEY ARE THE PAWN SHADER'S NUMBERS.
-
    The strip over the table draws one face per line of the initiative order, and
    a face wears exactly what the sprite on the table wears: blood soaking in from
    the rim, the colour draining out, a pulse inside the rim at two rates, one of
@@ -384,25 +326,21 @@
    because both sides read one band -- room.Health in the Go, healthOf in
    server/js/room/render/wounds.ts -- and the server renders that band onto the
    element as data-band. Nothing here computes anything.
-
    EVERY VALUE BELOW IS wounds.ts's, unchanged: hurt() is 0.45, 0.75 and 1;
    SLOW_PERIOD is 1800ms and BEAT_PERIOD is 1050ms; bleeds() is the three bands
    that carry a splatter; BLOOD_FRESH and BLOOD_DRIED are the two reds. A change
    to one file is a change to both.
-
    NOTHING ABOVE THE HALFWAY LINE IS MARKED AT ALL, which is hurt()'s most
    important entry: a strip where every creature looks wounded is a strip with no
    signal in it. AND A CORPSE IS NOT RIM-MARKED EITHER -- the grey and the skull
    say more, and a red rim under a full grey would be greyed away in the same
    breath. What a corpse keeps is the blood ON it, dried.
-
    IT IS CSS AND NOT JAVASCRIPT because all of it hangs off that one attribute,
    and it is HERE rather than in a .templ file for the reason every rule in this
    file is: server/js is not a Tailwind source, so a class named in a script is
    never emitted, and prose in a template is a class-name candidate. The two
    Sortable classes at the bottom are named in js/room/initiative.ts and defined
    here for exactly that reason.
-
    THE PULSE IS A GRADIENT THAT BEATS AND NOTHING TRAVELS, which is the shader's
    rule as well: a shape crossing the token pulls the eye off the token, and a
    ring collapsing inward arrives on the face at the end of every beat -- the one
@@ -410,18 +348,15 @@
    at the rim and falling off inward, and only its brightness moves. The rhythm
    is lub-dub rather than a sine, because a sine reads as "selected" or as
    something loading and two thumps and a silence reads as a heart.
-
    AND THE REDUCED-MOTION CASE KEEPS THE GLOW AT ITS BRIGHT END rather than
    dropping it. The pulse is information; the animation is only how it is
    delivered. */
-
 :root {
   --blood-fresh: rgb(255 33 26);
   --blood-fresh-clear: rgb(255 33 26 / 0);
   --blood-dried: rgb(87 15 13);
   --blood-dried-clear: rgb(87 15 13 / 0);
 }
-
 [data-portrait],
 [data-pip] {
   --wound: 0;
@@ -431,7 +366,6 @@
   --pip: var(--color-success);
   --pip-alpha: 1;
 }
-
 /* The six bands. They come after the defaults above rather than being written
    at a higher specificity, because both selectors match the same element and the
    later one wins -- which is also why healthy and bruised need no block at all:
@@ -441,19 +375,16 @@
   --wound: 0.45;
   --pip: var(--color-warning);
 }
-
 [data-band="veryBloody"] {
   --wound: 0.75;
   --splatter: 1;
   --pip: var(--color-error);
 }
-
 [data-band="nearDeath"] {
   --wound: 1;
   --splatter: 1;
   --pip: var(--color-error);
 }
-
 [data-band="dead"] {
   --splatter: 1;
   --blood: var(--blood-dried);
@@ -461,21 +392,17 @@
   --pip: var(--color-base-content);
   --pip-alpha: 0.3;
 }
-
 /* The colour going out of the creature. This is the shader's mix(rgb, luma,
    grey) in the one form CSS has of it, and it is on the FACE rather than on the
    portrait so that the blood over it is not desaturated in the same pass. */
 [data-portrait] [data-face] {
   filter: saturate(calc(1 - var(--wound)));
 }
-
 [data-band="dead"] [data-face] {
   filter: grayscale(1) brightness(0.6);
 }
-
 /* The splatter: one of the nine, shaped by its own alpha and faded out toward
    the middle, so it soaks in from the edges rather than covering the face.
-
    THE PAINT IS THE GRADIENT AND THE PICTURE IS THE MASK, which is one mask and
    one gradient rather than two masks composited -- the intersection falls out of
    the paint being transparent where the rim mask would have been. A splatter is
@@ -494,11 +421,9 @@
   -webkit-mask-position: center;
   mask-position: center;
 }
-
 [data-portrait][data-blood]::before {
   opacity: var(--splatter);
 }
-
 /* The blood at the rim, pooling toward the bottom of the disc as the shader's
    does: a ring that is transparent through the middle, and a second gradient
    anchored below the portrait that is what "pooling" is. */
@@ -512,31 +437,25 @@
     radial-gradient(circle at 50% 50%, var(--blood-clear) 45%, var(--blood) 100%),
     radial-gradient(75% 55% at 50% 105%, var(--blood) 0%, var(--blood-clear) 100%);
 }
-
 /* The pulse. Fixed geometry, brightness only; see the note at the top. */
 [data-portrait] [data-pulse] {
   opacity: 0;
   box-shadow: inset 0 0 10px 2px var(--blood);
 }
-
 [data-band="veryBloody"] [data-pulse] {
   opacity: 0.55;
 }
-
 [data-band="nearDeath"] [data-pulse] {
   opacity: 1;
 }
-
 @media (prefers-reduced-motion: no-preference) {
   [data-band="veryBloody"] [data-pulse] {
     animation: initiative-beat-slow 1800ms linear infinite;
   }
-
   [data-band="nearDeath"] [data-pulse] {
     animation: initiative-beat-fast 1050ms linear infinite;
   }
 }
-
 /* Lub-dub, as percentages of each period. The two knocks are the same LENGTH at
    both rates and only the rest between them changes, which is what a slower
    heart actually is -- stretching the knock as well would turn it into a swell.
@@ -552,7 +471,6 @@
   23.3% { opacity: 0; }
   100% { opacity: 0; }
 }
-
 @keyframes initiative-beat-fast {
   0% { opacity: 0; }
   4.8% { opacity: 1; }
@@ -562,7 +480,6 @@
   40% { opacity: 0; }
   100% { opacity: 0; }
 }
-
 /* The skull, and it is the 💀 GLYPH RATHER THAN A FILE. drawSkull in
    server/js/room/render/sprites.ts renders that same character to a canvas at
    0.8 of a sprite, so the mark on the strip and the mark on the table are the
@@ -574,7 +491,6 @@
   line-height: 1;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6));
 }
-
 /* One member of a group. It is the same band treatment at dot size, so six up
    and three down is six coloured discs and three grey ones with one rule set
    doing both. */
@@ -582,7 +498,6 @@
   background-color: var(--pip);
   opacity: var(--pip-alpha);
 }
-
 /* The nine splatters, which live under /images/blood at 256 square and are the
    same files the sprite cache loads. Which one a creature wears is chosen from
    its pawn id in Go -- see InitiativeBloodVariant -- so everybody at the table
@@ -597,7 +512,6 @@
 [data-blood="7"] { --splatter-image: url("/images/blood/7.webp"); }
 [data-blood="8"] { --splatter-image: url("/images/blood/8.webp"); }
 [data-blood="9"] { --splatter-image: url("/images/blood/9.webp"); }
-
 /* THE MARK ON WHOEVER IS ACTING, and it is DaisyUI's `aura aura-silver` with
    two things set on it and nothing else. What the component does, in its own
    words: a box padded by --aura-padding, filled with a conic gradient that
@@ -605,34 +519,28 @@
    cycling twice round the circle, dark to bright and back; and two more copies
    of the whole thing behind it, blurred by a quarter of a rem at 70 per cent
    and by a whole rem at 30, which is the halo.
-
    IT CARRIES ITS OWN COLOURS, which is why there is nothing here about health.
    A line of the turn order already says how hurt a creature is five ways over
    -- blood at the rim, the colour draining out, a pulse, a splatter, a skull --
    and a sixth reading of the same number in the same square inch is not
    information. What the aura answers is the one question none of those does,
    which is whose go it is.
-
    IT WRAPS THE FRAME AND THE NAME PLATE TOGETHER, because those two elements
    are one card and a glow round the top half of a card is a glow round the
    wrong shape.
-
    IT IS WORN AT THE COMPONENT'S OWN WIDTH, which is --aura-padding's default
    0.125rem and nothing set here. A fine metal edge round the card is what the
    band is; the halo behind it is what makes it findable, and that is sized by
    the two blurs rather than by the padding, so widening the band buys legibility
    the card was not short of.
-
    THE RADIUS IS SET RATHER THAN LEFT ALONE. The component falls back to
    --radius-box, which is the roundness of a dialog, and the card inside it is
    rounded-md at both ends -- a glow rounder than the thing it is drawn round
    reads as a second shape behind the first.
-
    AND THE ROW CARRIES p-4 FOR THIS. The strip scrolls sideways, so it clips at
    its own padding box, and the outer glow reaches a rem beyond the card. At the
    p-1 it had before, the halo was sliced off in a straight line across the top
    of whichever card was acting.
-
    THE PAWN ON THE TABLE WEARS THE SAME COMPONENT IN ANOTHER VARIANT, drawn by a
    shader because a pawn is not an element: aura-dual, in gold, with a longer
    tail, and reddening as the creature bleeds -- because out there nothing on
@@ -641,7 +549,6 @@
 [data-turn-aura] {
   --aura-radius: 0.375rem;
 }
-
 /* The two classes SortableJS is told to use while a line is being dragged. They
    are options rather than defaults, so nothing is written into the DOM that we
    did not name -- and they are here because js/room/initiative.ts, where they
@@ -649,17 +556,13 @@
 .initiative-ghost {
   opacity: 0.3;
 }
-
 .initiative-chosen {
   cursor: grabbing;
 }
-
 /* THE TURN CLOCK'S TWO STEPS, AND THEY REPAINT THE WHOLE BUTTON.
-
    js/room/initiative.ts writes plain, warning or danger onto [data-turn-timer]
    once a second -- turnTone(), which steps at 60 seconds and again at 120 --
    and these are the rules that read it.
-
    COLOURING THE DIGITS ALONE DOES NOT WORK, which is why the button takes it
    instead: they sit inside End turn on a filled primary, and coffee's primary
    is already amber, so warning text on it is warning text on itself. The two
@@ -668,15 +571,12 @@
    the label from --btn-fg -- so two declarations move all of it and the
    foreground stays the contrast partner of the background rather than a colour
    picked to sit on it.
-
    IT IS :has() BECAUSE THE ATTRIBUTE IS ON THE DIGITS. write() sets the tone on
    whatever it found by [data-turn-timer], and that is the span; the button asks
    about its own child rather than the script learning where the button is.
-
    AND IT FADES RATHER THAN SNAPS, at no cost: .btn already transitions colour,
    background, border and shadow over 200ms, so a step arrives as the button
    warming rather than as a flash over the table.
-
    TWO STEPS AND NOT THREE, which is turnTone()'s own decision: a green under
    thirty seconds answers a question nobody is asking, and what a table wants to
    see is that a turn has run long. */
@@ -684,7 +584,6 @@
   --btn-color: var(--color-warning);
   --btn-fg: var(--color-warning-content);
 }
-
 [data-turn-next]:has([data-turn-tone="danger"]) {
   --btn-color: var(--color-error);
   --btn-fg: var(--color-error-content);

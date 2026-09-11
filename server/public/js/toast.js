@@ -37,20 +37,15 @@
 // timer is what clears it. Both halves of that were measured in Chromium
 // rather than reasoned about -- the toast paints over the dialog, and a hit
 // test at the same point lands on the dialog behind it.
-
 import { TOAST } from "./events.js";
-
 const PENDING_KEY = TOAST;
 const DEFAULT_SECONDS = 5;
-
 // Whether this browser has the top layer on offer. Everything above is a
 // no-op without it, and a toast that renders under a dialog is what the app
 // did before: worse than the fix, better than a TypeError that loses the
 // message altogether.
 const canRaise = "popover" in HTMLElement.prototype;
-
 let shell = null;
-
 function getShell() {
     if (!shell || !shell.isConnected) {
         shell = document.createElement("toaster-component");
@@ -61,7 +56,6 @@ function getShell() {
     }
     return shell;
 }
-
 // hidePopover() throws on a popover that is not showing, so the state has to
 // be asked for. Hiding and showing again in the same task moves the shell to
 // the end of the top layer without the browser ever computing the closed
@@ -76,7 +70,6 @@ function raise(host) {
     }
     host.showPopover();
 }
-
 // Put the toasts back on top of a dialog that has just opened over them.
 // Called by openDialog(), which is the one place in the app that opens one.
 // It never builds a shell: with nothing on screen there is nothing to raise.
@@ -85,14 +78,12 @@ export function raiseToasts() {
         raise(shell);
     }
 }
-
 export function toast(message, seconds = DEFAULT_SECONDS) {
     const el = document.createElement("output");
     el.role = "status";
     // textContent, not innerHTML: the message usually contains a name the
     // user typed, and a name is text.
     el.textContent = message;
-
     const host = getShell();
     raise(host);
     const before = host.offsetHeight;
@@ -104,14 +95,12 @@ export function toast(message, seconds = DEFAULT_SECONDS) {
         [{ transform: `translateY(${grown}px)` }, { transform: "translateY(0)" }],
         { duration: 150, easing: "ease-out" },
     );
-
     const timer = setTimeout(() => el.remove(), seconds * 1000);
     el.addEventListener("click", () => {
         clearTimeout(timer);
         el.remove();
     });
 }
-
 // A toast parked by the previous page.
 try {
     const pending = sessionStorage.getItem(PENDING_KEY);
@@ -122,7 +111,6 @@ try {
 } catch {
     // sessionStorage can throw in a private window; a lost toast is fine.
 }
-
 // On `document`, not `document.body`: htmx dispatches on the requesting
 // element, but falls back to document when that element has already been
 // swapped away, and an event dispatched on document never reaches body.
@@ -133,7 +121,6 @@ document.addEventListener("htmx:after:request", (e) => {
     if (!trigger) {
         return;
     }
-
     let events;
     try {
         events = JSON.parse(trigger);
@@ -142,12 +129,10 @@ document.addEventListener("htmx:after:request", (e) => {
         // dispatches that form itself and it is never a toast.
         return;
     }
-
     const message = events?.[PENDING_KEY];
     if (!message) {
         return;
     }
-
     if (headers.get("HX-Redirect") || headers.get("HX-Refresh")) {
         try {
             sessionStorage.setItem(PENDING_KEY, message);

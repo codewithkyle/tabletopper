@@ -1,16 +1,13 @@
 package pages
-
 import (
 	"tabletopper/internal/session"
 	"tabletopper/templ/layouts"
 )
-
 templ Homepage(session session.UserSession) {
 	@layouts.Base("Tabletopper", "/js/zone-detect.js", "/js/account-name.js") {
 		@homepageContent(session)
 	}
 }
-
 templ homepageContent(session session.UserSession) {
 	if session.UserID.IsZero() {
 		<home-page class="relative inline-block max-w-full p-8">
@@ -69,7 +66,6 @@ templ homepageContent(session session.UserSession) {
 		</home-page>
 	}
 }
-
 templ footer(signedIn bool) {
 	<div class="fixed bottom-0 left-1/2 -translate-x-1/2 mb-1">
 		if signedIn {
@@ -119,7 +115,6 @@ templ footer(signedIn bool) {
 		</div>
 	</div>
 }
-
 templ AccountAvatar(session session.UserSession) {
 	<div id="account-avatar" class="relative mr-3 shrink-0">
 		<img class="size-12 overflow-hidden rounded-full object-cover" src={ session.ProfileImageURL } alt=""/>

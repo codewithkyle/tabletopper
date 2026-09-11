@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 templ EditCharacterJournalEntry(data JournalEntryPageData) {
 	{{ action := "/characters/" + data.CharacterID + "/journal/" + data.EntryID }}
 	@layouts.Base("Journal | Tabletopper", "/static/journal-editor.js") {
@@ -65,7 +63,6 @@ templ EditCharacterJournalEntry(data JournalEntryPageData) {
 		}
 	}
 }
-
 templ journalToolbarButton(mark string, label string) {
 	<button
 		type="button"
@@ -74,12 +71,10 @@ templ journalToolbarButton(mark string, label string) {
 		aria-pressed="false"
 	>{ label }</button>
 }
-
 templ journalEntryActions(data JournalEntryPageData) {
 	@journalShareButton(data.CharacterID, data.EntryID)
 	@journalSaveButton("/characters/" + data.CharacterID + "/journal/" + data.EntryID)
 }
-
 templ journalShareButton(characterID string, entryID string) {
 	<button
 		type="button"
@@ -90,7 +85,6 @@ templ journalShareButton(characterID string, entryID string) {
 		<span class="max-[640px]:sr-only">Share entry</span>
 	</button>
 }
-
 templ journalSaveButton(action string) {
 	<button
 		type="button"

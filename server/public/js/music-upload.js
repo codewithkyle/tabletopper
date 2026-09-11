@@ -20,15 +20,12 @@
 // Tailwind source, so a class named in a script is never emitted; the progress
 // row is rendered by templ and toggled through the hidden attribute, and the bar
 // moves by its value rather than by its width.
-
 import { ALERT } from "./events.js";
-
 const input = document.querySelector("[data-music-input]");
 const label = document.querySelector("[data-music-label]");
 const progress = document.querySelector("[data-music-progress]");
 const bar = document.querySelector("[data-music-bar]");
 const percent = document.querySelector("[data-music-percent]");
-
 // Only the music page has any of this.
 if (input) {
     input.addEventListener("change", () => {
@@ -43,20 +40,17 @@ if (input) {
         }
     });
 }
-
 function alertUser(heading, message) {
     window.dispatchEvent(
         new CustomEvent(ALERT, { detail: { heading, message } }),
     );
 }
-
 function showProgress(fraction) {
     progress.hidden = false;
     const whole = Math.round(fraction * 100);
     bar.value = whole;
     percent.textContent = `${whole}%`;
 }
-
 // THE INPUT IS WHAT IS DISABLED, NOT THE LABEL. A label with aria-disabled on it
 // still opens the file picker when clicked -- the attribute is advisory and
 // nothing honours it -- so a second track could be started while the first was
@@ -71,14 +65,12 @@ function lock(uploading) {
         label.removeAttribute("aria-disabled");
     }
 }
-
 function reset() {
     progress.hidden = true;
     bar.value = 0;
     percent.textContent = "";
     lock(false);
 }
-
 // put sends the file and resolves when the bucket has it. It is a Promise
 // around XHR rather than an await of fetch(), because upload progress is the
 // one thing fetch() cannot report and this is the step that takes minutes.
@@ -90,7 +82,6 @@ function put(url, contentType, file) {
         // signature, so a mismatch is refused by R2 rather than stored wrong.
         // Content-Length is set by the browser from the body.
         request.setRequestHeader("Content-Type", contentType);
-
         request.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable) {
                 showProgress(event.loaded / event.total);
@@ -105,15 +96,12 @@ function put(url, contentType, file) {
         });
         request.addEventListener("error", () => reject(new Error("the upload failed")));
         request.addEventListener("abort", () => reject(new Error("the upload was cancelled")));
-
         request.send(file);
     });
 }
-
 async function upload(file) {
     lock(true);
     showProgress(0);
-
     let started;
     try {
         const response = await fetch("/assets/music", {
@@ -138,7 +126,6 @@ async function upload(file) {
         alertUser("Upload Failed", "The upload could not be started. Check your connection and try again.");
         return;
     }
-
     try {
         await put(started.url, started.contentType, file);
     } catch {
@@ -150,7 +137,6 @@ async function upload(file) {
         alertUser("Upload Failed", "The track did not finish uploading. Try again.");
         return;
     }
-
     // htmx owns the swap and the response headers from here. A failure inside
     // it has already raised its own alert through the HX-Trigger the server
     // sent, so there is nothing to add.

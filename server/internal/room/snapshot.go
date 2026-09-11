@@ -1,61 +1,17 @@
 package room
-
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Schema = 3
-
-
-
-
-
 type fields map[string]json.RawMessage
-
-
-
-
 var migrations = map[int]func(fields) error{
 	1: migrateFootprints,
 	2: migrateStrokeKinds,
 }
-
-
-
-
-
-
 func migrateFootprints(f fields) error {
 	var table struct {
 		Grid struct {
@@ -68,17 +24,14 @@ func migrateFootprints(f fields) error {
 		}
 	}
 	cell := max(1, table.Grid.CellSize)
-
 	raw, ok := f["pawns"]
 	if !ok {
 		return nil
 	}
-
 	var pawns []map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &pawns); err != nil {
 		return fmt.Errorf("pawns: %w", err)
 	}
-
 	for _, p := range pawns {
 		var kind string
 		var w, h int
@@ -87,64 +40,43 @@ func migrateFootprints(f fields) error {
 		_ = json.Unmarshal(p["footprintH"], &h)
 		delete(p, "footprintW")
 		delete(p, "footprintH")
-
 		width, height := 0, 0
 		if kind == string(PawnObject) {
 			width, height = max(1, w)*cell, max(1, h)*cell
 		}
-
 		p["width"] = number(width)
 		p["height"] = number(height)
 		p["rotation"] = number(0)
 	}
-
 	out, err := json.Marshal(pawns)
 	if err != nil {
 		return fmt.Errorf("pawns: %w", err)
 	}
 	f["pawns"] = out
-
 	return nil
 }
-
-
-
-
-
-
-
-
-
 func migrateStrokeKinds(f fields) error {
 	raw, ok := f["strokes"]
 	if !ok {
 		return nil
 	}
-
 	var strokes []map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &strokes); err != nil {
 		return fmt.Errorf("strokes: %w", err)
 	}
-
 	for _, st := range strokes {
 		st["kind"] = json.RawMessage(`"` + string(StrokeFree) + `"`)
 	}
-
 	out, err := json.Marshal(strokes)
 	if err != nil {
 		return fmt.Errorf("strokes: %w", err)
 	}
 	f["strokes"] = out
-
 	return nil
 }
-
 func number(n int) json.RawMessage {
 	return json.RawMessage(strconv.Itoa(n))
 }
-
-
-
 func migrate(f fields) error {
 	found := 0
 	if raw, ok := f["schema"]; ok {
@@ -152,11 +84,9 @@ func migrate(f fields) error {
 			return fmt.Errorf("schema: %w", err)
 		}
 	}
-
 	if found > Schema {
 		return fmt.Errorf("%w: found %d, want %d", ErrSchema, found, Schema)
 	}
-
 	for n := found; n < Schema; n++ {
 		step, ok := migrations[n]
 		if !ok {
@@ -166,46 +96,21 @@ func migrate(f fields) error {
 			return fmt.Errorf("room: migrating a snapshot from schema %d: %w", n, err)
 		}
 	}
-
 	f["schema"] = number(Schema)
-
 	return nil
 }
-
 var (
-	
-	
-	
-	
 	ErrEmpty = errors.New("room: the snapshot is empty")
-
-	
-	
-	
 	ErrSchema = errors.New("room: the snapshot is from a different schema")
 )
-
-
-
-
-
 func Marshal(s *State) ([]byte, error) {
 	s.Normalize()
-
 	return json.Marshal(s)
 }
-
-
-
-
 func Unmarshal(b []byte) (*State, error) {
 	if len(b) == 0 {
 		return nil, ErrEmpty
 	}
-
-	
-	
-	
 	var f fields
 	if err := json.Unmarshal(b, &f); err != nil {
 		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
@@ -213,71 +118,48 @@ func Unmarshal(b []byte) (*State, error) {
 	if len(f) == 0 {
 		return nil, ErrEmpty
 	}
-
 	if err := migrate(f); err != nil {
 		return nil, err
 	}
-
 	migrated, err := json.Marshal(f)
 	if err != nil {
 		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
 	}
-
 	var s State
 	if err := json.Unmarshal(migrated, &s); err != nil {
 		return nil, fmt.Errorf("room: unreadable snapshot: %w", err)
 	}
-
 	s.Normalize()
-
 	return &s, nil
 }
-
-
-
-
-
-
-
-
-
 func (s *State) Clone() State {
 	c := *s
-
 	c.Table.Layers = make([]Layer, len(s.Table.Layers))
 	for i, l := range s.Table.Layers {
 		l.Map = cloneRef(l.Map)
 		c.Table.Layers[i] = l
 	}
-
 	c.Players = make([]Player, len(s.Players))
 	for i, p := range s.Players {
 		p.CharacterID = cloneID(p.CharacterID)
 		c.Players[i] = p
 	}
-
 	c.Pawns = make([]Pawn, len(s.Pawns))
 	for i, p := range s.Pawns {
 		c.Pawns[i] = clonePawn(p)
 	}
-
 	c.Initiative = cloneInitiative(s.Initiative)
-
 	c.Fog = make([]FogShape, len(s.Fog))
 	for i, f := range s.Fog {
 		c.Fog[i] = cloneShape(f)
 	}
-
 	c.Strokes = make([]Stroke, len(s.Strokes))
 	for i, st := range s.Strokes {
 		c.Strokes[i] = cloneStroke(st)
 	}
-
 	c.Normalize()
-
 	return c
 }
-
 func clonePawn(p Pawn) Pawn {
 	p.HP = cloneInt(p.HP)
 	p.MaxHP = cloneInt(p.MaxHP)
@@ -287,66 +169,41 @@ func clonePawn(p Pawn) Pawn {
 	p.MonsterID = cloneID(p.MonsterID)
 	p.CharacterID = cloneID(p.CharacterID)
 	p.Conditions = cloneSlice(p.Conditions)
-
 	return p
 }
-
 func cloneInt(v *int) *int {
 	if v == nil {
 		return nil
 	}
 	c := *v
-
 	return &c
 }
-
 func cloneID(v *ulid.ULID) *ulid.ULID {
 	if v == nil {
 		return nil
 	}
 	c := *v
-
 	return &c
 }
-
 func cloneBand(v *HPBand) *HPBand {
 	if v == nil {
 		return nil
 	}
 	c := *v
-
 	return &c
 }
-
 func cloneRef(v *MapRef) *MapRef {
 	if v == nil {
 		return nil
 	}
 	c := *v
-
 	return &c
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (s *State) Project(role Role) State {
 	c := s.Clone()
 	if role == RoleGM {
 		return c
 	}
-
 	pawns := make([]Pawn, 0, len(c.Pawns))
 	for _, p := range c.Pawns {
 		if !s.Shown(p) {
@@ -355,128 +212,46 @@ func (s *State) Project(role Role) State {
 		pawns = append(pawns, projectPawn(p, c.Table))
 	}
 	c.Pawns = pawns
-
-	
-	
 	c.Initiative = projectInitiative(s)
-
 	c.Normalize()
-
 	return c
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func Health(p Pawn) *HPBand {
 	if p.HP != nil {
 		return hpBand(p.HP, p.MaxHP)
 	}
-
 	return p.HPBand
 }
-
-
-
-
-
-
-
-
-
 func Dead(p Pawn) bool {
 	b := Health(p)
-
 	return b != nil && *b == BandDead
 }
-
 func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {
 	for _, e := range entries {
 		if e.ID == id {
 			return true
 		}
 	}
-
 	return false
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func projectPawn(p Pawn, t Table) Pawn {
 	if p.Kind != PawnMonster && p.Kind != PawnNPC {
 		return p
 	}
-
 	if t.PawnLabels == LabelsFull {
 		return p
 	}
-
 	p.AC = nil
 	p.HPBand = nil
-
 	if t.PawnLabels == LabelsDefault {
 		p.HPBand = hpBand(p.HP, p.MaxHP)
 	}
-
 	return p
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func hpBand(hp, maxHP *int) *HPBand {
 	if hp == nil || maxHP == nil || *maxHP < 1 {
 		return nil
 	}
-
 	band := BandHealthy
 	switch {
 	case *hp <= 0:
@@ -490,6 +265,5 @@ func hpBand(hp, maxHP *int) *HPBand {
 	case *hp*4 <= *maxHP*3:
 		band = BandBruised
 	}
-
 	return &band
 }

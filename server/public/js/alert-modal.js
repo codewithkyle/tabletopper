@@ -9,7 +9,6 @@
 // htmx's promise with whichever button the user pressed on the wrong message.
 import { openDialog } from "./modal.js";
 import { ALERT, PENDING_ALERT } from "./events.js";
-
 // PENDING_KEY is an alert parked by the page BEFORE this one, for the case the
 // server has no response to hang an HX-Trigger on: the room client is told over
 // its socket that the GM has removed this person, and then sends them here.
@@ -20,17 +19,14 @@ import { ALERT, PENDING_ALERT } from "./events.js";
 // THE KEY IS A CONTRACT WITH server/js/room/exit.ts, which writes it from the
 // other bundle; both import it from events.js.
 const PENDING_KEY = PENDING_ALERT;
-
 const dialog = document.getElementById("alert-modal");
 const headingEl = dialog.querySelector("[data-modal-heading]");
 const messageEl = dialog.querySelector("[data-modal-message]");
-
 function show(heading, message) {
     headingEl.textContent = heading || "Something went wrong";
     messageEl.textContent = message || "";
     openDialog(dialog);
 }
-
 // On `window`: htmx dispatches HX-Trigger events on the requesting element
 // with bubbles set, so they climb to window; when that element has already
 // been swapped away htmx dispatches on document instead, which is also on the
@@ -38,7 +34,6 @@ function show(heading, message) {
 window.addEventListener(ALERT, (e) => {
     show(e.detail?.heading, e.detail?.message);
 });
-
 // IT IS READ ONCE AND REMOVED FIRST, so a parked alert cannot survive into a
 // third page if anything below it throws -- an alert that reappeared on every
 // navigation would be worse than one that was lost.

@@ -1,21 +1,12 @@
 package export
-
 import (
 	"reflect"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
-
 	"tabletopper/templ/pages"
 )
-
-
-
-
-
-
-
 func fullStatBlock() pages.StatBlock {
 	return pages.StatBlock{
 		Name:       "Ancient Red Dragon",
@@ -48,7 +39,6 @@ func fullStatBlock() pages.StatBlock {
 		Treasure: "Horde",
 	}
 }
-
 func fullSheet() pages.SharedCharacterSheet {
 	return pages.SharedCharacterSheet{
 		Header: pages.CharacterHeader{
@@ -80,15 +70,8 @@ func fullSheet() pages.SharedCharacterSheet {
 		Appearance:  []pages.SharedFact{{Label: "Eyes", Value: "Grey"}},
 	}
 }
-
-
-
-
-
-
 func TestEveryValueOnTheSheetReachesTheFile(t *testing.T) {
 	file := string(Character(fullSheet()))
-
 	for _, want := range []string{
 		"Vex", "Half-Elf | Ranger 5",
 		"## Identity", "Species", "Half-Elf",
@@ -111,10 +94,8 @@ func TestEveryValueOnTheSheetReachesTheFile(t *testing.T) {
 		}
 	}
 }
-
 func TestEveryValueOnTheStatBlockReachesTheFile(t *testing.T) {
 	file := string(Monster(fullStatBlock(), "It has slept for four centuries."))
-
 	for _, want := range []string{
 		"# Ancient Red Dragon", "*Gargantuan Dragon (Chromatic), Chaotic Evil*",
 		"- **AC** 22", "- **Initiative** +14 (24)", "- **HP** 507 (26d20 + 234)", "- **Speed** 40 ft., fly 80 ft.",
@@ -131,22 +112,12 @@ func TestEveryValueOnTheStatBlockReachesTheFile(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestAnUnnamedEntryIsWrittenAsAPlainParagraph(t *testing.T) {
 	file := string(Monster(fullStatBlock(), ""))
-
 	if strings.Contains(file, "**.**") || strings.Contains(file, "**** ") {
 		t.Errorf("an unnamed entry rendered an empty bold label:\n%s", file)
 	}
 }
-
-
-
-
-
 func TestNoPictureAndNoIdentifierIsWrittenIntoTheFile(t *testing.T) {
 	for name, file := range map[string]string{
 		"monster":   string(Monster(fullStatBlock(), "")),
@@ -161,27 +132,17 @@ func TestNoPictureAndNoIdentifierIsWrittenIntoTheFile(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
 func TestAnAwkwardNameCannotBreakTheFrontmatter(t *testing.T) {
 	block := fullStatBlock()
 	block.Name = "The \"Dragon\"\nof \\ Doom\r\n"
-
 	file := string(Monster(block, ""))
 	front, _, found := strings.Cut(strings.TrimPrefix(file, "---\n"), "\n---\n")
 	if !found {
 		t.Fatalf("the file has no frontmatter block:\n%s", file)
 	}
-
 	if strings.Contains(front, "\n---") {
 		t.Errorf("the frontmatter ends early:\n%s", front)
 	}
-	
-	
 	for _, line := range strings.Split(front, "\n") {
 		if line == "tags:" || strings.HasPrefix(line, "  - ") {
 			continue
@@ -194,14 +155,8 @@ func TestAnAwkwardNameCannotBreakTheFrontmatter(t *testing.T) {
 		t.Errorf("the quotes and the backslash were not escaped:\n%s", front)
 	}
 }
-
-
-
-
-
 func TestTheSavingThrowsTableHasNoEmptyAbilityColumn(t *testing.T) {
 	file := string(Character(fullSheet()))
-
 	saves, _, found := strings.Cut(strings.SplitN(file, "## Saving Throws\n\n", 2)[1], "\n\n")
 	if !found {
 		t.Fatalf("no saving throws table:\n%s", file)
@@ -212,36 +167,24 @@ func TestTheSavingThrowsTableHasNoEmptyAbilityColumn(t *testing.T) {
 	if !strings.Contains(saves, "| Dexterity | +7 |") {
 		t.Errorf("the saving throws table lost its rows:\n%s", saves)
 	}
-
 	skills, _, _ := strings.Cut(strings.SplitN(file, "## Skills\n\n", 2)[1], "\n\n")
 	if !strings.Contains(skills, "| Skill | Ability | Bonus |") {
 		t.Errorf("the skills table dropped the column that is filled:\n%s", skills)
 	}
 }
-
-
-
-
-
 func TestAPipeInAValueCannotOpenAColumn(t *testing.T) {
 	sheet := fullSheet()
 	sheet.Skills = []pages.SharedBonus{{Label: "Cards | Dice", Abbr: "DEX", Total: "+9"}}
-
 	file := string(Character(sheet))
 	if !strings.Contains(file, `| Cards \| Dice | DEX | +9 |`) {
 		t.Errorf("the pipe was not escaped:\n%s", file)
 	}
-
-	
-	
-	
 	width := 0
 	for _, line := range strings.Split(file, "\n") {
 		if !strings.HasPrefix(line, "| ") {
 			width = 0
 			continue
 		}
-
 		dividers := strings.Count(line, "|") - strings.Count(line, `\|`)
 		if width == 0 {
 			width = dividers
@@ -252,16 +195,10 @@ func TestAPipeInAValueCannotOpenAColumn(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestAValueInsideMarkupIsFlattened(t *testing.T) {
 	sheet := fullSheet()
 	sheet.Identity = []pages.SharedFact{{Label: "Species", Value: "Half-Elf\nand proud"}}
 	sheet.Attacks = []pages.SharedAttack{{Name: "Longbow", Damage: "1d8\n+5"}}
-
 	file := string(Character(sheet))
 	if !strings.Contains(file, "- **Species** Half-Elf and proud") {
 		t.Errorf("a bullet's value kept its newline:\n%s", file)
@@ -270,11 +207,6 @@ func TestAValueInsideMarkupIsFlattened(t *testing.T) {
 		t.Errorf("a cell kept its newline:\n%s", file)
 	}
 }
-
-
-
-
-
 func TestBlocksAreSeparatedByExactlyOneBlankLine(t *testing.T) {
 	for name, file := range map[string]string{
 		"monster":   string(Monster(fullStatBlock(), "It has slept.")),
@@ -295,29 +227,19 @@ func TestBlocksAreSeparatedByExactlyOneBlankLine(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestAnEmptySheetWritesNoHeadings(t *testing.T) {
 	file := string(Character(pages.SharedCharacterSheet{}))
-
 	if strings.Contains(file, "##") {
 		t.Errorf("an empty sheet wrote a heading:\n%s", file)
 	}
 	if !strings.Contains(file, "# Unnamed character") {
 		t.Errorf("an unnamed character has no heading at all:\n%s", file)
 	}
-
 	block := string(Monster(pages.StatBlock{}, ""))
 	if strings.Contains(block, "##") {
 		t.Errorf("an empty monster wrote a heading:\n%s", block)
 	}
 }
-
-
-
-
 func TestTheFilenameIsASlugAndNeverTheNameItself(t *testing.T) {
 	for name, want := range map[string]string{
 		"Ancient Red Dragon":     "ancient-red-dragon.md",
@@ -332,7 +254,6 @@ func TestTheFilenameIsASlugAndNeverTheNameItself(t *testing.T) {
 			t.Errorf("Filename(%q) = %q, want %q", name, got, want)
 		}
 	}
-
 	long := Filename(strings.Repeat("dragon ", 40), "monster")
 	if len(long) > filenameLimit+len(".md") {
 		t.Errorf("Filename gave %d characters, want no more than %d", len(long), filenameLimit)
@@ -341,15 +262,6 @@ func TestTheFilenameIsASlugAndNeverTheNameItself(t *testing.T) {
 		t.Errorf("a truncated filename ends in a dash: %q", long)
 	}
 }
-
-
-
-
-
-
-
-
-
 func TestTheExportedTypesHaveNotGrownAFieldNobodyExports(t *testing.T) {
 	for name, c := range map[string]struct {
 		fields any
@@ -374,7 +286,6 @@ func TestTheExportedTypesHaveNotGrownAFieldNobodyExports(t *testing.T) {
 				}
 				names = append(names, field.Name)
 			}
-
 			if !slices.Equal(names, c.want) {
 				t.Errorf("%s carries %v, want %v -- a new field is either exported or listed here on purpose", name, names, c.want)
 			}

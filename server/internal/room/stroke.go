@@ -1,91 +1,35 @@
 package room
-
 import (
 	"fmt"
 	"slices"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type StrokeBegan struct {
 	Header
 	Stroke Stroke `json:"stroke"`
 }
-
 func (*StrokeBegan) eventType() string { return "stroke.began" }
-
-
-
 type StrokeExtended struct {
 	Header
 	ID     ulid.ULID `json:"id"`
 	Points []int     `json:"points"`
 }
-
 func (*StrokeExtended) eventType() string { return "stroke.extended" }
-
-
-
 type StrokeEnded struct {
 	Header
 	ID ulid.ULID `json:"id"`
 }
-
 func (*StrokeEnded) eventType() string { return "stroke.ended" }
-
-
-
-
 type StrokeErased struct {
 	Header
 	IDs []ulid.ULID `json:"ids"`
 }
-
 func (*StrokeErased) eventType() string { return "stroke.erased" }
-
-
 type StrokeCleared struct {
 	Header
 	Layer ulid.ULID `json:"layer"`
 }
-
 func (*StrokeCleared) eventType() string { return "stroke.cleared" }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type StrokeBegin struct {
 	ID     ulid.ULID  `json:"id"`
 	Layer  ulid.ULID  `json:"layer"`
@@ -94,10 +38,6 @@ type StrokeBegin struct {
 	Width  int        `json:"width"`
 	Points []int      `json:"points"`
 }
-
-
-
-
 func (c *StrokeBegin) Authorize(s *State, a Actor) error {
 	if err := s.requirePlayerLayer(a, c.Layer); err != nil {
 		return err
@@ -105,10 +45,8 @@ func (c *StrokeBegin) Authorize(s *State, a Actor) error {
 	if !a.GM() && !s.Table.PlayersCanDraw {
 		return forbidden("Drawing is off", "The GM has turned off drawing for players.")
 	}
-
 	return nil
 }
-
 func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
@@ -131,30 +69,18 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkColor("stroke colour", c.Color); err != nil {
 		return nil, err
 	}
-
-	
-	
-	
-	
-	
 	if c.Kind.Shape() && len(c.Points) != 4 {
 		return nil, invalid("Bad stroke", "That shape is two points.")
 	}
 	if err := checkPoints("stroke", c.Points, 1, StrokeChunkMax); err != nil {
 		return nil, err
 	}
-
-	
-	
-	
-	
 	if c.Kind.Shape() && c.Points[0] == c.Points[2] && c.Points[1] == c.Points[3] {
 		return nil, invalid("Bad stroke", "That shape has no size.")
 	}
 	if err := s.strokeBudget(a, len(c.Points)); err != nil {
 		return nil, err
 	}
-
 	stroke := Stroke{
 		ID:      c.ID,
 		By:      a.ID,
@@ -167,20 +93,15 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	s.Strokes = append(s.Strokes, stroke)
 	s.Normalize()
-
 	return []Emission{to(ToAll, &StrokeBegan{Stroke: cloneStroke(stroke)})}, nil
 }
-
-
 type StrokeExtend struct {
 	ID     ulid.ULID `json:"id"`
 	Points []int     `json:"points"`
 }
-
 func (c *StrokeExtend) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
-
 func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	st := s.Stroke(c.ID)
 	if st == nil {
@@ -198,64 +119,43 @@ func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := s.strokeBudget(a, len(c.Points)); err != nil {
 		return nil, err
 	}
-
 	st.Points = append(st.Points, c.Points...)
 	s.Normalize()
-
 	return []Emission{to(ToAll, &StrokeExtended{ID: c.ID, Points: slices.Clone(c.Points)})}, nil
 }
-
-
-
 type StrokeEnd struct {
 	ID ulid.ULID `json:"id"`
 }
-
 func (c *StrokeEnd) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
-
 func (c *StrokeEnd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	st := s.Stroke(c.ID)
 	if st == nil {
 		return nil, notFound("Stroke gone", "That stroke is no longer on the table.")
 	}
-
 	st.Done = true
 	s.Normalize()
-
 	return []Emission{to(ToAll, &StrokeEnded{ID: c.ID})}, nil
 }
-
-
-
-
 type StrokeErase struct {
 	IDs []ulid.ULID `json:"ids"`
 }
-
 func (c *StrokeErase) Authorize(s *State, a Actor) error {
 	if a.GM() {
 		return nil
 	}
-
 	for _, id := range c.IDs {
 		if err := s.requireOwnStroke(a, id); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
-
 func (c *StrokeErase) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkSelection(len(c.IDs)); err != nil {
 		return nil, err
 	}
-
-	
-	
-	
 	erased := make([]ulid.ULID, 0, len(c.IDs))
 	for _, id := range c.IDs {
 		if s.Stroke(id) == nil {
@@ -265,38 +165,25 @@ func (c *StrokeErase) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.ID == id })
 	}
 	s.Normalize()
-
 	if len(erased) == 0 {
 		return nil, nil
 	}
-
 	return []Emission{to(ToAll, &StrokeErased{IDs: erased})}, nil
 }
-
-
 type StrokeClear struct {
 	Layer ulid.ULID `json:"layer"`
 }
-
 func (c *StrokeClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the drawing")
 }
-
 func (c *StrokeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
-
 	s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.LayerID == c.Layer })
 	s.Normalize()
-
 	return []Emission{to(ToAll, &StrokeCleared{Layer: c.Layer})}, nil
 }
-
-
-
-
-
 func (s *State) requireOwnStroke(a Actor, id ulid.ULID) error {
 	st := s.Stroke(id)
 	if st == nil {
@@ -305,6 +192,5 @@ func (s *State) requireOwnStroke(a Actor, id ulid.ULID) error {
 	if st.By != a.ID {
 		return forbidden("Not your stroke", "You can only change a line you drew.")
 	}
-
 	return nil
 }

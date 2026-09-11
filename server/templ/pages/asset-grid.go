@@ -1,71 +1,12 @@
 package pages
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type assetGrid struct {
-	
-	
-	
-	
 	Kind string
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Cols string
-
-	
-	
-	
-	
 	Query string
-
-	
-	
-	
-	
-	
-	
-	
 	EmptyHeading string
 	EmptyBlurb   string
 	NoMatch      string
 }
-
 func mapsGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabMaps,
@@ -76,7 +17,6 @@ func mapsGrid(query string) assetGrid {
 		NoMatch:      noMatchHeading("maps", query),
 	}
 }
-
 func tokensGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabTokens,
@@ -87,7 +27,6 @@ func tokensGrid(query string) assetGrid {
 		NoMatch:      noMatchHeading("tokens", query),
 	}
 }
-
 func avatarsGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabAvatars,
@@ -98,7 +37,6 @@ func avatarsGrid(query string) assetGrid {
 		NoMatch:      noMatchHeading("avatars", query),
 	}
 }
-
 func musicGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabMusic,
@@ -109,11 +47,6 @@ func musicGrid(query string) assetGrid {
 		NoMatch:      noMatchHeading("tracks", query),
 	}
 }
-
-
-
-
-
 func assetSearchLabel(kind string) string {
 	return "Search " + kind
 }

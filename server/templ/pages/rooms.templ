@@ -1,16 +1,13 @@
 package pages
-
 import (
 	"strconv"
 	"tabletopper/templ/layouts"
 )
-
 templ Rooms(data RoomsPageData) {
 	@layouts.Base("Rooms | Tabletopper") {
 		@roomsContent(data)
 	}
 }
-
 templ NewRoomFragment() {
 	{{ errorBlock := "#errors-" + NewRoomPanel }}
 	<div class="grid gap-4">
@@ -47,7 +44,6 @@ templ NewRoomFragment() {
 		</form>
 	</div>
 }
-
 templ roomsContent(data RoomsPageData) {
 	<rooms-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -85,7 +81,6 @@ templ roomsContent(data RoomsPageData) {
 		</div>
 	</rooms-page>
 }
-
 templ roomCard(r RoomSummary) {
 	<room-card class={ sheetSurface }>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-3 p-3">

@@ -1,11 +1,7 @@
 package layouts
-
 const shareColumn = "mx-auto grid w-full content-start gap-4 p-4 max-[700px]:p-2.5"
-
 const shareColumnNarrow = shareColumn + " max-w-3xl"
-
 const shareColumnWide = shareColumn + " max-w-6xl"
-
 templ Share(title string, wide bool) {
 	{{ columnClass := shareColumnNarrow }}
 	if wide {

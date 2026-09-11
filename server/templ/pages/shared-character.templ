@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 templ SharedCharacterPage(data SharedCharacterSheet) {
 	@layouts.Share(SharedCharacterTitle(data.Header.Name), true) {
 		@sharedPageActions(data.Actions)
@@ -194,7 +192,6 @@ templ SharedCharacterPage(data SharedCharacterSheet) {
 		</div>
 	}
 }
-
 templ sharedSheetBanner(data SharedCharacterSheet) {
 	<header class={ surfacePanel + " rounded-box" }>
 		<div class="flex flex-wrap items-center gap-x-6 gap-y-3 px-6 py-4 max-[900px]:px-4">
@@ -230,7 +227,6 @@ templ sharedSheetBanner(data SharedCharacterSheet) {
 		</div>
 	</header>
 }
-
 templ sharedFactGrid(facts []SharedFact) {
 	<div class="grid grid-cols-3 gap-3 max-[900px]:grid-cols-1">
 		for _, fact := range facts {
@@ -241,7 +237,6 @@ templ sharedFactGrid(facts []SharedFact) {
 		}
 	</div>
 }
-
 templ sharedProseList(facts []SharedFact) {
 	<div class="grid w-full gap-3">
 		for _, fact := range facts {
@@ -252,7 +247,6 @@ templ sharedProseList(facts []SharedFact) {
 		}
 	</div>
 }
-
 templ sharedBonusGrid(rows []SharedBonus) {
 	<div class="@container">
 		<div class="grid grid-cols-1 gap-2 @[44rem]:grid-cols-2">

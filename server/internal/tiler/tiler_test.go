@@ -1,5 +1,4 @@
 package tiler
-
 import (
 	"bytes"
 	"errors"
@@ -9,11 +8,6 @@ import (
 	"image/png"
 	"testing"
 )
-
-
-
-
-
 func coordinateImage(width int, height int) *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
@@ -23,7 +17,6 @@ func coordinateImage(width int, height int) *image.NRGBA {
 	}
 	return img
 }
-
 func encodePNG(t *testing.T, img image.Image) []byte {
 	t.Helper()
 	var out bytes.Buffer
@@ -32,8 +25,6 @@ func encodePNG(t *testing.T, img image.Image) []byte {
 	}
 	return out.Bytes()
 }
-
-
 func buildPNG(t *testing.T, img image.Image, tileSize int) (Result, []Tile) {
 	t.Helper()
 	var tiles []Tile
@@ -46,13 +37,8 @@ func buildPNG(t *testing.T, img image.Image, tileSize int) (Result, []Tile) {
 	}
 	return result, tiles
 }
-
-
-
-
 func TestASinglePixelIsOneTile(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(1, 1), 8)
-
 	if result.Width != 1 || result.Height != 1 || result.MaxZoom != 0 {
 		t.Errorf("Result = %+v, want 1x1 at max zoom 0", result)
 	}
@@ -63,12 +49,8 @@ func TestASinglePixelIsOneTile(t *testing.T) {
 		t.Errorf("the tile is %v, want 1x1", got)
 	}
 }
-
-
-
 func TestASourceExactlyOneTileWide(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(8, 20), 8)
-
 	if result.MaxZoom != 2 {
 		t.Errorf("MaxZoom = %d, want 2", result.MaxZoom)
 	}
@@ -90,17 +72,11 @@ func TestASourceExactlyOneTileWide(t *testing.T) {
 		t.Errorf("the bottom tile is %d tall, want 4 -- the remainder of 20", got)
 	}
 }
-
-
-
-
 func TestOnePixelOverATileBoundary(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(9, 8), 8)
-
 	if result.MaxZoom != 1 {
 		t.Errorf("MaxZoom = %d, want 1", result.MaxZoom)
 	}
-
 	var edge *Tile
 	for i, tile := range tiles {
 		if tile.Z == 0 && tile.X == 1 {
@@ -114,12 +90,8 @@ func TestOnePixelOverATileBoundary(t *testing.T) {
 		t.Errorf("the edge tile is %v, want 1x8", got)
 	}
 }
-
-
-
 func TestANonSquareSourceRunsToTheLongerAxis(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(64, 4), 8)
-
 	if result.MaxZoom != 3 {
 		t.Fatalf("MaxZoom = %d, want 3", result.MaxZoom)
 	}
@@ -131,14 +103,9 @@ func TestANonSquareSourceRunsToTheLongerAxis(t *testing.T) {
 		t.Errorf("the top tile is %v, want 8x1", got)
 	}
 }
-
-
-
-
 func TestEveryLevelIsCoveredExactlyOnce(t *testing.T) {
 	const width, height, tileSize = 37, 21, 8
 	result, tiles := buildPNG(t, coordinateImage(width, height), tileSize)
-
 	seen := map[[3]int]bool{}
 	for _, tile := range tiles {
 		key := [3]int{tile.Z, tile.X, tile.Y}
@@ -147,11 +114,9 @@ func TestEveryLevelIsCoveredExactlyOnce(t *testing.T) {
 		}
 		seen[key] = true
 	}
-
 	for z := 0; z <= result.MaxZoom; z++ {
 		across := LevelTiles(width, tileSize, z)
 		down := LevelTiles(height, tileSize, z)
-
 		var spannedX, spannedY int
 		for y := 0; y < down; y++ {
 			for x := 0; x < across; x++ {
@@ -171,21 +136,14 @@ func TestEveryLevelIsCoveredExactlyOnce(t *testing.T) {
 				z, spannedX, spannedY, LevelPixels(width, z), LevelPixels(height, z))
 		}
 	}
-
 	if len(tiles) != len(seen) {
 		t.Errorf("emitted %d tiles for %d positions", len(tiles), len(seen))
 	}
 }
-
-
-
-
-
 func TestLevelZeroCarriesTheSourcePixels(t *testing.T) {
 	const width, height, tileSize = 21, 13, 8
 	source := coordinateImage(width, height)
 	_, tiles := buildPNG(t, source, tileSize)
-
 	for _, tile := range tiles {
 		if tile.Z != 0 {
 			continue
@@ -202,23 +160,14 @@ func TestLevelZeroCarriesTheSourcePixels(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestHalvingIsTheFourPixelMean(t *testing.T) {
-	
-	
 	source := image.NewNRGBA(image.Rect(0, 0, 4, 4))
 	for y := 0; y < 4; y++ {
 		for x := 0; x < 4; x++ {
 			source.SetNRGBA(x, y, color.NRGBA{R: uint8(16 * (y*4 + x)), A: 255})
 		}
 	}
-
-	
 	_, tiles := buildPNG(t, source, 2)
-
 	var level1 *Tile
 	for i, tile := range tiles {
 		if tile.Z == 1 {
@@ -228,7 +177,6 @@ func TestHalvingIsTheFourPixelMean(t *testing.T) {
 	if level1 == nil {
 		t.Fatal("no level 1 was emitted")
 	}
-
 	for y := 0; y < 2; y++ {
 		for x := 0; x < 2; x++ {
 			sum := 0
@@ -243,13 +191,8 @@ func TestHalvingIsTheFourPixelMean(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestTilesArriveLevelZeroFirst(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(37, 21), 8)
-
 	previous := 0
 	for _, tile := range tiles {
 		if tile.Z != previous && tile.Z != previous+1 {
@@ -264,13 +207,8 @@ func TestTilesArriveLevelZeroFirst(t *testing.T) {
 		t.Errorf("the last tile is at level %d, want %d", previous, result.MaxZoom)
 	}
 }
-
-
-
-
 func TestAFailingEmitAbandonsTheBuild(t *testing.T) {
 	stop := errors.New("the pool gave up")
-
 	emitted := 0
 	_, err := Build(bytes.NewReader(encodePNG(t, coordinateImage(64, 64))), 8, func(Tile) error {
 		emitted++
@@ -279,7 +217,6 @@ func TestAFailingEmitAbandonsTheBuild(t *testing.T) {
 		}
 		return nil
 	})
-
 	if !errors.Is(err, stop) {
 		t.Errorf("Build = %v, want the emit error back", err)
 	}
@@ -287,18 +224,12 @@ func TestAFailingEmitAbandonsTheBuild(t *testing.T) {
 		t.Errorf("emit was called %d times, want it to stop at 3", emitted)
 	}
 }
-
-
-
-
 func jpegWithOrientation(t *testing.T, img image.Image, orientation uint16) []byte {
 	t.Helper()
-
 	var raw bytes.Buffer
 	if err := jpeg.Encode(&raw, img, nil); err != nil {
 		t.Fatalf("encoding the test source: %v", err)
 	}
-
 	exif := []byte{
 		'E', 'x', 'i', 'f', 0x00, 0x00,
 		'M', 'M', 0x00, 0x2a, 
@@ -310,22 +241,14 @@ func jpegWithOrientation(t *testing.T, img image.Image, orientation uint16) []by
 		byte(orientation >> 8), byte(orientation), 0x00, 0x00, 
 		0x00, 0x00, 0x00, 0x00, 
 	}
-
 	out := make([]byte, 0, raw.Len()+len(exif)+4)
 	out = append(out, raw.Bytes()[:2]...) 
 	out = append(out, 0xff, 0xe1, byte((len(exif)+2)>>8), byte(len(exif)+2))
 	out = append(out, exif...)
 	return append(out, raw.Bytes()[2:]...)
 }
-
-
-
-
-
-
 func TestAnOrientationTagRotatesThePyramid(t *testing.T) {
 	source := coordinateImage(40, 20)
-
 	rotated, err := Build(bytes.NewReader(jpegWithOrientation(t, source, 6)), 8, func(Tile) error { return nil })
 	if err != nil {
 		t.Fatalf("Build: %v", err)
@@ -333,8 +256,6 @@ func TestAnOrientationTagRotatesThePyramid(t *testing.T) {
 	if rotated.Width != 20 || rotated.Height != 40 {
 		t.Errorf("a rotated source built a %dx%d pyramid, want 20x40", rotated.Width, rotated.Height)
 	}
-
-	
 	upright, err := Build(bytes.NewReader(jpegWithOrientation(t, source, 1)), 8, func(Tile) error { return nil })
 	if err != nil {
 		t.Fatalf("Build: %v", err)
@@ -343,10 +264,8 @@ func TestAnOrientationTagRotatesThePyramid(t *testing.T) {
 		t.Errorf("an upright source built a %dx%d pyramid, want 40x20", upright.Width, upright.Height)
 	}
 }
-
 func TestBuildRefusesWhatItCannotBuild(t *testing.T) {
 	source := encodePNG(t, coordinateImage(8, 8))
-
 	if _, err := Build(bytes.NewReader(source), 0, func(Tile) error { return nil }); err == nil {
 		t.Error("Build with a tile size of 0 = nil, want an error")
 	}
@@ -357,15 +276,8 @@ func TestBuildRefusesWhatItCannotBuild(t *testing.T) {
 		t.Error("Build of a non-image = nil, want an error")
 	}
 }
-
-
-
-
-
-
 func TestEveryTileKnowsHowTallThePyramidIs(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(40, 24), 8)
-
 	if result.MaxZoom < 2 {
 		t.Fatalf("the fixture is only %d levels tall; it cannot show this", result.MaxZoom+1)
 	}

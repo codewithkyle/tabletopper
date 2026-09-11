@@ -1,27 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package events
-
-
-
-
-
-
-
-
-
 const (
 	Players    = "room:players"
 	Tabletop   = "room:tabletop"
@@ -29,43 +6,25 @@ const (
 	Initiative = "room:initiative"
 	Pawn       = "room:pawn"
 )
-
-
 const (
 	View  = "room:view"
 	Blood = "room:blood"
 )
-
-
 const (
 	WindowClose   = "window:close"
 	WindowRetitle = "window:retitle"
 )
-
-
 const (
 	Alert      = "alert"
 	ModalOpen  = "modal:open"
 	ModalClose = "modal:close"
 	Toast      = "flash:toast"
 )
-
-
-
 const (
 	ThemeChange    = "theme:change"
 	SettingsChange = "settings:change"
 )
-
-
-
-
-
 const PendingAlert = "alert:pending"
-
-
-
-
 var All = map[string]string{
 	"ROOM_PLAYERS":    Players,
 	"ROOM_TABLETOP":   Tabletop,

@@ -1,17 +1,14 @@
 package pages
-
 import (
 	"strconv"
 	"tabletopper/internal/room"
 	"tabletopper/templ/layouts"
 )
-
 templ JoinRoom(data JoinRoomPageData) {
 	@layouts.Base("Join a Room | Tabletopper") {
 		@joinRoomContent(data)
 	}
 }
-
 templ joinRoomContent(data JoinRoomPageData) {
 	<join-room-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -35,7 +32,6 @@ templ joinRoomContent(data JoinRoomPageData) {
 		</div>
 	</join-room-page>
 }
-
 templ joinRoomWithoutCharacter() {
 	<div class="card-body grid gap-4 p-8">
 		<p class="m-0 text-base-content/75">Every seat belongs to a character, so you will need one before you can join.</p>
@@ -45,7 +41,6 @@ templ joinRoomWithoutCharacter() {
 		</div>
 	</div>
 }
-
 templ joinRoomForm(data JoinRoomPageData) {
 	{{ errorBlock := "#errors-" + JoinRoomPanel }}
 	<form

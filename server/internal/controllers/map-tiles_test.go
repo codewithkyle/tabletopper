@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"bytes"
 	"database/sql"
@@ -9,22 +8,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
 	"tabletopper/internal/tiler"
-
 	"github.com/oklog/ulid/v2"
 )
-
 var (
 	testTileGen   = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS3")
 	testStaleGen  = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS4")
 	testTileRoute = "/assets/maps/" + testAssetID.String() + "/tiles/" + testTileGen.String() + "/0/0_0.webp"
 )
-
-
-
-
 func servingPyramid() queries.GetMapPyramidRow {
 	gen := testTileGen
 	return queries.GetMapPyramidRow{
@@ -36,9 +28,6 @@ func servingPyramid() queries.GetMapPyramidRow {
 		TileGen:  &gen,
 	}
 }
-
-
-
 func tileRequest(id string, gen string, z string, name string) *http.Request {
 	r := httptest.NewRequest(http.MethodGet, testTileRoute, nil)
 	r.SetPathValue("id", id)
@@ -47,11 +36,6 @@ func tileRequest(id string, gen string, z string, name string) *http.Request {
 	r.SetPathValue("tile", name)
 	return r
 }
-
-
-
-
-
 func TestATileURLIsReadInExactlyOneForm(t *testing.T) {
 	for name, c := range map[string]struct {
 		gen, z, tile string
@@ -88,13 +72,8 @@ func TestATileURLIsReadInExactlyOneForm(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 	stale := testStaleGen
-
 	for name, c := range map[string]struct {
 		row     queries.GetMapPyramidRow
 		z, x, y int
@@ -114,24 +93,14 @@ func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 		"a negative level":                    {servingPyramid(), -1, 0, 0, false},
 		"a negative column":                   {servingPyramid(), 0, -1, 0, false},
 		"a negative row":                      {servingPyramid(), 0, 0, -1, false},
-
-		
-		
-		
 		"a superseded generation": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.TileGen = &stale; return r }(),
 			0, 0, 0, false,
 		},
-		
-		
-		
 		"a map that has never been tiled": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.TileGen = nil; return r }(),
 			0, 0, 0, false,
 		},
-		
-		
-		
 		"a generation with no width": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.Width = sql.NullInt32{}; return r }(),
 			0, 0, 0, false,
@@ -157,18 +126,11 @@ func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestTheTileRouteReadsThePyramidAndNotTheJob(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
 	rec := httptest.NewRecorder()
-
 	app.GetMapTile(rec, tileRequest(testAssetID.String(), testTileGen.String(), "0", "0_0.webp"))
-
 	if len(db.reads) != 1 {
 		t.Fatalf("ran %d reads, want 1", len(db.reads))
 	}
@@ -191,19 +153,11 @@ func TestTheTileRouteReadsThePyramidAndNotTheJob(t *testing.T) {
 		t.Errorf("the route wrote %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
-
-
-
 func TestAMissingTileIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
 	rec := httptest.NewRecorder()
-
 	app.GetMapTile(rec, tileRequest(testAssetID.String(), testTileGen.String(), "0", "0_0.webp"))
-
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
@@ -214,10 +168,6 @@ func TestAMissingTileIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
 		t.Errorf("Cache-Control = %q on a tile that does not exist, want nothing", cache)
 	}
 }
-
-
-
-
 func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {
 	for name, c := range map[string]struct{ id, gen, z, tile string }{
 		"an asset that is not a ULID":     {"not-a-ulid", testTileGen.String(), "0", "0_0.webp"},
@@ -231,9 +181,7 @@ func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {
 			db := &recordingDB{}
 			app := &App{Queries: queries.New(db)}
 			rec := httptest.NewRecorder()
-
 			app.GetMapTile(rec, tileRequest(c.id, c.gen, c.z, c.tile))
-
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 			}
@@ -243,27 +191,12 @@ func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
-
 func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 	const tileSize = 128
-
-	
-	
-	
 	var source bytes.Buffer
 	if err := png.Encode(&source, image.NewRGBA(image.Rect(0, 0, 1000, 700))); err != nil {
 		t.Fatalf("encoding the source: %v", err)
 	}
-
 	built := map[tileCoords]bool{}
 	result, err := tiler.Build(&source, tileSize, func(tile tiler.Tile) error {
 		built[tileCoords{gen: testTileGen, z: tile.Z, x: tile.X, y: tile.Y}] = true
@@ -272,7 +205,6 @@ func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("building the pyramid: %v", err)
 	}
-
 	gen := testTileGen
 	row := queries.GetMapPyramidRow{
 		OwnerID:  testOwnerID,
@@ -282,7 +214,6 @@ func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 		MaxZoom:  sql.NullInt16{Int16: int16(result.MaxZoom), Valid: true},
 		TileGen:  &gen,
 	}
-
 	if len(built) == 0 {
 		t.Fatal("the tiler emitted nothing")
 	}
@@ -291,10 +222,6 @@ func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 			t.Errorf("the tiler built z%d %d_%d and the route will not serve it", tile.z, tile.x, tile.y)
 		}
 	}
-
-	
-	
-	
 	for z := 0; z <= result.MaxZoom+1; z++ {
 		for x := 0; x <= tiler.LevelTiles(result.Width, tileSize, z); x++ {
 			for y := 0; y <= tiler.LevelTiles(result.Height, tileSize, z); y++ {

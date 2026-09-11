@@ -1,13 +1,6 @@
 package pages
-
-
-
 type EditCharacterPageData struct {
 	CharacterID string
-	
-	
-	
-	
 	Header        CharacterHeader
 	Name          string
 	Race          string
@@ -18,15 +11,6 @@ type EditCharacterPageData struct {
 	XP            string
 	Languages     string
 	Proficiencies string
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	PersonalityTraits string
 	Ideals            string
 	Bonds             string
@@ -49,17 +33,8 @@ type EditCharacterPageData struct {
 	MaxHP             string
 	CurrentHP         string
 	TempHP            string
-	
-	
-	
-	
 	SpellcastingAbility string
 	SpellBonusMisc      string
-	
-	
-	
-	
-	
 	HitDice            string
 	HitDiceSpent       string
 	DeathSaveSuccesses int
@@ -67,28 +42,9 @@ type EditCharacterPageData struct {
 	HeroicInspiration  bool
 	Exhaustion         string
 	Features           []Feature
-	
-	
-	
-	
-	
 	Derived Derived
-	
-	
-	
-	
-	
 	Attacks []Attack
-	
-	
-	
 	Equipped []InventoryItem
-	
-	
-	
 	Prepared []PreparedSpellGroup
-	
-	
-	
 	SpellSlots []SpellLevel
 }

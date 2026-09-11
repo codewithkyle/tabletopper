@@ -1,41 +1,22 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/session"
 )
-
-
-
-
-
-
-
-
-
 func monsterShareRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()
-
 	r := httptest.NewRequest(method, "/monsters/share", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.SetPathValue("id", testMonsterID.String())
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	handler(rec, r)
-
 	return rec
 }
-
-
-
-
-
 func TestARejectedMonsterShareFormRunsNoStatements(t *testing.T) {
 	for name, form := range map[string]map[string]string{
 		"expiry with no days":  {"expiry": "on", "days": ""},
@@ -44,9 +25,7 @@ func TestARejectedMonsterShareFormRunsNoStatements(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := monsterShareRequest(t, app.CreateMonsterShare, http.MethodPost, shareForm(form))
-
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
 			}
@@ -56,21 +35,13 @@ func TestARejectedMonsterShareFormRunsNoStatements(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestRevokingAMonsterShareTouchesOnlyAMonstersRow(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := monsterShareRequest(t, app.RevokeMonsterShare, http.MethodDelete, nil)
-
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	call := db.only(t)
-
 	if !strings.Contains(call.query, "DELETE FROM shares") {
 		t.Fatalf("did not delete from shares:\n%s", call.query)
 	}
@@ -84,15 +55,9 @@ func TestRevokingAMonsterShareTouchesOnlyAMonstersRow(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestRevokingAMonsterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	app, _ := newPanelApp(1)
-
 	rec := monsterShareRequest(t, app.RevokeMonsterShare, http.MethodDelete, nil)
-
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
@@ -104,16 +69,9 @@ func TestRevokingAMonsterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 		t.Errorf("the form posts somewhere other than this monster's share:\n%s", body)
 	}
 }
-
-
-
-
-
 func TestRevokingAMonsterShareThatIsNotThereIs404(t *testing.T) {
 	app, _ := newPanelApp(0)
-
 	rec := monsterShareRequest(t, app.RevokeMonsterShare, http.MethodDelete, nil)
-
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
@@ -121,15 +79,8 @@ func TestRevokingAMonsterShareThatIsNotThereIs404(t *testing.T) {
 		t.Errorf("the alert does not name the share link: %s", trigger)
 	}
 }
-
-
-
-
-
-
 func TestTheMonsterShareDialogSaysACopyCannotBeTakenBack(t *testing.T) {
 	blurb := monsterShareDialogData(testMonsterID).Blurb
-
 	for _, want := range []string{"copy it into their own manual", "does not take it back"} {
 		if !strings.Contains(blurb, want) {
 			t.Errorf("the blurb does not say %q:\n%s", want, blurb)

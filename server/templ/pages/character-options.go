@@ -1,19 +1,8 @@
 package pages
-
-
 type Option struct {
 	Label string
 	Value string
 }
-
-
-
-
-
-
-
-
-
 var alignmentOptions = []Option{
 	{Label: "Unaligned", Value: "unaligned"},
 	{Label: "Any Alignment", Value: "any alignment"},
@@ -32,7 +21,6 @@ var alignmentOptions = []Option{
 	{Label: "Any Lawful Alignment", Value: "any lawful alignment"},
 	{Label: "Any Non-Good Alignment", Value: "any non-good alignment"},
 }
-
 var sizeOptions = []Option{
 	{Label: "Tiny", Value: "tiny"},
 	{Label: "Small", Value: "small"},
@@ -41,61 +29,29 @@ var sizeOptions = []Option{
 	{Label: "Huge", Value: "huge"},
 	{Label: "Gargantuan", Value: "gargantuan"},
 }
-
-
-
-
-
-
-
-
-
-
-
-
 const (
 	DefaultAlignment = "unaligned"
 	DefaultSize      = "medium"
 )
-
-
-
-
-
-
-
-
-
-
 func NormalizeSize(value string) string {
 	return normalizeOption(value, sizeOptions, DefaultSize)
 }
-
 func NormalizeAlignment(value string) string {
 	return normalizeOption(value, alignmentOptions, DefaultAlignment)
 }
-
 func normalizeOption(value string, options []Option, fallback string) string {
 	for _, option := range options {
 		if option.Value == value {
 			return value
 		}
 	}
-
 	return fallback
 }
-
-
-
-
-
-
 func SizeLabel(value string) string {
 	for _, option := range sizeOptions {
 		if option.Value == value {
 			return option.Label
 		}
 	}
-
 	return ""
 }

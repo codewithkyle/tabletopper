@@ -1,7 +1,5 @@
 package pages
-
 import "strconv"
-
 templ spellSlotsForm(characterID string, level SpellLevel) {
 	{{ action := "/characters/" + characterID + "/spells/slots/" + strconv.Itoa(level.Level) }}
 	{{ panel := SpellSlotsPanel(level.Level) }}
@@ -24,7 +22,6 @@ templ spellSlotsForm(characterID string, level SpellLevel) {
 		</div>
 	</form>
 }
-
 templ spellCountField(name string, label string, value string) {
 	<label class="fieldset">
 		<span class="fieldset-legend">{ label }</span>

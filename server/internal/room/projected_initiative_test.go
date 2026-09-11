@@ -1,30 +1,17 @@
 package room
-
 import (
 	"testing"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
 func TestAPlayersTrackerNamesNothingHidden(t *testing.T) {
 	w := newWorld(t)
-
 	seen := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	hidden := w.spawn(Pawn{Name: "Ambusher", Visible: false})
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Goblin", PawnIDs: []ulid.ULID{seen}},
 		{Name: "Ambusher", PawnIDs: []ulid.ULID{hidden}},
 	}}, w.gm)
-
 	tracker, pawns := w.s.ProjectedInitiative(RolePlayer)
-
 	if len(tracker.Entries) != 1 || tracker.Entries[0].Name != "Goblin" {
 		t.Fatalf("the player's tracker is %v", entryNamesIn(tracker))
 	}
@@ -35,25 +22,17 @@ func TestAPlayersTrackerNamesNothingHidden(t *testing.T) {
 		t.Fatal("the visible pawn is missing from the player's strip")
 	}
 }
-
-
-
-
 func TestHidingOneMemberShortensTheGroupForPlayers(t *testing.T) {
 	w := newWorld(t)
-
 	var goblins []ulid.ULID
 	for range 3 {
 		goblins = append(goblins, w.spawn(Pawn{Name: "Goblin", Visible: true}))
 	}
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Goblin", PawnIDs: goblins},
 	}}, w.gm)
 	w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblins[0]}, Visible: false}, w.gm)
-
 	tracker, pawns := w.s.ProjectedInitiative(RolePlayer)
-
 	if len(tracker.Entries) != 1 {
 		t.Fatalf("the player's tracker holds %d lines, want 1", len(tracker.Entries))
 	}
@@ -63,28 +42,20 @@ func TestHidingOneMemberShortensTheGroupForPlayers(t *testing.T) {
 	if len(pawns) != 2 {
 		t.Fatalf("the player was handed %d pawns, want 2", len(pawns))
 	}
-
 	tracker, pawns = w.s.ProjectedInitiative(RoleGM)
 	if got := len(tracker.Entries[0].PawnIDs); got != 3 || len(pawns) != 3 {
 		t.Fatalf("the GM's group names %d pawns and %d were handed over, want 3 of each", got, len(pawns))
 	}
 }
-
-
-
 func TestHidingEveryMemberDropsTheLineAndTheTurn(t *testing.T) {
 	w := newWorld(t)
-
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}},
 	}}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
 	w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
-
 	tracker, _ := w.s.ProjectedInitiative(RolePlayer)
-
 	if len(tracker.Entries) != 0 {
 		t.Fatalf("the player's tracker holds %d lines, want none", len(tracker.Entries))
 	}
@@ -92,39 +63,24 @@ func TestHidingEveryMemberDropsTheLineAndTheTurn(t *testing.T) {
 		t.Fatal("the player's tracker points at a line they cannot see")
 	}
 }
-
-
-
-
-
-
-
-
 func TestAPlayerKeepsThePortraitOfAPawnOnAnotherFloor(t *testing.T) {
 	w := newWorld(t)
 	upstairs := w.addLayer("First floor")
-
 	ari := w.spawn(Pawn{
 		Kind: PawnPlayer, Name: "Ari", Visible: true,
 		Image: "/assets/ari.webp", OwnerID: idp(testPlayerID),
 	})
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Ari", PawnIDs: []ulid.ULID{ari}},
 	}}, w.gm)
-
 	w.apply(&PawnSetLayer{IDs: []ulid.ULID{ari}, Layer: upstairs}, w.gm)
-
 	if w.s.Shown(*w.s.Pawn(ari)) {
 		t.Fatal("the pawn is still on the active layer; the test is not exercising the case")
 	}
-
 	tracker, pawns := w.s.ProjectedInitiative(RolePlayer)
-
 	if len(tracker.Entries) != 1 {
 		t.Fatalf("the player's tracker holds %d lines, want the one upstairs", len(tracker.Entries))
 	}
-
 	p, found := pawns[ari]
 	if !found {
 		t.Fatal("the pawn upstairs has no portrait on the player's strip")
@@ -133,22 +89,13 @@ func TestAPlayerKeepsThePortraitOfAPawnOnAnotherFloor(t *testing.T) {
 		t.Fatalf("the pawn upstairs came back as %q with image %q", p.Name, p.Image)
 	}
 }
-
-
-
-
-
 func TestTheStripsPawnsGoThroughTheSameProjectionTheSocketDoes(t *testing.T) {
 	w := newWorld(t)
-
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true, HP: intp(3), MaxHP: intp(7), AC: intp(15)})
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}},
 	}}, w.gm)
-
 	_, pawns := w.s.ProjectedInitiative(RolePlayer)
-
 	p := pawns[goblin]
 	if p.AC != nil {
 		t.Fatal("a player was handed a monster's armour class")
@@ -159,18 +106,15 @@ func TestTheStripsPawnsGoThroughTheSameProjectionTheSocketDoes(t *testing.T) {
 	if p.HPBand == nil || *p.HPBand != BandBloody {
 		t.Fatalf("the band a player is given is %v, want bloody", p.HPBand)
 	}
-
 	_, gmPawns := w.s.ProjectedInitiative(RoleGM)
 	if gm := gmPawns[goblin]; gm.AC == nil || *gm.AC != 15 {
 		t.Fatal("the GM's copy lost the armour class")
 	}
 }
-
 func entryNamesIn(in Initiative) []string {
 	out := make([]string, 0, len(in.Entries))
 	for _, e := range in.Entries {
 		out = append(out, e.Name)
 	}
-
 	return out
 }

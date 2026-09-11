@@ -1,20 +1,14 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
 func monsterPanelForm(panel string) url.Values {
 	switch panel {
 	case "identity":
@@ -54,10 +48,8 @@ func monsterPanelForm(panel string) url.Values {
 			"description": {"Bullies the smaller goblins and runs when it is losing."},
 		}
 	}
-
 	return url.Values{}
 }
-
 func monsterPanelHandler(panel string) func(*App) http.HandlerFunc {
 	switch panel {
 	case "identity":
@@ -69,13 +61,8 @@ func monsterPanelHandler(panel string) func(*App) http.HandlerFunc {
 	case "defenses":
 		return func(a *App) http.HandlerFunc { return a.SaveMonsterDefenses }
 	}
-
 	return func(a *App) http.HandlerFunc { return a.SaveMonsterDescription }
 }
-
-
-
-
 func TestMonsterPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	for _, c := range []struct {
 		name       string
@@ -131,12 +118,10 @@ func TestMonsterPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := panelPost(t, db, c.handler(app), c.form, monsterPathValues(c.pathValues))
 			if rec.Code != http.StatusOK {
 				t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
 			}
-
 			call := db.only(t)
 			if !strings.Contains(call.query, "UPDATE monsters") {
 				t.Errorf("a monster panel wrote something other than monsters:\n%s", call.query)
@@ -151,18 +136,13 @@ func TestMonsterPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 		})
 	}
 }
-
 func monsterPathValues(extra map[string]string) map[string]string {
 	pathValues := map[string]string{"id": testMonsterID.String()}
 	for key, value := range extra {
 		pathValues[key] = value
 	}
-
 	return pathValues
 }
-
-
-
 var unownedMonsterColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
@@ -170,18 +150,8 @@ var unownedMonsterColumns = map[string]bool{
 	"created_at": true,
 	"updated_at": true,
 }
-
-
-
-
-
-
-
-
-
 func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 	covered := map[string]bool{}
-
 	for _, panel := range []struct {
 		name       string
 		handler    func(*App) http.HandlerFunc
@@ -196,8 +166,6 @@ func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 		{name: "saving throws", handler: func(a *App) http.HandlerFunc { return a.SaveMonsterBonuses }, pathValues: map[string]string{"kind": "saving_throws"}},
 	} {
 		app, db := newPanelApp(1)
-
-		
 		panelPost(t, db, panel.handler(app), url.Values{"name": {"Goblin"}}, monsterPathValues(panel.pathValues))
 		for _, column := range sortedColumns(t, db.only(t).query) {
 			if covered[column] {
@@ -206,7 +174,6 @@ func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 			covered[column] = true
 		}
 	}
-
 	for _, column := range tableColumns(t, "monsters") {
 		if unownedMonsterColumns[column] {
 			if covered[column] {
@@ -219,17 +186,11 @@ func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestMonsterPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	form := monsterPanelForm("identity")
 	form.Set("name", "   ")
-
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveMonsterIdentity, form, monsterPathValues(nil))
-
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("status = %d, want 422", rec.Code)
 	}
@@ -244,10 +205,6 @@ func TestMonsterPanelValidationFailsBeforeTheWrite(t *testing.T) {
 		t.Errorf("body is not the panel's error block: %s", body)
 	}
 }
-
-
-
-
 func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		panel string
@@ -271,10 +228,8 @@ func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 		t.Run(c.panel+"/"+c.field, func(t *testing.T) {
 			form := monsterPanelForm(c.panel)
 			form.Set(c.field, strings.Repeat("a", c.limit+1))
-
 			app, db := newPanelApp(1)
 			rec := panelPost(t, db, monsterPanelHandler(c.panel)(app), form, monsterPathValues(nil))
-
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want 422", rec.Code)
 			}
@@ -284,12 +239,7 @@ func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 			if body := rec.Body.String(); !strings.Contains(body, c.want) {
 				t.Errorf("body = %q, want it to carry %q", body, c.want)
 			}
-
-			
-			
-			
 			form.Set(c.field, strings.Repeat("é", c.limit))
-
 			app, db = newPanelApp(1)
 			rec = panelPost(t, db, monsterPanelHandler(c.panel)(app), form, monsterPathValues(nil))
 			if rec.Code != http.StatusOK {
@@ -301,26 +251,18 @@ func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestOverlongMonsterNotesAreMeasuredInBytes(t *testing.T) {
 	form := monsterPanelForm("description")
 	form.Set("description", strings.Repeat("a", pages.MonsterProseLimit+1))
-
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveMonsterDescription, form, monsterPathValues(nil))
-
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("status = %d, want 422", rec.Code)
 	}
 	if len(db.calls) != 0 {
 		t.Error("the overlong notes were sent to the column anyway")
 	}
-
-	
 	form.Set("description", strings.Repeat("é", pages.MonsterProseLimit))
-
 	app, db = newPanelApp(1)
 	rec = panelPost(t, db, app.SaveMonsterDescription, form, monsterPathValues(nil))
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -330,23 +272,16 @@ func TestOverlongMonsterNotesAreMeasuredInBytes(t *testing.T) {
 		t.Error("a value past the byte cap reached the column")
 	}
 }
-
-
-
-
-
 func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	identity := monsterPanelForm("identity")
 	identity.Set("size", "enormous")
 	identity.Set("type", "wyrm")
 	identity.Set("alignment", "sideways")
-
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveMonsterIdentity, identity, monsterPathValues(nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200: an unknown choice is corrected, not refused", rec.Code)
 	}
-
 	call := db.only(t)
 	for _, c := range []struct{ column, want string }{
 		{"size", pages.DefaultSize},
@@ -357,10 +292,8 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 			t.Errorf("%s = %q, want %q", c.column, got, c.want)
 		}
 	}
-
 	combat := monsterPanelForm("combat")
 	combat.Set("cr", "31")
-
 	app, db = newPanelApp(1)
 	rec = panelPost(t, db, app.SaveMonsterCombat, combat, monsterPathValues(nil))
 	if rec.Code != http.StatusOK {
@@ -370,10 +303,6 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 		t.Errorf("cr = %q, want %q", got, pages.DefaultChallengeRating)
 	}
 }
-
-
-
-
 func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -387,10 +316,8 @@ func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
 		t.Run(c.field, func(t *testing.T) {
 			form := monsterPanelForm("combat")
 			form.Set(c.field, c.value)
-
 			app, db := newPanelApp(1)
 			rec := panelPost(t, db, app.SaveMonsterCombat, form, monsterPathValues(nil))
-
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want 422", rec.Code)
 			}
@@ -403,18 +330,6 @@ func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
 func TestASaveRedrawsTheStatBlock(t *testing.T) {
 	for _, c := range []struct {
 		name       string
@@ -431,13 +346,10 @@ func TestASaveRedrawsTheStatBlock(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			panelPost(t, db, c.handler(app), url.Values{"name": {"Goblin"}}, monsterPathValues(c.pathValues))
-
 			if len(db.reads) == 0 {
 				t.Fatal("saved without reading the monster back, so the block it was saved from is now stale")
 			}
-
 			read := db.reads[0]
 			if !strings.Contains(read.query, "FROM monsters") {
 				t.Errorf("the redraw read something other than the monster:\n%s", read.query)
@@ -448,19 +360,13 @@ func TestASaveRedrawsTheStatBlock(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestStatBlockFragmentRejectsABadID(t *testing.T) {
 	for _, query := range []string{"", "monster=", "monster=not-a-ulid", "monster=" + testMonsterID.String() + "x"} {
 		app, db := newPanelApp(1)
-
 		r := httptest.NewRequest(http.MethodGet, "/fragment/monster/stat-block?"+query, nil)
 		r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 		rec := httptest.NewRecorder()
 		app.MonsterStatBlockFragment(rec, r)
-
 		if rec.Code != http.StatusNotFound {
 			t.Errorf("%q: status = %d, want 404", query, rec.Code)
 		}
@@ -472,16 +378,11 @@ func TestStatBlockFragmentRejectsABadID(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestStatBlockFragmentReadsTheOwnersMonster(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	r := httptest.NewRequest(http.MethodGet, "/fragment/monster/stat-block?monster="+testMonsterID.String(), nil)
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 	app.MonsterStatBlockFragment(httptest.NewRecorder(), r)
-
 	if len(db.reads) != 1 {
 		t.Fatalf("ran %d reads, want 1", len(db.reads))
 	}

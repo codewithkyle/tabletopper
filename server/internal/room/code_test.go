@@ -1,28 +1,14 @@
 package room_test
-
 import (
 	"strings"
 	"testing"
-
 	"tabletopper/internal/room"
 )
-
-
-
-
-
 const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
-
-
-
-
-
 func TestNewCodeOnlyDrawsFromTheAlphabet(t *testing.T) {
 	seen := map[rune]bool{}
-
 	for range 1000 {
 		code := room.NewCode()
-
 		if len(code) != room.CodeLength {
 			t.Fatalf("NewCode() = %q, which is %d characters, want %d", code, len(code), room.CodeLength)
 		}
@@ -36,29 +22,19 @@ func TestNewCodeOnlyDrawsFromTheAlphabet(t *testing.T) {
 			t.Fatalf("NewCode() = %q, which ValidCode refuses", code)
 		}
 	}
-
-	
-	
-	
 	if len(seen) != len(alphabet) {
 		t.Errorf("a thousand draws produced %d of the %d characters", len(seen), len(alphabet))
 	}
 }
-
-
-
 func TestNewCodeDoesNotRepeatItself(t *testing.T) {
 	first := room.NewCode()
-
 	for range 100 {
 		if room.NewCode() != first {
 			return
 		}
 	}
-
 	t.Fatalf("a hundred draws all came back %q", first)
 }
-
 func TestValidCode(t *testing.T) {
 	for name, c := range map[string]struct {
 		code string
@@ -71,9 +47,6 @@ func TestValidCode(t *testing.T) {
 		"three characters":      {"AB2", false},
 		"five characters":       {"AB2CD", false},
 		"empty":                 {"", false},
-		
-		
-		
 		"an I":          {"AIB2", false},
 		"an L":          {"ALB2", false},
 		"an O":          {"AOB2", false},
@@ -91,9 +64,6 @@ func TestValidCode(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestNormalizeCode(t *testing.T) {
 	for name, c := range map[string]struct{ in, want string }{
 		"lower case":        {"ab2c", "AB2C"},
@@ -109,12 +79,8 @@ func TestNormalizeCode(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestNormalizingMakesATypedCodeValid(t *testing.T) {
 	typed := "  ab2c "
-
 	if room.ValidCode(typed) {
 		t.Error("ValidCode accepted an untrimmed lower-case code; it expects a normalised one")
 	}

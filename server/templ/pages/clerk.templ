@@ -1,24 +1,19 @@
 package pages
-
 import "tabletopper/templ/layouts"
-
 type ClerkFrontend struct {
 	PublishableKey string
 	ScriptURL      string
 }
-
 templ SignIn(clerk ClerkFrontend) {
 	@layouts.Base("Sign In | Tabletopper") {
 		@clerkMount("sign-in", clerk)
 	}
 }
-
 templ SignUp(clerk ClerkFrontend) {
 	@layouts.Base("Sign Up | Tabletopper") {
 		@clerkMount("sign-up", clerk)
 	}
 }
-
 templ clerkMount(mode string, clerk ClerkFrontend) {
 	<div data-clerk-mount={ mode }></div>
 	<script async crossorigin="anonymous" data-clerk-publishable-key={ clerk.PublishableKey } src={ clerk.ScriptURL }></script>

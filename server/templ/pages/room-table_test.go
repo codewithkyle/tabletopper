@@ -1,27 +1,17 @@
 package pages
-
 import (
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/room"
 )
-
 const testTableRoomID = "01BX5ZZKBKACTAV9WEVGEMMVT0"
-
 func testLayer(name string, pawns int) RoomLayer {
 	return RoomLayer{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: name, Pawns: pawns}
 }
-
-
-
-
-
 func TestTheDeleteWarningCountsWhatItWouldTakeWithIt(t *testing.T) {
 	data := RoomLayersData{RoomID: testTableRoomID}
-
 	empty := data.RemovePrompt(testLayer("Cellar", 0))
 	if strings.Contains(empty, "pawn") {
 		t.Errorf("an empty layer threatens pawns: %q", empty)
@@ -29,21 +19,13 @@ func TestTheDeleteWarningCountsWhatItWouldTakeWithIt(t *testing.T) {
 	if !strings.Contains(empty, "Cellar") {
 		t.Errorf("the warning does not name the layer: %q", empty)
 	}
-
-	
-	
 	if got := data.RemovePrompt(testLayer("Cellar", 1)); !strings.Contains(got, "the 1 pawn on it") {
 		t.Errorf("one pawn reads %q", got)
 	}
-
 	if got := data.RemovePrompt(testLayer("Cellar", 9)); !strings.Contains(got, "the 9 pawns on it") {
 		t.Errorf("nine pawns read %q", got)
 	}
 }
-
-
-
-
 func TestAnEmptyLayerSaysNothingAboutPawns(t *testing.T) {
 	if got := testLayer("Cellar", 0).PawnLabel(); got != "" {
 		t.Errorf("PawnLabel = %q, want empty", got)
@@ -52,36 +34,24 @@ func TestAnEmptyLayerSaysNothingAboutPawns(t *testing.T) {
 		t.Errorf("PawnLabel = %q", got)
 	}
 }
-
-
-
-
-
 func TestAMissingMapIsNotTheSameAsNoMap(t *testing.T) {
 	none := RoomLayer{}
 	if none.HasMap() || none.MapMissing() {
 		t.Error("a layer with no map claims to have one")
 	}
-
 	gone := RoomLayer{MapID: "01BX5ZZKBKACTAV9WEVGEMMVT2"}
 	if !gone.HasMap() || !gone.MapMissing() {
 		t.Error("a layer whose asset has gone is not reported as missing")
 	}
-
 	here := RoomLayer{MapID: "01BX5ZZKBKACTAV9WEVGEMMVT2", MapName: "Death House"}
 	if !here.HasMap() || here.MapMissing() {
 		t.Error("a layer with a map is reported as missing")
 	}
 }
-
-
-
-
 func TestTheManagerPointsAtTheLayerRoutes(t *testing.T) {
 	data := RoomLayersData{RoomID: testTableRoomID}
 	l := testLayer("Cellar", 0)
 	base := "/rooms/" + testTableRoomID + "/layers"
-
 	for name, got := range map[string]string{
 		"self":     data.Path(),
 		"add":      data.AddPath(),
@@ -96,28 +66,19 @@ func TestTheManagerPointsAtTheLayerRoutes(t *testing.T) {
 			t.Errorf("the %s path does not name the room: %q", name, got)
 		}
 	}
-
 	if data.AddPath() != base {
 		t.Errorf("add posts to %q, want %q", data.AddPath(), base)
 	}
 	if data.LayerPath(l) != base+"/"+l.ID {
 		t.Errorf("the layer is at %q", data.LayerPath(l))
 	}
-
-	
-	
 	if !strings.HasPrefix(data.ChooseMapPath(l), "/fragment/") {
 		t.Errorf("the picker is not a fragment: %q", data.ChooseMapPath(l))
 	}
 }
-
-
-
-
 func TestUpAndDownMoveOneStepEachWay(t *testing.T) {
 	data := RoomLayersData{RoomID: testTableRoomID}
 	l := RoomLayer{Index: 2}
-
 	if got := data.MoveVals(l, 1); !strings.Contains(got, `"3"`) {
 		t.Errorf("up sends %q, want index 3", got)
 	}
@@ -125,10 +86,6 @@ func TestUpAndDownMoveOneStepEachWay(t *testing.T) {
 		t.Errorf("down sends %q, want index 1", got)
 	}
 }
-
-
-
-
 func TestOnlyTheOddlySizedFloorIsWarnedAbout(t *testing.T) {
 	data := RoomLayersData{
 		RoomID: testTableRoomID,
@@ -138,20 +95,13 @@ func TestOnlyTheOddlySizedFloorIsWarnedAbout(t *testing.T) {
 			{ID: "c", Name: "Cellar", MapID: "m3", MapName: "Cellar", Width: 2048, Height: 2048, Mismatch: true},
 		},
 	}
-
 	page := renderToString(t, RoomLayers(data))
-
 	if got := strings.Count(page, "will not line up"); got != 1 {
 		t.Errorf("%d size warnings, want 1:\n%s", got, page)
 	}
 }
-
-
-
-
 func TestTheGridFormRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}))
-
 	block := "#errors-" + RoomGridPanel
 	for _, want := range []string{
 		`hx-post="/rooms/` + testTableRoomID + `/grid"`,
@@ -163,38 +113,20 @@ func TestTheGridFormRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 			t.Errorf("the grid form is missing %s:\n%s", want, page)
 		}
 	}
-
-	
-	
 	if !strings.Contains(page, `id="errors-`+RoomGridPanel+`"`) {
 		t.Error("the form has no error block to swap into")
 	}
 }
-
-
-
-
-
-
-
 func TestTheGridFormDoesNotRedrawItselfOnItsOwnSave(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}))
-
 	if strings.Contains(page, "room:tabletop") {
 		t.Errorf("the grid form refetches on its own save:\n%s", page)
 	}
-
-	
-	
 	manager := renderToString(t, RoomLayers(RoomLayersData{RoomID: testTableRoomID}))
 	if !strings.Contains(manager, "room:tabletop from:window") {
 		t.Errorf("the layer manager does not refetch:\n%s", manager)
 	}
 }
-
-
-
-
 func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 	for name, pair := range map[string][2][]string{
 		"gridLines":          {values(GridLineChoices()), room.GridLines("").Values()},
@@ -206,7 +138,6 @@ func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 		got, want := pair[0], pair[1]
 		if len(got) != len(want) {
 			t.Errorf("%s offers %v, the protocol takes %v", name, got, want)
-
 			continue
 		}
 		for _, v := range want {
@@ -216,16 +147,10 @@ func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
 		RoomID: testTableRoomID, Lines: "dashed", CellSize: 64, FeetPerCell: 5, Color: "#000000FF",
 	}))
-
 	if !strings.Contains(page, `value="dashed" checked`) {
 		t.Errorf("a dashed grid does not open on Dashed:\n%s", page)
 	}
@@ -233,17 +158,10 @@ func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
 		t.Errorf("a dashed grid also opens on Solid:\n%s", page)
 	}
 }
-
-
-
-
-
-
 func TestTheColourIsPostedByTheTextFieldAndNotByThePicker(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
 		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
 	}))
-
 	for _, want := range []string{
 		`name="color"`,
 		`value="#3366CCB3"`,
@@ -253,9 +171,6 @@ func TestTheColourIsPostedByTheTextFieldAndNotByThePicker(t *testing.T) {
 			t.Errorf("the colour field is missing %s:\n%s", want, page)
 		}
 	}
-
-	
-	
 	if strings.Contains(page, `type="color"`) {
 		t.Errorf("the native colour input is still in the form:\n%s", page)
 	}
@@ -263,25 +178,16 @@ func TestTheColourIsPostedByTheTextFieldAndNotByThePicker(t *testing.T) {
 		t.Errorf("%d colour fields, want 1:\n%s", strings.Count(page, `name="color"`), page)
 	}
 }
-
-
-
-
-
 func TestTheColourControlOpensOnTheTablesColour(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
 		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
 	}))
-
 	if !strings.Contains(page, `color="#3366CCB3"`) {
 		t.Errorf("the picker does not open on the table's colour:\n%s", page)
 	}
 	if !strings.Contains(page, "background-color:#3366CCB3") {
 		t.Errorf("the swatch is not painted by the template:\n%s", page)
 	}
-
-	
-	
 	if got := (RoomGridData{}).PickerColor(); got != room.DefaultGridColor {
 		t.Errorf("a table with no colour opens the picker on %q, want %q", got, room.DefaultGridColor)
 	}
@@ -289,27 +195,16 @@ func TestTheColourControlOpensOnTheTablesColour(t *testing.T) {
 		t.Errorf("PickerColor = %q", got)
 	}
 }
-
-
-
-
-
-
 func TestThePickerIsFoldedAwayUntilTheSwatchIsPressed(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
 		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#3366CCB3",
 	}))
-
 	if !strings.Contains(page, `data-color-picker hidden`) {
 		t.Errorf("the picker is open on load:\n%s", page)
 	}
 	if !strings.Contains(page, `aria-expanded="false"`) {
 		t.Errorf("the swatch does not say it is a disclosure:\n%s", page)
 	}
-
-	
-	
-	
 	if !strings.Contains(page, `aria-controls="`+GridColorPickerID+`"`) {
 		t.Errorf("the swatch does not name the picker:\n%s", page)
 	}
@@ -317,34 +212,23 @@ func TestThePickerIsFoldedAwayUntilTheSwatchIsPressed(t *testing.T) {
 		t.Errorf("the picker does not carry the id the swatch names:\n%s", page)
 	}
 }
-
 func values(choices []Choice) []string {
 	out := make([]string, 0, len(choices))
 	for _, c := range choices {
 		out = append(out, c.Value)
 	}
-
 	return out
 }
-
 func contains(haystack []string, needle string) bool {
 	for _, v := range haystack {
 		if v == needle {
 			return true
 		}
 	}
-
 	return false
 }
-
-
-
-
-
-
 func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 	items := menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items
-
 	for _, want := range []struct {
 		label string
 		id    string
@@ -359,7 +243,6 @@ func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 				continue
 			}
 			found = true
-
 			if item.Window.ID != want.id {
 				t.Errorf("%s opens window %q, want %q", want.label, item.Window.ID, want.id)
 			}
@@ -375,27 +258,12 @@ func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 func TestAPlayersTabletopMenuIsTheirsAndTouchesNothing(t *testing.T) {
 	items := menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items
-
 	want := []string{"Clear blood"}
 	if !slices.Equal(labelsOf(items), want) {
 		t.Fatalf("a player's Tabletop menu is %v, want %v", labelsOf(items), want)
 	}
-
 	for _, item := range items {
 		if item.Post != "" || item.Window.ID != "" || item.Modal.URL != "" || item.Href != "" {
 			t.Errorf("%s asks the room for something: %+v", item.Label, item)
@@ -408,29 +276,18 @@ func TestAPlayersTabletopMenuIsTheirsAndTouchesNothing(t *testing.T) {
 		}
 	}
 }
-
-
 func labelsOf(items []RoomMenuItem) []string {
 	out := make([]string, 0, len(items))
 	for _, item := range items {
 		out = append(out, item.Label)
 	}
-
 	return out
 }
-
-
-
-
-
-
-
 func TestTheLayerNameAsksOnceAndThenOnlyListens(t *testing.T) {
 	page := renderToString(t, RoomLayerName(RoomLayerNameData{RoomID: testTableRoomID}))
 	if !strings.Contains(page, `hx-trigger="load, room:tabletop from:window"`) {
 		t.Errorf("the page render never asks for the name:\n%s", page)
 	}
-
 	answer := renderToString(t, RoomLayerName(RoomLayerNameData{RoomID: testTableRoomID, Fetched: true}))
 	if strings.Contains(answer, "load") {
 		t.Errorf("the answer arms itself again:\n%s", answer)
@@ -439,22 +296,14 @@ func TestTheLayerNameAsksOnceAndThenOnlyListens(t *testing.T) {
 		t.Errorf("the answer stopped listening for the socket:\n%s", answer)
 	}
 }
-
-
-
-
-
 func TestThePawnMenuOffersReadingToEverybodyAndTheRestToTheGM(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	for _, want := range []string{"Open details", "Move to floor", "Remove pawn"} {
 		if !strings.Contains(gm, want) {
 			t.Errorf("the GM's pawn menu has no %q:\n%s", want, gm)
 		}
 	}
-
 	player := renderToString(t, roomPawnMenu(testRoomPage(room.RolePlayer)))
-
 	if !strings.Contains(player, "Open details") {
 		t.Errorf("a player cannot open a pawn from its menu:\n%s", player)
 	}
@@ -464,16 +313,8 @@ func TestThePawnMenuOffersReadingToEverybodyAndTheRestToTheGM(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
-
 func TestThePawnMenuRemovesThroughTheConfirmModal(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	for _, want := range []string{
 		`hx-delete="/rooms/` + testTableRoomID + `/pawns"`,
 		"hx-confirm=",
@@ -485,14 +326,8 @@ func TestThePawnMenuRemovesThroughTheConfirmModal(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestThePawnMenuMovesFloorsThroughAHiddenButton(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	if !strings.Contains(gm, `hx-post="/rooms/`+testTableRoomID+`/pawns/layer"`) {
 		t.Errorf("the menu does not post to the layer route:\n%s", gm)
 	}
@@ -500,15 +335,8 @@ func TestThePawnMenuMovesFloorsThroughAHiddenButton(t *testing.T) {
 		t.Errorf("the move button is not hidden:\n%s", gm)
 	}
 }
-
-
-
-
-
-
 func TestThePawnMenusFloorsAreClonedFromMarkupAndNotBuiltInJS(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	if !strings.Contains(gm, `<ul data-pawn-menu-layers`) {
 		t.Errorf("there is no list for the floors to go in:\n%s", gm)
 	}
@@ -520,40 +348,22 @@ func TestThePawnMenusFloorsAreClonedFromMarkupAndNotBuiltInJS(t *testing.T) {
 			t.Errorf("the row template has no %s:\n%s", want, gm)
 		}
 	}
-
-	
-	
-	
 	if strings.Contains(gm, "data-pawn-menu-layer=") {
 		t.Errorf("a floor was rendered into the page:\n%s", gm)
 	}
 }
-
-
-
-
 func TestThePawnMenuStartsHidden(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	if !strings.Contains(gm, "data-pawn-menu hidden") {
 		t.Errorf("the menu is on screen before anybody asked for it:\n%s", gm)
 	}
 }
-
-
-
-
-
-
-
 func TestThePawnMenusHeadingIsTrimmedRatherThanWidening(t *testing.T) {
 	gm := renderToString(t, roomPawnMenu(testRoomPage(room.RoleGM)))
-
 	heading := regexp.MustCompile(`data-pawn-menu-name class="([^"]*)"`).FindStringSubmatch(gm)
 	if heading == nil {
 		t.Fatalf("the menu has no heading row to trim:\n%s", gm)
 	}
-
 	for _, class := range []string{"block", "w-full", "truncate"} {
 		if !slices.Contains(strings.Fields(heading[1]), class) {
 			t.Errorf("the heading is missing %q, so a long name sets the width of the whole menu: %q", class, heading[1])

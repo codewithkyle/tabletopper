@@ -1,25 +1,16 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/session"
-
 	"github.com/oklog/ulid/v2"
 )
-
 var testEntryID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
-
-
-
-
 func journalRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, entryID string) *httptest.ResponseRecorder {
 	t.Helper()
-
 	r := httptest.NewRequest(method, "/characters/journal", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.SetPathValue("id", testCharacterID.String())
@@ -27,35 +18,22 @@ func journalRequest(t *testing.T, handler http.HandlerFunc, method string, form 
 		r.SetPathValue("entryId", entryID)
 	}
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	handler(rec, r)
-
 	return rec
 }
-
 func journalForm() url.Values {
 	return url.Values{
 		"title": {"Session 12"},
 		"body":  {"We went back to the marsh.\n\n## The hag\n\nShe wanted the ring."},
 	}
 }
-
-
-
-
-
 func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, journalForm(), testEntryID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-
-	
-	
-	
 	if len(db.calls) != 2 {
 		t.Fatalf("statements run = %d, want 2", len(db.calls))
 	}
@@ -66,10 +44,6 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 	if got, want := setColumns(t, call.query), []string{"title", "body"}; strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
-
-	
-	
-	
 	scope := call.args[len(call.args)-3:]
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -77,22 +51,9 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
 func TestSaveJournalEntryIsSilent(t *testing.T) {
 	app, _ := newPanelApp(1)
-
 	rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, journalForm(), testEntryID.String())
-
 	if got := rec.Header().Get("HX-Trigger"); got != "" {
 		t.Errorf("HX-Trigger = %q, want none", got)
 	}
@@ -100,29 +61,17 @@ func TestSaveJournalEntryIsSilent(t *testing.T) {
 		t.Errorf("body = %q, want the cleared error block", body)
 	}
 }
-
-
-
-
-
-
-
 func TestAnAnnouncedSaveToasts(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	form := journalForm()
 	form.Set("announce", "1")
 	rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, form, testEntryID.String())
-
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry saved.") {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
-
-	
-	
 	if len(db.calls) != 2 {
 		t.Fatalf("statements run = %d, want 2", len(db.calls))
 	}
@@ -130,10 +79,6 @@ func TestAnAnnouncedSaveToasts(t *testing.T) {
 		t.Errorf("the announced save ran something else:\n%s", db.calls[0].query)
 	}
 }
-
-
-
-
 func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -153,12 +98,7 @@ func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, c.form, testEntryID.String())
-
-			
-			
-			
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
 			}
@@ -171,42 +111,26 @@ func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestJournalTitleIsMeasuredInCharacters(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	form := url.Values{"title": {strings.Repeat("é", journalTitleLimit)}, "body": {"fine"}}
 	rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, form, testEntryID.String())
-
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	
 	if len(db.calls) != 2 {
 		t.Errorf("ran %d statements, want 2", len(db.calls))
 	}
 }
-
-
-
-
 func TestJournalBodyIsStoredUntrimmed(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	const body = "    fireball\n\nand then we ran.\n"
 	journalRequest(t, app.SaveJournalEntry, http.MethodPost, url.Values{"title": {"x"}, "body": {body}}, testEntryID.String())
-
 	call := db.calls[0]
 	if got, ok := call.args[1].(string); !ok || got != body {
 		t.Errorf("body = %q, want %q", call.args[1], body)
 	}
 }
-
-
-
-
 func TestJournalMutationsRejectAnUnparseableEntryID(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -218,9 +142,7 @@ func TestJournalMutationsRejectAnUnparseableEntryID(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := journalRequest(t, c.handler(app), c.method, journalForm(), "not-a-ulid")
-
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 			}
@@ -233,10 +155,6 @@ func TestJournalMutationsRejectAnUnparseableEntryID(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestJournalMutationsAnswer404WhenNothingMatched(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -248,33 +166,22 @@ func TestJournalMutationsAnswer404WhenNothingMatched(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, _ := newPanelApp(0)
-
 			rec := journalRequest(t, c.handler(app), c.method, journalForm(), testEntryID.String())
-
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 			}
 		})
 	}
 }
-
-
-
-
 func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := journalRequest(t, app.DeleteJournalEntry, http.MethodDelete, nil, testEntryID.String())
-
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry deleted.") {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
-	
-	
-	
 	if len(db.calls) != 3 {
 		t.Fatalf("statements run = %d, want 3", len(db.calls))
 	}
@@ -282,15 +189,9 @@ func TestDeleteJournalEntryAnswers200(t *testing.T) {
 		t.Errorf("did not delete from journals:\n%s", db.calls[2].query)
 	}
 }
-
-
-
-
 func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := journalRequest(t, app.CreateJournalEntry, http.MethodPost, journalForm(), "")
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "INSERT INTO journals (id, owner_id, character_id)") {
 		t.Errorf("the insert is not three columns:\n%s", call.query)
@@ -301,9 +202,6 @@ func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 	if len(call.args) != 3 {
 		t.Errorf("insert takes %d values, want 3", len(call.args))
 	}
-
-	
-	
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
@@ -316,15 +214,9 @@ func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 		t.Errorf("Location does not end in a ULID: %q", location)
 	}
 }
-
-
-
-
 func TestCreateJournalEntryForAStrangersCharacterRedirects(t *testing.T) {
 	app, _ := newPanelApp(0)
-
 	rec := journalRequest(t, app.CreateJournalEntry, http.MethodPost, nil, "")
-
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
@@ -332,19 +224,9 @@ func TestCreateJournalEntryForAStrangersCharacterRedirects(t *testing.T) {
 		t.Errorf("Location = %q, want /characters", got)
 	}
 }
-
-
-
-
-
-
-
-
 func TestJournalEntryPageRedirectsOnAnUnparseableEntryID(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := journalRequest(t, app.CharacterJournalEntryPage, http.MethodGet, nil, "not-a-ulid")
-
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
@@ -355,48 +237,34 @@ func TestJournalEntryPageRedirectsOnAnUnparseableEntryID(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
 func TestJournalEntryPageRedirectsToTheListWhenTheCharacterIDIsJunk(t *testing.T) {
 	app, _ := newPanelApp(1)
-
 	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/journal/y", nil)
 	r.SetPathValue("id", "not-a-ulid")
 	r.SetPathValue("entryId", "not-a-ulid")
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 	rec := httptest.NewRecorder()
 	app.CharacterJournalEntryPage(rec, r)
-
 	if got := rec.Header().Get("Location"); got != "/characters" {
 		t.Errorf("Location = %q, want /characters", got)
 	}
 }
-
-
-
-
 func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	r := httptest.NewRequest(http.MethodGet, "/fragment/character/journal-link?href=javascript:alert(1)", nil)
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 	rec := httptest.NewRecorder()
 	app.JournalLinkFragment(rec, r)
-
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 	if body := rec.Body.String(); body != "" {
 		t.Errorf("body = %q, want empty", body)
 	}
-
-	
 	clean := httptest.NewRequest(http.MethodGet, "/fragment/character/journal-link", nil)
 	clean = clean.WithContext(session.NewContext(clean.Context(), session.UserSession{UserID: testOwnerID}))
 	rec = httptest.NewRecorder()
 	app.JournalLinkFragment(rec, clean)
-
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
@@ -407,38 +275,22 @@ func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
 func journalSearch(t *testing.T, app *App, character, term string) *httptest.ResponseRecorder {
 	t.Helper()
-
 	target := "/fragment/character/journal-entries?character=" + url.QueryEscape(character) + "&q=" + url.QueryEscape(term)
 	r := httptest.NewRequest(http.MethodGet, target, nil)
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	app.JournalEntriesFragment(rec, r)
-
 	return rec
 }
-
-
-
-
-
-
-
 func TestJournalSearchIsScopedToTheCharacterAndTheOwner(t *testing.T) {
 	app, db := newPanelApp(0)
-
 	journalSearch(t, app, testCharacterID.String(), "hag")
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "FROM journals") || !strings.Contains(call.query, "LIKE") {
 		t.Fatalf("did not run the search:\n%s", call.query)
 	}
-
 	want := []any{testCharacterID, testOwnerID, "%hag%", "%hag%"}
 	if len(call.args) != len(want) {
 		t.Fatalf("args = %v, want %v", call.args, want)
@@ -449,17 +301,10 @@ func TestJournalSearchIsScopedToTheCharacterAndTheOwner(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestAnEmptySearchReadsTheUnfilteredList(t *testing.T) {
 	for _, term := range []string{"", "   "} {
 		app, db := newPanelApp(0)
-
 		journalSearch(t, app, testCharacterID.String(), term)
-
 		call := db.only(t)
 		if strings.Contains(call.query, "LIKE") {
 			t.Errorf("a blank term %q ran a search:\n%s", term, call.query)
@@ -469,12 +314,6 @@ func TestAnEmptySearchReadsTheUnfilteredList(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
 func TestJournalSearchEscapesLikeWildcards(t *testing.T) {
 	for _, tc := range []struct{ term, want string }{
 		{"hag", "%hag%"},
@@ -488,12 +327,6 @@ func TestJournalSearchEscapesLikeWildcards(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
 func TestJournalSearchRefusesWhatTheBoxCannotSend(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -506,9 +339,7 @@ func TestJournalSearchRefusesWhatTheBoxCannotSend(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			app, db := newPanelApp(0)
-
 			rec := journalSearch(t, app, tc.character, tc.term)
-
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 			}

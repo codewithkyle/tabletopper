@@ -6,17 +6,14 @@
 // The `load` event is the right moment: Clerk's script is async, and load
 // fires only once every async script has run.
 const mount = document.querySelector("[data-clerk-mount]");
-
 window.addEventListener("load", async () => {
     await window.Clerk.load();
-
     // Already signed in with Clerk -- clerk-js has just set the __session
     // cookie /authorize reads, so hand over rather than show a form.
     if (window.Clerk.session) {
         location.href = "/authorize";
         return;
     }
-
     const options = {
         appearance: {
             baseTheme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",

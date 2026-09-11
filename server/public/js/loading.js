@@ -10,10 +10,8 @@
 // This replaced env.js, a minified bundle from the old client that also
 // sniffed the browser and the network connection into attributes nothing
 // read, plus the ticket half of notif.js.
-
 const inFlight = new WeakSet();
 let count = 0;
-
 // A request the user did not make does not raise the bar. The only one so far
 // is the map card polling itself while its tiles are built, which fires every
 // two seconds for as long as the job runs -- and `html[state="loading"] *` sets
@@ -28,13 +26,10 @@ let count = 0;
 function isBackground(target) {
     return target instanceof Element && target.hasAttribute("data-quiet");
 }
-
 function setState(state) {
     document.documentElement.setAttribute("state", state);
 }
-
 setState("idling");
-
 // On `document` rather than `document.body`, and that distinction is
 // load-bearing. htmx:finally:request is emitted after the swap; for a
 // button that deleted its own card (hx-swap="delete") the button is gone by
@@ -51,7 +46,6 @@ document.addEventListener("htmx:before:request", (e) => {
         setState("loading");
     }
 });
-
 document.addEventListener("htmx:finally:request", (e) => {
     const ctx = e.detail?.ctx;
     if (!ctx || !inFlight.has(ctx)) {

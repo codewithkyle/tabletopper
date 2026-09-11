@@ -1,17 +1,11 @@
 package pages
-
 import (
 	"strconv"
-
 	"tabletopper/templ/layouts"
 )
-
 const assetTileGrid = "grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]"
-
 const assetFaceGrid = "grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
-
 const assetRowGrid = "grid-cols-1"
-
 templ MapAssets(maps []MapAsset) {
 	@layouts.Base("Maps | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabMaps, mapUploadButton()) {
@@ -19,7 +13,6 @@ templ MapAssets(maps []MapAsset) {
 		}
 	}
 }
-
 templ MapCards(maps []MapAsset, query string) {
 	@assetCards(mapsGrid(query)) {
 		for _, m := range maps {
@@ -27,7 +20,6 @@ templ MapCards(maps []MapAsset, query string) {
 		}
 	}
 }
-
 templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabTokens, libraryUploadButton(assetTabTokens, "Upload token")) {
@@ -35,7 +27,6 @@ templ TokenAssets(tokens []LibraryAsset) {
 		}
 	}
 }
-
 templ TokenCards(tokens []LibraryAsset, query string) {
 	@assetCards(tokensGrid(query)) {
 		for _, t := range tokens {
@@ -43,7 +34,6 @@ templ TokenCards(tokens []LibraryAsset, query string) {
 		}
 	}
 }
-
 templ AvatarAssets(avatars []LibraryAsset) {
 	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabAvatars, libraryUploadButton(assetTabAvatars, "Upload avatar")) {
@@ -51,7 +41,6 @@ templ AvatarAssets(avatars []LibraryAsset) {
 		}
 	}
 }
-
 templ AvatarCards(avatars []LibraryAsset, query string) {
 	@assetCards(avatarsGrid(query)) {
 		for _, a := range avatars {
@@ -59,7 +48,6 @@ templ AvatarCards(avatars []LibraryAsset, query string) {
 		}
 	}
 }
-
 templ assetsShell(active string, actions templ.Component) {
 	<assets-page class="relative block h-screen min-h-dvh w-screen">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -82,7 +70,6 @@ templ assetsShell(active string, actions templ.Component) {
 		</div>
 	</assets-page>
 }
-
 templ assetSearchBox(kind string) {
 	<input
 		type="search"
@@ -99,7 +86,6 @@ templ assetSearchBox(kind string) {
 		hx-swap="outerHTML"
 	/>
 }
-
 templ assetCards(g assetGrid) {
 	<section id={ g.Kind } class={ assetGutter + " grid min-h-0 w-full content-start gap-4 overflow-y-auto py-4 " + g.Cols }>
 		{ children... }
@@ -116,7 +102,6 @@ templ assetCards(g assetGrid) {
 		</div>
 	</section>
 }
-
 templ mapUploadButton() {
 	<label
 		for="map-upload"
@@ -138,7 +123,6 @@ templ mapUploadButton() {
 		/>
 	</label>
 }
-
 templ MapCard(m MapAsset) {
 	<asset-card
 		class={ sheetSurface + " mb-auto p-4" }

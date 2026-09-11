@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"bytes"
 	"image"
@@ -10,37 +9,22 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 )
-
-
-
-
-
 func pngPixels(t *testing.T, width, height int) []byte {
 	t.Helper()
-
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
-	
-	
 	img.Set(0, 0, color.NRGBA{R: 255, A: 255})
-
 	var out bytes.Buffer
 	if err := png.Encode(&out, img); err != nil {
 		t.Fatalf("encoding the fixture: %v", err)
 	}
-
 	return out.Bytes()
 }
-
-
-
 func libraryUploadRequest(t *testing.T, path string, content []byte) *http.Request {
 	t.Helper()
-
 	var body bytes.Buffer
 	form := multipart.NewWriter(&body)
 	part, err := form.CreateFormFile("image", "rowboat.png")
@@ -53,24 +37,10 @@ func libraryUploadRequest(t *testing.T, path string, content []byte) *http.Reque
 	if err := form.Close(); err != nil {
 		t.Fatalf("closing the form: %v", err)
 	}
-
 	r := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body.Bytes()))
 	r.Header.Set("Content-Type", form.FormDataContentType())
-
 	return r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 }
-
-
-
-
-
-
-
-
-
-
-
-
 func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 	for name, c := range map[string]struct {
 		kind          libraryKind
@@ -87,7 +57,6 @@ func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			src := image.NewNRGBA(image.Rect(0, 0, c.width, c.height))
-
 			encoded, width, height, err := c.kind.encode(src)
 			if err != nil {
 				t.Fatalf("encode: %v", err)
@@ -98,11 +67,6 @@ func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 			if len(encoded) == 0 {
 				t.Error("encode produced no bytes")
 			}
-
-			
-			
-			
-			
 			cfg, _, err := image.DecodeConfig(bytes.NewReader(encoded))
 			if err != nil {
 				t.Fatalf("the encoded image does not decode: %v", err)
@@ -113,23 +77,13 @@ func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
 func TestUploadLibraryAssetWritesTheRowBeforeReachingR2(t *testing.T) {
 	for _, kind := range []libraryKind{avatarKind, tokenKind} {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}
-
 			r := libraryUploadRequest(t, "/assets/"+kind.Slug, pngPixels(t, 128, 128))
 			app.uploadLibrary(newRecorder(), r, kind)
-
 			if len(db.calls) != 1 {
 				t.Fatalf("ran %d statements, want 1", len(db.calls))
 			}
@@ -137,10 +91,6 @@ func TestUploadLibraryAssetWritesTheRowBeforeReachingR2(t *testing.T) {
 			if !strings.Contains(insert.query, "INSERT INTO assets") {
 				t.Fatalf("the first statement is not the insert: %q", insert.query)
 			}
-
-			
-			
-			
 			var found bool
 			for _, arg := range insert.args {
 				if bound, ok := arg.(queries.AssetsType); ok {
@@ -156,27 +106,17 @@ func TestUploadLibraryAssetWritesTheRowBeforeReachingR2(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
 func TestLibraryReadsAndRenamesAreScopedToTheirKind(t *testing.T) {
 	const id = "01BX5ZZKBKACTAV9WEVGEMMVS2"
-
 	for _, kind := range []libraryKind{avatarKind, tokenKind} {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}
-
 			r := httptest.NewRequest(http.MethodPatch, "/assets/"+kind.Slug+"/"+id+"/name", strings.NewReader("name=Rowboat"))
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			r.SetPathValue("id", id)
 			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 			app.renameLibrary(newRecorder(), r, kind.assetKind)
-
 			if len(db.calls) != 1 {
 				t.Fatalf("ran %d statements, want 1", len(db.calls))
 			}
@@ -196,15 +136,6 @@ func TestLibraryReadsAndRenamesAreScopedToTheirKind(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
 func TestAssetNameIsCutToWhatTheColumnHolds(t *testing.T) {
 	for name, c := range map[string]struct{ in, want string }{
 		"short enough":        {"Rowboat", "Rowboat"},
@@ -219,11 +150,6 @@ func TestAssetNameIsCutToWhatTheColumnHolds(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestTheLibraryKindsShareNothing(t *testing.T) {
 	if avatarKind.Type == tokenKind.Type {
 		t.Error("both kinds insert the same assets.type")
@@ -237,9 +163,6 @@ func TestTheLibraryKindsShareNothing(t *testing.T) {
 	if avatarKind.Key(testOwnerID, testOwnerID) == tokenKind.Key(testOwnerID, testOwnerID) {
 		t.Error("both kinds store their objects at the same key")
 	}
-
-	
-	
 	if got := avatarKind.Key(testOwnerID, testOwnerID); got != storage.AvatarKey(testOwnerID, testOwnerID) {
 		t.Errorf("the avatar kind stores at %q", got)
 	}
@@ -247,21 +170,9 @@ func TestTheLibraryKindsShareNothing(t *testing.T) {
 		t.Errorf("the token kind stores at %q", got)
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
 func TestACharacterPortraitIsNotWrittenAsALibraryAvatar(t *testing.T) {
 	db := &recordingDB{}
 	q := queries.New(db)
-
 	err := q.InsertCharacterPortrait(t.Context(), queries.InsertCharacterPortraitParams{
 		ID:      testOwnerID,
 		OwnerID: testOwnerID,
@@ -272,7 +183,6 @@ func TestACharacterPortraitIsNotWrittenAsALibraryAvatar(t *testing.T) {
 	if len(db.calls) != 1 {
 		t.Fatalf("ran %d statements, want 1", len(db.calls))
 	}
-
 	insert := db.calls[0]
 	if !strings.Contains(insert.query, "'character'") {
 		t.Errorf("a portrait is not inserted as a character: %q", insert.query)
@@ -281,19 +191,10 @@ func TestACharacterPortraitIsNotWrittenAsALibraryAvatar(t *testing.T) {
 		t.Errorf("a portrait is still inserted as an avatar, which the library page would offer to delete: %q", insert.query)
 	}
 }
-
-
-
-
-
 func TestTheImageRouteStillServesACharacterPortrait(t *testing.T) {
 	db := &recordingDB{}
 	q := queries.New(db)
-
-	
-	
 	_, _ = q.GetImage(t.Context(), testOwnerID)
-
 	if len(db.reads) != 1 {
 		t.Fatalf("ran %d reads, want 1", len(db.reads))
 	}
@@ -301,22 +202,14 @@ func TestTheImageRouteStillServesACharacterPortrait(t *testing.T) {
 		t.Errorf("the image route does not serve a character portrait: %q", db.reads[0].query)
 	}
 }
-
-
-
-
-
 func TestALibraryPageListsOneKindForOneOwner(t *testing.T) {
 	for _, kind := range []libraryKind{avatarKind, tokenKind} {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}
-
 			r := httptest.NewRequest(http.MethodGet, "/assets/"+kind.Slug, nil)
 			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 			app.libraryPage(newRecorder(), r, kind)
-
 			if len(db.calls) != 1 {
 				t.Fatalf("ran %d statements, want 1", len(db.calls))
 			}
@@ -324,7 +217,6 @@ func TestALibraryPageListsOneKindForOneOwner(t *testing.T) {
 			if !strings.Contains(list.query, "owner_id = ?") || !strings.Contains(list.query, "type = ?") {
 				t.Errorf("the listing is not scoped to an owner and a kind: %q", list.query)
 			}
-
 			var owner bool
 			var bound queries.AssetsType
 			for _, arg := range list.args {

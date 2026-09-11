@@ -1,96 +1,13 @@
 package pages
-
 import (
 	"slices"
 	"strconv"
 	"strings"
-
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const tooltipBody = "tooltip-content"
-
-
-
-
-
 const roomLockID = "room-lock"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const (
 	DefaultRoomTool = "select"
 	RoomToolMove    = "move"
@@ -99,422 +16,133 @@ const (
 	RoomToolDraw    = "draw"
 	RoomToolPing    = "ping"
 )
-
-
-
-
-
 type RoomPageData struct {
 	ID   string
 	Name string
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Code string
-
 	Locked bool
 	Closed bool
-
-	
-	
-	
 	Role room.Role
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	UserID string
-
-	
-	
-	
-	
-	
 	Socket string
-
-	
-	
-	
 	Version string
-
-	
-	
-	
-	
 	Debug bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	FollowTurn bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	ShowBlood bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	PingVolume int
 }
-
-
 func (d RoomPageData) PingVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampPingVolume(d.PingVolume))
 }
-
-
-
-
-
 func (d RoomPageData) Bundle() string {
 	if d.Version == "" {
 		return "/static/room.js"
 	}
-
 	return "/static/room.js?v=" + d.Version
 }
-
-
-
-
-
 func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
 }
-
-
-
-
 func (d RoomPageData) SpawnPath() string {
 	return "/fragment/room/spawn?room=" + d.ID + "&kind=" + RoomSpawnMonsters
 }
-
-
-
-
 func (d RoomPageData) ClearPath() string {
 	return "/rooms/" + d.ID + "/tabletop/clear"
 }
-
-
-
-
-
 func (d RoomPageData) PartyPath() string {
 	return "/rooms/" + d.ID + "/pawns/party"
 }
-
-
-
-
-
 func (d RoomPageData) LayersPath() string {
 	return "/fragment/room/layers?room=" + d.ID
 }
-
 func (d RoomPageData) GridPath() string {
 	return "/fragment/room/grid?room=" + d.ID
 }
-
-
-
-
 func (d RoomPageData) FogFillPath() string {
 	return "/rooms/" + d.ID + "/fog/fill"
 }
-
 func (d RoomPageData) FogClearPath() string {
 	return "/rooms/" + d.ID + "/fog/clear"
 }
-
 func (d RoomPageData) DrawingClearPath() string {
 	return "/rooms/" + d.ID + "/drawing/clear"
 }
-
 func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
-
-
-
-
-
-
-
 func (d RoomPageData) InitiativePath() string {
 	return "/fragment/room/initiative?room=" + d.ID
 }
-
-
 func (d RoomPageData) InitiativeEntryPath() string {
 	return "/fragment/room/initiative/entry?room=" + d.ID
 }
-
-
-
-
 func (d RoomPageData) InitiativeSyncPath() string {
 	return "/rooms/" + d.ID + "/initiative/sync"
 }
-
 func (d RoomPageData) InitiativeNextPath() string {
 	return "/rooms/" + d.ID + "/initiative/next"
 }
-
 func (d RoomPageData) InitiativeClearPath() string {
 	return "/rooms/" + d.ID + "/initiative/clear"
 }
-
-
-
 func (d RoomPageData) IsGM() bool {
 	return d.Role == room.RoleGM
 }
-
-
-
-
-
 func (d RoomPageData) RoleName() string {
 	return string(d.Role)
 }
-
-
 type RoomMenu struct {
 	Label string
 	Items []RoomMenuItem
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type RoomMenuItem struct {
 	Label string
 	ID    string
-
 	Href   string
 	NewTab bool
-
 	Post           string
 	Confirm        string
 	ConfirmHeading string
 	ConfirmLabel   string
-
 	Action string
 	Value  string
-
-	
-	
-	
-	
-	
-	
-	
-	
 	Key string
-
-	
-	
 	Window RoomWindow
-
-	
-	
-	
-	
 	Modal RoomModal
-
-	
-	
 	Danger bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Layered bool
-
 	Disabled bool
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) Menus() []RoomMenu {
 	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
-
 	if d.IsGM() {
 		menus = append(menus, d.fogMenu(), d.initiativeMenu())
 	} else {
 		menus = append(menus, characterMenu())
 	}
-
 	return append(menus,
 		d.toolsMenu(),
 		d.viewMenu(),
 		helpMenu(),
 	)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) toolsMenu() RoomMenu {
 	if !d.IsGM() {
 		return RoomMenu{Label: "Tools", Items: comingSoon("Dice tray")}
 	}
-
 	return RoomMenu{Label: "Tools", Items: comingSoon("Monster Manual", "Dice tray")}
 }
-
-
-
-
-
-
-
-
-
-
 func characterMenu() RoomMenu {
 	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) roomMenu() RoomMenu {
 	items := []RoomMenuItem{}
-
 	if d.IsGM() && !d.Closed {
 		items = append(items, roomLockItem(d))
 	}
 	if d.IsGM() && d.Closed {
 		items = append(items, RoomMenuItem{Label: "Reopen room", Post: "/rooms/" + d.ID + "/open"})
 	}
-
 	items = append(items, RoomMenuItem{Label: "Player List", Window: RoomWindow{
 		ID:     "players",
 		Title:  "Players",
@@ -522,11 +150,9 @@ func (d RoomPageData) roomMenu() RoomMenu {
 		Width:  260,
 		Height: 260,
 	}})
-
 	if !d.Closed {
 		items = append(items, RoomMenuItem{Label: "Copy room code", Action: "copy-code", Value: d.Code})
 	}
-
 	if d.IsGM() {
 		items = append(items, RoomMenuItem{Label: "Back to rooms", Href: "/rooms"})
 		if !d.Closed {
@@ -539,76 +165,25 @@ func (d RoomPageData) roomMenu() RoomMenu {
 				Danger:         true,
 			})
 		}
-
 		return RoomMenu{Label: "Room", Items: items}
 	}
-
 	return RoomMenu{Label: "Room", Items: append(items, RoomMenuItem{
 		Label:  "Leave room",
 		Post:   "/rooms/" + d.ID + "/leave",
 		Danger: true,
 	})}
 }
-
-
-
-
-
 func roomLockItem(d RoomPageData) RoomMenuItem {
 	if d.Locked {
 		return RoomMenuItem{ID: roomLockID, Label: "Unlock room", Post: "/rooms/" + d.ID + "/unlock"}
 	}
-
 	return RoomMenuItem{ID: roomLockID, Label: "Lock room", Post: "/rooms/" + d.ID + "/lock"}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	blood := RoomMenuItem{Label: "Clear blood", Action: roomBloodAction}
-
 	if !d.IsGM() {
 		return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{blood}}
 	}
-
 	return RoomMenu{Label: "Tabletop", Items: []RoomMenuItem{
 		{Label: "Layers", Window: RoomWindow{
 			ID:     "layers",
@@ -645,25 +220,6 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		},
 	}}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) fogMenu() RoomMenu {
 	return RoomMenu{Label: "Fog", Items: []RoomMenuItem{
 		{
@@ -685,34 +241,6 @@ func (d RoomPageData) fogMenu() RoomMenu {
 		},
 	}}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) initiativeMenu() RoomMenu {
 	return RoomMenu{Label: "Initiative", Items: []RoomMenuItem{
 		{Label: "Sync tracker", Post: d.InitiativeSyncPath()},
@@ -728,19 +256,6 @@ func (d RoomPageData) initiativeMenu() RoomMenu {
 		},
 	}}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 func (d RoomPageData) viewMenu() RoomMenu {
 	return RoomMenu{Label: "View", Items: []RoomMenuItem{
 		{Label: "Zoom in", Action: roomViewAction, Value: "zoom-in"},
@@ -751,44 +266,10 @@ func (d RoomPageData) viewMenu() RoomMenu {
 		{Label: "Toggle fullscreen", Action: "fullscreen"},
 	}}
 }
-
-
-
-
-
-
-
-
-
-
 const (
 	roomViewAction  = "view"
 	roomBloodAction = "clear-blood"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func helpMenu() RoomMenu {
 	return RoomMenu{Label: "Help", Items: []RoomMenuItem{
 		{Label: "Settings", Modal: RoomModal{URL: AccountSettingsPath}},
@@ -797,131 +278,24 @@ func helpMenu() RoomMenu {
 		{Label: "Terms of service", Href: "/tos", NewTab: true},
 	}}
 }
-
-
-
-
-
-
 func comingSoon(labels ...string) []RoomMenuItem {
 	items := make([]RoomMenuItem, 0, len(labels))
 	for _, label := range labels {
 		items = append(items, RoomMenuItem{Label: label, Disabled: true})
 	}
-
 	return items
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type RoomTool struct {
 	Name  string
 	Label string
-
-	
-	
 	Pans bool
-
-	
-	
-	
 	Measures bool
-
-	
-	
-	
 	Fogs bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Draws bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Pings bool
-
-	
-	
-	
-	
 	GM bool
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Key string
 }
-
-
-
-
-
-
-
-
 func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
@@ -932,101 +306,25 @@ func RoomTools() []RoomTool {
 		{Name: RoomToolPing, Label: "Ping", Pings: true, Key: "p"},
 	}
 }
-
-
-
 func (d RoomPageData) Tools() []RoomTool {
 	all := RoomTools()
 	if d.IsGM() {
 		return all
 	}
-
 	mine := make([]RoomTool, 0, len(all))
 	for _, t := range all {
 		if !t.GM {
 			mine = append(mine, t)
 		}
 	}
-
 	return mine
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const (
 	DrawColorPanelID = "draw-color-panel"
 	DrawWidthPanelID = "draw-width-panel"
-
-	
-	
-	
 	DrawWidthDefault = "4"
 )
-
-
 var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
@@ -1036,235 +334,62 @@ func DrawModeChoices() []Choice {
 		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 func FogShapeChoices() []Choice {
 	return []Choice{
 		{Value: "rect", Label: "Rectangle", Hint: "Drag a box."},
 		{Value: "poly", Label: "Polygon", Hint: "Click each corner. Right click closes it."},
 	}
 }
-
 func FogModeChoices() []Choice {
 	return []Choice{
 		{Value: "reveal", Label: "Uncover", Hint: "Cut a hole in the fog."},
 		{Value: "hide", Label: "Cover", Hint: "Put the fog back."},
 	}
 }
-
-
-
-
 func (t RoomTool) Pressed() string {
 	return strconv.FormatBool(t.Name == DefaultRoomTool)
 }
-
-
-
-
 func (t RoomTool) KeyLabel() string {
 	return strings.ToUpper(t.Key)
 }
-
-
-
-
-
 const emptyVals = "{}"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type RoomWindow struct {
-	
-	
-	
 	ID    string
 	Title string
 	URL   string
-
-	
-	
 	Width  int
 	Height int
 }
-
-
-
-
-
 func (w RoomWindow) WidthValue() string { return dimension(w.Width) }
-
 func (w RoomWindow) HeightValue() string { return dimension(w.Height) }
-
 func dimension(value int) string {
 	if value <= 0 {
 		return ""
 	}
-
 	return strconv.Itoa(value)
 }
-
-
-
-
 type RoomModal struct {
 	URL string
-
-	
 	Size string
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type RoomMember struct {
-	
-	
-	
-	
 	ID string
-
-	
-	
 	Name string
-
-	
-	
 	Username string
-
 	Avatar string
-
-	
-	
 	IsGM bool
-
-	
-	
-	
 	Connected bool
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type RoomMembersData struct {
 	RoomID  string
 	Members []RoomMember
-
-	
-	
-	
-	
-	
-	
-	
 	CanKick bool
-
-	
-	
-	
-	
-	
 	Live bool
 }
-
-
-
 func (d RoomMembersData) Path() string {
 	return "/fragment/room/members?room=" + d.RoomID
 }
-
-
-
-
-
 const GameMasterName = "Game Master"
-
-
-
-
-
-
-
-
-
 func MemberName(isGM bool, character string, username string) string {
 	if isGM {
 		return GameMasterName
@@ -1272,49 +397,26 @@ func MemberName(isGM bool, character string, username string) string {
 	if character != "" {
 		return character
 	}
-
 	return username
 }
-
-
-
-
-
-
 func (m RoomMember) ShowUsername() bool {
 	return m.Name != m.Username
 }
-
-
-
-
-
 func (d RoomMembersData) KickPath(m RoomMember) string {
 	return "/rooms/" + d.RoomID + "/players/" + m.ID + "/kick"
 }
-
-
-
-
 func (d RoomMembersData) KickPrompt(m RoomMember) string {
 	return "Remove " + m.Name + " from the room? Their pawns stay on the table, and they can join again with the code unless you lock the room."
 }
-
-
-
-
 func SortRoomMembers(members []RoomMember) []RoomMember {
 	slices.SortFunc(members, func(a, b RoomMember) int {
 		if a.IsGM != b.IsGM {
 			if a.IsGM {
 				return -1
 			}
-
 			return 1
 		}
-
 		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
-
 	return members
 }

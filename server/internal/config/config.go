@@ -1,41 +1,21 @@
-
-
-
-
-
 package config
-
 import (
 	"fmt"
 	"os"
 	"strings"
 )
-
 type Config struct {
-	
-	
 	Env string
-
-	
 	Addr string
-
 	DSN         string
 	ClerkAPIKey string
-
-	
-	
-	
 	ClerkPublishableKey string
 	ClerkFrontendAPI    string
-
 	R2AccountID       string
 	R2AccessKeyID     string
 	R2SecretAccessKey string
 	R2Bucket          string
 }
-
-
-
 func Load() (Config, error) {
 	cfg := Config{
 		Env:                 os.Getenv("ENV"),
@@ -52,7 +32,6 @@ func Load() (Config, error) {
 	if cfg.Addr == "" {
 		cfg.Addr = ":3000"
 	}
-
 	required := []struct{ name, value string }{
 		{"DSN", cfg.DSN},
 		{"CLERK_API_KEY", cfg.ClerkAPIKey},
@@ -72,13 +51,8 @@ func Load() (Config, error) {
 	if len(missing) > 0 {
 		return Config{}, fmt.Errorf("config: missing environment variables: %s", strings.Join(missing, ", "))
 	}
-
 	return cfg, nil
 }
-
-
-
-
 func (c Config) Development() bool {
 	switch c.Env {
 	case "development", "dev", "local":

@@ -1,42 +1,27 @@
 package markdown_test
-
 import (
 	"strings"
 	"testing"
-
 	"tabletopper/internal/markdown"
 )
-
-
-
-
 func keepAll(dest string) (string, bool) { return dest, true }
-
 func render(t *testing.T, body string, images markdown.ImageSource) string {
 	t.Helper()
-
 	out, err := markdown.Render(body, images)
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
-
 	return out
 }
-
-
-
-
 func TestRawHTMLInABodyIsNotRendered(t *testing.T) {
 	bodies := map[string]string{
 		"script block":  "<script>alert(1)</script>",
 		"inline markup": "Hello <img src=x onerror=alert(1)> world",
 		"iframe":        "<iframe src=\"https:
 	}
-
 	for name, body := range bodies {
 		t.Run(name, func(t *testing.T) {
 			out := render(t, body, keepAll)
-
 			for _, forbidden := range []string{"<script", "<iframe", "onerror"} {
 				if strings.Contains(out, forbidden) {
 					t.Errorf("raw HTML reached the output: found %q in\n%s", forbidden, out)
@@ -45,35 +30,25 @@ func TestRawHTMLInABodyIsNotRendered(t *testing.T) {
 		})
 	}
 }
-
 func TestDangerousLinkDestinationsAreDropped(t *testing.T) {
 	for _, scheme := range []string{"javascript:alert(1)", "vbscript:msgbox(1)", "data:text/html,<script>alert(1)</script>"} {
 		t.Run(scheme, func(t *testing.T) {
 			out := render(t, "[click me]("+scheme+")", keepAll)
-
 			if strings.Contains(out, "href=\""+scheme) {
 				t.Errorf("a %s destination survived\n%s", scheme, out)
 			}
-			
-			
 			if !strings.Contains(out, "click me") {
 				t.Errorf("the link text was lost as well\n%s", out)
 			}
 		})
 	}
 }
-
 func TestAnOrdinaryLinkSurvives(t *testing.T) {
 	out := render(t, "[the wiki](https:
-
 	if !strings.Contains(out, `href="https:
 		t.Errorf("an http link should render as one\n%s", out)
 	}
 }
-
-
-
-
 func TestTheEditorsOwnMarksRender(t *testing.T) {
 	cases := map[string]struct{ body, want string }{
 		"bold":          {"**loud**", "<strong>loud</strong>"},
@@ -86,29 +61,22 @@ func TestTheEditorsOwnMarksRender(t *testing.T) {
 		"numbers":       {"1. one\n2. two", "<ol>"},
 		"hard break":    {"one\\\ntwo", "<br>"},
 	}
-
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			out := render(t, tc.body, keepAll)
-
 			if !strings.Contains(out, tc.want) {
 				t.Errorf("wanted %q in the output\n%s", tc.want, out)
 			}
 		})
 	}
 }
-
-
-
 func TestAnImageIsRenderedAtTheURLTheSourceReturns(t *testing.T) {
 	out := render(t, "![a map](/characters/C/journal/E/images/A)", func(dest string) (string, bool) {
 		if dest != "/characters/C/journal/E/images/A" {
 			t.Errorf("the source was asked about %q", dest)
 		}
-
 		return "/share/tok/images/A", true
 	})
-
 	if !strings.Contains(out, `src="/share/tok/images/A"`) {
 		t.Errorf("the destination was not rewritten\n%s", out)
 	}
@@ -116,15 +84,10 @@ func TestAnImageIsRenderedAtTheURLTheSourceReturns(t *testing.T) {
 		t.Errorf("the alt text was lost\n%s", out)
 	}
 }
-
-
-
-
 func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
 	out := render(t, "![](https:
 		return "", false
 	})
-
 	if strings.Contains(out, "<img") {
 		t.Errorf("a foreign image was rendered\n%s", out)
 	}
@@ -132,14 +95,10 @@ func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
 		t.Errorf("the foreign URL reached the output\n%s", out)
 	}
 }
-
-
-
 func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
 	out := render(t, "before\n\n![](https:
 		return "", false
 	})
-
 	if strings.Contains(out, "<p></p>") {
 		t.Errorf("an empty paragraph was left behind\n%s", out)
 	}
@@ -149,15 +108,11 @@ func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestOnlyTheForeignImageIsRemoved(t *testing.T) {
 	body := "![mine](/characters/C/journal/E/images/A)\n\n![theirs](https:
 	out := render(t, body, func(dest string) (string, bool) {
 		return "/share/tok/images/A", strings.HasPrefix(dest, "/characters/")
 	})
-
 	if strings.Count(out, "<img") != 1 {
 		t.Errorf("expected exactly one image to survive\n%s", out)
 	}
@@ -165,20 +120,13 @@ func TestOnlyTheForeignImageIsRemoved(t *testing.T) {
 		t.Errorf("the entry's own image was dropped\n%s", out)
 	}
 }
-
 func TestAnEmptyBodyRendersNothing(t *testing.T) {
 	if out := render(t, "", keepAll); out != "" {
 		t.Errorf("an empty entry rendered %q", out)
 	}
 }
-
-
-
-
-
 func TestALinkContributesItsLabelAndNotItsDestination(t *testing.T) {
 	out := markdown.PlainText("We met [Thistlewick](/assets/images/01J7ZK) in the market.")
-
 	if !strings.Contains(out, "Thistlewick") {
 		t.Errorf("the link's label was lost\n%q", out)
 	}
@@ -186,22 +134,14 @@ func TestALinkContributesItsLabelAndNotItsDestination(t *testing.T) {
 		t.Errorf("the link's destination survived into the text\n%q", out)
 	}
 }
-
-
-
 func TestAnImageContributesItsAltTextAndNotItsDestination(t *testing.T) {
 	out := markdown.PlainText("![a portrait of Béornegar](/characters/C/journal/E/images/A)")
-
 	if out != "a portrait of Béornegar" {
 		t.Errorf("PlainText = %q", out)
 	}
 }
-
-
-
 func TestTheMarkupItselfIsNotText(t *testing.T) {
 	out := markdown.PlainText("# Session 12\n\n- one **bold** item\n- ~~struck~~ through\n\n> quoted")
-
 	for _, gone := range []string{"#", "*", "~", ">", "-"} {
 		if strings.Contains(out, gone) {
 			t.Errorf("the marker %q survived\n%q", gone, out)
@@ -213,12 +153,8 @@ func TestTheMarkupItselfIsNotText(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestRawHTMLIsNotText(t *testing.T) {
 	out := markdown.PlainText("<div>hidden</div>\n\nvisible")
-
 	if strings.Contains(out, "hidden") {
 		t.Errorf("raw HTML survived into the text\n%q", out)
 	}
@@ -226,23 +162,13 @@ func TestRawHTMLIsNotText(t *testing.T) {
 		t.Errorf("the prose beside it was lost\n%q", out)
 	}
 }
-
-
-
-
-
 func TestACodeBlockIsText(t *testing.T) {
 	if out := markdown.PlainText("Before.\n\n```\nthe passphrase is marigold\n```"); !strings.Contains(out, "marigold") {
 		t.Errorf("the code block's content was lost\n%q", out)
 	}
 }
-
-
-
-
 func TestWhitespaceCollapsesToSingleSpaces(t *testing.T) {
 	out := markdown.PlainText("the market\nsquare\n\nand the guards")
-
 	if !strings.Contains(out, "the market square") {
 		t.Errorf("a phrase across a soft break did not join up\n%q", out)
 	}
@@ -250,7 +176,6 @@ func TestWhitespaceCollapsesToSingleSpaces(t *testing.T) {
 		t.Errorf("whitespace was left uncollapsed\n%q", out)
 	}
 }
-
 func TestAnEmptyBodyProjectsToNothing(t *testing.T) {
 	if out := markdown.PlainText(""); out != "" {
 		t.Errorf("an empty entry projected to %q", out)

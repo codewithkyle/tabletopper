@@ -1,5 +1,4 @@
 package pages
-
 import (
 	"reflect"
 	"regexp"
@@ -7,9 +6,6 @@ import (
 	"strings"
 	"testing"
 )
-
-
-
 func testSharedSheet() SharedCharacterSheet {
 	return SharedCharacterSheet{
 		Header: CharacterHeader{
@@ -46,14 +42,8 @@ func testSharedSheet() SharedCharacterSheet {
 		Appearance:  []SharedFact{{Label: "Eyes", Value: "Grey"}},
 	}
 }
-
-
-
-
-
 func TestASharedSheetShipsNoScriptsAndNoDialogs(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
-
 	for _, forbidden := range []string{"<script", "<dialog", "htmx", "hx-post", "hx-get", "<form", "<input"} {
 		if strings.Contains(body, forbidden) {
 			t.Errorf("a shared sheet carries %q:\n%s", forbidden, body)
@@ -63,23 +53,6 @@ func TestASharedSheetShipsNoScriptsAndNoDialogs(t *testing.T) {
 		t.Errorf("a shared sheet is missing its robots meta:\n%s", body)
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func TestASharedPageLinksNowhereIntoTheApp(t *testing.T) {
 	for name, c := range map[string]struct {
 		body    string
@@ -102,38 +75,25 @@ func TestASharedPageLinksNowhereIntoTheApp(t *testing.T) {
 			}
 		})
 	}
-
 	if body := renderToString(t, SharedCharacterPage(testSharedSheet())); strings.Contains(body, "/characters/") {
 		t.Errorf("a shared sheet named a route inside the app:\n%s", body)
 	}
 }
-
-
-
-
-
 func anchorHrefs(body string) []string {
 	hrefs := []string{}
 	for _, match := range regexp.MustCompile(`<a [^>]*href="([^"]*)"`).FindAllStringSubmatch(body, -1) {
 		hrefs = append(hrefs, match[1])
 	}
-
 	return hrefs
 }
-
 func hasAnyPrefix(value string, prefixes []string) bool {
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(value, prefix) {
 			return true
 		}
 	}
-
 	return false
 }
-
-
-
-
 func TestASharedSheetIsHandedNoCharacterID(t *testing.T) {
 	for _, field := range reflect.VisibleFields(reflect.TypeOf(SharedCharacterSheet{})) {
 		if strings.Contains(field.Name, "ID") {
@@ -141,13 +101,8 @@ func TestASharedSheetIsHandedNoCharacterID(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestASharedSpellLevelCarriesNoUsedCount(t *testing.T) {
 	fields := reflect.VisibleFields(reflect.TypeOf(SharedSpellLevel{}))
-
 	names := make([]string, 0, len(fields))
 	for _, field := range fields {
 		names = append(names, field.Name)
@@ -156,13 +111,8 @@ func TestASharedSpellLevelCarriesNoUsedCount(t *testing.T) {
 		t.Errorf("SharedSpellLevel carries %v, want %v -- see the comment above", names, want)
 	}
 }
-
-
-
-
 func TestASheetWithNothingInItRendersNoEmptyPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(SharedCharacterSheet{}))
-
 	for _, heading := range []string{
 		"Abilities", "Saving Throws", "Identity", "Core Stats", "Vitals", "Attacks",
 		"Proficiencies &amp; Training", "Skills", "Features &amp; Traits", "Equipment",
@@ -173,13 +123,8 @@ func TestASheetWithNothingInItRendersNoEmptyPanels(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
-
 	for _, want := range []string{
 		"Vex", "Half-Elf | Ranger 5", `src="/share/tok/portrait"`,
 		"Longbow", "1d8+5", "Slow",
@@ -192,14 +137,10 @@ func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestAnUnnamedSharedCharacterStillHasATitle(t *testing.T) {
 	if got := SharedCharacterTitle("   "); !strings.HasPrefix(got, "Unnamed character") {
 		t.Errorf("SharedCharacterTitle(blank) = %q", got)
 	}
-
 	body := renderToString(t, SharedCharacterPage(SharedCharacterSheet{}))
 	if !strings.Contains(body, "Unnamed character") {
 		t.Errorf("an unnamed character rendered no heading:\n%s", body)

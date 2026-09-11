@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
@@ -10,21 +9,13 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
-
 	"github.com/oklog/ulid/v2"
 )
-
 var testItemID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
-
-
-
-
 func inventoryRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, itemID string) *httptest.ResponseRecorder {
 	t.Helper()
-
 	r := httptest.NewRequest(method, "/characters/inventory", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	r.SetPathValue("id", testCharacterID.String())
@@ -32,13 +23,10 @@ func inventoryRequest(t *testing.T, handler http.HandlerFunc, method string, for
 		r.SetPathValue("itemId", itemID)
 	}
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	handler(rec, r)
-
 	return rec
 }
-
 func fullInventoryForm() url.Values {
 	return url.Values{
 		"name":        {"Longsword"},
@@ -49,32 +37,20 @@ func fullInventoryForm() url.Values {
 		"description": {"1d8 slashing, versatile (1d10)"},
 	}
 }
-
-
-
-
-
 func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, fullInventoryForm(), testItemID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "UPDATE inventory") {
 		t.Fatalf("did not update inventory:\n%s", call.query)
 	}
-
 	want := []string{"description", "equipped", "name", "quantity", "value", "weight"}
 	if got := sortedColumns(t, call.query); !reflect.DeepEqual(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
-
-	
-	
-	
 	scope := call.args[len(call.args)-3:]
 	for i, want := range []ulid.ULID{testItemID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -82,14 +58,6 @@ func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
-
-
 func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -106,12 +74,8 @@ func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, c.form, testItemID.String())
-
 			call := db.only(t)
-			
-			
 			got, ok := call.args[4].(bool)
 			if !ok {
 				t.Fatalf("equipped arg is %T, want bool", call.args[4])
@@ -122,11 +86,6 @@ func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 	for _, c := range []struct {
 		raw  string
@@ -144,7 +103,6 @@ func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 			t.Errorf("quantity %q = %d, want %d", c.raw, got, c.want)
 		}
 	}
-
 	for _, c := range []struct {
 		raw  string
 		want float64
@@ -154,8 +112,6 @@ func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 		{raw: "-2.5", want: 0},
 		{raw: "0.05", want: 0.05},
 		{raw: "3", want: 3},
-		
-		
 		{raw: "NaN", want: 0},
 		{raw: "Inf", want: inventoryWeightLimit},
 		{raw: "-Inf", want: 0},
@@ -166,9 +122,6 @@ func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestWeightRendersBlankAtZero(t *testing.T) {
 	for _, c := range []struct {
 		weight float64
@@ -184,22 +137,12 @@ func TestWeightRendersBlankAtZero(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestAddInventoryItemCannotCarryItemData(t *testing.T) {
 	app, db := newPanelApp(0)
-
-	
-	
-	
-	
 	rec := inventoryRequest(t, app.AddInventoryItem, http.MethodPost, fullInventoryForm(), "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-
 	call := db.only(t)
 	if len(call.args) != 3 {
 		t.Errorf("statement took %d values, want 3: %v", len(call.args), call.args)
@@ -215,20 +158,12 @@ func TestAddInventoryItemCannotCarryItemData(t *testing.T) {
 	if !strings.Contains(call.query, "FROM characters") {
 		t.Errorf("the insert is not guarded by the characters row:\n%s", call.query)
 	}
-
 	if fields := reflect.TypeOf(queries.InsertInventoryItemParams{}).NumField(); fields != 3 {
 		t.Errorf("InsertInventoryItemParams has %d fields, want 3 (item, character, owner)", fields)
 	}
 }
-
-
-
-
-
-
 func TestDeleteInventoryItemAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := inventoryRequest(t, app.DeleteInventoryItem, http.MethodDelete, nil, testItemID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d -- 204 is in noSwap and would strand the row", rec.Code, http.StatusOK)
@@ -236,7 +171,6 @@ func TestDeleteInventoryItemAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	if body := rec.Body.String(); body != "" {
 		t.Errorf("body = %q, want empty", body)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "DELETE FROM inventory") {
 		t.Fatalf("did not delete from inventory:\n%s", call.query)
@@ -247,12 +181,6 @@ func TestDeleteInventoryItemAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
-
 func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -264,7 +192,6 @@ func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, _ := newPanelApp(0)
-
 			rec := inventoryRequest(t, c.handler(app), c.method, fullInventoryForm(), testItemID.String())
 			if rec.Code != http.StatusNotFound {
 				t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -275,13 +202,8 @@ func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestUnparseableItemIDTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, fullInventoryForm(), "not-a-ulid")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -290,10 +212,6 @@ func TestUnparseableItemIDTouchesNoDatabase(t *testing.T) {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
-
-
-
-
 func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -305,10 +223,8 @@ func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			form := fullInventoryForm()
 			form.Set(c.field, c.value)
-
 			rec := inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, form, testItemID.String())
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
@@ -318,14 +234,9 @@ func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 			}
 		})
 	}
-
-	
-	
-	
 	app, db := newPanelApp(1)
 	form := fullInventoryForm()
 	form.Set("name", strings.Repeat("é", inventoryNameLimit))
-
 	rec := inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, form, testItemID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -334,25 +245,15 @@ func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 		t.Errorf("ran %d statements, want 1", len(db.calls))
 	}
 }
-
-
-
-
-
-
-
-
 func TestEveryInventoryQueryIsScopedToTheOwner(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "inventory.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	statements := regexp.MustCompile(`(?m)^-- name: (\w+)`).FindAllStringSubmatchIndex(string(source), -1)
 	if len(statements) == 0 {
 		t.Fatal("no named queries in sql/inventory.sql")
 	}
-
 	for i, at := range statements {
 		name := string(source[at[2]:at[3]])
 		end := len(source)
@@ -360,28 +261,19 @@ func TestEveryInventoryQueryIsScopedToTheOwner(t *testing.T) {
 			end = statements[i+1][0]
 		}
 		body := string(source[at[0]:end])
-
 		if !strings.Contains(body, "owner_id") {
 			t.Errorf("%s is not scoped to the owner:\n%s", name, body)
 		}
-		
-		
-		
 		if !strings.Contains(body, "character_id") && !strings.Contains(body, "characters") {
 			t.Errorf("%s is not scoped to the character:\n%s", name, body)
 		}
 	}
 }
-
-
-
-
 func TestEquippedQueryFiltersInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "inventory.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
 	}
-
 	body := string(source)
 	start := strings.Index(body, "-- name: ListEquippedInventory")
 	if start < 0 {
@@ -392,7 +284,6 @@ func TestEquippedQueryFiltersInSQL(t *testing.T) {
 	if end >= 0 {
 		statement = body[start : start+1+end]
 	}
-
 	if !strings.Contains(statement, "equipped = TRUE") {
 		t.Errorf("the equipped view is not filtered in the statement:\n%s", statement)
 	}

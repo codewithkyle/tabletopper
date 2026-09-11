@@ -1,5 +1,4 @@
 package pages
-
 templ LibraryAssetCard(l LibraryAsset) {
 	<asset-card class={ sheetSurface + " mb-auto p-4" }>
 		<div class="relative mb-2 flex aspect-square w-full items-center justify-center overflow-hidden rounded bg-base-content/5">
@@ -9,7 +8,6 @@ templ LibraryAssetCard(l LibraryAsset) {
 		@assetCardControls(l.controls())
 	</asset-card>
 }
-
 templ libraryUploadButton(kind string, label string) {
 	<label
 		for={ kind + "-upload" }

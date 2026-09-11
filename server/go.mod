@@ -1,7 +1,5 @@
 module tabletopper
-
 go 1.25.0
-
 require (
 	github.com/a-h/templ v0.3.977
 	github.com/aws/aws-sdk-go-v2 v1.41.2
@@ -20,7 +18,6 @@ require (
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 	golang.org/x/text v0.31.0
 )
-
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.5 // indirect

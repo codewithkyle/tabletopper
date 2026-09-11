@@ -1,28 +1,19 @@
 package room
-
 import (
 	"errors"
 	"testing"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
 func TestASnapshotRoundTrips(t *testing.T) {
 	w := busyWorld(t)
-
 	b, err := Marshal(w.s)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-
 	back, err := Unmarshal(b)
 	if err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-
 	again, err := Marshal(back)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -31,10 +22,6 @@ func TestASnapshotRoundTrips(t *testing.T) {
 		t.Fatalf("the snapshot changed on the way through:\n%s\n%s", b, again)
 	}
 }
-
-
-
-
 func TestAnEmptySnapshotIsItsOwnAnswer(t *testing.T) {
 	for _, empty := range []string{"", "{}", "{ }", "\n{}\n"} {
 		_, err := Unmarshal([]byte(empty))
@@ -43,38 +30,23 @@ func TestAnEmptySnapshotIsItsOwnAnswer(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestASnapshotFromAnotherSchemaIsRefused(t *testing.T) {
 	_, err := Unmarshal([]byte(`{"schema":99,"seq":4}`))
 	if !errors.Is(err, ErrSchema) {
 		t.Fatalf("Unmarshal of schema 99 = %v, want ErrSchema", err)
 	}
-
-	
-	
 	_, err = Unmarshal([]byte(`{"seq":4}`))
 	if !errors.Is(err, ErrSchema) {
 		t.Fatalf("Unmarshal of a snapshot with no schema = %v, want ErrSchema", err)
 	}
 }
-
-
-
-
 func TestEqualStatesMarshalToEqualBytes(t *testing.T) {
 	first := busyWorld(t)
-
-	
-	
 	second := busyWorld(t)
 	second.s.Pawns = append(second.s.Pawns[1:], second.s.Pawns[0])
 	second.s.Players = append(second.s.Players[1:], second.s.Players[0])
 	second.s.Strokes = append(second.s.Strokes[1:], second.s.Strokes[0])
 	second.s.Normalize()
-
 	a, err := Marshal(first.s)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -83,19 +55,13 @@ func TestEqualStatesMarshalToEqualBytes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-
 	if string(a) != string(b) {
 		t.Fatalf("two equal rooms marshalled differently:\n%s\n%s", a, b)
 	}
 }
-
-
-
 func TestAProjectionDoesNotShareStorageWithTheRoom(t *testing.T) {
 	w := busyWorld(t)
-
 	before := mustJSON(t, w.s)
-
 	copyOfRoom := w.s.Project(RoleGM)
 	copyOfRoom.Pawns[0].Name = "Edited"
 	copyOfRoom.Pawns[0].X = 999_999
@@ -107,20 +73,14 @@ func TestAProjectionDoesNotShareStorageWithTheRoom(t *testing.T) {
 		copyOfRoom.Strokes[0].Points[0] = 999
 	}
 	copyOfRoom.Initiative.Entries[0].Name = "Edited"
-
 	if got := mustJSON(t, w.s); got != before {
 		t.Fatal("editing a projection changed the room it came from")
 	}
 }
-
-
-
 func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 	w := busyWorld(t)
-
 	ems := w.apply(&SyncRequest{}, w.pc)
 	equalStrings(t, "emissions", summary(ems), []string{"snapshot to sender"})
-
 	snap := ems[0].Event.(*Snapshot)
 	if snap.You.ID != testPlayerID || snap.You.Role != RolePlayer {
 		t.Fatalf("the snapshot says the receiver is %+v", snap.You)
@@ -131,8 +91,6 @@ func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 	if mustJSON(t, snap.State) != mustJSON(t, w.s.Project(RolePlayer)) {
 		t.Fatal("the snapshot is not the player's projection")
 	}
-
-	
 	gm := w.apply(&SyncRequest{}, w.gm)[0].Event.(*Snapshot)
 	if mustJSON(t, gm.State) != mustJSON(t, w.s.Project(RoleGM)) {
 		t.Fatal("the GM's snapshot is not the complete room")
@@ -141,49 +99,37 @@ func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 		t.Fatalf("the GM sees %d pawns and a player sees %d; the fixture hides nothing", len(gm.State.Pawns), len(snap.State.Pawns))
 	}
 }
-
-
-
 func busyWorld(t *testing.T) *world {
 	t.Helper()
-
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")
-
 	w.apply(&TableSetLayerMap{
 		Layer:   w.layer,
 		AssetID: testAssetID,
 		Map:     &MapRef{AssetID: testAssetID, Gen: testID(50), Width: 4096, Height: 4096, TileSize: 512, MaxZoom: 3},
 	}, w.gm)
-
 	ari := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", X: 96, Y: 96, Visible: true, OwnerID: &testPlayerID, CharacterID: &testCharID, HP: intp(11), MaxHP: intp(14), AC: intp(16)})
 	goblin := w.spawn(Pawn{Kind: PawnMonster, Name: "Goblin", X: 160, Y: 96, Visible: true, HP: intp(3), MaxHP: intp(7), AC: intp(15), MonsterID: idp(testID(60))})
 	w.spawn(Pawn{Kind: PawnMonster, Name: "Ambusher", X: 224, Y: 96, Visible: false, HP: intp(7), MaxHP: intp(7)})
 	w.spawn(Pawn{Kind: PawnObject, Name: "Wagon", Width: 128, Height: 256, X: 128, Y: 128, Visible: true})
 	w.spawn(Pawn{Kind: PawnNPC, Name: "Innkeeper", LayerID: cellar, Visible: true, HP: intp(4), MaxHP: intp(4)})
-
 	w.apply(&PawnSetConditions{ID: goblin, Conditions: []Condition{
 		{Name: "Prone", Color: ColorWhite, Duration: -1, Clear: ClearEnd},
 		{Name: "Blessed", Color: ColorYellow, Duration: 3, Clear: ClearStart},
 	}}, w.gm)
-
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Ari", PawnIDs: []ulid.ULID{ari}, Initiative: 18},
 		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12},
 		{Name: "Lair action", Initiative: 20},
 	}}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
-
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 512, 512}}, w.gm)
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapePoly, Mode: FogReveal, Points: []int{64, 64, 192, 64, 192, 192}}, w.gm)
-
 	w.apply(&StrokeBegin{ID: testID(800), Layer: w.layer, Kind: StrokeFree, Color: "#ff0000ff", Width: 4, Points: []int{0, 0, 8, 8}}, w.gm)
 	w.apply(&StrokeExtend{ID: testID(800), Points: []int{16, 16}}, w.gm)
 	w.apply(&StrokeEnd{ID: testID(800)}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(801), Layer: w.layer, Kind: StrokeFree, Color: "#00ff00", Width: 2, Points: []int{4, 4}}, w.pc)
 	w.apply(&StrokeBegin{ID: testID(802), Layer: cellar, Kind: StrokeFree, Color: "#0000ff", Width: 2, Points: []int{4, 4}}, w.gm)
-
 	w.apply(&RoomSetLocked{Locked: true}, w.gm)
-
 	return w
 }

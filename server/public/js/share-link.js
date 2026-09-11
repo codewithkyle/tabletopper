@@ -11,7 +11,6 @@
 // source, so a class name written here would never be emitted -- the same
 // reason the journal toolbar reports itself through aria-pressed.
 const RESET_MS = 2000;
-
 // navigator.clipboard is only defined in a secure context, which is https and
 // localhost. Selecting the field is the honest fallback everywhere else: the
 // reader still gets the link, they just press the keys themselves, and nothing
@@ -21,26 +20,21 @@ function copy(field) {
         field.select();
         return Promise.reject(new Error("clipboard unavailable"));
     }
-
     return navigator.clipboard.writeText(field.value);
 }
-
 document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-share-copy]");
     if (!button) {
         return;
     }
-
     // Scoped to the button's own field rather than the document's, so a second
     // link on a page later would copy itself rather than the first one.
     const field = button.parentElement?.querySelector("[data-share-link]");
     if (!field) {
         return;
     }
-
     const idle = button.querySelector("[data-share-copy-idle]");
     const done = button.querySelector("[data-share-copy-done]");
-
     copy(field)
         .then(() => {
             idle.hidden = true;

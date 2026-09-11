@@ -1,7 +1,5 @@
 package pages
-
 import "strconv"
-
 templ AccountSettingsFragment(data AccountSettingsData) {
 	{{ errorBlock := "#errors-" + AccountSettingsPanel }}
 	<div id={ accountSettingsID } class="grid gap-4">
@@ -32,7 +30,6 @@ templ AccountSettingsFragment(data AccountSettingsData) {
 		</form>
 	</div>
 }
-
 templ AccountWelcomeFragment(data AccountSettingsData) {
 	{{ errorBlock := "#errors-" + AccountWelcomePanel }}
 	<div id={ accountWelcomeID } class="grid gap-4">
@@ -61,11 +58,9 @@ templ AccountWelcomeFragment(data AccountSettingsData) {
 		</form>
 	</div>
 }
-
 templ AccountName(name string) {
 	<span id="account-name" class="mt-1 inline-block text-xl font-bold text-primary">{ name }</span>
 }
-
 templ accountSettingsFields(data AccountSettingsData) {
 	@displayNameField(data.Name)
 	@selectField("theme", "Theme", data.Themes, data.Theme, true)
@@ -75,7 +70,6 @@ templ accountSettingsFields(data AccountSettingsData) {
 	@tabletopFields(data)
 	@soundFields(data)
 }
-
 templ soundFields(data AccountSettingsData) {
 	<div class="fieldset">
 		<span class="fieldset-legend">Sounds</span>
@@ -112,7 +106,6 @@ templ soundFields(data AccountSettingsData) {
 		</div>
 	</div>
 }
-
 templ tabletopFields(data AccountSettingsData) {
 	<div class="fieldset">
 		<span class="fieldset-legend">Tabletop</span>
@@ -122,7 +115,6 @@ templ tabletopFields(data AccountSettingsData) {
 		</div>
 	</div>
 }
-
 templ tabletopToggle(id string, name string, label string, description string, checked bool) {
 	<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
 		<label class="col-start-1 row-start-1 font-medium" for={ id }>{ label }</label>
@@ -136,7 +128,6 @@ templ tabletopToggle(id string, name string, label string, description string, c
 		<p class="col-span-2 m-0 text-sm text-base-content/75">{ description }</p>
 	</div>
 }
-
 templ displayNameField(value string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for="username">Display name</label>
@@ -153,7 +144,6 @@ templ displayNameField(value string) {
 		<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
 	</div>
 }
-
 templ zoneField(groups []ZoneGroup, value string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for="timezone">Time zone</label>

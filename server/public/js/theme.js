@@ -17,10 +17,8 @@
 // rather than writing one, because the OS preference lives in a CSS media query
 // that only applies while :root carries no data-theme.
 import { THEME_CHANGE } from "./events.js";
-
 window.addEventListener(THEME_CHANGE, (e) => {
     const palette = e.detail?.palette ?? "";
-
     if (palette) {
         document.documentElement.dataset.theme = palette;
     } else {

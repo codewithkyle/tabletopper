@@ -1,11 +1,8 @@
 import type { Event, State } from "./protocol.ts";
 import type { Renderer } from "./render/renderer.ts";
 import type { Socket, Status } from "./socket.ts";
-
 const historyLimit = 20;
-
 const STRESS_PAWNS = 500;
-
 export function wireDebug(root: HTMLElement, socket: Socket, state: State, renderer: Renderer | null): {
 	status(status: Status, detail: string): void;
 	event(event: Event): void;
@@ -18,19 +15,15 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 	const events = root.querySelector("[data-debug-events]");
 	const form = root.querySelector("[data-debug-form]");
 	const input = root.querySelector("[data-debug-input]");
-
 	const benchmark = root.querySelector("[data-debug-benchmark]");
 	const timing = root.querySelector("[data-debug-timing]");
-
 	let stressed = 0;
-
 	if (benchmark instanceof HTMLButtonElement && renderer) {
 		benchmark.addEventListener("click", () => {
 			benchmark.disabled = true;
 			if (timing) {
 				timing.textContent = "sweeping...";
 			}
-
 			renderer.benchmark((result) => {
 				benchmark.disabled = false;
 				if (timing) {
@@ -41,7 +34,6 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 			});
 		});
 	}
-
 	const stress = root.querySelector("[data-debug-stress]");
 	if (stress instanceof HTMLButtonElement && renderer) {
 		stress.addEventListener("click", () => {
@@ -50,11 +42,9 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 			stress.textContent = added > 0 ? `Stress (${added})` : "Stress";
 		});
 	}
-
 	if (form instanceof HTMLFormElement && input instanceof HTMLTextAreaElement) {
 		form.addEventListener("submit", (e) => {
 			e.preventDefault();
-
 			const text = input.value.trim();
 			if (text === "") {
 				return;
@@ -64,7 +54,6 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 			}
 		});
 	}
-
 	function refresh(): void {
 		if (sequence) {
 			sequence.textContent = String(socket.sequence());
@@ -80,13 +69,11 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 				...state.players.map((player) => {
 					const line = document.createElement("li");
 					line.textContent = `${player.name} (${player.role})${player.connected ? "" : " - away"}`;
-
 					return line;
 				}),
 			);
 		}
 	}
-
 	return {
 		status(status, detail) {
 			if (connection) {
@@ -94,13 +81,11 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 			}
 			refresh();
 		},
-
 		event(event) {
 			if (events) {
 				const line = document.createElement("li");
 				line.textContent = JSON.stringify(event);
 				events.prepend(line);
-
 				while (events.childElementCount > historyLimit) {
 					events.lastElementChild?.remove();
 				}

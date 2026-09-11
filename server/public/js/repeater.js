@@ -29,7 +29,6 @@ document.addEventListener("click", (e) => {
     if (!button) {
         return;
     }
-
     const form = button.closest("form");
     button.closest(button.dataset.removeClosest)?.remove();
     form?.dispatchEvent(new CustomEvent("repeater:changed", { bubbles: true }));

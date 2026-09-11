@@ -1,39 +1,4 @@
 -- migrate:up
--- THE DERIVATION PASS. Until now every bonus on this sheet was a number somebody
--- typed: a skill bonus, a saving throw bonus, a spell save DC. That means the
--- player did the arithmetic, and did it again at every proficiency bump, every
--- ability score increase and every level -- eighteen skills and six saves at a
--- time, from three inputs the sheet already knew.
---
--- What is stored after this is what the rules call an INPUT, and every total is
--- computed where it is rendered. A skill bonus is the ability modifier plus what
--- the proficiency state grants plus a misc bonus, and only the last two are
--- columns. Nothing derived is stored at all, and that is not a preference: a
--- derived value depends on columns two different panels own, and this editor
--- autosaves a panel at a time. Stored, it would go stale the moment the OTHER
--- panel saved -- and the fix, letting both panels write it, is the exact thing
--- TestPanelsCoverEveryEditableColumn refuses.
---
--- skills and saving_throws KEEP THEIR NAME AND CHANGE THEIR MEANING: each held a
--- total and now holds the misc part of one. The UPDATE below is what makes that
--- lossless -- it subtracts the ability modifier the total already contained, so
--- every sheet renders the same number after this migration as before it. What it
--- cannot do is guess which part of that number was proficiency: a player who had
--- +7 stealth keeps +7, and the day they tick Proficient they will want to clear
--- the misc that is now carrying it. Inferring it here would mean writing a
--- five-branch CASE eighteen times against a proficiency bonus that is itself
--- derived, to save a one-off edit on a handful of rows.
---
--- CAST(... AS SIGNED) IS NOT DECORATION. The ability columns are TINYINT
--- UNSIGNED, and MySQL makes the whole expression unsigned if either operand is
--- -- so `dex DIV 2 - 5` on a Dex of 8 does not produce -1, it raises "BIGINT
--- UNSIGNED value is out of range" and fails the migration.
---
--- spell_save_dc and spell_atk_bonus go, replaced by the ability that produces
--- them and a misc bonus for the items that adjust them. The misc is set from the
--- ATTACK bonus rather than the DC because the two are related -- a save DC is
--- 8 + the attack bonus -- so a sheet that was internally consistent keeps both
--- numbers, and one that was not moves to the consistent pair.
 ALTER TABLE characters
     ADD COLUMN skill_proficiencies JSON NOT NULL DEFAULT (JSON_OBJECT()),
     ADD COLUMN saving_throw_proficiencies JSON NOT NULL DEFAULT (JSON_OBJECT()),
@@ -101,10 +66,6 @@ ALTER TABLE characters
     DROP COLUMN spell_atk_bonus;
 
 -- migrate:down
--- Down restores the shape, not the arithmetic. The totals cannot be rebuilt
--- without the proficiency states this drops, so the misc bonuses go back as the
--- totals they will be read as, and a sheet that had used a proficiency toggle
--- comes back lower than it went in.
 ALTER TABLE characters
     ADD COLUMN spell_save_dc SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     ADD COLUMN spell_atk_bonus SMALLINT NOT NULL DEFAULT 0;

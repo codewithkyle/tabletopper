@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"context"
 	"database/sql"
@@ -10,35 +9,15 @@ import (
 	"sort"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
-
 	"github.com/oklog/ulid/v2"
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 func tablesHoldingCharacterRows(t *testing.T) []string {
 	t.Helper()
-
 	schema, err := os.ReadFile(filepath.Join("..", "..", "..", "db", "schema.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the schema: %v", err)
 	}
-
 	tables := []string{}
 	definition := regexp.MustCompile("(?s)CREATE TABLE `([a-z_]+)` \\((.*?)\n\\) ENGINE=")
 	for _, match := range definition.FindAllStringSubmatch(string(schema), -1) {
@@ -49,35 +28,14 @@ func tablesHoldingCharacterRows(t *testing.T) []string {
 	if len(tables) == 0 {
 		t.Fatal("no table in db/schema.sql carries a character_id")
 	}
-
 	return tables
 }
-
-
-
 var unpurgedTables = map[string]string{
-	
-	
-	
-	
-	
-	
-	
-	
 	"sessions": "a dangling id already reads as no character",
 }
-
-
-
-
 const journalImageTable = "assets"
-
-
-
-
 func deleteTargets(t *testing.T, calls []recordedCall) []string {
 	t.Helper()
-
 	target := regexp.MustCompile("(?i)DELETE\\s+FROM\\s+`?([a-z_]+)`?")
 	targets := []string{}
 	for _, call := range calls {
@@ -87,17 +45,13 @@ func deleteTargets(t *testing.T, calls []recordedCall) []string {
 		}
 		targets = append(targets, match[1])
 	}
-
 	return targets
 }
-
 func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
-
 	emptied := map[string]bool{}
 	for _, table := range deleteTargets(t, db.calls) {
 		if emptied[table] {
@@ -105,7 +59,6 @@ func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 		}
 		emptied[table] = true
 	}
-
 	want := []string{journalImageTable}
 	for _, table := range tablesHoldingCharacterRows(t) {
 		if reason, skipped := unpurgedTables[table]; skipped {
@@ -114,7 +67,6 @@ func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 		}
 		want = append(want, table)
 	}
-
 	for _, table := range want {
 		if !emptied[table] {
 			t.Errorf("a character delete leaves %s behind", table)
@@ -125,19 +77,11 @@ func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 		t.Errorf("a character delete empties %s, which holds no rows of its own", table)
 	}
 }
-
-
-
-
-
-
 func TestJournalImageRowsAreDeletedBeforeTheirJournals(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
-
 	targets := deleteTargets(t, db.calls)
 	images, journals := -1, -1
 	for i, table := range targets {
@@ -154,22 +98,12 @@ func TestJournalImageRowsAreDeletedBeforeTheirJournals(t *testing.T) {
 	if images > journals {
 		t.Errorf("tables emptied = %v, want assets before journals", targets)
 	}
-
-	
-	
-	
 	if !strings.Contains(db.calls[images].query, "FROM journals") {
 		t.Errorf("the image delete does not find its rows through journals:\n%s", db.calls[images].query)
 	}
 }
-
-
-
-
-
 func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	_, err := app.Queries.ListCharacterJournalImages(context.Background(), queries.ListCharacterJournalImagesParams{
 		CharacterID: testCharacterID,
 		OwnerID:     testOwnerID,
@@ -177,7 +111,6 @@ func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 	if err != errNoRowsToGive {
 		t.Fatalf("ListCharacterJournalImages error = %v, want %v", err, errNoRowsToGive)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "JOIN journals") {
 		t.Fatalf("the image read does not go through journals:\n%s", call.query)
@@ -191,18 +124,11 @@ func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 		}
 	}
 }
-
-
-
-
-
 func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	if err := deleteCharacterRows(context.Background(), app.Queries, testCharacterID, testOwnerID); err != nil {
 		t.Fatalf("deleteCharacterRows: %v", err)
 	}
-
 	for i, call := range db.calls {
 		seen := []string{}
 		for _, arg := range call.args {
@@ -219,7 +145,6 @@ func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 				t.Fatalf("statement %d takes %v, which is neither the character nor the owner", i, id)
 			}
 		}
-
 		sort.Strings(seen)
 		unique := slices.Compact(seen)
 		if strings.Join(unique, ",") != "character,owner" {
@@ -227,10 +152,6 @@ func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func TestTheBarsInitiativeAddsDexterityToTheStoredBonus(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -247,25 +168,19 @@ func TestTheBarsInitiativeAddsDexterityToTheStoredBonus(t *testing.T) {
 			character := testCharacter()
 			character.Dex = c.dex
 			character.InitiativeBonus = c.bonus
-
 			if got := characterHeader(character).Initiative; got != c.want {
 				t.Errorf("initiative = %q, want %q", got, c.want)
 			}
 		})
 	}
 }
-
-
-
 func TestTheBarReadsItsChipsOffTheRow(t *testing.T) {
 	character := testCharacter()
 	character.AC = 15
 	character.CurrentHP = 31
 	character.MaxHP = 38
 	character.ProficiencyBonus = 3
-
 	header := characterHeader(character)
-
 	for _, c := range []struct{ name, got, want string }{
 		{"armour class", header.AC, "15"},
 		{"current hit points", header.CurrentHP, "31"},
@@ -279,9 +194,6 @@ func TestTheBarReadsItsChipsOffTheRow(t *testing.T) {
 		}
 	}
 }
-
-
-
 func TestTheSubtitleOmitsWhatTheCharacterHasNot(t *testing.T) {
 	for _, c := range []struct {
 		name      string
@@ -314,14 +226,12 @@ func TestTheSubtitleOmitsWhatTheCharacterHasNot(t *testing.T) {
 			if c.want != "" {
 				character.Background = nullString("Soldier")
 			}
-
 			if got := characterSubtitle(character); got != c.want {
 				t.Errorf("subtitle = %q, want %q", got, c.want)
 			}
 		})
 	}
 }
-
 func nullString(value string) sql.NullString {
 	return sql.NullString{String: value, Valid: value != ""}
 }

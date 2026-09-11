@@ -20,19 +20,15 @@
 // owns, details.open, and the styling for that is rendered in templ.
 import { toast } from "./toast.js";
 import { ROOM_BLOOD, ROOM_VIEW } from "./events.js";
-
 const bar = document.querySelector("[data-room-bar]");
-
 // The bar is absent on every page but the room's, and this module is only
 // loaded there -- but a page that loads it and renders no bar should do nothing
 // rather than throw on the first query.
 if (bar) {
     wireMenus(bar);
 }
-
 function wireMenus(root) {
     const menus = () => root.querySelectorAll("[data-room-menu]");
-
     function close(except) {
         for (const el of menus()) {
             if (el !== except) {
@@ -40,7 +36,6 @@ function wireMenus(root) {
             }
         }
     }
-
     // `toggle` does not bubble, so this listens in the capture phase. Opening
     // one menu closes the rest, which is the whole of "only one at a time".
     root.addEventListener(
@@ -52,7 +47,6 @@ function wireMenus(root) {
         },
         true,
     );
-
     // Once a menu is open, travelling along the bar opens the next one without
     // a second click. This is the behaviour that makes a menu bar feel like a
     // menu bar rather than seven unrelated dropdowns -- and it deliberately
@@ -63,15 +57,12 @@ function wireMenus(root) {
         if (!summary) {
             return;
         }
-
         const details = summary.parentElement;
         if (details.open || !root.querySelector("[data-room-menu][open]")) {
             return;
         }
-
         details.open = true;
     });
-
     // pointerdown rather than click, so the menu is gone before whatever was
     // clicked underneath it responds.
     document.addEventListener("pointerdown", (e) => {
@@ -79,25 +70,21 @@ function wireMenus(root) {
             close();
         }
     });
-
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             close();
         }
     });
-
     root.addEventListener("click", (e) => {
         // A summary is the menu's own handle; the browser is opening or
         // closing it and this must not fight that.
         if (e.target.closest("summary")) {
             return;
         }
-
         const item = e.target.closest("[data-room-action]");
         if (item) {
             run(item.dataset.roomAction, item.dataset.roomValue);
         }
-
         // Choosing anything closes the menu, whether it was one of the actions
         // below, a link, or an htmx post. The lock item answers by swapping
         // itself, which lands in a menu that is already shut and is correct the
@@ -107,7 +94,6 @@ function wireMenus(root) {
         }
     });
 }
-
 function run(action, value) {
     switch (action) {
         case "copy-code":
@@ -126,7 +112,6 @@ function run(action, value) {
             console.error("unknown room action:", action);
     }
 }
-
 // THE VIEW ITEMS AND THE CAMERA ARE IN DIFFERENT BUNDLES. This file is served
 // as it is written; the renderer is TypeScript bundled into
 // /static/room.js from server/js/room/. Neither can import the other, so what
@@ -143,15 +128,12 @@ function run(action, value) {
 // happen: the menu item is still there, still says what it does, and the reason
 // it did not is on the table in front of them.
 const VIEW_EVENT = ROOM_VIEW;
-
 function view(action) {
     if (!action) {
         return;
     }
-
     window.dispatchEvent(new CustomEvent(VIEW_EVENT, { detail: { action } }));
 }
-
 // Clearing the blood crosses the same gap and carries nothing, because there is
 // only one thing it can mean.
 //
@@ -165,11 +147,9 @@ function view(action) {
 // modal is for what cannot be undone, and this undoes nothing that was ever
 // anywhere else.
 const BLOOD_EVENT = ROOM_BLOOD;
-
 function clearBlood() {
     window.dispatchEvent(new CustomEvent(BLOOD_EVENT));
 }
-
 // navigator.clipboard is only defined in a secure context, which is https and
 // localhost. There is no field to select as a fallback the way the share dialog
 // has, so the honest answer is to put the code where it can be read and copied
@@ -182,13 +162,11 @@ function copyCode(code) {
         toast(`Room code: ${code}`);
         return;
     }
-
     navigator.clipboard.writeText(code).then(
         () => toast("Room code copied."),
         () => toast(`Room code: ${code}`),
     );
 }
-
 // The whole document rather than the table region, so the menu bar and the tool
 // pill come with it -- a fullscreen table you cannot reach the menus from is a
 // fullscreen table you have to leave to do anything.
@@ -201,6 +179,5 @@ function toggleFullscreen() {
         document.exitFullscreen().catch(() => {});
         return;
     }
-
     document.documentElement.requestFullscreen().catch(() => {});
 }

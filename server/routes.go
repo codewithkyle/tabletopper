@@ -1,14 +1,11 @@
 package main
-
 import (
 	"log/slog"
 	"net/http"
 	"strings"
-
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
-
 // handler is what the server actually serves: the URL space below, wrapped in
 // the two things that apply to all of it.
 //
@@ -42,20 +39,16 @@ import (
 // main served the bare mux.
 func handler(app *controllers.App, auth middleware.Auth) http.Handler {
 	csrf := http.NewCrossOriginProtection()
-
 	return middleware.SecurityHeaders(csrf.Handler(routes(app, auth)))
 }
-
 // routes is the whole URL space, in one place. Every pattern names a method:
 // a method-less pattern would answer a POST to a page route with the page.
 func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux := http.NewServeMux()
-
 	// "/{$}" is exactly the root; the bare "/" below is the catch-all that
 	// logs what missed.
 	mux.HandleFunc("GET /{$}", auth.OptionalSession(app.Homepage))
 	mux.HandleFunc("/", notFound)
-
 	mux.HandleFunc("GET /sign-in", app.SignIn)
 	mux.HandleFunc("GET /sign-up", app.SignUp)
 	mux.HandleFunc("GET /authorize", app.Authorize)
@@ -65,11 +58,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// is defined never to cover safe methods. The badge on the homepage posts a
 	// one-button form instead of linking.
 	mux.HandleFunc("POST /logout", app.Logout)
-
 	mux.HandleFunc("GET /tos", app.TOS)
 	mux.HandleFunc("GET /privacy", app.PrivacyPolicy)
 	mux.HandleFunc("GET /error", app.ServerError)
-
 	mux.HandleFunc("GET /characters", auth.RequireSession(app.CharactersPage))
 	// Creation has no page. It is a dialog on the characters page carrying one
 	// field, served by the fragment route below; this takes the name it collects
@@ -97,7 +88,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// mutation answering with the avatar it just changed, so it keeps a resource
 	// URL and stays off /fragment/.
 	mux.HandleFunc("POST /account/avatar", auth.RequireSession(app.UploadAccountAvatar))
-
 	// The character editor autosaves a panel at a time. Each of these owns a
 	// disjoint set of columns and writes only those; none of them shares a
 	// handler or a query with a statement wide enough to write the whole sheet,
@@ -127,7 +117,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// before it matches anything else.
 	mux.HandleFunc("POST /characters/{id}/share", auth.RequireSession(app.CreateCharacterShare))
 	mux.HandleFunc("DELETE /characters/{id}/share", auth.RequireSession(app.RevokeCharacterShare))
-
 	// The Markdown download, which is a representation of the character rather
 	// than a piece of a page -- so it keeps the resource's own URL and stays
 	// off /fragment/, like the image routes. The extension is in the path
@@ -139,7 +128,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// somebody clicks, so a session that has expired should land them on the
 	// sign-in page rather than on nothing at all.
 	mux.HandleFunc("GET /characters/{id}/export.md", auth.RequireSession(app.ExportCharacter))
-
 	mux.HandleFunc("POST /characters/{id}/identity", auth.RequireSession(app.SaveCharacterIdentity))
 	mux.HandleFunc("POST /characters/{id}/abilities", auth.RequireSession(app.SaveCharacterAbilities))
 	mux.HandleFunc("POST /characters/{id}/core-stats", auth.RequireSession(app.SaveCharacterCoreStats))
@@ -149,7 +137,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/appearance", auth.RequireSession(app.SaveCharacterAppearance))
 	mux.HandleFunc("POST /characters/{id}/features", auth.RequireSession(app.SaveCharacterFeatures))
 	mux.HandleFunc("POST /characters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveCharacterBonuses))
-
 	// Inventory is the one part of the sheet where the ROW is the unit of work
 	// rather than the panel, so it gets a collection and a member rather than a
 	// single save. Its rows are read back by the Character tab, and a row
@@ -167,7 +154,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/inventory", auth.RequireSession(app.AddInventoryItem))
 	mux.HandleFunc("POST /characters/{id}/inventory/{itemId}", auth.RequireSession(app.SaveInventoryItem))
 	mux.HandleFunc("DELETE /characters/{id}/inventory/{itemId}", auth.RequireSession(app.DeleteInventoryItem))
-
 	// Attacks are the same shape as inventory -- a collection and a member,
 	// because the row is the unit of work -- and differ in where they are read:
 	// these rows are edited on the Character tab itself rather than on a tab of
@@ -175,7 +161,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/attacks", auth.RequireSession(app.AddAttack))
 	mux.HandleFunc("POST /characters/{id}/attacks/{attackId}", auth.RequireSession(app.SaveAttack))
 	mux.HandleFunc("DELETE /characters/{id}/attacks/{attackId}", auth.RequireSession(app.DeleteAttack))
-
 	// Spells are the same shape as inventory -- a collection and a member per
 	// row -- with the level carried in the path. It is there because a spell
 	// cannot change level, so it identifies the row as much as the id does, and
@@ -194,7 +179,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/spells/{level}", auth.RequireSession(app.AddSpell))
 	mux.HandleFunc("POST /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.SaveSpell))
 	mux.HandleFunc("DELETE /characters/{id}/spells/{level}/{spellId}", auth.RequireSession(app.DeleteSpell))
-
 	// The journal is a page per entry plus the list, and its mutations are the
 	// collection-and-member pair inventory and spells already use.
 	//
@@ -214,7 +198,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/journal", auth.RequireSession(app.CreateJournalEntry))
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}", auth.RequireSession(app.SaveJournalEntry))
 	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}", auth.RequireSession(app.DeleteJournalEntry))
-
 	// An entry's images: a sub-collection of the member above, and the only
 	// image pair in the app that is scoped to something narrower than the
 	// account. Both carry the character and the entry so the serve route can
@@ -231,7 +214,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// image rather than as a sign-in page.
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/images", auth.RequireSession(app.UploadJournalImage))
 	mux.HandleFunc("GET /characters/{id}/journal/{entryId}/images/{assetId}", auth.RequireSessionOr404(app.GetJournalImage))
-
 	// Sharing one entry: the owner's two mutations here, and the reader's four
 	// routes below.
 	//
@@ -243,7 +225,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// with the rest of them further down.
 	mux.HandleFunc("POST /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.CreateJournalShare))
 	mux.HandleFunc("DELETE /characters/{id}/journal/{entryId}/share", auth.RequireSession(app.RevokeJournalShare))
-
 	// THE READER'S FIVE ROUTES, WHICH SERVE ALL THREE KINDS OF SHARE. A token
 	// names a row and the row says whether it opens as a journal entry, a
 	// character sheet or a monster, so there is one URL space here and not
@@ -298,7 +279,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /share/{token}/portrait", app.GetSharePortrait)
 	mux.HandleFunc("GET /share/{token}/export.md", app.ExportShare)
 	mux.HandleFunc("GET /share/{token}/images/{assetId}", app.GetShareImage)
-
 	// The account settings saves. Four columns on the users row, no path
 	// parameter, and no id anywhere: the only account a session can change is
 	// its own, so naming one in the URL would create a way to ask for another.
@@ -311,7 +291,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /account/settings", auth.RequireSession(app.SaveAccountSettings))
 	mux.HandleFunc("POST /account/welcome", auth.RequireSession(app.CompleteOnboarding))
 	mux.HandleFunc("POST /account/welcome/skip", auth.RequireSession(app.DismissOnboarding))
-
 	// THE MANUAL, WHICH IS THE ROSTER'S SHAPE FOR MONSTERS: a page of cards, a
 	// dialog that creates one from a name, an editor, a delete, and the picture
 	// upload that sits on the card the way the roster's avatar upload does.
@@ -328,7 +307,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /monsters/{id}/edit", auth.RequireSession(app.MonsterPage))
 	mux.HandleFunc("DELETE /monsters/{id}", auth.RequireSession(app.DeleteMonster))
 	mux.HandleFunc("POST /monsters/{id}/image", auth.RequireSession(app.UploadMonsterImage))
-
 	// Sharing a monster: the owner's two mutations, and nothing else -- the
 	// reader's routes are the /share/ block above, which all three kinds of
 	// share go through. Like the character's pair they keep the resource's own
@@ -342,11 +320,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// before it matches anything else.
 	mux.HandleFunc("POST /monsters/{id}/share", auth.RequireSession(app.CreateMonsterShare))
 	mux.HandleFunc("DELETE /monsters/{id}/share", auth.RequireSession(app.RevokeMonsterShare))
-
 	// The stat block as Markdown, which is the character's export route with a
 	// monster under it -- see that one for why the extension is in the path.
 	mux.HandleFunc("GET /monsters/{id}/export.md", auth.RequireSession(app.ExportMonster))
-
 	// The editor is ONE page and not a page per tab, because a stat block is one
 	// screen: everything a monster has fits beside the block it renders, so
 	// there is nothing to navigate between.
@@ -368,7 +344,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /monsters/{id}/defenses", auth.RequireSession(app.SaveMonsterDefenses))
 	mux.HandleFunc("POST /monsters/{id}/description", auth.RequireSession(app.SaveMonsterDescription))
 	mux.HandleFunc("POST /monsters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveMonsterBonuses))
-
 	// The seven sections of the stat block, where the row is the unit of work
 	// rather than the panel -- the collection-and-member pair attacks and
 	// inventory already use, with the section in the path.
@@ -383,7 +358,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /monsters/{id}/actions/{kind}", auth.RequireSession(app.AddMonsterAction))
 	mux.HandleFunc("POST /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.SaveMonsterAction))
 	mux.HandleFunc("DELETE /monsters/{id}/actions/{kind}/{actionId}", auth.RequireSession(app.DeleteMonsterAction))
-
 	// THE ROOM SHELL, WHICH IS THE VIRTUAL TABLETOP WITH NOTHING LIVE IN IT YET.
 	// A room is a thing a GM keeps rather than a session they start, so /rooms
 	// is a list of them in the roster's shape: cards, and a one-field dialog
@@ -425,7 +399,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/open", auth.RequireSession(app.OpenRoom))
 	mux.HandleFunc("POST /rooms/{id}/leave", auth.RequireSession(app.LeaveRoom))
 	mux.HandleFunc("DELETE /rooms/{id}", auth.RequireSession(app.DeleteRoom))
-
 	// THE KICK IS A POST AND NOT A SOCKET COMMAND, even though player.kick is
 	// one of the commands a browser may send. The button lives in the Player
 	// List window, which is an ordinary htmx fragment, and routing it through
@@ -439,7 +412,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// later -- player.left raises room:players and the window refetches -- but
 	// a GM whose own connection has dropped still sees the person go.
 	mux.HandleFunc("POST /rooms/{id}/players/{player}/kick", auth.RequireSession(app.KickPlayer))
-
 	// THE TABLE'S CONFIGURATION, and every one of these is HTTP for the reason
 	// the kick above is: the controls are htmx, and a control that posted over
 	// the socket would need its own confirm, its own way to report a refusal
@@ -469,7 +441,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/fog/clear", auth.RequireSession(app.ClearLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/drawing/clear", auth.RequireSession(app.ClearLayerDrawing))
 	mux.HandleFunc("POST /rooms/{id}/tabletop/clear", auth.RequireSession(app.ClearTabletop))
-
 	// WHAT IS ON THE TABLE. Same rule as the layer routes above and for the
 	// same reason: these are the DOM's controls, so they are HTTP. What the
 	// socket carries is what originates on the CANVAS -- a drag, a placement
@@ -509,7 +480,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}", auth.RequireSession(app.UpdatePawn))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/hp", auth.RequireSession(app.UpdatePawnHP))
 	mux.HandleFunc("POST /rooms/{id}/pawns/{pawn}/name", auth.RequireSession(app.RenamePawn))
-
 	// THE TURN ORDER. Eight routes, and seven of them are the GM's; the core
 	// refuses the rest of the room rather than the mux, which is what lets Next
 	// be the one exception without a rule of its own here -- whoever owns a
@@ -530,7 +500,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/initiative/clear", auth.RequireSession(app.ClearInitiative))
 	mux.HandleFunc("POST /rooms/{id}/initiative/{entry}/activate", auth.RequireSession(app.ActivateInitiative))
 	mux.HandleFunc("DELETE /rooms/{id}/initiative/{entry}", auth.RequireSession(app.RemoveInitiative))
-
 	// The room's live connection, and the only route in the app that answers
 	// with neither a document nor a fragment of one.
 	//
@@ -553,7 +522,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// reports a failed handshake and the client retries it on its backoff
 	// forever, against a sign-in page. A 404 is a refusal the client can read.
 	mux.HandleFunc("GET /socket/room/{id}", auth.RequireSessionOr404(app.RoomSocket))
-
 	// THE ASSET MANAGER IS A PAGE PER KIND, joined by the sub-nav across the
 	// top. /assets is a redirect onto the first of them rather than an index:
 	// there is nothing to show above the kinds that the tab strip does not
@@ -570,7 +538,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /assets/tokens", auth.RequireSession(app.TokenAssetsPage))
 	mux.HandleFunc("GET /assets/avatars", auth.RequireSession(app.AvatarAssetsPage))
 	mux.HandleFunc("GET /assets/music", auth.RequireSession(app.MusicAssetsPage))
-
 	// THE LIBRARY KINDS, which are the two that are one stored image and
 	// nothing else. Each is the collection-and-member pair every other resource
 	// here uses, and the two sets are identical but for the segment -- one set
@@ -595,12 +562,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /assets/tokens/{id}", auth.RequireSession(app.ReplaceToken))
 	mux.HandleFunc("PATCH /assets/tokens/{id}/name", auth.RequireSession(app.RenameToken))
 	mux.HandleFunc("DELETE /assets/tokens/{id}", auth.RequireSession(app.DeleteToken))
-
 	mux.HandleFunc("POST /assets/avatars", auth.RequireSession(app.UploadAvatar))
 	mux.HandleFunc("POST /assets/avatars/{id}", auth.RequireSession(app.ReplaceAvatar))
 	mux.HandleFunc("PATCH /assets/avatars/{id}/name", auth.RequireSession(app.RenameAvatar))
 	mux.HandleFunc("DELETE /assets/avatars/{id}", auth.RequireSession(app.DeleteAvatar))
-
 	// MUSIC, WHOSE UPLOAD IS TWO REQUESTS BECAUSE ITS BYTES NEVER COME HERE. A
 	// track is 115 to 175 MB, so the browser PUTs it straight to R2 through a
 	// presigned URL: the first route writes the row that claims the key and
@@ -617,7 +582,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /assets/music/{id}/confirm", auth.RequireSession(app.ConfirmMusicUpload))
 	mux.HandleFunc("PATCH /assets/music/{id}/name", auth.RequireSession(app.RenameMusic))
 	mux.HandleFunc("DELETE /assets/music/{id}", auth.RequireSession(app.DeleteMusic))
-
 	// The player's source. It is a 302 onto a freshly signed URL rather than a
 	// proxy of the bytes: an <audio> element seeks by asking for byte ranges,
 	// R2 answers those natively, and a browser repeats a GET's headers through
@@ -637,7 +601,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /assets/maps/{id}", auth.RequireSession(app.ReplaceMap))
 	mux.HandleFunc("PATCH /assets/maps/{id}/name", auth.RequireSession(app.ReplaceMapName))
 	mux.HandleFunc("POST /assets/maps/{id}/tiles", auth.RequireSession(app.RetryMapTiling))
-
 	// One tile of one generation of one map's pyramid. It answers image/webp,
 	// so it is here beside the map it belongs to rather than under /fragment/,
 	// and it is RequireSessionOr404 like the two routes below it -- a redirect
@@ -648,10 +611,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// segment: writing that pattern out panics here at registration and the
 	// server does not start. The handler splits the segment.
 	mux.HandleFunc("GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}", auth.RequireSessionOr404(app.GetMapTile))
-
 	mux.HandleFunc("GET /assets/images/{id}", auth.RequireSessionOr404(app.GetImage))
 	mux.HandleFunc("GET /assets/images/{id}/preview", auth.RequireSessionOr404(app.GetImagePreview))
-
 	// Every route below returns partial HTML for a swap into a page that is
 	// already open, and the prefix is the only thing that says so. Nothing else
 	// does: an hx-get attribute is visible at the call site but not here, and a
@@ -724,11 +685,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// is not the asset manager page. The two dialogs above read a query string
 	// instead precisely because they are not.
 	mux.HandleFunc("GET /fragment/assets/maps/{id}/card", auth.Fragment(app.MapCardFragment))
-
 	// The new-room dialog, which is the character's and the monster's with its
 	// own panel name and its own action.
 	mux.HandleFunc("GET /fragment/room/new", auth.Fragment(app.NewRoomFragment))
-
 	// The player window behind the Room menu, and the first live panel in the
 	// app: a socket event fires a DOM event, this element's hx-trigger hears it
 	// and refetches. That is the refetch pattern the whole room page is built
@@ -740,7 +699,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// membership check is in the handler beside the parse rather than in a
 	// wrapper that would have to parse it a second time.
 	mux.HandleFunc("GET /fragment/room/members", auth.Fragment(app.RoomMembersFragment))
-
 	// The active layer's name, in the menu bar, for everybody in the room. It
 	// is a fragment rather than a value the client fills in from the store
 	// because it is one string that changes when a GM clicks a menu item: the
@@ -752,7 +710,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// A bar that permanently said "Ground floor" would be labelling the only
 	// thing there is.
 	mux.HandleFunc("GET /fragment/room/layer", auth.Fragment(app.RoomLayerFragment))
-
 	// THE GM'S TWO CONFIGURATION WINDOWS AND THE PICKER ONE OF THEM OPENS.
 	// Unlike the members fragment above, these are gated on OWNERSHIP: they are
 	// the controls that decide what the table is, and a player who fetched one
@@ -763,7 +720,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/map-list", auth.Fragment(app.RoomMapListFragment))
 	mux.HandleFunc("GET /fragment/room/map-card", auth.Fragment(app.RoomMapCardFragment))
 	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
-
 	// The pawn fragments, and they split three ways on who may read them.
 	//
 	// THE SPAWN DIALOG AND ITS RESULTS ARE THE GM'S, like the layer manager
@@ -790,7 +746,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
 	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
-
 	// The turn order, and the two halves of it split the way the pawn
 	// fragments above do.
 	//
@@ -807,7 +762,6 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/initiative", auth.Fragment(app.RoomInitiativeFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/entry", auth.Fragment(app.RoomInitiativeEntryFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/round", auth.Fragment(app.RoomInitiativeRoundFragment))
-
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have
 	// four handlers that do not resemble each other, and this is the same work
@@ -818,12 +772,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// else is an empty 404. ?q= is bounded by the name column's width the same
 	// way /fragment/monster/list bounds its own.
 	mux.HandleFunc("GET /fragment/assets/list", auth.Fragment(app.AssetListFragment))
-
 	// Subtree pattern, so it takes any /fragment/ path the five above did not.
 	// Without it these fall to the catch-all on "/" and answer with Go's
 	// plain-text 404 page, which is a page-shaped reply to a fragment request.
 	mux.HandleFunc("/fragment/", middleware.FragmentNotFound)
-
 	// Static files. The URL prefix is the directory under public/, so one
 	// FileServer rooted there covers all four without a StripPrefix each.
 	//
@@ -848,17 +800,14 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 			notFound(w, r)
 			return
 		}
-
 		w.Header().Set("Cache-Control", "public, max-age=3600")
 		static.ServeHTTP(w, r)
 	}
 	for _, prefix := range []string{"/css/", "/js/", "/static/", "/images/"} {
 		mux.HandleFunc("GET "+prefix, files)
 	}
-
 	return mux
 }
-
 func notFound(w http.ResponseWriter, r *http.Request) {
 	slog.Warn("404 Not Found", "path", r.URL.Path)
 	http.NotFound(w, r)

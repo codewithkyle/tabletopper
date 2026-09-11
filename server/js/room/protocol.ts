@@ -1,51 +1,17 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export type ClearTrigger = "start" | "end";
-
 export type ConditionColor = "blue" | "green" | "orange" | "pink" | "purple" | "red" | "white" | "yellow";
-
 export type Diagonals = "equal" | "alternating";
-
 export type FogMode = "reveal" | "hide";
-
 export type GridLines = "off" | "solid" | "dashed";
-
 export type HPBand = "healthy" | "bruised" | "bloody" | "veryBloody" | "nearDeath" | "dead";
-
 export type InitiativeGrouping = "grouped" | "individual";
-
 export type PawnKind = "player" | "monster" | "npc" | "object";
-
 export type PawnLabels = "none" | "default" | "full";
-
 export type Role = "gm" | "player";
-
 export type ShapeKind = "rect" | "poly";
-
 export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
-
 export type Snap = "off" | "cells" | "halfCells";
-
 export type StrokeKind = "free" | "rect" | "circle" | "cone";
-
-
-
-
-
 export interface Condition {
 	id: string;
 	name: string;
@@ -53,7 +19,6 @@ export interface Condition {
 	duration: number;
 	clear: ClearTrigger;
 }
-
 export interface FogShape {
 	id: string;
 	layerId: string;
@@ -61,7 +26,6 @@ export interface FogShape {
 	mode: FogMode;
 	points: number[];
 }
-
 export interface Grid {
 	lines: GridLines;
 	cellSize: number;
@@ -72,20 +36,17 @@ export interface Grid {
 	feetPerCell: number;
 	diagonals: Diagonals;
 }
-
 export interface Initiative {
 	entries: InitiativeEntry[];
 	active: string | null;
 	round: number;
 }
-
 export interface InitiativeEntry {
 	id: string;
 	pawnIds: string[];
 	name: string;
 	initiative: number;
 }
-
 export interface Layer {
 	id: string;
 	name: string;
@@ -93,7 +54,6 @@ export interface Layer {
 	fogEnabled: boolean;
 	fogPrefill: boolean;
 }
-
 export interface MapRef {
 	assetId: string;
 	gen: string;
@@ -102,7 +62,6 @@ export interface MapRef {
 	tileSize: number;
 	maxZoom: number;
 }
-
 export interface Pawn {
 	id: string;
 	kind: PawnKind;
@@ -126,13 +85,11 @@ export interface Pawn {
 	monsterId: string | null;
 	characterId: string | null;
 }
-
 export interface PawnPosition {
 	id: string;
 	x: number;
 	y: number;
 }
-
 export interface Player {
 	id: string;
 	name: string;
@@ -142,18 +99,15 @@ export interface Player {
 	role: Role;
 	connected: boolean;
 }
-
 export interface RoomInfo {
 	id: string;
 	name: string;
 	locked: boolean;
 }
-
 export interface SnapshotYou {
 	id: string;
 	role: Role;
 }
-
 export interface State {
 	schema: number;
 	seq: number;
@@ -165,7 +119,6 @@ export interface State {
 	fog: FogShape[];
 	strokes: Stroke[];
 }
-
 export interface Stroke {
 	id: string;
 	by: string;
@@ -176,7 +129,6 @@ export interface Stroke {
 	points: number[];
 	done: boolean;
 }
-
 export interface Table {
 	layers: Layer[];
 	activeLayer: string;
@@ -186,12 +138,6 @@ export interface Table {
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
-
-
-
-
-
-
 export interface FogAdd {
 	type: "fog.add";
 	cid: string;
@@ -200,80 +146,67 @@ export interface FogAdd {
 	mode: FogMode;
 	points: number[];
 }
-
 export interface FogClear {
 	type: "fog.clear";
 	cid: string;
 	layer: string;
 }
-
 export interface FogRemove {
 	type: "fog.remove";
 	cid: string;
 	id: string;
 }
-
 export interface FogSetEnabled {
 	type: "fog.setEnabled";
 	cid: string;
 	layer: string;
 	enabled: boolean;
 }
-
 export interface FogSetPrefill {
 	type: "fog.setPrefill";
 	cid: string;
 	layer: string;
 	prefill: boolean;
 }
-
 export interface InitiativeActivate {
 	type: "initiative.activate";
 	cid: string;
 	entry: string;
 }
-
 export interface InitiativeAdd {
 	type: "initiative.add";
 	cid: string;
 	name: string;
 	pawn: string | null;
 }
-
 export interface InitiativeClear {
 	type: "initiative.clear";
 	cid: string;
 }
-
 export interface InitiativeNext {
 	type: "initiative.next";
 	cid: string;
 }
-
 export interface InitiativeRemove {
 	type: "initiative.remove";
 	cid: string;
 	entry: string;
 }
-
 export interface InitiativeReorder {
 	type: "initiative.reorder";
 	cid: string;
 	ids: string[];
 }
-
 export interface InitiativeSet {
 	type: "initiative.set";
 	cid: string;
 	entries: InitiativeEntry[];
 	active: string | null;
 }
-
 export interface InitiativeSync {
 	type: "initiative.sync";
 	cid: string;
 }
-
 export interface PawnDrag {
 	type: "pawn.drag";
 	cid: string;
@@ -282,7 +215,6 @@ export interface PawnDrag {
 	y: number;
 	others: string[];
 }
-
 export interface PawnMove {
 	type: "pawn.move";
 	cid: string;
@@ -291,34 +223,29 @@ export interface PawnMove {
 	y: number;
 	others: string[];
 }
-
 export interface PawnRemove {
 	type: "pawn.remove";
 	cid: string;
 	ids: string[];
 }
-
 export interface PawnSetConditions {
 	type: "pawn.setConditions";
 	cid: string;
 	id: string;
 	conditions: Condition[];
 }
-
 export interface PawnSetLayer {
 	type: "pawn.setLayer";
 	cid: string;
 	ids: string[];
 	layer: string;
 }
-
 export interface PawnSetVisible {
 	type: "pawn.setVisible";
 	cid: string;
 	ids: string[];
 	visible: boolean;
 }
-
 export interface PawnSpawn {
 	type: "pawn.spawn";
 	cid: string;
@@ -336,12 +263,10 @@ export interface PawnSpawn {
 	maxHp?: number | null;
 	ac?: number | null;
 }
-
 export interface PawnSpawnCharacters {
 	type: "pawn.spawnCharacters";
 	cid: string;
 }
-
 export interface PawnUpdate {
 	type: "pawn.update";
 	cid: string;
@@ -356,7 +281,6 @@ export interface PawnUpdate {
 	height?: number | null;
 	rotation?: number | null;
 }
-
 export interface Ping {
 	type: "ping";
 	cid: string;
@@ -364,13 +288,11 @@ export interface Ping {
 	x: number;
 	y: number;
 }
-
 export interface PlayerKick {
 	type: "player.kick";
 	cid: string;
 	id: string;
 }
-
 export interface StrokeBegin {
 	type: "stroke.begin";
 	cid: string;
@@ -381,93 +303,78 @@ export interface StrokeBegin {
 	width: number;
 	points: number[];
 }
-
 export interface StrokeClear {
 	type: "stroke.clear";
 	cid: string;
 	layer: string;
 }
-
 export interface StrokeEnd {
 	type: "stroke.end";
 	cid: string;
 	id: string;
 }
-
 export interface StrokeErase {
 	type: "stroke.erase";
 	cid: string;
 	ids: string[];
 }
-
 export interface StrokeExtend {
 	type: "stroke.extend";
 	cid: string;
 	id: string;
 	points: number[];
 }
-
 export interface SyncRequest {
 	type: "sync.request";
 	cid: string;
 }
-
 export interface TableAddLayer {
 	type: "table.addLayer";
 	cid: string;
 	name: string;
 }
-
 export interface TableClear {
 	type: "table.clear";
 	cid: string;
 }
-
 export interface TableClearLayerMap {
 	type: "table.clearLayerMap";
 	cid: string;
 	layer: string;
 }
-
 export interface TableMoveLayer {
 	type: "table.moveLayer";
 	cid: string;
 	layer: string;
 	index: number;
 }
-
 export interface TableRemoveLayer {
 	type: "table.removeLayer";
 	cid: string;
 	layer: string;
 }
-
 export interface TableRenameLayer {
 	type: "table.renameLayer";
 	cid: string;
 	layer: string;
 	name: string;
 }
-
 export interface TableSetActiveLayer {
 	type: "table.setActiveLayer";
 	cid: string;
 	layer: string;
 }
-
 export interface TableSetGrid {
 	type: "table.setGrid";
 	cid: string;
 	grid: Grid;
 }
-
 export interface TableSetLayerMap {
 	type: "table.setLayerMap";
 	cid: string;
 	layer: string;
 	assetId: string;
 }
-
 export interface TableSetOptions {
 	type: "table.setOptions";
 	cid: string;
@@ -476,7 +383,6 @@ export interface TableSetOptions {
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
-
 export type Command =
 	| FogAdd
 	| FogClear
@@ -519,12 +425,6 @@ export type Command =
 	| TableSetLayerMap
 	| TableSetOptions
 	;
-
-
-
-
-
-
 export interface ErrorEvent {
 	type: "error";
 	seq: number;
@@ -534,70 +434,60 @@ export interface ErrorEvent {
 	heading: string;
 	message: string;
 }
-
 export interface FogAdded {
 	type: "fog.added";
 	seq: number;
 	by?: string;
 	shape: FogShape;
 }
-
 export interface FogCleared {
 	type: "fog.cleared";
 	seq: number;
 	by?: string;
 	layer: string;
 }
-
 export interface FogRemoved {
 	type: "fog.removed";
 	seq: number;
 	by?: string;
 	id: string;
 }
-
 export interface InitiativeUpdated {
 	type: "initiative.updated";
 	seq: number;
 	by?: string;
 	initiative: Initiative;
 }
-
 export interface PawnDragging {
 	type: "pawn.dragging";
 	seq: number;
 	by?: string;
 	pawns: PawnPosition[];
 }
-
 export interface PawnMoved {
 	type: "pawn.moved";
 	seq: number;
 	by?: string;
 	pawns: PawnPosition[];
 }
-
 export interface PawnRemoved {
 	type: "pawn.removed";
 	seq: number;
 	by?: string;
 	id: string;
 }
-
 export interface PawnSpawned {
 	type: "pawn.spawned";
 	seq: number;
 	by?: string;
 	pawn: Pawn;
 }
-
 export interface PawnUpdated {
 	type: "pawn.updated";
 	seq: number;
 	by?: string;
 	pawn: Pawn;
 }
-
 export interface Pinged {
 	type: "pinged";
 	seq: number;
@@ -606,48 +496,41 @@ export interface Pinged {
 	x: number;
 	y: number;
 }
-
 export interface PlayerJoined {
 	type: "player.joined";
 	seq: number;
 	by?: string;
 	player: Player;
 }
-
 export interface PlayerKicked {
 	type: "player.kicked";
 	seq: number;
 	by?: string;
 	reason: string;
 }
-
 export interface PlayerLeft {
 	type: "player.left";
 	seq: number;
 	by?: string;
 	id: string;
 }
-
 export interface PlayerUpdated {
 	type: "player.updated";
 	seq: number;
 	by?: string;
 	player: Player;
 }
-
 export interface RoomClosed {
 	type: "room.closed";
 	seq: number;
 	by?: string;
 }
-
 export interface RoomUpdated {
 	type: "room.updated";
 	seq: number;
 	by?: string;
 	room: RoomInfo;
 }
-
 export interface Snapshot {
 	type: "snapshot";
 	seq: number;
@@ -656,35 +539,30 @@ export interface Snapshot {
 	you: SnapshotYou;
 	version: string;
 }
-
 export interface StrokeBegan {
 	type: "stroke.began";
 	seq: number;
 	by?: string;
 	stroke: Stroke;
 }
-
 export interface StrokeCleared {
 	type: "stroke.cleared";
 	seq: number;
 	by?: string;
 	layer: string;
 }
-
 export interface StrokeEnded {
 	type: "stroke.ended";
 	seq: number;
 	by?: string;
 	id: string;
 }
-
 export interface StrokeErased {
 	type: "stroke.erased";
 	seq: number;
 	by?: string;
 	ids: string[];
 }
-
 export interface StrokeExtended {
 	type: "stroke.extended";
 	seq: number;
@@ -692,14 +570,12 @@ export interface StrokeExtended {
 	id: string;
 	points: number[];
 }
-
 export interface TableUpdated {
 	type: "table.updated";
 	seq: number;
 	by?: string;
 	table: Table;
 }
-
 export type Event =
 	| ErrorEvent
 	| FogAdded
@@ -726,10 +602,6 @@ export type Event =
 	| StrokeExtended
 	| TableUpdated
 	;
-
-
-
-
 export const TRANSIENT_EVENTS: ReadonlySet<Event["type"]> = new Set([
 	"error",
 	"pawn.dragging",

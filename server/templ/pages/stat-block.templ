@@ -1,5 +1,4 @@
 package pages
-
 templ MonsterStatBlock(sb StatBlock, oob bool) {
 	<article
 		id="stat-block"
@@ -13,7 +12,6 @@ templ MonsterStatBlock(sb StatBlock, oob bool) {
 		</div>
 	</article>
 }
-
 templ statBlockBody(sb StatBlock) {
 	<header class="flex items-center gap-3">
 		<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
@@ -79,21 +77,18 @@ templ statBlockBody(sb StatBlock) {
 		</footer>
 	}
 }
-
 templ statBlockLead(label string, value string) {
 	<span class="flex items-baseline gap-1.5">
 		<span class="text-xs font-semibold tracking-wider uppercase text-base-content/65">{ label }</span>
 		<strong class="text-base font-extrabold tabular-nums">{ value }</strong>
 	</span>
 }
-
 templ statBlockLine(entry StatBlockEntry) {
 	<p class="m-0">
 		<span class="font-bold">{ entry.Label }</span>
 		{ entry.Value }
 	</p>
 }
-
 templ statBlockAbilityGrid(abilities []StatBlockAbility) {
 	{{ half := (len(abilities) + 1) / 2 }}
 	<div class="@container">
@@ -103,7 +98,6 @@ templ statBlockAbilityGrid(abilities []StatBlockAbility) {
 		</div>
 	</div>
 }
-
 templ statBlockAbilityColumn(abilities []StatBlockAbility) {
 	if len(abilities) > 0 {
 		<div class="grid gap-1">
@@ -119,7 +113,6 @@ templ statBlockAbilityColumn(abilities []StatBlockAbility) {
 		</div>
 	}
 }
-
 templ statBlockAbilityHeadings() {
 	<div class="grid grid-cols-[2.5rem_repeat(3,minmax(0,1fr))] items-center gap-2 px-2">
 		<span></span>
@@ -128,13 +121,11 @@ templ statBlockAbilityHeadings() {
 		<span class="text-center text-[0.58rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">Save</span>
 	</div>
 }
-
 templ MonsterStatBlockPanel(sb StatBlock) {
 	<div class="grid gap-3">
 		@statBlockBody(sb)
 	</div>
 }
-
 templ MonsterStatBlockFragment(sb StatBlock) {
 	<div class="grid gap-4">
 		<div class="grid gap-3">

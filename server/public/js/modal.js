@@ -18,7 +18,6 @@
 // there in the first place. This is the only place in the app that opens a
 // dialog, which is what makes one line here enough.
 import { raiseToasts } from "./toast.js";
-
 export function openDialog(dialog) {
     dialog.returnValue = "";
     if (!dialog.open) {

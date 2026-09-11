@@ -1,11 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Lobster&family=Rubik:wght@300;400;500;600;700;800;900&display=swap');
-
 /* The last hand-written stylesheet that is not a single component's.
    bootstrap.css and animations.css were folded in here in phase 9 -- between
    them they were down to two overscroll rules and one keyframe once their dead
    parts (#wood-img, @keyframes spinner, fadeIn60, fadePopIn) were removed, and
    two <link>s for that is not worth the round trips. */
-
 html{
     font-size: 100%;
     position: relative;
@@ -14,23 +12,19 @@ html{
     height: 100vh;
     overflow: hidden;
     overscroll-behavior-x: none;
-
     /* No app colour tokens live here any more. The frosted panel that used to
        be --panel-bg/-blur/-shadow is now a class string --
        `bg-base-200/85 backdrop-blur-sm shadow-sm` on a DaisyUI card -- and the
        ink tokens resolved to base-content and base-300. The one place the
        recipe is still written out as CSS is toast.css, whose markup is built
        by toast.js at runtime and so has no element to hang utilities on.
-
        What remains below is layout and the desk itself, which does still read
        the DaisyUI base ramp.
-
        There was a `&[state="loading"] * { cursor: loading !important }` block
        here. `loading` is not a cursor keyword, so it had never applied;
        soft-loading.css does the working version three lines from its own
        [state="loading"] selector. Removed in phase 9. */
 }
-
 body{
     display: block;
     width: 100vw;
@@ -38,15 +32,12 @@ body{
     position: relative;
     overflow: hidden;
     overscroll-behavior-x: none;
-
     /* font-family was `var(--font-sans-serif)`, a Brixi token. It moved to
        --font-sans in the @theme block of server/css/app.css when tokens.css was
        deleted -- see the note there for why leaving it would have lost Rubik
        silently. Preflight applies it to html and this inherits. */
-
     /* Desk and grid paper, as layers of one background rather than a desk here
        and a grid on a fixed ::before.
-
        The pseudo-element was the reason the grid drew on top of the cards. A
        fixed ::before is a positioned box, so it paints with the positioned
        descendants -- after every in-flow, non-positioned block in the page.
@@ -56,25 +47,20 @@ body{
        wrong: it is painted with the box, always beneath every descendant. It
        also lets the panels' backdrop-filter finally do its job, since the grid
        is now behind them and gets blurred rather than drawn crisply over.
-
        Geometry is unchanged -- body is width/height 100vw/100vh with
        overflow:hidden and never scrolls, so its background box is exactly the
        viewport the fixed overlay used to cover.
-
        Layers paint first-listed on top: horizontal rules over vertical rules,
        both over the flat desk in background-color. */
-
     /* The desk is base-100 -- the same surface DaisyUI paints on :root and the
        one every component is built against. .btn-soft, for one, is literally
        `color-mix(btn-color 8%, base-100)`, so a soft button on any other desk
        shade shows up as a patch of the wrong lightness. Matching base-100 here
        is what makes those components sit correctly on the page.
-
        Flat, not a gradient: at these token distances a base-100 -> base-200
        fade is about one lightness point, invisible. The grid supplies the
        depth the gradient used to. */
     background-color: var(--color-base-100);
-
     /* Grid paper, 28px squares. The lines are base-content at low alpha rather
        than a fixed tan so they stay legible whichever way the theme's polarity
        runs: rust on cream under caramellatte, warm tan on near-black under
@@ -86,16 +72,13 @@ body{
         linear-gradient(90deg, color-mix(in oklab, var(--color-base-content) 8%, transparent) 1px, transparent 1px);
     background-size: 100% 28px, 28px 100%;
 }
-
 *{
     box-sizing: border-box;
 }
-
 /* From animations.css. Referenced as an arbitrary animation value --
    `animate-[fadeIn_600ms_300ms_ease-out_forwards]` -- on the homepage heading
    and the four page roots. fadeIn60 and fadePopIn were in that file too and
    nothing referenced either; they were not folded in.
-
    The `ease-out` in those class names is the CSS keyword inside an animation
    shorthand, not Tailwind's --ease-out token, so it does not depend on that
    variable being emitted. It no longer is -- see app.css. */

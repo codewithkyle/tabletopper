@@ -1,11 +1,7 @@
 package pages
-
 const roomSpawnBox = "flex h-[62vh] w-full flex-col gap-3"
-
 const roomSpawnGrid = "grid min-h-0 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto p-1 sm:grid-cols-4"
-
 const roomSpawnCard = "flex aspect-5/6 flex-col items-center gap-1 overflow-hidden rounded-box border border-base-300 p-2 text-center hover:border-primary focus-visible:border-primary"
-
 templ RoomSpawn(data RoomSpawnData) {
 	<room-spawn id="room-spawn" class={ roomSpawnBox }>
 		<div class="flex flex-wrap items-center justify-between gap-2">
@@ -47,7 +43,6 @@ templ RoomSpawn(data RoomSpawnData) {
 		</div>
 	</room-spawn>
 }
-
 templ roomSpawnAction(data RoomSpawnData) {
 	if data.IsMonsters() {
 		<button
@@ -75,7 +70,6 @@ templ roomSpawnAction(data RoomSpawnData) {
 		</label>
 	}
 }
-
 templ roomSpawnShown() {
 	<label class="flex shrink-0 items-center gap-2">
 		<input
@@ -89,7 +83,6 @@ templ roomSpawnShown() {
 		<span class="hidden w-12 text-xs text-base-content/60 peer-checked:inline">Visible</span>
 	</label>
 }
-
 templ roomSpawnKind(data RoomSpawnData, kind string, caption string) {
 	<button
 		type="button"
@@ -101,7 +94,6 @@ templ roomSpawnKind(data RoomSpawnData, kind string, caption string) {
 		hx-swap="outerHTML"
 	>{ caption }</button>
 }
-
 templ RoomSpawnList(data RoomSpawnData) {
 	<section id={ roomSpawnResultsID } class={ roomSpawnGrid }>
 		if data.IsMonsters() {
@@ -130,7 +122,6 @@ templ RoomSpawnList(data RoomSpawnData) {
 		</div>
 	</section>
 }
-
 templ roomSpawnMonsterCard(m MonsterSummary) {
 	<button
 		type="button"
@@ -149,7 +140,6 @@ templ roomSpawnMonsterCard(m MonsterSummary) {
 		}
 	</button>
 }
-
 templ RoomSpawnTokenCard(t RoomSpawnToken) {
 	<button
 		type="button"
@@ -166,7 +156,6 @@ templ RoomSpawnTokenCard(t RoomSpawnToken) {
 		<span class="w-full truncate text-xs font-semibold">{ t.Name }</span>
 	</button>
 }
-
 templ RoomSpawnAvatarCard(a RoomSpawnAvatar) {
 	<button
 		type="button"
@@ -180,7 +169,6 @@ templ RoomSpawnAvatarCard(a RoomSpawnAvatar) {
 		<span class="w-full truncate text-xs font-semibold">{ a.Name }</span>
 	</button>
 }
-
 templ roomSpawnThumb(src string, name string) {
 	<span class="grid min-h-0 w-full flex-1 place-content-center overflow-hidden rounded-field bg-base-content/5">
 		if src != "" {
@@ -190,7 +178,6 @@ templ roomSpawnThumb(src string, name string) {
 		}
 	</span>
 }
-
 templ RoomSpawnNPC(data RoomSpawnNPCData) {
 	<room-spawn id="room-spawn" class={ roomSpawnBox }>
 		<div class="flex flex-wrap items-center justify-between gap-2">
@@ -241,7 +228,6 @@ templ RoomSpawnNPC(data RoomSpawnNPCData) {
 		</div>
 	</room-spawn>
 }
-
 templ RoomSpawnMonster(data RoomSpawnMonsterData) {
 	<room-spawn id="room-spawn" class={ roomSpawnBox }>
 		<div class="flex flex-wrap items-center justify-between gap-2">
@@ -292,7 +278,6 @@ templ RoomSpawnMonster(data RoomSpawnMonsterData) {
 		</form>
 	</room-spawn>
 }
-
 templ roomSpawnPicture() {
 	<monster-image-picker class="relative block size-20 shrink-0">
 		<label
@@ -314,7 +299,6 @@ templ roomSpawnPicture() {
 		<img class="pointer-events-none absolute inset-0 size-full rounded-field object-cover select-none" alt="" hidden/>
 	</monster-image-picker>
 }
-
 templ roomSpawnFace(src string, name string) {
 	<span class="grid size-20 shrink-0 place-content-center overflow-hidden rounded-field bg-base-content/5">
 		if src != "" {
@@ -324,7 +308,6 @@ templ roomSpawnFace(src string, name string) {
 		}
 	</span>
 }
-
 templ roomSpawnText(id string, caption string, limit string, attrs templ.Attributes) {
 	<label class="flex min-w-0 flex-1 flex-col gap-1" for={ id }>
 		<span class="text-xs text-base-content/60">{ caption }</span>
@@ -340,7 +323,6 @@ templ roomSpawnText(id string, caption string, limit string, attrs templ.Attribu
 		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Give this one a name.</span>
 	</label>
 }
-
 templ roomSpawnNumber(id string, caption string, value string, low string, high string, attrs templ.Attributes) {
 	<label class="flex min-w-0 flex-col gap-1" for={ id }>
 		<span class="text-xs text-base-content/60">{ caption }</span>

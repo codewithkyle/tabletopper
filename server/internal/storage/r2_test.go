@@ -1,28 +1,16 @@
 package storage
-
 import (
 	"context"
 	"errors"
 	"net/http"
 	"testing"
-
 	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
-
-
-
-
-
-
-
-
-
 func TestDeleteManyWithNoKeysDoesNothing(t *testing.T) {
 	c := &Client{bucket: "test"}
-
 	if err := c.DeleteMany(context.Background(), nil); err != nil {
 		t.Errorf("DeleteMany(nil) = %v, want nil", err)
 	}
@@ -30,36 +18,20 @@ func TestDeleteManyWithNoKeysDoesNothing(t *testing.T) {
 		t.Errorf("DeleteMany([]) = %v, want nil", err)
 	}
 }
-
-
-
 func TestDeleteManyRefusesAnEmptyKey(t *testing.T) {
 	c := &Client{bucket: "test"}
-
 	if err := c.DeleteMany(context.Background(), []string{"users/a/journals/b", ""}); err == nil {
 		t.Error("DeleteMany with an empty key = nil, want an error")
 	}
 }
-
-
-
-
-
-
-
 func TestDeletePrefixRefusesAnythingThatIsNotADirectory(t *testing.T) {
 	c := &Client{bucket: "test"}
-
 	for _, prefix := range []string{"", "users/a/maps/01JB", "users/a/maps/01JB/original"} {
 		if err := c.DeletePrefix(context.Background(), prefix); err == nil {
 			t.Errorf("DeletePrefix(%q) = nil, want an error", prefix)
 		}
 	}
 }
-
-
-
-
 func TestBothShapesOfAMissingObjectMapToErrNotFound(t *testing.T) {
 	for name, err := range map[string]error{
 		"head": &types.NotFound{},
@@ -72,10 +44,6 @@ func TestBothShapesOfAMissingObjectMapToErrNotFound(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestEveryOtherFailureIsLeftAlone(t *testing.T) {
 	for name, err := range map[string]error{
 		"server error": errors.New("api error InternalError: We encountered an internal error"),
@@ -93,14 +61,6 @@ func TestEveryOtherFailureIsLeftAlone(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
 func TestR2ThrottlingIsRetried(t *testing.T) {
 	for name, err := range map[string]error{
 		"the code R2 sends":   &smithy.GenericAPIError{Code: "ServiceUnavailable", Message: "Reduce your concurrent request rate for the same object."},
@@ -113,11 +73,6 @@ func TestR2ThrottlingIsRetried(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
 func TestTheSDKsOwnRetryRulesSurvive(t *testing.T) {
 	if !newRetryer().IsErrorRetryable(throttleResponse(http.StatusServiceUnavailable)) {
 		t.Error("a 503 is no longer retried")
@@ -126,18 +81,11 @@ func TestTheSDKsOwnRetryRulesSurvive(t *testing.T) {
 		t.Error("a 404 is retried")
 	}
 }
-
-
-
-
-
 func TestRetriesAreBounded(t *testing.T) {
 	r := newRetryer()
-
 	if got := r.MaxAttempts(); got != retryAttempts {
 		t.Errorf("MaxAttempts() = %d, want %d", got, retryAttempts)
 	}
-
 	for attempt := 1; attempt < retryAttempts; attempt++ {
 		delay, err := r.RetryDelay(attempt, throttleResponse(http.StatusTooManyRequests))
 		if err != nil {
@@ -148,10 +96,6 @@ func TestRetriesAreBounded(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 func throttleResponse(status int) error {
 	return &awshttp.ResponseError{
 		ResponseError: &smithyhttp.ResponseError{

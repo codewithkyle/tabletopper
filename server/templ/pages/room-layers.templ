@@ -1,7 +1,5 @@
 package pages
-
 import "tabletopper/internal/events"
-
 templ RoomLayers(data RoomLayersData) {
 	<div
 		id="room-layers"
@@ -19,7 +17,6 @@ templ RoomLayers(data RoomLayersData) {
 		@addLayerForm(data)
 	</div>
 }
-
 templ layerRow(data RoomLayersData, l RoomLayer) {
 	<li class="rounded-field border border-base-300 p-1.5">
 		<div class="flex items-center gap-1.5">
@@ -119,7 +116,6 @@ templ layerRow(data RoomLayersData, l RoomLayer) {
 		}
 	</li>
 }
-
 templ addLayerForm(data RoomLayersData) {
 	<form
 		hx-post={ data.AddPath() }

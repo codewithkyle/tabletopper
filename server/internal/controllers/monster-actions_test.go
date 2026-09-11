@@ -1,5 +1,4 @@
 package controllers
-
 import (
 	"net/http"
 	"net/http/httptest"
@@ -7,22 +6,14 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
-
 	"github.com/oklog/ulid/v2"
 )
-
 var testActionID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS5")
-
-
-
-
 func monsterActionRequest(t *testing.T, handler http.HandlerFunc, method string, kind string, form url.Values, actionID string) *httptest.ResponseRecorder {
 	t.Helper()
-
 	body := strings.NewReader(form.Encode())
 	r := httptest.NewRequest(method, "/monsters/actions", body)
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -32,35 +23,22 @@ func monsterActionRequest(t *testing.T, handler http.HandlerFunc, method string,
 		r.SetPathValue("actionId", actionID)
 	}
 	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
-
 	rec := httptest.NewRecorder()
 	handler(rec, r)
-
 	return rec
 }
-
 func fullMonsterActionForm() url.Values {
 	return url.Values{
 		"name":        {"Bite"},
 		"description": {"Melee Attack Roll: +4, reach 5 ft. Hit: 5 (1d6 + 2) piercing damage."},
 	}
 }
-
-
-
-
 func TestAddMonsterActionCannotCarryActionData(t *testing.T) {
 	app, db := newPanelApp(0)
-
-	
-	
-	
-	
 	rec := monsterActionRequest(t, app.AddMonsterAction, http.MethodPost, pages.MonsterActionKindAction, fullMonsterActionForm(), "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-
 	call := db.only(t)
 	if len(call.args) != 4 {
 		t.Errorf("statement took %d values, want 4: %v", len(call.args), call.args)
@@ -82,18 +60,10 @@ func TestAddMonsterActionCannotCarryActionData(t *testing.T) {
 	if !strings.Contains(call.query, "FROM monsters") {
 		t.Errorf("the insert is not guarded by the monsters row:\n%s", call.query)
 	}
-
-	
-	
 	if fields := reflect.TypeOf(queries.InsertMonsterActionParams{}).NumField(); fields != 4 {
 		t.Errorf("InsertMonsterActionParams has %d fields, want 4 (action, kind, monster, owner)", fields)
 	}
 }
-
-
-
-
-
 func TestAnUnknownActionKindNeverBecomesAStatement(t *testing.T) {
 	for _, c := range []struct {
 		name     string
@@ -108,7 +78,6 @@ func TestAnUnknownActionKindNeverBecomesAStatement(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			for _, kind := range []string{"", "mythic_action", "Trait", "trait; DROP TABLE monster_actions"} {
 				app, db := newPanelApp(1)
-
 				rec := monsterActionRequest(t, c.handler(app), c.method, kind, fullMonsterActionForm(), c.actionID)
 				if rec.Code != http.StatusNotFound {
 					t.Errorf("kind %q: status = %d, want 404", kind, rec.Code)
@@ -120,18 +89,12 @@ func TestAnUnknownActionKindNeverBecomesAStatement(t *testing.T) {
 		})
 	}
 }
-
-
-
-
 func TestDeleteMonsterActionAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := monsterActionRequest(t, app.DeleteMonsterAction, http.MethodDelete, pages.MonsterActionKindTrait, nil, testActionID.String())
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "DELETE FROM monster_actions") {
 		t.Errorf("the delete did not empty monster_actions:\n%s", call.query)
@@ -139,16 +102,10 @@ func TestDeleteMonsterActionAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	if !strings.Contains(call.query, "owner_id") || !strings.Contains(call.query, "monster_id") {
 		t.Errorf("the delete is not scoped by both ids:\n%s", call.query)
 	}
-	
-	
 	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "Trait deleted.") {
 		t.Errorf("toast = %s", trigger)
 	}
 }
-
-
-
-
 func TestMissingActionRowIsAnAction404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -160,7 +117,6 @@ func TestMissingActionRowIsAnAction404(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, _ := newPanelApp(0)
-
 			rec := monsterActionRequest(t, c.handler(app), c.method, pages.MonsterActionKindTrait, fullMonsterActionForm(), testActionID.String())
 			if rec.Code != http.StatusNotFound {
 				t.Fatalf("status = %d, want 404", rec.Code)
@@ -171,9 +127,6 @@ func TestMissingActionRowIsAnAction404(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestUnparseableActionIDTouchesNoDatabase(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -185,7 +138,6 @@ func TestUnparseableActionIDTouchesNoDatabase(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			rec := monsterActionRequest(t, c.handler(app), c.method, pages.MonsterActionKindTrait, fullMonsterActionForm(), "not-a-ulid")
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want 404", rec.Code)
@@ -196,32 +148,21 @@ func TestUnparseableActionIDTouchesNoDatabase(t *testing.T) {
 		})
 	}
 }
-
-
-
 func TestSaveMonsterActionWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	rec := monsterActionRequest(t, app.SaveMonsterAction, http.MethodPost, pages.MonsterActionKindAction, fullMonsterActionForm(), testActionID.String())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
 	}
-
 	call := db.only(t)
 	if !strings.Contains(call.query, "UPDATE monster_actions") {
 		t.Errorf("a row save wrote something other than monster_actions:\n%s", call.query)
 	}
-
 	got := sortedColumns(t, call.query)
 	if strings.Join(got, ",") != "description,name" {
 		t.Errorf("columns written = %v, want [description name]", got)
 	}
 }
-
-
-
-
-
 func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -234,10 +175,8 @@ func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 	} {
 		form := fullMonsterActionForm()
 		form.Set(c.field, c.value)
-
 		app, db := newPanelApp(1)
 		rec := monsterActionRequest(t, app.SaveMonsterAction, http.MethodPost, pages.MonsterActionKindAction, form, testActionID.String())
-
 		if rec.Code != http.StatusUnprocessableEntity {
 			t.Errorf("%s: status = %d, want 422", c.field, rec.Code)
 		}
@@ -248,12 +187,8 @@ func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 			t.Errorf("%s: body = %q, want it to carry %q", c.field, body, c.want)
 		}
 	}
-
-	
-	
 	form := fullMonsterActionForm()
 	form.Set("name", strings.Repeat("é", pages.MonsterActionNameLimit))
-
 	app, db := newPanelApp(1)
 	if rec := monsterActionRequest(t, app.SaveMonsterAction, http.MethodPost, pages.MonsterActionKindAction, form, testActionID.String()); rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200: 128 accented letters fit the column", rec.Code)
@@ -262,15 +197,6 @@ func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 		t.Errorf("ran %d statements, want 1", len(db.calls))
 	}
 }
-
-
-
-
-
-
-
-
-
 func TestAnActionSaveRedrawsTheStatBlock(t *testing.T) {
 	for _, c := range []struct {
 		name     string
@@ -283,9 +209,7 @@ func TestAnActionSaveRedrawsTheStatBlock(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
-
 			monsterActionRequest(t, c.handler(app), c.method, pages.MonsterActionKindLairAction, fullMonsterActionForm(), c.actionID)
-
 			if len(db.reads) == 0 {
 				t.Fatal("the row changed without the monster being read back, so the block beside it is now stale")
 			}
@@ -299,20 +223,9 @@ func TestAnActionSaveRedrawsTheStatBlock(t *testing.T) {
 		})
 	}
 }
-
-
-
-
-
-
-
-
-
 func TestAddMonsterActionReadsBackTheRowItMade(t *testing.T) {
 	app, db := newPanelApp(1)
-
 	monsterActionRequest(t, app.AddMonsterAction, http.MethodPost, pages.MonsterActionKindTrait, nil, "")
-
 	if len(db.reads) != 1 {
 		t.Fatalf("ran %d reads, want 1", len(db.reads))
 	}

@@ -1,76 +1,14 @@
 package prefs
-
 import "time"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 type Zone struct {
 	Name  string
 	Label string
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	Alias string
 }
-
-
 type ZoneGroup struct {
 	Region string
 	Zones  []Zone
 }
-
-
-
-
 var ZoneGroups = []ZoneGroup{
 	{Region: "Universal", Zones: []Zone{
 		{Name: "UTC", Label: "UTC"},
@@ -161,24 +99,12 @@ var ZoneGroups = []ZoneGroup{
 		{Name: "Pacific/Auckland", Label: "Auckland"},
 	}},
 }
-
-
-
-
-
-
-
-
 var zones = func() map[string]*time.Location {
 	m := make(map[string]*time.Location)
 	for _, group := range ZoneGroups {
 		for _, z := range group.Zones {
 			loc, err := time.LoadLocation(z.Name)
 			if err != nil {
-				
-				
-				
-				
 				continue
 			}
 			m[z.Name] = loc
@@ -186,20 +112,10 @@ var zones = func() map[string]*time.Location {
 	}
 	return m
 }()
-
-
 func zone(name string) (*time.Location, bool) {
 	loc, ok := zones[name]
 	return loc, ok
 }
-
-
-
-
-
-
-
-
 func ParseTimezone(name string) (string, bool) {
 	if _, ok := zones[name]; ok {
 		return name, true

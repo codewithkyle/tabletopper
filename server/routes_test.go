@@ -1,14 +1,11 @@
 package main
-
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
-
 // http.ServeMux panics on two patterns that overlap without one being more
 // specific, and it does it at registration -- which is boot, in main. This
 // builds the whole URL space so that failure lands in `make check` instead of
@@ -20,17 +17,14 @@ func TestRoutesRegisterWithoutConflict(t *testing.T) {
 			t.Fatalf("route registration panicked: %v", r)
 		}
 	}()
-
 	routes(&controllers.App{}, middleware.Auth{})
 }
-
 // The panel saves and the routes that already lived under /characters/{id} have
 // to stay distinguishable. ServeMux accepts all of them, so this checks the one
 // thing acceptance does not prove: that a request lands on the pattern it looks
 // like it should.
 func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
-
 	id := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	item := "01BX5ZZKBKACTAV9WEVGEMMVS0"
 	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
@@ -239,7 +233,6 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
-
 // The map's routes, which now go three segments deeper than any other asset
 // route. Two things here are worth pinning rather than trusting.
 //
@@ -254,7 +247,6 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 // the handler decides the contents.
 func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
-
 	id := "01BX5ZZKBKACTAV9WEVGEMMVS2"
 	gen := "01BX5ZZKBKACTAV9WEVGEMMVS3"
 	tiles := "/assets/maps/" + id + "/tiles"
@@ -309,7 +301,6 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
-
 // THE ASSET MANAGER IS FOUR PAGES AND A REDIRECT ONTO THE FIRST OF THEM, and
 // all four are literals. Nothing here is a wildcard, so the mux has nothing to
 // disambiguate -- which is exactly why it is worth pinning: the day one of
@@ -322,7 +313,6 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 // with the page -- which is what a method-less registration would have done.
 func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
-
 	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
 	for _, c := range []struct{ method, path, want string }{
 		{http.MethodGet, "/assets", "GET /assets"},
@@ -392,7 +382,6 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
-
 // THE ROOM BLOCK, WHERE A LITERAL SITS WHERE AN ID GOES. /rooms/join and
 // /rooms/{id} are the same shape to a reader and not to the mux, which prefers
 // the literal -- the same trust the slot save and the two share pairs depend
@@ -410,7 +399,6 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 // somebody else's game.
 func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
-
 	id := "01BX5ZZKBKACTAV9WEVGEMMVT0"
 	code := "AB2C"
 	for _, c := range []struct{ method, path, want string }{
@@ -522,7 +510,6 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
-
 // The mutation half of the CSRF defence, driven through the real chain rather
 // than a rebuilt one: a POST that says it came from another site is refused
 // before it reaches a handler.
@@ -533,7 +520,6 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 // that it lets a same-site request through to where the session lookup is.
 func TestCrossSiteMutationsAreRefused(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-
 	// `same-site` is refused alongside `cross-site`, which is exactly where
 	// this is stricter than the SameSite=Lax cookie underneath it: Lax counts
 	// every host under one registrable domain as the same site, and this counts
@@ -550,21 +536,18 @@ func TestCrossSiteMutationsAreRefused(t *testing.T) {
 		{http.MethodPost, "/rooms/join"},
 		{http.MethodDelete, "/rooms/01BX5ZZKBKACTAV9WEVGEMMVT0"},
 	}
-
 	for _, site := range []string{"cross-site", "same-site"} {
 		for _, mutation := range mutations {
 			req := httptest.NewRequest(mutation.method, mutation.path, nil)
 			req.Header.Set("Sec-Fetch-Site", site)
 			rec := httptest.NewRecorder()
 			h.ServeHTTP(rec, req)
-
 			if rec.Code != http.StatusForbidden {
 				t.Errorf("a %s %s %s answered %d, want %d", site, mutation.method, mutation.path, rec.Code, http.StatusForbidden)
 			}
 		}
 	}
 }
-
 // And a request from the page itself is not, which is what every htmx swap in
 // the app is.
 //
@@ -576,12 +559,10 @@ func TestCrossSiteMutationsAreRefused(t *testing.T) {
 // database.
 func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-
 	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
-
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("a same-origin POST answered %d, want %d -- it did not reach the session check", rec.Code, http.StatusSeeOther)
 	}
@@ -589,7 +570,6 @@ func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 		t.Errorf("Location = %q, want %q", got, "/sign-in")
 	}
 }
-
 // A WebSocket upgrade cannot follow a redirect: the browser reports a failed
 // handshake and the client retries it on its backoff, forever, against a
 // sign-in page. So the socket route sits behind the 404 wrapper rather than the
@@ -598,11 +578,9 @@ func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 // that will not connect.
 func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-
 	req := httptest.NewRequest(http.MethodGet, "/socket/room/01BX5ZZKBKACTAV9WEVGEMMVT0", nil)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
-
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
@@ -610,34 +588,28 @@ func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
 		t.Errorf("Location = %q, want no redirect at all", got)
 	}
 }
-
 // A safe method is not covered, which is deliberate and is why /logout moved to
 // POST. This pins the boundary so that a state change added behind a GET does
 // not quietly inherit a protection that was never there.
 func TestCrossSiteReadsAreNotRefused(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-
 	req := httptest.NewRequest(http.MethodGet, "/tos", nil)
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
-
 	if rec.Code == http.StatusForbidden {
 		t.Error("a cross-site GET was refused; the app relies on GET being reachable from anywhere")
 	}
 }
-
 // The floor from middleware.SecurityHeaders, on a response that is itself a
 // refusal -- the case that proves the wrapper is outside the check rather than
 // inside it.
 func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-
 	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
-
 	for header, want := range map[string]string{
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options":        "DENY",
@@ -648,14 +620,12 @@ func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
 		}
 	}
 }
-
 // Logging out is a state change and has to stay off GET: SameSite=Lax sends the
 // session cookie on a top-level GET navigation, and the cross-origin check
 // above does not cover safe methods, so a GET here is a logout anybody can put
 // behind a link.
 func TestLogoutIsPostOnly(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
-
 	if _, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, "/logout", nil)); pattern != "POST /logout" {
 		t.Errorf("POST /logout matched %q, want %q", pattern, "POST /logout")
 	}
@@ -663,17 +633,14 @@ func TestLogoutIsPostOnly(t *testing.T) {
 		t.Error("GET /logout reached the logout handler")
 	}
 }
-
 // A directory under public/ has no index.html, so http.FileServer would answer
 // one of these with a listing of the scripts or the stylesheets. The file
 // itself still serves.
 func TestStaticDirectoriesAreNotListed(t *testing.T) {
 	h := routes(&controllers.App{}, middleware.Auth{})
-
 	for _, path := range []string{"/css/", "/js/", "/static/", "/images/"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-
 		if rec.Code != http.StatusNotFound {
 			t.Errorf("GET %s answered %d, want %d", path, rec.Code, http.StatusNotFound)
 		}

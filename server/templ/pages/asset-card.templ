@@ -1,9 +1,6 @@
 package pages
-
 const nameBoxRoomy = "h-9 text-2xl"
-
 const nameBoxTight = "h-7 text-lg"
-
 templ assetNameBox(box nameBox) {
 	<input
 		id={ box.ID }
@@ -18,7 +15,6 @@ templ assetNameBox(box nameBox) {
 		hx-swap="none"
 	/>
 }
-
 templ assetCardControls(c cardControls) {
 	<div class="flex flex-row flex-nowrap items-center justify-between gap-2">
 		<div class="min-w-0 flex-1">
@@ -49,7 +45,6 @@ templ assetCardControls(c cardControls) {
 		</div>
 	</div>
 }
-
 templ assetDeleteButton(url string, name string) {
 	<div class="tooltip" data-tip="Delete">
 		<button
