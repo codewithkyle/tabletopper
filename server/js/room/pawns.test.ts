@@ -1459,3 +1459,40 @@ test("with the pointer unchosen a press pings nothing", () => {
 	controller.tool.release(at(10, 10), at(0, 0), NONE);
 	assert.deepEqual(sent.filter((c) => c.type === "ping"), []);
 });
+test("a player is not shown the path of a pawn the fog is hiding", () => {
+	const goblin = pawn({ id: "goblin", x: 400, y: 400 });
+	const { controller } = table([goblin], {
+		role: "player", user: PLAYER, fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+	assert.equal(controller.concealed(goblin), true, "the fixture stopped concealing the goblin");
+	controller.preview({
+		type: "pawn.dragging", seq: 4, by: "01OTHER",
+		pawns: [{ id: "goblin", x: 500, y: 500 }],
+	});
+	assert.deepEqual(controller.rulers([]), [], "the move distance traced a pawn under the fog");
+	assert.deepEqual(controller.ghosts([]), [], "a ghost was drawn for a pawn under the fog");
+});
+test("a player is still shown the path of a pawn standing in the clear", () => {
+	const goblin = pawn({ id: "goblin", x: 64, y: 64 });
+	const { controller } = table([goblin], {
+		role: "player", user: PLAYER, fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+	controller.preview({
+		type: "pawn.dragging", seq: 4, by: "01OTHER",
+		pawns: [{ id: "goblin", x: 96, y: 96 }],
+	});
+	assert.equal(controller.rulers([]).length, 1);
+	assert.equal(controller.ghosts([]).length, 1);
+});
+test("a player keeps hold of their own pawn when it walks into the dark", () => {
+	const mine = pawn({ id: "mine", kind: "player", x: 400, y: 400, ownerId: PLAYER });
+	const { controller } = table([mine], {
+		role: "player", user: PLAYER, fogEnabled: true, fogPrefill: true,
+		fog: [cleared()],
+	});
+	assert.equal(controller.concealed(mine), false, "a player lost their own token to the fog");
+	controller.tool.hover(at(400, 400));
+	assert.equal(controller.focus()?.id, "mine", "the player could not reach their own token");
+});

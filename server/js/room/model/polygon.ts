@@ -144,6 +144,19 @@ export function coveredBy(
 	}
 	return prefill;
 }
+export function covered(
+	pawn: Pick<Pawn, "x" | "y">,
+	shapes: readonly FogShape[],
+	viewed: Layer | null,
+): boolean {
+	if (!viewed || !viewed.fogEnabled) {
+		return false;
+	}
+	return coveredBy(shapes, viewed.id, viewed.fogPrefill, pawn.x, pawn.y);
+}
+export function ownedBy(pawn: Pick<Pawn, "ownerId">, user: string): boolean {
+	return pawn.ownerId !== null && pawn.ownerId === user;
+}
 export function concealed(
 	pawn: Pick<Pawn, "x" | "y" | "ownerId">,
 	shapes: readonly FogShape[],
@@ -151,13 +164,22 @@ export function concealed(
 	role: Role,
 	user: string,
 ): boolean {
-	if (role === "gm" || (pawn.ownerId !== null && pawn.ownerId === user)) {
+	if (role === "gm" || ownedBy(pawn, user)) {
 		return false;
 	}
-	if (!viewed || !viewed.fogEnabled) {
+	return covered(pawn, shapes, viewed);
+}
+export function aboveFog(
+	pawn: Pick<Pawn, "x" | "y" | "ownerId">,
+	shapes: readonly FogShape[],
+	viewed: Layer | null,
+	role: Role,
+	user: string,
+): boolean {
+	if (role !== "player" || !ownedBy(pawn, user)) {
 		return false;
 	}
-	return coveredBy(shapes, viewed.id, viewed.fogPrefill, pawn.x, pawn.y);
+	return covered(pawn, shapes, viewed);
 }
 export function maskRect(
 	map: { width: number; height: number } | null,

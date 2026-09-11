@@ -8,6 +8,9 @@ import { ghostsStage } from "./ghosts.ts";
 import { gridStage } from "./grid.ts";
 import { handlesStage } from "./handles.ts";
 import { overMarksStage } from "./over-marks.ts";
+import { ownPawnsStage } from "./own-pawns.ts";
+import { ownAurasStage } from "./own-auras.ts";
+import { ownRingsStage } from "./own-rings.ts";
 import { pawnsStage } from "./pawns.ts";
 import { pingsStage } from "./pings.ts";
 import { ringsStage } from "./rings.ts";
@@ -19,7 +22,7 @@ export function stagesFor(role: Role): readonly StageFactory[] {
 		...(role === "gm" ? [fogStage] : []),
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
-		...(role === "player" ? [fogStage] : []),
+		...(role === "player" ? [fogStage, ownAurasStage, ownPawnsStage, ownRingsStage] : []),
 		overMarksStage,
 	];
 }

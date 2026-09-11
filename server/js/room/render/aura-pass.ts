@@ -1,4 +1,5 @@
 import type { FrameContext } from "./frame-context.ts";
+import type { Program } from "../gl/program.ts";
 import type { Rgb } from "../model/types.ts";
 import { SHAPED_QUAD, writeShaped } from "./shaped-quad.ts";
 import { blended } from "../gl/blend.ts";
@@ -21,8 +22,11 @@ export interface AuraPass {
 export function auraTurn(now: number): number {
 	return (((now % AURA_PERIOD) + AURA_PERIOD) % AURA_PERIOD) / AURA_PERIOD;
 }
-export function createAuraPass(gl: WebGL2RenderingContext): AuraPass {
-	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
+export type AuraProgram = Program<(typeof uniforms)[number]>;
+export function createAuraProgram(gl: WebGL2RenderingContext): AuraProgram {
+	return createProgram(gl, vertexSource, fragmentSource, uniforms);
+}
+export function createAuraPass(gl: WebGL2RenderingContext, program: AuraProgram): AuraPass {
 	const batch = createQuadBatch(gl, SHAPED_QUAD, 16);
 	const flush = () => batch.draw();
 	return {
@@ -44,7 +48,6 @@ export function createAuraPass(gl: WebGL2RenderingContext): AuraPass {
 			blended(gl, flush);
 		},
 		dispose() {
-			program.dispose();
 			batch.dispose();
 		},
 	};

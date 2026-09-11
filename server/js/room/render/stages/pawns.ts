@@ -4,6 +4,7 @@ import type { Pawn } from "../../protocol.ts";
 import type { Stage, StageFactory } from "./stage.ts";
 import { createPawnPass } from "../pawn-pass.ts";
 import { concealed } from "../../model/polygon.ts";
+import { lifted } from "./lifted.ts";
 import { fastBeat, slowBeat } from "../../model/health.ts";
 import { stressPawns } from "../stress.ts";
 import { healthOf } from "../../model/health.ts";
@@ -20,7 +21,8 @@ export const pawnsStage: StageFactory = (gl, resources): Stage => {
 		if (!frame) {
 			return false;
 		}
-		return concealed(pawn, frame.state.fog, frame.viewed, frame.role, frame.user);
+		return concealed(pawn, frame.state.fog, frame.viewed, frame.role, frame.user)
+			|| lifted(frame, pawn);
 	};
 	return {
 		build(now) {

@@ -748,7 +748,7 @@ export function createTable(deps: TableDeps): Table {
 			for (const preview of previews.values()) {
 				for (const at of preview.positions) {
 					const p = pawn(at.id);
-					if (p && onFloor(p)) {
+					if (p && onFloor(p) && !concealed(p)) {
 						count = ghostOf(p, at.x, at.y, out, count);
 					}
 				}
@@ -883,7 +883,7 @@ export function createTable(deps: TableDeps): Table {
 			for (const preview of previews.values()) {
 				const anchor = preview.positions[0];
 				const p = anchor ? pawn(anchor.id) : null;
-				if (anchor && p && onFloor(p)) {
+				if (anchor && p && onFloor(p) && !concealed(p)) {
 					add(p.x, p.y, anchor.x, anchor.y, preview.color);
 				}
 			}
