@@ -1,61 +1,22 @@
 import type { Camera } from "./camera.ts";
 import type { FogShape } from "../protocol.ts";
 import type { MaskRect } from "../model/polygon.ts";
-import { createProgram, fullscreenTriangle, uniforms } from "./gl.ts";
+import { blended } from "../gl/blend.ts";
+import { createVertexStream } from "../gl/vertices.ts";
+import { createProgram } from "../gl/program.ts";
+import { fullscreenTriangle } from "../gl/fullscreen.ts";
 import { inverseClipMatrix } from "./camera.ts";
 import { maskRect, rectTriangles, triangulate } from "../model/polygon.ts";
+import {
+	coverFragmentSource,
+	coverUniforms,
+	coverVertexSource,
+	shapeFragmentSource,
+	shapeUniforms,
+	shapeVertexSource,
+} from "./shaders/fog.ts";
 const MASK_SCALE = 0.25;
 const MASK_MAX = 4096;
-const shapeVertexSource = `#version 300 es
-layout(location = 0) in vec2 a_map;
-uniform vec4 u_rect;
-void main() {
-	vec2 t = (a_map - u_rect.xy) / u_rect.zw;
-	gl_Position = vec4(t * 2.0 - 1.0, 0.0, 1.0);
-}
-`;
-const shapeFragmentSource = `#version 300 es
-precision highp float;
-uniform float u_open;
-out vec4 outColor;
-void main() {
-	outColor = vec4(u_open, 0.0, 0.0, 1.0);
-}
-`;
-const coverVertexSource = `#version 300 es
-layout(location = 0) in vec2 a_clip;
-uniform mat3 u_clipToWorld;
-out vec2 v_world;
-void main() {
-	v_world = (u_clipToWorld * vec3(a_clip, 1.0)).xy;
-	gl_Position = vec4(a_clip, 0.0, 1.0);
-}
-`;
-const coverFragmentSource = `#version 300 es
-precision highp float;
-in vec2 v_world;
-uniform vec4 u_rect;
-uniform sampler2D u_openness;
-uniform float u_prefill;
-uniform vec4 u_color;
-out vec4 outColor;
-void main() {
-	float open = 1.0 - u_prefill;
-	if (u_rect.z > 0.0 && u_rect.w > 0.0) {
-		vec2 t = (v_world - u_rect.xy) / u_rect.zw;
-		if (t.x >= 0.0 && t.x <= 1.0 && t.y >= 0.0 && t.y <= 1.0) {
-			open = texture(u_openness, t).r;
-		}
-	}
-	float alpha = u_color.a * (1.0 - smoothstep(0.4, 0.6, open));
-	if (alpha <= 0.0) {
-		discard;
-	}
-	outColor = vec4(u_color.rgb, alpha);
-}
-`;
-const shapeNames = ["u_rect", "u_open"] as const;
-const coverNames = ["u_clipToWorld", "u_rect", "u_openness", "u_prefill", "u_color"] as const;
 export interface FogPass {
 	sync(
 		shapes: readonly FogShape[], layerID: string,
@@ -69,21 +30,14 @@ export interface FogPass {
 	dispose(): void;
 }
 export function createFogPass(gl: WebGL2RenderingContext): FogPass {
-	const shapeProgram = createProgram(gl, shapeVertexSource, shapeFragmentSource);
-	const shapeAt = uniforms(gl, shapeProgram, shapeNames);
-	const coverProgram = createProgram(gl, coverVertexSource, coverFragmentSource);
-	const coverAt = uniforms(gl, coverProgram, coverNames);
+	const shapeProgram = createProgram(gl, shapeVertexSource, shapeFragmentSource, shapeUniforms);
+	const shapeAt = shapeProgram.at;
+	const coverProgram = createProgram(gl, coverVertexSource, coverFragmentSource, coverUniforms);
+	const coverAt = coverProgram.at;
 	const cover = fullscreenTriangle(gl);
 	const matrix = new Float32Array(9);
-	const shapeVao = gl.createVertexArray();
-	const shapeBuffer = gl.createBuffer();
-	gl.bindVertexArray(shapeVao);
-	gl.bindBuffer(gl.ARRAY_BUFFER, shapeBuffer);
-	gl.enableVertexAttribArray(0);
-	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-	gl.bindVertexArray(null);
-	gl.bindBuffer(gl.ARRAY_BUFFER, null);
-	let vertices = new Float32Array(1024);
+	const flush = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+	const mask = createVertexStream(gl, 2, 1024);
 	const texture = gl.createTexture();
 	const frame = gl.createFramebuffer();
 	let floorID = "";
@@ -135,17 +89,8 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 			if (batch.length === 0) {
 				continue;
 			}
-			if (vertices.length < batch.length) {
-				let size = vertices.length;
-				while (size < batch.length) {
-					size *= 2;
-				}
-				vertices = new Float32Array(size);
-			}
-			vertices.set(batch);
 			gl.uniform1f(shapeAt.u_open, mode === "hide" ? 0 : 1);
-			gl.bindBuffer(gl.ARRAY_BUFFER, shapeBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, vertices.subarray(0, batch.length), gl.DYNAMIC_DRAW);
+			mask.upload(batch, batch.length);
 			gl.drawArrays(gl.TRIANGLES, 0, batch.length / 2);
 		}
 	}
@@ -205,8 +150,8 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 			gl.bindFramebuffer(gl.FRAMEBUFFER, frame);
 			gl.viewport(0, 0, width, height);
 			gl.disable(gl.BLEND);
-			gl.useProgram(shapeProgram);
-			gl.bindVertexArray(shapeVao);
+			shapeProgram.use();
+			mask.bind();
 			gl.uniform4f(shapeAt.u_rect, rect.x, rect.y, rect.width, rect.height);
 			if (from === 0) {
 				const open = prefill ? 0 : 1;
@@ -227,7 +172,7 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 				return;
 			}
 			gl.viewport(0, 0, deviceWidth, deviceHeight);
-			gl.useProgram(coverProgram);
+			coverProgram.use();
 			gl.bindVertexArray(cover);
 			gl.uniformMatrix3fv(coverAt.u_clipToWorld, false, inverseClipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
 			if (sized) {
@@ -240,19 +185,15 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 			gl.activeTexture(gl.TEXTURE0);
 			gl.bindTexture(gl.TEXTURE_2D, texture);
 			gl.uniform1i(coverAt.u_openness, 0);
-			gl.enable(gl.BLEND);
-			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-			gl.drawArrays(gl.TRIANGLES, 0, 3);
-			gl.disable(gl.BLEND);
+			blended(gl, flush);
 			gl.bindTexture(gl.TEXTURE_2D, null);
 			gl.bindVertexArray(null);
 		},
 		dispose() {
-			gl.deleteProgram(shapeProgram);
-			gl.deleteProgram(coverProgram);
+			shapeProgram.dispose();
+			coverProgram.dispose();
 			gl.deleteVertexArray(cover);
-			gl.deleteVertexArray(shapeVao);
-			gl.deleteBuffer(shapeBuffer);
+			mask.dispose();
 			gl.deleteTexture(texture);
 			gl.deleteFramebuffer(frame);
 		},

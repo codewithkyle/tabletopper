@@ -482,22 +482,22 @@ tile stage use it.
 
 **Porting order**
 
-- [ ] `stroke-pass.ts`. Already has the program/batch split; port is
+- [x] `stroke-pass.ts`. Already has the program/batch split; port is
       mechanical and proves the toolkit.
-- [ ] `ring-pass.ts`, `aura-pass.ts`, `decal-pass.ts` together. Same 14-float
+- [x] `ring-pass.ts`, `aura-pass.ts`, `decal-pass.ts` together. Same 14-float
       layout `[rect(4), color(4), style(4), spin(2)]`. One `SHAPED_QUAD`
       layout constant, three shaders.
-- [ ] `path-pass.ts`.
-- [ ] `pawn-pass.ts`. Split into program and batch so ghosts become a second
+- [x] `path-pass.ts`.
+- [x] `pawn-pass.ts`. Split into program and batch so ghosts become a second
       batch on the same program, not a second program.
-- [ ] `tile-pass.ts`. Uses `TextureArray` per tile size.
-- [ ] `grid-pass.ts`, `fog-pass.ts`. Fullscreen-triangle passes; the program
+- [x] `tile-pass.ts`. Uses `TextureArray` per tile size.
+- [x] `grid-pass.ts`, `fog-pass.ts`. Fullscreen-triangle passes; the program
       wrapper and `blended` apply, and the fog mask's vertex array moves onto
       `GrowableBuffer`.
-- [ ] Shaders move to `render/shaders/*.ts` as exported template strings.
+- [x] Shaders move to `render/shaders/*.ts` as exported template strings.
       Constants interpolated into shader source (`BORDER_PIXELS`,
       `AURA_REACH`) move with them.
-- [ ] Tests: one per ported pass asserting the float layout written for a
+- [x] Tests: one per ported pass asserting the float layout written for a
       known input against `FakeBatch`.
 
 Done when: no `*-pass.ts` file contains `createVertexArray`, `blendFunc`, or
@@ -865,7 +865,7 @@ button (500 pawns) and record again.
 | --- | --- | --- | --- | --- | --- | --- |
 | baseline | 494 | 188120 | | | | |
 | 1 | 494 | 177068 | | | | |
-| 2 | | | | | | |
+| 2 | 508 | 170127 | | | | |
 | 3 | | | | | | |
 | 4 | | | | | | |
 | 5 | | | | | | |

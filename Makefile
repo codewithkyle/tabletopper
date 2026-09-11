@@ -131,7 +131,7 @@ js: ts-check
 # them before the build is green again. That is the whole reason a reducer
 # exists in Go: the server never reduces its own events.
 js-test: ts-check
-	node --test ./server/js/room/*.test.ts ./server/js/room/model/*.test.ts ./server/js/room/render/*.test.ts
+	node --test ./server/js/room/*.test.ts ./server/js/room/model/*.test.ts ./server/js/room/gl/*.test.ts ./server/js/room/render/*.test.ts
 
 # Formatting is enforced, not suggested: `make check` is what CI and a
 # pre-commit hook should run. fmt-check lists every offending file before it

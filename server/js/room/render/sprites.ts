@@ -1,7 +1,8 @@
 import type { Pawn } from "../protocol.ts";
-import type { Slot } from "./tiles.ts";
+import type { Slot } from "../gl/texture-array.ts";
 import { KIND_COLORS } from "../model/color.ts";
-import { Slots, newLoader } from "./tiles.ts";
+import { createTextureArray } from "../gl/texture-array.ts";
+import { newLoader } from "../gl/loader.ts";
 export const SPRITE_SIZE = 256;
 export const SPRITE_LAYERS = 128;
 export const SKULL = "skull";
@@ -16,33 +17,20 @@ export interface SpriteCache {
 	dispose(): void;
 }
 export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => void): SpriteCache {
-	const maxLayers = Math.min(SPRITE_LAYERS, gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS) as number);
-	const texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
-	gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, SPRITE_SIZE, SPRITE_SIZE, maxLayers);
-	gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
-	const slots = new Slots(maxLayers);
+	const store = createTextureArray(gl, SPRITE_SIZE, SPRITE_LAYERS);
 	const loader = newLoader(invalidate, decodeSprite);
 	const live = new Set<string>();
 	let epoch = 0;
 	function upload(key: string, source: TexImageSource, w: number, h: number): Slot | null {
-		const slot = slots.claim(key, w, h);
-		if (!slot) {
-			return null;
+		const slot = store.upload(key, source, w, h);
+		if (slot) {
+			epoch++;
 		}
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
-		gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, slot.layer, w, h, 1, gl.RGBA, gl.UNSIGNED_BYTE, source);
-		gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
-		epoch++;
 		return slot;
 	}
 	function draw(key: string, build: () => HTMLCanvasElement | null): Slot | null {
 		live.add(key);
-		const resident = slots.get(key);
+		const resident = store.get(key);
 		if (resident) {
 			return resident;
 		}
@@ -54,12 +42,12 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 	}
 	return {
 		begin(rebuilding) {
-			slots.tick();
+			store.tick();
 			if (rebuilding) {
 				live.clear();
 			} else {
 				for (const key of live) {
-					slots.get(key);
+					store.get(key);
 				}
 			}
 			loader.begin();
@@ -69,7 +57,7 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 				return null;
 			}
 			live.add(url);
-			const resident = slots.get(url);
+			const resident = store.get(url);
 			if (resident) {
 				return resident;
 			}
@@ -92,12 +80,12 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 			});
 			return uploaded > 0 || waiting > 0;
 		},
-		texture: () => texture,
+		texture: () => store.texture,
 		epoch: () => epoch,
 		dispose() {
 			loader.stop();
 			live.clear();
-			gl.deleteTexture(texture);
+			store.dispose();
 		},
 	};
 }
