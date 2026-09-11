@@ -1,13 +1,16 @@
 package prefs
+
 import (
 	"strings"
 	"testing"
 	"time"
 )
+
 var (
 	summer = time.Date(2026, 9, 6, 18, 4, 11, 0, time.UTC)
 	winter = time.Date(2026, 1, 5, 18, 4, 11, 0, time.UTC)
 )
+
 func TestEveryOfferedZoneResolves(t *testing.T) {
 	for _, group := range ZoneGroups {
 		if group.Region == "" {

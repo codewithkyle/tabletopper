@@ -1,7 +1,8 @@
 package pages
+
 type JournalEntry struct {
-	ID    string
-	Title string
+	ID      string
+	Title   string
 	Created Timestamp
 	Updated Timestamp
 	Snippet JournalSnippet
@@ -17,19 +18,23 @@ type Timestamp struct {
 }
 type JournalPageData struct {
 	CharacterID string
-	Header  CharacterHeader
-	Entries []JournalEntry
-	Query string
+	Header      CharacterHeader
+	Entries     []JournalEntry
+	Query       string
 }
+
 const journalEntriesID = "journal-entries"
+
 type JournalEntryPageData struct {
 	CharacterID string
-	Header  CharacterHeader
-	EntryID string
-	Title   string
-	Body    string
+	Header      CharacterHeader
+	EntryID     string
+	Title       string
+	Body        string
 }
+
 const JournalEntryPanel = "journal"
+
 func journalEntryTitle(entry JournalEntry) string {
 	if entry.Title == "" {
 		return "Untitled entry"

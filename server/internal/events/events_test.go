@@ -1,4 +1,5 @@
 package events
+
 import (
 	"os"
 	"path/filepath"
@@ -6,7 +7,9 @@ import (
 	"strings"
 	"testing"
 )
+
 const browserModule = "../../public/js/events.js"
+
 func TestTheBrowserAgreesOnEveryEventName(t *testing.T) {
 	src, err := os.ReadFile(browserModule)
 	if err != nil {

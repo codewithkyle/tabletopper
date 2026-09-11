@@ -1,9 +1,12 @@
 package share_test
+
 import (
 	"testing"
 	"time"
+
 	"tabletopper/internal/share"
 )
+
 func TestAShareStopsAnsweringOnceItsTriesAreSpent(t *testing.T) {
 	attempts := share.NewAttempts(10, time.Minute)
 	now := time.Now()

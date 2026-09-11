@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
@@ -9,12 +10,16 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testSpellID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
+
 func spellRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, level string, spellID string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, "/characters/spells", strings.NewReader(form.Encode()))

@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -9,12 +10,15 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"tabletopper/internal/markdown"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/share"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) SharePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	token := r.PathValue("token")

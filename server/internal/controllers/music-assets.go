@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -7,19 +8,23 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
 	"tabletopper/internal/audio"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
-	maxMusicBytes = 256 << 20 
-	musicUploadTTL = time.Hour
+	maxMusicBytes    = 256 << 20
+	musicUploadTTL   = time.Hour
 	musicPlaybackTTL = time.Hour
 )
+
 func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -57,6 +62,7 @@ func (a *App) musicList(ctx context.Context, ownerID ulid.ULID, term string) ([]
 }
 func (a *App) RenameMusic(w http.ResponseWriter, r *http.Request) { a.renameLibrary(w, r, musicKind) }
 func (a *App) DeleteMusic(w http.ResponseWriter, r *http.Request) { a.deleteLibrary(w, r, musicKind) }
+
 type startUploadRequest struct {
 	Name string `json:"name"`
 	Size int64  `json:"size"`
@@ -70,6 +76,7 @@ type jsonProblem struct {
 	Heading string `json:"heading"`
 	Message string `json:"message"`
 }
+
 func writeJSONProblem(w http.ResponseWriter, status int, heading string, message string) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -182,8 +189,8 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := a.Queries.FinishMusicUpload(ctx, queries.FinishMusicUploadParams{
-		ID:      row.ID,
-		OwnerID: sess.UserID,
+		ID:        row.ID,
+		OwnerID:   sess.UserID,
 		SizeBytes: size,
 	})
 	if err != nil {

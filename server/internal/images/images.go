@@ -1,14 +1,18 @@
 package images
+
 import (
 	"bytes"
 	"image"
+
 	"github.com/chai2010/webp"
 	"github.com/disintegration/imaging"
 )
+
 const (
 	DefaultQuality = 75
 	MapPreviewSize = 256
 )
+
 func Square(img image.Image, size int) image.Image {
 	return imaging.Fill(img, size, size, imaging.Center, imaging.Lanczos)
 }

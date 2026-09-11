@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestChangingTheActiveLayerRebuildsThePlayersTable(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")

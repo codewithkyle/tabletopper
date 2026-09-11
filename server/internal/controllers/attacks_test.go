@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
@@ -9,11 +10,15 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testAttackID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS2")
+
 func attackRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, attackID string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, "/characters/attacks", strings.NewReader(form.Encode()))

@@ -1,14 +1,18 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func monsterPanelForm(panel string) url.Values {
 	switch panel {
 	case "identity":
@@ -143,6 +147,7 @@ func monsterPathValues(extra map[string]string) map[string]string {
 	}
 	return pathValues
 }
+
 var unownedMonsterColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
@@ -150,6 +155,7 @@ var unownedMonsterColumns = map[string]bool{
 	"created_at": true,
 	"updated_at": true,
 }
+
 func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 	covered := map[string]bool{}
 	for _, panel := range []struct {

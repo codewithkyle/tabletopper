@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -6,18 +7,22 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+
 	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
+
 const (
-	journalImageEdge = 1600
+	journalImageEdge  = 1600
 	journalImageLimit = 40
 )
+
 func journalImagePath(characterID, entryID, assetID ulid.ULID) string {
 	return journalImagePrefix(characterID, entryID) + assetID.String()
 }

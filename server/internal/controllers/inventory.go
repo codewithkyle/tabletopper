@@ -1,16 +1,20 @@
 package controllers
+
 import (
 	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	inventoryNameLimit        = 128
 	inventoryValueLimit       = 64
@@ -18,6 +22,7 @@ const (
 	inventoryQuantityLimit    = 999999
 	inventoryWeightLimit      = 999999.99
 )
+
 func (a *App) CharacterInventoryPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -141,6 +146,7 @@ func inventoryToastLabel(name string) string {
 	}
 	return name
 }
+
 type inventoryInput struct {
 	Name        string
 	Quantity    uint32
@@ -149,6 +155,7 @@ type inventoryInput struct {
 	Equipped    bool
 	Description string
 }
+
 func buildInventoryInput(r *http.Request) (inventoryInput, []string) {
 	var problems []string
 	name := strings.TrimSpace(r.PostFormValue("name"))

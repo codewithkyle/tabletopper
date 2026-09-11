@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"image"
@@ -9,10 +10,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 )
+
 func pngPixels(t *testing.T, width, height int) []byte {
 	t.Helper()
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))

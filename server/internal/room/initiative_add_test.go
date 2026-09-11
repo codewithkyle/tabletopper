@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestAddPutsAMonsterInItsGroup(t *testing.T) {
 	manual := testID(900)
 	goblin := func(w *world) ulid.ULID {

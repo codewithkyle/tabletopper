@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
@@ -6,12 +7,16 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testActionID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS5")
+
 func monsterActionRequest(t *testing.T, handler http.HandlerFunc, method string, kind string, form url.Values, actionID string) *httptest.ResponseRecorder {
 	t.Helper()
 	body := strings.NewReader(form.Encode())

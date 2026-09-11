@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"errors"
@@ -6,32 +7,38 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var errGone = errors.New("hub: the room unloaded")
+
 const (
-	inboxSize = 64
-	storeTimeout = 2 * time.Second
+	inboxSize     = 64
+	storeTimeout  = 2 * time.Second
 	writeDeadline = 5 * time.Second
 )
+
 type Options struct {
-	Store Store
-	Version string
+	Store            Store
+	Version          string
 	SnapshotInterval time.Duration
-	UnloadGrace time.Duration
-	DragInterval time.Duration
-	SendBuffer int
-	ReadLimit int64
-	Rate  int
-	Burst int
-	Overs int
-	OverWindow time.Duration
-	WriteHP func(ctx context.Context, character ulid.ULID, hp int) error
-	ConnsPerUser int
-	ConnsPerRoom int
+	UnloadGrace      time.Duration
+	DragInterval     time.Duration
+	SendBuffer       int
+	ReadLimit        int64
+	Rate             int
+	Burst            int
+	Overs            int
+	OverWindow       time.Duration
+	WriteHP          func(ctx context.Context, character ulid.ULID, hp int) error
+	ConnsPerUser     int
+	ConnsPerRoom     int
 }
+
 func (o Options) withDefaults() Options {
 	if o.SnapshotInterval <= 0 {
 		o.SnapshotInterval = 5 * time.Second
@@ -71,16 +78,18 @@ func (o Options) withDefaults() Options {
 	}
 	return o
 }
+
 type Hub struct {
 	store   Store
 	queries *queries.Queries
 	opts    Options
 	version string
 	writeHP func(ctx context.Context, character ulid.ULID, hp int) error
-	mu     sync.Mutex
-	rooms  map[ulid.ULID]*actor
-	closed bool
+	mu      sync.Mutex
+	rooms   map[ulid.ULID]*actor
+	closed  bool
 }
+
 func New(q *queries.Queries, opts Options) *Hub {
 	opts = opts.withDefaults()
 	if opts.Store == nil {
@@ -193,21 +202,25 @@ func (h *Hub) Players(ctx context.Context, roomID ulid.ULID) ([]room.Player, boo
 	}
 	return *players, true
 }
+
 type TableView struct {
 	Table room.Table
 	Pawns map[ulid.ULID]int
 }
+
 func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
 	return view(ctx, h, roomID, true, (*actor).table)
 }
 func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }
+
 type InitiativeView struct {
 	Initiative room.Initiative
 	Pawns      map[ulid.ULID]room.Pawn
 	Table      room.Table
 }
+
 func (h *Hub) Initiative(ctx context.Context, roomID ulid.ULID, role room.Role) (*InitiativeView, bool) {
 	return view(ctx, h, roomID, true, func(a *actor) *InitiativeView { return a.initiative(role) })
 }

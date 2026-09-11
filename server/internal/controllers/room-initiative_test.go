@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"net/http"
@@ -7,12 +8,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func initiativeApp(t *testing.T) (*App, []room.InitiativeEntry) {
 	t.Helper()
 	answers := make([]roomAnswer, 0, roomReads)
@@ -39,7 +43,9 @@ func initiativeApp(t *testing.T) (*App, []room.InitiativeEntry) {
 	}
 	return app, view.Initiative.Entries
 }
+
 const roomReads = 12
+
 func tracker(t *testing.T, app *App) room.Initiative {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

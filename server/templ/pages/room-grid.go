@@ -1,33 +1,40 @@
 package pages
+
 import (
 	"strconv"
+
 	"tabletopper/internal/room"
 )
+
 const RoomGridPanel = "room-grid"
+
 type RoomGridData struct {
-	RoomID string
-	Lines       string
-	CellSize    int
-	OffsetX     int
-	OffsetY     int
-	Color       string
-	Snap        string
-	FeetPerCell int
-	Diagonals   string
-	PawnLabels     string
-	PlayersCanDraw bool
-	FogPrefill bool
+	RoomID             string
+	Lines              string
+	CellSize           int
+	OffsetX            int
+	OffsetY            int
+	Color              string
+	Snap               string
+	FeetPerCell        int
+	Diagonals          string
+	PawnLabels         string
+	PlayersCanDraw     bool
+	FogPrefill         bool
 	InitiativeGrouping string
-	Errors []string
+	Errors             []string
 }
+
 func (d RoomGridData) SavePath() string {
 	return "/rooms/" + d.RoomID + "/grid"
 }
 func (d RoomGridData) CellSizeText() string { return strconv.Itoa(d.CellSize) }
-func (d RoomGridData) OffsetXText() string { return strconv.Itoa(d.OffsetX) }
-func (d RoomGridData) OffsetYText() string { return strconv.Itoa(d.OffsetY) }
-func (d RoomGridData) FeetText() string { return strconv.Itoa(d.FeetPerCell) }
+func (d RoomGridData) OffsetXText() string  { return strconv.Itoa(d.OffsetX) }
+func (d RoomGridData) OffsetYText() string  { return strconv.Itoa(d.OffsetY) }
+func (d RoomGridData) FeetText() string     { return strconv.Itoa(d.FeetPerCell) }
+
 const GridColorPickerID = "grid-color-picker"
+
 func (d RoomGridData) PickerColor() string {
 	if d.Color == "" {
 		return room.DefaultGridColor
@@ -37,6 +44,7 @@ func (d RoomGridData) PickerColor() string {
 func (d RoomGridData) SwatchStyle() map[string]string {
 	return map[string]string{"background-color": d.PickerColor()}
 }
+
 const (
 	GridCellMin  = "8"
 	GridCellMax  = "512"
@@ -44,11 +52,13 @@ const (
 	GridFeetMax  = "1000"
 	GridColorPat = "#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?"
 )
+
 type Choice struct {
 	Value string
 	Label string
 	Hint  string
 }
+
 func GridLineChoices() []Choice {
 	return []Choice{
 		{Value: "off", Label: "Off", Hint: "No lines at all. Pawns still snap and distances are still counted."},

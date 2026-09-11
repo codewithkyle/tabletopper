@@ -1,23 +1,28 @@
 package controllers
+
 import (
 	"context"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
 	"tabletopper/templ/pages"
 )
+
 const (
 	shareMinDays = 1
 	shareMaxDays = 365
 )
+
 type shareInput struct {
 	Days     int
 	Password string
 }
+
 func buildShareInput(r *http.Request) (shareInput, []string) {
 	var input shareInput
 	var problems []string

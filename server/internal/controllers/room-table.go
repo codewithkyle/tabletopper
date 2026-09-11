@@ -1,20 +1,24 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
-	"log/slog"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) RoomLayersFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -422,20 +426,20 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 }
 func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridData {
 	return pages.RoomGridData{
-		RoomID:         roomID.String(),
-		Lines:          string(t.Grid.Lines),
-		CellSize:       t.Grid.CellSize,
-		OffsetX:        t.Grid.OffsetX,
-		OffsetY:        t.Grid.OffsetY,
-		Color:          t.Grid.Color,
-		Snap:           string(t.Grid.Snap),
-		FeetPerCell:    t.Grid.FeetPerCell,
-		Diagonals:      string(t.Grid.Diagonals),
-		PawnLabels:     string(t.PawnLabels),
-		PlayersCanDraw: t.PlayersCanDraw,
-		FogPrefill:     t.FogPrefill,
+		RoomID:             roomID.String(),
+		Lines:              string(t.Grid.Lines),
+		CellSize:           t.Grid.CellSize,
+		OffsetX:            t.Grid.OffsetX,
+		OffsetY:            t.Grid.OffsetY,
+		Color:              t.Grid.Color,
+		Snap:               string(t.Grid.Snap),
+		FeetPerCell:        t.Grid.FeetPerCell,
+		Diagonals:          string(t.Grid.Diagonals),
+		PawnLabels:         string(t.PawnLabels),
+		PlayersCanDraw:     t.PlayersCanDraw,
+		FogPrefill:         t.FogPrefill,
 		InitiativeGrouping: string(t.InitiativeGrouping),
-		Errors: problems,
+		Errors:             problems,
 	}
 }
 func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {

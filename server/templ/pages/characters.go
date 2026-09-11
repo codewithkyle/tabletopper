@@ -1,10 +1,12 @@
 package pages
+
 import (
 	"database/sql"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
+
 func characterValueOrFallback(value sql.NullString, fallback string) string {
 	if trimmed := strings.TrimSpace(value.String); value.Valid && trimmed != "" {
 		return trimmed

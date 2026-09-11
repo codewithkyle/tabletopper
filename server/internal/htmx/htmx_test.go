@@ -1,9 +1,11 @@
 package htmx
+
 import (
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
 )
+
 func TestToastSurvivesQuotesInTheMessage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Toast(rec, `Say "hi" has been deleted.`)

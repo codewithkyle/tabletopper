@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -7,18 +8,21 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type roomDB struct {
 	answers []roomAnswer
-	rows int64
-	calls []recordedCall
-	next  int
+	rows    int64
+	calls   []recordedCall
+	next    int
 }
 type roomAnswer struct {
 	columns []string
 	values  []driver.Value
 }
+
 func (d *roomDB) db() *sql.DB { return sql.OpenDB(roomConnector{d}) }
 func (d *roomDB) only(t *testing.T) recordedCall {
 	t.Helper()
@@ -34,22 +38,30 @@ func (d *roomDB) queries() []string {
 	}
 	return sent
 }
+
 type roomConnector struct{ stub *roomDB }
+
 func (c roomConnector) Connect(context.Context) (driver.Conn, error) { return roomConn{c.stub}, nil }
 func (c roomConnector) Driver() driver.Driver                        { return nil }
+
 type roomConn struct{ stub *roomDB }
+
 func (c roomConn) Prepare(query string) (driver.Stmt, error) {
 	return roomStmt{stub: c.stub, query: query}, nil
 }
-func (c roomConn) Close() error { return nil }
+func (c roomConn) Close() error              { return nil }
 func (c roomConn) Begin() (driver.Tx, error) { return roomTx{}, nil }
+
 type roomTx struct{}
+
 func (roomTx) Commit() error   { return nil }
 func (roomTx) Rollback() error { return nil }
+
 type roomStmt struct {
 	stub  *roomDB
 	query string
 }
+
 func (s roomStmt) Close() error  { return nil }
 func (s roomStmt) NumInput() int { return -1 }
 func (s roomStmt) Exec(args []driver.Value) (driver.Result, error) {
@@ -72,10 +84,12 @@ func (d *roomDB) record(query string, args []driver.Value) {
 	}
 	d.calls = append(d.calls, recordedCall{query: query, args: values})
 }
+
 type roomRows struct {
 	answer roomAnswer
 	done   bool
 }
+
 func (r *roomRows) Columns() []string { return r.answer.columns }
 func (r *roomRows) Close() error      { return nil }
 func (r *roomRows) Next(dest []driver.Value) error {

@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql/driver"
@@ -8,18 +9,22 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/internal/tiling"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var (
 	testMapID    = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTA")
 	testMapGen   = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTB")
 	testOtherMap = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTC")
 )
+
 func pyramidAnswer(owner ulid.ULID, gen ulid.ULID, w, h, tile, maxZoom int) roomAnswer {
 	var genValue driver.Value
 	if gen != (ulid.ULID{}) {
@@ -36,7 +41,9 @@ func readyMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 		values:  []driver.Value{id.Bytes(), name, int64(w), int64(h)},
 	}
 }
+
 var pickerMapColumns = []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state", "tile_attempts"}
+
 func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	return roomAnswer{
 		columns: pickerMapColumns,

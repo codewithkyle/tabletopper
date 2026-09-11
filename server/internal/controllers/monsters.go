@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -8,13 +9,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) MonstersPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -153,20 +157,20 @@ func (a *App) MonsterStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 func monsterToEditPageData(id string, monster queries.Monster, actions []queries.MonsterAction) pages.EditMonsterPageData {
 	derived := monsterDerived(monster, actions)
 	return pages.EditMonsterPageData{
-		MonsterID: id,
-		Header:    monsterHeader(monster, derived),
-		StatBlock: monsterStatBlock(monster, actions, derived),
-		Name: monster.Name,
-		Size:      pages.NormalizeSize(monster.Size),
-		Type:      pages.NormalizeCreatureType(monster.Type),
-		Tags:      monster.Tags,
-		Alignment: pages.NormalizeAlignment(monster.Alignment),
-		Str: strconv.FormatUint(uint64(monster.Str), 10),
-		Dex: strconv.FormatUint(uint64(monster.Dex), 10),
-		Con: strconv.FormatUint(uint64(monster.Con), 10),
-		Int: strconv.FormatUint(uint64(monster.Int), 10),
-		Wis: strconv.FormatUint(uint64(monster.Wis), 10),
-		Cha: strconv.FormatUint(uint64(monster.Cha), 10),
+		MonsterID:                 id,
+		Header:                    monsterHeader(monster, derived),
+		StatBlock:                 monsterStatBlock(monster, actions, derived),
+		Name:                      monster.Name,
+		Size:                      pages.NormalizeSize(monster.Size),
+		Type:                      pages.NormalizeCreatureType(monster.Type),
+		Tags:                      monster.Tags,
+		Alignment:                 pages.NormalizeAlignment(monster.Alignment),
+		Str:                       strconv.FormatUint(uint64(monster.Str), 10),
+		Dex:                       strconv.FormatUint(uint64(monster.Dex), 10),
+		Con:                       strconv.FormatUint(uint64(monster.Con), 10),
+		Int:                       strconv.FormatUint(uint64(monster.Int), 10),
+		Wis:                       strconv.FormatUint(uint64(monster.Wis), 10),
+		Cha:                       strconv.FormatUint(uint64(monster.Cha), 10),
 		AC:                        strconv.FormatUint(uint64(monster.AC), 10),
 		HP:                        strconv.FormatUint(uint64(monster.HP), 10),
 		HitDice:                   monster.HitDice,
@@ -175,17 +179,17 @@ func monsterToEditPageData(id string, monster queries.Monster, actions []queries
 		CR:                        pages.NormalizeChallengeRating(monster.CR),
 		LegendaryActionUses:       strconv.FormatUint(uint64(monster.LegendaryActionUses), 10),
 		LegendaryActionUsesInLair: strconv.FormatUint(uint64(monster.LegendaryActionUsesInLair), 10),
-		Vulnerabilities: monster.Vulnerabilities,
-		Resistances:     monster.Resistances,
-		Immunities:      monster.Immunities,
-		Gear:            monster.Gear,
-		Senses:          monster.Senses,
-		Languages:       monster.Languages,
-		Habitat:     monster.Habitat,
-		Treasure:    monster.Treasure,
-		Description: monster.Description,
-		Derived: derived,
-		Actions: monsterActionRows(actions),
+		Vulnerabilities:           monster.Vulnerabilities,
+		Resistances:               monster.Resistances,
+		Immunities:                monster.Immunities,
+		Gear:                      monster.Gear,
+		Senses:                    monster.Senses,
+		Languages:                 monster.Languages,
+		Habitat:                   monster.Habitat,
+		Treasure:                  monster.Treasure,
+		Description:               monster.Description,
+		Derived:                   derived,
+		Actions:                   monsterActionRows(actions),
 	}
 }
 func monsterActionRows(actions []queries.MonsterAction) map[string][]pages.MonsterAction {

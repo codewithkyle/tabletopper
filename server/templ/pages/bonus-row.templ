@@ -1,4 +1,5 @@
 package pages
+
 templ bonusRow(grid string, row BonusRow) {
 	{{ field := grid + "-" + row.Key }}
 	<div class={ surfaceInset + " flex items-center gap-2 p-2" }>
@@ -25,6 +26,7 @@ templ bonusRow(grid string, row BonusRow) {
 		@derivedValue("total-"+field, row.Total, false)
 	</div>
 }
+
 templ derivedValue(id string, value string, oob bool) {
 	<span
 		if id != "" {

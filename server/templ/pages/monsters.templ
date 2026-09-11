@@ -1,16 +1,20 @@
 package pages
+
 import (
 	"strconv"
 	"tabletopper/templ/layouts"
 )
+
 templ Monsters(data MonsterListData) {
 	@layouts.Base("Monster Manual | Tabletopper") {
 		@monstersContent(data)
 	}
 }
+
 templ MonsterCardsFragment(data MonsterListData) {
 	@monsterCards(data)
 }
+
 templ MonsterCard(m MonsterSummary) {
 	<monster-card class={ sheetSurface }>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-3 p-3">
@@ -48,12 +52,14 @@ templ MonsterCard(m MonsterSummary) {
 		</div>
 	</monster-card>
 }
+
 templ monsterCardStat(label string, value string) {
 	<div class={ surfaceInset + " min-w-11 px-2 py-1 text-center" }>
 		<dt class="text-[0.55rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">{ label }</dt>
 		<dd class="m-0 text-sm leading-tight font-extrabold tabular-nums">{ value }</dd>
 	</div>
 }
+
 templ monsterSearchBox() {
 	<input
 		type="search"
@@ -70,6 +76,7 @@ templ monsterSearchBox() {
 		hx-swap="outerHTML"
 	/>
 }
+
 templ monsterCards(data MonsterListData) {
 	<section id={ monsterCardsID } class="grid min-h-0 content-start gap-3.5 overflow-auto">
 		if len(data.Monsters) == 0 {
@@ -91,6 +98,7 @@ templ monsterCards(data MonsterListData) {
 		}
 	</section>
 }
+
 templ monstersContent(data MonsterListData) {
 	<monster-manual class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -107,7 +115,7 @@ templ monstersContent(data MonsterListData) {
 							class="btn btn-primary max-[700px]:flex-1"
 							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/monster/new', size: 'sm' } }))"
 						>
-							<svg xmlns="http:
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
 							New monster
 						</button>
 					</div>

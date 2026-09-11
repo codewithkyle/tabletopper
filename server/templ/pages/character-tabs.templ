@@ -1,4 +1,5 @@
 package pages
+
 templ characterTabs(characterID string, active string) {
 	{{ base := "/characters/" + characterID + "/edit" }}
 	<nav class={ barGutter + " flex gap-1" } aria-label="Character sheet sections">
@@ -8,6 +9,7 @@ templ characterTabs(characterID string, active string) {
 		@tabLink(base+"/journal", "Journal", active == characterTabJournal)
 	</nav>
 }
+
 const (
 	characterTabMain      = "character"
 	characterTabInventory = "inventory"

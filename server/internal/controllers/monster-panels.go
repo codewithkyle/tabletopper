@@ -1,16 +1,20 @@
 package controllers
+
 import (
 	"database/sql"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) SaveMonsterIdentity(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -185,6 +189,7 @@ func (a *App) SaveMonsterDescription(w http.ResponseWriter, r *http.Request) {
 	})
 	a.finishMonsterPanel(w, r, "description", "Description", result, err, monsterID, sess.UserID)
 }
+
 type monsterIdentityInput struct {
 	Name      string
 	Size      string
@@ -192,6 +197,7 @@ type monsterIdentityInput struct {
 	Tags      string
 	Alignment string
 }
+
 func buildMonsterIdentityInput(r *http.Request) (monsterIdentityInput, []string) {
 	values, validationErrors := cappedMonsterFields(r, []cappedMonsterField{
 		{"tags", "Tags", pages.MonsterTagsLimit},
@@ -211,6 +217,7 @@ func buildMonsterIdentityInput(r *http.Request) (monsterIdentityInput, []string)
 		Alignment: pages.NormalizeAlignment(r.PostFormValue("alignment")),
 	}, validationErrors
 }
+
 type monsterCombatInput struct {
 	AC                        uint8
 	HP                        uint16
@@ -221,6 +228,7 @@ type monsterCombatInput struct {
 	LegendaryActionUses       uint8
 	LegendaryActionUsesInLair uint8
 }
+
 func buildMonsterCombatInput(r *http.Request) (monsterCombatInput, []string) {
 	values, validationErrors := cappedMonsterFields(r, []cappedMonsterField{
 		{"hit_dice", "Hit dice", pages.MonsterHitDiceLimit},
@@ -248,9 +256,9 @@ func buildMonsterCombatInput(r *http.Request) (monsterCombatInput, []string) {
 		validationErrors = append(validationErrors, "Legendary uses in lair must be between 0 and "+strconv.Itoa(pages.MonsterLegendaryUsesLimit)+".")
 	}
 	return monsterCombatInput{
-		AC:      ac,
-		HP:      hp,
-		HitDice: values["hit_dice"],
+		AC:                        ac,
+		HP:                        hp,
+		HitDice:                   values["hit_dice"],
 		Speed:                     values["speed"],
 		InitiativeBonus:           initiativeBonus,
 		CR:                        pages.NormalizeChallengeRating(r.PostFormValue("cr")),
@@ -258,6 +266,7 @@ func buildMonsterCombatInput(r *http.Request) (monsterCombatInput, []string) {
 		LegendaryActionUsesInLair: usesInLair,
 	}, validationErrors
 }
+
 type monsterDefensesInput struct {
 	Vulnerabilities string
 	Resistances     string
@@ -266,6 +275,7 @@ type monsterDefensesInput struct {
 	Senses          string
 	Languages       string
 }
+
 func buildMonsterDefensesInput(r *http.Request) (monsterDefensesInput, []string) {
 	values, validationErrors := cappedMonsterFields(r, []cappedMonsterField{
 		{"vulnerabilities", "Vulnerabilities", pages.MonsterDefenseLimit},
@@ -284,11 +294,13 @@ func buildMonsterDefensesInput(r *http.Request) (monsterDefensesInput, []string)
 		Languages:       values["languages"],
 	}, validationErrors
 }
+
 type monsterDescriptionInput struct {
 	Habitat     string
 	Treasure    string
 	Description string
 }
+
 func buildMonsterDescriptionInput(r *http.Request) (monsterDescriptionInput, []string) {
 	values, validationErrors := cappedMonsterFields(r, []cappedMonsterField{
 		{"habitat", "Habitat", pages.MonsterHabitatLimit},
@@ -305,11 +317,13 @@ func buildMonsterDescriptionInput(r *http.Request) (monsterDescriptionInput, []s
 		Description: description,
 	}, validationErrors
 }
+
 type cappedMonsterField struct {
 	Field string
 	Label string
 	Limit int
 }
+
 func cappedMonsterFields(r *http.Request, fields []cappedMonsterField) (map[string]string, []string) {
 	values := map[string]string{}
 	validationErrors := make([]string, 0)

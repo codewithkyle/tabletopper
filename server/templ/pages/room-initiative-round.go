@@ -1,11 +1,15 @@
 package pages
+
 import "tabletopper/internal/events"
+
 const RoomInitiativeRoundID = "room-initiative-round"
+
 type RoomInitiativeRoundData struct {
-	RoomID string
-	Round string
+	RoomID  string
+	Round   string
 	Fetched bool
 }
+
 func (d RoomInitiativeRoundData) Path() string {
 	return "/fragment/room/initiative/round?room=" + d.RoomID
 }

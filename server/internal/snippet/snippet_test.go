@@ -1,11 +1,14 @@
 package snippet
+
 import (
 	"strings"
 	"testing"
 	"unicode/utf8"
 )
+
 const prose = "We spent the morning in the market square before the guards moved us on, " +
 	"and by evening had found Béornegar drinking alone at the Crooked Lantern."
+
 func TestAnUnaccentedSearchFindsTheAccentedName(t *testing.T) {
 	hit, ok := Find(prose, "Beornegar", 60)
 	if !ok {

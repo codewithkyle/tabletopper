@@ -1,4 +1,5 @@
 package pages
+
 templ ShareDialog(data ShareDialogData) {
 	<div id={ shareDialogID } class="grid gap-4">
 		<h3 class="m-0 pr-10 font-serif text-xl leading-none">{ data.Heading }</h3>
@@ -9,6 +10,7 @@ templ ShareDialog(data ShareDialogData) {
 		}
 	</div>
 }
+
 templ shareDialogForm(data ShareDialogData) {
 	{{ errorBlock := "#errors-" + ShareDialogPanel }}
 	<form
@@ -74,6 +76,7 @@ templ shareDialogForm(data ShareDialogData) {
 		</div>
 	</form>
 }
+
 templ shareDialogLink(data ShareDialogData) {
 	<div class="grid gap-4">
 		<div class="fieldset">

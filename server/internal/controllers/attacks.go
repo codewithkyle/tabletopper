@@ -1,20 +1,25 @@
 package controllers
+
 import (
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	attackNameLimit   = 128
 	attackBonusLimit  = 32
 	attackDamageLimit = 64
 	attackNotesLimit  = 65535
 )
+
 func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -116,6 +121,7 @@ func attackToastLabel(name string) string {
 	}
 	return name
 }
+
 type attackInput struct {
 	Name       string
 	Bonus      string
@@ -124,6 +130,7 @@ type attackInput struct {
 	Mastery    string
 	Notes      string
 }
+
 func buildAttackInput(r *http.Request) (attackInput, []string) {
 	var problems []string
 	name := strings.TrimSpace(r.PostFormValue("name"))

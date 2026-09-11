@@ -1,13 +1,17 @@
 package room
+
 import (
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type InitiativeUpdated struct {
 	Header
 	Initiative Initiative `json:"initiative"`
-	player *Initiative
+	player     *Initiative
 }
+
 func (*InitiativeUpdated) eventType() string { return "initiative.updated" }
 func (e *InitiativeUpdated) ForRole(role Role) Event {
 	if role == RoleGM || e.player == nil {
@@ -152,10 +156,12 @@ func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) 
 	}
 	return kept, active, changed
 }
+
 type InitiativeSet struct {
 	Entries []InitiativeEntry `json:"entries"`
 	Active  *ulid.ULID        `json:"active"`
 }
+
 func (c *InitiativeSet) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the initiative order")
 }
@@ -196,7 +202,9 @@ func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return initiativeUpdated(s), nil
 }
+
 type InitiativeNext struct{}
+
 func (c *InitiativeNext) Authorize(s *State, a Actor) error {
 	if a.GM() {
 		return nil
@@ -312,7 +320,9 @@ func (s *State) entry(id ulid.ULID) *InitiativeEntry {
 	}
 	return nil
 }
+
 type InitiativeSync struct{}
+
 func (c *InitiativeSync) Authorize(s *State, a Actor) error {
 	return requireGM(a, "sync the initiative tracker")
 }
@@ -400,7 +410,9 @@ func MonsterKey(p Pawn) string {
 	}
 	return "name:" + p.Name + "\x00" + p.Image
 }
+
 type InitiativeClear struct{}
+
 func (c *InitiativeClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the initiative tracker")
 }
@@ -409,9 +421,11 @@ func (c *InitiativeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) 
 	s.Normalize()
 	return initiativeUpdated(s), nil
 }
+
 type InitiativeActivate struct {
 	Entry ulid.ULID `json:"entry"`
 }
+
 func (c *InitiativeActivate) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change whose turn it is")
 }
@@ -424,9 +438,11 @@ func (c *InitiativeActivate) Apply(s *State, a Actor, env Env) ([]Emission, erro
 	s.Normalize()
 	return initiativeUpdated(s), nil
 }
+
 type InitiativeRemove struct {
 	Entry ulid.ULID `json:"entry"`
 }
+
 func (c *InitiativeRemove) Authorize(s *State, a Actor) error {
 	return requireGM(a, "remove an entry from the initiative tracker")
 }
@@ -449,9 +465,11 @@ func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	s.Normalize()
 	return initiativeUpdated(s), nil
 }
+
 type InitiativeReorder struct {
 	IDs []ulid.ULID `json:"ids"`
 }
+
 func (c *InitiativeReorder) Authorize(s *State, a Actor) error {
 	return requireGM(a, "reorder the initiative tracker")
 }
@@ -476,10 +494,12 @@ func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Emission, error
 	s.Normalize()
 	return initiativeUpdated(s), nil
 }
+
 type InitiativeAdd struct {
 	Name string     `json:"name"`
 	Pawn *ulid.ULID `json:"pawn"`
 }
+
 func (c *InitiativeAdd) Authorize(s *State, a Actor) error {
 	return requireGM(a, "add an entry to the initiative tracker")
 }

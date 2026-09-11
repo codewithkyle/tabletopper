@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ pawnEditor(data RoomPawnData) {
 	<form
 		id={ data.FormID() }
@@ -39,6 +41,7 @@ templ pawnEditor(data RoomPawnData) {
 		}
 	</form>
 }
+
 templ RoomPawnRename(data RoomPawnRenameData) {
 	<div class="grid gap-4">
 		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Rename</h3>
@@ -62,12 +65,14 @@ templ RoomPawnRename(data RoomPawnRenameData) {
 		</form>
 	</div>
 }
+
 templ pawnField(id string, caption string) {
 	<label class="flex min-w-0 flex-col gap-0.5" for={ id }>
 		<span class="text-[10px] text-base-content/60">{ caption }</span>
 		{ children... }
 	</label>
 }
+
 templ pawnNumberField(id string, name string, caption string, value string) {
 	@pawnField(id, caption) {
 		<input
@@ -84,6 +89,7 @@ templ pawnNumberField(id string, name string, caption string, value string) {
 		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from 0 to 9999.</span>
 	}
 }
+
 templ pawnSizeField(id string, value string) {
 	@pawnField(id, "Size") {
 		<select id={ id } name="size" class="select select-xs w-full" required>
@@ -93,6 +99,7 @@ templ pawnSizeField(id string, value string) {
 		</select>
 	}
 }
+
 templ pawnPixels(id string, name string, caption string, value string) {
 	@pawnField(id, caption) {
 		<input
@@ -110,6 +117,7 @@ templ pawnPixels(id string, name string, caption string, value string) {
 		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number of pixels.</span>
 	}
 }
+
 templ pawnDegrees(id string, value string) {
 	@pawnField(id, "Angle") {
 		<input
@@ -127,6 +135,7 @@ templ pawnDegrees(id string, value string) {
 		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter degrees clockwise, 0 to 359.</span>
 	}
 }
+
 templ pawnVisibleSwitch(data RoomPawnData) {
 	<label class="flex shrink-0 items-center gap-1.5">
 		<input
@@ -141,6 +150,7 @@ templ pawnVisibleSwitch(data RoomPawnData) {
 		<span class="hidden text-[10px] text-base-content/60 peer-checked:inline">Visible</span>
 	</label>
 }
+
 templ pawnLayerSelect(data RoomPawnData) {
 	<label class="flex min-w-0 flex-1 items-center gap-1.5" for={ data.Field("layer") }>
 		<span class="shrink-0 text-[10px] text-base-content/60">Floor</span>
@@ -151,6 +161,7 @@ templ pawnLayerSelect(data RoomPawnData) {
 		</select>
 	</label>
 }
+
 templ pawnConditionsEditor(data RoomPawnData) {
 	<div class="flex flex-col gap-1">
 		<span class="text-[10px] text-base-content/60">Conditions</span>
@@ -173,6 +184,7 @@ templ pawnConditionsEditor(data RoomPawnData) {
 		}
 	</datalist>
 }
+
 templ RoomPawnConditionRow(pawnID string, c RoomPawnCondition) {
 	<div data-condition-row class="flex flex-col gap-1 @sm:flex-row @sm:items-center">
 		<input type="hidden" name="conditionId" value={ c.ID }/>

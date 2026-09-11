@@ -1,9 +1,11 @@
 package pages
+
 import "strings"
+
 type CharacterHeader struct {
-	Name string
-	Subtitle string
-	AvatarID string
+	Name        string
+	Subtitle    string
+	AvatarID    string
 	AC          string
 	CurrentHP   string
 	MaxHP       string
@@ -12,6 +14,7 @@ type CharacterHeader struct {
 	Proficiency string
 	Passive     string
 }
+
 func characterBarName(header CharacterHeader) string {
 	if strings.TrimSpace(header.Name) == "" {
 		return "Unnamed character"
@@ -26,11 +29,13 @@ func AlignmentLabel(value string) string {
 	}
 	return ""
 }
+
 type headerChip struct {
 	Label string
 	Value string
 	Sub   string
 }
+
 func characterChips(header CharacterHeader) []headerChip {
 	speed, speedUnit := splitMeasurement(header.Speed)
 	return []headerChip{

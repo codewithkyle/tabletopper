@@ -1,17 +1,21 @@
 package clerkauth
+
 import (
 	"context"
 	"fmt"
 	"strings"
+
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/jwks"
 	"github.com/clerk/clerk-sdk-go/v2/jwt"
 	"github.com/clerk/clerk-sdk-go/v2/user"
 )
+
 type Client struct {
 	jwks  *jwks.Client
 	users *user.Client
 }
+
 func New(secretKey string) *Client {
 	cfg := &clerk.ClientConfig{}
 	cfg.Key = clerk.String(secretKey)
@@ -20,12 +24,15 @@ func New(secretKey string) *Client {
 		users: user.NewClient(cfg),
 	}
 }
+
 const FallbackUsername = "Adventurer"
+
 type Identity struct {
-	ClerkID string
+	ClerkID  string
 	Username string
 	ImageURL string
 }
+
 func (c *Client) Authenticate(ctx context.Context, token string) (Identity, error) {
 	claims, err := jwt.Verify(ctx, &jwt.VerifyParams{
 		Token:      token,

@@ -1,11 +1,13 @@
 package pages
+
 import "strings"
+
 type SharedCharacter struct {
 	Name    string
 	Level   string
 	Classes string
 	Race    string
-	Avatar string
+	Avatar  string
 }
 type SharedJournalData struct {
 	Character SharedCharacter
@@ -13,9 +15,10 @@ type SharedJournalData struct {
 	Body      string
 }
 type ShareLockedData struct {
-	Action string
+	Action  string
 	Problem string
 }
+
 func shareEntryTitle(title string) string {
 	if strings.TrimSpace(title) == "" {
 		return "Untitled entry"

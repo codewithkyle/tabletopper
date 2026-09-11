@@ -1,4 +1,5 @@
 package pages
+
 import (
 	"bytes"
 	"context"
@@ -9,13 +10,17 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/a-h/templ"
 	"github.com/oklog/ulid/v2"
 )
+
 const closingForms = 4
+
 func TestPagesRenderConcurrently(t *testing.T) {
 	pages := map[string]func() error{
 		"homepage":               func() error { return render(Homepage(session.UserSession{})) },
@@ -70,7 +75,7 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"stat-block-panel": func() error {
 			return render(MonsterStatBlockPanel(testStatBlock()))
 		},
-		"assets": func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
+		"assets":         func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
 		"assets-empty":   func() error { return render(MapAssets(nil)) },
 		"assets-tokens":  func() error { return render(TokenAssets(nil)) },
 		"assets-avatars": func() error { return render(AvatarAssets(nil)) },
@@ -95,8 +100,8 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"new-room-fragment":   func() error { return render(NewRoomFragment()) },
 		"join-room":           func() error { return render(JoinRoom(JoinRoomPageData{})) },
 		"join-room-prefilled": func() error { return render(JoinRoom(JoinRoomPageData{Code: "AB2C"})) },
-		"room-gm":     func() error { return render(Room(testRoomPage(room.RoleGM))) },
-		"room-player": func() error { return render(Room(testRoomPage(room.RolePlayer))) },
+		"room-gm":             func() error { return render(Room(testRoomPage(room.RoleGM))) },
+		"room-player":         func() error { return render(Room(testRoomPage(room.RolePlayer))) },
 		"room-closed": func() error {
 			data := testRoomPage(room.RoleGM)
 			data.Closed = true
@@ -220,10 +225,12 @@ func TestNewCharacterFragmentIsOneQuestion(t *testing.T) {
 		t.Errorf("fragment has %d inputs, want 1", inputs)
 	}
 }
+
 const (
 	testItemID    = "01BX5ZZKBKACTAV9WEVGEMMVS0"
 	testItemPanel = "errors-inventory-" + testItemID
 )
+
 func TestInventoryRowIsItsOwnForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + characterID + "/inventory/" + testItemID
@@ -370,10 +377,12 @@ func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 		t.Errorf("the equipped rows are not rendered on the page\n%s", body)
 	}
 }
+
 const (
 	testSpellID    = "01BX5ZZKBKACTAV9WEVGEMMVS0"
 	testSpellPanel = "errors-spell-" + testSpellID
 )
+
 func TestSpellRowIsItsOwnForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + characterID + "/spells/3/" + testSpellID
@@ -873,7 +882,9 @@ func testJournalEntry() JournalEntry {
 		Updated: Timestamp{ISO: "2026-09-06T09:30:00Z", Text: "6 Sep 2026, 09:30 UTC"},
 	}
 }
+
 const testEntryID = "01BX5ZZKBKACTAV9WEVGEMMVS1"
+
 func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	var buf bytes.Buffer
@@ -1247,7 +1258,9 @@ func TestDeathSaveBubblesRenderWhatIsStored(t *testing.T) {
 		})
 	}
 }
+
 const testAttackRowID = "01BX5ZZKBKACTAV9WEVGEMMVS0"
+
 func TestAttackRowIsItsOwnForm(t *testing.T) {
 	const character = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	action := "/characters/" + character + "/attacks/" + testAttackRowID
@@ -1439,7 +1452,9 @@ func TestBothNavsRenderInsideTheBar(t *testing.T) {
 		}
 	}
 }
+
 var panelBorder = regexp.MustCompile(`border(-[a-z])?-2 border-base-300`)
+
 func TestNothingWearsThePanelBorderAnyMore(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	for name, page := range map[string]templ.Component{
@@ -1587,10 +1602,12 @@ func TestBothThemesPinTheSameBorderWidth(t *testing.T) {
 		t.Errorf("the themes pin --border to %q and %q, so every control changes thickness with the OS theme", matches[0][1], matches[1][1])
 	}
 }
+
 const (
 	testMapID  = "01BX5ZZKBKACTAV9WEVGEMMVS2"
 	testMapGen = "01BX5ZZKBKACTAV9WEVGEMMVS3"
 )
+
 func testMapCard() MapAsset {
 	return MapAsset{
 		ID:         testMapID,
@@ -1849,7 +1866,7 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 		"maps":    {MapCards(nil, "keep"), "No maps yet.", `No maps match "keep".`},
 		"tokens":  {TokenCards(nil, "wagon"), "No tokens yet.", `No tokens match "wagon".`},
 		"avatars": {AvatarCards(nil, "elf"), "No avatars yet.", `No avatars match "elf".`},
-		"music": {MusicCards(nil, "rain"), "No music yet.", `No tracks match "rain".`},
+		"music":   {MusicCards(nil, "rain"), "No music yet.", `No tracks match "rain".`},
 	} {
 		t.Run(name, func(t *testing.T) {
 			body := markup(t, c.cards)

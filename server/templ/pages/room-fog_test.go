@@ -1,10 +1,13 @@
 package pages
+
 import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 func TestOnlyTheGMGetsTheFogTool(t *testing.T) {
 	gm := markup(t, Room(testRoomPage(room.RoleGM)))
 	if !strings.Contains(gm, `data-room-tool="`+RoomToolFog+`"`) {

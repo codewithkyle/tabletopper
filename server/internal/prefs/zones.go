@@ -1,5 +1,7 @@
 package prefs
+
 import "time"
+
 type Zone struct {
 	Name  string
 	Label string
@@ -9,6 +11,7 @@ type ZoneGroup struct {
 	Region string
 	Zones  []Zone
 }
+
 var ZoneGroups = []ZoneGroup{
 	{Region: "Universal", Zones: []Zone{
 		{Name: "UTC", Label: "UTC"},
@@ -112,6 +115,7 @@ var zones = func() map[string]*time.Location {
 	}
 	return m
 }()
+
 func zone(name string) (*time.Location, bool) {
 	loc, ok := zones[name]
 	return loc, ok

@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 	w := newWorld(t)
 	loose := w.s.Table.Grid

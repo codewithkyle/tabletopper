@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"context"
@@ -16,12 +17,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 	"tabletopper/internal/tiling"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func pngHeader(width, height uint32) []byte {
 	chunk := []byte("IHDR")
 	chunk = binary.BigEndian.AppendUint32(chunk, width)
@@ -55,11 +59,13 @@ func uploadRequest(t *testing.T, field string, content []byte) *http.Request {
 	r.Header.Set("Content-Type", contentType)
 	return r
 }
+
 type deadlineRecorder struct {
 	*httptest.ResponseRecorder
 	read  time.Time
 	write time.Time
 }
+
 func (d *deadlineRecorder) SetReadDeadline(at time.Time) error  { d.read = at; return nil }
 func (d *deadlineRecorder) SetWriteDeadline(at time.Time) error { d.write = at; return nil }
 func newRecorder() *deadlineRecorder {
@@ -326,11 +332,13 @@ func TestTheByteCapIsEnforcedByMaxBytesReader(t *testing.T) {
 		t.Errorf("the alert does not name the cap it was given: %q", alert)
 	}
 }
+
 const (
 	testReadTimeout  = 500 * time.Millisecond
 	testWriteTimeout = 1 * time.Second
 	testUploadSpan   = 2 * time.Second
 )
+
 func dribble(t *testing.T, handler http.HandlerFunc, body []byte, contentType string) string {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")

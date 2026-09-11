@@ -1,27 +1,30 @@
 package pages
+
 import (
 	"strconv"
 	"strings"
 )
+
 type RoomLayersData struct {
 	RoomID string
 	Layers []RoomLayer
-	Full bool
+	Full   bool
 }
 type RoomLayer struct {
-	ID    string
-	Name  string
-	Index int
-	Active bool
-	Bottom bool
-	Top    bool
-	Pawns int
-	MapID   string
-	MapName string
-	Width   int
-	Height  int
+	ID       string
+	Name     string
+	Index    int
+	Active   bool
+	Bottom   bool
+	Top      bool
+	Pawns    int
+	MapID    string
+	MapName  string
+	Width    int
+	Height   int
 	Mismatch bool
 }
+
 func (d RoomLayersData) Path() string {
 	return "/fragment/room/layers?room=" + d.RoomID
 }
@@ -64,7 +67,7 @@ func pawnCount(n int) string {
 	}
 	return strconv.Itoa(n) + " pawns"
 }
-func (l RoomLayer) HasMap() bool { return l.MapID != "" }
+func (l RoomLayer) HasMap() bool     { return l.MapID != "" }
 func (l RoomLayer) MapMissing() bool { return l.MapID != "" && l.MapName == "" }
 func (l RoomLayer) Size() string {
 	return strconv.Itoa(l.Width) + " × " + strconv.Itoa(l.Height)
@@ -75,7 +78,9 @@ func (l RoomLayer) PawnLabel() string {
 	}
 	return pawnCount(l.Pawns)
 }
+
 const LayerNameLimit = 60
+
 func SafeLayerName(name string) string {
 	if strings.TrimSpace(name) == "" {
 		return "Untitled layer"

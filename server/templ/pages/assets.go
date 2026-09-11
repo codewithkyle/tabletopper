@@ -1,8 +1,11 @@
 package pages
+
 import (
 	"strconv"
+
 	"tabletopper/internal/queries"
 )
+
 const (
 	assetTabMaps    = "maps"
 	assetTabTokens  = "tokens"
@@ -10,14 +13,16 @@ const (
 	assetTabMusic   = "music"
 )
 const AssetNameLimit = 255
+
 type MapAsset struct {
-	ID       string
-	Name     string
-	FileName string
+	ID         string
+	Name       string
+	FileName   string
 	Generation string
-	State queries.AssetsTileState
-	AutoRetry bool
+	State      queries.AssetsTileState
+	AutoRetry  bool
 }
+
 func (m MapAsset) Usable() bool {
 	return m.Generation != ""
 }
@@ -28,11 +33,13 @@ func (m MapAsset) Retryable() bool {
 	return m.State == queries.AssetsTileStateFailed
 }
 func (m MapAsset) TileFailure() string { return tileFailureText(m.AutoRetry) }
-func (m MapAsset) RetryLabel() string { return retryLabelText(m.AutoRetry) }
+func (m MapAsset) RetryLabel() string  { return retryLabelText(m.AutoRetry) }
+
 const (
 	tilingRetrying = "Tiling failed. Trying again in a few minutes."
 	tilingGaveUp   = "Tiling gave up."
 )
+
 func tileFailureText(autoRetry bool) string {
 	if autoRetry {
 		return tilingRetrying

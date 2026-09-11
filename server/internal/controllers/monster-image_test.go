@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"context"
@@ -11,11 +12,14 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func tinyPNG(t *testing.T) []byte {
 	t.Helper()
 	src := image.NewRGBA(image.Rect(0, 0, 2, 2))
@@ -120,7 +124,7 @@ func TestGetImageServesMonsterImagesAndNotJournalOnes(t *testing.T) {
 	}
 	withheld := map[string]string{
 		"journal": "reached through the share reader, not the account-wide route",
-		"music": "not an image",
+		"music":   "not an image",
 	}
 	for _, member := range assetTypes(t) {
 		why, kept := withheld[member]

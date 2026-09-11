@@ -1,8 +1,10 @@
 package tiler
+
 import (
 	"fmt"
 	"testing"
 )
+
 func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 	const width, height, tileSize = 12000, 9000, 512
 	levels := []struct {

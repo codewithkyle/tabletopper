@@ -1,4 +1,5 @@
 package share
+
 import (
 	"context"
 	"crypto/hmac"
@@ -8,15 +9,18 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+
 	"golang.org/x/crypto/bcrypt"
 )
+
 const (
-	tokenBytes = 16
-	PasswordMin = 6
-	PasswordMax = 72
+	tokenBytes   = 16
+	PasswordMin  = 6
+	PasswordMax  = 72
 	unlockCookie = "share_unlock"
 	unlockWindow = 12 * 60 * 60
 )
+
 func ValidToken(token string) bool {
 	if len(token) != base64.RawURLEncoding.EncodedLen(tokenBytes) {
 		return false
@@ -44,7 +48,9 @@ func HashPassword(plain string) (string, error) {
 	}
 	return string(hash), nil
 }
+
 var bcryptSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
+
 func PasswordMatches(ctx context.Context, hash, plain string) (bool, error) {
 	select {
 	case bcryptSlots <- struct{}{}:

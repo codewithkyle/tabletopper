@@ -1,12 +1,16 @@
 package storage
+
 import (
 	"context"
 	"io"
 	"strconv"
 	"time"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const cleanupTimeout = 15 * time.Second
+
 func MapPrefix(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/maps/" + assetID.String() + "/"
 }

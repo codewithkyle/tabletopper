@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -6,14 +7,17 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) RoomSocket(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)

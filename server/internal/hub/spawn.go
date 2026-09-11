@@ -1,17 +1,22 @@
 package hub
+
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"strings"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	npcHP = 1
 	npcAC = 10
 )
+
 func (h *Hub) resolveSpawn(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd *room.PawnSpawn) error {
 	if !who.GM() {
 		return nil

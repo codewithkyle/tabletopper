@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"database/sql"
 	"errors"
@@ -7,18 +8,23 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
 	"tabletopper/internal/tiler"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const tileExtension = ".webp"
+
 type tileCoords struct {
 	gen ulid.ULID
 	z   int
 	x   int
 	y   int
 }
+
 func parseTileCoords(gen string, z string, name string) (tileCoords, bool) {
 	generation, err := ulid.Parse(gen)
 	if err != nil {

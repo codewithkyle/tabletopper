@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"encoding/binary"
@@ -6,33 +7,39 @@ import (
 	"sync"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func testID(n uint64) ulid.ULID {
 	var id ulid.ULID
 	id[0] = 1
 	binary.BigEndian.PutUint64(id[8:], n)
 	return id
 }
+
 var (
 	roomID   = testID(1)
 	gmID     = testID(2)
 	playerID = testID(3)
 	otherID  = testID(4)
 )
+
 type memStore struct {
-	mu      sync.Mutex
-	loaded  Loaded
-	loadErr error
-	saves   [][]byte
-	seqs    []uint64
-	saveErr error
+	mu        sync.Mutex
+	loaded    Loaded
+	loadErr   error
+	saves     [][]byte
+	seqs      []uint64
+	saveErr   error
 	saveDelay time.Duration
 	inFlight  int
-	cleared [][2]ulid.ULID
+	cleared   [][2]ulid.ULID
 	preserved [][]byte
 }
+
 func (m *memStore) Load(ctx context.Context, id ulid.ULID) (Loaded, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -96,11 +103,13 @@ func (m *memStore) clears() [][2]ulid.ULID {
 	defer m.mu.Unlock()
 	return append([][2]ulid.ULID(nil), m.cleared...)
 }
+
 type tabletop struct {
 	t *testing.T
 	*Hub
 	store *memStore
 }
+
 func newTabletop(t *testing.T, opts Options) *tabletop {
 	t.Helper()
 	store := &memStore{loaded: Loaded{Name: "The Sunless Citadel"}}
@@ -167,12 +176,14 @@ func (tb *tabletop) settle() {
 		tb.t.Fatal("the room was not live when the test tried to synchronise with it")
 	}
 }
+
 type frame struct {
 	Type string
 	Seq  uint64
 	CID  string
 	Body map[string]any
 }
+
 func frames(t *testing.T, c *client) []frame {
 	t.Helper()
 	var out []frame

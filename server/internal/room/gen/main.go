@@ -1,4 +1,5 @@
 package main
+
 import (
 	"bytes"
 	"fmt"
@@ -7,10 +8,14 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const output = "../../js/room/protocol.ts"
+
 func main() {
 	b, err := Generate()
 	if err != nil {
@@ -26,16 +31,19 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 var (
 	ulidType   = reflect.TypeOf(ulid.ULID{})
 	headerType = reflect.TypeOf(room.Header{})
 	valuesType = reflect.TypeOf((*interface{ Values() []string })(nil)).Elem()
 )
+
 type generator struct {
 	enums   map[string]reflect.Type
 	structs map[string]reflect.Type
 	queue   []reflect.Type
 }
+
 func Generate() ([]byte, error) {
 	g := &generator{
 		enums:   map[string]reflect.Type{},
@@ -75,11 +83,13 @@ func Generate() ([]byte, error) {
 	b.WriteString(transient())
 	return b.Bytes(), nil
 }
+
 type block struct {
 	Wire string
 	Name string
 	Body string
 }
+
 func (g *generator) render(from map[string]any, envelope func(name string) []tsField) []block {
 	out := make([]block, 0, len(from))
 	for _, wire := range sortedKeys(from) {
@@ -89,11 +99,13 @@ func (g *generator) render(from map[string]any, envelope func(name string) []tsF
 	}
 	return out
 }
+
 type tsField struct {
 	Name     string
 	Type     string
 	Optional bool
 }
+
 func (g *generator) tsFields(t reflect.Type) []tsField {
 	var out []tsField
 	for i := range t.NumField() {

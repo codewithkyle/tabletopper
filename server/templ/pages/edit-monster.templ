@@ -1,5 +1,7 @@
 package pages
+
 import "tabletopper/templ/layouts"
+
 templ EditMonster(data EditMonsterPageData) {
 	@layouts.Base("Monster Editor | Tabletopper") {
 		<monster-editor class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
@@ -12,6 +14,7 @@ templ EditMonster(data EditMonsterPageData) {
 		</monster-editor>
 	}
 }
+
 templ monsterBar(header MonsterHeader) {
 	@appBar() {
 		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 py-3" }>
@@ -27,10 +30,12 @@ templ monsterBar(header MonsterHeader) {
 		</div>
 	}
 }
+
 templ MonsterBarValues(header MonsterHeader) {
 	@monsterBarFigure(header, true)
 	@monsterBarChips(header, true)
 }
+
 templ monsterShareButton(monsterID string) {
 	<button
 		type="button"
@@ -41,12 +46,14 @@ templ monsterShareButton(monsterID string) {
 		<span class="max-[640px]:sr-only">Share</span>
 	</button>
 }
+
 templ monsterExportButton(monsterID string) {
 	<a href={ "/monsters/" + monsterID + "/export.md" } download class="btn btn-secondary shrink-0 max-[640px]:px-3">
 		@downloadIcon()
 		<span class="max-[640px]:sr-only">Export</span>
 	</a>
 }
+
 templ monsterBarFigure(header MonsterHeader, oob bool) {
 	<div
 		id="monster-bar-figure"
@@ -66,6 +73,7 @@ templ monsterBarFigure(header MonsterHeader, oob bool) {
 		</div>
 	</div>
 }
+
 templ monsterBarChips(header MonsterHeader, oob bool) {
 	<dl
 		id="monster-bar-chips"
@@ -87,6 +95,7 @@ templ monsterBarChips(header MonsterHeader, oob bool) {
 		}
 	</dl>
 }
+
 templ monsterPanels(data EditMonsterPageData) {
 	{{ base := "/monsters/" + data.MonsterID }}
 	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 max-[1280px]:grid-cols-1">

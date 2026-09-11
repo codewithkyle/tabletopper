@@ -1,10 +1,12 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
 	"tabletopper/internal/hub"
@@ -12,19 +14,22 @@ import (
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
 	"tabletopper/internal/storage"
+
 	"github.com/a-h/templ"
 )
+
 type App struct {
-	Queries  *queries.Queries
-	Storage  *storage.Client
-	Clerk    *clerkauth.Client
-	Sessions *session.Store
-	Config   config.Config
-	Hub *hub.Hub
-	DB *sql.DB
-	ShareAttempts *share.Attempts
+	Queries          *queries.Queries
+	Storage          *storage.Client
+	Clerk            *clerkauth.Client
+	Sessions         *session.Store
+	Config           config.Config
+	Hub              *hub.Hub
+	DB               *sql.DB
+	ShareAttempts    *share.Attempts
 	RoomJoinAttempts *share.Attempts
 }
+
 func (a *App) tx(ctx context.Context, fn func(q *queries.Queries) error) error {
 	tx, err := a.DB.BeginTx(ctx, nil)
 	if err != nil {

@@ -1,18 +1,21 @@
 package share
+
 import (
 	"sync"
 	"time"
 )
+
 type Attempts struct {
 	limit  int
 	window time.Duration
-	mu   sync.Mutex
-	seen map[string]attempt
+	mu     sync.Mutex
+	seen   map[string]attempt
 }
 type attempt struct {
 	count int
 	since time.Time
 }
+
 func NewAttempts(limit int, window time.Duration) *Attempts {
 	return &Attempts{limit: limit, window: window, seen: map[string]attempt{}}
 }

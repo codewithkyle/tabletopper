@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"errors"
@@ -6,8 +7,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
 )
+
 func TestAJoinFromSomebodyJustKickedIsRefusedByTheRoom(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
@@ -106,9 +109,11 @@ func refused(t *testing.T, c *client, reason string) {
 		t.Errorf("the refused connection received %v, want nothing", types(got))
 	}
 }
+
 type fakePinger struct {
 	fail chan struct{}
 }
+
 func (p *fakePinger) Ping(ctx context.Context) error {
 	select {
 	case <-p.fail:

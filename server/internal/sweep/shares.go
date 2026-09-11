@@ -1,15 +1,19 @@
 package sweep
+
 import (
 	"context"
 	"database/sql"
 	"log/slog"
 	"time"
+
 	"tabletopper/internal/queries"
 )
+
 const (
 	expiredShareInterval = time.Hour
-	expiredShareGrace = 24 * time.Hour
+	expiredShareGrace    = 24 * time.Hour
 )
+
 func ExpiredShares(ctx context.Context, q *queries.Queries) {
 	go func() {
 		ticker := time.NewTicker(expiredShareInterval)

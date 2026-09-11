@@ -1,4 +1,5 @@
 package tiler
+
 import (
 	"bytes"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"image/png"
 	"testing"
 )
+
 func coordinateImage(width int, height int) *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
@@ -232,17 +234,17 @@ func jpegWithOrientation(t *testing.T, img image.Image, orientation uint16) []by
 	}
 	exif := []byte{
 		'E', 'x', 'i', 'f', 0x00, 0x00,
-		'M', 'M', 0x00, 0x2a, 
-		0x00, 0x00, 0x00, 0x08, 
-		0x00, 0x01, 
-		0x01, 0x12, 
-		0x00, 0x03, 
-		0x00, 0x00, 0x00, 0x01, 
-		byte(orientation >> 8), byte(orientation), 0x00, 0x00, 
-		0x00, 0x00, 0x00, 0x00, 
+		'M', 'M', 0x00, 0x2a,
+		0x00, 0x00, 0x00, 0x08,
+		0x00, 0x01,
+		0x01, 0x12,
+		0x00, 0x03,
+		0x00, 0x00, 0x00, 0x01,
+		byte(orientation >> 8), byte(orientation), 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
 	}
 	out := make([]byte, 0, raw.Len()+len(exif)+4)
-	out = append(out, raw.Bytes()[:2]...) 
+	out = append(out, raw.Bytes()[:2]...)
 	out = append(out, 0xff, 0xe1, byte((len(exif)+2)>>8), byte(len(exif)+2))
 	out = append(out, exif...)
 	return append(out, raw.Bytes()[2:]...)

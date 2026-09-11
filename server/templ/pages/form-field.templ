@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ textField(name string, label string, value string, placeholder string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -19,6 +21,7 @@ templ textField(name string, label string, value string, placeholder string, req
 		}
 	</div>
 }
+
 templ numberField(name string, label string, value string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -37,6 +40,7 @@ templ numberField(name string, label string, value string, required bool) {
 		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
 	</div>
 }
+
 templ selectField(name string, label string, options []Option, value string, required bool) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -52,6 +56,7 @@ templ selectField(name string, label string, options []Option, value string, req
 		</select>
 	</div>
 }
+
 templ proseField(name string, label string, value string, placeholder string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -67,6 +72,7 @@ templ proseField(name string, label string, value string, placeholder string) {
 		>{ value }</textarea>
 	</div>
 }
+
 templ cappedTextField(name string, label string, value string, placeholder string, limit int) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -83,6 +89,7 @@ templ cappedTextField(name string, label string, value string, placeholder strin
 		/>
 	</div>
 }
+
 templ wordField(name string, label string, value string, placeholder string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -99,6 +106,7 @@ templ wordField(name string, label string, value string, placeholder string) {
 		/>
 	</div>
 }
+
 templ countField(name string, label string, value string, max int) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -116,6 +124,7 @@ templ countField(name string, label string, value string, max int) {
 		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to { strconv.Itoa(max) }.</p>
 	</div>
 }
+
 templ deathSaveField(name string, label string, ticked int) {
 	<div class="fieldset">
 		<span class="fieldset-legend">{ label }</span>
@@ -133,6 +142,7 @@ templ deathSaveField(name string, label string, ticked int) {
 		</div>
 	</div>
 }
+
 templ toggleField(name string, label string, checked bool) {
 	<div class="fieldset">
 		<span class="fieldset-legend">{ label }</span>
@@ -148,6 +158,7 @@ templ toggleField(name string, label string, checked bool) {
 		</div>
 	</div>
 }
+
 templ abilityField(name string, label string, value string, modifier string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>
@@ -169,6 +180,7 @@ templ abilityField(name string, label string, value string, modifier string) {
 		<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a number from 0 to 9999.</p>
 	</div>
 }
+
 templ signedNumberField(name string, label string, value string) {
 	<div class="fieldset">
 		<label class="fieldset-legend" for={ name }>{ label }</label>

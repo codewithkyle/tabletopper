@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -7,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/markdown"
 	"tabletopper/internal/prefs"
@@ -14,14 +16,17 @@ import (
 	"tabletopper/internal/session"
 	"tabletopper/internal/snippet"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	journalTitleLimit    = 255
 	journalBodyLimit     = 262144
 	journalSearchLimit   = 255
 	journalSnippetRadius = 60
 )
+
 func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -221,10 +226,12 @@ func (a *App) JournalLinkFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.JournalLinkFragment())
 }
+
 type journalInput struct {
 	Title string
 	Body  string
 }
+
 func buildJournalInput(r *http.Request) (journalInput, []string) {
 	var problems []string
 	title := strings.TrimSpace(r.PostFormValue("title"))
@@ -291,7 +298,9 @@ func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID
 	}
 	return entries, nil
 }
+
 var journalSearchWildcards = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
+
 func journalSearchPattern(term string) string {
 	return "%" + journalSearchWildcards.Replace(term) + "%"
 }

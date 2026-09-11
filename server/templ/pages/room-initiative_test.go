@@ -1,15 +1,19 @@
 package pages
+
 import (
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 const (
 	testTurnRoomID = "01BX5ZZKBKACTAV9WEVGEMMVW0"
 	testTurnEntryA = "01BX5ZZKBKACTAV9WEVGEMMVW1"
 	testTurnEntryB = "01BX5ZZKBKACTAV9WEVGEMMVW2"
 	testTurnPawnA  = "01BX5ZZKBKACTAV9WEVGEMMVW3"
 )
+
 func turnStrip(isGM bool) RoomInitiativeData {
 	return RoomInitiativeData{
 		RoomID: testTurnRoomID,

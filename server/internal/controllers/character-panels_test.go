@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"context"
@@ -16,11 +17,14 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type recordingDB struct {
 	calls []recordedCall
 	reads []recordedCall
@@ -31,6 +35,7 @@ type recordedCall struct {
 	query string
 	args  []any
 }
+
 func boundID(arg any) (ulid.ULID, bool) {
 	switch id := arg.(type) {
 	case ulid.ULID:
@@ -54,7 +59,9 @@ func (d *recordingDB) ExecContext(ctx context.Context, query string, args ...int
 func (d *recordingDB) PrepareContext(context.Context, string) (*sql.Stmt, error) {
 	panic("not used")
 }
+
 var errNoRowsToGive = errors.New("recordingDB has no rows to give")
+
 func (d *recordingDB) QueryContext(_ context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	d.calls = append(d.calls, recordedCall{query: query, args: args})
 	if d.err != nil {
@@ -62,21 +69,29 @@ func (d *recordingDB) QueryContext(_ context.Context, query string, args ...inte
 	}
 	return nil, errNoRowsToGive
 }
+
 type refusingConnector struct{}
+
 func (refusingConnector) Connect(context.Context) (driver.Conn, error) { return nil, errNoRowsToGive }
-func (refusingConnector) Driver() driver.Driver { return nil }
+func (refusingConnector) Driver() driver.Driver                        { return nil }
+
 var refusingDB = sql.OpenDB(refusingConnector{})
+
 func (d *recordingDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	d.reads = append(d.reads, recordedCall{query: query, args: args})
 	return refusingDB.QueryRowContext(ctx, query, args...)
 }
+
 type fakeResult struct{ rows int64 }
+
 func (r fakeResult) LastInsertId() (int64, error) { return 0, nil }
 func (r fakeResult) RowsAffected() (int64, error) { return r.rows, nil }
+
 var (
 	testCharacterID = ulid.MustParse("01ARZ3NDEKTSV4RRFFQ69G5FAV")
 	testOwnerID     = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ")
 )
+
 func panelPost(t *testing.T, db *recordingDB, handler http.HandlerFunc, form url.Values, pathValues map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(http.MethodPost, "/characters/save", strings.NewReader(form.Encode()))
@@ -93,7 +108,9 @@ func newPanelApp(rows int64) (*App, *recordingDB) {
 	db := &recordingDB{rows: rows}
 	return &App{Queries: queries.New(db)}, db
 }
+
 var setClause = regexp.MustCompile(`(?is)\bSET\b(.*?)\bWHERE\b`)
+
 func setColumns(t *testing.T, query string) []string {
 	t.Helper()
 	match := setClause.FindStringSubmatch(query)
@@ -262,6 +279,7 @@ func tableColumns(t *testing.T, table string) []string {
 	}
 	return columns
 }
+
 var unownedColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
@@ -269,6 +287,7 @@ var unownedColumns = map[string]bool{
 	"created_at": true,
 	"updated_at": true,
 }
+
 func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 	covered := map[string]bool{}
 	panels := []struct {
@@ -315,7 +334,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 func TestCoreStatsDerivesLevelAndProficiencyFromXP(t *testing.T) {
 	app, db := newPanelApp(1)
 	panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
-		"xp": {"48000"}, 
+		"xp": {"48000"},
 	}, map[string]string{"id": testCharacterID.String()})
 	call := db.only(t)
 	if got := setColumns(t, call.query)[:3]; strings.Join(got, ",") != "xp,level,proficiency_bonus" {
@@ -367,7 +386,7 @@ func TestPanelAnswers404WhenNoRowMatched(t *testing.T) {
 func TestPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterIdentity, url.Values{
-		"name": {"   "}, 
+		"name": {"   "},
 		"size": {"medium"},
 	}, map[string]string{"id": testCharacterID.String()})
 	if rec.Code != http.StatusUnprocessableEntity {

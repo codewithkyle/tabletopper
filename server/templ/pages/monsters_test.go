@@ -1,12 +1,15 @@
 package pages
+
 import (
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
 	"github.com/a-h/templ"
 )
+
 func TestEveryActionKindHasASection(t *testing.T) {
 	members := actionKindEnumMembers(t)
 	sections := MonsterActionSections()

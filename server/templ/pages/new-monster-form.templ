@@ -1,5 +1,7 @@
 package pages
+
 const NewMonsterPanel = "new-monster"
+
 templ NewMonsterFragment() {
 	{{ errorBlock := "#errors-" + NewMonsterPanel }}
 	<div class="grid gap-4">
@@ -26,6 +28,7 @@ templ NewMonsterFragment() {
 		</form>
 	</div>
 }
+
 templ newMonsterImageField() {
 	<monster-image-picker class="flex items-center gap-4">
 		<div class="relative w-16 shrink-0">

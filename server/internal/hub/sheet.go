@@ -1,12 +1,15 @@
 package hub
+
 import (
 	"context"
 	"log/slog"
 	"sync"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type sheetWriter struct {
-	write func(ctx context.Context, character ulid.ULID, hp int) error
+	write   func(ctx context.Context, character ulid.ULID, hp int) error
 	mu      sync.Mutex
 	pending map[ulid.ULID]int
 	wake    chan struct{}
@@ -14,6 +17,7 @@ type sheetWriter struct {
 	stopped chan struct{}
 	once    sync.Once
 }
+
 func newSheetWriter(write func(ctx context.Context, character ulid.ULID, hp int) error) *sheetWriter {
 	if write == nil {
 		return nil

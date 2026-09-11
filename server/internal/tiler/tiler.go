@@ -1,12 +1,15 @@
 package tiler
+
 import (
 	"errors"
 	"fmt"
 	"image"
 	"io"
+
 	"github.com/disintegration/imaging"
 	"golang.org/x/image/draw"
 )
+
 type Tile struct {
 	Z       int
 	X       int
@@ -20,6 +23,7 @@ type Result struct {
 	TileSize int
 	MaxZoom  int
 }
+
 func Build(src io.Reader, tileSize int, emit func(Tile) error) (Result, error) {
 	if tileSize < 1 {
 		return Result{}, fmt.Errorf("tiler: tile size %d is not a size", tileSize)

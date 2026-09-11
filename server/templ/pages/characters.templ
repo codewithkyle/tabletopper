@@ -1,15 +1,18 @@
 package pages
+
 import (
 	"fmt"
 	"strconv"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/layouts"
 )
+
 templ Characters(characters []queries.Character) {
 	@layouts.Base("Characters | Tabletopper") {
 		@charactersContent(characters)
 	}
 }
+
 templ Character(character queries.Character) {
 	<character-card class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
@@ -111,6 +114,7 @@ templ Character(character queries.Character) {
 		</div>
 	</character-card>
 }
+
 templ charactersContent(characters []queries.Character) {
 	<character-selector class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -126,7 +130,7 @@ templ charactersContent(characters []queries.Character) {
 							class="btn btn-primary max-[700px]:flex-1"
 							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/character/new', size: 'sm' } }))"
 						>
-							<svg xmlns="http:
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-user-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"></path><path d="M16 19h6"></path><path d="M19 16v6"></path><path d="M6 21v-2a4 4 0 0 1 4 -4h4"></path></svg>
 							New character
 						</button>
 					</div>

@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestNextPassesOverADeadMonster(t *testing.T) {
 	w := newWorld(t)
 	ari := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, HP: intp(11), MaxHP: intp(11)})

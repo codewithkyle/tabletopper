@@ -1,12 +1,16 @@
 package pages
+
 import (
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 const testTableRoomID = "01BX5ZZKBKACTAV9WEVGEMMVT0"
+
 func testLayer(name string, pawns int) RoomLayer {
 	return RoomLayer{ID: "01BX5ZZKBKACTAV9WEVGEMMVT1", Name: name, Pawns: pawns}
 }

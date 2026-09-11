@@ -1,13 +1,16 @@
 package pages
+
 import "strconv"
+
 type LibraryAsset struct {
-	ID   string
-	Name string
+	ID       string
+	Name     string
 	FileName string
-	Kind string
-	Width  int
-	Height int
+	Kind     string
+	Width    int
+	Height   int
 }
+
 func (l LibraryAsset) URL() string {
 	return "/assets/" + l.Kind + "/" + l.ID
 }

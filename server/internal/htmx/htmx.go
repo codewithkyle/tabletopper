@@ -1,10 +1,13 @@
 package htmx
+
 import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/events"
 )
+
 func trigger(w http.ResponseWriter, events map[string]any) {
 	merged := map[string]any{}
 	if existing := w.Header().Get("HX-Trigger"); existing != "" {

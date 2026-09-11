@@ -1,14 +1,18 @@
 package pages
+
 import (
 	"bytes"
 	"context"
 	"strconv"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func testAccountSettings() AccountSettingsData {
 	return AccountSettingsData{
 		Themes: []Option{

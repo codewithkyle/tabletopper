@@ -1,4 +1,5 @@
 package pages
+
 var savingThrows = []BonusEntry{
 	{Key: "str", Ability: "str", Abbr: "STR", Label: "Strength"},
 	{Key: "dex", Ability: "dex", Abbr: "DEX", Label: "Dexterity"},
@@ -7,6 +8,7 @@ var savingThrows = []BonusEntry{
 	{Key: "wis", Ability: "wis", Abbr: "WIS", Label: "Wisdom"},
 	{Key: "cha", Ability: "cha", Abbr: "CHA", Label: "Charisma"},
 }
+
 templ savingThrowsTable(rows []BonusRow) {
 	<div class="@container">
 		<div class="grid grid-cols-1 gap-2 @[44rem]:grid-cols-2">

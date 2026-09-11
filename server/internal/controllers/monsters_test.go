@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"context"
@@ -13,12 +14,16 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testMonsterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS4")
+
 func createMonster(t *testing.T, app *App, form url.Values, picture []byte) *deadlineRecorder {
 	t.Helper()
 	var body bytes.Buffer
@@ -211,7 +216,9 @@ func tablesHoldingMonsterRows(t *testing.T) []string {
 	}
 	return tables
 }
+
 const monsterShareTable = "shares"
+
 func TestDeletingAMonsterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 	app, db := newPanelApp(1)
 	if err := deleteMonsterRows(context.Background(), app.Queries, testMonsterID, testOwnerID); err != nil {

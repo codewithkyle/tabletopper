@@ -1,8 +1,10 @@
 package pages
+
 import (
 	"strings"
 	"testing"
 )
+
 func TestTheTokenHalfAsksNothingAboutTheToken(t *testing.T) {
 	body := renderToString(t, RoomSpawn(RoomSpawnData{
 		RoomID: "01BX5ZZKBKACTAV9WEVGEMMVT0",

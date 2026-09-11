@@ -1,9 +1,12 @@
 package hub
+
 import (
 	"reflect"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 func TestEveryCommandWithAResolvedFieldIsResolvedAndOnlyForTheGM(t *testing.T) {
 	h := New(nil, Options{Store: &memStore{}})
 	gm := room.Actor{ID: gmID, Role: room.RoleGM}

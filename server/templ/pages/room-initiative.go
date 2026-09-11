@@ -1,13 +1,16 @@
 package pages
+
 import (
 	"strconv"
+
 	"tabletopper/internal/events"
 )
+
 const RoomInitiativeID = "room-initiative"
 const InitiativeTrigger = events.Initiative + "[!this.hasAttribute('data-dragging')] from:window"
 const InitiativeLoadTrigger = "load, " + InitiativeTrigger
 const (
-	EntrySolo = "solo"
+	EntrySolo  = "solo"
 	EntryGroup = "group"
 	EntryNamed = "named"
 )
@@ -18,32 +21,34 @@ const (
 )
 const InitiativePipMax = 12
 const initiativeBloodVariants = 9
+
 type RoomInitiativeData struct {
-	RoomID string
-	IsGM bool
-	Empty bool
+	RoomID  string
+	IsGM    bool
+	Empty   bool
 	Entries []RoomInitiativeEntry
 }
 type RoomInitiativeEntry struct {
-	ID   string
-	Name string
-	Kind string
-	Side string
-	Image string
-	Band  string
-	Blood string
-	HP string
-	Active bool
-	Mine   bool
-	Hidden bool
-	Solo string
-	Pips  []RoomInitiativePip
-	Count string
+	ID         string
+	Name       string
+	Kind       string
+	Side       string
+	Image      string
+	Band       string
+	Blood      string
+	HP         string
+	Active     bool
+	Mine       bool
+	Hidden     bool
+	Solo       string
+	Pips       []RoomInitiativePip
+	Count      string
 	Conditions []RoomPawnCondition
 }
 type RoomInitiativePip struct {
 	Band string
 }
+
 func (d RoomInitiativeData) ActingConditions() []RoomPawnCondition {
 	for _, e := range d.Entries {
 		if e.Active {
@@ -99,12 +104,16 @@ func InitiativeBloodVariant(pawnID string) string {
 	}
 	return strconv.Itoa(int(h%initiativeBloodVariants) + 1)
 }
+
 type RoomInitiativeEntryData struct {
 	RoomID string
 	Errors []string
 }
+
 const RoomInitiativeEntryPanel = "initiative-entry"
+
 func (d RoomInitiativeEntryData) SavePath() string {
 	return "/rooms/" + d.RoomID + "/initiative"
 }
+
 const EntryNameMax = "128"

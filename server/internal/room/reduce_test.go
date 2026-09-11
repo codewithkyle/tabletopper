@@ -1,9 +1,12 @@
 package room
+
 import (
 	"strings"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestEveryEventReduces(t *testing.T) {
 	for wire, ev := range EventPrototypes() {
 		s := NewState(testRoomID, "Room", newEnv())
@@ -22,7 +25,9 @@ func TestReduceNamesAnEventItDoesNotKnow(t *testing.T) {
 		t.Fatalf("the error does not name the event: %v", err)
 	}
 }
+
 type unreducedEvent struct{ Header }
+
 func (*unreducedEvent) eventType() string { return "an.event.nobody.wrote" }
 func TestTransientEventsChangeNothing(t *testing.T) {
 	w := busyWorld(t)

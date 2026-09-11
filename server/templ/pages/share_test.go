@@ -1,4 +1,5 @@
 package pages
+
 import (
 	"bytes"
 	"context"
@@ -6,8 +7,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
 	"github.com/a-h/templ"
 )
+
 func renderToString(t *testing.T, c templ.Component) string {
 	t.Helper()
 	var buf bytes.Buffer

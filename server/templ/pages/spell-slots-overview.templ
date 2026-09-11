@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ spellSlotsOverview(characterID string, levels []SpellLevel) {
 	{{ active := activeSpellLevels(levels) }}
 	if len(active) == 0 {
@@ -16,6 +18,7 @@ templ spellSlotsOverview(characterID string, levels []SpellLevel) {
 		</div>
 	}
 }
+
 templ spellLevelSummary(characterID string, level SpellLevel) {
 	if level.Level == 0 {
 		<div class={ surfaceInset + " p-3" }>
@@ -30,6 +33,7 @@ templ spellLevelSummary(characterID string, level SpellLevel) {
 		}
 	}
 }
+
 templ spellLevelHeading(characterID string, level SpellLevel) {
 	<span class="flex min-w-0 flex-col gap-1">
 		<a

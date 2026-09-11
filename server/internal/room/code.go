@@ -1,12 +1,15 @@
 package room
+
 import (
 	"crypto/rand"
 	"strconv"
 	"strings"
 )
+
 const CodeLength = 4
 const codeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 const codeCeiling = 256 - 256%len(codeAlphabet)
+
 func CodePattern() string {
 	return "[" + codeAlphabet + strings.ToLower(codeAlphabet) + "]{" + strconv.Itoa(CodeLength) + "}"
 }

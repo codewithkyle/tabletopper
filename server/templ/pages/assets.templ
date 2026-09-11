@@ -1,11 +1,14 @@
 package pages
+
 import (
 	"strconv"
 	"tabletopper/templ/layouts"
 )
+
 const assetTileGrid = "grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]"
 const assetFaceGrid = "grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]"
 const assetRowGrid = "grid-cols-1"
+
 templ MapAssets(maps []MapAsset) {
 	@layouts.Base("Maps | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabMaps, mapUploadButton()) {
@@ -13,6 +16,7 @@ templ MapAssets(maps []MapAsset) {
 		}
 	}
 }
+
 templ MapCards(maps []MapAsset, query string) {
 	@assetCards(mapsGrid(query)) {
 		for _, m := range maps {
@@ -20,6 +24,7 @@ templ MapCards(maps []MapAsset, query string) {
 		}
 	}
 }
+
 templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabTokens, libraryUploadButton(assetTabTokens, "Upload token")) {
@@ -27,6 +32,7 @@ templ TokenAssets(tokens []LibraryAsset) {
 		}
 	}
 }
+
 templ TokenCards(tokens []LibraryAsset, query string) {
 	@assetCards(tokensGrid(query)) {
 		for _, t := range tokens {
@@ -34,6 +40,7 @@ templ TokenCards(tokens []LibraryAsset, query string) {
 		}
 	}
 }
+
 templ AvatarAssets(avatars []LibraryAsset) {
 	@layouts.Base("Avatars | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabAvatars, libraryUploadButton(assetTabAvatars, "Upload avatar")) {
@@ -41,6 +48,7 @@ templ AvatarAssets(avatars []LibraryAsset) {
 		}
 	}
 }
+
 templ AvatarCards(avatars []LibraryAsset, query string) {
 	@assetCards(avatarsGrid(query)) {
 		for _, a := range avatars {
@@ -48,6 +56,7 @@ templ AvatarCards(avatars []LibraryAsset, query string) {
 		}
 	}
 }
+
 templ assetsShell(active string, actions templ.Component) {
 	<assets-page class="relative block h-screen min-h-dvh w-screen">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -70,6 +79,7 @@ templ assetsShell(active string, actions templ.Component) {
 		</div>
 	</assets-page>
 }
+
 templ assetSearchBox(kind string) {
 	<input
 		type="search"
@@ -86,6 +96,7 @@ templ assetSearchBox(kind string) {
 		hx-swap="outerHTML"
 	/>
 }
+
 templ assetCards(g assetGrid) {
 	<section id={ g.Kind } class={ assetGutter + " grid min-h-0 w-full content-start gap-4 overflow-y-auto py-4 " + g.Cols }>
 		{ children... }
@@ -102,6 +113,7 @@ templ assetCards(g assetGrid) {
 		</div>
 	</section>
 }
+
 templ mapUploadButton() {
 	<label
 		for="map-upload"
@@ -123,6 +135,7 @@ templ mapUploadButton() {
 		/>
 	</label>
 }
+
 templ MapCard(m MapAsset) {
 	<asset-card
 		class={ sheetSurface + " mb-auto p-4" }
@@ -137,7 +150,7 @@ templ MapCard(m MapAsset) {
 			if m.Usable() {
 				<img class="absolute inset-0 h-full w-full object-cover" src={ "/assets/images/" + m.ID + "/preview" } alt=""/>
 			} else {
-				<svg xmlns="http:
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-10 text-base-content/25 icon icon-tabler icons-tabler-outline icon-tabler-photo"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M15 8h.01"></path><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"></path><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"></path><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"></path></svg>
 			}
 			if m.Polling() {
 				<div class="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-base-100/85 px-2 py-1 text-xs">

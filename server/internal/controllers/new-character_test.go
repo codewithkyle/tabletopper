@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"encoding/json"
 	"net/http"
@@ -7,9 +8,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 )
+
 func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.NewCharacterForm, url.Values{"name": {"  Ferdinand the Bold  "}}, nil)
@@ -50,7 +53,7 @@ func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 }
 func TestCreateRejectsBadNamesWithoutWriting(t *testing.T) {
 	for _, c := range []struct {
-		name string
+		name  string
 		value string
 		want  string
 	}{

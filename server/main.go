@@ -1,4 +1,5 @@
 package main
+
 import (
 	"context"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
 	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
 	"tabletopper/internal/controllers"
@@ -22,12 +24,14 @@ import (
 	"tabletopper/internal/sweep"
 	"tabletopper/internal/tiling"
 )
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("Fatal", "error", err)
 		os.Exit(1)
 	}
 }
+
 // run is main with a return value, so every exit path is a returned error
 // and the deferred cleanup runs on all of them.
 func run() error {
@@ -149,6 +153,7 @@ func run() error {
 	}
 	return nil
 }
+
 // The two halves of the shutdown budget. They are separate rather than one
 // shared ten seconds so that a slow HTTP drain cannot spend the time the rooms
 // need to write themselves back; see the deferred block in run.

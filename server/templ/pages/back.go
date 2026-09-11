@@ -1,8 +1,10 @@
 package pages
+
 type backTarget struct {
 	Href  string
 	Label string
 }
+
 func homeBack() backTarget {
 	return backTarget{Href: "/", Label: "Home"}
 }

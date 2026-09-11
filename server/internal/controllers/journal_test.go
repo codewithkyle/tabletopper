@@ -1,14 +1,19 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testEntryID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
+
 func journalRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, entryID string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, "/characters/journal", strings.NewReader(form.Encode()))

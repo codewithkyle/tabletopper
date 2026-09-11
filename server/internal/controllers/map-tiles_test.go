@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"bytes"
 	"database/sql"
@@ -8,15 +9,19 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/tiler"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var (
 	testTileGen   = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS3")
 	testStaleGen  = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS4")
 	testTileRoute = "/assets/maps/" + testAssetID.String() + "/tiles/" + testTileGen.String() + "/0/0_0.webp"
 )
+
 func servingPyramid() queries.GetMapPyramidRow {
 	gen := testTileGen
 	return queries.GetMapPyramidRow{

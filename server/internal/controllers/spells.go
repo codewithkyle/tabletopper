@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -8,12 +9,15 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	spellNameLimit        = 128
 	spellComponentsLimit  = 128
@@ -21,8 +25,9 @@ const (
 	spellRangeLimit       = 64
 	spellDurationLimit    = 64
 	spellDescriptionLimit = 65535
-	spellSlotLimit = 99
+	spellSlotLimit        = 99
 )
+
 func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
 	characterID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
@@ -286,6 +291,7 @@ func spellToastLabel(name string) string {
 	}
 	return name
 }
+
 type spellInput struct {
 	Name         string
 	School       string
@@ -296,6 +302,7 @@ type spellInput struct {
 	Description  string
 	Prepared     bool
 }
+
 func buildSpellInput(r *http.Request) (spellInput, []string) {
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	components := strings.TrimSpace(r.PostFormValue("components"))
@@ -396,9 +403,9 @@ func spellPageRows(rows []queries.Spell) []pages.Spell {
 }
 func spellPageRow(row queries.Spell) pages.Spell {
 	return pages.Spell{
-		ID:    row.ID.String(),
-		Level: int(row.Level),
-		Name:  row.Name,
+		ID:           row.ID.String(),
+		Level:        int(row.Level),
+		Name:         row.Name,
 		School:       pages.NormalizeSpellSchool(row.School),
 		Components:   row.Components,
 		CastingTime:  row.CastingTime,

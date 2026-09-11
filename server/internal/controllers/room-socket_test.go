@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql/driver"
@@ -7,11 +8,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func getSocket(t *testing.T, app *App, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 	return roomRequest(t, app.RoomSocket, http.MethodGet, "/socket/room/"+testRoomID.String(),
@@ -154,7 +158,9 @@ func membersRequest(t *testing.T, app *App, sess session.UserSession) *httptest.
 	return roomRequest(t, app.RoomMembersFragment, http.MethodGet,
 		"/fragment/room/members?room="+testRoomID.String(), nil, sess)
 }
+
 type emptyRoomStore struct{}
+
 func (emptyRoomStore) Load(context.Context, ulid.ULID) (hub.Loaded, error) {
 	return hub.Loaded{Name: "Curse of Strahd"}, nil
 }

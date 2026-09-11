@@ -1,13 +1,16 @@
 package session
+
 import (
 	"context"
 	"log/slog"
 	"time"
 )
+
 const (
 	cleanupInterval = time.Hour
-	cleanupGrace = 24 * time.Hour
+	cleanupGrace    = 24 * time.Hour
 )
+
 func (s *Store) StartCleanup(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(cleanupInterval)

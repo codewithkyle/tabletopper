@@ -1,27 +1,37 @@
 package room
+
 import (
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type FogAdded struct {
 	Header
 	Shape FogShape `json:"shape"`
 }
+
 func (*FogAdded) eventType() string { return "fog.added" }
+
 type FogRemoved struct {
 	Header
 	ID ulid.ULID `json:"id"`
 }
+
 func (*FogRemoved) eventType() string { return "fog.removed" }
+
 type FogCleared struct {
 	Header
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (*FogCleared) eventType() string { return "fog.cleared" }
+
 type FogSetEnabled struct {
 	Layer   ulid.ULID `json:"layer"`
 	Enabled bool      `json:"enabled"`
 }
+
 func (c *FogSetEnabled) Authorize(s *State, a Actor) error {
 	return requireGM(a, "turn fog on or off")
 }
@@ -34,10 +44,12 @@ func (c *FogSetEnabled) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type FogSetPrefill struct {
 	Layer   ulid.ULID `json:"layer"`
 	Prefill bool      `json:"prefill"`
 }
+
 func (c *FogSetPrefill) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change how a layer's fog works")
 }
@@ -50,12 +62,14 @@ func (c *FogSetPrefill) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type FogAdd struct {
 	Layer  ulid.ULID `json:"layer"`
 	Kind   ShapeKind `json:"kind"`
 	Mode   FogMode   `json:"mode"`
 	Points []int     `json:"points"`
 }
+
 func (c *FogAdd) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the fog")
 }
@@ -108,9 +122,11 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	return append(emissions, to(ToAll, &FogAdded{Shape: cloneShape(shape)})), nil
 }
+
 type FogRemove struct {
 	ID ulid.ULID `json:"id"`
 }
+
 func (c *FogRemove) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the fog")
 }
@@ -122,9 +138,11 @@ func (c *FogRemove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{to(ToAll, &FogRemoved{ID: c.ID})}, nil
 }
+
 type FogClear struct {
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (c *FogClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the fog")
 }

@@ -1,9 +1,12 @@
 package middleware
+
 import (
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/htmx"
 )
+
 func (m Auth) Fragment(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")

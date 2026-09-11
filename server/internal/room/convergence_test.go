@@ -1,13 +1,17 @@
 package room
+
 import (
 	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var update = flag.Bool("update", false, "rewrite the reducer fixtures in testdata")
+
 func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
 	w := newWorld(t)
 	r := &recorder{t: t, w: w}
@@ -125,6 +129,7 @@ func TestTheFixturesReplayFromTheirInitialState(t *testing.T) {
 		})
 	}
 }
+
 type reducerFixture struct {
 	Role    string        `json:"role"`
 	Initial State         `json:"initial"`
@@ -135,6 +140,7 @@ type reducerStep struct {
 	Events []json.RawMessage `json:"events"`
 	State  State             `json:"state"`
 }
+
 func decodeEventForTest(raw json.RawMessage) (Event, error) {
 	var envelope struct {
 		Type string `json:"type"`
@@ -151,6 +157,7 @@ func decodeEventForTest(raw json.RawMessage) (Event, error) {
 	}
 	return ev, nil
 }
+
 type stepRecord struct {
 	name      string
 	actor     Actor
@@ -170,6 +177,7 @@ type viewer struct {
 	actor  Actor
 	before State
 }
+
 func (r *recorder) viewers() []viewer {
 	return []viewer{
 		{actor: r.w.gm, before: r.current[RoleGM]},

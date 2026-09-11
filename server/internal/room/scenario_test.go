@@ -1,5 +1,7 @@
 package room
+
 import "github.com/oklog/ulid/v2"
+
 func scenario(r *recorder) {
 	w := r.w
 	gm, pc, other := w.gm, w.pc, w.other

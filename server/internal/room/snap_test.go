@@ -1,5 +1,7 @@
 package room
+
 import "testing"
+
 func TestSnapAxisTakesEveryParityAndMode(t *testing.T) {
 	const cell = 64
 	tests := []struct {

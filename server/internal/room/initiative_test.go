@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestATrackerWithLinesInItIsInRoundOne(t *testing.T) {
 	w := newWorld(t)
 	first, second := w.twoInTheOrder()

@@ -1,18 +1,22 @@
 package hub
+
 import (
 	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
 )
+
 func Version() string {
 	versionOnce.Do(func() { version = readVersion(time.Now()) })
 	return version
 }
+
 var (
 	versionOnce sync.Once
 	version     string
 )
+
 func readVersion(start time.Time) string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {

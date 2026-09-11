@@ -1,12 +1,14 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
-	"log/slog"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/images"
@@ -14,13 +16,16 @@ import (
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var spawnKinds = map[string]bool{
 	pages.RoomSpawnMonsters: true,
 	pages.RoomSpawnTokens:   true,
 	pages.RoomSpawnNPCs:     true,
 }
+
 func (a *App) RoomSpawnFragment(w http.ResponseWriter, r *http.Request) {
 	data, ok := a.spawnData(w, r)
 	if !ok {
@@ -720,12 +725,12 @@ func pawnIDs(w http.ResponseWriter, r *http.Request) ([]ulid.ULID, bool) {
 func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer string) pages.RoomPawn {
 	exact := room.ExactHP(pawn.Kind, labels, role)
 	out := pages.RoomPawn{
-		ID:     pawn.ID.String(),
-		Name:   pawn.Name,
-		Image:  pawn.Image,
-		Object: pawn.Kind == room.PawnObject,
-		HP:     hpText(exact, pawn),
-		Layer:  layer,
+		ID:        pawn.ID.String(),
+		Name:      pawn.Name,
+		Image:     pawn.Image,
+		Object:    pawn.Kind == room.PawnObject,
+		HP:        hpText(exact, pawn),
+		Layer:     layer,
 		Character: pawn.Kind == room.PawnPlayer,
 	}
 	if pawn.HPBand != nil {

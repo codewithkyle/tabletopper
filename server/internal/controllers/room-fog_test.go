@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"net/http"
@@ -7,10 +8,13 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func fogApp(t *testing.T) (*App, ulid.ULID) {
 	t.Helper()
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})

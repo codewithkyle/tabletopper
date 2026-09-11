@@ -1,8 +1,10 @@
 package room
+
 import (
 	"strings"
 	"testing"
 )
+
 func TestNewStateStartsUsable(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", newEnv())
 	if s.Schema != Schema {

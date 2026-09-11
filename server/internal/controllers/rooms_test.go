@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -9,13 +10,17 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testRoomID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVT0")
+
 func roomRequest(t *testing.T, handler http.HandlerFunc, method string, path string, pathValues map[string]string, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, path, nil)

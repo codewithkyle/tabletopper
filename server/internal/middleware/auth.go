@@ -1,13 +1,17 @@
 package middleware
+
 import (
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/session"
 )
+
 type Auth struct {
 	Sessions *session.Store
 }
+
 func (m Auth) RequireSession(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s, err := m.Sessions.FromRequest(r)

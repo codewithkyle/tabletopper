@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
@@ -9,11 +10,15 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testItemID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
+
 func inventoryRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, itemID string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, "/characters/inventory", strings.NewReader(form.Encode()))

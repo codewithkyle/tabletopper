@@ -1,28 +1,38 @@
 package room
+
 import (
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type PawnSpawned struct {
 	Header
 	Pawn Pawn `json:"pawn"`
 }
+
 func (*PawnSpawned) eventType() string { return "pawn.spawned" }
+
 type PawnUpdated struct {
 	Header
 	Pawn Pawn `json:"pawn"`
 }
+
 func (*PawnUpdated) eventType() string { return "pawn.updated" }
+
 type PawnRemoved struct {
 	Header
 	ID ulid.ULID `json:"id"`
 }
+
 func (*PawnRemoved) eventType() string { return "pawn.removed" }
+
 type PawnMoved struct {
 	Header
 	Pawns []PawnPosition `json:"pawns"`
 	shown []PawnPosition
 }
+
 func (*PawnMoved) eventType() string { return "pawn.moved" }
 func (e *PawnMoved) ForRole(role Role) Event {
 	if role == RoleGM {
@@ -35,11 +45,13 @@ func (e *PawnMoved) ForRole(role Role) Event {
 	c.Pawns = e.shown
 	return &c
 }
+
 type PawnDragging struct {
 	Header
 	Pawns []PawnPosition `json:"pawns"`
 	shown []PawnPosition
 }
+
 func (*PawnDragging) eventType() string { return "pawn.dragging" }
 func (*PawnDragging) Transient() bool   { return true }
 func (e *PawnDragging) ForRole(role Role) Event {
@@ -53,6 +65,7 @@ func (e *PawnDragging) ForRole(role Role) Event {
 	c.Pawns = e.shown
 	return &c
 }
+
 type PawnSpawn struct {
 	Kind        PawnKind   `json:"kind"`
 	Layer       ulid.ULID  `json:"layer"`
@@ -64,11 +77,12 @@ type PawnSpawn struct {
 	AssetID     *ulid.ULID `json:"assetId,omitempty"`
 	Name        string     `json:"name,omitempty"`
 	Size        Size       `json:"size,omitempty"`
-	HP    *int `json:"hp,omitempty"`
-	MaxHP *int `json:"maxHp,omitempty"`
-	AC    *int `json:"ac,omitempty"`
-	Pawn *Pawn `json:"-"`
+	HP          *int       `json:"hp,omitempty"`
+	MaxHP       *int       `json:"maxHp,omitempty"`
+	AC          *int       `json:"ac,omitempty"`
+	Pawn        *Pawn      `json:"-"`
 }
+
 func (c *PawnSpawn) Authorize(_ *State, a Actor) error {
 	return requireGM(a, "put something on the table")
 }
@@ -92,9 +106,11 @@ func (c *PawnSpawn) Apply(s *State, _ Actor, env Env) ([]Emission, error) {
 	}
 	return s.addPawn(p, env)
 }
+
 type PawnSpawnCharacters struct {
 	Pawns []Pawn `json:"-"`
 }
+
 func (c *PawnSpawnCharacters) Authorize(s *State, a Actor) error {
 	return requireGM(a, "spawn the party")
 }
@@ -177,12 +193,14 @@ func checkPawn(p Pawn) error {
 	}
 	return nil
 }
+
 type PawnMove struct {
 	Anchor ulid.ULID   `json:"anchor"`
 	X      int         `json:"x"`
 	Y      int         `json:"y"`
 	Others []ulid.ULID `json:"others"`
 }
+
 func (c *PawnMove) Authorize(s *State, a Actor) error {
 	return s.requireControl(a, c.Anchor, c.Others)
 }
@@ -213,12 +231,14 @@ func (c *PawnMove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{to(ToAll, &PawnMoved{Pawns: moved, shown: s.shownPositions(moved)})}, nil
 }
+
 type PawnDrag struct {
 	Anchor ulid.ULID   `json:"anchor"`
 	X      int         `json:"x"`
 	Y      int         `json:"y"`
 	Others []ulid.ULID `json:"others"`
 }
+
 func (c *PawnDrag) Authorize(s *State, a Actor) error {
 	return s.requireControl(a, c.Anchor, c.Others)
 }
@@ -286,6 +306,7 @@ func (s *State) shownPositions(all []PawnPosition) []PawnPosition {
 	}
 	return out
 }
+
 type PawnUpdate struct {
 	ID       ulid.ULID `json:"id"`
 	Name     *string   `json:"name,omitempty"`
@@ -298,6 +319,7 @@ type PawnUpdate struct {
 	Height   *int      `json:"height,omitempty"`
 	Rotation *int      `json:"rotation,omitempty"`
 }
+
 func (c *PawnUpdate) Authorize(s *State, a Actor) error {
 	return s.requireOwner(a, c.ID, "change that pawn")
 }
@@ -350,10 +372,12 @@ func (c *PawnUpdate) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return s.pawnUpdated(c.ID), nil
 }
+
 type PawnSetConditions struct {
 	ID         ulid.ULID   `json:"id"`
 	Conditions []Condition `json:"conditions"`
 }
+
 func (c *PawnSetConditions) Authorize(s *State, a Actor) error {
 	return s.requireOwner(a, c.ID, "change that pawn")
 }
@@ -382,10 +406,12 @@ func (c *PawnSetConditions) Apply(s *State, a Actor, env Env) ([]Emission, error
 	s.Normalize()
 	return s.pawnUpdated(c.ID), nil
 }
+
 type PawnSetVisible struct {
 	IDs     []ulid.ULID `json:"ids"`
 	Visible bool        `json:"visible"`
 }
+
 func (c *PawnSetVisible) Authorize(s *State, a Actor) error {
 	return requireGM(a, "hide or reveal pawns")
 }
@@ -422,10 +448,12 @@ func (c *PawnSetVisible) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	return out, nil
 }
+
 type PawnSetLayer struct {
 	IDs   []ulid.ULID `json:"ids"`
 	Layer ulid.ULID   `json:"layer"`
 }
+
 func (c *PawnSetLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "move pawns between layers")
 }
@@ -454,9 +482,11 @@ func (c *PawnSetLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	return append(out, s.shownTransitions(before)...), nil
 }
+
 type PawnRemove struct {
 	IDs []ulid.ULID `json:"ids"`
 }
+
 func (c *PawnRemove) Authorize(s *State, a Actor) error {
 	return requireGM(a, "remove pawns")
 }

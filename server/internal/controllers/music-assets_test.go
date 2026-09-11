@@ -1,13 +1,16 @@
 package controllers
+
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 )
+
 func startUpload(t *testing.T, app *App, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(http.MethodPost, "/assets/music", strings.NewReader(body))

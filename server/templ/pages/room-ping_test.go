@@ -1,9 +1,12 @@
 package pages
+
 import (
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 func TestEverybodyGetsThePingTool(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		page := markup(t, Room(testRoomPage(role)))

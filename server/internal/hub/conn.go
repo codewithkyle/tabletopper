@@ -1,20 +1,26 @@
 package hub
+
 import (
 	"context"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/coder/websocket"
 )
+
 const (
-	pingInterval = 30 * time.Second
-	pingTimeout  = 10 * time.Second
+	pingInterval       = 30 * time.Second
+	pingTimeout        = 10 * time.Second
 	membershipInterval = 2 * time.Minute
 )
+
 type Membership func(ctx context.Context) bool
 type closeCode int
+
 const (
 	closeNormal closeCode = iota
 	closeGoingAway
@@ -29,6 +35,7 @@ const (
 	reasonRestarting = "restarting"
 	reasonRateLimit  = "rate"
 )
+
 func (c closeCode) status() websocket.StatusCode {
 	switch c {
 	case closeGoingAway:
@@ -39,15 +46,17 @@ func (c closeCode) status() websocket.StatusCode {
 		return websocket.StatusNormalClosure
 	}
 }
+
 type client struct {
 	who    room.Actor
 	player room.Player
-	out chan []byte
+	out    chan []byte
 	once   sync.Once
 	quit   chan struct{}
 	code   closeCode
 	reason string
 }
+
 func newClient(p room.Player, buffer int) *client {
 	return &client{
 		who:    room.Actor{ID: p.ID, Role: p.Role},
@@ -103,9 +112,11 @@ func (h *Hub) attach(w http.ResponseWriter, r *http.Request, a *actor, p room.Pl
 	defer leaveCancel()
 	_ = a.post(leaveCtx, leave{c: c})
 }
+
 type pinger interface {
 	Ping(ctx context.Context) error
 }
+
 func watch(ctx context.Context, ws pinger, member Membership, c *client, end func()) {
 	watchOn(ctx, ws, member, c, end, pingInterval, membershipInterval)
 }
@@ -207,15 +218,17 @@ func (h *Hub) readPump(ctx context.Context, ws *websocket.Conn, a *actor, c *cli
 func (h *Hub) post(ctx context.Context, a *actor, m any) {
 	_ = a.post(ctx, m)
 }
+
 type bucket struct {
-	rate  float64
-	burst float64
-	opts  Options
-	tokens float64
-	last   time.Time
+	rate      float64
+	burst     float64
+	opts      Options
+	tokens    float64
+	last      time.Time
 	overs     int
 	overSince time.Time
 }
+
 func newBucket(o Options) *bucket {
 	return &bucket{
 		rate:   float64(o.Rate),

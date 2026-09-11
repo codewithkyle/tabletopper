@@ -1,11 +1,14 @@
 package main
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
+
 // http.ServeMux panics on two patterns that overlap without one being more
 // specific, and it does it at registration -- which is boot, in main. This
 // builds the whole URL space so that failure lands in `make check` instead of
@@ -19,6 +22,7 @@ func TestRoutesRegisterWithoutConflict(t *testing.T) {
 	}()
 	routes(&controllers.App{}, middleware.Auth{})
 }
+
 // The panel saves and the routes that already lived under /characters/{id} have
 // to stay distinguishable. ServeMux accepts all of them, so this checks the one
 // thing acceptance does not prove: that a request lands on the pattern it looks
@@ -233,6 +237,7 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
 // The map's routes, which now go three segments deeper than any other asset
 // route. Two things here are worth pinning rather than trusting.
 //
@@ -301,6 +306,7 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
 // THE ASSET MANAGER IS FOUR PAGES AND A REDIRECT ONTO THE FIRST OF THEM, and
 // all four are literals. Nothing here is a wildcard, so the mux has nothing to
 // disambiguate -- which is exactly why it is worth pinning: the day one of
@@ -382,6 +388,7 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
 // THE ROOM BLOCK, WHERE A LITERAL SITS WHERE AN ID GOES. /rooms/join and
 // /rooms/{id} are the same shape to a reader and not to the mux, which prefers
 // the literal -- the same trust the slot save and the two share pairs depend
@@ -510,6 +517,7 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		}
 	}
 }
+
 // The mutation half of the CSRF defence, driven through the real chain rather
 // than a rebuilt one: a POST that says it came from another site is refused
 // before it reaches a handler.
@@ -548,6 +556,7 @@ func TestCrossSiteMutationsAreRefused(t *testing.T) {
 		}
 	}
 }
+
 // And a request from the page itself is not, which is what every htmx swap in
 // the app is.
 //
@@ -570,6 +579,7 @@ func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 		t.Errorf("Location = %q, want %q", got, "/sign-in")
 	}
 }
+
 // A WebSocket upgrade cannot follow a redirect: the browser reports a failed
 // handshake and the client retries it on its backoff, forever, against a
 // sign-in page. So the socket route sits behind the 404 wrapper rather than the
@@ -588,6 +598,7 @@ func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
 		t.Errorf("Location = %q, want no redirect at all", got)
 	}
 }
+
 // A safe method is not covered, which is deliberate and is why /logout moved to
 // POST. This pins the boundary so that a state change added behind a GET does
 // not quietly inherit a protection that was never there.
@@ -601,6 +612,7 @@ func TestCrossSiteReadsAreNotRefused(t *testing.T) {
 		t.Error("a cross-site GET was refused; the app relies on GET being reachable from anywhere")
 	}
 }
+
 // The floor from middleware.SecurityHeaders, on a response that is itself a
 // refusal -- the case that proves the wrapper is outside the check rather than
 // inside it.
@@ -620,6 +632,7 @@ func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
 		}
 	}
 }
+
 // Logging out is a state change and has to stay off GET: SameSite=Lax sends the
 // session cookie on a top-level GET navigation, and the cross-origin check
 // above does not cover safe methods, so a GET here is a logout anybody can put
@@ -633,6 +646,7 @@ func TestLogoutIsPostOnly(t *testing.T) {
 		t.Error("GET /logout reached the logout handler")
 	}
 }
+
 // A directory under public/ has no index.html, so http.FileServer would answer
 // one of these with a listing of the scripts or the stylesheets. The file
 // itself still serves.

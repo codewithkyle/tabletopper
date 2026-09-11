@@ -1,6 +1,8 @@
 package room
+
 import (
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
 
@@ -23,13 +25,13 @@ type RoomInfo struct {
 	Locked bool      `json:"locked"`
 }
 type Table struct {
-	Layers      []Layer   `json:"layers"`
-	ActiveLayer ulid.ULID `json:"activeLayer"`
-	Grid        Grid      `json:"grid"`
+	Layers             []Layer            `json:"layers"`
+	ActiveLayer        ulid.ULID          `json:"activeLayer"`
+	Grid               Grid               `json:"grid"`
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
-	FogPrefill bool `json:"fogPrefill"`
+	FogPrefill         bool               `json:"fogPrefill"`
 }
 type Layer struct {
 	ID         ulid.ULID `json:"id"`
@@ -65,7 +67,9 @@ type Player struct {
 	Role          Role       `json:"role"`
 	Connected     bool       `json:"connected"`
 }
+
 const DefaultAvatar = "/images/default-avatar.webp"
+
 type Pawn struct {
 	ID          ulid.ULID   `json:"id"`
 	Kind        PawnKind    `json:"kind"`
@@ -113,12 +117,15 @@ type InitiativeEntry struct {
 	Initiative int         `json:"initiative"`
 }
 type InitiativeGrouping string
+
 const (
 	GroupMonsters   InitiativeGrouping = "grouped"
 	GroupIndividual InitiativeGrouping = "individual"
 )
+
 func (InitiativeGrouping) Values() []string { return []string{"grouped", "individual"} }
-func (g InitiativeGrouping) Valid() bool { return inValues(g, g.Values()) }
+func (g InitiativeGrouping) Valid() bool    { return inValues(g, g.Values()) }
+
 type FogShape struct {
 	ID      ulid.ULID `json:"id"`
 	LayerID ulid.ULID `json:"layerId"`
@@ -137,34 +144,45 @@ type Stroke struct {
 	Done    bool       `json:"done"`
 }
 type GridLines string
+
 const (
 	GridLinesOff    GridLines = "off"
 	GridLinesSolid  GridLines = "solid"
 	GridLinesDashed GridLines = "dashed"
 )
+
 func (GridLines) Values() []string { return []string{"off", "solid", "dashed"} }
 func (l GridLines) Valid() bool    { return inValues(l, l.Values()) }
+
 type Snap string
+
 const (
 	SnapOff       Snap = "off"
 	SnapCells     Snap = "cells"
 	SnapHalfCells Snap = "halfCells"
 )
+
 func (Snap) Values() []string { return []string{"off", "cells", "halfCells"} }
 func (s Snap) Valid() bool    { return inValues(s, s.Values()) }
+
 type Diagonals string
+
 const (
 	DiagonalsEqual       Diagonals = "equal"
 	DiagonalsAlternating Diagonals = "alternating"
 )
+
 func (Diagonals) Values() []string { return []string{"equal", "alternating"} }
 func (d Diagonals) Valid() bool    { return inValues(d, d.Values()) }
+
 type PawnLabels string
+
 const (
 	LabelsNone    PawnLabels = "none"
 	LabelsDefault PawnLabels = "default"
 	LabelsFull    PawnLabels = "full"
 )
+
 func (PawnLabels) Values() []string { return []string{"none", "default", "full"} }
 func (v PawnLabels) Valid() bool    { return inValues(v, v.Values()) }
 func ExactHP(kind PawnKind, labels PawnLabels, role Role) bool {
@@ -176,17 +194,22 @@ func ExactHP(kind PawnKind, labels PawnLabels, role Role) bool {
 	}
 	return labels == LabelsFull
 }
+
 type PawnKind string
+
 const (
 	PawnPlayer  PawnKind = "player"
 	PawnMonster PawnKind = "monster"
 	PawnNPC     PawnKind = "npc"
 	PawnObject  PawnKind = "object"
 )
+
 func (PawnKind) Values() []string { return []string{"player", "monster", "npc", "object"} }
 func (k PawnKind) Valid() bool    { return inValues(k, k.Values()) }
 func (k PawnKind) Creature() bool { return k != PawnObject }
+
 type Size string
+
 const (
 	SizeTiny       Size = "tiny"
 	SizeSmall      Size = "small"
@@ -195,6 +218,7 @@ const (
 	SizeHuge       Size = "huge"
 	SizeGargantuan Size = "gargantuan"
 )
+
 func (Size) Values() []string {
 	return []string{"tiny", "small", "medium", "large", "huge", "gargantuan"}
 }
@@ -211,7 +235,9 @@ func (s Size) Footprint() int {
 		return 1
 	}
 }
+
 type HPBand string
+
 const (
 	BandHealthy    HPBand = "healthy"
 	BandBruised    HPBand = "bruised"
@@ -220,11 +246,14 @@ const (
 	BandNearDeath  HPBand = "nearDeath"
 	BandDead       HPBand = "dead"
 )
+
 func (HPBand) Values() []string {
 	return []string{"healthy", "bruised", "bloody", "veryBloody", "nearDeath", "dead"}
 }
 func (b HPBand) Valid() bool { return inValues(b, b.Values()) }
+
 type ConditionColor string
+
 const (
 	ColorBlue   ConditionColor = "blue"
 	ColorGreen  ConditionColor = "green"
@@ -235,49 +264,64 @@ const (
 	ColorWhite  ConditionColor = "white"
 	ColorYellow ConditionColor = "yellow"
 )
+
 func (ConditionColor) Values() []string {
 	return []string{"blue", "green", "orange", "pink", "purple", "red", "white", "yellow"}
 }
 func (c ConditionColor) Valid() bool { return inValues(c, c.Values()) }
+
 type ClearTrigger string
+
 const (
 	ClearStart ClearTrigger = "start"
 	ClearEnd   ClearTrigger = "end"
 )
+
 func (ClearTrigger) Values() []string { return []string{"start", "end"} }
 func (c ClearTrigger) Valid() bool    { return inValues(c, c.Values()) }
+
 type ShapeKind string
+
 const (
 	ShapeRect ShapeKind = "rect"
 	ShapePoly ShapeKind = "poly"
 )
+
 func (ShapeKind) Values() []string { return []string{"rect", "poly"} }
 func (k ShapeKind) Valid() bool    { return inValues(k, k.Values()) }
+
 type StrokeKind string
+
 const (
 	StrokeFree   StrokeKind = "free"
 	StrokeRect   StrokeKind = "rect"
 	StrokeCircle StrokeKind = "circle"
 	StrokeCone   StrokeKind = "cone"
 )
+
 func (StrokeKind) Values() []string { return []string{"free", "rect", "circle", "cone"} }
 func (k StrokeKind) Valid() bool    { return inValues(k, k.Values()) }
-func (k StrokeKind) Shape() bool { return k != StrokeFree }
+func (k StrokeKind) Shape() bool    { return k != StrokeFree }
+
 type FogMode string
+
 const (
 	FogReveal FogMode = "reveal"
 	FogHide   FogMode = "hide"
 )
+
 func (FogMode) Values() []string { return []string{"reveal", "hide"} }
 func (m FogMode) Valid() bool    { return inValues(m, m.Values()) }
 func inValues[T ~string](v T, values []string) bool {
 	return slices.Contains(values, string(v))
 }
+
 const DefaultLayerName = "Ground floor"
+
 func NewState(roomID ulid.ULID, name string, env Env) *State {
 	layer := Layer{
-		ID:   env.id(),
-		Name: DefaultLayerName,
+		ID:         env.id(),
+		Name:       DefaultLayerName,
 		FogEnabled: false,
 		FogPrefill: true,
 	}
@@ -295,8 +339,8 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 				FeetPerCell: DefaultFeetPerCell,
 				Diagonals:   DiagonalsEqual,
 			},
-			PawnLabels: LabelsDefault,
-			PlayersCanDraw: true,
+			PawnLabels:         LabelsDefault,
+			PlayersCanDraw:     true,
 			InitiativeGrouping: GroupMonsters,
 		},
 	}

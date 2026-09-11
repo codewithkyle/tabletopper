@@ -1,10 +1,14 @@
 package room_test
+
 import (
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 )
+
 const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
 func TestNewCodeOnlyDrawsFromTheAlphabet(t *testing.T) {
 	seen := map[rune]bool{}
 	for range 1000 {
@@ -47,15 +51,15 @@ func TestValidCode(t *testing.T) {
 		"three characters":      {"AB2", false},
 		"five characters":       {"AB2CD", false},
 		"empty":                 {"", false},
-		"an I":          {"AIB2", false},
-		"an L":          {"ALB2", false},
-		"an O":          {"AOB2", false},
-		"a zero":        {"A0B2", false},
-		"a one":         {"A1B2", false},
-		"a space":       {"AB 2", false},
-		"punctuation":   {"AB-2", false},
-		"a wide rune":   {"AB2é", false},
-		"leading space": {" AB2", false},
+		"an I":                  {"AIB2", false},
+		"an L":                  {"ALB2", false},
+		"an O":                  {"AOB2", false},
+		"a zero":                {"A0B2", false},
+		"a one":                 {"A1B2", false},
+		"a space":               {"AB 2", false},
+		"punctuation":           {"AB-2", false},
+		"a wide rune":           {"AB2é", false},
+		"leading space":         {" AB2", false},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if got := room.ValidCode(c.code); got != c.want {

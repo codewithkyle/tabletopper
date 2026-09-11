@@ -1,10 +1,12 @@
 package room
+
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 )
+
 func TestDecodeCommandReadsAWellFormedFrame(t *testing.T) {
 	frame := `{"type":"pawn.move","cid":"a9","anchor":"` + testID(7).String() + `","x":128,"y":64,"others":[]}`
 	cmd, cid, err := DecodeCommand([]byte(frame))
@@ -149,6 +151,8 @@ func TestTheErrorEventCarriesTheRefusal(t *testing.T) {
 		t.Fatalf("the internal message reached the client: %q", generic.Message)
 	}
 }
+
 type errString string
+
 func (e errString) Error() string { return string(e) }
-func typeName(v any) string { return fmt.Sprintf("%T", v) }
+func typeName(v any) string       { return fmt.Sprintf("%T", v) }

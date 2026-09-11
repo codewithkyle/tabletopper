@@ -1,4 +1,5 @@
 package pages
+
 templ InventoryRow(characterID string, item InventoryItem) {
 	{{ action := "/characters/" + characterID + "/inventory/" + item.ID }}
 	{{ panel := InventoryRowPanel(item.ID) }}

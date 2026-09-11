@@ -1,10 +1,12 @@
 package pages
+
 import (
 	"bytes"
 	"context"
 	"strings"
 	"testing"
 )
+
 func journalList(t *testing.T, entries ...JournalEntry) string {
 	t.Helper()
 	var buf bytes.Buffer

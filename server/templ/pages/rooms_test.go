@@ -1,17 +1,20 @@
 package pages
+
 import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
 )
+
 func testRoomPage(role room.Role) RoomPageData {
 	return RoomPageData{
-		ID:   "01BX5ZZKBKACTAV9WEVGEMMVT0",
-		Name: "Curse of Strahd",
-		Code: "AB2C",
-		Role: role,
+		ID:         "01BX5ZZKBKACTAV9WEVGEMMVT0",
+		Name:       "Curse of Strahd",
+		Code:       "AB2C",
+		Role:       role,
 		PingVolume: prefs.PingVolumeMax,
 	}
 }
@@ -474,7 +477,9 @@ func TestTheRoomIsABarAndATable(t *testing.T) {
 		}
 	}
 }
+
 var toolButtons = regexp.MustCompile(`data-room-tool="([a-z]+)"[^>]*aria-pressed="true"`)
+
 func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 	if got := strings.Count(page, "data-room-tool="); got != len(RoomTools()) {
@@ -681,7 +686,9 @@ func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
 		}
 	}
 }
+
 const testRoomIDText = "01BX5ZZKBKACTAV9WEVGEMMVT0"
+
 func membersFor(canKick bool) RoomMembersData {
 	return RoomMembersData{
 		RoomID:  testRoomIDText,

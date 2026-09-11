@@ -1,11 +1,14 @@
 package pages
+
 import (
 	"slices"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
 )
+
 const tooltipBody = "tooltip-content"
 const roomLockID = "room-lock"
 const (
@@ -16,21 +19,23 @@ const (
 	RoomToolDraw    = "draw"
 	RoomToolPing    = "ping"
 )
+
 type RoomPageData struct {
-	ID   string
-	Name string
-	Code string
-	Locked bool
-	Closed bool
-	Role room.Role
-	UserID string
-	Socket string
-	Version string
-	Debug bool
+	ID         string
+	Name       string
+	Code       string
+	Locked     bool
+	Closed     bool
+	Role       room.Role
+	UserID     string
+	Socket     string
+	Version    string
+	Debug      bool
 	FollowTurn bool
-	ShowBlood bool
+	ShowBlood  bool
 	PingVolume int
 }
+
 func (d RoomPageData) PingVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampPingVolume(d.PingVolume))
 }
@@ -91,28 +96,30 @@ func (d RoomPageData) IsGM() bool {
 func (d RoomPageData) RoleName() string {
 	return string(d.Role)
 }
+
 type RoomMenu struct {
 	Label string
 	Items []RoomMenuItem
 }
 type RoomMenuItem struct {
-	Label string
-	ID    string
-	Href   string
-	NewTab bool
+	Label          string
+	ID             string
+	Href           string
+	NewTab         bool
 	Post           string
 	Confirm        string
 	ConfirmHeading string
 	ConfirmLabel   string
-	Action string
-	Value  string
-	Key string
-	Window RoomWindow
-	Modal RoomModal
-	Danger bool
-	Layered bool
-	Disabled bool
+	Action         string
+	Value          string
+	Key            string
+	Window         RoomWindow
+	Modal          RoomModal
+	Danger         bool
+	Layered        bool
+	Disabled       bool
 }
+
 func (d RoomPageData) Menus() []RoomMenu {
 	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
 	if d.IsGM() {
@@ -266,10 +273,12 @@ func (d RoomPageData) viewMenu() RoomMenu {
 		{Label: "Toggle fullscreen", Action: "fullscreen"},
 	}}
 }
+
 const (
 	roomViewAction  = "view"
 	roomBloodAction = "clear-blood"
 )
+
 func helpMenu() RoomMenu {
 	return RoomMenu{Label: "Help", Items: []RoomMenuItem{
 		{Label: "Settings", Modal: RoomModal{URL: AccountSettingsPath}},
@@ -285,17 +294,19 @@ func comingSoon(labels ...string) []RoomMenuItem {
 	}
 	return items
 }
+
 type RoomTool struct {
-	Name  string
-	Label string
-	Pans bool
+	Name     string
+	Label    string
+	Pans     bool
 	Measures bool
-	Fogs bool
-	Draws bool
-	Pings bool
-	GM bool
-	Key string
+	Fogs     bool
+	Draws    bool
+	Pings    bool
+	GM       bool
+	Key      string
 }
+
 func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
@@ -319,12 +330,15 @@ func (d RoomPageData) Tools() []RoomTool {
 	}
 	return mine
 }
+
 const (
 	DrawColorPanelID = "draw-color-panel"
 	DrawWidthPanelID = "draw-width-panel"
 	DrawWidthDefault = "4"
 )
+
 var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
+
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
@@ -352,15 +366,18 @@ func (t RoomTool) Pressed() string {
 func (t RoomTool) KeyLabel() string {
 	return strings.ToUpper(t.Key)
 }
+
 const emptyVals = "{}"
+
 type RoomWindow struct {
-	ID    string
-	Title string
-	URL   string
+	ID     string
+	Title  string
+	URL    string
 	Width  int
 	Height int
 }
-func (w RoomWindow) WidthValue() string { return dimension(w.Width) }
+
+func (w RoomWindow) WidthValue() string  { return dimension(w.Width) }
 func (w RoomWindow) HeightValue() string { return dimension(w.Height) }
 func dimension(value int) string {
 	if value <= 0 {
@@ -368,28 +385,32 @@ func dimension(value int) string {
 	}
 	return strconv.Itoa(value)
 }
+
 type RoomModal struct {
-	URL string
+	URL  string
 	Size string
 }
 type RoomMember struct {
-	ID string
-	Name string
-	Username string
-	Avatar string
-	IsGM bool
+	ID        string
+	Name      string
+	Username  string
+	Avatar    string
+	IsGM      bool
 	Connected bool
 }
 type RoomMembersData struct {
 	RoomID  string
 	Members []RoomMember
 	CanKick bool
-	Live bool
+	Live    bool
 }
+
 func (d RoomMembersData) Path() string {
 	return "/fragment/room/members?room=" + d.RoomID
 }
+
 const GameMasterName = "Game Master"
+
 func MemberName(isGM bool, character string, username string) string {
 	if isGM {
 		return GameMasterName

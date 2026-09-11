@@ -1,9 +1,11 @@
 package middleware
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
+
 func TestFragmentRedirectsWithoutTheHTMXHeader(t *testing.T) {
 	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler ran without a session")

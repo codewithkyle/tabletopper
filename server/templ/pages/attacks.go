@@ -1,16 +1,19 @@
 package pages
+
 type Attack struct {
-	ID   string
-	Name string
+	ID         string
+	Name       string
 	Bonus      string
 	Damage     string
 	DamageType string
 	Mastery    string
 	Notes      string
 }
+
 func AttackRowPanel(attackID string) string {
 	return "attack-" + attackID
 }
+
 var damageTypeOptions = []Option{
 	{Label: "—", Value: ""},
 	{Label: "Acid", Value: "Acid"},
@@ -38,6 +41,7 @@ var masteryOptions = []Option{
 	{Label: "Topple", Value: "Topple"},
 	{Label: "Vex", Value: "Vex"},
 }
+
 func NormalizeDamageType(value string) string {
 	return normalizeChoice(value, damageTypeOptions)
 }

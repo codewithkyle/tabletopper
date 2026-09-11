@@ -1,10 +1,13 @@
 package controllers
+
 import (
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
 )
+
 var xpThresholds = [...]uint32{
 	0,
 	300,
@@ -27,6 +30,7 @@ var xpThresholds = [...]uint32{
 	305000,
 	355000,
 }
+
 func levelFromXP(xp uint32) uint8 {
 	for level := len(xpThresholds) - 1; level >= 0; level-- {
 		if xp >= xpThresholds[level] {
@@ -142,7 +146,9 @@ func spellNumbers(character queries.Character, modifiers map[string]int, profici
 	attack := proficiency + modifiers[ability] + int(character.SpellBonusMisc)
 	return strconv.Itoa(pages.SpellSaveDCBase + attack), pages.SignedNumber(attack)
 }
+
 const crZeroArmedXP = 10
+
 func challengeRating(value string) (xp uint32, proficiency uint8, nextXP uint32) {
 	ratings := pages.ChallengeRatings()
 	index := 0
@@ -224,19 +230,19 @@ func monsterStatBlock(monster queries.Monster, actions []queries.MonsterAction, 
 		image = "/assets/images/" + monster.AssetID.String()
 	}
 	return pages.StatBlock{
-		Name:     monster.Name,
-		Subtitle: monsterSubtitle(monster),
-		Image:    image,
-		AC: strconv.FormatUint(uint64(monster.AC), 10),
+		Name:       monster.Name,
+		Subtitle:   monsterSubtitle(monster),
+		Image:      image,
+		AC:         strconv.FormatUint(uint64(monster.AC), 10),
 		Initiative: derived.Initiative + " (" + derived.PassiveInitiative + ")",
 		HP:         strconv.FormatUint(uint64(monster.HP), 10),
 		HitDice:    strings.TrimSpace(monster.HitDice),
 		Speed:      fallbackString(monster.Speed, "30 ft."),
-		Abilities: statBlockAbilities(monster, derived),
-		Lines:     statBlockLines(monster, derived),
-		Sections:  statBlockSections(monster, actions),
-		Habitat:  strings.TrimSpace(monster.Habitat),
-		Treasure: strings.TrimSpace(monster.Treasure),
+		Abilities:  statBlockAbilities(monster, derived),
+		Lines:      statBlockLines(monster, derived),
+		Sections:   statBlockSections(monster, actions),
+		Habitat:    strings.TrimSpace(monster.Habitat),
+		Treasure:   strings.TrimSpace(monster.Treasure),
 	}
 }
 func statBlockAbilities(monster queries.Monster, derived pages.MonsterDerived) []pages.StatBlockAbility {

@@ -1,21 +1,24 @@
 package config
+
 import (
 	"fmt"
 	"os"
 	"strings"
 )
+
 type Config struct {
-	Env string
-	Addr string
-	DSN         string
-	ClerkAPIKey string
+	Env                 string
+	Addr                string
+	DSN                 string
+	ClerkAPIKey         string
 	ClerkPublishableKey string
 	ClerkFrontendAPI    string
-	R2AccountID       string
-	R2AccessKeyID     string
-	R2SecretAccessKey string
-	R2Bucket          string
+	R2AccountID         string
+	R2AccessKeyID       string
+	R2SecretAccessKey   string
+	R2Bucket            string
 }
+
 func Load() (Config, error) {
 	cfg := Config{
 		Env:                 os.Getenv("ENV"),

@@ -1,8 +1,10 @@
 package pages
+
 import (
 	"strings"
 	"testing"
 )
+
 func testSharedMonster() SharedMonsterData {
 	return SharedMonsterData{
 		Block: StatBlock{

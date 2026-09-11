@@ -1,13 +1,16 @@
 package pages
+
 import (
 	"strconv"
 	"tabletopper/templ/layouts"
 )
+
 templ Rooms(data RoomsPageData) {
 	@layouts.Base("Rooms | Tabletopper") {
 		@roomsContent(data)
 	}
 }
+
 templ NewRoomFragment() {
 	{{ errorBlock := "#errors-" + NewRoomPanel }}
 	<div class="grid gap-4">
@@ -44,6 +47,7 @@ templ NewRoomFragment() {
 		</form>
 	</div>
 }
+
 templ roomsContent(data RoomsPageData) {
 	<rooms-page class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
@@ -59,7 +63,7 @@ templ roomsContent(data RoomsPageData) {
 							class="btn btn-primary max-[700px]:flex-1"
 							hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: '/fragment/room/new', size: 'sm' } }))"
 						>
-							<svg xmlns="http:
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
 							New room
 						</button>
 					</div>
@@ -81,6 +85,7 @@ templ roomsContent(data RoomsPageData) {
 		</div>
 	</rooms-page>
 }
+
 templ roomCard(r RoomSummary) {
 	<room-card class={ sheetSurface }>
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-3 p-3">

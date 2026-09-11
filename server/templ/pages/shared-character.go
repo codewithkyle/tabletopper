@@ -1,4 +1,5 @@
 package pages
+
 type SharedFact struct {
 	Label string
 	Value string
@@ -41,26 +42,27 @@ type SharedSpellLevel struct {
 	Spells string
 }
 type SharedCharacterSheet struct {
-	Header CharacterHeader
-	Avatar string
-	Identity     []SharedFact
-	CoreStats    []SharedFact
-	Spellcasting []SharedFact
-	Vitals       []SharedFact
-	Abilities    []SharedAbility
-	SavingThrows []SharedBonus
-	Skills       []SharedBonus
+	Header            CharacterHeader
+	Avatar            string
+	Identity          []SharedFact
+	CoreStats         []SharedFact
+	Spellcasting      []SharedFact
+	Vitals            []SharedFact
+	Abilities         []SharedAbility
+	SavingThrows      []SharedBonus
+	Skills            []SharedBonus
 	PassivePerception string
-	Training   []SharedFact
-	Attacks    []SharedAttack
-	Features   []SharedFact
-	Equipped   []SharedItem
-	SpellSlots []SharedSpellLevel
-	Prepared   []SharedSpellGroup
-	Personality []SharedFact
-	Appearance  []SharedFact
-	Actions SharedActions
+	Training          []SharedFact
+	Attacks           []SharedAttack
+	Features          []SharedFact
+	Equipped          []SharedItem
+	SpellSlots        []SharedSpellLevel
+	Prepared          []SharedSpellGroup
+	Personality       []SharedFact
+	Appearance        []SharedFact
+	Actions           SharedActions
 }
+
 func SharedCharacterTitle(name string) string {
 	return characterBarName(CharacterHeader{Name: name}) + " | Tabletopper"
 }

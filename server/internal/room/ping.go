@@ -1,18 +1,23 @@
 package room
+
 import "github.com/oklog/ulid/v2"
+
 type Pinged struct {
 	Header
 	Layer ulid.ULID `json:"layer"`
 	X     int       `json:"x"`
 	Y     int       `json:"y"`
 }
+
 func (*Pinged) eventType() string { return "pinged" }
 func (*Pinged) Transient() bool   { return true }
+
 type Ping struct {
 	Layer ulid.ULID `json:"layer"`
 	X     int       `json:"x"`
 	Y     int       `json:"y"`
 }
+
 func (c *Ping) Authorize(s *State, a Actor) error {
 	return s.requirePlayerLayer(a, c.Layer)
 }

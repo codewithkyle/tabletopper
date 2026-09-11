@@ -1,18 +1,23 @@
 package pages
+
 import (
 	"bytes"
 	"context"
 	stdhtml "html"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
+
 	"github.com/a-h/templ"
 )
+
 const (
 	testPawnRoomID = "01BX5ZZKBKACTAV9WEVGEMMVT0"
 	testPawnID     = "01BX5ZZKBKACTAV9WEVGEMMVT7"
 	testOtherPawn  = "01BX5ZZKBKACTAV9WEVGEMMVT8"
 )
+
 func html(t *testing.T, c templ.Component) string {
 	t.Helper()
 	var buf bytes.Buffer

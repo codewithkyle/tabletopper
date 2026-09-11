@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ spellLevelTabs(characterID string, active int) {
 	{{ base := "/characters/" + characterID + "/edit/spells/" }}
 	<div class="overflow-x-auto">
@@ -10,6 +12,7 @@ templ spellLevelTabs(characterID string, active int) {
 		</nav>
 	</div>
 }
+
 templ spellLevelTabLink(href string, name string, current bool) {
 	if current {
 		<a

@@ -1,10 +1,12 @@
 package room
+
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
 type bandCase struct {
 	HP    int    `json:"hp"`
 	MaxHP int    `json:"maxHp"`
@@ -24,6 +26,7 @@ type hpCase struct {
 	Value   *int   `json:"value"`
 	Refused bool   `json:"refused"`
 }
+
 func TestRuleFixturesAreCurrent(t *testing.T) {
 	t.Run("bands", func(t *testing.T) {
 		var cases []bandCase

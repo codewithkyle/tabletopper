@@ -1,4 +1,5 @@
 package pages
+
 templ PanelFormErrors(panel string, messages []string) {
 	if len(messages) > 0 {
 		<div id={ panelErrorsID(panel) } class="mb-4 rounded-field border-2 border-error/60 p-4 text-error">

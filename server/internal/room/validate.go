@@ -1,39 +1,42 @@
 package room
+
 import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
 )
+
 const (
-	NameLimit = 128
+	NameLimit          = 128
 	ConditionNameLimit = 64
-	CoordLimit = 1_000_000
-	HPLimit = 9_999
-	ACLimit = 99
-	CellSizeMin = 8
-	CellSizeMax = 512
-	StrokeWidthMax = 24
-	StrokeChunkMax = 512
-	StrokePointsMax = 20_000
-	StrokesMax   = 5_000
-	FogShapesMax = 2_000
-	FogPointsMax = 2_000
+	CoordLimit         = 1_000_000
+	HPLimit            = 9_999
+	ACLimit            = 99
+	CellSizeMin        = 8
+	CellSizeMax        = 512
+	StrokeWidthMax     = 24
+	StrokeChunkMax     = 512
+	StrokePointsMax    = 20_000
+	StrokesMax         = 5_000
+	FogShapesMax       = 2_000
+	FogPointsMax       = 2_000
 	StrokePointsBudget = 200_000
 	FogPointsBudget    = 200_000
 	PlayerStrokeShare  = 4
-	PawnsMax = 1_000
-	ConditionsMax = 16
-	SelectionMax = 200
-	ObjectPixelsMax = 8_192
-	InitiativeMax = 200
-	LayersMax = 20
+	PawnsMax           = 1_000
+	ConditionsMax      = 16
+	SelectionMax       = 200
+	ObjectPixelsMax    = 8_192
+	InitiativeMax      = 200
+	LayersMax          = 20
 )
 const (
 	DefaultCellSize    = 64
 	DefaultFeetPerCell = 5
-	DefaultGridColor = "#000000FF"
+	DefaultGridColor   = "#000000FF"
 )
 const FeetPerCellMax = 1_000
+
 func checkName(what, s string) error {
 	if utf8.RuneCountInString(s) > NameLimit {
 		return invalid("Name too long", fmt.Sprintf("A %s can be at most %d characters.", what, NameLimit))

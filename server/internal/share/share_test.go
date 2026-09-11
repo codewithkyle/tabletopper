@@ -1,12 +1,15 @@
 package share_test
+
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/share"
 )
+
 func unlock(t *testing.T, setToken, setHash, readToken, readHash string) bool {
 	t.Helper()
 	w := httptest.NewRecorder()

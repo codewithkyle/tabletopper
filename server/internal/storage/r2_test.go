@@ -1,14 +1,17 @@
 package storage
+
 import (
 	"context"
 	"errors"
 	"net/http"
 	"testing"
+
 	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
+
 func TestDeleteManyWithNoKeysDoesNothing(t *testing.T) {
 	c := &Client{bucket: "test"}
 	if err := c.DeleteMany(context.Background(), nil); err != nil {

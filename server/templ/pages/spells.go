@@ -1,8 +1,10 @@
 package pages
+
 import (
 	"strconv"
 	"strings"
 )
+
 type Spell struct {
 	ID           string
 	Level        int
@@ -15,7 +17,9 @@ type Spell struct {
 	Description  string
 	Prepared     bool
 }
+
 const MaxSpellLevel = 9
+
 type SpellLevel struct {
 	Level int
 	Slots string
@@ -24,11 +28,12 @@ type SpellLevel struct {
 }
 type SpellLevelPageData struct {
 	CharacterID string
-	Header  CharacterHeader
-	Level   int
-	Current SpellLevel
-	Spells  []Spell
+	Header      CharacterHeader
+	Level       int
+	Current     SpellLevel
+	Spells      []Spell
 }
+
 var spellSchools = []string{
 	"Abjuration",
 	"Conjuration",
@@ -39,7 +44,9 @@ var spellSchools = []string{
 	"Necromancy",
 	"Transmutation",
 }
+
 const DefaultSpellSchool = "Evocation"
+
 func NormalizeSpellSchool(value string) string {
 	for _, school := range spellSchools {
 		if school == value {
@@ -78,11 +85,13 @@ func SpellRowPanel(spellID string) string {
 func SpellSlotsPanel(level int) string {
 	return "spell-slots-" + strconv.Itoa(level)
 }
+
 type PreparedSpellGroup struct {
 	Level  int
 	Name   string
 	Spells []Spell
 }
+
 func SpellMetaLine(spell Spell) string {
 	parts := make([]string, 0, 3)
 	for _, part := range []string{spell.CastingTime, spell.CastingRange, spell.Duration} {

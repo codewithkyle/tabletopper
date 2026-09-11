@@ -1,35 +1,48 @@
 package room
+
 import (
 	"fmt"
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type StrokeBegan struct {
 	Header
 	Stroke Stroke `json:"stroke"`
 }
+
 func (*StrokeBegan) eventType() string { return "stroke.began" }
+
 type StrokeExtended struct {
 	Header
 	ID     ulid.ULID `json:"id"`
 	Points []int     `json:"points"`
 }
+
 func (*StrokeExtended) eventType() string { return "stroke.extended" }
+
 type StrokeEnded struct {
 	Header
 	ID ulid.ULID `json:"id"`
 }
+
 func (*StrokeEnded) eventType() string { return "stroke.ended" }
+
 type StrokeErased struct {
 	Header
 	IDs []ulid.ULID `json:"ids"`
 }
+
 func (*StrokeErased) eventType() string { return "stroke.erased" }
+
 type StrokeCleared struct {
 	Header
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (*StrokeCleared) eventType() string { return "stroke.cleared" }
+
 type StrokeBegin struct {
 	ID     ulid.ULID  `json:"id"`
 	Layer  ulid.ULID  `json:"layer"`
@@ -38,6 +51,7 @@ type StrokeBegin struct {
 	Width  int        `json:"width"`
 	Points []int      `json:"points"`
 }
+
 func (c *StrokeBegin) Authorize(s *State, a Actor) error {
 	if err := s.requirePlayerLayer(a, c.Layer); err != nil {
 		return err
@@ -95,10 +109,12 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{to(ToAll, &StrokeBegan{Stroke: cloneStroke(stroke)})}, nil
 }
+
 type StrokeExtend struct {
 	ID     ulid.ULID `json:"id"`
 	Points []int     `json:"points"`
 }
+
 func (c *StrokeExtend) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
@@ -123,9 +139,11 @@ func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{to(ToAll, &StrokeExtended{ID: c.ID, Points: slices.Clone(c.Points)})}, nil
 }
+
 type StrokeEnd struct {
 	ID ulid.ULID `json:"id"`
 }
+
 func (c *StrokeEnd) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
@@ -138,9 +156,11 @@ func (c *StrokeEnd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{to(ToAll, &StrokeEnded{ID: c.ID})}, nil
 }
+
 type StrokeErase struct {
 	IDs []ulid.ULID `json:"ids"`
 }
+
 func (c *StrokeErase) Authorize(s *State, a Actor) error {
 	if a.GM() {
 		return nil
@@ -170,9 +190,11 @@ func (c *StrokeErase) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	return []Emission{to(ToAll, &StrokeErased{IDs: erased})}, nil
 }
+
 type StrokeClear struct {
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (c *StrokeClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the drawing")
 }

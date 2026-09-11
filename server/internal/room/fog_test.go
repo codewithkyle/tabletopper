@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func layerNamed(t *testing.T, s *State, id ulid.ULID) Layer {
 	t.Helper()
 	for _, l := range s.Table.Layers {

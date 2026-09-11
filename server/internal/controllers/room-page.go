@@ -1,17 +1,21 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 	row, role, ok := a.loadRoomMember(w, r)
 	if !ok {
@@ -191,7 +195,9 @@ func (a *App) loadRoomMember(w http.ResponseWriter, r *http.Request) (queries.Ge
 	}
 	return row, role, true
 }
+
 var errNotAMember = errors.New("rooms: not a member of that room")
+
 func (a *App) roomMember(ctx context.Context, sess session.UserSession, id string) (queries.GetRoomRow, room.Role, error) {
 	roomID, err := ulid.Parse(id)
 	if err != nil {

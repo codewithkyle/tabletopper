@@ -1,9 +1,12 @@
 package controllers
+
 import (
 	"net/http"
+
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 )
+
 func (a *App) Homepage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Homepage(session.FromContext(r.Context())))
 }

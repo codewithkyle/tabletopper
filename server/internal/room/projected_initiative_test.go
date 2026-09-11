@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestAPlayersTrackerNamesNothingHidden(t *testing.T) {
 	w := newWorld(t)
 	seen := w.spawn(Pawn{Name: "Goblin", Visible: true})

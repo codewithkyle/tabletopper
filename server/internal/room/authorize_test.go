@@ -1,9 +1,12 @@
 package room
+
 import (
 	"slices"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 	w, fx := authorizeWorld(t)
 	const ok = ""
@@ -91,12 +94,14 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		}
 	}
 }
+
 type authorizeFixture struct {
 	spare  ulid.ULID
 	owned  ulid.ULID
 	stroke ulid.ULID
 	shape  ulid.ULID
 }
+
 func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	t.Helper()
 	w := newWorld(t)

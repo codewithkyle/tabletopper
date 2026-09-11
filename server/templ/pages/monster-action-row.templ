@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ MonsterActionRow(monsterID string, action MonsterAction) {
 	{{ url := "/monsters/" + monsterID + "/actions/" + action.Kind + "/" + action.ID }}
 	{{ panel := MonsterActionRowPanel(action.ID) }}
@@ -47,11 +49,13 @@ templ MonsterActionRow(monsterID string, action MonsterAction) {
 		</div>
 	</form>
 }
+
 templ monsterActionSections(data EditMonsterPageData) {
 	for _, section := range MonsterActionSections() {
 		@monsterActionsTable(data.MonsterID, section, data.Actions[section.Kind])
 	}
 }
+
 templ monsterActionsTable(monsterID string, section MonsterActionSection, rows []MonsterAction) {
 	@sheetPanel(section.Heading) {
 		if section.Intro != "" {

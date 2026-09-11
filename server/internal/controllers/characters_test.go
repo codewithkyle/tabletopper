@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -9,9 +10,12 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func tablesHoldingCharacterRows(t *testing.T) []string {
 	t.Helper()
 	schema, err := os.ReadFile(filepath.Join("..", "..", "..", "db", "schema.sql"))
@@ -30,10 +34,13 @@ func tablesHoldingCharacterRows(t *testing.T) []string {
 	}
 	return tables
 }
+
 var unpurgedTables = map[string]string{
 	"sessions": "a dangling id already reads as no character",
 }
+
 const journalImageTable = "assets"
+
 func deleteTargets(t *testing.T, calls []recordedCall) []string {
 	t.Helper()
 	target := regexp.MustCompile("(?i)DELETE\\s+FROM\\s+`?([a-z_]+)`?")

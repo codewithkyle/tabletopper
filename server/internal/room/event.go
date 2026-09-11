@@ -1,20 +1,26 @@
 package room
+
 import (
 	"encoding/json"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type Header struct {
-	Type string `json:"type"`
-	Seq uint64 `json:"seq"`
-	By *ulid.ULID `json:"by,omitempty"`
+	Type string     `json:"type"`
+	Seq  uint64     `json:"seq"`
+	By   *ulid.ULID `json:"by,omitempty"`
 }
+
 func (h *Header) header() *Header { return h }
 func (h *Header) Transient() bool { return false }
+
 type Event interface {
 	eventType() string
 	header() *Header
 	Transient() bool
 }
+
 func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
 	h := ev.header()
 	h.Type = ev.eventType()
@@ -22,15 +28,18 @@ func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
 	h.By = by
 	return json.Marshal(ev)
 }
+
 type roleView interface {
 	ForRole(role Role) Event
 }
+
 func ForRole(ev Event, role Role) Event {
 	if v, ok := ev.(roleView); ok {
 		return v.ForRole(role)
 	}
 	return ev
 }
+
 var eventTypes = map[string]func() Event{
 	"snapshot":           func() Event { return &Snapshot{} },
 	"room.updated":       func() Event { return &RoomUpdated{} },
@@ -57,6 +66,7 @@ var eventTypes = map[string]func() Event{
 	"pinged":             func() Event { return &Pinged{} },
 	"error":              func() Event { return &ErrorEvent{} },
 }
+
 type ErrorEvent struct {
 	Header
 	CID     string `json:"cid"`
@@ -64,6 +74,7 @@ type ErrorEvent struct {
 	Heading string `json:"heading"`
 	Message string `json:"message"`
 }
+
 func (*ErrorEvent) eventType() string { return "error" }
 func (*ErrorEvent) Transient() bool   { return true }
 func NewErrorEvent(cid string, err error) *ErrorEvent {

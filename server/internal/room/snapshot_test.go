@@ -1,9 +1,12 @@
 package room
+
 import (
 	"errors"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestASnapshotRoundTrips(t *testing.T) {
 	w := busyWorld(t)
 	b, err := Marshal(w.s)

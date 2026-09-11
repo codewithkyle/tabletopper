@@ -1,16 +1,19 @@
 package controllers
+
 import (
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 )
+
 func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -24,7 +27,9 @@ func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.AccountSettingsFragment(data))
 }
+
 var storageUnits = []string{"KB", "MB", "GB", "TB"}
+
 func formatBytes(n int64) string {
 	if n <= 0 {
 		return "Nothing uploaded yet"

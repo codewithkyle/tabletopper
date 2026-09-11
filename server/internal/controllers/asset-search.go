@@ -1,16 +1,21 @@
 package controllers
+
 import (
 	"context"
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/a-h/templ"
 	"github.com/oklog/ulid/v2"
 )
+
 const mapsSlug = "maps"
+
 func (a *App) AssetListFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)

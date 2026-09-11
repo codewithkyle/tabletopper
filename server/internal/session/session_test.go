@@ -1,4 +1,5 @@
 package session
+
 import (
 	"context"
 	"database/sql"
@@ -6,9 +7,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestNextExpirySlidesForwardWhileYoung(t *testing.T) {
 	created := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	now := created.Add(24 * time.Hour)
@@ -37,12 +41,14 @@ func TestNextExpiryNeverExceedsCapAcrossLifetime(t *testing.T) {
 		}
 	}
 }
+
 type roomRecordingDB struct {
 	t    *testing.T
 	sent []string
 	args [][]any
 	rows int64
 }
+
 func (d *roomRecordingDB) ExecContext(_ context.Context, query string, args ...any) (sql.Result, error) {
 	d.sent = append(d.sent, query)
 	d.args = append(d.args, args)
@@ -60,7 +66,9 @@ func (d *roomRecordingDB) QueryRowContext(context.Context, string, ...any) *sql.
 	d.t.Fatal("a room write ran a query")
 	return nil
 }
+
 type roomResult struct{ rows int64 }
+
 func (r roomResult) LastInsertId() (int64, error) { return 0, nil }
 func (r roomResult) RowsAffected() (int64, error) { return r.rows, nil }
 func TestAnUploadedPictureWinsOverTheOneClerkSupplied(t *testing.T) {

@@ -1,21 +1,26 @@
 package tiling
+
 import (
 	"context"
 	"database/sql"
 	"io"
 	"log/slog"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	DefaultTileSize = 512
-	interval = 5 * time.Second
-	leaseWindow = 15 * time.Minute
-	MaxAttempts = 3
-	strandedBatch = 100
+	interval        = 5 * time.Second
+	leaseWindow     = 15 * time.Minute
+	MaxAttempts     = 3
+	strandedBatch   = 100
 )
+
 type rows interface {
 	ClaimMapForTiling(ctx context.Context, tileLease *ulid.ULID) (sql.Result, error)
 	GetLeasedMap(ctx context.Context, tileLease *ulid.ULID) (queries.Asset, error)
@@ -31,10 +36,11 @@ type bucket interface {
 	DeletePrefix(ctx context.Context, prefix string) error
 }
 type worker struct {
-	db     rows
-	bucket bucket
+	db          rows
+	bucket      bucket
 	reclaimedAt time.Time
 }
+
 func Maps(ctx context.Context, q *queries.Queries, store *storage.Client) {
 	w := &worker{db: q, bucket: store}
 	go func() {

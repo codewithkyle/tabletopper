@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"encoding/json"
 	"net/http"
@@ -7,10 +8,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 )
+
 func settingsForm() url.Values {
 	return url.Values{
 		"username":    {"kyle"},
@@ -225,7 +228,9 @@ func TestTheOptionsAreLabelledWithRealDates(t *testing.T) {
 		}
 	}
 }
+
 var summerNoon = time.Date(2026, 9, 6, 18, 4, 11, 0, time.UTC)
+
 func equalStrings(got, want []string) bool {
 	if len(got) != len(want) {
 		return false

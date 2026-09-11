@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -7,31 +8,36 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
 	"tabletopper/templ/pages"
+
 	"github.com/a-h/templ"
 	"github.com/oklog/ulid/v2"
 )
+
 const (
 	avatarLibrarySize = 256
-	tokenSize = 512
+	tokenSize         = 512
 )
+
 type assetKind struct {
 	Type queries.AssetsType
 	Slug string
-	One string
+	One  string
 }
 type libraryKind struct {
 	assetKind
-	Key func(userID ulid.ULID, assetID ulid.ULID) string
+	Key   func(userID ulid.ULID, assetID ulid.ULID) string
 	Store func(src image.Image) image.Image
 	Page  func(assets []pages.LibraryAsset) templ.Component
 	Cards func(assets []pages.LibraryAsset, query string) templ.Component
 }
+
 var (
 	avatarKind = libraryKind{
 		assetKind: assetKind{Type: queries.AssetsTypeAvatar, Slug: "avatars", One: "avatar"},
@@ -49,6 +55,7 @@ var (
 	}
 	musicKind = assetKind{Type: queries.AssetsTypeMusic, Slug: "music", One: "track"}
 )
+
 func (a *App) AvatarAssetsPage(w http.ResponseWriter, r *http.Request) {
 	a.libraryPage(w, r, avatarKind)
 }

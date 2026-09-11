@@ -1,11 +1,15 @@
 package export
+
 import (
 	"strings"
+
 	"tabletopper/templ/pages"
 )
+
 type doc struct {
 	blocks []string
 }
+
 func (d *doc) add(block string) {
 	if strings.TrimSpace(block) != "" {
 		d.blocks = append(d.blocks, block)
@@ -21,10 +25,12 @@ func (d *doc) section(heading, body string) {
 func (d *doc) bytes() []byte {
 	return []byte(strings.Join(d.blocks, "\n\n") + "\n")
 }
+
 type field struct {
 	key   string
 	value string
 }
+
 func tagField(kind string) field {
 	return field{key: "tags", value: "tabletopper/" + kind}
 }
@@ -60,10 +66,12 @@ func yamlString(value string) string {
 	quoted.WriteByte('"')
 	return quoted.String()
 }
+
 type fact struct {
 	label string
 	value string
 }
+
 func bullets(facts ...fact) string {
 	lines := make([]string, 0, len(facts))
 	for _, f := range facts {

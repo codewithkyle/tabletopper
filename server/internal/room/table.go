@@ -1,19 +1,25 @@
 package room
+
 import (
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type TableUpdated struct {
 	Header
 	Table Table `json:"table"`
 }
+
 func (*TableUpdated) eventType() string { return "table.updated" }
 func tableUpdated(s *State) Emission {
 	return to(ToAll, &TableUpdated{Table: CloneTable(s.Table)})
 }
+
 type TableAddLayer struct {
 	Name string `json:"name"`
 }
+
 func (c *TableAddLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "add a layer")
 }
@@ -33,9 +39,11 @@ func (c *TableAddLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableRemoveLayer struct {
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (c *TableRemoveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "remove a layer")
 }
@@ -83,10 +91,12 @@ func (c *TableRemoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	}
 	return out, nil
 }
+
 type TableRenameLayer struct {
 	Layer ulid.ULID `json:"layer"`
 	Name  string    `json:"name"`
 }
+
 func (c *TableRenameLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "rename a layer")
 }
@@ -102,10 +112,12 @@ func (c *TableRenameLayer) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableMoveLayer struct {
 	Layer ulid.ULID `json:"layer"`
 	Index int       `json:"index"`
 }
+
 func (c *TableMoveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "reorder the layers")
 }
@@ -123,11 +135,13 @@ func (c *TableMoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableSetLayerMap struct {
 	Layer   ulid.ULID `json:"layer"`
 	AssetID ulid.ULID `json:"assetId"`
-	Map *MapRef `json:"-"`
+	Map     *MapRef   `json:"-"`
 }
+
 func (c *TableSetLayerMap) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change a layer's map")
 }
@@ -146,9 +160,11 @@ func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableClearLayerMap struct {
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (c *TableClearLayerMap) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear a layer's map")
 }
@@ -161,7 +177,9 @@ func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, erro
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableClear struct{}
+
 func (c *TableClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the tabletop")
 }
@@ -190,9 +208,11 @@ func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	out = append(out, tableUpdated(s))
 	return append(out, initiativeUpdated(s)...), nil
 }
+
 type TableSetActiveLayer struct {
 	Layer ulid.ULID `json:"layer"`
 }
+
 func (c *TableSetActiveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the active layer")
 }
@@ -206,9 +226,11 @@ func (c *TableSetActiveLayer) Apply(s *State, a Actor, env Env) ([]Emission, err
 	out := []Emission{tableUpdated(s)}
 	return append(out, s.shownTransitions(before)...), nil
 }
+
 type TableSetGrid struct {
 	Grid Grid `json:"grid"`
 }
+
 func (c *TableSetGrid) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the grid")
 }
@@ -220,12 +242,14 @@ func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Normalize()
 	return []Emission{tableUpdated(s)}, nil
 }
+
 type TableSetOptions struct {
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
 	FogPrefill         bool               `json:"fogPrefill"`
 }
+
 func (c *TableSetOptions) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the table options")
 }

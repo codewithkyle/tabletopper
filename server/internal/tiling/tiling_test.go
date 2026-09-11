@@ -1,4 +1,5 @@
 package tiling
+
 import (
 	"bytes"
 	"context"
@@ -12,21 +13,26 @@ import (
 	"sync"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
+
 	"github.com/chai2010/webp"
 	"github.com/oklog/ulid/v2"
 )
+
 var (
 	testOwner    = ulid.MustParse("01JAAAAAAAAAAAAAAAAAAAAAA1")
 	testAsset    = ulid.MustParse("01JBBBBBBBBBBBBBBBBBBBBBB2")
 	testLease    = ulid.MustParse("01JCCCCCCCCCCCCCCCCCCCCCC3")
 	testPrevious = ulid.MustParse("01JDDDDDDDDDDDDDDDDDDDDDD4")
 )
+
 type journal struct {
 	mu    sync.Mutex
 	steps []string
 }
+
 func (j *journal) note(step string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -47,24 +53,28 @@ func (j *journal) indexOf(t *testing.T, step string) int {
 	t.Fatalf("%q never happened; the journal is %v", step, j.all())
 	return -1
 }
+
 type fakeResult struct {
 	rows int64
 	err  error
 }
+
 func (r fakeResult) LastInsertId() (int64, error) { return 0, errors.New("not used") }
 func (r fakeResult) RowsAffected() (int64, error) { return r.rows, r.err }
+
 type fakeBucket struct {
-	log *journal
-	mu      sync.Mutex
-	stored  map[string][]byte
-	deleted []string
-	inFlight int
-	peak     int
+	log         *journal
+	mu          sync.Mutex
+	stored      map[string][]byte
+	deleted     []string
+	inFlight    int
+	peak        int
 	original    []byte
 	getErr      error
 	putErrOn    string
 	deleteErrOn string
 }
+
 func (b *fakeBucket) Get(context.Context, string) (io.ReadCloser, int64, error) {
 	if b.getErr != nil {
 		return nil, 0, b.getErr
@@ -113,27 +123,29 @@ func (b *fakeBucket) keys() []string {
 	}
 	return out
 }
+
 type fakeRows struct {
-	log *journal
-	asset    queries.Asset
-	claimed  int64
-	claimErr error
-	getErr   error
+	log           *journal
+	asset         queries.Asset
+	claimed       int64
+	claimErr      error
+	getErr        error
 	publishedRows int64
 	publishErr    error
-	stranded  []queries.ListStrandedTilingJobsRow
-	strandErr error
-	completed []queries.CompleteMapTilingParams
-	failed    []queries.FailMapTilingParams
-	requeued  []queries.RequeueStrandedTilingJobParams
-	retried   []queries.RequeueFailedTilingJobsParams
+	stranded      []queries.ListStrandedTilingJobsRow
+	strandErr     error
+	completed     []queries.CompleteMapTilingParams
+	failed        []queries.FailMapTilingParams
+	requeued      []queries.RequeueStrandedTilingJobParams
+	retried       []queries.RequeueFailedTilingJobsParams
 }
+
 func (r *fakeRows) ClaimMapForTiling(context.Context, *ulid.ULID) (sql.Result, error) {
 	if r.claimErr != nil {
 		return nil, r.claimErr
 	}
 	taken := r.claimed
-	r.claimed = 0 
+	r.claimed = 0
 	return fakeResult{rows: taken}, nil
 }
 func (r *fakeRows) GetLeasedMap(_ context.Context, lease *ulid.ULID) (queries.Asset, error) {
@@ -170,6 +182,7 @@ func (r *fakeRows) RequeueFailedTilingJobs(_ context.Context, arg queries.Requeu
 	r.log.note("retry")
 	return fakeResult{rows: 1}, nil
 }
+
 const (
 	sourceWidth  = 20
 	sourceHeight = 12
@@ -177,6 +190,7 @@ const (
 	sourceTiles  = 9
 	sourceZoom   = 2
 )
+
 func sourcePNG(t *testing.T) []byte {
 	t.Helper()
 	img := image.NewNRGBA(image.Rect(0, 0, sourceWidth, sourceHeight))

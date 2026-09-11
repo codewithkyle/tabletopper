@@ -1,8 +1,10 @@
 package markdown
+
 import (
 	"bytes"
 	"fmt"
 	"strings"
+
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -10,7 +12,9 @@ import (
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
+
 type ImageSource func(dest string) (string, bool)
+
 var imagesKey = parser.NewContextKey()
 var md = goldmark.New(
 	goldmark.WithExtensions(extension.Strikethrough),
@@ -18,6 +22,7 @@ var md = goldmark.New(
 		parser.WithASTTransformers(util.Prioritized(imageTransformer{}, 100)),
 	),
 )
+
 func Render(body string, images ImageSource) (string, error) {
 	ctx := parser.NewContext()
 	ctx.Set(imagesKey, images)
@@ -27,7 +32,9 @@ func Render(body string, images ImageSource) (string, error) {
 	}
 	return out.String(), nil
 }
+
 type imageTransformer struct{}
+
 func (imageTransformer) Transform(doc *ast.Document, _ text.Reader, ctx parser.Context) {
 	images, _ := ctx.Get(imagesKey).(ImageSource)
 	if images == nil {

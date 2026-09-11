@@ -1,10 +1,13 @@
 package main
+
 import (
 	"os"
 	"strings"
 	"testing"
 )
+
 const committed = "../../../js/room/protocol.ts"
+
 func TestProtocolTypesAreCurrent(t *testing.T) {
 	got, err := Generate()
 	if err != nil {

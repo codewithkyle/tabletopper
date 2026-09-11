@@ -1,10 +1,13 @@
 package pages
+
 import "tabletopper/internal/events"
+
 type RoomLayerNameData struct {
-	RoomID string
-	Name string
+	RoomID  string
+	Name    string
 	Fetched bool
 }
+
 func (d RoomLayerNameData) Path() string {
 	return "/fragment/room/layer?room=" + d.RoomID
 }

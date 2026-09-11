@@ -1,20 +1,25 @@
 package controllers
+
 import (
 	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var bonusPanels = map[string]string{
 	"skills":        "Skills",
 	"saving_throws": "Saving throws",
 }
+
 func (a *App) SaveCharacterIdentity(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -263,6 +268,7 @@ func (a *App) SaveCharacterFeatures(w http.ResponseWriter, r *http.Request) {
 	})
 	a.finishCharacterPanel(w, r, pages.FeaturesPanel, "Features", result, err, characterID, sess.UserID)
 }
+
 type identityInput struct {
 	Name       string
 	Race       sql.NullString
@@ -271,6 +277,7 @@ type identityInput struct {
 	Classes    sql.NullString
 	Size       string
 }
+
 func buildIdentityInput(r *http.Request) (identityInput, []string) {
 	validationErrors := make([]string, 0)
 	name := strings.TrimSpace(r.PostFormValue("name"))
@@ -290,6 +297,7 @@ func buildIdentityInput(r *http.Request) (identityInput, []string) {
 		Size:       size,
 	}, validationErrors
 }
+
 type abilitiesInput struct {
 	Str uint8
 	Dex uint8
@@ -298,6 +306,7 @@ type abilitiesInput struct {
 	Wis uint8
 	Cha uint8
 }
+
 func buildAbilitiesInput(r *http.Request) (abilitiesInput, []string) {
 	validationErrors := make([]string, 0)
 	abilities := map[string]uint8{}
@@ -324,6 +333,7 @@ func buildAbilitiesInput(r *http.Request) (abilitiesInput, []string) {
 		Cha: abilities["cha"],
 	}, validationErrors
 }
+
 type coreStatsInput struct {
 	XP                  uint32
 	Level               uint8
@@ -334,6 +344,7 @@ type coreStatsInput struct {
 	SpellcastingAbility queries.CharactersSpellcastingAbility
 	SpellBonusMisc      int16
 }
+
 func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	validationErrors := make([]string, 0)
 	xp, err := parseUint32(r.PostFormValue("xp"), 0)
@@ -358,16 +369,17 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	}
 	level := levelFromXP(xp)
 	return coreStatsInput{
-		XP:               xp,
-		Level:            level,
-		ProficiencyBonus: proficiencyBonusForLevel(level),
-		Speed:            speed,
-		AC:               ac,
-		InitiativeBonus:  initiativeBonus,
+		XP:                  xp,
+		Level:               level,
+		ProficiencyBonus:    proficiencyBonusForLevel(level),
+		Speed:               speed,
+		AC:                  ac,
+		InitiativeBonus:     initiativeBonus,
 		SpellcastingAbility: queries.CharactersSpellcastingAbility(pages.NormalizeSpellcastingAbility(r.PostFormValue("spellcasting_ability"))),
 		SpellBonusMisc:      spellBonusMisc,
 	}, validationErrors
 }
+
 type vitalsInput struct {
 	MaxHP              uint16
 	CurrentHP          uint16
@@ -379,6 +391,7 @@ type vitalsInput struct {
 	HeroicInspiration  bool
 	Exhaustion         uint8
 }
+
 func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	validationErrors := make([]string, 0)
 	maxHP, err := parseUint16(r.PostFormValue("max_hp"), 1)
@@ -434,10 +447,12 @@ func deathSaves(r *http.Request, field string) (uint8, bool) {
 	}
 	return uint8(ticked), true
 }
+
 type proficienciesInput struct {
 	Languages     string
 	Proficiencies string
 }
+
 func buildProficienciesInput(r *http.Request) proficienciesInput {
 	languages := strings.TrimSpace(r.PostFormValue("languages"))
 	if languages == "" {
@@ -448,16 +463,19 @@ func buildProficienciesInput(r *http.Request) proficienciesInput {
 		Proficiencies: strings.TrimSpace(r.PostFormValue("proficiencies")),
 	}
 }
+
 const (
 	characterProseLimit = 4096
 	characterWordLimit  = 64
 )
+
 type personalityInput struct {
 	PersonalityTraits string
 	Ideals            string
 	Bonds             string
 	Flaws             string
 }
+
 func buildPersonalityInput(r *http.Request) (personalityInput, []string) {
 	validationErrors := make([]string, 0)
 	prose := map[string]string{}
@@ -481,6 +499,7 @@ func buildPersonalityInput(r *http.Request) (personalityInput, []string) {
 		Flaws:             prose["flaws"],
 	}, validationErrors
 }
+
 type appearanceInput struct {
 	Age    string
 	Height string
@@ -489,6 +508,7 @@ type appearanceInput struct {
 	Skin   string
 	Hair   string
 }
+
 func buildAppearanceInput(r *http.Request) (appearanceInput, []string) {
 	validationErrors := make([]string, 0)
 	details := map[string]string{}

@@ -1,11 +1,14 @@
 package main
+
 import (
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
+
 // handler is what the server actually serves: the URL space below, wrapped in
 // the two things that apply to all of it.
 //
@@ -41,6 +44,7 @@ func handler(app *controllers.App, auth middleware.Auth) http.Handler {
 	csrf := http.NewCrossOriginProtection()
 	return middleware.SecurityHeaders(csrf.Handler(routes(app, auth)))
 }
+
 // routes is the whole URL space, in one place. Every pattern names a method:
 // a method-less pattern would answer a POST to a page route with the page.
 func routes(app *controllers.App, auth middleware.Auth) http.Handler {

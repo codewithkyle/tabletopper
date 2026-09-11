@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"database/sql"
 	"encoding/json"
@@ -7,9 +8,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
 )
+
 func TestEveryMonsterQueryIsScopedToTheOwner(t *testing.T) {
 	for name, body := range namedStatements(t, "monsters.sql") {
 		if !strings.Contains(body, "owner_id") {

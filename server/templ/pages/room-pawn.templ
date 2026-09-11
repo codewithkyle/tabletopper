@@ -1,4 +1,5 @@
 package pages
+
 templ RoomPawnFragment(data RoomPawnData) {
 	<article
 		id={ data.ElementID() }
@@ -32,6 +33,7 @@ templ RoomPawnFragment(data RoomPawnData) {
 		}
 	</article>
 }
+
 templ pawnActions(data RoomPawnData) {
 	<div class="flex shrink-0 items-center gap-0.5">
 		if data.IsGM && data.Pawn.MonsterID != "" {
@@ -96,6 +98,7 @@ templ pawnActions(data RoomPawnData) {
 		}
 	</div>
 }
+
 templ pawnReadings(data RoomPawnData) {
 	<dl class="m-0 grid grid-cols-1 gap-x-2 gap-y-1 @2xs:grid-cols-2">
 		@pawnStat("Hit points") {
@@ -133,6 +136,7 @@ templ pawnReadings(data RoomPawnData) {
 		</div>
 	}
 }
+
 templ pawnPortrait(pawn RoomPawn) {
 	<div class="avatar avatar-placeholder shrink-0">
 		<div class="relative w-7 rounded-full border border-base-300 bg-base-300 text-base-content">
@@ -143,6 +147,7 @@ templ pawnPortrait(pawn RoomPawn) {
 		</div>
 	</div>
 }
+
 templ pawnStat(caption string) {
 	<div class="min-w-0">
 		<dt class="text-[10px] leading-tight tracking-wide text-base-content/55 uppercase">{ caption }</dt>
@@ -151,6 +156,7 @@ templ pawnStat(caption string) {
 		</dd>
 	</div>
 }
+
 templ pawnHPForm(data RoomPawnData) {
 	<form
 		class="flex flex-col gap-0.5"
@@ -169,6 +175,7 @@ templ pawnHPForm(data RoomPawnData) {
 		</div>
 	</form>
 }
+
 templ pawnHPBox(id string, name string, caption string, value string) {
 	<input
 		id={ id }
@@ -184,6 +191,7 @@ templ pawnHPBox(id string, name string, caption string, value string) {
 	/>
 	<input type="hidden" name={ name + "Entry" } value=""/>
 }
+
 templ pawnConditionChip(c RoomPawnCondition) {
 	<span class="badge badge-sm gap-1 border-base-content/25">
 		@pawnConditionSwatch(c.Color)
@@ -193,6 +201,7 @@ templ pawnConditionChip(c RoomPawnCondition) {
 		}
 	</span>
 }
+
 templ pawnConditionSwatch(color string) {
 	switch color {
 		case "red":

@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -10,11 +11,15 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testImporterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS7")
+
 func monsterShareGrant() queries.GetShareByTokenRow {
 	return queries.GetShareByTokenRow{
 		ID:           testAssetID,
@@ -184,10 +189,14 @@ func TestTxCommitsOnSuccessAndRollsBackOnFailure(t *testing.T) {
 		})
 	}
 }
+
 type recordingConnector struct{ conn *recordingConn }
+
 func (c recordingConnector) Connect(context.Context) (driver.Conn, error) { return c.conn, nil }
 func (c recordingConnector) Driver() driver.Driver                        { return nil }
+
 type recordingConn struct{ ended string }
+
 func (c *recordingConn) Prepare(string) (driver.Stmt, error) { return nil, io.ErrUnexpectedEOF }
 func (c *recordingConn) Close() error                        { return nil }
 func (c *recordingConn) Begin() (driver.Tx, error)           { return c, nil }

@@ -1,10 +1,13 @@
 package pages
+
 import "strconv"
+
 type MusicTrack struct {
-	ID   string
-	Name string
+	ID       string
+	Name     string
 	FileName string
 }
+
 func (t MusicTrack) URL() string {
 	return "/assets/music/" + t.ID
 }
@@ -24,4 +27,5 @@ func (t MusicTrack) nameBox() nameBox {
 		Size:      nameBoxRoomy,
 	}
 }
+
 const MusicAccept = "audio/*,.mp3,.ogg,.oga,.opus,.m4a,.mp4,.webm,.flac,.wav"

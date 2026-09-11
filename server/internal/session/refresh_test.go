@@ -1,16 +1,20 @@
 package session
+
 import (
 	"context"
 	"database/sql"
 	"net/http/httptest"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 )
+
 type countingDB struct {
 	t     *testing.T
 	execs int
 }
+
 func (d *countingDB) ExecContext(context.Context, string, ...any) (sql.Result, error) {
 	d.execs++
 	return execResult{}, nil
@@ -27,7 +31,9 @@ func (d *countingDB) QueryRowContext(context.Context, string, ...any) *sql.Row {
 	d.t.Fatal("Refresh ran a query")
 	return nil
 }
+
 type execResult struct{}
+
 func (execResult) LastInsertId() (int64, error) { return 0, nil }
 func (execResult) RowsAffected() (int64, error) { return 1, nil }
 func refreshOnce(t *testing.T, refreshedAt time.Time) (*countingDB, *httptest.ResponseRecorder) {

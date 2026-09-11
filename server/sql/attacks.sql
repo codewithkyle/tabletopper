@@ -1,4 +1,4 @@
--- without a filesort.
+-- name: ListCharacterAttacks :many
 SELECT * FROM attacks
 WHERE character_id = ? AND owner_id = ?
 ORDER BY id;

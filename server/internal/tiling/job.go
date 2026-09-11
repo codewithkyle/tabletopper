@@ -1,4 +1,5 @@
 package tiling
+
 import (
 	"context"
 	"database/sql"
@@ -8,14 +9,19 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
 	"tabletopper/internal/tiler"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const encoders = 16
+
 var errAbandoned = errors.New("tiling: abandoned")
+
 func (w *worker) tile(ctx context.Context, asset queries.Asset) {
 	if asset.TileLease == nil {
 		slog.Error("A claimed map has no lease", "assetID", asset.ID.String())
@@ -103,10 +109,12 @@ func (w *worker) build(ctx context.Context, asset queries.Asset, generation ulid
 	}
 	return result, previewPath, nil
 }
+
 const (
 	nativeQuality   = 90
 	overviewQuality = 70
 )
+
 func tileQuality(z, maxZoom int) int {
 	if maxZoom < 1 || z <= 0 {
 		return nativeQuality

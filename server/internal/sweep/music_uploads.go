@@ -1,16 +1,20 @@
 package sweep
+
 import (
 	"context"
 	"log/slog"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
 )
+
 const (
 	musicUploadInterval = time.Hour
-	musicUploadGrace = 6 * time.Hour
-	musicUploadBatch = 100
+	musicUploadGrace    = 6 * time.Hour
+	musicUploadBatch    = 100
 )
+
 func MusicUploads(ctx context.Context, q *queries.Queries, store *storage.Client) {
 	go func() {
 		ticker := time.NewTicker(musicUploadInterval)

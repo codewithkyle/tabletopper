@@ -1,5 +1,7 @@
 package pages
+
 import "tabletopper/templ/layouts"
+
 templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
@@ -12,14 +14,17 @@ templ EditCharacterJournal(data JournalPageData) {
 		}
 	}
 }
+
 templ JournalEntriesFragment(data JournalPageData) {
 	@journalEntryList(data)
 }
+
 templ journalCreateForm(characterID string) {
 	<form method="post" action={ "/characters/" + characterID + "/journal" } class="max-[640px]:flex-1">
 		<button type="submit" class="btn btn-primary w-full">New Entry</button>
 	</form>
 }
+
 templ journalSearchBox(characterID string) {
 	<input
 		type="search"
@@ -36,6 +41,7 @@ templ journalSearchBox(characterID string) {
 		hx-swap="innerHTML"
 	/>
 }
+
 templ journalEntryList(data JournalPageData) {
 	for _, entry := range data.Entries {
 		@journalEntryCard(data.CharacterID, entry)
@@ -48,6 +54,7 @@ templ journalEntryList(data JournalPageData) {
 		}
 	}
 }
+
 templ journalEntryCard(characterID string, entry JournalEntry) {
 	{{ href := "/characters/" + characterID + "/edit/journal/" + entry.ID }}
 	{{ action := "/characters/" + characterID + "/journal/" + entry.ID }}

@@ -1,8 +1,11 @@
 package clerkauth
+
 import (
 	"testing"
+
 	"github.com/clerk/clerk-sdk-go/v2"
 )
+
 func str(s string) *string { return &s }
 func email(id string, address string) *clerk.EmailAddress {
 	return &clerk.EmailAddress{ID: id, EmailAddress: address}

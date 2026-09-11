@@ -1,12 +1,15 @@
 package controllers
+
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/session"
 )
+
 func exportRequest(t *testing.T, handler http.HandlerFunc, pathValues map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(http.MethodGet, "/export.md", nil)

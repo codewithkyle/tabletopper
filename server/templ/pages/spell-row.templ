@@ -1,5 +1,7 @@
 package pages
+
 import "strconv"
+
 templ SpellRow(characterID string, spell Spell) {
 	{{ action := "/characters/" + characterID + "/spells/" + strconv.Itoa(spell.Level) + "/" + spell.ID }}
 	{{ panel := SpellRowPanel(spell.ID) }}

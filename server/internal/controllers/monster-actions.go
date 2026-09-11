@@ -1,15 +1,19 @@
 package controllers
+
 import (
 	"database/sql"
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) AddMonsterAction(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -154,10 +158,12 @@ func monsterActionToastLabel(section pages.MonsterActionSection, name string) st
 	}
 	return name
 }
+
 type monsterActionInput struct {
 	Name        string
 	Description string
 }
+
 func buildMonsterActionInput(r *http.Request) (monsterActionInput, []string) {
 	var problems []string
 	name := strings.TrimSpace(r.PostFormValue("name"))

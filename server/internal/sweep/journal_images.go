@@ -1,17 +1,21 @@
 package sweep
+
 import (
 	"context"
 	"database/sql"
 	"log/slog"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
 )
+
 const (
 	journalImageInterval = time.Hour
-	journalImageGrace = 24 * time.Hour
-	journalImageBatch = 100
+	journalImageGrace    = 24 * time.Hour
+	journalImageBatch    = 100
 )
+
 func JournalImages(ctx context.Context, q *queries.Queries, store *storage.Client) {
 	go func() {
 		ticker := time.NewTicker(journalImageInterval)

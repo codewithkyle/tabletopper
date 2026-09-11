@@ -1,15 +1,19 @@
 package snippet
+
 import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
 	"golang.org/x/text/unicode/norm"
 )
+
 type Match struct {
 	Before string
 	Match  string
 	After  string
 }
+
 func Find(text, term string, radius int) (Match, bool) {
 	folded, offsets := fold(text)
 	needle, _ := fold(term)
@@ -36,7 +40,9 @@ func Contains(text, term string) bool {
 	needle, _ := fold(term)
 	return needle != "" && strings.Contains(folded, needle)
 }
+
 const wordSearch = 12
+
 func tail(s string, radius int) (string, bool) {
 	if utf8.RuneCountInString(s) <= radius {
 		return s, false

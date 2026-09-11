@@ -1,12 +1,15 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/session"
 )
+
 func monsterShareRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()
 	r := httptest.NewRequest(method, "/monsters/share", strings.NewReader(form.Encode()))

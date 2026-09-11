@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"database/sql"
 	"errors"
@@ -6,20 +7,25 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/oklog/ulid/v2"
 )
+
 const (
-	roomNameLimit = pages.RoomNameLimit
-	roomCodeTries = 5
+	roomNameLimit       = pages.RoomNameLimit
+	roomCodeTries       = 5
 	mysqlDuplicateEntry = 1062
 )
+
 var errRoomNotFound = errors.New("rooms: no such room for this owner")
+
 func (a *App) RoomsPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)

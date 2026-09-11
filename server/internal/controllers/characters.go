@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -9,12 +10,15 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -219,7 +223,9 @@ func (a *App) FeatureRowFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.FeatureRowFragment())
 }
+
 const characterNameLimit = 128
+
 func (a *App) NewCharacterFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.NewCharacterFragment())
@@ -287,24 +293,24 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		TempHP:              strconv.FormatUint(uint64(character.TempHP), 10),
 		SpellcastingAbility: pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility)),
 		SpellBonusMisc:      strconv.FormatInt(int64(character.SpellBonusMisc), 10),
-		Derived: derived,
-		HitDice:            character.HitDice,
-		HitDiceSpent:       strconv.FormatUint(uint64(character.HitDiceSpent), 10),
-		DeathSaveSuccesses: int(character.DeathSaveSuccesses),
-		DeathSaveFailures:  int(character.DeathSaveFailures),
-		HeroicInspiration:  character.HeroicInspiration,
-		Exhaustion:         strconv.FormatUint(uint64(character.Exhaustion), 10),
-		Features:           parseFeatures(character.Features),
-		PersonalityTraits: character.PersonalityTraits,
-		Ideals:            character.Ideals,
-		Bonds:             character.Bonds,
-		Flaws:             character.Flaws,
-		Age:               character.Age,
-		Height:            character.Height,
-		Weight:            character.Weight,
-		Eyes:              character.Eyes,
-		Skin:              character.Skin,
-		Hair:              character.Hair,
+		Derived:             derived,
+		HitDice:             character.HitDice,
+		HitDiceSpent:        strconv.FormatUint(uint64(character.HitDiceSpent), 10),
+		DeathSaveSuccesses:  int(character.DeathSaveSuccesses),
+		DeathSaveFailures:   int(character.DeathSaveFailures),
+		HeroicInspiration:   character.HeroicInspiration,
+		Exhaustion:          strconv.FormatUint(uint64(character.Exhaustion), 10),
+		Features:            parseFeatures(character.Features),
+		PersonalityTraits:   character.PersonalityTraits,
+		Ideals:              character.Ideals,
+		Bonds:               character.Bonds,
+		Flaws:               character.Flaws,
+		Age:                 character.Age,
+		Height:              character.Height,
+		Weight:              character.Weight,
+		Eyes:                character.Eyes,
+		Skin:                character.Skin,
+		Hair:                character.Hair,
 	}
 }
 func characterHeader(character queries.Character) pages.CharacterHeader {
@@ -461,10 +467,12 @@ func parseInt16(value string, fallback int16) (int16, error) {
 	}
 	return int16(parsed), nil
 }
+
 type featurePayload struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
+
 func marshalFeatureRowsPayload(r *http.Request) (json.RawMessage, error) {
 	names := r.PostForm[pages.FeaturesPanel+"-name"]
 	values := r.PostForm[pages.FeaturesPanel+"-value"]

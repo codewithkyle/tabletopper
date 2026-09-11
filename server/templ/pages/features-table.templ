@@ -1,9 +1,12 @@
 package pages
+
 const FeaturesPanel = "features"
+
 type Feature struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
+
 templ featuresTable(rows []Feature) {
 	<div class="grid w-full gap-3">
 		<div id={ "rows-" + FeaturesPanel } class="grid gap-3">
@@ -22,9 +25,11 @@ templ featuresTable(rows []Feature) {
 		</button>
 	</div>
 }
+
 templ FeatureRowFragment() {
 	@featureRow(Feature{})
 }
+
 templ featureRow(row Feature) {
 	<div data-feature-row="true" class={ surfaceInset + " overflow-hidden" }>
 		<div class="flex items-stretch border-b border-base-300">

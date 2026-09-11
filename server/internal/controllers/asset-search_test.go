@@ -1,13 +1,16 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 )
+
 func searchRequest(t *testing.T, query string) (*recordingDB, *deadlineRecorder) {
 	t.Helper()
 	db := &recordingDB{err: errNoRowsToGive}

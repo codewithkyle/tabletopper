@@ -1,14 +1,19 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/hub"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testMemberID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVT1")
+
 func memberSession(roomID ulid.ULID) session.UserSession {
 	return session.UserSession{UserID: testMemberID, Hash: []byte("session-hash"), RoomID: &roomID}
 }

@@ -1,30 +1,38 @@
 package room
+
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type Actor struct {
 	ID   ulid.ULID
 	Role Role
 }
+
 func (a Actor) GM() bool { return a.Role == RoleGM }
+
 type Env struct {
-	NewID func() ulid.ULID
+	NewID   func() ulid.ULID
 	Version string
 }
+
 func (e Env) id() ulid.ULID {
 	if e.NewID == nil {
 		return ulid.Make()
 	}
 	return e.NewID()
 }
+
 type Command interface {
 	Authorize(s *State, a Actor) error
 	Apply(s *State, a Actor, env Env) ([]Emission, error)
 }
 type Audience int
+
 const (
 	ToAll Audience = iota
 	ToGM
@@ -33,30 +41,36 @@ const (
 	ToOthers
 	ToPlayer
 )
+
 type Emission struct {
 	Event  Event
 	To     Audience
 	Player ulid.ULID
 }
+
 func to(a Audience, ev Event) Emission { return Emission{Event: ev, To: a} }
 func toPlayer(id ulid.ULID, ev Event) Emission {
 	return Emission{Event: ev, To: ToPlayer, Player: id}
 }
+
 type Error struct {
 	Code    string `json:"code"`
 	Heading string `json:"heading"`
 	Message string `json:"message"`
 }
+
 func (e *Error) Error() string {
 	return fmt.Sprintf("room: %s: %s", e.Code, e.Message)
 }
+
 const (
-	CodeForbidden = "forbidden"
-	CodeInvalid = "invalid"
-	CodeNotFound = "not_found"
-	CodeLocked = "locked"
+	CodeForbidden   = "forbidden"
+	CodeInvalid     = "invalid"
+	CodeNotFound    = "not_found"
+	CodeLocked      = "locked"
 	CodeRateLimited = "rate_limited"
 )
+
 func forbidden(heading, message string) error {
 	return &Error{Code: CodeForbidden, Heading: heading, Message: message}
 }
@@ -66,6 +80,7 @@ func invalid(heading, message string) error {
 func notFound(heading, message string) error {
 	return &Error{Code: CodeNotFound, Heading: heading, Message: message}
 }
+
 var wireCommands = map[string]func() Command{
 	"table.addLayer":       func() Command { return &TableAddLayer{} },
 	"table.removeLayer":    func() Command { return &TableRemoveLayer{} },
@@ -116,6 +131,7 @@ var hubCommands = map[string]func() Command{
 	"room.setName":        func() Command { return &RoomSetName{} },
 	"room.close":          func() Command { return &RoomClose{} },
 }
+
 func DecodeCommand(b []byte) (Command, string, error) {
 	var env struct {
 		Type string `json:"type"`

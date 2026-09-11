@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestTheDrawingBudgetRefusesTheChunkThatWouldOverflowIt(t *testing.T) {
 	t.Run("the room as a whole", func(t *testing.T) {
 		w := newWorld(t)

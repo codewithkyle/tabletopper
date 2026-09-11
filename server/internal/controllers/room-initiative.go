@@ -1,16 +1,20 @@
 package controllers
+
 import (
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -248,7 +252,9 @@ func worstHurt(members []room.Pawn) room.Pawn {
 	}
 	return face
 }
+
 const deadRank = 6
+
 func bandRank(band *room.HPBand) int {
 	if band == nil {
 		return 0

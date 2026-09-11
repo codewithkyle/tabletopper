@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"database/sql"
@@ -6,11 +7,15 @@ import (
 	"io"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var monsterID = testID(5)
+
 func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
@@ -344,18 +349,20 @@ func (tb *tabletop) spawnMonster(gm *client, name string, visible bool, hp int, 
 	tb.t.Fatalf("%s was not spawned", name)
 	return ulid.ULID{}
 }
+
 type stubRow struct {
 	columns []string
 	values  []driver.Value
 	empty   bool
 }
+
 func stubbedHub(t *testing.T, row stubRow) *Hub {
 	t.Helper()
 	db := sql.OpenDB(stubConnector{row})
 	t.Cleanup(func() { db.Close() })
 	return New(queries.New(db), Options{Store: &memStore{}, Version: "test-build"})
 }
-func noRows() stubRow { return stubRow{empty: true} }
+func noRows() stubRow                   { return stubRow{empty: true} }
 func idValue(id ulid.ULID) driver.Value { return append([]byte(nil), id[:]...) }
 func monsterRow(asset ulid.ULID) stubRow {
 	var image driver.Value
@@ -393,24 +400,32 @@ func avatarRow(id ulid.ULID, name string) stubRow {
 	row.values[10], row.values[11] = int64(256), int64(256)
 	return row
 }
+
 type stubConnector struct{ row stubRow }
+
 func (c stubConnector) Connect(context.Context) (driver.Conn, error) { return stubConn{c.row}, nil }
 func (c stubConnector) Driver() driver.Driver                        { return nil }
+
 type stubConn struct{ row stubRow }
+
 func (c stubConn) Prepare(string) (driver.Stmt, error) { return stubStmt{c.row}, nil }
 func (c stubConn) Close() error                        { return nil }
 func (c stubConn) Begin() (driver.Tx, error)           { return nil, io.ErrUnexpectedEOF }
+
 type stubStmt struct{ row stubRow }
-func (s stubStmt) Close() error  { return nil }
-func (s stubStmt) NumInput() int { return -1 }
+
+func (s stubStmt) Close() error                               { return nil }
+func (s stubStmt) NumInput() int                              { return -1 }
 func (s stubStmt) Exec([]driver.Value) (driver.Result, error) { return driver.RowsAffected(0), nil }
 func (s stubStmt) Query([]driver.Value) (driver.Rows, error) {
 	return &stubRows{row: s.row, done: s.row.empty}, nil
 }
+
 type stubRows struct {
 	row  stubRow
 	done bool
 }
+
 func (r *stubRows) Columns() []string { return r.row.columns }
 func (r *stubRows) Close() error      { return nil }
 func (r *stubRows) Next(dest []driver.Value) error {

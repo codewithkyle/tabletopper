@@ -1,5 +1,7 @@
 package room
+
 import "math"
+
 func SnapAxis(cell, offset, footprint int, mode Snap, v int) int {
 	if mode == SnapOff || cell < 1 {
 		return v

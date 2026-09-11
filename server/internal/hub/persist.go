@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"database/sql"
@@ -7,11 +8,15 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var ErrNoRoom = errors.New("hub: no such open room")
+
 type Store interface {
 	Load(ctx context.Context, roomID ulid.ULID) (Loaded, error)
 	Save(ctx context.Context, roomID ulid.ULID, snapshot []byte, seq uint64) error
@@ -23,8 +28,11 @@ type Loaded struct {
 	Locked   bool
 	Snapshot json.RawMessage
 }
+
 func NewStore(q *queries.Queries) Store { return dbStore{q: q} }
+
 type dbStore struct{ q *queries.Queries }
+
 func (d dbStore) Load(ctx context.Context, roomID ulid.ULID) (Loaded, error) {
 	row, err := d.q.GetRoomSnapshot(ctx, roomID)
 	if errors.Is(err, sql.ErrNoRows) {

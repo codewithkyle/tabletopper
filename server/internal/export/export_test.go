@@ -1,12 +1,15 @@
 package export
+
 import (
 	"reflect"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
+
 	"tabletopper/templ/pages"
 )
+
 func fullStatBlock() pages.StatBlock {
 	return pages.StatBlock{
 		Name:       "Ancient Red Dragon",

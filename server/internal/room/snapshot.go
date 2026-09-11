@@ -1,17 +1,23 @@
 package room
+
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const Schema = 3
+
 type fields map[string]json.RawMessage
+
 var migrations = map[int]func(fields) error{
 	1: migrateFootprints,
 	2: migrateStrokeKinds,
 }
+
 func migrateFootprints(f fields) error {
 	var table struct {
 		Grid struct {
@@ -99,10 +105,12 @@ func migrate(f fields) error {
 	f["schema"] = number(Schema)
 	return nil
 }
+
 var (
-	ErrEmpty = errors.New("room: the snapshot is empty")
+	ErrEmpty  = errors.New("room: the snapshot is empty")
 	ErrSchema = errors.New("room: the snapshot is from a different schema")
 )
+
 func Marshal(s *State) ([]byte, error) {
 	s.Normalize()
 	return json.Marshal(s)

@@ -1,9 +1,12 @@
 package markdown_test
+
 import (
 	"strings"
 	"testing"
+
 	"tabletopper/internal/markdown"
 )
+
 func keepAll(dest string) (string, bool) { return dest, true }
 func render(t *testing.T, body string, images markdown.ImageSource) string {
 	t.Helper()

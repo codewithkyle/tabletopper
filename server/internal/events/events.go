@@ -1,4 +1,5 @@
 package events
+
 const (
 	Players    = "room:players"
 	Tabletop   = "room:tabletop"
@@ -25,6 +26,7 @@ const (
 	SettingsChange = "settings:change"
 )
 const PendingAlert = "alert:pending"
+
 var All = map[string]string{
 	"ROOM_PLAYERS":    Players,
 	"ROOM_TABLETOP":   Tabletop,

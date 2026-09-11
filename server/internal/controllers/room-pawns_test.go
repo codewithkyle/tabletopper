@@ -1,18 +1,23 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var (
 	testPawnA = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTD")
 	testPawnB = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTE")
 )
+
 func gmSession() session.UserSession {
 	return session.UserSession{UserID: testOwnerID, Hash: []byte("session-hash")}
 }

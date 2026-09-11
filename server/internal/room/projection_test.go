@@ -1,7 +1,9 @@
 package room
+
 import (
 	"testing"
 )
+
 func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
 	w := newWorld(t)
 	seen := w.spawn(Pawn{Name: "Goblin", Visible: true})

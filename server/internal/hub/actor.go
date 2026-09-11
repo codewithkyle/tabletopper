@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"crypto/rand"
@@ -6,12 +7,15 @@ import (
 	"log/slog"
 	"slices"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 type (
-	join struct{ c *client }
-	leave struct{ c *client }
+	join    struct{ c *client }
+	leave   struct{ c *client }
 	command struct {
 		c   *client
 		cmd room.Command
@@ -31,52 +35,54 @@ type (
 		changes uint64
 		err     error
 	}
-	shutdown struct{ done chan struct{} }
+	shutdown  struct{ done chan struct{} }
 	closeRoom struct{ done chan struct{} }
 )
 type actor struct {
-	hub   *Hub
-	id    ulid.ULID
-	inbox chan any
-	done chan struct{}
-	state *room.State
-	conns map[*client]struct{}
+	hub              *Hub
+	id               ulid.ULID
+	inbox            chan any
+	done             chan struct{}
+	state            *room.State
+	conns            map[*client]struct{}
 	seqGM, seqPlayer uint64
-	dirty bool
-	changes uint64
-	saving  bool
-	saved   chan saved
-	saveFailures int
-	sizeWarned bool
-	sheet  *sheetWriter
-	lastHP map[ulid.ULID]int
-	drags     map[ulid.ULID]command
-	dragTimer *time.Timer
-	emptySince time.Time
-	kicked map[ulid.ULID]time.Time
-	entropy *ulid.MonotonicEntropy
+	dirty            bool
+	changes          uint64
+	saving           bool
+	saved            chan saved
+	saveFailures     int
+	sizeWarned       bool
+	sheet            *sheetWriter
+	lastHP           map[ulid.ULID]int
+	drags            map[ulid.ULID]command
+	dragTimer        *time.Timer
+	emptySince       time.Time
+	kicked           map[ulid.ULID]time.Time
+	entropy          *ulid.MonotonicEntropy
 }
+
 const kickGrace = 30 * time.Second
+
 func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 	timer := time.NewTimer(time.Hour)
 	timer.Stop()
 	return &actor{
-		hub:       h,
-		id:        id,
-		inbox:     make(chan any, inboxSize),
-		done:      make(chan struct{}),
-		state:     state,
-		conns:     make(map[*client]struct{}),
-		seqGM:     seq,
-		seqPlayer: seq,
-		drags:     make(map[ulid.ULID]command),
-		dragTimer: timer,
-		kicked:    make(map[ulid.ULID]time.Time),
-		saved:     make(chan saved, 1),
-		sheet:     newSheetWriter(h.writeHP),
-		lastHP:    make(map[ulid.ULID]int),
+		hub:        h,
+		id:         id,
+		inbox:      make(chan any, inboxSize),
+		done:       make(chan struct{}),
+		state:      state,
+		conns:      make(map[*client]struct{}),
+		seqGM:      seq,
+		seqPlayer:  seq,
+		drags:      make(map[ulid.ULID]command),
+		dragTimer:  timer,
+		kicked:     make(map[ulid.ULID]time.Time),
+		saved:      make(chan saved, 1),
+		sheet:      newSheetWriter(h.writeHP),
+		lastHP:     make(map[ulid.ULID]int),
 		emptySince: time.Now(),
-		entropy: ulid.Monotonic(rand.Reader, 0),
+		entropy:    ulid.Monotonic(rand.Reader, 0),
 	}
 }
 func (a *actor) env() room.Env {
@@ -406,7 +412,9 @@ func (a *actor) forget(user ulid.ULID) {
 		}
 	}()
 }
+
 const snapshotSoftLimit = 8 << 20
+
 func (a *actor) save() {
 	if !a.dirty || a.saving {
 		return
@@ -516,13 +524,15 @@ func (a *actor) table() *TableView {
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
 }
+
 type SpawnView struct {
 	ActiveLayer ulid.ULID
 	Grid        room.Grid
 	Map         *room.MapRef
-	Players []room.Player
-	Characters map[ulid.ULID]bool
+	Players     []room.Player
+	Characters  map[ulid.ULID]bool
 }
+
 func (a *actor) spawn() *SpawnView {
 	view := &SpawnView{
 		ActiveLayer: a.state.Table.ActiveLayer,

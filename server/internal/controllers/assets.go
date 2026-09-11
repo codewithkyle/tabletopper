@@ -1,10 +1,13 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -12,8 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	_ "image/jpeg"
-	_ "image/png"
+
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
@@ -21,28 +23,33 @@ import (
 	"tabletopper/internal/storage"
 	"tabletopper/internal/tiling"
 	"tabletopper/templ/pages"
+
 	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
+
 const (
-	maxUploadBytes  = 8 << 20 
-	maxUploadPixels = 40_000_000
-	maxMapBytes  = 128 << 20 
-	maxMapPixels = 150_000_000
-	multipartMemory = 32 << 20 
+	maxUploadBytes      = 8 << 20
+	maxUploadPixels     = 40_000_000
+	maxMapBytes         = 128 << 20
+	maxMapPixels        = 150_000_000
+	multipartMemory     = 32 << 20
 	uploadReadDeadline  = 10 * time.Minute
 	uploadWriteDeadline = uploadReadDeadline + 30*time.Second
-	avatarSize = 96
-	monsterImageSize = 256
+	avatarSize          = 96
+	monsterImageSize    = 256
 )
+
 type uploadLimits struct {
 	bytes  int64
 	pixels int64
 }
+
 var (
 	imageLimits = uploadLimits{bytes: maxUploadBytes, pixels: maxUploadPixels}
 	mapLimits   = uploadLimits{bytes: maxMapBytes, pixels: maxMapPixels}
 )
+
 func extendUploadDeadlines(w http.ResponseWriter) {
 	now := time.Now()
 	controller := http.NewResponseController(w)
@@ -205,14 +212,17 @@ func openImageUpload(w http.ResponseWriter, r *http.Request, field string, limit
 	}
 	return file, header, contentType, true
 }
+
 type uploadProblem struct {
 	Heading string
 	Message string
 	Status  int
 }
+
 func (p *uploadProblem) alert(w http.ResponseWriter) {
 	htmx.Error(w, p.Heading, p.Message, p.Status)
 }
+
 var (
 	errUnreadableUpload = &uploadProblem{
 		Heading: "Upload Failed",
@@ -230,6 +240,7 @@ var (
 		Status:  http.StatusUnsupportedMediaType,
 	}
 )
+
 func parseUploadForm(w http.ResponseWriter, r *http.Request, limits uploadLimits) *uploadProblem {
 	extendUploadDeadlines(w)
 	r.Body = http.MaxBytesReader(w, r.Body, limits.bytes)
@@ -294,8 +305,11 @@ func openOptionalImageUpload(r *http.Request, field string, limits uploadLimits)
 	}
 	return file, headers[0].Filename, nil
 }
+
 var decodeSlots = make(chan struct{}, 2)
+
 const decodeWait = 10 * time.Second
+
 func decodeUpload(ctx context.Context, file io.Reader) (image.Image, error) {
 	ctx, cancel := context.WithTimeout(ctx, decodeWait)
 	defer cancel()
@@ -629,12 +643,12 @@ func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, strin
 	originalPath := storage.MapOriginalKey(sess.UserID, assetID)
 	tileSize := sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}
 	err := a.Queries.InsertMap(ctx, queries.InsertMapParams{
-		ID:       assetID,
-		OwnerID:  sess.UserID,
-		FilePath: originalPath,
-		FileName: filename,
-		Name:     filename,
-		TileSize: tileSize,
+		ID:        assetID,
+		OwnerID:   sess.UserID,
+		FilePath:  originalPath,
+		FileName:  filename,
+		Name:      filename,
+		TileSize:  tileSize,
 		SizeBytes: header.Size,
 	})
 	if err != nil {

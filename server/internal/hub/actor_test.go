@@ -1,11 +1,15 @@
 package hub
+
 import (
 	"encoding/json"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestJoiningSendsTheSnapshotLastAndTheArrivalFirst(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)

@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"database/sql"
@@ -8,10 +9,13 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
 	sheet, portrait, err := a.loadCharacterSheet(r.Context(), grant.ResourceID, grant.OwnerID)
 	if errors.Is(err, sql.ErrNoRows) {

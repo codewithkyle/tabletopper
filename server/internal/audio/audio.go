@@ -1,9 +1,12 @@
 package audio
+
 import (
 	"path/filepath"
 	"strings"
 )
+
 const HeaderBytes = 64
+
 var byExtension = map[string]string{
 	".mp3":  "audio/mpeg",
 	".ogg":  "audio/ogg",
@@ -15,6 +18,7 @@ var byExtension = map[string]string{
 	".flac": "audio/flac",
 	".wav":  "audio/wav",
 }
+
 func TypeForName(name string) (string, bool) {
 	contentType, ok := byExtension[strings.ToLower(filepath.Ext(name))]
 	return contentType, ok

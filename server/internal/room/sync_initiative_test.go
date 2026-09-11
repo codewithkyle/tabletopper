@@ -1,8 +1,11 @@
 package room
+
 import (
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestSyncTakesTheCreaturesOnTheFloorsThePartyIsOn(t *testing.T) {
 	w := newWorld(t)
 	upstairs := w.addLayer("First floor")

@@ -1,17 +1,21 @@
 package pages
+
 const barGutter = "px-6 max-[900px]:px-4"
 const tabGutter = "px-4"
+
 templ appBar() {
 	<header class="sticky top-0 z-20 border-b border-base-300 bg-panel/85 backdrop-blur-sm">
 		{ children... }
 	</header>
 }
+
 templ backLink(target backTarget) {
 	<a href={ target.Href } class="btn shrink-0">
 		@arrowLeftIcon()
 		{ target.Label }
 	</a>
 }
+
 templ characterBar(characterID string, header CharacterHeader, active string, layout shellLayout) {
 	@appBar() {
 		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 pt-3 pb-2" }>
@@ -38,10 +42,12 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 		}
 	}
 }
+
 templ CharacterBarValues(header CharacterHeader) {
 	@characterBarFigure(header, true)
 	@characterBarChips(header, true)
 }
+
 templ characterBarFigure(header CharacterHeader, oob bool) {
 	<div
 		id="character-bar-figure"
@@ -66,6 +72,7 @@ templ characterBarFigure(header CharacterHeader, oob bool) {
 		</div>
 	</div>
 }
+
 templ characterBarChips(header CharacterHeader, oob bool) {
 	<dl
 		id="character-bar-chips"
@@ -87,12 +94,14 @@ templ characterBarChips(header CharacterHeader, oob bool) {
 		}
 	</dl>
 }
+
 templ characterExportButton(characterID string) {
 	<a href={ "/characters/" + characterID + "/export.md" } download class="btn btn-secondary shrink-0 max-[640px]:px-3">
 		@downloadIcon()
 		<span class="max-[640px]:sr-only">Export</span>
 	</a>
 }
+
 templ characterShareButton(characterID string) {
 	<button
 		type="button"

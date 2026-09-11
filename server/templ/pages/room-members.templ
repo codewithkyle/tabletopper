@@ -1,5 +1,7 @@
 package pages
+
 import "tabletopper/internal/events"
+
 templ RoomMembers(data RoomMembersData) {
 	<ul
 		id="room-members"
@@ -20,6 +22,7 @@ templ RoomMembers(data RoomMembersData) {
 		}
 	</ul>
 }
+
 templ roomMemberRow(data RoomMembersData, m RoomMember) {
 	<li>
 		<div class="flex items-center gap-2 px-2 py-1">

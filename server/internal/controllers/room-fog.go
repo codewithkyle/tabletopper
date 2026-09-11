@@ -1,9 +1,13 @@
 package controllers
+
 import (
 	"net/http"
-	"github.com/oklog/ulid/v2"
+
 	"tabletopper/internal/room"
+
+	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) FillLayerFog(w http.ResponseWriter, r *http.Request) {
 	a.viewedLayerCommands(w, r, "fill the fog", func(layer ulid.ULID) []room.Command {
 		return []room.Command{

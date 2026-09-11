@@ -1,17 +1,19 @@
 package pages
+
 type Derived struct {
-	StrMod string
-	DexMod string
-	ConMod string
-	IntMod string
-	WisMod string
-	ChaMod string
-	Skills       []BonusRow
-	SavingThrows []BonusRow
+	StrMod            string
+	DexMod            string
+	ConMod            string
+	IntMod            string
+	WisMod            string
+	ChaMod            string
+	Skills            []BonusRow
+	SavingThrows      []BonusRow
 	PassivePerception string
 	SpellSaveDC       string
 	SpellAttackBonus  string
 }
+
 var spellcastingAbilityOptions = []Option{
 	{Label: "None", Value: "none"},
 	{Label: "Strength", Value: "str"},
@@ -21,7 +23,9 @@ var spellcastingAbilityOptions = []Option{
 	{Label: "Wisdom", Value: "wis"},
 	{Label: "Charisma", Value: "cha"},
 }
+
 const SpellcastingAbilityNone = "none"
+
 func NormalizeSpellcastingAbility(value string) string {
 	for _, option := range spellcastingAbilityOptions {
 		if option.Value == value {

@@ -1,16 +1,21 @@
 package prefs
+
 import (
 	"strconv"
 	"time"
 	_ "time/tzdata"
 )
+
 type Theme string
+
 const (
 	ThemeSystem Theme = "system"
 	ThemeLight  Theme = "light"
 	ThemeDark   Theme = "dark"
 )
+
 type DateFormat string
+
 const (
 	DateDMYText  DateFormat = "dmy_text"
 	DateMDYText  DateFormat = "mdy_text"
@@ -18,11 +23,14 @@ const (
 	DateDMYSlash DateFormat = "dmy_slash"
 	DateISO      DateFormat = "iso"
 )
+
 type TimeFormat string
+
 const (
 	Time12H TimeFormat = "12h"
 	Time24H TimeFormat = "24h"
 )
+
 func (t Theme) Palette() string {
 	switch t {
 	case ThemeLight:
@@ -33,7 +41,9 @@ func (t Theme) Palette() string {
 		return ""
 	}
 }
+
 const DefaultTimezone = "America/New_York"
+
 var Default = Preferences{
 	Theme:      ThemeSystem,
 	Timezone:   DefaultTimezone,
@@ -43,19 +53,22 @@ var Default = Preferences{
 	ShowBlood:  true,
 	PingVolume: PingVolumeMax,
 }
+
 const (
 	PingVolumeMax  = 100
 	PingVolumeStep = 10
 )
+
 type Preferences struct {
 	Theme      Theme
 	Timezone   string
 	DateFormat DateFormat
 	TimeFormat TimeFormat
 	FollowTurn bool
-	ShowBlood bool
+	ShowBlood  bool
 	PingVolume int
 }
+
 func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood bool, pingVolume int) Preferences {
 	p := Default
 	if v, ok := ParseTheme(theme); ok {

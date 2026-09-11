@@ -1,4 +1,5 @@
 package pages
+
 var creatureTypeOptions = []Option{
 	{Label: "Aberration", Value: "aberration"},
 	{Label: "Beast", Value: "beast"},
@@ -15,7 +16,9 @@ var creatureTypeOptions = []Option{
 	{Label: "Plant", Value: "plant"},
 	{Label: "Undead", Value: "undead"},
 }
+
 const DefaultCreatureType = "humanoid"
+
 func NormalizeCreatureType(value string) string {
 	for _, option := range creatureTypeOptions {
 		if option.Value == value {
@@ -32,13 +35,16 @@ func CreatureTypeLabel(value string) string {
 	}
 	return ""
 }
+
 type ChallengeRating struct {
 	Value       string
 	Label       string
 	XP          uint32
 	Proficiency uint8
 }
+
 const DefaultChallengeRating = "0"
+
 var challengeRatings = []ChallengeRating{
 	{Value: "0", Label: "0", XP: 0, Proficiency: 2},
 	{Value: "1/8", Label: "1/8", XP: 25, Proficiency: 2},
@@ -75,6 +81,7 @@ var challengeRatings = []ChallengeRating{
 	{Value: "29", Label: "29", XP: 135000, Proficiency: 9},
 	{Value: "30", Label: "30", XP: 155000, Proficiency: 9},
 }
+
 func ChallengeRatings() []ChallengeRating { return challengeRatings }
 func challengeRatingOptions() []Option {
 	options := make([]Option, 0, len(challengeRatings))
@@ -99,6 +106,7 @@ func NormalizeChallengeRating(value string) string {
 	}
 	return DefaultChallengeRating
 }
+
 const (
 	MonsterActionKindTrait           = "trait"
 	MonsterActionKindAction          = "action"
@@ -108,15 +116,18 @@ const (
 	MonsterActionKindLairAction      = "lair_action"
 	MonsterActionKindRegionalEffect  = "regional_effect"
 )
+
 type MonsterActionSection struct {
 	Kind     string
 	Heading  string
 	Singular string
 	Intro    string
 }
+
 func (s MonsterActionSection) AddLabel() string {
 	return "Add " + s.Singular
 }
+
 var monsterActionKinds = []MonsterActionSection{
 	{
 		Kind:     MonsterActionKindTrait,
@@ -157,6 +168,7 @@ var monsterActionKinds = []MonsterActionSection{
 		Intro:    "The region containing its lair is warped by its magic, creating one or more of the following effects.",
 	},
 }
+
 func MonsterActionSections() []MonsterActionSection { return monsterActionKinds }
 func MonsterActionSectionFor(kind string) (MonsterActionSection, bool) {
 	for _, section := range monsterActionKinds {
@@ -166,16 +178,17 @@ func MonsterActionSectionFor(kind string) (MonsterActionSection, bool) {
 	}
 	return MonsterActionSection{}, false
 }
+
 const (
-	MonsterNameLimit      = 128
-	MonsterTagsLimit      = 128
-	MonsterHitDiceLimit   = 64
-	MonsterSpeedLimit     = 128
-	MonsterDefenseLimit   = 512
-	MonsterSensesLimit    = 255
-	MonsterLanguagesLimit = 255
-	MonsterHabitatLimit   = 255
-	MonsterTreasureLimit  = 64
+	MonsterNameLimit       = 128
+	MonsterTagsLimit       = 128
+	MonsterHitDiceLimit    = 64
+	MonsterSpeedLimit      = 128
+	MonsterDefenseLimit    = 512
+	MonsterSensesLimit     = 255
+	MonsterLanguagesLimit  = 255
+	MonsterHabitatLimit    = 255
+	MonsterTreasureLimit   = 64
 	MonsterActionNameLimit = 128
 )
 const MonsterProseLimit = 4096

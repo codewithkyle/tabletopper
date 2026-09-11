@@ -1,12 +1,16 @@
 package hub
+
 import (
 	"context"
 	"sync"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestSheetWritesLandOneAtATimeAndTheLatestWins(t *testing.T) {
 	var mu sync.Mutex
 	var written []int

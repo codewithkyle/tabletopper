@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"database/sql"
 	"net/http"
@@ -6,11 +7,15 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testAssetID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS2")
+
 func TestUploadJournalImageRejectsUnparseableIDs(t *testing.T) {
 	for _, c := range []struct{ name, character, entry string }{
 		{name: "character", character: "not-a-ulid", entry: testEntryID.String()},

@@ -1,4 +1,5 @@
 package hub
+
 import (
 	"context"
 	"encoding/json"
@@ -7,9 +8,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
+
 	"github.com/coder/websocket"
 )
+
 func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

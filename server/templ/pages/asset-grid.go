@@ -1,12 +1,14 @@
 package pages
+
 type assetGrid struct {
-	Kind string
-	Cols string
-	Query string
+	Kind         string
+	Cols         string
+	Query        string
 	EmptyHeading string
 	EmptyBlurb   string
 	NoMatch      string
 }
+
 func mapsGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabMaps,

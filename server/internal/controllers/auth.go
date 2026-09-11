@@ -1,14 +1,18 @@
 package controllers
+
 import (
 	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("__session")
 	if err != nil || cookie.Value == "" {

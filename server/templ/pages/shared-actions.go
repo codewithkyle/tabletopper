@@ -1,6 +1,7 @@
 package pages
+
 type SharedActions struct {
-	Blurb string
+	Blurb  string
 	Export string
 	Import string
 	SignIn string

@@ -1,12 +1,15 @@
 package hub
+
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"testing"
 	"time"
+
 	"tabletopper/internal/room"
 )
+
 func TestADirtyRoomSavesOnTheIntervalAndACleanOneNever(t *testing.T) {
 	tb := newTabletop(t, Options{SnapshotInterval: 200 * time.Millisecond})
 	tb.actor()

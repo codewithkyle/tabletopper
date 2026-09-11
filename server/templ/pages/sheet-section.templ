@@ -1,8 +1,10 @@
 package pages
+
 const surfacePanel = "border border-base-300 bg-panel/85 shadow-panel backdrop-blur-sm"
 const surfaceInset = "rounded-field bg-base-content/5"
 const sheetSurface = "card " + surfacePanel
 const panelTrigger = "input delay:1s, repeater:changed"
+
 templ savingPanel(title string, action string, panel string) {
 	<form
 		id={ panelFormID(panel) }
@@ -20,6 +22,7 @@ templ savingPanel(title string, action string, panel string) {
 		</div>
 	</form>
 }
+
 templ sheetPanel(title string) {
 	<div class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
@@ -28,6 +31,7 @@ templ sheetPanel(title string) {
 		</div>
 	</div>
 }
+
 templ sheetHeading(title string) {
 	<header class="flex items-center">
 		<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase text-base-content/65">{ title }</h2>

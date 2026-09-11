@@ -1,10 +1,13 @@
 package controllers
+
 import (
 	"net/http"
 	"strings"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestARejectedCharacterShareFormRunsNoStatements(t *testing.T) {
 	for name, form := range map[string]map[string]string{
 		"expiry with no days":  {"expiry": "on", "days": ""},

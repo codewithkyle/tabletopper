@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"context"
 	"crypto/rand"
@@ -10,13 +11,17 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
 	"tabletopper/templ/pages"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var errImportedMonsterGone = errors.New("the shared monster no longer exists")
+
 func (a *App) sharedMonster(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
 	ctx := r.Context()
 	monster, err := a.Queries.GetMonster(ctx, queries.GetMonsterParams{

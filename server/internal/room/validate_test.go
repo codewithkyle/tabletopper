@@ -1,12 +1,15 @@
 package room
+
 import (
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 	t.Run("a name of exactly the limit is accepted and one more is not", func(t *testing.T) {
 		w := newWorld(t)

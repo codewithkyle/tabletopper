@@ -1,11 +1,15 @@
 package middleware
+
 import (
 	"net/http"
 	"net/http/httptest"
-	"tabletopper/internal/session"
 	"testing"
+
+	"tabletopper/internal/session"
 )
+
 var auth = Auth{Sessions: session.NewStore(nil, false)}
+
 func TestRequireSessionRedirectsWithoutCookie(t *testing.T) {
 	called := false
 	h := auth.RequireSession(func(w http.ResponseWriter, r *http.Request) { called = true })

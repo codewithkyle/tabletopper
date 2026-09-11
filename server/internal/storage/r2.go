@@ -1,4 +1,5 @@
 package storage
+
 import (
 	"bytes"
 	"context"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -16,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
+
 type Config struct {
 	AccountID       string
 	AccessKeyID     string
@@ -27,6 +30,7 @@ type Client struct {
 	presign *s3.PresignClient
 	bucket  string
 }
+
 func New(ctx context.Context, cfg Config) (*Client, error) {
 	if cfg.AccountID == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" || cfg.Bucket == "" {
 		return nil, errors.New("storage: incomplete R2 configuration")
@@ -52,14 +56,17 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 		bucket:  cfg.Bucket,
 	}, nil
 }
+
 const (
 	retryAttempts = 5
-	retryBackoff = 5 * time.Second
+	retryBackoff  = 5 * time.Second
 )
+
 var (
 	throttleStatus = map[int]struct{}{http.StatusTooManyRequests: {}}
 	throttleCode   = map[string]struct{}{"ServiceUnavailable": {}}
 )
+
 func newRetryer() aws.Retryer {
 	return retry.NewStandard(func(o *retry.StandardOptions) {
 		o.MaxAttempts = retryAttempts
@@ -80,7 +87,9 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 	})
 	return err
 }
+
 const deleteBatchSize = 1000
+
 func (c *Client) DeleteMany(ctx context.Context, keys []string) error {
 	if len(keys) == 0 {
 		return nil
@@ -197,7 +206,9 @@ func (c *Client) PresignGet(ctx context.Context, key string, ttl time.Duration) 
 	}
 	return req.URL, nil
 }
+
 var ErrNotFound = errors.New("storage: object not found")
+
 func (c *Client) Size(ctx context.Context, key string) (int64, error) {
 	if key == "" {
 		return 0, errors.New("storage: empty key")

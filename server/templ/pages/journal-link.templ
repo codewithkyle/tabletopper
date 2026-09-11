@@ -1,4 +1,5 @@
 package pages
+
 templ JournalLinkFragment() {
 	<div class="grid gap-4">
 		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Insert Link</h3>
@@ -10,10 +11,10 @@ templ JournalLinkFragment() {
 					name="href"
 					type="url"
 					class="input validator peer w-full"
-					placeholder="https:
+					placeholder="https://example.com"
 					autocomplete="off"
 				/>
-				<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a full address, starting with https:
+				<p class="validator-hint hidden peer-user-invalid:block text-hint">Enter a full address, starting with https://</p>
 			</div>
 			<div class="modal-action">
 				<button

@@ -1,4 +1,5 @@
 package controllers
+
 import (
 	"database/sql/driver"
 	"net/http"
@@ -7,12 +8,16 @@ import (
 	"strings"
 	"testing"
 	"time"
+
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var testJoinCharacterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
+
 func joinForm(code string) url.Values {
 	return url.Values{"code": {code}, "character": {testJoinCharacterID.String()}}
 }

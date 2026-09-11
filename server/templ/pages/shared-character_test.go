@@ -1,4 +1,5 @@
 package pages
+
 import (
 	"reflect"
 	"regexp"
@@ -6,6 +7,7 @@ import (
 	"strings"
 	"testing"
 )
+
 func testSharedSheet() SharedCharacterSheet {
 	return SharedCharacterSheet{
 		Header: CharacterHeader{

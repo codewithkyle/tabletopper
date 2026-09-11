@@ -1,6 +1,9 @@
 package room
+
 import "strings"
+
 const HPEntryLimit = 24
+
 func EvaluateHP(entry string, current *int) (int, bool, string) {
 	text := strings.Join(strings.Fields(entry), " ")
 	text = strings.ReplaceAll(text, " +", "+")

@@ -1,4 +1,5 @@
 package session
+
 import (
 	"context"
 	"crypto/rand"
@@ -8,16 +9,20 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/queries"
+
 	"github.com/oklog/ulid/v2"
 )
+
 const (
-	IdleWindow = 7 * 24 * time.Hour
-	MaxLifetime = 30 * 24 * time.Hour
+	IdleWindow      = 7 * 24 * time.Hour
+	MaxLifetime     = 30 * 24 * time.Hour
 	refreshInterval = time.Hour
-	cookieName = "session_id"
+	cookieName      = "session_id"
 )
+
 type UserSession struct {
 	ID              ulid.ULID
 	UserID          ulid.ULID
@@ -28,15 +33,16 @@ type UserSession struct {
 	Hash            []byte
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
-	RefreshedAt time.Time
-	Prefs prefs.Preferences
-	Onboarded bool
-	token []byte
+	RefreshedAt     time.Time
+	Prefs           prefs.Preferences
+	Onboarded       bool
+	token           []byte
 }
 type Store struct {
 	q      *queries.Queries
 	secure bool
 }
+
 func NewStore(q *queries.Queries, secure bool) *Store {
 	return &Store{q: q, secure: secure}
 }
@@ -190,7 +196,9 @@ func hashToken(token []byte) []byte {
 	sum := sha256.Sum256(token)
 	return sum[:]
 }
+
 var ErrSessionGone = errors.New("session: the session ended before the write landed")
+
 func (s *Store) JoinRoom(ctx context.Context, u *UserSession, roomID ulid.ULID, characterID *ulid.ULID) error {
 	result, err := s.q.SetSessionRoom(ctx, queries.SetSessionRoomParams{
 		RoomID:      &roomID,

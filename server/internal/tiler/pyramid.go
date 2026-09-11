@@ -1,4 +1,5 @@
 package tiler
+
 func LevelPixels(size int, z int) int {
 	if size <= 0 {
 		return 0

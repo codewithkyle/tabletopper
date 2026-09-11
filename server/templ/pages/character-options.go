@@ -1,8 +1,10 @@
 package pages
+
 type Option struct {
 	Label string
 	Value string
 }
+
 var alignmentOptions = []Option{
 	{Label: "Unaligned", Value: "unaligned"},
 	{Label: "Any Alignment", Value: "any alignment"},
@@ -29,10 +31,12 @@ var sizeOptions = []Option{
 	{Label: "Huge", Value: "huge"},
 	{Label: "Gargantuan", Value: "gargantuan"},
 }
+
 const (
 	DefaultAlignment = "unaligned"
 	DefaultSize      = "medium"
 )
+
 func NormalizeSize(value string) string {
 	return normalizeOption(value, sizeOptions, DefaultSize)
 }

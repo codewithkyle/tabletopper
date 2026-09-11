@@ -1,9 +1,12 @@
 package room
+
 import (
 	"fmt"
 	"slices"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func Reduce(s *State, ev Event) error {
 	if ev == nil || ev.Transient() {
 		return nil

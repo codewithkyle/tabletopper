@@ -1,11 +1,15 @@
 package hub
+
 import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
 	switch cmd := cmd.(type) {
 	case *room.TableSetLayerMap:

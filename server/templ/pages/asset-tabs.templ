@@ -1,5 +1,7 @@
 package pages
+
 const assetGutter = "px-6 max-[700px]:px-4"
+
 templ assetTabs(active string) {
 	<nav class={ assetGutter + " flex gap-1" } aria-label="Asset kinds">
 		@tabLink("/assets/maps", "Maps", active == assetTabMaps)

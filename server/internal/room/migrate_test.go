@@ -1,4 +1,5 @@
 package room
+
 import (
 	"encoding/json"
 	"errors"
@@ -7,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 )
+
 func TestEveryPastSchemaMigratesToTheCurrentOne(t *testing.T) {
 	for n := 1; n <= Schema; n++ {
 		name := filepath.Join("testdata", "snapshots", "schema-"+itoa(n)+".json")

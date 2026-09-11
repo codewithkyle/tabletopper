@@ -1,16 +1,20 @@
 package room
+
 import (
 	"encoding/binary"
 	"encoding/json"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func testID(n int) ulid.ULID {
 	var id ulid.ULID
 	id[0] = 1
 	binary.BigEndian.PutUint64(id[8:], uint64(n))
 	return id
 }
+
 var (
 	testRoomID    = testID(1000)
 	testGMID      = testID(1001)
@@ -20,6 +24,7 @@ var (
 	testOtherChar = testID(1005)
 	testAssetID   = testID(1006)
 )
+
 func newEnv() Env {
 	n := 0
 	return Env{
@@ -30,6 +35,7 @@ func newEnv() Env {
 		Version: "test-build",
 	}
 }
+
 type world struct {
 	t     *testing.T
 	s     *State
@@ -39,6 +45,7 @@ type world struct {
 	other Actor
 	layer ulid.ULID
 }
+
 func newWorld(t *testing.T) *world {
 	t.Helper()
 	env := newEnv()

@@ -1,13 +1,17 @@
 package controllers
+
 import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
 	"tabletopper/internal/share"
+
 	"github.com/oklog/ulid/v2"
 )
+
 func shareForm(values map[string]string) url.Values {
 	form := url.Values{}
 	for name, value := range values {
@@ -118,8 +122,8 @@ func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 		forwarded string
 		want      string
 	}{
-		"plain http":     {"", "http://tabletopper.test/share/abc"},
-		"behind a proxy": {"https", "https://tabletopper.test/share/abc"},
+		"plain http":        {"", "http://tabletopper.test/share/abc"},
+		"behind a proxy":    {"https", "https://tabletopper.test/share/abc"},
 		"a nonsense scheme": {"gopher", "http://tabletopper.test/share/abc"},
 	}
 	for name, tc := range cases {

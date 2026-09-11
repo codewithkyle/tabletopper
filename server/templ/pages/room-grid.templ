@@ -1,4 +1,5 @@
 package pages
+
 templ RoomGrid(data RoomGridData) {
 	<form
 		id="room-grid"
@@ -27,6 +28,7 @@ templ RoomGrid(data RoomGridData) {
 		@gridToggle("fogPrefill", "Prefill fog", "A floor added from now on starts covered. Floors that are already here do not change.", data.FogPrefill)
 	</form>
 }
+
 templ gridNumber(name string, caption string, value string, min string, max string) {
 	<label class="flex flex-col gap-0.5">
 		<span class="text-[10px] text-base-content/60">{ caption }</span>
@@ -45,6 +47,7 @@ templ gridNumber(name string, caption string, value string, min string, max stri
 		/>
 	</label>
 }
+
 templ gridColor(data RoomGridData) {
 	<div data-color class="flex flex-col gap-0.5">
 		<span class="text-[10px] text-base-content/60">Colour</span>
@@ -79,6 +82,7 @@ templ gridColor(data RoomGridData) {
 		></hex-alpha-color-picker>
 	</div>
 }
+
 templ gridRadios(name string, caption string, choices []Choice, chosen string) {
 	<fieldset class="flex flex-col gap-0.5">
 		<legend class="text-[10px] text-base-content/60">{ caption }</legend>
@@ -101,6 +105,7 @@ templ gridRadios(name string, caption string, choices []Choice, chosen string) {
 		}
 	</fieldset>
 }
+
 templ gridToggle(name string, caption string, hint string, on bool) {
 	<label class="flex items-start gap-2">
 		<input type="checkbox" name={ name } value="on" checked?={ on } class="toggle toggle-xs mt-0.5 shrink-0"/>

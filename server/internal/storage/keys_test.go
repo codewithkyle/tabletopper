@@ -1,15 +1,19 @@
 package storage
+
 import (
 	"strings"
 	"testing"
+
 	"github.com/oklog/ulid/v2"
 )
+
 var (
 	testUser  = ulid.MustParse("01JAAAAAAAAAAAAAAAAAAAAAA1")
 	testAsset = ulid.MustParse("01JBBBBBBBBBBBBBBBBBBBBBB2")
 	testGen   = ulid.MustParse("01JCCCCCCCCCCCCCCCCCCCCCC3")
 	testOther = ulid.MustParse("01JDDDDDDDDDDDDDDDDDDDDDD4")
 )
+
 func TestMapTileKeyFormat(t *testing.T) {
 	got := MapTileKey(testUser, testAsset, testGen, 3, 12, 7)
 	want := "users/" + testUser.String() +
