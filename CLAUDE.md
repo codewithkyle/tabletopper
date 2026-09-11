@@ -16,62 +16,7 @@ without breaking one, stop and say so.
 
 ## Code comments
 
-**Never reference a plan, rewrite, review, patch, revision, or notes markdown document from
-a code comment, a Makefile, or any other file that ships.** No `PLAN.md`, no `REVIEW.md`,
-no `NOTES.md`. Those documents are temporary and are deleted the moment the work they
-describe is finished.
-
-Write what the comment needs into the comment. If a command belongs in a comment, inline
-the command. A comment that cannot stand on its own does not belong in the code.
-
-### Never write a comment in a `.templ` file
-
-Not a `//` line, not an HTML comment, not a doc block above a component. The rule is
-absolute, and it is absolute because the damage is silent.
-
-`server/css/app.css` imports Tailwind with `source(none)`, which disables automatic file
-discovery, and then declares exactly one source:
-
-```css
-@source "../templ/**/*.templ";
-```
-
-Tailwind reads those files as text, not as markup, and takes a class-name candidate from
-anything word-shaped it finds — comments included. Any bare lowercase word that happens to
-be a DaisyUI component name emits that component's whole family into
-`server/public/css/app.css`. Measured, not assumed: the line `// probe stack` added to a
-`.go` file changes the build by 0 bytes; the same line added to a `.templ` file adds 14
-selectors and 1,953 bytes.
-
-Words that have already done it here: `tab`, `table`, `list`, `status`, `swap`, `stack`,
-`modal-backdrop`. Prose is where they turn up, because prose is where you write ordinary
-English. Nothing fails when it happens — `templ fmt` is happy, `make check` is green, the
-page renders correctly, and the only symptom is a stylesheet that quietly grew.
-
-**Reasoning about a component goes in the Go that renders or reads it** — the handler in
-`server/internal/controllers`, or the page-data type in `server/templ/pages/*.go`. Neither
-is scanned. What cannot find a home there is not written down.
-
-The ban closes the prose vector, not the whole hole. A `.templ` file still contains Go, and
-Go is scanned too: `for _, option := range options` is why `.range` is in the build — 14
-rules for a slider this app does not have. That one cannot be fixed, because the loop is
-the markup. It is why the check below stays a habit rather than a one-off.
-
-**Attribute values are scanned as well, and the extractor splits on `:` and `.`** So an
-`hx-trigger="room:table from:window"` puts `table` in the build exactly as the prose would,
-and a form field named `visible` emits `.visible`. Both happened here and both were caught
-by the diff below rather than by review. Where a name is ours to choose — a DOM event, a
-field, a data attribute — choose one that is not a component: `room:tabletop`, `showGrid`.
-
-After changing anything under `server/templ`, check what the build gained:
-
-```sh
-cp server/public/css/app.css /tmp/app.before.css && make css
-diff <(grep -oE '^\s*\.[^ {,:]+' /tmp/app.before.css | sort -u) \
-     <(grep -oE '^\s*\.[^ {,:]+' server/public/css/app.css | sort -u)
-```
-
-Every added selector should be one you can point at in the markup you just wrote.
+Never write code comments. Ever. You are banned from comments.
 
 ## HTMX fragment routes
 
