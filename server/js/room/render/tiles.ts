@@ -1,63 +1,63 @@
-// The tile cache and the tile loader: which pieces of which map are on the GPU,
-// which are being fetched, and what to draw in the meantime.
-//
-// THE CACHE IS ONE TEXTURE ARRAY AND NOT N TEXTURES. Ninety-six separate
-// textures would be ninety-six bind calls and ninety-six draw calls, because a
-// draw call can only use the textures bound to it; one array texture with
-// ninety-six layers is one bind and one instanced draw for the whole viewport,
-// with the layer index riding in as a per-instance attribute. That is the whole
-// reason the renderer can put a 12000 by 9000 map on screen in one call.
-//
-// A MISSING TILE IS DRAWN FROM ITS ANCESTOR RATHER THAN LEFT BLANK. The parent
-// of (z, x, y) is (z+1, x>>1, y>>1) and covers twice as much ground at half the
-// detail, so while a level loads the map is already there, coarse, and sharpens
-// in place. A blank tile that filled in would flash; this does not.
-//
-// LEVEL z IS NOT THE NATIVE IMAGE SHRUNK BY 2^z, and getting that wrong is the
-// subtle bug in this file. The tiler resizes each level to
-// ceil(size / 2^z) pixels -- a CEIL -- and that level then represents the WHOLE
-// map. So 9000 rows at level 5 is 282 pixels, and 282 times 32 is 9024: mapping
-// a tile back to native pixels with a shift would draw the map 24 pixels taller
-// than it is and slide the grid off the features it lines up with. The scale is
-// size / levelPixels(size, z) per axis per level, which is what levelScale is.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import type { MapRef } from "../protocol.ts";
 import type { Rect } from "./camera.ts";
 import { levelPixels, levelTiles } from "./pyramid.ts";
 
-// LAYERS is the cache's size in tiles. At 512 square RGBA8 a layer is one
-// megabyte, so this is ninety-six megabytes of video memory -- generous for a
-// 1440p viewport, which covers about fifteen tiles at native resolution plus
-// the ancestors behind them.
+
+
+
+
 export const LAYERS = 96;
 
-// IN_FLIGHT is how many tiles are fetched at once. Browsers allow six
-// connections per host over HTTP/1.1 and many more over HTTP/2; eight keeps the
-// pipe full either way without burying a tile that has just come into view
-// behind a queue of tiles that have left it.
+
+
+
+
 const IN_FLIGHT = 8;
 
-// RETRY_FLOOR and RETRY_CEILING bound the backoff after a fetch that failed
-// for a reason a retry might fix: a 5xx, a dropped connection. The first retry
-// waits a second and each one after doubles, up to a minute. Without this a
-// server restart or a wifi flap in the middle of a fight was a request storm
-// from every client at the table -- eight in flight, refilled at frame rate --
-// until the server was healthy again, which is the moment it least needs it.
+
+
+
+
+
+
 const RETRY_FLOOR = 1_000;
 const RETRY_CEILING = 60_000;
 
-// UPLOADS_PER_FRAME bounds the one part of the arrival path that is synchronous
-// and on the main thread. Decoding happens off-thread in createImageBitmap;
-// texSubImage3D does not, so a burst of twenty arrivals uploaded in one frame
-// is a dropped frame. Four is imperceptible and the rest wait one frame.
+
+
+
+
 const UPLOADS_PER_FRAME = 4;
 
-// levelFor picks which level of the pyramid to draw at this zoom.
-//
-// THE DEVICE PIXEL RATIO IS PART OF THE SCALE, not a correction applied after.
-// A retina display at zoom 1 is showing native map pixels at half their size,
-// so it wants level 0; the same zoom on a 1x display wants level 0 too, and a
-// 1x display at zoom 0.5 wants level 1. One expression covers all three.
+
+
+
+
+
+
 export function levelFor(zoom: number, dpr: number, maxZoom: number): number {
 	const scale = zoom * dpr;
 	if (!(scale > 0)) {
@@ -67,16 +67,16 @@ export function levelFor(zoom: number, dpr: number, maxZoom: number): number {
 	return Math.min(Math.max(Math.round(Math.log2(1 / scale)), 0), maxZoom);
 }
 
-// levelScale is how many native map pixels one pixel of level z stands for. It
-// is size / levelPixels rather than 2^z for the reason at the top of this file.
+
+
 export function levelScale(size: number, z: number): number {
 	const pixels = levelPixels(size, z);
 
 	return pixels > 0 ? size / pixels : 1;
 }
 
-// TileRange is an inclusive box of tile indexes. x1 below x0 is an empty range,
-// which is what a viewport entirely off the map produces.
+
+
 export interface TileRange {
 	x0: number;
 	y0: number;
@@ -92,9 +92,9 @@ export function rangeCount(r: TileRange): number {
 	return Math.max(0, r.x1 - r.x0 + 1) * Math.max(0, r.y1 - r.y0 + 1);
 }
 
-// visibleRange is which tiles of level z the viewport covers, intersected with
-// the map. The rectangle is in native map pixels, which is the only space
-// anything outside this file works in.
+
+
+
 export function visibleRange(map: MapRef, z: number, view: Rect, out: TileRange): TileRange {
 	out.x0 = 0;
 	out.y0 = 0;
@@ -126,9 +126,9 @@ export function visibleRange(map: MapRef, z: number, view: Rect, out: TileRange)
 	return out;
 }
 
-// tileRect is one tile's footprint in native map pixels. The last tile of a row
-// ends exactly at the map's edge rather than overshooting, which is what keeps
-// a level from being drawn slightly too large.
+
+
+
 export function tileRect(map: MapRef, z: number, x: number, y: number, out: Rect): Rect {
 	const scaleX = levelScale(map.width, z);
 	const scaleY = levelScale(map.height, z);
@@ -143,14 +143,14 @@ export function tileRect(map: MapRef, z: number, x: number, y: number, out: Rect
 	return out;
 }
 
-// uvFor maps a native rectangle into the texture coordinates of one tile at
-// level z. It is the same expression whether the tile is the one that was asked
-// for or an ancestor standing in for it: both levels cover the whole map, so a
-// native coordinate resolves in either.
-//
-// The result is not clamped to [0, 1] on purpose. A caller that asks about a
-// rectangle outside the tile has a bug, and a silently clamped answer would
-// draw the tile's edge pixel smeared across it.
+
+
+
+
+
+
+
+
 export function uvFor(map: MapRef, z: number, x: number, y: number, rect: Rect, out: Rect): Rect {
 	const scaleX = levelScale(map.width, z);
 	const scaleY = levelScale(map.height, z);
@@ -163,29 +163,29 @@ export function uvFor(map: MapRef, z: number, x: number, y: number, rect: Rect, 
 	return out;
 }
 
-// tileKey identifies one tile of one generation of one map. The generation is
-// in it because a re-tiled map is a different picture at the same coordinates,
-// and a cache that answered from the old one would serve a map the GM replaced.
+
+
+
 export function tileKey(map: MapRef, z: number, x: number, y: number): string {
 	return `${map.assetId}:${map.gen}:${z}:${x}:${y}`;
 }
 
-// mapPrefix is every tile of one map, for abandoning a fetch queue.
+
 export function mapPrefix(map: MapRef): string {
 	return `${map.assetId}:${map.gen}:`;
 }
 
-// tileURL is the route in internal/controllers/map-tiles.go. The extension is
-// in the path rather than left to the Content-Type because the browser's cache
-// keys on the path, and these are served immutable for a year.
+
+
+
 export function tileURL(map: MapRef, z: number, x: number, y: number): string {
 	return `/assets/maps/${map.assetId}/tiles/${map.gen}/${z}/${x}_${y}.webp`;
 }
 
-// Slot is one tile's place in the texture array. w and h are the tile's real
-// pixels, which are short of tileSize along the map's right and bottom edges --
-// an edge tile is not padded, so its texture layer is partly unwritten and its
-// UV maximum is short of 1.
+
+
+
+
 export interface Slot {
 	layer: number;
 	w: number;
@@ -193,25 +193,25 @@ export interface Slot {
 	used: number;
 }
 
-// Slots is the cache's bookkeeping with no WebGL in it: which key lives in
-// which layer of the array, and which layer to overwrite when a new tile
-// arrives and every layer is taken.
-//
-// IT NEVER EVICTS A LAYER USED THIS FRAME. Without that rule a viewport needing
-// more tiles than the cache holds would evict the tile it uploaded a moment ago
-// to make room for the next one, and go round for ever at one frame each --
-// slow, and it looks like the map is dissolving. Refusing instead means the
-// missing tiles are drawn from their ancestors, which is what they were going
-// to be drawn from anyway.
+
+
+
+
+
+
+
+
+
+
 export class Slots {
 	private readonly byKey = new Map<string, Slot>();
 	private readonly free: number[] = [];
 	private frame = 0;
 
-	// A parameter property would be shorter and is not erasable syntax: the
-	// tsconfig sets erasableSyntaxOnly so that node --test can strip these
-	// files and run them directly, with no build step between the source and
-	// the test.
+	
+	
+	
+	
 	readonly capacity: number;
 
 	constructor(capacity: number) {
@@ -221,16 +221,16 @@ export class Slots {
 		}
 	}
 
-	// tick advances the frame counter, which is the clock the LRU is measured
-	// against. It is frames rather than milliseconds because what matters is
-	// "was this drawn recently", and a room nobody is touching renders no
-	// frames at all.
+	
+	
+	
+	
 	tick(): void {
 		this.frame++;
 	}
 
-	// get marks the tile as used this frame, which both keeps it and protects
-	// it from eviction until the next one.
+	
+	
 	get(key: string): Slot | undefined {
 		const slot = this.byKey.get(key);
 		if (slot) {
@@ -244,8 +244,8 @@ export class Slots {
 		return this.byKey.has(key);
 	}
 
-	// claim finds a layer for a tile that has just arrived, and answers null
-	// when every layer is spoken for by this frame.
+	
+	
 	claim(key: string, w: number, h: number): Slot | null {
 		const existing = this.byKey.get(key);
 		if (existing) {
@@ -299,28 +299,28 @@ export class Slots {
 	}
 }
 
-// Loader fetches tiles by priority and gives up on the ones that have scrolled
-// away. Every method is called from the frame loop and none of them does any
-// work in an event handler.
+
+
+
 export interface Loader {
-	// begin, want and end bracket one frame's demand. Anything not wanted
-	// between them is no longer wanted, and an in-flight request for it is
-	// aborted -- which is what makes a change of level cheap rather than a
-	// queue of tiles for a zoom nobody is at any more.
+	
+	
+	
+	
 	begin(): void;
 	want(key: string, url: string, priority: number): void;
 	end(): void;
 
-	// drain uploads what has arrived, at most a few per frame, and answers how
-	// many are still waiting. A non-zero answer keeps the frame loop alive.
+	
+	
 	drain(upload: (key: string, bitmap: ImageBitmap) => void): number;
 
-	// abandon drops everything queued or in flight for one map, which is what a
-	// re-tiled or replaced map calls for: those URLs are gone.
+	
+	
 	abandon(prefix: string): void;
 
-	// fetched is the benchmark's counter: how many tiles this session has
-	// actually pulled over the network.
+	
+	
 	fetched(): number;
 
 	stop(): void;
@@ -332,17 +332,17 @@ interface Wanted {
 	priority: number;
 }
 
-// decode turns a fetched blob into a bitmap. The default is below; the sprite
-// cache passes one of its own, because a pawn picture is resized on the way in
-// and a map tile is not.
+
+
+
 export type Decode = (blob: Blob) => Promise<ImageBitmap | null>;
 
-// decodeAsIs is the tiles' own: the bytes that reach the GPU are the bytes the
-// tiler wrote.
-//
-// premultiplyAlpha and colorSpaceConversion are both turned off because the
-// default for either is "browser decides", and two browsers deciding
-// differently is a map that is a shade off on one of them.
+
+
+
+
+
+
 export function decodeAsIs(blob: Blob): Promise<ImageBitmap | null> {
 	return createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" });
 }
@@ -352,16 +352,16 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 	const inFlight = new Map<string, AbortController>();
 	const ready: { key: string; bitmap: ImageBitmap }[] = [];
 
-	// missing is a 404, or bytes the decoder refused, and is never retried. The
-	// tile route answers 404 for a coordinate outside the pyramid, and a
-	// picture that would not decode will not decode next time either; asking
-	// again every frame for the rest of the session would be a request per
-	// frame for ever.
+	
+	
+	
+	
+	
 	const missing = new Set<string>();
 	const wantedThisFrame = new Set<string>();
 
-	// failures counts the retryable failures per key and retryAt is when the
-	// next attempt may be made, in performance.now() time.
+	
+	
 	const failures = new Map<string, number>();
 	const retryAt = new Map<string, number>();
 
@@ -384,9 +384,9 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 		inFlight.set(item.key, controller);
 		total++;
 
-		// decoding is which half a failure lands in. A fetch that failed may
-		// succeed next time and is backed off; bytes the decoder refused will
-		// be refused next time too and are given up on.
+		
+		
+		
 		let decoding = false;
 
 		fetch(item.url, { credentials: "same-origin", signal: controller.signal })
@@ -420,10 +420,10 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 				}
 			})
 			.catch((err: unknown) => {
-				// An abort is the loader's own doing and costs the tile
-				// nothing. Anything else is either the network, which is
-				// backed off, or the decoder, which is final. The tile is
-				// drawn from its ancestor either way.
+				
+				
+				
+				
 				if (err instanceof DOMException && err.name === "AbortError") {
 					return;
 				}
@@ -464,27 +464,27 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 				return;
 			}
 
-			// NEAREST THE MIDDLE OF THE SCREEN FIRST. Somebody who has just
-			// panned is looking at the centre of the viewport, and filling in
-			// from the edges is the same tiles arriving in the least useful
-			// order.
+			
+			
+			
+			
 			queue.sort((a, b) => a.priority - b.priority);
 
-			// A TILE THAT HAS LEFT THE VIEWPORT LOSES ITS CONNECTION ONLY WHEN
-			// A TILE THAT IS IN THE VIEWPORT NEEDS IT, and never merely for
-			// having left.
-			//
-			// Aborting on sight is the obvious policy and it is wrong three
-			// ways. It throws away a download that may be nearly finished for
-			// a pan of a few pixels that comes straight back. It aborts, on
-			// the way in, exactly the coarse level the fine one is about to be
-			// drawn from -- an ancestor still in flight is what the map looks
-			// like for the next second. And it costs the other end a cancelled
-			// request per tile, which at eight in flight and a level boundary
-			// every 1.4 notches of the wheel is a burst of them per zoom.
-			//
-			// So the connections are freed to order: in the order they were
-			// taken, enough of them for what is queued, and none beyond that.
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			let spare = IN_FLIGHT - inFlight.size;
 			for (const [key, controller] of inFlight) {
 				if (spare >= queue.length) {
@@ -494,9 +494,9 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 					continue;
 				}
 
-				// Dropped here rather than left to the fetch's own finally,
-				// which is a microtask away: the loop below reads inFlight.size
-				// to decide how many it may start, and it runs first.
+				
+				
+				
 				controller.abort();
 				inFlight.delete(key);
 				spare++;

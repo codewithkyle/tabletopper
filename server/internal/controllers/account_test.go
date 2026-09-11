@@ -14,9 +14,9 @@ import (
 	"tabletopper/internal/session"
 )
 
-// settingsForm is a complete, valid submission. A test that is about one field
-// changes that field and leaves the rest alone, so nothing passes or fails for
-// a reason it did not mean to exercise.
+
+
+
 func settingsForm() url.Values {
 	return url.Values{
 		"username":    {"kyle"},
@@ -45,14 +45,14 @@ func saveSettings(t *testing.T, db *recordingDB, form url.Values) *httptest.Resp
 	return rec
 }
 
-// EVERY FIELD IS CHECKED AGAINST THE LIST THAT OFFERED IT, and a value off that
-// list stops the whole save. The read path falls back on an unknown value --
-// prefs.New has to, so a column this build does not understand still renders --
-// and this is the test that the write path does the opposite.
-//
-// The palette names are in here on purpose. They are what the CSS answers to,
-// they are one function call away in the same process, and storing one would
-// look like it worked right up until the theme was renamed.
+
+
+
+
+
+
+
+
 func TestASettingThePickerDoesNotOfferIsRefused(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -87,8 +87,8 @@ func TestASettingThePickerDoesNotOfferIsRefused(t *testing.T) {
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
 			}
-			// 422 is the one 4xx the form has an hx-status route for, and the
-			// body is the error block it swaps.
+			
+			
 			if !strings.Contains(rec.Body.String(), "errors-account-settings") {
 				t.Errorf("the reply is not the error block\n%s", rec.Body.String())
 			}
@@ -96,8 +96,8 @@ func TestASettingThePickerDoesNotOfferIsRefused(t *testing.T) {
 	}
 }
 
-// One bad field is a bad form. There is no partial save to explain to anyone,
-// and no state where the theme took and the zone did not.
+
+
 func TestOneBadFieldStopsTheWholeSave(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -127,8 +127,8 @@ func TestAValidSaveWritesTheEightColumnsOnce(t *testing.T) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 
-	// THE ROW IS THE SESSION'S OWN AND NOT ONE NAMED IN THE REQUEST. The route
-	// takes no id, so the only user this can reach is the one asking.
+	
+	
 	wantArgs := []any{
 		"kyle",
 		queries.UsersTheme("dark"),
@@ -150,10 +150,10 @@ func TestAValidSaveWritesTheEightColumnsOnce(t *testing.T) {
 	}
 }
 
-// THE SAVE HAS TO REPAINT THE PAGE IT IS SITTING ON. The response swapped a
-// fragment inside the dialog; the data-theme attribute lives on <html>, which
-// nothing in that swap touched, so without this the reader picks Dark, the
-// dialog closes, and the page stays light until they navigate.
+
+
+
+
 func TestASaveClosesTheDialogRepaintsAndSaysSo(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -164,16 +164,16 @@ func TestASaveClosesTheDialogRepaintsAndSaysSo(t *testing.T) {
 		t.Fatalf("HX-Trigger is not JSON: %q", rec.Header().Get("HX-Trigger"))
 	}
 
-	// All four ride one header. Setting it by hand rather than through
-	// internal/htmx would have kept whichever was written last.
+	
+	
 	for _, name := range []string{"modal:close", "flash:toast", "theme:change", "settings:change"} {
 		if _, ok := events[name]; !ok {
 			t.Errorf("no %s in %v", name, events)
 		}
 	}
 
-	// The detail is an object because htmx wraps a bare value as {value: ...},
-	// and every other event this app raises reads a named field.
+	
+	
 	change, ok := events["theme:change"].(map[string]any)
 	if !ok {
 		t.Fatalf("theme:change detail = %#v, want an object", events["theme:change"])
@@ -183,10 +183,10 @@ func TestASaveClosesTheDialogRepaintsAndSaysSo(t *testing.T) {
 	}
 }
 
-// System is a real answer and its palette is the empty string, which the
-// listener reads as "take the attribute off" so the OS media query applies
-// again. A save that dropped the event for system would leave the page on
-// whichever palette was explicitly set before it.
+
+
+
+
 func TestChoosingSystemRepaintsWithNoPalette(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -208,8 +208,8 @@ func TestChoosingSystemRepaintsWithNoPalette(t *testing.T) {
 	}
 }
 
-// The dialog opens on what is stored, so every picker has to be handed the
-// current value as well as its options.
+
+
 func TestTheDialogIsBuiltFromTheStoredSettings(t *testing.T) {
 	p := prefs.Preferences{
 		Theme:      prefs.ThemeDark,
@@ -248,21 +248,21 @@ func TestTheDialogIsBuiltFromTheStoredSettings(t *testing.T) {
 			}
 		}
 	}
-	// The aliases have to survive the trip into the page data, or the welcome
-	// dialog's detection silently misses every reader whose browser still
-	// reports the pre-rename spelling.
+	
+	
+	
 	if aliases == 0 {
 		t.Error("no zone carries its older IANA spelling into the markup")
 	}
 }
 
-// THE OPTIONS SHOW THE ANSWER RATHER THAN THE NOTATION, because "DD/MM/YYYY" is
-// something the reader has to decode and "06/09/2026" is something they can
-// recognise. The two numeric ones keep the notation as well, since on the days
-// when the day and month are the same number they render identically.
-//
-// The examples are rendered in the SAVED zone, which is why the Sydney reader
-// below is looking at the 7th while it is still the 6th in UTC.
+
+
+
+
+
+
+
 func TestTheOptionsAreLabelledWithRealDates(t *testing.T) {
 	p := prefs.Preferences{
 		Theme:      prefs.ThemeSystem,
@@ -296,8 +296,8 @@ func TestTheOptionsAreLabelledWithRealDates(t *testing.T) {
 		}
 	}
 
-	// The theme options name the behaviour, not the palette. A reader has met
-	// neither "caramellatte" nor "coffee".
+	
+	
 	for _, option := range data.Themes {
 		if strings.Contains(strings.ToLower(option.Label), "caramellatte") ||
 			strings.Contains(strings.ToLower(option.Label), "coffee") {
@@ -306,9 +306,9 @@ func TestTheOptionsAreLabelledWithRealDates(t *testing.T) {
 	}
 }
 
-// summerNoon is 18:04 UTC on 6 September 2026 -- the same instant the prefs
-// tests use, chosen because the day and the month are different numbers, so the
-// two slash formats render differently and a swap between them would show.
+
+
+
 var summerNoon = time.Date(2026, 9, 6, 18, 4, 11, 0, time.UTC)
 
 func equalStrings(got, want []string) bool {
@@ -338,9 +338,9 @@ func welcomePost(t *testing.T, db *recordingDB, path string, form url.Values, ha
 	return rec
 }
 
-// THE SETTINGS AND THE STAMP GO IN ONE STATEMENT. Two would leave a window in
-// which the answer landed and the account was still marked unset up, and the
-// next page load would reopen the welcome dialog over the choice just made.
+
+
+
 func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -358,16 +358,16 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
-	// COALESCE, so a second answer keeps the first stamp rather than moving it.
+	
 	if !strings.Contains(db.calls[0].query, "COALESCE(onboarded_at") {
 		t.Errorf("the stamp is not preserved across a re-answer:\n%s", db.calls[0].query)
 	}
 }
 
-// The welcome dialog validates exactly as the settings dialog does, because it
-// is the same fields. A rejected form writes nothing -- and crucially
-// leaves the account unstamped, so the question is asked again rather than
-// being silently closed on a value that never landed.
+
+
+
+
 func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -387,13 +387,13 @@ func TestARejectedWelcomeLeavesTheAccountUnstamped(t *testing.T) {
 	}
 }
 
-// AN UNTICKED BOX POSTS NOTHING, which is how HTML has always sent a checkbox
-// and is the one place either of these settings could go wrong: absence has to
-// read as off and not as "the field was missing, keep what was there".
-//
-// THE TWO ARE UNTICKED SEPARATELY because they are adjacent booleans written by
-// one statement, and a reader that took the wrong form value for one of them
-// would pass a test that unticked both.
+
+
+
+
+
+
+
 func TestUntickingATogglePutsItAway(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -401,9 +401,9 @@ func TestUntickingATogglePutsItAway(t *testing.T) {
 		arg   int
 		other int
 	}{
-		// The columns are written in the statement's order: follow_turn is the
-		// fifth of the seven and show_blood the sixth. See
-		// UpdateUserPreferences.
+		
+		
+		
 		{name: "the camera", field: "follow_turn", arg: 5, other: 6},
 		{name: "the blood", field: "show_blood", arg: 6, other: 5},
 	}
@@ -427,9 +427,9 @@ func TestUntickingATogglePutsItAway(t *testing.T) {
 				t.Errorf("%s = %#v, want false", tc.field, got)
 			}
 
-			// AND ONLY THAT ONE WENT AWAY. A reader that had crossed the two
-			// fields would put the right answer in the wrong column and this is
-			// what catches it.
+			
+			
+			
 			if got := db.calls[0].args[tc.other]; got != true {
 				t.Errorf("arg %d = %#v, want the other toggle left on", tc.other, got)
 			}
@@ -437,10 +437,10 @@ func TestUntickingATogglePutsItAway(t *testing.T) {
 	}
 }
 
-// AND THE WELCOME DIALOG CARRIES BOTH BOXES FOR EXACTLY THAT REASON. It saves
-// through the same reader, so a welcome form that had left either control out
-// would post nothing for it, and this would store "off" for every account on
-// the dialog that exists to welcome them.
+
+
+
+
 func TestTheWelcomeDialogSavesTheTableSettingsToo(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -458,15 +458,15 @@ func TestTheWelcomeDialogSavesTheTableSettingsToo(t *testing.T) {
 	}
 }
 
-// "NOT NOW" READS NO FORM. The button sits inside the welcome form and htmx may
-// send its values along; storing them would turn pickers the reader explicitly
-// declined -- including a zone the browser guessed for them -- into their saved
-// answer. The statement takes one argument, and it is the account's own id.
+
+
+
+
 func TestNotNowStampsTheAccountAndStoresNothingElse(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
-	// A form that would be perfectly valid, to prove it is ignored rather than
-	// merely absent.
+	
+	
 	form := settingsForm()
 	form.Set("theme", "light")
 	rec := welcomePost(t, db, "/account/welcome/skip", form,
@@ -487,8 +487,8 @@ func TestNotNowStampsTheAccountAndStoresNothingElse(t *testing.T) {
 		t.Errorf("args = %v, want just the session's own id", call.args)
 	}
 
-	// It closes and hands over: this dialog is not coming back, so the toast is
-	// the only chance to say where the settings went.
+	
+	
 	trigger := rec.Header().Get("HX-Trigger")
 	for _, want := range []string{"modal:close", "flash:toast"} {
 		if !strings.Contains(trigger, want) {
@@ -498,29 +498,29 @@ func TestNotNowStampsTheAccountAndStoresNothingElse(t *testing.T) {
 	if !strings.Contains(trigger, "gear") {
 		t.Errorf("the toast does not say where to find the settings: %q", trigger)
 	}
-	// Nothing changed, so nothing is repainted.
+	
 	if strings.Contains(trigger, "theme:change") {
 		t.Errorf("a dismissal repainted the page: %q", trigger)
 	}
 }
 
-// The line the settings dialog shows. The unit boundaries are what matter --
-// a total that reads "1024.0 KB" instead of "1.0 MB" is the bug this shape has
-// -- along with the two cases that are not a quantity at all.
+
+
+
 func TestStorageReadsAsSomethingAPersonWouldSay(t *testing.T) {
 	for _, c := range []struct {
 		bytes int64
 		want  string
 	}{
 		{0, "Nothing uploaded yet"},
-		// Negative is not a state SUM can produce over a NOT NULL DEFAULT 0
-		// column. It reads as the zero case rather than as "-1 B", because
-		// there is no sentence in which a negative total is the honest answer.
+		
+		
+		
 		{-1, "Nothing uploaded yet"},
 		{1, "1 B"},
 		{1023, "1023 B"},
-		// The boundary in both directions: a kilobyte is the first thing that
-		// stops being bytes.
+		
+		
 		{1024, "1.0 KB"},
 		{1536, "1.5 KB"},
 		{1024*1024 - 1, "1024.0 KB"},
@@ -528,8 +528,8 @@ func TestStorageReadsAsSomethingAPersonWouldSay(t *testing.T) {
 		{1024 * 1024 * 1024, "1.0 GB"},
 		{4*1024*1024*1024 + 512*1024*1024, "4.5 GB"},
 		{1024 * 1024 * 1024 * 1024, "1.0 TB"},
-		// Past the last unit it keeps counting in it rather than falling off
-		// the end of the table.
+		
+		
 		{2048 * 1024 * 1024 * 1024 * 1024, "2048.0 TB"},
 	} {
 		if got := formatBytes(c.bytes); got != c.want {
@@ -538,14 +538,14 @@ func TestStorageReadsAsSomethingAPersonWouldSay(t *testing.T) {
 	}
 }
 
-// THE REPLY IS ADDRESSED TO NO PARTICULAR PAGE, and that is what lets the room's
-// Help menu open this dialog at all.
-//
-// THE GREETING USED TO BE AN OUT-OF-BAND SWAP of <span id="account-name">, which
-// exists on the homepage and nowhere else. htmx reports an out-of-band target it
-// cannot find, so the moment a second page could open the dialog that swap was
-// markup sent to a page that has no slot for it. The name rides the event now,
-// and a page with no greeting simply does not listen. See htmx.Settings.
+
+
+
+
+
+
+
+
 func TestTheSaveSendsNoMarkupAddressedToTheHomepage(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -557,9 +557,9 @@ func TestTheSaveSendsNoMarkupAddressedToTheHomepage(t *testing.T) {
 		t.Errorf("the reply carries the homepage's greeting:\n%s", body)
 	}
 
-	// The error block is the whole of the body, and it is not busywork: the
-	// form targets it, so rendering it empty is what clears whatever the
-	// previous attempt complained about.
+	
+	
+	
 	if !strings.Contains(rec.Body.String(), "errors-account-settings") {
 		t.Errorf("the reply does not clear the error block:\n%s", rec.Body.String())
 	}
@@ -569,11 +569,11 @@ func TestTheSaveSendsNoMarkupAddressedToTheHomepage(t *testing.T) {
 	}
 }
 
-// AND THE TWO SETTINGS THE TABLE IS ALREADY OBEYING COME BACK WITH IT, which is
-// the whole reason the dialog is reachable from a room. Somebody who wants the
-// blood turned off wants it turned off during the fight that made them want to,
-// and the reply only swapped a fragment inside a dialog -- the tabletop behind
-// it is still running on the attributes the page was rendered with.
+
+
+
+
+
 func TestTheSaveHandsTheTableBackTheSettingsItIsObeying(t *testing.T) {
 	db := &recordingDB{rows: 1}
 
@@ -590,8 +590,8 @@ func TestTheSaveHandsTheTableBackTheSettingsItIsObeying(t *testing.T) {
 	}
 }
 
-// settingsChange is the one event in a save's reply that carries the settings
-// themselves, read off the header both other events also ride on.
+
+
 func settingsChange(t *testing.T, rec *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
 

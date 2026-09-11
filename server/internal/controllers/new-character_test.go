@@ -13,11 +13,11 @@ import (
 	"tabletopper/internal/session"
 )
 
-// Creation is one field and one statement. These pin both halves: that a name
-// is all the handler will take, and that a name is all the statement can carry.
 
-// The happy path. The reply is a redirect and no body, because the dialog the
-// post came from is about to be navigated away from.
+
+
+
+
 func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -33,13 +33,13 @@ func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 		t.Errorf("statement is not the create: %q", db.calls[0].query)
 	}
 
-	// The name is trimmed before it is stored and before it is announced.
+	
 	name, ok := db.calls[0].args[2].(string)
 	if !ok || name != "Ferdinand the Bold" {
 		t.Errorf("stored name = %v, want %q", db.calls[0].args[2], "Ferdinand the Bold")
 	}
 
-	// The owner comes from the session, never from the form.
+	
 	if owner := db.calls[0].args[1]; owner != testOwnerID {
 		t.Errorf("owner = %v, want %v", owner, testOwnerID)
 	}
@@ -57,8 +57,8 @@ func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 		t.Errorf("body = %q, want empty", body)
 	}
 
-	// The toast rides along on the same response; toast.js parks it for the
-	// page being navigated to rather than showing it on the way out.
+	
+	
 	var events map[string]any
 	if err := json.Unmarshal([]byte(rec.Header().Get("HX-Trigger")), &events); err != nil {
 		t.Fatalf("HX-Trigger is not JSON: %v", err)
@@ -68,14 +68,14 @@ func TestCreateFromNameRedirectsToTheEditor(t *testing.T) {
 	}
 }
 
-// A rejection has to be a 422 specifically. It is the only 4xx the dialog's form
-// carries an hx-status route for -- every other code in the range is in the
-// noSwap list in base.templ, so the reply would land nowhere and the dialog
-// would look like it had done nothing.
+
+
+
+
 func TestCreateRejectsBadNamesWithoutWriting(t *testing.T) {
 	for _, c := range []struct {
 		name string
-		//nolint:revive // the field is the posted value, not a description
+		
 		value string
 		want  string
 	}{
@@ -102,8 +102,8 @@ func TestCreateRejectsBadNamesWithoutWriting(t *testing.T) {
 			if !strings.Contains(body, c.want) {
 				t.Errorf("body missing %q: %s", c.want, body)
 			}
-			// Into the block the form targets, not the form itself -- so the
-			// name the user typed is still in the field.
+			
+			
 			if !strings.Contains(body, `id="errors-new-character"`) {
 				t.Errorf("body is not the error block: %s", body)
 			}
@@ -111,8 +111,8 @@ func TestCreateRejectsBadNamesWithoutWriting(t *testing.T) {
 	}
 }
 
-// The column is varchar(128) and MySQL counts characters there. A byte-length
-// check would reject this name at 128 letters the database would have taken.
+
+
 func TestCreateMeasuresTheNameInCharactersNotBytes(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -127,11 +127,11 @@ func TestCreateMeasuresTheNameInCharactersNotBytes(t *testing.T) {
 	}
 }
 
-// THE POINT OF THE REWORK. Creation used to read all 31 editable columns through
-// one builder, and the parse helpers it ran on answer an absent field with a
-// default rather than an error -- the same property that makes a wide statement
-// dangerous on a panel save. The statement is three values wide now, so a post
-// carrying a sheet cannot write one whatever the handler does with it.
+
+
+
+
+
 func TestCreateCannotCarrySheetData(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -169,15 +169,15 @@ func TestCreateCannotCarrySheetData(t *testing.T) {
 		}
 	}
 
-	// Independent of the SQL text: the generated params struct is the other
-	// place a fourth value would have to appear.
+	
+	
 	if fields := reflect.TypeOf(queries.CreateCharacterFromNameParams{}).NumField(); fields != 3 {
 		t.Errorf("CreateCharacterFromNameParams has %d fields, want 3 (id, owner, name)", fields)
 	}
 }
 
-// The dialog's content is the same for every user, so the handler that serves it
-// should not be reaching for a row to render it.
+
+
 func TestNewCharacterFragmentTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
 

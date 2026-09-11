@@ -10,13 +10,13 @@ import (
 	"tabletopper/internal/session"
 )
 
-// A monster's share, tested the way the sheet's is next door and bounded the
-// same way: recordingDB answers a :one by failing, so the dialog fragment and
-// the shared page itself cannot be driven from this harness. What is covered is
-// the validation the create runs before it touches the database, the revoke, and
-// the sentence the dialog puts in front of the person deciding to hand the link
-// out -- which for a monster is the one that says what the link gives away
-// permanently.
+
+
+
+
+
+
+
 
 func monsterShareRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()
@@ -32,10 +32,10 @@ func monsterShareRequest(t *testing.T, handler http.HandlerFunc, method string, 
 	return rec
 }
 
-// A rejected create must not have written anything, and the reason is the one
-// the sheet's version gives: the token is minted and the password hashed after
-// this point, so a form that gets past validation is one that is going to be
-// inserted.
+
+
+
+
 func TestARejectedMonsterShareFormRunsNoStatements(t *testing.T) {
 	for name, form := range map[string]map[string]string{
 		"expiry with no days":  {"expiry": "on", "days": ""},
@@ -57,10 +57,10 @@ func TestARejectedMonsterShareFormRunsNoStatements(t *testing.T) {
 	}
 }
 
-// REVOKING A MONSTER'S LINK CANNOT REACH A CHARACTER'S ROW. resource_id is one
-// column holding three kinds of id, so the type is what keeps them apart -- and
-// a ULID naming a monster in this account could name a character in it too if
-// the statement stopped pinning it.
+
+
+
+
 func TestRevokingAMonsterShareTouchesOnlyAMonstersRow(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -85,9 +85,9 @@ func TestRevokingAMonsterShareTouchesOnlyAMonstersRow(t *testing.T) {
 	}
 }
 
-// 200 and not 204, like every other delete in the app: base.templ's noSwap
-// config lists 204, and a status in that list would stop the swap that puts the
-// form back in the dialog.
+
+
+
 func TestRevokingAMonsterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	app, _ := newPanelApp(1)
 
@@ -105,10 +105,10 @@ func TestRevokingAMonsterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	}
 }
 
-// Zero matched rows is a link that was already gone -- revoked on another tab of
-// the same editor, or a monster that is not this user's. Both are the same 404,
-// and the alert says which thing was missing rather than naming the monster,
-// because the monster is still there.
+
+
+
+
 func TestRevokingAMonsterShareThatIsNotThereIs404(t *testing.T) {
 	app, _ := newPanelApp(0)
 
@@ -122,11 +122,11 @@ func TestRevokingAMonsterShareThatIsNotThereIs404(t *testing.T) {
 	}
 }
 
-// THE BLURB IS THE ONLY PLACE AN OWNER IS TOLD WHAT THE BUTTON GIVES AWAY. A
-// shared sheet can only be read; a shared monster can be taken, and the copy is
-// the reader's from that moment -- so revoking the link afterwards takes nothing
-// back. Someone about to paste this URL into a table's chat is entitled to know
-// that before they do rather than after.
+
+
+
+
+
 func TestTheMonsterShareDialogSaysACopyCannotBeTakenBack(t *testing.T) {
 	blurb := monsterShareDialogData(testMonsterID).Blurb
 

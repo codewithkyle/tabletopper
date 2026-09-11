@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-// A frame a generated client would send decodes into the command it names, and
-// the correlation id comes back beside it so an error can be paired with the
-// request that caused it.
+
+
+
 func TestDecodeCommandReadsAWellFormedFrame(t *testing.T) {
 	frame := `{"type":"pawn.move","cid":"a9","anchor":"` + testID(7).String() + `","x":128,"y":64,"others":[]}`
 
@@ -30,10 +30,10 @@ func TestDecodeCommandReadsAWellFormedFrame(t *testing.T) {
 	}
 }
 
-// EVERYTHING DECODE REFUSES IS invalid, because every one of them is a client
-// that sent something no generated client could produce. A player never sees
-// one of these; a developer does, which is why they are separated from
-// forbidden.
+
+
+
+
 func TestDecodeCommandRefusesEverythingItShould(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -46,14 +46,14 @@ func TestDecodeCommandRefusesEverythingItShould(t *testing.T) {
 		{"a number where an object belongs", `{"type":"table.setGrid","cid":"1","grid":5}`},
 		{"broken JSON", `{"type":`},
 
-		// THE RESOLVED FIELD IS NOT ON THE WIRE. A client that sent a whole
-		// pawn would be describing the thing the hub is supposed to look up,
-		// and json:"-" means the key is unknown rather than ignored.
+		
+		
+		
 		{"a resolved field a client tried to fill in", `{"type":"pawn.spawn","cid":"1","kind":"monster","layer":"` + testID(1).String() + `","x":0,"y":0,"visible":true,"pawn":{}}`},
 
-		// AND THE HUB-ONLY COMMANDS ARE NOT REACHABLE AT ALL. player.join
-		// carries a whole Player with a role in it, so a browser that could
-		// send one could make itself the GM.
+		
+		
+		
 		{"a hub-only command sent from a browser", `{"type":"player.join","cid":"1","player":{"id":"` + testID(2).String() + `","role":"gm"}}`},
 		{"the hub's own room close", `{"type":"room.close","cid":"1"}`},
 	}
@@ -76,18 +76,18 @@ func TestDecodeCommandRefusesEverythingItShould(t *testing.T) {
 	}
 }
 
-// Every command in the wire registry has to be reachable by the name it is
-// filed under, and has to come back as a distinct type. A copy-paste in the
-// registry -- two names building the same struct -- is the mistake this finds.
+
+
+
 func TestEveryWireCommandDecodesUnderItsOwnName(t *testing.T) {
 	seen := map[string]string{}
 
 	for wire := range WireCommandPrototypes() {
 		cmd, _, err := DecodeCommand([]byte(`{"type":"` + wire + `","cid":"1"}`))
 
-		// Some commands cannot decode from an empty payload, and that is fine
-		// -- what matters is that the name resolved to something rather than to
-		// an unknown type.
+		
+		
+		
 		if err != nil {
 			if e, ok := err.(*Error); ok && strings.Contains(e.Message, "does not know") {
 				t.Fatalf("%s is in the registry but DecodeCommand does not know it", wire)
@@ -104,8 +104,8 @@ func TestEveryWireCommandDecodesUnderItsOwnName(t *testing.T) {
 	}
 }
 
-// The header is the first thing in a frame, because reading one in devtools
-// should start with what it is.
+
+
 func TestEncodeEventPutsTheHeaderFirst(t *testing.T) {
 	by := testGMID
 
@@ -120,8 +120,8 @@ func TestEncodeEventPutsTheHeaderFirst(t *testing.T) {
 	}
 }
 
-// An event the server caused on its own has no `by`, and omitempty is what
-// keeps a null out of every frame that is not a player's doing.
+
+
 func TestEncodeEventOmitsTheActorWhenThereIsNone(t *testing.T) {
 	b, err := EncodeEvent(&RoomClosed{}, 12, nil)
 	if err != nil {
@@ -133,10 +133,10 @@ func TestEncodeEventOmitsTheActorWhenThereIsNone(t *testing.T) {
 	}
 }
 
-// EncodeEvent stamps the type from the event's own method rather than from a
-// literal somebody wrote into the struct, so the two can never disagree. This
-// walks the whole catalog to prove the registry key, the method and the encoded
-// frame are one string.
+
+
+
+
 func TestEveryEventEncodesUnderItsRegisteredType(t *testing.T) {
 	for wire, ev := range EventPrototypes() {
 		if got := ev.eventType(); got != wire {
@@ -164,8 +164,8 @@ func TestEveryEventEncodesUnderItsRegisteredType(t *testing.T) {
 	}
 }
 
-// The transient set is a property of each event type, and the five that are in
-// it are the five the client's effects layer handles instead of its reducer.
+
+
 func TestTheTransientEventsAreTheFiveThatAreNotState(t *testing.T) {
 	want := map[string]bool{
 		"room.closed": true, "player.kicked": true,
@@ -179,8 +179,8 @@ func TestTheTransientEventsAreTheFiveThatAreNotState(t *testing.T) {
 	}
 }
 
-// Nothing may be in both registries. The whole defence for the hub-only
-// commands is that DecodeCommand cannot reach them.
+
+
 func TestTheTwoRegistriesDoNotOverlap(t *testing.T) {
 	wire := WireCommandPrototypes()
 
@@ -191,9 +191,9 @@ func TestTheTwoRegistriesDoNotOverlap(t *testing.T) {
 	}
 }
 
-// An error is built from a refusal and paired with the frame that caused it.
-// Anything that is not a *room.Error becomes a generic invalid rather than
-// leaking whatever an internal message happened to say.
+
+
+
 func TestTheErrorEventCarriesTheRefusal(t *testing.T) {
 	ev := NewErrorEvent("a9", forbidden("Not your pawn", "Only the GM can move that."))
 

@@ -1,11 +1,11 @@
-// What reaches the canvas out of what the store holds, and how big it is drawn.
-//
-// THE LAYER FILTER IS THE SECURITY-ADJACENT ONE. A player's store never holds a
-// pawn from another floor, because the projection removed it before the event
-// was encoded -- but the GM's does, and the GM may be looking at the cellar
-// while the party is upstairs. A filter that leaked would put the party's pawns
-// on the cellar's map, which reads as the renderer being broken rather than as
-// a floor being wrong.
+
+
+
+
+
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -62,15 +62,15 @@ test("only the viewed floor's pawns are drawn", () => {
 	visiblePawns(pawns, CELLAR, out);
 	assert.deepEqual(out.map((p) => p.id), ["b"]);
 
-	// A floor with nothing on it is an empty list rather than a stale one. The
-	// array is reused, so an implementation that forgot to shorten it would
-	// leave the last floor's pawns hanging off the end of this one.
+	
+	
+	
 	visiblePawns(pawns, "01LAYERATTIC", out);
 	assert.deepEqual(out, []);
 });
 
-// The array and the objects in it are reused, which is the second performance
-// rule applied to a rebuild that happens on every move.
+
+
 test("rebuilding writes into the same objects", () => {
 	const out: Drawn[] = [];
 
@@ -83,8 +83,8 @@ test("rebuilding writes into the same objects", () => {
 	assert.equal(out[0].x, 99);
 });
 
-// A pawn a player cannot see never reaches their store, so this is the GM's
-// marker and nobody else's.
+
+
 test("a pawn players cannot see is marked hidden", () => {
 	const out: Drawn[] = [];
 	visiblePawns([pawn({ visible: false })], GROUND, out);
@@ -92,17 +92,17 @@ test("a pawn players cannot see is marked hidden", () => {
 	assert.equal(out[0].hidden, true);
 });
 
-// DEAD IS WHATEVER HEALTH THE VIEWER WAS GIVEN, WHICHEVER OF THE TWO IT WAS. A
-// monster in a room that hides its hit points arrives with hp null and a band
-// instead, and "dead" is one of the six bands the server sends -- so a player
-// gets the skull the GM gets. A room whose labels are off sends neither, and
-// that is the case that draws nothing.
+
+
+
+
+
 test("health is whichever the viewer was told, and the number wins", () => {
 	const out: Drawn[] = [];
 
-	// A GM is sent numbers and gets the band worked out from them; a player is
-	// sent the band itself. Both arrive here as one field, which is what lets
-	// the skull, the wound ring and the blood all read the same thing.
+	
+	
+	
 	visiblePawns([pawn({ hp: 0 })], GROUND, out);
 	assert.equal(out[0].health, "dead");
 
@@ -115,21 +115,21 @@ test("health is whichever the viewer was told, and the number wins", () => {
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: "nearDeath" })], GROUND, out);
 	assert.equal(out[0].health, "nearDeath");
 
-	// Labels off: no number and no band, so there is nothing to draw a skull, a
-	// ring or a splatter from, and nothing is inferred.
+	
+	
 	visiblePawns([pawn({ hp: null, maxHp: null, hpBand: null })], GROUND, out);
 	assert.equal(out[0].health, null, "health was invented out of nothing at all");
 
-	// The number wins where both arrive, which is a monster in a room whose
-	// labels are full and every player character in every room.
+	
+	
 	visiblePawns([pawn({ hp: 4, maxHp: 7, hpBand: "dead" })], GROUND, out);
 	assert.equal(out[0].health, "bruised");
 });
 
-// A creature's footprint is its size category and an object's is its picture.
-// A tiny creature OCCUPIES a whole cell -- half a cell is not a position any
-// grid rule can express -- and is DRAWN at half of one, so a rat and an ogre
-// are not the same size on the table.
+
+
+
+
 test("a pawn covers as much floor as its size says", () => {
 	const creature = (size: Pawn["size"]) => pawnExtents({ kind: "monster", size, width: 0, height: 0, rotation: 0 }, 64);
 
@@ -143,36 +143,36 @@ test("a pawn covers as much floor as its size says", () => {
 		[64, 128],
 	);
 
-	// AND AN OBJECT DOES NOT CARE WHAT THE CELL SIZE IS. The same wagon on a
-	// hundred-pixel grid is the same wagon.
+	
+	
 	assert.deepEqual(
 		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256, rotation: 0 }, 100),
 		[64, 128],
 	);
 });
 
-// The grid is where the cell size comes from, including when no map is set --
-// which is a blank floor with an infinite grid on it, and pawns on that floor
-// still have to be a sensible size.
+
+
+
 test("the cell size comes from the grid and never from nothing", () => {
 	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0, rotation: 0 }, 0), [0.5, 0.5]);
 	assert.deepEqual(pawnExtents({ kind: "monster", size: "medium", width: 0, height: 0, rotation: 0 }, 100), [50, 50]);
 });
 
-// CONTAIN LETTERBOXES AND COVER CROPS, and which one applies is the whole
-// difference between an object and a creature. A wagon must be its own shape on
-// the floor; a portrait in a circle must not have bars down the side.
+
+
+
 test("an object's picture is contained and a creature's covers", () => {
-	// A 3:1 wagon in a 2-by-4-cell footprint: half extents 64 by 128, so the
-	// quad is 128 across and 256 down. Contained, the image is limited by
-	// width -- 128 across and 42.7 down -- which is a sixth of the quad's
-	// height, and the rest of the footprint is empty floor.
+	
+	
+	
+	
 	const [cx, cy] = fitFactors(300, 100, 64, 128, false);
 	assert.equal(cx, 1);
 	assert.ok(Math.abs(cy - 1 / 6) < 1e-9, `cy = ${cy}`);
 
-	// The same picture on a creature's square disc: covering it means running
-	// off the sides by three to one and filling it top to bottom.
+	
+	
 	const [dx, dy] = fitFactors(300, 100, 64, 64, true);
 	assert.equal(dx, 3);
 	assert.equal(dy, 1);
@@ -183,16 +183,16 @@ test("a square picture fits a square quad exactly, either way", () => {
 	assert.deepEqual(fitFactors(256, 256, 32, 32, false), [1, 1]);
 });
 
-// A sprite that has not arrived has no dimensions, and the fit has to have an
-// answer rather than a division by zero that renders the whole table blank.
+
+
 test("a picture with no size fits as though it were square", () => {
 	assert.deepEqual(fitFactors(0, 0, 32, 32, true), [1, 1]);
 	assert.deepEqual(fitFactors(256, 256, 0, 0, false), [1, 1]);
 });
 
-// The rings are concentric, outside the pawn, one gap apart, and they are
-// spaced in screen pixels so a GM zoomed out to the whole map can still count
-// them.
+
+
+
 test("condition rings step outwards by a fixed screen distance", () => {
 	const half = 32;
 	const worldPerDevicePixel = 2;
@@ -203,29 +203,29 @@ test("condition rings step outwards by a fixed screen distance", () => {
 	assert.equal(first, half + RING_GAP * worldPerDevicePixel);
 	assert.equal(second - first, (RING_WIDTH + RING_GAP) * worldPerDevicePixel);
 
-	// Zoomed in, one CSS pixel is less of the table, so the rings sit closer to
-	// the pawn in map units and the same distance from it on screen.
+	
+	
 	assert.ok(ringRadius(half, 0, 0.5) < first);
 });
 
-// The protocol caps a pawn's conditions at sixteen, and the drawing matches it:
-// a seventeenth ring would be one the server would not have accepted.
+
+
 test("the ring cap is the protocol's own", () => {
 	assert.equal(CONDITION_RINGS_MAX, 16);
 });
 
-// pawn-pass does its own arithmetic against the layer's edge rather than
-// importing it, so that the pass does not depend on how the cache was built.
-// This is the pin that keeps the two honest.
+
+
+
 test("the pass and the cache agree on the sprite layer's size", () => {
-	// A picture that fills the layer exactly has a UV maximum of one, which is
-	// the arithmetic the pass performs with its own copy of the number.
+	
+	
 	assert.equal(SPRITE_SIZE, 256);
 });
 
-// A TOKEN IS ALWAYS UNDER A CREATURE, WHATEVER z SAYS. Objects are the floor's
-// furniture -- a rug, a road, a bloodstain, a wagon -- and a party that walked
-// onto a rug spawned after them would otherwise vanish underneath it.
+
+
+
 test("every token is drawn under every creature", () => {
 	const rug = { id: "rug", kind: "object" as const, z: 999 };
 	const goblin = { id: "goblin", kind: "monster" as const, z: 0 };
@@ -234,23 +234,23 @@ test("every token is drawn under every creature", () => {
 	assert.ok(compareStack(goblin, rug) > 0);
 });
 
-// AND z STILL DECIDES WITHIN A KIND, so two rugs stack in the order they were
-// laid and a goblin spawned later stands in front of one spawned earlier.
+
+
 test("z orders two of a kind and the id breaks a tie", () => {
 	const early = { id: "b", kind: "object" as const, z: 1 };
 	const late = { id: "a", kind: "object" as const, z: 2 };
 
 	assert.ok(compareStack(early, late) < 0);
 
-	// The tie-break is the id, so two pawns that somehow share a z are drawn in
-	// the same order on every client rather than however the array was built.
+	
+	
 	assert.ok(compareStack({ ...early, z: 2 }, late) > 0);
 	assert.equal(compareStack(late, late), 0);
 });
 
-// WHOSE TURN IT IS, WHICH IS A LIST AND NOT A CREATURE. Grouped initiative puts
-// nine goblins on one count, so every one of the nine is acting and every one
-// of them is marked.
+
+
+
 function order(over: Partial<Initiative> = {}): Initiative {
 	return {
 		entries: [
@@ -272,9 +272,9 @@ test("a grouped line hands over every creature on it", () => {
 	assert.deepEqual(actingPawnIds(order({ active: "01MOB" })), ["a", "b", "c"]);
 });
 
-// "Lair action" and "the volcano erupts" are lines in the order with nothing on
-// the table behind them. There is nothing to draw a ring round, and that is a
-// normal turn rather than a broken one.
+
+
+
 test("a line with no creature behind it marks nobody", () => {
 	assert.deepEqual(actingPawnIds(order({ active: "01LAIR" })), []);
 });
@@ -283,15 +283,15 @@ test("nothing is acting outside a fight", () => {
 	assert.deepEqual(actingPawnIds(order()), []);
 });
 
-// A tracker cleared while an event was in flight, or an id from a room this
-// browser has already left. It answers "nobody" rather than throwing, because
-// the caller is a frame of the render loop.
+
+
+
 test("an active line that is not in the order marks nobody", () => {
 	assert.deepEqual(actingPawnIds(order({ active: "01GONE" })), []);
 });
 
-// The empty answer is read on every frame outside a fight, which is most of a
-// session, so it is one array rather than one per frame.
+
+
 test("the empty answer allocates nothing", () => {
 	assert.equal(actingPawnIds(order()), actingPawnIds(order({ active: "01GONE" })));
 });

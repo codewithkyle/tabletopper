@@ -13,15 +13,15 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE HARNESS. Every test below drives a real room through real commands --
-// the actor goroutine, the sequence counters, the projection, the emissions --
-// with two things replaced: the database is a map, and a connection is a
-// channel. Neither replacement is a stub of behaviour, which is why these are
-// unit tests of the hub rather than an integration suite. The one test that
-// does need a socket is in socket_test.go and there is exactly one of it.
 
-// testID is a readable ULID: the low eight bytes are the number, so ids sort in
-// the order a test wrote them and a failure message says which one it is.
+
+
+
+
+
+
+
+
 func testID(n uint64) ulid.ULID {
 	var id ulid.ULID
 	id[0] = 1
@@ -37,8 +37,8 @@ var (
 	otherID  = testID(4)
 )
 
-// memStore is the rooms row, in memory. It records what it was asked to write
-// so the persistence tests can assert on the calls rather than on a database.
+
+
 type memStore struct {
 	mu      sync.Mutex
 	loaded  Loaded
@@ -48,16 +48,16 @@ type memStore struct {
 	seqs    []uint64
 	saveErr error
 
-	// saveDelay holds every Save for that long before it answers, and
-	// inFlight counts the ones held, for the test that asks whether the room
-	// waits on its database.
+	
+	
+	
 	saveDelay time.Duration
 	inFlight  int
 
 	cleared [][2]ulid.ULID
 
-	// preserved is every snapshot the hub asked to keep because it could not
-	// read it.
+	
+	
 	preserved [][]byte
 }
 
@@ -147,17 +147,17 @@ func (m *memStore) clears() [][2]ulid.ULID {
 	return append([][2]ulid.ULID(nil), m.cleared...)
 }
 
-// tabletop is one hub with one room in it and the helpers to push things
-// through it.
+
+
 type tabletop struct {
 	t *testing.T
 	*Hub
 	store *memStore
 }
 
-// newTabletop builds the hub. The two intervals default to longer than any test
-// runs, so a test that says nothing about saving or unloading never does either
-// and a test that is about one of them sets that one.
+
+
+
 func newTabletop(t *testing.T, opts Options) *tabletop {
 	t.Helper()
 
@@ -192,7 +192,7 @@ func (tb *tabletop) ctx() context.Context {
 	return ctx
 }
 
-// actor loads the room, which every helper below needs and no test asserts on.
+
 func (tb *tabletop) actor() *actor {
 	tb.t.Helper()
 
@@ -204,9 +204,9 @@ func (tb *tabletop) actor() *actor {
 	return a
 }
 
-// join seats one connection and returns it. The frames its snapshot and the
-// join event produced are still in its buffer afterwards, because that is what
-// half the tests here are about.
+
+
+
 func (tb *tabletop) join(id ulid.ULID, name string, role room.Role) *client {
 	tb.t.Helper()
 
@@ -220,7 +220,7 @@ func (tb *tabletop) join(id ulid.ULID, name string, role room.Role) *client {
 	return c
 }
 
-// send posts one command as if it had arrived on that connection.
+
 func (tb *tabletop) send(c *client, cid string, cmd room.Command) {
 	tb.t.Helper()
 
@@ -230,7 +230,7 @@ func (tb *tabletop) send(c *client, cid string, cmd room.Command) {
 	tb.settle()
 }
 
-// leave drops one connection.
+
 func (tb *tabletop) leave(c *client) {
 	tb.t.Helper()
 
@@ -240,13 +240,13 @@ func (tb *tabletop) leave(c *client) {
 	tb.settle()
 }
 
-// settle waits for the room to have answered everything sent before this call.
-//
-// IT IS A ROUND TRIP AND NOT A SLEEP. The inbox is a channel, so a message the
-// actor answers is a message every earlier one has already been answered --
-// asking for the player list and waiting for the reply is therefore a fence,
-// and a test that used a sleep instead would be a test that fails on a loaded
-// machine.
+
+
+
+
+
+
+
 func (tb *tabletop) settle() {
 	tb.t.Helper()
 
@@ -255,8 +255,8 @@ func (tb *tabletop) settle() {
 	}
 }
 
-// frame is one decoded event off a connection, with the three envelope fields
-// every assertion here reads and the whole object for the ones that read more.
+
+
 type frame struct {
 	Type string
 	Seq  uint64
@@ -264,7 +264,7 @@ type frame struct {
 	Body map[string]any
 }
 
-// frames drains everything queued for a connection.
+
 func frames(t *testing.T, c *client) []frame {
 	t.Helper()
 
@@ -290,7 +290,7 @@ func frames(t *testing.T, c *client) []frame {
 	}
 }
 
-// types is the frame names in order, which is what most assertions compare.
+
 func types(fs []frame) []string {
 	out := make([]string, 0, len(fs))
 	for _, f := range fs {
@@ -300,7 +300,7 @@ func types(fs []frame) []string {
 	return out
 }
 
-// only asserts that a connection received exactly these frame types, in order.
+
 func only(t *testing.T, c *client, want ...string) []frame {
 	t.Helper()
 
@@ -325,9 +325,9 @@ func equal(a, b []string) bool {
 	return true
 }
 
-// eventually retries until the condition holds or the deadline passes. It is
-// for the three things in this package that are genuinely timer-driven -- the
-// save tick, the unload grace and the drag flush -- and for nothing else.
+
+
+
 func eventually(t *testing.T, what string, cond func() bool) {
 	t.Helper()
 

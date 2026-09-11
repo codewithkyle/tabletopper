@@ -39,17 +39,17 @@ func TestTriggerMergesWithAnExistingHeader(t *testing.T) {
 	}
 }
 
-// THE SETTINGS EVENT IS WHAT REPLACED AN OUT-OF-BAND SWAP, so the shape of it
-// is the contract with two listeners that cannot see this file:
-// public/js/account-name.js reads the name, and server/js/room/main.ts reads the
-// two booleans and the volume. A renamed field is a setting that silently stops
-// applying.
-//
-// EVERY VALUE KEEPS ITS OWN TYPE, which is the one thing a map[string]any could
-// get wrong here: the room reads `detail.showBlood !== false`, and the string
-// "false" is not false; it reads `typeof detail.pingVolume === "number"`, and
-// the string "0" is not a number -- so a volume sent as a string would leave
-// every reader at whatever they had.
+
+
+
+
+
+
+
+
+
+
+
 func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Settings(rec, `Say "hi"`, true, false, 40)
@@ -73,18 +73,18 @@ func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 		t.Errorf("showBlood = %#v, want the boolean false", got)
 	}
 
-	// JSON has one number type and encoding/json unmarshals it into float64, so
-	// the assertion is on the value rather than on the Go type. What matters to
-	// the reader is that it arrives as a JSON number at all.
+	
+	
+	
 	if got := detail["pingVolume"]; got != float64(40) {
 		t.Errorf("pingVolume = %#v, want the number 40", got)
 	}
 }
 
-// AND IT MERGES WITH THE REST OF THE REPLY. A save raises four events -- the
-// theme, this, the dismissal and the toast -- and every one of them goes through
-// the same header, so any of them clobbering another would be a setting that
-// applied only when it was saved alone.
+
+
+
+
 func TestASavesEventsAllSurviveEachOther(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Theme(rec, "coffee")

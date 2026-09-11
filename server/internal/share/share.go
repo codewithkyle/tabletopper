@@ -1,27 +1,27 @@
-// Package share is the read grant on one thing -- a journal entry, a whole
-// character sheet, or a monster out of the manual: the token that names it in a
-// link, the optional password that gates it, and the cookie that remembers
-// someone got past the password.
-//
-// NOTHING IN HERE KNOWS WHICH KIND IT IS HOLDING, and that is why the second and
-// third kinds of share cost this package nothing at all. A token is 128 bits
-// whichever it names, a password gates a row whichever it names, and the cookie
-// is keyed by the token and the hash -- so the grant for one share cannot be
-// replayed at another whether or not the two open the same sort of page.
-//
-// THE PASSWORD GATES EVERY REQUEST THAT REACHES THE THING, and not only the
-// page. That is the caller's job rather than this package's, and it is worth
-// naming here because the list grew: the two image routes ask before they serve
-// a byte, and the monster import asks before it copies anything -- a link
-// somebody was handed but never unlocked would otherwise give up the whole
-// monster on one POST, permanently, without ever having rendered it.
-//
-// A SHARE LINK IS A BEARER CREDENTIAL, which is what separates the token here
-// from every other id in this app. A ULID is unguessable enough, but it is
-// also a primary key and a creation timestamp, and a value that is all three
-// cannot be rotated without destroying the row it identifies. So a share row
-// has an id like everything else and a token beside it, and only the token is
-// ever in a URL.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package share
 
 import (
@@ -38,39 +38,39 @@ import (
 )
 
 const (
-	// tokenBytes is the randomness in a link. 128 bits, which is the same
-	// order as the session token next door, and base64url-encodes to 22
-	// characters with no padding -- short enough to paste into a chat message
-	// without it wrapping.
+	
+	
+	
+	
 	tokenBytes = 16
 
-	// PasswordMin is a floor rather than a policy. This gates something shared
-	// with the four people at a table, not an account, and a rule strict enough
-	// to be worth enforcing here would only be answered with a password written
-	// down beside the link.
+	
+	
+	
+	
 	PasswordMin = 6
 
-	// PasswordMax is bcrypt's own limit, named rather than discovered.
-	// bcrypt.GenerateFromPassword returns an error past 72 bytes rather than
-	// truncating, so without this a long passphrase would reach the writer as
-	// a 500 on a field they were entitled to fill.
+	
+	
+	
+	
 	PasswordMax = 72
 
-	// unlockCookie remembers that this browser answered the password. It is
-	// path-scoped to the one share it belongs to, so the name is fixed and two
-	// shares open in two tabs do not overwrite each other's.
+	
+	
+	
 	unlockCookie = "share_unlock"
 
-	// unlockWindow is how long an answered password stays answered. Long
-	// enough to read an entry and come back to it after dinner, short enough
-	// that a borrowed laptop is not still holding the grant next week.
+	
+	
+	
 	unlockWindow = 12 * 60 * 60
 )
 
-// ValidToken reports whether a path segment is shaped like one of ours. It is
-// the cheap refusal in front of every share route: a token is a fixed length
-// and a fixed alphabet, so anything else cannot name a row and does not need a
-// query run to find that out. It says nothing about whether the share exists.
+
+
+
+
 func ValidToken(token string) bool {
 	if len(token) != base64.RawURLEncoding.EncodedLen(tokenBytes) {
 		return false
@@ -87,7 +87,7 @@ func ValidToken(token string) bool {
 	return true
 }
 
-// NewToken mints the random half of a share link.
+
 func NewToken() (string, error) {
 	raw := make([]byte, tokenBytes)
 	if _, err := rand.Read(raw); err != nil {
@@ -97,11 +97,11 @@ func NewToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
-// HashPassword is bcrypt at the default cost. THE COST IS NOT THE RATE LIMIT
-// -- Attempts is. A cost bounds what one guess is worth to try; it says nothing
-// about how many are tried, and the two defences this needs are both next door:
-// Attempts caps the tries a share will answer, and PasswordMatches caps how
-// many checks run at once.
+
+
+
+
+
 func HashPassword(plain string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
 	if err != nil {
@@ -111,25 +111,25 @@ func HashPassword(plain string) (string, error) {
 	return string(hash), nil
 }
 
-// bcryptSlots bounds how many password checks run at once to the cores the
-// process was given.
-//
-// THIS IS THE OTHER HALF OF WHAT AN UNAUTHENTICATED bcrypt ENDPOINT NEEDS, and
-// it is not the same half as the attempt counter. Attempts stops one link being
-// guessed at; this stops the checking itself being used as the attack. A
-// comparison pins a core for the better part of a tenth of a second, and Go
-// will start one per request that arrives -- so without a bound, posts spread
-// across enough distinct password-protected links saturate the box while every
-// individual link stays comfortably under its limit.
-//
-// A check that cannot get a slot is refused rather than queued, because a queue
-// on this path is the same resource held for longer.
+
+
+
+
+
+
+
+
+
+
+
+
+
 var bcryptSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
 
-// PasswordMatches reports whether plain is the password behind hash. It returns
-// false and ctx.Err() when the process is too busy to check inside the
-// caller's deadline, which is a different answer from "no" and the caller has
-// to tell them apart: a wrong password is 401 and a full queue is 503.
+
+
+
+
 func PasswordMatches(ctx context.Context, hash, plain string) (bool, error) {
 	select {
 	case bcryptSlots <- struct{}{}:
@@ -141,19 +141,19 @@ func PasswordMatches(ctx context.Context, hash, plain string) (bool, error) {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil, nil
 }
 
-// Unlocked reports whether this request already answered the share's password.
-//
-// THE PROOF IS DERIVED FROM THE STORED HASH RATHER THAN FROM A SECRET OR A
-// SECOND TABLE. The cookie holds HMAC-SHA256 of the token keyed by the bcrypt
-// hash, which the browser never sees; recomputing it needs the row, so a
-// cookie cannot be forged without the database, and nothing has to be written
-// down to check one. Three properties come free from that choice: revoking the
-// share deletes the row and the cookie stops verifying, changing the password
-// changes the key and every outstanding cookie dies with it, and a grant for
-// one share cannot be replayed at another because the token is what is signed.
-//
-// hmac.Equal rather than ==, so a wrong cookie does not leak where it went
-// wrong through how long the comparison took.
+
+
+
+
+
+
+
+
+
+
+
+
+
 func Unlocked(r *http.Request, token, hash string) bool {
 	cookie, err := r.Cookie(unlockCookie)
 	if err != nil {
@@ -163,13 +163,13 @@ func Unlocked(r *http.Request, token, hash string) bool {
 	return hmac.Equal([]byte(cookie.Value), []byte(unlockProof(token, hash)))
 }
 
-// SetUnlocked writes the grant this browser just earned.
-//
-// PATH IS THE SCOPING, and it is why one cookie name serves every share: the
-// browser only sends this back to the share it was issued for, so a reader who
-// has answered one password is not silently carrying a grant into another
-// link. HttpOnly because no script has any use for it, and SameSite=Lax so a
-// link followed from a chat window still arrives unlocked.
+
+
+
+
+
+
+
 func SetUnlocked(w http.ResponseWriter, token, hash string, secure bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     unlockCookie,

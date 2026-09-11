@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// journalList renders the entries fragment, which is what both the page and the
-// search route put on screen.
+
+
 func journalList(t *testing.T, entries ...JournalEntry) string {
 	t.Helper()
 
@@ -29,9 +29,9 @@ func journalHit() JournalEntry {
 	}
 }
 
-// A result says why it matched. Without this the card is a title and two dates,
-// and an entry that matched on a word in its body is indistinguishable from one
-// that matched on nothing.
+
+
+
 func TestASearchResultShowsTheLineThatMatched(t *testing.T) {
 	markup := journalList(t, journalHit())
 
@@ -43,10 +43,10 @@ func TestASearchResultShowsTheLineThatMatched(t *testing.T) {
 	}
 }
 
-// The three fields are joined with nothing between them, so the sentence reads
-// as one line rather than as three with gaps at the seams. templ decides
-// whether to write whitespace between an expression and the tag beside it, and
-// the answer has to be no.
+
+
+
+
 func TestTheSnippetHasNoSeamsAroundTheMark(t *testing.T) {
 	markup := journalList(t, journalHit())
 
@@ -58,12 +58,12 @@ func TestTheSnippetHasNoSeamsAroundTheMark(t *testing.T) {
 	}
 }
 
-// THE SNIPPET IS CUT STRAIGHT OUT OF A JOURNAL BODY, which is the least trusted
-// text in the app -- internal/markdown exists to render one safely and none of
-// it is in the way here. Three plain strings are what keeps that safe: templ
-// escapes them like every other value, so the only markup a snippet can produce
-// is markup the template wrote. A snippet assembled into one string of HTML
-// would have made this the second place in the app writing a body out raw.
+
+
+
+
+
+
 func TestASnippetCannotCarryMarkupOutOfAnEntry(t *testing.T) {
 	markup := journalList(t, JournalEntry{
 		ID:    "01BX5ZZKBKACTAV9WEVGEMMVS1",
@@ -84,16 +84,16 @@ func TestASnippetCannotCarryMarkupOutOfAnEntry(t *testing.T) {
 		t.Errorf("the entry closed or opened a mark of its own\n%s", markup)
 	}
 
-	// Escaped rather than dropped: the reader still sees what the entry says,
-	// as the words it is rather than as the markup it looks like.
+	
+	
 	if !strings.Contains(markup, "&lt;img src=x onerror=alert(1)&gt;") {
 		t.Errorf("the matched text was not shown as its own characters\n%s", markup)
 	}
 }
 
-// An entry that matched on its title alone carries no snippet, and the line is
-// left out rather than rendered empty. The term is in the heading an inch
-// above; printing it again underneath would be the same words twice.
+
+
+
 func TestAnEntryWithNoSnippetRendersNoLine(t *testing.T) {
 	markup := journalList(t, JournalEntry{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Title: "The ring"})
 
@@ -105,8 +105,8 @@ func TestAnEntryWithNoSnippetRendersNoLine(t *testing.T) {
 	}
 }
 
-// The unfiltered list has no term and reads no bodies, so every card on it is
-// the card this page has always rendered.
+
+
 func TestTheUnfilteredListCarriesNoSnippets(t *testing.T) {
 	var buf bytes.Buffer
 	data := JournalPageData{

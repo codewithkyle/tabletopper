@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// A TOKEN IS AN OBJECT AND THE DIALOG ASKS NOTHING ABOUT IT. It used to carry a
-// Creature-or-Object switch, a creature-size select and two cell-count inputs;
-// all four are gone, because a token is a picture of a thing on the table and
-// the assets row already records how big the picture is.
+
+
+
+
 func TestTheTokenHalfAsksNothingAboutTheToken(t *testing.T) {
 	body := renderToString(t, RoomSpawn(RoomSpawnData{
 		RoomID: "01BX5ZZKBKACTAV9WEVGEMMVT0",
@@ -22,18 +22,18 @@ func TestTheTokenHalfAsksNothingAboutTheToken(t *testing.T) {
 		}
 	}
 
-	// The one question it does still ask, because the answer is nowhere else:
-	// is the GM putting this down in front of the party or setting up the next
-	// room while they talk.
+	
+	
+	
 	if !strings.Contains(body, "data-spawn-shown") {
 		t.Error("the dialog does not ask whether players see it")
 	}
 }
 
-// THE CARD CARRIES THE PICTURE'S PIXELS so the ghost following the pointer is
-// the size of the thing about to be placed. The pawn's actual size is read from
-// the same row again when the spawn is resolved, so these are a preview and not
-// an input.
+
+
+
+
 func TestATokenCardCarriesItsPicturesSize(t *testing.T) {
 	body := renderToString(t, RoomSpawnList(RoomSpawnData{
 		Kind:   RoomSpawnTokens,
@@ -47,10 +47,10 @@ func TestATokenCardCarriesItsPicturesSize(t *testing.T) {
 	}
 }
 
-// A ROW WRITTEN BEFORE THE SIZE COLUMNS EXISTED LEAVES THE ATTRIBUTES EMPTY
-// rather than printing a zero, which is what lets the client tell "not recorded"
-// from "nothing wide" and fall back to one cell -- the same fallback the hub
-// applies to the pawn itself.
+
+
+
+
 func TestATokenWithNoRecordedSizeSaysSoWithSilence(t *testing.T) {
 	body := renderToString(t, RoomSpawnList(RoomSpawnData{
 		Kind:   RoomSpawnTokens,
@@ -62,10 +62,10 @@ func TestATokenWithNoRecordedSizeSaysSoWithSilence(t *testing.T) {
 	}
 }
 
-// THE NPC FORM ASKS THE FOUR THINGS NOTHING ELSE KNOWS, which is what separates
-// it from the other two walls: a monster's numbers are in the manual and a
-// token has none, but a face out of the avatar library has neither a row nor an
-// excuse. The hooks are what the room bundle reads them back through.
+
+
+
+
 func TestTheNPCFormAsksForAStatLine(t *testing.T) {
 	body := renderToString(t, RoomSpawnNPC(RoomSpawnNPCData{
 		RoomID: "01BX5ZZKBKACTAV9WEVGEMMVT0",
@@ -78,8 +78,8 @@ func TestTheNPCFormAsksForAStatLine(t *testing.T) {
 		}
 	}
 
-	// The Place button is the pick, and it carries the face rather than the
-	// numbers: the numbers are read off the controls beside it.
+	
+	
 	for _, want := range []string{`data-spawn-source="npc"`, `data-spawn-id="01AVATAR"`, "data-spawn-shown"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the form has no %s:\n%s", want, body)
@@ -87,9 +87,9 @@ func TestTheNPCFormAsksForAStatLine(t *testing.T) {
 	}
 }
 
-// THE NAME BOX IS REQUIRED AND STARTS EMPTY. The picture's own name is what the
-// GM calls the file -- "bearded man" -- and the party meets Aldric, so
-// prefilling it would make pressing Place without reading it the easy path.
+
+
+
 func TestTheNPCFormAsksForANameRatherThanBorrowingOne(t *testing.T) {
 	body := renderToString(t, RoomSpawnNPC(RoomSpawnNPCData{
 		RoomID: "01ROOM",
@@ -104,9 +104,9 @@ func TestTheNPCFormAsksForANameRatherThanBorrowingOne(t *testing.T) {
 	}
 }
 
-// BACK RETURNS TO THE WALL THAT WAS BEING LOOKED AT and not to all of it. The
-// form has no search box for htmx to include, so the term is baked into the one
-// URL that needs it.
+
+
+
 func TestBackFromTheNPCFormKeepsTheSearch(t *testing.T) {
 	data := RoomSpawnNPCData{RoomID: "01ROOM", Query: "inn keeper"}
 
@@ -119,8 +119,8 @@ func TestBackFromTheNPCFormKeepsTheSearch(t *testing.T) {
 	}
 }
 
-// A FACE IS PICKED IN TWO STEPS AND THE CARD IS THE FIRST OF THEM, so an avatar
-// card must not arm anything on its own: it fetches the form that asks.
+
+
 func TestAnAvatarCardOpensTheFormRatherThanArming(t *testing.T) {
 	body := renderToString(t, RoomSpawnList(RoomSpawnData{
 		RoomID:  "01ROOM",
@@ -136,10 +136,10 @@ func TestAnAvatarCardOpensTheFormRatherThanArming(t *testing.T) {
 	}
 }
 
-// EACH WALL CAN ADD ONE OF ITS OWN KIND, because nobody prepares for every
-// session: the two picture walls upload, and the monster wall writes a monster.
-// What they must not do is offer the wrong one -- an Upload token button on the
-// monster wall would put a picture in the library and no monster in the manual.
+
+
+
+
 func TestEachWallAddsItsOwnKind(t *testing.T) {
 	cases := map[string]struct {
 		kind string
@@ -170,10 +170,10 @@ func TestEachWallAddsItsOwnKind(t *testing.T) {
 	}
 }
 
-// AN UPLOADED CARD IS THE SAME CARD THE WALL RENDERS, which is what the two
-// exported components are for: the route answers with one of them and htmx
-// prepends it, so a picture uploaded mid-session is picked exactly like one
-// gathered a week earlier.
+
+
+
+
 func TestAnUploadedCardIsThePickCard(t *testing.T) {
 	token := renderToString(t, RoomSpawnTokenCard(RoomSpawnToken{ID: "01TOKEN", Name: "Cart", Image: "/x", Width: 300, Height: 100}))
 	if !strings.Contains(token, "data-spawn-pick") || !strings.Contains(token, `data-spawn-source="token"`) {
@@ -186,9 +186,9 @@ func TestAnUploadedCardIsThePickCard(t *testing.T) {
 	}
 }
 
-// THE QUICK-CREATE FORM WRITES A MONSTER AND NOT A PAWN, so its controls carry
-// the names the handler reads off a multipart POST rather than the data hooks
-// the NPC form is read through by a script.
+
+
+
 func TestTheQuickMonsterFormPostsToTheManual(t *testing.T) {
 	body := renderToString(t, RoomSpawnMonster(RoomSpawnMonsterData{RoomID: "01ROOM"}))
 

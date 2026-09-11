@@ -22,9 +22,9 @@ var (
 	testTileRoute = "/assets/maps/" + testAssetID.String() + "/tiles/" + testTileGen.String() + "/0/0_0.webp"
 )
 
-// servingPyramid is the plan's worked example -- a 12000x9000 map at 512 --
-// which is six levels deep and has a remainder on both axes at every one of
-// them. Its grid is 24x18, 12x9, 6x5, 3x3, 2x2, 1x1.
+
+
+
 func servingPyramid() queries.GetMapPyramidRow {
 	gen := testTileGen
 	return queries.GetMapPyramidRow{
@@ -37,8 +37,8 @@ func servingPyramid() queries.GetMapPyramidRow {
 	}
 }
 
-// tileRequest builds the request the route would have built, with the path
-// values the mux would have filled in.
+
+
 func tileRequest(id string, gen string, z string, name string) *http.Request {
 	r := httptest.NewRequest(http.MethodGet, testTileRoute, nil)
 	r.SetPathValue("id", id)
@@ -48,10 +48,10 @@ func tileRequest(id string, gen string, z string, name string) *http.Request {
 	return r
 }
 
-// A TILE HAS ONE URL AND NOT FOUR. These paths are cached for a year and never
-// revalidated, so every spelling that Atoi would accept as the same number is a
-// second copy of the same bytes in every browser and every proxy between here
-// and the table.
+
+
+
+
 func TestATileURLIsReadInExactlyOneForm(t *testing.T) {
 	for name, c := range map[string]struct {
 		gen, z, tile string
@@ -89,9 +89,9 @@ func TestATileURLIsReadInExactlyOneForm(t *testing.T) {
 	}
 }
 
-// The whole of the validation, against the pyramid the row describes. Getting
-// this wrong in one direction hands out 404s for tiles that are sitting in the
-// bucket; in the other it sends R2 a key nothing ever wrote.
+
+
+
 func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 	stale := testStaleGen
 
@@ -115,23 +115,23 @@ func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 		"a negative column":                   {servingPyramid(), 0, -1, 0, false},
 		"a negative row":                      {servingPyramid(), 0, 0, -1, false},
 
-		// A generation that is not the one serving is a pyramid that has been
-		// deleted, or one that is still being built. Neither is in the bucket
-		// under a name this row will admit to.
+		
+		
+		
 		"a superseded generation": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.TileGen = &stale; return r }(),
 			0, 0, 0, false,
 		},
-		// Nothing has ever completed, so there is nothing to serve at all --
-		// which is the state every map is in between its upload and its first
-		// build finishing.
+		
+		
+		
 		"a map that has never been tiled": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.TileGen = nil; return r }(),
 			0, 0, 0, false,
 		},
-		// The four pyramid columns are written in the same statement that sets
-		// tile_gen, so a row missing one of them is a row that cannot be
-		// trusted about any of them.
+		
+		
+		
 		"a generation with no width": {
 			func() queries.GetMapPyramidRow { r := servingPyramid(); r.Width = sql.NullInt32{}; return r }(),
 			0, 0, 0, false,
@@ -158,10 +158,10 @@ func TestATileMustBeInsideThePyramidTheRowDescribes(t *testing.T) {
 	}
 }
 
-// The read is by id alone and takes the pyramid columns only. It is not scoped
-// to the owner, because everyone at the table fetches the DM's map, and it does
-// not look at tile_state, because a map being re-tiled goes on serving the
-// generation it already has.
+
+
+
+
 func TestTheTileRouteReadsThePyramidAndNotTheJob(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
@@ -192,11 +192,11 @@ func TestTheTileRouteReadsThePyramidAndNotTheJob(t *testing.T) {
 	}
 }
 
-// EVERY FAILURE IS THE STATUS AND NOTHING ELSE. The caller is a renderer's
-// fetch or an <img>, and http.NotFound would put "404 page not found" where the
-// tile was meant to be. The immutable header must not come with it either: a
-// year-long cache entry for a tile that does not exist would outlive the build
-// that would have created it.
+
+
+
+
+
 func TestAMissingTileIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
@@ -215,9 +215,9 @@ func TestAMissingTileIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
 	}
 }
 
-// A URL the route cannot read is answered before anything is queried. Every one
-// of these is a shape the mux happily matched -- the last segment is one
-// wildcard, so the mux checks nothing about what is in it.
+
+
+
 func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {
 	for name, c := range map[string]struct{ id, gen, z, tile string }{
 		"an asset that is not a ULID":     {"not-a-ulid", testTileGen.String(), "0", "0_0.webp"},
@@ -244,21 +244,21 @@ func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {
 	}
 }
 
-// THE ROUTE AND THE TILER HAVE TO AGREE EXACTLY, and nothing but this checks
-// that they do. The tiler decides which tiles exist by walking the pyramid; the
-// route decides which tiles exist by arithmetic on four columns. They are the
-// same arithmetic today because both go through internal/tiler, and if they
-// ever stopped being, the symptom is a 404 for a tile that is sitting in the
-// bucket -- a hole in a map, with no error logged anywhere.
-//
-// The row is filled from the tiler's Result exactly as CompleteMapTiling fills
-// it, so this walks the same values the worker would have written.
+
+
+
+
+
+
+
+
+
 func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 	const tileSize = 128
 
-	// 1000x700 leaves a remainder on both axes at every level, which is what
-	// makes the ceil in the pyramid arithmetic load-bearing: 8x6, 4x3, 2x2,
-	// 1x1.
+	
+	
+	
 	var source bytes.Buffer
 	if err := png.Encode(&source, image.NewRGBA(image.Rect(0, 0, 1000, 700))); err != nil {
 		t.Fatalf("encoding the source: %v", err)
@@ -292,9 +292,9 @@ func TestEveryTileTheTilerBuildsIsOneTheRouteWillServe(t *testing.T) {
 		}
 	}
 
-	// And nothing beyond them. The walk goes one level past the top and one
-	// tile past each edge of every level, which is every way a renderer asks
-	// for a tile that was never built.
+	
+	
+	
 	for z := 0; z <= result.MaxZoom+1; z++ {
 		for x := 0; x <= tiler.LevelTiles(result.Width, tileSize, z); x++ {
 			for y := 0; y <= tiler.LevelTiles(result.Height, tileSize, z); y++ {

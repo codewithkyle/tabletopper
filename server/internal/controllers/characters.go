@@ -18,43 +18,43 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// DeleteCharacter empties every table that holds a row for this character,
-// deletes the objects those rows point at, and only then removes the character
-// itself.
-//
-// NOTHING CASCADES IN THIS SCHEMA -- there are no foreign keys -- so every one
-// of those tables is named here, and a row this handler forgets is unreachable
-// the moment the character is gone: no page can open it, no later delete will
-// find it, and an asset row it forgot is a key sitting in the bucket that
-// nothing will ever ask for again. The order below is the whole of the safety.
-//
-// OBJECTS BEFORE THE ROWS THAT DESCRIBE THEM. The row is the record that an
-// object may exist, so R2 goes first and the rows after; the other way round
-// leaves a bucket filling with keys nothing remembers. That is also why the
-// journal image paths are read before anything is deleted at all -- the join
-// that finds them runs through the journals table, and once those rows are gone
-// there is nothing left that knows which objects were this character's.
-//
-// ONE CLASS OF PICTURE IS NOT REACHED FROM HERE, and it belongs to the
-// sweeper. Deleting a single entry detaches its images and removes the entry
-// row, so their journal_id names a journal that is gone and the join above
-// cannot see them. They are already marked detached, which is precisely what
-// internal/sweep looks for, and it takes the object and the row within the day.
-//
-// THE ROW HALF IS ONE TRANSACTION AND THE OBJECTS ARE NOT. Nine statements
-// across eight tables either all land or none of them do -- see App.tx -- so
-// there is no longer such a thing as a character that is half deleted, and the
-// character row going last is a property of the commit rather than of the order
-// they were written in.
-//
-// THE OBJECTS STILL GO FIRST, and they still cannot be rolled back. An object
-// deleted whose rows then failed to commit leaves the character on the roster
-// with a broken portrait, and deleting it again finishes the job: every
-// statement is scoped by the character and the owner, so repeating the purge
-// finds what is left, and a key already gone from R2 deletes again without
-// complaint. That is the only recoverable order -- rows first would leave
-// objects nothing in the database points at, which no retry and no sweep could
-// ever find.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -79,8 +79,8 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Read first, destroy after. This is the only step that has to precede the
-	// deletes rather than merely preferring to.
+	
+	
 	imageKeys, err := a.Queries.ListCharacterJournalImages(ctx, queries.ListCharacterJournalImagesParams{
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
@@ -91,9 +91,9 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// One call for the journal, whatever its size: DeleteMany batches, and an
-	// empty list is a no-op, so a character who never pasted a picture pays
-	// nothing for this.
+	
+	
+	
 	if err := a.Storage.DeleteMany(ctx, imageKeys); err != nil {
 		slog.Error("Failed to delete journal image objects", "error", err, "count", len(imageKeys))
 		htmx.ServerError(w)
@@ -108,12 +108,12 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// The portrait's asset row is inside the transaction rather than logged
-	// after it, which is what changed when this became atomic. It used to run
-	// past the point of no return -- the character row was already gone, so a
-	// retry could not reach the asset and the failure could only be written
-	// down. Now a failure here rolls the character back onto the roster, and
-	// pressing Delete again reaches everything.
+	
+	
+	
+	
+	
+	
 	err = a.tx(ctx, func(q *queries.Queries) error {
 		if err := deleteCharacterRows(ctx, q, characterID, sess.UserID); err != nil {
 			return err
@@ -148,36 +148,36 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, character.Name+" has been deleted.")
 }
 
-// deleteCharacterRows empties every table that carries this character's rows,
-// and it is separate from the handler because the list is the point: one
-// statement per table, in one place, so a table added to the schema has an
-// obvious hole to fill. TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows
-// reads db/schema.sql and fails when one is missing.
-//
-// THE FIRST TWO ARE ORDERED AND THE REST ARE NOT. The image delete finds its
-// rows through the journals table, so emptying that table first would leave
-// every picture behind with nothing pointing at it. The other four are
-// independent and run in the order they were written.
-//
-// The shares are among the independent ones only because the column is
-// denormalised. Every link this character handed out names it directly -- its
-// own sheet and each of its entries alike -- so they go in one statement
-// whether or not the journals they point at are still there, which is the
-// reason shares.character_id exists at all; reaching them through journals
-// would have meant a subquery against a table this request empties two
-// statements earlier, and would have missed the sheet's own link entirely,
-// since that one names no journal.
-//
-// The first failure stops the purge and is returned wrapped, so the log names
-// the table rather than only the driver error. It no longer decides what the
-// reader can recover -- the caller runs all of this inside one transaction, so
-// any failure here undoes every statement before it -- but it is still the
-// difference between reading a stack trace and reading a table name.
-//
-// IT TAKES A Queries RATHER THAN READING App'S, so the caller decides what it
-// is bound to. In the handler that is a transaction; the test that checks this
-// list against db/schema.sql hands it a recorder instead, and neither has to
-// know about the other.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, ownerID ulid.ULID) error {
 	if err := q.DeleteCharacterJournalImages(ctx, queries.DeleteCharacterJournalImagesParams{
 		OwnerID:     ownerID,
@@ -221,10 +221,10 @@ func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, o
 		return fmt.Errorf("spell slots: %w", err)
 	}
 
-	// The pointer is what the column became when a monster's share row -- which
-	// hangs off no character -- needed somewhere to say so. This caller always
-	// has one, and a nil here would match no row rather than every row: SQL
-	// compares NULL to nothing, including itself.
+	
+	
+	
+	
 	if err := q.DeleteSharesForCharacter(ctx, queries.DeleteSharesForCharacterParams{
 		CharacterID: &characterID,
 		OwnerID:     ownerID,
@@ -235,29 +235,29 @@ func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, o
 	return nil
 }
 
-// CharacterPage is the Character tab, and the only page that renders the
-// characters row itself -- the other two tabs are views of the inventory and
-// spells tables and take their own page data.
-//
-// It is also the only editor page that reads other tables, and it reads five of
-// them. Equipment is the inventory rows ticked as equipped and Prepared Spells
-// is the spell rows ticked as prepared -- both views, so a character's gear and
-// their spells are written down once, on the tabs that own them, and read here
-// rather than typed in twice. Only the ticked rows are fetched, by queries that
-// filter in SQL: the page shows three of forty and has no use for the rest.
-//
-// Attacks is neither of those. It is the whole table, and it is editable here,
-// because attacks have no tab of their own -- see the top of attacks.go for why
-// they do not.
-//
-// Spell Slots is not a view. It is ten small forms writing the spell_slots
-// table, and it is here rather than on the spells tab because resetting `used`
-// after a long rest touches nine levels at once -- the one thing a page per
-// level cannot do.
-//
-// Six queries, then, for a page that used to be one row. Each is an indexed
-// lookup returning at most a handful of rows, and the alternative to the last
-// two is a FULL OUTER JOIN that MySQL does not have.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -311,16 +311,16 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.EditCharacter(data))
 }
 
-// loadCharacter is the ownership gate every editor page goes through, and the
-// only one: a page that asked the question a second way would answer a miss
-// differently sooner or later. Every failure is a redirect rather than an alert,
-// because this answers a page request and nothing is open yet to show an alert
-// in. A character that is not this user's and one that never existed are the
-// same miss, because the query is scoped to the owner.
-//
-// The parsed id comes back with the row. Two of the three pages go on to query
-// the inventory table with it, and would otherwise have to parse the path a
-// second time for a value this function already had.
+
+
+
+
+
+
+
+
+
+
 func (a *App) loadCharacter(w http.ResponseWriter, r *http.Request) (queries.Character, ulid.ULID, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -367,52 +367,52 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Characters(results))
 }
 
-// FeatureRowFragment serves one blank repeater row to the add button on the
-// Features panel. It is the whole server side of the add-row mechanic: no
-// database, no session data in the response, just the same templ component the
-// initial page render uses, so a row is defined in exactly one place.
-//
-// IT TAKES NOTHING, which is the point of the route being named after what it
-// serves. It used to read a ?field= that decided the name attributes on the row
-// it returned, and so had to check that value against an allowlist before
-// rendering -- an unvalidated one would have put arbitrary field names into the
-// next post. There is one repeater now, the row's field names are constants, and
-// a parameter that cannot vary cannot be wrong.
-//
-// Behind middleware.Fragment, which is RequireSession plus the no-store and
-// noindex headers every /fragment/ route owes its caller. The markup is not
-// secret -- it holds nothing but empty fields -- but an unauthenticated
-// endpoint here would be surface for no reason.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) FeatureRowFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.FeatureRowFragment())
 }
 
-// The column is varchar(128), and MySQL counts characters there rather than
-// bytes. So does this: len() on the string would reject a name of 90 accented
-// letters that the database would have taken without complaint.
+
+
+
 const characterNameLimit = 128
 
-// NewCharacterForm creates a character from a name and sends the browser to the
-// editor. This is the whole of creation now -- every other column is answered by
-// the statement or by the schema, and the sheet is filled in afterwards a panel
-// at a time by a page that saves as you go.
-//
-// It reads one field, and reads it here rather than through buildIdentityInput.
-// That builder also requires `size`, which the dialog does not carry and should
-// not grow a control for: a second question in a one-question dialog invites a
-// third.
-//
-// The reply on success is a redirect with no body, so nothing lands back in the
-// dialog -- the navigation takes it away. The toast still arrives, on the page
-// after this one: toast.js parks a message in sessionStorage when the same
-// response also carries HX-Redirect, because a message shown a moment before a
-// navigation is never read.
-// NewCharacterFragment serves the content of the new-character dialog: a
-// heading, one field and a button. Like the other two fragments it reaches no
-// database and carries nothing from the session, because the form it returns is
-// the same for every user -- but it stays behind auth.Fragment all the same,
-// since an unauthenticated route here would be surface for no reason.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) NewCharacterFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.NewCharacterFragment())
@@ -453,11 +453,11 @@ func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	htmx.Redirect(w, "/characters/"+id.String()+"/edit")
 }
 
-// rejectNewCharacter answers with the dialog's error block under a 422, which is
-// the one code the form has an hx-status route for -- every other 4xx is in the
-// noSwap list and would leave the dialog showing nothing new. The form is left
-// alone, so the name the user typed is still in the field when the message
-// appears above it.
+
+
+
+
+
 func rejectNewCharacter(w http.ResponseWriter, r *http.Request, message string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusUnprocessableEntity)
@@ -494,14 +494,14 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		SpellcastingAbility: pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility)),
 		SpellBonusMisc:      strconv.FormatInt(int64(character.SpellBonusMisc), 10),
 
-		// Every computed number on the page, in one field. The two bonus grids
-		// arrive here as rows rather than as the blobs they are stored in --
-		// see characterDerived for why none of this is a column.
+		
+		
+		
 		Derived: derived,
 
-		// The vitals counters are formatted like every other number here. The
-		// death saves are not: they render as ticked boxes rather than into a
-		// value attribute, so the markup needs the count itself.
+		
+		
+		
 		HitDice:            character.HitDice,
 		HitDiceSpent:       strconv.FormatUint(uint64(character.HitDiceSpent), 10),
 		DeathSaveSuccesses: int(character.DeathSaveSuccesses),
@@ -510,10 +510,10 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Exhaustion:         strconv.FormatUint(uint64(character.Exhaustion), 10),
 		Features:           parseFeatures(character.Features),
 
-		// The details columns are NOT NULL with an empty default and the
-		// builders trim what they store, so these are the only fields here that
-		// pass straight through -- no nullStringValue, no fallbackString, no
-		// TrimSpace. There is nothing for those to do.
+		
+		
+		
+		
 		PersonalityTraits: character.PersonalityTraits,
 		Ideals:            character.Ideals,
 		Bonds:             character.Bonds,
@@ -527,27 +527,27 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 	}
 }
 
-// characterHeader builds the bar for the four editor tabs that are not the
-// Character tab. Each of them already loads the characters row to check
-// ownership and used to discard it, so the bar costs those pages no query at
-// all -- only the arithmetic behind passive perception, which is map lookups
-// over two blobs the row already carries.
-//
-// The Character tab does not come through here. It has the derived values
-// already and passes them along instead, which is the only reason the split
-// below exists.
+
+
+
+
+
+
+
+
+
 func characterHeader(character queries.Character) pages.CharacterHeader {
 	return characterHeaderFrom(character, characterDerived(character))
 }
 
-// characterHeaderFrom is the bar for a character whose derived values are
-// already worked out.
-//
-// INITIATIVE IS COMPUTED HERE AND NOWHERE ELSE, because the bar is the only
-// thing that shows it. The Core Stats panel asks for initiative_bonus, which is
-// what items and feats add; what a player rolls is that plus their Dexterity
-// modifier, and the two are far enough apart that a sheet showing only the
-// stored one is showing the wrong number.
+
+
+
+
+
+
+
+
 func characterHeaderFrom(character queries.Character, derived pages.Derived) pages.CharacterHeader {
 	avatar := ""
 	if character.AssetID != nil {
@@ -570,14 +570,14 @@ func characterHeaderFrom(character queries.Character, derived pages.Derived) pag
 	}
 }
 
-// characterSubtitle is the line under the name: species, class, background and
-// alignment, in that order, with whatever the row does not have left out rather
-// than rendered as a gap between two separators.
-//
-// UNALIGNED IS TREATED AS ABSENT. Creation leaves the column NULL and the
-// editor's picker falls back to "unaligned", so it is what every character has
-// until somebody chooses otherwise -- and a subtitle whose last word is the
-// answer nobody gave reads as a fact about the character.
+
+
+
+
+
+
+
+
 func characterSubtitle(character queries.Character) string {
 	alignment := ""
 	if value := nullStringValue(character.Alignment); value != "" && value != pages.DefaultAlignment {
@@ -616,12 +616,12 @@ func fallbackString(value, fallback string) string {
 	return trimmed
 }
 
-// parseProficiencies unmarshals one of the `{"stealth": "expertise"}` blobs the
-// derivation pass added. Every value is normalised on the way in as well as on
-// the way out: the blob is only ever written by its panel, but a state this
-// package does not recognise would otherwise reach proficiencyGrant, which
-// answers anything it does not know with zero -- a silently wrong total rather
-// than an obviously missing one.
+
+
+
+
+
+
 func parseProficiencies(raw json.RawMessage) map[string]string {
 	states := map[string]string{}
 	if len(raw) == 0 {
@@ -640,18 +640,18 @@ func parseProficiencies(raw json.RawMessage) map[string]string {
 	return states
 }
 
-// parseStatBonuses unmarshals one of the `{"str": 2, "dex": 0, ...}` blobs into a
-// map the templates can range over, rather than handing the JSON to the browser
-// for a component to parse. It serves both bonus grids -- saving throws and
-// skills -- and replaced normalizeJSONObjectJSON, which did the handing-over and
-// went with the second of them.
-//
-// Decoded as float64, not int: type=number with step="1" rejects a decimal on
-// validity but still reports it as the value, so a fractional bonus could reach
-// the column and would fail a map[string]int unmarshal outright -- defaulting
-// every one of the six to 0. Truncating the one bad entry is the smaller loss,
-// and it is what the form does with it on the next save anyway (parseBonus
-// fails on "2.5" and falls back to 0).
+
+
+
+
+
+
+
+
+
+
+
+
 func parseStatBonuses(raw json.RawMessage) map[string]int {
 	bonuses := map[string]int{}
 	if len(raw) == 0 {
@@ -671,14 +671,14 @@ func parseStatBonuses(raw json.RawMessage) map[string]int {
 	return bonuses
 }
 
-// parseFeatures unmarshals a stored `[{"name": ..., "value": ...}]` column into
-// the slice the templates range over. It replaced normalizeInfoRowsJSON, which
-// re-marshalled the same rows back into a string for a data-rows attribute so
-// monster-info-table.js could parse them a second time in the browser.
-//
-// A malformed column yields an empty slice and a warning, which is what the old
-// function did and what the component did on top of it -- the repeater renders
-// with no rows and the add button still works, rather than the page failing.
+
+
+
+
+
+
+
+
 func parseFeatures(raw json.RawMessage) []pages.Feature {
 	rows := []pages.Feature{}
 	if len(raw) == 0 {
@@ -748,9 +748,9 @@ func parseUint8(value string, fallback uint8) (uint8, error) {
 	return uint8(parsed), nil
 }
 
-// parseBonus reads one cell of a bonus grid. Unparseable is 0 rather than an
-// error: the inputs are type=number with a step, so a browser cannot submit
-// anything else, and the value is one of twenty-four on the panel.
+
+
+
 func parseBonus(value string) int {
 	parsed, err := strconv.Atoi(strings.TrimSpace(value))
 	if err != nil {

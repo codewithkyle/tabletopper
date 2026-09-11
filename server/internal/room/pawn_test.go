@@ -6,21 +6,21 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE WAGON. A group move is one delta taken from the anchor and applied to
-// everything else, and the property that matters is that the riders arrive
-// sitting exactly where they were sitting -- not snapped into the wagon's cells,
-// not each snapped independently, which would shuffle them.
-//
-// The positions here are chosen to already be snapped, so that the only
-// movement in the test is the movement the command causes.
+
+
+
+
+
+
+
 func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 	w := newWorld(t)
 
-	// THE RIDERS ARE PLACED OFF THE GRID ON PURPOSE, with snapping switched off
-	// while they are put down. It is the only arrangement that can tell the two
-	// implementations apart: when everything already sits on its own lattice,
-	// snapping each rider independently and moving them all by the anchor's
-	// delta produce the same answer, and the test would pass either way.
+	
+	
+	
+	
+	
 	loose := w.s.Table.Grid
 	loose.Snap = SnapOff
 	w.apply(&TableSetGrid{Grid: loose}, w.gm)
@@ -43,9 +43,9 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 		offsets[id] = [2]int{p.X - anchorBefore.X, p.Y - anchorBefore.Y}
 	}
 
-	// AN OBJECT ANCHOR LANDS ON THE RAW NUMBER, because an object is not on the
-	// lattice at all: see snapPawn. Snapping is on, and 300 is neither a cell
-	// centre nor a vertex.
+	
+	
+	
 	ems := w.apply(&PawnMove{Anchor: wagon, X: 300, Y: 300, Others: riders}, w.gm)
 
 	after := w.s.Pawn(wagon)
@@ -60,8 +60,8 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 			t.Fatalf("%s sat at offset %v and is now at %v", p.Name, want, [2]int{p.X - after.X, p.Y - after.Y})
 		}
 
-		// And none of them landed on a cell centre, which is where snapping
-		// each rider independently would have put them.
+		
+		
 		if (p.X-32)%64 == 0 || (p.Y-32)%64 == 0 {
 			t.Fatalf("%s was re-snapped to a cell centre at (%d, %d)", p.Name, p.X, p.Y)
 		}
@@ -77,9 +77,9 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 		t.Fatal("the anchor is not first in the position list")
 	}
 
-	// AND THE SAME PROPERTY WITH THE SNAP THE OTHER WAY ROUND. Ari is a medium
-	// creature, so she DOES land on a cell centre -- and the wagon she was
-	// sitting on rides along by her delta rather than being snapped to one.
+	
+	
+	
 	rider := w.s.Pawn(riders[0])
 	offset := [2]int{after.X - rider.X, after.Y - rider.Y}
 
@@ -96,9 +96,9 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 	}
 }
 
-// A player may move what they own. Naming somebody else's pawn in the same
-// selection is refused, and the refusal happens before anything moves -- a
-// group move is all or nothing, including its authority check.
+
+
+
 func TestAPlayerCannotSmuggleAMonsterIntoTheirSelection(t *testing.T) {
 	w := newWorld(t)
 
@@ -115,8 +115,8 @@ func TestAPlayerCannotSmuggleAMonsterIntoTheirSelection(t *testing.T) {
 	}
 }
 
-// A group that would push one member off the map moves nobody. The check runs
-// over every computed position before the first pawn is written.
+
+
 func TestAGroupMoveThatWouldLeaveTheMapMovesNobody(t *testing.T) {
 	w := newWorld(t)
 
@@ -130,9 +130,9 @@ func TestAGroupMoveThatWouldLeaveTheMapMovesNobody(t *testing.T) {
 	}
 }
 
-// THE PLAYER COPY OF A MOVE. A hidden rider is not in it, and when nothing in
-// the move is visible there is no player copy at all -- ForRole answers nil
-// rather than an empty list, so the hub sends nothing.
+
+
+
 func TestTheMoveEventDropsWhatPlayersCannotSee(t *testing.T) {
 	w := newWorld(t)
 
@@ -152,7 +152,7 @@ func TestTheMoveEventDropsWhatPlayersCannotSee(t *testing.T) {
 		t.Fatalf("the players' copy carries %v, want only the visible pawn", players.Pawns)
 	}
 
-	// And with nothing visible in the move, players are told nothing.
+	
 	other := w.spawn(Pawn{Name: "Second ambusher", X: 224, Y: 96, Visible: false})
 	ems = w.apply(&PawnMove{Anchor: hidden, X: 480, Y: 480, Others: []ulid.ULID{other}}, w.gm)
 
@@ -164,8 +164,8 @@ func TestTheMoveEventDropsWhatPlayersCannotSee(t *testing.T) {
 	}
 }
 
-// A drag changes nothing, is never snapped, and goes to everybody except the
-// person whose hand is on the mouse.
+
+
 func TestADragPreviewsWithoutChangingAnything(t *testing.T) {
 	w := newWorld(t)
 
@@ -187,7 +187,7 @@ func TestADragPreviewsWithoutChangingAnything(t *testing.T) {
 		t.Fatal("a drag preview is not marked transient, so it would be reduced into state")
 	}
 
-	// The dragging player receives nothing; everybody else does.
+	
 	if got := delivered(ems, w.pc, w.pc); len(got) != 0 {
 		t.Fatalf("the dragging player received their own ghost: %v", eventTypesOf(got))
 	}
@@ -199,9 +199,9 @@ func TestADragPreviewsWithoutChangingAnything(t *testing.T) {
 	}
 }
 
-// OBJECTS ARE NOT CREATURES. They are measured in pixels instead of by a
-// creature size, they cannot be poisoned, and they may have no hit points at
-// all -- a door usually does not.
+
+
+
 func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 	w := newWorld(t)
 
@@ -222,21 +222,21 @@ func TestObjectsAreRectanglesWithoutConditions(t *testing.T) {
 		{Name: "Poisoned", Color: ColorGreen, Duration: -1, Clear: ClearEnd},
 	}}, w.gm, CodeInvalid)
 
-	// The two edits cross over: a creature size on an object and a width on a
-	// creature are both the client having confused one for the other.
+	
+	
 	w.refuse(&PawnUpdate{ID: wagon, Size: sizep(SizeLarge)}, w.gm, CodeInvalid)
 
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	w.refuse(&PawnUpdate{ID: goblin, Width: intp(192)}, w.gm, CodeInvalid)
 
-	// And so is an angle on one. A disc has no facing, so a rotation on a
-	// creature is the client having sent an object's field to a monster.
+	
+	
 	w.refuse(&PawnUpdate{ID: goblin, Rotation: intp(90)}, w.gm, CodeInvalid)
 }
 
-// AN OBJECT TURNS AND A CREATURE DOES NOT, and the angle that comes back is
-// always the reduced one -- a client that dragged the handle three times round
-// leaves the wagon where a client that dragged it once did.
+
+
+
 func TestAnObjectTurnsAboutItsCentre(t *testing.T) {
 	w := newWorld(t)
 
@@ -260,10 +260,10 @@ func TestAnObjectTurnsAboutItsCentre(t *testing.T) {
 	}
 }
 
-// THE VISIBILITY TRANSITIONS, which are the whole reason for the two-audience
-// design. Each direction emits exactly one set of events to exactly one set of
-// audiences, and the tracker rides along because hiding a creature also takes
-// its line out of the players' turn order.
+
+
+
+
 func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	w := newWorld(t)
 
@@ -277,7 +277,7 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 		"initiative.updated to players",
 	})
 
-	// The GM's tracker did not change, so the GM is told nothing about it.
+	
 	if got := eventTypesOf(delivered(hide, w.gm, w.gm)); len(got) != 1 || got[0] != "pawn.updated" {
 		t.Fatalf("the GM received %v while hiding a pawn", got)
 	}
@@ -295,18 +295,18 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 		"initiative.updated to players",
 	})
 
-	// Setting it to what it already is changes nothing for players.
+	
 	again := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: true}, w.gm)
 	equalStrings(t, "revealing twice", summary(again), []string{"pawn.updated to gm"})
 }
 
-// THE TABLE AND THE TRACKER ANSWER TO DIFFERENT FLAGS, and a pawn on another
-// floor is where the two come apart. Players are sent the ACTIVE layer's
-// visible pawns, so a goblin in the cellar is not on their table either way --
-// but projectInitiative keeps an entry for a pawn downstairs and drops one for
-// a pawn that is hidden, so hiding it still takes a line out of their turn
-// order. Emitting on the table's question alone left them reading the name of a
-// creature the GM had just put away.
+
+
+
+
+
+
+
 func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")
@@ -316,8 +316,8 @@ func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
 
 	hide := w.apply(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
 
-	// Nothing crossed the shown line, so there is no pawn.removed: the players
-	// never had it on their table to take away.
+	
+	
 	equalStrings(t, "hiding a pawn downstairs", summary(hide), []string{
 		"pawn.updated to gm",
 		"initiative.updated to players",
@@ -332,16 +332,16 @@ func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
 		t.Fatalf("the players' tracker still names the hidden pawn: %+v", tracker.Initiative.Entries)
 	}
 
-	// And the GM's own turn order is untouched, which is why it went to
-	// players alone.
+	
+	
 	if len(w.s.Initiative.Entries) != 1 {
 		t.Fatalf("the GM's tracker holds %d entries, want 1", len(w.s.Initiative.Entries))
 	}
 }
 
-// Moving a tracked pawn between floors says nothing about the turn order,
-// because an entry for a creature that walked downstairs stays: the players
-// know it exists and it still has a turn.
+
+
+
 func TestMovingAPawnBetweenFloorsLeavesTheTrackerAlone(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")
@@ -360,9 +360,9 @@ func TestMovingAPawnBetweenFloorsLeavesTheTrackerAlone(t *testing.T) {
 	}
 }
 
-// A SELECTION IS HIDDEN AND REVEALED IN ONE COMMAND, which is what the canvas
-// overlay's toggle sends: the ambush waiting round the corner goes away together
-// or the reveal is eight separate moments.
+
+
+
 func TestHidingASelectionIsOneCommandAndOneTrackerEvent(t *testing.T) {
 	w := newWorld(t)
 
@@ -397,8 +397,8 @@ func TestHidingASelectionIsOneCommandAndOneTrackerEvent(t *testing.T) {
 	})
 }
 
-// A MIXED SELECTION IS SET RATHER THAN FLIPPED, so the pawn that was already in
-// the asked-for state is left alone and only the other one moves audiences.
+
+
 func TestHidingAMixedSelectionSetsRatherThanToggles(t *testing.T) {
 	w := newWorld(t)
 
@@ -417,8 +417,8 @@ func TestHidingAMixedSelectionSetsRatherThanToggles(t *testing.T) {
 	}
 }
 
-// A pawn nobody put on the table is a not-found, and it refuses the whole
-// command rather than hiding the ones it did recognise.
+
+
 func TestHidingRefusesAnUnknownPawnBeforeChangingAnything(t *testing.T) {
 	w := newWorld(t)
 
@@ -431,9 +431,9 @@ func TestHidingRefusesAnUnknownPawnBeforeChangingAnything(t *testing.T) {
 	}
 }
 
-// THE PARTY ARRIVES ON THE TABLE RATHER THAN BEHIND THE SCREEN. Spawn pawns
-// carries no visibility off the wire, and a party that landed hidden would be
-// the players told nothing happened.
+
+
+
 func TestTheSpawnedPartyIsVisible(t *testing.T) {
 	w := newWorld(t)
 
@@ -456,8 +456,8 @@ func TestTheSpawnedPartyIsVisible(t *testing.T) {
 	}
 }
 
-// Deleting a pawn takes its line out of the tracker, and one tracker event
-// covers the whole command however many pawns went with it.
+
+
 func TestRemovingPawnsEmitsOneTrackerEvent(t *testing.T) {
 	w := newWorld(t)
 
@@ -485,9 +485,9 @@ func TestRemovingPawnsEmitsOneTrackerEvent(t *testing.T) {
 	}
 }
 
-// A pawn that is gone is not_found rather than forbidden, for both roles. Two
-// people deleting the same goblin is an ordinary race, and telling a player
-// their own pawn belongs to somebody else would be false.
+
+
+
 func TestAMissingPawnIsNotFound(t *testing.T) {
 	w := newWorld(t)
 
@@ -496,8 +496,8 @@ func TestAMissingPawnIsNotFound(t *testing.T) {
 	w.refuse(&PawnRemove{IDs: []ulid.ULID{testID(999)}}, w.gm, CodeNotFound)
 }
 
-// A pawn spawns on top of what is already there, so a GM dropping a monster
-// onto a crowded square gets the monster rather than a shuffle.
+
+
 func TestASpawnedPawnLandsOnTop(t *testing.T) {
 	w := newWorld(t)
 

@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// NOTE: a request without a session cookie short-circuits before the store's
-// queries are touched, so these cases need no database behind it.
+
+
 var auth = Auth{Sessions: session.NewStore(nil, false)}
 
 func TestRequireSessionRedirectsWithoutCookie(t *testing.T) {
@@ -80,8 +80,8 @@ func TestOptionalSessionContinuesWithoutCookie(t *testing.T) {
 	}
 }
 
-// signedInRequest is a GET carrying the cookie the stub in session_db_test.go
-// answers.
+
+
 func signedInRequest(path string) *http.Request {
 	r := httptest.NewRequest(http.MethodGet, path, nil)
 	r.Header.Set("Cookie", sessionCookie)
@@ -89,10 +89,10 @@ func signedInRequest(path string) *http.Request {
 	return r
 }
 
-// A page rendered for one signed-in reader must not be replayable out of a
-// cache after they log out, which on a shared machine is the whole of the
-// exposure. The fragments have carried this from the start; the pages they swap
-// into did not.
+
+
+
+
 func TestRequireSessionMarksThePageUncacheable(t *testing.T) {
 	called := false
 	h := signedIn.RequireSession(func(w http.ResponseWriter, r *http.Request) { called = true })
@@ -123,8 +123,8 @@ func TestOptionalSessionMarksASignedInPageUncacheable(t *testing.T) {
 	}
 }
 
-// The homepage logged out is the same document for everybody and is the one
-// page worth a cache having, so OptionalSession must not mark it.
+
+
 func TestOptionalSessionLeavesALoggedOutPageCacheable(t *testing.T) {
 	h := signedIn.OptionalSession(func(w http.ResponseWriter, r *http.Request) {})
 
@@ -136,9 +136,9 @@ func TestOptionalSessionLeavesALoggedOutPageCacheable(t *testing.T) {
 	}
 }
 
-// The asset routes set their own policy -- a tile is immutable, an avatar is
-// private, no-cache -- and a no-store written here would have been replaced by
-// each of them anyway. Leaving it out is deliberate; this is what says so.
+
+
+
 func TestRequireSessionOr404LeavesTheCachePolicyToTheHandler(t *testing.T) {
 	h := signedIn.RequireSessionOr404(func(w http.ResponseWriter, r *http.Request) {})
 

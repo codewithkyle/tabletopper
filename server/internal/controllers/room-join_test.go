@@ -16,25 +16,25 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// testJoinCharacterID is the character every join in these tests brings. A join
-// with no character is a refusal now, so the id is part of the fixture rather
-// than something individual tests opt into -- see joinForm below.
+
+
+
 var testJoinCharacterID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
 
-// joinForm is a complete submission: a code and the character to bring.
+
 func joinForm(code string) url.Values {
 	return url.Values{"code": {code}, "character": {testJoinCharacterID.String()}}
 }
 
-// characterAnswer is the result set GetCharacterName reads. It is the first
-// statement of every successful join, so it comes before the room's answer in
-// every list below.
+
+
+
 func characterAnswer(name string) roomAnswer {
 	return roomAnswer{columns: []string{"name"}, values: []driver.Value{name}}
 }
 
-// joinPost drives JoinRoomForm over a stub, with a session that carries the
-// hash the join writes against.
+
+
 func joinPost(t *testing.T, app *App, form url.Values) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -51,10 +51,10 @@ func joinPost(t *testing.T, app *App, form url.Values) *httptest.ResponseRecorde
 	return rec
 }
 
-// newJoinApp is an App whose one query answers with the room the code names.
-// locked and closed are the two states a lookup can come back in; a room that
-// is closed has no code and so cannot be found at all, which is why there is no
-// closed case here.
+
+
+
+
 func newJoinApp(db *roomDB) *App {
 	pool := db.db()
 	q := queries.New(pool)
@@ -67,7 +67,7 @@ func newJoinApp(db *roomDB) *App {
 	}
 }
 
-// openRoomAnswer is the result set GetOpenRoomByCode reads.
+
 func openRoomAnswer(id ulid.ULID, name string, locked bool) roomAnswer {
 	return roomAnswer{
 		columns: []string{"id", "name", "is_locked"},
@@ -75,9 +75,9 @@ func openRoomAnswer(id ulid.ULID, name string, locked bool) roomAnswer {
 	}
 }
 
-// A code that is not shaped like one cannot name a room, so it is refused
-// before anything is queried -- the same refusal share.ValidToken makes in
-// front of every share route.
+
+
+
 func TestAMalformedCodeIsRefusedWithoutAQuery(t *testing.T) {
 	for name, code := range map[string]string{
 		"three characters":                  "AB2",
@@ -108,8 +108,8 @@ func TestAMalformedCodeIsRefusedWithoutAQuery(t *testing.T) {
 	}
 }
 
-// The stored code is upper case, so a player typing what their keyboard was in
-// has to reach the statement in the shape the column holds.
+
+
 func TestATypedCodeIsNormalisedBeforeTheLookup(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		characterAnswer("Ilyana"),
@@ -130,11 +130,11 @@ func TestATypedCodeIsNormalisedBeforeTheLookup(t *testing.T) {
 	}
 }
 
-// THE COUNTER IS ASKED BEFORE ANYTHING IS QUERIED, which is what makes it a
-// bound on guessing rather than a bound on being told the answer. A refused try
-// still counts, so somebody hammering a locked window holds it locked -- and it
-// runs no statements at all, which is why it sits in front of the character
-// check as well as the room lookup.
+
+
+
+
+
 func TestTheEleventhJoinInAMinuteIsRefusedBeforeTheLookup(t *testing.T) {
 	db := &roomDB{rows: 1}
 	app := newJoinApp(db)
@@ -157,16 +157,16 @@ func TestTheEleventhJoinInAMinuteIsRefusedBeforeTheLookup(t *testing.T) {
 	if want := "Too many attempts. Wait a minute and try again."; !strings.Contains(rec.Body.String(), want) {
 		t.Errorf("body missing %q: %s", want, rec.Body.String())
 	}
-	// 429 rather than 422, and the form carries an hx-status route for it --
-	// without one the noSwap list would swallow the message.
+	
+	
 	if !strings.Contains(rec.Body.String(), `id="errors-join-room"`) {
 		t.Errorf("body is not the form's error block: %s", rec.Body.String())
 	}
 }
 
-// A LOCKED ROOM IS TOLD IT IS LOCKED, which is the one place this design leaks
-// that a code is in use. A room code is not a bearer credential and the friend
-// who typed the right code is who the message is for.
+
+
+
 func TestALockedRoomSaysSo(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		characterAnswer("Ilyana"),
@@ -182,16 +182,16 @@ func TestALockedRoomSaysSo(t *testing.T) {
 	if want := "That room is locked. Ask the GM to unlock it."; !strings.Contains(rec.Body.String(), want) {
 		t.Errorf("body missing %q: %s", want, rec.Body.String())
 	}
-	// The character and the lookup ran and nothing else did: a locked room is
-	// not joined.
+	
+	
 	if len(db.calls) != 2 {
 		t.Errorf("ran %d statements, want 2: %v", len(db.calls), db.queries())
 	}
 }
 
-// A code that names no open room says exactly that. It is a different sentence
-// from the locked one on purpose -- the alternative is a player who typed the
-// right code and cannot tell whether they typed it wrong.
+
+
+
 func TestACodeThatNamesNoOpenRoomSaysSo(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		characterAnswer("Ilyana"),
@@ -209,8 +209,8 @@ func TestACodeThatNamesNoOpenRoomSaysSo(t *testing.T) {
 	}
 }
 
-// The join writes the session row, keyed on the hash, and answers with a
-// redirect the toast rides along on.
+
+
 func TestJoiningSeatsTheSessionAndRedirects(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		characterAnswer("Ilyana"),
@@ -237,12 +237,12 @@ func TestJoiningSeatsTheSessionAndRedirects(t *testing.T) {
 	if id, ok := boundRoomID(seat.args[0]); !ok || id != testRoomID {
 		t.Errorf("the seat wrote room %v, want %v", seat.args[0], testRoomID)
 	}
-	// THE CHARACTER IS WRITTEN WITH THE ROOM. It is what the socket reads back
-	// to put a name in the player list, and what a pawn is spawned from later.
+	
+	
 	if id, ok := boundRoomID(seat.args[1]); !ok || id != testJoinCharacterID {
 		t.Errorf("the seat wrote character %v, want %v", seat.args[1], testJoinCharacterID)
 	}
-	// Keyed on the hash, like every other statement against this row.
+	
 	if hash, ok := seat.args[2].([]byte); !ok || string(hash) != "session-hash" {
 		t.Errorf("the seat is keyed on %v, want the session hash", seat.args[2])
 	}
@@ -255,18 +255,18 @@ func TestJoiningSeatsTheSessionAndRedirects(t *testing.T) {
 	}
 }
 
-// THE CHARACTER IS VERIFIED BEFORE THE ROOM IS LOOKED UP, so a caller cannot
-// use a bad character to probe codes without paying the rate limit -- and it is
-// checked against the roster rather than trusted, because it is the id a pawn
-// is spawned from later.
+
+
+
+
 func TestACharacterThatIsNotYoursIsRefusedBeforeTheLookup(t *testing.T) {
 	for name, character := range map[string]string{
 		"not a ULID":      "nonsense",
 		"somebody else's": ulid.Make().String(),
 	} {
 		t.Run(name, func(t *testing.T) {
-			// No answers at all, so the character lookup -- if it runs --
-			// finds nothing, which is what "not yours" means here.
+			
+			
 			db := &roomDB{rows: 1}
 			app := newJoinApp(db)
 
@@ -287,11 +287,11 @@ func TestACharacterThatIsNotYoursIsRefusedBeforeTheLookup(t *testing.T) {
 	}
 }
 
-// A JOIN WITH NO CHARACTER IS A REFUSAL AND NOT A SEAT. The picker is
-// `required` and its placeholder is `disabled`, so nothing that came off the
-// form arrives here -- and a form is markup, so this is what answers everything
-// else. The message names what to do rather than what went wrong, because there
-// is only one thing to do.
+
+
+
+
+
 func TestAJoinWithNoCharacterIsRefusedBeforeTheLookup(t *testing.T) {
 	for name, form := range map[string]url.Values{
 		"an empty value": {"code": {"AB2C"}, "character": {""}},

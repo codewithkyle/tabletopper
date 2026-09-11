@@ -12,18 +12,18 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE SHARE TESTS THAT CAN RUN HERE.
-//
-// recordingDB answers a :one by panicking, so the three handlers that open with
-// GetShareByToken or GetJournalShare -- the shared page, both image routes and
-// the dialog fragment -- cannot be driven from this harness at all. What is
-// covered below is everything that is not a read: the validation the create
-// runs before it touches the database, the revoke, and the two pure functions
-// that decide what a link says and which pictures a shared page will serve.
-//
-// The last of those is the one worth having. shareImageSource is the only thing
-// standing between a journal body and a reader's browser fetching whatever URL
-// somebody typed into it.
+
+
+
+
+
+
+
+
+
+
+
+
 
 func shareForm(values map[string]string) url.Values {
 	form := url.Values{}
@@ -34,9 +34,9 @@ func shareForm(values map[string]string) url.Values {
 	return form
 }
 
-// A rejected create must not have written anything. The password is hashed and
-// the token minted after this point, so a form that gets past validation is one
-// that is going to be inserted.
+
+
+
 func TestARejectedShareFormRunsNoStatements(t *testing.T) {
 	cases := map[string]url.Values{
 		"expiry with no days":  shareForm(map[string]string{"expiry": "on", "days": ""}),
@@ -62,9 +62,9 @@ func TestARejectedShareFormRunsNoStatements(t *testing.T) {
 	}
 }
 
-// A toggle that is off discards the field beside it. The days box always posts
-// a value -- it carries a default so flipping the toggle is a complete answer
-// -- so reading it regardless would give every link an expiry nobody asked for.
+
+
+
 func TestATogglesFieldIsIgnoredWhileItsToggleIsOff(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(
 		shareForm(map[string]string{"days": "30", "password": "the black spider"}).Encode()))
@@ -83,9 +83,9 @@ func TestATogglesFieldIsIgnoredWhileItsToggleIsOff(t *testing.T) {
 	}
 }
 
-// A password is a secret rather than a name, so a space at either end of it is
-// a character the person who chose it typed. Trimming would store something
-// they could not then type back in.
+
+
+
 func TestASharePasswordIsNotTrimmed(t *testing.T) {
 	password := "  a spider  "
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(
@@ -114,8 +114,8 @@ func TestTheExpiryBoundsAreInclusive(t *testing.T) {
 	}
 }
 
-// Revoking is one statement, and it is scoped by all three ids: an entry id
-// out of the URL means nothing on its own, and the owner comes from the session.
+
+
 func TestRevokingAShareDeletesOneRowScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -137,9 +137,9 @@ func TestRevokingAShareDeletesOneRowScopedToItsOwner(t *testing.T) {
 	}
 }
 
-// 200 and not 204, like every other delete in the app: base.templ's noSwap
-// config lists 204, and a status in that list would stop the swap that puts the
-// form back in the dialog.
+
+
+
 func TestRevokingAShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	app, _ := newPanelApp(1)
 
@@ -157,8 +157,8 @@ func TestRevokingAShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	}
 }
 
-// Zero matched rows is a link that was already gone -- revoked in another tab,
-// or an entry that is not this user's. Both are the same 404.
+
+
 func TestRevokingAShareThatIsNotThereIs404(t *testing.T) {
 	app, _ := newPanelApp(0)
 
@@ -174,11 +174,11 @@ func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 		forwarded string
 		want      string
 	}{
-		"plain http":     {"", "http://tabletopper.test/share/abc"},
-		"behind a proxy": {"https", "https://tabletopper.test/share/abc"},
-		// The header is client-supplied when nothing is in front, so only the
-		// two real schemes are taken from it.
-		"a nonsense scheme": {"gopher", "http://tabletopper.test/share/abc"},
+		"plain http":     {"", "http:
+		"behind a proxy": {"https", "https:
+		
+		
+		"a nonsense scheme": {"gopher", "http:
 	}
 
 	for name, tc := range cases {
@@ -196,8 +196,8 @@ func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 	}
 }
 
-// THE ONE THAT MATTERS. A body holds whatever was typed into it, and this is
-// what decides which of those URLs a stranger's browser is asked to fetch.
+
+
 func TestOnlyThisEntrysOwnImagesSurviveAShareRender(t *testing.T) {
 	otherEntry := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS2")
 	assetID := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS3")
@@ -212,8 +212,8 @@ func TestOnlyThisEntrysOwnImagesSurviveAShareRender(t *testing.T) {
 		"another entry's image": journalImagePath(testCharacterID, otherEntry, assetID),
 		"another character's":   journalImagePath(otherEntry, testEntryID, assetID),
 		"the owner's avatar":    "/assets/images/" + assetID.String(),
-		"somebody's tracker":    "https://tracker.example/pixel.gif",
-		"a protocol-relative":   "//tracker.example/pixel.gif",
+		"somebody's tracker":    "https:
+		"a protocol-relative":   "
 		"a data url":            "data:image/png;base64,AAAA",
 		"the prefix alone":      journalImagePrefix(testCharacterID, testEntryID),
 		"a traversal":           journalImagePrefix(testCharacterID, testEntryID) + "../../../etc",
@@ -226,7 +226,7 @@ func TestOnlyThisEntrysOwnImagesSurviveAShareRender(t *testing.T) {
 	}
 }
 
-// A token that is not shaped like one of ours is refused before a query runs.
+
 func TestOnlyAWellShapedTokenIsWorthAQuery(t *testing.T) {
 	token, err := share.NewToken()
 	if err != nil {

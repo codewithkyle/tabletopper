@@ -9,88 +9,88 @@ import (
 	"tabletopper/internal/room"
 )
 
-// THE ROOM IS ONE APPLICATION WINDOW, AND ITS CHROME IS A MENU BAR. The table
-// fills the viewport and everything the GM can do to it hangs off a thin bar
-// across the top, the way a desktop application's does -- because that is what
-// this page is. A VTT is not a document with controls beside it; it is a
-// workspace, and a workspace that spends a fifth of its width on panels is a
-// workspace with a fifth less table.
-//
-// SO THERE IS NO SIDE PANEL. The members list, the initiative tracker and the
-// chat placeholder that used to sit down the right are gone: the player list
-// becomes a window opened from the Room menu, initiative is not a list beside
-// the map, and there is no chat. Each of those is a menu item here and a
-// feature later, which is the whole point of writing the bar first -- the shape
-// of the application is settled before any of it is built.
-//
-// MOST ITEMS ARE DISABLED AND THAT IS THE HONEST STATE. There is no canvas yet,
-// so there is nothing to zoom, no fog to fill and no pawn to spawn. A disabled
-// item says "this belongs here and does not work yet"; an enabled one that does
-// nothing says "this is broken". A desktop menu greys items out constantly and
-// nobody reads that as a defect.
-//
-// ALL OF THE REASONING ABOUT THIS PAGE LIVES IN THIS FILE. room.templ cannot
-// carry a comment of any kind: Tailwind reads every .templ file as text and
-// takes a class-name candidate from every word in it, so an ordinary English
-// sentence about "the table" or "the player list" emits a DaisyUI component
-// family into the built stylesheet and nothing anywhere fails.
-//
-// THE TABLE REGION IS id="tabletop" AND NOT id="table", for exactly that
-// reason: `table` is a DaisyUI component and an attribute value is scanned like
-// anything else. The same goes for `list`, `status`, `tab`, `stack`, `swap`,
-// `menu` and `chat` as bare lower-case words.
-//
-// IT IS PAINTED WITH bg-table, WHICH IS A TOKEN AND NOT A BASE SHADE. It was
-// bg-base-300, which is right in the dark theme -- the darkest shade, so the
-// table is a void the chrome sits above -- and was the whole of what made the
-// light theme look inverted, because caramellatte's base-300 is a saturated
-// caramel that reads as a slab in front of near-white chrome. --table-bg picks
-// the shade per theme; see the note beside it in server/css/app.css.
-//
-// A utility class cannot make that choice, which is the general shape of every
-// token in that file: markup names a role and the theme answers with a colour.
-// bg-table is the table, bg-panel is the chrome, and nothing on this page names
-// a step of the base ramp directly any more.
 
-// tooltipBody is DaisyUI's rich tooltip: a child element instead of a data-tip
-// string, which is what lets a tooltip hold a <kbd> rather than only words.
-//
-// IT IS SPELLED IN GO ON PURPOSE, WHICH IS THE OPPOSITE OF THE USUAL RULE. A
-// class name written outside templ/**/*.templ is never emitted -- that is why
-// surfacePanel lives in a .templ file -- and here that is exactly what is
-// wanted: the rule this class needs, `.tooltip > .tooltip-content`, is already
-// in the build as part of .tooltip itself, and writing the word in markup
-// instead makes Tailwind treat it as a tooltip MODIFIER and emit the entire
-// family. Measured: 12.8KB and seventeen selectors -- tooltip-accent,
-// tooltip-bottom, tooltip-error and the rest -- for a page that renders none of
-// them. The utilities beside it stay in the markup, because those do have to be
-// emitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const tooltipBody = "tooltip-content"
 
-// roomLockID is the menu item the two lock routes swap. It is a constant
-// because the item carries it as an id and derives its own hx-target from it,
-// and a target that has drifted from its id fails silently: htmx finds nothing
-// to swap and the item stops changing.
+
+
+
+
 const roomLockID = "room-lock"
 
-// DefaultRoomTool is the pointer mode a room opens in, and RoomToolMove is the
-// one that hands the table to the camera.
-//
-// IT OPENS ON SELECT BECAUSE THAT IS WHAT A HAND DOES FIRST. Picking a goblin
-// out, dragging it a cell, drawing a box around four of them: those are the
-// gestures a table is made of, and a room that opened on a mode where none of
-// them worked would have to be switched out of before it could be played.
-//
-// AND MOVE IS STILL THERE BECAUSE PANNING CANNOT ONLY BE A HELD KEY. The space
-// bar borrows it for as long as it is down, which is the gesture every drawing
-// program has trained every hand to expect; a mode you can leave switched on is
-// what a trackpad, a tablet and a GM dragging halfway across a battlemap need.
-//
-// AND MEASURE IS THE THIRD REAL ONE. It puts a point down where it is clicked
-// and runs a ruler from there to the pointer, which is the question a table asks
-// between turns -- how far is the ogre, does the fireball reach both of them --
-// and it is asked without moving anything, which is why it is a mode of its own
-// rather than something a drag does.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const (
 	DefaultRoomTool = "select"
 	RoomToolMove    = "move"
@@ -100,125 +100,125 @@ const (
 	RoomToolPing    = "ping"
 )
 
-// RoomPageData is the whole page, with every conversion already done. The
-// controller turns a nullable code column, a nullable closed_at and an owner id
-// into a string, two bools and a role, so the markup asks nothing of the
-// database's types and the empty struct renders an empty page.
+
+
+
+
 type RoomPageData struct {
 	ID   string
 	Name string
 
-	// Code is empty for a closed room, and everybody at an open one is given
-	// it.
-	//
-	// IT USED TO BE THE GM'S ALONE, on the reasoning that it is the one thing
-	// on this page that admits somebody else. That reasoning was about a room
-	// nobody had joined yet. Once a player is in, the code is not a key they
-	// are being handed -- it is the address of the table they are already
-	// sitting at, and the questions they actually ask with it are "what do I
-	// type back in after my browser crashed" and "what do I send the person
-	// who is running late". Both of those went to the GM in a chat window
-	// before this, and neither is a decision the GM was making.
-	//
-	// WHO MAY GET IN IS STILL THE GM'S, and it is the lock rather than the
-	// secrecy of four characters that says so.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	Code string
 
 	Locked bool
 	Closed bool
 
-	// Role is what this viewer may do, derived from rooms.owner_id rather than
-	// stored anywhere. It is room.Role rather than a bool because the protocol
-	// phase authorises every command against the same type.
+	
+	
+	
 	Role room.Role
 
-	// UserID is who is looking, and the canvas needs it for one question: may I
-	// move this pawn. A player may move what they own, and ownership is a ULID
-	// on the pawn compared against this one.
-	//
-	// IT IS NOT A SECRET FROM THE TABLE. The player list already carries every
-	// member's id, because the GM's kick button posts to it; a person's own id
-	// at a table they are sitting at is not something the room is keeping from
-	// them. What it is NOT is authority: every command is authorised server-side
-	// against the session, and a browser that lied about this would build a
-	// selection whose every move came back forbidden.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	UserID string
 
-	// Socket is the path the client connects to, and it is empty for a closed
-	// room. That emptiness is the whole of "do not connect": the client reads
-	// the attribute and does nothing when it is not there, which is one
-	// condition in one place rather than a reconnect loop against a room the
-	// hub will refuse to load.
+	
+	
+	
+	
+	
 	Socket string
 
-	// Version is the server build. It goes on the bundle URL, so a deploy
-	// changes the URL and the one-hour cache on /static/ cannot answer the
-	// reload with the script that was there before it.
+	
+	
+	
 	Version string
 
-	// Debug renders the development panel: connection state, sequence number,
-	// the player list and the last twenty frames, with a box to send a raw
-	// command. It is the config's Development and nothing else, so it cannot
-	// be turned on from a query string.
+	
+	
+	
+	
 	Debug bool
 
-	// FollowTurn moves this viewer's camera onto whoever is acting when the
-	// turn moves. It is the account setting off the session and nothing about
-	// the room, so two people at one table can disagree about it.
-	//
-	// IT IS RENDERED AS A BARE ATTRIBUTE THAT IS EITHER THERE OR NOT, which is
-	// the same shape Socket uses for "do not connect". A value of "false" in an
-	// attribute would be a third thing to get wrong.
-	//
-	// IT IS THE PAGE'S OPENING ANSWER AND NOT THE LAST WORD. Settings in the
-	// Help menu opens the dialog this came from, and the save arrives back as
-	// an event the client applies to the table it is sitting on -- so the
-	// attribute says how the room STARTED rather than how it is now. See
-	// helpMenu below, and htmx.Settings.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	FollowTurn bool
 
-	// ShowBlood marks the floor where a creature is hit and pools it where one
-	// dies. Same session, same shape, same argument as FollowTurn: it is one
-	// viewer's answer about one viewer's canvas, and it can be changed from the
-	// Help menu in the middle of the fight that prompted it.
-	//
-	// TURNING IT OFF WITHHOLDS NOTHING FROM ANYBODY. Every mark is drawn by
-	// this browser out of hit points it watched change -- no event carries one
-	// and no row records one -- so this attribute reaches the renderer and
-	// stops there. See decals.ts.
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	ShowBlood bool
 
-	// PingVolume is how loud a ping is on this viewer's tabletop, as a
-	// percentage, and zero is silence. Same session, same shape, same argument
-	// again -- one viewer's answer about one viewer's canvas, changeable from the
-	// Help menu.
-	//
-	// IT IS A NUMBER AND SO IT IS A VALUE RATHER THAN A PRESENCE, which is the
-	// one way it differs from its two neighbours. They are rendered as bare
-	// attributes and read by whether they are there at all; this carries a
-	// reading, and an ABSENT attribute has to mean full volume rather than
-	// silence -- a page from a build that did not send it must not be a page
-	// where pings stopped working. See PingVolumeAttr and ping-sound.ts.
-	//
-	// SO ITS ZERO VALUE IS SILENCE, and that is the trap on this field. The two
-	// booleans above have the same shape of problem and prefs.New is what closes
-	// it for both: every Preferences the app holds comes out of that one
-	// function, which clamps and defaults, so a room built from a session always
-	// carries a real reading. A RoomPageData assembled field by field somewhere
-	// else does not, and it renders a table where pings are inaudible with
-	// nothing on screen to say so.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	PingVolume int
 }
 
-// PingVolumeAttr is the value the room page renders for the tabletop to read.
+
 func (d RoomPageData) PingVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampPingVolume(d.PingVolume))
 }
 
-// Bundle is the room module's URL with the build on it. It is a method rather
-// than a field because the two halves must not be able to drift: whatever
-// version the page reports in its snapshot comparison is the version whose
-// bundle it loaded.
+
+
+
+
 func (d RoomPageData) Bundle() string {
 	if d.Version == "" {
 		return "/static/room.js"
@@ -227,40 +227,40 @@ func (d RoomPageData) Bundle() string {
 	return "/static/room.js?v=" + d.Version
 }
 
-// MembersPath is the fragment the player window fetches itself from. The room
-// travels as a query parameter rather than in the path because this is a
-// representation of a room's membership and not a resource of its own -- the
-// same reason the two share dialogs read one.
+
+
+
+
 func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
 }
 
-// SpawnPath is the library dialog, which the GM's Tabletop menu opens in the
-// content modal. It starts on the monsters half, which is what a GM reaches for
-// nine times in ten.
+
+
+
 func (d RoomPageData) SpawnPath() string {
 	return "/fragment/room/spawn?room=" + d.ID + "&kind=" + RoomSpawnMonsters
 }
 
-// ClearPath is the Clear tabletop item. It is a mutation like PartyPath below
-// and carries nothing for the same reason: what is on the table is room state,
-// and this says "all of it".
+
+
+
 func (d RoomPageData) ClearPath() string {
 	return "/rooms/" + d.ID + "/tabletop/clear"
 }
 
-// PartyPath is the Spawn pawns item, which is a mutation and so keeps its
-// resource URL rather than living under /fragment/. It carries nothing: who is
-// at the table and which of them already have a pawn are both room state, read
-// by the hub when it resolves the command.
+
+
+
+
 func (d RoomPageData) PartyPath() string {
 	return "/rooms/" + d.ID + "/pawns/party"
 }
 
-// LayersPath, GridPath and LayerNamePath are the three table fragments this
-// page reaches for. They are query parameters rather than path segments for the
-// reason MembersPath is: each is a representation of a room's configuration and
-// not a resource of its own.
+
+
+
+
 func (d RoomPageData) LayersPath() string {
 	return "/fragment/room/layers?room=" + d.ID
 }
@@ -269,9 +269,9 @@ func (d RoomPageData) GridPath() string {
 	return "/fragment/room/grid?room=" + d.ID
 }
 
-// The Fog menu's two paths. Neither names a layer: the floor they act on is the
-// one this GM is looking at, which exists only in the browser, and it travels as
-// a form value the room bundle fills in. See RoomMenuItem.Layered.
+
+
+
 func (d RoomPageData) FogFillPath() string {
 	return "/rooms/" + d.ID + "/fog/fill"
 }
@@ -288,24 +288,24 @@ func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
 
-// InitiativePath is the strip over the table, which EVERYBODY in the room
-// fetches. It is the one live surface on this page that is not the canvas and
-// not a window, for the reason written out in room-initiative.go: a turn order
-// is read by the whole table every few seconds for the minutes a fight lasts,
-// and a window would have to be opened by each person from a menu the players
-// do not have.
+
+
+
+
+
+
 func (d RoomPageData) InitiativePath() string {
 	return "/fragment/room/initiative?room=" + d.ID
 }
 
-// InitiativeEntryPath is the Add entry dialog, which is the GM's.
+
 func (d RoomPageData) InitiativeEntryPath() string {
 	return "/fragment/room/initiative/entry?room=" + d.ID
 }
 
-// The three tracker verbs that live in the menu rather than on a line of the
-// strip. Sync builds the order and grows it; Next advances the turn for a GM
-// who would rather press a menu than the button; Clear is the end of the fight.
+
+
+
 func (d RoomPageData) InitiativeSyncPath() string {
 	return "/rooms/" + d.ID + "/initiative/sync"
 }
@@ -318,42 +318,42 @@ func (d RoomPageData) InitiativeClearPath() string {
 	return "/rooms/" + d.ID + "/initiative/clear"
 }
 
-// IsGM is the one question the markup asks of the role, written here so that
-// the comparison lives beside the type rather than in a template.
+
+
 func (d RoomPageData) IsGM() bool {
 	return d.Role == room.RoleGM
 }
 
-// RoleName is the role as the client reads it off the mount element. It is a
-// conversion and not a cast in the markup, because room.Role is a string type
-// and templ takes a string -- and because the two values it can hold are the
-// same two the protocol validates, which is the point of it not being a bool.
+
+
+
+
 func (d RoomPageData) RoleName() string {
 	return string(d.Role)
 }
 
-// RoomMenu is one heading in the bar and what drops out of it.
+
 type RoomMenu struct {
 	Label string
 	Items []RoomMenuItem
 }
 
-// RoomMenuItem is one line in a menu. It is a struct of alternatives rather
-// than an interface because there are only five ways an item can behave and the
-// markup has to switch on them anyway:
-//
-//   - Disabled: a feature that does not exist yet. Nothing else is read.
-//   - Href: ordinary navigation. NewTab sends it to a second tab.
-//   - Post: a mutation, over htmx, with the confirm modal in front of the
-//     destructive ones.
-//   - Window: opens a floating panel over the table on a fragment URL.
-//   - Modal: opens the content modal on a fragment URL. A task with an end.
-//   - Action: a behaviour that is entirely client-side, named for room.js.
-//
-// ID IS BOTH AN ANCHOR AND A CONTRACT. An item that carries one also carries an
-// hx-target pointing at itself, so a mutation answers with the item it just
-// changed -- which is how Lock becomes Unlock without redrawing the page. Only
-// the lock item uses it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type RoomMenuItem struct {
 	Label string
 	ID    string
@@ -369,69 +369,69 @@ type RoomMenuItem struct {
 	Action string
 	Value  string
 
-	// Key is the keyboard shortcut this item names, drawn as a kbd at the far
-	// end of the row. It is a LABEL and not a binding: the key itself is bound
-	// where the gesture lives -- N is initiative.ts, which presses the button
-	// the strip already renders -- and this only tells somebody reading the
-	// menu that the shortcut exists.
-	//
-	// IT IS PRINTED AS WRITTEN, so it is written the way a keyboard is read:
-	// one capital letter for a letter key, a word for a named one.
+	
+	
+	
+	
+	
+	
+	
+	
 	Key string
 
-	// Window is the floating panel this item opens, and an item that carries
-	// one carries nothing else. See RoomWindow.
+	
+	
 	Window RoomWindow
 
-	// Modal is the content modal this item opens, and like Window an item that
-	// carries one carries nothing else. It is a separate alternative rather
-	// than a flag on Window because the two are different surfaces answering
-	// different questions -- see the Windows section of CLAUDE.md.
+	
+	
+	
+	
 	Modal RoomModal
 
-	// Danger marks the one destructive item in a menu, which is drawn in the
-	// error colour and sits last.
+	
+	
 	Danger bool
 
-	// Layered marks an item that acts on the floor the GM is LOOKING AT rather
-	// than on a fixed resource. It renders data-room-layered and an empty
-	// hx-vals, and the room bundle writes the viewed floor's id into that
-	// attribute every time the floor settles.
-	//
-	// THE FLOOR CANNOT BE IN THE PATH, which is the whole reason this field
-	// exists. htmx captures a path when it processes an element, so an
-	// attribute rewritten afterwards is ignored -- the wall the layer bar hit
-	// and answered with htmx.ajax. hx-vals is read when the request is built
-	// rather than when the element is processed, so it is the one place a
-	// changing value can live on a button that still carries hx-confirm.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	Layered bool
 
 	Disabled bool
 }
 
-// Menus is the whole bar, in order.
-//
-// THE TWO ROLES GET TWO BARS, AND THAT IS A REVERSAL. Every heading used to be
-// on every bar, with the difference expressed as greyed items inside them, on
-// the reasoning that a menu appearing later moves everything under it and a GM
-// learns where things are by muscle memory. That reasoning holds for the GM and
-// held for the player only as long as the player's bar was a sketch of a
-// feature nobody had built. It is built now, and what it produced for a player
-// was four headings of nothing: Tabletop, five dead lines; Fog, two; Initiative,
-// two. A menu that has never once had a live item in it is not teaching anybody
-// where anything is -- it is a filing cabinet of empty drawers between them and
-// the two menus that work.
-//
-// SO A HEADING IS ON THE BAR OF WHOEVER CAN ACT ON IT. Fog and Initiative are
-// the GM's table to run, so they are on the GM's bar. Character is the player's
-// own sheet and their own journal, so it is on theirs, in the slot those two
-// vacated. Room, Tools, View and Help are everybody's and do not move -- though
-// what is INSIDE Tools depends on the role too; see toolsMenu.
-//
-// WHAT IS STILL DISABLED IS STILL HERE, which is the part of the old reasoning
-// that survives: an unbuilt item under a heading whose owner will use it says
-// "this belongs here and is coming". An unbuilt heading in front of somebody who
-// will never own it says nothing at all.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) Menus() []RoomMenu {
 	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
 
@@ -448,25 +448,25 @@ func (d RoomPageData) Menus() []RoomMenu {
 	)
 }
 
-// toolsMenu is the reference material a table reaches for mid-session: things
-// you look something up in or roll something with, rather than things you do to
-// the room. Neither is built.
-//
-// IT WAS CALLED "WINDOW" AND THAT WAS A NAME FOR THE MECHANISM RATHER THAN THE
-// CONTENTS. Both of these open as floating windows, but so does the player list
-// under Room and so do Layers and Grid & settings under Tabletop -- so "Window"
-// grouped nothing, and a heading that describes how its items are drawn is a
-// heading nobody reads twice. Tools says what a person would go looking for.
-//
-// THE MONSTER MANUAL IS THE GM'S. It is the stat blocks of what the party is
-// fighting, which is the one document at a table that only works while one side
-// of it cannot read it -- and unlike the room code, that is not a secret the app
-// is trying to keep from a determined player. It is simply not a thing a player
-// has any use for, and putting it on their bar would be offering them the
-// answers to the encounter they are in.
-//
-// THE DICE TRAY IS EVERYBODY'S, which is what keeps this a heading on both bars
-// rather than another GM-only one.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) toolsMenu() RoomMenu {
 	if !d.IsGM() {
 		return RoomMenu{Label: "Tools", Items: comingSoon("Dice tray")}
@@ -475,36 +475,36 @@ func (d RoomPageData) toolsMenu() RoomMenu {
 	return RoomMenu{Label: "Tools", Items: comingSoon("Monster Manual", "Dice tray")}
 }
 
-// characterMenu is the player's own two documents, and neither is built.
-//
-// IT IS THE PLAYER'S AND NOT THE GM'S, which is why it is not simply a heading
-// added to the shared bar. A GM at a table they are running has no sheet on the
-// screen and no journal in the game; what they have is a monster manual, which
-// is already a window under Window. These two are the things a player reaches
-// for over and over during a session and currently has to leave the room to
-// read -- which is the whole reason they get a heading rather than a line under
-// somebody else's.
+
+
+
+
+
+
+
+
+
 func characterMenu() RoomMenu {
 	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
 }
 
-// roomMenu is the room itself, and it is three different menus.
-//
-// THE GM OWNS THE ROOM AND A PLAYER IS ONLY IN IT. So the GM gets the lock and
-// the close, and a player gets a way out -- there is nothing else a player may
-// do to a room they do not own. A closed room is a fourth case inside the
-// first: its code is gone, so there is nothing to copy, nothing to lock and
-// nothing left to close.
-//
-// THE CODE IS THE EXCEPTION AND IS EVERYBODY'S. It is not an act on the room,
-// which is what the split above is about; it is the room's name, and the person
-// who most often needs to read it out is the player whose browser just fell
-// over. See Code above for why it stopped being the GM's.
-//
-// BACK TO ROOMS IS HERE RATHER THAN AS AN ARROW IN THE CORNER, which is the one
-// place this page departs from every other page in the app. A menu bar owns the
-// top-left, and a GM stepping away from a table is not the same act as closing
-// it -- so the two sit next to each other and only one of them is destructive.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) roomMenu() RoomMenu {
 	items := []RoomMenuItem{}
 
@@ -550,10 +550,10 @@ func (d RoomPageData) roomMenu() RoomMenu {
 	})}
 }
 
-// roomLockItem is the one item that answers a mutation with itself. Locking a
-// room and unlocking it are two routes and one line in the menu, so the reply
-// swaps the line rather than the page -- and because it is built here, the
-// route's reply and the page's first render are the same markup.
+
+
+
+
 func roomLockItem(d RoomPageData) RoomMenuItem {
 	if d.Locked {
 		return RoomMenuItem{ID: roomLockID, Label: "Unlock room", Post: "/rooms/" + d.ID + "/unlock"}
@@ -562,46 +562,46 @@ func roomLockItem(d RoomPageData) RoomMenuItem {
 	return RoomMenuItem{ID: roomLockID, Label: "Lock room", Post: "/rooms/" + d.ID + "/lock"}
 }
 
-// tabletopMenu is what is under the pawns: the floors, the grid and what
-// stands on them.
-//
-// LAYERS AND GRID ARE WINDOWS AND NOT MODALS, which was decided after the first
-// two were built as modals and rejected. The work is not one act: somebody
-// preparing a tower adds three floors and checks each map against the table
-// behind it, and somebody matching a cell size to a map is looking at the map
-// while they do it. A dialog that covered the table between every step would be
-// shut and reopened six times. The map picker one of them opens IS a modal,
-// because choosing one map is a single act with an end.
-//
-// SPAWN PAWNS IS THE PARTY AND IT OPENS NOTHING. Pressing it puts a pawn at the
-// centre of the map for everybody connected who joined with a character and has
-// none yet. There is no dialog because there is nothing to ask: the roster is
-// room state, the position is the middle of the map, and a GM who wants them
-// somewhere else drags them -- one gesture against the four a dialog costs.
-//
-// CLEAR TABLETOP IS THE END OF THE EVENING AND NOT A TOOL. It empties every
-// layer's map, every pawn, the fog, the drawing and the tracker in one command
-// -- which is why it sits last, is drawn in the error colour, and is the only
-// item in this menu with a confirmation in front of it. Clearing the fog or the
-// tracker DURING a session is what the Fog and Initiative menus are for; those
-// items stay exactly as they are.
-//
-// CLEAR BLOOD IS THE ONE LINE IN HERE A PLAYER GETS, AND IT IS THEIRS ALONE.
-// Every other item is a command to the room; this one changes nothing that is
-// sent, stored or shared. The floor decals are drawn from what each browser
-// watched happen, so wiping them is a viewer saying "I have looked at that long
-// enough" -- and a table where one person clears the blood and everybody else's
-// map goes clean would be a table where a preference had become a mutation.
-// It is in the Tabletop menu rather than View because what it removes is on the
-// table, not in the camera.
-//
-// A PLAYER USED TO SEE EVERY LINE DISABLED, on the reasoning that a greyed item
-// tells them the feature exists and is not theirs. Five of them said that at
-// once, which is not information, it is a wall -- and a player has no use for
-// knowing that Grid & settings exists, because there is no version of this app
-// in which they open it. So their menu is now the one thing in here they can
-// actually do. Putting something ON the table is still the GM's and is still
-// refused in PawnSpawn.Authorize rather than by the absence of a button.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) tabletopMenu() RoomMenu {
 	blood := RoomMenuItem{Label: "Clear blood", Action: roomBloodAction}
 
@@ -646,24 +646,24 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 	}}
 }
 
-// fogMenu is the two verbs that are not a gesture on the canvas. Everything else
-// about fog is drawn with the Fog tool and travels over the socket; these two
-// are the whole floor at once, which is not a thing a hand draws.
-//
-// BOTH ACT ON THE FLOOR THIS GM IS LOOKING AT, not on the one the players are
-// standing on. Covering the first floor while the party is still in the cellar
-// is what a GM does between scenes, and a menu that quietly did it to the cellar
-// instead would be worse than no menu. That is what Layered means; see
-// RoomMenuItem.
-//
-// BOTH ARE BEHIND THE CONFIRM MODAL because both throw away every shape on the
-// floor and neither can be undone. Fill is not the gentler of the two: a GM who
-// presses it an hour into a dungeon has covered the dungeon AND forgotten every
-// room they uncovered, and the wording says exactly that rather than "are you
-// sure".
-//
-// THE PREFILL SWITCH IS NOT HERE. It is a default for the next floor rather than
-// a verb on this one, so it lives in Grid & settings with the other settings.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) fogMenu() RoomMenu {
 	return RoomMenu{Label: "Fog", Items: []RoomMenuItem{
 		{
@@ -686,33 +686,33 @@ func (d RoomPageData) fogMenu() RoomMenu {
 	}}
 }
 
-// initiativeMenu is the four verbs that are not a gesture on a line of the
-// strip. Everything else about the turn order is done to the strip itself:
-// dragged into order, clicked to give somebody the turn, right-clicked to take
-// a line out. Nothing on the strip is a labelled control any more except the one
-// button a player gets to end their own turn.
-//
-// SYNC TRACKER IS THE MAIN ROAD AND IS FIRST. It builds the order from every
-// creature a player can see on a floor a player is standing on, and pressing it
-// again mid-fight brings in the reinforcements and takes out the corpses --
-// which is why there is no "add these creatures" checklist anywhere. What Sync
-// cannot reach is a line with no creature behind it, and that is Add entry.
-//
-// NEXT TURN IS HERE BECAUSE IT IS NOWHERE ELSE. The strip used to carry a Next
-// button at the far end of the row and it has been taken off: it was a control
-// sitting inside a display, it moved every time the order changed, and it was
-// the only thing on that surface a GM pressed rather than read. What advances
-// the turn now is the N key, which is the gesture a GM running a fight actually
-// uses, and this item -- which is where somebody who has not learned the key
-// yet will look for the verb. The kbd beside the label is how they learn it.
-//
-// THE KEY IS NOT BOUND TO THIS ITEM. N presses the hidden button the strip
-// renders, which exists on exactly the screens where the key should work; see
-// initiative.ts. This item is a second door to the same route.
-//
-// CLEAR TRACKER KEEPS ITS CONFIRMATION, where taking one line out does not. A
-// line is undone by pressing Sync, which is three items above it; the whole
-// fight is not.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) initiativeMenu() RoomMenu {
 	return RoomMenu{Label: "Initiative", Items: []RoomMenuItem{
 		{Label: "Sync tracker", Post: d.InitiativeSyncPath()},
@@ -729,18 +729,18 @@ func (d RoomPageData) initiativeMenu() RoomMenu {
 	}}
 }
 
-// viewMenu is the camera, plus the one item in it that needs no camera.
-//
-// EVERY CAMERA ITEM IS ONE ACTION WITH A VALUE rather than five actions,
-// because they are one feature: the bar and the renderer are in different
-// bundles and cannot import each other, so what crosses between them is a
-// window event, and five names to keep in step across that gap instead of one
-// is five chances to misspell it. public/js/room.js turns "view" into a
-// `room:view` event carrying the value, and render/renderer.ts listens.
-//
-// FIT MAP REPLACED "CENTER TABLETOP", which said what it did to a viewport and
-// not what it does for the reader. Fitting is centring plus the zoom that shows
-// the whole map, which is what somebody reaching for it wants both halves of.
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomPageData) viewMenu() RoomMenu {
 	return RoomMenu{Label: "View", Items: []RoomMenuItem{
 		{Label: "Zoom in", Action: roomViewAction, Value: "zoom-in"},
@@ -752,43 +752,43 @@ func (d RoomPageData) viewMenu() RoomMenu {
 	}}
 }
 
-// roomViewAction is the data-room-action every camera item carries, and
-// roomBloodAction is Clear blood's. Both are constants so the template test and
-// the menu cannot disagree about them.
-//
-// EACH ONE IS A WINDOW EVENT ACROSS A BUNDLE BOUNDARY. The bar is served as
-// written from public/js and the renderer is bundled from js/room; neither can
-// import the other, so the name is the contract and it is spelled out at both
-// ends. public/js/room.js turns these into events.View and events.Blood;
-// render/renderer.ts listens for both.
+
+
+
+
+
+
+
+
+
 const (
 	roomViewAction  = "view"
 	roomBloodAction = "clear-blood"
 )
 
-// helpMenu is the account's own settings, the two documents every page in the
-// app already links to, and the issue report that does not exist yet.
-//
-// SETTINGS IS IN HERE BECAUSE THE ALTERNATIVE WAS THE HOMEPAGE. It is the same
-// dialog the gear at the bottom of the homepage opens -- the same fragment, the
-// same form, the same save -- and until it was on this bar the only way to reach
-// it from a table was to leave the table. Two of the settings on it govern the
-// tabletop that is running: whether the camera follows the turn, and whether the
-// floor takes blood. Somebody who wants the blood turned off wants it turned off
-// during the fight that made them want it.
-//
-// AND IT IS UNDER HELP RATHER THAN UNDER ROOM, which is the distinction the
-// whole bar is arranged on. Room, Tabletop, Fog, Initiative, Tools and View act
-// on THIS TABLE and everybody at it sees what they did. This acts on the person
-// sitting in front of the screen and nobody else can tell -- which is the same
-// thing Privacy policy and Terms of service have in common with it, and the
-// reason they are the menu it already sits in.
-//
-// THE TWO DOCUMENTS OPEN IN A SECOND TAB, which is the one place in this app
-// that is true. Everywhere else these are ordinary links; here, following one
-// would take somebody out of a game that is in progress, and coming back is a
-// navigation rather than a close. Settings does not, because it is a dialog over
-// the table and closing it puts the reader back where they were.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func helpMenu() RoomMenu {
 	return RoomMenu{Label: "Help", Items: []RoomMenuItem{
 		{Label: "Settings", Modal: RoomModal{URL: AccountSettingsPath}},
@@ -798,11 +798,11 @@ func helpMenu() RoomMenu {
 	}}
 }
 
-// comingSoon is every item whose feature is not built. They are written as a
-// list of labels because that is all there is to them, and they are in the bar
-// at all because the shape of the application is a decision worth making before
-// the features are -- a menu that grows an item later moves everything under
-// it, and a GM learns where things are by muscle memory.
+
+
+
+
+
 func comingSoon(labels ...string) []RoomMenuItem {
 	items := make([]RoomMenuItem, 0, len(labels))
 	for _, label := range labels {
@@ -812,116 +812,116 @@ func comingSoon(labels ...string) []RoomMenuItem {
 	return items
 }
 
-// RoomTool is one pointer mode in the floating toolbar: what a click and a drag
-// on the table do.
-//
-// IT IS A TOOLBAR AND NOT A MENU because a pointer mode is switched constantly
-// while both hands are busy, and a mode you change twenty times a minute cannot
-// live two clicks deep. It floats over the table rather than sitting in the bar
-// for the same reason: it belongs to the surface it acts on.
-//
-// THE CANVAS ASKS ABOUT THESE ONE AT A TIME. Select is everything the table has
-// always done -- a press on a pawn drags it, a press on empty floor draws a
-// marquee, a click picks one out. Move is that table with the pointer taken away
-// from it: every gesture is the camera's, and the selection somebody built is
-// still there when they come back. Measure takes the primary button too, and
-// spends it on a ruler instead. Fog takes it and cuts the cover with it, Draw
-// takes it and lays down ink, and Ping takes it and points at a square.
-//
-// WHAT A TOOL DOES IS RENDERED INTO THE MARKUP RATHER THAN SPELLED AGAIN IN
-// TYPESCRIPT. server/js/room/tools.ts has to know which of these buttons is the
-// camera's, because that is the one the space bar borrows, and the table has to
-// know which one is the ruler -- and a name written out in both languages is a
-// gesture that quietly stops working the day this list is reordered or renamed.
-// The attributes are the contract; see roomToolbar.
-//
-// A BEHAVIOUR PER FLAG AND NOT A NAME PER READER, which is the part worth
-// keeping as Fog and Draw arrive. Each of these says what the mode DOES, so the
-// client asks a question it can answer from the markup alone, and a tool whose
-// flag nobody reads yet is a button that behaves as Select -- which is what the
-// two unbuilt ones already are.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type RoomTool struct {
 	Name  string
 	Label string
 
-	// Pans is the mode that gives every gesture to the camera. Exactly one
-	// tool has it, and the space bar is a temporary switch to that one.
+	
+	
 	Pans bool
 
-	// Measures is the mode whose primary button lays down a ruler rather than
-	// touching the table's contents. Exactly one tool has it, and unlike Pans
-	// the space bar does not borrow it -- see tools.ts.
+	
+	
+	
 	Measures bool
 
-	// Fogs is the mode whose primary button cuts fog rather than touching the
-	// table's contents. Exactly one tool has it, and like Measures the space
-	// bar does not borrow it: a half-drawn polygon survives a shove of the map.
+	
+	
+	
 	Fogs bool
 
-	// Draws is the mode whose primary button lays down ink. Exactly one tool
-	// has it, and the space bar does not borrow it for the reason it does not
-	// borrow the other two: shoving the map along a corridor mid-stroke must
-	// not cut the line in half.
-	//
-	// IT IS NOT A GM TOOL. Whether a player may draw is Table.PlayersCanDraw,
-	// which the core reads and refuses against with an alert -- so a player at
-	// a table where drawing is off finds the button and is told why, rather
-	// than finding a button that appears and disappears as the GM changes
-	// their mind about it.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	Draws bool
 
-	// Pings is the mode whose primary button points at a square for everybody
-	// looking at that floor. Exactly one tool has it, and the space bar does
-	// not borrow it -- though unlike the other three there is nothing in hand
-	// for a borrow to cut in half, and this is here for the symmetry rather
-	// than for a gesture it protects.
-	//
-	// IT IS EVERYBODY'S, like Draws and unlike Fogs, and the core agrees:
-	// Ping.Authorize is requirePlayerLayer alone, so anybody may point at a
-	// floor they are looking at. Pointing is how a player says "that door"
-	// without being able to move anything.
-	//
-	// AND IT IS A MODE RATHER THAN A HELD CHORD BECAUSE EVERY CHORD IS TAKEN.
-	// Shift is the marquee and the rotation step, Alt is a drag without its
-	// riders and the fog's corner snap, Ctrl is undo, and the space bar is the
-	// pan. A chord that meant "ping" in Select and "leave the riders behind"
-	// in a drag would be a gesture whose meaning depends on what the hand is
-	// over. The cost of a mode is that it can be left switched on, and this is
-	// the one mode where that costs nothing: a stray press puts a ring on the
-	// table for a second and changes not one thing about it.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	Pings bool
 
-	// GM is a mode nobody else is offered. The template drops these from a
-	// player's pill entirely rather than disabling them, because a disabled
-	// button in a five-button pill is a permanent question with no answer --
-	// and unlike a menu heading, a pill has no room to explain itself.
+	
+	
+	
+	
 	GM bool
 
-	// Key is the letter that switches to this mode, lower case, or empty for a
-	// mode not worth reaching for yet.
-	//
-	// IT IS THE LETTER ON THE KEY AND NOT THE POSITION OF IT, which is the
-	// opposite of the space bar and is the right way round for both. A mnemonic
-	// is the letter somebody read in the tooltip -- V for select, H for the
-	// hand, M for measure, which is what every drawing program has trained
-	// every hand on -- so the client matches KeyboardEvent.key and an AZERTY
-	// keyboard's V works where its V is printed. The space bar is held rather
-	// than read, so it matches KeyboardEvent.code and lands in the same place
-	// on every layout.
-	//
-	// V, H AND M ARE BORROWED AND NOT INVENTED. They are Photoshop's,
-	// Illustrator's and Figma's select, hand and measure, and a GM who has ever
-	// opened one of those already knows two of the three.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	Key string
 }
 
-// RoomTools is the six modes, in the order a hand reaches for them.
-//
-// F FOR FOG IS NOT BORROWED FROM ANYWHERE, unlike V, H and M. No drawing
-// program has a fog tool to have taught anybody a letter for one, so it is the
-// first letter of the word, which is what is left when there is no convention
-// to follow. D and P are the same: the first letter of the word, chosen once
-// nothing better was available to borrow.
+
+
+
+
+
+
+
 func RoomTools() []RoomTool {
 	return []RoomTool{
 		{Name: DefaultRoomTool, Label: "Select", Key: "v"},
@@ -933,8 +933,8 @@ func RoomTools() []RoomTool {
 	}
 }
 
-// Tools is the pill this viewer gets: every mode for the GM, and the ones that
-// are not theirs alone for a player.
+
+
 func (d RoomPageData) Tools() []RoomTool {
 	all := RoomTools()
 	if d.IsGM() {
@@ -951,82 +951,82 @@ func (d RoomPageData) Tools() []RoomTool {
 	return mine
 }
 
-// The two folded controls on the drawing pill, and the numbers the width one
-// runs between.
-//
-// THEY ARE FOLDED BECAUSE THE PILL IS ON SCREEN THE WHOLE TIME SOMEBODY IS
-// DRAWING. A picker is a hundred and seventy-six pixels square and a slider
-// wide enough to aim at is two hundred; either one left open would be a panel
-// covering the corner of the map for the sake of a setting changed once every
-// few minutes. So each is a round button that opens a panel BESIDE the pill --
-// to the left, where the main pill's tooltips already open, anchored to the row
-// of the button that opened it, and only one at a time.
-//
-// THE IDS EXIST FOR aria-controls AND FOR NOTHING ELSE. The room bundle finds
-// both panels by their data attribute, the way it finds everything else on this
-// page; what an id buys is a button that says out loud which panel it opens.
-//
-// NEITHER PICKER MAY BE GIVEN A display UTILITY, and that is the one thing
-// about this markup that fails silently. vanilla-colorful lays itself out with
-// `:host{display:flex;flex-direction:column}` inside its shadow root, and a
-// class on the host from OUTSIDE that root wins over a :host rule whatever the
-// specificity -- so `block` turns the column off, `flex-grow` on the saturation
-// square stops meaning anything, and the picker renders as a thin hue strip
-// with its two pointers floating on it. Size it and position it; do not tell it
-// how to lay itself out. There is a test.
-//
-// THE MAXIMUM IS room.StrokeWidthMax, READ RATHER THAN REPEATED. It is the
-// server's number -- a stroke wider than it is refused -- and a slider that
-// went past it would be a control whose top end raises an alert modal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const (
 	DrawColorPanelID = "draw-color-panel"
 	DrawWidthPanelID = "draw-width-panel"
 
-	// DrawWidthDefault is four map pixels, which is a pen line on a
-	// seventy-pixel cell. server/js/room/draw.ts opens on the same number and
-	// says so.
+	
+	
+	
 	DrawWidthDefault = "4"
 )
 
-// DrawWidthMax is the slider's top end, as the markup wants it.
+
 var DrawWidthMax = strconv.Itoa(room.StrokeWidthMax)
 
-// DrawModeChoices is the drawing tool's own second pill: what a gesture on the
-// table does.
-//
-// IT IS THE TOOL'S STATE AND NOT THE ROOM'S, which is FogShapeChoices' reason
-// exactly: nothing here is sent anywhere or stored anywhere, the client keeps
-// the choice and writes it into what it sends, and a GM who reloads gets the
-// default back.
-//
-// THE ERASER IS A MODE AND NOT A SIXTH TOOL IN THE PILL ABOVE. Drawing and
-// rubbing out are one job done with two hands, switched between constantly --
-// and the main pill is five buttons of pointer MODES, each of which changes
-// what the whole table does. Draw is one of those; what the pen is doing is a
-// question inside it.
-//
-// THE ERASER'S HINT IS WHERE THE RULE IS SAID, because it is the one thing
-// about this tool a person cannot work out by using it: a line that will not
-// rub out is not broken, it is somebody else's. See room.StrokeErase.
-//
-// A SHAPE'S HINT SAYS WHERE THE DRAG STARTS AND WHAT THE NUMBER MEANS, because
-// those are the two things about these tools nobody can work out by using them:
-// a circle grows from the press rather than from a corner, and the figure under
-// it is a radius rather than a width. Both are how a spell is written.
-//
-// "AS YOU GO" IS DOING WORK IN TWO OF THEM. The number is on the table for
-// exactly as long as the button is down and goes when the shape lands, so a
-// hint that said "it says its radius" would be promising something the shape
-// does not keep.
-//
-// THE CONE'S HINT IS THE ONE THAT MATTERS MOST, because it is the rule that
-// makes the number worth reading: the base is as wide as the shape is long,
-// which is the cone every spell in the book is written as. Somebody who did not
-// know that would drag it into a triangle and wonder what the figure meant.
-//
-// IT SAYS Cone AND NOT Triangle for the same reason. The word names what the
-// tool is for; Rectangle and Circle say what they draw because there is nothing
-// else they are for.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func DrawModeChoices() []Choice {
 	return []Choice{
 		{Value: "pen", Label: "Pen", Hint: "Drag to draw."},
@@ -1037,18 +1037,18 @@ func DrawModeChoices() []Choice {
 	}
 }
 
-// FogShapeChoices and FogModeChoices are the second pill: what a fog gesture
-// draws, and which way round it works.
-//
-// THEY ARE THE TOOL'S STATE AND NOT THE ROOM'S. Nothing here is sent anywhere
-// or stored anywhere -- the client keeps both and writes them into fog.add when
-// a shape is finished -- which is why they are two little lists here rather than
-// fields on the table.
-//
-// THE POLYGON'S HINT IS WHERE THE GESTURE IS EXPLAINED, because it is the one
-// gesture in this app that nothing else teaches: click a corner at a time, and
-// the right button closes the ring. Enter does the same and is not mentioned;
-// a tooltip that lists two ways to do one thing is a tooltip nobody finishes.
+
+
+
+
+
+
+
+
+
+
+
+
 func FogShapeChoices() []Choice {
 	return []Choice{
 		{Value: "rect", Label: "Rectangle", Hint: "Drag a box."},
@@ -1063,86 +1063,86 @@ func FogModeChoices() []Choice {
 	}
 }
 
-// Pressed reports whether this tool is the one a freshly loaded room starts on.
-// It is a method rather than an index comparison in the markup so that the
-// default is named in one place.
+
+
+
 func (t RoomTool) Pressed() string {
 	return strconv.FormatBool(t.Name == DefaultRoomTool)
 }
 
-// KeyLabel is the shortcut as it is printed on the key cap, which is the case
-// the tooltip shows it in and the opposite of the case the client listens for.
-// A person reads V and presses v; both are this one field.
+
+
+
 func (t RoomTool) KeyLabel() string {
 	return strings.ToUpper(t.Key)
 }
 
-// emptyVals is what a Layered item's hx-vals holds until the room bundle writes
-// the viewed floor into it. It is an empty OBJECT and not an empty string
-// because htmx parses the attribute as JSON on its way to building the request,
-// and "" is not JSON.
+
+
+
+
 const emptyVals = "{}"
 
-// RoomWindow is a floating panel over the table: the player list, a monster's
-// stat block, the layer manager. It is what a menu item carries instead of a
-// route.
-//
-// A WINDOW IS NOT A MODAL AND MUST NOT BECOME ONE. The three <dialog> modals
-// are one at a time, block the page, and are dismissed; a window blocks
-// nothing, sits where the GM put it, and several are open at once while they
-// work. See the Windows section in CLAUDE.md for why this one is allowed the
-// corner controls that a modal is not.
-//
-// IT IS THREE STRINGS AND NO MARKUP. The client clones the chrome from a
-// <template> and loads URL into it with htmx, so anything already served under
-// /fragment/ can be a window without a line of server change -- and a fragment
-// that refetches itself on a socket event goes on doing that inside one.
-//
-// THE TITLE BAR CARRIES min-w-0 AND THE WINDOW IS BROKEN WITHOUT IT. Title,
-// minimize, maximize, close is the ordinary flex truncation arrangement -- the
-// heading takes min-w-0 flex-1 truncate and the three buttons do not shrink --
-// and that arrangement only holds while something upstream fixes the bar's
-// width. Here nothing does: the bar is a row of a grid whose column is sized
-// auto, so the column's floor is the bar's own min-content width, and the
-// heading's white-space: nowrap makes its min-content the WHOLE title. A long
-// pawn name therefore widened the column past the window, and the section's
-// overflow-hidden cut the three buttons off outside it -- the window could not
-// be closed. min-w-0 on the bar makes its automatic minimum size zero, the
-// column stays the width the client set, and the heading truncates the way it
-// was always meant to.
-//
-// THE BODY SCROLLS DOWN AND NEVER ACROSS: overflow-y-auto with overflow-x
-// hidden, rather than overflow-auto on both axes. A window is a column of
-// controls whose width the reader chose by dragging its edge, so a horizontal
-// bar there is never the answer to anything -- the panel inside is supposed to
-// reflow, and a sideways scrollbar is how a panel that has not reflowed reports
-// it. Clipping makes that a visible bug in the panel instead of a scrollbar the
-// reader has to use.
-//
-// WHICH MEANS A TOOLTIP INSIDE A WINDOW POINTS INWARD, and every one of them
-// here is tooltip-left. DaisyUI positions a tip absolutely inside the element
-// it belongs to and leaves it in the layout at zero opacity, so a tip centred
-// over a button at the panel's right edge overhangs that edge -- and an
-// overhang is horizontal overflow whether or not anybody is hovering. Pointing
-// left puts the whole tip over the panel, where there is always room for it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type RoomWindow struct {
-	// ID is the stable identity: one window per id, and the key its position
-	// and size are remembered under. It is deliberately not the URL, which
-	// carries the room and would key a GM's layout per table.
+	
+	
+	
 	ID    string
 	Title string
 	URL   string
 
-	// Width and Height are the size a window opens at the FIRST time somebody
-	// opens it. After that the size they left it at wins.
+	
+	
 	Width  int
 	Height int
 }
 
-// WidthValue and HeightValue render the two optional attributes, empty when
-// unset so the markup can leave them off entirely. They are methods rather than
-// a strconv call in the template because a .templ file is scanned by Tailwind
-// as text and every import is one more file to keep prose out of.
+
+
+
+
 func (w RoomWindow) WidthValue() string { return dimension(w.Width) }
 
 func (w RoomWindow) HeightValue() string { return dimension(w.Height) }
@@ -1155,116 +1155,116 @@ func dimension(value int) string {
 	return strconv.Itoa(value)
 }
 
-// RoomModal is the content modal an item opens: a fragment URL and one of the
-// four sizes. It is three lines rather than a type of its own alternative
-// because content-modal.js already takes exactly these two as data attributes.
+
+
+
 type RoomModal struct {
 	URL string
 
-	// Size is sm, md, lg or xl, and empty is the default md.
+	
 	Size string
 }
 
-// RoomMember is one person at the table as the player window draws them. It is
-// not room.Player: that type carries ids and a character reference this window
-// has no use for, and a template that took it would be able to render either.
-//
-// IT IS TWO NAMES, AND THE WINDOW DRAWS BOTH -- "Ilyana Vasilovich (kyle)" for
-// a player and "Game Master (kyle)" for the person running it.
-//
-// THE CHARACTER LEADS AND THE ACCOUNT FOLLOWS, because for the next four hours
-// the character is what everybody at the table is going to say out loud, and
-// the account is how the GM tells two of them apart when both players are
-// called Bob -- or works out whose socket to close. A list of usernames would
-// have the useful half in brackets.
-//
-// "GAME MASTER" IS NOT A CHARACTER AND IS NOT PRETENDING TO BE ONE. It goes in
-// the same slot because the GM occupies the same kind of seat, and because a
-// row with an empty first half and a name in brackets reads as a bug.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type RoomMember struct {
-	// ID is the user id, and it is here for exactly one reason: the GM's kick
-	// button posts to it. It is not rendered and nothing reads it back -- a
-	// player's own id is not a secret from the table they are sitting at, and
-	// the route it goes into is refused for everybody but the GM.
+	
+	
+	
+	
 	ID string
 
-	// Name is the line's first half: the character, or "Game Master", or the
-	// account name again when there is no character to show.
+	
+	
 	Name string
 
-	// Username is the account, drawn in brackets after the name. It is never
-	// empty -- see clerkauth.FallbackUsername for the reason that holds.
+	
+	
 	Username string
 
 	Avatar string
 
-	// IsGM sorts them to the top and names them, because "who is running
-	// this" is the first thing anybody wants from a player list.
+	
+	
 	IsGM bool
 
-	// Connected is false for somebody whose socket has dropped and whose row
-	// is being kept for them. It is always false in the fallback list, which is
-	// honest: a room that is not running has nobody connected to it.
+	
+	
+	
 	Connected bool
 }
 
-// THE REFETCH PATTERN HAS ONE RACE AND hx-sync IS THE ANSWER TO IT. A burst of
-// player events fires a burst of GETs, and two responses can land in either
-// order -- the socket is ordered, a pair of HTTP requests is not -- which would
-// leave the window showing whichever answer arrived last rather than the newest
-// one.
-//
-// "queue last" AND NOT "replace", which was the first thing written here and
-// was wrong twice over. replace aborts the request in flight, and htmx reports
-// every cancellation as an error -- so the ordinary page load, where the load
-// trigger's fetch is still open when the first snapshot fires room:players,
-// wrote a stack trace to the console. Worse, under a sustained burst each new
-// event would restart a request that then never finished. queue last runs one
-// at a time and keeps only the newest pending one, which is the same guarantee
-// without cancelling anything.
-//
-// RoomMembersData is the window's whole contents.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type RoomMembersData struct {
 	RoomID  string
 	Members []RoomMember
 
-	// CanKick draws the GM's remove button on everybody but themselves.
-	//
-	// IT IS NOT THE AUTHORIZATION AND IS NOT PRETENDING TO BE. Hiding a button
-	// is a courtesy to the person who cannot press it; the refusal is
-	// PlayerKick.Authorize, which runs against a role derived from the rooms
-	// row on every post whether or not a button was drawn. A player who forges
-	// the request is told they may not, in the same words the socket would use.
+	
+	
+	
+	
+	
+	
+	
 	CanKick bool
 
-	// Live says the list came from the running room rather than from the
-	// session rows. The difference is visible -- the fallback cannot see the
-	// GM at all, whose membership is ownership of the rooms row rather than a
-	// room_id on their session -- so the window says which it is showing
-	// instead of quietly presenting one as the other.
+	
+	
+	
+	
+	
 	Live bool
 }
 
-// Path is the fragment's own URL, so the swapped-in copy refetches itself the
-// same way the first one did.
+
+
 func (d RoomMembersData) Path() string {
 	return "/fragment/room/members?room=" + d.RoomID
 }
 
-// GameMasterName is the first half of the GM's line. It is a constant here
-// rather than a string in the markup because both halves of the member list --
-// the live one out of the hub and the fallback out of the session rows -- build
-// it, and two spellings of it would be two different rooms.
+
+
+
+
 const GameMasterName = "Game Master"
 
-// MemberName is the line a member is drawn under: the GM's title, the character
-// they brought, or their account name when there is no character.
-//
-// THE LAST CASE IS NOT A PLACEHOLDER. A player whose character was deleted
-// while they were away is still at the table, and "(kyle)" with nothing before
-// it is worse than their name twice -- so the caller writes the account name
-// into both halves and the row reads as somebody with no character rather than
-// as a row that failed to load.
+
+
+
+
+
+
+
+
 func MemberName(isGM bool, character string, username string) string {
 	if isGM {
 		return GameMasterName
@@ -1276,33 +1276,33 @@ func MemberName(isGM bool, character string, username string) string {
 	return username
 }
 
-// ShowUsername is false when the account is already the whole line, which is
-// what MemberName falls back to for somebody with no character. "rin (rin)" is
-// not more informative than "rin", it is just noisier, and a reader scanning a
-// list of them would spend a moment on every one working out that the two
-// halves are the same word.
+
+
+
+
+
 func (m RoomMember) ShowUsername() bool {
 	return m.Name != m.Username
 }
 
-// KickPath is where the GM's remove button posts. The player travels in the
-// path and not in a query parameter, because this is a mutation of one member
-// of one room rather than a representation of anything -- the same reason the
-// lock routes sit under the room's own id.
+
+
+
+
 func (d RoomMembersData) KickPath(m RoomMember) string {
 	return "/rooms/" + d.RoomID + "/players/" + m.ID + "/kick"
 }
 
-// KickPrompt is what the confirm dialog asks before it happens. It names the
-// person and says what it does to them, because "Are you sure?" over a list of
-// six people is a question nobody can answer safely.
+
+
+
 func (d RoomMembersData) KickPrompt(m RoomMember) string {
 	return "Remove " + m.Name + " from the room? Their pawns stay on the table, and they can join again with the code unless you lock the room."
 }
 
-// SortRoomMembers puts the GM first and everybody else in name order, which is
-// stable across refetches -- a list that reordered itself every time somebody
-// reconnected would be a list nobody could read.
+
+
+
 func SortRoomMembers(members []RoomMember) []RoomMember {
 	slices.SortFunc(members, func(a, b RoomMember) int {
 		if a.IsGM != b.IsGM {

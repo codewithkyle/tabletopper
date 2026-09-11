@@ -13,10 +13,10 @@ import (
 	"tabletopper/templ/pages"
 )
 
-// Every statement names the owner. A handler cannot notice a query that forgets
-// one -- the rows would arrive and render -- so the statements themselves are
-// checked, which is also the only way to reach the reads: they go through
-// QueryContext and the fake pool cannot serve one.
+
+
+
+
 func TestEveryMonsterQueryIsScopedToTheOwner(t *testing.T) {
 	for name, body := range namedStatements(t, "monsters.sql") {
 		if !strings.Contains(body, "owner_id") {
@@ -25,10 +25,10 @@ func TestEveryMonsterQueryIsScopedToTheOwner(t *testing.T) {
 	}
 }
 
-// The action rows are reached through two ids, both of which arrive in the URL
-// and neither of which is trusted. The insert names the monster in its own
-// WHERE, which is what stops a row being hung off a stranger's stat block, so it
-// is covered by the same rule as the rest.
+
+
+
+
 func TestEveryMonsterActionQueryIsScopedToTheOwnerAndMonster(t *testing.T) {
 	for name, body := range namedStatements(t, "monster-actions.sql") {
 		if !strings.Contains(body, "owner_id") {
@@ -40,8 +40,8 @@ func TestEveryMonsterActionQueryIsScopedToTheOwnerAndMonster(t *testing.T) {
 	}
 }
 
-// namedStatements splits one query file into the statements sqlc names, so a
-// test can read each on its own.
+
+
 func namedStatements(t *testing.T, file string) map[string]string {
 	t.Helper()
 
@@ -67,10 +67,10 @@ func namedStatements(t *testing.T, file string) map[string]string {
 	return statements
 }
 
-// THE THIRTY-FOUR RATINGS ARE THE WHOLE OF THE XP AND PROFICIENCY ARITHMETIC, so
-// the table is what is checked rather than the function reading it. A wrong
-// number here is a monster worth the wrong experience and a saving throw off by
-// one, and neither would fail anywhere.
+
+
+
+
 func TestEveryChallengeRatingHasItsNumbers(t *testing.T) {
 	ratings := pages.ChallengeRatings()
 
@@ -90,16 +90,16 @@ func TestEveryChallengeRatingHasItsNumbers(t *testing.T) {
 			t.Errorf("rating %q has no label", rating.Value)
 		}
 
-		// Strictly increasing, because the in-lair figure is the next entry's XP
-		// and a rating that was not harder than the one below it would make that
-		// sentence a lie.
+		
+		
+		
 		if i > 0 && rating.XP <= ratings[i-1].XP {
 			t.Errorf("CR %s is worth %d XP, which is not more than CR %s at %d",
 				rating.Value, rating.XP, ratings[i-1].Value, ratings[i-1].XP)
 		}
 
-		// +2 up to CR 4, then one more every four ratings, to +9 at CR 29. The
-		// three fractions sit inside the first band.
+		
+		
 		want := uint8(2)
 		if i >= 4 {
 			want = uint8(2 + (i-4)/4)
@@ -114,8 +114,8 @@ func TestEveryChallengeRatingHasItsNumbers(t *testing.T) {
 	}
 }
 
-// testMonster is a goblin-boss-shaped stat block: CR 1 (PB +2), Dex 14 (+2),
-// Wisdom 8 (-1), proficient in Stealth, and nothing else filled in.
+
+
 func testMonster() queries.Monster {
 	return queries.Monster{
 		Name:                     "Goblin Boss",
@@ -151,10 +151,10 @@ func monsterActionRow(kind string) queries.MonsterAction {
 	}
 }
 
-// The two numbers a GM never types: the proficiency bonus every save and skill
-// is built on, and the experience the party is paid for winning. Both follow
-// from the rating, so changing the rating has to move both -- which is the
-// whole reason the xp column went.
+
+
+
+
 func TestCombatDerivesProficiencyAndXPFromCR(t *testing.T) {
 	for _, c := range []struct {
 		name        string
@@ -168,8 +168,8 @@ func TestCombatDerivesProficiencyAndXPFromCR(t *testing.T) {
 		{name: "the top of the table", cr: "30", proficiency: "+9", xp: "155,000"},
 		{name: "a fraction", cr: "1/4", proficiency: "+2", xp: "50"},
 
-		// The one rating with two answers in the rules. Nothing stores which,
-		// so having an action is the question the block asks instead.
+		
+		
 		{name: "CR 0 with nothing to hit with", cr: "0", proficiency: "+2", xp: "0"},
 		{
 			name:        "CR 0 that can hurt somebody",
@@ -186,8 +186,8 @@ func TestCombatDerivesProficiencyAndXPFromCR(t *testing.T) {
 			xp:          "0",
 		},
 
-		// The in-lair figure is the next rating's XP, and it is printed only for
-		// a monster that actually has a lair.
+		
+		
 		{name: "no lair, no second figure", cr: "17", proficiency: "+6", xp: "18,000"},
 		{
 			name:        "a lair action buys the rating above",
@@ -205,8 +205,8 @@ func TestCombatDerivesProficiencyAndXPFromCR(t *testing.T) {
 			xp:          "155,000",
 		},
 
-		// A rating written around the validator reads as the weakest thing in
-		// the book rather than as a monster with no numbers at all.
+		
+		
 		{name: "a rating nothing wrote", cr: "31", proficiency: "+2", xp: "0"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -227,9 +227,9 @@ func TestCombatDerivesProficiencyAndXPFromCR(t *testing.T) {
 	}
 }
 
-// The proficiency bonus reaches the grids as well as the CR line, which is the
-// half of the derivation a spot check on one number would miss: a monster's
-// saves and skills move when its rating does.
+
+
+
 func TestARatingChangeMovesEverySaveAndSkill(t *testing.T) {
 	monster := testMonster()
 	monster.SavingThrowProficiencies = json.RawMessage(`{"dex": "proficient"}`)
@@ -247,16 +247,16 @@ func TestARatingChangeMovesEverySaveAndSkill(t *testing.T) {
 	}
 }
 
-// THE BLOCK PRINTS WHAT A MONSTER HAS AND NOTHING ELSE. A printed stat block
-// carries no empty headings, so a monster that resists nothing has no
-// Resistances line -- and the two that are always there are always there for a
-// reason: Senses ends in a passive score every monster has, and a creature that
-// cannot speak says so.
+
+
+
+
+
 func TestTheStatBlockOmitsWhatTheMonsterHasNot(t *testing.T) {
-	// A monster as CreateMonsterFromName leaves it: a name, and the schema's
-	// defaults for everything else. The six 10s are among them, which is why
-	// they are written out rather than left as the zero value -- a score of 0
-	// is a -5 modifier and no row in this table has ever held one.
+	
+	
+	
+	
 	bare := queries.Monster{
 		Name: "Nothing In Particular",
 		CR:   pages.DefaultChallengeRating,
@@ -287,9 +287,9 @@ func TestTheStatBlockOmitsWhatTheMonsterHasNot(t *testing.T) {
 		t.Errorf("lines = %v; Resistances is the one it has not got", labels)
 	}
 
-	// Only the rows with a state or a bonus are on the Skills line. All
-	// eighteen at their ability modifier would be the ability table again,
-	// eighteen rows wide.
+	
+	
+	
 	if got := statBlockLine(t, block, "Skills"); got != "Stealth +4" {
 		t.Errorf("skills = %q, want the one row that has a proficiency", got)
 	}
@@ -300,8 +300,8 @@ func TestTheStatBlockOmitsWhatTheMonsterHasNot(t *testing.T) {
 		t.Errorf("CR line = %q", got)
 	}
 
-	// The 2024 block prints the initiative modifier with its passive score in
-	// brackets, and the ability table carries the saves that used to be a line.
+	
+	
 	if block.Initiative != "+2 (12)" {
 		t.Errorf("initiative = %q, want +2 (12)", block.Initiative)
 	}
@@ -310,9 +310,9 @@ func TestTheStatBlockOmitsWhatTheMonsterHasNot(t *testing.T) {
 	}
 }
 
-// A section is on the block when it has rows, and it opens with the sentence the
-// book opens it with. The legendary count is the one part of one of those
-// sentences that comes out of a column.
+
+
+
 func TestASectionCarriesTheSentenceTheBookOpensItWith(t *testing.T) {
 	monster := testMonster()
 	monster.LegendaryActionUses = 3
@@ -326,8 +326,8 @@ func TestASectionCarriesTheSentenceTheBookOpensItWith(t *testing.T) {
 		t.Fatalf("%d sections, want Actions and Legendary Actions", len(block.Sections))
 	}
 
-	// Actions come before Legendary Actions, which is the ENUM's order and the
-	// book's.
+	
+	
 	if block.Sections[0].Heading != "Actions" || block.Sections[1].Heading != "Legendary Actions" {
 		t.Errorf("sections are out of order: %q then %q", block.Sections[0].Heading, block.Sections[1].Heading)
 	}
@@ -349,8 +349,8 @@ func TestASectionCarriesTheSentenceTheBookOpensItWith(t *testing.T) {
 		t.Errorf("legendary intro = %q, want the in-lair count in brackets", block.Sections[1].Intro)
 	}
 
-	// A monster with no count has legendary actions it cannot take, so the
-	// sentence loses the count rather than printing a zero.
+	
+	
 	monster.LegendaryActionUses = 0
 	block = monsterStatBlock(monster, actions, monsterDerived(monster, actions))
 	if strings.Contains(block.Sections[1].Intro, "Uses") {
@@ -358,10 +358,10 @@ func TestASectionCarriesTheSentenceTheBookOpensItWith(t *testing.T) {
 	}
 }
 
-// UNALIGNED IS PRINTED ON A STAT BLOCK AND HIDDEN ON A CHARACTER, and the
-// difference is who chose it: a character's alignment starts NULL and the
-// editor falls back to unaligned, so it is the answer nobody gave; a beast is
-// unaligned because the book says so.
+
+
+
+
 func TestTheSubtitlePrintsUnaligned(t *testing.T) {
 	monster := testMonster()
 	monster.Alignment = "unaligned"
@@ -377,16 +377,16 @@ func TestTheSubtitlePrintsUnaligned(t *testing.T) {
 	}
 }
 
-// The rest of the line: size and type as one phrase, the tags in brackets after
-// them, and the alignment as a clause of its own.
+
+
 func TestTheSubtitleIsTheLineTheBookPrints(t *testing.T) {
 	if got := monsterSubtitle(testMonster()); got != "Small Humanoid (Goblinoid), Chaotic Neutral" {
 		t.Errorf("subtitle = %q", got)
 	}
 
-	// Every monster is some size and some kind of thing, so a row written
-	// around the selects falls back to the column's own defaults rather than
-	// printing a bare alignment.
+	
+	
+	
 	unwritten := queries.Monster{Size: "enormous", Type: "wyrm", Alignment: "sideways"}
 	if got := monsterSubtitle(unwritten); got != "Medium Humanoid" {
 		t.Errorf("subtitle = %q, want the defaults and no alignment", got)

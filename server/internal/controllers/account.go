@@ -14,51 +14,51 @@ import (
 	"tabletopper/templ/pages"
 )
 
-// The account settings dialog and the save behind it.
-//
-// EVERYTHING ON THE DIALOG COMES OFF THE SESSION AND NEVER OUT OF THE DATABASE.
-// The session query joins users, so the display name and the six preferences
-// arrive with every request already; loading them again here would be a round
-// trip to fetch what the caller was handed on the way in. It also means the
-// dialog and the page it opens over cannot disagree, because they were both
-// rendered from the same read.
-//
-// IT IS OPENED FROM TWO PLACES NOW: the gear at the bottom of the homepage, and
-// Settings in the room's Help menu. That second one is why nothing in the reply
-// to a save is addressed to a particular page any more -- see announceSettings.
-// It is also why the two settings that govern a canvas rather than a page are
-// worth changing at all: somebody who wants the blood turned off wants it turned
-// off DURING the fight that made them want it, not at the next table.
-//
-// STORAGE USED IS THE ONE EXCEPTION, and it has to be. It is an aggregate over
-// the assets table, so there is nothing on the session that could carry it and
-// nothing that could keep it current if there were -- it changes on every
-// upload and every delete, none of which touch the session row. So opening the
-// dialog is one SUM, scoped to the owner and covered by the index on owner_id,
-// and a dialog nobody opens costs nothing.
-//
-// A FAILED READ DOES NOT COST THE READER THEIR SETTINGS. The four pickers are
-// the reason the dialog exists and they are already in hand; a database that
-// would not answer the aggregate is logged and the line is left off, rather
-// than refusing to render a form that needed nothing from it.
-//
-// THE SAVE IS A POST TO /account/settings AND NOT TO /fragment/. It is a
-// mutation, so it keeps its resource URL; the fragment prefix marks GET-shaped
-// representations and this returns an error block, not one.
-//
-// A SAVED THEME IS APPLIED TWICE, and that is not redundancy. htmx.Theme
-// repaints the page the reader is looking at now, because the response only
-// swapped a fragment inside the dialog and <html> still carries the old
-// attribute. Every page after this one is rendered with the new value by the
-// shell, from the session, with nothing running on the client. The name, the
-// turn camera and the blood are applied twice for the same reason and by the
-// same argument; htmx.Settings is where it is written down.
-//
-// The dates already on the page are left as they are. Re-rendering them would
-// mean reloading, which is the thing this avoids, and unlike the theme they are
-// not what the reader is looking at while the dialog closes.
 
-// AccountSettingsFragment is the dialog, opened by the gear on the homepage.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -76,21 +76,21 @@ func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.AccountSettingsFragment(data))
 }
 
-// storageUnits are the steps formatBytes walks, smallest first. The step is
-// 1024 and the names are the ones a file manager uses rather than the strictly
-// correct KiB/MiB/GiB, because this is a sentence a person reads about their own
-// account and not a figure anyone reconciles against a bill.
+
+
+
+
 var storageUnits = []string{"KB", "MB", "GB", "TB"}
 
-// formatBytes turns a byte count into the line the dialog shows.
-//
-// ONE DECIMAL PLACE AND NEVER MORE. The number exists so a reader can tell
-// "nothing much" from "getting on for a gigabyte"; a second decimal is
-// precision about a total that is a sum of compressed images and would only
-// make it look like an invoice. Bytes are the exception -- there is no decimal
-// place to give something under a kilobyte -- and so is the zero case, which
-// reads as a phrase rather than as a quantity, because "0 B" beside "Storage
-// used" is a worse way to say "nothing yet".
+
+
+
+
+
+
+
+
+
 func formatBytes(n int64) string {
 	if n <= 0 {
 		return "Nothing uploaded yet"
@@ -112,21 +112,21 @@ func formatBytes(n int64) string {
 	return fmt.Sprintf("%.1f %s", size, unit)
 }
 
-// SaveAccountSettings writes all seven, or none of them.
-//
-// EVERY PICKER IS VALIDATED AGAINST THE LIST THAT OFFERED IT, and a value that
-// is not on one is a rejection rather than a silent fallback. The read path
-// falls back -- prefs.New does, so a column this build does not understand
-// still renders a page -- but a form is the other direction: accepting a zone
-// the picker cannot show would store a value the reader could never see
-// selected, and could not get back to after changing anything else.
-//
-// THE DISPLAY NAME IS THE ONE FIELD THAT IS TYPED, so it is the one rejection
-// that is about what arrived rather than about a stale page. It is trimmed,
-// required, and bounded by its column -- see accountDisplayName.
-//
-// All seven are collected before any of them is written, so a form carrying one
-// bad field changes nothing. There is no partial save to explain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -161,24 +161,24 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	announceSettings(w, r, pages.AccountSettingsPanel, name, updated, "Settings saved.")
 }
 
-// AccountWelcomeFragment is the same fields behind a welcome message, opened by
-// the homepage for an account that has never answered it.
-//
-// THE NAME FIELD IS WHY THE WELCOME DIALOG ASKS FOR ONE AT ALL. An account
-// signing up through Google has no username to take, so the name it arrives
-// with was resolved out of the Clerk profile -- their real one, most likely,
-// which is not what most people want printed beside their pawn. This is the
-// first chance to change it, and the field is prefilled with what was resolved
-// rather than left empty, so a reader who does not care can leave it alone.
-//
-// IT IS OFFERED THE DEFAULTS FOR THE REST, because that is what the row holds --
-// and the
-// zone picker inside it is wrapped in <zone-detect>, which preselects the
-// browser's own zone if this app offers it. That is the browser detection this
-// project turned down for the read path, and it is right here for the reason it
-// was wrong there: nothing is stored until the reader presses Save, so it is a
-// suggestion sitting in a control they are already looking at rather than a
-// guess written behind their back.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())
 	p := sess.Prefs
@@ -187,10 +187,10 @@ func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
 }
 
-// CompleteOnboarding is the welcome dialog's Save. It writes the same seven
-// columns SaveAccountSettings does and stamps the account as set up, in ONE
-// statement -- two would have a window in which the settings landed and the
-// stamp did not, and the dialog would reopen over the answer just given.
+
+
+
+
 func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -225,18 +225,18 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 	announceSettings(w, r, pages.AccountWelcomePanel, name, updated, "You are all set.")
 }
 
-// DismissOnboarding is "Not now": the account is stamped and keeps every
-// default, so the dialog stops opening.
-//
-// IT READS NO FORM AT ALL. The button sits inside the welcome form and htmx may
-// well send its values along; storing them would mean the pickers the reader
-// declined to answer got saved anyway, and a preselected zone they never looked
-// at would become their choice.
-//
-// ESCAPE IS NOT THIS. Closing the dialog any other way posts nothing and leaves
-// the column NULL, so the next visit asks again -- which is the right default
-// for somebody who has not answered. This button is how a reader who does not
-// want to answer says so once.
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())
 
@@ -246,28 +246,28 @@ func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The toast is the handover: the dialog is not coming back, so this is the
-	// one chance to say where the settings went.
+	
+	
 	htmx.CloseModal(w)
 	htmx.Toast(w, "No problem. The gear at the bottom of this page has these settings whenever you want them.")
 	w.WriteHeader(http.StatusOK)
 }
 
-// announceSettings is the reply both saves share: repaint, dismiss, say so,
-// clear the error block, and hand the page behind the dialog the answers it is
-// already acting on.
-//
-// THE ERROR BLOCK IS NOT BUSYWORK -- the form targets it, so rendering it empty
-// is what clears a complaint the previous attempt left. It is also the only
-// markup in this reply.
-//
-// EVERYTHING ELSE IS A HEADER, and the greeting used to be the exception. It was
-// an out-of-band <span id="account-name">, which worked exactly as long as the
-// homepage was the only place either dialog could be opened from -- htmx reports
-// an out-of-band target it cannot find, so the moment a second opener existed
-// that swap was markup addressed to a page that was not there. The room's Help
-// menu is that second opener. See htmx.Settings, which says the same thing in an
-// event that a page without a greeting can simply not listen for.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name string, p prefs.Preferences, message string) {
 	htmx.Theme(w, p.Theme.Palette())
 	htmx.Settings(w, name, p.FollowTurn, p.ShowBlood, p.PingVolume)
@@ -278,12 +278,12 @@ func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name
 	render(w, r, pages.PanelFormErrors(panel, nil))
 }
 
-// accountSettingsInput reads the fields and reports what it could not accept.
-//
-// The messages name the field and not the value. Every one of these came out of
-// a <select> the server rendered, so a rejection here is a stale page or a
-// hand-made request rather than something the reader typed wrong, and quoting
-// their input back at them would explain nothing.
+
+
+
+
+
+
 func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string) {
 	var (
 		p        prefs.Preferences
@@ -319,25 +319,25 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 	}
 	p.TimeFormat = timeFormat
 
-	// THE TWO FIELDS WITH NOTHING TO REJECT. An unticked box sends no value at
-	// all -- that is how HTML has always posted a checkbox -- so absence is the
-	// answer rather than a missing field, and there is no list to check either
-	// answer against.
-	//
-	// IT IS THE REASON BOTH TOGGLES ARE ON BOTH DIALOGS AND NOT JUST THE
-	// SETTINGS ONE. Both saves come through here, so a welcome form that did
-	// not carry a box would post nothing for it and this would read that as
-	// "off" -- turning a setting that is on by default off for every new
-	// account, on the dialog that exists to welcome them.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	p.FollowTurn = r.PostFormValue("follow_turn") != ""
 	p.ShowBlood = r.PostFormValue("show_blood") != ""
 
-	// AND THE ONE FIELD THAT IS NEITHER A LIST NOR A BOX. A range input always
-	// posts a value when it is on the form, so this is checked rather than
-	// assumed -- but an ABSENT field is the default rather than a refusal, for
-	// the reason above: a dialog that does not carry the slider would otherwise
-	// post nothing and mute a setting nobody was asked about. See
-	// prefs.ParsePingVolume.
+	
+	
+	
+	
+	
+	
 	pingVolume, ok := prefs.ParsePingVolume(r.PostFormValue("ping_volume"))
 	if !ok {
 		problems = append(problems, "Choose one of the offered ping volumes.")
@@ -347,17 +347,17 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 	return name, p, problems
 }
 
-// accountDisplayName reads the one field on this dialog somebody types into,
-// and returns the empty string with a complaint when it cannot be used.
-//
-// IT IS TRIMMED BEFORE IT IS MEASURED, so a name of nothing but spaces is the
-// same refusal as an empty one -- storing it would give the reader a blank
-// greeting and a blank line in every player list, with no way to tell what went
-// wrong.
-//
-// THE LIMIT IS THE COLUMN'S. MySQL truncates an over-long value rather than
-// refusing it, so a name that arrived past the maxlength the field carries
-// would otherwise be silently stored as its first 128 characters.
+
+
+
+
+
+
+
+
+
+
+
 func accountDisplayName(r *http.Request) (string, string) {
 	name := strings.TrimSpace(r.PostFormValue("username"))
 
@@ -371,12 +371,12 @@ func accountDisplayName(r *http.Request) (string, string) {
 	return name, ""
 }
 
-// accountSettingsData builds the dialog. now is passed in rather than read here
-// so the labels are one instant apart from each other and a test can pin them.
+
+
 func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.AccountSettingsData {
-	// The examples below are rendered in the zone the reader has SAVED, which
-	// is what makes "6 Sep 2026" and "07/09/2026" both correct answers on the
-	// same dialog for a reader in Sydney.
+	
+	
+	
 	local := now.In(p.Location())
 
 	data := pages.AccountSettingsData{
@@ -426,9 +426,9 @@ func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.
 	return data
 }
 
-// themeLabel names the choice rather than the palette, because "Follow system"
-// is a behaviour and "Caramellatte" is a word nobody outside this repository
-// has met.
+
+
+
 func themeLabel(t prefs.Theme) string {
 	switch t {
 	case prefs.ThemeLight:
@@ -440,13 +440,13 @@ func themeLabel(t prefs.Theme) string {
 	}
 }
 
-// dateFormatLabel is today's date written the way this option would write it.
-//
-// THE TWO NUMERIC ONES CARRY THEIR NOTATION AND THE OTHERS DO NOT. "6 Sep 2026"
-// and "2026-09-06" say what they are; "09/06/2026" and "06/09/2026" are the
-// same five characters rearranged, and on twelve days a year -- when the day
-// and the month are the same number -- they render identically. The suffix is
-// what stops the choice being a guess on those days.
+
+
+
+
+
+
+
 func dateFormatLabel(d prefs.DateFormat, at time.Time) string {
 	switch d {
 	case prefs.DateMDYSlash:
@@ -458,9 +458,9 @@ func dateFormatLabel(d prefs.DateFormat, at time.Time) string {
 	}
 }
 
-// timeFormatLabel names the clock and shows it, because "12-hour" alone is a
-// term of art and "2:04 PM" alone does not say what the other one would look
-// like.
+
+
+
 func timeFormatLabel(t prefs.TimeFormat, at time.Time) string {
 	if t == prefs.Time24H {
 		return "24-hour (" + at.Format(t.Layout()) + ")"

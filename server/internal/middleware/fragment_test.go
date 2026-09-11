@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-// NOTE: as in auth_test.go, a request with no session cookie short-circuits
-// before the DB pool is touched, so none of these need a database.
 
-// The point of Fragment over RequireSession: RequireSession picks its redirect
-// shape from the HX-Request header, and this one does not have to, because the
-// prefix already established that the caller is a swap. A fragment route asked
-// for a session it does not have answers with HX-Redirect whether or not the
-// header is there -- a 303 would be followed by fetch() and the sign-in page
-// swapped into whatever target the caller named.
+
+
+
+
+
+
+
+
 func TestFragmentRedirectsWithoutTheHTMXHeader(t *testing.T) {
 	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("handler ran without a session")
@@ -34,8 +34,8 @@ func TestFragmentRedirectsWithoutTheHTMXHeader(t *testing.T) {
 	}
 }
 
-// Both headers are set before the session is looked at, so they are on the
-// response even when the fragment is never rendered.
+
+
 func TestFragmentSetsNoStoreAndNoIndex(t *testing.T) {
 	h := auth.Fragment(func(w http.ResponseWriter, r *http.Request) {})
 
@@ -50,8 +50,8 @@ func TestFragmentSetsNoStoreAndNoIndex(t *testing.T) {
 	}
 }
 
-// The body stays empty so noSwap leaves the caller's target alone; anything
-// page-shaped here would be swapped into a <div> if the config ever changed.
+
+
 func TestFragmentNotFoundIsEmpty(t *testing.T) {
 	rec := httptest.NewRecorder()
 	FragmentNotFound(rec, httptest.NewRequest(http.MethodGet, "/fragment/nope", nil))

@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-// THE RULES THE CLIENT PORTS, PINNED BY FIXTURE RATHER THAN BY HAND. Three of
-// this package's functions have a twin in server/js/room -- hpBand and bandOf,
-// SnapAxis and snapAxis, the hit-point arithmetic and hp.ts -- and each pair
-// used to be held together by a comment saying "these must agree" and a table
-// somebody had copied. These write the Go answers out as JSON, and rules.test.ts
-// replays every case through the TypeScript; a change on either side that the
-// other did not follow fails the build rather than a table.
-//
-// THE CASES ARE GENERATED, NOT LISTED, so that the boundaries -- a maximum of 7,
-// a negative offset, a half-cell step -- are covered without anybody having to
-// think of them twice.
+
+
+
+
+
+
+
+
+
+
+
 
 type bandCase struct {
 	HP    int    `json:"hp"`
@@ -95,8 +95,8 @@ func TestRuleFixturesAreCurrent(t *testing.T) {
 	})
 }
 
-// pinFixture writes the cases on -update and compares them otherwise, exactly
-// as the reducer fixtures are pinned.
+
+
 func pinFixture(t *testing.T, name string, cases any) {
 	t.Helper()
 

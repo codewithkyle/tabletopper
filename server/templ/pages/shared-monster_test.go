@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// The shared monster page, which is the editor's stat block with the app taken
-// away from around it: no bar, no panels, no upload control, and one button that
-// is not there for everybody.
+
+
+
 
 func testSharedMonster() SharedMonsterData {
 	return SharedMonsterData{
@@ -37,8 +37,8 @@ func testSharedMonster() SharedMonsterData {
 	}
 }
 
-// The same monster as a signed-out reader sees it, which is the state that puts
-// the one link to the app on the page.
+
+
 func testSharedMonsterForGuest() SharedMonsterData {
 	data := testSharedMonster()
 	data.Actions.SignIn = "/sign-in"
@@ -47,9 +47,9 @@ func testSharedMonsterForGuest() SharedMonsterData {
 	return data
 }
 
-// The whole monster, which is the scope decision this page is built on: the
-// import hands over a copy of every column anyway, so a page showing less than
-// the button gives would be describing the wrong thing.
+
+
+
 func TestASharedMonsterRendersTheWholeStatBlock(t *testing.T) {
 	body := renderToString(t, SharedMonsterPage(testSharedMonster()))
 
@@ -67,9 +67,9 @@ func TestASharedMonsterRendersTheWholeStatBlock(t *testing.T) {
 	}
 }
 
-// A monster whose owner never wrote a paragraph renders no panel for one, the
-// way an absent line renders no heading in the block above it. An empty panel
-// titled Description reads as a page that failed to load something.
+
+
+
 func TestAMonsterWithNoDescriptionRendersNoPanelForOne(t *testing.T) {
 	data := testSharedMonster()
 	data.Description = ""
@@ -79,10 +79,10 @@ func TestAMonsterWithNoDescriptionRendersNoPanelForOne(t *testing.T) {
 	}
 }
 
-// THE PICTURE COMES FROM THE SHARE AND NEVER FROM /assets/images. That route
-// needs a session, so on this page it would be a broken image for every reader
-// who is not signed in -- which is most of them, and the owner testing the link
-// would be the one person who could not see it happening.
+
+
+
+
 func TestASharedMonstersPictureNeverNamesTheAppsOwnImageRoute(t *testing.T) {
 	body := renderToString(t, SharedMonsterPage(testSharedMonster()))
 
@@ -94,9 +94,9 @@ func TestASharedMonstersPictureNeverNamesTheAppsOwnImageRoute(t *testing.T) {
 	}
 }
 
-// The actions row, in each of the three states a reader can be in. The owner's
-// is the one worth pinning: their row is the export alone, because importing
-// their own monster would hand them a duplicate they did not ask for.
+
+
+
 func TestTheImportPanelIsDrawnForWhoeverCanUseIt(t *testing.T) {
 	data := testSharedMonster()
 	export := "/share/tok/export.md"
@@ -129,8 +129,8 @@ func TestTheImportPanelIsDrawnForWhoeverCanUseIt(t *testing.T) {
 	}
 }
 
-// A monster shared before it was named still has to render a heading and a tab
-// title, and a blank line where either goes reads as a page that failed.
+
+
 func TestAnUnnamedSharedMonsterStillHasATitle(t *testing.T) {
 	if got := SharedMonsterTitle("   "); !strings.HasPrefix(got, "Unnamed monster") {
 		t.Errorf("SharedMonsterTitle(blank) = %q", got)

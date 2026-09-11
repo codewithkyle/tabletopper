@@ -26,7 +26,7 @@ func TestNextExpiryClampsToMaxLifetime(t *testing.T) {
 	created := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
 	cap := created.Add(MaxLifetime)
 
-	// a refresh landing just inside the cap must not extend a full idle window past it
+	
 	now := cap.Add(-time.Minute)
 
 	got := nextExpiry(now, created)
@@ -49,11 +49,11 @@ func TestNextExpiryNeverExceedsCapAcrossLifetime(t *testing.T) {
 	}
 }
 
-// roomRecordingDB is a queries.DBTX that keeps the statements it was given, for
-// the two room writes -- which are about what went out and not about what came
-// back. Only ExecContext is reachable from either; the other three are here
-// because DBTX declares them, and a call to one of them from this path would be
-// a change worth failing on.
+
+
+
+
+
 type roomRecordingDB struct {
 	t    *testing.T
 	sent []string
@@ -91,14 +91,14 @@ type roomResult struct{ rows int64 }
 func (r roomResult) LastInsertId() (int64, error) { return 0, nil }
 func (r roomResult) RowsAffected() (int64, error) { return r.rows, nil }
 
-// THE STRUCT IS MUTATED ALONGSIDE THE ROW, and that is the half worth pinning.
-// The handler renders from the copy the middleware took a moment earlier, so a
-// join that wrote the row and left the copy alone would seat somebody at a
-// table and then draw them the page of somebody who is not in one.
-// WHICH PICTURE AN ACCOUNT SHOWS, and the whole of the rule is that an upload
-// wins. Clerk's copy is never destroyed by one, so clearing the upload later
-// falls back to whatever Clerk has by then rather than to a value frozen on the
-// day somebody uploaded.
+
+
+
+
+
+
+
+
 func TestAnUploadedPictureWinsOverTheOneClerkSupplied(t *testing.T) {
 	uploaded := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVWX")
 
@@ -109,12 +109,12 @@ func TestAnUploadedPictureWinsOverTheOneClerkSupplied(t *testing.T) {
 	}{
 		"an upload is served from the asset route": {
 			uploaded: &uploaded,
-			clerk:    "https://img.clerk.com/kyle",
+			clerk:    "https:
 			want:     "/assets/images/" + uploaded.String(),
 		},
 		"no upload falls back to Clerk": {
-			clerk: "https://img.clerk.com/kyle",
-			want:  "https://img.clerk.com/kyle",
+			clerk: "https:
+			want:  "https:
 		},
 		"no upload and no Clerk picture is the shared placeholder": {
 			clerk: "/images/default-avatar.webp",
@@ -155,8 +155,8 @@ func TestJoinRoomWritesTheRowAndTheCopy(t *testing.T) {
 		t.Errorf("statement is not the room write: %q", db.sent[0])
 	}
 
-	// Keyed on the hash, like every other statement in this package: the hash
-	// is what the store holds for the request in flight.
+	
+	
 	args := db.args[0]
 	if len(args) != 3 {
 		t.Fatalf("statement took %d values, want 3", len(args))
@@ -173,8 +173,8 @@ func TestJoinRoomWritesTheRowAndTheCopy(t *testing.T) {
 	}
 }
 
-// Joining with no character is a join, not a refusal: a player may sit down
-// before they have made one.
+
+
 func TestJoinRoomAcceptsNoCharacter(t *testing.T) {
 	db := &roomRecordingDB{t: t, rows: 1}
 	store := NewStore(queries.New(db), false)
@@ -215,10 +215,10 @@ func TestLeaveRoomClearsTheRowAndTheCopy(t *testing.T) {
 	}
 }
 
-// A statement that matched nothing means the session ended between the
-// middleware reading it and the handler writing it. Reporting success there
-// would tell somebody they had joined a room their browser can no longer prove
-// it belongs to.
+
+
+
+
 func TestARoomWriteThatMatchesNothingIsAnError(t *testing.T) {
 	db := &roomRecordingDB{t: t, rows: 0}
 	store := NewStore(queries.New(db), false)

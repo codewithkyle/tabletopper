@@ -14,11 +14,11 @@ import (
 	"github.com/coder/websocket"
 )
 
-// THE ONE TEST WITH A SOCKET IN IT. Everything else in this package drives the
-// room through its inbox, because that is where the behaviour is; this is here
-// to prove that the two halves are joined -- that an upgrade succeeds, that the
-// first frame down the wire is the snapshot, and that a command sent by one
-// browser comes back to both.
+
+
+
+
+
 func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -40,7 +40,7 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 	player := dial(t, ctx, srv.URL)
 	defer func() { _ = player.CloseNow() }()
 
-	// The first frame either browser sees is its own room, whole.
+	
 	gmSnapshot := next(t, ctx, gm)
 	if gmSnapshot.Type != "snapshot" {
 		t.Fatalf("the GM's first frame was %q, want the snapshot", gmSnapshot.Type)
@@ -50,7 +50,7 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 		t.Fatalf("the player's first frame was %q, want the snapshot", playerSnapshot.Type)
 	}
 
-	// The GM was already connected when the player arrived, so the GM is told.
+	
 	joined := next(t, ctx, gm)
 	if joined.Type != "player.joined" {
 		t.Fatalf("the GM's second frame was %q, want player.joined", joined.Type)
@@ -59,8 +59,8 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 	layer := activeLayer(t, playerSnapshot)
 	send(t, ctx, player, map[string]any{"type": "ping", "cid": "p1", "layer": layer.String(), "x": 320, "y": 240})
 
-	// Everybody including the pinger, which is the point of the feature: one
-	// marker in one place on every screen at the same time.
+	
+	
 	for who, c := range map[string]*websocket.Conn{"the GM": gm, "the pinger": player} {
 		got := next(t, ctx, c)
 		if got.Type != "pinged" {
@@ -74,8 +74,8 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 		}
 	}
 
-	// A frame no generated client could produce is refused to the sender
-	// alone, with the correlation id it was sent with.
+	
+	
 	send(t, ctx, player, map[string]any{"type": "table.setGrid", "cid": "p2", "nonsense": true})
 	refusal := next(t, ctx, player)
 	if refusal.Type != "error" || refusal.CID != "p2" {

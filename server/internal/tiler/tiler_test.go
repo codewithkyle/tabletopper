@@ -10,10 +10,10 @@ import (
 	"testing"
 )
 
-// coordinateImage paints every pixel with its own position, so a tile cut from
-// the wrong offset shows up as the wrong pixel rather than as a plausible one.
-// It is opaque, which is what makes a premultiplied RGBA tile comparable to it
-// channel for channel.
+
+
+
+
 func coordinateImage(width int, height int) *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, width, height))
 	for y := 0; y < height; y++ {
@@ -33,7 +33,7 @@ func encodePNG(t *testing.T, img image.Image) []byte {
 	return out.Bytes()
 }
 
-// buildPNG runs a whole pyramid and collects it, in the order it was emitted.
+
 func buildPNG(t *testing.T, img image.Image, tileSize int) (Result, []Tile) {
 	t.Helper()
 	var tiles []Tile
@@ -47,9 +47,9 @@ func buildPNG(t *testing.T, img image.Image, tileSize int) (Result, []Tile) {
 	return result, tiles
 }
 
-// A source that already fits in a tile is a pyramid of one level and one tile,
-// and the tile is the image rather than a tile-sized canvas with the image in
-// a corner.
+
+
+
 func TestASinglePixelIsOneTile(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(1, 1), 8)
 
@@ -64,8 +64,8 @@ func TestASinglePixelIsOneTile(t *testing.T) {
 	}
 }
 
-// A source exactly one tile across has one column and no remainder, which is
-// the case an off-by-one in the tile count turns into a second, empty column.
+
+
 func TestASourceExactlyOneTileWide(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(8, 20), 8)
 
@@ -91,9 +91,9 @@ func TestASourceExactlyOneTileWide(t *testing.T) {
 	}
 }
 
-// One pixel past a tile boundary is a whole extra column of tiles, each of
-// them one pixel wide. It is the ugliest case the arithmetic has, and the one
-// that a tiler which padded its edges would hide.
+
+
+
 func TestOnePixelOverATileBoundary(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(9, 8), 8)
 
@@ -115,8 +115,8 @@ func TestOnePixelOverATileBoundary(t *testing.T) {
 	}
 }
 
-// The axes bottom out at different levels on anything long and thin, and the
-// pyramid does not stop until both have. The top level here is 8x1.
+
+
 func TestANonSquareSourceRunsToTheLongerAxis(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(64, 4), 8)
 
@@ -132,9 +132,9 @@ func TestANonSquareSourceRunsToTheLongerAxis(t *testing.T) {
 	}
 }
 
-// Every level is covered exactly once, with no gap and no overlap, and the
-// widths of a row's tiles add up to the level's width. A missing edge tile is
-// a strip of the map that never loads; an extra one is a request that 404s.
+
+
+
 func TestEveryLevelIsCoveredExactlyOnce(t *testing.T) {
 	const width, height, tileSize = 37, 21, 8
 	result, tiles := buildPNG(t, coordinateImage(width, height), tileSize)
@@ -177,10 +177,10 @@ func TestEveryLevelIsCoveredExactlyOnce(t *testing.T) {
 	}
 }
 
-// Level 0 is a crop of the source, so every pixel of every tile has to be the
-// pixel the source had at that position. An origin that was off by a tile, or
-// by the source's bounds, would still produce a plausible-looking map -- one
-// that is shifted.
+
+
+
+
 func TestLevelZeroCarriesTheSourcePixels(t *testing.T) {
 	const width, height, tileSize = 21, 13, 8
 	source := coordinateImage(width, height)
@@ -203,12 +203,12 @@ func TestLevelZeroCarriesTheSourcePixels(t *testing.T) {
 	}
 }
 
-// The halving is a 2x2 box average: each pixel of a level is the mean of the
-// four it covers below. A filter that sampled instead would alias hard grid
-// lines into moire, and one that rang would halo them.
+
+
+
 func TestHalvingIsTheFourPixelMean(t *testing.T) {
-	// Values chosen so every 2x2 block's mean is a whole number and no two
-	// blocks share one, which a nearest-neighbour filter could not fake.
+	
+	
 	source := image.NewNRGBA(image.Rect(0, 0, 4, 4))
 	for y := 0; y < 4; y++ {
 		for x := 0; x < 4; x++ {
@@ -216,7 +216,7 @@ func TestHalvingIsTheFourPixelMean(t *testing.T) {
 		}
 	}
 
-	// A tile size of 2 is what puts a level 1 above a 4x4 source at all.
+	
 	_, tiles := buildPNG(t, source, 2)
 
 	var level1 *Tile
@@ -244,9 +244,9 @@ func TestHalvingIsTheFourPixelMean(t *testing.T) {
 	}
 }
 
-// Level 0 first, and every level complete before the next begins. The caller
-// writes tiles as they arrive, so the order is what decides whether a pyramid
-// that is interrupted has a usable bottom or a scattering of levels.
+
+
+
 func TestTilesArriveLevelZeroFirst(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(37, 21), 8)
 
@@ -265,9 +265,9 @@ func TestTilesArriveLevelZeroFirst(t *testing.T) {
 	}
 }
 
-// An emit that fails stops the build where it is and comes back unwrapped, so
-// the caller can tell its own failure from a decode it cannot do anything
-// about. This is the whole cancellation story: there is no other way in.
+
+
+
 func TestAFailingEmitAbandonsTheBuild(t *testing.T) {
 	stop := errors.New("the pool gave up")
 
@@ -288,9 +288,9 @@ func TestAFailingEmitAbandonsTheBuild(t *testing.T) {
 	}
 }
 
-// jpegWithOrientation encodes img and splices an EXIF block carrying a single
-// Orientation tag in behind the SOI marker, which is where a camera would have
-// put it.
+
+
+
 func jpegWithOrientation(t *testing.T, img image.Image, orientation uint16) []byte {
 	t.Helper()
 
@@ -301,28 +301,28 @@ func jpegWithOrientation(t *testing.T, img image.Image, orientation uint16) []by
 
 	exif := []byte{
 		'E', 'x', 'i', 'f', 0x00, 0x00,
-		'M', 'M', 0x00, 0x2a, // big endian, and the TIFF magic
-		0x00, 0x00, 0x00, 0x08, // the first directory follows immediately
-		0x00, 0x01, // holding one tag
-		0x01, 0x12, // Orientation
-		0x00, 0x03, // as a SHORT
-		0x00, 0x00, 0x00, 0x01, // one of them
-		byte(orientation >> 8), byte(orientation), 0x00, 0x00, // left-aligned in its four bytes
-		0x00, 0x00, 0x00, 0x00, // and no directory after this one
+		'M', 'M', 0x00, 0x2a, 
+		0x00, 0x00, 0x00, 0x08, 
+		0x00, 0x01, 
+		0x01, 0x12, 
+		0x00, 0x03, 
+		0x00, 0x00, 0x00, 0x01, 
+		byte(orientation >> 8), byte(orientation), 0x00, 0x00, 
+		0x00, 0x00, 0x00, 0x00, 
 	}
 
 	out := make([]byte, 0, raw.Len()+len(exif)+4)
-	out = append(out, raw.Bytes()[:2]...) // the SOI marker
+	out = append(out, raw.Bytes()[:2]...) 
 	out = append(out, 0xff, 0xe1, byte((len(exif)+2)>>8), byte(len(exif)+2))
 	out = append(out, exif...)
 	return append(out, raw.Bytes()[2:]...)
 }
 
-// A PHONE PHOTO OF A HAND-DRAWN MAP IS THE CASE THIS EXISTS FOR. The file's
-// header says 40x20 either way; only the orientation tag says which way up it
-// is. The pyramid is laid out over the pixels as seen, so the dimensions the
-// asset row records have to be the rotated ones -- a row that disagreed with
-// its own pyramid would have the renderer asking for tiles that are not there.
+
+
+
+
+
 func TestAnOrientationTagRotatesThePyramid(t *testing.T) {
 	source := coordinateImage(40, 20)
 
@@ -334,7 +334,7 @@ func TestAnOrientationTagRotatesThePyramid(t *testing.T) {
 		t.Errorf("a rotated source built a %dx%d pyramid, want 20x40", rotated.Width, rotated.Height)
 	}
 
-	// The control: the same splice carrying the tag that means "as stored".
+	
 	upright, err := Build(bytes.NewReader(jpegWithOrientation(t, source, 1)), 8, func(Tile) error { return nil })
 	if err != nil {
 		t.Fatalf("Build: %v", err)
@@ -358,11 +358,11 @@ func TestBuildRefusesWhatItCannotBuild(t *testing.T) {
 	}
 }
 
-// EVERY TILE CARRIES THE PYRAMID'S TOP LEVEL, which is what lets a consumer
-// decide something about a tile while the build is still running. The encoder
-// pool is handed tiles through a channel and never sees the Result, so a tile
-// that only knew its own Z could not tell the bottom of the pyramid from the
-// top of it.
+
+
+
+
+
 func TestEveryTileKnowsHowTallThePyramidIs(t *testing.T) {
 	result, tiles := buildPNG(t, coordinateImage(40, 24), 8)
 

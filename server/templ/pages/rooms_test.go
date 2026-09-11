@@ -9,8 +9,8 @@ import (
 	"tabletopper/internal/room"
 )
 
-// testRoomPage is a GM's view of an open room, for the renders that want a page
-// with something on it.
+
+
 func testRoomPage(role room.Role) RoomPageData {
 	return RoomPageData{
 		ID:   "01BX5ZZKBKACTAV9WEVGEMMVT0",
@@ -18,16 +18,16 @@ func testRoomPage(role room.Role) RoomPageData {
 		Code: "AB2C",
 		Role: role,
 
-		// THE VOLUME IS SET BECAUSE ITS ZERO VALUE IS SILENCE. Every other field
-		// on this fixture can be left off and mean "not that"; this one would
-		// mean "muted", which is a page nobody's session produces -- prefs.New
-		// clamps and defaults, so a real room always renders a real reading. See
-		// PingVolume in room.go.
+		
+		
+		
+		
+		
 		PingVolume: prefs.PingVolumeMax,
 	}
 }
 
-// menuLabels is the headings across the bar, in order.
+
 func menuLabels(data RoomPageData) []string {
 	labels := []string{}
 	for _, m := range data.Menus() {
@@ -37,9 +37,9 @@ func menuLabels(data RoomPageData) []string {
 	return labels
 }
 
-// menuNamed is one menu of the bar. It fails rather than returning nothing for
-// a heading that is not there, because a test asking about a menu that has been
-// renamed should say so.
+
+
+
 func menuNamed(t *testing.T, data RoomPageData, heading string) RoomMenu {
 	t.Helper()
 
@@ -54,7 +54,7 @@ func menuNamed(t *testing.T, data RoomPageData, heading string) RoomMenu {
 	return RoomMenu{}
 }
 
-// itemLabels is the lines in one menu, in order.
+
 func itemLabels(t *testing.T, data RoomPageData, heading string) []string {
 	t.Helper()
 
@@ -66,11 +66,11 @@ func itemLabels(t *testing.T, data RoomPageData, heading string) []string {
 	return labels
 }
 
-// THE 422 ROUTE IS WHAT MAKES A REJECTION VISIBLE. Every 4xx is in the noSwap
-// list in base.templ, so without an hx-status pointing the response at the
-// error block a refused submission would swap nothing and the form would look
-// like it had done nothing at all. The four attributes have to agree on one id,
-// and a target that has drifted from its block fails silently.
+
+
+
+
+
 func TestTheNewRoomDialogRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 	dialog := markup(t, NewRoomFragment())
 
@@ -87,9 +87,9 @@ func TestTheNewRoomDialogRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 		}
 	}
 
-	// Close first and the affirmative action second, and Close dispatches the
-	// event rather than being a <form method="dialog"> -- forms do not nest,
-	// and this one is inside the create form.
+	
+	
+	
 	if !strings.Contains(dialog, "modal:close") || !strings.Contains(dialog, ">Close<") {
 		t.Errorf("the dialog has no way out of it:\n%s", dialog)
 	}
@@ -98,16 +98,16 @@ func TestTheNewRoomDialogRoutesItsRejectionToItsErrorBlock(t *testing.T) {
 	}
 }
 
-// oneCharacter is a roster with something in it, which every test of the join
-// FORM needs: a page rendered for an account with no characters has no form on
-// it at all, which is the point of the two tests at the bottom of this group.
+
+
+
 func oneCharacter() []JoinCharacterOption {
 	return []JoinCharacterOption{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Vex"}}
 }
 
-// The join form takes the same route, plus one for the rate limit. 429 is not
-// 422, and without its own hx-status the noSwap list would swallow the message
-// that says to wait a minute.
+
+
+
 func TestTheJoinFormRoutesBothOfItsRejections(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
@@ -126,9 +126,9 @@ func TestTheJoinFormRoutesBothOfItsRejections(t *testing.T) {
 	}
 }
 
-// The code field is bounded by the generator's own length, so the two cannot
-// drift: a field that let five characters through would send a code no room can
-// have to a handler that refuses it.
+
+
+
 func TestTheJoinFieldIsAsLongAsACode(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
@@ -137,11 +137,11 @@ func TestTheJoinFieldIsAsLongAsACode(t *testing.T) {
 	}
 }
 
-// THE FIELD IS THE OTP COMPONENT AND ONE BOX IS ONE CHARACTER. DaisyUI draws
-// the boxes from the spans, and the input is what is actually typed into, so a
-// field with five boxes and a maxlength of four is a box that can never be
-// filled -- and four boxes with no maxlength is a code that runs past the last
-// one. Both halves are asserted here because nothing else can notice.
+
+
+
+
+
 func TestTheJoinFieldHasOneBoxPerCharacter(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
@@ -160,9 +160,9 @@ func TestTheJoinFieldHasOneBoxPerCharacter(t *testing.T) {
 	}
 }
 
-// The pattern comes off the alphabet rather than out of the markup, so a letter
-// left out of codes is a letter the field refuses without anybody remembering
-// to change two places.
+
+
+
 func TestTheJoinFieldRefusesTheLettersCodesDoNotUse(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
@@ -176,8 +176,8 @@ func TestTheJoinFieldRefusesTheLettersCodesDoNotUse(t *testing.T) {
 	}
 }
 
-// A pasted /rooms/join/{code} link prefills the field and joins nothing: the
-// form is still there to submit.
+
+
 func TestAPrefilledJoinPageStillHasToBeSubmitted(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Code: "AB2C", Characters: oneCharacter()}))
 
@@ -189,10 +189,10 @@ func TestAPrefilledJoinPageStillHasToBeSubmitted(t *testing.T) {
 	}
 }
 
-// THE PICKER CANNOT BE LEFT UNANSWERED. Its first option carries the empty
-// value and is disabled, so an untouched form submits nothing the handler will
-// take -- and `required` is what stops it being submitted at all. Neither is
-// the check: JoinRoomForm refuses an empty value, because a form is markup.
+
+
+
+
 func TestTheJoinPickerCannotBeLeftUnanswered(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Characters: oneCharacter()}))
 
@@ -207,9 +207,9 @@ func TestTheJoinPickerCannotBeLeftUnanswered(t *testing.T) {
 	}
 }
 
-// AN ACCOUNT WITH NO CHARACTERS GETS NO FORM. A picker with nothing in it and a
-// button that cannot work is a page that looks broken; the honest version says
-// what is missing and links to where it is made.
+
+
+
 func TestAJoinPageWithNoCharactersOffersNoForm(t *testing.T) {
 	page := renderToString(t, JoinRoom(JoinRoomPageData{Code: "AB2C"}))
 
@@ -221,17 +221,17 @@ func TestAJoinPageWithNoCharactersOffersNoForm(t *testing.T) {
 	}
 }
 
-// THE BAR IS THE APPLICATION'S SHAPE AND EACH ROLE GETS THE HALF THEY CAN ACT
-// ON. Room, Tabletop, Tools, View and Help are everybody's and never move --
-// muscle memory is real and a heading that shifts is a heading that has to be
-// found again. What is between Tabletop and Window is the part that belongs to
-// one role: the GM runs the fog and the tracker, and the player has a sheet and
-// a journal.
-//
-// A PLAYER'S BAR ONCE CARRIED FOG AND INITIATIVE AS EMPTY DRAWERS, on the
-// reasoning that a shared shape teaches everyone where things are. It taught
-// them nothing, because no item under either heading has ever been a player's,
-// and it cost them two menus of dead lines between the two that work.
+
+
+
+
+
+
+
+
+
+
+
 func TestTheBarGivesEachRoleTheHeadingsTheyCanAct(t *testing.T) {
 	for role, want := range map[room.Role][]string{
 		room.RoleGM:     {"Room", "Tabletop", "Fog", "Initiative", "Tools", "View", "Help"},
@@ -244,10 +244,10 @@ func TestTheBarGivesEachRoleTheHeadingsTheyCanAct(t *testing.T) {
 	}
 }
 
-// THE CHARACTER MENU IS THE PLAYER'S AND IS NOT ON THE GM'S BAR AT ALL. Neither
-// item is built, which is the point of it existing now: the sheet and the
-// journal are the two things a player currently leaves the room to read, so
-// where they will live is worth settling before they are written.
+
+
+
+
 func TestTheCharacterMenuIsThePlayersAlone(t *testing.T) {
 	got := itemLabels(t, testRoomPage(room.RolePlayer), "Character")
 	want := []string{"Character sheet", "Journal"}
@@ -262,10 +262,10 @@ func TestTheCharacterMenuIsThePlayersAlone(t *testing.T) {
 	}
 }
 
-// TOOLS IS ON BOTH BARS AND IS NOT THE SAME LIST. The dice tray is everybody's;
-// the Monster Manual is the stat blocks of what the party is currently fighting,
-// which is the one document at a table that only works while one side of it
-// cannot read it.
+
+
+
+
 func TestTheMonsterManualIsTheGMsAndTheDiceTrayIsEverybodys(t *testing.T) {
 	gm := itemLabels(t, testRoomPage(room.RoleGM), "Tools")
 	want := []string{"Monster Manual", "Dice tray"}
@@ -280,7 +280,7 @@ func TestTheMonsterManualIsTheGMsAndTheDiceTrayIsEverybodys(t *testing.T) {
 	}
 }
 
-// AND THE GM'S TWO ARE NOT ON THE PLAYER'S.
+
 func TestFogAndInitiativeAreTheGMsAlone(t *testing.T) {
 	for _, m := range testRoomPage(room.RolePlayer).Menus() {
 		if m.Label == "Fog" || m.Label == "Initiative" {
@@ -289,10 +289,10 @@ func TestFogAndInitiativeAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// Every item the bar is meant to carry, pinned by menu. Most of them are
-// disabled and that is not what this is about: the point is that the shape is
-// here, so building a feature later is wiring an item rather than deciding
-// where it lives.
+
+
+
+
 func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
@@ -311,15 +311,15 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	}
 }
 
-// SPAWN PAWNS IS A POST AND NOT A DIALOG, AND IT IS THE GM'S ALONE. Both halves
-// of that were built the other way first and both were wrong. The item opened a
-// modal that asked nothing the room did not already know -- who is connected and
-// which of them have a pawn are room state -- and the player's copy of this menu
-// carried a live "Place my pawn" beside four dead lines.
-//
-// A PLAYER MAY DO NOTHING TO THE TABLE AND THE MENU SAYS SO. That is not merely
-// a hidden button: PawnSpawn.Authorize refuses a player outright, so the greyed
-// lines here and the socket agree about what is possible.
+
+
+
+
+
+
+
+
+
 func TestSpawnPawnsPostsThePartyAndIsTheGMsAlone(t *testing.T) {
 	var spawn RoomMenuItem
 	for _, item := range menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items {
@@ -338,8 +338,8 @@ func TestSpawnPawnsPostsThePartyAndIsTheGMsAlone(t *testing.T) {
 		t.Errorf("Spawn pawns is not a plain post: %+v", spawn)
 	}
 
-	// And it is not on the player's menu at all -- see
-	// TestAPlayersTabletopMenuIsTheirsAndTouchesNothing, which pins what is.
+	
+	
 	for _, item := range menuNamed(t, testRoomPage(room.RolePlayer), "Tabletop").Items {
 		if item.Label == "Spawn pawns" {
 			t.Error("a player's Tabletop menu offers Spawn pawns")
@@ -347,10 +347,10 @@ func TestSpawnPawnsPostsThePartyAndIsTheGMsAlone(t *testing.T) {
 	}
 }
 
-// CLEAR TABLETOP IS A POST BEHIND A CONFIRMATION, and it is the only item in
-// this menu that is either. It empties every floor in one command and there is
-// no undo, so the confirm modal has to name what goes -- "Are you sure?" over a
-// menu of six items is a question nobody can answer safely.
+
+
+
+
 func TestClearTabletopIsConfirmedAndIsTheGMsAlone(t *testing.T) {
 	var clear RoomMenuItem
 	for _, item := range menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items {
@@ -374,7 +374,7 @@ func TestClearTabletopIsConfirmedAndIsTheGMsAlone(t *testing.T) {
 		}
 	}
 
-	// It is last, because it is the one item in the menu that undoes the rest.
+	
 	items := menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items
 	if items[len(items)-1].Label != "Clear tabletop" {
 		t.Errorf("Clear tabletop is not the last item: %q", items[len(items)-1].Label)
@@ -387,22 +387,22 @@ func TestClearTabletopIsConfirmedAndIsTheGMsAlone(t *testing.T) {
 	}
 }
 
-// CLEAR BLOOD IS THE ONE LINE IN THIS MENU THAT IS NOT A COMMAND TO THE ROOM,
-// and both roles get the same one. The marks on the floor were drawn by each
-// browser out of hit points it watched change, so there is nothing to post and
-// nobody else's table to touch -- which is why it is an action rather than the
-// hx-post every other live item under Tabletop is, and why it carries no
-// confirmation.
-//
-// IT SITS ABOVE CLEAR TABLETOP AND NOT BESIDE IT. One tidies what this viewer
-// is looking at; the other empties the room for everybody, and the two being
-// adjacent and similarly worded is exactly the mis-click worth spending a line
-// of order on. Clear tabletop stays last, alone, in the error colour.
-//
-// THE ACTION NAME IS SPELLED OUT IN THREE PLACES AND PINNED HERE. It is the
-// contract across a bundle boundary: public/js/room.js switches on it and turns
-// it into a "room:blood" window event, and render/renderer.ts listens. A rename
-// in one of the three is a menu item that silently stops working.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestClearBloodIsEveryonesAndAsksTheRoomForNothing(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		var blood RoomMenuItem
@@ -427,25 +427,25 @@ func TestClearBloodIsEveryonesAndAsksTheRoomForNothing(t *testing.T) {
 		}
 	}
 
-	// It is not the last line of the GM's menu; Clear tabletop is, and the two
-	// must not be neighbours a slip can cross.
+	
+	
 	gm := itemLabels(t, testRoomPage(room.RoleGM), "Tabletop")
 	if gm[len(gm)-1] != "Clear tabletop" {
 		t.Errorf("the GM's Tabletop menu ends with %q, want Clear tabletop", gm[len(gm)-1])
 	}
 
-	// And the markup renders it as an action the bar can dispatch.
+	
 	page := markup(t, Room(testRoomPage(room.RolePlayer)))
 	if !strings.Contains(page, `data-room-action="clear-blood"`) {
 		t.Error("a player's page has no Clear blood the bar can dispatch")
 	}
 }
 
-// A WINDOW'S TITLE BAR MUST BE ABLE TO SHRINK OR THE WINDOW CANNOT BE CLOSED.
-// The bar is a row of a grid whose column is sized auto, so without min-w-0 the
-// column's floor is the bar's own min-content width -- and the heading's
-// white-space: nowrap makes that the whole title. A long pawn name then pushed
-// the three controls past the window's edge, where overflow-hidden cut them off.
+
+
+
+
+
 func TestAWindowsTitleBarCanShrink(t *testing.T) {
 	body := renderToString(t, roomWindowTemplate())
 
@@ -460,10 +460,10 @@ func TestAWindowsTitleBarCanShrink(t *testing.T) {
 	}
 }
 
-// THE CANVAS IS THE RENDERER'S WHOLE FOOTPRINT IN THE MARKUP, and the two
-// attributes on it are what render/renderer.ts looks for. touch-none is not
-// decoration: without it a browser handles a one finger drag as a scroll and
-// the pointer events never arrive, so a tablet gets a table it cannot pan.
+
+
+
+
 func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
 	open := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
 
@@ -473,16 +473,16 @@ func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
 		}
 	}
 
-	// The message is rendered by the page and revealed by the client, because
-	// server/js is not a Tailwind source and a class name written there would
-	// never reach the stylesheet.
+	
+	
+	
 	if !strings.Contains(open, "data-tabletop-unsupported hidden") {
 		t.Error("the unsupported message is not hidden to begin with")
 	}
 
-	// A closed room has no socket, no state and nothing to draw. Putting a
-	// canvas there would paint a grid behind the sentence explaining that the
-	// room is shut.
+	
+	
+	
 	closed := testRoomPage(room.RoleGM)
 	closed.Closed = true
 
@@ -491,14 +491,14 @@ func TestAnOpenRoomRendersTheCanvasAndAClosedOneDoesNot(t *testing.T) {
 	}
 }
 
-// THE TWO TABLE SETTINGS CROSS INTO THE BUNDLE AS ATTRIBUTES THAT ARE THERE OR
-// ARE NOT, which is the same shape data-socket uses to say "do not connect".
-// main.ts reads each one once, on load, so a spelling that drifted from it is a
-// setting that is simply off for everybody with nothing anywhere reporting it.
-//
-// THE PAGE IS THE OPENING ANSWER AND NOT THE LAST WORD. Settings in the Help
-// menu can change either of these without a reload -- see htmx.Settings -- so
-// what is pinned here is where the room STARTS.
+
+
+
+
+
+
+
+
 func TestTheTableSettingsCrossAsAttributesThatAreThereOrAreNot(t *testing.T) {
 	tests := []struct {
 		name string
@@ -520,9 +520,9 @@ func TestTheTableSettingsCrossAsAttributesThatAreThereOrAreNot(t *testing.T) {
 		})
 	}
 
-	// And off is each attribute's absence rather than a value the client would
-	// have to read and compare. The fixture answers false to both, so one
-	// render covers them.
+	
+	
+	
 	off := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
 	for _, tc := range tests {
 		if strings.Contains(off, tc.attr) {
@@ -531,11 +531,11 @@ func TestTheTableSettingsCrossAsAttributesThatAreThereOrAreNot(t *testing.T) {
 	}
 }
 
-// THE CAMERA ITEMS ARE THE ONE PLACE A LABEL IS NOT THE CONTRACT. Everything
-// else in the bar is a URL or a window id, which fails loudly when it is wrong;
-// these cross into another bundle as a string in an event, where a typo is a
-// menu item that does nothing and reports nothing. So the action and every
-// value are pinned here, against public/js/room.js and render/renderer.ts.
+
+
+
+
+
 func TestEveryCameraItemSendsTheOneViewAction(t *testing.T) {
 	want := map[string]string{
 		"Zoom in":  "zoom-in",
@@ -570,13 +570,13 @@ func TestEveryCameraItemSendsTheOneViewAction(t *testing.T) {
 	}
 }
 
-// THE ROOM MENU IS THE ONE THAT DIFFERS BY ROLE. The GM owns the room, so they
-// get the lock and the close; a player is only in it, so they get a way out.
-//
-// THE CODE IS ON BOTH, WHICH IS THE ONE ACT OF OWNERSHIP THAT IS NOT ONE. It is
-// the room's address rather than a key to it, and the person who most often has
-// to read it out is the player whose browser fell over. Who may come in is
-// still the GM's, and the lock is what says so.
+
+
+
+
+
+
+
 func TestTheRoomMenuGivesTheGMTheRoomAndThePlayerTheDoor(t *testing.T) {
 	gm := itemLabels(t, testRoomPage(room.RoleGM), "Room")
 	want := []string{"Lock room", "Player List", "Copy room code", "Back to rooms", "Close room"}
@@ -591,8 +591,8 @@ func TestTheRoomMenuGivesTheGMTheRoomAndThePlayerTheDoor(t *testing.T) {
 	}
 }
 
-// A closed room has no code, so there is nothing to copy, nothing to lock and
-// nothing left to close. Reopen takes their place.
+
+
 func TestAClosedRoomOffersReopenAndNothingElseToDoToIt(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 	data.Closed = true
@@ -605,9 +605,9 @@ func TestAClosedRoomOffersReopenAndNothingElseToDoToIt(t *testing.T) {
 	}
 }
 
-// The lock is one line and two routes, and the line carries the id the reply
-// swaps -- so the item the page draws and the item the route answers with are
-// built by the same function and cannot drift.
+
+
+
 func TestTheLockItemNamesTheRouteItIsNotIn(t *testing.T) {
 	open := markup(t, RoomLockItem(testRoomPage(room.RoleGM)))
 	locked := testRoomPage(room.RoleGM)
@@ -626,18 +626,18 @@ func TestTheLockItemNamesTheRouteItIsNotIn(t *testing.T) {
 		}
 	}
 
-	// And the page draws the same item, so the first render and the reply match.
+	
 	if !strings.Contains(markup(t, Room(testRoomPage(room.RoleGM))), open) {
 		t.Error("the page renders its own copy of the lock item")
 	}
 }
 
-// WHAT IS THE GM'S IS WHAT ACTS ON THE ROOM, AND THE CODE IS NOT ONE OF THOSE.
-// A player's markup carries the code and the item that copies it, because the
-// question they ask with it -- what do I type back in, what do I send the person
-// running late -- is not a decision the GM was ever making. What it must not
-// carry is the lock and the close, which are the two things that change who may
-// be at the table.
+
+
+
+
+
+
 func TestThePlayersPageActsOnTheRoomInNoWayButLeaving(t *testing.T) {
 	player := markup(t, Room(testRoomPage(room.RolePlayer)))
 
@@ -657,8 +657,8 @@ func TestThePlayersPageActsOnTheRoomInNoWayButLeaving(t *testing.T) {
 	}
 }
 
-// The two documents open in a second tab, which is the one place in the app
-// that is true: following one out of a game in progress should not end it.
+
+
 func TestTheHelpMenuOpensTheDocumentsInASecondTab(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -669,11 +669,11 @@ func TestTheHelpMenuOpensTheDocumentsInASecondTab(t *testing.T) {
 	}
 }
 
-// AND SETTINGS DOES NOT LEAVE THE TABLE AT ALL, which is the whole reason it is
-// on this bar. It is the content modal on the same fragment the gear at the
-// bottom of the homepage opens -- one dialog, one form, one save -- and both
-// halves of the room can reach it, because the settings on it are the account's
-// and not the GM's to hand out.
+
+
+
+
+
 func TestSettingsOpensTheAccountDialogOverTheTable(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		page := markup(t, Room(testRoomPage(role)))
@@ -687,13 +687,13 @@ func TestSettingsOpensTheAccountDialogOverTheTable(t *testing.T) {
 	}
 }
 
-// An item whose feature is not built is disabled rather than silently inert. A
-// disabled item says "this belongs here and does not work yet"; one that looks
-// live and does nothing says "this is broken".
+
+
+
 func TestUnbuiltItemsAreDisabledRatherThanInert(t *testing.T) {
-	// BOTH BARS, because they are two lists now and the player's is the one
-	// whose every unbuilt item was added last -- Character sheet and Journal
-	// are the two lines most likely to be reached for and not yet there.
+	
+	
+	
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		page := markup(t, Room(testRoomPage(role)))
 
@@ -708,17 +708,17 @@ func TestUnbuiltItemsAreDisabledRatherThanInert(t *testing.T) {
 			}
 		}
 
-		// menu-disabled is what greys the line the button sits on; without it
-		// the row still highlights on hover and reads as clickable.
+		
+		
 		if !strings.Contains(page, `class="menu-disabled"`) {
 			t.Errorf("no disabled item on %s's bar carries menu-disabled", role)
 		}
 	}
 }
 
-// THE SIDE PANEL IS GONE AND STAYS GONE. The table fills everything under the
-// bar; the player list is a window behind a menu, initiative is not a column
-// beside the map, and there is no chat.
+
+
+
 func TestTheRoomIsABarAndATable(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -730,9 +730,9 @@ func TestTheRoomIsABarAndATable(t *testing.T) {
 			t.Errorf("the side panel is back: %s", gone)
 		}
 	}
-	// `table` is a DaisyUI component and Tailwind reads every word in a .templ
-	// file as a class-name candidate, attribute values included -- so the wrong
-	// id here emits the whole table family and nothing anywhere fails.
+	
+	
+	
 	for _, forbidden := range []string{`id="table"`, `id="list"`, `id="status"`, `id="chat"`, `id="stack"`} {
 		if strings.Contains(page, forbidden) {
 			t.Errorf("the page carries %s, which is a DaisyUI component name", forbidden)
@@ -740,13 +740,13 @@ func TestTheRoomIsABarAndATable(t *testing.T) {
 	}
 }
 
-// The tool pill is five modes with exactly one pressed, and it is over the
-// table rather than in the bar because a pointer mode is switched constantly
-// while both hands are busy.
-// toolButtons matches a pressed tool in the main pill and captures its name.
-// The attributes between the two are not pinned, because what matters is which
-// button carries the pressed state and not what else the markup has learned to
-// render onto it since.
+
+
+
+
+
+
+
 var toolButtons = regexp.MustCompile(`data-room-tool="([a-z]+)"[^>]*aria-pressed="true"`)
 
 func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
@@ -756,37 +756,37 @@ func TestTheToolPillStartsOnExactlyOneTool(t *testing.T) {
 		t.Errorf("the pill has %d buttons, want %d", got, len(RoomTools()))
 	}
 
-	// THE PRESSED COUNT IS SCOPED TO THE TOOLS and not to the page, because the
-	// page has a second pill on it: the fog tool's own options, which carry
-	// aria-pressed for the same reason and start on one each.
+	
+	
+	
 	if got := len(toolButtons.FindAllString(page, -1)); got != 1 {
 		t.Errorf("%d tools are pressed, want exactly 1", got)
 	}
 
-	// IT OPENS ON SELECT, because picking a pawn out and drawing a box round
-	// four of them are the gestures a table is made of -- a room that opened in
-	// a mode where none of them worked would have to be switched out of before
-	// it could be played.
-	// The attributes between the two are not pinned, because what matters is
-	// which button carries the pressed state and not what else the markup has
-	// learned to render onto it since.
+	
+	
+	
+	
+	
+	
+	
 	pressed := toolButtons.FindStringSubmatch(page)
 	if pressed == nil || pressed[1] != DefaultRoomTool {
 		t.Errorf("the room does not open on %q: %v", DefaultRoomTool, pressed)
 	}
 
-	// It floats over the table, so it is inside the region it acts on.
+	
 	if strings.Index(page, `id="tabletop"`) > strings.Index(page, "data-room-tools") {
 		t.Error("the tool pill is outside the table region")
 	}
 }
 
-// WHICH TOOL HANDS THE POINTER TO THE CAMERA IS RENDERED RATHER THAN SPELLED
-// AGAIN IN TYPESCRIPT. server/js/room/tools.ts finds it by this attribute,
-// because that is the button the space bar borrows -- and a name written out in
-// both languages is a space bar that quietly stops working the day this list is
-// renamed. Exactly one tool carries it, and nothing about the page says so
-// except the list itself.
+
+
+
+
+
+
 func TestExactlyOneToolHandsThePointerToTheCamera(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -811,11 +811,11 @@ func TestExactlyOneToolHandsThePointerToTheCamera(t *testing.T) {
 	}
 }
 
-// AND WHICH ONE IS THE RULER IS RENDERED THE SAME WAY, for the same reason and
-// with one difference the client cares about: the space bar borrows the panning
-// tool and does not borrow this one, so a measurement survives the map being
-// shoved across. Two flags rather than a name per reader is what keeps Fog and
-// Draw from needing anything here but a third.
+
+
+
+
+
 func TestExactlyOneToolIsTheRuler(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -835,9 +835,9 @@ func TestExactlyOneToolIsTheRuler(t *testing.T) {
 			t.Errorf("%q measures as well as %q", tool.Name, RoomToolMeasure)
 		}
 
-		// NO TOOL DOES BOTH. panning is asked of the lit button and measuring
-		// of the chosen one, and a button that answered yes to both would put
-		// the table in two modes the moment the space bar went down.
+		
+		
+		
 		if tool.Pans && tool.Measures {
 			t.Errorf("%q both pans and measures", tool.Name)
 		}
@@ -847,11 +847,11 @@ func TestExactlyOneToolIsTheRuler(t *testing.T) {
 	}
 }
 
-// AND THE LETTER THAT SWITCHES TO A MODE IS RENDERED TOO, so tools.ts reads a
-// map out of the markup rather than carrying three names of its own. A letter
-// is a mnemonic and is matched on KeyboardEvent.key, which is why it is stored
-// as the lower case the client compares against and shown as the upper case
-// printed on the key cap.
+
+
+
+
+
 func TestEveryToolShortcutIsItsOwnLetter(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -876,9 +876,9 @@ func TestEveryToolShortcutIsItsOwnLetter(t *testing.T) {
 			t.Errorf("%q renders no shortcut attribute:\n%s", tool.Name, page)
 		}
 
-		// AND IT IS SHOWN WHERE THE NAME IS. A shortcut nobody is told about is
-		// a shortcut nobody presses, and the tooltip is the only place the pill
-		// says anything at all.
+		
+		
+		
 		if !strings.Contains(page, ">"+tool.KeyLabel()+"</kbd>") {
 			t.Errorf("%q does not print %q in its tooltip", tool.Name, tool.KeyLabel())
 		}
@@ -892,9 +892,9 @@ func TestEveryToolShortcutIsItsOwnLetter(t *testing.T) {
 	}
 }
 
-// The floors menu swaps the layer the PLAYERS are shown, which is the GM's
-// alone -- so a player's page renders neither the button nor the list, and the
-// client finds nothing to mount rather than a control it has to hide.
+
+
+
 func TestTheFloorMenuIsTheGMsAlone(t *testing.T) {
 	gm := markup(t, Room(testRoomPage(room.RoleGM)))
 	player := markup(t, Room(testRoomPage(room.RolePlayer)))
@@ -908,9 +908,9 @@ func TestTheFloorMenuIsTheGMsAlone(t *testing.T) {
 		}
 	}
 
-	// It is placed against the table rather than inside the pill, which is
-	// positioned and z-indexed and would trap it under any window sitting over
-	// that corner.
+	
+	
+	
 	if strings.Index(gm, "data-layer-menu") < strings.Index(gm, "data-room-tools") {
 		t.Error("the floors menu is rendered before the pill it belongs to")
 	}
@@ -919,9 +919,9 @@ func TestTheFloorMenuIsTheGMsAlone(t *testing.T) {
 	}
 }
 
-// A card shows the code when the room is open and says Closed when it is not.
-// It never prints the code a closed room used to have: that went back into
-// circulation and may belong to somebody else's table now.
+
+
+
 func TestARoomCardShowsTheCodeOnlyWhileItIsOpen(t *testing.T) {
 	open := markup(t, roomCard(RoomSummary{ID: "01BX5ZZKBKACTAV9WEVGEMMVT0", Name: "Curse of Strahd", Code: "AB2C"}))
 	closed := markup(t, roomCard(RoomSummary{ID: "01BX5ZZKBKACTAV9WEVGEMMVT0", Name: "Curse of Strahd", Closed: true}))
@@ -936,8 +936,8 @@ func TestARoomCardShowsTheCodeOnlyWhileItIsOpen(t *testing.T) {
 		t.Error("a closed room's card offers no way to reopen it")
 	}
 
-	// Delete is behind the confirm modal on both, because it takes the room and
-	// everybody in it.
+	
+	
 	for _, card := range []string{open, closed} {
 		if !strings.Contains(card, "hx-confirm=") {
 			t.Errorf("a room can be deleted without confirming it:\n%s", card)
@@ -945,10 +945,10 @@ func TestARoomCardShowsTheCodeOnlyWhileItIsOpen(t *testing.T) {
 	}
 }
 
-// The player window sorts the GM to the top and everybody else by name, and it
-// has to do it the same way every time: this list is refetched on every join,
-// every reconnect and every disconnect, and one that reordered itself each time
-// would be one nobody could read.
+
+
+
+
 func TestThePlayerWindowPutsTheGMFirstAndTheRestByName(t *testing.T) {
 	got := SortRoomMembers([]RoomMember{
 		{Name: "ari"},
@@ -974,8 +974,8 @@ func names(members []RoomMember) []string {
 	return out
 }
 
-// The Player List opens a window, for the GM and for a player alike -- who is
-// at the table is not a secret from the table.
+
+
 func TestThePlayerListItemOpensAWindow(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		var item RoomMenuItem
@@ -994,18 +994,18 @@ func TestThePlayerListItemOpensAWindow(t *testing.T) {
 		if item.Window.Title == "" {
 			t.Errorf("%s: the window has no title to put in its bar", role)
 		}
-		// THE URL HAS TO BE A FRAGMENT. The client refuses anything else, for
-		// the reason the content modal does: a page URL swapped into a window
-		// is a whole document inside a panel, and it reads as a styling bug.
+		
+		
+		
 		if !strings.HasPrefix(item.Window.URL, "/fragment/") {
 			t.Errorf("%s: the window loads %q, which is not a fragment", role, item.Window.URL)
 		}
 	}
 }
 
-// The trigger is three data attributes and the client reads all three. An item
-// that lost one would open nothing and log, which is a bug nobody sees until
-// they click the menu.
+
+
+
 func TestAWindowItemRendersItsTrigger(t *testing.T) {
 	markup := renderToString(t, RoomLockItem(testRoomPage(room.RoleGM)))
 	if strings.Contains(markup, "data-window") {
@@ -1034,8 +1034,8 @@ func TestAWindowItemRendersItsTrigger(t *testing.T) {
 	}
 }
 
-// An unset size renders no attribute at all, so the client's own default is
-// what applies rather than a zero.
+
+
 func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
 	markup := renderToString(t, roomBarItem(RoomMenuItem{
 		Label:  "Dice tray",
@@ -1049,13 +1049,13 @@ func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
 	}
 }
 
-// testRoomIDText is any well-formed ULID: these tests render markup and never
-// parse it back, so what matters is that the id shows up in the URLs the
-// buttons carry.
+
+
+
 const testRoomIDText = "01BX5ZZKBKACTAV9WEVGEMMVT0"
 
-// membersFor is a room with the GM and one player in it, drawn for a viewer
-// who either may or may not remove them.
+
+
 func membersFor(canKick bool) RoomMembersData {
 	return RoomMembersData{
 		RoomID:  testRoomIDText,
@@ -1068,10 +1068,10 @@ func membersFor(canKick bool) RoomMembersData {
 	}
 }
 
-// THE REMOVE BUTTON IS THE GM'S AND IT IS NEVER ON THEIR OWN ROW. A GM cannot
-// remove themselves -- PlayerKick.Authorize refuses it, because a room with
-// nobody who can unlock or close it has to be abandoned -- so drawing the
-// button there would be an affordance for a refusal.
+
+
+
+
 func TestTheRemoveButtonIsTheGMsAndSkipsTheirOwnRow(t *testing.T) {
 	data := membersFor(true)
 	page := renderToString(t, RoomMembers(data))
@@ -1084,8 +1084,8 @@ func TestTheRemoveButtonIsTheGMsAndSkipsTheirOwnRow(t *testing.T) {
 		t.Errorf("%d remove buttons for a room of two, want 1 (not the GM's own row)", got)
 	}
 
-	// The destructive gate is hx-confirm, which is the app's only one, and it
-	// names the person rather than asking "Are you sure?" over a list.
+	
+	
 	if !strings.Contains(page, `hx-confirm="`+data.KickPrompt(player)+`"`) {
 		t.Errorf("the remove button has no confirm:\n%s", page)
 	}
@@ -1093,15 +1093,15 @@ func TestTheRemoveButtonIsTheGMsAndSkipsTheirOwnRow(t *testing.T) {
 		t.Error("the confirm does not name the person it is about")
 	}
 
-	// The reply is the list, so the button has to say where it goes.
+	
 	if !strings.Contains(page, `hx-target="#room-members"`) {
 		t.Errorf("the remove button does not target the list it replaces:\n%s", page)
 	}
 }
 
-// A PLAYER SEES NO BUTTON, and that is a courtesy rather than the rule: the
-// refusal is PlayerKick.Authorize, which runs against a role derived from the
-// rooms row on every post whether or not a button was drawn.
+
+
+
 func TestAPlayerSeesNoRemoveButton(t *testing.T) {
 	page := renderToString(t, RoomMembers(membersFor(false)))
 

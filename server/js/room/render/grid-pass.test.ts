@@ -1,4 +1,4 @@
-// The grid's colour reader. Everything else in that module is a shader.
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -21,9 +21,9 @@ test("the leading hash is optional and case does not matter", () => {
 	assert.deepEqual(read("FF8800"), read("#ff8800"));
 });
 
-// The protocol validates this in Go, so anything that gets here is already
-// wrong somewhere else. Opaque black is the state's own default: visible, and
-// therefore reported, where a silent transparency would be blamed on the grid.
+
+
+
 test("anything unreadable falls back to opaque black rather than to nothing", () => {
 	for (const bad of ["", "#fff", "#gggggg", "rgb(1,2,3)", "#1234567"]) {
 		assert.deepEqual(read(bad), [0, 0, 0, 1], bad);

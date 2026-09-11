@@ -17,21 +17,21 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE TURN ORDER'S ROUTES. What these check is the seam, the way the table's
-// tests do: that each handler establishes the right actor, reads the live
-// tracker, hands every rule to internal/room, and refuses what it should refuse
-// -- plus the one piece of logic these routes own, which is turning a dropped
-// line back into a whole order.
 
-// initiativeApp is a live room with the GM and one player seated and a fight in
-// progress: two lines, and the entries behind them.
-//
-// THE LINES ARE NAMED RATHER THAN CREATURES, and that is not a shortcut around
-// the interesting case -- it is what keeps these tests about the seam. Putting
-// a pawn on the table goes through the hub's resolver, which reads the GM's
-// manual out of the database; what these routes do with a line is the same
-// whether it names nine goblins or a lair action, and what they do with the
-// PAWNS is internal/room's and is tested there.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func initiativeApp(t *testing.T) (*App, []room.InitiativeEntry) {
 	t.Helper()
 
@@ -65,12 +65,12 @@ func initiativeApp(t *testing.T) (*App, []room.InitiativeEntry) {
 	return app, view.Initiative.Entries
 }
 
-// roomReads is how many GetRoom answers one of these tests can consume. Every
-// route in this file establishes the room once and the fake answers them in
-// order, so the queue only has to be longer than the longest test.
+
+
+
 const roomReads = 12
 
-// tracker reads the live order back out.
+
 func tracker(t *testing.T, app *App) room.Initiative {
 	t.Helper()
 
@@ -93,8 +93,8 @@ func initiativeRequest(t *testing.T, handler http.HandlerFunc, method, path stri
 	return tableRequest(t, handler, method, path, values, form, sess)
 }
 
-// THE STRIP IS EVERYBODY'S. It is the one live surface on the room page that a
-// player fetches about the fight, and hub.Initiative is what makes that safe.
+
+
 func TestTheStripIsFetchedByAnybodyInTheRoom(t *testing.T) {
 	app, _ := initiativeApp(t)
 
@@ -114,9 +114,9 @@ func TestTheStripIsFetchedByAnybodyInTheRoom(t *testing.T) {
 	}
 }
 
-// AND SO IS THE ROUND COUNTER IN THE BAR. The round is the one thing about a
-// fight that is not projected: a player who can see none of the monsters still
-// knows which round it is, because their own character is in it.
+
+
+
 func TestTheRoundCounterIsFetchedByAnybodyInTheRoom(t *testing.T) {
 	app, _ := initiativeApp(t)
 
@@ -134,16 +134,16 @@ func TestTheRoundCounterIsFetchedByAnybodyInTheRoom(t *testing.T) {
 			t.Errorf("%s was not sent the counter:\n%s", name, rec.Body.String())
 		}
 
-		// The fixture builds two lines and starts nobody's turn, so this is a
-		// tracker that exists and has not been advanced: a dash, not a zero.
+		
+		
 		if !strings.Contains(rec.Body.String(), "Round") {
 			t.Errorf("%s was sent a counter with no round in it:\n%s", name, rec.Body.String())
 		}
 	}
 }
 
-// AND THE ADD DIALOG IS THE GM'S, like the layer manager: it is a control for
-// the fight rather than a reading of it.
+
+
 func TestTheAddEntryDialogIsTheGMsAlone(t *testing.T) {
 	app, _ := initiativeApp(t)
 
@@ -156,8 +156,8 @@ func TestTheAddEntryDialogIsTheGMsAlone(t *testing.T) {
 	}
 }
 
-// A DROP POSTS THE WHOLE ORDER, and the handler turns the ids back into the
-// lines they name -- in the order they arrived.
+
+
 func TestADropReordersTheTracker(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -176,11 +176,11 @@ func TestADropReordersTheTracker(t *testing.T) {
 	}
 }
 
-// AN ID SET THAT IS NOT EXACTLY THE TRACKER'S IS REFUSED. The drag raced a
-// change, and reordering what came back would put the tracker into a shape
-// nobody asked for. The refusal is the core's and lands in the alert modal --
-// a sentence saying the tracker changed -- rather than the silent 404 a
-// request this server did not write gets.
+
+
+
+
+
 func TestADropThatRacedAChangeIsRefused(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -202,9 +202,9 @@ func TestADropThatRacedAChangeIsRefused(t *testing.T) {
 	}
 }
 
-// CLICKING A LINE GIVES THAT CREATURE THE TURN, and the GM may do it to a
-// corpse: skipping the dead is what the button does, not a rule about what may
-// be acting.
+
+
+
 func TestClickingALineGivesItTheTurn(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -223,8 +223,8 @@ func TestClickingALineGivesItTheTurn(t *testing.T) {
 	}
 }
 
-// REMOVING THE ACTING LINE MOVES THE TURN TO THE NEXT ONE IN THE OLD ORDER,
-// because "the next combatant" is a fact about the order the GM built.
+
+
 func TestRemovingTheActingLineMovesTheTurnOn(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -252,8 +252,8 @@ func TestRemovingTheActingLineMovesTheTurnOn(t *testing.T) {
 	}
 }
 
-// AND REMOVING THE LAST LINE LEAVES NOTHING RATHER THAN A TRACKER POINTING AT
-// A LINE THAT HAS GONE.
+
+
 func TestRemovingTheLastLineEmptiesTheTracker(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -274,8 +274,8 @@ func TestRemovingTheLastLineEmptiesTheTracker(t *testing.T) {
 	}
 }
 
-// ADD TAKES A NAME OR A PAWN AND NEVER BOTH. A named line is a lair action and
-// has no creature; a pawn line is a creature and takes its name from the pawn.
+
+
 func TestAddTakesANameOrAPawnAndNotBoth(t *testing.T) {
 	app, _ := initiativeApp(t)
 
@@ -303,16 +303,16 @@ func TestAddTakesANameOrAPawnAndNotBoth(t *testing.T) {
 		url.Values{"name": {"Both"}, "pawn": {testPawnA.String()}},
 		session.UserSession{UserID: testOwnerID})
 
-	// The core refuses a request carrying both, and the refusal reaches the
-	// alert rather than the dialog: a pawn add is the pawn menu's, which has
-	// no error block to draw into.
+	
+	
+	
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("a request carrying both gave status %d, want 422", rec.Code)
 	}
 }
 
-// A PLAYER MAY NOT EDIT THE ORDER, and the core is what refuses them rather
-// than the mux.
+
+
 func TestAPlayerMayNotEditTheOrder(t *testing.T) {
 	app, entries := initiativeApp(t)
 
@@ -326,8 +326,8 @@ func TestAPlayerMayNotEditTheOrder(t *testing.T) {
 	}
 }
 
-// AND A PLAYER WHOSE TURN IT IS NOT MAY NOT END IT. Next is the one route here
-// that is not the GM's alone, and the core decides who may press it.
+
+
 func TestAPlayerOutOfTurnMayNotAdvance(t *testing.T) {
 	app, _ := initiativeApp(t)
 
@@ -340,14 +340,14 @@ func TestAPlayerOutOfTurnMayNotAdvance(t *testing.T) {
 	}
 }
 
-// WHERE A PAWN GOES WHEN THE GM PRESSES ADD TO INITIATIVE. It is the same rule
-// Sync applies -- a monster joins the line whose members share its key -- and it
-// is exercised here rather than through the route because putting a pawn on the
-// table goes through the hub's resolver and its database.
-// WHAT COLOURS A CARD'S FRAME IS WHAT THE CREATURE IS. The row answers "how
-// much of this is trying to kill us" before anybody reads a word, and the words
-// are room.PawnKind's own so there is no table between the protocol and the
-// attribute the stylesheet keys on.
+
+
+
+
+
+
+
+
 func TestACardsSideIsItsCreaturesKind(t *testing.T) {
 	entry := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVV0")
 	pawn := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVV1")
@@ -366,8 +366,8 @@ func TestACardsSideIsItsCreaturesKind(t *testing.T) {
 		}
 	}
 
-	// A GROUP READS IT OFF ITS FIRST MEMBER, which is safe because grouping
-	// only ever puts monsters together.
+	
+	
 	view := &hub.InitiativeView{Pawns: map[ulid.ULID]room.Pawn{
 		pawn:   {ID: pawn, Kind: room.PawnMonster, Name: "Goblin"},
 		second: {ID: second, Kind: room.PawnMonster, Name: "Goblin"},
@@ -380,8 +380,8 @@ func TestACardsSideIsItsCreaturesKind(t *testing.T) {
 		t.Errorf("a group of goblins is a %q on the %q side", got.Kind, got.Side)
 	}
 
-	// AND A LINE WITH NO CREATURE IS ON NOBODY'S SIDE. A lair action takes the
-	// neutral frame.
+	
+	
 	lair := initiativeEntryData(room.RoleGM, ulid.ULID{}, &hub.InitiativeView{},
 		room.InitiativeEntry{ID: entry, Name: "Lair action"})
 

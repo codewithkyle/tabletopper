@@ -10,35 +10,35 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// -update rewrites the golden fixtures instead of comparing against them.
-//
-//	go test ./internal/room -update
+
+
+
 var update = flag.Bool("update", false, "rewrite the reducer fixtures in testdata")
 
-// THE CONVERGENCE PROPERTY, which is the one this protocol was designed around
-// and the reason full-entity events are worth their bytes:
-//
-//	reduce(project(before), events for that audience) == project(after)
-//
-// If that holds for every command and both audiences, a client that starts from
-// a snapshot and applies every event afterwards is holding exactly what the
-// server holds, and it holds it without any partial-update semantics, any
-// null-versus-absent question, or any per-field merge.
-//
-// THE OLD PROTOCOL'S EIGHT PER-FIELD PAWN EVENTS made this something to hope
-// for. Here it is something that fails a build.
-//
-// IT IS CHECKED PER COMMAND rather than at the end of the run, so a failure
-// names the command that broke it rather than the fifty-step scenario that
-// ended up wrong.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
 	w := newWorld(t)
 
 	r := &recorder{t: t, w: w}
 	r.visit = func(st stepRecord) {
-		// EVERY APPLY LEAVES THE STATE NORMALIZED. It is the precondition the
-		// byte comparisons below rest on, and Clone normalizes on its way out,
-		// so a state that is already normalized is its own clone.
+		
+		
+		
 		if got, want := mustJSON(t, w.s), mustJSON(t, w.s.Clone()); got != want {
 			t.Fatalf("%s: the state it left behind is not normalized\n  got %s\n want %s", st.name, got, want)
 		}
@@ -70,14 +70,14 @@ func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
 	}
 }
 
-// THE GOLDEN FIXTURES. The same scenario, written out as the events one
-// audience receives and the state they should be holding afterwards, so that
-// phase 3's TypeScript reducer is tested against this one rather than against a
-// second reading of the specification.
-//
-// Regenerate with `go test ./internal/room -update` and read the diff: a change
-// here is a change to what every client will do, and it should be one somebody
-// meant.
+
+
+
+
+
+
+
+
 func TestReducerFixturesAreCurrent(t *testing.T) {
 	for _, role := range []Role{RoleGM, RolePlayer} {
 		t.Run(string(role), func(t *testing.T) {
@@ -98,9 +98,9 @@ func TestReducerFixturesAreCurrent(t *testing.T) {
 				for _, ev := range delivered(st.emissions, st.actor, viewer) {
 					seq++
 
-					// The sequence is stamped here rather than by Apply,
-					// because assigning it is the hub's job in phase 3 and
-					// nothing in this package knows how many events went before.
+					
+					
+					
 					var by *ulid.ULID
 					if !st.hub {
 						id := st.actor.ID
@@ -153,10 +153,10 @@ func TestReducerFixturesAreCurrent(t *testing.T) {
 	}
 }
 
-// A fixture replays end to end, not only step by step. The convergence test
-// checks each command against the server's own state; this checks that a client
-// which starts from the initial snapshot and never resyncs ends up in the same
-// place.
+
+
+
+
 func TestTheFixturesReplayFromTheirInitialState(t *testing.T) {
 	for _, role := range []Role{RoleGM, RolePlayer} {
 		t.Run(string(role), func(t *testing.T) {
@@ -204,10 +204,10 @@ type reducerStep struct {
 	State  State             `json:"state"`
 }
 
-// decodeEventForTest turns a recorded frame back into an event. There is no
-// decoder for events in the package itself and there should not be -- the
-// server writes events and never reads them -- so this exists for the replay
-// test alone, built out of the same registry the generator emits from.
+
+
+
+
 func decodeEventForTest(raw json.RawMessage) (Event, error) {
 	var envelope struct {
 		Type string `json:"type"`
@@ -227,7 +227,7 @@ func decodeEventForTest(raw json.RawMessage) (Event, error) {
 	return ev, nil
 }
 
-// stepRecord is one command's worth of what the two tests above need.
+
 type stepRecord struct {
 	name      string
 	actor     Actor
@@ -236,9 +236,9 @@ type stepRecord struct {
 	before    map[Role]State
 }
 
-// recorder drives the scenario and hands each step to whichever of the two
-// tests is running it. The script is written once, in scenario below, because a
-// scenario written twice is two scenarios that drift.
+
+
+
 type recorder struct {
 	t       *testing.T
 	w       *world
@@ -260,16 +260,16 @@ func (r *recorder) viewers() []viewer {
 	}
 }
 
-// do runs one command from a person, records what it emitted, and answers with
-// the emissions so the script can pull a new id out of them.
+
+
 func (r *recorder) do(name string, cmd Command, actor Actor) []Emission {
 	r.t.Helper()
 
 	return r.record(name, cmd, actor, false)
 }
 
-// hub runs one of the commands only the server builds. They carry no `by`,
-// because nobody sent them.
+
+
 func (r *recorder) hub(name string, cmd Command) []Emission {
 	r.t.Helper()
 
@@ -297,9 +297,9 @@ func (r *recorder) record(name string, cmd Command, actor Actor, hub bool) []Emi
 	return ems
 }
 
-// uncovered names any command the scenario never runs, so that adding one to
-// the registry without adding it to the script fails rather than quietly going
-// untested.
+
+
+
 func (r *recorder) uncovered() []string {
 	var missing []string
 
@@ -317,8 +317,8 @@ func (r *recorder) uncovered() []string {
 	return missing
 }
 
-// commandWire finds a command's type string by looking it up in the registries
-// it came from, which is the same lookup the hub does in reverse.
+
+
 func commandWire(cmd Command) string {
 	for wire, proto := range WireCommandPrototypes() {
 		if sameType(proto, cmd) {

@@ -1,7 +1,7 @@
-// The camera's arithmetic, which is the part of the renderer that can be wrong
-// without looking wrong: a projection that is off by half a viewport still
-// draws a map, and the symptom is that the pointer does not land where the
-// cursor is.
+
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -76,9 +76,9 @@ test("zooming at a point leaves that point exactly where it was", () => {
 	}
 });
 
-// The clamp is applied before the anchor is re-measured, so a zoom refused by
-// the limit must not move the camera at all -- a wheel held down at the maximum
-// would otherwise walk the map away from under the cursor.
+
+
+
 test("a zoom refused by the limit moves nothing", () => {
 	const vp = viewport(1280, 720);
 	const cam = camera(4000, 3000, ZOOM_MAX);
@@ -151,8 +151,8 @@ test("fit on a viewport or a map with no size does nothing", () => {
 	assert.deepEqual(cam, camera(1, 2, 3));
 });
 
-// THE FOLLOW CAMERA. Every one of these is about the same promise: the turn
-// order may move the view, and it may take the zoom only when it has to.
+
+
 test("a followed box is centred whatever shape it is", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -163,10 +163,10 @@ test("a followed box is centred whatever shape it is", () => {
 	assert.equal(out.y, 230);
 });
 
-// One token fits on the screen at every zoom this camera has, so following one
-// is a pan and never a zoom. A GM who has drilled into a corridor to read a
-// token's picture keeps that view when the turn passes to the creature beside
-// it.
+
+
+
+
 test("a box that already fits keeps the viewer's zoom", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -182,8 +182,8 @@ test("a box too big for the screen pulls the zoom out until it fits", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
 
-	// Nine goblins spread over 2400 by 1800 map pixels, seen at 1:1 -- which
-	// shows 1280 by 720 of them.
+	
+	
 	focusTarget(camera(0, 0, 1), vp, { x1: 0, y1: 0, x2: 2400, y2: 1800 }, out);
 
 	assert.ok(out.zoom < 1, "the zoom did not give");
@@ -191,9 +191,9 @@ test("a box too big for the screen pulls the zoom out until it fits", () => {
 	assert.ok(out.zoom * 1800 <= vp.height, "the group is taller than the viewport");
 });
 
-// The margin is the difference between framing a group and framing its bounding
-// box: a token's name plate hangs below it and its condition rings sit outside
-// it, and neither is in the box.
+
+
+
 test("a box pulled out to fit is not pulled to the very edges", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -203,9 +203,9 @@ test("a box pulled out to fit is not pulled to the very edges", () => {
 	assert.ok(out.zoom * 1800 < vp.height * 0.9, "the group touches the top and bottom of the screen");
 });
 
-// The zoom only ever gives. A viewer looking at the whole map is not dragged
-// down onto one goblin because it is that goblin's turn -- the map slides under
-// them and the scale they chose stays.
+
+
+
 test("following never zooms in", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -217,8 +217,8 @@ test("following never zooms in", () => {
 	assert.equal(out.y, 4035);
 });
 
-// A box with no size is a real question -- a pawn on a table whose grid has not
-// arrived yet -- and the answer is a position, not Infinity.
+
+
 test("a box with no size still gives a camera", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -228,8 +228,8 @@ test("a box with no size still gives a camera", () => {
 	assert.deepEqual(out, camera(500, 500, 1));
 });
 
-// A group larger than the widest view this camera has is framed as far out as
-// the camera goes rather than to a zoom the rest of the renderer would refuse.
+
+
 test("a box bigger than the zoom range stops at the limit", () => {
 	const vp = viewport(1280, 720);
 	const out = newCamera();
@@ -239,9 +239,9 @@ test("a box bigger than the zoom range stops at the limit", () => {
 	assert.equal(out.zoom, ZOOM_MIN);
 });
 
-// Zoomed in, the screen holds less than the map, so half a screen of map has to
-// stay on it -- which is the same thing as the middle of the screen never
-// leaving the map, and is the bound this has always had.
+
+
+
 test("the middle of the screen cannot leave the map while the map is the bigger one", () => {
 	const vp = viewport(1280, 720);
 
@@ -255,12 +255,12 @@ test("the middle of the screen cannot leave the map while the map is the bigger 
 	assert.deepEqual(inside, camera(6000, 4500, 1));
 });
 
-// THE BUG THIS PINS: zoomed out far enough to see the whole map, the camera
-// used to be pinned to the map's centre and the drag did nothing. The grid runs
-// past the map now, so there is somewhere to go at every zoom.
+
+
+
 test("a map smaller than the viewport can still be panned around", () => {
-	// At 0.05 the viewport is 25600 by 14400 map units against a 12000 by 9000
-	// map, so both axes are in the second case.
+	
+	
 	const vp = viewport(1280, 720);
 	const cam = camera(6000 + 4000, 4500 - 2000, 0.05);
 
@@ -269,15 +269,15 @@ test("a map smaller than the viewport can still be panned around", () => {
 	assert.deepEqual(cam, camera(10000, 2500, 0.05), "a pan well inside the bound was refused");
 });
 
-// And the bound is that half the map stays on screen: the centre may travel
-// half a viewport either way from the map's middle.
+
+
 test("a map smaller than the viewport stops before it leaves the screen", () => {
 	const vp = viewport(1280, 720);
 
 	const far = camera(1e6, -1e6, 0.05);
 	clampToMap(far, vp, 12000, 9000);
 
-	// 12000/2 +/- 25600/2, and 9000/2 +/- 14400/2.
+	
 	assert.equal(far.x, 6000 + 12800);
 	assert.equal(far.y, 4500 - 7200);
 });
@@ -290,9 +290,9 @@ test("clampToMap does nothing when there is no map", () => {
 	assert.deepEqual(cam, camera(9000, 200, 0.5));
 });
 
-// The two matrices are what the shaders actually receive, and they are each
-// other's inverse: the tile pass goes map to clip, the grid pass goes clip to
-// map, and a sign wrong in either draws a mirrored table.
+
+
+
 test("the clip matrix agrees with worldToScreen", () => {
 	const cam = camera(4000, 3000, 0.5);
 	const vp = viewport(1280, 720);

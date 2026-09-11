@@ -12,15 +12,15 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// testMemberID is somebody who is not the owner of testRoomID.
+
 var testMemberID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVT1")
 
-// memberSession is a player whose session is pointed at the room under test.
+
 func memberSession(roomID ulid.ULID) session.UserSession {
 	return session.UserSession{UserID: testMemberID, Hash: []byte("session-hash"), RoomID: &roomID}
 }
 
-// getRoomPage drives RoomPage against a room the stub answers with.
+
 func getRoomPage(t *testing.T, db *roomDB, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -30,8 +30,8 @@ func getRoomPage(t *testing.T, db *roomDB, sess session.UserSession) *httptest.R
 		map[string]string{"id": testRoomID.String()}, sess)
 }
 
-// The owner reaches the page whatever their session says about rooms: it is
-// ownership that admits them, and the GM is never a member.
+
+
 func TestTheOwnerReachesTheRoomPageAsGM(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
@@ -44,8 +44,8 @@ func TestTheOwnerReachesTheRoomPageAsGM(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	// The three controls only a GM gets. The code is the one that matters
-	// most: it is the single thing on this page that admits somebody else.
+	
+	
 	for _, want := range []string{"AB2C", "/close", "/lock"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the GM's page is missing %q", want)
@@ -56,8 +56,8 @@ func TestTheOwnerReachesTheRoomPageAsGM(t *testing.T) {
 	}
 }
 
-// A player is admitted by their session's room_id, and gets the same shell
-// without the GM's controls.
+
+
 func TestAMemberReachesTheRoomPageAsAPlayer(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
@@ -73,11 +73,11 @@ func TestAMemberReachesTheRoomPageAsAPlayer(t *testing.T) {
 	if !strings.Contains(body, "/leave") {
 		t.Error("the player's page has no way out of the room")
 	}
-	// THE CODE IS THE TABLE'S ADDRESS AND NOT A KEY TO IT. A player gets it,
-	// because the questions they ask with it -- what do I type back in after my
-	// browser fell over, what do I send the person running late -- were going to
-	// the GM in a chat window and were never the GM's decision to make. Who may
-	// come in still is, and the lock below is what says so.
+	
+	
+	
+	
+	
 	if !strings.Contains(body, "AB2C") {
 		t.Error("the player's page does not carry the room code")
 	}
@@ -88,8 +88,8 @@ func TestAMemberReachesTheRoomPageAsAPlayer(t *testing.T) {
 	}
 }
 
-// Somebody who is neither the owner nor a member is not told the room exists.
-// They get the join page, which is where they would go next anyway.
+
+
 func TestANonMemberIsSentToTheJoinPage(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
@@ -103,16 +103,16 @@ func TestANonMemberIsSentToTheJoinPage(t *testing.T) {
 	if got := rec.Header().Get("Location"); got != "/rooms/join" {
 		t.Errorf("Location = %q, want %q", got, "/rooms/join")
 	}
-	// The refusal happens on the one read the page makes.
+	
 	if len(db.calls) != 1 {
 		t.Errorf("ran %d statements, want 1: %v", len(db.calls), db.queries())
 	}
 }
 
-// A CLOSED ROOM IS OVER FOR A PLAYER AND NOT FOR THE GM. The player's session
-// is cleared rather than left pointing at a room they cannot rejoin -- the
-// alternative is a homepage that goes on offering "return to your table" for a
-// table that is gone.
+
+
+
+
 func TestAMemberOfAClosedRoomIsTurnedOut(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "", false, true),
@@ -135,7 +135,7 @@ func TestAMemberOfAClosedRoomIsTurnedOut(t *testing.T) {
 	}
 }
 
-// The GM keeps the closed room, because they are the one who has to reopen it.
+
 func TestTheOwnerOfAClosedRoomStillGetsThePage(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "", false, true),
@@ -154,9 +154,9 @@ func TestTheOwnerOfAClosedRoomStillGetsThePage(t *testing.T) {
 	}
 }
 
-// CLOSING IS TWO STATEMENTS IN ONE TRANSACTION AND THE ORDER IS THE OWNERSHIP
-// CHECK. ClearRoomSessions names a room and no owner, so the owner-scoped close
-// runs first and a caller who owns nothing rolls back before it.
+
+
+
 func TestClosingARoomClosesItThenEmptiesIt(t *testing.T) {
 	db := &roomDB{rows: 1}
 	app := newRoomApp(db)
@@ -188,8 +188,8 @@ func TestClosingARoomClosesItThenEmptiesIt(t *testing.T) {
 	}
 }
 
-// A close that matched no row is a room that is not there or not yours, and the
-// transaction rolls back before the sweep.
+
+
 func TestClosingSomebodyElsesRoomIsA404(t *testing.T) {
 	db := &roomDB{rows: 0}
 	app := newRoomApp(db)
@@ -205,9 +205,9 @@ func TestClosingSomebodyElsesRoomIsA404(t *testing.T) {
 	}
 }
 
-// The lock pair answer with the control they just changed, which is the
-// mutation case the fragment rules name -- and they answer it without a read,
-// because the statement carried the new value and matched a row.
+
+
+
 func TestLockingARoomAnswersWithTheControl(t *testing.T) {
 	for name, c := range map[string]struct {
 		handler func(*App) http.HandlerFunc
@@ -232,14 +232,14 @@ func TestLockingARoomAnswersWithTheControl(t *testing.T) {
 			if !strings.Contains(call.query, "is_locked = ?") {
 				t.Errorf("statement is not the lock write: %q", call.query)
 			}
-			// Owner-scoped, which is the whole of the check: there is no read
-			// in front of this statement.
+			
+			
 			if owner, ok := boundRoomID(call.args[2]); !ok || owner != testOwnerID {
 				t.Errorf("the lock write is not owner-scoped: %v", call.args)
 			}
 
-			// The reply is the control in its new state, so the button now
-			// offers the opposite action.
+			
+			
 			if !strings.Contains(rec.Body.String(), c.want) {
 				t.Errorf("the reply does not offer %q: %s", c.want, rec.Body.String())
 			}
@@ -250,10 +250,10 @@ func TestLockingARoomAnswersWithTheControl(t *testing.T) {
 	}
 }
 
-// Leaving touches the session row and nothing else, and only for the room the
-// session is actually in -- a POST naming another room is a stale page, and
-// clearing whatever room they happened to be in would take somebody out of a
-// game because a tab was old.
+
+
+
+
 func TestLeavingRefusesARoomTheSessionIsNotIn(t *testing.T) {
 	other := ulid.Make()
 
@@ -298,8 +298,8 @@ func TestLeavingClearsTheSessionAndGoesHome(t *testing.T) {
 	}
 }
 
-// Reopening mints a new code, and it is a new one rather than the old one --
-// that went back into circulation when the room closed.
+
+
 func TestReopeningMintsANewCode(t *testing.T) {
 	db := &roomDB{rows: 1}
 	app := newRoomApp(db)
@@ -323,10 +323,10 @@ func TestReopeningMintsANewCode(t *testing.T) {
 	}
 }
 
-// THE MOUNT CONTRACT. The client reads four attributes off #tabletop and
-// nothing else -- there is no configuration script and no global -- so a page
-// that stopped rendering one of them would be a room that silently never
-// connected.
+
+
+
+
 func TestTheRoomPageCarriesWhatTheClientNeedsToConnect(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
@@ -347,9 +347,9 @@ func TestTheRoomPageCarriesWhatTheClientNeedsToConnect(t *testing.T) {
 		`data-role="gm"`,
 		`data-version="abc123"`,
 		`data-socket="/socket/room/` + testRoomID.String() + `"`,
-		// The build is on the bundle URL as well, so a client that reloads
-		// itself after a deploy cannot be handed the old script out of the
-		// one-hour cache on /static/.
+		
+		
+		
 		`src="/static/room.js?v=abc123"`,
 	} {
 		if !strings.Contains(body, want) {
@@ -358,9 +358,9 @@ func TestTheRoomPageCarriesWhatTheClientNeedsToConnect(t *testing.T) {
 	}
 }
 
-// A CLOSED ROOM RENDERS NO SOCKET PATH, and that absence is the whole of "do
-// not connect". The hub refuses to load a closed room, so a client that tried
-// would retry on its backoff forever against a 404.
+
+
+
 func TestAClosedRoomTellsTheClientNotToConnect(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "", false, true),

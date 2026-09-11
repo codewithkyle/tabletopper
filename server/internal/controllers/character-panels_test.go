@@ -25,16 +25,16 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// recordingDB stands in for the pool. It captures the one statement a panel
-// handler runs, which is what these tests are about: not that a save happened,
-// but that it touched nothing else.
+
+
+
 type recordingDB struct {
 	calls []recordedCall
-	// reads is QueryRowContext only, kept apart from calls so that only(t) and
-	// every column assertion in this file still see exactly the statement their
-	// handler wrote. The four panels that refresh the derived values read the
-	// character back afterwards, and counting that read as a call would have
-	// made every one of those tests fail for a reason that is not about them.
+	
+	
+	
+	
+	
 	reads []recordedCall
 	rows  int64
 	err   error
@@ -45,13 +45,13 @@ type recordedCall struct {
 	args  []any
 }
 
-// boundID reads a ULID out of a recorded argument whichever way sqlc bound it.
-//
-// MOST ID COLUMNS COME THROUGH AS A ulid.ULID AND THE NULLABLE ONES DO NOT.
-// Those are bound as *ulid.ULID, which is what lets a nil write SQL NULL --
-// shares.character_id is one of them, because a monster's share hangs off no
-// character. A test that only accepted the first form would fail on how the
-// argument is typed rather than on the property it is checking.
+
+
+
+
+
+
+
 func boundID(arg any) (ulid.ULID, bool) {
 	switch id := arg.(type) {
 	case ulid.ULID:
@@ -80,10 +80,10 @@ func (d *recordingDB) PrepareContext(context.Context, string) (*sql.Stmt, error)
 	panic("not used")
 }
 
-// errNoRowsToGive is what every read gets back, because a *sql.Rows cannot be
-// built outside database/sql. The statement is still recorded first, and that is
-// what the read tests are about: not what came back, but what was sent -- which
-// query, and which ids scope it.
+
+
+
+
 var errNoRowsToGive = errors.New("recordingDB has no rows to give")
 
 func (d *recordingDB) QueryContext(_ context.Context, query string, args ...interface{}) (*sql.Rows, error) {
@@ -95,12 +95,12 @@ func (d *recordingDB) QueryContext(_ context.Context, query string, args ...inte
 	return nil, errNoRowsToGive
 }
 
-// A *sql.Row, unlike a *sql.Rows, CAN be built outside database/sql: one comes
-// back from any sql.DB, and a DB whose connector refuses to connect hands back a
-// Row that answers Scan with that refusal. So the read is recorded and then
-// fails, which is what the callers of it are written for -- finishDerivedPanel
-// logs a failed read and returns, because the save it follows has already
-// landed.
+
+
+
+
+
+
 type refusingConnector struct{}
 
 func (refusingConnector) Connect(context.Context) (driver.Conn, error) { return nil, errNoRowsToGive }
@@ -125,9 +125,9 @@ var (
 	testOwnerID     = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ")
 )
 
-// panelPost drives one handler and hands back the recorder and the statements
-// it ran. pathValues carries the {id} every panel route has plus whichever of
-// {kind}/{field} the route under test declares.
+
+
+
 func panelPost(t *testing.T, db *recordingDB, handler http.HandlerFunc, form url.Values, pathValues map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -149,11 +149,11 @@ func newPanelApp(rows int64) (*App, *recordingDB) {
 	return &App{Queries: queries.New(db)}, db
 }
 
-// setColumns pulls the column names out of the SET clause of an UPDATE, in the
-// order the statement writes them, so a test can say what a statement wrote
-// rather than matching the whole string. sqlc emits SET on its own line for the
-// multi-column queries and inline for the single-column ones, hence the regexp
-// rather than an index.
+
+
+
+
+
 var setClause = regexp.MustCompile(`(?is)\bSET\b(.*?)\bWHERE\b`)
 
 func setColumns(t *testing.T, query string) []string {
@@ -179,8 +179,8 @@ func setColumns(t *testing.T, query string) []string {
 	return columns
 }
 
-// sortedColumns is setColumns for the comparisons that care about the set and
-// not the order.
+
+
 func sortedColumns(t *testing.T, query string) []string {
 	t.Helper()
 
@@ -200,13 +200,13 @@ func (d *recordingDB) only(t *testing.T) recordedCall {
 	return d.calls[0]
 }
 
-// THE REGRESSION TEST.
-//
-// The parse helpers return their fallback on an empty string rather than an
-// error, so a handler reading fields its panel does not render would not fail
-// -- it would write 10 over every ability score, 1 over the hit points and
-// empty JSON over all six blobs, and report success. This asserts the Identity
-// panel cannot reach any of those columns.
+
+
+
+
+
+
+
 func TestIdentityPanelWritesOnlyIdentityColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -234,7 +234,7 @@ func TestIdentityPanelWritesOnlyIdentityColumns(t *testing.T) {
 		}
 	}
 
-	// name, race, background, alignment, classes, size, id, owner_id.
+	
 	if len(call.args) != 8 {
 		t.Errorf("args = %d, want 8", len(call.args))
 	}
@@ -248,7 +248,7 @@ func TestIdentityPanelWritesOnlyIdentityColumns(t *testing.T) {
 	assertSavedToast(t, rec, "identity", "Identity saved.")
 }
 
-// Every panel is checked the same way, so the split cannot quietly widen.
+
 func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	cases := []struct {
 		name       string
@@ -337,9 +337,9 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	}
 }
 
-// tableColumns reads one table out of the dumped schema. The coverage tests
-// compare a set of panels against it, so a column added to a table with no panel
-// to write it fails rather than going unnoticed. Both editors read it.
+
+
+
 func tableColumns(t *testing.T, table string) []string {
 	t.Helper()
 
@@ -355,8 +355,8 @@ func tableColumns(t *testing.T, table string) []string {
 
 	columns := []string{}
 	for _, line := range strings.Split(string(body[1]), "\n") {
-		// Column lines open with a backticked name and a type; the key and
-		// constraint lines that follow them open with a keyword.
+		
+		
 		match := regexp.MustCompile("^\\s+`([a-z_]+)` \\S").FindStringSubmatch(line)
 		if match != nil {
 			columns = append(columns, match[1])
@@ -366,9 +366,9 @@ func tableColumns(t *testing.T, table string) []string {
 	return columns
 }
 
-// Columns no panel is meant to write. The first three are the row's identity
-// and its avatar, which POST /characters/{id}/avatar owns; the timestamps are
-// the database's.
+
+
+
 var unownedColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
@@ -377,9 +377,9 @@ var unownedColumns = map[string]bool{
 	"updated_at": true,
 }
 
-// Every editable column belongs to exactly one panel. This is the invariant the
-// split has to hold: a column two panels write races itself under a debounce,
-// and a column no panel writes cannot be edited at all.
+
+
+
 func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 	covered := map[string]bool{}
 	panels := []struct {
@@ -406,7 +406,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 			pathValues[key] = value
 		}
 
-		// name and size are required; every other panel ignores them.
+		
 		panelPost(t, db, panel.handler(app), url.Values{"name": {"Vex"}, "size": {"medium"}}, pathValues)
 		for _, column := range sortedColumns(t, db.only(t).query) {
 			if covered[column] {
@@ -429,18 +429,18 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 	}
 }
 
-// XP is the only field the user sets; level and proficiency follow from it and
-// are written in the same statement so the row can never disagree with itself.
+
+
 func TestCoreStatsDerivesLevelAndProficiencyFromXP(t *testing.T) {
 	app, db := newPanelApp(1)
 
 	panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
-		"xp": {"48000"}, // level 9
+		"xp": {"48000"}, 
 	}, map[string]string{"id": testCharacterID.String()})
 
 	call := db.only(t)
 
-	// The args are read positionally below, so pin the order that licenses it.
+	
 	if got := setColumns(t, call.query)[:3]; strings.Join(got, ",") != "xp,level,proficiency_bonus" {
 		t.Fatalf("SET opens with %v, not xp,level,proficiency_bonus", got)
 	}
@@ -455,10 +455,10 @@ func TestCoreStatsDerivesLevelAndProficiencyFromXP(t *testing.T) {
 	}
 }
 
-// Bonuses is the only panel left that takes its name from the path, and the
-// segment decides both a column and a field-name prefix -- so an unchecked value
-// would reach a query. The repeaters were tested here too until inventory left
-// one of them, which now has a route of its own and no segment to get wrong.
+
+
+
+
 func TestBonusPanelRejectsAnUnknownKind(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -487,8 +487,8 @@ func TestPanelRejectsAnUnparseableCharacterID(t *testing.T) {
 	}
 }
 
-// Found-rows semantics: zero matched means the character is not this user's,
-// not that the save was a no-op. It must not answer with a toast.
+
+
 func TestPanelAnswers404WhenNoRowMatched(t *testing.T) {
 	app, db := newPanelApp(0)
 
@@ -507,7 +507,7 @@ func TestPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	app, db := newPanelApp(1)
 
 	rec := panelPost(t, db, app.SaveCharacterIdentity, url.Values{
-		"name": {"   "}, // required, and whitespace does not count
+		"name": {"   "}, 
 		"size": {"medium"},
 	}, map[string]string{"id": testCharacterID.String()})
 
@@ -522,9 +522,9 @@ func TestPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	}
 }
 
-// The repeaters carry no index; the set of rows in the post is the set of rows
-// that will exist. That is what makes a deletion persist, so it is worth
-// pinning: posting one row after two replaces the column with one row.
+
+
+
 func TestRepeaterSaveReplacesTheWholeColumn(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -550,10 +550,10 @@ func assertSavedToast(t *testing.T, rec *httptest.ResponseRecorder, panel string
 		t.Errorf("status = %d, want 200", rec.Code)
 	}
 
-	// A save answers with the panel's error block, empty. That is what clears a
-	// message an earlier save left there; 204 would leave it on screen over a
-	// panel that has since saved. It is `hidden`, because an empty block still
-	// takes a gap on each side of itself in a flex or grid panel.
+	
+	
+	
+	
 	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-`+panel+`" hidden></div>` {
 		t.Errorf("body = %q, want the cleared error block", body)
 	}
@@ -567,9 +567,9 @@ func assertSavedToast(t *testing.T, rec *httptest.ResponseRecorder, panel string
 	}
 }
 
-// The error block is the swap target for both replies, so a save that lands
-// wipes the complaint the previous one left. This is the whole reason a
-// successful panel save carries a body instead of answering 204.
+
+
+
 func TestSuccessfulSaveClearsAnEarlierPanelError(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -587,11 +587,11 @@ func TestSuccessfulSaveClearsAnEarlierPanelError(t *testing.T) {
 	assertSavedToast(t, accepted, "identity", "Identity saved.")
 }
 
-// The add-row fragment reads nothing off the request. It used to take a ?field=
-// that decided the name attributes on the row it handed back, which is why it
-// had to check that value against an allowlist -- an unvalidated one would have
-// put arbitrary field names into the next post. There is one repeater now, so
-// the parameter is gone; this pins that a leftover one cannot change the answer.
+
+
+
+
+
 func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -617,16 +617,16 @@ func TestFeatureRowFragmentIgnoresEverythingOnTheRequest(t *testing.T) {
 		}
 	}
 
-	// A blank row is the same for every user and every character.
+	
 	if len(db.calls) != 0 {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
 
-// The details panels are the only two whose columns a valid-looking value can
-// overflow. MySQL runs in strict mode, so without the caps the driver would
-// raise on the write and the player would get a 500 for overfilling a box the
-// sheet handed them.
+
+
+
+
 func TestDetailsPanelsRefuseAnOverlongValue(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -672,10 +672,10 @@ func TestDetailsPanelsRefuseAnOverlongValue(t *testing.T) {
 	}
 }
 
-// Each cap counts what its column counts, which only shows up in text that is
-// not ASCII. VARCHAR(64) holds sixty-four CHARACTERS however many bytes they
-// weigh, so a rune count is the right one there; TEXT holds BYTES, so a rune
-// count would let a multibyte value through at several times the size.
+
+
+
+
 func TestDetailCapsAreMeasuredInTheirColumnsOwnUnits(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterAppearance, url.Values{
@@ -697,13 +697,13 @@ func TestDetailCapsAreMeasuredInTheirColumnsOwnUnits(t *testing.T) {
 	}
 }
 
-// The boxes carry a maxlength and the handlers carry a cap, and the two have to
-// agree or one of them is decoration. Every VARCHAR(64) box on the page carries
-// the column's own number, so that pair is exact: six of them are the appearance
-// fields and the seventh is the hit dice pool. The textareas carry UTF-16 code
-// units, which no encoding turns into more than three bytes each -- so a full
-// box is still short of the byte cap, and only a request nobody's browser made
-// finds it.
+
+
+
+
+
+
+
 func TestTheCappedBoxesCannotOutrunTheirCaps(t *testing.T) {
 	const proseMaxlength = 1024
 
@@ -724,11 +724,11 @@ func TestTheCappedBoxesCannotOutrunTheirCaps(t *testing.T) {
 	}
 }
 
-// The vitals bounds are rules rather than column widths, and the handler refuses
-// rather than clamps: a sheet that stored something other than what was sent
-// would be worse than one that says no. Each is also a CHECK on the table, so a
-// value slipping past here is a 500 rather than a wrong row -- these are what
-// keep the constraint unreachable.
+
+
+
+
+
 func TestVitalsRefusesAValueOutsideTheRules(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -779,10 +779,10 @@ func TestVitalsRefusesAValueOutsideTheRules(t *testing.T) {
 	}
 }
 
-// Three of the six controls are checkboxes, and an unticked checkbox posts
-// nothing at all -- so this handler reads values out of an absence, which is the
-// shape every other panel handler is built to avoid. What makes it safe is that
-// the panel posts all six together; these pin both readings of that.
+
+
+
+
 func TestVitalsReadsItsCheckboxesFromWhatArrived(t *testing.T) {
 	app, db := newPanelApp(1)
 	panelPost(t, db, app.SaveCharacterVitals, url.Values{
@@ -818,13 +818,13 @@ func TestVitalsReadsItsCheckboxesFromWhatArrived(t *testing.T) {
 	}
 }
 
-// writtenValue pulls one column's value out of a recorded UPDATE by name. sqlc
-// binds the SET values in the order the statement names them, so the column's
-// position in the SET clause is its argument's position -- which means a test
-// can ask for "heroic_inspiration" rather than counting to it, and a column
-// inserted ahead of it does not silently repoint the assertion at its
-// neighbour. That is not hypothetical: moving the hit points into this panel
-// shifted every index by three.
+
+
+
+
+
+
+
 func writtenValue(t *testing.T, call recordedCall, column string) any {
 	t.Helper()
 
@@ -838,10 +838,10 @@ func writtenValue(t *testing.T, call recordedCall, column string) any {
 	return nil
 }
 
-// The one piece of arithmetic every other derivation starts from, and the one
-// most likely to be written the way the rules phrase it -- (score - 10) / 2 --
-// which Go truncates toward zero. The odd scores below 10 are where that shows,
-// and they are exactly the scores a dump stat lands on.
+
+
+
+
 func TestAbilityModifierMatchesTheRules(t *testing.T) {
 	for _, c := range []struct {
 		score uint8
@@ -856,8 +856,8 @@ func TestAbilityModifierMatchesTheRules(t *testing.T) {
 	}
 }
 
-// Half proficiency rounds down, which is what the rules say and what a bard with
-// a +3 proficiency bonus gets: one, not one and a half.
+
+
 func TestProficiencyGrantRoundsHalfDown(t *testing.T) {
 	for _, c := range []struct {
 		state string
@@ -878,8 +878,8 @@ func TestProficiencyGrantRoundsHalfDown(t *testing.T) {
 	}
 }
 
-// testCharacter is a level 5 rogue-shaped sheet: Dex 16 (+3), Wis 13 (+1),
-// Int 8 (-1), Cha 11 (+0), proficiency +3.
+
+
 func testCharacter() queries.Character {
 	return queries.Character{
 		Str: 15, Dex: 16, Con: 14, Int: 8, Wis: 13, Cha: 11,
@@ -905,9 +905,9 @@ func derivedRow(t *testing.T, rows []pages.BonusRow, key string) pages.BonusRow 
 	return pages.BonusRow{}
 }
 
-// A total is the ability modifier, plus what the proficiency state grants, plus
-// the misc bonus -- and it is the whole reason the panel changed, so each of the
-// three has to be visible in the answer.
+
+
+
 func TestASkillTotalIsItsThreeParts(t *testing.T) {
 	derived := characterDerived(testCharacter())
 
@@ -935,16 +935,16 @@ func TestASkillTotalIsItsThreeParts(t *testing.T) {
 		t.Errorf("int save = %s, want -1 (int -1 and nothing else)", got)
 	}
 
-	// The row also carries back what it was set from, or the controls would
-	// render empty on every reload.
+	
+	
 	stealth := derivedRow(t, derived.Skills, "stealth")
 	if stealth.Proficiency != pages.ProficiencyExpertise || stealth.Misc != "2" {
 		t.Errorf("stealth renders %q/%q, want expertise/2", stealth.Proficiency, stealth.Misc)
 	}
 }
 
-// Ten plus the perception bonus, which means it moves when the Wisdom score
-// does, when the proficiency does, and when experience crosses a level.
+
+
 func TestPassivePerceptionIsTenPlusPerception(t *testing.T) {
 	character := testCharacter()
 	if got := characterDerived(character).PassivePerception; got != "14" {
@@ -957,8 +957,8 @@ func TestPassivePerceptionIsTenPlusPerception(t *testing.T) {
 	}
 }
 
-// A character who casts nothing has no spell save DC, and the 8 the arithmetic
-// would produce for one is a number a fighter would have to learn to ignore.
+
+
 func TestSpellNumbersAreDashesUntilAnAbilityIsChosen(t *testing.T) {
 	derived := characterDerived(testCharacter())
 	if derived.SpellSaveDC != "—" || derived.SpellAttackBonus != "—" {
@@ -966,8 +966,8 @@ func TestSpellNumbersAreDashesUntilAnAbilityIsChosen(t *testing.T) {
 	}
 }
 
-// And a caster's DC is always eight plus their attack bonus, which is what makes
-// one misc bonus enough to carry both.
+
+
 func TestSpellSaveDCIsEightPlusTheAttackBonus(t *testing.T) {
 	character := testCharacter()
 	character.SpellcastingAbility = "dex"
@@ -982,10 +982,10 @@ func TestSpellSaveDCIsEightPlusTheAttackBonus(t *testing.T) {
 	}
 }
 
-// The marshaller walks the grid's own list instead of scanning the request, so a
-// key nothing asked for cannot reach the column. The one it replaced took
-// whatever followed the prefix, and a row written that way would have sat in the
-// blob forever with no control able to reach it.
+
+
+
+
 func TestABonusGridStoresOnlyTheRowsItAsked(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -1023,9 +1023,9 @@ func TestABonusGridStoresOnlyTheRowsItAsked(t *testing.T) {
 	}
 }
 
-// A proficiency state the select could not have produced is normalised rather
-// than refused, and it lands on none -- not on whatever proficiencyGrant makes
-// of an unknown word.
+
+
+
 func TestAnUnknownProficiencyStateBecomesNone(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -1042,15 +1042,15 @@ func TestAnUnknownProficiencyStateBecomesNone(t *testing.T) {
 	}
 }
 
-// EVERY panel on the character editor reads the character back, and the read is
-// scoped to this user. That is what keeps the page it was saved from correct
-// without a list of which panel changes what: the derived block and the bar are
-// both rendered from the row that comes back, so a panel writing max_hp or a
-// name refreshes the readings that follow from it whether or not anybody
-// remembered it would.
-//
-// A handler missing from this list is a panel that saves correctly and leaves
-// the page stale, which is the failure this test exists to make loud.
+
+
+
+
+
+
+
+
+
 func TestEveryCharacterPanelRefreshesThePage(t *testing.T) {
 	for _, c := range []struct {
 		name       string
@@ -1092,10 +1092,10 @@ func TestEveryCharacterPanelRefreshesThePage(t *testing.T) {
 	}
 }
 
-// A row prints the ability it keys off only when that ability is not the row
-// itself. Acrobatics reads DEX, which is the thing about a skill you cannot
-// work out from its name; Strength read STR, which is its own name shortened,
-// set on a second line under it.
+
+
+
+
 func TestOnlySkillsPrintTheAbilityTheyKeyOff(t *testing.T) {
 	derived := characterDerived(testCharacter())
 

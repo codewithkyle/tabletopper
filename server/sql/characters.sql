@@ -1,7 +1,3 @@
--- Every query here is scoped to the owner. A character id from someone else's
--- roster matches nothing, so a handler never has to check ownership after
--- the fact: no row means not yours or not there, and both answer 404.
-
 -- name: GetCharacters :many
 SELECT * FROM characters
 WHERE owner_id = ?
@@ -11,9 +7,6 @@ ORDER BY created_at DESC;
 SELECT * FROM characters
 WHERE id = ? AND owner_id = ?;
 
--- GetCharacterName is the one column the room needs when a player sits down: a
--- socket carries the character's name so the player list can draw it, and
--- reading the whole sheet to get it would be fifty columns for one string.
 -- name: GetCharacterName :one
 SELECT name FROM characters
 WHERE id = ? AND owner_id = ?;
@@ -26,37 +19,6 @@ WHERE c.id = ? AND c.owner_id = ?;
 -- name: DeleteCharacter :exec
 DELETE FROM characters
 WHERE id = ? AND owner_id = ?;
-
--- CreateCharacterFromName is the whole of character creation. The modal asks for
--- a name and nothing else; every other column is answered here or by the
--- schema, and the sheet is filled in afterwards by the editor, which autosaves.
---
--- Three parameters is the point of it. A statement that took the sheet would be
--- a second wide writer, and the reason there is not one is written at the top of
--- the panel updates below. Creation cannot drift into that shape without growing
--- a parameter, which is what the params-shape test refuses.
---
--- The literals are the twelve NOT NULL columns the schema has no DEFAULT for.
--- spell_save_dc used to be a thirteenth, named because its default disagreed
--- with what the old create form produced; the derivation pass dropped it, and
--- the spellcasting columns that replaced it default to a character who casts
--- nothing, which is the right starting point and needs no literal here.
---
--- The rest -- level, xp, size, ac, max_hp, current_hp, proficiency_bonus,
--- temp_hp, initiative_bonus -- have DEFAULTs that already match what that form
--- produced, so they are left to the table. So do the two proficiency blobs,
--- which start as empty objects the way skills and saving_throws are written
--- empty below.
---
--- The blobs go in empty rather than pre-shaped. parseStatBonuses and
--- parseFeatures each return their empty shape for a blob that carries nothing,
--- so a fresh sheet reads back exactly as the blank form renders. Spell slots are
--- not among them any more: they are rows in their own table, created the first
--- time a level is given a count, and a character that has never cast anything
--- has none.
---
--- race, background, alignment and classes are nullable and stay NULL;
--- characterToEditPageData already renders that as its fallback text.
 
 -- name: CreateCharacterFromName :exec
 INSERT INTO characters (
@@ -87,21 +49,6 @@ UPDATE characters
 SET asset_id = ?
 WHERE id = ? AND owner_id = ?;
 
--- THE PANEL UPDATES.
---
--- The character editor autosaves one panel at a time, so each of these writes
--- only the columns its panel owns and nothing else. That narrowness is the
--- whole point and it is not a style choice: the parse helpers in the controller
--- return their fallback on an empty string rather than an error, so a partial
--- post handled by a statement wider than the panel that sent it would not fail
--- -- it would silently write 10s over the ability scores, 1s over the hit
--- points and empty JSON over all six blobs. So a panel's columns and its
--- statement's columns are the same set, and nothing writes a superset.
---
--- All are :execresult because the pool runs with found-rows semantics: zero
--- matched rows means "not this user's character", not "nothing changed", so the
--- handler can answer 404 rather than a false success.
-
 -- name: UpdateCharacterIdentity :execresult
 UPDATE characters
 SET
@@ -124,16 +71,6 @@ SET
     cha = ?
 WHERE id = ? AND owner_id = ?;
 
--- level and proficiency_bonus are not fields on the form. They are derived from
--- xp by levelFromXP and proficiencyBonusForLevel, and xp lives in this panel, so
--- they are recomputed in the handler and written here in the same statement.
--- Splitting them out would leave a window where a row's level disagreed with its
--- xp.
---
--- The three hit point columns were here until the vitals panel existed to take
--- them. They belong beside the death saves and the hit dice, which are the other
--- numbers that move when a character is hurt, rather than beside the speed and
--- the experience, which are not.
 -- name: UpdateCharacterCoreStats :execresult
 UPDATE characters
 SET
@@ -154,16 +91,6 @@ SET
     proficiencies = ?
 WHERE id = ? AND owner_id = ?;
 
--- Vitals is the counterpart to core stats: the numbers on that panel describe
--- what a character is, and these nine describe how the last fight went. They are
--- split for that reason and for a mechanical one -- core stats derives level and
--- proficiency from xp on every save, and nothing here should be recomputed by a
--- player ticking a death save.
---
--- The hit points lead because they are what the panel is opened for. They also
--- explain the rest of it: a character reaches the death saves by running out of
--- them and gets some back by spending a hit die.
-
 -- name: UpdateCharacterVitals :execresult
 UPDATE characters
 SET
@@ -177,11 +104,6 @@ SET
     heroic_inspiration = ?,
     exhaustion = ?
 WHERE id = ? AND owner_id = ?;
-
--- The two halves of the sheet nobody rolls. They are split because their inputs
--- are: four boxes of prose, and six words. One panel of ten would have been one
--- statement of ten, which is still narrow, but the page reads better as two and
--- the split costs a query.
 
 -- name: UpdateCharacterPersonality :execresult
 UPDATE characters
@@ -203,15 +125,6 @@ SET
     hair = ?
 WHERE id = ? AND owner_id = ?;
 
--- The writes below back the bonus grids and the features repeater. Each takes
--- the JSON its panel posts, already marshalled by the controller.
---
--- The two bonus grids write TWO columns each since the derivation pass: the misc
--- bonuses they always held, and the proficiency state each row is now set from.
--- Both come off the same form and neither means anything without the other, so
--- splitting them across two statements would let a debounce land between them
--- and leave a row proficient with somebody else's misc bonus.
-
 -- name: UpdateCharacterSkills :execresult
 UPDATE characters
 SET skills = ?, skill_proficiencies = ?
@@ -227,39 +140,10 @@ UPDATE characters
 SET features = ?
 WHERE id = ? AND owner_id = ?;
 
--- THE TWO STATEMENTS THE VIRTUAL TABLETOP ADDS, and they are the only two in
--- this file that are not scoped to the owner. Both are deliberate and both are
--- guarded somewhere else.
-
--- GetCharacterForRoom reads a sheet the asker does not own, which is what
--- "spawn the party" is: the GM places a pawn for every player at the table, and
--- those sheets belong to the players.
---
--- SO THE GUARD IS MEMBERSHIP RATHER THAN OWNERSHIP, and it is in the caller,
--- which is the only place that can ask it -- this table knows nothing about
--- rooms. internal/hub reads the character id off the room's own player list, so
--- the id can only ever be one somebody in the room joined with; it is never a
--- value off the wire.
---
--- The eight columns are what a pawn is made of, for the reason
--- GetMonsterForRoom gives.
 -- name: GetCharacterForRoom :one
 SELECT id, owner_id, name, size, ac, current_hp, max_hp, asset_id FROM characters
 WHERE id = ?;
 
--- UpdateCharacterCurrentHP is the write-through: a player's pawn takes seven
--- damage at the table and the sheet says so afterwards.
---
--- ONE COLUMN, WHICH IS THE WHOLE OF WHAT THE TABLE OWNS. Max hit points and
--- armour class are read off the sheet when the pawn is spawned and edited on
--- the table without coming back here, because a GM giving a goblin's twin an
--- extra point of AC for one fight must not rewrite somebody's character. Every
--- other writer in this file names exactly the columns it owns; this one owns
--- one.
---
--- It is unscoped for the same reason as above: the GM writes it, the player
--- owns it, and the pawn's character_id was resolved from the room's player list
--- at spawn rather than supplied by whoever sent the edit.
 -- name: UpdateCharacterCurrentHP :execresult
 UPDATE characters
 SET current_hp = ?

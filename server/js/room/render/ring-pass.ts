@@ -1,30 +1,30 @@
-// Outlines: the condition rings round a creature, the ring or rectangle round a
-// selected pawn, and the outline a drag ghost is drawn as.
-//
-// THEY ARE ONE PASS BECAUSE THEY ARE ONE SHAPE. Every one of them is a hollow
-// ellipse or a hollow rectangle at a position, in a colour, with a thickness --
-// so they are one instanced draw over one buffer, in the order they were added,
-// and a fight with sixteen conditions on eight goblins is still one call.
-//
-// THE THICKNESS IS IN DEVICE PIXELS AND THE RADIUS IS IN MAP PIXELS. A ring
-// whose line scaled with the camera would be a hairline zoomed out and a band
-// zoomed in; a ring whose RADIUS did not scale would come away from the pawn it
-// belongs to. So the instance carries a world rectangle and the shader converts
-// the pixel thickness against the current zoom.
-//
-// AND A RECTANGLE CAN BE TURNED, which is what an outline round a rotated token
-// and the handles on its corners need. The angle arrives resolved into a cosine
-// and a sine for the pawn pass's reason, and it moves the quad's corners only:
-// the fragment shader's edge distance is computed in the quad's own local
-// space, so nothing downstream of the vertex shader learns the angle.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import type { Camera } from "./camera.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
 import { radians } from "./path.ts";
 
-// FLOATS_PER_INSTANCE: the rectangle, the colour, the style, and the angle's
-// cosine and sine. Three vec4s and a vec2.
+
+
 const FLOATS_PER_INSTANCE = 14;
 
 export const RING_ELLIPSE = 0;
@@ -50,14 +50,14 @@ void main() {
 	v_color = a_color;
 	v_half = a_rect.zw;
 
-	// The thickness arrives in device pixels and leaves in map pixels, which is
-	// the one conversion this pass exists to get right.
+	
+	
 	v_style = vec2(a_style.x / max(u_scale, 1e-4), a_style.y);
 
-	// The quad is grown by the line's own width so a ring drawn exactly at the
-	// pawn's radius has its outer half somewhere to be rasterised. Without it
-	// the outer edge is clipped by the quad and every ring reads as thinner
-	// than the one before it.
+	
+	
+	
+	
 	vec2 grown = a_rect.zw + v_style.x;
 	vec2 offset = v_local * grown;
 	vec2 turned = vec2(
@@ -85,13 +85,13 @@ out vec4 outColor;
 void main() {
 	float thickness = v_style.x;
 
-	// inside is how far this fragment is INSIDE the shape's edge, in map
-	// pixels. Negative is outside it.
+	
+	
 	float inside;
 	if (v_style.y < 0.5) {
-		// An ellipse's edge distance is only exact for a circle, which every
-		// ring in this app is -- a creature's quad is square. The approximation
-		// is measured along the radius, which for a circle IS the distance.
+		
+		
+		
 		float r = length(v_local);
 		inside = (1.0 - r) * v_half.x;
 	} else {
@@ -99,8 +99,8 @@ void main() {
 		inside = min(edge.x, edge.y);
 	}
 
-	// The line straddles the edge, half in and half out, so a ring at a pawn's
-	// radius touches the pawn rather than sitting a line's width inside it.
+	
+	
 	float aa = max(fwidth(inside), 1e-5);
 	float alpha = smoothstep(-thickness * 0.5 - aa, -thickness * 0.5, inside)
 		* (1.0 - smoothstep(thickness * 0.5, thickness * 0.5 + aa, inside));
@@ -116,14 +116,14 @@ void main() {
 const names = ["u_clip", "u_scale"] as const;
 
 export interface RingPass {
-	// begin empties the buffer. Rings are per frame rather than cached, because
-	// what is in them -- the selection, the ghosts, a condition somebody just
-	// added -- changes at the rate a hand moves.
+	
+	
+	
 	begin(): void;
 
-	// add is one outline: a centre, half extents in map pixels, a colour, a
-	// thickness in device pixels, which shape, and how far it is turned in
-	// degrees clockwise about that centre.
+	
+	
+	
 	add(
 		x: number, y: number, halfW: number, halfH: number,
 		color: readonly [number, number, number], alpha: number,

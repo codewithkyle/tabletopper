@@ -10,15 +10,15 @@ import (
 	"github.com/a-h/templ"
 )
 
-// THE SECTION LIST AND THE ENUM ARE ONE LIST WRITTEN TWICE, and this is what
-// holds them together. A member added to monster_actions.kind with no section
-// here is a row that can be inserted, read back and never rendered -- nothing
-// would fail, the stat block would simply be missing a heading.
-//
-// THE ORDER MATTERS AS MUCH AS THE MEMBERSHIP. Rows come back ORDER BY kind, and
-// MySQL sorts an ENUM by the order its members were declared, so the ENUM's
-// order IS the stat block's order. A section list that disagreed with it would
-// draw the editor's panels in one order and the block's sections in another.
+
+
+
+
+
+
+
+
+
 func TestEveryActionKindHasASection(t *testing.T) {
 	members := actionKindEnumMembers(t)
 	sections := MonsterActionSections()
@@ -51,9 +51,9 @@ func TestEveryActionKindHasASection(t *testing.T) {
 	}
 }
 
-// Three of the seven open with a standing rule the book prints once above the
-// list, and the other four open with nothing. Which four is a fact about the
-// rules rather than about this list, so it is pinned rather than derived.
+
+
+
 func TestOnlyTheThreeSectionsWithAStandingRuleHaveAnIntro(t *testing.T) {
 	withIntro := map[string]bool{
 		MonsterActionKindLegendaryAction: true,
@@ -71,8 +71,8 @@ func TestOnlyTheThreeSectionsWithAStandingRuleHaveAnIntro(t *testing.T) {
 	}
 }
 
-// actionKindEnumMembers reads the ENUM out of the schema dump, in the order it
-// was declared.
+
+
 func actionKindEnumMembers(t *testing.T) []string {
 	t.Helper()
 
@@ -99,8 +99,8 @@ func actionKindEnumMembers(t *testing.T) []string {
 	return members
 }
 
-// testMonsterCard is one filled-in card, for the renders that want a grid with
-// something in it rather than an empty state.
+
+
 func testMonsterCard() MonsterSummary {
 	return MonsterSummary{
 		ID:       "01BX5ZZKBKACTAV9WEVGEMMVS4",
@@ -121,8 +121,8 @@ func sectionKinds(sections []MonsterActionSection) []string {
 	return kinds
 }
 
-// testStatBlock is a filled-in block: every line the markup can omit is present,
-// and every section kind that has an opening sentence is represented.
+
+
 func testStatBlock() StatBlock {
 	return StatBlock{
 		Name:       "Goblin Boss",
@@ -162,15 +162,15 @@ func testStatBlock() StatBlock {
 	}
 }
 
-// THE SAME BODY SERVES THE EDITOR, THE DIALOG AND THE REFRESH, which is what
-// makes the preview beside the editor trustworthy: what a GM sees while typing
-// is byte-for-byte what the dialog shows.
-//
-// WHAT DIFFERS IS THE FRAME AND ONLY THE FRAME. On the editor the block is a
-// panel on the desk, so it carries the raised surface and the id the
-// out-of-band swap replaces; in the dialog it carries neither, because
-// .modal-box is already that surface and a panel inside a panel is two
-// hairlines around one thing.
+
+
+
+
+
+
+
+
+
 func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 	inPage := markup(t, MonsterStatBlock(testStatBlock(), false))
 	outOfBand := markup(t, MonsterStatBlock(testStatBlock(), true))
@@ -187,13 +187,13 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 		t.Error("the refreshed block would land in the panel's error slot instead of in place")
 	}
 
-	// Everything but that attribute is the same markup.
+	
 	if strings.ReplaceAll(outOfBand, ` hx-swap-oob="true"`, "") != inPage {
 		t.Error("the two renders differ by more than the out-of-band flag")
 	}
 
-	// One body, and both frames hold that same body rather than a second copy
-	// of the markup.
+	
+	
 	body := markup(t, statBlockBody(testStatBlock()))
 	fragment := markup(t, MonsterStatBlockFragment(testStatBlock()))
 	if !strings.Contains(inPage, body) {
@@ -203,9 +203,9 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 		t.Error("the dialog renders its own copy of the block")
 	}
 
-	// The dialog brings no surface of its own. surfacePanel's shadow is the
-	// one class every raised thing in the app carries, so its absence is the
-	// whole assertion.
+	
+	
+	
 	if strings.Contains(fragment, "shadow-panel") {
 		t.Error("the dialog draws a panel inside .modal-box, which is already one")
 	}
@@ -213,11 +213,11 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 		t.Error("the dialog carries the editor's swap target, so a redraw could land in it")
 	}
 
-	// THE FOURTH FRAME IS THE ROOM'S WINDOW, WHICH IS THE DIALOG MINUS ITS
-	// Close. A modal ships a labelled way out beside its affirmative action; a
-	// window is dismissed by the controls on its own title bar, so a Close at
-	// the bottom of the block scrolled with the content and closed nothing --
-	// it fired modal:close at a modal that was not open.
+	
+	
+	
+	
+	
 	panel := markup(t, MonsterStatBlockPanel(testStatBlock()))
 	if !strings.Contains(panel, body) {
 		t.Error("the window renders its own copy of the block")
@@ -234,9 +234,9 @@ func TestTheStatBlockIsOneComponentRenderedThreeWays(t *testing.T) {
 	}
 }
 
-// The block prints what a monster has and nothing else, so an empty one is a
-// heading and no lines at all -- and it still renders, because that is what the
-// editor draws for a monster created a moment ago.
+
+
+
 func TestAnEmptyStatBlockStillRenders(t *testing.T) {
 	block := markup(t, MonsterStatBlock(StatBlock{}, false))
 
@@ -250,8 +250,8 @@ func TestAnEmptyStatBlockStillRenders(t *testing.T) {
 	}
 }
 
-// The editor is one form per panel and the block beside them is not a form.
-// Every panel posts to its own route, which is what makes the saves disjoint.
+
+
 func TestTheMonsterEditorIsOneFormPerPanel(t *testing.T) {
 	id := "01BX5ZZKBKACTAV9WEVGEMMVS4"
 	page := markup(t, EditMonster(EditMonsterPageData{MonsterID: id, StatBlock: testStatBlock()}))
@@ -263,18 +263,18 @@ func TestTheMonsterEditorIsOneFormPerPanel(t *testing.T) {
 		}
 	}
 
-	// One <form> per saving panel, plus the dialogs the layout always carries.
+	
 	if forms := strings.Count(page, "<form"); forms != 7+closingForms {
 		t.Errorf("the editor renders %d forms, want %d panels plus the %d the layout carries", forms, 7, closingForms)
 	}
 }
 
-// THE EDITOR DRAWS ITS SECTIONS BY RANGING OVER THE LIST, so a section cannot be
-// left off the page by somebody forgetting to write its markup -- which is the
-// failure that would look like a stat block quietly missing its reactions.
-//
-// Each one needs three things to work: a container for its rows, an add button
-// posting to its own kind, and the heading a GM finds it by.
+
+
+
+
+
+
 func TestTheEditorRendersEverySection(t *testing.T) {
 	id := "01BX5ZZKBKACTAV9WEVGEMMVS4"
 	page := markup(t, EditMonster(EditMonsterPageData{MonsterID: id, StatBlock: testStatBlock()}))
@@ -292,16 +292,16 @@ func TestTheEditorRendersEverySection(t *testing.T) {
 		if !strings.Contains(page, ">"+section.AddLabel()+"<") {
 			t.Errorf("%q renders no add label", section.Kind)
 		}
-		// Through the same escaper the renderer uses: three of the sentences
-		// carry an apostrophe, and templ writes those as an entity.
+		
+		
 		if section.Intro != "" && !strings.Contains(page, templ.EscapeString(section.Intro)) {
 			t.Errorf("%q drops the sentence the book opens it with", section.Kind)
 		}
 	}
 }
 
-// A row is its own form, posting to its own URL on its own debounce -- which is
-// what keeps a GM typing a Bite from rewriting the Multiattack above it.
+
+
 func TestTwoMonsterActionRowsShareNoElementID(t *testing.T) {
 	id := "01BX5ZZKBKACTAV9WEVGEMMVS4"
 	first := MonsterAction{ID: "01BX5ZZKBKACTAV9WEVGEMMVS5", Kind: MonsterActionKindAction, Name: "Bite"}
@@ -327,14 +327,14 @@ func TestTwoMonsterActionRowsShareNoElementID(t *testing.T) {
 	}
 }
 
-// THE SEARCH BOX BELONGS TO THE PAGE CHROME AND NOT TO THE LIST. It navigates
-// the manual the way the character tabs navigate a sheet, so it sits in the bar
-// with them rather than as the first thing on the grid paper -- which is where
-// the spells subnav ended up for the same reason, and which put a bare control
-// on the desk with nothing behind it.
-//
-// The bar is the <header> appBar renders, so this is the whole assertion: the
-// box is inside it.
+
+
+
+
+
+
+
+
 func TestTheManualSearchBoxIsInTheBar(t *testing.T) {
 	page := renderToString(t, Monsters(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
 
@@ -350,8 +350,8 @@ func TestTheManualSearchBoxIsInTheBar(t *testing.T) {
 		t.Error("the search box is below the bar, on the grid paper with the cards")
 	}
 
-	// It still aims at the grid, which is the half that fails silently: htmx
-	// logs a missing target to the console and the list simply never changes.
+	
+	
 	if !strings.Contains(page, `hx-target="#`+monsterCardsID+`"`) {
 		t.Errorf("the search box does not target the card grid")
 	}
@@ -360,10 +360,10 @@ func TestTheManualSearchBoxIsInTheBar(t *testing.T) {
 	}
 }
 
-// A PICTURE CAN BE SET FROM EITHER PAGE, and both of them post to the same URL
-// and swap the same element -- which is what lets the handler answer with one
-// thing. If these ever disagreed the upload would still store the image and one
-// of the two pages would quietly stop redrawing it.
+
+
+
+
 func TestTheManualAndTheEditorCarryTheSameImageControl(t *testing.T) {
 	const id = "01BX5ZZKBKACTAV9WEVGEMMVS4"
 
@@ -387,7 +387,7 @@ func TestTheManualAndTheEditorCarryTheSameImageControl(t *testing.T) {
 		}
 	}
 
-	// The control the upload answers with is the one both of them drew.
+	
 	reply := renderToString(t, MonsterImageControl(MonsterImage{MonsterID: id, Name: "Goblin Boss"}))
 	if !strings.Contains(card, reply) {
 		t.Error("the card does not render the component the upload replies with")
@@ -397,9 +397,9 @@ func TestTheManualAndTheEditorCarryTheSameImageControl(t *testing.T) {
 	}
 }
 
-// The dialog's picture travels with the name, so the form has to be multipart
-// and the field has to be called what the upload route calls it -- the same
-// handler shape reads both.
+
+
+
 func TestTheNewMonsterDialogCarriesAPicture(t *testing.T) {
 	dialog := renderToString(t, NewMonsterFragment())
 
@@ -409,9 +409,9 @@ func TestTheNewMonsterDialogCarriesAPicture(t *testing.T) {
 	if !strings.Contains(dialog, `type="file"`) || !strings.Contains(dialog, `name="image"`) {
 		t.Errorf("the dialog has no picture field:\n%s", dialog)
 	}
-	// Optional, and the field itself must say so: a create is one question,
-	// and `required` on the file input would turn the picture into a second
-	// one that cannot be skipped.
+	
+	
+	
 	picker := regexp.MustCompile(`<input[^>]*type="file"[^>]*>`).FindString(dialog)
 	if picker == "" {
 		t.Fatalf("no file input in the dialog:\n%s", dialog)
@@ -420,25 +420,25 @@ func TestTheNewMonsterDialogCarriesAPicture(t *testing.T) {
 		t.Errorf("the picture is required, so a monster cannot be created without one: %s", picker)
 	}
 
-	// The name field comes first, because the modal shell hands focus to the
-	// first control it finds and a dialog asking one question puts the caret
-	// in the field it is asking in.
+	
+	
+	
 	if strings.Index(dialog, `name="name"`) > strings.Index(dialog, `name="image"`) {
 		t.Error("the picture field is above the name, so the dialog opens with focus on it")
 	}
 }
 
-// The control is drawn at two sizes and carries neither of them, which is what
-// lets one reply serve both pages. A width class inside it would mean the
-// handler had to know which page asked.
+
+
+
 func TestTheImageControlDoesNotCarryItsOwnSize(t *testing.T) {
 	control := renderToString(t, MonsterImageControl(MonsterImage{MonsterID: "01BX5ZZKBKACTAV9WEVGEMMVS4", Name: "Goblin Boss"}))
 
 	if !strings.Contains(control, "w-full") {
 		t.Error("the control does not fill the box that sizes it")
 	}
-	// The two widths the two pages draw it at. Either one appearing in here
-	// means the control has taken the decision back off the page.
+	
+	
 	for _, size := range []string{"w-14", "w-11"} {
 		if strings.Contains(control, size) {
 			t.Errorf("the control carries %s; the page that draws it should", size)
@@ -446,10 +446,10 @@ func TestTheImageControlDoesNotCarryItsOwnSize(t *testing.T) {
 	}
 }
 
-// THE MANUAL IS A LIST AND NOT A GALLERY. A GM accumulates monsters for years,
-// so the page has to answer "which of these hundred" rather than "tell me about
-// this one" -- and a row that fits forty on a screen answers it where a tile
-// that fits eight does not. Two columns of tall cards was the second thing.
+
+
+
+
 func TestTheManualListsOneMonsterPerRow(t *testing.T) {
 	page := renderToString(t, Monsters(MonsterListData{
 		Monsters: []MonsterSummary{testMonsterCard(), testMonsterCard()},

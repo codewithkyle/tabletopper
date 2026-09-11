@@ -6,9 +6,9 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// WHERE A PAWN GOES WHEN IT IS ADDED FROM ITS MENU, which is the sync's rule
-// applied to one creature: in a grouped fight a monster joins the line whose
-// members share its key, and everything else is a line of its own.
+
+
+
 func TestAddPutsAMonsterInItsGroup(t *testing.T) {
 	manual := testID(900)
 	goblin := func(w *world) ulid.ULID {
@@ -74,7 +74,7 @@ func TestAddPutsAMonsterInItsGroup(t *testing.T) {
 	})
 }
 
-// THE OTHER THREE GESTURES, each atomic on the room.
+
 func TestTheStripGesturesEditTheOrderInPlace(t *testing.T) {
 	w := newWorld(t)
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
@@ -105,8 +105,8 @@ func TestTheStripGesturesEditTheOrderInPlace(t *testing.T) {
 	})
 
 	t.Run("removing the acting line moves the turn on in the old order", func(t *testing.T) {
-		// Order is lair, goblin, ari and the goblin is acting; its successor
-		// in that order is Ari.
+		
+		
 		w.apply(&InitiativeRemove{Entry: goblin}, w.gm)
 		if got := w.s.Initiative.Active; got == nil || *got != ari {
 			t.Fatalf("active = %v, want Ari", got)

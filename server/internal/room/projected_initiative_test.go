@@ -6,12 +6,12 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE TRACKER AND THE PAWNS IT NAMES ARE PROJECTED IN ONE PASS, and these are
-// the tests that say why it had to be one pass.
 
-// THE SECURITY TEST, AND IT IS WRITTEN FIRST. A hidden creature is one the
-// party has not met; a line in the turn order naming it would be the giveaway
-// the hiding exists to prevent.
+
+
+
+
+
 func TestAPlayersTrackerNamesNothingHidden(t *testing.T) {
 	w := newWorld(t)
 
@@ -36,9 +36,9 @@ func TestAPlayersTrackerNamesNothingHidden(t *testing.T) {
 	}
 }
 
-// HIDING ONE OF NINE GOBLINS TAKES A DOT OFF THE GROUP AND LEAVES THE LINE, so
-// the players' count is the count of what they can see -- which is the whole of
-// what a group card is telling them.
+
+
+
 func TestHidingOneMemberShortensTheGroupForPlayers(t *testing.T) {
 	w := newWorld(t)
 
@@ -70,8 +70,8 @@ func TestHidingOneMemberShortensTheGroupForPlayers(t *testing.T) {
 	}
 }
 
-// HIDING THE WHOLE GROUP TAKES THE LINE, and clears the turn when it was that
-// line's.
+
+
 func TestHidingEveryMemberDropsTheLineAndTheTurn(t *testing.T) {
 	w := newWorld(t)
 
@@ -93,13 +93,13 @@ func TestHidingEveryMemberDropsTheLineAndTheTurn(t *testing.T) {
 	}
 }
 
-// THE FLOOR CASE, AND IT IS THE ONE THIS FUNCTION EXISTS FOR.
-//
-// Project filters a player's pawns through Shown, which gates on the ACTIVE
-// LAYER, and the tracker deliberately keeps the line of a creature that walked
-// upstairs. Asking those two separately gives a player a nameless line with no
-// portrait for the rest of the fight -- so they are asked together, and the gate
-// on the pawns is Visible alone.
+
+
+
+
+
+
+
 func TestAPlayerKeepsThePortraitOfAPawnOnAnotherFloor(t *testing.T) {
 	w := newWorld(t)
 	upstairs := w.addLayer("First floor")
@@ -134,10 +134,10 @@ func TestAPlayerKeepsThePortraitOfAPawnOnAnotherFloor(t *testing.T) {
 	}
 }
 
-// THE PAWNS ARE PROJECTED AND NOT MERELY FILTERED. A monster's armour class is
-// drawn by nothing, so it is withheld; its hit points are drawn by the canvas,
-// so they are sent -- which is projectPawn's decision and this is the strip
-// inheriting it rather than making it again.
+
+
+
+
 func TestTheStripsPawnsGoThroughTheSameProjectionTheSocketDoes(t *testing.T) {
 	w := newWorld(t)
 

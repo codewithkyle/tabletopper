@@ -10,10 +10,10 @@ import (
 	"tabletopper/internal/queries"
 )
 
-// countingDB is a queries.DBTX that records how many statements were run
-// through it. Only ExecContext is reachable from Refresh; the other three are
-// here because DBTX declares them, and a call to one of them from this path
-// would be a change worth failing on.
+
+
+
+
 type countingDB struct {
 	t     *testing.T
 	execs int
@@ -43,7 +43,7 @@ func (d *countingDB) QueryRowContext(context.Context, string, ...any) *sql.Row {
 	return nil
 }
 
-// execResult is an UPDATE that matched the one row it was aimed at.
+
 type execResult struct{}
 
 func (execResult) LastInsertId() (int64, error) { return 0, nil }
@@ -68,9 +68,9 @@ func refreshOnce(t *testing.T, refreshedAt time.Time) (*countingDB, *httptest.Re
 	return db, rec
 }
 
-// The saving this is for: a session refreshed a minute ago is refreshed again
-// on the next page, the next fragment and the next save, and every one of those
-// used to send an UPDATE across the network to match no rows.
+
+
+
 func TestARecentlyRefreshedSessionIssuesNoStatement(t *testing.T) {
 	db, rec := refreshOnce(t, time.Now().Add(-time.Minute))
 
@@ -82,8 +82,8 @@ func TestARecentlyRefreshedSessionIssuesNoStatement(t *testing.T) {
 	}
 }
 
-// And the case the skip must not swallow: past the interval, the statement runs
-// and the cookie is re-issued to match the row it just moved.
+
+
 func TestASessionPastTheIntervalIsWrittenBack(t *testing.T) {
 	db, rec := refreshOnce(t, time.Now().Add(-2*refreshInterval))
 
@@ -95,9 +95,9 @@ func TestASessionPastTheIntervalIsWrittenBack(t *testing.T) {
 	}
 }
 
-// The skip is measured from the row and not from process start, so a session
-// whose refreshed_at is the zero time -- which is what a row written before the
-// column had a default would read as -- is written rather than skipped forever.
+
+
+
 func TestAZeroRefreshedAtIsWritten(t *testing.T) {
 	db, _ := refreshOnce(t, time.Time{})
 

@@ -7,9 +7,9 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// A snapshot goes out and comes back the same. It is the same marshaller that
-// writes the database column and encodes the message a connecting client
-// receives, so this one round trip covers both.
+
+
+
 func TestASnapshotRoundTrips(t *testing.T) {
 	w := busyWorld(t)
 
@@ -32,9 +32,9 @@ func TestASnapshotRoundTrips(t *testing.T) {
 	}
 }
 
-// THE COLUMN DEFAULT IS AN EMPTY OBJECT, so this is what the hub sees on the
-// first join to a room nobody has opened. It is not a problem and it is not
-// logged, which is why it is a distinct error from a schema break.
+
+
+
 func TestAnEmptySnapshotIsItsOwnAnswer(t *testing.T) {
 	for _, empty := range []string{"", "{}", "{ }", "\n{}\n"} {
 		_, err := Unmarshal([]byte(empty))
@@ -44,31 +44,31 @@ func TestAnEmptySnapshotIsItsOwnAnswer(t *testing.T) {
 	}
 }
 
-// A snapshot this build cannot read starts the room fresh, like an empty one --
-// but it means a live table just lost its pawns to a deploy, so the hub can
-// tell the two apart and log this one.
+
+
+
 func TestASnapshotFromAnotherSchemaIsRefused(t *testing.T) {
 	_, err := Unmarshal([]byte(`{"schema":99,"seq":4}`))
 	if !errors.Is(err, ErrSchema) {
 		t.Fatalf("Unmarshal of schema 99 = %v, want ErrSchema", err)
 	}
 
-	// And a snapshot with no schema at all is the same case: schema zero is
-	// not this schema.
+	
+	
 	_, err = Unmarshal([]byte(`{"seq":4}`))
 	if !errors.Is(err, ErrSchema) {
 		t.Fatalf("Unmarshal of a snapshot with no schema = %v, want ErrSchema", err)
 	}
 }
 
-// BYTE STABILITY IS THE PROPERTY NORMALIZE EXISTS FOR. Two states holding the
-// same facts marshal identically, whatever order they were built in, which is
-// what lets every other test compare states by comparing strings.
+
+
+
 func TestEqualStatesMarshalToEqualBytes(t *testing.T) {
 	first := busyWorld(t)
 
-	// The same room, built in a different order and with the collections
-	// deliberately shuffled afterwards.
+	
+	
 	second := busyWorld(t)
 	second.s.Pawns = append(second.s.Pawns[1:], second.s.Pawns[0])
 	second.s.Players = append(second.s.Players[1:], second.s.Players[0])
@@ -89,8 +89,8 @@ func TestEqualStatesMarshalToEqualBytes(t *testing.T) {
 	}
 }
 
-// Project hands back something the caller may keep and edit. Sharing a backing
-// array with the live room would make a snapshot event a way to corrupt it.
+
+
 func TestAProjectionDoesNotShareStorageWithTheRoom(t *testing.T) {
 	w := busyWorld(t)
 
@@ -113,8 +113,8 @@ func TestAProjectionDoesNotShareStorageWithTheRoom(t *testing.T) {
 	}
 }
 
-// The snapshot event is the first message after connect and the answer to a
-// resync, and it is projected for whoever asked.
+
+
 func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 	w := busyWorld(t)
 
@@ -132,7 +132,7 @@ func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 		t.Fatal("the snapshot is not the player's projection")
 	}
 
-	// And the GM's is the whole room.
+	
 	gm := w.apply(&SyncRequest{}, w.gm)[0].Event.(*Snapshot)
 	if mustJSON(t, gm.State) != mustJSON(t, w.s.Project(RoleGM)) {
 		t.Fatal("the GM's snapshot is not the complete room")
@@ -142,8 +142,8 @@ func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 	}
 }
 
-// busyWorld is a room with something of everything in it, which is what the
-// round-trip and stability tests need to be worth running.
+
+
 func busyWorld(t *testing.T) *world {
 	t.Helper()
 

@@ -15,23 +15,23 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE FOG MENU'S TWO ROUTES, AND WHAT THEY ARE ASSERTED THROUGH.
-//
-// Both answer 204 and say nothing, so what they did is read back off the hub --
-// and the only thing the hub hands out about a floor is its two flags. That is
-// enough to pin the sequence, because each route is set up here on a floor whose
-// flags are the OPPOSITE of what the route should leave them: fill is tested on
-// a floor a hide left clear, so a fill that skipped fog.setPrefill fails, and
-// clear is tested on a floor a reveal left covered, so a clear that skipped
-// fog.setEnabled fails.
-//
-// THAT fog.clear EMPTIES THE FLOOR IS NOT ASSERTED HERE. The shapes do not reach
-// hub.TableView -- nothing on any screen needs a count of them -- and adding one
-// so that a test could read it would be production weight carried for a test.
-// The command's own behaviour is pinned in internal/room; what is pinned here is
-// the seam.
 
-// fogApp is tableApp with a room already running, and the floor to aim at.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func fogApp(t *testing.T) (*App, ulid.ULID) {
 	t.Helper()
 
@@ -40,8 +40,8 @@ func fogApp(t *testing.T) (*App, ulid.ULID) {
 	return app, firstLayer(t, app)
 }
 
-// wake puts one shape on a floor, which turns its fog on and sets the prefill
-// from the shape's own mode. See room.FogAdd.
+
+
 func wake(t *testing.T, app *App, layer ulid.ULID, mode room.FogMode) {
 	t.Helper()
 
@@ -59,7 +59,7 @@ func wake(t *testing.T, app *App, layer ulid.ULID, mode room.FogMode) {
 	}
 }
 
-// fogFlags reads one floor's two flags back off the hub.
+
 func fogFlags(t *testing.T, app *App, id ulid.ULID) (enabled bool, prefill bool) {
 	t.Helper()
 
@@ -82,8 +82,8 @@ func fogFlags(t *testing.T, app *App, id ulid.ULID) (enabled bool, prefill bool)
 	return false, false
 }
 
-// fogRequest posts to one of the two fog routes with the layer where the room
-// bundle puts it: in the form, not in the path. See the header of room-fog.go.
+
+
 func fogRequest(t *testing.T, handler http.HandlerFunc, path string, layer string, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -93,8 +93,8 @@ func fogRequest(t *testing.T, handler http.HandlerFunc, path string, layer strin
 		url.Values{"layer": {layer}}, sess)
 }
 
-// Fill on a floor a hide left CLEAR: covering it takes both flags, so a fill
-// that only turned the fog on would leave the map showing.
+
+
 func TestFillFogCoversTheFloorItIsAimedAt(t *testing.T) {
 	app, layer := fogApp(t)
 	wake(t, app, layer, room.FogHide)
@@ -114,8 +114,8 @@ func TestFillFogCoversTheFloorItIsAimedAt(t *testing.T) {
 	}
 }
 
-// Clear on a floor a reveal left COVERED, so a clear that only emptied the
-// shapes would leave the players staring at a solid block.
+
+
 func TestClearFogUncoversTheFloorItIsAimedAt(t *testing.T) {
 	app, layer := fogApp(t)
 	wake(t, app, layer, room.FogReveal)
@@ -134,9 +134,9 @@ func TestClearFogUncoversTheFloorItIsAimedAt(t *testing.T) {
 	}
 }
 
-// THE ROUTE ACTS ON THE FLOOR IT IS GIVEN AND NOT ON THE ACTIVE ONE, which is
-// the whole reason the layer travels in the form. A GM covering the first floor
-// while the party is in the cellar is what the menu is for.
+
+
+
 func TestAFogRouteActsOnTheFloorInTheFormAndNotTheActiveOne(t *testing.T) {
 	app, active := fogApp(t)
 
@@ -167,10 +167,10 @@ func TestAFogRouteActsOnTheFloorInTheFormAndNotTheActiveOne(t *testing.T) {
 	}
 }
 
-// A PLAYER IS REFUSED BY THE COMMAND AND NOT BY THE HANDLER, which is the rule
-// every other layer route follows: a player posting here is a member of the
-// room, so a 404 would be a lie, and the alert modal carries the protocol's own
-// sentence.
+
+
+
+
 func TestTheFogRoutesAreTheGMsAlone(t *testing.T) {
 	for name, pick := range map[string]func(*App) http.HandlerFunc{
 		"fill":  func(a *App) http.HandlerFunc { return a.FillLayerFog },
@@ -190,10 +190,10 @@ func TestTheFogRoutesAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// NO LAYER AT ALL IS THE ACTIVE FLOOR, which is what makes the two items work in
-// a browser where the room bundle never ran. The item posts hx-vals of "{}"
-// until the bundle fills it in, and a menu item that silently did nothing for
-// the first second of a page load would be reported as broken.
+
+
+
+
 func TestAFogRouteWithNoLayerFallsBackToTheActiveFloor(t *testing.T) {
 	app, active := fogApp(t)
 
@@ -207,10 +207,10 @@ func TestAFogRouteWithNoLayerFallsBackToTheActiveFloor(t *testing.T) {
 	}
 }
 
-// A LAYER THAT IS THERE AND IS NOT AN ID IS A 404 WITH NOTHING IN IT. The value
-// is written by the room bundle out of the store, so the only thing that
-// produces one of these is somebody posting by hand -- and there is nothing to
-// tell them that is not a hint.
+
+
+
+
 func TestAFogRouteWithAMangledLayerIsANotFound(t *testing.T) {
 	app, _ := fogApp(t)
 

@@ -8,17 +8,17 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// The sheet's share, tested the way the entry's is next door and bounded the
-// same way: recordingDB answers a :one by panicking, so the dialog fragment and
-// the shared page itself cannot be driven from this harness. What is covered is
-// the validation the create runs before it touches the database, the revoke, and
-// the sentence the dialog puts in front of the person deciding to hand the link
-// out.
 
-// A rejected create must not have written anything, and the reason is sharper
-// here than for an entry: the token is minted and the password hashed after this
-// point, so a form that gets past validation is one that is going to be
-// inserted.
+
+
+
+
+
+
+
+
+
+
 func TestARejectedCharacterShareFormRunsNoStatements(t *testing.T) {
 	for name, form := range map[string]map[string]string{
 		"expiry with no days":  {"expiry": "on", "days": ""},
@@ -40,11 +40,11 @@ func TestARejectedCharacterShareFormRunsNoStatements(t *testing.T) {
 	}
 }
 
-// REVOKING THE SHEET'S LINK IS NOT REVOKING THE CHARACTER'S LINKS. The statement
-// pins resource_type, so every journal entry this character shared is still
-// readable afterwards -- which is the difference between DeleteCharacterShare
-// and DeleteSharesForCharacter, two statements a letter apart that the character
-// delete and this handler must not swap.
+
+
+
+
+
 func TestRevokingTheSheetsLinkTouchesOnlyTheSheetsRow(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -72,9 +72,9 @@ func TestRevokingTheSheetsLinkTouchesOnlyTheSheetsRow(t *testing.T) {
 	}
 }
 
-// 200 and not 204, like every other delete in the app: base.templ's noSwap
-// config lists 204, and a status in that list would stop the swap that puts the
-// form back in the dialog.
+
+
+
 func TestRevokingACharacterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	app, _ := newPanelApp(1)
 
@@ -93,8 +93,8 @@ func TestRevokingACharacterShareAnswers200AndSwapsTheFormBack(t *testing.T) {
 	}
 }
 
-// Zero matched rows is a link that was already gone -- revoked on another tab of
-// the same editor, or a character that is not this user's. Both are the same 404.
+
+
 func TestRevokingACharacterShareThatIsNotThereIs404(t *testing.T) {
 	app, _ := newPanelApp(0)
 
@@ -105,11 +105,11 @@ func TestRevokingACharacterShareThatIsNotThereIs404(t *testing.T) {
 	}
 }
 
-// THE DIALOG HAS TO SAY WHAT THE LINK DOES NOT INCLUDE. What a shared sheet
-// shows is decided in share-character.go, and the one thing an owner is likely
-// to assume travels with a character is its journal -- which does not, because
-// an entry has its own link, its own expiry and its own password. Saying so is
-// the difference between a scope decision and a surprise.
+
+
+
+
+
 func TestTheCharacterShareDialogSaysTheJournalIsNotIncluded(t *testing.T) {
 	data := characterShareDialogData(testCharacterID)
 

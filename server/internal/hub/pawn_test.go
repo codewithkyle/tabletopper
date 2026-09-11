@@ -16,15 +16,15 @@ import (
 
 var monsterID = testID(5)
 
-// THE SECURITY TEST, AND IT IS FIRST BECAUSE IT IS THE ONE THING IN THIS PHASE
-// THAT MUST NOT BE GOT WRONG.
-//
-// The whole two-audience design says a hidden pawn never reaches a player's
-// browser and a monster's exact hit points do not either unless the room says
-// so. Every socket emission honours that because Apply projects on the way out.
-// The pawn window is a SECOND door into the same state -- an HTTP GET carrying
-// a pawn id -- and an unprojected one would be a way round all of it: a player
-// guesses a ULID and reads the stat line the socket was careful never to send.
+
+
+
+
+
+
+
+
+
 func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -40,7 +40,7 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	visible := tb.spawnMonster(gm, "Goblin", true, 4, 10)
 	hidden := tb.spawnMonster(gm, "Ambusher", false, 9, 10)
 
-	// The GM sees both, whole.
+	
 	for _, id := range []ulid.ULID{visible, hidden} {
 		p, ok := tb.Pawn(tb.ctx(), roomID, id, room.RoleGM)
 		if !ok {
@@ -54,10 +54,10 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 		}
 	}
 
-	// The player is shown the visible one WITH ITS NUMBERS AND A BAND BESIDE
-	// THEM. The numbers are how the canvas draws it bleeding; the band is the
-	// instruction to print a word rather than the numbers, and it is what both
-	// the details window and the label under the pointer read. See projectPawn.
+	
+	
+	
+	
 	p, ok := tb.Pawn(tb.ctx(), roomID, visible, room.RolePlayer)
 	if !ok {
 		t.Fatal("the player was shown nothing of a visible monster")
@@ -69,24 +69,24 @@ func TestPawnIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 		t.Errorf("the player's copy band = %v, want bloody for 4 of 10", p.HPBand)
 	}
 
-	// AND NO ARMOUR CLASS, which is the half of the projection this door would
-	// be the easiest way round: the socket never sends it and a GET that did
-	// would hand the party what to roll against.
+	
+	
+	
 	if p.AC != nil {
 		t.Errorf("the player's copy carries armour class %d", *p.AC)
 	}
 
-	// And nothing at all of the hidden one. This is the assertion the door
-	// exists for: not a pawn with a flag on it, not an empty stat line -- no
-	// answer, indistinguishable from a pawn id that never existed.
+	
+	
+	
 	if got, ok := tb.Pawn(tb.ctx(), roomID, hidden, room.RolePlayer); ok || got != nil {
 		t.Fatalf("a player asking for a hidden pawn was handed %+v", got)
 	}
 }
 
-// A pawn on another floor is as absent as a hidden one, and for the same
-// reason: shown means visible AND on the active layer, so the GM stepping
-// upstairs to prepare takes the whole floor out of the players' reach.
+
+
+
 func TestPawnIsNothingForAPlayerOnAnotherLayer(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -110,8 +110,8 @@ func TestPawnIsNothingForAPlayerOnAnotherLayer(t *testing.T) {
 	}
 }
 
-// A pawn that is not there is not an error and not a panic: it is the same
-// nothing a hidden one is.
+
+
 func TestPawnIsNothingWhenItIsNotThere(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	tb.join(gmID, "Kyle", room.RoleGM)
@@ -121,9 +121,9 @@ func TestPawnIsNothingWhenItIsNotThere(t *testing.T) {
 	}
 }
 
-// THE WRITE-THROUGH FIRES FOR A PLAYER'S PAWN AND NOTHING ELSE. A monster
-// taking damage must not write to a characters row, and a player pawn placed
-// from a token -- which has no character behind it -- has nothing to write to.
+
+
+
 func TestWriteThroughOwesOnlyPlayerPawnsWithASheet(t *testing.T) {
 	character := testID(7)
 	hp := 12
@@ -173,8 +173,8 @@ func TestWriteThroughOwesOnlyPlayerPawnsWithASheet(t *testing.T) {
 	}
 }
 
-// RESOLUTION: the hub's half of a spawn, which is where a reference becomes a
-// pawn. Every case below is one row in, one pawn out.
+
+
 
 func TestResolvingAMonsterReadsTheGMsManual(t *testing.T) {
 	asset := testID(8)
@@ -206,16 +206,16 @@ func TestResolvingAMonsterReadsTheGMsManual(t *testing.T) {
 	}
 }
 
-// A PLAYER'S SPAWN RESOLVES INTO NOTHING AND ASKS THE DATABASE NOTHING. Putting
-// something on the table is the GM's act -- PawnSpawn.Authorize refuses
-// everybody else -- and Authorize runs AFTER resolution, so without the early
-// return this half would go and read a manual on behalf of a command that is
-// about to be thrown away.
-//
-// THE STUB IS THE PROOF. It holds the same row that builds a Goblin for the GM
-// in the test above; a player gets no pawn out of it and no error either, because
-// the refusal is not this half's to give and "not found" would be the wrong
-// thing to say about a monster that is right there.
+
+
+
+
+
+
+
+
+
+
 func TestAPlayersSpawnIsResolvedIntoNothing(t *testing.T) {
 	h := stubbedHub(t, monsterRow(testID(8)))
 
@@ -230,9 +230,9 @@ func TestAPlayersSpawnIsResolvedIntoNothing(t *testing.T) {
 	}
 }
 
-// A monster nobody at this table owns is not found rather than forbidden. The
-// statement is scoped to the asker, so another GM's manual matches nothing --
-// and "not found" is the honest answer, because to this GM it does not exist.
+
+
+
 func TestResolvingAnotherGMsMonsterIsNotFound(t *testing.T) {
 	h := stubbedHub(t, noRows())
 
@@ -248,8 +248,8 @@ func TestResolvingAnotherGMsMonsterIsNotFound(t *testing.T) {
 	}
 }
 
-// A monster with no picture draws as a disc with its initials, which is an
-// empty image rather than a broken one.
+
+
 func TestResolvingAMonsterWithNoPictureLeavesTheImageEmpty(t *testing.T) {
 	row := monsterRow(ulid.ULID{})
 	row.values[5] = nil
@@ -264,11 +264,11 @@ func TestResolvingAMonsterWithNoPictureLeavesTheImageEmpty(t *testing.T) {
 	}
 }
 
-// THE PICTURE A CHARACTER PAWN ARRIVES WITH, in the three steps it has. The
-// last one is the one worth pinning: the account placeholder is not a picture,
-// and a pawn that took it would put four identical grey discs on the table for
-// a party of four who have no portraits. Empty is what reaches the canvas, and
-// the canvas draws each of them their own initials.
+
+
+
+
+
 func TestACharacterPawnFallsBackFromPortraitToAccountToNothing(t *testing.T) {
 	portrait := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVWX")
 
@@ -279,12 +279,12 @@ func TestACharacterPawnFallsBackFromPortraitToAccountToNothing(t *testing.T) {
 	}{
 		"the character's own portrait wins": {
 			asset: &portrait,
-			seat:  &room.Player{Avatar: "https://img.clerk.com/kyle"},
+			seat:  &room.Player{Avatar: "https:
 			want:  "/assets/images/" + portrait.String(),
 		},
 		"no portrait falls back to the account picture": {
-			seat: &room.Player{Avatar: "https://img.clerk.com/kyle"},
-			want: "https://img.clerk.com/kyle",
+			seat: &room.Player{Avatar: "https:
+			want: "https:
 		},
 		"the shared placeholder is refused": {
 			seat: &room.Player{Avatar: room.DefaultAvatar},
@@ -311,9 +311,9 @@ func TestACharacterPawnFallsBackFromPortraitToAccountToNothing(t *testing.T) {
 	}
 }
 
-// THE SIZE COLUMN IS A VARCHAR WRITTEN BY FORMS AND IMPORTERS, so resolution
-// normalises rather than refuses. A row somebody would like to put on a table
-// is not a bug report.
+
+
+
 func TestCreatureSizeNormalises(t *testing.T) {
 	cases := map[string]room.Size{
 		"large":        room.SizeLarge,
@@ -330,8 +330,8 @@ func TestCreatureSizeNormalises(t *testing.T) {
 	}
 }
 
-// An object takes the picture's own name when the dialog left the field blank,
-// which is what makes placing a wagon one click rather than two.
+
+
 func TestObjectTakesTheAssetsNameWhenBlank(t *testing.T) {
 	asset := testID(9)
 	h := stubbedHub(t, tokenRow(asset, "Ox-drawn wagon"))
@@ -349,10 +349,10 @@ func TestObjectTakesTheAssetsNameWhenBlank(t *testing.T) {
 	}
 }
 
-// AN OBJECT IS THE SIZE OF ITS PICTURE, and the spawn command says nothing
-// about it. This is the whole of what replaced the two cell-count fields the
-// dialog used to carry: the row that holds the picture holds its dimensions,
-// and those are what land on the table.
+
+
+
+
 func TestAnObjectIsTheSizeOfItsPicture(t *testing.T) {
 	asset := testID(9)
 	h := stubbedHub(t, tokenRow(asset, "Ox-drawn wagon"))
@@ -362,15 +362,15 @@ func TestAnObjectIsTheSizeOfItsPicture(t *testing.T) {
 		t.Fatalf("resolution failed: %v", err)
 	}
 
-	// tokenRow's picture is 512 by 171, which is the shape a wagon is stored
-	// at; nothing about the room's grid comes into it.
+	
+	
 	if cmd.Pawn.Width != 512 || cmd.Pawn.Height != 171 {
 		t.Errorf("the wagon is %dx%d, want the picture's 512x171", cmd.Pawn.Width, cmd.Pawn.Height)
 	}
 }
 
-// An object with no picture cannot be placed at all: an object is drawn as its
-// image, so one without is a rectangle of nothing.
+
+
 func TestObjectWithNoAssetIsRefused(t *testing.T) {
 	h := stubbedHub(t, noRows())
 
@@ -383,9 +383,9 @@ func TestObjectWithNoAssetIsRefused(t *testing.T) {
 	}
 }
 
-// AN NPC IS THE ONE KIND THAT TAKES ITS WHOLE DESCRIPTION OFF THE WIRE, because
-// a face out of the avatar library is a picture and a name and nothing else.
-// The size and the three numbers all come from the form beside the wall.
+
+
+
 func TestResolvingAnNPCTakesTheStatLineFromTheWire(t *testing.T) {
 	asset := testID(10)
 	h := stubbedHub(t, avatarRow(asset, "Bandit"))
@@ -417,9 +417,9 @@ func TestResolvingAnNPCTakesTheStatLineFromTheWire(t *testing.T) {
 	}
 }
 
-// A SPAWN THAT DESCRIBED NOTHING STILL LANDS, on the placeholder the form
-// itself opens on. It is what a client that skipped the form would get, and it
-// is deliberately obviously wrong rather than plausibly wrong.
+
+
+
 func TestResolvingAnNPCWithNoStatLineFallsBackToThePlaceholder(t *testing.T) {
 	asset := testID(11)
 	h := stubbedHub(t, avatarRow(asset, "Innkeeper"))
@@ -434,9 +434,9 @@ func TestResolvingAnNPCWithNoStatLineFallsBackToThePlaceholder(t *testing.T) {
 	}
 }
 
-// spawnMonster puts one monster on the table and hands back its id, by
-// resolving the command the way the hub would and reading the id off the event
-// the GM was sent.
+
+
+
 func (tb *tabletop) spawnMonster(gm *client, name string, visible bool, hp int, maxHP int) ulid.ULID {
 	tb.t.Helper()
 
@@ -480,11 +480,11 @@ func (tb *tabletop) spawnMonster(gm *client, name string, visible bool, hp int, 
 	return ulid.ULID{}
 }
 
-// A HUB WITH A DATABASE THAT ANSWERS ONE ROW, which is what the resolution
-// tests above need and nothing else in this package does. It is the shape
-// oneRowDB has in internal/controllers, kept here rather than shared because
-// the two packages test different things with it and a shared stub grows
-// options until it dispatches on SQL.
+
+
+
+
+
 type stubRow struct {
 	columns []string
 	values  []driver.Value
@@ -502,13 +502,13 @@ func stubbedHub(t *testing.T, row stubRow) *Hub {
 
 func noRows() stubRow { return stubRow{empty: true} }
 
-// THE IDS GO ACROSS AS SIXTEEN RAW BYTES, which is the column type and
-// therefore what the driver would hand back. The 26-character text form is how
-// a ULID travels in a URL and in JSON, and ulid.Scan refuses it here for the
-// same reason the schema does not store it.
+
+
+
+
 func idValue(id ulid.ULID) driver.Value { return append([]byte(nil), id[:]...) }
 
-// monsterRow is GetMonsterForRoom's six columns, in its order.
+
 func monsterRow(asset ulid.ULID) stubRow {
 	var image driver.Value
 	if asset.Compare(ulid.ULID{}) != 0 {
@@ -521,9 +521,9 @@ func monsterRow(asset ulid.ULID) stubRow {
 	}
 }
 
-// tokenRow is a whole assets row, which GetLibraryAsset selects with a star. The
-// columns are queries.Asset's fields in order, so a migration that adds one
-// fails this rather than quietly shifting every value along by a place.
+
+
+
 func tokenRow(id ulid.ULID, name string) stubRow {
 	return stubRow{
 		columns: []string{
@@ -543,10 +543,10 @@ func tokenRow(id ulid.ULID, name string) stubRow {
 	}
 }
 
-// avatarRow is the same shape as tokenRow with the type column that tells the
-// two libraries apart. The statement scopes by it, so the resolver that asks
-// for a face and the one that asks for a token cannot be handed each other's
-// row.
+
+
+
+
 func avatarRow(id ulid.ULID, name string) stubRow {
 	row := tokenRow(id, name)
 	row.values[3] = []byte("avatars/x.webp")

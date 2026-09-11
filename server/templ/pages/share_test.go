@@ -22,11 +22,11 @@ func renderToString(t *testing.T, c templ.Component) string {
 	return buf.String()
 }
 
-// The shared page is the one place in the app that writes a string to the
-// response without escaping it, so the test that it does is also the test that
-// says which string that is. internal/markdown is what makes that safe -- see
-// its package comment -- and this pins the other half: the body reaches the
-// document as markup, and every field beside it does not.
+
+
+
+
+
 func TestTheSharedEntrysBodyIsTheOnlyMarkupOnThePage(t *testing.T) {
 	body := renderToString(t, SharedJournalEntry(SharedJournalData{
 		Character: SharedCharacter{Name: "<script>", Classes: "Fighter", Race: "Orc", Level: "3"},
@@ -45,14 +45,14 @@ func TestTheSharedEntrysBodyIsTheOnlyMarkupOnThePage(t *testing.T) {
 	}
 }
 
-// A public page carries no session-shaped machinery: no htmx, no dialogs, no
-// modal modules. It is the whole reason there is a second layout.
-//
-// EVERY PAGE THE LAYOUT SERVES IS CHECKED, and the monster's is the one this
-// exists for now: it is the only shared page with a button that writes, and the
-// temptation on the next one like it is to reach for hx-post. It cannot -- htmx
-// is not on the page and will not be, so the button is a form and the answer is
-// a redirect.
+
+
+
+
+
+
+
+
 func TestTheSharedPagesShipNoScriptsAndNoDialogs(t *testing.T) {
 	pages := map[string]templ.Component{
 		"entry":   SharedJournalEntry(SharedJournalData{}),
@@ -78,16 +78,16 @@ func TestTheSharedPagesShipNoScriptsAndNoDialogs(t *testing.T) {
 	}
 }
 
-// The gate names nothing behind it. The password is there to keep the entry
-// from being read by whoever finds the link, and a gate announcing whose
-// journal it was guarding would give away part of the answer before asking the
-// question.
-//
-// THE ASSERTION IS ON THE TYPE RATHER THAN ON THE MARKUP, because the type is
-// what makes it true. The template cannot print an entry title or a character
-// name it was never handed, so the two fields below are the whole guarantee --
-// and a third one added here is exactly the change that should have to be
-// argued for.
+
+
+
+
+
+
+
+
+
+
 func TestThePasswordGateIsHandedNothingItCouldLeak(t *testing.T) {
 	fields := reflect.VisibleFields(reflect.TypeOf(ShareLockedData{}))
 
@@ -114,8 +114,8 @@ func TestThePasswordGateAsksForAPassword(t *testing.T) {
 	}
 }
 
-// An entry shared before it was named still has to render a heading and a tab
-// title, and a blank line where either goes reads as a rendering bug.
+
+
 func TestAnUnnamedEntryStillHasATitle(t *testing.T) {
 	if got := ShareTitle("   "); !strings.HasPrefix(got, "Untitled entry") {
 		t.Errorf("ShareTitle(blank) = %q", got)
@@ -127,14 +127,14 @@ func TestAnUnnamedEntryStillHasATitle(t *testing.T) {
 	}
 }
 
-// The dialog is one component in two states, and Link is what picks. Nothing
-// else decides, so the two can never both render.
-//
-// IT IS ALSO ONE COMPONENT FOR ALL THREE KINDS OF SHARE, so the same two states
-// are checked against an entry's action URL, a character's and a monster's --
-// the create and the revoke both come off Action, and a dialog whose revoke
-// named a different row than its create is the one mistake that shape rules
-// out.
+
+
+
+
+
+
+
+
 func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 	for name, action := range map[string]string{
 		"journal":   "/characters/C/journal/E/share",
@@ -151,12 +151,12 @@ func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 			}
 
 			link := renderToString(t, ShareDialog(ShareDialogData{
-				Action: action, Link: "https://tabletopper.test/share/tok",
+				Action: action, Link: "https:
 			}))
 			if !strings.Contains(link, "Revoke link") || strings.Contains(link, "Create link") {
 				t.Errorf("a shared thing did not render the link alone:\n%s", link)
 			}
-			if !strings.Contains(link, `value="https://tabletopper.test/share/tok"`) {
+			if !strings.Contains(link, `value="https:
 				t.Errorf("the link is not in the field to copy:\n%s", link)
 			}
 			if !strings.Contains(link, `hx-delete="`+action+`"`) {
@@ -166,9 +166,9 @@ func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 	}
 }
 
-// The three sentences under the link, and the one that matters is the first:
-// the row outlives its expiry by a day so the owner can see what happened, so
-// the dialog has to say the link is dead rather than offer a URL that 404s.
+
+
+
 func TestTheDialogSaysWhatKindOfLinkItIs(t *testing.T) {
 	cases := map[string]struct {
 		data ShareDialogData
@@ -197,9 +197,9 @@ func TestTheDialogSaysWhatKindOfLinkItIs(t *testing.T) {
 	}
 }
 
-// The Share button opens the dialog through the modal's declarative opener,
-// and the URL it names has to be a /fragment/ route -- content-modal.js refuses
-// anything else and the dialog would simply never open.
+
+
+
 func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
 	for name, c := range map[string]struct {
 		page templ.Component
@@ -217,17 +217,17 @@ func TestTheShareButtonNamesAFragmentRoute(t *testing.T) {
 	}
 }
 
-// ONE PAGE, ONE MEANING OF "SHARE". Every editor bar carries a single Share
-// button that says "Share" and nothing more -- what is being shared is the thing
-// the page is about, so a noun is a word paid for on every page to be read on
-// none.
-//
-// THE JOURNAL ENTRY PAGE IS WHERE THAT RULE COST SOMETHING. It used to carry two
-// of them under the same icon, the character's and the entry's, a coin toss
-// apart; now the bar leaves its own off and the page keeps the one that means
-// what "share" means there. The character is still shareable from any of the
-// other four tabs, which is what makes dropping it from this one a narrowing
-// rather than a loss.
+
+
+
+
+
+
+
+
+
+
+
 func TestEachEditorPageHasOneMeaningOfShare(t *testing.T) {
 	for name, page := range map[string]templ.Component{
 		"character": EditCharacter(EditCharacterPageData{CharacterID: "C"}),
@@ -258,14 +258,14 @@ func TestEachEditorPageHasOneMeaningOfShare(t *testing.T) {
 	}
 }
 
-// The icon buttons collapse to their icon under 640px, where the journal entry
-// page's bar is at its most crowded.
-//
-// THE LABELS ARE HIDDEN AND NOT REMOVED, which is the whole of what this checks:
-// sr-only takes the words out of the layout and leaves them in the accessibility
-// tree, while `hidden` or deleting them would leave two adjacent buttons
-// announced as "button" and nothing else -- and once the words are gone the
-// names are the only thing telling a share from a download.
+
+
+
+
+
+
+
+
 func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 	body := renderToString(t, EditCharacterJournalEntry(JournalEntryPageData{
 		CharacterID: "C", EntryID: "E",
@@ -280,33 +280,33 @@ func TestTheShareButtonsKeepTheirLabelsWhenTheyCollapse(t *testing.T) {
 		}
 	}
 
-	// Save keeps its words, because it is what the entry page is for. The back
-	// link keeps its own too and is not in this row at all -- see
-	// TestEveryPageHeaderLeadsWithItsBackLink.
+	
+	
+	
 	if !strings.Contains(body, ">Save<") {
 		t.Errorf("the bar lost Save:\n%s", body)
 	}
 }
 
-// THE EXPORT IS ON ALL FIVE SURFACES A MONSTER OR A CHARACTER IS SHOWN ON, which
-// is the whole of what the feature is: an owner should not have to share a thing
-// to get a file out of it, and a reader handed a link should not have to ask.
-//
-// It is an anchor with a download attribute rather than a button, because there
-// is no JavaScript on two of these five pages -- the shared ones ship none at
-// all -- and a plain link to a route that answers with Content-Disposition works
-// the same on every one of them.
+
+
+
+
+
+
+
+
 func TestEverySurfaceOffersTheMarkdownExport(t *testing.T) {
 	for name, c := range map[string]struct {
 		page  templ.Component
 		want  string
 		label string
 	}{
-		// THE EDITORS SAY "EXPORT" AND THE SHARED PAGES SAY "EXPORT MARKDOWN",
-		// which is not an inconsistency but the two places being different: a
-		// bar is four buttons deep and every word in one is paid for on every
-		// page, while the shared pages' toolbar has a sentence beside it and a
-		// stranger there has never seen this app before.
+		
+		
+		
+		
+		
 		"monster editor":   {EditMonster(EditMonsterPageData{MonsterID: "M", Header: MonsterHeader{MonsterID: "M"}}), "/monsters/M/export.md", "Export"},
 		"character editor": {EditCharacter(EditCharacterPageData{CharacterID: "C"}), "/characters/C/export.md", "Export"},
 		"journal tab":      {EditCharacterJournal(JournalPageData{CharacterID: "C"}), "/characters/C/export.md", "Export"},
@@ -326,13 +326,13 @@ func TestEverySurfaceOffersTheMarkdownExport(t *testing.T) {
 	}
 }
 
-// The monster's Share button is on its bar too, beside Back, and the editor is
-// the only place it appears.
-//
-// THE MANUAL'S CARDS DELIBERATELY DO NOT CARRY ONE. A card is one row in a list
-// somebody scrolls through hundreds of times, and a fourth button on it would be
-// paid for on every row to be used on one -- the editor is where a monster is
-// worked on, and sharing it is part of working on it.
+
+
+
+
+
+
+
 func TestTheMonsterEditorCarriesAShareButtonAndTheManualDoesNot(t *testing.T) {
 	editor := renderToString(t, EditMonster(EditMonsterPageData{
 		MonsterID: "M",
@@ -352,13 +352,13 @@ func TestTheMonsterEditorCarriesAShareButtonAndTheManualDoesNot(t *testing.T) {
 	}
 }
 
-// The character's Share button is on the bar rather than on a page, which is
-// what puts it on four editor tabs without any of them naming it. Losing that is
-// losing the button from four pages at once, and nothing else would fail.
-//
-// THE ENTRY TAB IS THE ONE THAT OPTS OUT, through shellLayout.OwnShare, and it
-// is listed here rather than left out so the exception is a line somebody has to
-// delete rather than a page nobody remembered to add.
+
+
+
+
+
+
+
 func TestEveryEditorTabButTheEntryCarriesTheCharacterShareButton(t *testing.T) {
 	tabs := map[string]struct {
 		page   templ.Component

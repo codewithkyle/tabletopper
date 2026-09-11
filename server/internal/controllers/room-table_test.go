@@ -19,10 +19,10 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE GM'S TABLE CONTROLS. What these check is the seam: that the handlers
-// establish the right actor and hand every rule to internal/room, that the
-// fragments are the GM's alone, and that the one thing the core cannot do --
-// turn an asset id into a pyramid -- happens and happens correctly.
+
+
+
+
 
 var (
 	testMapID    = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTA")
@@ -30,8 +30,8 @@ var (
 	testOtherMap = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTC")
 )
 
-// pyramidAnswer is a GetMapPyramid row: a map that has finished tiling, or one
-// that has not when gen is the zero ULID.
+
+
 func pyramidAnswer(owner ulid.ULID, gen ulid.ULID, w, h, tile, maxZoom int) roomAnswer {
 	var genValue driver.Value
 	if gen != (ulid.ULID{}) {
@@ -44,8 +44,8 @@ func pyramidAnswer(owner ulid.ULID, gen ulid.ULID, w, h, tile, maxZoom int) room
 	}
 }
 
-// readyMapAnswer is a ListReadyMaps row, which is what the layer manager reads
-// to put a name under each layer.
+
+
 func readyMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	return roomAnswer{
 		columns: []string{"id", "name", "width", "height"},
@@ -53,11 +53,11 @@ func readyMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	}
 }
 
-// pickerMapColumns is what ListPickerMaps and SearchPickerMaps both select.
+
 var pickerMapColumns = []string{"id", "name", "file_name", "width", "height", "tile_gen", "tile_state", "tile_attempts"}
 
-// pickerMapAnswer is a ListPickerMaps row: a map that has been tiled, so it has
-// a generation, dimensions and no job outstanding.
+
+
 func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	return roomAnswer{
 		columns: pickerMapColumns,
@@ -65,9 +65,9 @@ func pickerMapAnswer(id ulid.ULID, name string, w, h int) roomAnswer {
 	}
 }
 
-// buildingMapAnswer is the same row for a map that was uploaded a moment ago:
-// no generation, no size yet, and a job queued. It is the state the picker had
-// to learn to show, because uploading is now something done from inside it.
+
+
+
 func buildingMapAnswer(id ulid.ULID, name string) roomAnswer {
 	return roomAnswer{
 		columns: pickerMapColumns,
@@ -75,9 +75,9 @@ func buildingMapAnswer(id ulid.ULID, name string) roomAnswer {
 	}
 }
 
-// failedMapAnswer is a map whose tiling failed, attempts goes in as the number
-// of tries it has already had. Below tiling.MaxAttempts the worker is coming
-// back for it; at the cap it is not, and the card has to say which.
+
+
+
 func failedMapAnswer(id ulid.ULID, name string, attempts int) roomAnswer {
 	return roomAnswer{
 		columns: pickerMapColumns,
@@ -89,9 +89,9 @@ func tableRoomAnswer() roomAnswer {
 	return getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false)
 }
 
-// tableApp is liveRoomApp with a hub that can read rows, which is what
-// resolveMap needs: internal/room has no database and the hub is the half of
-// TableSetLayerMap that does.
+
+
+
 func tableApp(t *testing.T, db *roomDB) *App {
 	t.Helper()
 
@@ -126,8 +126,8 @@ func tableRequest(t *testing.T, handler http.HandlerFunc, method, path string, v
 	return rec
 }
 
-// firstLayer is the id of the layer NewState builds every room with, which is
-// what these tests aim their commands at.
+
+
 func firstLayer(t *testing.T, app *App) ulid.ULID {
 	t.Helper()
 
@@ -142,10 +142,10 @@ func firstLayer(t *testing.T, app *App) ulid.ULID {
 	return view.Table.Layers[0].ID
 }
 
-// EVERY ONE OF THESE IS THE GM'S, AND A PLAYER GETS THE SAME 404 A STRANGER
-// DOES. They are the controls that decide what the table is; a player who could
-// fetch one would be reading the room's configuration, and there is no reading
-// of that which is not a leak.
+
+
+
+
 func TestTheTableFragmentsAreTheGMsAlone(t *testing.T) {
 	for name, handler := range map[string]func(*App) http.HandlerFunc{
 		"layers": func(a *App) http.HandlerFunc { return a.RoomLayersFragment },
@@ -166,10 +166,10 @@ func TestTheTableFragmentsAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// THE HANDLER AUTHORISES NOTHING AND THAT IS THE POINT. A player posting to a
-// layer route is a member of the room, so a 404 would be a lie; the command's
-// own Authorize refuses them, and rejectCommand turns that into the alert modal
-// with the protocol's own sentence in it.
+
+
+
+
 func TestAPlayerIsRefusedByTheCommandAndNotByTheHandler(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 	layer := firstLayer(t, app)
@@ -183,8 +183,8 @@ func TestAPlayerIsRefusedByTheCommandAndNotByTheHandler(t *testing.T) {
 		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
 	}
 
-	// The refusal arrives as an alert, not as a swap, and it says what was
-	// refused rather than that something went wrong.
+	
+	
 	trigger := rec.Header().Get("HX-Trigger")
 	if !strings.Contains(trigger, "alert") {
 		t.Errorf("no alert on the refusal: %q", trigger)
@@ -194,10 +194,10 @@ func TestAPlayerIsRefusedByTheCommandAndNotByTheHandler(t *testing.T) {
 	}
 }
 
-// THE PYRAMID IS THE HUB'S HALF OF THE COMMAND. internal/room cannot read a
-// row, so the geometry a renderer fetches tiles with is filled in on the way
-// past -- and this is the whole of that path, from a form field to a layer with
-// a map on it.
+
+
+
+
 func TestSettingAMapCopiesItsPyramidOntoTheLayer(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -215,9 +215,9 @@ func TestSettingAMapCopiesItsPyramidOntoTheLayer(t *testing.T) {
 		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
 	}
 
-	// THE PICKER IS THE ONE MODAL IN THE TABLE FAMILY, and choosing is what
-	// ends it. Without this the cards would keep sitting over the table the GM
-	// picked the map to look at, which reads as the click having missed.
+	
+	
+	
 	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "modal:close") {
 		t.Errorf("the picker stayed open: %q", trigger)
 	}
@@ -241,9 +241,9 @@ func TestSettingAMapCopiesItsPyramidOntoTheLayer(t *testing.T) {
 	}
 }
 
-// THE TILE ROUTE IS DELIBERATELY UNSCOPED so everybody AT the table can fetch a
-// map, which is exactly why CHOOSING one has to be scoped. Without this a GM
-// could put any map in the database on their table by guessing an id.
+
+
+
 func TestAGMCannotPutSomebodyElsesMapOnTheirTable(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -261,17 +261,17 @@ func TestAGMCannotPutSomebodyElsesMapOnTheirTable(t *testing.T) {
 		t.Fatalf("status = %d, want 404; body: %s", rec.Code, rec.Body.String())
 	}
 
-	// It reads as gone rather than as forbidden, which is the honest answer:
-	// the GM's library does not contain it, and saying "that is somebody
-	// else's" would confirm the id names something.
+	
+	
+	
 	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "no longer in your library") {
 		t.Errorf("the refusal reads %q", trigger)
 	}
 }
 
-// A map that is queued, running or failed has no pyramid in the bucket. Setting
-// it would give every browser at the table a URL that 404s at every zoom, so it
-// is refused with something a GM can act on.
+
+
+
 func TestAMapThatHasNotFinishedTilingIsRefused(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -293,7 +293,7 @@ func TestAMapThatHasNotFinishedTilingIsRefused(t *testing.T) {
 	}
 }
 
-// pickerRequest is the dialog or its grid, asked for as the room's GM.
+
 func pickerRequest(t *testing.T, app *App, handler http.HandlerFunc, path string, query string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -303,9 +303,9 @@ func pickerRequest(t *testing.T, app *App, handler http.HandlerFunc, path string
 	return tableRequest(t, handler, http.MethodGet, url, nil, nil, session.UserSession{UserID: testOwnerID})
 }
 
-// listing is the statement the picker read its cards from, which is the one
-// ordered by whether a map has been tiled. The room lookup runs first and this
-// picks the listing out from behind it.
+
+
+
 func listing(t *testing.T, db *roomDB) recordedCall {
 	t.Helper()
 
@@ -319,13 +319,13 @@ func listing(t *testing.T, db *roomDB) recordedCall {
 	return recordedCall{}
 }
 
-// THE PICKER ASKS FOR THE OWNER'S WHOLE MAP LIBRARY, and both halves of that
-// matter. The wrong owner is a leak. The wrong filter is the reason this changed:
-// it used to ask only for maps with a generation, which was right when the only
-// way to get a map was the asset manager and wrong the moment uploading moved in
-// here -- a GM who presses Upload has to be able to watch the thing they uploaded
-// build, and a listing that hid it until it was finished would show nothing at
-// all for the minute that takes.
+
+
+
+
+
+
+
 func TestThePickerAsksForTheOwnersWholeMapLibrary(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -353,18 +353,18 @@ func TestThePickerAsksForTheOwnersWholeMapLibrary(t *testing.T) {
 	if !strings.Contains(body, "Death House") || !strings.Contains(body, `name="asset" value="`+testMapID.String()+`"`) {
 		t.Errorf("the card does not post the map:\n%s", body)
 	}
-	// The card posts to the LAYER's map resource, because what is being
-	// changed is the layer and not the picker.
+	
+	
 	if !strings.Contains(body, `hx-post="/rooms/`+testRoomID.String()+`/layers/`+firstLayer(t, app).String()+`/map"`) {
 		t.Errorf("the card posts somewhere else:\n%s", body)
 	}
 }
 
-// A SEARCH MATCHES THE FILE THE MAP CAME FROM AS WELL AS ITS NAME, which is the
-// one place in the app that does. The manager's search deliberately does not --
-// see SearchMaps in assets.sql -- and the picker is the case that reason does not
-// cover: it is reached mid-session with a map in mind, and a map renamed a month
-// ago is as often remembered by its export as by its name.
+
+
+
+
+
 func TestThePickerSearchesBothNames(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -381,16 +381,16 @@ func TestThePickerSearchesBothNames(t *testing.T) {
 	if !strings.Contains(read.query, "name LIKE") || !strings.Contains(read.query, "file_name LIKE") {
 		t.Errorf("the search does not look at both names: %q", read.query)
 	}
-	// The term is a pattern and not a word: the caller escapes it, so a
-	// wildcard somebody typed is a character and not the whole library.
+	
+	
 	if got := read.args[1]; got != "%death%" {
 		t.Errorf("the bound term is %v, want %%death%%", got)
 	}
 }
 
-// A TERM LONGER THAN A NAME CAN BE IS A 404 WITH AN EMPTY BODY, and the box
-// carries a maxlength so it cannot come from the dialog. There is nobody on the
-// other end to tell, which is why this is not an alert.
+
+
+
 func TestAnOverlongSearchIsRefusedWithoutReadingTheLibrary(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -411,11 +411,11 @@ func TestAnOverlongSearchIsRefusedWithoutReadingTheLibrary(t *testing.T) {
 	}
 }
 
-// A MAP THAT IS STILL BUILDING IS ON THE SHELF AND IS NOT A BUTTON, and the grid
-// polls while it is there. The card says what it is doing, the grid asks again in
-// two seconds, and both of those stop by themselves: the poll lives on the grid's
-// own markup, so the swap that comes back without a building map comes back
-// without an hx-trigger.
+
+
+
+
+
 func TestAMapThatIsStillBuildingIsShownButCannotBeChosen(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -438,15 +438,15 @@ func TestAMapThatIsStillBuildingIsShownButCannotBeChosen(t *testing.T) {
 	if !strings.Contains(body, `hx-trigger="every 2s"`) {
 		t.Errorf("the card does not ask again while its tiles are building:\n%s", body)
 	}
-	// The card polls its own fragment, so a map finishing cannot move the
-	// cards around it or throw away somebody's scroll position.
+	
+	
 	if !strings.Contains(body, "/fragment/room/map-card?room="+testRoomID.String()) {
 		t.Errorf("the card does not name the fragment it refetches:\n%s", body)
 	}
 }
 
-// AND A CARD WITH NOTHING LEFT TO WAIT FOR DOES NOT POLL. This is the half that
-// makes the poll end rather than run for as long as the dialog is open.
+
+
 func TestACardWithNothingBuildingDoesNotPoll(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -461,9 +461,9 @@ func TestACardWithNothingBuildingDoesNotPoll(t *testing.T) {
 	}
 }
 
-// A MAP WHOSE TILING FAILED CAN BE TRIED AGAIN FROM IN HERE. There is no link
-// out of this dialog to the asset manager any more, so a failure with no control
-// beside it would be a dead end in the middle of a session.
+
+
+
 func TestAFailedMapOffersItsRetryInThePicker(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
@@ -477,18 +477,18 @@ func TestAFailedMapOffersItsRetryInThePicker(t *testing.T) {
 	if !strings.Contains(body, `/maps/`+testMapID.String()+`"`) {
 		t.Errorf("a failed map cannot be tried again:\n%s", body)
 	}
-	// It answers with this card and nothing else, so the retry replaces the
-	// card that was pressed rather than the grid around it.
+	
+	
 	if !strings.Contains(body, `hx-target="closest room-map-card"`) {
 		t.Errorf("the retry does not replace its own card:\n%s", body)
 	}
 }
 
-// A FAILURE THE WORKER IS COMING BACK FOR DOES NOT SAY IT GAVE UP, which it did
-// for as long as the card read the state and not the attempt count. The sweep
-// requeues a failed map with tries left a lease window later, so the first
-// failure of three is a wait and not an ending -- and the button offers to skip
-// the wait rather than to start something that was not going to happen.
+
+
+
+
+
 func TestAFailureWithTriesLeftSaysSoAndTheLastOneDoesNot(t *testing.T) {
 	for name, tc := range map[string]struct {
 		attempts int
@@ -518,16 +518,16 @@ func TestAFailureWithTriesLeftSaysSoAndTheLastOneDoesNot(t *testing.T) {
 	}
 }
 
-// THE UPLOAD'S HAPPY PATH IS NOT HERE, because storeMap puts the original in R2
-// and App.Storage is a concrete *storage.Client with nothing to stand in for it.
-// What the picker adds to that path is the card on the end of it, and that is
-// pinned in templ/pages: TestAPickerCardPollsUntilItsTilesAreReady renders a
-// pending card and a finished one and checks that the first fetches its own
-// replacement and the second does not.
 
-// A PLAYER CANNOT UPLOAD INTO A ROOM THEY ARE ONLY SITTING AT, and the refusal
-// comes before the file is read: the route is the GM's picker, so somebody who
-// is not the GM has no picker to be uploading from.
+
+
+
+
+
+
+
+
+
 func TestAPlayerCannotUploadThroughThePicker(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -549,9 +549,9 @@ func TestAPlayerCannotUploadThroughThePicker(t *testing.T) {
 	}
 }
 
-// A form this server did not write is a 404 and not a message. The only thing
-// that produces one is somebody posting by hand, and there is nothing to tell
-// them that is not a hint.
+
+
+
 func TestAFormWithNoAssetInItIsRefusedWithoutAskingTheRoom(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -572,9 +572,9 @@ func TestAFormWithNoAssetInItIsRefusedWithoutAskingTheRoom(t *testing.T) {
 	}
 }
 
-// THE GRID'S REFUSAL GOES ABOVE THE FIELD AND NOT INTO THE ALERT MODAL, which
-// is the one thing in this file that is rendered rather than triggered. "Cell
-// size must be between 8 and 512 pixels" is about the 4 somebody typed.
+
+
+
 func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -600,9 +600,9 @@ func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 	}
 }
 
-// A save that works answers an EMPTY error block rather than 204, which is the
-// deliberate exception in this file: the block stays on screen until something
-// replaces it, so a good save has to clear what the last one left there.
+
+
+
 func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -639,16 +639,16 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 		t.Errorf("the grid is %+v, want %+v", view.Table.Grid, want)
 	}
 
-	// The options ride in the same form and are a second command, so a form
-	// that saved the grid and dropped them would look like it worked.
+	
+	
 	if view.Table.PawnLabels != room.LabelsNone || !view.Table.PlayersCanDraw {
 		t.Errorf("the options are %q / %v", view.Table.PawnLabels, view.Table.PlayersCanDraw)
 	}
 }
 
-// AN UNCHECKED BOX SENDS NOTHING AT ALL. That is how HTML forms work, and it is
-// why the toggle is read by presence -- a reader that looked for "false" would
-// leave drawing switched on for ever.
+
+
+
 func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
@@ -670,10 +670,10 @@ func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	}
 }
 
-// THE LINE STYLE IS A RADIO GROUP AND NOT A CHECKBOX, so "absent" is not a
-// state it has: a browser always sends the one that is checked. What arrives
-// without it is a request nobody's form made, and the core refuses it by name
-// rather than this handler quietly choosing a style for it.
+
+
+
+
 func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 	app := tableApp(t, db)
@@ -694,9 +694,9 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 	}
 }
 
-// The hash is optional in the field and required in the state, so it is put
-// back rather than made the reader's problem -- and the case is normalised so
-// two GMs typing the same colour store the same string.
+
+
+
 func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"  3355ffcc  "},
@@ -714,9 +714,9 @@ func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 	}
 }
 
-// A field that is not a number has no value to send, so the core would be asked
-// about a zero the reader never typed. Shape is this function's question;
-// whether the number is legal is the core's.
+
+
+
 func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"sixty four"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"#000000FF"},
@@ -731,12 +731,12 @@ func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 	}
 }
 
-// THE PAIR THAT MUST NOT CLOSE INTO A CIRCLE. The player's menu bar asks for
-// the active layer's name on load and swaps the reply over itself; htmx fires
-// a load trigger the moment it processes an element, including one it has just
-// swapped in. So the page arms the fetch exactly once and the fragment must
-// never arm it again -- the shipped bug was a browser that fetched this one
-// string for the rest of the session, with the loading bar up throughout.
+
+
+
+
+
+
 func TestTheLayerNameFragmentDoesNotAskForItselfAgain(t *testing.T) {
 	page := getRoomPage(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}, memberSession(testRoomID))
 	if !strings.Contains(page.Body.String(), `hx-trigger="load, room:tabletop from:window"`) {

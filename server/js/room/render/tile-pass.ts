@@ -1,19 +1,19 @@
-// The map itself: one instanced draw call for every tile on screen, at every
-// level, in one go.
-//
-// THE WHOLE VIEWPORT IS ONE DRAW CALL because the cache is a texture array. A
-// draw call can only sample the textures bound to it, so ninety-six separate
-// tile textures would be ninety-six calls; one array with ninety-six layers is
-// one bind, one buffer upload, and one drawArraysInstanced whose per-instance
-// attributes carry the rectangle, the texture coordinates and the layer index.
-// Tiles at different levels ride in the same call for the same reason -- the
-// level is not a property of the texture, only of the coordinates written into
-// the instance.
-//
-// A TILE THAT IS NOT HERE YET IS DRAWN FROM ITS ANCESTOR. Walking up the
-// pyramid until something is resident, and drawing the sub-rectangle of it that
-// covers this tile, is what makes a map appear coarse and sharpen in place
-// rather than filling in square by square out of an empty rectangle.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import type { Camera, Rect } from "./camera.ts";
 import type { Loader, Slot, TileRange } from "./tiles.ts";
@@ -35,9 +35,9 @@ import {
 	visibleRange,
 } from "./tiles.ts";
 
-// FLOATS_PER_INSTANCE: the map-space rectangle, the texture rectangle, and the
-// layer. Nine, packed as vec4 + vec4 + float so the attribute count stays at
-// three and the whole instance is one contiguous run.
+
+
+
 const FLOATS_PER_INSTANCE = 9;
 
 const vertexSource = `#version 300 es
@@ -80,29 +80,29 @@ void main() {
 const names = ["u_clip", "u_tiles", "u_alpha"] as const;
 
 export interface TilePass {
-	// begin and end bracket one frame. Everything between them is demand: what
-	// was asked for is fetched, and what was not is abandoned.
+	
+	
 	begin(): void;
 	end(): boolean;
 
-	// draw paints one map at one opacity. It is called once normally and twice
-	// during a crossfade, oldest first.
+	
+	
 	draw(cam: Camera, map: MapRef, alpha: number, deviceWidth: number, deviceHeight: number, dpr: number): void;
 
-	// abandon drops the fetch queue for a map that has been replaced or
-	// re-tiled: those URLs are gone and nothing will answer them.
+	
+	
 	abandon(map: MapRef): void;
 
 	fetched(): number;
 	dispose(): void;
 }
 
-// A store is one texture array, and there is one per distinct tile size.
-//
-// assets.tile_size IS A PER-ROW COLUMN, stored so a map tiled under an older
-// constant goes on working. A texture array has one fixed layer size, so two
-// maps tiled differently cannot share one -- and in practice there is exactly
-// one of these.
+
+
+
+
+
+
 interface Store {
 	texture: WebGLTexture;
 	slots: Slots;
@@ -113,9 +113,9 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 	const program = createProgram(gl, vertexSource, fragmentSource);
 	const at = uniforms(gl, program, names);
 
-	// MAX_ARRAY_TEXTURE_LAYERS is 256 on every desktop and as low as 256 on
-	// mobile, so the cache size is what limits this rather than the driver --
-	// but a driver that said less would be believed rather than crashed into.
+	
+	
+	
 	const maxLayers = Math.min(LAYERS, gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS) as number);
 
 	const stores = new Map<number, Store>();
@@ -147,10 +147,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 	gl.bindVertexArray(null);
 	gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-	// The instance array is grown by doubling and never shrunk, which is the
-	// second performance rule: a typed array reallocated per frame is a garbage
-	// collection pause per second, and pauses are the jank that gets worse the
-	// longer a session runs.
+	
+	
+	
+	
 	let data = new Float32Array(256 * FLOATS_PER_INSTANCE);
 	let count = 0;
 
@@ -170,10 +170,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 		gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 		gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, tileSize, tileSize, maxLayers);
 
-		// LINEAR WITH NO MIPMAPS, because the pyramid IS the mip chain and it
-		// is a better one: generateMipmap would build a second, redundant chain
-		// per tile, and a minified tile would sample across a tile boundary
-		// that the level below does not have.
+		
+		
+		
+		
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -256,10 +256,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 						continue;
 					}
 
-					// PRIORITY IS DISTANCE FROM THE MIDDLE OF THE SCREEN.
-					// Somebody who has just panned is looking at the centre,
-					// and filling in from the edges delivers the same tiles in
-					// the least useful order.
+					
+					
+					
+					
 					tileSizeByKey.set(key, map.tileSize);
 					loader.want(
 						key,
@@ -267,10 +267,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 						Math.hypot((rect.x1 + rect.x2) / 2 - cam.x, (rect.y1 + rect.y2) / 2 - cam.y),
 					);
 
-					// Walk up until something is resident. The parent of
-					// (z, x, y) is (z+1, x>>1, y>>1) and covers twice the
-					// ground at half the detail; drawing the part of it that
-					// covers this tile is what a coarse map is made of.
+					
+					
+					
+					
 					for (let up = z + 1; up <= map.maxZoom; up++) {
 						const shift = up - z;
 						const ax = x >> shift;
@@ -302,10 +302,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			gl.uniform1f(at.u_alpha, alpha);
 			gl.uniformMatrix3fv(at.u_clip, false, clipMatrix(cam, deviceWidth, deviceHeight, dpr, matrix));
 
-			// Blending is on for the crossfade's sake and costs nothing when
-			// alpha is 1. A map with transparent corners -- a hand-drawn island
-			// on a white page saved as PNG -- composites over the table for
-			// free, which is the right answer anyway.
+			
+			
+			
+			
 			gl.enable(gl.BLEND);
 			gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
@@ -336,10 +336,10 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 
 				const slot = store.slots.claim(key, bitmap.width, bitmap.height);
 				if (!slot) {
-					// Every layer is spoken for by this frame, which means the
-					// viewport needs more tiles than the cache holds. The tile
-					// is dropped rather than evicting one that is on screen
-					// right now; it will be asked for again next frame.
+					
+					
+					
+					
 					return;
 				}
 
@@ -353,13 +353,13 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 				gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
 			});
 
-			// ANYTHING UPLOADED MEANS ANOTHER FRAME, not just anything still
-			// queued. A tile lands in the texture array AFTER this frame's
-			// draw call has already gone out, so the frame that uploads it is
-			// never the frame that shows it -- and a loop that stopped here
-			// would leave the map one batch of tiles short until something
-			// else happened to ask for a frame. Waiting matters too: those are
-			// uploads held back to keep this frame inside its budget.
+			
+			
+			
+			
+			
+			
+			
 			return uploaded > 0 || waiting > 0;
 		},
 

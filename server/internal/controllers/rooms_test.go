@@ -19,13 +19,13 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// testRoomID is the room every test in this file and its two neighbours works
-// against.
+
+
 var testRoomID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVT0")
 
-// roomRequest drives a room handler that takes an id in its path, over a stub
-// that can begin a transaction. sess is the caller; the zero value is enough
-// for the handlers that only read UserID off it.
+
+
+
 func roomRequest(t *testing.T, handler http.HandlerFunc, method string, path string, pathValues map[string]string, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -41,8 +41,8 @@ func roomRequest(t *testing.T, handler http.HandlerFunc, method string, path str
 	return rec
 }
 
-// newRoomApp is newPanelApp for the handlers that need a pool they can begin a
-// transaction on, plus a session store over the same stub.
+
+
 func newRoomApp(db *roomDB) *App {
 	pool := db.db()
 	q := queries.New(pool)
@@ -50,7 +50,7 @@ func newRoomApp(db *roomDB) *App {
 	return &App{DB: pool, Queries: q, Sessions: session.NewStore(q, false)}
 }
 
-// toastFrom reads the queued toast off a response.
+
 func toastFrom(t *testing.T, rec *httptest.ResponseRecorder) string {
 	t.Helper()
 
@@ -69,8 +69,8 @@ func toastFrom(t *testing.T, rec *httptest.ResponseRecorder) string {
 	return message
 }
 
-// The happy path. The reply is a redirect with no body, because the dialog the
-// post came from is about to be navigated away from.
+
+
 func TestCreateRoomMintsACodeAndRedirects(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -96,12 +96,12 @@ func TestCreateRoomMintsACodeAndRedirects(t *testing.T) {
 		t.Errorf("the id is %d bytes, want 16", len(id))
 	}
 
-	// The owner comes from the session, never from the form.
+	
 	if call.args[1] != testOwnerID {
 		t.Errorf("owner = %v, want %v", call.args[1], testOwnerID)
 	}
 
-	// The name is trimmed before it is stored and before it is announced.
+	
 	if call.args[2] != "Curse of Strahd" {
 		t.Errorf("stored name = %v, want %q", call.args[2], "Curse of Strahd")
 	}
@@ -122,10 +122,10 @@ func TestCreateRoomMintsACodeAndRedirects(t *testing.T) {
 	}
 }
 
-// A rejection has to be a 422 specifically. It is the only 4xx the dialog's
-// form carries an hx-status route for -- every other code in the range is in
-// the noSwap list in base.templ, so the reply would land nowhere and the dialog
-// would look like it had done nothing.
+
+
+
+
 func TestCreateRoomRejectsBadNamesWithoutWriting(t *testing.T) {
 	for name, c := range map[string]struct{ value, want string }{
 		"empty":           {"", "Name is required."},
@@ -149,8 +149,8 @@ func TestCreateRoomRejectsBadNamesWithoutWriting(t *testing.T) {
 			if body := rec.Body.String(); !strings.Contains(body, c.want) {
 				t.Errorf("body missing %q: %s", c.want, body)
 			}
-			// Into the block the form targets, not the form itself -- so the
-			// name the GM typed is still in the field.
+			
+			
 			if !strings.Contains(rec.Body.String(), `id="errors-new-room"`) {
 				t.Errorf("body is not the error block: %s", rec.Body.String())
 			}
@@ -158,8 +158,8 @@ func TestCreateRoomRejectsBadNamesWithoutWriting(t *testing.T) {
 	}
 }
 
-// The column is varchar(128) and MySQL counts characters there. A byte-length
-// check would reject this name at 128 letters the database would have taken.
+
+
 func TestCreateRoomMeasuresTheNameInCharactersNotBytes(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -173,8 +173,8 @@ func TestCreateRoomMeasuresTheNameInCharactersNotBytes(t *testing.T) {
 	}
 }
 
-// The dialog's content is the same for every user, so the handler that serves
-// it should not be reaching for a row to render it.
+
+
 func TestNewRoomFragmentTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -194,10 +194,10 @@ func TestNewRoomFragmentTouchesNoDatabase(t *testing.T) {
 	}
 }
 
-// THE OWNER-SCOPED STATEMENT RUNS FIRST AND THAT IS THE WHOLE OWNERSHIP CHECK
-// ON THE OTHER ONE. ClearRoomSessions names a room and no owner -- it has to,
-// since it clears every session in the room -- so a delete that emptied the
-// table before checking who owned it would let anybody turn a room out.
+
+
+
+
 func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	db := &roomDB{rows: 1}
 	app := newRoomApp(db)
@@ -208,9 +208,9 @@ func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	// 200 and not 204: noSwap lists 204, and a status in that list overrides
-	// the hx-swap="delete" on the button, which would leave the card on screen
-	// after the room was gone.
+	
+	
+	
 	if body := rec.Body.String(); body != "" {
 		t.Errorf("body = %q, want empty", body)
 	}
@@ -228,17 +228,17 @@ func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	assertBoundToRoom(t, db.calls[0], testRoomID)
 	assertBoundToRoom(t, db.calls[1], testRoomID)
 
-	// And the delete carries the owner, which is what makes the rollback below
-	// reachable at all.
+	
+	
 	if owner, ok := boundRoomID(db.calls[0].args[1]); !ok || owner != testOwnerID {
 		t.Errorf("the delete is not owner-scoped: %v", db.calls[0].args)
 	}
 }
 
-// DELETING A ROOM ENDS THE LIVE ONE. Without this the goroutine played on over
-// a row that was gone: commands applied, events broadcast, the GM saw the room
-// vanish from the list, and everybody in it went on playing until the last
-// socket dropped.
+
+
+
+
 func TestDeleteRoomClosesTheLiveRoom(t *testing.T) {
 	db := &roomDB{rows: 1}
 	app := newRoomApp(db)
@@ -266,9 +266,9 @@ func TestDeleteRoomClosesTheLiveRoom(t *testing.T) {
 	}
 }
 
-// A delete that matched no row is a room that is not there or not yours, and
-// both are the same 404. The transaction rolls back, so the session sweep that
-// would have run next never lands.
+
+
+
 func TestDeletingSomebodyElsesRoomIsA404(t *testing.T) {
 	db := &roomDB{rows: 0}
 	app := newRoomApp(db)
@@ -284,7 +284,7 @@ func TestDeletingSomebodyElsesRoomIsA404(t *testing.T) {
 	}
 }
 
-// assertBoundToRoom checks that a recorded statement names the room under test.
+
 func assertBoundToRoom(t *testing.T, call recordedCall, want ulid.ULID) {
 	t.Helper()
 
@@ -297,15 +297,15 @@ func assertBoundToRoom(t *testing.T, call recordedCall, want ulid.ULID) {
 	t.Errorf("statement is not bound to %v: %q with %v", want, call.query, call.args)
 }
 
-// boundCode reads a room code out of a recorded argument, whichever of the two
-// stubs recorded it.
-//
-// THE TWO LAYERS BIND IT DIFFERENTLY AND BOTH ARE CORRECT. recordingDB is a
-// queries.DBTX and sees what sqlc passed, which is a sql.NullString -- the
-// column is nullable, because a closed room has no code. roomDB is a
-// driver.Connector and sees what database/sql handed the driver, by which point
-// that has been unwrapped into a plain string. A test that accepted only one
-// form would be asserting which stub it was using.
+
+
+
+
+
+
+
+
+
 func boundCode(t *testing.T, arg any) string {
 	t.Helper()
 

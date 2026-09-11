@@ -20,11 +20,11 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// A real four-pixel PNG, because this upload path decodes what it is given --
-// unlike a map's, which stores the bytes as they arrived. pngHeader in
-// assets_test.go is an IHDR and nothing else, which is the right fixture for the
-// budget checks and the wrong one for anything that has to come out the far side
-// as an image.
+
+
+
+
+
 func tinyPNG(t *testing.T) []byte {
 	t.Helper()
 
@@ -48,17 +48,17 @@ func monsterImageRequest(t *testing.T, monsterID string) *http.Request {
 	return r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
 }
 
-// THE ROW IS THE LEDGER FOR WHAT LIVES IN R2, which is why it is written before
-// the object and names the key the object will land at. An object written first
-// and a row that never followed is a file nothing remembers: no page can render
-// it, no delete will find it, and the sweeper works from these same rows.
-//
-// The handler cannot be driven end to end from here, for the reason the purge
-// tests give: it opens with a :one that this fake answers by failing, and it
-// reaches R2. What is checked instead is the pair of statements it runs, which
-// is where the property actually lives -- the insert carries the key, and
-// linking the asset to the monster is a second statement that runs after the
-// object has landed.
+
+
+
+
+
+
+
+
+
+
+
 func TestAMonsterImageUploadWritesTheRowBeforeReachingR2(t *testing.T) {
 	db := &recordingDB{err: errNoRowsToGive}
 	q := queries.New(db)
@@ -95,9 +95,9 @@ func TestAMonsterImageUploadWritesTheRowBeforeReachingR2(t *testing.T) {
 		t.Errorf("the insert reaches the monsters row, so the link is not a separate statement: %q", insert.query)
 	}
 
-	// The link is what makes the picture the monster's, and it runs last --
-	// after the object is in the bucket -- so a monster never names an asset
-	// whose object failed to upload.
+	
+	
+	
 	if !strings.Contains(link.query, "UPDATE monsters") || !strings.Contains(link.query, "asset_id") {
 		t.Errorf("the second statement does not link the asset to the monster: %q", link.query)
 	}
@@ -106,10 +106,10 @@ func TestAMonsterImageUploadWritesTheRowBeforeReachingR2(t *testing.T) {
 	}
 }
 
-// OWNERSHIP IS ESTABLISHED BEFORE ANYTHING IS WRITTEN OR UPLOADED. The read is
-// scoped to the session's user, so a monster belonging to somebody else is a
-// 404 -- and this pins that nothing runs before it: no insert, and no object
-// in the bucket under a stranger's monster.
+
+
+
+
 func TestAMonsterImageUploadWritesNothingWithoutTheMonster(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
@@ -131,9 +131,9 @@ func TestAMonsterImageUploadWritesNothingWithoutTheMonster(t *testing.T) {
 	}
 }
 
-// An id that does not parse never becomes a statement -- and never becomes a
-// decode either, which is the part worth having on this route: the id is read
-// before the upload is, so a broken URL costs nothing.
+
+
+
 func TestMonsterImageRoutesRejectUnparseableIDs(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
@@ -152,11 +152,11 @@ func TestMonsterImageRoutesRejectUnparseableIDs(t *testing.T) {
 	}
 }
 
-// THE IN LIST ON GetImage IS THE WHOLE OF THAT ROUTE'S ACCESS RULE, and it is
-// deliberately not owner-scoped: a map, a token or a monster is shown to every
-// player at the table the moment it is put down, and a table is not a list of
-// owners. A journal image is the opposite -- one entry of one character's diary,
-// reached through the share's own reader route -- and it stays off this list.
+
+
+
+
+
 func TestGetImageServesMonsterImagesAndNotJournalOnes(t *testing.T) {
 	statements := namedStatements(t, "assets.sql")
 
@@ -175,21 +175,21 @@ func TestGetImageServesMonsterImagesAndNotJournalOnes(t *testing.T) {
 		served[strings.Trim(strings.TrimSpace(member), "'")] = true
 	}
 
-	// EVERY MEMBER OF THE ENUM IS ACCOUNTED FOR, one way or the other, and that
-	// is the point of reading them rather than listing them here. A hardcoded
-	// want-list is a test that passes for a member nobody thought about: this
-	// asserted four names while `character` and `profile` were both absent from
-	// it, and `profile` shipped missing from the statement -- the row missed,
-	// the route answered 404, the object sat in the bucket, and nothing logged.
-	//
-	// So a new member fails this until somebody puts it on one side or the
-	// other, which is the decision being forced rather than a name being typed
-	// twice.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	withheld := map[string]string{
-		// A journal image belongs to one entry of one character's diary and is
-		// reached through the share's own reader route.
+		
+		
 		"journal": "reached through the share reader, not the account-wide route",
-		// Music is not an image and has a route of its own.
+		
 		"music": "not an image",
 	}
 
@@ -205,12 +205,12 @@ func TestGetImageServesMonsterImagesAndNotJournalOnes(t *testing.T) {
 	}
 }
 
-// assetTypes is every member of the assets type enum, read off the generated
-// models rather than written out.
-//
-// THE GENERATED FILE IS ALWAYS THERE, because this package does not compile
-// without it -- the same argument namedStatements makes for reading sql/ off
-// the disk instead of restating it.
+
+
+
+
+
+
 func assetTypes(t *testing.T) []string {
 	t.Helper()
 
@@ -232,9 +232,9 @@ func assetTypes(t *testing.T) []string {
 	return members
 }
 
-// The two keys a monster's picture can be reached by are one key, which is what
-// makes replacing an image safe: the object is overwritten in place, so nothing
-// is orphaned and the card's <img> src does not change.
+
+
+
 func TestAMonsterImageKeyBelongsToItsOwnerAndItsAsset(t *testing.T) {
 	other := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS9")
 

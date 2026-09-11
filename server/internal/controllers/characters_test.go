@@ -16,21 +16,21 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE PURGE TESTS.
-//
-// Deleting a character is the one operation in this app that has to name every
-// table by hand. There are no foreign keys in this schema, so nothing cascades,
-// and a table left out of deleteCharacterRows does not fail -- it leaks. The
-// rows stay behind forever unreachable, and the ones in assets keep an object
-// in R2 alive with them.
-//
-// DeleteCharacter itself cannot be driven from here: it opens with a :one that
-// recordingDB answers by panicking, and it reaches R2. deleteCharacterRows is
-// the part that holds the list, and it is all statements, so it runs.
 
-// tablesHoldingCharacterRows reads db/schema.sql for every table carrying a
-// character_id column. It is what makes the test below fail when a table is
-// added rather than when someone notices the disk bill.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func tablesHoldingCharacterRows(t *testing.T) []string {
 	t.Helper()
 
@@ -53,28 +53,28 @@ func tablesHoldingCharacterRows(t *testing.T) []string {
 	return tables
 }
 
-// Tables that carry a character_id and are deliberately left alone, with the
-// reason, because "we forgot" and "we decided" look identical in a diff.
+
+
 var unpurgedTables = map[string]string{
-	// A DANGLING CHARACTER ON A SESSION IS ALREADY WHAT "NO CHARACTER" LOOKS
-	// LIKE. The join writes this column and the socket reads it back, so a
-	// player whose character is deleted mid-session is left holding an id that
-	// matches nothing -- GetCharacterName finds no row, the player list draws
-	// them under their account name, and the next join overwrites it. Clearing
-	// it here would reach the same state by a longer road, and would do it for
-	// every session of every account rather than for the one row that is
-	// pointing at the deleted character.
+	
+	
+	
+	
+	
+	
+	
+	
 	"sessions": "a dangling id already reads as no character",
 }
 
-// A character's pictures are in assets, which carries no character_id -- it is
-// reached through journals.id = assets.journal_id. The schema scan cannot see
-// that edge, so the table is named here and the test requires it outright.
+
+
+
 const journalImageTable = "assets"
 
-// deleteTargets pulls the table out of each DELETE the calls ran, in order. The
-// journal image delete also names journals inside its subquery; that is a
-// SELECT, so anchoring on DELETE FROM picks up only what each statement empties.
+
+
+
 func deleteTargets(t *testing.T, calls []recordedCall) []string {
 	t.Helper()
 
@@ -126,11 +126,11 @@ func TestDeletingACharacterEmptiesEveryTableThatHoldsItsRows(t *testing.T) {
 	}
 }
 
-// THE IMAGE ROWS GO BEFORE THE JOURNALS THEY HANG OFF, and the order is the
-// test. The delete finds them through journal_id, so after the journals rows
-// are gone it would match nothing: every picture in the journal would stay in
-// assets forever, with its object in the bucket and no page that could ever
-// render it.
+
+
+
+
+
 func TestJournalImageRowsAreDeletedBeforeTheirJournals(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -155,18 +155,18 @@ func TestJournalImageRowsAreDeletedBeforeTheirJournals(t *testing.T) {
 		t.Errorf("tables emptied = %v, want assets before journals", targets)
 	}
 
-	// The reason the order matters, pinned so that rewriting the statement to
-	// find its rows some other way fails here rather than silently making the
-	// ordering above pointless.
+	
+	
+	
 	if !strings.Contains(db.calls[images].query, "FROM journals") {
 		t.Errorf("the image delete does not find its rows through journals:\n%s", db.calls[images].query)
 	}
 }
 
-// The keys have to be read while the journals rows are still there, for the
-// same reason the delete has to run first: the join is the only thing that
-// knows which objects were this character's. Once they are gone the bucket
-// holds them and nothing can name them.
+
+
+
+
 func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -192,10 +192,10 @@ func TestTheImageKeysAreReadThroughTheJournalsTable(t *testing.T) {
 	}
 }
 
-// EVERY STATEMENT IN THE PURGE IS SCOPED TO THE OWNER. They are the only
-// deletes in the app that name no row id -- they empty a table by character --
-// so the owner is the whole of the ownership check. One missing would let a
-// request naming a stranger's character id empty that stranger's table.
+
+
+
+
 func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -228,9 +228,9 @@ func TestTheCharacterPurgeIsScopedToItsOwner(t *testing.T) {
 	}
 }
 
-// THE BAR'S INITIATIVE IS NOT THE COLUMN. initiative_bonus is what items and
-// feats add; what a player rolls is that plus their Dexterity modifier, and a
-// bar showing either half on its own would be showing a number nobody uses.
+
+
+
 func TestTheBarsInitiativeAddsDexterityToTheStoredBonus(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -255,8 +255,8 @@ func TestTheBarsInitiativeAddsDexterityToTheStoredBonus(t *testing.T) {
 	}
 }
 
-// The bar reads the six columns it prints, and the speed falls back the way the
-// Core Stats field does rather than rendering an empty chip.
+
+
 func TestTheBarReadsItsChipsOffTheRow(t *testing.T) {
 	character := testCharacter()
 	character.AC = 15
@@ -280,8 +280,8 @@ func TestTheBarReadsItsChipsOffTheRow(t *testing.T) {
 	}
 }
 
-// The subtitle is what the row has, in order, and nothing standing in for what
-// it has not -- including the alignment nobody chose.
+
+
 func TestTheSubtitleOmitsWhatTheCharacterHasNot(t *testing.T) {
 	for _, c := range []struct {
 		name      string

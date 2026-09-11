@@ -8,10 +8,10 @@ import (
 	"tabletopper/internal/room"
 )
 
-// THE FOG TOOL IS THE GM'S AND A PLAYER'S PILL IS SHORTER FOR IT. The
-// alternative -- rendering it disabled -- is a permanent question with no
-// answer: a menu heading has room to explain why a line is grey and a circular
-// icon button in a pill does not.
+
+
+
+
 func TestOnlyTheGMGetsTheFogTool(t *testing.T) {
 	gm := markup(t, Room(testRoomPage(room.RoleGM)))
 	if !strings.Contains(gm, `data-room-tool="`+RoomToolFog+`"`) {
@@ -27,10 +27,10 @@ func TestOnlyTheGMGetsTheFogTool(t *testing.T) {
 	}
 }
 
-// EXACTLY ONE TOOL IS THE FOG TOOL, for the reason exactly one is the ruler:
-// tools.ts finds the mode by the attribute rather than by a name written out in
-// both languages, and two of them would make the answer whichever came first in
-// the markup.
+
+
+
+
 func TestExactlyOneToolIsTheFogTool(t *testing.T) {
 	fogs := 0
 	for _, tool := range RoomTools() {
@@ -49,8 +49,8 @@ func TestExactlyOneToolIsTheFogTool(t *testing.T) {
 	}
 }
 
-// The second pill starts on one shape and one mode, and starts hidden: it is
-// the fog tool's own options and no tool is chosen when the room opens.
+
+
 func TestTheFogOptionsPillStartsOnOneOfEach(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -73,11 +73,11 @@ func TestTheFogOptionsPillStartsOnOneOfEach(t *testing.T) {
 	}
 }
 
-// BOTH FOG MENU ITEMS ARE LIVE, BOTH ARE CONFIRMED AND BOTH ARE LAYERED. The
-// last of those is the one worth a test: without data-room-layered the room
-// bundle never finds the item, the hx-vals stays "{}", and the route quietly
-// falls back to the active floor -- which is the right floor most of the time
-// and the wrong one exactly when a GM is prepping the next scene.
+
+
+
+
+
 func TestTheFogMenuActsOnTheViewedFloorBehindAConfirm(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
@@ -101,9 +101,9 @@ func TestTheFogMenuActsOnTheViewedFloorBehindAConfirm(t *testing.T) {
 		}
 	}
 
-	// EVERY LAYERED ITEM RENDERS THE ATTRIBUTE, counted rather than hardcoded:
-	// items on other menus carry Layered too -- Clear drawing does -- and a
-	// fixed number here would be a test about the rest of the bar.
+	
+	
+	
 	page := markup(t, Room(data))
 	want := 0
 	for _, menu := range data.Menus() {
@@ -121,8 +121,8 @@ func TestTheFogMenuActsOnTheViewedFloorBehindAConfirm(t *testing.T) {
 	}
 }
 
-// A player has no Fog menu at all, which is the bar's rule: a heading is on the
-// bar of whoever can act on it.
+
+
 func TestAPlayerHasNoFogMenu(t *testing.T) {
 	for _, label := range menuLabels(testRoomPage(room.RolePlayer)) {
 		if label == "Fog" {
@@ -131,8 +131,8 @@ func TestAPlayerHasNoFogMenu(t *testing.T) {
 	}
 }
 
-// The room-wide prefill switch is in Grid & settings with the other settings,
-// because it is a default for the next floor rather than a verb on this one.
+
+
 func TestTheGridWindowCarriesThePrefillSwitch(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
 		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF",

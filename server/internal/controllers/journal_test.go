@@ -14,9 +14,9 @@ import (
 
 var testEntryID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
 
-// journalRequest drives one journal handler. It is inventoryRequest with a
-// different path value, and it exists for the same reason: three of these
-// routes are not POSTs.
+
+
+
 func journalRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, entryID string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -41,10 +41,10 @@ func journalForm() url.Values {
 	}
 }
 
-// A save writes the entry's own two columns. The character's columns are what it
-// must not be able to reach: the sheet's parse helpers return their fallback on
-// an empty string, so a handler wide enough to touch them would write 10 over
-// every ability score and report success.
+
+
+
+
 func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -53,9 +53,9 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 
-	// TWO STATEMENTS NOW, and the write is the first of them: the save
-	// reconciles the entry's images afterwards. That one is asserted in
-	// journal-images_test.go; here it is only in the way.
+	
+	
+	
 	if len(db.calls) != 2 {
 		t.Fatalf("statements run = %d, want 2", len(db.calls))
 	}
@@ -67,9 +67,9 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
 
-	// All three of the scoping values, not just the owner. The entry id and the
-	// character id both arrive in the URL, so the statement has to carry both or
-	// an entry could be written through a character it does not belong to.
+	
+	
+	
 	scope := call.args[len(call.args)-3:]
 	for i, want := range []ulid.ULID{testEntryID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -78,16 +78,16 @@ func TestSaveJournalEntryWritesOnlyItsOwnColumns(t *testing.T) {
 	}
 }
 
-// A JOURNAL SAVE DOES NOT TOAST, and this is the only place that says so.
-// finishRow announces every save that goes through it, because an inventory or
-// attack field is a few words; a journal save is a pause between two sentences,
-// and toast.js stacks its messages for five seconds each, so announcing them
-// would bury the page in a writing session's worth of "saved." That is the
-// reason finishJournalEntry is its own function rather than a finishRow call.
-//
-// The body still has to be the cleared error block rather than a 204, for the
-// reason every panel answers that way: it is what wipes a message the previous
-// save left there.
+
+
+
+
+
+
+
+
+
+
 func TestSaveJournalEntryIsSilent(t *testing.T) {
 	app, _ := newPanelApp(1)
 
@@ -101,12 +101,12 @@ func TestSaveJournalEntryIsSilent(t *testing.T) {
 	}
 }
 
-// The Save button's post is the debounce's post plus one field, and the field is
-// the whole difference: the same statement runs and the reply carries a toast.
-//
-// The pair of these is the contract. A save that announced itself either way
-// would bury a writing session in toasts; one that never announced would leave
-// the button looking like it did nothing.
+
+
+
+
+
+
 func TestAnAnnouncedSaveToasts(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -121,8 +121,8 @@ func TestAnAnnouncedSaveToasts(t *testing.T) {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
 
-	// The same two statements in the same order: the button is not a second
-	// save path, it is the debounce's post with one more field on it.
+	
+	
 	if len(db.calls) != 2 {
 		t.Fatalf("statements run = %d, want 2", len(db.calls))
 	}
@@ -131,9 +131,9 @@ func TestAnAnnouncedSaveToasts(t *testing.T) {
 	}
 }
 
-// Both limits are refused with a message rather than reaching the driver. MySQL
-// runs strict, so an overlong value comes back as an error and would surface as
-// a 500 on a field the writer was entitled to overfill.
+
+
+
 func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -156,9 +156,9 @@ func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 
 			rec := journalRequest(t, app.SaveJournalEntry, http.MethodPost, c.form, testEntryID.String())
 
-			// 422 is the one 4xx the panel has an hx-status route for; every
-			// other one is in base.templ's noSwap list and would replace
-			// nothing, so the writer would see no difference.
+			
+			
+			
 			if rec.Code != http.StatusUnprocessableEntity {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
 			}
@@ -172,8 +172,8 @@ func TestJournalLimitsAreRejectedBeforeTheWrite(t *testing.T) {
 	}
 }
 
-// A title of 255 accented letters fits the column, because VARCHAR(255) counts
-// characters and so does the limit. len() on the string would have rejected it.
+
+
 func TestJournalTitleIsMeasuredInCharacters(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -183,15 +183,15 @@ func TestJournalTitleIsMeasuredInCharacters(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	// The write and the reconciliation that follows it.
+	
 	if len(db.calls) != 2 {
 		t.Errorf("ran %d statements, want 2", len(db.calls))
 	}
 }
 
-// The body is stored exactly as it arrives. Trimming it would eat the leading
-// spaces of an indented code block, and markdown is a format where leading
-// whitespace is content.
+
+
+
 func TestJournalBodyIsStoredUntrimmed(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -204,9 +204,9 @@ func TestJournalBodyIsStoredUntrimmed(t *testing.T) {
 	}
 }
 
-// An entry id that is not a ULID never reaches a query on either mutation. Both
-// answer htmx.NotFound, which raises the alert dialog rather than swapping
-// something into the page.
+
+
+
 func TestJournalMutationsRejectAnUnparseableEntryID(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -234,9 +234,9 @@ func TestJournalMutationsRejectAnUnparseableEntryID(t *testing.T) {
 	}
 }
 
-// Zero matched rows means the entry is not this user's or is already gone --
-// found-rows semantics are on, so it cannot mean "the save changed nothing".
-// Reporting success there would be a save that never happened.
+
+
+
 func TestJournalMutationsAnswer404WhenNothingMatched(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -258,9 +258,9 @@ func TestJournalMutationsAnswer404WhenNothingMatched(t *testing.T) {
 	}
 }
 
-// The delete answers 200 and not 204. base.templ's noSwap config lists 204, and
-// a status in that list overrides the hx-swap="delete" on the button -- so a 204
-// would leave the entry on screen after the database had dropped it.
+
+
+
 func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -272,9 +272,9 @@ func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	if !strings.Contains(rec.Header().Get("HX-Trigger"), "Entry deleted.") {
 		t.Errorf("no toast in HX-Trigger: %q", rec.Header().Get("HX-Trigger"))
 	}
-	// Three statements: the share is revoked, the images are detached, then
-	// the entry goes. The order is asserted in journal-images_test.go; what
-	// matters here is that the delete is still one of them and still last.
+	
+	
+	
 	if len(db.calls) != 3 {
 		t.Fatalf("statements run = %d, want 3", len(db.calls))
 	}
@@ -283,9 +283,9 @@ func TestDeleteJournalEntryAnswers200(t *testing.T) {
 	}
 }
 
-// Creation carries no fields, and the statement it runs cannot carry any: it
-// names three columns and takes both the owner and the character from the
-// characters row, so a character that is not this user's inserts nothing.
+
+
+
 func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -302,8 +302,8 @@ func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 		t.Errorf("insert takes %d values, want 3", len(call.args))
 	}
 
-	// A browser posted this, so the reply is a 303 it follows into the editor
-	// rather than an HX-Redirect header.
+	
+	
 	if rec.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
@@ -317,9 +317,9 @@ func TestCreateJournalEntryCannotCarryEntryData(t *testing.T) {
 	}
 }
 
-// The insert matched nothing, so the character is not this user's. That is a
-// page request, so it is a redirect and not an alert -- nothing is open to show
-// an alert in.
+
+
+
 func TestCreateJournalEntryForAStrangersCharacterRedirects(t *testing.T) {
 	app, _ := newPanelApp(0)
 
@@ -333,13 +333,13 @@ func TestCreateJournalEntryForAStrangersCharacterRedirects(t *testing.T) {
 	}
 }
 
-// THE PAGE REDIRECTS, IT DOES NOT ALERT. htmx.NotFound writes an empty 404 body
-// and a header, which is a blank screen for a navigation.
-//
-// It also runs no statement, which is the ordering this pins: the entry id is
-// parsed before the character is loaded, so a last segment that is not a ULID
-// costs no query at all. recordingDB panics on a read, so a page that queried
-// first would fail here rather than pass quietly.
+
+
+
+
+
+
+
 func TestJournalEntryPageRedirectsOnAnUnparseableEntryID(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -356,8 +356,8 @@ func TestJournalEntryPageRedirectsOnAnUnparseableEntryID(t *testing.T) {
 	}
 }
 
-// A character id that is not a ULID cannot be reflected back into a Location
-// header, so the fallback is the character list.
+
+
 func TestJournalEntryPageRedirectsToTheListWhenTheCharacterIDIsJunk(t *testing.T) {
 	app, _ := newPanelApp(1)
 
@@ -373,9 +373,9 @@ func TestJournalEntryPageRedirectsToTheListWhenTheCharacterIDIsJunk(t *testing.T
 	}
 }
 
-// The link dialog takes nothing off the request. A query string is a 404 with an
-// empty body rather than something to validate -- and not http.NotFound, which
-// writes a page-shaped body into a dialog.
+
+
+
 func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -391,7 +391,7 @@ func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 		t.Errorf("body = %q, want empty", body)
 	}
 
-	// And with no query it is the dialog, built from no database at all.
+	
 	clean := httptest.NewRequest(http.MethodGet, "/fragment/character/journal-link", nil)
 	clean = clean.WithContext(session.NewContext(clean.Context(), session.UserSession{UserID: testOwnerID}))
 	rec = httptest.NewRecorder()
@@ -408,8 +408,8 @@ func TestJournalLinkFragmentRefusesAQueryString(t *testing.T) {
 	}
 }
 
-// journalSearch drives the search fragment the way the box does: a GET with the
-// character in the path it was rendered with and the term appended beside it.
+
+
 func journalSearch(t *testing.T, app *App, character, term string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -423,12 +423,12 @@ func journalSearch(t *testing.T, app *App, character, term string) *httptest.Res
 	return rec
 }
 
-// THE SEARCH IS SCOPED IN THE STATEMENT, and that is the whole of its access
-// control -- this route is the one journal handler that never loads the
-// character first. owner_id sits beside character_id in the WHERE, so a
-// character belonging to somebody else matches nothing and comes back as an
-// empty list, which is the same reply an empty journal gives. Drop the owner
-// from the statement and the route hands one user another user's journal.
+
+
+
+
+
+
 func TestJournalSearchIsScopedToTheCharacterAndTheOwner(t *testing.T) {
 	app, db := newPanelApp(0)
 
@@ -450,10 +450,10 @@ func TestJournalSearchIsScopedToTheCharacterAndTheOwner(t *testing.T) {
 	}
 }
 
-// An empty box is the whole list, and it has to read the LIST query to get it.
-// Searching for "%%" would return the same rows, and would scan every body to
-// do it -- on the one path that runs most often, because clearing the box is how
-// every search ends.
+
+
+
+
 func TestAnEmptySearchReadsTheUnfilteredList(t *testing.T) {
 	for _, term := range []string{"", "   "} {
 		app, db := newPanelApp(0)
@@ -470,11 +470,11 @@ func TestAnEmptySearchReadsTheUnfilteredList(t *testing.T) {
 	}
 }
 
-// `%` and `_` are wildcards to LIKE and ordinary characters to somebody typing.
-// Unescaped, a single `%` matches every entry the character has, and `_` matches
-// any character at all -- so a search for "d_ce" would find "dice" and "dance".
-// The backslash goes first, because escaping it after the other two would arm
-// the escapes just written.
+
+
+
+
+
 func TestJournalSearchEscapesLikeWildcards(t *testing.T) {
 	for _, tc := range []struct{ term, want string }{
 		{"hag", "%hag%"},
@@ -489,11 +489,11 @@ func TestJournalSearchEscapesLikeWildcards(t *testing.T) {
 	}
 }
 
-// Both parameters are checked before anything is queried. The character id comes
-// off the page's own markup and the term is capped at the box's maxlength, so
-// neither failure is reachable from the control that sends them -- which is why
-// the reply is a bare 404 rather than the alert dialog. There is no reader here
-// to tell anything to.
+
+
+
+
+
 func TestJournalSearchRefusesWhatTheBoxCannotSend(t *testing.T) {
 	for _, tc := range []struct {
 		name      string

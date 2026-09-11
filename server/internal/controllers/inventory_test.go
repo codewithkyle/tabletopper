@@ -19,9 +19,9 @@ import (
 
 var testItemID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS0")
 
-// inventoryRequest is panelPost with a method, because two of these routes are
-// not POSTs. Everything else is the same: the path values the route declares,
-// and a session to be scoped by.
+
+
+
 func inventoryRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, itemID string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -50,10 +50,10 @@ func fullInventoryForm() url.Values {
 	}
 }
 
-// A row save writes its own row and nothing else. The character's own columns
-// are the thing it must not be able to reach: the sheet's parse helpers return
-// their fallback on an empty string, so a handler wide enough to touch them
-// would write 10 over every ability score and report success.
+
+
+
+
 func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -72,9 +72,9 @@ func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
 
-	// All three of the scoping values, not just the owner. The item id and the
-	// character id both arrive in the URL, so the statement has to carry both or
-	// an item could be written through a character it does not belong to.
+	
+	
+	
 	scope := call.args[len(call.args)-3:]
 	for i, want := range []ulid.ULID{testItemID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -83,13 +83,13 @@ func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 	}
 }
 
-// THE CHECKBOX TEST. `equipped` is read from whether the field arrived at all,
-// because an unchecked box posts nothing -- which is correct for a checkbox and
-// is also the exact shape the panel handlers exist to avoid. What makes it safe
-// is that the row form always renders all six controls together, so a post
-// without `equipped` really is an unticked box and not half a form. That is a
-// property of the markup, so it is pinned here and in the page tests rather than
-// left to be rediscovered.
+
+
+
+
+
+
+
 func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -110,8 +110,8 @@ func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 			inventoryRequest(t, app.SaveInventoryItem, http.MethodPost, c.form, testItemID.String())
 
 			call := db.only(t)
-			// Fifth of the six SET values, in the order the generated statement
-			// binds them: name, quantity, value, weight, equipped, description.
+			
+			
 			got, ok := call.args[4].(bool)
 			if !ok {
 				t.Fatalf("equipped arg is %T, want bool", call.args[4])
@@ -123,10 +123,10 @@ func TestEquippedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	}
 }
 
-// Quantity and weight are coerced rather than rejected. type=number cannot
-// produce most of these, so a rejection would be a message nobody could have
-// caused; the ones a person can cause -- an empty field mid-retype -- have to
-// mean something sensible instead of failing the save.
+
+
+
+
 func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 	for _, c := range []struct {
 		raw  string
@@ -154,8 +154,8 @@ func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 		{raw: "-2.5", want: 0},
 		{raw: "0.05", want: 0.05},
 		{raw: "3", want: 3},
-		// ParseFloat takes both of these WITHOUT an error, and DECIMAL takes
-		// neither. NaN fails every comparison, so it needs its own branch.
+		
+		
 		{raw: "NaN", want: 0},
 		{raw: "Inf", want: inventoryWeightLimit},
 		{raw: "-Inf", want: 0},
@@ -167,8 +167,8 @@ func TestInventoryNumbersAreCoercedNotRejected(t *testing.T) {
 	}
 }
 
-// An unweighed item and a weightless one are the same row, and neither should
-// put a "0" in the field. Trailing zeros come off too: the column stores 3.00.
+
+
 func TestWeightRendersBlankAtZero(t *testing.T) {
 	for _, c := range []struct {
 		weight float64
@@ -185,16 +185,16 @@ func TestWeightRendersBlankAtZero(t *testing.T) {
 	}
 }
 
-// The add takes no form at all, and the statement is what enforces that: it
-// selects from characters, so there is nowhere for item data to enter and no way
-// to hang a row off a character the sender does not own.
+
+
+
 func TestAddInventoryItemCannotCarryItemData(t *testing.T) {
 	app, db := newPanelApp(0)
 
-	// rows=0 stands for "that character is not yours", which is the only thing
-	// zero can mean here -- the id is freshly minted, so a duplicate key is not
-	// on the table. It also stops the handler before the read-back, which this
-	// fake cannot serve.
+	
+	
+	
+	
 	rec := inventoryRequest(t, app.AddInventoryItem, http.MethodPost, fullInventoryForm(), "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -221,11 +221,11 @@ func TestAddInventoryItemCannotCarryItemData(t *testing.T) {
 	}
 }
 
-// THE DELETE MUST BE A 200. base.templ configures noSwap for 204, and a status
-// in that list sets the swap to "none" -- which overrides the hx-swap="delete"
-// on the button and leaves the row on screen after the database has dropped it.
-// Nothing about that failure is visible from the server side, so it is pinned
-// here.
+
+
+
+
+
 func TestDeleteInventoryItemAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -248,11 +248,11 @@ func TestDeleteInventoryItemAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	}
 }
 
-// A row that is already gone -- deleted in another tab -- is a 404 about the
-// item. A character panel says "character" for the same condition, which is the
-// whole reason savedRow takes the noun as an argument: sending someone to look
-// for a missing character when their character is fine wastes the one thing the
-// message is for.
+
+
+
+
+
 func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -276,9 +276,9 @@ func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 	}
 }
 
-// An item id that is not a ULID never reaches a query. The path segment lands in
-// three attributes and a URL on the way back out, so it is parsed before
-// anything is rendered or run.
+
+
+
 func TestUnparseableItemIDTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -291,9 +291,9 @@ func TestUnparseableItemIDTouchesNoDatabase(t *testing.T) {
 	}
 }
 
-// The column widths are enforced here because MySQL runs in strict mode: without
-// this the driver's error would reach the user as a 500 on a field they were
-// entitled to overfill by pasting.
+
+
+
 func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -319,9 +319,9 @@ func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 		})
 	}
 
-	// Measured in characters, not bytes, because that is what varchar counts. A
-	// name of exactly the limit in accented letters is three times the limit in
-	// bytes and the column takes it without complaint.
+	
+	
+	
 	app, db := newPanelApp(1)
 	form := fullInventoryForm()
 	form.Set("name", strings.Repeat("é", inventoryNameLimit))
@@ -335,13 +335,13 @@ func TestOverlongInventoryFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// EVERY inventory query is scoped to the owner, reads included. The writes are
-// covered above by watching what reaches the driver, but a SELECT that dropped
-// its owner_id would leak another user's items onto a page and nothing in the
-// handler would notice -- the rows would arrive and render. So the statements
-// themselves are checked, which is also the only way to reach the two reads:
-// they go through QueryContext, and the fake pool the write tests use cannot
-// serve one.
+
+
+
+
+
+
+
 func TestEveryInventoryQueryIsScopedToTheOwner(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "inventory.sql"))
 	if err != nil {
@@ -364,18 +364,18 @@ func TestEveryInventoryQueryIsScopedToTheOwner(t *testing.T) {
 		if !strings.Contains(body, "owner_id") {
 			t.Errorf("%s is not scoped to the owner:\n%s", name, body)
 		}
-		// The insert names the character in its own WHERE, so it is covered by
-		// the same rule; everything else has to name it too, or an item could be
-		// reached through a character it does not belong to.
+		
+		
+		
 		if !strings.Contains(body, "character_id") && !strings.Contains(body, "characters") {
 			t.Errorf("%s is not scoped to the character:\n%s", name, body)
 		}
 	}
 }
 
-// Only the ticked rows reach the Character page. It shows three of forty and has
-// no use for the rest, and a filter applied in Go instead would mean loading a
-// whole inventory to render a corner of one page.
+
+
+
 func TestEquippedQueryFiltersInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "inventory.sql"))
 	if err != nil {

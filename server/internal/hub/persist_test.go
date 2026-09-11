@@ -10,14 +10,14 @@ import (
 	"tabletopper/internal/room"
 )
 
-// A room that changed is written back, and one that did not is not. The
-// debounce is the whole design: a busy table writes one row every few seconds
-// however many pawns moved, and an idle one writes nothing at all.
+
+
+
 func TestADirtyRoomSavesOnTheIntervalAndACleanOneNever(t *testing.T) {
 	tb := newTabletop(t, Options{SnapshotInterval: 200 * time.Millisecond})
 
-	// Loading a room is not a change to it. Nobody has joined, so there is
-	// nothing in memory the row does not already say.
+	
+	
 	tb.actor()
 	time.Sleep(400 * time.Millisecond)
 	if got := tb.store.saved(); got != 0 {
@@ -31,16 +31,16 @@ func TestADirtyRoomSavesOnTheIntervalAndACleanOneNever(t *testing.T) {
 
 	eventually(t, "the snapshot to be written", func() bool { return tb.store.saved() == 1 })
 
-	// And it does not keep writing what it already wrote.
+	
 	time.Sleep(400 * time.Millisecond)
 	if got := tb.store.saved(); got != 1 {
 		t.Errorf("the room saved %d times, want one write for one change", got)
 	}
 }
 
-// A deploy is a reconnect and not a lost session, which takes two things: the
-// state is written before the process goes, and the sockets are closed with
-// going-away so the browsers come back rather than showing an error.
+
+
+
 func TestShutdownSavesEveryRoomAndSendsEverybodyAway(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -66,9 +66,9 @@ func TestShutdownSavesEveryRoomAndSendsEverybodyAway(t *testing.T) {
 	}
 }
 
-// An empty room stays loaded for a grace period, because a page reload is a
-// close and an open a few hundred milliseconds apart and rehydrating in between
-// would put a database read behind every F5.
+
+
+
 func TestAnEmptyRoomUnloadsAfterTheGraceAndSavesOnTheWayOut(t *testing.T) {
 	tb := newTabletop(t, Options{
 		SnapshotInterval: 20 * time.Millisecond,
@@ -84,8 +84,8 @@ func TestAnEmptyRoomUnloadsAfterTheGraceAndSavesOnTheWayOut(t *testing.T) {
 	}
 }
 
-// The grace exists to be interrupted. Somebody coming back inside it finds the
-// room they left, with their pawns where they were.
+
+
 func TestSomebodyComingBackInsideTheGraceKeepsTheRoomLoaded(t *testing.T) {
 	tb := newTabletop(t, Options{
 		SnapshotInterval: 20 * time.Millisecond,
@@ -103,8 +103,8 @@ func TestSomebodyComingBackInsideTheGraceKeepsTheRoomLoaded(t *testing.T) {
 	}
 }
 
-// The three ways a snapshot can fail to decode all mean the same thing to the
-// caller -- start fresh -- and they are told apart only by what gets logged.
+
+
 func TestAnUnreadableSnapshotStartsTheRoomFreshFromTheRow(t *testing.T) {
 	for _, c := range []struct{ name, snapshot string }{
 		{"the column default, which is a room nobody has opened", "{}"},
@@ -130,8 +130,8 @@ func TestAnUnreadableSnapshotStartsTheRoomFreshFromTheRow(t *testing.T) {
 	}
 }
 
-// The round trip a restart makes: what the room saved is what the next process
-// picks up, including the sequence, and nobody comes back connected.
+
+
 func TestARestartRestoresTheStateTheSequenceAndNobodysConnection(t *testing.T) {
 	before := room.NewState(roomID, "The Sunless Citadel", room.Env{})
 	before.Seq = 41
@@ -142,9 +142,9 @@ func TestARestartRestoresTheStateTheSequenceAndNobodysConnection(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	// The row is the writer of record for the name and the lock, and a GM can
-	// change either while the room is not even loaded -- so the snapshot's copy
-	// of them is a souvenir and the row wins.
+	
+	
+	
 	after, _ := hydrate(roomID, Loaded{Name: "The Forge of Fury", Locked: true, Snapshot: blob})
 
 	if after.Seq != 41 {
@@ -161,9 +161,9 @@ func TestARestartRestoresTheStateTheSequenceAndNobodysConnection(t *testing.T) {
 	}
 }
 
-// A room that is not live still has to answer a control on the room page. The
-// GM clicked something and expects it to have happened, so Dispatch loads
-// rather than doing nothing -- which is the whole difference from Notify.
+
+
+
 func TestDispatchLoadsARoomThatIsNotRunning(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -179,9 +179,9 @@ func TestDispatchLoadsARoomThatIsNotRunning(t *testing.T) {
 		t.Error("the room did not load")
 	}
 
-	// And a refusal comes back as the protocol's own error, which is what lets
-	// a handler put a heading and a message in the alert modal without knowing
-	// anything about the command it sent.
+	
+	
+	
 	err = tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: playerID, Role: room.RolePlayer}, &room.PawnRemove{})
 	var refusal *room.Error
 	if !errors.As(err, &refusal) {
@@ -192,9 +192,9 @@ func TestDispatchLoadsARoomThatIsNotRunning(t *testing.T) {
 	}
 }
 
-// Notify is the other half of that pair and does nothing when the room is not
-// running, because the rooms row is the writer of record for everything it
-// carries and the next load reads it.
+
+
+
 func TestNotifyDoesNothingForARoomThatIsNotRunning(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -205,8 +205,8 @@ func TestNotifyDoesNothingForARoomThatIsNotRunning(t *testing.T) {
 	}
 }
 
-// The per-connection rate limit: a bucket that refills, a refusal when it is
-// empty, and the door after enough refusals inside the window.
+
+
 func TestTheRateLimitRefusesAtTheBoundaryAndClosesAfterRepeatedOvers(t *testing.T) {
 	opts := Options{Rate: 100, Burst: 3, Overs: 3, OverWindow: time.Minute}.withDefaults()
 	b := newBucket(opts)
@@ -230,17 +230,17 @@ func TestTheRateLimitRefusesAtTheBoundaryAndClosesAfterRepeatedOvers(t *testing.
 		}
 	}
 
-	// And it refills: a hundred a second is a token every ten milliseconds.
+	
 	if allowed, _ := b.take(now.Add(20 * time.Millisecond)); !allowed {
 		t.Error("the bucket did not refill")
 	}
 }
 
-// Closing is the end of a room in memory as well as in the row. Everybody is
-// told, everybody is dropped, the state is written one last time so reopening
-// comes back to the pawns where they were left, and the room stops being live
-// -- which is what lets a reopen load a fresh one rather than find a goroutine
-// that has already gone.
+
+
+
+
+
 func TestClosingARoomTellsEverybodySavesAndUnloadsIt(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -262,10 +262,10 @@ func TestClosingARoomTellsEverybodySavesAndUnloadsIt(t *testing.T) {
 	}
 }
 
-// A room can be loaded by something that never connects: a GM toggling the lock
-// from a page whose socket has not opened yet. It has to unload on the same
-// grace as any other, or the process accumulates one room per settings change
-// for as long as it runs.
+
+
+
+
 func TestARoomNobodyConnectedToStillUnloads(t *testing.T) {
 	tb := newTabletop(t, Options{
 		SnapshotInterval: 20 * time.Millisecond,
@@ -282,9 +282,9 @@ func TestARoomNobodyConnectedToStillUnloads(t *testing.T) {
 	eventually(t, "the room to unload", func() bool { return !tb.live(roomID) })
 }
 
-// The path the whole snapshot design exists for, on its worst day: the caller's
-// context is already done. The rooms are told to save regardless, because the
-// telling does not depend on that context -- only the wait does.
+
+
+
 func TestShutdownTellsEveryRoomToSaveEvenWhenTheCallersContextIsAlreadyDone(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -297,9 +297,9 @@ func TestShutdownTellsEveryRoomToSaveEvenWhenTheCallersContextIsAlreadyDone(t *t
 	eventually(t, "the room to save on shutdown", func() bool { return tb.store.saved() == 1 })
 }
 
-// The snapshot is written off the room's goroutine. A database that takes a
-// second to answer used to be a second every command at the table waited,
-// every five seconds, for the whole of a fight.
+
+
+
 func TestASlowSaveDoesNotStallTheRoom(t *testing.T) {
 	tb := newTabletop(t, Options{SnapshotInterval: 20 * time.Millisecond})
 	tb.store.saveDelay = 500 * time.Millisecond
@@ -316,14 +316,14 @@ func TestASlowSaveDoesNotStallTheRoom(t *testing.T) {
 		t.Errorf("a command took %v while a save was in flight; the room was waiting on the database", took)
 	}
 
-	// And the change that landed during the write is not lost: the room stays
-	// dirty and the next tick writes it.
+	
+	
 	eventually(t, "the second save", func() bool { return tb.store.saved() >= 2 })
 }
 
-// A room whose row has been refusing its snapshot stays loaded, empty or not,
-// until the database takes it. Unloading would throw the table away, and an
-// outage that ends an hour later would find nothing to come back to.
+
+
+
 func TestARoomWithAWriteOwedStaysLoadedUntilTheDatabaseTakesIt(t *testing.T) {
 	tb := newTabletop(t, Options{
 		SnapshotInterval: 20 * time.Millisecond,
@@ -343,9 +343,9 @@ func TestARoomWithAWriteOwedStaysLoadedUntilTheDatabaseTakesIt(t *testing.T) {
 	eventually(t, "the room to save and unload", func() bool { return tb.store.saved() > 0 && !tb.live(roomID) })
 }
 
-// A SNAPSHOT THAT CANNOT BE READ IS KEPT, not overwritten. The fresh room's
-// first save used to land on the column the bad blob came from, and the only
-// copy of the old table was gone the moment anybody moved a pawn.
+
+
+
 func TestAnUnreadableSnapshotIsKeptBeforeTheFreshRoomSavesOverIt(t *testing.T) {
 	for _, c := range []struct{ name, snapshot string }{
 		{"a snapshot from a newer schema", `{"schema":99,"seq":7,"room":{"id":"","name":"later","locked":false}}`},
@@ -364,8 +364,8 @@ func TestAnUnreadableSnapshotIsKeptBeforeTheFreshRoomSavesOverIt(t *testing.T) {
 		})
 	}
 
-	// And an ordinary first join keeps nothing: the empty object is the column
-	// default and not a failure.
+	
+	
 	tb := newTabletop(t, Options{})
 	tb.store.loaded = Loaded{Name: "The Sunless Citadel", Snapshot: json.RawMessage("{}")}
 	tb.join(gmID, "Kyle", room.RoleGM)

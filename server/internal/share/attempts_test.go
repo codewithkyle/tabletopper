@@ -21,8 +21,8 @@ func TestAShareStopsAnsweringOnceItsTriesAreSpent(t *testing.T) {
 	}
 }
 
-// The counter is per share and not per process: an attack on one link is not
-// allowed to lock every other reader out of theirs.
+
+
 func TestOneLockedShareDoesNotLockAnother(t *testing.T) {
 	attempts := share.NewAttempts(2, time.Minute)
 	now := time.Now()
@@ -53,8 +53,8 @@ func TestTheWindowReopens(t *testing.T) {
 	}
 }
 
-// A refused try still counts, so somebody hammering a locked share holds it
-// locked rather than walking the count back down to the limit.
+
+
 func TestARefusedTryStillCounts(t *testing.T) {
 	attempts := share.NewAttempts(1, time.Minute)
 	start := time.Now()

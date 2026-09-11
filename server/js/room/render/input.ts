@@ -1,123 +1,123 @@
-// Pointer, wheel and touch, turned into camera movement.
-//
-// NO WORK HAPPENS IN A HANDLER. That is the first performance rule in the
-// overview and this is the module it exists for: a wheel event can arrive
-// dozens of times between two frames and a pointermove arrives at the mouse's
-// polling rate, which on a gaming mouse is a thousand times a second. A handler
-// that rendered would render nine frames the display never shows for every one
-// it does.
-//
-// So a handler does two things: it adds what just happened to a small mutable
-// accumulator, and it asks for a frame. The frame calls apply() once, which
-// collapses however many events arrived into one pan and one zoom, and the
-// accumulator is reset. A fast mouse and a slow one cost the same.
-//
-// EVERY LISTENER IS ON THE CANVAS, which is what keeps the windows working
-// without a single line about them. A window is a sibling element stacked above
-// the canvas, so a pointer that goes down on a title bar targets the window and
-// never reaches here -- which is the rule in CLAUDE.md that anything
-// hit-testing the table must ignore events inside a window, satisfied by
-// listening in the right place rather than by testing for it.
-//
-// THE SECONDARY BUTTON IS THE TOOL'S ALONE and the camera never sees it. It
-// arrives as a contextmenu event rather than as a pointerdown, because that one
-// event fires on whichever of press and release the platform puts it on and is
-// also what a keyboard's menu key and a long press produce -- and because
-// preventing it is the only way to stop the browser's own menu appearing over
-// the table.
-//
-// THE TABLE HAS NO BROWSER MENU AT ALL, and the default is refused before the
-// tool is asked rather than because of what it answered. A right click on a
-// tabletop is a gesture in the application: it puts down what the hand is
-// holding, or it opens the thing under the pointer. Offering "Save image as" on
-// one part of the table and a gesture on another would make the same button do
-// two unrelated things depending on where it landed, which is the behaviour
-// nobody can predict. Everything ELSE on the page keeps its menu, because every
-// listener here is on the canvas -- a right click on a window, a form field or
-// the menu bar never reaches this file.
-//
-// A TOOL GETS FIRST REFUSAL ON THE PRIMARY BUTTON, and the middle button is
-// always the camera's. The tool is told about every primary press, drag and
-// release whether or not it claims one; what claiming decides is only whether
-// the CAMERA also pans with that pointer. So a press on a goblin nobody may
-// move is a pan, and the tool still learns the click happened -- which is what
-// lets a click on empty space clear a selection without taking panning away
-// from every empty part of the table.
-//
-// THE HIT TEST THAT DECIDES IS IN A HANDLER AND THAT IS NOT A BROKEN RULE. The
-// first performance rule is about pointermove and wheel, which arrive at the
-// mouse's polling rate; a press and a release happen once per gesture, and a
-// distance test over a few hundred pawns is a few microseconds.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import type { Camera, Point, Viewport } from "./camera.ts";
 import { panBy, zoomAt } from "./camera.ts";
 
-// ZOOM_STEP_MAX is how much one event may change the zoom: 25 percent.
-//
-// IT IS CLAMPED AS AN EXPONENT rather than as a multiplier, so the limit is
-// exactly symmetric -- 1.25 in and 1/1.25 out. Clamping the multiplier to a
-// range like [0.75, 1.25] instead makes a notch out larger than a notch in, and
-// a wheel rolled down and back up does not return to where it started.
+
+
+
+
+
+
 const ZOOM_STEP_MAX = Math.log(1.25);
 
-// WHEEL_SCALE turns a delta in pixels into an exponent. A conventional mouse
-// notch is 100 pixels, which lands at about 14 percent per notch.
+
+
 const WHEEL_SCALE = 0.0015;
 
-// PINCH_SCALE is the same for a trackpad, which reports a pinch as a wheel
-// event with ctrlKey set and a delta an order of magnitude smaller. Without a
-// separate constant a trackpad pinch barely moves.
+
+
+
 const PINCH_SCALE = 0.01;
 
-// A wheel event in line mode reports lines rather than pixels; the browsers
-// that still do this mean about this many.
+
+
 const PIXELS_PER_LINE = 16;
 const PIXELS_PER_PAGE = 400;
 
-// Modifiers are the keys held when a pointer event happened. Shift draws a
-// marquee, Alt takes a wagon out from under its riders, and both are read at
-// the moment of the gesture rather than at the moment of the frame.
+
+
+
 export interface Modifiers {
 	shift: boolean;
 	alt: boolean;
 }
 
-// Tool is what a primary press means to whatever owns the table's contents.
-//
-// The points are in MAP pixels and CSS pixels both, because the two questions a
-// tool asks want different units: what is under the pointer is a map-space
-// question, and whether the hand has moved far enough to be a drag rather than
-// a click is a screen-space one.
+
+
+
+
+
+
 export interface Tool {
-	// press answers whether the camera should keep out of this gesture.
+	
 	press(map: Point, screen: Point, mods: Modifiers): boolean;
 	drag(map: Point, screen: Point, mods: Modifiers): void;
 	release(map: Point, screen: Point, mods: Modifiers): void;
 
-	// cancel is a pointer the browser took away -- a context menu, a gesture
-	// the OS claimed. It is not an Escape, which the tool hears for itself.
+	
+	
 	cancel(): void;
 
-	// secondary is the right button, at a point on the table. It answers
-	// nothing: the browser's own menu is already gone by the time it is called,
-	// so there is no decision left for it to report.
-	//
-	// IT IS A WAY OUT FIRST AND A WAY IN SECOND. A right click abandons
-	// whatever the hand is in the middle of -- placing, dragging, dropping a
-	// marquee -- which is Escape's job for a hand that is already on the mouse.
-	// With nothing to abandon it is the pointer asking about what is under it.
+	
+	
+	
+	
+	
+	
+	
+	
 	secondary(map: Point, screen: Point): void;
 
-	// hover is the pointer moving with nothing down, and null is it leaving the
-	// canvas entirely.
+	
+	
 	hover(map: Point | null): void;
 
-	// active keeps the frame loop alive through a gesture that has paused, the
-	// way a held button does.
+	
+	
 	active(): boolean;
 }
 
-// Pending is everything that happened since the last frame, collapsed.
+
 export interface Pending {
 	panX: number;
 	panY: number;
@@ -130,14 +130,14 @@ export function newPending(): Pending {
 	return { panX: 0, panY: 0, zoom: 1, zoomX: 0, zoomY: 0 };
 }
 
-// apply folds the accumulator into the camera and empties it. It answers
-// whether anything actually moved, which is what the frame reports back to the
-// loop as "something changed".
-//
-// PAN FIRST, THEN ZOOM. During a pinch both are non-zero and describe the same
-// movement of the same two fingers: the drag happened at the zoom the frame
-// started at, so it is applied at that zoom, and the zoom is then anchored at
-// where the fingers ended up.
+
+
+
+
+
+
+
+
 export function apply(pending: Pending, cam: Camera, vp: Viewport): boolean {
 	const moved = pending.panX !== 0 || pending.panY !== 0 || pending.zoom !== 1;
 	if (!moved) {
@@ -158,7 +158,7 @@ export function apply(pending: Pending, cam: Camera, vp: Viewport): boolean {
 	return true;
 }
 
-// wheelMultiplier reads one wheel event as a zoom factor.
+
 export function wheelMultiplier(deltaY: number, deltaMode: number, pinch: boolean): number {
 	let pixels = deltaY;
 	if (deltaMode === 1) {
@@ -172,8 +172,8 @@ export function wheelMultiplier(deltaY: number, deltaMode: number, pinch: boolea
 	return Math.exp(Math.min(Math.max(step, -ZOOM_STEP_MAX), ZOOM_STEP_MAX));
 }
 
-// A tracked pointer and where it was last seen, in CSS pixels relative to the
-// canvas. Two of these at once is a pinch.
+
+
 interface Tracked {
 	x: number;
 	y: number;
@@ -182,22 +182,22 @@ interface Tracked {
 export interface Input {
 	pending: Pending;
 
-	// dragging is true while a button or a finger is down, and it is what keeps
-	// the frame loop alive through a drag that has paused rather than ended.
+	
+	
 	dragging(): boolean;
 
 	stop(): void;
 }
 
-// Project turns a point in CSS pixels relative to the canvas into map pixels.
-// It is a callback because the camera belongs to the renderer, and this module
-// deliberately knows nothing about one.
+
+
+
 export type Project = (x: number, y: number, out: Point) => Point;
 
-// PAN_BUTTONS is the primary and the middle button. The primary one pans only
-// when the tool declines the gesture -- a drag from empty table -- and the
-// middle one always does, in every mode, which is the escape hatch that makes
-// placement and drawing survivable.
+
+
+
+
 const PAN_BUTTONS = new Set([0, 1]);
 
 export function wireInput(
@@ -209,9 +209,9 @@ export function wireInput(
 	const pending = newPending();
 	const pointers = new Map<number, Tracked>();
 
-	// claimed is the one pointer the tool has taken. There is at most one: a
-	// second finger during a drag is a pinch the camera has no business
-	// starting halfway through somebody moving a pawn, so it is ignored.
+	
+	
+	
 	let claimed: number | null = null;
 
 	const map: Point = { x: 0, y: 0 };
@@ -235,20 +235,20 @@ export function wireInput(
 		return { shift: e.shiftKey, alt: e.altKey };
 	}
 
-	// THE CANVAS RECTANGLE IS CACHED AND NOT READ PER EVENT, and it became worth
-	// caching when hovering started calling this.
-	//
-	// getBoundingClientRect forces layout when anything above it is dirty, and
-	// the room page is full of htmx swaps that dirty it -- so a read on every
-	// pointermove is a forced layout at the mouse's polling rate, which is the
-	// third performance rule broken in the one handler that fires most. It used
-	// to be safe because a move with no button down returned before reaching
-	// here; hover changed that.
-	//
-	// It is refreshed when a gesture starts, when the pointer arrives over the
-	// table, and when the window resizes, which is every way the canvas can
-	// have moved between one pointer event and the next: it fills its mount
-	// absolutely, and the mount only moves with the window.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	let bounds = { left: 0, top: 0 };
 
 	function measure(): void {
@@ -256,9 +256,9 @@ export function wireInput(
 		bounds = { left: rect.left, top: rect.top };
 	}
 
-	// PointerEvent, WheelEvent and the contextmenu MouseEvent all carry the two
-	// client coordinates this reads, which is why the parameter is their shared
-	// base rather than a union of the three.
+	
+	
+	
 	function at(e: MouseEvent): Tracked {
 		return { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
 	}
@@ -268,8 +268,8 @@ export function wireInput(
 			return;
 		}
 
-		// The middle button's default is the scroll-anywhere puck on Windows
-		// and Linux, which appears over the table and stays there.
+		
+		
 		e.preventDefault();
 
 		measure();
@@ -298,10 +298,10 @@ export function wireInput(
 				tool.drag(toMap(now), screen, mods(e));
 				invalidate();
 			} else if (claimed === null && pointers.size === 0) {
-				// Hovering. This is the one place a pointermove does work
-				// rather than accumulating, and it is a distance test over the
-				// pawns on one floor -- microseconds, once per move, and the
-				// answer is what the overlay follows.
+				
+				
+				
+				
 				tool.hover(toMap(now));
 				invalidate();
 			}
@@ -322,10 +322,10 @@ export function wireInput(
 			return;
 		}
 
-		// Two or more: a pinch, measured between the first two pointers. The
-		// midpoint's movement is the pan and the change in separation is the
-		// zoom, both read BEFORE and AFTER this one pointer moves, so a pinch
-		// with one finger still works out.
+		
+		
+		
+		
 		const [a, b] = firstTwo(pointers);
 		if (!a || !b) {
 			return;
@@ -375,17 +375,17 @@ export function wireInput(
 	}
 
 	function onContextMenu(e: MouseEvent): void {
-		// UNCONDITIONALLY, AND BEFORE THE TOOL IS ASKED. See the header: the
-		// canvas has no browser menu, whatever the right click turns out to
-		// have meant.
+		
+		
+		
 		e.preventDefault();
 
 		if (!tool) {
 			return;
 		}
 
-		// A right click can be the first thing a pointer does on the table --
-		// no press has happened, so nothing has measured the canvas yet.
+		
+		
 		measure();
 
 		tool.secondary(toMap(at(e)), screen);
@@ -396,16 +396,16 @@ export function wireInput(
 		measure();
 	}
 
-	// A pointer that has left the table is a pointer over nothing, and the
-	// overlay has to stop following a pawn that is no longer under it.
-	//
-	// LEAVING THE CANVAS IS NOT LEAVING THE TABLE. The overlay is a sibling
-	// stacked above the canvas, so moving the hand from a pawn toward its own
-	// Details button leaves the canvas -- and clearing the hover there would
-	// hide the overlay out from under the hand reaching for it, which reads as
-	// the button being impossible to click. So the question asked is whether
-	// the pointer left the MOUNT, which the toolbar, the debug panel and every
-	// open window are also inside.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	function onPointerLeave(e: PointerEvent): void {
 		if (!tool || claimed !== null || pointers.size > 0) {
 			return;
@@ -419,8 +419,8 @@ export function wireInput(
 	}
 
 	function onWheel(e: WheelEvent): void {
-		// Without this the page scrolls, and on a trackpad a two finger pinch
-		// zooms the whole browser instead of the map.
+		
+		
 		e.preventDefault();
 
 		const point = at(e);
@@ -442,9 +442,9 @@ export function wireInput(
 	window.addEventListener("resize", measure);
 	measure();
 
-	// passive: false is what makes preventDefault above legal. A wheel listener
-	// is passive by default in every browser, and a passive listener that calls
-	// preventDefault is ignored with a console warning.
+	
+	
+	
 	canvas.addEventListener("wheel", onWheel, { passive: false });
 
 	return {

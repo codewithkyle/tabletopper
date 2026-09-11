@@ -14,8 +14,8 @@ const (
 	testTurnPawnA  = "01BX5ZZKBKACTAV9WEVGEMMVW3"
 )
 
-// turnStrip is a fight in progress: a player's own creature acting, and a
-// goblin waiting.
+
+
 func turnStrip(isGM bool) RoomInitiativeData {
 	return RoomInitiativeData{
 		RoomID: testTurnRoomID,
@@ -38,10 +38,10 @@ func turnStrip(isGM bool) RoomInitiativeData {
 	}
 }
 
-// THE REFETCH IS THE WHOLE OF HOW THIS SURFACE STAYS LIVE, so both halves of it
-// are pinned: the event it listens for, the filter that keeps a refetch from
-// dropping a line somebody is dragging, and the queue that keeps a burst of
-// them from landing out of order.
+
+
+
+
 func TestTheStripsRefetchIsDeclaredInItsOwnMarkup(t *testing.T) {
 	markup := decoded(t, RoomInitiative(turnStrip(true)))
 
@@ -55,8 +55,8 @@ func TestTheStripsRefetchIsDeclaredInItsOwnMarkup(t *testing.T) {
 		t.Error("the trigger does not decline while a line is being dragged")
 	}
 
-	// A ROOT THAT ALSO SAID load WOULD FETCH ITSELF AGAIN ON EVERY SWAP, for
-	// ever. Only the placeholder the page renders carries it.
+	
+	
 	if strings.Contains(markup, `hx-trigger="load`) {
 		t.Error("the fragment's own root carries load")
 	}
@@ -65,11 +65,11 @@ func TestTheStripsRefetchIsDeclaredInItsOwnMarkup(t *testing.T) {
 	}
 }
 
-// NEITHER A SQUARE BRACKET NOR A COMMA MAY APPEAR INSIDE AN hx-trigger FILTER.
-// The filter is delimited by the brackets around it and the attribute is split
-// on commas, so either one ends the expression early and leaves the rest parsed
-// as trigger modifiers -- which is not an error, it is a strip that has quietly
-// stopped refetching.
+
+
+
+
+
 func TestTheStripsFilterIsParseable(t *testing.T) {
 	open := strings.Index(InitiativeTrigger, "[")
 	shut := strings.Index(InitiativeTrigger, "]")
@@ -84,8 +84,8 @@ func TestTheStripsFilterIsParseable(t *testing.T) {
 	}
 }
 
-// AN EMPTY TRACKER IS NO STRIP AT ALL, not an empty panel: the table underneath
-// it is what the room is for.
+
+
 func TestAnEmptyTrackerRendersHidden(t *testing.T) {
 	markup := html(t, RoomInitiative(RoomInitiativeData{RoomID: testTurnRoomID, Empty: true}))
 
@@ -94,8 +94,8 @@ func TestAnEmptyTrackerRendersHidden(t *testing.T) {
 	}
 }
 
-// THE BAND IS THE ONE ATTRIBUTE EVERY WOUND HANGS OFF. The stylesheet spends it
-// on blood, pallor, a pulse and a skull; the markup's whole job is to render it.
+
+
 func TestEveryFaceCarriesItsBand(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true)))
 
@@ -105,8 +105,8 @@ func TestEveryFaceCarriesItsBand(t *testing.T) {
 		}
 	}
 
-	// A creature nobody told this viewer anything about carries no attribute
-	// at all and is drawn plain.
+	
+	
 	plain := turnStrip(true)
 	plain.Entries[0].Band = ""
 	plain.Entries[0].Blood = ""
@@ -117,9 +117,9 @@ func TestEveryFaceCarriesItsBand(t *testing.T) {
 	}
 }
 
-// A GROUP IS A DOT PER MEMBER IN THAT MEMBER'S OWN COLOUR, and past twelve it
-// is a count -- twenty four-pixel discs under a portrait is a texture rather
-// than a reading.
+
+
+
 func TestAGroupDrawsADotPerMemberAndThenACount(t *testing.T) {
 	bands := make([]string, 0, InitiativePipMax)
 	for range InitiativePipMax {
@@ -145,14 +145,14 @@ func TestAGroupDrawsADotPerMemberAndThenACount(t *testing.T) {
 		t.Errorf("the group did not draw one dot per member:\n%s", markup)
 	}
 
-	// A GROUP CARRIES NO HIT-POINT TEXT AND NO CONDITION CHIPS. Nine goblins
-	// have nine of each, and the rings on the table are where that lives.
+	
+	
 	data.Entries[1].HP = ""
 	data.Entries[1].Conditions = nil
 }
 
-// THE TIMER AND End turn ARE THE ACTIVE PLAYER'S AND NOBODY ELSE'S. A clock the
-// whole table can read is a stopwatch on whoever is thinking.
+
+
 func TestTheTimerAndEndTurnBelongToTheActingPlayerAlone(t *testing.T) {
 	player := html(t, RoomInitiative(turnStrip(false)))
 
@@ -160,9 +160,9 @@ func TestTheTimerAndEndTurnBelongToTheActingPlayerAlone(t *testing.T) {
 		t.Errorf("the acting player was given no clock:\n%s", player)
 	}
 
-	// THE KEY PRESSES THE BUTTON THAT IS ALREADY ON THE SCREEN, so the
-	// player's End turn and the GM's hidden one carry the same hook and the
-	// client learns no route.
+	
+	
+	
 	if strings.Count(player, "data-turn-next") != 1 {
 		t.Errorf("the player's screen has %d turn buttons, want one", strings.Count(player, "data-turn-next"))
 	}
@@ -181,16 +181,16 @@ func TestTheTimerAndEndTurnBelongToTheActingPlayerAlone(t *testing.T) {
 		t.Errorf("the GM's screen has %d turn buttons, want one", strings.Count(gm, "data-turn-next"))
 	}
 
-	// AND THE GM'S IS NEVER SEEN. A Next button used to sit at the far end of
-	// the row; it was a control inside a display and it moved every time the
-	// order changed. What is left is the element the key presses.
+	
+	
+	
 	if !strings.Contains(gm, "data-turn-next hidden") {
 		t.Errorf("the GM's turn button is drawn on the strip:\n%s", gm)
 	}
 }
 
-// THE CONTROLS ARE THE GM'S. What a player gets on this surface is the reading
-// and the one button that ends their own turn.
+
+
 func TestTheStripsControlsAreTheGMsAlone(t *testing.T) {
 	for name, isGM := range map[string]bool{"the GM": true, "a player": false} {
 		markup := html(t, RoomInitiative(turnStrip(isGM)))
@@ -205,10 +205,10 @@ func TestTheStripsControlsAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// THE FASTEST QUESTION A ROW OF CARDS ANSWERS IS "HOW MUCH OF THIS IS TRYING TO
-// KILL US", and it is answered by the colour of the frame without reading a
-// word. The three words are room.PawnKind's own, so the attribute the
-// stylesheet keys on is the string the protocol already carries.
+
+
+
+
 func TestEachCardIsColouredByWhatItIs(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true)))
 
@@ -218,8 +218,8 @@ func TestEachCardIsColouredByWhatItIs(t *testing.T) {
 		}
 	}
 
-	// A LINE WITH NO CREATURE BEHIND IT CARRIES NONE OF THEM and takes the
-	// neutral frame. A lair action is not on anybody's side.
+	
+	
 	lair := turnStrip(true)
 	lair.Entries = []RoomInitiativeEntry{{ID: testTurnEntryA, Name: "Lair action", Kind: EntryNamed}}
 
@@ -228,14 +228,14 @@ func TestEachCardIsColouredByWhatItIs(t *testing.T) {
 	}
 }
 
-// ONLY THE ACTING CARD IS NAMED, which is the old tracker's rule: the plate
-// hangs under the lit card in the frame's own colour, and eleven dim portraits
-// need no labels to be scanned past.
-//
-// EVERY CARD STILL CARRIES ITS NAME THOUGH. It is the text behind the portrait,
-// which shows through for a creature with no picture -- and it is what the
-// right-click menu reads for its heading, so a card without one is a menu with
-// a blank title.
+
+
+
+
+
+
+
+
 func TestOnlyTheActingCardWearsItsNamePlate(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true)))
 
@@ -247,9 +247,9 @@ func TestOnlyTheActingCardWearsItsNamePlate(t *testing.T) {
 	}
 }
 
-// AND EVERY CARD IS THE SAME SIZE. The acting card used to be wider than the
-// rest, which reflows the row on every turn and moves the drop target out from
-// under a pointer that was already reaching for it.
+
+
+
 func TestEveryCardIsTheSameSize(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true)))
 
@@ -258,9 +258,9 @@ func TestEveryCardIsTheSameSize(t *testing.T) {
 	}
 }
 
-// THERE IS NO PANEL BEHIND THE ROW. A shared strip makes twelve creatures one
-// widget with faces printed on it; twelve separate cards over the map are twelve
-// creatures, which is the reading a fight wants.
+
+
+
 func TestTheCardsFloatWithNothingBehindThem(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true)))
 
@@ -271,9 +271,9 @@ func TestTheCardsFloatWithNothingBehindThem(t *testing.T) {
 	}
 }
 
-// THE HIT-POINT TEXT IS THE GM'S ON EVERY LINE AND A PLAYER'S ON THE ACTING
-// LINE ALONE. On the other eleven it would be a column of numbers under a row
-// of faces, which is the spreadsheet this design exists to not be.
+
+
+
 func TestTheHitPointTextIsTheGMsEverywhereAndThePlayersOnce(t *testing.T) {
 	gm := turnStrip(true)
 	if !gm.ShowHP(gm.Entries[0]) || !gm.ShowHP(gm.Entries[1]) {
@@ -288,8 +288,8 @@ func TestTheHitPointTextIsTheGMsEverywhereAndThePlayersOnce(t *testing.T) {
 		t.Error("a player is shown hit points on a line that is not acting")
 	}
 
-	// A ROOM LABELLING NOTHING PRINTS NOTHING, which is the projection's
-	// decision arriving here as an empty string.
+	
+	
 	quiet := turnStrip(true)
 	quiet.Entries[0].HP = ""
 	if quiet.ShowHP(quiet.Entries[0]) {
@@ -297,8 +297,8 @@ func TestTheHitPointTextIsTheGMsEverywhereAndThePlayersOnce(t *testing.T) {
 	}
 }
 
-// THE Hidden BADGE IS THE GM'S MARKER, and a player never receives such a line
-// at all -- so this is belt and braces on top of the projection.
+
+
 func TestTheHiddenBadgeIsTheGMs(t *testing.T) {
 	if markup := html(t, RoomInitiative(turnStrip(true))); !strings.Contains(markup, "Hidden") {
 		t.Errorf("the GM has no marker for a line players cannot see:\n%s", markup)
@@ -308,9 +308,9 @@ func TestTheHiddenBadgeIsTheGMs(t *testing.T) {
 	}
 }
 
-// A LINE WITH NO CREATURE TAKES ITS OWN NAME IN THE DISC'S PLACE, so the
-// strip's rhythm survives -- and it offers no pawn window, because there is no
-// pawn.
+
+
+
 func TestANamedLineHasNoPortraitAndNoPawn(t *testing.T) {
 	data := turnStrip(true)
 	data.Entries[1] = RoomInitiativeEntry{ID: testTurnEntryB, Name: "Lair action", Kind: EntryNamed}
@@ -328,9 +328,9 @@ func TestANamedLineHasNoPortraitAndNoPawn(t *testing.T) {
 	}
 }
 
-// THE ACTING LINE IS THE ONLY ONE THAT GLOWS. A row where every card wore a
-// ring of light would be a row with nothing in it saying whose go it is, which
-// is the one question the strip exists to answer.
+
+
+
 func TestOnlyTheActingLineWearsAnAura(t *testing.T) {
 	markup := decoded(t, RoomInitiative(turnStrip(true)))
 
@@ -342,10 +342,10 @@ func TestOnlyTheActingLineWearsAnAura(t *testing.T) {
 	}
 }
 
-// AND IT SAYS NOTHING ABOUT THE CREATURE. aura-silver carries its own greys, so
-// the attribute is a bare hook for the corner radius and carries no value at
-// all -- a health band on it would be a sixth reading of a number this line
-// already renders five ways.
+
+
+
+
 func TestTheAuraCarriesNoReadingOfTheCreature(t *testing.T) {
 	markup := decoded(t, RoomInitiative(turnStrip(true)))
 
@@ -354,11 +354,11 @@ func TestTheAuraCarriesNoReadingOfTheCreature(t *testing.T) {
 	}
 }
 
-// AND IT IS ROUND THE WHOLE CARD. The frame and the name plate under it are one
-// shape -- the frame is square along that edge precisely so they read as one --
-// and a ring of light round the top half of it would look like a bug rather
-// than like a turn. The End turn button is NOT in it: it is a control beside
-// the card and not part of the creature.
+
+
+
+
+
 func TestTheAuraHoldsTheFrameAndThePlateAndNothingElse(t *testing.T) {
 	markup := decoded(t, RoomInitiative(turnStrip(false)))
 
@@ -374,26 +374,26 @@ func TestTheAuraHoldsTheFrameAndThePlateAndNothingElse(t *testing.T) {
 		t.Errorf("the acting card is not framed, plated and then buttoned:\n%s", markup)
 	}
 
-	// Two closing tags between the name plate and the button: the plate's own,
-	// and the aura shutting behind it. One would mean the button is inside the
-	// glow; three would mean the entry closed early.
+	
+	
+	
 	if n := strings.Count(markup[plate:next], "</span>"); n != 2 {
 		t.Errorf("the aura shuts %d tags after the plate, want two:\n%s", n-1, markup)
 	}
 }
 
-// THE WORD "CARD" APPEARS NOWHERE IN THE RENDERED MARKUP, and it is the trap
-// this feature walks straight into -- a card is what everybody calls these.
-// `card` is a DaisyUI component and Tailwind reads a .templ file as text, so
-// the word in a class, an attribute or a Go identifier inside the template
-// would put its whole family in the stylesheet with nothing anywhere failing.
-// In the markup a line of the tracker is an ENTRY.
-//
-// THE OTHER NAMES ARE CHECKED AS CLASSES RATHER THAN AS SUBSTRINGS, because
-// several of them are inside attributes this markup legitimately carries:
-// hx-swap and hx-status:422 are htmx's, and the extractor splits a candidate on
-// ":" and "." rather than on "-", so neither of those is the component word.
-// What would be is a class.
+
+
+
+
+
+
+
+
+
+
+
+
 func TestTheStripNamesNoDaisyComponentItDoesNotUse(t *testing.T) {
 	markup := html(t, RoomInitiative(turnStrip(true))) +
 		html(t, RoomInitiativeEntryForm(RoomInitiativeEntryData{RoomID: testTurnRoomID}))
@@ -420,7 +420,7 @@ func TestTheStripNamesNoDaisyComponentItDoesNotUse(t *testing.T) {
 	}
 }
 
-// classValues is every class attribute in a piece of rendered markup.
+
 func classValues(markup string) []string {
 	var out []string
 
@@ -442,9 +442,9 @@ func classValues(markup string) []string {
 	}
 }
 
-// EVERYBODY AT THE TABLE SEES THE SAME SPLATTER ON THE SAME GOBLIN, which is
-// what makes the choice a function of the pawn's id rather than of anything
-// local.
+
+
+
 func TestTheSplatterIsStableAndInRange(t *testing.T) {
 	for _, id := range []string{testTurnPawnA, testTurnEntryA, testTurnEntryB, ""} {
 		first := InitiativeBloodVariant(id)
@@ -457,9 +457,9 @@ func TestTheSplatterIsStableAndInRange(t *testing.T) {
 	}
 }
 
-// THE NAME FIELD ACCEPTS WHAT THE SERVER ACCEPTS. A field that took more than
-// the protocol does is a dialog that fills in, posts, and comes back with an
-// error nobody could have avoided.
+
+
+
 func TestTheEntryFieldMatchesTheProtocolsNameLimit(t *testing.T) {
 	if EntryNameMax != "128" || room.NameLimit != 128 {
 		t.Errorf("the field takes %s characters and the protocol takes %d", EntryNameMax, room.NameLimit)

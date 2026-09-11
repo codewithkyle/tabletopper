@@ -1,8 +1,8 @@
-// Package config reads the process environment exactly once, at startup, into
-// a struct the rest of the program is handed. Nothing outside this package
-// calls os.Getenv: a missing variable is a startup failure that names it,
-// not a nil-pointer or an empty string discovered on the first request that
-// needed it.
+
+
+
+
+
 package config
 
 import (
@@ -12,19 +12,19 @@ import (
 )
 
 type Config struct {
-	// Env is the deployment environment. Only an explicit development value
-	// relaxes anything; a missing or misspelled one is treated as production.
+	
+	
 	Env string
 
-	// Addr is the listen address, ":3000" unless ADDR says otherwise.
+	
 	Addr string
 
 	DSN         string
 	ClerkAPIKey string
 
-	// ClerkPublishableKey and ClerkFrontendAPI are what the browser needs to
-	// load Clerk's sign-in UI: the key is public by design, and the frontend
-	// API is the instance's origin, e.g. https://clerk.example.com.
+	
+	
+	
 	ClerkPublishableKey string
 	ClerkFrontendAPI    string
 
@@ -34,8 +34,8 @@ type Config struct {
 	R2Bucket          string
 }
 
-// Load reads the environment and reports every required variable that is
-// missing in one error rather than the first one.
+
+
 func Load() (Config, error) {
 	cfg := Config{
 		Env:                 os.Getenv("ENV"),
@@ -76,9 +76,9 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-// Development reports whether Env names a local development environment.
-// This is the only thing that ever relaxes a security default, and it has to
-// be asked for by name.
+
+
+
 func (c Config) Development() bool {
 	switch c.Env {
 	case "development", "dev", "local":

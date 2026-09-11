@@ -11,11 +11,11 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE WRITE-THROUGH RACE. Two hit-point edits fifty milliseconds apart are one
-// damage entry corrected, and two goroutines racing to the row could commit
-// them in either order. The writer holds the latest value per character and
-// writes one statement at a time, so the row ends up holding the last thing the
-// table said.
+
+
+
+
+
 func TestSheetWritesLandOneAtATimeAndTheLatestWins(t *testing.T) {
 	var mu sync.Mutex
 	var written []int
@@ -39,8 +39,8 @@ func TestSheetWritesLandOneAtATimeAndTheLatestWins(t *testing.T) {
 	writer.put(testID(9), 23)
 	<-started
 
-	// Two more arrive while the first statement is still in flight. Only the
-	// latest of them is owed.
+	
+	
 	writer.put(testID(9), 20)
 	writer.put(testID(9), 16)
 	close(release)
@@ -54,9 +54,9 @@ func TestSheetWritesLandOneAtATimeAndTheLatestWins(t *testing.T) {
 	}
 }
 
-// A pawn update that did not change the number costs no statement. Every
-// pawn.updated reaches the write-through -- a rename, a condition ticking over,
-// a move between floors -- and the room remembers what it last asked for.
+
+
+
 func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 	var mu sync.Mutex
 	var writes []int
@@ -74,7 +74,7 @@ func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 	hp := 12
 	pawn := room.Pawn{Kind: room.PawnPlayer, CharacterID: &character, HP: &hp, Name: "Ilyana"}
 
-	// Run on the room's goroutine, as the effect does.
+	
 	through := func(p room.Pawn) {
 		reply := make(chan any, 1)
 		if err := a.post(tb.ctx(), ask{fn: func(a *actor) any { a.writeThrough(p); return nil }, reply: reply}); err != nil {

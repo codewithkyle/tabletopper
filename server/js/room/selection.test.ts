@@ -1,10 +1,10 @@
-// Who is selected, and what comes with them when one is dragged.
-//
-// THE MARQUEE AND THE RIDERS ARE THE TWO RULES WORTH PINNING. Both are the kind
-// of geometry that is obviously right until somebody drags a box across a
-// battle line or parks a goblin next to a wagon, and both have a wrong answer
-// that looks reasonable: intersection instead of centres, and adjacency instead
-// of containment.
+
+
+
+
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -46,9 +46,9 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 	};
 }
 
-// The GM may move anything; a player may move what they own. The client's copy
-// of the rule exists so a selection cannot be built that the server would
-// refuse -- which would teach somebody the wrong thing about their own table.
+
+
+
 test("the GM may move anything and a player only their own", () => {
 	const mine = pawn({ ownerId: ME });
 	const theirs = pawn({ ownerId: THEM });
@@ -62,9 +62,9 @@ test("the GM may move anything and a player only their own", () => {
 	assert.equal(mayMove(nobodys, "player", ME), false);
 });
 
-// THE CENTRE AND NOT THE FOOTPRINT. Intersection would put a gargantuan dragon
-// into a box drawn between its toes; containment would make a box drawn across
-// the middle of a battle line select nothing at all.
+
+
+
 test("a marquee takes every movable pawn whose centre is inside", () => {
 	const pawns = [
 		pawn({ id: "in", x: 100, y: 100 }),
@@ -86,9 +86,9 @@ test("a marquee dragged backwards is the same rectangle", () => {
 	);
 });
 
-// A player who marquees across a room full of goblins and their own fighter
-// gets the fighter. A selection with the goblins in it would be a selection
-// whose every drag came back forbidden.
+
+
+
 test("a marquee takes only what the viewer may move", () => {
 	const pawns = [
 		pawn({ id: "goblin", x: 10, y: 10, ownerId: null }),
@@ -102,8 +102,8 @@ test("a marquee takes only what the viewer may move", () => {
 	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm", "01GM").length, 3);
 });
 
-// The floor is the filter everywhere, and a marquee is one of the places the
-// plan names. A GM looking at the cellar cannot box-select the party upstairs.
+
+
 test("a marquee takes nothing from another floor", () => {
 	const pawns = [
 		pawn({ id: "here", x: 10, y: 10 }),
@@ -115,8 +115,8 @@ test("a marquee takes nothing from another floor", () => {
 	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm", "01GM"), ["here"]);
 });
 
-// THE PROTOCOL CAPS A SELECTION AND SO DOES THE BOX. A marquee across a stress
-// test must not build a command the server answers "too many".
+
+
 test("a marquee stops at the protocol's own limit", () => {
 	const pawns: Pawn[] = [];
 	for (let i = 0; i < SELECTION_MAX + 50; i++) {
@@ -128,8 +128,8 @@ test("a marquee stops at the protocol's own limit", () => {
 	assert.equal(found.length, SELECTION_MAX);
 });
 
-// A wagon's picture is 128 by 256 pixels, so it reaches 64 across and 128 down
-// from its centre. What is ON it is inside that box and above it in draw order.
+
+
 function wagon(): Pawn {
 	return pawn({ id: "wagon", kind: "object", width: 128, height: 256, z: 1, x: 0, y: 0 });
 }
@@ -145,11 +145,11 @@ test("riders are the pawns standing on a wagon and not the ones beside it", () =
 	assert.deepEqual(riders(pawns, wagon(), CELL).sort(), ["aboard", "alsoAboard"]);
 });
 
-// THE DRAW ORDER IS WHAT "ON" MEANS, and every token is drawn under every
-// creature -- so a party the wagon was parked over is standing ON it whatever
-// order the two were spawned in, which is what the table shows. z still decides
-// between two tokens: a rug laid over the wagon rides on it and one laid under
-// it stays in the road.
+
+
+
+
+
 test("riders are whatever is above the wagon in the draw order", () => {
 	const rug = { kind: "object" as const, width: 32, height: 32, x: 10, y: 10 };
 	const pawns = [
@@ -172,8 +172,8 @@ test("riders ignore pawns on another floor", () => {
 	assert.deepEqual(riders(pawns, wagon(), CELL), []);
 });
 
-// IT NEVER TRIGGERS ON A ONE-CELL CREATURE, which is what keeps two goblins in
-// adjacent squares from picking each other up.
+
+
 test("a medium creature carries nobody", () => {
 	const goblin = pawn({ id: "goblin", z: 1 });
 	const pawns = [goblin, pawn({ id: "other", x: 4, y: 4, z: 2 })];
@@ -181,9 +181,9 @@ test("a medium creature carries nobody", () => {
 	assert.deepEqual(riders(pawns, goblin, CELL), []);
 });
 
-// A large creature IS two cells on both axes, so it carries -- which is the
-// rule as written, and is right: a giant picking up what is standing on its
-// square is the same mechanic as a wagon.
+
+
+
 test("a large creature is wide enough to carry", () => {
 	const giant = pawn({ id: "giant", size: "large", z: 1 });
 	const pawns = [giant, pawn({ id: "rider", x: 10, y: 10, z: 2 })];
@@ -191,8 +191,8 @@ test("a large creature is wide enough to carry", () => {
 	assert.deepEqual(riders(pawns, giant, CELL), ["rider"]);
 });
 
-// The selection comes along only when the anchor is in it, which is what makes
-// dragging one pawn out of a selected group possible.
+
+
 test("the drag set is the selection when the anchor is in it", () => {
 	const a = pawn({ id: "a" });
 	const b = pawn({ id: "b", x: 500 });
@@ -206,12 +206,12 @@ test("the drag set is the selection when the anchor is in it", () => {
 
 	assert.deepEqual(dragSet(pawns, a, selection, options), ["a", "b"]);
 
-	// Grabbing something that was not selected means you meant that thing.
+	
 	assert.deepEqual(dragSet(pawns, c, selection, options), ["c"]);
 });
 
-// AND THE RIDERS COME WHETHER OR NOT ANYTHING WAS SELECTED, because a wagon
-// with three people on it is one object as far as a hand is concerned.
+
+
 test("riders join a drag that selected nothing, and Alt leaves them", () => {
 	const pawns = [wagon(), pawn({ id: "aboard", x: 10, y: 10, z: 5 })];
 	const selection = new Selection();
@@ -221,8 +221,8 @@ test("riders join a drag that selected nothing, and Alt leaves them", () => {
 	assert.deepEqual(dragSet(pawns, wagon(), selection, { ...base, withRiders: false }), ["wagon"]);
 });
 
-// A player dragging their own wagon must not take somebody else's pawn with it:
-// the server would refuse the whole move, so the whole move is never built.
+
+
 test("a rider the viewer may not move does not join the drag", () => {
 	const cart = pawn({ id: "cart", kind: "object", width: 128, height: 128, z: 1, ownerId: ME });
 	const pawns = [cart, pawn({ id: "theirs", x: 10, y: 10, z: 5, ownerId: THEM })];
@@ -289,8 +289,8 @@ test("shift-clicking toggles one in and out", () => {
 	assert.deepEqual(selection.ids(), ["b"]);
 });
 
-// A pawn that left the table cannot stay selected: its next drag would be
-// answered not_found, and the overlay would name something nobody can see.
+
+
 test("pruning drops ids that are no longer on the table", () => {
 	const selection = new Selection();
 	selection.set(["a", "b", "c"]);

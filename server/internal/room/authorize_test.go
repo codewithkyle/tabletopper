@@ -7,17 +7,17 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE AUTHORIZATION TABLE. One row per wire command, one column per kind of
-// actor, one assertion per cell.
-//
-// IT IS A TABLE ON PURPOSE. Authority is the part of a protocol where a rule
-// written twice eventually gets changed once, and reading thirty Authorize
-// methods to answer "what can a player do" is how a permission gets granted by
-// accident. Here the answer is a column.
-//
-// THE THREE ACTORS ARE THE THREE THAT EXIST: the GM, the player who owns the
-// thing being named, and another player who does not. Everything in this
-// package's authority rules is one of those three.
+
+
+
+
+
+
+
+
+
+
+
 func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 	w, fx := authorizeWorld(t)
 
@@ -41,9 +41,9 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull, InitiativeGrouping: GroupMonsters}, ok, CodeForbidden, CodeForbidden},
 		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
 
-		// Putting something on the table is the GM's act, a player's own
-		// character included. They get one from the GM's Spawn pawns, which is
-		// pawn.spawnCharacters on the line below.
+		
+		
+		
 		{"pawn.spawn", &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, CharacterID: &testCharID}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.spawnCharacters", &PawnSpawnCharacters{}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.move", &PawnMove{Anchor: fx.owned}, ok, ok, CodeForbidden},
@@ -57,8 +57,8 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"initiative.set", &InitiativeSet{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.sync", &InitiativeSync{}, ok, CodeForbidden, CodeForbidden},
 
-		// The one command whose player column depends on the state rather than
-		// on ownership of a thing named in it: whoever's turn it is may end it.
+		
+		
 		{"initiative.next", &InitiativeNext{}, ok, ok, CodeForbidden},
 		{"initiative.clear", &InitiativeClear{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.activate", &InitiativeActivate{}, ok, CodeForbidden, CodeForbidden},
@@ -72,13 +72,13 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"fog.remove", &FogRemove{ID: fx.shape}, ok, CodeForbidden, CodeForbidden},
 		{"fog.clear", &FogClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 
-		// Drawing is a room setting rather than a role, so all three may begin
-		// a stroke while the setting is on.
+		
+		
 		{"stroke.begin", &StrokeBegin{ID: testID(500), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, ok, ok, ok},
 
-		// Extending and ending are own-stroke, and that includes the GM: the
-		// person drawing the line is still drawing it, and taking it away is
-		// what erase is for.
+		
+		
+		
 		{"stroke.extend", &StrokeExtend{ID: fx.stroke}, CodeForbidden, ok, CodeForbidden},
 		{"stroke.end", &StrokeEnd{ID: fx.stroke}, CodeForbidden, ok, CodeForbidden},
 		{"stroke.erase", &StrokeErase{IDs: []ulid.ULID{fx.stroke}}, ok, ok, CodeForbidden},
@@ -89,8 +89,8 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"sync.request", &SyncRequest{}, ok, ok, ok},
 	}
 
-	// Nothing may be left out. A command added to the registry without a row
-	// here is a command whose authority nobody wrote down.
+	
+	
 	covered := map[string]bool{}
 	for _, tc := range tests {
 		covered[tc.wire] = true
@@ -133,7 +133,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 	}
 }
 
-// authorizeFixture is the handful of ids the table above names.
+
 type authorizeFixture struct {
 	spare  ulid.ULID
 	owned  ulid.ULID
@@ -155,8 +155,8 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 100, 100}}, w.gm)
 	fx.shape = w.s.Fog[0].ID
 
-	// The owner's pawn is up in the tracker, which is what makes the
-	// initiative.next row's middle column mean anything.
+	
+	
 	w.apply(&InitiativeSet{
 		Entries: []InitiativeEntry{{Name: "Ari", PawnIDs: []ulid.ULID{fx.owned}, Initiative: 18}},
 	}, w.gm)
@@ -165,9 +165,9 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	return w, fx
 }
 
-// Authorize is a question, not a change. Every Apply in this package assumes it
-// ran first and did nothing, and a rule that peeked by mutating would make the
-// refusal path leave the room in a state nobody asked for.
+
+
+
 func TestAuthorizeNeverMutates(t *testing.T) {
 	w, fx := authorizeWorld(t)
 
@@ -182,8 +182,8 @@ func TestAuthorizeNeverMutates(t *testing.T) {
 		}
 	}
 
-	// And the same for the commands only the hub builds, since the hub calls
-	// Authorize on those too rather than special-casing them.
+	
+	
 	for wire, cmd := range HubCommandPrototypes() {
 		_ = cmd.Authorize(w.s, w.gm)
 		if got := mustJSON(t, w.s); got != before {
@@ -194,17 +194,17 @@ func TestAuthorizeNeverMutates(t *testing.T) {
 	_ = fx
 }
 
-// The GM cannot be kicked and cannot kick themselves. A room whose owner has
-// left it is a room nobody can unlock, close or reopen.
+
+
 func TestTheGMCannotBeRemoved(t *testing.T) {
 	w := newWorld(t)
 
 	w.refuse(&PlayerKick{ID: testGMID}, w.gm, CodeForbidden)
 
-	// The refusal for a GM naming themselves comes from Authorize, and the one
-	// for a second GM row would come from Apply; both are forbidden and both
-	// are checked, because only the second survives if the first is ever
-	// relaxed.
+	
+	
+	
+	
 	if err := (&PlayerKick{ID: testGMID}).Authorize(w.s, Actor{ID: testPlayerID, Role: RoleGM}); err != nil {
 		t.Fatalf("a GM naming somebody else was refused by Authorize: %v", err)
 	}

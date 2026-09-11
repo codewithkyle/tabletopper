@@ -1,6 +1,6 @@
-// The Go example, replayed. internal/tiler/pyramid_test.go pins the same
-// numbers, and the two files existing is the point: this is a port, and a port
-// that has drifted renders a level off with nothing reporting it.
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -35,16 +35,16 @@ test("a 12000 by 9000 map at 512 is six levels and 584 tiles", () => {
 	assert.equal(total, 584);
 });
 
-// THE BUG THE CEIL EXISTS TO PREVENT. Halving 9000 five times with a bare
-// right shift gives 281, and 281 rows at level 5 leave the last row of the map
-// in no tile at all. Nothing reports it: the level renders, one row short.
+
+
+
 test("levels ceil rather than floor", () => {
 	assert.equal(levelPixels(9000, 5), 282);
 	assert.equal(9000 >> 5, 281);
 });
 
-// An edge tile is the remainder and is never padded to square, so its UV
-// maximum is short of 1 and the renderer has to know by how much.
+
+
 test("the last tile of a row is the remainder", () => {
 	assert.equal(levelTileSize(12000, 512, 0, 22), 512);
 	assert.equal(levelTileSize(12000, 512, 0, 23), 12000 - 23 * 512);
@@ -57,8 +57,8 @@ test("a tile index off the end of a level has no size", () => {
 	assert.equal(levelTiles(12000, 0, 0), 0);
 });
 
-// Every rectangle the renderer draws is in native pixels, whatever level it
-// came from. A tile at level 3 is eight native pixels per texel.
+
+
 test("a tile's rectangle is native pixels at every level", () => {
 	assert.equal(tileOrigin(512, 0, 3), 1536);
 	assert.equal(tileSpan(512, 0), 512);

@@ -1,19 +1,19 @@
 package pages
 
-// Option is one entry in a selectField dropdown.
+
 type Option struct {
 	Label string
 	Value string
 }
 
-// The two fixed dropdown lists on the character sheet. They used to be JSON
-// blobs duplicated verbatim in the data-options attribute of both
-// new-character.templ and edit-character.templ and parsed client-side by
-// select.js; now they are one Go slice each, ranged over at render time.
-//
-// The "Unaligned" value was stored as "unaliged" until the migration of
-// 2026-09-05 corrected every row; characterToEditPageData falls back to the
-// same spelling, so the two have to move together.
+
+
+
+
+
+
+
+
 var alignmentOptions = []Option{
 	{Label: "Unaligned", Value: "unaligned"},
 	{Label: "Any Alignment", Value: "any alignment"},
@@ -42,31 +42,31 @@ var sizeOptions = []Option{
 	{Label: "Gargantuan", Value: "gargantuan"},
 }
 
-// DefaultAlignment and DefaultSize are what the editor selects when the stored
-// column has nothing in it. Alignment reaches that state on every new character,
-// because creation writes a name and leaves the column NULL. Size does not --
-// the schema defaults it -- but the fallback is kept for a row written before
-// that default, or around it.
-//
-// Exported so characterToEditPageData can apply them, the way DefaultSpellSchool
-// already is. That is what keeps each one next to the list it has to be a member
-// of: a fallback outside the options renders a picker with nothing selected, and
-// "unaligned" was stored as "unaliged" until the migration of 2026-09-05
-// corrected every row.
+
+
+
+
+
+
+
+
+
+
+
 const (
 	DefaultAlignment = "unaligned"
 	DefaultSize      = "medium"
 )
 
-// NormalizeSize and NormalizeAlignment are the allowlists behind the two
-// pickers, each answering anything it does not recognise with the column's own
-// default -- the shape NormalizeProficiency and NormalizeCreatureType have.
-//
-// THE CHARACTER SHEET DOES NOT RUN THEM AND THE STAT BLOCK DOES. A character's
-// size is checked for being present and its alignment is stored as whatever
-// arrived, because both columns are free text and predate the rule; a monster's
-// two feed a subtitle the book prints and a footprint the VTT will read, and
-// neither has anywhere to put a word that is not on the list.
+
+
+
+
+
+
+
+
+
 func NormalizeSize(value string) string {
 	return normalizeOption(value, sizeOptions, DefaultSize)
 }
@@ -85,11 +85,11 @@ func normalizeOption(value string, options []Option, fallback string) string {
 	return fallback
 }
 
-// SizeLabel turns a stored size into the word the picker shows, the way
-// AlignmentLabel does for alignment. An unrecognised value comes back empty
-// rather than as itself: the column is free text as far as MySQL is concerned,
-// and a shared sheet is not the place a value nothing wrote gets its first
-// airing.
+
+
+
+
+
 func SizeLabel(value string) string {
 	for _, option := range sizeOptions {
 		if option.Value == value {

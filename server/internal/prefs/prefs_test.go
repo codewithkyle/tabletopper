@@ -6,23 +6,23 @@ import (
 	"time"
 )
 
-// summer and winter are the same wall clock in New York on either side of a DST
-// boundary, which is what makes them a pair worth having: 18:04 UTC is 14:04
-// EDT in September and 13:04 EST in January. A format test that only ever ran
-// in one of them would pass with the offset hard-coded.
+
+
+
+
 var (
 	summer = time.Date(2026, 9, 6, 18, 4, 11, 0, time.UTC)
 	winter = time.Date(2026, 1, 5, 18, 4, 11, 0, time.UTC)
 )
 
-// EVERY OFFERED ZONE HAS TO RESOLVE, and this is the test the curated list
-// exists to be checkable by. A typo in zones.go is otherwise invisible: the
-// name is dropped from the map at init, the reader who picks it silently gets
-// the default zone, and every date they read is quietly wrong.
-//
-// It is also the test that catches tzdata moving underneath us. Europe/Kyiv is
-// a 2022 spelling and Europe/Kiev is what came before it; a Go release that
-// dropped one would fail here rather than in production.
+
+
+
+
+
+
+
+
 func TestEveryOfferedZoneResolves(t *testing.T) {
 	for _, group := range ZoneGroups {
 		if group.Region == "" {
@@ -43,8 +43,8 @@ func TestEveryOfferedZoneResolves(t *testing.T) {
 	}
 }
 
-// A name offered twice renders two identical options, and whichever the reader
-// picks the other looks unselected.
+
+
 func TestNoZoneIsOfferedTwice(t *testing.T) {
 	seen := map[string]string{}
 	for _, group := range ZoneGroups {
@@ -57,8 +57,8 @@ func TestNoZoneIsOfferedTwice(t *testing.T) {
 	}
 }
 
-// The default zone has to be one of the offered ones, or the dialog opens with
-// nothing selected for every user who has never saved.
+
+
 func TestTheDefaultZoneIsOffered(t *testing.T) {
 	if _, ok := ParseTimezone(DefaultTimezone); !ok {
 		t.Fatalf("the default zone %q is not in the picker", DefaultTimezone)
@@ -144,9 +144,9 @@ func TestEveryFormatCombinationRenders(t *testing.T) {
 	}
 }
 
-// A ZONE ABBREVIATION IS NOT ALWAYS LETTERS. Kathmandu has none, so Go renders
-// the offset instead. This is in the list on purpose -- it is the case that
-// breaks anything written to expect three capitals.
+
+
+
 func TestAZoneWithNoAbbreviationRendersItsOffset(t *testing.T) {
 	p := Preferences{Timezone: "Asia/Kathmandu", DateFormat: DateISO, TimeFormat: Time24H}
 
@@ -156,9 +156,9 @@ func TestAZoneWithNoAbbreviationRendersItsOffset(t *testing.T) {
 	}
 }
 
-// THE MACHINE-READABLE HALF IGNORES ALL FOUR SETTINGS. It is the instant, and
-// an instant is the same everywhere; a datetime attribute that moved with the
-// reader's zone would be a value nobody could compare.
+
+
+
 func TestTheISOHalfIsAlwaysUTC(t *testing.T) {
 	for _, tz := range []string{"UTC", "America/New_York", "Australia/Sydney", "Asia/Kathmandu"} {
 		p := Preferences{Timezone: tz, DateFormat: DateISO, TimeFormat: Time24H}
@@ -170,8 +170,8 @@ func TestTheISOHalfIsAlwaysUTC(t *testing.T) {
 	}
 }
 
-// The zero value arrives from a signed-out request and from any component
-// rendered in a test, so it has to render rather than panic on a nil location.
+
+
 func TestTheZeroValueStillRenders(t *testing.T) {
 	var p Preferences
 
@@ -183,15 +183,15 @@ func TestTheZeroValueStillRenders(t *testing.T) {
 	if iso == "" || text == "" {
 		t.Fatalf("Format() = %q, %q; both should be rendered", iso, text)
 	}
-	// Falling back field by field means the zero value renders exactly as a
-	// user who has never opened the dialog does.
+	
+	
 	if _, want := Default.Format(summer); text != want {
 		t.Errorf("Format() = %q, want the default rendering %q", text, want)
 	}
 }
 
-// New is the read path and never fails: a column holding something this build
-// does not know about should cost one wrong field, not a blank page.
+
+
 func TestNewFallsBackFieldByField(t *testing.T) {
 	p := New("dark", "nonsense/Nowhere", "iso", "", true, true, PingVolumeMax)
 
@@ -215,14 +215,14 @@ func TestNewFallsBackFieldByField(t *testing.T) {
 	}
 }
 
-// The camera setting is on for an account that has never been asked, and that
-// is the whole of "on by default for everybody" as far as this package is
-// concerned -- the column carries the same default, so the two agree on a row
-// nobody has touched and on a Preferences nothing has read a row into.
-//
-// THE ZERO VALUE IS NOT THE DEFAULT, which is the trap this pins. Preferences{}
-// has it off, so anything that builds one by hand rather than through New or
-// Default turns the setting off for whoever it belongs to.
+
+
+
+
+
+
+
+
 func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.FollowTurn {
 		t.Error("Default.FollowTurn = false, want true")
@@ -235,10 +235,10 @@ func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	}
 }
 
-// And so is the blood, for the same three reasons and with the same trap under
-// it. The user asked for it on for everybody, the column's default is what
-// delivers that to accounts that already exist, and Preferences{} is still the
-// one way to get it wrong.
+
+
+
+
 func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.ShowBlood {
 		t.Error("Default.ShowBlood = false, want true")
@@ -251,10 +251,10 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	}
 }
 
-// The two switches are independent, which is worth a test because they are
-// adjacent booleans of the same type in one call and a transposed pair of
-// arguments would compile, pass every test above, and turn one setting into the
-// other for everybody.
+
+
+
+
 func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
 	if p := New("", "", "", "", true, false, PingVolumeMax); !p.FollowTurn || p.ShowBlood {
 		t.Errorf("New(followTurn: true, showBlood: false) = %+v", p)
@@ -264,8 +264,8 @@ func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
 	}
 }
 
-// The write path does report the difference, which is what lets the form say so
-// instead of storing something the picker cannot show.
+
+
 func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 	if _, ok := ParseTheme("caramellatte"); ok {
 		t.Error("ParseTheme accepted a DaisyUI theme name; the column stores intent, not a palette")
@@ -279,8 +279,8 @@ func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 	if _, ok := ParseTimeFormat("24"); ok {
 		t.Error("ParseTimeFormat accepted a near miss")
 	}
-	// A real IANA name that this app does not offer is still refused, because
-	// the picker is the allowlist rather than tzdata.
+	
+	
 	if _, err := time.LoadLocation("America/Nipigon"); err == nil {
 		if _, ok := ParseTimezone("America/Nipigon"); ok {
 			t.Error("ParseTimezone accepted a zone the picker does not list")
@@ -293,8 +293,8 @@ func TestTheParsersRefuseWhatIsNotOffered(t *testing.T) {
 	}
 }
 
-// Every member of every ordered list has to round-trip through its own parser,
-// which is what keeps these lists in step with the ENUM members they mirror.
+
+
 func TestEveryOfferedMemberParses(t *testing.T) {
 	for _, v := range Themes() {
 		if got, ok := ParseTheme(string(v)); !ok || got != v {
@@ -305,8 +305,8 @@ func TestEveryOfferedMemberParses(t *testing.T) {
 		if got, ok := ParseDateFormat(string(v)); !ok || got != v {
 			t.Errorf("ParseDateFormat(%q) = %q, %v", v, got, ok)
 		}
-		// Each has to render something, and no two may render alike -- an
-		// option list with a repeat in it is a choice that does nothing.
+		
+		
 		if v.Format(summer) == "" {
 			t.Errorf("DateFormat %q renders nothing", v)
 		}
@@ -327,9 +327,9 @@ func TestEveryOfferedMemberParses(t *testing.T) {
 	}
 }
 
-// The defaults are a decision and not an accident, so they are written down
-// where changing one breaks a test rather than only changing what everybody
-// sees.
+
+
+
 func TestTheDefaultsAreWhatWasAgreed(t *testing.T) {
 	if Default.Theme != ThemeSystem {
 		t.Errorf("default theme = %q, want %q", Default.Theme, ThemeSystem)
@@ -343,20 +343,20 @@ func TestTheDefaultsAreWhatWasAgreed(t *testing.T) {
 	if Default.TimeFormat != Time12H {
 		t.Errorf("default time format = %q", Default.TimeFormat)
 	}
-	// The default rendering names its month rather than numbering it, which is
-	// the property that makes it safe for a reader who has chosen nothing.
+	
+	
 	if _, text := Default.Format(summer); !strings.Contains(text, "Sep") {
 		t.Errorf("the default rendering %q does not spell its month", text)
 	}
 }
 
-// AN ALIAS HAS TO NAME THE SAME PLACE AS THE ZONE IT HANGS OFF, or the welcome
-// dialog would preselect the wrong city for whoever it matched -- silently, and
-// only for readers in that one country.
-//
-// Checked by behaviour rather than by trusting the pair: both names are loaded
-// and asked what the offset is on either side of a DST boundary, which is what
-// makes a copy-paste slip between two neighbouring zones fail here.
+
+
+
+
+
+
+
 func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 	seen := map[string]string{}
 
@@ -396,9 +396,9 @@ func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 		}
 	}
 
-	// The five are measured, not assumed -- see the comment in zones.go. If a
-	// Go release changes what tzdata carries, this says so rather than the
-	// detection quietly missing a country.
+	
+	
+	
 	if len(seen) != 5 {
 		t.Errorf("%d aliases, want the 5 that ICU still canonicalises", len(seen))
 	}

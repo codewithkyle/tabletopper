@@ -8,13 +8,13 @@ import (
 	"testing"
 )
 
-// browserModule is the JavaScript twin of this package, relative to it.
+
 const browserModule = "../../public/js/events.js"
 
-// THE PIN. The browser module and this package have to export the same names
-// with the same values, and no other script in either bundle may spell one of
-// them out -- a literal elsewhere is exactly the second copy this exists to
-// remove, and it is the one that drifts.
+
+
+
+
 func TestTheBrowserAgreesOnEveryEventName(t *testing.T) {
 	src, err := os.ReadFile(browserModule)
 	if err != nil {
@@ -45,9 +45,9 @@ func TestTheBrowserAgreesOnEveryEventName(t *testing.T) {
 	}
 }
 
-// NO SCRIPT SPELLS ONE OUT. The two bundles are searched for every value as a
-// quoted string; the only file allowed to hold one is the module itself, and a
-// test file, which is asserting rather than raising.
+
+
+
 func TestNoScriptSpellsAnEventNameOut(t *testing.T) {
 	roots := []string{"../../public/js", "../../js/room"}
 
@@ -85,9 +85,9 @@ func TestNoScriptSpellsAnEventNameOut(t *testing.T) {
 	}
 }
 
-// AND NEITHER DOES A ROOM PAGE. The fragments' hx-trigger attributes are built
-// from these constants; a literal in a .templ file would also be a Tailwind
-// class candidate, which is the other reason the names are Go.
+
+
+
 func TestNoRoomPageSpellsAPanelEventOut(t *testing.T) {
 	matches, err := filepath.Glob("../../templ/pages/room*")
 	if err != nil {

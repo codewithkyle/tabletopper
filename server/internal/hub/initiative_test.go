@@ -8,14 +8,14 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// hub.Initiative IS THE SECOND DOOR INTO THE TURN ORDER, and the first is the
-// socket. The strip over the table is a fragment fetched over HTTP by everybody
-// in the room, so what comes back through here has to be exactly what the
-// socket would have sent that role -- which is why the tracker and the pawns it
-// names are computed in one pass rather than fetched twice.
 
-// THE SECURITY TEST, AND IT IS FIRST. A hidden creature has no line in a
-// player's turn order and no portrait in the map beside it.
+
+
+
+
+
+
+
 func TestInitiativeIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -54,9 +54,9 @@ func TestInitiativeIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 		t.Fatal("the hidden pawn's portrait reached the player's strip")
 	}
 
-	// AND THE PAWNS THAT DO ARRIVE ARE PROJECTED, not merely filtered: a
-	// monster's armour class is drawn by nothing and is withheld, and its hit
-	// points are drawn by the canvas and are sent.
+	
+	
+	
 	p, found := view.Pawns[seen]
 	if !found {
 		t.Fatal("the visible pawn has no portrait on the player's strip")
@@ -69,9 +69,9 @@ func TestInitiativeIsProjectedForTheRoleThatAsksForIt(t *testing.T) {
 	}
 }
 
-// THE TABLE COMES WITH IT, because the strip prints hit points through the
-// room's label setting and a second read would be quoting a setting from
-// another instant.
+
+
+
 func TestInitiativeAnswersWithTheTableItProjectedAgainst(t *testing.T) {
 	tb := newTabletop(t, Options{})
 
@@ -97,8 +97,8 @@ func TestInitiativeAnswersWithTheTableItProjectedAgainst(t *testing.T) {
 	}
 }
 
-// AN EMPTY TRACKER IS AN ANSWER AND NOT A FAILURE. The strip is fetched on
-// every page load, and a room with no fight on is the common case.
+
+
 func TestInitiativeAnswersAnEmptyTracker(t *testing.T) {
 	tb := newTabletop(t, Options{})
 

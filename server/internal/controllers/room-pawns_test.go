@@ -13,11 +13,11 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// WHAT IS ON THE TABLE. What these check is the seam, the way room-table_test
-// does: that the handlers establish the right actor and hand every rule to
-// internal/room, that the fragments are refused to the people they are not for,
-// and that the one piece of logic these routes own -- the hit-point arithmetic
-// -- is correct.
+
+
+
+
+
 
 var (
 	testPawnA = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVTD")
@@ -28,31 +28,31 @@ func gmSession() session.UserSession {
 	return session.UserSession{UserID: testOwnerID, Hash: []byte("session-hash")}
 }
 
-// removePath puts the ids in the QUERY STRING, which is where htmx puts hx-vals
-// for a DELETE: its own source tests /GET|DELETE/ against the method and
-// appends to the URL for both. A test that sent them as a body would be testing
-// a request no browser makes -- and would pass or fail on net/http's rule that
-// ParseForm reads a body only for POST, PUT and PATCH.
+
+
+
+
+
 func removePath(values url.Values) string {
 	return "/rooms/" + testRoomID.String() + "/pawns?" + values.Encode()
 }
 
-// THE ARITHMETIC IS THE ONE THING THESE ROUTES DECIDE FOR THEMSELVES, and it is
-// the difference between a GM typing what they would say out loud -- "the
-// goblin takes 7" -- and a GM doing subtraction in their head every round.
-//
-// AN UNSIGNED NUMBER IS AN ABSOLUTE VALUE. "7" in a box showing 12 means seven,
-// not nineteen: somebody setting a monster's hit points reads a number off a
-// sheet, and somebody applying damage types the minus sign.
-//
-// EVERY CASE HERE HAS A TWIN IN js/room/hp.test.ts. The box resolves itself on
-// blur so the number appears without a round trip, and this resolves it again
-// because this is what holds the pawn; the two answering differently is a
-// number that changes when the panel refetches.
-// THE TWIN IS READ FIRST. A relative entry travels as itself beside the number
-// the box resolved it to, and the route applies the change to the number the
-// room holds -- which is not the number the box was counting from when a
-// player has edited their own sheet in the meantime.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestARelativeEntryIsAppliedToTheRoomsNumberAndNotTheBoxes(t *testing.T) {
 	form := url.Values{"hp": {"12"}, "hpEntry": {"-4"}}
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
@@ -62,15 +62,15 @@ func TestARelativeEntryIsAppliedToTheRoomsNumberAndNotTheBoxes(t *testing.T) {
 		t.Errorf("hpEntry = %q, want the change the twin carried", got)
 	}
 
-	// The route's own arithmetic then counts from what the room holds.
+	
 	ten := 10
 	value, present, refusal := evaluateHP(hpEntry(r, "hp"), &ten, "Hit points")
 	if refusal != "" || !present || value != 6 {
 		t.Errorf("evaluateHP(-4 against 10) = %d, %v, %q; want 6", value, present, refusal)
 	}
 
-	// A box that carried a number and an empty twin reads the box, which is
-	// every request from a script that did not run and every absolute entry.
+	
+	
 	form = url.Values{"hp": {"12"}, "hpEntry": {""}}
 	r = httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -78,15 +78,15 @@ func TestARelativeEntryIsAppliedToTheRoomsNumberAndNotTheBoxes(t *testing.T) {
 		t.Errorf("hpEntry = %q, want the box", got)
 	}
 
-	// And a refusal names the box.
+	
 	if _, _, refusal := evaluateHP("lots", &ten, "Hit points"); !strings.HasPrefix(refusal, "Hit points ") {
 		t.Errorf("refusal = %q, want it to name the box", refusal)
 	}
 }
 
-// THE SPAWN DIALOG IS THE GM'S MANUAL AND THEIR LIBRARY. A player who fetched
-// one would be handed every monster the GM has written up, which is the whole
-// of next week's session.
+
+
+
 func TestTheSpawnFragmentsAreTheGMsAlone(t *testing.T) {
 	for name, handler := range map[string]func(*App) http.HandlerFunc{
 		"spawn":      func(a *App) http.HandlerFunc { return a.RoomSpawnFragment },
@@ -107,10 +107,10 @@ func TestTheSpawnFragmentsAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// THE KIND IS MATCHED AGAINST THE THREE VALUES BEFORE ANYTHING REACHES A
-// STATEMENT, which is the rule every kind-parameterised route in this app
-// follows. A bad one is an empty 404 rather than http.NotFound, which writes a
-// page-shaped body into a fragment slot.
+
+
+
+
 func TestTheSpawnFragmentRefusesAKindItDoesNotKnow(t *testing.T) {
 	for _, kind := range []string{"", "avatars", "maps", "monsters; DROP"} {
 		app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
@@ -128,10 +128,10 @@ func TestTheSpawnFragmentRefusesAKindItDoesNotKnow(t *testing.T) {
 	}
 }
 
-// THE DIALOG'S THREE ADD ROUTES ARE THE GM'S ALONE, and it matters more here
-// than on the walls they sit above: these WRITE. A player who reached one would
-// be uploading into the GM's library and inventing monsters in their manual
-// from a room they were only sitting in.
+
+
+
+
 func TestTheSpawnAddRoutesAreTheGMsAlone(t *testing.T) {
 	for name, handler := range map[string]func(*App) http.HandlerFunc{
 		"tokens":   func(a *App) http.HandlerFunc { return a.UploadSpawnToken },
@@ -153,11 +153,11 @@ func TestTheSpawnAddRoutesAreTheGMsAlone(t *testing.T) {
 	}
 }
 
-// THE QUICK-CREATE FORM IS CHECKED BEFORE THE MONSTER EXISTS, which is the
-// manual's own dialog's rule: a refusal has to leave the form open with what
-// was typed still in it, so nothing may have been written by the time it is
-// sent. A picture is required here, unlike in that dialog -- this form ends on
-// a wall of pictures rather than in the editor.
+
+
+
+
+
 func TestTheQuickMonsterFormRefusesAndWritesNothing(t *testing.T) {
 	cases := map[string]struct {
 		form url.Values
@@ -184,8 +184,8 @@ func TestTheQuickMonsterFormRefusesAndWritesNothing(t *testing.T) {
 			if !strings.Contains(rec.Body.String(), tc.want) {
 				t.Errorf("the refusal does not mention %q:\n%s", tc.want, rec.Body.String())
 			}
-			// The room lookup behind the GM check is the only statement that
-			// may have run; nothing may have been WRITTEN.
+			
+			
 			for _, query := range db.queries() {
 				if strings.Contains(query, "INSERT") || strings.Contains(query, "UPDATE") {
 					t.Errorf("a refused form still wrote: %s", query)
@@ -195,9 +195,9 @@ func TestTheQuickMonsterFormRefusesAndWritesNothing(t *testing.T) {
 	}
 }
 
-// THE FACE IS LOOKED UP BY ITS TYPE AS WELL AS ITS OWNER, so an id that names
-// something else in the same library -- a token, a map -- is not found rather
-// than placed. A malformed one never reaches a statement at all.
+
+
+
 func TestTheNPCFragmentRefusesAnAssetItCannotName(t *testing.T) {
 	for _, asset := range []string{"", "not-a-ulid", "01BX5ZZKBKACTAV9WEVGEMMVT0; DROP"} {
 		app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
@@ -215,10 +215,10 @@ func TestTheNPCFragmentRefusesAnAssetItCannotName(t *testing.T) {
 	}
 }
 
-// THE STAT BLOCK IS THE GM'S. The room's monster-health setting exists so a
-// table can hide a monster's hit points; a stat block carries those, its armour
-// class and its legendary actions, so serving one to a player would contradict
-// in one window the setting the GM chose in another.
+
+
+
+
 func TestTheStatBlockRouteRefusesAPlayer(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -234,8 +234,8 @@ func TestTheStatBlockRouteRefusesAPlayer(t *testing.T) {
 	}
 }
 
-// A pawn nobody spawned is the same empty 404 a hidden one is, which is the
-// property the whole projection rests on: the two must be indistinguishable.
+
+
 func TestThePawnFragmentIsAnEmpty404ForAPawnThatIsNotThere(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -251,11 +251,11 @@ func TestThePawnFragmentIsAnEmpty404ForAPawnThatIsNotThere(t *testing.T) {
 	}
 }
 
-// THE HANDLER AUTHORISES NOTHING AND THAT IS THE POINT, which is the rule
-// room-table_test pins for the layer routes. A player posting here is a member
-// of the room, so a 404 would be a lie; PawnRemove.Authorize refuses them and
-// rejectCommand turns that into the alert modal with the protocol's own
-// sentence in it.
+
+
+
+
+
 func TestRemovingPawnsIsRefusedByTheCommandAndNotByTheHandler(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -277,8 +277,8 @@ func TestRemovingPawnsIsRefusedByTheCommandAndNotByTheHandler(t *testing.T) {
 	}
 }
 
-// The same rule for the floor, and the reason it is GM-only is not a matter of
-// taste: a player who sent their own pawn upstairs would stop being sent it.
+
+
 func TestMovingPawnsBetweenLayersIsRefusedForAPlayer(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 	layer := firstLayer(t, app)
@@ -293,11 +293,11 @@ func TestMovingPawnsBetweenLayersIsRefusedForAPlayer(t *testing.T) {
 	}
 }
 
-// EVERY ID REACHES THE CORE, which is what makes one command with a list the
-// right shape rather than a loop of commands. The GM here names two pawns that
-// are not on the table, and the refusal that comes back is the CORE's not-found
-// rather than the handler's -- so the list was parsed, bounded and dispatched
-// whole.
+
+
+
+
+
 func TestEveryIDReachesTheCore(t *testing.T) {
 	for name, handler := range map[string]struct {
 		fn     func(*App) http.HandlerFunc
@@ -352,9 +352,9 @@ func TestEveryIDReachesTheCore(t *testing.T) {
 	}
 }
 
-// THE LIST IS BOUNDED BEFORE IT IS PARSED, because the protocol's own limit is
-// what a selection may hold and a request naming ten thousand pawns is not a
-// browser this server wrote.
+
+
+
 func TestTheIDListIsBoundedAndValidated(t *testing.T) {
 	tooMany := make([]string, room.SelectionMax+1)
 	for i := range tooMany {
@@ -385,9 +385,9 @@ func TestTheIDListIsBoundedAndValidated(t *testing.T) {
 	}
 }
 
-// HIDING AND REVEALING A SELECTION IS THE GM'S, and it is the one thing on the
-// group panel a player must never reach: a player who could hide a pawn could
-// take a monster off everybody else's table.
+
+
+
 func TestSettingPawnVisibilityIsRefusedForAPlayer(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -404,8 +404,8 @@ func TestSettingPawnVisibilityIsRefusedForAPlayer(t *testing.T) {
 	}
 }
 
-// SPAWNING THE PARTY IS THE GM'S, and the refusal comes from the command rather
-// than from the handler for the reason every other route here gives.
+
+
 func TestSpawningThePartyIsRefusedForAPlayer(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -417,10 +417,10 @@ func TestSpawningThePartyIsRefusedForAPlayer(t *testing.T) {
 		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
 	}
 
-	// THE REFUSAL IS THE ALERT AND NOTHING ELSE. This route answers a menu item
-	// rather than a dialog, so there is no modal to dismiss on the way out --
-	// and a modal:close in the same header would clobber the alert, which is
-	// the whole reason internal/htmx owns HX-Trigger rather than the handlers.
+	
+	
+	
+	
 	trigger := rec.Header().Get("HX-Trigger")
 	if !strings.Contains(trigger, "Only the GM") {
 		t.Errorf("the refusal did not reach the alert modal: %q", trigger)
@@ -430,10 +430,10 @@ func TestSpawningThePartyIsRefusedForAPlayer(t *testing.T) {
 	}
 }
 
-// CLEARING THE TABLETOP IS THE GM'S AND THE ROUTE IS NOT THE RULE. The menu
-// item is disabled for a player, which is a courtesy to somebody who cannot
-// press it; the refusal is TableClear.Authorize, which runs against a role
-// derived from the rooms row whether or not a button was drawn.
+
+
+
+
 func TestClearingTheTabletopIsRefusedForAPlayer(t *testing.T) {
 	app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
 
@@ -449,11 +449,11 @@ func TestClearingTheTabletopIsRefusedForAPlayer(t *testing.T) {
 	}
 }
 
-// THE PANEL IS THE OTHER HALF OF A DECISION MADE IN internal/room. Hit points
-// are now on every pawn that reaches a browser -- projectPawn sends them so the
-// canvas can draw a creature bleeding -- so this is where a viewer is kept from
-// READING a monster's, and it is the only thing between the room's label setting
-// and a number in the markup.
+
+
+
+
+
 func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
 	hp, maxHP, ac := 4, 10, 15
 	band := room.BandBloody
@@ -466,23 +466,23 @@ func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
 		banded  bool
 		numbers string
 	}{
-		// A GM reads everything. There is no setting that hides a monster's
-		// hit points from the person running it.
+		
+		
 		{"the GM in a room labelling words", room.PawnMonster, room.LabelsDefault, room.RoleGM, false, "4 / 10"},
 		{"the GM in a room labelling nothing", room.PawnMonster, room.LabelsNone, room.RoleGM, false, "4 / 10"},
 
-		// A player reads a monster's numbers only in an open room, and reads
-		// the word in an ordinary one.
+		
+		
 		{"a player in an open room", room.PawnMonster, room.LabelsFull, room.RolePlayer, false, "4 / 10"},
 		{"a player in an ordinary room", room.PawnMonster, room.LabelsDefault, room.RolePlayer, true, ""},
 
-		// AND NOTHING AT ALL WHERE THE ROOM LABELS NOTHING. This is the case
-		// the projection used to cover by sending neither: the band is absent,
-		// so without the check here the numbers would simply print.
+		
+		
+		
 		{"a player in a room labelling nothing", room.PawnMonster, room.LabelsNone, room.RolePlayer, false, ""},
 
-		// A character sheet is not a secret from the table and a door's hit
-		// points are what the party is currently hitting.
+		
+		
 		{"a player's own character", room.PawnPlayer, room.LabelsNone, room.RolePlayer, false, "4 / 10"},
 		{"a door", room.PawnObject, room.LabelsNone, room.RolePlayer, false, "4 / 10"},
 	}
@@ -500,9 +500,9 @@ func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
 				t.Errorf("the panel reads %q, want %q", view.HP, tc.numbers)
 			}
 
-			// AND THE BOXES GO WITH THE READING. They are the same two numbers
-			// in an editable shape, and a viewer not shown the line must not be
-			// handed the fields either.
+			
+			
+			
 			if (view.HPValue != "") != (tc.numbers != "") {
 				t.Errorf("the hit-point box reads %q beside a line of %q", view.HPValue, view.HP)
 			}
@@ -513,9 +513,9 @@ func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
 	}
 }
 
-// A view built when the room could not be read falls back to the SAFE setting
-// rather than the permissive one. The alternative is a panel that prints a
-// monster's hit points to a player because a lookup failed.
+
+
+
 func TestThePawnPanelFallsBackToWordsWhenTheRoomCannotBeRead(t *testing.T) {
 	if got := tableLabels(nil); got != room.LabelsDefault {
 		t.Fatalf("an unreadable room labels %q, want %q", got, room.LabelsDefault)

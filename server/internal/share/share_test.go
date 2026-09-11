@@ -10,8 +10,8 @@ import (
 	"tabletopper/internal/share"
 )
 
-// unlock runs one round trip: a response that granted the cookie, and a
-// request carrying it back.
+
+
 func unlock(t *testing.T, setToken, setHash, readToken, readHash string) bool {
 	t.Helper()
 
@@ -26,9 +26,9 @@ func unlock(t *testing.T, setToken, setHash, readToken, readHash string) bool {
 	return share.Unlocked(r, readToken, readHash)
 }
 
-// matches is PasswordMatches for the cases that are about the password rather
-// than about the bound in front of it: a context that is not going to be
-// cancelled, and an error that is a test failure rather than an answer.
+
+
+
 func matches(t *testing.T, hash, plain string) bool {
 	t.Helper()
 
@@ -80,10 +80,10 @@ func TestAPasswordVerifiesAgainstItsOwnHashAndNoOther(t *testing.T) {
 	}
 }
 
-// A caller whose context is already done is told so rather than being told the
-// password was wrong, and bcrypt never runs -- which is what lets the handler
-// answer 503 instead of sending a reader off to find a password that was
-// right all along.
+
+
+
+
 func TestABusyProcessRefusesTheCheckRatherThanFailingIt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -105,8 +105,8 @@ func TestAnUnlockedBrowserComesBackUnlocked(t *testing.T) {
 	}
 }
 
-// The whole point of signing the token rather than a constant: a reader who
-// answered one share's password is not carrying a grant into another link.
+
+
 func TestAGrantForOneShareDoesNotOpenAnother(t *testing.T) {
 	h := hash(t, "phandalin")
 
@@ -115,8 +115,8 @@ func TestAGrantForOneShareDoesNotOpenAnother(t *testing.T) {
 	}
 }
 
-// Changing the password rekeys the proof, so every cookie outstanding under
-// the old one stops verifying. Revoking is the same story with the row gone.
+
+
 func TestChangingThePasswordInvalidatesAnOutstandingGrant(t *testing.T) {
 	if unlock(t, "tokenA", hash(t, "phandalin"), "tokenA", hash(t, "phandalin")) {
 		t.Error("a cookie verified against a re-hash of the same password")
@@ -131,7 +131,7 @@ func TestNoCookieIsNotUnlocked(t *testing.T) {
 	}
 }
 
-// Path is what keeps one cookie name serving every share.
+
 func TestTheGrantIsScopedToItsOwnShare(t *testing.T) {
 	w := httptest.NewRecorder()
 	share.SetUnlocked(w, "tokenA", hash(t, "phandalin"), true)

@@ -19,9 +19,9 @@ import (
 
 var testAttackID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS2")
 
-// attackRequest is inventoryRequest for the other row-shaped resource: the path
-// values the route declares, a method because two of the three are not POSTs,
-// and a session to be scoped by.
+
+
+
 func attackRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, attackID string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -50,10 +50,10 @@ func fullAttackForm() url.Values {
 	}
 }
 
-// A row save writes its own row and nothing else. The character's own columns
-// are the thing it must not be able to reach: the sheet's parse helpers return
-// their fallback on an empty string, so a handler wide enough to touch them
-// would write 10 over every ability score and report success.
+
+
+
+
 func TestSaveAttackWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -74,10 +74,10 @@ func TestSaveAttackWritesOnlyItsOwnColumns(t *testing.T) {
 	}
 }
 
-// The two selects are normalised rather than validated, and the empty member is
-// where anything off the list lands. Only a hand-built request can produce one,
-// because the select offers nothing else -- but the column is a VARCHAR, so
-// nothing below this function would refuse "Nonsense" either.
+
+
+
+
 func TestAttackSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	form := fullAttackForm()
 	form.Set("damage_type", "Homebrew")
@@ -98,9 +98,9 @@ func TestAttackSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	}
 }
 
-// MySQL runs in strict mode, so an overlong value is an error from the driver
-// rather than a truncation. Without these caps a pasted paragraph in the ATK/DC
-// box would reach the player as a 500.
+
+
+
 func TestOverlongAttackFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -132,16 +132,16 @@ func TestOverlongAttackFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// The add takes no form at all, and the statement is what enforces that: it
-// selects from characters, so there is nowhere for attack data to enter and no
-// way to hang a row off a character the sender does not own.
+
+
+
 func TestAddAttackCannotCarryAttackData(t *testing.T) {
 	app, db := newPanelApp(0)
 
-	// rows=0 stands for "that character is not yours", which is the only thing
-	// zero can mean here -- the id is freshly minted, so a duplicate key is not
-	// on the table. It also stops the handler before the read-back, which this
-	// fake cannot serve.
+	
+	
+	
+	
 	rec := attackRequest(t, app.AddAttack, http.MethodPost, fullAttackForm(), "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -168,9 +168,9 @@ func TestAddAttackCannotCarryAttackData(t *testing.T) {
 	}
 }
 
-// THE DELETE MUST BE A 200. base.templ configures noSwap for 204, and a status
-// in that list sets the swap to "none" -- which overrides the hx-swap="delete"
-// on the button and leaves the row on screen after the database has dropped it.
+
+
+
 func TestDeleteAttackAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -183,9 +183,9 @@ func TestDeleteAttackAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	}
 }
 
-// A row that is gone is an attack 404 and not a character one. Telling somebody
-// their character no longer exists because a row does would send them to look
-// for the wrong problem.
+
+
+
 func TestMissingAttackRowIsAnAttack404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -209,8 +209,8 @@ func TestMissingAttackRowIsAnAttack404(t *testing.T) {
 	}
 }
 
-// An id that will not parse is answered before anything is queried. It can only
-// come from a stale page or a hand-edited URL, and both mean the same thing.
+
+
 func TestUnparseableAttackIDTouchesNoDatabase(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -234,10 +234,10 @@ func TestUnparseableAttackIDTouchesNoDatabase(t *testing.T) {
 	}
 }
 
-// Every statement names the owner and the character. A handler cannot notice a
-// query that forgets one -- the rows would arrive and render -- so the
-// statements themselves are checked, which is also the only way to reach the
-// read: it goes through QueryContext, and the fake pool cannot serve one.
+
+
+
+
 func TestEveryAttackQueryIsScopedToTheOwner(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "attacks.sql"))
 	if err != nil {
@@ -260,9 +260,9 @@ func TestEveryAttackQueryIsScopedToTheOwner(t *testing.T) {
 		if !strings.Contains(body, "owner_id") {
 			t.Errorf("%s is not scoped to the owner:\n%s", name, body)
 		}
-		// The insert names the character in its own WHERE, so it is covered by
-		// the same rule; everything else has to name it too, or an attack could
-		// be reached through a character it does not belong to.
+		
+		
+		
 		if !strings.Contains(body, "character_id") && !strings.Contains(body, "characters") {
 			t.Errorf("%s is not scoped to the character:\n%s", name, body)
 		}

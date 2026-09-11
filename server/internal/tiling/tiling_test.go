@@ -28,10 +28,10 @@ var (
 	testPrevious = ulid.MustParse("01JDDDDDDDDDDDDDDDDDDDDDD4")
 )
 
-// MOST OF WHAT THIS PACKAGE HAS TO GET RIGHT IS AN ORDER -- which prefix is
-// deleted before which column is written, and what is left alone when one of
-// those fails -- so both fakes write into one journal and the order is what the
-// tests read.
+
+
+
+
 type journal struct {
 	mu    sync.Mutex
 	steps []string
@@ -97,8 +97,8 @@ func (b *fakeBucket) Put(_ context.Context, key string, body []byte, _ string) e
 	b.peak = max(b.peak, b.inFlight)
 	b.mu.Unlock()
 
-	// Long enough that tiles genuinely overlap, so the peak below is a
-	// measurement rather than an artefact of how fast the encoder is.
+	
+	
 	time.Sleep(time.Millisecond)
 
 	b.mu.Lock()
@@ -167,7 +167,7 @@ func (r *fakeRows) ClaimMapForTiling(context.Context, *ulid.ULID) (sql.Result, e
 		return nil, r.claimErr
 	}
 	taken := r.claimed
-	r.claimed = 0 // one map to claim, then the queue is empty
+	r.claimed = 0 
 	return fakeResult{rows: taken}, nil
 }
 
@@ -211,8 +211,8 @@ func (r *fakeRows) RequeueFailedTilingJobs(_ context.Context, arg queries.Requeu
 	return fakeResult{rows: 1}, nil
 }
 
-// A 20x12 source at a tile size of 8 is a three-level pyramid of nine tiles:
-// 3x2 at level 0, 2x1 at level 1 and the single 5x3 tile that is level 2.
+
+
 const (
 	sourceWidth  = 20
 	sourceHeight = 12
@@ -236,8 +236,8 @@ func sourcePNG(t *testing.T) []byte {
 	return out.Bytes()
 }
 
-// newWorker builds a worker over a bucket holding one map's original, and the
-// asset row that names it.
+
+
 func newWorker(t *testing.T) (*worker, *fakeRows, *fakeBucket, *journal, queries.Asset) {
 	t.Helper()
 
@@ -259,8 +259,8 @@ func newWorker(t *testing.T) (*worker, *fakeRows, *fakeBucket, *journal, queries
 	return &worker{db: db, bucket: bucket}, db, bucket, log, asset
 }
 
-// The whole pyramid lands under the generation's prefix, the preview beside it,
-// and the row is published with the dimensions of what was actually built.
+
+
 func TestTilingOneMapWritesTheWholeGeneration(t *testing.T) {
 	w, db, bucket, _, asset := newWorker(t)
 
@@ -316,8 +316,8 @@ func TestTilingOneMapWritesTheWholeGeneration(t *testing.T) {
 	}
 }
 
-// The preview is built from the top of the pyramid rather than from the source,
-// and it is a square of the size the map card renders.
+
+
 func TestThePreviewIsASquareOfTheTopLevel(t *testing.T) {
 	w, _, bucket, _, asset := newWorker(t)
 
@@ -336,9 +336,9 @@ func TestThePreviewIsASquareOfTheTopLevel(t *testing.T) {
 	}
 }
 
-// The generation that was serving is deleted only after the row has been moved
-// onto the new one. The other order would take the tiles out from under
-// everyone still looking at the map.
+
+
+
 func TestTheSupersededGenerationGoesAfterThePublish(t *testing.T) {
 	w, _, bucket, log, asset := newWorker(t)
 	asset.TileGen = &testPrevious
@@ -354,9 +354,9 @@ func TestTheSupersededGenerationGoesAfterThePublish(t *testing.T) {
 	}
 }
 
-// A first pyramid supersedes nothing, so nothing is deleted. A DeletePrefix on
-// a generation that was never minted would be harmless and is still wrong: it
-// is a list of the bucket for every map anyone ever uploads.
+
+
+
 func TestAFirstPyramidDeletesNothing(t *testing.T) {
 	w, _, bucket, _, asset := newWorker(t)
 
@@ -367,10 +367,10 @@ func TestAFirstPyramidDeletesNothing(t *testing.T) {
 	}
 }
 
-// A REPLACEMENT ARRIVING MID-BUILD IS THE CASE THE LEASE EXISTS FOR. The
-// conditional publish matches no row, which says the claim was taken away and
-// the original this pyramid was built from has already been overwritten. What
-// was just built goes; what is still serving is left exactly alone.
+
+
+
+
 func TestLosingTheClaimDiscardsTheNewPyramidAndKeepsTheOld(t *testing.T) {
 	w, db, bucket, _, asset := newWorker(t)
 	asset.TileGen = &testPrevious
@@ -397,8 +397,8 @@ func TestLosingTheClaimDiscardsTheNewPyramidAndKeepsTheOld(t *testing.T) {
 	}
 }
 
-// A tile that cannot be written abandons the whole generation: the prefix goes
-// and the row is marked failed, with the attempt counted against it.
+
+
 func TestAFailedUploadThrowsAwayTheGeneration(t *testing.T) {
 	w, db, bucket, log, asset := newWorker(t)
 	bucket.putErrOn = "/z1/"
@@ -426,10 +426,10 @@ func TestAFailedUploadThrowsAwayTheGeneration(t *testing.T) {
 	}
 }
 
-// THIS IS THE LEDGER RULE. A generation that could not be deleted is still
-// named by the lease on its row, and that lease is the only record it exists.
-// Marking the row failed would clear the lease and orphan the objects, so the
-// row is left working instead and reclaim comes back for it.
+
+
+
+
 func TestAGenerationThatCannotBeDeletedKeepsItsLease(t *testing.T) {
 	w, db, bucket, _, asset := newWorker(t)
 	bucket.putErrOn = "/z1/"
@@ -445,9 +445,9 @@ func TestAGenerationThatCannotBeDeletedKeepsItsLease(t *testing.T) {
 	}
 }
 
-// Shutdown is not a failure. The row keeps its claim, nothing is deleted and no
-// attempt is counted, because reclaim will pick the whole thing up when the
-// process comes back.
+
+
+
 func TestACancelledBuildIsNotAFailure(t *testing.T) {
 	w, db, bucket, _, asset := newWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -463,9 +463,9 @@ func TestACancelledBuildIsNotAFailure(t *testing.T) {
 	}
 }
 
-// An original that cannot be read never reaches the tiler, and is still a
-// failed attempt: nothing was written, so the empty prefix is deleted and the
-// row is counted against.
+
+
+
 func TestAnUnreadableOriginalFailsTheJob(t *testing.T) {
 	w, db, bucket, _, asset := newWorker(t)
 	bucket.getErr = errors.New("the bucket is down")
@@ -480,9 +480,9 @@ func TestAnUnreadableOriginalFailsTheJob(t *testing.T) {
 	}
 }
 
-// The pool is what bounds how far the tiler may run ahead of the encoders, and
-// so what bounds how many decoded tiles are alive at once. Without it a whole
-// pyramid of them would pile up in front of R2.
+
+
+
 func TestNoMoreThanThePoolIsInFlightAtOnce(t *testing.T) {
 	w, _, bucket, _, asset := newWorker(t)
 
@@ -496,9 +496,9 @@ func TestNoMoreThanThePoolIsInFlightAtOnce(t *testing.T) {
 	}
 }
 
-// Reclaim deletes a stranded job's half-built generation before putting the row
-// back, and the requeue names the lease so it cannot land on a claim that
-// replaced it.
+
+
+
 func TestReclaimDeletesTheStrandedGenerationFirst(t *testing.T) {
 	log := &journal{}
 	bucket := &fakeBucket{log: log}
@@ -524,9 +524,9 @@ func TestReclaimDeletesTheStrandedGenerationFirst(t *testing.T) {
 	}
 }
 
-// The same rule as the failure path, from the other side: a stranded prefix
-// that will not delete keeps its row working, because the lease is what will
-// find it next time.
+
+
+
 func TestReclaimLeavesARowWorkingWhenItsPrefixWillNotDelete(t *testing.T) {
 	log := &journal{}
 	bucket := &fakeBucket{log: log, deleteErrOn: testLease.String()}
@@ -542,8 +542,8 @@ func TestReclaimLeavesARowWorkingWhenItsPrefixWillNotDelete(t *testing.T) {
 	}
 }
 
-// A failed row owns nothing in the bucket, so its retry is one statement and no
-// R2 work. The cap and the cutoff are what make it a retry rather than a loop.
+
+
 func TestReclaimRetriesFailedRowsUnderTheCap(t *testing.T) {
 	log := &journal{}
 	bucket := &fakeBucket{log: log}
@@ -571,8 +571,8 @@ func TestReclaimRetriesFailedRowsUnderTheCap(t *testing.T) {
 	}
 }
 
-// A pass claims until the queue is empty, and reads the row back through the
-// lease it just stamped -- there is no RETURNING to read it from.
+
+
 func TestAPassClaimsUntilTheQueueIsEmpty(t *testing.T) {
 	log := &journal{}
 	bucket := &fakeBucket{log: log, original: sourcePNG(t)}
@@ -595,8 +595,8 @@ func TestAPassClaimsUntilTheQueueIsEmpty(t *testing.T) {
 	if len(db.completed) != 1 {
 		t.Fatalf("tiled %d maps, want one", len(db.completed))
 	}
-	// The lease is minted by the claim, so the generation the tiles landed
-	// under is whatever it stamped -- and the publish has to name that.
+	
+	
 	published := db.completed[0]
 	if published.TileGen == nil {
 		t.Fatal("published no generation")
@@ -606,11 +606,11 @@ func TestAPassClaimsUntilTheQueueIsEmpty(t *testing.T) {
 	}
 }
 
-// THE RAMP'S THREE FIXED POINTS, which are the whole of what was asked for:
-// the level that is zoomed all the way in keeps the most, the level that is the
-// whole map on one screen keeps the least, and the middle of the pyramid sits
-// between them. A ramp that ran the other way would look like nothing at all
-// until somebody zoomed in on a coastline.
+
+
+
+
+
 func TestTileQualityFallsWithTheLevel(t *testing.T) {
 	const maxZoom = 5
 
@@ -621,16 +621,16 @@ func TestTileQualityFallsWithTheLevel(t *testing.T) {
 		t.Errorf("the top level encoded at %d, want 70", got)
 	}
 
-	// Halfway up a six-level pyramid is level 2 or 3, and both are meant to be
-	// about 80 rather than exactly it -- the ramp is a straight line through
-	// integers, not a table of three values.
+	
+	
+	
 	for _, z := range []int{2, 3} {
 		if got := tileQuality(z, maxZoom); got < 77 || got > 83 {
 			t.Errorf("level %d of %d encoded at %d, want about 80", z, maxZoom, got)
 		}
 	}
 
-	// And it never climbs on the way up, whatever the rounding does.
+	
 	for z := 1; z <= maxZoom; z++ {
 		if tileQuality(z, maxZoom) > tileQuality(z-1, maxZoom) {
 			t.Fatalf("level %d encoded higher than level %d", z, z-1)
@@ -638,9 +638,9 @@ func TestTileQualityFallsWithTheLevel(t *testing.T) {
 	}
 }
 
-// A map small enough to fit in one tile has no ramp to run down: its only level
-// IS the native one, and dividing by a zero max zoom would panic on the way to
-// deciding that.
+
+
+
 func TestTileQualityOfAOneLevelPyramid(t *testing.T) {
 	if got := tileQuality(0, 0); got != 90 {
 		t.Errorf("the only level of a one-level pyramid encoded at %d, want 90", got)

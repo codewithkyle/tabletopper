@@ -6,28 +6,28 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE FOG FAMILY.
-//
-// SHAPES ARE THE SOURCE OF TRUTH, NOT A MASK. A rectangle is four integers and
-// the mask it produces is a megabyte, so the shapes are what travel and each
-// client rasterises its own texture from them. That is also what makes fog
-// trivially undoable -- removing a shape is removing a shape -- and what lets a
-// client redraw the mask at whatever resolution its display wants.
-//
-// THEY ARE A COLLECTION RATHER THAN A SINGLETON, unlike the table and the
-// tracker, because a well-explored dungeon holds hundreds of polygons and
-// resending all of them every time the party opens a door is the one case where
-// the singleton rule would cost something real.
-//
-// ORDER IS MEANING HERE. Shapes apply in slice order, so a hide drawn over a
-// reveal covers it again; Normalize sorts pawns and strokes and deliberately
-// leaves this collection in the order it was built.
-//
-// THE TWO FLAGS ARE NOT HERE. Enabled and prefill belong to the layer, and a
-// change to either is a table.updated -- there is one place a layer's
-// properties live and the fog commands write to it rather than duplicating it.
 
-// FogAdded carries the whole new shape.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type FogAdded struct {
 	Header
 	Shape FogShape `json:"shape"`
@@ -35,7 +35,7 @@ type FogAdded struct {
 
 func (*FogAdded) eventType() string { return "fog.added" }
 
-// FogRemoved names one shape.
+
 type FogRemoved struct {
 	Header
 	ID ulid.ULID `json:"id"`
@@ -43,9 +43,9 @@ type FogRemoved struct {
 
 func (*FogRemoved) eventType() string { return "fog.removed" }
 
-// FogCleared empties one layer. It names the layer rather than listing the
-// shapes because "clear the fog" on a well-explored floor would otherwise be a
-// message carrying two thousand ids to say one thing.
+
+
+
 type FogCleared struct {
 	Header
 	Layer ulid.ULID `json:"layer"`
@@ -53,7 +53,7 @@ type FogCleared struct {
 
 func (*FogCleared) eventType() string { return "fog.cleared" }
 
-// FogSetEnabled turns a layer's fog on or off.
+
 type FogSetEnabled struct {
 	Layer   ulid.ULID `json:"layer"`
 	Enabled bool      `json:"enabled"`
@@ -69,18 +69,18 @@ func (c *FogSetEnabled) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return nil, err
 	}
 
-	// The shapes are kept when fog is switched off. A GM toggling fog to check
-	// what the players can see has not thrown away an hour of revealing, and
-	// clearing is its own command for the times they mean it.
+	
+	
+	
 	l.FogEnabled = c.Enabled
 	s.Normalize()
 
 	return []Emission{tableUpdated(s)}, nil
 }
 
-// FogSetPrefill decides which way round a layer's fog works: prefilled means
-// the floor starts covered and shapes reveal it, and the alternative is a clear
-// floor that shapes cover.
+
+
+
 type FogSetPrefill struct {
 	Layer   ulid.ULID `json:"layer"`
 	Prefill bool      `json:"prefill"`
@@ -102,7 +102,7 @@ func (c *FogSetPrefill) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return []Emission{tableUpdated(s)}, nil
 }
 
-// FogAdd draws one shape.
+
 type FogAdd struct {
 	Layer  ulid.ULID `json:"layer"`
 	Kind   ShapeKind `json:"kind"`
@@ -129,9 +129,9 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return nil, invalid("Too much fog", "This room already holds as many fog shapes as it can.")
 	}
 
-	// A RECTANGLE IS EXACTLY TWO CORNERS, not two or more. The renderer reads
-	// four numbers out of it without checking, and a rectangle with a fifth
-	// number is a client that thinks it is sending something else.
+	
+	
+	
 	if c.Kind == ShapeRect {
 		if len(c.Points) != 4 {
 			return nil, invalid("Bad shape", "A fog rectangle is two corners.")
@@ -157,22 +157,22 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	s.Fog = append(s.Fog, shape)
 
-	// THE FIRST SHAPE ON A FLOOR WITH FOG OFF TURNS THE FOG ON, and sets which
-	// way round it works from the shape itself. Without this a GM picks the
-	// tool, drags a rectangle, and nothing happens anywhere on the screen --
-	// and nothing says why, because "this floor's fog is off" is a flag they
-	// have never seen and would have no reason to look for.
-	//
-	// THE MODE DECIDES THE PREFILL because the mode is the GM saying which
-	// half of the floor they mean. A reveal is a hole, and a hole only means
-	// anything in something solid, so the floor becomes covered. A hide is a
-	// patch, and a patch only means anything on something clear, so the floor
-	// becomes clear. Either way the shape they just drew is the thing they
-	// then see.
-	//
-	// IT IS HERE AND NOT IN THE CLIENT, so it is one message rather than three
-	// and one state rather than three orderings of it. A second GM's browser
-	// learns the flag and the shape in the same breath.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	woke := !l.FogEnabled
 	if woke {
 		l.FogEnabled = true
@@ -183,9 +183,9 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 
 	emissions := make([]Emission, 0, 2)
 
-	// The table goes FIRST on the one add that carries it: a client that
-	// learned of the shape before it learned the floor was covered would draw
-	// one frame of a hole in nothing.
+	
+	
+	
 	if woke {
 		emissions = append(emissions, tableUpdated(s))
 	}
@@ -193,7 +193,7 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return append(emissions, to(ToAll, &FogAdded{Shape: cloneShape(shape)})), nil
 }
 
-// FogRemove takes one shape back off.
+
 type FogRemove struct {
 	ID ulid.ULID `json:"id"`
 }
@@ -213,7 +213,7 @@ func (c *FogRemove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return []Emission{to(ToAll, &FogRemoved{ID: c.ID})}, nil
 }
 
-// FogClear empties one layer's fog.
+
 type FogClear struct {
 	Layer ulid.ULID `json:"layer"`
 }

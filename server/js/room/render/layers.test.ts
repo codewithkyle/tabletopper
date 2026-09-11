@@ -1,6 +1,6 @@
-// The viewed layer, which is the one piece of room state that is not the
-// room's: players see what the GM made active, the GM may look somewhere else,
-// and the difference has to be invisible to everybody but them.
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -58,9 +58,9 @@ test("the GM can look at another floor and is told they are", () => {
 	assert.equal(view.following(), false);
 });
 
-// THE PROJECTION IS WHY. A player's state contains only the active layer's
-// pawns -- the rest were removed server-side before the event was encoded -- so
-// a player "viewing" another floor would be looking at an empty room.
+
+
+
 test("a player cannot look anywhere but the active layer", () => {
 	const view = newLayerView(false);
 	view.update(twoFloors, 0);
@@ -72,9 +72,9 @@ test("a player cannot look anywhere but the active layer", () => {
 	assert.ok(view.following());
 });
 
-// A GM who has wandered off to the cellar and then makes the first floor active
-// means to be looking at the first floor. Leaving them where they were would
-// put them one command behind their own table.
+
+
+
 test("the view snaps back when the active layer moves", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
@@ -87,7 +87,7 @@ test("the view snaps back when the active layer moves", () => {
 	assert.equal(view.viewed()?.id, "cellar", "the cellar became active");
 	assert.ok(view.following());
 
-	// And the override is gone, so the next change is followed too.
+	
 	view.update(table("ground", [ground, cellar]), 300);
 	assert.equal(view.viewed()?.id, "ground");
 	assert.ok(view.following());
@@ -104,9 +104,9 @@ test("a GM viewing a floor that is deleted falls back to the active one", () => 
 	assert.equal(view.viewed()?.id, "ground");
 });
 
-// Choosing the layer that is already active is the same as following it, so a
-// GM who picks their way back is following again rather than pinned to a value
-// that happens to match.
+
+
+
 test("choosing the active layer is following it", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
@@ -121,9 +121,9 @@ test("choosing the active layer is following it", () => {
 	assert.equal(view.viewed()?.id, "cellar");
 });
 
-// THE FIRST MAP OF THE SESSION ARRIVES OVER AN EMPTY TABLE. Fading that in from
-// nothing is a quarter second of blank screen for no reason, so a fade needs
-// two things to cross.
+
+
+
 test("the first map appears at once rather than fading in", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
@@ -134,10 +134,10 @@ test("the first map appears at once rather than fading in", () => {
 	assert.equal(view.fading(), false);
 });
 
-// THE OUTGOING MAP STAYS OPAQUE. Complementary alphas over a cleared buffer
-// leave a quarter of the table colour showing at the midpoint, so the
-// transition dips through the empty desk and back; painting the old one solid
-// and dissolving the new one over it is exactly lerp(old, new, t).
+
+
+
+
 test("switching floors dissolves the new map over the old one", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
@@ -169,13 +169,13 @@ test("the fade ends and leaves only the new map", () => {
 	assert.equal(drawn[0].map.assetId, "m-cellar");
 	assert.equal(drawn[0].alpha, 1);
 
-	// fading() going false is what lets the frame loop go idle again.
+	
 	assert.equal(view.fading(), false);
 });
 
-// Two floors sharing one map is not a change anybody should see. What is
-// compared is the asset and its generation, which is exactly what decides the
-// tile URLs.
+
+
+
 test("switching to a floor with the same map does not fade", () => {
 	const attic = layer("attic", mapRef("m-ground"));
 	const shared = table("ground", [ground, attic]);
@@ -189,8 +189,8 @@ test("switching to a floor with the same map does not fade", () => {
 	assert.equal(view.draws().length, 1);
 });
 
-// Re-tiling a map completes into a NEW generation at new URLs, so the picture
-// underneath really is changing even though the layer and the asset have not.
+
+
 test("a re-tiled map fades even though the layer did not change", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
@@ -212,8 +212,8 @@ test("a layer with no map paints nothing at all", () => {
 	assert.equal(view.viewed()?.id, "bare");
 });
 
-// The array draws() hands back is reused, which is what keeps a frame free of
-// allocation. A caller that kept it would be holding last frame's answer.
+
+
 test("draws reuses its array", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);

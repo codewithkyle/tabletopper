@@ -19,64 +19,64 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// MUSIC IS THE ONE KIND WHOSE BYTES NEVER PASS THROUGH THIS PROCESS, and every
-// odd thing in this file follows from that one decision.
-//
-// A track is an hour or two long -- battle music, a tavern, an hour of rain --
-// which is 115 to 175 MB. Through the multipart path every other upload uses,
-// that is a 175 MB allocation, the same again spilled to the container's /tmp,
-// a read deadline that amounts to demanding 2.3 Mbps of whoever is uploading,
-// and then all of it sent a second time from here to R2. So the browser PUTs
-// straight to the bucket through a presigned URL.
-//
-// THAT MAKES AN UPLOAD TWO REQUESTS WITH A GAP, and the gap is where the care
-// goes:
-//
-//	POST /assets/music          -- writes the row, answers with a signed URL
-//	  (the browser PUTs to R2, for as long as that takes)
-//	POST /assets/music/{id}/confirm -- checks the object, finishes the row
-//
-// The row is written first because the row is the ledger for what lives in R2:
-// a presigned URL names a key, and no key may exist that no row claims. Between
-// the two, uploaded_at is NULL and the row owns a key and nothing else -- it is
-// not listed, it is not playable, and internal/sweep collects it if the confirm
-// never comes.
-//
-// THE CONFIRM IS NOT A FORMALITY. It is the only place the file is ever
-// inspected, because the handler that would have inspected it never saw it: it
-// reads the object's size and its first 64 bytes back out of the bucket and
-// rolls the whole upload back if either is wrong.
-//
-// NOTHING HERE IS SHARED WITH library-assets.go except renaming and deleting,
-// which do not care what an asset is made of. Music has no decode, no resize, no
-// dimensions and no encoder in common with a picture.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const (
-	// maxMusicBytes is the largest track that may be uploaded, and it is set by
-	// what these files actually are rather than by what feels tidy: two hours
-	// at 192 kbps is about 173 MB, and 256 leaves room above that without
-	// inviting somebody's lossless archive.
-	//
-	// IT IS ENFORCED BY THE SIGNATURE, NOT BY A READER. The bytes never reach a
-	// handler that could count them, so the size the browser declares is signed
-	// into the presigned URL as Content-Length and R2 refuses a body that is
-	// not exactly that long. The confirm checks it again afterwards, because a
-	// cap that is only enforced by something else is a cap on trust.
-	maxMusicBytes = 256 << 20 // 256 MiB
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	maxMusicBytes = 256 << 20 
 
-	// musicUploadTTL is how long a signed PUT stays good. It has to cover the
-	// whole upload, because the signature is checked when the request is made
-	// and the request is the upload -- 175 MB at 2 Mbps is a little over ten
-	// minutes, and this is generous over that.
+	
+	
+	
+	
 	musicUploadTTL = time.Hour
 
-	// musicPlaybackTTL is how long a signed GET stays good.
-	//
-	// IT DOES NOT HAVE TO OUTLAST THE TRACK. Every player goes through the
-	// redirect below, which mints a fresh URL for each request the audio
-	// element makes -- including each range request it makes to seek -- so a
-	// URL is used once, immediately. What this covers is the gap between the
-	// redirect and the request that follows it.
+	
+	
+	
+	
+	
+	
+	
 	musicPlaybackTTL = time.Hour
 )
 
@@ -94,14 +94,14 @@ func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.MusicAssets(tracks))
 }
 
-// musicList is the music shelf in either of its two states -- every finished
-// track, or the ones that matched a search -- so the page and the search
-// fragment build the same cards from the same function.
-//
-// BOTH STATEMENTS DROP THE ROWS WHOSE UPLOAD NEVER FINISHED, and the search one
-// has to say so for itself: uploaded_at IS NOT NULL is in the WHERE of each.
-// Without it, typing a letter of an abandoned upload's name would put a card on
-// the page for a track that is not in the bucket.
+
+
+
+
+
+
+
+
 func (a *App) musicList(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.MusicTrack, error) {
 	var rows []queries.Asset
 	var err error
@@ -133,29 +133,29 @@ func (a *App) musicList(ctx context.Context, ownerID ulid.ULID, term string) ([]
 func (a *App) RenameMusic(w http.ResponseWriter, r *http.Request) { a.renameLibrary(w, r, musicKind) }
 func (a *App) DeleteMusic(w http.ResponseWriter, r *http.Request) { a.deleteLibrary(w, r, musicKind) }
 
-// startUploadRequest is what the browser sends to begin an upload: the file it
-// is about to send, described. There is no body beyond this -- the file itself
-// goes to R2.
+
+
+
 type startUploadRequest struct {
 	Name string `json:"name"`
 	Size int64  `json:"size"`
 }
 
-// startUploadResponse is the signed URL and what to send with it.
+
 type startUploadResponse struct {
 	ID          string `json:"id"`
 	URL         string `json:"url"`
 	ContentType string `json:"contentType"`
 }
 
-// jsonProblem is an error for a caller that is fetch() rather than htmx.
-//
-// IT IS THE SAME SHAPE AS THE ALERT'S HX-Trigger DETAIL, deliberately: the two
-// music routes that answer JSON cannot use htmx.Error, because a plain fetch
-// does not read response headers looking for events -- so the body carries what
-// the header would have, and public/js/music-upload.js dispatches the same
-// "alert" event the modal already listens for. One dialog, one shape, two ways
-// of getting there.
+
+
+
+
+
+
+
+
 type jsonProblem struct {
 	Heading string `json:"heading"`
 	Message string `json:"message"`
@@ -169,17 +169,17 @@ func writeJSONProblem(w http.ResponseWriter, status int, heading string, message
 	}
 }
 
-// StartMusicUpload claims a key and hands back a URL the browser may PUT to.
-//
-// EVERYTHING IS CHECKED BEFORE ANYTHING IS WRITTEN, because everything it can
-// check is in this request: the name says what format the file claims to be,
-// and the size says how big it claims to be. A refusal here costs the uploader
-// nothing -- no row, no URL, and the file never leaves their machine.
-//
-// THE SIZE IS TAKEN FROM THE BROWSER AND THEN MADE BINDING. It arrives as a
-// number a caller chose, which is worth nothing on its own; signing it into the
-// URL as Content-Length is what turns it into a promise R2 enforces. A caller
-// who declares 1 MB and sends 200 gets a rejection from the bucket.
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -207,9 +207,9 @@ func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The row goes first and names the key the object will land at. It is the
-	// ledger for what lives in R2, and an object under a key no row claims is a
-	// file nothing can play, no delete will find and no sweep will collect.
+	
+	
+	
 	assetID := ulid.Make()
 	key := storage.MusicKey(sess.UserID, assetID)
 
@@ -229,11 +229,11 @@ func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 	url, err := a.Storage.PresignPut(ctx, key, contentType, req.Size, musicUploadTTL)
 	if err != nil {
 		slog.Error("Failed to presign a music upload", "error", err, "assetID", assetID.String())
-		// The row named a key nothing was ever given a way to write to, so it
-		// is dropped rather than left for the sweep -- there is no object to
-		// tidy and no window in which one could appear.
-		// The row alone: the presign failed, so no URL was ever handed out and
-		// there is nothing in the bucket to ask about.
+		
+		
+		
+		
+		
 		a.discardAssetRow(ctx, sess.UserID, assetID)
 		writeJSONProblem(w, http.StatusInternalServerError, "Server Error", "Something went wrong on the server. Try again in a moment.")
 		return
@@ -249,31 +249,31 @@ func (a *App) StartMusicUpload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ConfirmMusicUpload is the second half, and the only place a track is ever
-// inspected.
-//
-// IT ASKS THE BUCKET RATHER THAN THE BROWSER. The browser has just told us it
-// finished, which is not evidence; a HEAD says whether an object is there and
-// how big it is, and 64 bytes read back says what it actually is. Both are one
-// small request against R2 whatever the size of the track.
-//
-// THE NAME IS NOT TAKEN AT ITS WORD. The Content-Type was signed from the
-// filename, because that was all that was known at signing time, and R2 stores
-// and serves whatever it was given -- so a WebM called track.mp3 would be served
-// as audio/mpeg forever. Comparing the sniffed type against the one the name
-// implied is what closes that.
-//
-// ONLY A MISSING OBJECT ROLLS THE UPLOAD BACK. Discarding costs the user the
-// ten minutes and 175 MB they just spent, so it is reserved for the one answer
-// that says those were wasted anyway: the object is not in the bucket, so the
-// PUT never landed and the row names nothing. Every other failure -- a 5xx from
-// R2, a timeout, a connection dropped mid-HEAD -- is the question failing and
-// not the upload, and the object is very likely there. Those leave the row
-// alone: a second confirm finishes the track, and if none ever comes the sweep
-// collects the unconfirmed row and its object together six hours later.
-//
-// A rollback is object first and row last, which is the order every delete in
-// this app uses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -283,8 +283,8 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if row.UploadedAt.Valid {
-		// Already confirmed. The card is on the page, so answering with a
-		// second one would draw the track twice.
+		
+		
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -301,18 +301,18 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if size > maxMusicBytes {
-		// The signature should have made this impossible, which is exactly why
-		// it is checked: a cap enforced only by something else is a cap on
-		// trust in that something else.
+		
+		
+		
 		slog.Warn("An uploaded track is over the cap", "assetID", row.ID.String(), "size", size)
 		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
 		htmx.Error(w, "Track Too Large", "Tracks must be 256 MB or smaller.", http.StatusRequestEntityTooLarge)
 		return
 	}
 
-	// Same split as the HEAD above: gone is discarded, unreachable is left for
-	// a retry. An object that was there a moment ago and is not now is a
-	// deletion racing the confirm, which is the same nothing-to-keep case.
+	
+	
+	
 	head, err := a.Storage.Peek(ctx, row.FilePath, audio.HeaderBytes)
 	if errors.Is(err, storage.ErrNotFound) {
 		a.discardTrack(ctx, sess.UserID, row.ID, row.FilePath)
@@ -337,15 +337,15 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// uploaded_at IS NULL is in this statement's WHERE, so two confirms write
-	// once. Zero rows means another one got here first, and the card it
-	// answered with is already on the page.
+	
+	
+	
 	result, err := a.Queries.FinishMusicUpload(ctx, queries.FinishMusicUploadParams{
 		ID:      row.ID,
 		OwnerID: sess.UserID,
-		// The bucket's own figure, from the HEAD above, and not the size the
-		// browser declared when it asked for the signature. It is the number
-		// that was just checked against the cap.
+		
+		
+		
 		SizeBytes: size,
 	})
 	if err != nil {
@@ -367,34 +367,34 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// GetMusicAudio sends the player to the bucket.
-//
-// IT IS A REDIRECT AND NOT A PROXY, and that is what makes seeking work. An
-// <audio> element plays by asking for byte ranges, and Safari will not play a
-// source that cannot answer one; R2 answers them natively, while answering them
-// here would mean implementing 206 and Content-Range and streaming every
-// listener's copy of a 175 MB track through this process for the length of a
-// session.
-//
-// A BROWSER REPEATS THE REQUEST'S METHOD AND HEADERS THROUGH A 302, so the Range
-// header the audio element set survives the hop and arrives at R2 intact. That
-// is the whole mechanism.
-//
-// IT ALSO SOLVES EXPIRY, which is the reason there is no JSON route handing URLs
-// to a script that would have to notice a 403 and re-mint. Every request the
-// player makes -- the first one, and every seek after it -- comes back through
-// here and gets a URL minted a moment earlier. no-store is what keeps it that
-// way: a cached redirect would hand out a signature that had gone stale.
-//
-// It is owner-scoped, which the image routes deliberately are not. Those serve
-// pictures every player at a table can see; nothing but this account's own
-// manager can reach a track yet, and the day a room needs to play one to
-// everybody in it, that is a room's question rather than a reason to open this
-// to every signed-in user now.
-//
-// RequireSessionOr404, for the reason the image routes are: this is the src of a
-// media element, and a redirect to the sign-in page renders as a player that
-// will not play rather than as a sign-in page.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) GetMusicAudio(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -416,7 +416,7 @@ func (a *App) GetMusicAudio(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	// A row whose upload never finished names a key with nothing behind it.
+	
 	if !row.UploadedAt.Valid {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -433,8 +433,8 @@ func (a *App) GetMusicAudio(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
-// musicTrack parses the id and loads the row, scoped to the owner and to music.
-// It writes the response itself when there is nothing to find.
+
+
 func (a *App) musicTrack(w http.ResponseWriter, r *http.Request) (queries.Asset, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -462,14 +462,14 @@ func (a *App) musicTrack(w http.ResponseWriter, r *http.Request) (queries.Asset,
 	return row, true
 }
 
-// discardTrack rolls back an upload whose object landed and was refused.
-//
-// IT TAKES THE KEY OFF THE ROW rather than rebuilding it, which is why this is
-// a named wrapper and the other five call sites are closures written inline.
-// Every other kind is discarded inside the request that minted its id, so the
-// key can be built from that id; a track is discarded by the confirm, which is
-// a second request, and the row it read is the only thing that knows where the
-// browser was told to PUT.
+
+
+
+
+
+
+
+
 func (a *App) discardTrack(ctx context.Context, userID, assetID ulid.ULID, key string) {
 	a.discardAsset(ctx, userID, assetID, func(c context.Context) error {
 		return a.Storage.Delete(c, key)

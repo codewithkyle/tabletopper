@@ -20,9 +20,9 @@ import (
 
 var testSpellID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS1")
 
-// spellRequest is inventoryRequest with a level, because every spell route
-// carries one: a spell cannot change level, so the level identifies the row as
-// much as the id does.
+
+
+
 func spellRequest(t *testing.T, handler http.HandlerFunc, method string, form url.Values, level string, spellID string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -54,10 +54,10 @@ func fullSpellForm() url.Values {
 	}
 }
 
-// A row save writes its own row and nothing else. The character's own columns
-// are the thing it must not be able to reach: the sheet's parse helpers return
-// their fallback on an empty string, so a handler wide enough to touch them
-// would write 10 over every ability score and report success.
+
+
+
+
 func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -79,19 +79,19 @@ func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
 
-	// LEVEL IS NOT AMONG THEM. It is in the URL and in the WHERE, and writing it
-	// would let a save move a spell between levels -- silently, since the row
-	// would then vanish from the page that posted it.
+	
+	
+	
 	for _, column := range setColumns(t, call.query) {
 		if column == "level" {
 			t.Error("a spell save writes its own level")
 		}
 	}
 
-	// All four scoping values. The spell id, the character id and the level all
-	// arrive in the URL and the owner comes from the session; the statement
-	// carries every one, so a spell cannot be reached through a character or a
-	// level it does not belong to.
+	
+	
+	
+	
 	scope := call.args[len(call.args)-4:]
 	for i, want := range []ulid.ULID{testSpellID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
@@ -103,13 +103,13 @@ func TestSaveSpellWritesOnlyItsOwnColumns(t *testing.T) {
 	}
 }
 
-// THE CHECKBOX TEST. `prepared` is read from whether the field arrived at all,
-// because an unchecked box posts nothing -- which is correct for a checkbox and
-// is also the exact shape the panel handlers exist to avoid. What makes it safe
-// is that the row form always renders all eight controls together, five of them
-// inside a <details> that is closed rather than absent. That is a property of
-// the markup, so it is pinned here and in the page tests rather than left to be
-// rediscovered.
+
+
+
+
+
+
+
 func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -130,9 +130,9 @@ func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 			spellRequest(t, app.SaveSpell, http.MethodPost, c.form, "3", testSpellID.String())
 
 			call := db.only(t)
-			// Eighth of the eight SET values, in the order the generated
-			// statement binds them: name, school, components, casting_time,
-			// casting_range, duration, description, is_prepared.
+			
+			
+			
 			got, ok := call.args[7].(bool)
 			if !ok {
 				t.Fatalf("is_prepared arg is %T, want bool", call.args[7])
@@ -144,9 +144,9 @@ func TestPreparedIsReadFromTheAbsenceOfTheField(t *testing.T) {
 	}
 }
 
-// The school is normalised rather than rejected. The control is a select with no
-// empty option, so a value outside the eight did not come from the form -- and
-// an empty form mid-save must not store "".
+
+
+
 func TestSpellSchoolFallsBackRatherThanFailing(t *testing.T) {
 	for _, c := range []struct{ posted, want string }{
 		{"Abjuration", "Abjuration"},
@@ -166,17 +166,17 @@ func TestSpellSchoolFallsBackRatherThanFailing(t *testing.T) {
 	}
 }
 
-// The add takes no form at all, and the statement is what enforces that: it
-// selects from characters, so there is nowhere for spell data to enter and no
-// way to hang a row off a character the sender does not own. The level is the
-// one value it carries, and it comes from the URL of the page the button is on.
+
+
+
+
 func TestAddSpellCannotCarrySpellData(t *testing.T) {
 	app, db := newPanelApp(0)
 
-	// rows=0 stands for "that character is not yours", which is the only thing
-	// zero can mean here -- the id is freshly minted, so a duplicate key is not
-	// on the table. It also stops the handler before the read-back, which this
-	// fake cannot serve.
+	
+	
+	
+	
 	rec := spellRequest(t, app.AddSpell, http.MethodPost, fullSpellForm(), "3", "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -205,11 +205,11 @@ func TestAddSpellCannotCarrySpellData(t *testing.T) {
 	}
 }
 
-// THE DELETE MUST BE A 200. base.templ configures noSwap for 204, and a status
-// in that list sets the swap to "none" -- which overrides the hx-swap="delete"
-// on the button and leaves the row on screen after the database has dropped it.
-// Nothing about that failure is visible from the server side, so it is pinned
-// here.
+
+
+
+
+
 func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -235,11 +235,11 @@ func TestDeleteSpellAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	}
 }
 
-// A row that is already gone -- deleted in another tab -- is a 404 about the
-// spell. A character panel says "character" for the same condition, which is the
-// whole reason savedRow takes the noun as an argument: sending someone to look
-// for a missing character when their character is fine wastes the one thing the
-// message is for.
+
+
+
+
+
 func TestMissingSpellRowIsASpell404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -263,8 +263,8 @@ func TestMissingSpellRowIsASpell404(t *testing.T) {
 	}
 }
 
-// A spell id that is not a ULID never reaches a query, the way an item id does
-// not. The segment lands in three attributes and a URL on the way back out.
+
+
 func TestUnparseableSpellIDTouchesNoDatabase(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -277,11 +277,11 @@ func TestUnparseableSpellIDTouchesNoDatabase(t *testing.T) {
 	}
 }
 
-// THE LEVEL IS BOUNDED BEFORE IT REACHES ANYTHING. It goes into a query, into a
-// panel id and back out into markup, and the column is TINYINT UNSIGNED with a
-// CHECK -- so an unbounded value would be a driver error at best. Every level
-// the editor sends is a number baked into a link or a button, so a value outside
-// the ten means the request was built by hand.
+
+
+
+
+
 func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 	for _, raw := range []string{"0", "1", "9"} {
 		if _, ok := parseSpellLevel(raw); !ok {
@@ -319,9 +319,9 @@ func TestSpellLevelIsBoundedToTheTen(t *testing.T) {
 	}
 }
 
-// Cantrips have no slots in the rules, so the overview renders them with the
-// word Unlimited and no form at all. The route refuses level 0 to match: a
-// request naming it could not have come from a page.
+
+
+
 func TestSlotSaveRefusesCantrips(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -334,10 +334,10 @@ func TestSlotSaveRefusesCantrips(t *testing.T) {
 	}
 }
 
-// The counters are their own table, and the guard is the same INSERT ... SELECT
-// the spell insert uses. What this pins is that nothing about a slot save can
-// reach the characters row -- the statement writes spell_slots and reads
-// characters, and never the other way round.
+
+
+
+
 func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -357,9 +357,9 @@ func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 		t.Errorf("the upsert is not guarded by the characters row:\n%s", call.query)
 	}
 
-	// level, slots, used, character, owner, then slots and used again for the
-	// ON DUPLICATE KEY UPDATE clause -- which is how the statement avoids
-	// VALUES(), deprecated since MySQL 8.0.20.
+	
+	
+	
 	if len(call.args) != 7 {
 		t.Fatalf("statement took %d values, want 7: %v", len(call.args), call.args)
 	}
@@ -375,9 +375,9 @@ func TestSlotSaveWritesOnlyTheCounters(t *testing.T) {
 	}
 }
 
-// A level cannot have more slots spent than it has. Both fields post together
-// from the same form, so the ceiling is whatever the slots field says at the
-// moment of the save rather than whatever happens to be stored.
+
+
+
 func TestUsedIsCappedAtSlots(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -389,10 +389,10 @@ func TestUsedIsCappedAtSlots(t *testing.T) {
 	}
 }
 
-// Slot counts are coerced rather than rejected. type=number with min and max
-// cannot produce most of these, so a rejection would be a message nobody could
-// have caused; an empty field mid-retype has to mean something sensible instead
-// of failing the save.
+
+
+
+
 func TestSlotCountsAreCoercedNotRejected(t *testing.T) {
 	for _, c := range []struct {
 		raw  string
@@ -414,9 +414,9 @@ func TestSlotCountsAreCoercedNotRejected(t *testing.T) {
 	}
 }
 
-// The column widths are enforced here because MySQL runs in strict mode: without
-// this the driver's error would reach the user as a 500 on a field they were
-// entitled to overfill by pasting a stat block.
+
+
+
 func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -444,9 +444,9 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 		})
 	}
 
-	// Measured in characters, not bytes, because that is what varchar counts. A
-	// name of exactly the limit in accented letters is twice the limit in bytes
-	// and the column takes it without complaint.
+	
+	
+	
 	app, db := newPanelApp(1)
 	form := fullSpellForm()
 	form.Set("name", strings.Repeat("é", spellNameLimit))
@@ -460,11 +460,11 @@ func TestOverlongSpellFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// The counters are read two ways on purpose, and each shape has one caller. A
-// level page shows one level, so it asks for one row and reads sql.ErrNoRows as
-// the zeroes an unseeded level would have held. The Spell Slots panel on the
-// Character tab shows all ten, because managing slots across levels is the whole
-// reason it is there.
+
+
+
+
+
 func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
@@ -498,10 +498,10 @@ func TestTheCountersAreReadOneLevelAndTenLevelsAtATime(t *testing.T) {
 	}
 }
 
-// Ten levels always render, from however few rows came back. Neither table seeds
-// anything -- a character that has never cast a spell has no rows in either --
-// so a panel that trusted the query results would show a handful of levels and
-// no way to give the rest a slot count.
+
+
+
+
 func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
 	levels := mergeSpellLevels(
 		[]queries.SpellSlot{{Level: 3, Slots: 4, Used: 1}},
@@ -523,7 +523,7 @@ func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
 	if got := levels[0]; got.Count != 5 {
 		t.Errorf("cantrips count = %d, want 5", got.Count)
 	}
-	// A level with no row in either result is zeroes, not a gap.
+	
 	for _, level := range []int{1, 2, 4, 5, 6, 7, 8, 9} {
 		if got := levels[level]; got.Slots != "0" || got.Used != "0" || got.Count != 0 {
 			t.Errorf("untouched level %d = %+v, want zeroes", level, got)
@@ -531,12 +531,12 @@ func TestMergeSpellLevelsBuildsAllTenFromWhateverCameBack(t *testing.T) {
 	}
 }
 
-// EVERY spell query is scoped to the owner, reads included. The writes are
-// covered above by watching what reaches the driver, but a SELECT that dropped
-// its owner_id would leak another user's spells onto a page and nothing in the
-// handler would notice -- the rows would arrive and render. So the statements
-// themselves are checked, which is also the only way to reach the reads: they go
-// through QueryContext, and the fake pool the write tests use cannot serve one.
+
+
+
+
+
+
 func TestEverySpellQueryIsScopedToTheOwner(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
@@ -559,18 +559,18 @@ func TestEverySpellQueryIsScopedToTheOwner(t *testing.T) {
 		if !strings.Contains(body, "owner_id") {
 			t.Errorf("%s is not scoped to the owner:\n%s", name, body)
 		}
-		// The inserts name the character in their own WHERE, so they are covered
-		// by the same rule; everything else has to name it too, or a spell could
-		// be reached through a character it does not belong to.
+		
+		
+		
 		if !strings.Contains(body, "character_id") && !strings.Contains(body, "characters") {
 			t.Errorf("%s is not scoped to the character:\n%s", name, body)
 		}
 	}
 }
 
-// The level pages read one level, not the whole book. A filter applied in Go
-// instead would mean loading every spell a character knows to render one tab,
-// and the index exists to make the statement do it.
+
+
+
 func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
@@ -592,9 +592,9 @@ func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 	}
 }
 
-// Eleven tabs share one row, so the label is the level and not the sentence.
-// "Level 7" is six characters nobody needs to read twice; the heading on the
-// page itself still says it in full.
+
+
+
 func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
 	for level, want := range map[int]string{0: "Cantrips", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 9: "9th"} {
 		if got := pages.SpellLevelTab(level); got != want {
@@ -608,10 +608,10 @@ func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
 	}
 }
 
-// The prepared view groups by level off a query that is already in level order,
-// so the grouping is a single pass that compares each row against the group it
-// is building. Rows of one level arriving apart would produce that level twice,
-// which is why the statement's ORDER BY has a test of its own below.
+
+
+
+
 func TestPreparedSpellGroupsFollowTheQueryOrder(t *testing.T) {
 	groups := preparedSpellGroups([]queries.Spell{
 		{ID: ulid.Make(), Level: 0, Name: "Fire Bolt", School: "Evocation"},
@@ -640,22 +640,22 @@ func TestPreparedSpellGroupsFollowTheQueryOrder(t *testing.T) {
 		}
 	}
 
-	// The name is the level in prose, because this list is read beside Equipment
-	// and away from the tab strip that translates 3 into Level 3.
+	
+	
 	if groups[0].Spells[0].Name != "Fire Bolt" || groups[2].Spells[1].Name != "Counterspell" {
 		t.Errorf("rows did not keep their order within a level: %+v", groups)
 	}
 
-	// Nothing prepared is no groups, which is what the empty state renders from.
+	
 	if got := preparedSpellGroups(nil); len(got) != 0 {
 		t.Errorf("an empty result made %d groups", len(got))
 	}
 }
 
-// Only the ticked rows reach the Character page, ordered by level. Both halves
-// matter: a filter applied in Go would mean loading a whole spellbook to render
-// a corner of one page, and an ordering applied nowhere would render a level
-// twice -- preparedSpellGroups groups in one pass and trusts this.
+
+
+
+
 func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
@@ -680,9 +680,9 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 	}
 }
 
-// /edit/spells is not a page. The Spells tab points straight at cantrips, and
-// this route exists so a bookmark or a stale href lands there rather than on the
-// catch-all 404.
+
+
+
 func TestSpellsRootRedirectsToCantrips(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -694,22 +694,22 @@ func TestSpellsRootRedirectsToCantrips(t *testing.T) {
 	if want := "/characters/" + testCharacterID.String() + "/edit/spells/0"; rec.Header().Get("Location") != want {
 		t.Errorf("Location = %q, want %q", rec.Header().Get("Location"), want)
 	}
-	// It reads nothing. The page it redirects to asks whether the character is
-	// this user's, and asking twice would mean two queries to answer a request
-	// that renders nothing.
+	
+	
+	
 	if len(db.calls) != 0 {
 		t.Errorf("ran %d statements, want 0", len(db.calls))
 	}
 }
 
-// An id that is not a ULID cannot reach the Location header. It is printed back
-// from the parsed value rather than passed through, so the redirect can only
-// ever name a canonical ULID.
+
+
+
 func TestSpellsRootWillNotRedirectToAnUnparsedID(t *testing.T) {
 	app, _ := newPanelApp(1)
 
 	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
-	r.SetPathValue("id", "https://elsewhere.example/")
+	r.SetPathValue("id", "https:
 	rec := httptest.NewRecorder()
 	app.CharacterSpellsRedirect(rec, r)
 

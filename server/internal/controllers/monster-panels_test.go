@@ -13,8 +13,8 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// monsterPanelForm is a full, valid post for one panel, so a test that wants to
-// break one field can start from a request that would otherwise land.
+
+
 func monsterPanelForm(panel string) url.Values {
 	switch panel {
 	case "identity":
@@ -73,9 +73,9 @@ func monsterPanelHandler(panel string) func(*App) http.HandlerFunc {
 	return func(a *App) http.HandlerFunc { return a.SaveMonsterDescription }
 }
 
-// Every panel is checked the same way, so the split cannot quietly widen. The
-// two bonus grids are the character sheet's own components posting the character
-// sheet's own field names, which is why their forms look like its forms.
+
+
+
 func TestMonsterPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 	for _, c := range []struct {
 		name       string
@@ -161,8 +161,8 @@ func monsterPathValues(extra map[string]string) map[string]string {
 	return pathValues
 }
 
-// Columns no panel is meant to write. The first three are the row's identity and
-// its picture, which the image route owns; the timestamps are the database's.
+
+
 var unownedMonsterColumns = map[string]bool{
 	"id":         true,
 	"owner_id":   true,
@@ -171,14 +171,14 @@ var unownedMonsterColumns = map[string]bool{
 	"updated_at": true,
 }
 
-// Every editable column belongs to exactly one panel. This is the invariant the
-// split has to hold: a column two panels write races itself under a debounce,
-// and a column no panel writes cannot be edited at all.
-//
-// It is also what would catch a stored derived value. xp and a proficiency
-// bonus are not columns here, and if either came back it would have to be
-// written by one of these panels -- and would then be stale the moment the other
-// one saved.
+
+
+
+
+
+
+
+
 func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 	covered := map[string]bool{}
 
@@ -197,7 +197,7 @@ func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 	} {
 		app, db := newPanelApp(1)
 
-		// name is the one required field; every other panel ignores it.
+		
 		panelPost(t, db, panel.handler(app), url.Values{"name": {"Goblin"}}, monsterPathValues(panel.pathValues))
 		for _, column := range sortedColumns(t, db.only(t).query) {
 			if covered[column] {
@@ -220,9 +220,9 @@ func TestMonsterPanelsCoverEveryEditableColumn(t *testing.T) {
 	}
 }
 
-// A rejected panel writes nothing at all. The parse helpers answer an empty
-// field with a fallback rather than an error, so a save that ran anyway would
-// not fail -- it would store the fallbacks and report success.
+
+
+
 func TestMonsterPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	form := monsterPanelForm("identity")
 	form.Set("name", "   ")
@@ -245,9 +245,9 @@ func TestMonsterPanelValidationFailsBeforeTheWrite(t *testing.T) {
 	}
 }
 
-// MySQL runs in strict mode, so an overlong value is an error from the driver
-// rather than a truncation. Without these caps a pasted paragraph in the senses
-// box would reach the GM as a 500 on a field the editor invited them to fill in.
+
+
+
 func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		panel string
@@ -285,9 +285,9 @@ func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 				t.Errorf("body = %q, want it to carry %q", body, c.want)
 			}
 
-			// THE CAP IS IN CHARACTERS, WHICH IS WHAT THE COLUMN COUNTS. The
-			// same field filled to the limit with three-byte letters is a value
-			// MySQL would take, so it has to be accepted here.
+			
+			
+			
 			form.Set(c.field, strings.Repeat("é", c.limit))
 
 			app, db = newPanelApp(1)
@@ -302,8 +302,8 @@ func TestOverlongMonsterFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// The notes box is the one field measured in bytes, because the column behind it
-// is TEXT and TEXT counts bytes.
+
+
 func TestOverlongMonsterNotesAreMeasuredInBytes(t *testing.T) {
 	form := monsterPanelForm("description")
 	form.Set("description", strings.Repeat("a", pages.MonsterProseLimit+1))
@@ -318,7 +318,7 @@ func TestOverlongMonsterNotesAreMeasuredInBytes(t *testing.T) {
 		t.Error("the overlong notes were sent to the column anyway")
 	}
 
-	// A rune count would have let this through at three times the byte cap.
+	
 	form.Set("description", strings.Repeat("é", pages.MonsterProseLimit))
 
 	app, db = newPanelApp(1)
@@ -331,10 +331,10 @@ func TestOverlongMonsterNotesAreMeasuredInBytes(t *testing.T) {
 	}
 }
 
-// The four selects are normalised rather than validated, and anything off the
-// list lands on the column's own default. Only a hand-built request can produce
-// one, because the pickers offer nothing else -- but three of these columns are
-// VARCHARs, so nothing below this would refuse "Nonsense" either.
+
+
+
+
 func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	identity := monsterPanelForm("identity")
 	identity.Set("size", "enormous")
@@ -371,9 +371,9 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	}
 }
 
-// A number past its column's ceiling is a validation message rather than a
-// driver error. ac is TINYINT UNSIGNED, so 256 is the first value that does not
-// fit -- and MySQL in strict mode answers one with a 500.
+
+
+
 func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -404,17 +404,17 @@ func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
 	}
 }
 
-// EVERY PANEL REDRAWS THE BLOCK BESIDE IT, and it does that by reading the
-// monster back rather than by patching what it just posted -- a combat save
-// moves the proficiency bonus, which moves all twenty-four totals on the two
-// grids and both figures on the CR line.
-//
-// What is asserted here is the read, because the fake pool cannot serve rows and
-// so cannot reach the render. That the markup it would reach carries the
-// out-of-band attribute is pinned in the pages tests.
-//
-// A handler missing from this list is a panel that saves correctly and leaves
-// the block stale, which is the failure this exists to make loud.
+
+
+
+
+
+
+
+
+
+
+
 func TestASaveRedrawsTheStatBlock(t *testing.T) {
 	for _, c := range []struct {
 		name       string
@@ -449,9 +449,9 @@ func TestASaveRedrawsTheStatBlock(t *testing.T) {
 	}
 }
 
-// An unparseable id is answered before anything is queried, and with an empty
-// body: it came off the page's own markup, so a request carrying a broken one is
-// not a reader who has lost a monster and has nothing to be told.
+
+
+
 func TestStatBlockFragmentRejectsABadID(t *testing.T) {
 	for _, query := range []string{"", "monster=", "monster=not-a-ulid", "monster=" + testMonsterID.String() + "x"} {
 		app, db := newPanelApp(1)
@@ -473,8 +473,8 @@ func TestStatBlockFragmentRejectsABadID(t *testing.T) {
 	}
 }
 
-// A good id reaches the read, scoped to the owner. The fake pool answers no rows,
-// so this is about what was sent rather than what came back.
+
+
 func TestStatBlockFragmentReadsTheOwnersMonster(t *testing.T) {
 	app, db := newPanelApp(1)
 

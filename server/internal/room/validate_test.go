@@ -10,14 +10,14 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// EVERY LIMIT AT ITS BOUNDARY AND ONE PAST IT. A limit tested only from a long
-// way away is a limit whose comparison could be the wrong one and still pass,
-// and off-by-one on a bound is the mistake this table exists to catch.
-//
-// The limits that bound a collection are set up by filling the state rather
-// than by running a thousand commands. That is the one place in this package's
-// tests that writes to State directly, and it is deliberate: running the
-// command a thousand times would test the loop, not the bound.
+
+
+
+
+
+
+
+
 func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 	t.Run("a name of exactly the limit is accepted and one more is not", func(t *testing.T) {
 		w := newWorld(t)
@@ -31,7 +31,7 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		w := newWorld(t)
 		layer := w.addLayer("Cellar")
 
-		// Three bytes each. A byte count would refuse this at 43 characters.
+		
 		w.apply(&TableRenameLayer{Layer: layer, Name: strings.Repeat("地", NameLimit)}, w.gm)
 	})
 
@@ -146,8 +146,8 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		}
 	})
 
-	// A SHAPE IS TWO POINTS AND A FREE STROKE IS ANY NUMBER OF THEM, which is
-	// the one rule that reads the kind rather than the count.
+	
+	
 	t.Run("a shape is exactly two points", func(t *testing.T) {
 		w := newWorld(t)
 
@@ -161,23 +161,23 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 				Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40, 80, 80},
 			}, w.gm, CodeInvalid)
 
-			// And a shape whose two points are the same place is a click
-			// rather than a drag: it draws nothing and could never be pointed
-			// at to be rubbed out.
+			
+			
+			
 			w.refuse(&StrokeBegin{
 				ID: testID(690 + i), Layer: w.layer, Kind: kind,
 				Color: "#ffffff", Width: 2, Points: []int{40, 40, 40, 40},
 			}, w.gm, CodeInvalid)
 		}
 
-		// The same three point counts are all fine freehand.
+		
 		w.apply(&StrokeBegin{ID: testID(695), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 		w.apply(&StrokeBegin{ID: testID(696), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0, 40, 40, 80, 80}}, w.gm)
 		w.apply(&StrokeBegin{ID: testID(697), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{40, 40, 40, 40}}, w.gm)
 	})
 
-	// A shape arrives whole, so it is finished the moment it exists and the
-	// command that would grow it has nothing to say to it.
+	
+	
 	t.Run("a shape is born finished and cannot be extended", func(t *testing.T) {
 		w := newWorld(t)
 
@@ -220,7 +220,7 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		id := testID(630)
 		w.apply(&StrokeBegin{ID: id, Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 
-		// Filled rather than drawn: forty chunks would test the loop.
+		
 		w.s.Stroke(id).Points = points(StrokePointsMax - 2)
 
 		w.apply(&StrokeExtend{ID: id, Points: points(2)}, w.gm)
@@ -364,14 +364,14 @@ func entries(n int) []InitiativeEntry {
 	return out
 }
 
-// THE CANVAS CLAMPS A RESIZE TO THE SAME NUMBER THIS PACKAGE REFUSES PAST, and
-// the two are written in two languages, so this is what keeps them one number.
-//
-// IT IS A CLAMP RATHER THAN A CHECK ON THAT SIDE, which is why it matters. A
-// hand dragging a corner handle is a continuous gesture; if the client let it
-// run past the limit, the release would be answered with an alert modal about a
-// size the GM never typed. The client stops the drag at the edge instead, and
-// this test is why it stops at the right one.
+
+
+
+
+
+
+
+
 func TestTheCanvasClampMatchesTheObjectSizeLimit(t *testing.T) {
 	const source = "../../js/room/handles.ts"
 
@@ -395,10 +395,10 @@ func TestTheCanvasClampMatchesTheObjectSizeLimit(t *testing.T) {
 	}
 }
 
-// THE SELECTION CAP, pinned the same way. selection.ts caps a marquee, an
-// add and a drag set at its own copy of SelectionMax, so the server never sees
-// a move it would refuse; a copy that drifted would be a selection the server
-// refuses whole.
+
+
+
+
 func TestTheSelectionCapMatchesTheServers(t *testing.T) {
 	const source = "../../js/room/selection.ts"
 

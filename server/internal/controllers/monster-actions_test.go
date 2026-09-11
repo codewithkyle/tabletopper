@@ -17,9 +17,9 @@ import (
 
 var testActionID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS5")
 
-// monsterActionRequest drives one row handler: the three path values the routes
-// declare, a method because two of the three are not POSTs, and a session to be
-// scoped by.
+
+
+
 func monsterActionRequest(t *testing.T, handler http.HandlerFunc, method string, kind string, form url.Values, actionID string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -46,16 +46,16 @@ func fullMonsterActionForm() url.Values {
 	}
 }
 
-// The add takes no form at all, and the statement is what enforces that: it
-// selects from monsters, so there is nowhere for action data to enter and no way
-// to hang a row off a stranger's stat block.
+
+
+
 func TestAddMonsterActionCannotCarryActionData(t *testing.T) {
 	app, db := newPanelApp(0)
 
-	// rows=0 stands for "that monster is not yours", which is the only thing
-	// zero can mean here -- the id is freshly minted, so a duplicate key is not
-	// on the table. It also stops the handler before the read-back, which this
-	// fake cannot serve.
+	
+	
+	
+	
 	rec := monsterActionRequest(t, app.AddMonsterAction, http.MethodPost, pages.MonsterActionKindAction, fullMonsterActionForm(), "")
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
@@ -83,17 +83,17 @@ func TestAddMonsterActionCannotCarryActionData(t *testing.T) {
 		t.Errorf("the insert is not guarded by the monsters row:\n%s", call.query)
 	}
 
-	// Independent of the SQL text: the generated params struct is the other
-	// place a fifth value would have to appear.
+	
+	
 	if fields := reflect.TypeOf(queries.InsertMonsterActionParams{}).NumField(); fields != 4 {
 		t.Errorf("InsertMonsterActionParams has %d fields, want 4 (action, kind, monster, owner)", fields)
 	}
 }
 
-// THE ALLOWLIST RUNS BEFORE THE STATEMENT DOES. The column is an ENUM, so a kind
-// that got past here would be refused by MySQL -- as a 500 on a page that looks
-// like it simply stopped working, rather than as a 404 that says the page is
-// stale.
+
+
+
+
 func TestAnUnknownActionKindNeverBecomesAStatement(t *testing.T) {
 	for _, c := range []struct {
 		name     string
@@ -121,9 +121,9 @@ func TestAnUnknownActionKindNeverBecomesAStatement(t *testing.T) {
 	}
 }
 
-// The delete has to be a 200. base.templ configures noSwap for 204, and a status
-// in that list sets the swap to "none" -- which overrides the hx-swap="delete"
-// on the button and leaves the row on screen after the database has dropped it.
+
+
+
 func TestDeleteMonsterActionAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -139,16 +139,16 @@ func TestDeleteMonsterActionAnswers200SoTheRowIsSwappedOut(t *testing.T) {
 	if !strings.Contains(call.query, "owner_id") || !strings.Contains(call.query, "monster_id") {
 		t.Errorf("the delete is not scoped by both ids:\n%s", call.query)
 	}
-	// The toast names the section rather than the row, because a row deleted
-	// before it was named has nothing else to be called.
+	
+	
 	if trigger := rec.Header().Get("HX-Trigger"); !strings.Contains(trigger, "Trait deleted.") {
 		t.Errorf("toast = %s", trigger)
 	}
 }
 
-// A row that is gone is an action 404 and not a monster one. Telling somebody
-// their monster no longer exists because a row does would send them to look for
-// the wrong problem.
+
+
+
 func TestMissingActionRowIsAnAction404(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -172,8 +172,8 @@ func TestMissingActionRowIsAnAction404(t *testing.T) {
 	}
 }
 
-// An id that will not parse is answered before anything is queried. It can only
-// come from a stale page or a hand-edited URL, and both mean the same thing.
+
+
 func TestUnparseableActionIDTouchesNoDatabase(t *testing.T) {
 	for _, c := range []struct {
 		name    string
@@ -197,8 +197,8 @@ func TestUnparseableActionIDTouchesNoDatabase(t *testing.T) {
 	}
 }
 
-// A row save writes its own two columns and nothing else -- the kind least of
-// all, because a row cannot change section.
+
+
 func TestSaveMonsterActionWritesOnlyItsOwnColumns(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -218,10 +218,10 @@ func TestSaveMonsterActionWritesOnlyItsOwnColumns(t *testing.T) {
 	}
 }
 
-// The two boxes are capped for the reason every other box on this editor is:
-// strict mode turns an overlong value into a driver error rather than a
-// truncation. The name counts characters and the description counts bytes,
-// because that is what their columns count.
+
+
+
+
 func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 	for _, c := range []struct {
 		field string
@@ -249,8 +249,8 @@ func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 		}
 	}
 
-	// A name filled to the limit with three-byte letters is a value the column
-	// would take, so it has to be accepted.
+	
+	
 	form := fullMonsterActionForm()
 	form.Set("name", strings.Repeat("é", pages.MonsterActionNameLimit))
 
@@ -263,14 +263,14 @@ func TestOverlongMonsterActionFieldsAreRejectedNotTruncated(t *testing.T) {
 	}
 }
 
-// ALL THREE ROW HANDLERS REDRAW THE BLOCK. The save is obvious -- the block
-// prints what is being typed -- and the other two are the ones worth pinning: a
-// blank Actions row is what turns a CR 0 monster from 0 XP into 10, and the
-// first lair action is what puts the in-lair figure on the CR line.
-//
-// What is asserted is the read, because the fake pool cannot serve rows and so
-// cannot reach the render. That the markup it would reach carries the
-// out-of-band attribute is pinned in the pages tests.
+
+
+
+
+
+
+
+
 func TestAnActionSaveRedrawsTheStatBlock(t *testing.T) {
 	for _, c := range []struct {
 		name     string
@@ -300,14 +300,14 @@ func TestAnActionSaveRedrawsTheStatBlock(t *testing.T) {
 	}
 }
 
-// The add reads the row back rather than assembling markup from what the insert
-// "should" have written, so the schema stays the only place a new row's starting
-// state is declared -- and the read is scoped by all three ids, because two of
-// them arrived in the URL and neither is trusted.
-//
-// The redraw that follows it cannot be reached here: the fake pool answers the
-// read with an error, and the handler stops. What the redraw does when it is
-// reached is pinned by the save and the delete above, which share the function.
+
+
+
+
+
+
+
+
 func TestAddMonsterActionReadsBackTheRowItMade(t *testing.T) {
 	app, db := newPanelApp(1)
 

@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// A sheet with something in every section, so the tests below are looking at
-// markup that was actually produced rather than at branches that were skipped.
+
+
 func testSharedSheet() SharedCharacterSheet {
 	return SharedCharacterSheet{
 		Header: CharacterHeader{
@@ -47,10 +47,10 @@ func testSharedSheet() SharedCharacterSheet {
 	}
 }
 
-// A public page carries no session-shaped machinery: no htmx, no dialogs, no
-// modal modules. It is the whole reason there is a second layout, and the sheet
-// is the harder half of it -- the editor's version of every panel here is a form
-// that autosaves.
+
+
+
+
 func TestASharedSheetShipsNoScriptsAndNoDialogs(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
 
@@ -64,22 +64,22 @@ func TestASharedSheetShipsNoScriptsAndNoDialogs(t *testing.T) {
 	}
 }
 
-// A SHARED PAGE POINTS ONLY WHERE IT MEANS TO, which is what "it links nowhere
-// into the app" comes to in markup. The editor's read-only panels -- equipped
-// items, prepared spells, the spell slot list -- each link back to the tab that
-// fills them, and those routes need a session, so reusing one here would put a
-// link on a stranger's page that answers with a redirect to a sign-in form.
-//
-// THE PAGE USED TO CARRY NO ANCHOR AT ALL and the Markdown export is why it now
-// does. That is a widening of the rule rather than a break in it: the download
-// is under /share/ like every other URL a reader is handed, so it is reachable
-// by exactly whoever the page is and by nobody else. The shared monster page
-// adds one more, /sign-in, and that one is the whole point of it -- a reader
-// with no account is being told where an account comes from.
-//
-// Withholding the character id from SharedCharacterSheet is what makes the rest
-// true; see the test below. This is the check that nobody has reintroduced a
-// link some other way.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestASharedPageLinksNowhereIntoTheApp(t *testing.T) {
 	for name, c := range map[string]struct {
 		body    string
@@ -108,10 +108,10 @@ func TestASharedPageLinksNowhereIntoTheApp(t *testing.T) {
 	}
 }
 
-// anchorHrefs is every href the page renders. It is a regexp rather than a
-// parser because the assertion is about what is in the markup, and a page with
-// an anchor this pattern cannot see is a page that has stopped being simple
-// enough for this rule to be checkable.
+
+
+
+
 func anchorHrefs(body string) []string {
 	hrefs := []string{}
 	for _, match := range regexp.MustCompile(`<a [^>]*href="([^"]*)"`).FindAllStringSubmatch(body, -1) {
@@ -131,9 +131,9 @@ func hasAnyPrefix(value string, prefixes []string) bool {
 	return false
 }
 
-// THE ASSERTION IS ON THE TYPE RATHER THAN ON THE MARKUP, the way the password
-// gate's is: no id means no component on this page can be handed one, so a link
-// into the app is not a rule to remember but an argument that does not exist.
+
+
+
 func TestASharedSheetIsHandedNoCharacterID(t *testing.T) {
 	for _, field := range reflect.VisibleFields(reflect.TypeOf(SharedCharacterSheet{})) {
 		if strings.Contains(field.Name, "ID") {
@@ -142,9 +142,9 @@ func TestASharedSheetIsHandedNoCharacterID(t *testing.T) {
 	}
 }
 
-// The one omission that was asked for by name. How many slots a character has is
-// a fact about them; how many are left is where they are in tonight's session,
-// and a link pasted into a chat window is read hours after it was sent.
+
+
+
 func TestASharedSpellLevelCarriesNoUsedCount(t *testing.T) {
 	fields := reflect.VisibleFields(reflect.TypeOf(SharedSpellLevel{}))
 
@@ -157,9 +157,9 @@ func TestASharedSpellLevelCarriesNoUsedCount(t *testing.T) {
 	}
 }
 
-// An empty section is not rendered at all. The editor shows a box for every
-// field because it is talking to the person who can fill it in; a reader cannot,
-// so a character with no attacks has no Attacks panel rather than an empty one.
+
+
+
 func TestASheetWithNothingInItRendersNoEmptyPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(SharedCharacterSheet{}))
 
@@ -174,9 +174,9 @@ func TestASheetWithNothingInItRendersNoEmptyPanels(t *testing.T) {
 	}
 }
 
-// What a reader is actually shown, once there is something to show. The six bar
-// readings come from the same CharacterHeader the editor builds, so this is also
-// what says the shared sheet and the editor cannot disagree about an initiative.
+
+
+
 func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
 
@@ -193,8 +193,8 @@ func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 	}
 }
 
-// An unnamed character still has a heading and a tab title, the way an unnamed
-// entry does. A blank line where either goes reads as a rendering bug.
+
+
 func TestAnUnnamedSharedCharacterStillHasATitle(t *testing.T) {
 	if got := SharedCharacterTitle("   "); !strings.HasPrefix(got, "Unnamed character") {
 		t.Errorf("SharedCharacterTitle(blank) = %q", got)

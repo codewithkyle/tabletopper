@@ -1,27 +1,27 @@
-// The room's client. It reads what it needs off the mount element, connects,
-// reduces, and hands the DOM its three jobs: draw the table, refetch the live
-// panels, and draw the debug panel in development.
-//
-// THERE ARE NO GLOBALS AND NO CONFIGURATION SCRIPT. Everything this module
-// needs is an attribute on #tabletop, rendered by the page that knows the
-// answers -- which room, which role, which build, and where to connect. A
-// closed room renders no socket path, and that is how the client is told not to
-// connect.
-//
-// THE STATE IS CREATED BEFORE THE SOCKET AND OUTLIVES ITS ABSENCE. The renderer
-// is a function of the state and a camera, and both of those are worth having
-// in a room that is not live: a closed room still has windows to arrange, and a
-// room whose socket has not opened yet should show a table rather than a blank
-// rectangle that fills in a moment later.
 
-// The colour pickers register their custom elements at module scope, so the
-// imports are here rather than in color.ts and draw-tool.ts -- node runs the
-// tests beside those files and has no custom element registry to define into.
-//
-// TWO ELEMENTS AND NOT ONE, and the difference is alpha. The grid is a lattice
-// drawn OVER a picture and is almost never wanted opaque, so its picker has an
-// alpha track; a stroke is a mark ON the map, and a translucent one blends
-// twice wherever two of its segments overlap -- see render/stroke-pass.ts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import "vanilla-colorful/hex-alpha-color-picker.js";
 import "vanilla-colorful/hex-color-picker.js";
 
@@ -61,23 +61,23 @@ import type { Table } from "./pawns.ts";
 const mount = document.getElementById("tabletop");
 
 if (mount) {
-	// The windows do not need a socket. A closed room has no connection and
-	// still has a player list worth reading, and the layout somebody arranged
-	// should come back whether or not the table is live.
+	
+	
+	
 	mountWindows(mount, mount.dataset.room ?? "");
 
-	// The hit-point boxes inside those windows. It is one listener on the
-	// document rather than anything a panel owns, because a panel is markup
-	// htmx swapped in and has no mount of its own to run.
+	
+	
+	
 	mountHitPoints();
 
-	// And the grid colour, for the same reason and in the same way: the picker
-	// arrives inside a window nothing here rendered.
+	
+	
 	mountColorFields();
 
-	// The tool pill. It is mounted before anything that reads it, needs neither
-	// a socket nor a canvas, and a closed room still switches modes with it --
-	// which is the same reason the windows are mounted above.
+	
+	
+	
 	const tools = mountTools(mount);
 
 	const state = empty();
@@ -85,71 +85,71 @@ if (mount) {
 	const role: Role = mount.dataset.role === "gm" ? "gm" : "player";
 	const user = mount.dataset.user ?? "";
 
-	// ONE WAY INTO A PAWN'S WINDOW AND NOT TWO. A double click opens it and so
-	// does the first item on the right-click menu; pawn-window.ts is the file
-	// that says what one of those windows IS, and an id spelled differently in
-	// either place is a window that opens twice and never closes.
+	
+	
+	
+	
 	const openDetails = (pawn: Named): void => {
 		openWindow(pawnWindow(roomID, pawn));
 	};
 
-	// The floors menu in that pill, which is the GM's and renders nothing at all
-	// for anybody else. It reads the store rather than the renderer: which floor
-	// is ACTIVE is the room's, and the local choice of which one to look at
-	// belongs to the control in the bar.
+	
+	
+	
+	
 	mountLayerTool(mount, state);
 
-	// The turn order's four client-side jobs -- the clock, the scroll, the drag
-	// and the N key -- and the menu a right click puts up on one of its lines.
-	//
-	// BOTH ARE MOUNTED BEFORE THE SOCKET AND NEITHER NEEDS ONE. The strip fetches
-	// itself over HTTP on load, so a room whose connection has not opened yet
-	// still draws the fight that was in progress; and a closed room renders no
-	// strip at all, which is what makes both of these a no-op rather than a
-	// special case.
+	
+	
+	
+	
+	
+	
+	
+	
 	const turns: Turns | null = mountTurns(mount, state);
 	mountEntryMenu(mount, { details: openDetails });
 
-	// The menu the right button puts up. It is mounted before the table because
-	// the table is what asks for it, and it needs nothing the renderer holds:
-	// the point it opens at arrives with the question.
+	
+	
+	
 	const menu = mountPawnMenu(mount, {
 		layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
 		details: openDetails,
 	});
 
-	// THE THREE OF THESE REFER TO EACH OTHER AND THE CYCLE IS BROKEN WITH
-	// CALLBACKS RATHER THAN WITH ORDER. The table needs a socket to send a move
-	// and a renderer to know which floor is being looked at; the renderer needs
-	// the table to give it a tool; the socket needs the table to hand it a
-	// drag. Every one of those is a function call at the time it happens, so
-	// each is a closure over a `let` rather than a constructor argument.
+	
+	
+	
+	
+	
+	
 	let socket: Socket | null = null;
 	let renderer: Renderer | null = null;
 
-	// The fog tool's options pill. It is mounted before the table because the
-	// fog reads it and the table holds the fog, and it needs nothing either of
-	// them has: four buttons and which of them is pressed.
+	
+	
+	
 	const fogTool = mountFogTool(mount, tools);
 
-	// AND THE PEN'S, mounted for the fog pill's reason and rendered for every
-	// role rather than for the GM alone.
-	//
-	// THE COLOUR IT OPENS ON IS THIS VIEWER'S OWN, which is the colour their
-	// drag ghosts and their ruler are already drawn in for everybody else at the
-	// table -- so a line somebody draws is recognisably theirs before anybody is
-	// told whose it is. It is a starting value and not a rule: the picker on the
-	// pill overrides it for the session.
+	
+	
+	
+	
+	
+	
+	
+	
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
 
-	// AND THE PING'S NOISE. It has no control of its own in the room: how loud it
-	// is an account setting, so what reaches it is a number -- once from the
-	// attribute the room page rendered, and again from the settings dialog on
-	// every save.
-	//
-	// FULL IS WHAT AN ABSENT OR UNREADABLE ATTRIBUTE MEANS, and it matters which
-	// way round: a page served by a build that does not render it yet has to be a
-	// page where pings still work. See FULL in ping-sound.ts.
+	
+	
+	
+	
+	
+	
+	
+	
 	const sound = newPingSound();
 	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);
 	sound.volume(Number.isFinite(rendered) ? rendered : FULL);
@@ -157,15 +157,15 @@ if (mount) {
 	let overlay: Overlay | null = null;
 	let follow: Follow | null = null;
 
-	// The viewed floor, in one place: the GM's local choice lives in the
-	// renderer and nowhere else, and four things now ask for it.
+	
+	
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
 
-	// THE FOG IS BUILT HERE AND HANDED TO THE TABLE, rather than built by the
-	// table, because everything it needs is in this file: the socket to send a
-	// shape, the renderer to say which floor, the pill to say what the gesture
-	// means. pawns.ts hands it the four pointer events and asks it one question
-	// about concealment; it knows nothing else about fog. See fog.ts.
+	
+	
+	
+	
+	
 	const fog = createFog({
 		state,
 		role,
@@ -180,13 +180,13 @@ if (mount) {
 		options: fogTool.options,
 	});
 
-	// AND THE PEN, BUILT HERE FOR THE FOG'S REASON: the socket to send a line,
-	// the renderer to say which floor and how far a screen pixel goes, the pill
-	// to say whether the tool is chosen and what it is doing.
-	//
-	// IT READS THE STORE, which the fog does too and for the same one purpose:
-	// the eraser and Ctrl+Z both act on lines that are already on the table, and
-	// the store is where those are.
+	
+	
+	
+	
+	
+	
+	
 	const draw = createDraw({
 		state,
 		role,
@@ -209,93 +209,93 @@ if (mount) {
 		fog,
 		draw,
 
-		// THE VIEWED FLOOR IS THE RENDERER'S AND NOT THE STORE'S, because the
-		// GM's local choice to look at another floor exists only in there. A
-		// player has no such choice and falls back to the active layer, which
-		// is the only one they hold pawns for anyway.
+		
+		
+		
+		
 		viewed,
 		send: (command) => {
 			socket?.send(command);
 		},
 		invalidate: () => renderer?.invalidate(),
 
-		// WHICH MODE THE PILL IS IN, ASKED AT EVERY PRESS. A page that rendered
-		// no pill answers no, which is the table behaving as it always has
-		// rather than a table nothing can be done to.
+		
+		
+		
 		panning: () => tools?.panning() ?? false,
 
-		// AND WHETHER THE RULER IS THE MODE, which is the same question asked of
-		// the same pill and is deliberately not the same answer: the space bar
-		// borrows the pointer without changing which tool is chosen, so a
-		// measurement survives being panned across. See tools.ts.
+		
+		
+		
+		
 		measuring: () => tools?.measuring() ?? false,
 
-		// AND WHETHER THE POINTER IS THE MODE, asked of the same pill and
-		// answered no by a page that renders no pill -- which is a table where
-		// nothing can be pointed at rather than one where every press points.
+		
+		
+		
 		pinging: () => tools?.pinging() ?? false,
 
-		// A CAMERA THAT HAS NOT STARTED IS ONE MAP PIXEL PER SCREEN PIXEL,
-		// which is the identity rather than a guess: with no renderer there is
-		// no canvas, so nothing asks for a handle and the number is never used.
+		
+		
+		
 		scale: () => renderer?.mapPerPixel() ?? 1,
 
-		// A DOUBLE CLICK ON A PAWN OPENS ITS WINDOW, and this is where the room
-		// id lives. The canvas knows which pawn; pawn-window.ts knows what one
-		// of these windows is; neither of them knows which table is being
-		// looked at.
+		
+		
+		
+		
 		details: openDetails,
 
-		// AND THE RIGHT BUTTON ASKS THE MENU, which is the other half of the
-		// same split: the canvas found the pawn and worked out where on screen
-		// the question was asked, and everything about what a menu offers --
-		// the floors, the removal, who may see which -- belongs to markup that
-		// has the room in it.
+		
+		
+		
+		
+		
 		menu: (pawn, screen) => {
 			menu?.open(pawn, screen);
 		},
 
-		// AND DELETE PRESSES THE OVERLAY'S OWN BUTTON, which is what carries the
-		// hx-confirm. See overlay.ts: the confirmation belongs to the element
-		// making the request, so the way to get it is to press that element
-		// rather than to build the DELETE here.
+		
+		
+		
+		
 		remove: () => overlay?.remove(),
 	});
 
 	renderer = mountRenderer(mount, state, role, table);
 
-	// A MODE CHANGED WITH THE POINTER SITTING STILL IS STILL A FRAME. The measure
-	// tool leaves a ruler on the table and choosing another tool is what puts it
-	// away -- and nothing else would ask for the frame that stops drawing it,
-	// because the pill is a button in the corner and the canvas hears nothing
-	// about it.
+	
+	
+	
+	
+	
 	tools?.onChange(() => renderer?.invalidate());
 
-	// The bar's floor control belongs to the renderer's view rather than to the
-	// store, because half of what it shows -- which floor this GM is looking at
-	// as opposed to which one is active -- exists only in here. It follows the
-	// frame that settles it rather than the event, which is one frame earlier
-	// and one frame wrong.
+	
+	
+	
+	
+	
 	if (renderer) {
 		const bar = mountLayerBar(mount, state, renderer);
 		if (bar) {
 			renderer.onSettled(bar.refresh);
 		}
 
-		// AND THE LAYERED MENU ITEMS FOLLOW THE SAME SETTLING, for the same
-		// reason the bar does: Fill fog, Clear fog and Clear drawing all act on
-		// the floor being LOOKED at, and that is a fact only the renderer
-		// holds. See layered-menu.ts.
+		
+		
+		
+		
 		const layered = mountLayeredMenu(viewed);
 		if (layered) {
 			renderer.onSettled(layered.refresh);
 		}
 
-		// AND THE TABLE FOLLOWS THE SAME SETTLING, to drop a selection made on
-		// the floor just left. Without this a GM who selected four cellar
-		// goblins, switched floors to set up the next scene and pressed Delete
-		// believing nothing was selected would be asked to confirm removing
-		// what they could not see.
+		
+		
+		
+		
+		
 		renderer.onSettled(() => table.floorChanged());
 
 		const view = renderer;
@@ -306,31 +306,31 @@ if (mount) {
 			project: (x, y, out) => view.toScreen(x, y, out),
 			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),
 
-			// A PLAYER'S STORE NEVER HOLDS A HIDDEN PAWN, so this reads true
-			// for anything they could have selected. It costs nothing to be
-			// right there anyway: the button it answers for is the GM's, and
-			// a player's page renders none.
+			
+			
+			
+			
 			anyShown: (ids) => state.pawns.some((pawn) => pawn.visible && ids.includes(pawn.id)),
 			labels: () => state.table.pawnLabels,
 		});
 
 		if (overlay) {
-			// WHAT IT SAYS ON A CHANGE AND WHERE IT IS ON EVERY FRAME. Those
-			// are different rates and writing either at the other's would be
-			// wrong in a different way; see overlay.ts.
+			
+			
+			
 			table.onChange(overlay.refresh);
 			view.onFrame(overlay.place);
 		}
 
-		// AND THE TWO ACCOUNT SETTINGS THAT ARE ABOUT A TABLE RATHER THAN A
-		// PAGE. Both are rendered onto the mount by the room page out of the
-		// session, and both are read HERE rather than by the module that obeys
-		// them, so there is one place that knows the page carries an answer at
-		// all. See RoomPageData in templ/pages/room.go.
-		//
-		// THE VIEWED FLOOR IS THE RENDERER'S, exactly as it is for the table
-		// above: a GM looking at another floor is not looking at the fight, and
-		// the follow declines rather than dragging them back to it.
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		follow = mountFollow(state, {
 			viewed: () => view.view.viewed()?.id ?? state.table.activeLayer,
 			focus: (rect) => view.focus(rect),
@@ -339,27 +339,27 @@ if (mount) {
 		follow.following(mount.dataset.followTurn !== undefined);
 		view.showBlood(mount.dataset.showBlood !== undefined);
 
-		// AND NEITHER ANSWER IS FINAL, which is the reason both are a switch on
-		// a module that is always mounted rather than a module that is only
-		// mounted when the answer is yes. Settings in the room's Help menu
-		// opens the account dialog over the table, and the save comes back as
-		// this event -- so somebody can turn the blood off in the middle of the
-		// fight that made them want to, which is the only moment anybody ever
-		// wants to. See htmx.Settings, which raises it.
-		//
-		// ON window, for the reason theme.js gives: htmx dispatches an
-		// HX-Trigger event on the element that made the request and on document
-		// when that element has been swapped away, and window is downstream of
-		// both.
-		//
-		// THE NAME IN THE DETAIL IS NOT THIS BUNDLE'S. It is the homepage's
-		// greeting, read by public/js/account-name.js, and the room has nowhere
-		// to put it.
-		//
-		// A MISSING FIELD IS "ON" AND NOT "OFF", which is what the comparisons
-		// below are for. Both columns default to true, so an event from a
-		// server that does not send one of them yet should leave a reader with
-		// the setting they already had rather than quietly switching it off.
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		window.addEventListener(SETTINGS_CHANGE, (e) => {
 			const detail = (e as CustomEvent<{
 				followTurn?: boolean;
@@ -370,39 +370,39 @@ if (mount) {
 			follow?.following(detail?.followTurn !== false);
 			view.showBlood(detail?.showBlood !== false);
 
-			// THE VOLUME IS LEFT ALONE RATHER THAN DEFAULTED when it is missing,
-			// which is the same rule as the two above stated for a number: an
-			// event from a server that does not send this yet should leave the
-			// reader at the level they already had. Defaulting it would turn a
-			// mute back on every time somebody saved an unrelated setting.
+			
+			
+			
+			
+			
 			if (typeof detail?.pingVolume === "number") {
 				sound.volume(detail.pingVolume);
 			}
 		});
 	}
 
-	// The spawn dialog's own behaviour, and the bridge that turns a picked card
-	// into a canvas that is armed. It needs no socket and no canvas: a room
-	// whose renderer would not start still opens the dialog, and arming lands
-	// nowhere, which is the right amount of nothing to happen.
+	
+	
+	
+	
 	mountDialogs(table.arm);
 
-	// WHAT A PING MEANS TO THIS VIEWER, decided here because this is the only
-	// place that holds all four facts: who they are, which floor they are
-	// looking at, the canvas that draws the rings and the thing that makes the
-	// noise.
-	//
-	// THE RINGS ARE FOR EVERYBODY AND THE BLIP IS NOT.
-	//
-	// NOT FOR YOUR OWN, because you already know: the rings ARE the confirmation
-	// that the round trip landed, and a note on every one of your own presses
-	// turns a tool into a noise.
-	//
-	// NOT FOR A FLOOR YOU ARE NOT LOOKING AT, because a sound with nothing to
-	// see is the worst feedback there is -- the viewer hears something, looks at
-	// the map, and nothing happened. Only a GM can be on another floor at all;
-	// a player is always on the active one, which is the only floor they can be
-	// pinged on.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	const pinged = (layer: string, x: number, y: number, by: string) => {
 		renderer?.pinged(layer, x, y, by);
 
@@ -430,34 +430,34 @@ function start(
 	let debug: ReturnType<typeof wireDebug> | null = null;
 	let socket: Socket | null = null;
 
-	// THE FAN-OUT, IN THE ORDER IT HAS TO RUN. The reducer goes first, because
-	// everything after it reads the store; the navigation goes last, because
-	// nothing runs after it. Each entry is handed the whole event and decides
-	// for itself, so a new family of events is a new entry here rather than a
-	// new branch inside one of the others. See effects.ts.
+	
+	
+	
+	
+	
 	const effect = fanOut([
-		// REDUCE FIRST, THEN TELL EVERYBODY. A panel that refetched before the
-		// store had applied the event would be reading the server again
-		// anyway, but the canvas and the debug panel both read the store --
-		// and an order that put either first would show the room one frame
-		// behind for no reason.
+		
+		
+		
+		
+		
 		(event) => reduce(state, event),
 		announce,
 		(event) => debug?.event(event),
 
-		// THE RENDERER IS TOLD RATHER THAN SUBSCRIBED. It holds a reference to
-		// the same state object the reducer just mutated, so there is nothing
-		// to hand it; all it needs is to know that looking again is worth a
-		// frame. Asking on every event is right because the frame loop
-		// collapses however many arrive between two frames into one.
+		
+		
+		
+		
+		
 		() => renderer?.invalidate(),
 
-		// AND THE PAWNS ARE TOLD SEPARATELY, because their instance buffer is
-		// rebuilt on a change rather than per frame -- a pan is the common case
-		// by a wide margin and rebuilds nothing. The overlay is rewritten with
-		// them: what it says is read off the pawns, and a change that arrived
-		// over the wire would otherwise leave it describing a goblin still at
-		// full health after somebody else hit it.
+		
+		
+		
+		
+		
+		
 		(event) => {
 			if (touchesPawns(event.type)) {
 				renderer?.pawnsChanged();
@@ -465,61 +465,61 @@ function start(
 			}
 		},
 
-		// WIPING A FLOOR WIPES ITS BLOOD. The marks the canvas puts down when
-		// somebody is hurt are the viewer's own -- no event carries them -- so
-		// this is the only way they are ever cleared other than a reload.
-		// stroke.cleared is what the GM's "wipe the drawing" sends, and
-		// TableClear sends one per floor, so packing the table away cleans it.
+		
+		
+		
+		
+		
 		(event) => {
 			if (event.type === "stroke.cleared") {
 				renderer?.bloodCleared(event.layer);
 			}
 		},
 
-		// SOMEBODY POINTING AT A SQUARE, straight to the renderer. It is not
-		// reduced, not stored and not in the snapshot -- Pinged is Transient()
-		// on the server -- so this is the only thing in the app that ever hears
-		// about one, and there is nothing to keep in step with.
-		//
-		// THIS VIEWER'S OWN COMES BACK OFF THE WIRE LIKE ANYBODY ELSE'S and is
-		// drawn here rather than at the press, so a ping is in the same place at
-		// the same time on every screen. See Ping.Apply in internal/room.
+		
+		
+		
+		
+		
+		
+		
+		
 		(event) => {
 			if (event.type === "pinged") {
 				pinged(event.layer, event.x, event.y, event.by ?? "");
 			}
 		},
 
-		// AND A SNAPSHOT IS NOT A ROUND OF COMBAT. It arrives on the first join
-		// and on every reconnect, and what it carries is the table as it is
-		// NOW -- which, after a laptop lid has been shut for three rounds,
-		// differs from what the canvas remembers by everything that happened
-		// in them. The marks already down stay and the comparison starts again
-		// from here.
+		
+		
+		
+		
+		
+		
 		(event) => {
 			if (event.type === "snapshot") {
 				renderer?.bloodResync();
 			}
 		},
 
-		// THE TURN CLOCK IS TOLD WHEN THE TURN MIGHT HAVE MOVED. It compares
-		// the active entry with the one it last saw, so a tracker edited
-		// mid-turn does not restart the clock and a snapshot after a reconnect
-		// does not either.
+		
+		
+		
+		
 		(event) => {
 			if (event.type === "snapshot" || event.type === "initiative.updated") {
 				turns?.changed();
 			}
 		},
 
-		// The camera, whoever's turn it is, and the ghosts other people are
-		// dragging. Each of these already reads the whole event.
+		
+		
 		(event) => follow?.event(event),
 		(event) => table.preview(event),
 
-		// A REFUSAL IS SHOWN. The server wrote a heading and a message for the
-		// person reading it; the alert modal is where every other refusal in
-		// the app lands, and this is the socket's door into it.
+		
+		
+		
 		refusals({
 			alert: (heading, message) => {
 				window.dispatchEvent(new CustomEvent(ALERT, { detail: { heading, message } }));
@@ -527,10 +527,10 @@ function start(
 			resync: () => socket?.resync(),
 		}),
 
-		// LAST, AND AFTER THE DEBUG PANEL HAS SEEN IT. This navigates, so
-		// nothing after it would run -- and in development the frame that
-		// explains why the tab just changed page is worth having in the log
-		// first.
+		
+		
+		
+		
 		(event) => {
 			if (event.type === "player.kicked") {
 				leaveKicked(event.reason);
@@ -544,11 +544,11 @@ function start(
 		status(status: Status, detail: string) {
 			debug?.status(status, detail);
 
-			// THE TWO ENDINGS THAT ARE NOT A KICK. A person who pressed Leave
-			// in another tab has left in this one too, so this tab goes where
-			// that one went. A tab past the connection cap is told why, and
-			// then sits: it holds no socket, and every control on it will be
-			// refused, but closing somebody's tab for them is not this file's.
+			
+			
+			
+			
+			
 			if (status !== "ended") {
 				return;
 			}

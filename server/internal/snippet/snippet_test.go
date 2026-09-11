@@ -9,11 +9,11 @@ import (
 const prose = "We spent the morning in the market square before the guards moved us on, " +
 	"and by evening had found Béornegar drinking alone at the Crooked Lantern."
 
-// The property the whole package exists to keep. journals is utf8mb4_0900_ai_ci,
-// so MySQL has already matched the unaccented spelling by the time a row is
-// handed here; a fold that did less would drop a row the database was right to
-// return, and the reader would watch a result disappear as they typed the name
-// the way they heard it.
+
+
+
+
+
 func TestAnUnaccentedSearchFindsTheAccentedName(t *testing.T) {
 	hit, ok := Find(prose, "Beornegar", 60)
 	if !ok {
@@ -24,7 +24,7 @@ func TestAnUnaccentedSearchFindsTheAccentedName(t *testing.T) {
 	}
 }
 
-// The marked text is the entry's, not the query's, in case as well as accent.
+
 func TestTheMarkedTextIsTheWritersSpelling(t *testing.T) {
 	hit, ok := Find("The Crooked Lantern was shut.", "crooked lantern", 40)
 	if !ok {
@@ -35,12 +35,12 @@ func TestTheMarkedTextIsTheWritersSpelling(t *testing.T) {
 	}
 }
 
-// THE TEST THAT CATCHES THE FOLD WRITTEN THE OBVIOUS WAY. Every accent before
-// the match makes the folded string shorter than the original by a byte, so an
-// offset measured in the fold and applied to the original lands earlier and
-// earlier -- and the further in the match is, the further the cut slides. A
-// fold that returns no offset map passes every other test here and fails this
-// one by marking the wrong word or by splitting a rune in half.
+
+
+
+
+
+
 func TestOffsetsSurviveTheAccentsBeforeTheMatch(t *testing.T) {
 	body := strings.Repeat("Béornegar and Ísolde and Æthelred walked. ", 12) + "The ring was buried here."
 
@@ -58,17 +58,17 @@ func TestOffsetsSurviveTheAccentsBeforeTheMatch(t *testing.T) {
 	}
 }
 
-// A term that is only in the markdown's plumbing is not a result. The caller
-// hands over the projected body, so this is what makes the URL behind a picture
-// stop matching.
+
+
+
 func TestATermThatIsNotInTheTextIsNotAHit(t *testing.T) {
 	if _, ok := Find(prose, "assets", 60); ok {
 		t.Error("a word the entry does not contain was reported as a hit")
 	}
 }
 
-// An empty term matches nothing rather than everything. The handler already
-// routes a blank box to the unfiltered list, so this is the second line.
+
+
 func TestAnEmptyTermIsNotAHit(t *testing.T) {
 	for _, term := range []string{"", "   "} {
 		if _, ok := Find(prose, term, 60); ok {
@@ -77,7 +77,7 @@ func TestAnEmptyTermIsNotAHit(t *testing.T) {
 	}
 }
 
-// The ellipsis is a claim that text was cut, so it is absent when none was.
+
 func TestTheEllipsisMarksOnlyAWindowThatCut(t *testing.T) {
 	hit, ok := Find(prose, "morning", 60)
 	if !ok {
@@ -99,8 +99,8 @@ func TestTheEllipsisMarksOnlyAWindowThatCut(t *testing.T) {
 	}
 }
 
-// The window opens on a word rather than in the middle of one, so a snippet
-// reads as a phrase.
+
+
 func TestTheWindowCutsAtAWordBoundary(t *testing.T) {
 	hit, ok := Find(prose, "Crooked", 24)
 	if !ok {
@@ -116,9 +116,9 @@ func TestTheWindowCutsAtAWordBoundary(t *testing.T) {
 	}
 }
 
-// One hit per entry. An entry naming a town nine times is one result with one
-// line of context, and it is the first mention -- the sentence most likely to
-// be the one that introduces it.
+
+
+
 func TestTheFirstMatchIsTheOneShown(t *testing.T) {
 	hit, ok := Find("The ring is first. Then more words follow. The ring is second.", "ring", 12)
 	if !ok {
@@ -132,8 +132,8 @@ func TestTheFirstMatchIsTheOneShown(t *testing.T) {
 	}
 }
 
-// A term spanning a space is one term. The box is read as ctrl-F and ctrl-F
-// takes a phrase.
+
+
 func TestAMultiWordTermMatchesAsAPhrase(t *testing.T) {
 	hit, ok := Find(prose, "market square", 40)
 	if !ok {
@@ -144,8 +144,8 @@ func TestAMultiWordTermMatchesAsAPhrase(t *testing.T) {
 	}
 }
 
-// Contains is what a title is checked with, and it folds the same way Find
-// does -- a title is a plain column, so a match in one is always visible.
+
+
 func TestContainsFoldsTheSameWayFindDoes(t *testing.T) {
 	if !Contains("Session 12: Béornegar", "beornegar") {
 		t.Error("a title match was missed by case and accent")

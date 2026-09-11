@@ -20,34 +20,34 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// The journal tab. An entry is a row of its own, like an inventory item, and
-// the editor page saves it on a debounce the way every panel on the sheet does.
-//
-// TWO OF THESE FIVE ANSWER A BROWSER AND THREE ANSWER HTMX, and the difference
-// decides how a miss is reported. htmx.NotFound writes an HX-Trigger header and
-// an empty 404 body, which raises the alert dialog for a request the page made
-// and is a blank screen for a navigation. So the two page routes and the create
-// post -- which is a plain form submission -- redirect, and only the save and
-// the delete answer with htmx.NotFound.
-//
-// The limits are enforced here, in the units the columns count, because MySQL
-// runs in strict mode: an overlong value comes back from the driver as an error
-// and would reach the writer as a 500 on a field they were entitled to overfill.
-// The title is measured in characters, which is what VARCHAR counts; the body is
-// measured in bytes, which is what MEDIUMTEXT counts.
-//
-// 256 KB of body is roughly forty pages of prose. MEDIUMTEXT holds 16 MB and
-// ParseForm takes 10 MB, so neither is the ceiling here -- the cap is low
-// because the whole body is posted on every debounce, and a runaway paste should
-// be refused with a message rather than shipped over the wire once a second.
-//
-// The search term is capped at the title's length for no deeper reason than
-// that nothing longer is a search. The box carries the same number as a
-// maxlength, so the cap is reachable only by a request nobody's browser made.
-//
-// journalSnippetRadius is how much of the entry a search result shows either
-// side of the term. Enough for the clause the term sits in, short enough that
-// two of them and a title still fit the two lines the card clamps to.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const (
 	journalTitleLimit    = 255
 	journalBodyLimit     = 262144
@@ -64,9 +64,9 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The page always renders the whole list. A ?q= on it would have to come
-	// from a bookmark, because the box never puts one there -- see the search
-	// route for why the search stays out of the URL.
+	
+	
+	
 	entries, err := a.journalEntries(ctx, characterID, sess.UserID, "")
 	if err != nil {
 		slog.Error("Failed to load journal entries", "error", err)
@@ -81,28 +81,28 @@ func (a *App) CharacterJournalPage(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// JournalEntriesFragment is the list under the search box, filtered by ?q=. It
-// is a GET returning the same component the page renders, which is what the
-// /fragment/ prefix promises.
-//
-// IT DOES NOT LOAD THE CHARACTER. Every other journal route does, because every
-// other one needs the row or needs to redirect somewhere sensible without it.
-// This one needs neither: owner_id goes into the query beside character_id, so
-// an id belonging to somebody else matches nothing and comes back as an empty
-// list. That reply is indistinguishable from an empty journal, which is the
-// point -- it says nothing about whether the character exists. A GetCharacter
-// before the search would be a second round trip to learn something the search
-// already enforces.
-//
-// THE SEARCH IS NOT IN THE URL, and hx-push-url is deliberately absent from the
-// box. htmx pushes on every swap, and the swaps here are on a 250ms debounce, so
-// pushing would file a history entry per pause in typing and leave Back walking
-// the term backwards a few characters at a time. A filter on a list is worth
-// less than a working Back button.
-//
-// A bad character id is a 404 with an empty body, not htmx.NotFound: the id came
-// off the page's own markup, so a request carrying a broken one is not a reader
-// who has lost a character and has nothing to be told.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) JournalEntriesFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -115,9 +115,9 @@ func (a *App) JournalEntriesFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Trimmed, so a term someone is still typing a space into does not stop
-	// matching, and so a box holding nothing but spaces is the whole list
-	// rather than a search for a space.
+	
+	
+	
 	term := strings.TrimSpace(params.Get("q"))
 	if len([]rune(term)) > journalSearchLimit {
 		w.WriteHeader(http.StatusNotFound)
@@ -139,13 +139,13 @@ func (a *App) JournalEntriesFragment(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// CharacterJournalEntryPage is the editor for one entry, and the only read in
-// the app that carries a body.
-//
-// THE ENTRY ID IS PARSED BEFORE THE CHARACTER IS LOADED. A page whose last
-// segment is not a ULID has no row to fetch no matter who owns the character, so
-// asking the database first would be a query run to reach a redirect that was
-// already decided.
+
+
+
+
+
+
+
 func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -176,19 +176,19 @@ func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// THE ONLY PAGE IN THE APP THAT SENDS A CSP, and it sends one line of it.
-	// The entry body is markdown the writer typed, an image in it is an <img>
-	// the editor renders, and every legitimate one is served by this origin --
-	// so a remote URL in there can only have got in by being typed into the
-	// textarea fallback or pasted as HTML the editor did not catch. Refusing to
-	// load it makes that a broken image rather than a request telling a third
-	// party which of this user's entries was open and when.
-	//
-	// It is the backstop rather than the rule: foreign URLs are stripped when a
-	// read view renders, and the read view will have to send this header too.
-	// img-src alone, because nothing else about this page is being constrained
-	// here and a default-src would be a policy for the whole app written in the
-	// one handler that needed a line of it.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	w.Header().Set("Content-Security-Policy", "img-src 'self'")
 
 	render(w, r, pages.EditCharacterJournalEntry(pages.JournalEntryPageData{
@@ -200,15 +200,15 @@ func (a *App) CharacterJournalEntryPage(w http.ResponseWriter, r *http.Request) 
 	}))
 }
 
-// CreateJournalEntry inserts a blank entry and sends the browser into its
-// editor. That is the whole of creation: there is nothing to collect, because
-// the title is a field on the page this redirects to.
-//
-// IT IS A PLAIN FORM POST, not htmx, which is why it answers with a 303 rather
-// than an HX-Redirect. The character dialog is htmx because it carries a field
-// that can be rejected without leaving the page; a button with nothing to
-// validate has no such state, and a form the browser submits itself needs no
-// JavaScript at all.
+
+
+
+
+
+
+
+
+
 func (a *App) CreateJournalEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -220,10 +220,10 @@ func (a *App) CreateJournalEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entryID := ulid.Make()
-	// The statement selects from characters, so a character that is not this
-	// user's matches nothing and inserts nothing. Zero rows is that, and it is
-	// the only thing it can be: the id is freshly minted, so a duplicate key is
-	// not on the table.
+	
+	
+	
+	
 	result, err := a.Queries.InsertJournalEntry(ctx, queries.InsertJournalEntryParams{
 		ID:          entryID,
 		CharacterID: characterID,
@@ -242,8 +242,8 @@ func (a *App) CreateJournalEntry(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/characters/"+characterID.String()+"/edit/journal/"+entryID.String())
 }
 
-// SaveJournalEntry is the editor's autosave. It writes the two columns the page
-// renders and nothing else.
+
+
 func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -274,27 +274,27 @@ func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	// `announce` arrives only from the Save button in the page header, which
-	// carries it in hx-vals; the debounce on the form never sends it. Reading a
-	// field the form does not render is the shape the panel handlers avoid, and
-	// it is safe here for the one reason that matters: absent means silent,
-	// which is the behaviour the autosave wants, and the worst a misread can do
-	// is a missing or an extra toast.
+	
+	
+	
+	
+	
+	
 	finishJournalEntry(w, r, result, err, r.PostFormValue("announce") != "", func() {
 		a.reconcileJournalImages(ctx, characterID, entryID, sess.UserID, input.Body)
 	})
 }
 
-// DeleteJournalEntry drops one row. The reply carries no body, and it MUST be a
-// 200: base.templ's noSwap config lists 204, and a status in that list sets the
-// swap to "none", which overrides the hx-swap="delete" on the button and leaves
-// the entry sitting on screen after the database has dropped it. Every other
-// delete in the app is the same shape for the same reason.
-//
-// THE ENTRY'S IMAGES ARE DETACHED, NOT DELETED, and that is two statements
-// rather than one plus a loop over R2. An entry holding forty pictures deletes
-// in the same time as an entry holding none, the sweeper takes the objects a
-// day later, and until it does an undo still finds them.
+
+
+
+
+
+
+
+
+
+
 func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -308,15 +308,15 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// THE LINK GOES BEFORE THE ENTRY DOES. Deleting the row is the whole of
-	// revoking, and doing it first means every ordering here fails closed: if
-	// the delete below never runs, the entry survives with nothing pointing at
-	// it from outside, which is strictly less exposure than it had. The other
-	// way round would leave a live link over a deleted entry for as long as it
-	// took someone to try again.
-	//
-	// Zero rows is the ordinary case -- most entries are never shared -- so
-	// nothing is read from the result.
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	if _, err := a.Queries.DeleteJournalShare(ctx, queries.DeleteJournalShareParams{
 		EntryID:     entryID,
 		CharacterID: &characterID,
@@ -327,12 +327,12 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Then the images, because they are found through journal_id and the row
-	// that column points at is about to be gone. The statement is scoped by the
-	// owner, so it matches nothing on a stranger's entry and the delete's zero
-	// rows is still what answers them. If the delete fails after this, the next
-	// save of the entry re-attaches whatever it still references -- the order
-	// heals itself in the direction that matters.
+	
+	
+	
+	
+	
+	
 	err := a.Queries.DetachJournalImages(ctx, queries.DetachJournalImagesParams{
 		JournalID: &entryID,
 		OwnerID:   sess.UserID,
@@ -361,32 +361,32 @@ func (a *App) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, "Entry deleted.")
 }
 
-// finishJournalEntry is finishRow with the toast made conditional and a
-// callback in the middle, and those two are the whole reason it is its own
-// function -- the checks are savedRow's, like every other save in the app.
-//
-// An inventory field is a few words and a save there is an event worth
-// announcing. A journal save is a pause between two sentences, and toast.js
-// stacks its messages for five seconds each -- so a writing session would end
-// with a column of "Entry saved." down the side of the page and the writer's own
-// prose behind it. Silence is the correct report for a save nobody asked for.
-//
-// A SAVE SOMEONE ASKED FOR IS DIFFERENT, and it is why the Save button exists at
-// all: the entry was always being saved, and a writer with nothing to read that
-// from has to take it on faith. So the button posts the same form to the same
-// route and asks to be told, and this is where being told happens -- after the
-// write, on the response that carries it, rather than from the client guessing
-// off a status code.
-//
-// saved runs once the write is known to have landed and before anything is put
-// on the response. It is the entry's images being reconciled against the body
-// that was just stored, and it is a parameter rather than a line in the caller
-// because the check that guards it is here: an entry deleted in another tab
-// matched nothing, has no body to reconcile against, and gets the 404 below.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Result, err error, announce bool, saved func()) {
-	// "journal entry" is the noun: zero matched rows is the entry being gone --
-	// deleted in another tab, most likely -- rather than the character not
-	// being this user's.
+	
+	
+	
 	if !savedRow(w, pages.JournalEntryPanel, "journal entry", result, err) {
 		return
 	}
@@ -400,18 +400,18 @@ func finishJournalEntry(w http.ResponseWriter, r *http.Request, result sql.Resul
 	renderPanelBlock(w, r, pages.JournalEntryPanel, nil)
 }
 
-// JournalLinkFragment is the editor's link dialog: a heading, one field and two
-// buttons. It is the only fragment in the app with no server resource behind it
-// -- nothing is posted, and journal-editor.js takes the submit, fills the field
-// from the href under the cursor and applies the result to the document.
-//
-// It exists because window.prompt is as banned here as window.confirm, and a
-// dialog has to come from somewhere. Rendering it server-side keeps it looking
-// like every other dialog for free.
-//
-// IT TAKES NOTHING, so a query string is a 404 with an empty body rather than
-// something to validate. http.NotFound is wrong here: it writes a page-shaped
-// body into a dialog.
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) JournalLinkFragment(w http.ResponseWriter, r *http.Request) {
 	if r.URL.RawQuery != "" {
 		w.WriteHeader(http.StatusNotFound)
@@ -427,13 +427,13 @@ type journalInput struct {
 	Body  string
 }
 
-// buildJournalInput reads the editor's two fields. Neither is required: an entry
-// is created blank and named afterwards, so a required title would mean the
-// browser refused to post the entry that most needs posting.
-//
-// THE BODY IS STORED EXACTLY AS IT ARRIVES. Trimming it the way the title is
-// trimmed would eat the leading spaces of an indented code block, and markdown
-// is a format where leading whitespace is content rather than noise.
+
+
+
+
+
+
+
 func buildJournalInput(r *http.Request) (journalInput, []string) {
 	var problems []string
 
@@ -460,10 +460,10 @@ func journalEntryID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
 	return entryID, true
 }
 
-// redirectToJournal is where a page request that names an entry it cannot have
-// goes. The character id is reparsed rather than passed through, so a path
-// segment that is not a ULID lands on the character list instead of being
-// reflected back into a Location header.
+
+
+
+
 func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 	characterID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
@@ -474,34 +474,34 @@ func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/characters/"+characterID.String()+"/edit/journal")
 }
 
-// journalEntries reads one character's list, filtered when there is a term to
-// filter by. Both branches build the same rows, so the caller cannot tell a
-// search from a list and does not need to -- the search branch fills one more
-// field, and it is the field a list has nothing to put in.
-//
-// AN EMPTY TERM TAKES THE UNFILTERED QUERY rather than searching for "%%",
-// which would match every row and be the same answer. The difference is what
-// gets read to produce it: the list query never names body, and the search one
-// reads it. Clearing the box is the common case -- it happens at the end of
-// every search -- and it should cost what the page load costs.
-//
-// THE SQL DECIDES THE CANDIDATES AND THIS DECIDES THE RESULTS. LIKE runs
-// against stored markdown, so it matches text that is in the entry without ever
-// being on the page: every entry holding a picture matches `assets`, because
-// that word is in the URL the markdown carries. So a row survives only if the
-// term is in what a reader sees -- the projected body, or the title, which is a
-// plain column and always visible. Two things follow, and both are wanted:
-// every result can show the reader why it matched, and matching on the plumbing
-// stops happening.
-//
-// THE ROWS THIS DROPS WERE ALREADY WRONG. It narrows what the box returns
-// against what it returned before, which is the point rather than a cost --
-// there was no way to act on those hits anyway, because opening the entry to
-// look for the term would not have found it either.
-//
-// A TITLE MATCH IS A RESULT WITH NO SNIPPET, deliberately. The term is in the
-// heading of the card, an inch above where the line would go, and repeating it
-// underneath would be the same words twice.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID, term string) ([]pages.JournalEntry, error) {
 	p := session.FromContext(ctx).Prefs
 
@@ -549,20 +549,20 @@ func (a *App) journalEntries(ctx context.Context, characterID, ownerID ulid.ULID
 	return entries, nil
 }
 
-// journalSearchWildcards escapes what LIKE reads as a pattern. `%` and `_` are
-// wildcards to MySQL and ordinary punctuation to a person, and `\` is what
-// escapes them, so it has to be doubled first or escaping the other two would
-// arm it. Without this, typing a single `%` matches every entry the character
-// has and `_` quietly matches any character at all.
-//
-// MySQL's default LIKE escape is `\` and the values arrive as bound parameters,
-// so this is the only place the string is ever read as a pattern.
+
+
+
+
+
+
+
+
 var journalSearchWildcards = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
 
-// journalSearchPattern turns a term into a substring match, which is what a box
-// above a list is read as doing. Anchoring it instead -- `term%` -- would find
-// "marsh" in "marshalling" and miss it in "the marsh", and the second is the one
-// somebody searching their own prose is looking for.
+
+
+
+
 func journalSearchPattern(term string) string {
 	return "%" + journalSearchWildcards.Replace(term) + "%"
 }
@@ -576,16 +576,16 @@ func journalPageEntry(p prefs.Preferences, id ulid.ULID, title string, created, 
 	}
 }
 
-// journalTimestamp renders one date twice: the instant for a machine, and the
-// reader's own rendering for a person.
-//
-// THE PREFERENCES COME OFF THE SESSION AND ARE NOT AN ARGUMENT THE PAGE CHOOSES.
-// MySQL runs at +00:00 and the DSN parses times, so every handler here holds a
-// UTC time.Time; what turns it into a date somebody can read is four settings
-// that belong to the request, not to the journal. This used to be the browser's
-// job -- the text said UTC and a custom element rewrote it on load -- and
-// moving it to the server is what lets the page be right before it paints and
-// right with JavaScript off.
+
+
+
+
+
+
+
+
+
+
 func journalTimestamp(p prefs.Preferences, at time.Time) pages.Timestamp {
 	iso, text := p.Format(at)
 

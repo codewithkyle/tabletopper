@@ -10,11 +10,11 @@ import (
 	"tabletopper/templ/pages"
 )
 
-// The file is the deliverable here, so most of these read it back rather than
-// checking that a function was called. What they are protecting is not prose --
-// it is the three things a generated Markdown file gets wrong: a block that
-// renders as one run-on paragraph, a property block a parser refuses, and a
-// table row that silently shifts every cell after it one column left.
+
+
+
+
+
 
 func fullStatBlock() pages.StatBlock {
 	return pages.StatBlock{
@@ -81,11 +81,11 @@ func fullSheet() pages.SharedCharacterSheet {
 	}
 }
 
-// EVERY VALUE THE PAGE WAS GIVEN REACHES THE FILE. A section quietly missing
-// from an export is the failure mode this whole package has -- nothing errors,
-// the file downloads, and a GM feeding it to a model gets an answer built on a
-// character with no spells. So both fixtures are filled in and every value is
-// looked for by name.
+
+
+
+
+
 func TestEveryValueOnTheSheetReachesTheFile(t *testing.T) {
 	file := string(Character(fullSheet()))
 
@@ -132,9 +132,9 @@ func TestEveryValueOnTheStatBlockReachesTheFile(t *testing.T) {
 	}
 }
 
-// A REGIONAL EFFECT HAS NO NAME and the book prints those as a bare list, so the
-// file has to be able to write a paragraph with nothing bold in front of it. The
-// alternative -- an empty pair of asterisks -- renders as two stray characters.
+
+
+
 func TestAnUnnamedEntryIsWrittenAsAPlainParagraph(t *testing.T) {
 	file := string(Monster(fullStatBlock(), ""))
 
@@ -143,10 +143,10 @@ func TestAnUnnamedEntryIsWrittenAsAPlainParagraph(t *testing.T) {
 	}
 }
 
-// NO PICTURE AND NO ID EVER REACHES THE FILE. Every image URL in this app needs
-// a session or a token, so a reference to one is a broken image in somebody's
-// vault forever -- and a file that named the row it came from would be a thing
-// pasted into a chat window that says which account it belongs to.
+
+
+
+
 func TestNoPictureAndNoIdentifierIsWrittenIntoTheFile(t *testing.T) {
 	for name, file := range map[string]string{
 		"monster":   string(Monster(fullStatBlock(), "")),
@@ -162,11 +162,11 @@ func TestNoPictureAndNoIdentifierIsWrittenIntoTheFile(t *testing.T) {
 	}
 }
 
-// THE PROPERTY BLOCK IS THE ONE PART A PARSER READS STRICTLY, and every value in
-// it was typed by a person into a column that allows quotes and newlines. An
-// unescaped one ends the value early and turns the rest of the name into broken
-// YAML -- which Obsidian reports as a file with no properties at all rather than
-// as an error anybody could act on.
+
+
+
+
+
 func TestAnAwkwardNameCannotBreakTheFrontmatter(t *testing.T) {
 	block := fullStatBlock()
 	block.Name = "The \"Dragon\"\nof \\ Doom\r\n"
@@ -180,8 +180,8 @@ func TestAnAwkwardNameCannotBreakTheFrontmatter(t *testing.T) {
 	if strings.Contains(front, "\n---") {
 		t.Errorf("the frontmatter ends early:\n%s", front)
 	}
-	// Every property is `key: "value"`, except the one list -- `tags:` and an
-	// indented member under it.
+	
+	
 	for _, line := range strings.Split(front, "\n") {
 		if line == "tags:" || strings.HasPrefix(line, "  - ") {
 			continue
@@ -195,10 +195,10 @@ func TestAnAwkwardNameCannotBreakTheFrontmatter(t *testing.T) {
 	}
 }
 
-// A COLUMN NOTHING FILLS IS NOT WRITTEN. Abbr is set on every skill and on no
-// saving throw -- the ability a row keys off is worth saying under Acrobatics
-// and is not under Strength -- so the two tables differ by a column, exactly as
-// the markup differs by a span it does not print.
+
+
+
+
 func TestTheSavingThrowsTableHasNoEmptyAbilityColumn(t *testing.T) {
 	file := string(Character(fullSheet()))
 
@@ -219,10 +219,10 @@ func TestTheSavingThrowsTableHasNoEmptyAbilityColumn(t *testing.T) {
 	}
 }
 
-// A PIPE IN A CELL OPENS A COLUMN THE DIVIDER ROW HAS NO WIDTH FOR, and every
-// cell after it in that row lands under the wrong heading -- so a skill somebody
-// called "Sleight of Hand | Cards" would silently move their bonus into the
-// ability column. It is the one place the body is escaped.
+
+
+
+
 func TestAPipeInAValueCannotOpenAColumn(t *testing.T) {
 	sheet := fullSheet()
 	sheet.Skills = []pages.SharedBonus{{Label: "Cards | Dice", Abbr: "DEX", Total: "+9"}}
@@ -232,9 +232,9 @@ func TestAPipeInAValueCannotOpenAColumn(t *testing.T) {
 		t.Errorf("the pipe was not escaped:\n%s", file)
 	}
 
-	// Every row of a table has to have the heading row's shape. The file holds
-	// several tables of different widths, so each run of rows is measured
-	// against its own first line rather than against a number.
+	
+	
+	
 	width := 0
 	for _, line := range strings.Split(file, "\n") {
 		if !strings.HasPrefix(line, "| ") {
@@ -253,10 +253,10 @@ func TestAPipeInAValueCannotOpenAColumn(t *testing.T) {
 	}
 }
 
-// A NEWLINE INSIDE A LABEL OR A CELL BREAKS THE SHAPE AROUND IT: a bullet
-// becomes two, and a table row becomes a row and a paragraph. Prose keeps its
-// newlines -- that is what prose is -- so only the values that sit inside a line
-// of markup are flattened.
+
+
+
+
 func TestAValueInsideMarkupIsFlattened(t *testing.T) {
 	sheet := fullSheet()
 	sheet.Identity = []pages.SharedFact{{Label: "Species", Value: "Half-Elf\nand proud"}}
@@ -271,10 +271,10 @@ func TestAValueInsideMarkupIsFlattened(t *testing.T) {
 	}
 }
 
-// TWO LINES WITH ONE NEWLINE BETWEEN THEM ARE ONE PARAGRAPH, which is the thing
-// that goes wrong in a generated Markdown file: the source looks right and the
-// rendered page runs every stat line together. Blocks are what make it
-// unrepresentable, and this is the check that they are still doing it.
+
+
+
+
 func TestBlocksAreSeparatedByExactlyOneBlankLine(t *testing.T) {
 	for name, file := range map[string]string{
 		"monster":   string(Monster(fullStatBlock(), "It has slept.")),
@@ -296,9 +296,9 @@ func TestBlocksAreSeparatedByExactlyOneBlankLine(t *testing.T) {
 	}
 }
 
-// AN EMPTY SECTION IS NOT WRITTEN AT ALL, which is the page's own rule: a
-// character with no attacks has no Attacks panel, and now no Attacks heading
-// either. A file listing what somebody has not got is longer and less useful.
+
+
+
 func TestAnEmptySheetWritesNoHeadings(t *testing.T) {
 	file := string(Character(pages.SharedCharacterSheet{}))
 
@@ -315,9 +315,9 @@ func TestAnEmptySheetWritesNoHeadings(t *testing.T) {
 	}
 }
 
-// THE FILENAME IS THE ONE VALUE THAT REACHES A HEADER, so it is a slug and not a
-// name: a quote in it would end the Content-Disposition parameter early and
-// leave the rest of the monster's name as syntax the browser has to guess at.
+
+
+
 func TestTheFilenameIsASlugAndNeverTheNameItself(t *testing.T) {
 	for name, want := range map[string]string{
 		"Ancient Red Dragon":     "ancient-red-dragon.md",
@@ -342,14 +342,14 @@ func TestTheFilenameIsASlugAndNeverTheNameItself(t *testing.T) {
 	}
 }
 
-// THE TWO STRUCTS THIS PACKAGE WALKS ARE THE PAGES' OWN, and a field added to
-// either is a field the export will silently not write. Neither compiler nor
-// test would notice: the file just comes out missing a section.
-//
-// So the field lists are written down here, and adding one is a failing test
-// with a one-line fix -- either export it or say in this list that it is not
-// exported. It is the same reflect check the password gate uses, and for the
-// same reason: what a type is allowed to carry is the assertion.
+
+
+
+
+
+
+
+
 func TestTheExportedTypesHaveNotGrownAFieldNobodyExports(t *testing.T) {
 	for name, c := range map[string]struct {
 		fields any

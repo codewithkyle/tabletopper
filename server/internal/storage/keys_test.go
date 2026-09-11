@@ -14,9 +14,9 @@ var (
 	testOther = ulid.MustParse("01JDDDDDDDDDDDDDDDDDDDDDD4")
 )
 
-// The exact shape of a tile key is a wire format: it is what the tile route
-// parses out of a URL and what the renderer builds one from, so a change here
-// is a change to both and should not be able to happen quietly.
+
+
+
 func TestMapTileKeyFormat(t *testing.T) {
 	got := MapTileKey(testUser, testAsset, testGen, 3, 12, 7)
 	want := "users/" + testUser.String() +
@@ -28,10 +28,10 @@ func TestMapTileKeyFormat(t *testing.T) {
 	}
 }
 
-// Deleting a map is DeletePrefix on its asset prefix, and that is the whole
-// deletion: no key is listed anywhere else. So every key a map can own has to
-// be under it, the original included -- one that escaped would be an orphan
-// nothing ever looks for again.
+
+
+
+
 func TestEveryMapKeyIsUnderTheAssetPrefix(t *testing.T) {
 	prefix := MapPrefix(testUser, testAsset)
 
@@ -47,9 +47,9 @@ func TestEveryMapKeyIsUnderTheAssetPrefix(t *testing.T) {
 	}
 }
 
-// A superseded generation is deleted while the map lives on, so the split has
-// to fall in exactly one place: everything the pyramid produced goes, and the
-// original -- the source every future re-tile decodes -- stays.
+
+
+
 func TestGenerationPrefixCoversThePyramidAndNotTheOriginal(t *testing.T) {
 	prefix := MapGenerationPrefix(testUser, testAsset, testGen)
 
@@ -64,9 +64,9 @@ func TestGenerationPrefixCoversThePyramidAndNotTheOriginal(t *testing.T) {
 	}
 }
 
-// Two generations of the same map never share a key, which is what lets the
-// old one keep serving while the new one is built and what makes a tile URL
-// safe to cache for a year.
+
+
+
 func TestGenerationsDoNotShareTileKeys(t *testing.T) {
 	first := MapTileKey(testUser, testAsset, testGen, 2, 4, 4)
 	second := MapTileKey(testUser, testAsset, testOther, 2, 4, 4)
@@ -76,9 +76,9 @@ func TestGenerationsDoNotShareTileKeys(t *testing.T) {
 	}
 }
 
-// DeletePrefix refuses anything that does not end in "/", so a prefix builder
-// that dropped one would turn every deletion into an error rather than into a
-// wider delete than intended.
+
+
+
 func TestMapPrefixesEndInASlash(t *testing.T) {
 	if prefix := MapPrefix(testUser, testAsset); !strings.HasSuffix(prefix, "/") {
 		t.Errorf("MapPrefix = %q, want a trailing slash", prefix)

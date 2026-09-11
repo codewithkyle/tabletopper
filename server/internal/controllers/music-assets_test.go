@@ -11,15 +11,15 @@ import (
 	"tabletopper/internal/session"
 )
 
-// startUpload posts one begin-upload request and SWALLOWS THE PANIC THAT
-// FOLLOWS A SUCCESSFUL ONE.
-//
-// Every App here has a nil Storage, which is deliberate: presigning is the step
-// straight after the insert, so a request that reaches it panics rather than
-// signing anything. That is what these tests are built on -- a refusal returns
-// cleanly and can be read off the recorder, and a request that got through is
-// visible as the panic. Recovering here is what lets both be written the same
-// way.
+
+
+
+
+
+
+
+
+
 func startUpload(t *testing.T, app *App, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -36,14 +36,14 @@ func startUpload(t *testing.T, app *App, body string) *httptest.ResponseRecorder
 	return rec
 }
 
-// EVERY REFUSAL HAPPENS BEFORE ANYTHING IS WRITTEN, and the nil Storage on this
-// App is half of what proves it: presigning is reached only after the insert, so
-// a request that got that far would have panicked instead of answering.
-//
-// The other half is the statement count. A name or a size this refuses costs the
-// uploader nothing -- no row claiming a key, no signed URL, and the file never
-// leaves their machine -- which matters here more than usual, because the thing
-// being refused may be 175 MB.
+
+
+
+
+
+
+
+
 func TestAMusicUploadIsRefusedBeforeAnyRowIsWritten(t *testing.T) {
 	for name, c := range map[string]struct {
 		body   string
@@ -68,10 +68,10 @@ func TestAMusicUploadIsRefusedBeforeAnyRowIsWritten(t *testing.T) {
 				t.Errorf("wrote %d statements before refusing: %v", len(db.calls), db.calls)
 			}
 
-			// THE BODY IS THE ALERT DIALOG'S OWN SHAPE. This route answers a
-			// plain fetch(), which does not read HX-Trigger, so the refusal
-			// travels in the body and public/js/music-upload.js dispatches it
-			// as the same "alert" event the server-driven path raises.
+			
+			
+			
+			
 			var problem jsonProblem
 			if err := json.NewDecoder(rec.Body).Decode(&problem); err != nil {
 				t.Fatalf("the refusal is not JSON: %v", err)
@@ -83,15 +83,15 @@ func TestAMusicUploadIsRefusedBeforeAnyRowIsWritten(t *testing.T) {
 	}
 }
 
-// The cap is checked at the boundary rather than near it: exactly the cap is
-// allowed through, and one byte more is not.
+
+
 func TestTheMusicCapIsInclusive(t *testing.T) {
 	db := &recordingDB{}
 	rec := startUpload(t, &App{Queries: queries.New(db)}, `{"name":"battle.mp3","size":268435456}`)
 
-	// It got past every check and reached the insert, which is as far as it can
-	// go here -- the presign that follows needs an R2 client this App has not
-	// got.
+	
+	
+	
 	if len(db.calls) != 1 {
 		t.Fatalf("ran %d statements, want the insert: %v", len(db.calls), db.calls)
 	}
@@ -100,14 +100,14 @@ func TestTheMusicCapIsInclusive(t *testing.T) {
 	}
 }
 
-// THE ROW GOES BEFORE THE SIGNED URL, which is the ledger rule in the one place
-// it is easiest to get backwards. The URL names a key, and handing one out for a
-// key no row claims would let the browser write an object nothing can play, no
-// delete will find and no sweep will collect -- because every sweep works from
-// these rows.
-//
-// It is born with uploaded_at NULL, so it owns a key and nothing else until the
-// confirm has looked in the bucket. Nothing lists it and nothing plays it.
+
+
+
+
+
+
+
+
 func TestAMusicRowClaimsItsKeyBeforeAURLIsSigned(t *testing.T) {
 	db := &recordingDB{}
 	app := &App{Queries: queries.New(db)}
@@ -128,8 +128,8 @@ func TestAMusicRowClaimsItsKeyBeforeAURLIsSigned(t *testing.T) {
 		t.Errorf("the row is born already confirmed, so it would be listed and played before its object exists: %q", insert.query)
 	}
 
-	// The key is the one MusicKey builds, and it is on the row -- so the
-	// presigned URL and every later delete name the same object.
+	
+	
 	var key string
 	for _, arg := range insert.args {
 		if s, ok := arg.(string); ok && strings.Contains(s, "/music/") {
@@ -141,10 +141,10 @@ func TestAMusicRowClaimsItsKeyBeforeAURLIsSigned(t *testing.T) {
 	}
 }
 
-// A track that is still uploading is not a track. The listing filters on
-// uploaded_at, so a row whose PUT is running -- or was abandoned when the tab
-// closed -- never becomes a card, and a card is the only thing that renders a
-// player.
+
+
+
+
 func TestTheMusicLibraryListsOnlyFinishedUploads(t *testing.T) {
 	db := &recordingDB{err: errNoRowsToGive}
 	app := &App{Queries: queries.New(db)}
@@ -165,10 +165,10 @@ func TestTheMusicLibraryListsOnlyFinishedUploads(t *testing.T) {
 	}
 }
 
-// Renaming and deleting a track go through the same two handlers the pictures
-// use, so the only thing that makes them a track's is the kind bound at the
-// route. Without the type in the WHERE, a token's id sent to the music route
-// would rename the token.
+
+
+
+
 func TestMusicRenamesAreScopedToMusic(t *testing.T) {
 	db := &recordingDB{err: errNoRowsToGive}
 	app := &App{Queries: queries.New(db)}

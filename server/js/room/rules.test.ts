@@ -1,11 +1,11 @@
-// The three rules this bundle ports from the server, checked against the
-// server's own answers rather than against a copy of them.
-//
-// internal/room/testdata/rules holds one fixture per rule, written by the Go
-// tests from the Go functions: bands.json from hpBand, snap.json from SnapAxis,
-// hp.json from EvaluateHP. Each is replayed here through its TypeScript twin.
-// A change on either side that the other did not follow fails the build, which
-// is what a comment saying "these must agree" never could.
+
+
+
+
+
+
+
+
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -64,9 +64,9 @@ interface HPCase {
 	refused: boolean;
 }
 
-// evaluate answers null both for an entry it refuses and for an empty one; the
-// server tells those apart because the empty box is "no change" and the other
-// is a message. What has to agree is the number, when there is one.
+
+
+
 test("evaluate agrees with EvaluateHP on every entry", () => {
 	for (const c of fixture<HPCase>("hp")) {
 		const got = evaluate(c.entry, c.current === null ? "" : String(c.current));

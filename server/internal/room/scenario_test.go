@@ -2,27 +2,27 @@ package room
 
 import "github.com/oklog/ulid/v2"
 
-// THE SCENARIO: one session, played through, touching every command in both
-// registries. It is written once and driven twice -- by the convergence test,
-// which checks each step against the server's own state, and by the fixture
-// generator, which writes it out for phase 3's TypeScript reducer to replay.
-//
-// IT IS WRITTEN IMPERATIVELY rather than as a table, because half the commands
-// name something an earlier command created. A table would have to predict the
-// ids, and predicting them would mean the test knew how many the commands in
-// between happened to mint.
-//
-// IT READS LIKE A SESSION on purpose: the GM sets up a room, the party arrives,
-// a fight happens, somebody is thrown out, and the table is packed away. A
-// scenario built as a list of every command in registry order would exercise
-// the same code and would never have caught anything that only goes wrong in
-// sequence.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func scenario(r *recorder) {
 	w := r.w
 	gm, pc, other := w.gm, w.pc, w.other
 	ground := w.layer
 
-	// --- The GM sets the room up before anybody is looking. ---
+	
 
 	r.hub("name the room", &RoomSetName{Name: "The Sunless Citadel"})
 
@@ -53,7 +53,7 @@ func scenario(r *recorder) {
 
 	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 
-	// --- The party arrives. ---
+	
 
 	r.hub("lock the room once everybody is in", &RoomSetLocked{Locked: true})
 
@@ -104,22 +104,22 @@ func scenario(r *recorder) {
 	}, gm)
 	wagon := spawnWagon[0].Event.(*PawnSpawned).Pawn.ID
 
-	// AN OBJECT IS RESIZED AND TURNED AFTER IT IS DOWN, never before: the spawn
-	// carries no size and no angle at all. The angle is written as -90 rather
-	// than 270 because that is what a hand dragging the rotate handle
-	// anticlockwise produces, and folding it is the server's job.
+	
+	
+	
+	
 	r.do("turn the wagon across the road and stretch it", &PawnUpdate{
 		ID: wagon, Width: intp(96), Height: intp(320), Rotation: intp(-90),
 	}, gm)
 
 	r.do("hide the numbers again now the fight is on", &TableSetOptions{PawnLabels: LabelsDefault, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 
-	// --- The fight. ---
+	
 
-	// SYNC BUILDS THE ORDER FROM THE TABLE and the GM drags it into shape
-	// afterwards, which is the pair of gestures the feature is made of. Ari,
-	// Rin and the goblin go in; the ambusher is hidden and the wagon is an
-	// object, so neither does.
+	
+	
+	
+	
 	r.do("the GM builds the turn order from the table", &InitiativeSync{}, gm)
 
 	r.do("roll for initiative", &InitiativeSet{Entries: []InitiativeEntry{
@@ -143,9 +143,9 @@ func scenario(r *recorder) {
 	r.do("end of the goblin's turn", &InitiativeNext{}, gm)
 	r.do("round two", &InitiativeNext{}, gm)
 
-	// THE FOUR STRIP GESTURES, each a command of its own so that a drop, a
-	// click, a delete and an add are atomic on the room rather than a read and
-	// a set with a second tab's window between them.
+	
+	
+	
 	r.do("a lair action is added by name", &InitiativeAdd{Name: "The volcano erupts"}, gm)
 	r.do("and the ambusher from its own menu", &InitiativeAdd{Pawn: &ambusher}, gm)
 
@@ -163,7 +163,7 @@ func scenario(r *recorder) {
 
 	r.do("somebody points at the door", &Ping{Layer: ground, X: 512, Y: 96}, pc)
 
-	// --- Fog and drawing. ---
+	
 
 	r.do("turn the fog on", &FogSetEnabled{Layer: ground, Enabled: true}, gm)
 	r.do("this map is better uncovered", &FogSetPrefill{Layer: ground, Prefill: false}, gm)
@@ -191,7 +191,7 @@ func scenario(r *recorder) {
 	}, pc)
 	r.do("and rubs her own line out", &StrokeErase{IDs: []ulid.ULID{testID(901)}}, pc)
 
-	// --- Moving between floors. ---
+	
 
 	r.do("send the wagon down to the cellar", &PawnSetLayer{IDs: []ulid.ULID{wagon}, Layer: cellar}, gm)
 	r.do("the party follows it down", &TableSetActiveLayer{Layer: cellar}, gm)
@@ -201,7 +201,7 @@ func scenario(r *recorder) {
 	r.do("Ari asks for the whole room again", &SyncRequest{}, pc)
 	r.do("and so does the GM", &SyncRequest{}, gm)
 
-	// --- Packing away. ---
+	
 
 	r.hub("Rin drops off the wifi", &PlayerSetConnected{ID: testOtherID, Connected: false})
 	r.hub("and comes back", &PlayerSetConnected{ID: testOtherID, Connected: true})
@@ -221,17 +221,17 @@ func scenario(r *recorder) {
 	r.do("the cellar is not needed after all", &TableRemoveLayer{Layer: cellar}, gm)
 	r.do("clear the ground floor's map", &TableClearLayerMap{Layer: ground}, gm)
 
-	// ONE COMMAND FOR WHAT THE FOUR ABOVE DID BY HAND. Everything still on the
-	// table goes: the four remaining pawns, both floors' fog and drawing, the
-	// maps, and the tracker. It is the end of the evening rather than a tool
-	// used during one, which is why it is here and not up in the fight.
+	
+	
+	
+	
 	r.do("and clear the tabletop for next week", &TableClear{}, gm)
 
 	r.hub("unlock on the way out", &RoomSetLocked{Locked: false})
 	r.hub("and close the room", &RoomClose{})
 }
 
-// entryNamed finds a line of the tracker by the name the scenario gave it.
+
 func entryNamed(s *State, name string) ulid.ULID {
 	for _, e := range s.Initiative.Entries {
 		if e.Name == name {

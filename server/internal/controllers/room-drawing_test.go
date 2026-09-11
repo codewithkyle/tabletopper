@@ -15,18 +15,18 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// CLEAR DRAWING, AND WHAT IT IS ASSERTED THROUGH.
-//
-// The route answers 204 and says nothing, and the strokes do not reach
-// hub.TableView -- nothing on any screen needs a count of them, and adding one
-// so that a test could read it would be production weight carried for a test.
-// So what the floor holds is read back through the protocol instead: a stroke id
-// may be used once, so re-beginning a line the clear should have taken away
-// SUCCEEDS if it went and is refused as "already on the table" if it did not.
-// That is a positive assertion in both directions, which a "stroke gone"
-// refusal would not have been.
 
-// drawingApp is tableApp with a room already running, and the floor to aim at.
+
+
+
+
+
+
+
+
+
+
+
 func drawingApp(t *testing.T) (*App, ulid.ULID) {
 	t.Helper()
 
@@ -35,7 +35,7 @@ func drawingApp(t *testing.T) (*App, ulid.ULID) {
 	return app, firstLayer(t, app)
 }
 
-// sketch puts one finished line on a floor.
+
 func sketch(t *testing.T, app *App, layer ulid.ULID, id ulid.ULID) {
 	t.Helper()
 
@@ -54,8 +54,8 @@ func sketch(t *testing.T, app *App, layer ulid.ULID, id ulid.ULID) {
 	}
 }
 
-// stillThere answers whether the room still holds a stroke with this id, by
-// trying to use the id again. See the header.
+
+
 func stillThere(t *testing.T, app *App, layer ulid.ULID, id ulid.ULID) bool {
 	t.Helper()
 
@@ -70,8 +70,8 @@ func stillThere(t *testing.T, app *App, layer ulid.ULID, id ulid.ULID) bool {
 	return err != nil
 }
 
-// drawingRequest posts to the route with the layer where the room bundle puts
-// it: in the form, not in the path.
+
+
 func drawingRequest(t *testing.T, app *App, layer string, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -100,9 +100,9 @@ func TestClearDrawingEmptiesTheFloorItIsAimedAt(t *testing.T) {
 	}
 }
 
-// THE ROUTE ACTS ON THE FLOOR IT IS GIVEN AND NOT ON THE ACTIVE ONE, which is
-// the whole reason the layer travels in the form. A GM tidying the first floor
-// while the party is in the cellar is what the menu item is for.
+
+
+
 func TestClearDrawingActsOnTheFloorInTheFormAndNotTheActiveOne(t *testing.T) {
 	app, active := drawingApp(t)
 
@@ -137,14 +137,14 @@ func TestClearDrawingActsOnTheFloorInTheFormAndNotTheActiveOne(t *testing.T) {
 	}
 }
 
-// A PLAYER IS REFUSED BY THE COMMAND AND NOT BY THE HANDLER, which is the rule
-// every other layer route follows: a player posting here is a member of the
-// room, so a 404 would be a lie, and the alert modal carries the protocol's own
-// sentence.
-//
-// DRAWING IS EVERYBODY'S AND THIS IS NOT, which is the distinction worth
-// pinning: rubbing out one line is the author's own, and throwing away every
-// line on the floor including four other people's is the room owner's.
+
+
+
+
+
+
+
+
 func TestClearDrawingIsTheGMsAlone(t *testing.T) {
 	app, layer := drawingApp(t)
 	id := ulid.Make()
@@ -162,10 +162,10 @@ func TestClearDrawingIsTheGMsAlone(t *testing.T) {
 	}
 }
 
-// NO LAYER AT ALL IS THE ACTIVE FLOOR, which is what makes the item work in a
-// browser where the room bundle never ran. The item posts hx-vals of "{}" until
-// the bundle fills it in, and a menu item that silently did nothing for the
-// first second of a page load would be reported as broken.
+
+
+
+
 func TestClearDrawingWithNoLayerFallsBackToTheActiveFloor(t *testing.T) {
 	app, active := drawingApp(t)
 	id := ulid.Make()
@@ -180,9 +180,9 @@ func TestClearDrawingWithNoLayerFallsBackToTheActiveFloor(t *testing.T) {
 	}
 }
 
-// A layer that is PRESENT and is not an id is a request this server did not
-// write, which is a 404 with nothing in it rather than a message: the only thing
-// that produces one is somebody posting by hand.
+
+
+
 func TestClearDrawingWithALayerThatIsNotAnIDIs404(t *testing.T) {
 	app, _ := drawingApp(t)
 

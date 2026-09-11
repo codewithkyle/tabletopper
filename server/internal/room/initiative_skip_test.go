@@ -6,11 +6,11 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE DEAD ARE SKIPPED AND A PLAYER IS NEVER THE DEAD. That one clause is the
-// whole difference between the two kinds of creature this app draws, and it is
-// the reason these tests are written out one case at a time.
 
-// A dead monster's turn is a turn wasted, so the button does not spend one.
+
+
+
+
 func TestNextPassesOverADeadMonster(t *testing.T) {
 	w := newWorld(t)
 
@@ -28,9 +28,9 @@ func TestNextPassesOverADeadMonster(t *testing.T) {
 	}
 }
 
-// A PLAYER AT ZERO HAS THE MOST CONSEQUENTIAL TURN OF THAT CHARACTER'S LIFE --
-// three saves against three failures -- and an app that skipped it would be an
-// app that killed somebody's character by omission.
+
+
+
 func TestNextDoesNotPassOverADeadPlayerPawn(t *testing.T) {
 	w := newWorld(t)
 
@@ -45,8 +45,8 @@ func TestNextDoesNotPassOverADeadPlayerPawn(t *testing.T) {
 	}
 }
 
-// A group with one goblin still standing is not skipped, which is what makes
-// the count on its card matter.
+
+
 func TestNextDoesNotPassOverAGroupWithASurvivor(t *testing.T) {
 	w := newWorld(t)
 
@@ -67,8 +67,8 @@ func TestNextDoesNotPassOverAGroupWithASurvivor(t *testing.T) {
 	}
 }
 
-// A LINE WITH NO PAWNS IS NEVER SKIPPED. Nothing about a lair action can be
-// dead.
+
+
 func TestNextNeverPassesOverANamedLine(t *testing.T) {
 	w := newWorld(t)
 
@@ -86,9 +86,9 @@ func TestNextNeverPassesOverANamedLine(t *testing.T) {
 	}
 }
 
-// A GM WHO PRESSES NEXT ON A FINISHED FIGHT SHOULD GET A PRESS, NOT A HANG. A
-// tracker of nothing but corpses advances by one, and crossing the end of it
-// counts a round like any other lap.
+
+
+
 func TestNextAdvancesByOneThroughATrackerOfCorpses(t *testing.T) {
 	w := newWorld(t)
 
@@ -116,8 +116,8 @@ func TestNextAdvancesByOneThroughATrackerOfCorpses(t *testing.T) {
 	}
 }
 
-// THE ROUND COUNTS THE SEAM AND NOT THE SKIPS. Passing over four dead goblins
-// on the way past the end of the list is still one lap of the table.
+
+
 func TestARoundCountsOnceHoweverManyLinesAreSkipped(t *testing.T) {
 	w := newWorld(t)
 
@@ -129,8 +129,8 @@ func TestARoundCountsOnceHoweverManyLinesAreSkipped(t *testing.T) {
 
 	w.order(append([]ulid.ULID{ari}, corpses...)...)
 
-	// Round one begins on the player, and the next press walks over all four
-	// corpses and back round to them.
+	
+	
 	w.apply(&InitiativeNext{}, w.gm)
 	if w.s.Initiative.Round != 1 {
 		t.Fatalf("round = %d after the first advance, want 1", w.s.Initiative.Round)
@@ -146,9 +146,9 @@ func TestARoundCountsOnceHoweverManyLinesAreSkipped(t *testing.T) {
 	}
 }
 
-// A LINE THAT WAS SKIPPED TICKS NOTHING. Its turn did not happen, and a
-// condition counting down on a corpse is bookkeeping about a creature that has
-// stopped taking turns.
+
+
+
 func TestASkippedLineDoesNotTickItsConditions(t *testing.T) {
 	w := newWorld(t)
 
@@ -170,8 +170,8 @@ func TestASkippedLineDoesNotTickItsConditions(t *testing.T) {
 	}
 }
 
-// EVERY MEMBER OF A GROUP TICKS AT THE SEAM, because the group is one turn and
-// every creature in it took it.
+
+
 func TestAGroupTicksEveryMember(t *testing.T) {
 	w := newWorld(t)
 
@@ -197,9 +197,9 @@ func TestAGroupTicksEveryMember(t *testing.T) {
 	}
 }
 
-// ONE PAWN IS IN THE ORDER ONCE, across every line and not only within one. A
-// goblin in its group AND on a line of its own would take two turns and tick
-// its conditions twice, and the second of those is silent.
+
+
+
 func TestSetRefusesTheSamePawnTwice(t *testing.T) {
 	w := newWorld(t)
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
@@ -214,9 +214,9 @@ func TestSetRefusesTheSamePawnTwice(t *testing.T) {
 	}}, w.gm, CodeInvalid)
 }
 
-// WHOEVER OWNS A PAWN IN THE ACTING LINE MAY END ITS TURN, and a group is a
-// line like any other -- so a player whose character is one of two creatures on
-// a count may still press the button.
+
+
+
 func TestAPlayerMayEndAGroupTurnTheyAreIn(t *testing.T) {
 	w := newWorld(t)
 
@@ -236,10 +236,10 @@ func TestAPlayerMayEndAGroupTurnTheyAreIn(t *testing.T) {
 	}
 }
 
-// room.Health IS THE GO TWIN OF healthOf IN wounds.ts, and the two have to
-// agree or a card and the sprite beside it disagree about the same creature.
-// The number wins where both arrive; the band is what a viewer was given
-// INSTEAD of the numbers.
+
+
+
+
 func TestHealthReadsTheNumberFirstAndTheBandSecond(t *testing.T) {
 	band := BandBruised
 
@@ -269,8 +269,8 @@ func TestHealthReadsTheNumberFirstAndTheBandSecond(t *testing.T) {
 	}
 }
 
-// order puts every pawn in the tracker on a line of its own, in the order given,
-// which is what most of these tests want and none of them want to spell out.
+
+
 func (w *world) order(pawns ...ulid.ULID) {
 	w.t.Helper()
 
@@ -286,7 +286,7 @@ func (w *world) order(pawns ...ulid.ULID) {
 	w.apply(&InitiativeSet{Entries: entries}, w.gm)
 }
 
-// activeName is whose turn it is, as a reader would say it.
+
 func (w *world) activeName() string {
 	w.t.Helper()
 

@@ -10,11 +10,11 @@ import (
 	"tabletopper/internal/session"
 )
 
-// The export routes, bounded the way every other test here that touches a share
-// is: recordingDB answers a :one by failing, so neither file can actually be
-// built from this harness. What is covered is the half that decides who gets
-// one -- the ids the reads are scoped by, the answer to a request that names
-// nothing, and the headers that make the reply a download rather than a page.
+
+
+
+
+
 
 func exportRequest(t *testing.T, handler http.HandlerFunc, pathValues map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
@@ -31,9 +31,9 @@ func exportRequest(t *testing.T, handler http.HandlerFunc, pathValues map[string
 	return rec
 }
 
-// An id that will not parse never becomes a statement, and the answer is a
-// navigation rather than an alert: this route is an anchor somebody clicked, so
-// there is no page open to show an alert in and nothing to swap it into.
+
+
+
 func TestAnExportOfSomethingUnnamedRunsNoStatements(t *testing.T) {
 	for name, c := range map[string]struct {
 		handler func(*App) http.HandlerFunc
@@ -60,10 +60,10 @@ func TestAnExportOfSomethingUnnamedRunsNoStatements(t *testing.T) {
 	}
 }
 
-// A token that is not shaped like one of ours cannot name a row, so it is
-// refused before anything is queried -- and it is the same flat dead-link page
-// every other miss on a share gets, because telling them apart would tell
-// somebody guessing which half of the guess was right.
+
+
+
+
 func TestASharedExportWithABadTokenRunsNoStatements(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -77,11 +77,11 @@ func TestASharedExportWithABadTokenRunsNoStatements(t *testing.T) {
 	}
 }
 
-// BOTH EXPORTS READ WITH THE IDS THEY WERE HANDED AND NOTHING ELSE. It is the
-// property the shared export rests on: the file is built from the share row's
-// monster and the share row's owner, so a reader downloading somebody else's
-// stat block is reading it as its owner rather than as themselves -- and a read
-// that reached for the session's user instead would find nothing at all.
+
+
+
+
+
 func TestAnExportReadsExactlyTheThingItWasAskedFor(t *testing.T) {
 	for name, c := range map[string]struct {
 		export func(*App) error
@@ -120,11 +120,11 @@ func TestAnExportReadsExactlyTheThingItWasAskedFor(t *testing.T) {
 	}
 }
 
-// Content-Disposition IS WHAT MAKES IT A DOWNLOAD rather than a page of plain
-// text in a tab, and the filename in it is what the file lands as. no-store
-// because two of the four routes are behind a session and a third is behind a
-// password, and a shared cache holding one reader's answer would serve it to
-// the next.
+
+
+
+
+
 func TestAMarkdownExportIsSentAsAFileAndNotAsAPage(t *testing.T) {
 	rec := httptest.NewRecorder()
 	writeMarkdown(rec, []byte("# Goblin\n"), "goblin.md")
@@ -144,9 +144,9 @@ func TestAMarkdownExportIsSentAsAFileAndNotAsAPage(t *testing.T) {
 	}
 }
 
-// The download a shared page offers is under the share's own prefix, like the
-// portrait and the import: a reader is handed one token and everything they can
-// reach hangs off it.
+
+
+
 func TestTheSharedExportURLIsTheSharesOwn(t *testing.T) {
 	if got := shareExportURL("tok"); got != "/share/tok/export.md" {
 		t.Errorf("shareExportURL = %q", got)

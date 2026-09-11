@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// A new room is the state a GM meets before they have done anything, so its
-// defaults are a design decision rather than an initialisation. Each one here
-// is pinned because changing it silently changes what a first session looks
-// like.
+
+
+
+
 func TestNewStateStartsUsable(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", newEnv())
 
@@ -32,8 +32,8 @@ func TestNewStateStartsUsable(t *testing.T) {
 		t.Fatal("a new room's layer already has a map")
 	}
 
-	// Fog off but prefilled: switching fog on should cover the map, because
-	// that is what a GM reaching for the switch means by it.
+	
+	
 	if s.Table.Layers[0].FogEnabled {
 		t.Fatal("a new room starts with fog switched on")
 	}
@@ -58,8 +58,8 @@ func TestNewStateStartsUsable(t *testing.T) {
 	}
 }
 
-// Normalize is what makes "the same state" a byte comparison, so the three
-// sorted collections have to actually sort.
+
+
 func TestNormalizeSortsWhatHasNoOrderOfItsOwn(t *testing.T) {
 	s := &State{
 		Pawns:   []Pawn{{ID: testID(3)}, {ID: testID(1)}, {ID: testID(2)}},
@@ -79,10 +79,10 @@ func TestNormalizeSortsWhatHasNoOrderOfItsOwn(t *testing.T) {
 	}
 }
 
-// Fog and initiative are the two collections where the order is the meaning: a
-// hide drawn over a reveal covers it, and the turn order is the order the GM
-// dragged the lines into. Sorting either would be a bug that looked like
-// tidiness.
+
+
+
+
 func TestNormalizeLeavesTheOrderedCollectionsAlone(t *testing.T) {
 	s := &State{
 		Fog: []FogShape{{ID: testID(9)}, {ID: testID(2)}},
@@ -100,9 +100,9 @@ func TestNormalizeLeavesTheOrderedCollectionsAlone(t *testing.T) {
 	}
 }
 
-// A nil slice marshals as null and the generated TypeScript declares these
-// fields as arrays. Every collection has to come out as [] so that the client's
-// reducer never meets one it has to null-check.
+
+
+
 func TestNewStateMarshalsWithNoNullCollections(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
 	s.Pawns = append(s.Pawns, Pawn{ID: testID(1), Kind: PawnMonster, Size: SizeMedium})
@@ -125,9 +125,9 @@ func TestNewStateMarshalsWithNoNullCollections(t *testing.T) {
 	}
 }
 
-// A creature's footprint is its size category and nothing else -- not the cell
-// size, not the picture on it. An object has no footprint at all, because it is
-// not on the lattice: see snapPawn.
+
+
+
 func TestFootprintIsTheSizeCategory(t *testing.T) {
 	sizes := map[Size]int{
 		SizeTiny: 1, SizeSmall: 1, SizeMedium: 1,
@@ -139,15 +139,15 @@ func TestFootprintIsTheSizeCategory(t *testing.T) {
 		}
 	}
 
-	// A size nobody recognises is one cell rather than none, because a zero
-	// footprint would divide by nothing in the snapper.
+	
+	
 	if got := Size("enormous").Footprint(); got != 1 {
 		t.Fatalf("an unknown size stands on %d cells, want 1", got)
 	}
 }
 
-// An angle is folded rather than refused, because -30 and 330 are the same
-// facing and rejecting one would be rejecting a way of writing the other.
+
+
 func TestRotationIsFoldedIntoOneTurn(t *testing.T) {
 	for in, want := range map[int]int{
 		0: 0, 45: 45, 359: 359, 360: 0, 361: 1,
@@ -159,8 +159,8 @@ func TestRotationIsFoldedIntoOneTurn(t *testing.T) {
 	}
 }
 
-// Every enum's Valid is written in terms of its own Values, so this walks the
-// whole set at once: each declared value passes and an invented one does not.
+
+
 func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 	type enum interface {
 		Values() []string

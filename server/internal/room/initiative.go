@@ -6,25 +6,25 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE INITIATIVE FAMILY. The tracker is a singleton, so all three commands end
-// with the whole thing rather than with the line that changed.
-//
-// THE SLICE ORDER IS THE TURN ORDER. Nothing sorts by the Initiative field, and
-// that field is informational: two creatures that rolled a 14 act in whichever
-// order the GM dragged them into, and a stored order is the only representation
-// that can hold the result of that drag. It is also why Normalize leaves this
-// collection alone where it sorts pawns and players.
-//
-// "YOUR TURN" IS NOT AN EVENT. The client works it out when the active entry
-// becomes one of its own pawns, which means the notification cannot disagree
-// with the tracker beside it.
 
-// InitiativeUpdated carries the whole tracker.
-//
-// IT CARRIES BOTH AUDIENCES' COPIES for the same reason PawnMoved does: it goes
-// to everybody, and a hidden pawn's line is not in the players' order. The
-// filtered copy is nil when nothing is hidden, and then both roles get the same
-// object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type InitiativeUpdated struct {
 	Header
 	Initiative Initiative `json:"initiative"`
@@ -45,7 +45,7 @@ func (e *InitiativeUpdated) ForRole(role Role) Event {
 	return &c
 }
 
-// initiativeUpdated is the ToAll emission, with the players' copy attached.
+
 func initiativeUpdated(s *State) []Emission {
 	player := projectInitiative(s)
 
@@ -55,22 +55,22 @@ func initiativeUpdated(s *State) []Emission {
 	})}
 }
 
-// projectInitiative is the players' tracker.
-//
-// AN ENTRY FOR A PAWN ON ANOTHER FLOOR STAYS, and an entry for a pawn the GM
-// has hidden goes. Those are different facts: a creature that walked downstairs
-// still has a turn and the players know it exists, where a hidden creature is
-// one they have not met, and a line in the tracker naming it would be the
-// giveaway that the hiding exists to prevent.
-//
-// THE GATE IS Visible AND NOT Shown, deliberately, and it is the same gate
-// ProjectedInitiative applies one loop later. Shown asks about the active layer
-// as well, which is exactly the question the paragraph above answers no to.
-//
-// HIDING ONE OF NINE GOBLINS TAKES A PIP OFF THE GROUP AND LEAVES THE LINE. A
-// group is filtered member by member, and only an entry emptied by that
-// filtering is dropped -- so the players' count is the count of what they can
-// see, which is the whole of what the group card is telling them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func projectInitiative(s *State) Initiative {
 	in := cloneInitiative(s.Initiative)
 
@@ -99,20 +99,20 @@ func projectInitiative(s *State) Initiative {
 	return in
 }
 
-// ProjectedInitiative is the tracker this role may see and the pawns it names,
-// computed in one pass so that the two cannot drift.
-//
-// THE PAWNS ARE HANDED BACK WITH THE TRACKER BECAUSE THE ALTERNATIVE HAS A BUG
-// IN IT. A caller that fetched the tracker and then asked Project(role) for the
-// pawns would be applying two different filters: Project runs a player's pawns
-// through Shown, which gates on the active layer, and the tracker deliberately
-// keeps the entry of a creature that walked downstairs. The shape of that
-// disagreement is a player watching the party member who went up the stairs
-// turn into a nameless line with no portrait for the rest of the fight -- which
-// is precisely the case the tracker's own rule exists to serve.
-//
-// THE MAP IS KEYED BY ID because the caller looks up one pawn per member and a
-// slice would be a scan per pip.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (s *State) ProjectedInitiative(role Role) (Initiative, map[ulid.ULID]Pawn) {
 	in := cloneInitiative(s.Initiative)
 	if role != RoleGM {
@@ -137,9 +137,9 @@ func (s *State) ProjectedInitiative(role Role) (Initiative, map[ulid.ULID]Pawn) 
 				continue
 			}
 
-			// Visible alone, for the reason above. projectInitiative has
-			// already dropped everything else from the entries, so this is the
-			// same test twice rather than a second rule.
+			
+			
+			
 			if !p.Visible {
 				continue
 			}
@@ -151,9 +151,9 @@ func (s *State) ProjectedInitiative(role Role) (Initiative, map[ulid.ULID]Pawn) 
 	return in, pawns
 }
 
-// hasEntryFor reports whether the tracker names this pawn, which is how the
-// visibility commands know whether hiding it changed a second thing on the
-// players' screens.
+
+
+
 func (s *State) hasEntryFor(pawn ulid.ULID) bool {
 	for _, e := range s.Initiative.Entries {
 		if slices.Contains(e.PawnIDs, pawn) {
@@ -164,18 +164,18 @@ func (s *State) hasEntryFor(pawn ulid.ULID) bool {
 	return false
 }
 
-// dropEntriesFor takes a pawn that is being deleted out of every line that
-// names it, and reports whether it changed anything.
-//
-// A GROUP LOSES A MEMBER RATHER THAN THE LINE. Killing one of nine goblins and
-// taking it off the table leaves eight goblins with a turn; only the line whose
-// LAST pawn has gone goes with it, which is the same rule projectInitiative
-// applies to a hidden member.
-//
-// DELETING THE CREATURE WHOSE TURN IT IS ADVANCES THE TURN, wrapping, rather
-// than leaving the tracker pointed at nothing. A GM who kills the goblin that
-// is currently acting means the fight to carry on with the next combatant, and
-// an empty active would make them press next to get there.
+
+
+
+
+
+
+
+
+
+
+
+
 func (s *State) dropEntriesFor(pawn ulid.ULID) bool {
 	if !s.hasEntryFor(pawn) {
 		return false
@@ -184,8 +184,8 @@ func (s *State) dropEntriesFor(pawn ulid.ULID) bool {
 	return s.dropMembers(func(id ulid.ULID) bool { return id == pawn })
 }
 
-// dropMembers is dropped applied to the live tracker, and it reports whether
-// anything moved.
+
+
 func (s *State) dropMembers(gone func(ulid.ULID) bool) bool {
 	entries, active, changed := dropped(s.Initiative.Entries, s.Initiative.Active, gone)
 
@@ -203,17 +203,17 @@ func (s *State) dropMembers(gone func(ulid.ULID) bool) bool {
 	return changed
 }
 
-// dropped is the shared half of every removal: take out the members the
-// predicate names, drop a line that had pawns and has none left, and move the
-// turn off a line that is going.
-//
-// IT IS A FUNCTION OF ITS ARGUMENTS AND MUTATES NOTHING, because the sync
-// command has to know what the tracker WOULD look like before it commits to it
-// -- a command that mutated and then refused would leave the room holding half
-// of what nobody asked for.
-//
-// THE SUCCESSOR IS CHOSEN FROM THE OLD ORDER, before the deletion, because "the
-// next combatant" is a fact about the order the GM built.
+
+
+
+
+
+
+
+
+
+
+
 func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) bool) ([]InitiativeEntry, *ulid.ULID, bool) {
 	empties := func(e InitiativeEntry) bool {
 		if len(e.PawnIDs) == 0 {
@@ -276,9 +276,9 @@ func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) 
 	return kept, active, changed
 }
 
-// InitiativeSet replaces the tracker. Reordering a line, adding one, renaming
-// one and deleting one are all this command, because all four are the same
-// gesture in a list the GM is editing directly.
+
+
+
 type InitiativeSet struct {
 	Entries []InitiativeEntry `json:"entries"`
 	Active  *ulid.ULID        `json:"active"`
@@ -296,9 +296,9 @@ func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	entries := make([]InitiativeEntry, 0, len(c.Entries))
 	seen := map[ulid.ULID]bool{}
 
-	// ONE PAWN IS IN THE ORDER ONCE, across every line and not only within one.
-	// A goblin in its group AND on a line of its own would take two turns and
-	// tick its conditions twice, and the second of those is silent.
+	
+	
+	
 	claimed := map[ulid.ULID]bool{}
 
 	for _, e := range c.Entries {
@@ -329,9 +329,9 @@ func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return nil, invalid("Bad turn", "The active turn is not one of the entries.")
 	}
 
-	// THE ROUND IS NOT RESET. Editing the order mid-fight -- a reinforcement
-	// arriving, a mistake corrected -- is not the fight starting again, and the
-	// round number is what the party's spell durations are counted in.
+	
+	
+	
 	s.Initiative.Entries = entries
 	s.Initiative.Active = cloneID(c.Active)
 	s.Normalize()
@@ -339,21 +339,21 @@ func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return initiativeUpdated(s), nil
 }
 
-// InitiativeNext advances the turn.
+
 type InitiativeNext struct{}
 
-// Authorize lets the player whose turn it is end it. That is the whole reason
-// this is not GM-only: passing the tablet back to the GM to press next is the
-// friction the button exists to remove.
+
+
+
 func (c *InitiativeNext) Authorize(s *State, a Actor) error {
 	if a.GM() {
 		return nil
 	}
 
-	// ANY PAWN IN THE ACTIVE LINE, not the first one. A line is a list now, and
-	// a player who owns one of the creatures acting on this count is whose turn
-	// it is -- which for a solo line is the only member and is the rule this
-	// has always had.
+	
+	
+	
+	
 	if s.Initiative.Active != nil {
 		if e := s.entry(*s.Initiative.Active); e != nil {
 			for _, id := range e.PawnIDs {
@@ -384,15 +384,15 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	var next int
 	switch {
 	case from < 0:
-		// Nobody was acting, so nobody's turn just ended and only the
-		// start-of-turn conditions tick. It still skips: a fight opened on a
-		// corpse is a fight whose first turn is spent pressing the button
-		// again.
-		//
-		// THE ROUND IS NOT SET HERE. A tracker with lines in it is already in
-		// round one -- Normalize holds that -- and this branch is reached
-		// again mid-fight whenever the acting line has gone, which is a
-		// removal or a sync and not the fight starting over.
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		next = 0
 		for i := 0; i < n; i++ {
 			if !s.skips(s.Initiative.Entries[i]) {
@@ -403,10 +403,10 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		}
 
 	default:
-		// Walk forward until something is worth acting on. steps is at most n,
-		// which lands back on the line we started from -- a whole lap of
-		// corpses -- and the fallback below is what makes that a press rather
-		// than a hang.
+		
+		
+		
+		
 		steps := 1
 		for ; steps <= n; steps++ {
 			if !s.skips(s.Initiative.Entries[(from+steps)%n]) {
@@ -419,35 +419,35 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 
 		next = (from + steps) % n
 
-		// THE ROUND COUNTS THE SEAM AND NOT THE SKIPS. Crossing the end of the
-		// list increments it once, however many lines were passed over on the
-		// way -- because a round is a lap of the table and skipping four dead
-		// goblins on the way past is still one lap.
+		
+		
+		
+		
 		if from+steps >= n {
 			s.Initiative.Round++
 		}
 	}
 
-	// CONDITIONS TICK ON THE TWO LINES AT THE SEAM, which is the 5e rule spelled
-	// out: "until the end of your next turn" counts down as your turn ends, and
-	// "until the start of your next turn" as it begins. A duration of -1 never
-	// counts and never expires -- it is there until somebody takes it off.
-	//
-	// A GROUP TICKS EVERY MEMBER, because the group is one turn and every
-	// creature in it took it.
-	//
-	// A LINE THAT WAS SKIPPED TICKS NOTHING. Its turn did not happen, and a
-	// condition counting down on a corpse is bookkeeping about a creature that
-	// has stopped taking turns.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	touched := map[ulid.ULID]bool{}
 	if from >= 0 {
 		s.tick(s.Initiative.Entries[from], ClearEnd, touched)
 	}
 	s.tick(s.Initiative.Entries[next], ClearStart, touched)
 
-	// A copy, not a pointer into the slice. Active is a *ulid.ULID, and one
-	// that pointed at an element of Entries would quietly follow that element
-	// wherever a later edit moved it.
+	
+	
+	
 	active := s.Initiative.Entries[next].ID
 	s.Initiative.Active = &active
 	s.Normalize()
@@ -462,22 +462,22 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return out, nil
 }
 
-// skips is whether the turn passes over this line, and it is one clause plus
-// the exception that clause exists for.
-//
-// A DEAD MONSTER'S TURN IS A TURN WASTED and the button should not spend one on
-// it. A PLAYER AT ZERO IS MAKING DEATH SAVING THROWS -- three saves against
-// three failures, the most consequential turn of that character's life -- and
-// an app that skipped it would be an app that killed somebody's character by
-// omission. That one clause is the whole difference between the two kinds of
-// creature this app draws.
-//
-// A GROUP WITH ONE GOBLIN STILL STANDING IS NOT SKIPPED, which is what makes
-// the count on its card matter. A LINE WITH NO PAWNS -- a lair action -- is
-// never skipped: nothing about it can be dead.
-//
-// THE GM CAN STILL ACTIVATE A CORPSE by clicking its card. This is what the
-// button does, not a rule about what may be active.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (s *State) skips(e InitiativeEntry) bool {
 	found := false
 
@@ -496,8 +496,8 @@ func (s *State) skips(e InitiativeEntry) bool {
 	return found
 }
 
-// tick counts one line's conditions down at one end of its turn and records
-// every pawn it changed.
+
+
 func (s *State) tick(e InitiativeEntry, when ClearTrigger, touched map[ulid.ULID]bool) {
 	for _, id := range e.PawnIDs {
 		p := s.Pawn(id)
@@ -531,7 +531,7 @@ func (s *State) tick(e InitiativeEntry, when ClearTrigger, touched map[ulid.ULID
 	}
 }
 
-// entry finds one line of the tracker by id.
+
 func (s *State) entry(id ulid.ULID) *InitiativeEntry {
 	for i := range s.Initiative.Entries {
 		if s.Initiative.Entries[i].ID == id {
@@ -542,34 +542,34 @@ func (s *State) entry(id ulid.ULID) *InitiativeEntry {
 	return nil
 }
 
-// InitiativeSync builds the tracker from what is on the table, and builds it
-// again mid-fight to bring in reinforcements and take out the corpses. It is
-// how a fight starts and how it grows, and it is the only gesture in this
-// feature that has to look at the whole room.
-//
-// IT IS A COMMAND AND NOT A CONTROLLER, which is the one exception to
-// initiative.set being the only editing command. Every clause below is a rule
-// about room state that the room is the only thing holding: which floors have
-// players on them, which pawns are visible, which are dead, what the grouping
-// setting is, and what is already in the tracker. A controller would read all
-// of that through the hub, decide, and dispatch a set -- and the window between
-// the read and the dispatch is wider here than anywhere else, because the read
-// is the whole table. This is a dozen lines beside the rules it depends on, and
-// it is atomic on the room's own goroutine.
-//
-// THE FLOORS ARE THE ONES A PLAYER IS STANDING ON. A fight is where the party
-// is; a monster waiting three floors up is not in this fight, and the GM's own
-// view of another floor is not evidence about where anybody is.
-//
-// EVERYTHING ALREADY IN THE TRACKER STAYS WHERE IT IS. Sync never reorders. A
-// GM who has dragged the order into shape and presses it again gets their order
-// back with more on the end.
-//
-// AND IT ONLY EVER TAKES CORPSES OUT. A creature that has been hidden, or has
-// walked off the party's floor, keeps its place -- it is still in the fight and
-// the GM put it there; taking it out would also undo the Add to initiative on
-// the pawn menu, whose whole purpose is to put something in that Sync would not
-// have found.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 type InitiativeSync struct{}
 
 func (c *InitiativeSync) Authorize(s *State, a Actor) error {
@@ -577,10 +577,10 @@ func (c *InitiativeSync) Authorize(s *State, a Actor) error {
 }
 
 func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	// A DEAD MONSTER GOES AND A DEAD PLAYER PAWN STAYS, which is the same
-	// exception the turn key makes and is written in both places because it is
-	// the same fact about the same rule: a player at zero is making death
-	// saving throws and is still in the fight.
+	
+	
+	
+	
 	entries, active, _ := dropped(s.Initiative.Entries, s.Initiative.Active, func(id ulid.ULID) bool {
 		p := s.Pawn(id)
 
@@ -605,17 +605,17 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		return p.Visible && floors[p.LayerID] && !already[p.ID]
 	}
 
-	// THE PARTY GOES IN FIRST, in the order the table holds them, and the
-	// monsters follow. Nothing about a fight says the party acts first -- the
-	// GM drags -- but a fresh tracker has to start in SOME order, and one that
-	// begins with the people who are going to be dragging is a better place to
-	// start than one that interleaves by id.
-	//
-	// WHERE A REINFORCEMENT GOES IS enlist's RULE, shared with initiative.add:
-	// three more goblins arriving in round four are more goblins, not a second
-	// goblin turn, so a monster whose key matches a line already in the order
-	// joins it -- whether that line was there before this sync or was opened
-	// by the goblin before it.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	for _, p := range s.Pawns {
 		if p.Kind == PawnPlayer && wanted(p) {
 			entries = s.enlist(entries, p, env)
@@ -642,9 +642,9 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		active = nil
 	}
 
-	// THE ROUND IS NOT RESET, for InitiativeSet's reason: reinforcements
-	// arriving in round four are not the fight starting again, and the round is
-	// what the party's spell durations are counted in.
+	
+	
+	
 	s.Initiative.Entries = entries
 	s.Initiative.Active = active
 	s.Normalize()
@@ -652,14 +652,14 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	return initiativeUpdated(s), nil
 }
 
-// enlist puts one pawn into the order: onto the line whose members share its
-// key when the table is grouped and it is a monster, and onto a fresh line at
-// the end otherwise. It is the one rule for where a creature goes, and both
-// the sync and initiative.add call it.
-//
-// THE KEY IS RECOMPUTED FROM THE MEMBERS RATHER THAN STORED, so there is
-// nothing to keep in step, and the first line that matches is the one joined
-// -- which for a line this same pass opened a moment ago is that line.
+
+
+
+
+
+
+
+
 func (s *State) enlist(entries []InitiativeEntry, p Pawn, env Env) []InitiativeEntry {
 	if s.Table.InitiativeGrouping != GroupIndividual && p.Kind == PawnMonster {
 		key := MonsterKey(p)
@@ -681,18 +681,18 @@ func (s *State) enlist(entries []InitiativeEntry, p Pawn, env Env) []InitiativeE
 
 func (s *State) groupKey(e InitiativeEntry) string { return GroupKey(e, s.Pawn) }
 
-// GroupKey is the identity of the line a reinforcement would join, or empty for
-// a line that is not a monster group at all.
-//
-// IT IS READ OFF THE FIRST MEMBER because every member of a group was put there
-// by having the same key. A line whose first member has gone from the table
-// answers empty, which is a reinforcement that starts a new line rather than
-// one that joins a line nothing can be checked against.
-//
-// IT TAKES A LOOKUP RATHER THAN A STATE because the other caller is the HTTP
-// handler behind Add to initiative, which holds a map of projected pawns and
-// not the room. Exporting the rule is what keeps the two from disagreeing about
-// what makes two goblins the same goblin.
+
+
+
+
+
+
+
+
+
+
+
+
 func GroupKey(e InitiativeEntry, pawn func(ulid.ULID) *Pawn) string {
 	for _, id := range e.PawnIDs {
 		p := pawn(id)
@@ -709,15 +709,15 @@ func GroupKey(e InitiativeEntry, pawn func(ulid.ULID) *Pawn) string {
 	return ""
 }
 
-// MonsterKey is what makes two monsters the same monster.
-//
-// IT IS THE MANUAL'S ID WHERE THERE IS ONE, AND THE NAME AND PICTURE WHERE
-// THERE IS NOT. A pawn spawned from the manual carries MonsterID and that is
-// the identity; a "Goblin" token dragged out of the asset library has none, and
-// two of those are the same creature exactly when a table would say they are.
-//
-// THE PREFIX IS WHAT KEEPS THE TWO KINDS OF KEY APART, so that a monster whose
-// name happens to read like a ULID cannot collide with one.
+
+
+
+
+
+
+
+
+
 func MonsterKey(p Pawn) string {
 	if p.MonsterID != nil {
 		return "id:" + p.MonsterID.String()
@@ -726,7 +726,7 @@ func MonsterKey(p Pawn) string {
 	return "name:" + p.Name + "\x00" + p.Image
 }
 
-// InitiativeClear empties the tracker, which is what the end of a fight is.
+
 type InitiativeClear struct{}
 
 func (c *InitiativeClear) Authorize(s *State, a Actor) error {
@@ -740,19 +740,19 @@ func (c *InitiativeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) 
 	return initiativeUpdated(s), nil
 }
 
-// THE FOUR GESTURES OF THE STRIP, AS COMMANDS. Each of them used to be an HTTP
-// handler that read the tracker through the hub, edited a copy, and dispatched
-// initiative.set with the result -- two trips into the room's goroutine, a
-// window between them a second GM tab could slip through, and a copy of a rule
-// the core already had. A command is one trip, atomic on the room, and the
-// rule is written once. initiative.set stays for the editor, which really does
-// replace the whole thing.
 
-// InitiativeActivate gives the turn to one line.
-//
-// THE GM CAN ACTIVATE A CORPSE, deliberately. Skipping the dead is what Next
-// does, not a rule about what may be acting -- a GM who wants to spend a
-// moment on the goblin that just fell over is allowed to.
+
+
+
+
+
+
+
+
+
+
+
+
 type InitiativeActivate struct {
 	Entry ulid.ULID `json:"entry"`
 }
@@ -773,12 +773,12 @@ func (c *InitiativeActivate) Apply(s *State, a Actor, env Env) ([]Emission, erro
 	return initiativeUpdated(s), nil
 }
 
-// InitiativeRemove takes one line out.
-//
-// REMOVING THE ACTING LINE MOVES THE TURN TO THE NEXT ONE IN THE OLD ORDER,
-// wrapping, or to nothing when it was the last. That is what dropped does when
-// a PAWN is removed, and this is the case where the line goes and the pawn
-// stays -- so it is the same successor rule, over lines rather than members.
+
+
+
+
+
+
 type InitiativeRemove struct {
 	Entry ulid.ULID `json:"entry"`
 }
@@ -810,13 +810,13 @@ func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	return initiativeUpdated(s), nil
 }
 
-// InitiativeReorder is where a drop lands: the whole order, as ids, in the
-// order the GM dragged them into.
-//
-// AN ID SET THAT IS NOT EXACTLY THE TRACKER'S IS REFUSED. The drag raced a
-// change -- a second tab synced, a pawn was removed -- and reordering what came
-// back would put the tracker into a shape nobody asked for. The refusal lands
-// in the alert modal and the refetch that follows the event is the answer.
+
+
+
+
+
+
+
 type InitiativeReorder struct {
 	IDs []ulid.ULID `json:"ids"`
 }
@@ -851,16 +851,16 @@ func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Emission, error
 	return initiativeUpdated(s), nil
 }
 
-// InitiativeAdd appends one line: either a name, from the Add entry dialog, or
-// a pawn, from that pawn's own menu.
-//
-// IT TAKES ONE OR THE OTHER AND NEVER BOTH. A named line is a lair action and
-// has no creature; a pawn line is a creature and takes its name from the pawn.
-// A request carrying both is one this server did not write.
-//
-// A PAWN JOINS ITS GROUP by enlist's rule, which is the sync's rule: in a
-// grouped fight a monster is appended to the line whose members share its
-// key, if there is one.
+
+
+
+
+
+
+
+
+
+
 type InitiativeAdd struct {
 	Name string     `json:"name"`
 	Pawn *ulid.ULID `json:"pawn"`

@@ -1,24 +1,24 @@
-// FLOATING WINDOWS OVER THE TABLE: the player list, the monster manual, a stat
-// block, the layer and grid settings. Several at once, moved and resized and
-// tucked into corners, remembered between visits.
-//
-// A WINDOW IS NOT A MODAL AND THE DIFFERENCE IS THE WHOLE DESIGN. A modal is
-// one at a time, blocks the page, sits in the middle and is dismissed; a window
-// blocks nothing, sits where it was put, and several are open while the GM
-// works. The app's three <dialog> modals stay exactly as they are -- this is a
-// different mechanism, not a fourth one of those.
-//
-// A WINDOW HOLDS A FRAGMENT URL AND NO VIEW CODE AT ALL. That is what makes it
-// worth having: htmx processes hx-* in a response it swapped, so any
-// /fragment/ route in the app becomes a window without a line of server change,
-// and a fragment that refetches itself on a socket event goes on doing that
-// inside one. The old client's windows each held a lit-html template and owned
-// their content's lifecycle, which is why every window there was a bespoke
-// component.
-//
-// NO CLASS NAME IS WRITTEN IN THIS FILE. server/js is not a Tailwind source, so
-// a class named here would never be emitted. The chrome is a <template> in
-// room.templ and everything below sets text, [hidden], and inline geometry.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import { WINDOW_CLOSE, WINDOW_RETITLE } from "../../public/js/events.js";
 
@@ -29,17 +29,17 @@ const DEFAULT_WIDTH = 280;
 const DEFAULT_HEIGHT = 320;
 const RECLAMP_DELAY = 150;
 
-// Every window names a /fragment/ route and this checks rather than trusting
-// the caller, for the reason the content modal checks: a URL that arrives as
-// data can name a page, and a whole <html> document swapped into a window reads
-// as a styling bug rather than a wrong URL. Comparing against a leading slash
-// rules out an absolute or protocol-relative URL for free.
+
+
+
+
+
 const FRAGMENT_PREFIX = "/fragment/";
 
-// htmx is a global from base.templ, loaded before any module runs. Only the one
-// call is used, and it is what gives a window the app's ordinary swap
-// behaviour: hx-* inside the response is processed on arrival, so there is no
-// htmx.process() here and there must not be one.
+
+
+
+
 declare const htmx: {
 	ajax(verb: string, path: string, context: { target: Element; source: Element }): void;
 };
@@ -59,9 +59,9 @@ interface Geometry {
 	h: number;
 }
 
-// The htmx request events carry the same ctx object for every event of one
-// request, which is how a window tells its own content load apart from the
-// requests that content makes once it has landed.
+
+
+
 interface RequestDetail {
 	ctx: { response?: { status?: number } };
 }
@@ -72,18 +72,18 @@ let room = "";
 
 const windows = new Map<string, RoomWindow>();
 
-// topZ is the stacking order among windows, and it is local: the table is its
-// own stacking context, so these compete with the tool pill inside it and never
-// with the menu bar above it.
+
+
+
 let topZ = 20;
 
-// nextZ hands out the level above everything on the table so far.
-//
-// IT IS EXPORTED FOR THE PAWN MENU, which is not a window and still has to come
-// out on top of them. A popup given a fixed number in its own markup is above
-// the windows until somebody has raised twenty of them and then is silently
-// underneath one, which is the kind of bug that only appears an hour into a
-// session. One counter for the table has no such hour.
+
+
+
+
+
+
+
 export function nextZ(): number {
 	topZ += 1;
 
@@ -92,8 +92,8 @@ export function nextZ(): number {
 
 let titles = 0;
 
-// mountWindows wires the room page up. It runs whether or not the room has a
-// socket -- a closed room still has a player list to read.
+
+
 export function mountWindows(mount: HTMLElement, roomID: string): void {
 	table = mount;
 	room = roomID;
@@ -104,13 +104,13 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 		return;
 	}
 
-	// A control asks for a window declaratively, the way one asks for the
-	// content modal:
-	//
-	//   <button data-window="players" data-window-url="/fragment/room/members?room=..."
-	//           data-window-title="Players">
-	//
-	// Delegated on the document, because a trigger can itself arrive in a swap.
+	
+	
+	
+	
+	
+	
+	
 	document.addEventListener("click", (e) => {
 		if (!(e.target instanceof Element)) {
 			return;
@@ -136,9 +136,9 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 		});
 	});
 
-	// A window that ran off the bottom of a smaller viewport is a window that
-	// cannot be reached, so every one of them is pulled back inside. Debounced,
-	// because a drag of the browser's own corner fires this continuously.
+	
+	
+	
 	let pending: number | undefined;
 	window.addEventListener("resize", () => {
 		window.clearTimeout(pending);
@@ -149,21 +149,21 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 		}, RECLAMP_DELAY);
 	});
 
-	// THE TWO EVENTS A LIVE PANEL CREATES, and both are the socket reaching the
-	// chrome rather than the content.
-	//
-	// A REMOVED PAWN WOULD OTHERWISE LEAVE A WINDOW SHOWING A DEAD GOBLIN'S
-	// HIT POINTS FOREVER. Its fragment 404s, the page's noSwap config covers
-	// every 4xx, so htmx swaps nothing and the stale panel simply sits there.
-	// The close has to come from outside the fragment because the fragment is
-	// the thing that stopped existing.
-	//
-	// A RENAMED PAWN WOULD OTHERWISE KEEP ITS OLD TITLE, for the mirror of that
-	// reason: the heading belongs to the chrome and only the body refetches.
-	//
-	// AN ID THAT IS NOT OPEN IS NOT AN ERROR. Ten clients each have a different
-	// set of windows open and the socket event reaches all of them, so most of
-	// these land on nothing at all. That is the normal case.
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	window.addEventListener(WINDOW_CLOSE, (e) => {
 		const id = (e as CustomEvent<{ id?: string }>).detail?.id;
 		if (id) {
@@ -178,24 +178,24 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 		}
 	});
 
-	// WHAT WAS OPEN COMES BACK. A reload -- including the one the client gives
-	// itself when the server build changes -- should not cost the GM the layout
-	// they arranged.
+	
+	
+	
 	for (const spec of restored()) {
 		openWindow(spec);
 	}
 }
 
-// openWindows is the ids of every window on the table, for the panel bridge:
-// a snapshot has to reach the pawn windows that are open, and close the ones
-// whose pawn is gone.
+
+
+
 export function openWindows(): string[] {
 	return [...windows.keys()];
 }
 
-// openWindow shows a window, or brings the one that is already open forward.
-// Clicking a menu item for a window that is behind something, or collapsed to
-// its title bar, means "show me that" rather than nothing.
+
+
+
 export function openWindow(spec: WindowSpec): void {
 	if (!spec.url.startsWith(FRAGMENT_PREFIX)) {
 		console.error(`a window needs a ${FRAGMENT_PREFIX} url, refusing:`, spec.url);
@@ -213,10 +213,10 @@ export function openWindow(spec: WindowSpec): void {
 		return;
 	}
 
-	// ONE BAD WINDOW MUST NOT TAKE THE PAGE WITH IT. This runs during startup
-	// for everything that was open last time, and it runs before the socket is
-	// wired -- so a window that throws on a template this build no longer has
-	// would otherwise cost the room its connection as well as its layout.
+	
+	
+	
+	
 	try {
 		windows.set(spec.id, new RoomWindow(spec, table, shell));
 	} catch (err) {
@@ -230,11 +230,11 @@ class RoomWindow {
 	readonly id: string;
 	readonly url: string;
 
-	// title is not readonly, and the one thing that moves it is a rename
-	// arriving over the socket. A window's heading is set from the trigger that
-	// opened it, so without this a pawn renamed mid-session keeps the name it
-	// had when its panel was opened -- forever, because nothing about the
-	// chrome refetches.
+	
+	
+	
+	
+	
 	private title: string;
 
 	private readonly el: HTMLElement;
@@ -249,12 +249,12 @@ class RoomWindow {
 
 	private minimized = false;
 
-	// restoreTo holds the windowed geometry while the window is maximized, so a
-	// non-null value IS "maximized" -- there is no second flag to keep in step
-	// with it.
+	
+	
+	
 	private restoreTo: Geometry | null = null;
 
-	// request is the ctx of the fetch whose content this window is expecting.
+	
 	private request: unknown = null;
 
 	constructor(spec: WindowSpec, into: HTMLElement, from: HTMLTemplateElement) {
@@ -312,8 +312,8 @@ class RoomWindow {
 			if (!(e.target instanceof Element)) {
 				return;
 			}
-			// The chrome's own controls only. A fragment is free to use the same
-			// attribute for something of its own without reaching this switch.
+			
+			
 			const action = e.target.closest("[data-window-action]");
 			if (!(action instanceof HTMLElement) || this.content.contains(action)) {
 				return;
@@ -342,9 +342,9 @@ class RoomWindow {
 			this.request = (e as CustomEvent<RequestDetail>).detail.ctx;
 		});
 
-		// A load from an earlier Retry that is still in flight. Let it finish so
-		// htmx settles its own bookkeeping, but do not let it paint over what is
-		// on screen now.
+		
+		
+		
 		this.el.addEventListener("htmx:before:swap", (e) => {
 			if (e.target === this.el && (e as CustomEvent<RequestDetail>).detail.ctx !== this.request) {
 				e.preventDefault();
@@ -357,10 +357,10 @@ class RoomWindow {
 				return;
 			}
 
-			// A missing response means the fetch threw. A 4xx or 5xx arrives
-			// here having swapped nothing, because the noSwap config in
-			// base.templ covers both ranges -- without this the spinner would
-			// run until the next navigation.
+			
+			
+			
+			
 			const status = detail.ctx.response?.status;
 			this.show(status !== undefined && status < 400 ? "content" : "error");
 		});
@@ -371,19 +371,19 @@ class RoomWindow {
 		this.content.replaceChildren();
 		this.request = null;
 
-		// htmx is a global from base.templ and the document order there puts it
-		// ahead of every module. If that ever stops being true the window says
-		// so and offers Retry, rather than throwing out of a constructor.
+		
+		
+		
 		if (typeof htmx === "undefined") {
 			this.show("error");
 
 			return;
 		}
 
-		// Naming the window as the source puts every event for this fetch on the
-		// window itself, which is how the listeners above tell it apart from the
-		// requests the content makes once it has landed -- a live panel
-		// refetching itself bubbles through here too, with its own target.
+		
+		
+		
+		
 		htmx.ajax("GET", this.url, { target: this.content, source: this.el });
 	}
 
@@ -393,8 +393,8 @@ class RoomWindow {
 		}
 	}
 
-	// reveal is what a second click on the menu item does: bring it forward, and
-	// open it back up if it was collapsed.
+	
+	
 	reveal(): void {
 		this.collapse(false);
 		this.raise();
@@ -410,10 +410,10 @@ class RoomWindow {
 		this.el.style.height = `${this.height()}px`;
 	}
 
-	// height is what the window occupies on screen, which is its title bar alone
-	// while it is collapsed. Every clamp and every snap line reads this rather
-	// than h, so a minimized window can still be dragged to the bottom edge and
-	// still snaps against its neighbours.
+	
+	
+	
+	
 	private height(): number {
 		return this.minimized ? this.bar.offsetHeight : this.h;
 	}
@@ -427,8 +427,8 @@ class RoomWindow {
 		schedule(this);
 	}
 
-	// null on an axis is "this handle does not touch that one", which is what
-	// keeps the east handle from nudging the height by a pixel.
+	
+	
 	private resizeTo(w: number | null, h: number | null): void {
 		const area = bounds();
 
@@ -443,10 +443,10 @@ class RoomWindow {
 		schedule(this);
 	}
 
-	// lines is everything worth snapping to on one axis: the table's own two
-	// edges and every other window's. Snapping a window's leading edge to
-	// another's trailing edge is what stacks two of them flush; snapping leading
-	// to leading is what lines a column of them up.
+	
+	
+	
+	
 	private lines(axis: "x" | "y"): number[] {
 		const area = bounds();
 		const out = [0, axis === "x" ? area.w : area.h];
@@ -465,16 +465,16 @@ class RoomWindow {
 		return out;
 	}
 
-	// reclamp pulls a window back inside the table, which is what a browser
-	// resize and a first open both need. A maximized one simply fills the new
-	// size.
+	
+	
+	
 	reclamp(): void {
 		const area = bounds();
 
-		// PAINTED HERE AND NOT SCHEDULED. Every caller is a one-off -- opening,
-		// collapsing, maximizing, a browser resize -- and a window that waited a
-		// frame for its first geometry would be drawn once at its natural size
-		// in the corner before it moved.
+		
+		
+		
+		
 		if (this.restoreTo) {
 			this.x = 0;
 			this.y = 0;
@@ -492,8 +492,8 @@ class RoomWindow {
 		this.commit();
 	}
 
-	// collapse hides the body and leaves the title bar, which is the corner-
-	// tucking move: a window you want to know is there and do not want to read.
+	
+	
 	private collapse(minimized: boolean): void {
 		this.minimized = minimized;
 		this.el.querySelector("[data-window-body]")?.toggleAttribute("hidden", minimized);
@@ -537,14 +537,14 @@ class RoomWindow {
 		remember();
 	}
 
-	// save writes the windowed geometry, never the maximized one -- restoring a
-	// window to the size of somebody else's screen is not restoring it.
+	
+	
 	save(): void {
 		store(`window:${this.id}`, this.restoreTo ?? { x: this.x, y: this.y, w: this.w, h: this.h });
 	}
 
-	// retitle follows a rename. It writes the heading and re-remembers the
-	// layout, so the new name survives a reload as well as the session.
+	
+	
 	retitle(title: string): void {
 		if (title === "" || title === this.title) {
 			return;
@@ -564,8 +564,8 @@ class RoomWindow {
 	}
 
 	private startDrag(e: PointerEvent): void {
-		// The title bar is also where the three controls are, and a click on one
-		// of those is not a drag.
+		
+		
 		if (e.target instanceof Element && e.target.closest("button")) {
 			return;
 		}
@@ -596,9 +596,9 @@ class RoomWindow {
 		});
 	}
 
-	// drag is the pointer bookkeeping both gestures share. Capture is what keeps
-	// a fast pointer that has left the element still driving it, and one code
-	// path covers mouse, pen and touch -- the old client had two.
+	
+	
+	
 	private drag(on: HTMLElement, e: PointerEvent, step: (ev: PointerEvent) => void): void {
 		this.raise();
 		on.setPointerCapture(e.pointerId);
@@ -617,11 +617,11 @@ class RoomWindow {
 	}
 }
 
-// THE FRAME LOOP, and it is here for the reason the renderer will have one: a
-// pointermove fires far more often than the screen refreshes, and writing a
-// transform per event is layout work the browser throws away. Handlers record
-// where the window should be; one animation frame paints every window that
-// moved.
+
+
+
+
+
 const moved = new Set<RoomWindow>();
 let frame = 0;
 
@@ -640,9 +640,9 @@ function schedule(win: RoomWindow): void {
 	});
 }
 
-// bounds is the table, which is what a window may not leave. Measuring the
-// element rather than the viewport means the menu bar is accounted for without
-// this file knowing how tall it is.
+
+
+
 function bounds(): { w: number; h: number } {
 	return { w: table?.clientWidth ?? 0, h: table?.clientHeight ?? 0 };
 }
@@ -651,8 +651,8 @@ function clamp(value: number, low: number, high: number): number {
 	return Math.min(Math.max(value, low), high);
 }
 
-// snap moves a whole window so that whichever of its two edges is closest to a
-// line lands on it.
+
+
 function snap(start: number, size: number, lines: number[]): number {
 	let best = start;
 	let closest = SNAP;
@@ -674,7 +674,7 @@ function snap(start: number, size: number, lines: number[]): number {
 	return best;
 }
 
-// nearest is snap for one edge, which is what a resize moves.
+
 function nearest(value: number, lines: number[]): number {
 	let best = value;
 	let closest = SNAP;
@@ -705,15 +705,15 @@ function size(value: string | undefined): number | undefined {
 	return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-// WHERE A WINDOW SITS IS ONE VIEWER'S CONVENIENCE AND NOBODY ELSE'S BUSINESS,
-// so it is localStorage rather than anything the server hears about. Every
-// accessor is guarded: a private window, cleared site data or a browser set to
-// refuse storage all throw here rather than returning nothing.
+
+
+
+
 function store(key: string, value: unknown): void {
 	try {
 		localStorage.setItem(`tabletopper:${key}`, JSON.stringify(value));
 	} catch {
-		// A layout that is not remembered is not a reason to stop working.
+		
 	}
 }
 
@@ -727,8 +727,8 @@ function read<T>(key: string): T | null {
 	}
 }
 
-// Geometry is keyed by the window rather than by the room, so the player list is
-// where you left it at every table.
+
+
 function geometry(id: string): Geometry | null {
 	const saved = read<Partial<Geometry>>(`window:${id}`);
 	if (!saved || typeof saved.x !== "number" || typeof saved.y !== "number") {
@@ -743,8 +743,8 @@ function geometry(id: string): Geometry | null {
 	};
 }
 
-// Which windows are open IS keyed by the room, because it is a fact about this
-// table rather than about this person's habits.
+
+
 function remember(): void {
 	const open: WindowSpec[] = [];
 	for (const win of windows.values()) {

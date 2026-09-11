@@ -6,284 +6,284 @@ import (
 	"tabletopper/internal/events"
 )
 
-// THE TURN ORDER IS A STRIP OF FACES ACROSS THE TOP OF THE TABLE, and every
-// decision in this file follows from that one.
-//
-// A TURN ORDER IS SCANNED AND NOT READ. The question a fight asks of it, twenty
-// times a round, is "whose go is it and who is next" -- and a face answers that
-// in the time a name takes to be focused on. This rebuild is built on every
-// creature having a picture, so the picture is the whole design: a tall
-// portrait in a coloured frame, and nothing else on a resting line. Everything
-// a GM might also want -- armour class, the floor, the full condition list --
-// is one double click away in the pawn window, which already exists.
-//
-// EACH CARD IS ITS OWN OBJECT AND THERE IS NO PANEL BEHIND THEM. A shared strip
-// makes twelve creatures one widget with faces printed on it; twelve separate
-// cards floating over the map are twelve creatures. That is the old app's
-// tracker and it is deliberately being kept -- it reads the way a party bar in
-// a video game reads, which is the reading a fight actually wants.
-//
-// THE FRAME IS COLOURED BY WHAT THE CREATURE IS: monsters red, NPCs green, the
-// party blue, and a line with no creature behind it a neutral dark. It is the
-// fastest question the strip answers -- "how much of this row is trying to kill
-// us" -- and it is answered without reading a word. The three colours are the
-// old app's own, fixed rather than themed, because they are information in the
-// way the blood is information; see the note in server/css/app.css.
-//
-// ONLY THE ACTING CARD IS LIT AND ONLY IT IS NAMED. The rest are turned down,
-// which is one filter rather than a border, a badge and a size change -- and a
-// row where eleven cards are dim is a row where the twelfth needs nothing else
-// to be found. The name plate hangs under the lit card in the frame's own
-// colour, so the card that is being read is the one carrying its own label.
-//
-// AND THE ACTING CARD GLOWS. It wears DaisyUI's `aura aura-silver` -- a band of
-// greys that turns once round the card every six seconds -- and that is the
-// whole of it. The component carries its own colours, so there is nothing on
-// this line to tint and nothing for a stylesheet to be told about a creature.
-//
-// IT SAYS NOTHING ABOUT HEALTH, DELIBERATELY. Every other mark on a line is a
-// reading of one number -- blood at the rim, the colour draining out, a pulse,
-// a splatter, a skull -- and a sixth reading of it in the same square inch is
-// not information. The aura is here for the one question none of those answers,
-// which is whose go it is.
-//
-// THE PAWN ON THE TABLE WEARS THE SAME COMPONENT AND NOT THE SAME VARIANT. Out
-// there it is drawn by a shader, in gold, with a comet's tail, and it DOES
-// redden as the creature bleeds -- because on the floor there is nothing else
-// on the OUTSIDE of a token saying so, where in here there are five such
-// things. Same mechanic, same six seconds, two surfaces that are never seen at
-// one scale. See server/js/room/render/aura-pass.ts.
-//
-// IT IS WRAPPED ROUND THE FRAME AND THE PLATE TOGETHER, which is why the acting
-// line's two elements are inside one span and a resting line's frame stands on
-// its own. They are one card, and half a card in a ring of light would read as
-// a rendering bug.
-//
-// EVERY CARD IS THE SAME SIZE, WHICH IS WHAT MAKES THE DRAG WORK. The acting
-// card used to be wider than the rest; that reflows the row on every turn and
-// moves the drop target out from under a pointer that was already reaching for
-// it.
-//
-// IT IS NOT A WINDOW AND THERE IS NO EDITOR BESIDE IT. The rule that a panel
-// which is not the table is a floating window was made about the player list: a
-// column taking a fifth of the table for something read once an hour. This is
-// read by everybody, every few seconds, for exactly the minutes a fight lasts,
-// and a window would have to be opened by each person at the table from a menu
-// the players do not have. And there is no second surface for editing it,
-// because with the numbers gone that window's whole content would have been the
-// same faces in a column -- a second thing to build, to style, to keep live and
-// to pin in tests, for the privilege of dragging vertically instead of
-// horizontally. The GM edits the thing they are already looking at.
-//
-// THE NUMBERS ARE GONE ENTIRELY. No box on a line, no box in a dialog, no Sort,
-// no renumber route. The slice order was always the turn order and the number
-// was always informational; with a drag there is nothing left for it to inform.
-// A GM who rolls on paper drags into the order they read off the paper, which
-// is one gesture instead of twelve keystrokes and a press.
-//
-// EVERY LINE WEARS ITS CREATURE'S WOUNDS, and it reads exactly what the canvas
-// reads: one band, from room.Health, spent on blood at the rim, the colour
-// draining out, a pulse inside the rim at two rates, a splatter, and a skull.
-// The whole of that is CSS on [data-band] in server/css/app.css -- see the note
-// there -- because all of it hangs off one attribute this file renders, and
-// because the numbers behind it are wounds.ts's, which is already the mirror of
-// hpBand in the Go.
-//
-// IT LEAKS NOTHING. projectPawn withholds a monster's armour class from players
-// and sends its hit points on purpose, because the canvas draws blood from the
-// number; a bloodied line is the bloodied sprite in a second place. What the
-// label setting still governs is the TEXT, and that is the HP field below.
-//
-// THE WORD "CARD" APPEARS NOWHERE IN THE MARKUP, and that is the trap this
-// feature walks straight into -- a card is what everybody calls these. `card`
-// is a DaisyUI component and Tailwind reads a .templ file as text, so the word
-// in a class, an attribute name, an attribute value or a Go identifier inside
-// the template emits the whole .card family into the stylesheet with nothing
-// anywhere failing. In the markup a line of the tracker is an ENTRY. The same
-// goes for `list`, `table`, `tab`, `status`, `stack`, `swap`, `indicator`,
-// `steps`, `timeline`, `countdown`, `chat`, `mask`, `dock` and `diff`. A
-// template test asserts the rendered strip contains none of them.
 
-// RoomInitiativeID is the strip's element id. The placeholder room.templ
-// renders and the fragment that replaces it share it, because the fragment
-// swaps itself outerHTML and an id that drifted would leave two of them.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const RoomInitiativeID = "room-initiative"
 
-// InitiativeTrigger is the fragment's own refetch, and both halves of it are
-// load-bearing.
-//
-// IT LISTENS FOR room:initiative, WHICH panels.ts RAISES FOR MORE THAN THE
-// TRACKER. initiative.updated raises it, and so does a pawn.updated for a pawn
-// the tracker names -- because damage arrives as pawn.updated and without that
-// the blood on these faces would be stale until the turn advanced, which is the
-// one thing the wound treatment cannot afford.
-//
-// THE FILTER IS WHAT KEEPS A REFETCH FROM DROPPING A HELD LINE. A swap that
-// replaced the strip under a pointer mid-drag would take the element being
-// dragged out of the document. Sortable sets data-dragging on the root at the
-// start of a drag and clears it at the end; an update that arrives during one
-// is lost, and the POST on drop brings a fresh one back a moment later.
-//
-// NEITHER A SQUARE BRACKET NOR A COMMA MAY APPEAR INSIDE THE FILTER. The filter
-// is delimited by the brackets around it and the attribute is split on commas,
-// so either one ends the expression early and leaves the rest parsed as trigger
-// modifiers -- which is not an error, it is a strip that has quietly stopped
-// refetching. See RoomPawnData.Trigger, which learned this the same way.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const InitiativeTrigger = events.Initiative + "[!this.hasAttribute('data-dragging')] from:window"
 
-// InitiativeLoadTrigger is the placeholder's, which fetches once on load and
-// then behaves like the fragment it is replaced by. The fragment's own root
-// must NOT carry `load`: a root that did would fetch itself again on every
-// swap, for ever.
+
+
+
+
 const InitiativeLoadTrigger = "load, " + InitiativeTrigger
 
-// The three shapes a line of the tracker takes. They are values rather than two
-// booleans because the three are exclusive and a template switching on one
-// string cannot render half of two of them.
+
+
+
 const (
-	// EntrySolo is one creature: a portrait, a name, its wounds, and its
-	// conditions when it is acting.
+	
+	
 	EntrySolo = "solo"
 
-	// EntryGroup is several of one monster acting together: the portrait of
-	// the worst-hurt one still standing, and a dot per member.
+	
+	
 	EntryGroup = "group"
 
-	// EntryNamed is a line with no pawn at all -- a lair action, a legendary
-	// action, the thing that acts on a count and is not a creature.
+	
+	
 	EntryNamed = "named"
 )
 
-// What a line IS, as against what shape it takes. The three values are
-// room.PawnKind's own words, so the attribute the stylesheet keys on is the
-// same string the protocol uses and there is no table in between.
-//
-// A LINE WITH NO CREATURE CARRIES NONE OF THEM and takes the neutral frame. An
-// object cannot be in the turn order at all, so PawnObject has no entry here.
+
+
+
+
+
+
 const (
 	SidePlayer  = "player"
 	SideMonster = "monster"
 	SideNPC     = "npc"
 )
 
-// InitiativePipMax is how many members a group draws one dot each for before
-// the dots become a count. Twenty four-pixel discs under a portrait is a
-// texture rather than a reading.
+
+
+
 const InitiativePipMax = 12
 
-// initiativeBloodVariants is how many splatters the sheet was cut into, and it
-// is BLOOD_VARIANTS in server/js/room/render/wounds.ts. It is written again
-// here rather than imported because the number belongs to the pictures in
-// server/public/images/blood and not to the protocol, and templ/pages renders
-// HTML rather than holding protocol types.
+
+
+
+
+
 const initiativeBloodVariants = 9
 
-// RoomInitiativeData is the strip for one viewer. Every string on it has
-// already been decided; the templates print them.
+
+
 type RoomInitiativeData struct {
 	RoomID string
 
-	// IsGM decides three things at once: whether the lines are draggable,
-	// whether they can be clicked to activate, and whether hit points are
-	// printed on every line rather than on the acting one alone.
+	
+	
+	
 	IsGM bool
 
-	// Empty renders the whole strip hidden. An empty tracker is no strip at
-	// all -- not an empty panel -- because the table underneath it is what the
-	// room is for.
+	
+	
+	
 	Empty bool
 
 	Entries []RoomInitiativeEntry
 }
 
-// RoomInitiativeEntry is one line of the tracker as the strip draws it.
+
 type RoomInitiativeEntry struct {
 	ID   string
 	Name string
 
-	// Kind is EntrySolo, EntryGroup or EntryNamed: the SHAPE of the line.
+	
 	Kind string
 
-	// Side is what the creature is -- SidePlayer, SideMonster or SideNPC --
-	// and it is what colours the frame. It is empty for a line with no
-	// creature behind it, which takes the neutral frame.
-	//
-	// A GROUP READS IT OFF ITS FIRST MEMBER, which is safe because grouping
-	// only ever puts monsters together: every member of a group got there by
-	// having the same monster key.
+	
+	
+	
+	
+	
+	
+	
 	Side string
 
-	// Image is the portrait, and Band is what room.Health answered for the
-	// creature it belongs to -- empty for a viewer who was told nothing, which
-	// draws the face plain.
+	
+	
+	
 	Image string
 	Band  string
 
-	// Blood is which of the nine splatters this line wears, as the digit the
-	// stylesheet keys on. It is chosen from the pawn's id so that everybody at
-	// the table sees the same one, and it is deliberately NOT the one the
-	// canvas chose: matching would mean mirroring seed() in Go for a difference
-	// nobody can see at forty-eight pixels, and what the nine are for is
-	// variety across a strip of twelve.
+	
+	
+	
+	
+	
+	
 	Blood string
 
-	// HP is the hit-point text -- "12 / 20", or the band's word for a viewer
-	// who gets words. It follows the room's label setting exactly as the pawn
-	// panel does, and it is empty in a room labelling nothing.
+	
+	
+	
 	HP string
 
-	// Active is the line whose turn it is. Mine is that line belonging to the
-	// person looking, which is what draws the timer and End turn.
+	
+	
 	Active bool
 	Mine   bool
 
-	// Hidden badges a line whose pawn players cannot see. A player never
-	// receives such a line at all, so this is never true on their copy.
+	
+	
 	Hidden bool
 
-	// Solo is the pawn id a double click opens the window for, and it is set
-	// for a one-creature line alone: a group is nine windows and a named line
-	// is none.
+	
+	
+	
 	Solo string
 
-	// Pips is one dot per member of a group, in that member's own colour, and
-	// Count is what replaces them past InitiativePipMax.
+	
+	
 	Pips  []RoomInitiativePip
 	Count string
 
-	// Conditions are the chips on the acting line, and a group carries none:
-	// nine goblins have nine sets of them and the rings on the table are where
-	// that lives.
+	
+	
+	
 	Conditions []RoomPawnCondition
 }
 
-// RoomInitiativePip is one member of a group, and it is a band and nothing
-// else. The stylesheet draws it from the same [data-band] rules the portrait
-// uses, at dot size, so six up and three down is six coloured discs and three
-// grey ones with one rule set doing both.
+
+
+
+
 type RoomInitiativePip struct {
 	Band string
 }
 
-// ActingConditions is the chips drawn under the strip, and they are the acting
-// line's alone -- one creature's, because one line is acting.
-//
-// THEY USED TO HANG UNDER THE CARD AND THEY PUSHED THE FIGHT APART. A card is
-// 72 pixels wide and "Poisoned 2 turns left" is nearer 130, and a column that
-// is a flex item sized by its widest child grew to fit them: two chips on the
-// acting line and the creatures either side of it slid away, so the turn order
-// moved every time somebody was poisoned. Truncating them to 72 pixels is the
-// other way out and it is worse -- a chip that reads "Pois..." is a coloured
-// dot with a cost.
-//
-// SO THE CHIPS GOT THEIR OWN ROW, centred under the whole strip and outside the
-// cards' scroller. Nothing they contain can move a card, they read left to
-// right on one line instead of wrapping into a 72-pixel gutter, and the row is
-// not inside the horizontal scroll box, so a wide set of them neither clips nor
-// puts a scrollbar under the fight.
-//
-// A GROUP CARRIES NONE, which is decided upstream: nine goblins have nine sets
-// of conditions and the rings on the table are where that lives.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomInitiativeData) ActingConditions() []RoomPawnCondition {
 	for _, e := range d.Entries {
 		if e.Active {
@@ -294,61 +294,61 @@ func (d RoomInitiativeData) ActingConditions() []RoomPawnCondition {
 	return nil
 }
 
-// Path is the fragment's own URL, so the copy swapped in refetches itself the
-// way the first one did. The room travels as a query parameter rather than in
-// the path for the reason MembersPath's does: this is a representation of a
-// room's state and not a resource of its own.
+
+
+
+
 func (d RoomInitiativeData) Path() string {
 	return "/fragment/room/initiative?room=" + d.RoomID
 }
 
 func (d RoomInitiativeData) Trigger() string { return InitiativeTrigger }
 
-// The four verbs that are not a gesture on a line. They are mutations, so they
-// keep their resource URLs; each ends in initiative.updated and answers 204,
-// and the strip refetches from the event rather than from the reply -- which is
-// what corrects the GM's second tab at the same instant as the first.
+
+
+
+
 func (d RoomInitiativeData) SyncPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/sync"
 }
 
-// NextPath is rendered as a hidden button on the GM's strip and as End turn on
-// a player's own acting line.
-//
-// THE GM'S IS HIDDEN BECAUSE NOTHING THERE IS PRESSED. A Next button used to
-// sit at the far end of the row; it was a control inside a display, it moved
-// every time the order changed, and it was the only thing on this surface a GM
-// operated rather than read. What is left is the element the N key presses --
-// see initiative.ts, which learns no route -- and the Initiative menu, which
-// posts the same URL and prints the key beside its label.
-//
-// THE CLOCK IS INSIDE THAT BUTTON, on the player's copy. The two were stacked a
-// few pixels apart -- a line of digits above a control small enough to miss on a
-// phone -- and the one thing a player looks at during their turn and the one
-// thing they press are better as a single target the width of the card: the
-// label over the running time. initiative.ts finds the digits by
-// [data-turn-timer] wherever they sit, so nothing but the markup moved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomInitiativeData) NextPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/next"
 }
 
-// ClearPath is a POST rather than a DELETE, and the reason is the menu rather
-// than the verb: a menu item is a button carrying hx-post, and making this one
-// the exception would mean a second branch in RoomMenuItem's markup for one
-// route. Clear tabletop is a POST for the same reason.
+
+
+
+
 func (d RoomInitiativeData) ClearPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/clear"
 }
 
-// OrderPath is where a drop posts the whole order. The client writes the ids
-// into the hidden button's hx-vals and presses it, which is pawn-menu.ts's
-// pattern and is what keeps every request htmx's rather than half of them the
-// module's.
+
+
+
+
 func (d RoomInitiativeData) OrderPath() string {
 	return "/rooms/" + d.RoomID + "/initiative/order"
 }
 
-// The two gestures on a line.
+
 func (d RoomInitiativeData) ActivatePath(e RoomInitiativeEntry) string {
 	return "/rooms/" + d.RoomID + "/initiative/" + e.ID + "/activate"
 }
@@ -357,37 +357,37 @@ func (d RoomInitiativeData) RemovePath(e RoomInitiativeEntry) string {
 	return "/rooms/" + d.RoomID + "/initiative/" + e.ID
 }
 
-// ActivateLabel is what a screen reader is told pressing a line does, and it is
-// built in Go rather than written in the markup for the reason
-// RoomPawnData.RemoveLabel is: Tailwind reads attribute VALUES as class-name
-// candidates too, so an aria-label in a template is prose in the stylesheet's
-// input. It names the creature because a strip is a row of a dozen of these and
-// "make active" on its own does not say make what active.
+
+
+
+
+
+
 func (d RoomInitiativeData) ActivateLabel(e RoomInitiativeEntry) string {
 	return "Give the turn to " + e.Name
 }
 
-// Grouped is whether the dots under the portrait are drawn.
+
 func (e RoomInitiativeEntry) Grouped() bool { return e.Kind == EntryGroup }
 
-// ShowHP is who reads the hit-point text: the GM on every card, and a player on
-// the acting one alone.
-//
-// A PLAYER READS IT ON THE ACTING CARD BECAUSE THAT IS THE CREATURE THE WHOLE
-// TABLE IS ALREADY TALKING ABOUT. On the other eleven it would be a row of
-// numbers stamped across a row of portraits, which is the spreadsheet this
-// design exists to not be -- and a resting card is meant to be scanned past.
-//
-// WHAT A PLAYER LOSES BY IT IS NOTHING THEY CANNOT SEE. The blood is on every
-// card at every moment, for everybody, because the canvas draws it from the
-// same number; this is the digits, and the digits are the room's label setting
-// speaking.
+
+
+
+
+
+
+
+
+
+
+
+
 func (d RoomInitiativeData) ShowHP(e RoomInitiativeEntry) bool {
 	return e.HP != "" && (d.IsGM || e.Active)
 }
 
-// InitiativePips turns a group's members into dots, or into a count when there
-// are more of them than anybody can read as dots.
+
+
 func InitiativePips(bands []string) ([]RoomInitiativePip, string) {
 	if len(bands) > InitiativePipMax {
 		return nil, "x" + strconv.Itoa(len(bands))
@@ -401,15 +401,15 @@ func InitiativePips(bands []string) ([]RoomInitiativePip, string) {
 	return pips, ""
 }
 
-// InitiativeBloodVariant is which of the nine splatters a creature wears, as
-// the digit the stylesheet keys on.
-//
-// IT IS FNV-1a OVER THE PAWN'S ID, which is seed() in wounds.ts written again
-// here -- the same hash of the same string, so that everybody at the table sees
-// the same splatter on the same goblin. What it is NOT is the variant the
-// CANVAS chose for that goblin: the canvas seeds per mark rather than per pawn,
-// and matching the two would be mirroring a second function for a difference
-// that is invisible at forty-eight pixels.
+
+
+
+
+
+
+
+
+
 func InitiativeBloodVariant(pawnID string) string {
 	var h uint32 = 0x811c9dc5
 	for i := range len(pawnID) {
@@ -420,31 +420,31 @@ func InitiativeBloodVariant(pawnID string) string {
 	return strconv.Itoa(int(h%initiativeBloodVariants) + 1)
 }
 
-// RoomInitiativeEntryData is the Add entry dialog: one field, for the line that
-// has no pawn behind it.
-//
-// IT EXISTS BECAUSE SYNC CANNOT REACH A LAIR ACTION. Sync covers every creature
-// a player can see on a floor they are standing on, which is the fight; what it
-// cannot reach is a thing that acts on a count and is not a creature. The other
-// half of the same gap -- a creature the GM wants in the order that Sync would
-// not take -- is Add to initiative on the pawn's own menu, which is where the
-// GM already is when they are looking at that goblin.
+
+
+
+
+
+
+
+
+
 type RoomInitiativeEntryData struct {
 	RoomID string
 	Errors []string
 }
 
-// RoomInitiativeEntryPanel is the dialog's error slot. It needs no id of its
-// own: there is one content modal on the page and it holds one dialog at a
-// time.
+
+
+
 const RoomInitiativeEntryPanel = "initiative-entry"
 
 func (d RoomInitiativeEntryData) SavePath() string {
 	return "/rooms/" + d.RoomID + "/initiative"
 }
 
-// EntryNameMax is the maxlength the field prints, and it is room.NameLimit
-// written where the markup can reach it. A test pins the two together so a
-// change to one is a failure rather than a field that accepts what the server
-// will not.
+
+
+
+
 const EntryNameMax = "128"

@@ -16,49 +16,49 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// What a shared character link opens, and the one place that decides what a
-// stranger is shown. share.go owns the token, the password and the miss;
-// character-share.go is the owner minting the link; this file is the sheet.
-//
-// IT IS THE CHARACTER TAB, READ-ONLY, AND THE SCOPE IS DELIBERATE. The editor
-// has five tabs and this mirrors one of them, so a link hands over what that
-// page shows and nothing that lives behind the other four: the inventory tab is
-// represented by the items ticked as equipped, the spells tab by the ones ticked
-// as prepared, and the journal not at all -- an entry is shared by its own link,
-// with its own expiry and its own password, and a sheet that listed them would
-// be a way around all three.
-//
-// THE READ IS THE EDITOR'S OWN GetCharacter AND THE NARROWING HAPPENS HERE. The
-// alternative was a statement selecting the forty-odd columns this page prints,
-// which is what GetSharedJournalEntry does for the five the journal banner
-// prints -- but the derived numbers are worked out from a dozen of those columns
-// by characterDerived, and a second statement would either feed the same
-// arithmetic or duplicate it. So the boundary is sharedCharacterSheet below:
-// every value on the page is a string written down here by name, and a column
-// added to the row reaches a reader only when somebody adds a line to this file.
-//
-// AN EMPTY VALUE IS NOT RENDERED AT ALL, which is the one place this stops
-// mirroring the editor. The editor shows a box for every field because it is
-// talking to the person who can fill it in; a reader cannot, so a zero
-// exhaustion, a blank hit dice pool and an unweighed temporary hit point are
-// absences here rather than boxes reading 0. The exceptions are the readings a
-// table wants even at zero -- armour class, hit points, the ability scores --
-// which are emitted whatever they say.
 
-// sharedCharacterSheet renders the shared sheet. It runs past the password gate
-// in SharePage and takes the grant rather than re-reading it, so the question is
-// asked exactly once per request.
-//
-// EVERY ID IT QUERIES WITH COMES OFF THE GRANT. The character is grant.
-// ResourceID and the owner is grant.OwnerID, and the four list statements below
-// are the editor's own -- they are already scoped by character and owner, which
-// is exactly the pair a share row carries, so a link cannot be edited into
-// asking for a character it does not name.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token string, grant queries.GetShareByTokenRow) {
 	sheet, portrait, err := a.loadCharacterSheet(r.Context(), grant.ResourceID, grant.OwnerID)
-	// The character was deleted after the link went out. Deleting one takes its
-	// shares with it, so this is a race rather than a steady state -- and it
-	// reads as a dead link, which is what it is.
+	
+	
+	
 	if errors.Is(err, sql.ErrNoRows) {
 		shareUnavailable(w, r)
 		return
@@ -81,17 +81,17 @@ func (a *App) sharedCharacterSheet(w http.ResponseWriter, r *http.Request, token
 	render(w, r, pages.SharedCharacterPage(sheet))
 }
 
-// loadCharacterSheet reads the five things a read-only sheet is built from and
-// builds it. The shared page and the Markdown export both come through here,
-// which is what makes an exported sheet and a shared one the same sheet -- and
-// what stops a panel appearing on one and not the other the next time somebody
-// adds a field.
-//
-// THE PORTRAIT COMES BACK AS A FLAG RATHER THAN A URL, because the two callers
-// disagree about what the URL is and one of them does not want one at all: the
-// shared page points at the share's own portrait route, and the export has no
-// image in it, since a file in somebody's vault cannot reach a picture this app
-// gates behind a session.
+
+
+
+
+
+
+
+
+
+
+
 func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.ULID) (pages.SharedCharacterSheet, bool, error) {
 	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
 		ID:      characterID,
@@ -133,8 +133,8 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	return sharedCharacterSheet(character, attacks, equipped, prepared, levels), character.AssetID != nil, nil
 }
 
-// sharedCharacterSheet is the boundary: forty-odd values named one at a time,
-// and a column that is not named here does not leave the process.
+
+
 func sharedCharacterSheet(
 	character queries.Character,
 	attacks []queries.Attack,
@@ -145,9 +145,9 @@ func sharedCharacterSheet(
 	derived := characterDerived(character)
 	header := characterHeaderFrom(character, derived)
 
-	// AvatarID names /assets/images/{id}, which needs a session and would render
-	// as a broken picture for every reader. The portrait comes from the share's
-	// own route instead, which the caller fills in.
+	
+	
+	
 	header.AvatarID = ""
 
 	ability := pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility))
@@ -216,10 +216,10 @@ func sharedCharacterSheet(
 		),
 	}
 
-	// The two spell numbers and the bonus that feeds them, for a character who
-	// casts. spellNumbers answers a dash for one who does not, and a strip
-	// reading "Spell Save DC —" beside "Spell Attack —" is two boxes saying the
-	// same nothing the absent Spellcasting Ability above already said.
+	
+	
+	
+	
 	if casts {
 		sheet.CoreStats = append(sheet.CoreStats, pages.SharedFact{
 			Label: "Spell Bonus (items, feats)",
@@ -234,9 +234,9 @@ func sharedCharacterSheet(
 	return sheet
 }
 
-// sharedFacts drops the ones with nothing in them, which is what makes every
-// panel above a list of what this character actually has rather than a form with
-// the inputs taken off.
+
+
+
 func sharedFacts(facts ...pages.SharedFact) []pages.SharedFact {
 	kept := make([]pages.SharedFact, 0, len(facts))
 	for _, fact := range facts {
@@ -250,9 +250,9 @@ func sharedFacts(facts ...pages.SharedFact) []pages.SharedFact {
 	return kept
 }
 
-// countValue renders a counter that means something only when it is not zero --
-// spent hit dice, exhaustion, death saves, temporary hit points -- and renders
-// nothing when it is, so sharedFacts drops the box.
+
+
+
 func countValue[T ~uint8 | ~uint16](count T) string {
 	if count == 0 {
 		return ""
@@ -261,9 +261,9 @@ func countValue[T ~uint8 | ~uint16](count T) string {
 	return strconv.FormatUint(uint64(count), 10)
 }
 
-// flagValue is countValue for the one boolean on the sheet. False is absent
-// rather than the word No, for the same reason: a reader is looking for what
-// this character has.
+
+
+
 func flagValue(on bool) string {
 	if !on {
 		return ""
@@ -285,10 +285,10 @@ func sharedBonuses(rows []pages.BonusRow) []pages.SharedBonus {
 	return bonuses
 }
 
-// sharedAttacks drops a row with nothing on it, which is what an attack looks
-// like between being added and being filled in. The editor renders it as an
-// empty form to type into; here it would be a card with a fallback name and no
-// other content.
+
+
+
+
 func sharedAttacks(rows []queries.Attack) []pages.SharedAttack {
 	attacks := make([]pages.SharedAttack, 0, len(rows))
 	for _, row := range rows {
@@ -313,9 +313,9 @@ func sharedAttacks(rows []queries.Attack) []pages.SharedAttack {
 	return attacks
 }
 
-// sharedItems is the equipped inventory. Quantity is rendered only when it is
-// not one, the way the editor's equipped list renders it, so a sword does not
-// read "Longsword × 1".
+
+
+
 func sharedItems(rows []queries.Inventory) []pages.SharedItem {
 	items := make([]pages.SharedItem, 0, len(rows))
 	for _, row := range rows {
@@ -333,9 +333,9 @@ func sharedItems(rows []queries.Inventory) []pages.SharedItem {
 	return items
 }
 
-// sharedFeatures reuses SharedFact, because a feature is a name and some text
-// and that is what a fact is. A row with neither is dropped for the reason an
-// empty attack is.
+
+
+
 func sharedFeatures(rows []pages.Feature) []pages.SharedFact {
 	features := make([]pages.SharedFact, 0, len(rows))
 	for _, row := range rows {
@@ -370,13 +370,13 @@ func sharedSpellGroups(rows []queries.Spell) []pages.SharedSpellGroup {
 	return groups
 }
 
-// sharedSpellLevels is the slots panel without the used count -- see
-// pages.SharedSpellLevel for why that one number is left out.
-//
-// A LEVEL WITH NO SLOTS AND NO SPELLS IS NOT A LEVEL THIS CHARACTER HAS. Ten are
-// always built, because nothing seeds the table and the editor renders all of
-// them so any can be filled in; here the empty ones are dropped, so a level 3
-// caster's panel stops at three rather than trailing six rows of zero.
+
+
+
+
+
+
+
 func sharedSpellLevels(levels []pages.SpellLevel) []pages.SharedSpellLevel {
 	active := make([]pages.SharedSpellLevel, 0, len(levels))
 	for _, level := range levels {
@@ -394,8 +394,8 @@ func sharedSpellLevels(levels []pages.SpellLevel) []pages.SharedSpellLevel {
 	return active
 }
 
-// slotCountLabel is what a level says it has. Cantrips are unlimited and say so
-// rather than reading "0 slots", which is the editor's answer to the same thing.
+
+
 func slotCountLabel(level pages.SpellLevel) string {
 	if level.Level == 0 {
 		return "Unlimited"

@@ -18,20 +18,20 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// The spells tab. Spellcasting used to be one panel writing one JSON column that
-// held all ten levels at once; it is two tables and a page per level now, and
-// these are the handlers for both.
-//
-// Like inventory, the row is the unit of work rather than the panel, and for the
-// same reason: a spell referenced from a second view needs an identity that
-// survives an edit, which a whole-list rewrite could not give it.
-//
-// The column widths are enforced here because MySQL runs in strict mode: an
-// overlong value comes back from the driver as an error, so without these a
-// pasted stat block in a 64-character field would reach the user as a 500 on a
-// field they were entitled to overfill. The first five are measured in
-// characters, which is what varchar counts; the spell text is measured in bytes,
-// which is what TEXT counts.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const (
 	spellNameLimit        = 128
 	spellComponentsLimit  = 128
@@ -40,20 +40,20 @@ const (
 	spellDurationLimit    = 64
 	spellDescriptionLimit = 65535
 
-	// The counters are TINYINT UNSIGNED, so the column stops at 255. 99 is what
-	// the inputs declare with max="99" and what the old JSON path clamped to.
+	
+	
 	spellSlotLimit = 99
 )
 
-// CharacterSpellsRedirect is all that is left of /edit/spells. The spells tab
-// opens on cantrips and there is no index above the levels, so this exists only
-// so a bookmark or a stale tab href lands on a page instead of the catch-all
-// 404.
-//
-// The id is parsed and printed back rather than passed through, so the Location
-// it builds can only be a canonical ULID. It reads no database: a character that
-// is not this user's is caught by the page it redirects to, and doing it twice
-// would mean two queries to answer a request that renders nothing.
+
+
+
+
+
+
+
+
+
 func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
 	characterID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
@@ -64,12 +64,12 @@ func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, "/characters/"+characterID.String()+"/edit/spells/0")
 }
 
-// CharacterSpellLevelPage is one level's spells.
-//
-// A level that is not one of the ten sends the browser to cantrips rather than
-// to /characters. The character is real -- loadCharacter has already said so --
-// and only the last segment is wrong, so the first page of the section is the
-// answer, not the character list.
+
+
+
+
+
+
 func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -85,8 +85,8 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cantrips have no slots, so their page renders no counters and asks for
-	// none. That is one query saved on the page the Spells tab opens.
+	
+	
 	var counters pages.SpellLevel
 	if level > 0 {
 		var ok bool
@@ -115,12 +115,12 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// loadSpellSlots reads one level's counters.
-//
-// Nothing seeds spell_slots, so a level nobody has given a count has no row, and
-// ErrNoRows is the zeroes it would have held rather than a failure. That is the
-// property the table was designed around; it used to be spelled as a list of
-// however many rows existed, back when one page rendered all ten levels.
+
+
+
+
+
+
 func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID, level uint8) (pages.SpellLevel, bool) {
 	counters := pages.SpellLevel{Level: int(level), Slots: "0", Used: "0"}
 
@@ -144,14 +144,14 @@ func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID
 	return counters, true
 }
 
-// loadSpellLevels reads all ten levels for the Spell Slots panel on the
-// Character tab: every level's counters, and how many spells each one holds.
-//
-// Two queries rather than a join. A character with no slot rows and no spells is
-// the normal state of a fighter, and there is no join that produces ten rows of
-// zeroes from two empty results -- MySQL has no FULL OUTER JOIN, and the levels
-// missing from each side are not the same levels. The loop below says it in Go
-// for the cost of one extra round trip.
+
+
+
+
+
+
+
+
 func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
 	levels, err := a.spellLevels(r.Context(), characterID, ownerID)
 	if err != nil {
@@ -163,10 +163,10 @@ func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterI
 	return levels, true
 }
 
-// spellLevels is the pair of reads and the merge, without a response to fail
-// into. The page wants the redirect above; the export wants to answer for
-// itself, because a download that has already set a Content-Disposition cannot
-// change its mind and become a page.
+
+
+
+
 func (a *App) spellLevels(ctx context.Context, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, error) {
 	slots, err := a.Queries.ListSpellSlots(ctx, queries.ListSpellSlotsParams{
 		CharacterID: characterID,
@@ -187,9 +187,9 @@ func (a *App) spellLevels(ctx context.Context, characterID, ownerID ulid.ULID) (
 	return mergeSpellLevels(slots, counts), nil
 }
 
-// mergeSpellLevels builds all ten levels from however few rows the two queries
-// returned. Neither table seeds anything, so a level nobody has touched appears
-// in neither result and reads here as the zeroes it would have held.
+
+
+
 func mergeSpellLevels(slots []queries.SpellSlot, counts []queries.CountSpellsByLevelRow) []pages.SpellLevel {
 	counters := make(map[uint8]queries.SpellSlot, len(slots))
 	for _, row := range slots {
@@ -215,14 +215,14 @@ func mergeSpellLevels(slots []queries.SpellSlot, counts []queries.CountSpellsByL
 	return levels
 }
 
-// AddSpell creates an empty spell at a level and answers with it. The level is
-// the only thing that comes from the client, and it comes from the URL of the
-// page the button is on rather than from a field.
-//
-// The row is read back rather than assembled from what the insert "should" have
-// written, so the schema stays the only place a new spell's starting school is
-// declared. It costs a second round trip on a button press, which is not a
-// keystroke.
+
+
+
+
+
+
+
+
 func (a *App) AddSpell(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -237,10 +237,10 @@ func (a *App) AddSpell(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spellID := ulid.Make()
-	// The statement selects from characters, so a character that is not this
-	// user's matches nothing and inserts nothing. Zero rows is that, and it is
-	// the only thing it can be: the id is freshly minted, so a duplicate key is
-	// not on the table.
+	
+	
+	
+	
 	result, err := a.Queries.InsertSpell(ctx, queries.InsertSpellParams{
 		ID:          spellID,
 		Level:       level,
@@ -273,14 +273,14 @@ func (a *App) AddSpell(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.SpellRow(characterID.String(), spellPageRow(spell)))
 }
 
-// SaveSpell is the row's autosave. It writes eight columns and reads eight
-// fields, and the form that posts them renders all eight together -- which is
-// what makes a narrow read of a wide write impossible here. See buildSpellInput
-// for the one field where that is load-bearing rather than incidental.
-//
-// level is not among them. A spell cannot change level, so no control renders
-// one and the statement does not name the column; the level in the URL is a
-// filter, not a value.
+
+
+
+
+
+
+
+
 func (a *App) SaveSpell(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -323,16 +323,16 @@ func (a *App) SaveSpell(w http.ResponseWriter, r *http.Request) {
 		OwnerID:      sess.UserID,
 		Level:        level,
 	})
-	// "spell" and not "character", for the reason the inventory save says
-	// "item" -- see savedRow.
+	
+	
 	finishRow(w, r, panel, spellToastLabel(input.Name), "spell", result, err)
 }
 
-// DeleteSpell drops one row. The reply carries no body, and it MUST be a 200:
-// base.templ's noSwap config lists 204, and a status in that list sets the swap
-// to "none", which overrides the hx-swap="delete" on the button and leaves the
-// row sitting on screen after the database has dropped it. DeleteInventoryItem
-// is the same shape for the same reason.
+
+
+
+
+
 func (a *App) DeleteSpell(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -369,10 +369,10 @@ func (a *App) DeleteSpell(w http.ResponseWriter, r *http.Request) {
 	htmx.Toast(w, "Spell deleted.")
 }
 
-// SaveSpellSlots writes one level's counters. Cantrips are excluded rather than
-// stored as zeroes: they have no slots in the rules, the cantrips page renders
-// no counters at all, and a route that accepted level 0 would be accepting
-// something no page can send.
+
+
+
+
 func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -397,9 +397,9 @@ func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 
 	slots := parseSlotCount(r.PostFormValue("slots"))
 	used := parseSlotCount(r.PostFormValue("used"))
-	// A level cannot have more slots spent than it has. Both fields post
-	// together from the same form, so the ceiling is whatever the slots field
-	// says at the moment of the save rather than whatever is stored.
+	
+	
+	
 	if used > slots {
 		used = slots
 	}
@@ -411,13 +411,13 @@ func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
-	// The slots belong to the character rather than to any spell row, so this
-	// one does say "character".
+	
+	
 	finishRow(w, r, panel, pages.SpellLevelName(int(level))+" slots", "character", result, err)
 }
 
-// A row spends its first seconds nameless, and a debounce landing in there
-// should not toast " saved.".
+
+
 func spellToastLabel(name string) string {
 	if name == "" {
 		return "Spell"
@@ -437,23 +437,23 @@ type spellInput struct {
 	Prepared     bool
 }
 
-// buildSpellInput reads one row off the form. Nothing here is required --
-// specifically not the name. A row is created empty and named afterwards, so a
-// required name would mean the browser refused to post the row that most needs
-// posting.
-//
-// PREPARED IS READ FROM THE ABSENCE OF A FIELD, because an unchecked box posts
-// nothing at all. That is correct for a checkbox and it is also the exact shape
-// the panel handlers are built to avoid -- a reader treating "not sent" as a
-// value. It is safe only because the row form renders all eight controls
-// together, so a post that omits `prepared` really is an unticked box rather
-// than a partial form. That is a property of the markup, not of this function,
-// which is why there is a test pinning it.
-//
-// The school is normalised rather than validated. The control is a select with
-// no empty option, so a value outside the eight did not come from the form, and
-// failing a save over a field the user cannot mistype would cost more than it
-// protects.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func buildSpellInput(r *http.Request) (spellInput, []string) {
 	name := strings.TrimSpace(r.PostFormValue("name"))
 	components := strings.TrimSpace(r.PostFormValue("components"))
@@ -495,11 +495,11 @@ func buildSpellInput(r *http.Request) (spellInput, []string) {
 	}, problems
 }
 
-// An empty counter is 0, matching the column default: the field is empty for a
-// moment every time someone retypes it, and a debounce landing in that moment
-// should store the zero rather than refuse the save. Anything unparseable is 0
-// for a different reason -- type=number cannot produce it, so it is a hand-built
-// post and not a user to explain anything to.
+
+
+
+
+
 func parseSlotCount(raw string) uint8 {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
@@ -514,9 +514,9 @@ func parseSlotCount(raw string) uint8 {
 	return uint8(min(max(count, 0), spellSlotLimit))
 }
 
-// parseSpellLevel bounds a level to the ten that exist. It is the only thing
-// standing between the {level} segment and a query, and it is why the segment
-// can be interpolated into a panel id: what comes out is a number from 0 to 9.
+
+
+
 func parseSpellLevel(raw string) (uint8, bool) {
 	level, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 8)
 	if err != nil || level > pages.MaxSpellLevel {
@@ -536,10 +536,10 @@ func spellLevelPath(w http.ResponseWriter, r *http.Request) (uint8, bool) {
 	return level, true
 }
 
-// unknownSpellLevel answers a {level} segment no page could have produced --
-// every level the editor sends is a number baked into a link or a button. So the
-// message says the page is wrong rather than the character is gone, the way
-// unknownBonusKind does for the same reason.
+
+
+
+
 func unknownSpellLevel(w http.ResponseWriter, raw string) {
 	slog.Warn("unknown spell level requested", "level", raw)
 	htmx.Error(w, "Not Found", "That part of the character sheet does not exist. Refresh the page and try again.", http.StatusNotFound)
@@ -555,15 +555,15 @@ func spellRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
 	return spellID, true
 }
 
-// preparedSpellGroups splits the prepared rows into one group per level for the
-// read-only view on the Character tab.
-//
-// IT RELIES ON THE QUERY'S ORDER BY, comparing each row against the group it is
-// building rather than collecting into a map and sorting. ListPreparedSpells
-// orders by level and then id, so rows of a level arrive together and in the
-// order they were added -- the same order the level page shows them in. A
-// statement that dropped the ordering would not fail here; it would quietly
-// render Level 3 twice.
+
+
+
+
+
+
+
+
+
 func preparedSpellGroups(rows []queries.Spell) []pages.PreparedSpellGroup {
 	groups := make([]pages.PreparedSpellGroup, 0, pages.MaxSpellLevel+1)
 	for _, row := range rows {
@@ -597,10 +597,10 @@ func spellPageRow(row queries.Spell) pages.Spell {
 		ID:    row.ID.String(),
 		Level: int(row.Level),
 		Name:  row.Name,
-		// Normalised on the way out as well as on the way in. The column takes
-		// any 32 characters, and the select can only render one of the eight --
-		// a value that is not among them would otherwise silently become
-		// whichever option happened to be first.
+		
+		
+		
+		
 		School:       pages.NormalizeSpellSchool(row.School),
 		Components:   row.Components,
 		CastingTime:  row.CastingTime,

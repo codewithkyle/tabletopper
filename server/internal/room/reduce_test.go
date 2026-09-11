@@ -7,9 +7,9 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// EVERY EVENT IN THE REGISTRY HAS A REDUCTION. This walks the catalog rather
-// than listing the cases, so an event added without deciding what it does to
-// the state fails here instead of being silently ignored by every client.
+
+
+
 func TestEveryEventReduces(t *testing.T) {
 	for wire, ev := range EventPrototypes() {
 		s := NewState(testRoomID, "Room", newEnv())
@@ -20,8 +20,8 @@ func TestEveryEventReduces(t *testing.T) {
 	}
 }
 
-// The default branch is not decoration. It is what turns "somebody added an
-// event and forgot the reducer" into a failure with the type name in it.
+
+
 func TestReduceNamesAnEventItDoesNotKnow(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
 
@@ -38,9 +38,9 @@ type unreducedEvent struct{ Header }
 
 func (*unreducedEvent) eventType() string { return "an.event.nobody.wrote" }
 
-// A transient event never touches the state. If one ever did, it would be a
-// change that the snapshot does not carry, and the room would come back from a
-// restart missing it.
+
+
+
 func TestTransientEventsChangeNothing(t *testing.T) {
 	w := busyWorld(t)
 	before := mustJSON(t, w.s)
@@ -64,9 +64,9 @@ func TestTransientEventsChangeNothing(t *testing.T) {
 	}
 }
 
-// The three sizing rules, each checked as the shape it is. A singleton
-// replaces, a collection item upserts by id, and a hot path mutates a named
-// field of something already there.
+
+
+
 func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 	s := NewState(testRoomID, "Room", newEnv())
 	layer := s.Table.ActiveLayer
@@ -117,9 +117,9 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 			t.Fatalf("the pawn is at (%d, %d)", p.X, p.Y)
 		}
 
-		// A move naming a pawn this client does not hold is ignored rather
-		// than an error: the player copy of a move is filtered per audience,
-		// and a removal can race an event either way round.
+		
+		
+		
 		if err := Reduce(s, &PawnMoved{Pawns: []PawnPosition{{ID: testID(999), X: 1, Y: 1}}}); err != nil {
 			t.Fatalf("a move naming an absent pawn was an error: %v", err)
 		}
@@ -152,8 +152,8 @@ func TestTheReducerAppliesTheThreeSizingRules(t *testing.T) {
 	})
 }
 
-// A snapshot replaces everything, which is what makes reconnecting simple
-// enough that there is no replay log behind it.
+
+
 func TestASnapshotEventReplacesTheWholeState(t *testing.T) {
 	w := busyWorld(t)
 

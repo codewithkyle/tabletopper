@@ -10,12 +10,12 @@ import (
 	"tabletopper/internal/room"
 )
 
-// THE PEN IS EVERYBODY'S, unlike the fog. Whether a player may actually draw is
-// Table.PlayersCanDraw, which the core reads and refuses against with the alert
-// modal -- so a player at a table where drawing is off finds the button and is
-// told why. A button that appeared and disappeared as the GM changed their mind
-// would be a control moving underneath a hand that was using it, and the pill
-// has no room to explain a grey circle.
+
+
+
+
+
+
 func TestEverybodyGetsTheDrawTool(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		page := markup(t, Room(testRoomPage(role)))
@@ -28,10 +28,10 @@ func TestEverybodyGetsTheDrawTool(t *testing.T) {
 	}
 }
 
-// EXACTLY ONE TOOL LAYS DOWN INK, for the reason exactly one is the ruler and
-// exactly one is the fog: tools.ts finds the mode by the attribute rather than
-// by a name written out in both languages, and two of them would make the
-// answer whichever came first in the markup.
+
+
+
+
 func TestExactlyOneToolIsTheDrawTool(t *testing.T) {
 	draws := 0
 	for _, tool := range RoomTools() {
@@ -50,9 +50,9 @@ func TestExactlyOneToolIsTheDrawTool(t *testing.T) {
 	}
 }
 
-// A MODE WITH NO LETTER IS A MODE NOBODY REACHES FOR, and the pen is reached
-// for constantly. The letter is rendered onto the button rather than spelled in
-// TypeScript, so this is what says it is there at all.
+
+
+
 func TestTheDrawToolHasItsOwnLetter(t *testing.T) {
 	keys := map[string]string{}
 	for _, tool := range RoomTools() {
@@ -70,11 +70,11 @@ func TestTheDrawToolHasItsOwnLetter(t *testing.T) {
 	}
 }
 
-// CLEAR DRAWING IS THE GM'S AND IS LAYERED. The second of those is the one
-// worth a test: without data-room-layered the room bundle never finds the item,
-// the hx-vals stays "{}", and the route quietly falls back to the active floor
-// -- which is the right floor most of the time and the wrong one exactly when a
-// GM is tidying up the floor they are looking at.
+
+
+
+
+
 func TestClearDrawingIsAConfirmedLayeredGMItem(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 
@@ -105,10 +105,10 @@ func TestClearDrawingIsAConfirmedLayeredGMItem(t *testing.T) {
 	}
 }
 
-// THE ONE DESTRUCTIVE ITEM IN A MENU IS DRAWN IN THE ERROR COLOUR AND SITS
-// LAST, and in the Tabletop menu that item is Clear tabletop. Clear drawing
-// empties one floor's lines and is recoverable by drawing them again; the one
-// below it empties every floor of everything.
+
+
+
+
 func TestClearDrawingIsNotTheDangerousItem(t *testing.T) {
 	items := testRoomPage(room.RoleGM).tabletopMenu().Items
 
@@ -124,8 +124,8 @@ func TestClearDrawingIsNotTheDangerousItem(t *testing.T) {
 	}
 }
 
-// THE OPTIONS PILL STARTS ON THE PEN AND STARTS HIDDEN, and it is every role's
-// -- unlike the fog's, which a player's page does not render at all.
+
+
 func TestTheDrawOptionsPillStartsOnThePenForEveryRole(t *testing.T) {
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
 		page := markup(t, Room(testRoomPage(role)))
@@ -148,9 +148,9 @@ func TestTheDrawOptionsPillStartsOnThePenForEveryRole(t *testing.T) {
 	}
 }
 
-// BOTH FOLDED CONTROLS START FOLDED AND SAY WHAT THEY OPEN. A panel that
-// rendered open would be a hundred and seventy-six pixels of picker over the
-// corner of the map on every page load.
+
+
+
 func TestTheDrawPanelsStartFoldedAndAreLabelled(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -182,10 +182,10 @@ func TestTheDrawPanelsStartFoldedAndAreLabelled(t *testing.T) {
 	}
 }
 
-// THE PANELS OPEN TO THE LEFT OF THE PILL, AND WHERE THEY OPEN IS THE TEMPLATE'S
-// TO SAY. draw-tool.ts measures nothing and writes no position -- it only
-// toggles [hidden] -- so if these classes go, the panel appears on top of the
-// pill and nothing in TypeScript would notice.
+
+
+
+
 func TestTheDrawPanelsOpenBesideThePill(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -199,9 +199,9 @@ func TestTheDrawPanelsOpenBesideThePill(t *testing.T) {
 	}
 }
 
-// THE SLIDER STOPS WHERE THE SERVER DOES. A stroke wider than StrokeWidthMax is
-// refused by the core, so a slider that went past it would be a control whose
-// top end raises an alert modal.
+
+
+
 func TestTheBrushSliderStopsAtTheProtocolsWidth(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -217,10 +217,10 @@ func TestTheBrushSliderStopsAtTheProtocolsWidth(t *testing.T) {
 		t.Errorf("the slider goes below one map pixel: %s", slider)
 	}
 
-	// AND IT RENDERS THE WIDTH THE PEN OPENS ON, because draw-tool.ts READS
-	// this value rather than writing one -- so the slider and the pen cannot
-	// open on two different numbers. A slider with no value would leave the pen
-	// on its own no-markup fallback.
+	
+	
+	
+	
 	if !strings.Contains(slider, `value="`+DrawWidthDefault+`"`) {
 		t.Errorf("the slider renders no starting width: %s", slider)
 	}
@@ -229,9 +229,9 @@ func TestTheBrushSliderStopsAtTheProtocolsWidth(t *testing.T) {
 	}
 }
 
-// THE COLOUR PICKER HAS NO ALPHA, which is the whole reason it is a different
-// element from the grid's. Two overlapping segments of a translucent line blend
-// twice and show a darker dot at every joint; see render/stroke-pass.ts.
+
+
+
 func TestTheDrawPickerHasNoAlpha(t *testing.T) {
 	page := markup(t, Room(testRoomPage(room.RoleGM)))
 
@@ -245,23 +245,23 @@ func TestTheDrawPickerHasNoAlpha(t *testing.T) {
 	}
 }
 
-// A COLOUR PICKER MUST NOT BE TOLD HOW TO LAY ITSELF OUT, and this is the test
-// for a bug that shipped once and failed silently.
-//
-// vanilla-colorful sizes its two halves with `:host{display:flex;
-// flex-direction:column}` inside its shadow root, and a class on the host from
-// OUTSIDE that root beats a :host rule whatever the specificity. So a `block`
-// on the element turns the column off, `flex-grow` on the saturation square
-// stops meaning anything, and the picker collapses to a thin hue strip with its
-// two pointers floating on it. Nothing errors, no test that only looked for the
-// element would notice, and the CSS selector diff is clean because `block` was
-// already in the build.
-//
-// Sizing it is fine and is how both pickers get their height. Telling it its
-// display is not.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestNeitherColorPickerIsGivenADisplayUtility(t *testing.T) {
-	// Every Tailwind utility that would replace the flex column. `flex` itself
-	// is what the element already is, so it is not in the list.
+	
+	
 	breaking := []string{
 		"block", "inline", "inline-block", "inline-flex",
 		"grid", "inline-grid", "contents", "flow-root", "table", "list-item",
@@ -290,8 +290,8 @@ func TestNeitherColorPickerIsGivenADisplayUtility(t *testing.T) {
 		}
 	}
 
-	// Both pages render one, so a regex that stopped matching would otherwise
-	// leave this test passing while it checked nothing.
+	
+	
 	if seen != 2 {
 		t.Fatalf("found %d colour pickers across the two pages, want 2", seen)
 	}

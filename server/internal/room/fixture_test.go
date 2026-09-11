@@ -8,21 +8,21 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE TEST WORLD. Every test in this package builds one of these rather than a
-// State literal, for one reason: a State literal is a state somebody asserted
-// into existence, and half of what is worth testing here is whether the
-// commands can produce it. The world is built by running the same commands the
-// hub runs.
-//
-// IDS ARE A COUNTER, NOT ulid.Make. The whole package is written to be a pure
-// function of (state, command), and the one thing that was not -- minting ids
-// -- is injected through Env for exactly this. A deterministic id makes a
-// golden fixture a diff, an emission list comparable, and a failure message
-// something a person can read.
 
-// testID builds a ULID from a small number. The counter goes in the last eight
-// bytes so that ids compare in the order they were minted, which is what ULIDs
-// do in production and what Normalize's sorting assumes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func testID(n int) ulid.ULID {
 	var id ulid.ULID
 	id[0] = 1
@@ -31,8 +31,8 @@ func testID(n int) ulid.ULID {
 	return id
 }
 
-// The fixed identities. They start at a thousand so that nothing minted by an
-// Env can collide with one.
+
+
 var (
 	testRoomID    = testID(1000)
 	testGMID      = testID(1001)
@@ -43,7 +43,7 @@ var (
 	testAssetID   = testID(1006)
 )
 
-// newEnv is the deterministic id source and a fixed build version.
+
 func newEnv() Env {
 	n := 0
 
@@ -57,7 +57,7 @@ func newEnv() Env {
 	}
 }
 
-// world is a room with a GM and two players already seated.
+
 type world struct {
 	t     *testing.T
 	s     *State
@@ -84,8 +84,8 @@ func newWorld(t *testing.T) *world {
 		layer: s.Table.ActiveLayer,
 	}
 
-	// Seated through the hub-only command rather than by appending rows, so
-	// that the state a test starts from is one the server can actually reach.
+	
+	
 	w.apply(&PlayerJoin{Player: Player{ID: testGMID, Name: "Kyle", Role: RoleGM}}, w.gm)
 	w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer, CharacterID: &testCharID, CharacterName: "Ilyana"}}, w.gm)
 	w.apply(&PlayerJoin{Player: Player{ID: testOtherID, Name: "Rin", Role: RolePlayer, CharacterID: &testOtherChar, CharacterName: "Brannor"}}, w.gm)
@@ -93,9 +93,9 @@ func newWorld(t *testing.T) *world {
 	return w
 }
 
-// run is authorize-then-apply, exactly as the hub will do it, and it is the
-// only way a test changes the world. Nothing here reaches into State and
-// assigns.
+
+
+
 func (w *world) run(c Command, a Actor) ([]Emission, error) {
 	w.t.Helper()
 
@@ -106,7 +106,7 @@ func (w *world) run(c Command, a Actor) ([]Emission, error) {
 	return c.Apply(w.s, a, w.env)
 }
 
-// apply is run for the commands a test expects to succeed.
+
 func (w *world) apply(c Command, a Actor) []Emission {
 	w.t.Helper()
 
@@ -118,10 +118,10 @@ func (w *world) apply(c Command, a Actor) []Emission {
 	return ems
 }
 
-// refuse is run for the commands a test expects to be turned down, and it
-// asserts the code as well as the failure -- forbidden and invalid mean
-// different things to the client, so a test that accepted either would pass
-// while the client did the wrong thing.
+
+
+
+
 func (w *world) refuse(c Command, a Actor, code string) *Error {
 	w.t.Helper()
 
@@ -141,8 +141,8 @@ func (w *world) refuse(c Command, a Actor, code string) *Error {
 	return e
 }
 
-// spawn puts a pawn on the table through the ordinary command, resolved the way
-// the hub would resolve it, and answers with the id it was given.
+
+
 func (w *world) spawn(p Pawn) ulid.ULID {
 	w.t.Helper()
 
@@ -170,8 +170,8 @@ func (w *world) spawn(p Pawn) ulid.ULID {
 		w.t.Fatalf("spawn: pawn count went from %d to %d", before, len(w.s.Pawns))
 	}
 
-	// The new pawn is the one with the highest Z, which addPawn sets to one
-	// above everything already there.
+	
+	
 	var newest Pawn
 	for _, q := range w.s.Pawns {
 		if q.Z >= newest.Z {
@@ -182,7 +182,7 @@ func (w *world) spawn(p Pawn) ulid.ULID {
 	return newest.ID
 }
 
-// addLayer adds a second floor and answers with its id.
+
 func (w *world) addLayer(name string) ulid.ULID {
 	w.t.Helper()
 
@@ -195,10 +195,10 @@ func (w *world) addLayer(name string) ulid.ULID {
 	return w.s.Table.Layers[len(w.s.Table.Layers)-1].ID
 }
 
-// THE FAN-OUT, WRITTEN OUT AS A TEST HELPER. This is what phase 3's hub does
-// with an emission, and having it here means the audience rules are exercised
-// by every test that looks at what somebody received rather than described in a
-// comment and implemented once.
+
+
+
+
 func delivered(ems []Emission, actor, viewer Actor) []Event {
 	var out []Event
 
@@ -222,8 +222,8 @@ func delivered(ems []Emission, actor, viewer Actor) []Event {
 			continue
 		}
 
-		// nil is a real answer from ForRole: this event has nothing to say to
-		// this role, and the hub sends nothing rather than an empty payload.
+		
+		
 		if ev := ForRole(em.Event, viewer.Role); ev != nil {
 			out = append(out, ev)
 		}
@@ -232,10 +232,10 @@ func delivered(ems []Emission, actor, viewer Actor) []Event {
 	return out
 }
 
-// summary renders emissions as "type to audience" strings, which is what the
-// emission-order assertions compare. Comparing whole events would make every
-// test a fixture; comparing types and audiences is what the specification
-// actually pins down.
+
+
+
+
 func summary(ems []Emission) []string {
 	out := make([]string, 0, len(ems))
 	for _, em := range ems {
@@ -273,8 +273,8 @@ func eventTypesOf(evs []Event) []string {
 	return out
 }
 
-// equalStrings is the one comparison the emission tests use, spelled out
-// because a slice comparison in a table-driven test wants a readable failure.
+
+
 func equalStrings(t *testing.T, what string, got, want []string) {
 	t.Helper()
 
@@ -288,8 +288,8 @@ func equalStrings(t *testing.T, what string, got, want []string) {
 	}
 }
 
-// mustJSON marshals for the byte comparisons the projection and convergence
-// tests are written against.
+
+
 func mustJSON(t *testing.T, v any) string {
 	t.Helper()
 

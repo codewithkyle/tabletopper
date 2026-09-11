@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// The pyramid a 12000x9000 map at 512 comes to, level by level. It is the
-// worked example every other decision here was sized against -- 584 objects
-// and a max_zoom of 5 -- so it is pinned rather than recomputed by whoever
-// next wonders whether a change moved it.
+
+
+
+
 func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 	const width, height, tileSize = 12000, 9000, 512
 
@@ -50,10 +50,10 @@ func TestTwelveThousandByNineThousandAtFiveTwelve(t *testing.T) {
 	}
 }
 
-// THIS IS THE BUG THE CEIL EXISTS TO PREVENT. Halving 9000 five times with a
-// bare right shift gives 281, and 281 rows at level 5 leave the last row of
-// the map in no tile at all. Nothing reports it: the level renders, one row
-// short.
+
+
+
+
 func TestLevelPixelsCeilsRatherThanFloors(t *testing.T) {
 	if got := LevelPixels(9000, 5); got != 282 {
 		t.Errorf("LevelPixels(9000, 5) = %d, want 282", got)
@@ -63,10 +63,10 @@ func TestLevelPixelsCeilsRatherThanFloors(t *testing.T) {
 	}
 }
 
-// The tiler halves the level below it, one step at a time; the tile route and
-// the renderer compute a level straight from the native size. The two have to
-// agree at every level of every image, and they only do because ceiling twice
-// by two is ceiling once by four.
+
+
+
+
 func TestSuccessiveHalvingAgreesWithTheClosedForm(t *testing.T) {
 	for _, size := range []int{1, 2, 3, 7, 9, 255, 512, 513, 999, 4500, 9000, 12000, 16383} {
 		stepped := size
@@ -79,10 +79,10 @@ func TestSuccessiveHalvingAgreesWithTheClosedForm(t *testing.T) {
 	}
 }
 
-// max_zoom is where BOTH axes fit in one tile, not where either does. A 64x4
-// strip at 8 has a height that fits from the start and a width that takes
-// three halvings; stopping at the first axis to fit would leave a level that
-// is still eight tiles wide as the top of the pyramid.
+
+
+
+
 func TestMaxZoomWaitsForTheLongerAxis(t *testing.T) {
 	if got := MaxZoom(64, 4, 8); got != 3 {
 		t.Errorf("MaxZoom(64, 4, 8) = %d, want 3", got)
@@ -98,17 +98,17 @@ func TestMaxZoomWaitsForTheLongerAxis(t *testing.T) {
 	}
 }
 
-// The last tile of a row is the remainder, and the remainder can be one pixel.
-// A tiler that padded instead would draw a seam down the right edge of every
-// map whose width is not a multiple of the tile size, which is most of them.
+
+
+
 func TestLevelTileSizeIsTheRemainderAtTheEdge(t *testing.T) {
-	// 17 at a tile size of 8 is 8, 8, 1.
+	
 	for x, want := range []int{8, 8, 1} {
 		if got := LevelTileSize(17, 8, 0, x); got != want {
 			t.Errorf("LevelTileSize(17, 8, 0, %d) = %d, want %d", x, got, want)
 		}
 	}
-	// 16 divides evenly, so there is no remainder and no third tile.
+	
 	for x, want := range []int{8, 8} {
 		if got := LevelTileSize(16, 8, 0, x); got != want {
 			t.Errorf("LevelTileSize(16, 8, 0, %d) = %d, want %d", x, got, want)
@@ -119,10 +119,10 @@ func TestLevelTileSizeIsTheRemainderAtTheEdge(t *testing.T) {
 	}
 }
 
-// The tile route hands these whatever a URL contained, and it validates by
-// asking them. So every degenerate argument has to come back as a number that
-// makes the request invalid rather than as a panic or a wrap-around: zero
-// tiles means no x is in range, which is the 404 the route wants.
+
+
+
+
 func TestDegenerateArgumentsAnswerWithNoTiles(t *testing.T) {
 	cases := []struct {
 		size, tileSize, z int
@@ -143,8 +143,8 @@ func TestDegenerateArgumentsAnswerWithNoTiles(t *testing.T) {
 		})
 	}
 
-	// A z far past the top of any pyramid is a single pixel, not a shift
-	// wider than the word.
+	
+	
 	for _, z := range []int{40, 62, 63, 1000} {
 		if got := LevelPixels(12000, z); got != 1 {
 			t.Errorf("LevelPixels(12000, %d) = %d, want 1", z, got)

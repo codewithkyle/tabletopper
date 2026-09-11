@@ -7,9 +7,9 @@ import (
 	"tabletopper/internal/markdown"
 )
 
-// keepAll is the ImageSource for the tests that are not about images: every
-// destination survives unchanged, so anything missing from the output was
-// removed by something else.
+
+
+
 func keepAll(dest string) (string, bool) { return dest, true }
 
 func render(t *testing.T, body string, images markdown.ImageSource) string {
@@ -23,14 +23,14 @@ func render(t *testing.T, body string, images markdown.ImageSource) string {
 	return out
 }
 
-// The defence the whole read view rests on. A body is whatever was in the
-// textarea, so a writer can put a <script> in one; a shared entry renders for
-// strangers, and self-XSS becomes everyone's XSS the moment it does.
+
+
+
 func TestRawHTMLInABodyIsNotRendered(t *testing.T) {
 	bodies := map[string]string{
 		"script block":  "<script>alert(1)</script>",
 		"inline markup": "Hello <img src=x onerror=alert(1)> world",
-		"iframe":        "<iframe src=\"https://example.com\"></iframe>",
+		"iframe":        "<iframe src=\"https:
 	}
 
 	for name, body := range bodies {
@@ -54,8 +54,8 @@ func TestDangerousLinkDestinationsAreDropped(t *testing.T) {
 			if strings.Contains(out, "href=\""+scheme) {
 				t.Errorf("a %s destination survived\n%s", scheme, out)
 			}
-			// The text is still there -- goldmark drops the destination and
-			// keeps the anchor, which is the right amount of damage.
+			
+			
 			if !strings.Contains(out, "click me") {
 				t.Errorf("the link text was lost as well\n%s", out)
 			}
@@ -64,16 +64,16 @@ func TestDangerousLinkDestinationsAreDropped(t *testing.T) {
 }
 
 func TestAnOrdinaryLinkSurvives(t *testing.T) {
-	out := render(t, "[the wiki](https://example.com/orcs)", keepAll)
+	out := render(t, "[the wiki](https:
 
-	if !strings.Contains(out, `href="https://example.com/orcs"`) {
+	if !strings.Contains(out, `href="https:
 		t.Errorf("an http link should render as one\n%s", out)
 	}
 }
 
-// The editor's own marks, and the two that need saying: strikethrough is an
-// extension CommonMark does not carry, and a hard break is serialised by
-// prosemirror-markdown as a trailing backslash rather than two spaces.
+
+
+
 func TestTheEditorsOwnMarksRender(t *testing.T) {
 	cases := map[string]struct{ body, want string }{
 		"bold":          {"**loud**", "<strong>loud</strong>"},
@@ -98,8 +98,8 @@ func TestTheEditorsOwnMarksRender(t *testing.T) {
 	}
 }
 
-// The rewrite half of ImageSource: a share serves an entry's pictures from its
-// own URLs, and the body carries the owner's.
+
+
 func TestAnImageIsRenderedAtTheURLTheSourceReturns(t *testing.T) {
 	out := render(t, "![a map](/characters/C/journal/E/images/A)", func(dest string) (string, bool) {
 		if dest != "/characters/C/journal/E/images/A" {
@@ -117,11 +117,11 @@ func TestAnImageIsRenderedAtTheURLTheSourceReturns(t *testing.T) {
 	}
 }
 
-// The strip half, and the reason the CSP on the entry page exists: a foreign
-// URL in a body is a request every reader of a shared page would make to
-// somebody else's server.
+
+
+
 func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
-	out := render(t, "![](https://tracker.example/pixel.gif)", func(string) (string, bool) {
+	out := render(t, "![](https:
 		return "", false
 	})
 
@@ -133,10 +133,10 @@ func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
 	}
 }
 
-// A picture on a line of its own is a paragraph holding one image, so removing
-// it would otherwise leave an empty <p> carrying a real paragraph's margin.
+
+
 func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
-	out := render(t, "before\n\n![](https://tracker.example/pixel.gif)\n\nafter", func(string) (string, bool) {
+	out := render(t, "before\n\n![](https:
 		return "", false
 	})
 
@@ -150,10 +150,10 @@ func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
 	}
 }
 
-// The image beside it stays. The two are removed one node at a time, so a
-// body mixing its own pictures with a foreign one keeps the ones it owns.
+
+
 func TestOnlyTheForeignImageIsRemoved(t *testing.T) {
-	body := "![mine](/characters/C/journal/E/images/A)\n\n![theirs](https://tracker.example/pixel.gif)"
+	body := "![mine](/characters/C/journal/E/images/A)\n\n![theirs](https:
 	out := render(t, body, func(dest string) (string, bool) {
 		return "/share/tok/images/A", strings.HasPrefix(dest, "/characters/")
 	})
@@ -172,10 +172,10 @@ func TestAnEmptyBodyRendersNothing(t *testing.T) {
 	}
 }
 
-// The projection's whole reason for existing. A link is its label on the page
-// and its destination in the source, and searching the source means an entry
-// holding a picture matches the word `assets` because that is in the storage
-// URL behind it -- a hit the reader cannot see and cannot act on.
+
+
+
+
 func TestALinkContributesItsLabelAndNotItsDestination(t *testing.T) {
 	out := markdown.PlainText("We met [Thistlewick](/assets/images/01J7ZK) in the market.")
 
@@ -187,8 +187,8 @@ func TestALinkContributesItsLabelAndNotItsDestination(t *testing.T) {
 	}
 }
 
-// The same for a picture: the alt text is words somebody typed and the
-// destination is plumbing.
+
+
 func TestAnImageContributesItsAltTextAndNotItsDestination(t *testing.T) {
 	out := markdown.PlainText("![a portrait of Béornegar](/characters/C/journal/E/images/A)")
 
@@ -197,8 +197,8 @@ func TestAnImageContributesItsAltTextAndNotItsDestination(t *testing.T) {
 	}
 }
 
-// Structure is dropped by never being text in the first place, so nothing has
-// to recognise a heading marker or a bullet to remove one.
+
+
 func TestTheMarkupItselfIsNotText(t *testing.T) {
 	out := markdown.PlainText("# Session 12\n\n- one **bold** item\n- ~~struck~~ through\n\n> quoted")
 
@@ -214,8 +214,8 @@ func TestTheMarkupItselfIsNotText(t *testing.T) {
 	}
 }
 
-// Raw HTML is not text because the renderer does not render it -- goldmark
-// writes it out as a comment. A term found only there is a term nobody can see.
+
+
 func TestRawHTMLIsNotText(t *testing.T) {
 	out := markdown.PlainText("<div>hidden</div>\n\nvisible")
 
@@ -227,19 +227,19 @@ func TestRawHTMLIsNotText(t *testing.T) {
 	}
 }
 
-// A code block is words somebody typed on purpose, so a term found only in one
-// should still find its entry. It is the case that decides a walk of the text
-// nodes alone is not enough -- a fenced block holds its content in Lines()
-// rather than in children.
+
+
+
+
 func TestACodeBlockIsText(t *testing.T) {
 	if out := markdown.PlainText("Before.\n\n```\nthe passphrase is marigold\n```"); !strings.Contains(out, "marigold") {
 		t.Errorf("the code block's content was lost\n%q", out)
 	}
 }
 
-// Whitespace collapses, so a phrase written across a wrapped line is still one
-// phrase to search for -- and so a snippet is a line rather than a piece of a
-// paragraph's shape.
+
+
+
 func TestWhitespaceCollapsesToSingleSpaces(t *testing.T) {
 	out := markdown.PlainText("the market\nsquare\n\nand the guards")
 

@@ -16,15 +16,15 @@ import (
 
 var testAssetID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS2")
 
-// THE OWNERSHIP CHECK IS OUT OF REACH IN HERE, and it is worth saying why once
-// rather than in each test below. CountJournalImages is a :one, which
-// recordingDB answers by panicking -- a *sql.Row cannot be built outside
-// database/sql -- so nothing past it can be driven from a handler test. What is
-// reachable is everything before it, which is exactly the part these two check:
-// an id that does not parse never becomes a query.
 
-// Neither id reaches a statement, and both answer through htmx.NotFound because
-// the caller is the editor's fetch, which reads the alert out of the header.
+
+
+
+
+
+
+
+
 func TestUploadJournalImageRejectsUnparseableIDs(t *testing.T) {
 	for _, c := range []struct{ name, character, entry string }{
 		{name: "character", character: "not-a-ulid", entry: testEntryID.String()},
@@ -54,8 +54,8 @@ func TestUploadJournalImageRejectsUnparseableIDs(t *testing.T) {
 	}
 }
 
-// The serve route answers a plain 404 with no header, because its caller is an
-// <img> and there is nothing on the page to swap or to alert.
+
+
 func TestGetJournalImageRejectsUnparseableIDs(t *testing.T) {
 	for _, c := range []struct{ name, character, entry, asset string }{
 		{name: "character", character: "not-a-ulid", entry: testEntryID.String(), asset: testAssetID.String()},
@@ -87,10 +87,10 @@ func TestGetJournalImageRejectsUnparseableIDs(t *testing.T) {
 	}
 }
 
-// The exact shape, because two things depend on it being this and nothing else:
-// the mux pattern the serve route is registered under, and the substring search
-// a save uses to decide an image is still in the body. A change here that the
-// route did not follow would detach every image on the next debounce.
+
+
+
+
 func TestJournalImagePath(t *testing.T) {
 	want := "/characters/" + testCharacterID.String() +
 		"/journal/" + testEntryID.String() +
@@ -101,9 +101,9 @@ func TestJournalImagePath(t *testing.T) {
 	}
 }
 
-// The four state pairs, and only two of them are writes. The other two are what
-// makes a steady save cost nothing: a writer typing prose around pictures that
-// are already there flips nothing at all.
+
+
+
 func TestJournalImageFlips(t *testing.T) {
 	detached := sql.NullTime{Time: time.Now(), Valid: true}
 
@@ -158,12 +158,12 @@ func TestJournalImageFlips(t *testing.T) {
 	}
 }
 
-// A URL INSIDE A CODE FENCE KEEPS ITS IMAGE, and that is intended. The
-// reference test is a substring search rather than a markdown parse, which is
-// exact in the direction that matters -- an image cannot render without its URL
-// in the body, so nothing in use is ever detached -- and over-counts in the
-// other. The cost is one object for as long as somebody leaves the URL written
-// out in prose, which is not worth a parser in the save path.
+
+
+
+
+
+
 func TestJournalImageFlipsCountsAReferenceInACodeFence(t *testing.T) {
 	body := "Here is how the URL is built:\n\n```\n" +
 		journalImagePath(testCharacterID, testEntryID, testAssetID) +
@@ -197,11 +197,11 @@ func sameIDs(got, want []ulid.ULID) bool {
 	return true
 }
 
-// THE RECONCILIATION RUNS AFTER THE WRITE, NOT INSTEAD OF PART OF IT. The save
-// is answered on the strength of the UPDATE alone, and the image bookkeeping
-// that follows is best effort: here the read fails -- recordingDB cannot hand
-// back rows -- and the reply is still the 200 and the cleared error block the
-// writer's next keystroke depends on.
+
+
+
+
+
 func TestSaveReconcilesAfterTheUpdate(t *testing.T) {
 	app, db := newPanelApp(1)
 
@@ -218,8 +218,8 @@ func TestSaveReconcilesAfterTheUpdate(t *testing.T) {
 	if !strings.Contains(read.query, "FROM assets") || !strings.Contains(read.query, "journal_id") {
 		t.Fatalf("the second statement is not the image read:\n%s", read.query)
 	}
-	// Scoped by the entry and the owner. The entry is a pointer because
-	// journal_id is nullable for every other asset type.
+	
+	
 	if entry, ok := read.args[0].(*ulid.ULID); !ok || entry == nil || *entry != testEntryID {
 		t.Errorf("read scoped to entry %v, want %v", read.args[0], testEntryID)
 	}
@@ -235,11 +235,11 @@ func TestSaveReconcilesAfterTheUpdate(t *testing.T) {
 	}
 }
 
-// Zero matched rows is an entry that is gone or was never this user's, and
-// there is nothing to reconcile against: the body in hand was never stored. A
-// reconciliation there would read a stranger's images -- scoped by the owner,
-// so it would find none -- and then detach nothing, which is a round trip to
-// learn what the 404 already said.
+
+
+
+
+
 func TestSaveThatMatchedNothingDoesNotReconcile(t *testing.T) {
 	app, db := newPanelApp(0)
 
@@ -256,13 +256,13 @@ func TestSaveThatMatchedNothingDoesNotReconcile(t *testing.T) {
 	}
 }
 
-// THE ENTRY ROW GOES LAST, and the order above it is the test. The share is
-// revoked first so that every way this request can stop short leaves the entry
-// less exposed than it was rather than more -- a link outliving its entry would
-// be the other way round. The detach is second because it finds the images
-// through journal_id: after the entry row is gone it would match nothing, and
-// forty objects would sit in the bucket with no row pointing at them and no
-// sweep that would ever find them.
+
+
+
+
+
+
+
 func TestDeleteJournalEntryRevokesAndDetachesBeforeDeleting(t *testing.T) {
 	app, db := newPanelApp(1)
 

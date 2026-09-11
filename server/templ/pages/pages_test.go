@@ -19,16 +19,16 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// Base renders three modal dialogs holding four method="dialog" forms between
-// them: one each in the alert and confirm dialogs, and two in the content modal,
-// whose loading and error states carry a Close apiece now that the shell has no
-// corner ✕. Every page carries these, so a page's own forms are its total minus
-// this.
+
+
+
+
+
 const closingForms = 4
 
-// Every page used to assign into a package-level settings struct on each
-// render, which the race detector flags the moment two renders overlap. The
-// layout now takes its title and body per call; this keeps it that way.
+
+
+
 func TestPagesRenderConcurrently(t *testing.T) {
 	pages := map[string]func() error{
 		"homepage":               func() error { return render(Homepage(session.UserSession{})) },
@@ -71,9 +71,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"monsters": func() error {
 			return render(Monsters(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
 		},
-		// Both empty states, because they are different markup: a manual with
-		// nothing in it points at the New Monster button, and a search that
-		// found nothing repeats the term back.
+		
+		
+		
 		"monsters-empty":         func() error { return render(Monsters(MonsterListData{})) },
 		"monster-cards-fragment": func() error { return render(MonsterCardsFragment(MonsterListData{Query: "goblin"})) },
 		"new-monster-fragment":   func() error { return render(NewMonsterFragment()) },
@@ -87,8 +87,8 @@ func TestPagesRenderConcurrently(t *testing.T) {
 			return render(MonsterStatBlockPanel(testStatBlock()))
 		},
 		"assets": func() error { return render(MapAssets([]MapAsset{testMapCard()})) },
-		// The map page with nothing on it, because the empty state is markup
-		// the populated one does not reach.
+		
+		
 		"assets-empty":   func() error { return render(MapAssets(nil)) },
 		"assets-tokens":  func() error { return render(TokenAssets(nil)) },
 		"assets-avatars": func() error { return render(AvatarAssets(nil)) },
@@ -102,9 +102,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"assets-music-full": func() error {
 			return render(MusicAssets([]MusicTrack{testMusicTrack()}))
 		},
-		// The four search fragments with nothing matched, because a search that
-		// found nothing is markup neither of the states above reaches: the same
-		// slot that holds a shelf's empty state holds the term repeated back.
+		
+		
+		
 		"assets-maps-searched":    func() error { return render(MapCards(nil, "keep")) },
 		"assets-tokens-searched":  func() error { return render(TokenCards(nil, "wagon")) },
 		"assets-avatars-searched": func() error { return render(AvatarCards(nil, "elf")) },
@@ -112,18 +112,18 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"rooms": func() error {
 			return render(Rooms(RoomsPageData{Rooms: []RoomSummary{{ID: "01BX5ZZKBKACTAV9WEVGEMMVT0", Name: "Curse of Strahd", Code: "AB2C"}}}))
 		},
-		// The empty state, because a GM with no rooms is markup the populated
-		// page does not reach.
+		
+		
 		"rooms-empty":         func() error { return render(Rooms(RoomsPageData{})) },
 		"new-room-fragment":   func() error { return render(NewRoomFragment()) },
 		"join-room":           func() error { return render(JoinRoom(JoinRoomPageData{})) },
 		"join-room-prefilled": func() error { return render(JoinRoom(JoinRoomPageData{Code: "AB2C"})) },
-		// Both roles, because the GM's controls and the player's are different
-		// markup and only one of them renders at a time.
+		
+		
 		"room-gm":     func() error { return render(Room(testRoomPage(room.RoleGM))) },
 		"room-player": func() error { return render(Room(testRoomPage(room.RolePlayer))) },
-		// The closed room, because its Room menu is a different set of items
-		// and the table carries a notice the open one does not.
+		
+		
 		"room-closed": func() error {
 			data := testRoomPage(room.RoleGM)
 			data.Closed = true
@@ -156,10 +156,10 @@ func render(c templ.Component) error {
 	return c.Render(context.Background(), &buf)
 }
 
-// The Character tab renders one form per panel, each posting to its own route as
-// the user types -- so this pins the routes, the debounce, and the absence of
-// anything to press. It used to run over both editor pages; the spells tab is
-// not a panel page any more and has tests of its own below.
+
+
+
+
 func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + id
@@ -192,34 +192,34 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 		}
 	}
 
-	// The split is the point: spellcasting belongs to the other tab, and a
-	// panel here would write columns that page also writes.
+	
+	
 	for _, absent := range []string{base + "/spells", base + "/spells/slots/1"} {
 		if strings.Contains(markup, `hx-post="`+absent+`"`) {
 			t.Errorf("the Character tab carries %s, which belongs to the spells pages", absent)
 		}
 	}
 
-	// One per panel, plus the Add Attack button. That button is the only
-	// hx-post on this page that is not a panel saving itself, and it is not a
-	// form -- attack rows are, and this render has none, the way it has no
-	// spell slot forms.
+	
+	
+	
+	
 	if got := strings.Count(markup, "hx-post="); got != len(panels)+1 {
 		t.Errorf("posting elements = %d, want %d (one per panel, plus Add Attack)", got, len(panels)+1)
 	}
 
-	// The panels plus Base's own are every form on the page, so an extra one
-	// would mean something still wraps the sheet.
+	
+	
 	if got := strings.Count(markup, "<form"); got != len(panels)+closingForms {
 		t.Errorf("forms = %d, want %d", got, len(panels)+closingForms)
 	}
 
-	// The debounce is what makes typing one save rather than one per keystroke.
+	
 	if got := strings.Count(markup, `hx-trigger="input delay:1s, repeater:changed"`); got != len(panels) {
 		t.Errorf("debounced panels = %d, want %d", got, len(panels))
 	}
 
-	// Nothing to press: the panels save themselves.
+	
 	if strings.Contains(markup, `type="submit"`) {
 		t.Error("the editor still renders a submit button")
 	}
@@ -227,13 +227,13 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 	assertCharacterTabs(t, markup, base+"/edit")
 }
 
-// Every tab is reachable from every editor page, and the one you are on is
-// marked current. The spells pages carry a second nav with a current link of
-// their own, so this checks the links it expects rather than counting
-// attributes.
-//
-// The Spells tab points at cantrips, not at a bare /edit/spells. There is no
-// index above the levels, and a tab aimed at one would 302 on every click.
+
+
+
+
+
+
+
 func assertCharacterTabs(t *testing.T, markup string, current string) {
 	t.Helper()
 
@@ -246,29 +246,29 @@ func assertCharacterTabs(t *testing.T, markup string, current string) {
 		}
 	}
 
-	// Matched on the attribute rather than the class string, so restyling the
-	// links does not break the test. The closing quote is load-bearing: the
-	// Character href is a prefix of the other two.
+	
+	
+	
 	if want := `href="` + current + `" aria-current="page"`; !strings.Contains(markup, want) {
 		t.Errorf("the current tab is not %s", current)
 	}
 }
 
-// testSpellCounters is one level's slot counters, which is all a spells page
-// carries about levels now.
+
+
 func testSpellCounters(level int) SpellLevel {
 	return SpellLevel{Level: level, Slots: "0", Used: "0"}
 }
 
-// The new-character dialog. Its three targeting attributes have to agree with
-// the id of the block they aim at, and a disagreement is invisible: the reply
-// lands nowhere and the dialog sits there looking like the button is broken. So
-// the exact string is pinned rather than its shape.
-//
-// The 422 override is pinned for the same reason at one remove. base.templ puts
-// the whole 4xx range in noSwap, so without it a rejected name would replace
-// nothing -- the form would post, the server would answer, and the user would
-// see no difference.
+
+
+
+
+
+
+
+
+
 func TestNewCharacterFragmentIsOneQuestion(t *testing.T) {
 	var buf bytes.Buffer
 	if err := NewCharacterFragment().Render(context.Background(), &buf); err != nil {
@@ -294,22 +294,22 @@ func TestNewCharacterFragmentIsOneQuestion(t *testing.T) {
 		t.Errorf("fragment has %d forms, want 1", forms)
 	}
 
-	// The dialog carries its own way out. The shell has no corner control to
-	// fall back on, so a fragment that forgets this leaves Escape as the only
-	// exit -- which looks like a dialog that will not close.
+	
+	
+	
 	if !strings.Contains(body, "modal:close") {
 		t.Errorf("fragment has no Close button\n%s", body)
 	}
 
-	// A name needs no worked example, and one in the box reads as a value that
-	// is already there.
+	
+	
 	if strings.Contains(body, "placeholder=") {
 		t.Errorf("the name field has a placeholder\n%s", body)
 	}
 
-	// One field, deliberately. The dialog asks for a name and sends the user to
-	// a page built to hold everything else; a second control here is the start
-	// of rebuilding the create page inside a 24rem box.
+	
+	
+	
 	if inputs := strings.Count(body, "<input"); inputs != 1 {
 		t.Errorf("fragment has %d inputs, want 1", inputs)
 	}
@@ -320,11 +320,11 @@ const (
 	testItemPanel = "errors-inventory-" + testItemID
 )
 
-// The inventory row, which is the only saving thing on the sheet that is a form
-// per row rather than a form per panel. Its three targeting attributes have to
-// agree with the id of the block they aim at, and a disagreement is silent: the
-// reply lands nowhere and the row looks like it is not saving. So the exact
-// strings are pinned, the way the new-character dialog's are.
+
+
+
+
+
 func TestInventoryRowIsItsOwnForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + characterID + "/inventory/" + testItemID
@@ -354,23 +354,23 @@ func TestInventoryRowIsItsOwnForm(t *testing.T) {
 		t.Errorf("row has %d forms, want 1 -- the row IS the form", forms)
 	}
 
-	// Nothing to press. The row saves itself, and the one button on it deletes.
+	
 	if strings.Contains(body, `type="submit"`) {
 		t.Error("the row renders a submit button")
 	}
 }
 
-// ALL SIX CONTROLS, ALWAYS. buildInventoryInput reads `equipped` from whether the
-// field arrived, because an unchecked box posts nothing -- so a post without it
-// means unticked. That is only true while the row renders every control on every
-// render: a variant that dropped the checkbox would silently unequip an item on
-// its next autosave, and nothing on the server could tell.
-//
-// THE DISCLOSURE IS WHY THIS NEEDS SAYING TWICE. The checkbox and the
-// description live inside a <details>, which is CLOSED and not ABSENT -- a
-// collapsed <details> keeps its contents in the DOM and the form still submits
-// them. A row that rendered its details only when open would unequip every item
-// on the first keystroke after a page load.
+
+
+
+
+
+
+
+
+
+
+
 func TestInventoryRowAlwaysRendersEveryControl(t *testing.T) {
 	for _, item := range []InventoryItem{
 		{ID: testItemID},
@@ -396,10 +396,10 @@ func TestInventoryRowAlwaysRendersEveryControl(t *testing.T) {
 	}
 }
 
-// Field names carry no row prefix -- the form is the row, so a post contains one
-// item's fields and nothing else. That is what lets the handler read plain
-// `name` and `quantity`, and it only holds because forms do not nest: the panel
-// around these is a plain card and not a savingPanel.
+
+
+
+
 func TestInventoryPageIsOneFormPerItem(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -420,13 +420,13 @@ func TestInventoryPageIsOneFormPerItem(t *testing.T) {
 	if got := strings.Count(body, "hx-post=\"/characters/"+characterID+"/inventory/"); got != len(data.Items) {
 		t.Errorf("saving rows = %d, want %d", got, len(data.Items))
 	}
-	// The item forms plus Base's own closing forms, and nothing wrapping them.
+	
 	if got := strings.Count(body, "<form"); got != len(data.Items)+closingForms {
 		t.Errorf("forms = %d, want %d", got, len(data.Items)+closingForms)
 	}
 
-	// The add button posts to the collection and appends what comes back. It is
-	// outside every form, which is what keeps it from being serialised into one.
+	
+	
 	if want := `hx-post="/characters/` + characterID + `/inventory"`; !strings.Contains(body, want) {
 		t.Errorf("no add button posting to %s", want)
 	}
@@ -435,10 +435,10 @@ func TestInventoryPageIsOneFormPerItem(t *testing.T) {
 	}
 }
 
-// Equipment on the Character page is a view of rows the inventory table owns. It
-// must not become a form again: the page's form count is asserted above as one
-// per saving panel, and a control here would post to a route that no longer
-// exists -- the weapons column it used to write is gone.
+
+
+
+
 func TestEquippedItemsIsAViewAndNotAForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -465,8 +465,8 @@ func TestEquippedItemsIsAViewAndNotAForm(t *testing.T) {
 		}
 	}
 
-	// A quantity of one is the default and says nothing, so it is not printed.
-	// Four javelins is worth knowing.
+	
+	
 	if strings.Contains(body, "&#215; 1<") {
 		t.Error("a quantity of 1 is printed beside an item")
 	}
@@ -474,15 +474,15 @@ func TestEquippedItemsIsAViewAndNotAForm(t *testing.T) {
 		t.Errorf("a quantity above 1 is not printed\n%s", body)
 	}
 
-	// A row can be ticked before it is named, and an empty entry on the sheet
-	// reads as a rendering fault rather than an unfinished row.
+	
+	
 	if !strings.Contains(body, "Unnamed item") {
 		t.Errorf("an unnamed equipped row renders as nothing\n%s", body)
 	}
 }
 
-// With nothing ticked the panel has to say where ticking happens, or it is an
-// empty box on a page that gives no hint the inventory page exists.
+
+
 func TestEquippedItemsEmptyStatePointsAtTheInventoryPage(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -500,10 +500,10 @@ func TestEquippedItemsEmptyStatePointsAtTheInventoryPage(t *testing.T) {
 	}
 }
 
-// The two repeaters that inventory replaced are gone from the page, not merely
-// unreferenced. Both wrote columns that no longer exist, so a panel left behind
-// would post to a handler that answers 404 and look like a save that never
-// lands.
+
+
+
+
 func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -523,7 +523,7 @@ func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 		}
 	}
 
-	// And the replacement is actually wired up, not just absent.
+	
 	if !strings.Contains(body, "Chain Mail") {
 		t.Errorf("the equipped rows are not rendered on the page\n%s", body)
 	}
@@ -534,10 +534,10 @@ const (
 	testSpellPanel = "errors-spell-" + testSpellID
 )
 
-// The spell row, which is the inventory row's shape at a different table. Its
-// three targeting attributes have to agree with the id of the block they aim at,
-// and a disagreement is silent: the reply lands nowhere and the row looks like
-// it is not saving. So the exact strings are pinned.
+
+
+
+
 func TestSpellRowIsItsOwnForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + characterID + "/spells/3/" + testSpellID
@@ -567,28 +567,28 @@ func TestSpellRowIsItsOwnForm(t *testing.T) {
 		t.Errorf("row has %d forms, want 1 -- the row IS the form", forms)
 	}
 
-	// Nothing to press. The row saves itself, and the one button on it deletes.
+	
 	if strings.Contains(body, `type="submit"`) {
 		t.Error("the row renders a submit button")
 	}
 
-	// The level is in the URL and nowhere else. A spell cannot move between
-	// levels, so UpdateSpell does not name the column and no control offers it.
+	
+	
 	if strings.Contains(body, `name="level"`) {
 		t.Errorf("the row renders a level control\n%s", body)
 	}
 }
 
-// ALL EIGHT CONTROLS, ALWAYS. buildSpellInput reads `prepared` from whether the
-// field arrived, because an unchecked box posts nothing -- so a post without it
-// means unticked. That is only true while the row renders every control on every
-// render: a variant that dropped the checkbox would silently unprepare a spell
-// on its next autosave, and nothing on the server could tell.
-//
-// The disclosure is why this needs saying twice. Five of the eight sit inside a
-// <details>, which is closed for a named spell -- closed, not absent. A row that
-// rendered its details only when open would post five empty strings on every
-// save and wipe the spell.
+
+
+
+
+
+
+
+
+
+
 func TestSpellRowAlwaysRendersEveryControl(t *testing.T) {
 	for _, spell := range []Spell{
 		{ID: testSpellID, Level: 1, School: DefaultSpellSchool},
@@ -621,11 +621,11 @@ func TestSpellRowAlwaysRendersEveryControl(t *testing.T) {
 	}
 }
 
-// A row arrives from the add button with nothing in it, and the five fields
-// worth filling in are behind the disclosure. So a nameless row opens itself and
-// a named one stays shut, which is the whole of the density fix: the level pages
-// split ten sections into ten pages, and this is what keeps one page from being
-// eight tall cards.
+
+
+
+
+
 func TestAnUnnamedSpellOpensItsOwnDetails(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -646,10 +646,10 @@ func TestAnUnnamedSpellOpensItsOwnDetails(t *testing.T) {
 	}
 }
 
-// THERE IS NO SPELLS INDEX. The tab opens on cantrips, which is where a level-1
-// caster's entire spell list lives, and the level strip is how you reach
-// anything else. A link to the bare /edit/spells would be a redirect on every
-// click, so nothing renders one.
+
+
+
+
 func TestNothingLinksToASpellsIndex(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -677,8 +677,8 @@ func TestNothingLinksToASpellsIndex(t *testing.T) {
 			}
 			body := buf.String()
 
-			// The closing quote is load-bearing: every level href starts with
-			// this string.
+			
+			
 			if strings.Contains(body, `href="/characters/`+characterID+`/edit/spells"`) {
 				t.Errorf("%s links to a spells index\n%s", page.name, body)
 			}
@@ -689,12 +689,12 @@ func TestNothingLinksToASpellsIndex(t *testing.T) {
 	}
 }
 
-// The level strip is ten tabs and nothing else. Every level is one click away
-// from every other, which is what a stack of ten sections was trying to be.
-//
-// THE TABS ARE STATIC LABELS. They carry a level and a link and no data, which
-// is why spellLevelTabs takes no slice: nothing about a level the page is not
-// showing has to be read to render them.
+
+
+
+
+
+
 func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -723,8 +723,8 @@ func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 		t.Errorf("the level strip still carries an Overview tab\n%s", body)
 	}
 
-	// No count badge. The page renders two spells at this level and the tab
-	// says nothing about them -- the label is the level and only the level.
+	
+	
 	tabs := body[strings.Index(body, `aria-label="Spell levels"`):]
 	tabs = tabs[:strings.Index(tabs, "</nav>")]
 	for _, digit := range []string{">2<", ">0<"} {
@@ -732,8 +732,8 @@ func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 			t.Errorf("the level tabs carry a count: %s\n%s", digit, tabs)
 		}
 	}
-	// The labels themselves survive that check because none of them is a bare
-	// digit -- 3rd, not 3.
+	
+	
 	for _, want := range []string{">Cantrips<", ">1st<", ">3rd<", ">9th<"} {
 		if !strings.Contains(tabs, want) {
 			t.Errorf("the level tabs are missing %s\n%s", want, tabs)
@@ -741,9 +741,9 @@ func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 	}
 }
 
-// A level page carries its own counters, its own rows and an add button aimed at
-// its own collection. Getting the level wrong in any of the three would write to
-// a level the user is not looking at.
+
+
+
 func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -763,7 +763,7 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 	}
 	body := buf.String()
 
-	// Two spell rows plus this level's counters, and nothing wrapping them.
+	
 	if got := strings.Count(body, "<form"); got != len(data.Spells)+1+closingForms {
 		t.Errorf("forms = %d, want %d", got, len(data.Spells)+1+closingForms)
 	}
@@ -785,25 +785,25 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 		}
 	}
 
-	// No other level's counters are reachable from here -- that is what the
-	// overview is for, and a stray form would write a level off screen.
+	
+	
 	for _, level := range []string{"1", "2", "4", "9"} {
 		if strings.Contains(body, "/spells/slots/"+level+`"`) {
 			t.Errorf("the level 3 page carries level %s's counters", level)
 		}
 	}
 
-	// Both navs mark where you are: the character tabs say Spells, the level
-	// tabs say which level.
+	
+	
 	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells/0")
 	if want := `href="/characters/` + characterID + `/edit/spells/3" aria-current="page"`; !strings.Contains(body, want) {
 		t.Errorf("the level tabs do not mark level 3 as current\n%s", body)
 	}
 }
 
-// Cantrips are a level page with no counters, because they have no slots. The
-// route that would write them refuses level 0 as well; this is the half of that
-// which the user can see.
+
+
+
 func TestCantripsPageHasNoSlotCounters(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -833,10 +833,10 @@ func TestCantripsPageHasNoSlotCounters(t *testing.T) {
 	}
 }
 
-// Prepared Spells on the Character page is a view of rows the spells table owns,
-// exactly as Equipment is a view of the inventory rows. It must not become a
-// form: the page's form count is asserted above as one per saving panel, and a
-// control here would post to a route that expects a level in its path.
+
+
+
+
 func TestPreparedSpellsIsAViewAndNotAForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -867,22 +867,22 @@ func TestPreparedSpellsIsAViewAndNotAForm(t *testing.T) {
 		}
 	}
 
-	// The meta line is the three things worth knowing before casting. The spell
-	// text is not among them -- ten paragraphs here would be the wall the level
-	// pages exist to remove.
+	
+	
+	
 	if !strings.Contains(body, "Action \u00b7 150 feet \u00b7 Instantaneous") {
 		t.Errorf("the meta line is not rendered\n%s", body)
 	}
 
-	// A spell can be ticked before it is named, and an empty entry on the sheet
-	// reads as a rendering fault rather than an unfinished row.
+	
+	
 	if !strings.Contains(body, "Unnamed spell") {
 		t.Errorf("an unnamed prepared row renders as nothing\n%s", body)
 	}
 }
 
-// With nothing prepared the panel has to say where preparing happens, or it is
-// an empty box on a page that gives no hint the spells pages exist.
+
+
 func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -892,8 +892,8 @@ func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
 	}
 	body := buf.String()
 
-	// Cantrips, not a bare /edit/spells -- there is no index above the levels,
-	// and pointing an empty state at a redirect is a click nobody needs.
+	
+	
 	if want := `href="/characters/` + characterID + `/edit/spells/0"`; !strings.Contains(body, want) {
 		t.Errorf("the empty state does not point at %s\n%s", want, body)
 	}
@@ -902,8 +902,8 @@ func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
 	}
 }
 
-// A spell with nothing filled in but its name gets a name and no separator, not
-// a line of stray middle dots.
+
+
 func TestSpellMetaLineSkipsWhatIsNotThere(t *testing.T) {
 	for _, c := range []struct {
 		spell Spell
@@ -924,9 +924,9 @@ func TestSpellMetaLineSkipsWhatIsNotThere(t *testing.T) {
 	}
 }
 
-// Both read-only views are on the Character page and wired to real data, not
-// merely present. Each is the only place its table's rows surface outside the
-// tab that owns them.
+
+
+
 func TestCharacterPageRendersBothTickedViews(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -949,9 +949,9 @@ func TestCharacterPageRendersBothTickedViews(t *testing.T) {
 		}
 	}
 
-	// Prepared Spells sits in its own row below the four panels above it, beside
-	// Spell Slots -- not stacked under Equipment, where a list that can run to
-	// twenty spells pushed the right column past the left one.
+	
+	
+	
 	prepared := strings.Index(body, "Prepared Spells")
 	equipment := strings.Index(body, "Equipment")
 	slots := strings.Index(body, "Spell Slots")
@@ -960,8 +960,8 @@ func TestCharacterPageRendersBothTickedViews(t *testing.T) {
 	}
 }
 
-// testSpellLevels is the ten-level summary the Spell Slots panel is handed,
-// which the controller builds from however few rows the two queries returned.
+
+
 func testSpellLevels() []SpellLevel {
 	levels := make([]SpellLevel, 0, MaxSpellLevel+1)
 	for level := 0; level <= MaxSpellLevel; level++ {
@@ -971,15 +971,15 @@ func testSpellLevels() []SpellLevel {
 	return levels
 }
 
-// The Spell Slots panel is one little form per level in use, sitting on the
-// Character tab beside Prepared Spells. It is the one editable thing on that
-// page that does not write a characters column, and the reason it is there is
-// the long rest: resetting `used` across several levels is one screen here and
-// one page load each on the level pages.
-//
-// LEVELS THE CHARACTER HAS NOTHING AT ARE NOT HERE. A level with no slots and no
-// spells is a row of zeroes and two inputs nobody will touch; it comes back from
-// its own page, where the counters always render.
+
+
+
+
+
+
+
+
+
 func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -999,8 +999,8 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 	}
 	body := buf.String()
 
-	// Three forms, not four: cantrips are in use but have no slots in the rules,
-	// so level 0 gets a link and the word Unlimited where the counters would be.
+	
+	
 	for _, level := range []int{1, 2, 3} {
 		want := `hx-post="/characters/` + id + `/spells/slots/` + strconv.Itoa(level) + `"`
 		if !strings.Contains(body, want) {
@@ -1014,16 +1014,16 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 		t.Errorf("cantrips do not say why they have no counters\n%s", body)
 	}
 
-	// Ten saving panels plus three slot forms plus Base's own, and nothing
-	// wrapping them. Forms do not nest, so a slot form inside a savingPanel
-	// would post neither.
+	
+	
+	
 	const panels = 10
 	if got := strings.Count(body, "<form"); got != panels+3+closingForms {
 		t.Errorf("forms = %d, want %d", got, panels+3+closingForms)
 	}
 
-	// Every level in use links to its own page, so the panel is also how you get
-	// to a level without going through the tab strip.
+	
+	
 	for _, level := range inUse {
 		want := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
 		if !strings.Contains(body, want) {
@@ -1037,9 +1037,9 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 		}
 	}
 
-	// The count reads as a sentence, because it sits next to two counters that
-	// are also numbers. A level that is here for its slots alone still says it
-	// holds nothing.
+	
+	
+	
 	for _, want := range []string{"5 spells", "2 spells", "No spells"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the panel is missing %q", want)
@@ -1047,8 +1047,8 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 	}
 }
 
-// Which levels are in use is a display decision and nothing else reads it, so it
-// is worth pinning on its own rather than only through a rendered page.
+
+
 func TestActiveSpellLevelsKeepsWhatIsInUse(t *testing.T) {
 	for _, c := range []struct {
 		name  string
@@ -1059,8 +1059,8 @@ func TestActiveSpellLevelsKeepsWhatIsInUse(t *testing.T) {
 		{"slots set", SpellLevel{Level: 4, Slots: "2", Used: "0"}, true},
 		{"every slot spent", SpellLevel{Level: 4, Slots: "2", Used: "2"}, true},
 		{"spells but no slots", SpellLevel{Level: 0, Slots: "0", Used: "0", Count: 3}, true},
-		// used without slots cannot be written -- SaveSpellSlots caps used at
-		// slots -- but if it ever were, hiding the level would strand it.
+		
+		
 		{"used without slots", SpellLevel{Level: 4, Slots: "0", Used: "1"}, true},
 	} {
 		got := activeSpellLevels([]SpellLevel{c.level})
@@ -1074,15 +1074,15 @@ func TestActiveSpellLevelsKeepsWhatIsInUse(t *testing.T) {
 	}
 }
 
-// With every level empty there is no list at all, only a line saying where the
-// first one comes from -- otherwise a fighter's sheet carries a blank box.
-//
-// Cantrips are the case worth its own row here: a character whose only
-// spellcasting is a cantrip has a list with no form in it, because level 0 has
-// no counters. Counting forms would call that an empty panel. So the empty state
-// is the thing asserted, and the levels linked are asserted beside it -- the
-// empty state carries a link of its own, and matching on hrefs alone would call
-// it a list.
+
+
+
+
+
+
+
+
+
 func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	const emptyState = "No spell levels in use yet"
@@ -1132,8 +1132,8 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 			}
 			for level := 0; level <= MaxSpellLevel; level++ {
 				href := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
-				// The empty state points at cantrips, which is the way to the
-				// first slot count -- so level 0 is expected there too.
+				
+				
 				want := shown[level] || (empty && level == 0)
 				if got := strings.Contains(body, href); got != want {
 					t.Errorf("level %d linked = %v, want %v\n%s", level, got, want, body)
@@ -1143,14 +1143,14 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 	}
 }
 
-// A prepared spell shows the start of its text, clamped to two lines, and
-// expands in place to the rest.
-//
-// The clamp is visual only -- the whole description is in the DOM either way --
-// so expanding costs no request, and a spell whose text runs to a paragraph does
-// not push the next one off the panel. It is a <details>, not a title attribute,
-// because this sheet gets read on a tablet at a table and a native tooltip has
-// nothing to hover.
+
+
+
+
+
+
+
+
 func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	const long = "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame."
@@ -1165,8 +1165,8 @@ func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 	}
 	body := buf.String()
 
-	// One disclosure, for the one spell that has text. A spell with none gets no
-	// control at all rather than an empty one that opens onto nothing.
+	
+	
 	if got := strings.Count(body, "<details"); got != 1 {
 		t.Errorf("disclosures = %d, want 1 -- only Fireball has text", got)
 	}
@@ -1177,23 +1177,23 @@ func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 		}
 	}
 
-	// THE WHOLE TEXT IS THERE, not an excerpt cut in Go. The two-line limit is
-	// CSS, so expanding shows the rest without asking the server for it -- and a
-	// truncation done here would have made the expansion a lie.
+	
+	
+	
 	if !strings.Contains(body, long) {
 		t.Errorf("the description was truncated before it reached the markup\n%s", body)
 	}
 
-	// Newlines in a spell's text survive, the way they do on the inventory rows.
+	
 	if !strings.Contains(body, "whitespace-pre-line") {
 		t.Errorf("the description collapses its line breaks\n%s", body)
 	}
 }
 
-// A row arrives from the add button with nothing in it, so it opens its own
-// disclosure -- the spell rows do the same, and adding armour usually means
-// ticking Equipped in the same breath. A row that already has a name stays shut,
-// which is the whole point of the collapse.
+
+
+
+
 func TestAnUnnamedItemOpensItsOwnDetails(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -1214,8 +1214,8 @@ func TestAnUnnamedItemOpensItsOwnDetails(t *testing.T) {
 	}
 }
 
-// testJournalEntry is one row of the journal list, with the two dates the
-// controller has already rendered.
+
+
 func testJournalEntry() JournalEntry {
 	return JournalEntry{
 		ID:      testEntryID,
@@ -1227,16 +1227,16 @@ func testJournalEntry() JournalEntry {
 
 const testEntryID = "01BX5ZZKBKACTAV9WEVGEMMVS1"
 
-// The journal entry page is a panel like any other: it posts itself on a
-// debounce and swaps the reply into its own error block. Its three targeting
-// attributes have to agree with the id of the block they aim at, and a
-// disagreement is silent -- the reply lands nowhere and the editor looks like it
-// is not saving -- so the exact strings are pinned, the way the inventory row's
-// are.
-//
-// THE POST GOES TO THE RESOURCE URL, NOT THE PAGE URL. The page is under /edit/
-// and the mutation is not; posting to the page would 404 on a route that only
-// answers GET.
+
+
+
+
+
+
+
+
+
+
 func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1264,10 +1264,10 @@ func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 		}
 	}
 
-	// The stored markdown reaches the browser inside the textarea and nowhere
-	// else. journal-editor.js reads its initial content from there, because
-	// templ escapes the text of a textarea -- an entry inlined into a <script>
-	// block would be a script-injection vector instead.
+	
+	
+	
+	
 	if !strings.Contains(markup, `We went back to the marsh.</textarea>`) {
 		t.Errorf("the body is not in the textarea\n%s", markup)
 	}
@@ -1278,16 +1278,16 @@ func TestJournalEntryPageIsASavingPanel(t *testing.T) {
 	assertCharacterTabs(t, markup, "/characters/"+characterID+"/edit/journal")
 }
 
-// The Save button is not a second save path. It posts the SAME form to the SAME
-// route as the debounce, from outside the form -- which is what hx-include is
-// for, and why savingPanel gives every panel form an id. Getting that selector
-// wrong is the dangerous failure here: the request would go out with no title
-// and no body and blank the entry, so the id and the include are pinned
-// together.
-//
-// It exists because the autosave is deliberately silent (see
-// finishJournalEntry), and `announce` is what asks the server to say so. The
-// debounce never sends that field.
+
+
+
+
+
+
+
+
+
+
 func TestJournalSaveButtonPostsTheSameForm(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1315,10 +1315,10 @@ func TestJournalSaveButtonPostsTheSameForm(t *testing.T) {
 		}
 	}
 
-	// Last in the page header's action row, after the neutral buttons it sits
-	// beside -- neutral first and the affirmative action second, the order every
-	// dialog in the app uses. The back link is not one of those any more; it is
-	// at the far left of the bar, ahead of the portrait.
+	
+	
+	
+	
 	export := strings.Index(markup, ">Export<")
 	save := strings.Index(markup, ">Save</button>")
 	tabs := strings.Index(markup, "<nav")
@@ -1327,16 +1327,16 @@ func TestJournalSaveButtonPostsTheSameForm(t *testing.T) {
 	}
 }
 
-// THE BACK LINK IS THE FIRST THING IN EVERY PAGE HEADER, and it names the page
-// it goes to. Both halves are checked here because both halves were the bug: it
-// used to sit on the right of the bar, past the readings and the share buttons,
-// and it used to say "Back" -- a direction, which is only readable by somebody
-// who remembers how they arrived.
-//
-// THE JOURNAL ENTRY IS THE ROW THIS TEST EXISTS FOR. It is the one page whose
-// parent is not the roster: an entry is a document inside the Journal tab, so
-// the page above it is the list of entries, and the tab strip cannot offer that
-// while Journal is the tab the entry is open in. See back.go.
+
+
+
+
+
+
+
+
+
+
 func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1367,15 +1367,15 @@ func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 				t.Fatalf("no back link to %s:\n%s", c.href, body)
 			}
 
-			// The word, after the arrow. An arrow on its own says "back" and
-			// says nothing about back to where, which is the ambiguity this
-			// replaced rather than a shorter way of writing it.
+			
+			
+			
 			if !strings.Contains(body[at:], "</svg>"+c.label+"</a>") {
 				t.Errorf("the back link does not say %q:\n%s", c.label, body)
 			}
 
-			// Ahead of whatever the page leads with -- its own <h1>, or the
-			// portrait and name of the thing being edited.
+			
+			
 			if heading := strings.Index(body, "<h1"); heading >= 0 && at > heading {
 				t.Errorf("the back link is not first in the header:\n%s", body)
 			}
@@ -1383,14 +1383,14 @@ func TestEveryPageHeaderLeadsWithItsBackLink(t *testing.T) {
 	}
 }
 
-// EVERY TOOLBAR BUTTON IS type="button". The toolbar sits inside the autosaving
-// form, and a bare <button> there is a submit -- so one missing attribute turns
-// "make this bold" into a full-page post to the save route.
-//
-// The editor is additive: the toolbar starts hidden and the textarea starts
-// visible, and journal-editor.js swaps the two once it has an editor to drive.
-// With the module absent or still loading, the entry is editable as plain
-// markdown rather than not editable at all.
+
+
+
+
+
+
+
+
 func TestJournalToolbarCannotSubmitTheForm(t *testing.T) {
 	var buf bytes.Buffer
 	if err := EditCharacterJournalEntry(JournalEntryPageData{}).Render(context.Background(), &buf); err != nil {
@@ -1409,22 +1409,22 @@ func TestJournalToolbarCannotSubmitTheForm(t *testing.T) {
 		t.Errorf("the toolbar is not hidden until the editor mounts\n%s", markup)
 	}
 
-	// The heading control carries no name, so the form does not post it at all
-	// and the save handler has nothing to ignore.
+	
+	
 	if strings.Contains(markup, `data-journal-heading name=`) || strings.Contains(markup, `name="heading"`) {
 		t.Errorf("the heading select is posted with the form\n%s", markup)
 	}
 }
 
-// THE UPLOAD URL IS THE SAVE URL WITH /images ON THE END, and it is rendered
-// once, here, onto the editor root. journal-editor.js reads it off the dataset
-// rather than building it from ids of its own, so this attribute is the whole
-// contract: lose it and every paste posts to undefined.
-//
-// The button is data-journal-upload and NOT data-journal-mark. The editor sets
-// a pressed state on everything carrying the latter, and an upload button has
-// none to report -- the count above is 6 for that reason and would be 7 if the
-// attribute were shared.
+
+
+
+
+
+
+
+
+
 func TestJournalEditorCarriesItsUploadURL(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1443,9 +1443,9 @@ func TestJournalEditorCarriesItsUploadURL(t *testing.T) {
 		t.Errorf("missing %s\n%s", want, markup)
 	}
 
-	// The button is the affordance; the input is hidden because a bare file
-	// input cannot be styled into the toolbar, and it carries the accept list
-	// so the picker filters before the server has to refuse.
+	
+	
+	
 	if !strings.Contains(markup, "data-journal-upload") {
 		t.Errorf("no upload button\n%s", markup)
 	}
@@ -1458,14 +1458,14 @@ func TestJournalEditorCarriesItsUploadURL(t *testing.T) {
 	}
 }
 
-// Close comes first and the affirmative action second, in every dialog in the
-// app, and the fragment loaded into the shared modal has to carry its own --
-// the shell supplies nothing to what it fetches.
-//
-// The form has no hx-* of its own on purpose: there is nothing to post. The
-// data-journal-link attribute is the whole contract with journal-editor.js,
-// which fills the field and takes the submit, so losing it would leave a dialog
-// whose Insert button did nothing.
+
+
+
+
+
+
+
+
 func TestJournalLinkFragmentIsADialogWithNoRequest(t *testing.T) {
 	var buf bytes.Buffer
 	if err := JournalLinkFragment().Render(context.Background(), &buf); err != nil {
@@ -1492,16 +1492,16 @@ func TestJournalLinkFragmentIsADialogWithNoRequest(t *testing.T) {
 	}
 }
 
-// Dates are rendered twice: RFC 3339 in the attribute for the machine, and the
-// reader's own rendering as the text for the person.
-//
-// BOTH HALVES ARE WRITTEN BY THE SERVER AND NEITHER IS REWRITTEN AFTERWARDS.
-// There used to be a <local-time> element around this pair and a module that
-// reformatted the text on load; the zone, date order and clock are account
-// settings now, so the server knows them and the markup is final. What this
-// asserts is that the wrapper is gone and the plain <time> carrying both halves
-// is what remains -- the element is still semantic markup worth having, and the
-// attribute is still the instant.
+
+
+
+
+
+
+
+
+
+
 func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1528,14 +1528,14 @@ func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 		t.Errorf("the client-side rewrite is still in the markup\n%s", markup)
 	}
 
-	// The card links to the page and deletes through the resource URL. Those are
-	// two different paths, and swapping them would either delete nothing or
-	// navigate to a route that answers no GET.
-	//
-	// TWO WAYS IN, and both are the same link: the title, for anyone who reads
-	// the list as a list, and a View button beside Delete, for anyone who reads
-	// it as a row of controls. A row whose only affordance is a destructive
-	// button is a row you can only delete.
+	
+	
+	
+	
+	
+	
+	
+	
 	href := `href="/characters/` + characterID + `/edit/journal/` + testEntryID + `"`
 	if got := strings.Count(markup, href); got != 2 {
 		t.Errorf("the entry is linked %d times, want 2 (the title and View)\n%s", got, markup)
@@ -1551,13 +1551,13 @@ func TestJournalListRendersBothHalvesOfEveryDate(t *testing.T) {
 	}
 }
 
-// Creation is a page-level action, so its button is in the page header beside
-// Back rather than at the bottom of the panel -- the panel is a list of what
-// exists, and the thing that makes a new one is not part of that list.
-//
-// IT IS A PLAIN FORM POST with no hx-* at all. There is no field to collect, so
-// there is nothing to reject and nothing to keep the page open for: the handler
-// inserts a blank entry and 303s into its editor, and the browser follows.
+
+
+
+
+
+
+
 func TestJournalCreateIsAFormPostInTheHeader(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1579,17 +1579,17 @@ func TestJournalCreateIsAFormPostInTheHeader(t *testing.T) {
 		t.Errorf("the create button is not labelled\n%s", markup)
 	}
 
-	// The panel holds the list and nothing that posts. Bounded at the editor
-	// element, because the base layout's three dialogs each carry a
-	// method="dialog" form of their own further down the page.
+	
+	
+	
 	panel := markup[strings.Index(markup, "journal-entries"):strings.Index(markup, "</character-editor>")]
 	if strings.Contains(panel, "<form") {
 		t.Errorf("a form survives inside the panel\n%s", panel)
 	}
 }
 
-// An entry is born blank -- creation takes no fields -- so the list has to say
-// something in the space where its title goes.
+
+
 func TestJournalListNamesTheUnnamedEntry(t *testing.T) {
 	var buf bytes.Buffer
 	err := EditCharacterJournal(JournalPageData{
@@ -1604,12 +1604,12 @@ func TestJournalListNamesTheUnnamedEntry(t *testing.T) {
 	}
 }
 
-// The box swaps the list on every pause in typing, so it cannot be inside the
-// thing it swaps: an input that replaces itself mid-type loses the caret and its
-// own value with it, and the reader gets one character per swap. This pins the
-// order -- box first, target second -- and pins the target to the id the
-// container actually carries, because a target that has drifted fails silently.
-// htmx finds nothing to swap and the box just stops working.
+
+
+
+
+
+
 func TestJournalSearchBoxSitsOutsideTheListItSwaps(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1643,24 +1643,24 @@ func TestJournalSearchBoxSitsOutsideTheListItSwaps(t *testing.T) {
 	if !strings.Contains(markup, `hx-target="#`+journalEntriesID+`"`) {
 		t.Errorf("the box does not aim at the list\n%s", markup)
 	}
-	// A GET, and under /fragment/, because the reply is part of a page that is
-	// already open. The character rides in the query string; htmx appends the
-	// box's own q beside it rather than replacing what is already there.
+	
+	
+	
 	if !strings.Contains(markup, `hx-get="/fragment/character/journal-entries?character=`+characterID+`"`) {
 		t.Errorf("the box does not call the fragment route\n%s", markup)
 	}
-	// The server refuses a longer term with a 404, which is an empty reply and
-	// so a list that silently stops updating. This is what keeps that
-	// unreachable from the control that sends it.
+	
+	
+	
 	if !strings.Contains(markup, `maxlength="255"`) {
 		t.Errorf("the box is not capped at the length the server accepts\n%s", markup)
 	}
 }
 
-// An empty list has two causes and they need two different sentences. Nothing
-// written is a journal to start, and the message points at the button that
-// starts one. Nothing matched is a search that missed, and telling that reader
-// to go and write something answers a question they did not ask.
+
+
+
+
 func TestJournalEmptyListDistinguishesUnwrittenFromUnmatched(t *testing.T) {
 	render := func(t *testing.T, data JournalPageData) string {
 		t.Helper()
@@ -1687,10 +1687,10 @@ func TestJournalEmptyListDistinguishesUnwrittenFromUnmatched(t *testing.T) {
 	}
 }
 
-// A fragment is never a second copy of markup. The search route returns the same
-// component the page renders, so a card that grows a control grows it in both
-// places at once -- and this fails the moment the two are allowed to drift,
-// because the fragment stops being a substring of the page.
+
+
+
+
 func TestJournalSearchFragmentIsNotASecondCopyOfTheList(t *testing.T) {
 	data := JournalPageData{
 		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
@@ -1712,23 +1712,23 @@ func TestJournalSearchFragmentIsNotASecondCopyOfTheList(t *testing.T) {
 	if !strings.Contains(page.String(), fragment.String()) {
 		t.Errorf("the fragment is not the page's own list\nfragment:\n%s\npage:\n%s", fragment.String(), page.String())
 	}
-	// The fragment is what lands inside the container, so it must not bring a
-	// second one with it.
+	
+	
 	if strings.Contains(fragment.String(), `id="`+journalEntriesID+`"`) {
 		t.Errorf("the fragment carries the container it is swapped into\n%s", fragment.String())
 	}
 }
 
-// collapseWhitespace flattens the indentation templ writes between elements, so
-// a test can pin the shape of a nested run of markup as one string.
+
+
 func collapseWhitespace(markup string) string {
 	return strings.Join(strings.Fields(markup), " ")
 }
 
-// SaveCharacterVitals reads three of its six values out of the absence of a
-// field, because an unticked checkbox posts nothing. That is only correct while
-// every control arrives together, which is a property of this markup rather than
-// of that handler -- so it is pinned here.
+
+
+
+
 func TestTheVitalsPanelRendersEveryControlItIsReadFrom(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1747,15 +1747,15 @@ func TestTheVitalsPanelRendersEveryControlItIsReadFrom(t *testing.T) {
 		}
 	}
 
-	// One box per death save the rules allow, in each row. The count IS the
-	// value on the wire, so a row short of a box cannot record a full three.
+	
+	
 	for _, row := range []string{"death_save_successes", "death_save_failures"} {
 		if got := strings.Count(markup, `name="`+row+`"`); got != DeathSaveLimit {
 			t.Errorf("%s renders %d boxes, want %d", row, got, DeathSaveLimit)
 		}
 	}
 
-	// The two counters cannot offer the browser a number the handler refuses.
+	
 	for _, want := range []string{
 		`max="` + strconv.Itoa(HitDiceSpentLimit) + `"`,
 		`max="` + strconv.Itoa(ExhaustionLimit) + `"`,
@@ -1766,8 +1766,8 @@ func TestTheVitalsPanelRendersEveryControlItIsReadFrom(t *testing.T) {
 	}
 }
 
-// A sheet that forgot which boxes were ticked would be worse than one with no
-// boxes: the player would tick them again and lose a death save they had.
+
+
 func TestDeathSaveBubblesRenderWhatIsStored(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -1794,9 +1794,9 @@ func TestDeathSaveBubblesRenderWhatIsStored(t *testing.T) {
 
 const testAttackRowID = "01BX5ZZKBKACTAV9WEVGEMMVS0"
 
-// An attack row is its own form posting to its own URL, the way an inventory row
-// is. The panel it lives in is a sheetPanel and saves nothing itself, so if this
-// stopped being a form the rows would silently stop saving.
+
+
+
 func TestAttackRowIsItsOwnForm(t *testing.T) {
 	const character = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	action := "/characters/" + character + "/attacks/" + testAttackRowID
@@ -1818,17 +1818,17 @@ func TestAttackRowIsItsOwnForm(t *testing.T) {
 		}
 	}
 
-	// The delete removes the row it is inside. Anything else would drop a
-	// different attack off the page than the one the database dropped.
+	
+	
 	if !strings.Contains(markup, `hx-target="closest form"`) || !strings.Contains(markup, `hx-swap="delete"`) {
 		t.Errorf("the delete does not swap out its own row:\n%s", markup)
 	}
 }
 
-// SaveAttack reads six fields and writes six columns, which is only safe while
-// the form carries all six -- the parse helpers answer a missing field with an
-// empty string rather than an error, so a row that stopped rendering its notes
-// would quietly erase them on the next keystroke.
+
+
+
+
 func TestAttackRowAlwaysRendersEveryControl(t *testing.T) {
 	var buf bytes.Buffer
 	if err := AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: testAttackRowID}).Render(context.Background(), &buf); err != nil {
@@ -1843,10 +1843,10 @@ func TestAttackRowAlwaysRendersEveryControl(t *testing.T) {
 	}
 }
 
-// THE ROW USES NO id ON ITS FIELDS, and that is the whole reason it does not
-// reuse textField and selectField: those set id={ name }, and a page rendering
-// four attacks would carry four elements called id="damage". Clicking a label
-// would then focus the first row's field whichever row was clicked.
+
+
+
+
 func TestTwoAttackRowsShareNoElementID(t *testing.T) {
 	var buf bytes.Buffer
 	for _, id := range []string{testAttackRowID, "01BX5ZZKBKACTAV9WEVGEMMVS3"} {
@@ -1864,9 +1864,9 @@ func TestTwoAttackRowsShareNoElementID(t *testing.T) {
 	}
 }
 
-// A fresh row opens its own details, so the mastery and notes it was added for
-// are in front of whoever pressed Add rather than behind a disclosure they have
-// to find. A named row stays shut.
+
+
+
 func TestAnUnnamedAttackOpensItsOwnDetails(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -1888,13 +1888,13 @@ func TestAnUnnamedAttackOpensItsOwnDetails(t *testing.T) {
 	}
 }
 
-// Both selects are closed sets from the rules, and the normalisers in
-// attacks.go are the same lists read the other way round. A member added to one
-// and not the other would either render an option the server refuses or accept a
-// value the sheet cannot show.
+
+
+
+
 func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
-	// Thirteen damage types and eight mastery properties, each with the empty
-	// member the sheet needs for a row that has neither.
+	
+	
 	if got := len(damageTypeOptions); got != 14 {
 		t.Errorf("damage types = %d, want 14", got)
 	}
@@ -1913,8 +1913,8 @@ func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
 		}
 	}
 
-	// And the two lists are not interchangeable, which is what would happen if
-	// one normaliser were pointed at the other list.
+	
+	
 	if NormalizeMastery("Slashing") != "" {
 		t.Error("a damage type passes as a mastery property")
 	}
@@ -1923,8 +1923,8 @@ func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
 	}
 }
 
-// testDerivedValues is a full sheet's worth: every skill, every save, and the
-// five loose numbers.
+
+
 func testDerivedValues() Derived {
 	d := Derived{
 		StrMod: "+2", DexMod: "+3", ConMod: "+2", IntMod: "-1", WisMod: "+1", ChaMod: "-1",
@@ -1933,9 +1933,9 @@ func testDerivedValues() Derived {
 	for _, entry := range SkillEntries() {
 		d.Skills = append(d.Skills, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
 	}
-	// No Abbr on a saving throw, because the controller does not send one --
-	// see governingAbbr. A fixture that sent one would render a row the app
-	// cannot produce.
+	
+	
+	
 	for _, entry := range SavingThrowEntries() {
 		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
 	}
@@ -1943,10 +1943,10 @@ func testDerivedValues() Derived {
 	return d
 }
 
-// THE ONE WAY AN OUT-OF-BAND SWAP FAILS IS SILENTLY. htmx looks up the id in the
-// document, finds nothing, and does nothing -- no error, no console line, just a
-// number that never moves. So every id the refresh swaps has to exist on the
-// page, and this is what says so.
+
+
+
+
 func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 	derived := testDerivedValues()
 
@@ -1961,8 +1961,8 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 
 	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
 
-	// Six ability modifiers, eighteen skills, six saves, and the three loose
-	// numbers -- passive perception and the two spell readouts.
+	
+	
 	if want := 6 + len(SkillEntries()) + len(SavingThrowEntries()) + 3; len(ids) != want {
 		t.Errorf("the refresh carries %d values, want %d", len(ids), want)
 	}
@@ -1972,29 +1972,29 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 		}
 	}
 
-	// Every one of them is out-of-band, or the response would be swapped into
-	// the panel's error block instead of onto the values it names.
+	
+	
 	if got := strings.Count(block.String(), `hx-swap-oob="true"`); got != len(ids) {
 		t.Errorf("%d of %d refreshed values are out-of-band", got, len(ids))
 	}
 
-	// And the page's own copies are not, or the first save would try to swap
-	// them into themselves.
+	
+	
 	if strings.Contains(page.String(), "hx-swap-oob") {
 		t.Error("the page renders a derived value already marked out-of-band")
 	}
 }
 
-// AND EVERY ONE OF THEM COMES BACK LOOKING THE WAY IT LEFT. hx-swap-oob="true"
-// replaces the element, not its contents, so the refresh does not update a
-// number inside a box -- it supplies a new box. If the page draws a derived
-// value one way and DerivedValues draws it another, the sheet is correct until
-// the first save and then quietly restyled, on the panels the save touched and
-// nowhere else.
-//
-// Today that cannot happen, because both renders go through derivedValue. This
-// is what says it has to stay that way: it fails the moment a second component
-// starts drawing one of these ids.
+
+
+
+
+
+
+
+
+
+
 func TestTheRefreshDrawsEveryDerivedValueTheWayThePageDid(t *testing.T) {
 	derived := testDerivedValues()
 
@@ -2030,18 +2030,18 @@ func TestTheRefreshDrawsEveryDerivedValueTheWayThePageDid(t *testing.T) {
 	}
 }
 
-// Both navs render inside the bar, which is what keeps either of them off the
-// grid paper.
-//
-// The spell level strip was the last thing still doing it: eleven links and a
-// rule, rendered as the first child of the scrolling column, sitting straight
-// on the desk exactly the way the character tabs did before the bar existed.
-// It is a shellLayout.SubNav now, docked under the character tabs.
-//
-// Asserted by position rather than by class, because the failure is structural
-// -- the markup is identical either way, and the only difference is which side
-// of the bar's closing tag it lands on. The bar is the first <header> a page
-// renders; every later one is a panel heading.
+
+
+
+
+
+
+
+
+
+
+
+
 func TestBothNavsRenderInsideTheBar(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
@@ -2074,31 +2074,31 @@ func TestBothNavsRenderInsideTheBar(t *testing.T) {
 	}
 }
 
-// THE ELEVATION SCALE, asserted as the one string it removed.
-//
-// Every surface in this app used to carry `border-2 border-base-300`: the
-// panels, and then again every row inside them -- bonus rows, attack rows,
-// inventory rows, spell rows, feature rows, journal cards, the two derived
-// readouts. A row was drawn on the same plane as the panel holding it, which is
-// why nothing read as containing anything.
-//
-// Panels are a hairline plus --shadow-panel now (surfacePanel) and the things
-// inside them are a fill with no border at all (surfaceInset), so the recipe
-// below should appear nowhere. It is asserted as a string because that is how
-// it would come back: by being copied off a neighbouring component into a new
-// one, where it would look right in isolation and flatten the panel it landed
-// in.
-//
-// The pattern covers the directional forms too -- border-b-2, border-y-2,
-// border-s-2 -- because those were the other half of it. A 2px base-300 rule
-// under a heading, between two halves of a row, or around a stat block is the
-// same weight doing the same flattening, just on one edge instead of four.
-//
-// border-2 with any OTHER colour is still fine and still used: the error blocks
-// are deliberately louder than anything around them, and the tab underline is
-// 2px of primary because it is a position indicator rather than a container. It
-// is the pairing with base-300 -- the panel border, on something that is not a
-// panel -- that the scale replaced.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var panelBorder = regexp.MustCompile(`border(-[a-z])?-2 border-base-300`)
 
 func TestNothingWearsThePanelBorderAnyMore(t *testing.T) {
@@ -2142,7 +2142,7 @@ func TestNothingWearsThePanelBorderAnyMore(t *testing.T) {
 	}
 }
 
-// testCharacterHeader is a full bar: a name, a subtitle and all six readings.
+
 func testCharacterHeader() CharacterHeader {
 	return CharacterHeader{
 		Name:        "Vashti Emberlane",
@@ -2157,9 +2157,9 @@ func testCharacterHeader() CharacterHeader {
 	}
 }
 
-// The bar refreshes the same way the derived values do and fails the same way if
-// it drifts -- see TestEveryDerivedValueHasATargetOnThePage for what a missing
-// id costs, which is nothing anybody sees until a name stops updating.
+
+
+
 func TestTheBarRefreshHasATargetOnThePage(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	header := testCharacterHeader()
@@ -2175,9 +2175,9 @@ func TestTheBarRefreshHasATargetOnThePage(t *testing.T) {
 
 	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
 
-	// The figure -- portrait, name and subtitle -- and the strip of readings.
-	// They are two swaps rather than one because the actions sit between them
-	// in the bar, and a wrapper around both would have to contain those too.
+	
+	
+	
 	if len(ids) != 2 {
 		t.Fatalf("the refresh carries %d blocks, want 2", len(ids))
 	}
@@ -2192,10 +2192,10 @@ func TestTheBarRefreshHasATargetOnThePage(t *testing.T) {
 	}
 }
 
-// Every editor tab says whose sheet is open. The bar used to read "Edit
-// Character" on all five, and the name was on the page exactly once -- as the
-// value of the Identity panel's first input, which the other four tabs do not
-// render at all.
+
+
+
+
 func TestEveryEditorTabSaysWhoseSheetItIs(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	header := testCharacterHeader()
@@ -2227,10 +2227,10 @@ func TestEveryEditorTabSaysWhoseSheetItIs(t *testing.T) {
 	}
 }
 
-// The controls carry no id, for the reason the attack rows carry none: eighteen
-// skills sharing one field component would put eighteen elements called
-// id="misc" on the page. The derived spans are the exception and are the whole
-// point -- they are what the refresh addresses.
+
+
+
+
 func TestBonusRowsShareNoElementIDButTheirTotals(t *testing.T) {
 	var buf bytes.Buffer
 	if err := skillsTable(testDerivedValues().Skills, "14").Render(context.Background(), &buf); err != nil {
@@ -2249,9 +2249,9 @@ func TestBonusRowsShareNoElementIDButTheirTotals(t *testing.T) {
 	}
 }
 
-// Each row posts the two things it stores, under names the marshaller reads back
-// by key. A row that stopped rendering one of them would save the other over a
-// state nobody changed.
+
+
+
 func TestEveryBonusRowPostsBothOfItsHalves(t *testing.T) {
 	var buf bytes.Buffer
 	if err := skillsTable(testDerivedValues().Skills, "14").Render(context.Background(), &buf); err != nil {
@@ -2268,19 +2268,19 @@ func TestEveryBonusRowPostsBothOfItsHalves(t *testing.T) {
 	}
 }
 
-// THE TWO THEMES MUST AGREE ON --border, and the only way to notice they do not
-// is to switch the OS between light and dark and watch every input, button and
-// checkbox change thickness. DaisyUI ships coffee at 1px and caramellatte at
-// 2px, so the agreement is something css/app.css asserts rather than something
-// the themes come with -- which means a DaisyUI upgrade, or somebody tuning one
-// theme, can break it without touching a line of Go.
-//
-// Read from the source stylesheet rather than the build, because the built file
-// also carries DaisyUI's own two declarations, which are overridden on cascade
-// order and are supposed to disagree.
-//
-// The pattern is anchored to the start of a line so it matches declarations and
-// not the comment above them, which says "--border: 1px" while explaining why.
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestBothThemesPinTheSameBorderWidth(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "css", "app.css"))
 	if err != nil {
@@ -2301,8 +2301,8 @@ const (
 	testMapGen = "01BX5ZZKBKACTAV9WEVGEMMVS3"
 )
 
-// testMapCard is a map that has finished tiling once and has no job running:
-// the steady state, which every other case below is a departure from.
+
+
 func testMapCard() MapAsset {
 	return MapAsset{
 		ID:         testMapID,
@@ -2313,7 +2313,7 @@ func testMapCard() MapAsset {
 	}
 }
 
-// markup renders one component and hands back what it wrote.
+
 func markup(t *testing.T, c templ.Component) string {
 	t.Helper()
 
@@ -2325,12 +2325,12 @@ func markup(t *testing.T, c templ.Component) string {
 	return buf.String()
 }
 
-// THE CARD ASKS THREE QUESTIONS AND THEY ARE NOT A SWITCH. A pyramid that is
-// serving and a job that is running are different facts about the same row, and
-// the two combinations where they disagree are the ones that matter: a map
-// being replaced is usable and polling at the same time, and a rebuild that
-// gave up is usable and retryable at the same time. A three-way status would
-// have to pick one of those to be, and either pick is a lie.
+
+
+
+
+
+
 func TestTheThreeQuestionsAMapCardAsksAreIndependent(t *testing.T) {
 	for name, c := range map[string]struct {
 		generation                 string
@@ -2361,16 +2361,16 @@ func TestTheThreeQuestionsAMapCardAsksAreIndependent(t *testing.T) {
 	}
 }
 
-// THE POLL STOPS BY VIRTUE OF WHAT CAME BACK. Nothing counts ticks and nothing
-// cancels anything: a card with a job carries the attributes that fetch it
-// again, and a card without one does not, so the answer to the last poll is
-// what ends the polling.
-//
-// The trigger and the swap are pinned together because only that pair works.
-// htmx does not re-initialise an element it has already initialised, so a morph
-// -- which keeps the element rather than replacing it -- leaves a "load"
-// trigger spent and the card polls exactly once. "every" survives, because the
-// interval belongs to the element the morph kept.
+
+
+
+
+
+
+
+
+
+
 func TestOnlyACardWithAJobRunningPollsItself(t *testing.T) {
 	poll := []string{
 		`hx-get="/fragment/assets/maps/` + testMapID + `/card"`,
@@ -2403,10 +2403,10 @@ func TestOnlyACardWithAJobRunningPollsItself(t *testing.T) {
 	}
 }
 
-// A map being replaced goes on being the map it was. The old pyramid is still
-// in the bucket and still named by the row -- the worker deletes it only once
-// the new one is complete -- so hiding it while the replacement builds would
-// take a working map away for a minute in exchange for nothing.
+
+
+
+
 func TestACardBeingRebuiltStillShowsTheMapItHas(t *testing.T) {
 	card := testMapCard()
 	card.State = queries.AssetsTileStatePending
@@ -2420,11 +2420,11 @@ func TestACardBeingRebuiltStillShowsTheMapItHas(t *testing.T) {
 	}
 }
 
-// A CARD WITH NO PYRAMID POINTS AT NO IMAGE, and it has to. The preview route
-// falls back to file_path when preview_path is NULL, and file_path on a map is
-// the original -- so an <img> rendered before the first build finishes would
-// ask for a hundred-megabyte PNG and be served it under Content-Type:
-// image/webp.
+
+
+
+
+
 func TestACardWithNoPyramidAsksForNoPreview(t *testing.T) {
 	card := testMapCard()
 	card.Generation = ""
@@ -2435,10 +2435,10 @@ func TestACardWithNoPyramidAsksForNoPreview(t *testing.T) {
 	}
 }
 
-// The retry is the owner's, and only a card that has given up offers it. The
-// worker retries on its own a few times first; this button is what is left when
-// it has stopped, and it posts to the map's own URL rather than to a fragment
-// because it is a mutation.
+
+
+
+
 func TestOnlyACardThatGaveUpOffersARetry(t *testing.T) {
 	retry := `hx-post="/assets/maps/` + testMapID + `/tiles"`
 
@@ -2463,12 +2463,12 @@ func TestOnlyACardThatGaveUpOffersARetry(t *testing.T) {
 	}
 }
 
-// THE NAME INPUT CARRIES AN ID AND THAT IS LOAD-BEARING. The card replaces
-// itself every two seconds while its map is being tiled, which is exactly when
-// its owner is most likely to be typing a name for it. htmx restores focus and
-// the caret across a swap by looking the focused element up by id afterwards,
-// and the morph matches old nodes to new ones by id -- an input with neither
-// would be rebuilt from the server's value mid-word.
+
+
+
+
+
+
 func TestTheNameInputIsIdentifiedAcrossASwap(t *testing.T) {
 	rendered := markup(t, MapCard(testMapCard()))
 
@@ -2477,8 +2477,8 @@ func TestTheNameInputIsIdentifiedAcrossASwap(t *testing.T) {
 	}
 }
 
-// The fragment the poll fetches is the card the page renders, not a second copy
-// of it. Both go through MapCard, and this is what keeps them doing so.
+
+
 func TestThePageIsMadeOfTheSameCardTheFragmentServes(t *testing.T) {
 	card := testMapCard()
 	page := markup(t, MapAssets([]MapAsset{card}))
@@ -2492,14 +2492,14 @@ func TestThePageIsMadeOfTheSameCardTheFragmentServes(t *testing.T) {
 	}
 }
 
-// THE SUB-NAV IS THE ONLY THING JOINING THE FOUR ASSET PAGES. There is no index
-// above them -- /assets redirects onto the first -- so a page that dropped one
-// of these links would leave that kind reachable by typing its URL and by
-// nothing else.
-//
-// It is checked from all four pages rather than from one, because each page
-// names its own current tab and a page passing the wrong name is a strip that
-// marks somewhere the reader is not.
+
+
+
+
+
+
+
+
 func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 	kinds := []string{"/assets/maps", "/assets/tokens", "/assets/avatars", "/assets/music"}
 
@@ -2521,13 +2521,13 @@ func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 				}
 			}
 
-			// Matched on the attribute rather than the class string, so
-			// restyling the links does not break the test.
+			
+			
 			if want := `href="` + c.current + `" aria-current="page"`; !strings.Contains(body, want) {
 				t.Errorf("the current tab is not %s", c.current)
 			}
 
-			// Exactly one of them, or the strip is marking two places at once.
+			
 			if n := strings.Count(body, `aria-current="page"`); n != 1 {
 				t.Errorf("%d tabs are marked current, want 1", n)
 			}
@@ -2535,10 +2535,10 @@ func TestEveryAssetPageOffersEveryKind(t *testing.T) {
 	}
 }
 
-// THE STRIP IS IN THE BAR, not at the top of the content under it. A row of
-// bare links rendered into the scrolling column sits directly on the grid
-// paper, which is what the character tabs did before there was a bar to dock
-// them in.
+
+
+
+
 func TestTheAssetTabsRenderInsideTheBar(t *testing.T) {
 	body := markup(t, TokenAssets(nil))
 
@@ -2555,21 +2555,21 @@ func TestTheAssetTabsRenderInsideTheBar(t *testing.T) {
 	}
 }
 
-// THE EMPTY STATE IS THE GRID'S LAST CHILD, HIDDEN BY :only-child. One piece of
-// markup then covers a library that has never held anything and one whose last
-// card was just deleted, with no JavaScript, nothing counting and no second
-// render path.
-//
-// THE ORDER IS THE WHOLE MECHANISM, so it is what is asserted. An upload
-// prepends its card into this section (hx-swap="afterbegin"), so the message
-// stays last and stops being an only child the moment one lands; deleting the
-// last card makes it one again and it comes back on its own.
-//
-// AND THE SECTION IS ALWAYS RENDERED, which is the half that is easy to get
-// wrong. Showing the message *instead of* the grid would take #maps off the
-// page with it -- and #maps is the upload's hx-target, so the first card of a
-// new library would swap into nothing and the upload would look like it failed
-// silently.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 func TestTheEmptyStateSitsLastInAGridThatIsAlwaysThere(t *testing.T) {
 	const marker = `class="col-span-full hidden only:block"`
 
@@ -2594,8 +2594,8 @@ func TestTheEmptyStateSitsLastInAGridThatIsAlwaysThere(t *testing.T) {
 				t.Error("the empty state says nothing")
 			}
 
-			// After the cards, which is what makes :only-child true exactly
-			// when there are none.
+			
+			
 			if c.cards {
 				card := strings.Index(body, "<asset-card")
 				if card < 0 {
@@ -2609,9 +2609,9 @@ func TestTheEmptyStateSitsLastInAGridThatIsAlwaysThere(t *testing.T) {
 	}
 }
 
-// Every kind's empty state says something about that kind. They were four
-// copies of "Nothing here yet" once, which is a sentence that tells a reader
-// who landed on the wrong tab nothing at all.
+
+
+
 func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 	for name, c := range map[string]struct {
 		page    templ.Component
@@ -2630,11 +2630,11 @@ func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 	}
 }
 
-// THE SEARCH BOX ON EACH PAGE IS AIMED AT THAT PAGE'S OWN GRID, and the kind is
-// baked into its hx-get rather than read from anywhere. Three attributes have to
-// agree for a search to work at all -- the kind it asks for, the section it
-// swaps, and the section's id -- and a box aimed at an id that is not on the
-// page fails silently: htmx logs to the console and the list never changes.
+
+
+
+
+
 func TestEveryAssetPageSearchesItsOwnKind(t *testing.T) {
 	for kind, page := range map[string]templ.Component{
 		"maps":    MapAssets(nil),
@@ -2649,13 +2649,13 @@ func TestEveryAssetPageSearchesItsOwnKind(t *testing.T) {
 				`hx-get="/fragment/assets/list?kind=` + kind + `"`,
 				`hx-target="#` + kind + `"`,
 				`id="` + kind + `"`,
-				// The term travels as ?q=, which is the name the fragment
-				// route reads. htmx appends it to the hx-get's own query
-				// string, so the kind survives beside it.
+				
+				
+				
 				`name="q"`,
-				// Bounded by the column for the reason the name box is: an
-				// overlong term is a 404 with an empty body, and there is no
-				// error block on a search box to put a message in.
+				
+				
+				
 				`maxlength="` + strconv.Itoa(AssetNameLimit) + `"`,
 			} {
 				if !strings.Contains(body, want) {
@@ -2663,7 +2663,7 @@ func TestEveryAssetPageSearchesItsOwnKind(t *testing.T) {
 				}
 			}
 
-			// One box per page. Two would be two things swapping one section.
+			
 			if n := strings.Count(body, `hx-get="/fragment/assets/list`); n != 1 {
 				t.Errorf("%d search boxes on the %s page, want 1", n, kind)
 			}
@@ -2671,15 +2671,15 @@ func TestEveryAssetPageSearchesItsOwnKind(t *testing.T) {
 	}
 }
 
-// A SHELF WITH NOTHING ON IT AND A SEARCH THAT MATCHED NOTHING ARE DIFFERENT
-// THINGS TO SAY. One wants the Upload button pointed out; the other wants the
-// term repeated back, because the reader can see the shelf is not empty -- they
-// filled it -- and needs to know which search is being answered.
-//
-// THEY SHARE THE :only-child SLOT rather than being two elements, which is what
-// keeps the mechanism working. The slot is the grid's last child and is shown
-// only when it is the only one, so an upload landing on a filtered page hides
-// whichever of the two is in it, with nothing counting.
+
+
+
+
+
+
+
+
+
 func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 	for name, c := range map[string]struct {
 		cards   templ.Component
@@ -2689,9 +2689,9 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 		"maps":    {MapCards(nil, "keep"), "No maps yet.", `No maps match "keep".`},
 		"tokens":  {TokenCards(nil, "wagon"), "No tokens yet.", `No tokens match "wagon".`},
 		"avatars": {AvatarCards(nil, "elf"), "No avatars yet.", `No avatars match "elf".`},
-		// The slug is "music" and "No music match" is not a sentence, so this
-		// one says tracks -- which is what one of them is called everywhere
-		// else in the manager.
+		
+		
+		
 		"music": {MusicCards(nil, "rain"), "No music yet.", `No tracks match "rain".`},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -2700,8 +2700,8 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 			if !strings.Contains(body, `class="col-span-full hidden only:block"`) {
 				t.Fatalf("the search result does not use the empty slot:\n%s", body)
 			}
-			// templ escapes the quotes around the term, so the comparison is
-			// against the escaped form rather than what a reader sees.
+			
+			
 			if want := strings.ReplaceAll(c.match, `"`, "&#34;"); !strings.Contains(body, want) {
 				t.Errorf("the term is not repeated back as %q:\n%s", c.match, body)
 			}
@@ -2712,21 +2712,21 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 	}
 }
 
-// EVERY LIST IN THE APP SAYS SO THE SAME WAY WHEN IT HAS NOTHING TO SHOW, and
-// there are five of these: four asset kinds and the manual, each in two states.
-//
-// THEY WERE DRIFTING, WHICH IS WHY THIS IS ASSERTED. The two empty states were
-// near-copies of one another; the two "nothing matched" messages were bare
-// paragraphs, so one of them was left-aligned on a page whose empty state was
-// centred, and both sat straight on the grid paper with nothing behind them. A
-// message with no surface under it does not read as an empty list -- it reads as
-// a page that failed to load.
+
+
+
+
+
+
+
+
+
 func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 	for name, c := range map[string]struct {
 		cards templ.Component
-		// match is the term echoed back, and is empty for a list that was
-		// never searched -- those get their own copy and must not offer to
-		// clear a search box nobody typed in.
+		
+		
+		
 		match string
 	}{
 		"maps searched":     {MapCards(nil, "keep"), `No maps match "keep".`},
@@ -2744,12 +2744,12 @@ func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 			body := markup(t, c.cards)
 
 			for _, want := range []string{
-				// The surface every other panel in the app is made of, so the
-				// message is legible against the grid paper behind it.
+				
+				
 				sheetSurface,
-				// Centred in the column the cards would have filled, and
-				// bounded so one sentence does not run the width of an
-				// ultrawide monitor.
+				
+				
+				
 				"mx-auto",
 				"max-w-md",
 				"text-center",
@@ -2766,8 +2766,8 @@ func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 				return
 			}
 
-			// templ escapes the quotes around the term, so the comparison is
-			// against the escaped form rather than what a reader sees.
+			
+			
 			if want := strings.ReplaceAll(c.match, `"`, "&#34;"); !strings.Contains(body, want) {
 				t.Errorf("the term is not repeated back as %q:\n%s", c.match, body)
 			}
@@ -2778,11 +2778,11 @@ func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 	}
 }
 
-// THE FRAGMENT IS THE SAME SECTION THE PAGE RENDERS and is not a second copy of
-// it. That is the fragment rule, and it is also what makes the swap safe: the
-// reply replaces the grid outright, so a fragment whose markup had drifted from
-// the page's would leave the upload button's target, the search box's target and
-// the grid's own id disagreeing after the first keystroke.
+
+
+
+
+
 func TestTheAssetSearchFragmentIsTheSectionThePageAlreadyHas(t *testing.T) {
 	for name, c := range map[string]struct {
 		page  templ.Component
@@ -2806,11 +2806,11 @@ func TestTheAssetSearchFragmentIsTheSectionThePageAlreadyHas(t *testing.T) {
 	}
 }
 
-// THE AVATAR WALL IS DENSER THAN THE TILE GRIDS AND EVERY ONE OF THEM IS
-// auto-fill. The count of columns is not written down anywhere: a fixed five
-// was five at 3440 pixels too, which made each card 660 wide and blew a 256
-// pixel preview up two and a half times. Sizing the card and letting the count
-// fall out of the width is what keeps a picture at the size it was stored at.
+
+
+
+
+
 func TestTheAssetGridsSizeTheCardRatherThanCountColumns(t *testing.T) {
 	for name, c := range map[string]struct {
 		page templ.Component
@@ -2832,17 +2832,17 @@ func TestTheAssetGridsSizeTheCardRatherThanCountColumns(t *testing.T) {
 		})
 	}
 
-	// The avatars have to be the denser of the two or the wall is the tile grid
-	// with smaller pictures in it.
+	
+	
 	if assetFaceGrid == assetTileGrid {
 		t.Error("the avatar wall is the same track as the map tiles")
 	}
 }
 
-// The name box is bounded by what the column holds. MySQL runs strict, so a
-// longer value is a driver error rather than a truncation -- and the save is a
-// debounced keystroke with no error block to put a message in, so the refusal
-// has to happen in the browser before anything is sent.
+
+
+
+
 func TestTheAssetNameBoxIsBoundedByTheColumn(t *testing.T) {
 	body := markup(t, MapCard(testMapCard()))
 
@@ -2851,7 +2851,7 @@ func TestTheAssetNameBoxIsBoundedByTheColumn(t *testing.T) {
 	}
 }
 
-// testLibraryCard is one token or avatar as its card reads it.
+
 func testLibraryCard(kind string) LibraryAsset {
 	return LibraryAsset{
 		ID:       testMapID,
@@ -2863,11 +2863,11 @@ func testLibraryCard(kind string) LibraryAsset {
 	}
 }
 
-// EVERY URL ON A LIBRARY CARD CARRIES ITS OWN KIND, and that is the whole of
-// what stops one page acting on another's rows. The id is the same shape for a
-// token and an avatar, so a card whose Delete said /assets/avatars/ while
-// sitting on the tokens page would delete somebody's avatar and remove a token
-// from the screen -- and both requests would answer 200.
+
+
+
+
+
 func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
 	for _, kind := range []string{"tokens", "avatars"} {
 		t.Run(kind, func(t *testing.T) {
@@ -2878,9 +2878,9 @@ func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
 				`hx-post="` + base + `"`,
 				`hx-delete="` + base + `"`,
 				`hx-patch="` + base + `/name"`,
-				// The stored image, not a /preview: a library asset is kept at
-				// the size it is served at, so preview_path is NULL on the row
-				// and there is no second object to point at.
+				
+				
+				
 				`src="/assets/images/` + testMapID + `"`,
 			} {
 				if !strings.Contains(body, want) {
@@ -2888,7 +2888,7 @@ func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
 				}
 			}
 
-			// And nothing addressed at the other kind, or at maps.
+			
 			for _, other := range []string{"/assets/maps/", "/assets/music/"} {
 				if strings.Contains(body, other) {
 					t.Errorf("the card reaches into %s", other)
@@ -2898,9 +2898,9 @@ func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
 	}
 }
 
-// A token keeps its shape and an avatar is cropped square, so the card draws
-// both with object-contain: a wide token inside object-cover would be centre-
-// cropped on screen, which is the crop the stored image deliberately avoided.
+
+
+
 func TestALibraryCardShowsTheWholePicture(t *testing.T) {
 	body := markup(t, LibraryAssetCard(testLibraryCard("tokens")))
 
@@ -2909,21 +2909,21 @@ func TestALibraryCardShowsTheWholePicture(t *testing.T) {
 	}
 }
 
-// The two cards are one control below the picture, so a change to the name box
-// or to Replace and Delete lands on both. This is asserted as the pair of
-// components rather than as a class string: what matters is that a map and a
-// token render the same markup, not what that markup looks like today.
+
+
+
+
 func TestTheMapAndLibraryCardsShareTheirControls(t *testing.T) {
 	mapCard := markup(t, MapCard(testMapCard()))
 	libraryCard := markup(t, LibraryAssetCard(testLibraryCard("tokens")))
 
 	for _, shared := range []string{
-		// The name box: a bare input that PATCHes on a debounce and swaps
-		// nothing back.
+		
+		
 		`hx-trigger="input changed delay:1s"`,
 		`hx-swap="none"`,
-		// The controls: Replace targets the card and swaps it, Delete removes
-		// it, and both are confirmed by the same sentence.
+		
+		
 		`hx-target="closest asset-card"`,
 		`hx-swap="delete"`,
 		"You are about to delete ",
@@ -2938,10 +2938,10 @@ func TestTheMapAndLibraryCardsShareTheirControls(t *testing.T) {
 	}
 }
 
-// Each library page uploads into the grid on that page, and nowhere else. The
-// button, the file input and the grid are joined by a string built three times
-// from the kind, and a disagreement is invisible: the reply is a card that
-// swaps into nothing.
+
+
+
+
 func TestALibraryUploadTargetsItsOwnGrid(t *testing.T) {
 	for name, c := range map[string]struct {
 		page templ.Component
@@ -2958,8 +2958,8 @@ func TestALibraryUploadTargetsItsOwnGrid(t *testing.T) {
 				`hx-target="#` + c.kind + `"`,
 				`hx-swap="afterbegin"`,
 				`id="` + c.kind + `"`,
-				// The label and its hidden input have to agree, or the button
-				// opens no file picker at all.
+				
+				
 				`for="` + c.kind + `-upload"`,
 				`id="` + c.kind + `-upload"`,
 			} {
@@ -2971,7 +2971,7 @@ func TestALibraryUploadTargetsItsOwnGrid(t *testing.T) {
 	}
 }
 
-// testMusicTrack is one finished track as its card reads it.
+
 func testMusicTrack() MusicTrack {
 	return MusicTrack{
 		ID:       testMapID,
@@ -2980,15 +2980,15 @@ func testMusicTrack() MusicTrack {
 	}
 }
 
-// A TRACK PLAYS THROUGH A ROUTE ON THIS SERVER, NEVER THROUGH A SIGNED URL IN
-// THE MARKUP. A presigned URL expires; one rendered into a page left open across
-// a session would 403 the moment somebody pressed play, or worse, mid-track, on
-// the range request the player makes to refill its buffer. Going through
-// /audio means every request the element makes -- the first, and every seek
-// after it -- is answered with a signature minted a moment earlier.
-//
-// The absence is asserted as well as the presence, because the failure of the
-// other design is invisible until a page has been open long enough.
+
+
+
+
+
+
+
+
+
 func TestAMusicCardPlaysThroughThisServer(t *testing.T) {
 	body := markup(t, MusicCard(testMusicTrack()))
 
@@ -3000,9 +3000,9 @@ func TestAMusicCardPlaysThroughThisServer(t *testing.T) {
 	}
 }
 
-// preload="none" IS NOT A NICETY. Every card on this page renders a player, and
-// a library of twenty tracks is a couple of gigabytes; without it, opening the
-// page starts pulling all of them at once.
+
+
+
 func TestAMusicPageDoesNotStartDownloadingEveryTrack(t *testing.T) {
 	body := markup(t, MusicAssets([]MusicTrack{testMusicTrack()}))
 
@@ -3011,13 +3011,13 @@ func TestAMusicPageDoesNotStartDownloadingEveryTrack(t *testing.T) {
 	}
 }
 
-// The music upload is driven by a script, so its markup is a set of hooks rather
-// than hx-* attributes -- and the script is loaded by this page and no other.
-//
-// EVERY CLASS THE PROGRESS ROW NEEDS IS RENDERED HERE. server/public/js is
-// deliberately not a Tailwind source, so a class named in a script is never
-// emitted; the row is hidden by the hidden attribute and the bar moves by its
-// value, both of which need no class at all.
+
+
+
+
+
+
+
 func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
 	body := markup(t, MusicAssets(nil))
 
@@ -3028,9 +3028,9 @@ func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
 		"data-music-progress",
 		"data-music-bar",
 		"data-music-percent",
-		// The grid the finished card is swapped into.
+		
 		`id="music"`,
-		// The progress row starts hidden, and the script is what reveals it.
+		
 		"hidden",
 	} {
 		if !strings.Contains(body, want) {
@@ -3038,9 +3038,9 @@ func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
 		}
 	}
 
-	// No hx-post on the file input: the file goes to R2, not here. An
-	// hx-post left on it would send 175 MB through the server as a multipart
-	// body, which is the whole thing this design avoids.
+	
+	
+	
 	upload := strings.Index(body, "data-music-input")
 	if upload < 0 {
 		t.Fatal("no upload input at all")
@@ -3050,9 +3050,9 @@ func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
 	}
 }
 
-// Music has no Replace. Every other kind overwrites its object in place, which
-// for a track would be a second presigned round trip for no gain -- deleting and
-// uploading is the same two requests with a clearer name.
+
+
+
 func TestAMusicCardOffersNoReplace(t *testing.T) {
 	body := markup(t, MusicCard(testMusicTrack()))
 
@@ -3067,11 +3067,11 @@ func TestAMusicCardOffersNoReplace(t *testing.T) {
 	}
 }
 
-// THE PICKER HAS NO WAY OUT OF ITSELF TO THE ASSET MANAGER. The button that used
-// to be there was a link off the room page in the middle of a session, and
-// everything it was reached for is in the dialog now -- so this pins the absence
-// rather than leaving it to be re-added by somebody who reads the empty state as
-// a dead end.
+
+
+
+
+
 func TestTheMapPickerDoesNotLinkOutOfTheRoom(t *testing.T) {
 	var buf bytes.Buffer
 	data := RoomMapsData{
@@ -3091,8 +3091,8 @@ func TestTheMapPickerDoesNotLinkOutOfTheRoom(t *testing.T) {
 	if strings.Contains(body, `href="/assets`) {
 		t.Errorf("the picker links to the asset manager:\n%s", body)
 	}
-	// Uploading is the thing that link was there for, and it happens without
-	// leaving the dialog -- straight into the grid, at the front of it.
+	
+	
 	if !strings.Contains(body, `hx-post="/rooms/room/layers/layer/maps"`) || !strings.Contains(body, `type="file"`) {
 		t.Errorf("the picker cannot upload a map:\n%s", body)
 	}
@@ -3104,11 +3104,11 @@ func TestTheMapPickerDoesNotLinkOutOfTheRoom(t *testing.T) {
 	}
 }
 
-// A CARD BUILDS ITS TILES IN FRONT OF THE GM AND THEN BECOMES A BUTTON, which is
-// the whole of what an upload looks like from inside the picker. The two states
-// are pinned together because the poll is what carries a card from one to the
-// other: a building card names the fragment it fetches its next self from, and a
-// finished one carries no trigger at all, which is what ends the poll.
+
+
+
+
+
 func TestAPickerCardPollsUntilItsTilesAreReady(t *testing.T) {
 	building := RoomMapChoice{
 		RoomID: "room", LayerID: "layer", ID: "map",
@@ -3121,8 +3121,8 @@ func TestAPickerCardPollsUntilItsTilesAreReady(t *testing.T) {
 	}
 	body := buf.String()
 
-	// The ampersands in the URL are escaped in the attribute, which is what
-	// templ does with every one of them and is not what is under test here.
+	
+	
 	if !strings.Contains(body, `hx-get="`+escapeAmps(building.CardURL())+`"`) || !strings.Contains(body, `hx-trigger="every 2s"`) {
 		t.Errorf("a building card does not ask again:\n%s", body)
 	}
@@ -3157,16 +3157,16 @@ func TestAPickerCardPollsUntilItsTilesAreReady(t *testing.T) {
 
 func escapeAmps(s string) string { return strings.ReplaceAll(s, "&", "&amp;") }
 
-// A FAILED MAP IS TWO SITUATIONS AND THE CARDS USED TO CALL BOTH OF THEM "Tiling
-// gave up". The worker gives a map three goes a lease window apart, so most of
-// the failures that sentence was shown for were about to be retried without
-// anybody doing anything -- and the button beside it read Retry, which offered
-// what was already coming.
-//
-// BOTH CARDS ARE CHECKED AGAINST ONE STRING because both of them say it: the
-// asset manager's and the room's map picker's. A wording that drifted between
-// them would be two answers to one question depending on which window a game
-// master happened to have open.
+
+
+
+
+
+
+
+
+
+
 func TestAFailureThatWillBeRetriedDoesNotSayItGaveUp(t *testing.T) {
 	manager := MapAsset{ID: "m", Name: "castle.png", State: queries.AssetsTileStateFailed}
 	picker := RoomMapChoice{RoomID: "r", LayerID: "l", ID: "m", Name: "castle.png", State: queries.AssetsTileStateFailed}
@@ -3198,16 +3198,16 @@ func TestAFailureThatWillBeRetriedDoesNotSayItGaveUp(t *testing.T) {
 		})
 	}
 
-	// And the sentence a retry is not coming is still the one it always was,
-	// so nothing about a map that really has stopped changed.
+	
+	
 	if tilingGaveUp != "Tiling gave up." {
 		t.Errorf("the final wording moved: %q", tilingGaveUp)
 	}
 }
 
-// A MAP THAT IS BUILDING OR FINISHED SAYS NEITHER OF THEM. AutoRetry is only
-// ever read by a failed card, and a card that leaked the wording into another
-// state would be a spinner with "Tiling gave up" written under it.
+
+
+
 func TestOnlyAFailedCardTalksAboutRetrying(t *testing.T) {
 	for name, m := range map[string]MapAsset{
 		"building": {ID: "m", Name: "castle.png", State: queries.AssetsTileStatePending},

@@ -12,19 +12,19 @@ import (
 	"tabletopper/internal/session"
 )
 
-// A database that answers GetSession with one live session, so the wrappers in
-// this package can be tested on the path where somebody IS signed in.
-//
-// IT IS A driver AND NOT A DBTX, and that is not a preference. GetSession scans
-// a *sql.Row, and a *sql.Row that scans successfully cannot be constructed
-// outside database/sql -- so a stub at the queries.DBTX seam can only ever
-// return the failure the controller tests use it for. One layer lower, a
-// driver.Connector handing back a single row is enough, and it is the only
-// place a signed-in request can be faked from.
-//
-// THE COLUMN LIST BELOW MIRRORS sql/session.sql. If GetSession gains a column
-// this fails with a scan error naming the count, which is the right kind of
-// loud: add the column here. Nothing else in the app reads this stub.
+
+
+
+
+
+
+
+
+
+
+
+
+
 type sessionConnector struct{}
 
 func (sessionConnector) Connect(context.Context) (driver.Conn, error) { return sessionConn{}, nil }
@@ -44,9 +44,9 @@ type sessionStmt struct{ query string }
 func (s sessionStmt) Close() error  { return nil }
 func (s sessionStmt) NumInput() int { return -1 }
 
-// The refresh UPDATE, which matched nothing: the row the stub hands back was
-// refreshed a moment ago, so Refresh returns before it gets here. Answering
-// rather than failing keeps this stub honest if that ever changes.
+
+
+
 func (s sessionStmt) Exec([]driver.Value) (driver.Result, error) { return driver.RowsAffected(0), nil }
 
 func (s sessionStmt) Query([]driver.Value) (driver.Rows, error) {
@@ -79,26 +79,26 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 
 	now := time.Now()
 	for i, v := range []driver.Value{
-		// The two ULIDs are strings and not []byte: ULID.Scan reads a string as
-		// the 26-character text form and a []byte as 16 raw bytes, and it is
-		// the text form that a MySQL CHAR(26) hands back.
-		"01ARZ3NDEKTSV4RRFFQ69G5FAV", // id
-		[]byte(""),                   // profile_image_url
-		"01BX5ZZKBKACTAV9WEVGEMMVRZ", // user_id
-		nil,                          // character_id
-		nil,                          // room_id
-		now.Add(-time.Hour),          // created_at
-		now,                          // refreshed_at, so Refresh skips its UPDATE
-		[]byte("gm"),                 // username, off the join to users
-		nil,                          // avatar_asset_id: no uploaded picture
-		[]byte("system"),             // theme
-		[]byte("UTC"),                // timezone
-		[]byte("iso"),                // date_format
-		[]byte("24h"),                // time_format
-		int64(1),                     // follow_turn
-		int64(1),                     // show_blood
-		int64(100),                   // ping_volume
-		nil,                          // onboarded_at
+		
+		
+		
+		"01ARZ3NDEKTSV4RRFFQ69G5FAV", 
+		[]byte(""),                   
+		"01BX5ZZKBKACTAV9WEVGEMMVRZ", 
+		nil,                          
+		nil,                          
+		now.Add(-time.Hour),          
+		now,                          
+		[]byte("gm"),                 
+		nil,                          
+		[]byte("system"),             
+		[]byte("UTC"),                
+		[]byte("iso"),                
+		[]byte("24h"),                
+		int64(1),                     
+		int64(1),                     
+		int64(100),                   
+		nil,                          
 	} {
 		dest[i] = v
 	}
@@ -106,10 +106,10 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 	return nil
 }
 
-// signedIn is an Auth whose store answers with the session above, and the
-// cookie a request has to carry to get it. The token's bytes are never checked
-// against anything -- the stub answers any hash -- so any 32 base64url
-// characters will do.
+
+
+
+
 var signedIn = Auth{Sessions: session.NewStore(queries.New(sql.OpenDB(sessionConnector{})), false)}
 
 const sessionCookie = "session_id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"

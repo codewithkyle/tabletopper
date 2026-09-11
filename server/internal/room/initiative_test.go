@@ -6,13 +6,13 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// THE FIGHT BEGINS WHEN THE ORDER DOES. A tracker with lines in it is in round
-// one from the moment it is built, and nobody is acting yet -- so a GM who
-// gives the turn to whoever rolled highest by clicking a card, rather than by
-// pressing Next, is in round one rather than in no round at all.
-//
-// The first press of the button ends nothing, so only the start-of-turn
-// conditions on the first combatant tick.
+
+
+
+
+
+
+
 func TestATrackerWithLinesInItIsInRoundOne(t *testing.T) {
 	w := newWorld(t)
 	first, second := w.twoInTheOrder()
@@ -35,9 +35,9 @@ func TestATrackerWithLinesInItIsInRoundOne(t *testing.T) {
 	_ = second
 }
 
-// AND AN EMPTY TRACKER IS IN NO ROUND AT ALL, which is the other half of the
-// same rule and is what the counter in the menu bar reads to decide whether to
-// draw anything.
+
+
+
 func TestAnEmptyTrackerIsInNoRound(t *testing.T) {
 	w := newWorld(t)
 	w.twoInTheOrder()
@@ -50,9 +50,9 @@ func TestAnEmptyTrackerIsInNoRound(t *testing.T) {
 	}
 }
 
-// A LINE ARRIVING MID-FIGHT DOES NOT START THE FIGHT AGAIN, and neither does
-// the acting line going. The round is what the party's spell durations are
-// counted in, so the only thing that resets it is the tracker emptying.
+
+
+
 func TestTheRoundSurvivesAnEditAndTheLossOfTheActingLine(t *testing.T) {
 	w := newWorld(t)
 	first, second := w.twoInTheOrder()
@@ -65,7 +65,7 @@ func TestTheRoundSurvivesAnEditAndTheLossOfTheActingLine(t *testing.T) {
 		t.Fatalf("round = %d before the edit, want 2", w.s.Initiative.Round)
 	}
 
-	// The acting line is taken out, which leaves nobody acting.
+	
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{ID: second, PawnIDs: nil, Name: "Ogre"},
 	}}, w.gm)
@@ -82,8 +82,8 @@ func TestTheRoundSurvivesAnEditAndTheLossOfTheActingLine(t *testing.T) {
 	_ = first
 }
 
-// The order wraps and the round goes up when it does, which is what makes "how
-// long has this spell been running" answerable.
+
+
 func TestAdvancingPastTheEndWrapsAndCountsARound(t *testing.T) {
 	w := newWorld(t)
 	first, second := w.twoInTheOrder()
@@ -105,9 +105,9 @@ func TestAdvancingPastTheEndWrapsAndCountsARound(t *testing.T) {
 	}
 }
 
-// THE CONDITION SEAM. "Until the end of your next turn" counts down as your
-// turn ends and "until the start of your next turn" as it begins, which is the
-// distinction 5e makes and the reason a condition carries a trigger at all.
+
+
+
 func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 	w := newWorld(t)
 
@@ -125,7 +125,7 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 		{Name: "Ogre", PawnIDs: []ulid.ULID{ogre}},
 	}}, w.gm)
 
-	// The goblin's turn begins: only its start-of-turn condition ticks.
+	
 	w.apply(&InitiativeNext{}, w.gm)
 	byName := conditionsByName(w.s.Pawn(goblin))
 	if byName["Blessed"] != 1 {
@@ -135,7 +135,7 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 		t.Fatalf("Burning ticked at the start of a turn, and it is an end-of-turn condition")
 	}
 
-	// The goblin's turn ends: the end-of-turn condition ticks to zero and goes.
+	
 	ems := w.apply(&InitiativeNext{}, w.gm)
 	byName = conditionsByName(w.s.Pawn(goblin))
 	if _, still := byName["Burning"]; still {
@@ -145,8 +145,8 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 		t.Fatalf("Prone is at %d; a duration of -1 never counts down", byName["Prone"])
 	}
 
-	// The tracker first, then the pawn whose conditions changed -- with the
-	// usual pair of audiences, because a player sees the projected pawn.
+	
+	
 	equalStrings(t, "emissions", summary(ems), []string{
 		"initiative.updated to all",
 		"pawn.updated to gm",
@@ -154,7 +154,7 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 	})
 }
 
-// An advance that changes nobody's conditions emits the tracker alone.
+
 func TestAnAdvanceWithNoConditionsEmitsOnlyTheTracker(t *testing.T) {
 	w := newWorld(t)
 	w.twoInTheOrder()
@@ -163,8 +163,8 @@ func TestAnAdvanceWithNoConditionsEmitsOnlyTheTracker(t *testing.T) {
 	equalStrings(t, "emissions", summary(ems), []string{"initiative.updated to all"})
 }
 
-// Killing the creature whose turn it is carries the fight on to the next
-// combatant rather than leaving the tracker pointed at nothing.
+
+
 func TestDeletingTheActiveCombatantAdvancesTheTurn(t *testing.T) {
 	w := newWorld(t)
 
@@ -195,8 +195,8 @@ func TestDeletingTheActiveCombatantAdvancesTheTurn(t *testing.T) {
 	}
 }
 
-// Emptying the tracker takes the round with it, because the round is a count of
-// something that is no longer happening.
+
+
 func TestClearingTheTrackerResetsTheRound(t *testing.T) {
 	w := newWorld(t)
 	w.twoInTheOrder()
@@ -210,8 +210,8 @@ func TestClearingTheTrackerResetsTheRound(t *testing.T) {
 	}
 }
 
-// Editing the order mid-fight is not the fight starting again, so the round
-// number survives -- it is what the party's spell durations are counted in.
+
+
 func TestEditingTheOrderKeepsTheRound(t *testing.T) {
 	w := newWorld(t)
 	first, _ := w.twoInTheOrder()
@@ -236,8 +236,8 @@ func TestEditingTheOrderKeepsTheRound(t *testing.T) {
 	}
 }
 
-// A free-text line has no pawn, which is how a lair action gets a slot in the
-// order. Nothing about the tick or the projection may assume there is a pawn.
+
+
 func TestAFreeTextEntryNeedsNoPawn(t *testing.T) {
 	w := newWorld(t)
 
@@ -251,8 +251,8 @@ func TestAFreeTextEntryNeedsNoPawn(t *testing.T) {
 	}
 }
 
-// The tracker cannot name a pawn that is not there, and cannot point at a turn
-// that is not one of its own lines.
+
+
 func TestTheTrackerRefusesWhatItCannotName(t *testing.T) {
 	w := newWorld(t)
 	missing := testID(999)
@@ -263,7 +263,7 @@ func TestTheTrackerRefusesWhatItCannotName(t *testing.T) {
 	w.refuse(&InitiativeNext{}, w.gm, CodeInvalid)
 }
 
-// twoInTheOrder puts two pawns in the tracker and answers with their entry ids.
+
 func (w *world) twoInTheOrder() (first, second ulid.ULID) {
 	w.t.Helper()
 

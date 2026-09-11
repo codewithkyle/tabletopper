@@ -4,10 +4,10 @@ import (
 	"testing"
 )
 
-// THE PROJECTION IS THE SECURITY BOUNDARY, so the tests for it are about what
-// is absent from a player's copy rather than about what is present. A hidden
-// pawn that arrived with a flag set would pass any test that only checked what
-// the client draws.
+
+
+
+
 func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
 	w := newWorld(t)
 
@@ -24,7 +24,7 @@ func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
 		t.Fatalf("the players' copy holds %d pawns, want only the visible one", len(players.Pawns))
 	}
 
-	// Not "present with a flag": absent.
+	
 	for _, p := range players.Pawns {
 		if p.ID == hidden {
 			t.Fatal("the hidden pawn is in the players' copy")
@@ -32,8 +32,8 @@ func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
 	}
 }
 
-// A pawn on another floor is as absent as a hidden one, and for the same
-// reason: it is not on the table the player is looking at.
+
+
 func TestAPlayerNeverReceivesAPawnFromAnotherLayer(t *testing.T) {
 	w := newWorld(t)
 
@@ -47,16 +47,16 @@ func TestAPlayerNeverReceivesAPawnFromAnotherLayer(t *testing.T) {
 	}
 }
 
-// THE THREE LABEL SETTINGS, against the four kinds of pawn they treat
-// differently. A player's own character is never hidden from the table, and an
-// object's hit points are the thing the party is currently hitting.
-//
-// THE HIT POINTS SURVIVE ALL THREE NOW, which is the reversal this test was
-// rewritten for. What the setting decides is what an interface PRINTS, and that
-// decision is made by ExactHP where the printing happens -- pawnView in
-// internal/controllers/room-pawns.go and js/room/overlay.ts. What is still
-// withheld here is armour class, which nothing on the table is drawn from, and
-// the band, which is the instruction to print a word instead of a number.
+
+
+
+
+
+
+
+
+
+
 func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 	kinds := []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject}
 
@@ -86,10 +86,10 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 			for _, p := range w.s.Project(RolePlayer).Pawns {
 				monster := p.Kind == PawnMonster || p.Kind == PawnNPC
 
-				// EVERY VIEWER IS SENT THE NUMBERS, under every setting. The
-				// blood on a creature, the blood under it, the colour draining
-				// out of it and its heartbeat are all drawn from them, and none
-				// of that can be drawn out of a word.
+				
+				
+				
+				
 				if p.HP == nil || *p.HP != 5 || p.MaxHP == nil || *p.MaxHP != 20 {
 					t.Fatalf("a %s pawn lost its hit points under %q", p.Kind, tc.setting)
 				}
@@ -102,11 +102,11 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 					t.Fatalf("a %s pawn has a band under %q", p.Kind, tc.setting)
 				}
 
-				// ARMOUR CLASS IS THE LAST THING STILL WITHHELD. Telling the
-				// party what to roll against is the same fight-solving
-				// arithmetic the words exist to avoid, and unlike hit points
-				// there is nothing on the table drawn from it -- so it survives
-				// only on full, where everything does.
+				
+				
+				
+				
+				
 				if monster && !tc.exact && p.AC != nil {
 					t.Fatalf("a %s pawn kept its armour class under %q", p.Kind, tc.setting)
 				}
@@ -115,8 +115,8 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 				}
 			}
 
-			// The GM's copy never carries a band, whatever the setting: a band
-			// is a thing that exists only in a projection.
+			
+			
 			for _, p := range w.s.Project(RoleGM).Pawns {
 				if p.HPBand != nil {
 					t.Fatalf("the GM's copy of a %s pawn carries a band", p.Kind)
@@ -129,13 +129,13 @@ func TestMonsterStatisticsProjectByTheRoomsSetting(t *testing.T) {
 	}
 }
 
-// ExactHP IS THE SHOWING RULE and the only thing the label setting still
-// decides. By the time it is asked, the numbers are on the pawn either way.
+
+
 func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
 	settings := []PawnLabels{LabelsNone, LabelsDefault, LabelsFull}
 
-	// A GM READS EVERYTHING, ALWAYS. There is no setting that hides a monster's
-	// hit points from the person running it.
+	
+	
 	for _, labels := range settings {
 		for _, kind := range []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject} {
 			if !ExactHP(kind, labels, RoleGM) {
@@ -144,9 +144,9 @@ func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
 		}
 	}
 
-	// A player's own character and an object are exact under every setting: a
-	// character sheet is not a secret from the table, and a door's hit points
-	// are the thing the party is currently hitting.
+	
+	
+	
 	for _, labels := range settings {
 		for _, kind := range []PawnKind{PawnPlayer, PawnObject} {
 			if !ExactHP(kind, labels, RolePlayer) {
@@ -155,7 +155,7 @@ func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
 		}
 	}
 
-	// A monster is the one case the setting touches, and only full shows it.
+	
 	for _, kind := range []PawnKind{PawnMonster, PawnNPC} {
 		if ExactHP(kind, LabelsNone, RolePlayer) || ExactHP(kind, LabelsDefault, RolePlayer) {
 			t.Fatalf("a player was shown a %s's hit points in a room that labels words", kind)
@@ -166,17 +166,17 @@ func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
 	}
 }
 
-// The band boundaries are three quarters, a half, a quarter and a twentieth,
-// and they are compared by multiplication so that an awkward maximum has exact
-// boundaries rather than ones that depend on which way integer division fell.
+
+
+
 func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 	tests := []struct {
 		hp, maxHP int
 		want      HPBand
 	}{
-		// A maximum of 100, where every boundary is a whole number and every
-		// one of them is ON the lower band: three quarters of a hundred is
-		// bruised, not healthy.
+		
+		
+		
 		{100, 100, BandHealthy},
 		{76, 100, BandHealthy},
 		{75, 100, BandBruised},
@@ -189,8 +189,8 @@ func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 		{1, 100, BandNearDeath},
 		{0, 100, BandDead},
 
-		// A maximum of 20, where a twentieth is one hit point: a goblin is
-		// near death at exactly 1 and very bloody at 2.
+		
+		
 		{20, 20, BandHealthy},
 		{16, 20, BandHealthy},
 		{15, 20, BandBruised},
@@ -200,8 +200,8 @@ func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 		{1, 20, BandNearDeath},
 		{0, 20, BandDead},
 
-		// A maximum of 7: three quarters is 5.25, a half is 3.5 and a quarter
-		// is 1.75, so every boundary falls between whole numbers.
+		
+		
 		{7, 7, BandHealthy},
 		{6, 7, BandHealthy},
 		{5, 7, BandBruised},
@@ -210,13 +210,13 @@ func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 		{2, 7, BandBloody},
 		{1, 7, BandVeryBloody},
 
-		// A creature already below the last cut is still not dead until it is
-		// at zero, which is the whole reason the two words are separate.
+		
+		
 		{1, 1000, BandNearDeath},
 		{0, 1000, BandDead},
 
-		// Overhealed past its own maximum, which a temporary hit point pool or
-		// a GM raising the maximum after the fact both produce.
+		
+		
 		{30, 20, BandHealthy},
 	}
 
@@ -238,9 +238,9 @@ func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 	}
 }
 
-// CHANGING THE SETTING CHANGES EVERY MONSTER ON THE PLAYERS' SCREENS, and no
-// pawn changed. Nothing else in the protocol would tell them, so the setting
-// emits the pawns itself.
+
+
+
 func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")
@@ -253,10 +253,10 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 
 	ems := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, w.gm)
 
-	// The table, then one pawn per monster or npc the players can actually
-	// see. Not the player's own pawn, whose projection did not change; not the
-	// hidden one or the one downstairs, which are not in a player's state at
-	// all and would be inserted by a pawn.updated naming them.
+	
+	
+	
+	
 	equalStrings(t, "emissions", summary(ems), []string{
 		"table.updated to all",
 		"pawn.updated to players",
@@ -270,14 +270,14 @@ func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
 		}
 	}
 
-	// Setting it to what it already is emits the table and nothing else.
+	
 	again := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false, InitiativeGrouping: GroupMonsters}, w.gm)
 	equalStrings(t, "emissions", summary(again), []string{"table.updated to all"})
 }
 
-// A kick tells the person leaving why, and tells everybody else that they are
-// gone. Their pawns stay, because a character standing in the middle of a fight
-// is part of the board.
+
+
+
 func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 	w := newWorld(t)
 
@@ -304,8 +304,8 @@ func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 	}
 }
 
-// A disconnect is not a departure. The row stays so that the reconnect is one
-// field changing back, with the player's pawns and turn where they were.
+
+
 func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 	w := newWorld(t)
 
@@ -320,22 +320,22 @@ func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 		t.Fatal("the player is still marked connected")
 	}
 
-	// And coming back is an update rather than a join, so nobody's client
-	// treats a reconnect as a new arrival.
+	
+	
 	back := w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer}}, w.gm)
 	equalStrings(t, "emissions", summary(back), []string{"player.updated to all"})
 }
 
-// A ROOM SAVED WHEN THE SETTING WAS CALLED SOMETHING ELSE comes back with a
-// value nothing accepts, because the field it was written into no longer
-// exists. The room is otherwise intact, so the one field is repaired: the
-// alternative is a settings window with no radio selected and a refusal on the
-// next unrelated change the GM makes.
+
+
+
+
+
 func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", Env{})
 
-	// "band" is what every room on the old wording holds, and the empty string
-	// is what a snapshot written before the field existed unmarshals to.
+	
+	
 	for _, stale := range []PawnLabels{"band", "hidden", "exact", ""} {
 		s.Table.PawnLabels = stale
 		s.Normalize()
@@ -345,7 +345,7 @@ func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
 		}
 	}
 
-	// And a setting that IS one is left exactly as the GM chose it.
+	
 	for _, live := range []PawnLabels{LabelsNone, LabelsDefault, LabelsFull} {
 		s.Table.PawnLabels = live
 		s.Normalize()
