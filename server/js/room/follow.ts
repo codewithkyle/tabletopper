@@ -1,7 +1,7 @@
 import type { Event, State } from "./protocol.ts";
-import type { Rect } from "./render/camera.ts";
-import { actingPawnIds } from "./render/scene.ts";
-import { boundsOf } from "./render/path.ts";
+import type { Rect } from "./model/types.ts";
+import { actingPawnIds } from "./model/stack.ts";
+import { boundsOf } from "./model/shape.ts";
 export interface Follow {
 	event(event: Event): void;
 	following(on: boolean): void;

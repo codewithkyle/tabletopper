@@ -1,7 +1,8 @@
 import type { Camera } from "./camera.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { radians } from "./path.ts";
+import { radians } from "../model/shape.ts";
+import type { Rgb } from "../model/types.ts";
 const FLOATS_PER_INSTANCE = 14;
 export const RING_ELLIPSE = 0;
 export const RING_RECT = 1;
@@ -64,7 +65,7 @@ export interface RingPass {
 	begin(): void;
 	add(
 		x: number, y: number, halfW: number, halfH: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 		thickness: number, shape: number, rotation?: number,
 	): void;
 	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;

@@ -17,7 +17,7 @@ func TestRawHTMLInABodyIsNotRendered(t *testing.T) {
 	bodies := map[string]string{
 		"script block":  "<script>alert(1)</script>",
 		"inline markup": "Hello <img src=x onerror=alert(1)> world",
-		"iframe":        "<iframe src=\"https:
+		"iframe":        "<iframe src=\"https://example.com\"></iframe>",
 	}
 	for name, body := range bodies {
 		t.Run(name, func(t *testing.T) {
@@ -44,8 +44,8 @@ func TestDangerousLinkDestinationsAreDropped(t *testing.T) {
 	}
 }
 func TestAnOrdinaryLinkSurvives(t *testing.T) {
-	out := render(t, "[the wiki](https:
-	if !strings.Contains(out, `href="https:
+	out := render(t, "[the wiki](https://example.com/orcs)", keepAll)
+	if !strings.Contains(out, `href="https://example.com/orcs"`) {
 		t.Errorf("an http link should render as one\n%s", out)
 	}
 }
@@ -85,7 +85,7 @@ func TestAnImageIsRenderedAtTheURLTheSourceReturns(t *testing.T) {
 	}
 }
 func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
-	out := render(t, "![](https:
+	out := render(t, "![](https://tracker.example/pixel.gif)", func(string) (string, bool) {
 		return "", false
 	})
 	if strings.Contains(out, "<img") {
@@ -96,7 +96,7 @@ func TestAForeignImageIsRemovedRatherThanRendered(t *testing.T) {
 	}
 }
 func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
-	out := render(t, "before\n\n![](https:
+	out := render(t, "before\n\n![](https://tracker.example/pixel.gif)\n\nafter", func(string) (string, bool) {
 		return "", false
 	})
 	if strings.Contains(out, "<p></p>") {
@@ -109,7 +109,7 @@ func TestRemovingAnImageTakesTheParagraphItWasAlone(t *testing.T) {
 	}
 }
 func TestOnlyTheForeignImageIsRemoved(t *testing.T) {
-	body := "![mine](/characters/C/journal/E/images/A)\n\n![theirs](https:
+	body := "![mine](/characters/C/journal/E/images/A)\n\n![theirs](https://tracker.example/pixel.gif)"
 	out := render(t, body, func(dest string) (string, bool) {
 		return "/share/tok/images/A", strings.HasPrefix(dest, "/characters/")
 	})

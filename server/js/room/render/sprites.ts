@@ -1,24 +1,9 @@
 import type { Pawn } from "../protocol.ts";
 import type { Slot } from "./tiles.ts";
+import { KIND_COLORS } from "../model/color.ts";
 import { Slots, newLoader } from "./tiles.ts";
 export const SPRITE_SIZE = 256;
 export const SPRITE_LAYERS = 128;
-export const KIND_COLORS: Record<Pawn["kind"], readonly [number, number, number]> = {
-	player: [0.29, 0.55, 0.9],
-	monster: [0.82, 0.28, 0.28],
-	npc: [0.33, 0.67, 0.44],
-	object: [0.55, 0.51, 0.46],
-};
-export const CONDITION_COLORS: Record<string, readonly [number, number, number]> = {
-	red: [0.94, 0.27, 0.27],
-	orange: [0.98, 0.57, 0.24],
-	yellow: [0.98, 0.83, 0.25],
-	green: [0.3, 0.76, 0.42],
-	blue: [0.3, 0.6, 0.96],
-	purple: [0.65, 0.4, 0.94],
-	pink: [0.96, 0.5, 0.75],
-	white: [0.95, 0.95, 0.95],
-};
 export const SKULL = "skull";
 export interface SpriteCache {
 	begin(rebuilding: boolean): void;
@@ -42,7 +27,6 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 	gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
 	const slots = new Slots(maxLayers);
 	const loader = newLoader(invalidate, decodeSprite);
-	const generated = new Map<string, () => HTMLCanvasElement | null>();
 	const live = new Set<string>();
 	let epoch = 0;
 	function upload(key: string, source: TexImageSource, w: number, h: number): Slot | null {
@@ -62,7 +46,6 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 		if (resident) {
 			return resident;
 		}
-		generated.set(key, build);
 		const canvas = build();
 		if (!canvas) {
 			return null;
@@ -113,7 +96,6 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 		epoch: () => epoch,
 		dispose() {
 			loader.stop();
-			generated.clear();
 			live.clear();
 			gl.deleteTexture(texture);
 		},

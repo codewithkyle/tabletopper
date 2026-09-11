@@ -1,7 +1,8 @@
 import type { Camera } from "./camera.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { radians } from "./path.ts";
+import { radians } from "../model/shape.ts";
+import type { Rgb } from "../model/types.ts";
 const FLOATS_PER_INSTANCE = 14;
 const vertexSource = `#version 300 es
 layout(location = 0) in vec2 a_corner;
@@ -49,7 +50,7 @@ export interface DecalPass {
 	begin(): void;
 	add(
 		x: number, y: number, halfW: number, halfH: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 		layer: number, uvW: number, uvH: number, rotation: number,
 	): void;
 	draw(cam: Camera, texture: WebGLTexture, deviceWidth: number, deviceHeight: number, dpr: number): void;

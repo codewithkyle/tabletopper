@@ -1,16 +1,14 @@
 import type { Camera } from "./camera.ts";
 import type { Grid, HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
-import { KIND_COLORS } from "./sprites.ts";
-import { SKULL } from "./sprites.ts";
-import {
-	BEAT_NONE, BLOOD_DRIED, BLOOD_FRESH,
-	beats, bleeds, bloodSprite, hurt, seed,
-} from "./wounds.ts";
+import { SKULL, SPRITE_SIZE } from "./sprites.ts";
+import { BLOOD_DRIED, BLOOD_FRESH, KIND_COLORS } from "../model/color.ts";
+import { BEAT_NONE, beats, bleeds, bloodSprite, hurt, seed } from "../model/health.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { pawnExtents, radians } from "./path.ts";
-import { compareStack } from "./scene.ts";
+import { pawnExtents, radians } from "../model/shape.ts";
+import { compareStack } from "../model/stack.ts";
+import type { Rgb } from "../model/types.ts";
 const FLOATS_PER_INSTANCE = 20;
 const BORDER_PIXELS = 2;
 export const HIDDEN_ALPHA = 0.6;
@@ -22,7 +20,6 @@ const SHAPE_STAIN = 2;
 const STAIN_ALPHA = 0.62;
 const BLOOD_INNER = 0.25;
 const PULSE_REACH = 0.24;
-const SPRITE_EDGE = 256;
 const vertexSource = `#version 300 es
 #define BORDER_PIXELS ${BORDER_PIXELS}.0
 layout(location = 0) in vec2 a_corner;
@@ -194,7 +191,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 	}
 	function push(
 		x: number, y: number, halfW: number, halfH: number,
-		border: readonly [number, number, number], borderAlpha: number,
+		border: Rgb, borderAlpha: number,
 		layer: number, shape: number, alpha: number, grey: number,
 		kx: number, ky: number, uvW: number, uvH: number,
 		cos: number, sin: number, wounded: number, beat: number,
@@ -262,8 +259,8 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 					object ? 0 : 1,
 					layer, object ? SHAPE_RECT : SHAPE_DISC, opacity, grey,
 					kx, ky,
-					slot ? slot.w / SPRITE_EDGE : 1,
-					slot ? slot.h / SPRITE_EDGE : 1,
+					slot ? slot.w / SPRITE_SIZE : 1,
+					slot ? slot.h / SPRITE_SIZE : 1,
 					cos, sin, wounded, beat,
 				);
 				if (!object && bleeds(pawn.health)) {
@@ -277,7 +274,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 							dead ? BLOOD_DRIED : BLOOD_FRESH, 0,
 							stain.layer, SHAPE_STAIN, opacity * STAIN_ALPHA,
 							pawn.hidden ? HIDDEN_GREY : 0,
-							bx, by, stain.w / SPRITE_EDGE, stain.h / SPRITE_EDGE,
+							bx, by, stain.w / SPRITE_SIZE, stain.h / SPRITE_SIZE,
 							Math.cos(turn), Math.sin(turn), 0, BEAT_NONE,
 						);
 					}
@@ -291,7 +288,7 @@ export function createPawnPass(gl: WebGL2RenderingContext): PawnPass {
 							pawn.x, pawn.y, size, size,
 							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,
 							skull.layer, SHAPE_RECT, opacity, 0,
-							sx, sy, skull.w / SPRITE_EDGE, skull.h / SPRITE_EDGE,
+							sx, sy, skull.w / SPRITE_SIZE, skull.h / SPRITE_SIZE,
 							1, 0, 0, BEAT_NONE,
 						);
 					}

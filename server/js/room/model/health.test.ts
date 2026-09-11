@@ -4,7 +4,7 @@ import type { HPBand } from "../protocol.ts";
 import {
 	BEAT_HEART, BEAT_NONE, BEAT_PERIOD, BEAT_SLOW, DEATH_SPLATTERS, SEVERITY_UNKNOWN, SLOW_PERIOD,
 	bandOf, beats, bleeds, fastBeat, healthOf, heartbeat, hurt, severityOf, slowBeat, splatters,
-} from "./wounds.ts";
+} from "./health.ts";
 test("the bands sit exactly where the server puts them", () => {
 	const cases: [number, number, HPBand][] = [
 		[100, 100, "healthy"],

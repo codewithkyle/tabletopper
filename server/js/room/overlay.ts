@@ -1,5 +1,5 @@
 import type { Pawn } from "./protocol.ts";
-import type { Rect } from "./render/camera.ts";
+import type { Rect } from "./model/types.ts";
 export interface OverlayDeps {
 	focus: () => Pawn | null;
 	selected: () => string[];

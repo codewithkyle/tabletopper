@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Grid } from "./protocol.ts";
 import { evaluate } from "./hp.ts";
-import { snapAxis } from "./render/path.ts";
-import { bandOf } from "./render/wounds.ts";
+import { snapAxis } from "./model/grid.ts";
+import { bandOf } from "./model/health.ts";
 const rules = join(import.meta.dirname, "..", "..", "internal", "room", "testdata", "rules");
 function fixture<T>(name: string): T[] {
 	const cases = JSON.parse(readFileSync(join(rules, `${name}.json`), "utf8")) as T[];

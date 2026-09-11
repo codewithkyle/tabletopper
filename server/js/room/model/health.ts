@@ -66,8 +66,6 @@ export function beats(band: HPBand | null): number {
 export function bleeds(band: HPBand | null): boolean {
 	return band === "veryBloody" || band === "nearDeath" || band === "dead";
 }
-export const BLOOD_FRESH: readonly [number, number, number] = [1, 0.13, 0.1];
-export const BLOOD_DRIED: readonly [number, number, number] = [0.34, 0.06, 0.05];
 export const BLOOD_VARIANTS = 9;
 export function bloodSprite(variant: number): string {
 	return `/images/blood/${(((variant % BLOOD_VARIANTS) + BLOOD_VARIANTS) % BLOOD_VARIANTS) + 1}.webp`;

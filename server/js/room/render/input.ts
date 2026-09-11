@@ -1,4 +1,5 @@
-import type { Camera, Point, Viewport } from "./camera.ts";
+import type { Camera, Viewport } from "./camera.ts";
+import type { Point } from "../model/types.ts";
 import { panBy, zoomAt } from "./camera.ts";
 const ZOOM_STEP_MAX = Math.log(1.25);
 const WHEEL_SCALE = 0.0015;

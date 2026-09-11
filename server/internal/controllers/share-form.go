@@ -50,7 +50,7 @@ func shareLink(r *http.Request, token string) string {
 	if forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded == "http" || forwarded == "https" {
 		scheme = forwarded
 	}
-	return scheme + ":
+	return scheme + "://" + r.Host + "/share/" + token
 }
 func describeShare(ctx context.Context, r *http.Request, data pages.ShareDialogData, row queries.Share) pages.ShareDialogData {
 	data.Link = shareLink(r, row.Token)

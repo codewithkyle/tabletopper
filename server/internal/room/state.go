@@ -3,6 +3,9 @@ import (
 	"slices"
 	"github.com/oklog/ulid/v2"
 )
+
+//go:generate go run ./gen
+
 type State struct {
 	Schema     int        `json:"schema"`
 	Seq        uint64     `json:"seq"`

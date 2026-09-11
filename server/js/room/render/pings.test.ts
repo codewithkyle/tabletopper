@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RingTarget } from "./pings.ts";
 import { CAP, LIFE, RADIUS_MAX, RADIUS_MIN, RINGS, newPings, ringAt } from "./pings.ts";
+import type { Rgb } from "../model/types.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 const CELL = 64;
-const RED: readonly [number, number, number] = [1, 0, 0];
-const BLUE: readonly [number, number, number] = [0, 0, 1];
+const RED: Rgb = [1, 0, 0];
+const BLUE: Rgb = [0, 0, 1];
 interface Ring {
 	x: number;
 	y: number;
 	radius: number;
-	color: readonly [number, number, number];
+	color: Rgb;
 	alpha: number;
 	thickness: number;
 }

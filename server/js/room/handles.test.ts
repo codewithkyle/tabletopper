@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Handle } from "./handles.ts";
-import type { Placed } from "./render/path.ts";
+import type { Placed } from "./model/shape.ts";
 import { HANDLE_GRAB, OBJECT_PIXELS_MAX, SPIN_GAP, SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
 const CELL = 64;
 function token(over: Partial<Placed> = {}): Placed {

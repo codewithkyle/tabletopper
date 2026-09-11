@@ -72,12 +72,12 @@ func TestAnUploadedPictureWinsOverTheOneClerkSupplied(t *testing.T) {
 	}{
 		"an upload is served from the asset route": {
 			uploaded: &uploaded,
-			clerk:    "https:
+			clerk:    "https://img.clerk.com/kyle",
 			want:     "/assets/images/" + uploaded.String(),
 		},
 		"no upload falls back to Clerk": {
-			clerk: "https:
-			want:  "https:
+			clerk: "https://img.clerk.com/kyle",
+			want:  "https://img.clerk.com/kyle",
 		},
 		"no upload and no Clerk picture is the shared placeholder": {
 			clerk: "/images/default-avatar.webp",

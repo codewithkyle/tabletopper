@@ -1,5 +1,5 @@
 import type { MapRef } from "../protocol.ts";
-import type { Rect } from "./camera.ts";
+import type { Rect } from "../model/types.ts";
 import { levelPixels, levelTiles } from "./pyramid.ts";
 export const LAYERS = 96;
 const IN_FLIGHT = 8;
@@ -76,9 +76,6 @@ export function uvFor(map: MapRef, z: number, x: number, y: number, rect: Rect, 
 }
 export function tileKey(map: MapRef, z: number, x: number, y: number): string {
 	return `${map.assetId}:${map.gen}:${z}:${x}:${y}`;
-}
-export function mapPrefix(map: MapRef): string {
-	return `${map.assetId}:${map.gen}:`;
 }
 export function tileURL(map: MapRef, z: number, x: number, y: number): string {
 	return `/assets/maps/${map.assetId}/tiles/${map.gen}/${z}/${x}_${y}.webp`;
@@ -160,7 +157,6 @@ export interface Loader {
 	want(key: string, url: string, priority: number): void;
 	end(): void;
 	drain(upload: (key: string, bitmap: ImageBitmap) => void): number;
-	abandon(prefix: string): void;
 	fetched(): number;
 	stop(): void;
 }
@@ -288,19 +284,6 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 			}
 			ready.splice(0, count);
 			return ready.length;
-		},
-		abandon(prefix) {
-			for (const [key, controller] of inFlight) {
-				if (key.startsWith(prefix)) {
-					controller.abort();
-				}
-			}
-			for (let i = ready.length - 1; i >= 0; i--) {
-				if (ready[i].key.startsWith(prefix)) {
-					ready[i].bitmap.close();
-					ready.splice(i, 1);
-				}
-			}
 		},
 		fetched: () => total,
 		stop() {

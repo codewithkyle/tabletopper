@@ -1,4 +1,5 @@
-import type { Camera, Rect } from "./camera.ts";
+import type { Camera } from "./camera.ts";
+import type { Rect } from "../model/types.ts";
 import type { Loader, Slot, TileRange } from "./tiles.ts";
 import type { MapRef } from "../protocol.ts";
 import { clipMatrix, visibleRect } from "./camera.ts";
@@ -7,7 +8,6 @@ import {
 	LAYERS,
 	Slots,
 	levelFor,
-	mapPrefix,
 	newLoader,
 	newRange,
 	rangeCount,
@@ -51,7 +51,6 @@ export interface TilePass {
 	begin(): void;
 	end(): boolean;
 	draw(cam: Camera, map: MapRef, alpha: number, deviceWidth: number, deviceHeight: number, dpr: number): void;
-	abandon(map: MapRef): void;
 	fetched(): number;
 	dispose(): void;
 }
@@ -233,9 +232,6 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 				gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
 			});
 			return uploaded > 0 || waiting > 0;
-		},
-		abandon(map) {
-			loader.abandon(mapPrefix(map));
 		},
 		fetched: () => loader.fetched(),
 		dispose() {

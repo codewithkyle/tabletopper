@@ -4,7 +4,7 @@ import type { HPBand, Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import type { DecalTarget } from "./decals.ts";
 import { CAP, newDecals } from "./decals.ts";
-import { bloodSprite } from "./wounds.ts";
+import { bloodSprite } from "../model/health.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 const CELL = 64;

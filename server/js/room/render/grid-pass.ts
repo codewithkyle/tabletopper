@@ -2,6 +2,7 @@ import { createProgram, fullscreenTriangle, uniforms } from "./gl.ts";
 import type { Grid } from "../protocol.ts";
 import type { Camera } from "./camera.ts";
 import { inverseClipMatrix } from "./camera.ts";
+import { parseColor } from "../model/color.ts";
 const vertexSource = `#version 300 es
 layout(location = 0) in vec2 a_clip;
 uniform mat3 u_clipToWorld;
@@ -84,21 +85,4 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 }
 function wrap(value: number, size: number): number {
 	return ((value % size) + size) % size;
-}
-export function parseColor(value: string, out: Float32Array): Float32Array {
-	out[0] = 0;
-	out[1] = 0;
-	out[2] = 0;
-	out[3] = 1;
-	const hex = value.startsWith("#") ? value.slice(1) : value;
-	if ((hex.length !== 6 && hex.length !== 8) || !/^[0-9a-fA-F]+$/.test(hex)) {
-		return out;
-	}
-	out[0] = parseInt(hex.slice(0, 2), 16) / 255;
-	out[1] = parseInt(hex.slice(2, 4), 16) / 255;
-	out[2] = parseInt(hex.slice(4, 6), 16) / 255;
-	if (hex.length === 8) {
-		out[3] = parseInt(hex.slice(6, 8), 16) / 255;
-	}
-	return out;
 }

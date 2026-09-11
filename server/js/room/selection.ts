@@ -1,7 +1,7 @@
 import type { Pawn, Role } from "./protocol.ts";
-import type { Rect } from "./render/camera.ts";
-import { compareStack } from "./render/scene.ts";
-import { pawnExtents } from "./render/path.ts";
+import type { Rect } from "./model/types.ts";
+import { compareStack } from "./model/stack.ts";
+import { pawnExtents } from "./model/shape.ts";
 export const SELECTION_MAX = 200;
 export function mayMove(pawn: Pawn, role: Role, user: string): boolean {
 	return role === "gm" || (pawn.ownerId !== null && pawn.ownerId === user);

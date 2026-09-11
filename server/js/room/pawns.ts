@@ -2,45 +2,36 @@ import type { Drawn } from "./render/pawn-pass.ts";
 import type { Event, Grid, Pawn, PawnKind, Role, Size, State, Stroke } from "./protocol.ts";
 import type { Modifiers, Tool } from "./render/input.ts";
 import type { Outgoing } from "./socket.ts";
-import type { Point, Rect } from "./render/camera.ts";
+import type { Point, Rect, Rgb } from "./model/types.ts";
 import { Selection, dragSet, marqueeSelect, mayMove } from "./selection.ts";
-import type { Placed, Sized } from "./render/path.ts";
+import type { Placed, Sized } from "./model/shape.ts";
 import {
 	cellAt,
 	cellCentre,
-	boundsOf,
 	cellsMoved,
-	containsPoint,
 	distanceLabel,
 	feetBetween,
+	supercover,
+} from "./model/grid.ts";
+import {
+	boundsOf,
+	containsPoint,
 	pawnExtents,
 	snapPawn,
 	snapsToGrid,
-	supercover,
-} from "./render/path.ts";
+} from "./model/shape.ts";
+import { SELECT_COLOR, SELF_COLOR, actorColor } from "./model/color.ts";
 import type { Draw } from "./draw.ts";
 import type { Fog } from "./fog.ts";
 import type { Handle } from "./handles.ts";
 import { SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
 import { typing } from "./keys.ts";
-import { compareStack } from "./render/scene.ts";
+import { compareStack } from "./model/stack.ts";
 const DRAG_THRESHOLD = 4;
 const DOUBLE_MS = 400;
 const DRAG_INTERVAL = 1000 / 20;
 const PREVIEW_TIMEOUT = 3000;
 export const GHOST_ALPHA = 0.5;
-const ACTOR_COLORS: readonly (readonly [number, number, number])[] = [
-	[0.36, 0.65, 0.98],
-	[0.99, 0.6, 0.28],
-	[0.42, 0.82, 0.5],
-	[0.85, 0.44, 0.9],
-	[0.98, 0.78, 0.3],
-	[0.4, 0.85, 0.83],
-	[0.95, 0.45, 0.5],
-	[0.72, 0.72, 0.78],
-];
-const SELF_COLOR: readonly [number, number, number] = [0.98, 0.98, 0.99];
-export const SELECT_COLOR: readonly [number, number, number] = [0.4, 0.78, 1.0];
 const MEASURE_POINT = 4;
 const MEASURE_WIDTH = 2;
 export interface Outline {
@@ -48,7 +39,7 @@ export interface Outline {
 	y: number;
 	halfW: number;
 	halfH: number;
-	color: readonly [number, number, number];
+	color: Rgb;
 	alpha: number;
 	thickness: number;
 	rect: boolean;
@@ -59,7 +50,7 @@ export interface Segment {
 	y0: number;
 	x1: number;
 	y1: number;
-	color: readonly [number, number, number];
+	color: Rgb;
 	alpha: number;
 	width: number;
 }
@@ -77,7 +68,7 @@ export interface Ruler {
 	x1: number;
 	y1: number;
 	label: string;
-	color: readonly [number, number, number];
+	color: Rgb;
 }
 export interface Armed {
 	kind: PawnKind;
@@ -174,7 +165,7 @@ interface Measured {
 }
 interface Preview {
 	positions: { id: string; x: number; y: number }[];
-	color: readonly [number, number, number];
+	color: Rgb;
 	at: number;
 }
 export function createTable(deps: TableDeps): Table {
@@ -1025,22 +1016,6 @@ export function hitTest(
 		}
 	}
 	return best;
-}
-export function actorColor(id: string): readonly [number, number, number] {
-	let hash = 0;
-	for (let i = 0; i < id.length; i++) {
-		hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-	}
-	return ACTOR_COLORS[hash % ACTOR_COLORS.length] ?? ACTOR_COLORS[0];
-}
-export function hexColor(rgb: readonly [number, number, number]): string {
-	let out = "#";
-	for (const channel of rgb) {
-		out += Math.round(Math.min(Math.max(channel, 0), 1) * 255)
-			.toString(16)
-			.padStart(2, "0");
-	}
-	return out.toUpperCase();
 }
 export function expirePreviews(previews: Map<string, { at: number }>, now: number): boolean {
 	let dropped = false;

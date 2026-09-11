@@ -181,7 +181,7 @@ func TestTheProfileWidgetDrawsTheResolvedPicture(t *testing.T) {
 	markup := renderHomepage(t, session.UserSession{
 		UserID:          ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVRZ"),
 		Username:        "kyle",
-		ProfileImageURL: session.AvatarURL(&uploaded, "https:
+		ProfileImageURL: session.AvatarURL(&uploaded, "https://img.clerk.com/kyle"),
 	})
 	if !strings.Contains(markup, `src="/assets/images/`+uploaded.String()+`"`) {
 		t.Error("the widget does not draw the uploaded picture")

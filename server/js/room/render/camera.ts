@@ -1,3 +1,4 @@
+import type { Point, Rect } from "../model/types.ts";
 export interface Camera {
 	x: number;
 	y: number;
@@ -6,16 +7,6 @@ export interface Camera {
 export interface Viewport {
 	width: number;
 	height: number;
-}
-export interface Point {
-	x: number;
-	y: number;
-}
-export interface Rect {
-	x1: number;
-	y1: number;
-	x2: number;
-	y2: number;
 }
 export const ZOOM_MIN = 0.05;
 export const ZOOM_MAX = 4;

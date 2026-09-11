@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { FogShape, Grid } from "./protocol.ts";
-import { coveredBy, insideShape, maskRect, rectTriangles, snapCorner, triangulate } from "./fog.ts";
+import { snapCorner } from "./fog.ts";
+import { coveredBy, insideShape, maskRect, rectTriangles, triangulate } from "./model/polygon.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 function grid(over: Partial<Grid> = {}): Grid {

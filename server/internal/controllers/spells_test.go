@@ -513,7 +513,7 @@ func TestSpellsRootRedirectsToCantrips(t *testing.T) {
 func TestSpellsRootWillNotRedirectToAnUnparsedID(t *testing.T) {
 	app, _ := newPanelApp(1)
 	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
-	r.SetPathValue("id", "https:
+	r.SetPathValue("id", "https://elsewhere.example/")
 	rec := httptest.NewRecorder()
 	app.CharacterSpellsRedirect(rec, r)
 	if got := rec.Header().Get("Location"); got != "/characters" {

@@ -1,11 +1,12 @@
 import type { Pawn } from "../protocol.ts";
 import type { SpriteCache } from "./sprites.ts";
 import { SPRITE_SIZE } from "./sprites.ts";
+import { BLOOD_DRIED as DRIED, BLOOD_FRESH as FRESH } from "../model/color.ts";
 import {
-	BLOOD_DRIED as DRIED, BLOOD_FRESH as FRESH,
 	BLOOD_VARIANTS, DEATH_SPLATTERS, bloodSprite, seed, severityOf, splatters,
-} from "./wounds.ts";
-import { pawnExtents } from "./path.ts";
+} from "../model/health.ts";
+import { pawnExtents } from "../model/shape.ts";
+import type { Rgb } from "../model/types.ts";
 const BLOOD_PRIORITY = 1;
 const RISE_MS = 120;
 const IMPACT = 1.15;
@@ -44,7 +45,7 @@ export interface DecalTarget {
 	begin(): void;
 	add(
 		x: number, y: number, halfW: number, halfH: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 		layer: number, uvW: number, uvH: number, rotation: number,
 	): void;
 }

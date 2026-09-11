@@ -100,12 +100,12 @@ func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 				t.Errorf("the form does not post to the share route:\n%s", form)
 			}
 			link := renderToString(t, ShareDialog(ShareDialogData{
-				Action: action, Link: "https:
+				Action: action, Link: "https://tabletopper.test/share/tok",
 			}))
 			if !strings.Contains(link, "Revoke link") || strings.Contains(link, "Create link") {
 				t.Errorf("a shared thing did not render the link alone:\n%s", link)
 			}
-			if !strings.Contains(link, `value="https:
+			if !strings.Contains(link, `value="https://tabletopper.test/share/tok"`) {
 				t.Errorf("the link is not in the field to copy:\n%s", link)
 			}
 			if !strings.Contains(link, `hx-delete="`+action+`"`) {

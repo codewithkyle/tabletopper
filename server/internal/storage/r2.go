@@ -40,7 +40,7 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("storage: aws config: %w", err)
 	}
-	endpoint := "https:
+	endpoint := "https://" + cfg.AccountID + ".r2.cloudflarestorage.com"
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
 		o.UsePathStyle = true

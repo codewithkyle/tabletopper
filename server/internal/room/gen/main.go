@@ -62,28 +62,14 @@ func Generate() ([]byte, error) {
 		entities[t.Name()] = g.iface(t.Name(), g.tsFields(t))
 	}
 	var b bytes.Buffer
-	b.WriteString(preamble)
-	b.WriteString("\n
-	b.WriteString("
 	for _, name := range sortedKeys(g.enums) {
 		b.WriteString(g.enum(name, g.enums[name]))
-		b.WriteString("\n")
 	}
-	b.WriteString("\n
-	b.WriteString("
 	for _, name := range sortedKeys(entities) {
 		b.WriteString(entities[name])
-		b.WriteString("\n")
 	}
-	b.WriteString("\n
-	b.WriteString("
-	b.WriteString("
 	writeBlocks(&b, commands)
 	b.WriteString(union("Command", commands))
-	b.WriteString("\n
-	b.WriteString("
-	b.WriteString("
-	b.WriteString("
 	writeBlocks(&b, events)
 	b.WriteString(union("Event", events))
 	b.WriteString(transient())
@@ -202,7 +188,6 @@ func (g *generator) enum(name string, t reflect.Type) string {
 func writeBlocks(b *bytes.Buffer, blocks []block) {
 	for _, bl := range blocks {
 		b.WriteString(bl.Body)
-		b.WriteString("\n")
 	}
 }
 func union(name string, blocks []block) string {
@@ -223,9 +208,6 @@ func transient() string {
 	}
 	slices.Sort(names)
 	var b strings.Builder
-	b.WriteString("\n
-	b.WriteString("
-	b.WriteString("
 	b.WriteString("export const TRANSIENT_EVENTS: ReadonlySet<Event[\"type\"]> = new Set([\n")
 	for _, n := range names {
 		fmt.Fprintf(&b, "\t%s,\n", n)
@@ -255,5 +237,3 @@ func prototypeMap[T any](m map[string]T) map[string]any {
 	}
 	return out
 }
-const preamble = `
-`

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Camera, Point, Viewport } from "./camera.ts";
+import type { Camera, Viewport } from "./camera.ts";
+import type { Point } from "../model/types.ts";
 import {
 	ZOOM_MAX,
 	ZOOM_MIN,

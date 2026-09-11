@@ -1,5 +1,5 @@
 import type { Named } from "./pawn-window.ts";
-import type { Point } from "./render/camera.ts";
+import type { Point } from "./model/types.ts";
 import { nextZ } from "./window.ts";
 export interface Floor {
 	id: string;

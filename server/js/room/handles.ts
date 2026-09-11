@@ -1,6 +1,6 @@
-import type { Placed } from "./render/path.ts";
-import type { Point } from "./render/camera.ts";
-import { pawnExtents, spin, unrotate } from "./render/path.ts";
+import type { Placed } from "./model/shape.ts";
+import type { Point } from "./model/types.ts";
+import { pawnExtents, spin, unrotate } from "./model/shape.ts";
 export const HANDLE_HALF = 4;
 export const HANDLE_GRAB = 10;
 export const SPIN_GAP = 26;

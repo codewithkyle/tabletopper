@@ -2,10 +2,11 @@ import type { Camera } from "./camera.ts";
 import type { GlyphAtlas } from "./glyphs.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
+import type { Rgb } from "../model/types.ts";
 const FLOATS_PER_INSTANCE = 16;
 const LABEL_PIXELS = 13;
 const LABEL_LIFT = 10;
-const HALO_COLOR: readonly [number, number, number] = [0.04, 0.04, 0.06];
+const HALO_COLOR: Rgb = [0.04, 0.04, 0.06];
 const HALO_PIXELS = 1.25;
 const HALO_RING: readonly (readonly [number, number])[] = [
 	[1, 0],
@@ -56,12 +57,12 @@ void main() {
 const names = ["u_clip", "u_atlas"] as const;
 export interface PathPass {
 	begin(worldPerPixel: number): void;
-	cell(x: number, y: number, size: number, color: readonly [number, number, number], alpha: number): void;
+	cell(x: number, y: number, size: number, color: Rgb, alpha: number): void;
 	line(
 		x0: number, y0: number, x1: number, y1: number,
-		width: number, color: readonly [number, number, number], alpha: number,
+		width: number, color: Rgb, alpha: number,
 	): void;
-	label(text: string, x: number, y: number, color: readonly [number, number, number], alpha: number): void;
+	label(text: string, x: number, y: number, color: Rgb, alpha: number): void;
 	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number): void;
 	dispose(): void;
 }
@@ -96,7 +97,7 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 	function push(
 		ox: number, oy: number, axx: number, axy: number,
 		ayx: number, ayy: number, textured: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 		u0: number, v0: number, u1: number, v1: number,
 	): void {
 		const floats = (count + 1) * FLOATS_PER_INSTANCE;
@@ -130,7 +131,7 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 	}
 	function segment(
 		x: number, y: number, dx: number, dy: number,
-		width: number, color: readonly [number, number, number], alpha: number,
+		width: number, color: Rgb, alpha: number,
 	): void {
 		const half = width / 2 / Math.hypot(dx, dy);
 		const nx = -dy * half;
@@ -139,7 +140,7 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 	}
 	function run(
 		text: string, left: number, top: number, height: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 	): void {
 		if (!atlas) {
 			return;

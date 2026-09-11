@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { MapRef } from "../protocol.ts";
-import type { Rect } from "./camera.ts";
+import type { Rect } from "../model/types.ts";
 import { Slots, levelFor, levelScale, newLoader, newRange, rangeCount, tileKey, tileRect, tileURL, uvFor, visibleRange } from "./tiles.ts";
 const map: MapRef = { assetId: "a", gen: "g", width: 12000, height: 9000, tileSize: 512, maxZoom: 5 };
 const rect = (): Rect => ({ x1: 0, y1: 0, x2: 0, y2: 0 });

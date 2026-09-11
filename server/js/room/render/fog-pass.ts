@@ -1,9 +1,9 @@
 import type { Camera } from "./camera.ts";
 import type { FogShape } from "../protocol.ts";
-import type { MaskRect } from "../fog.ts";
+import type { MaskRect } from "../model/polygon.ts";
 import { createProgram, fullscreenTriangle, uniforms } from "./gl.ts";
 import { inverseClipMatrix } from "./camera.ts";
-import { maskRect, rectTriangles, triangulate } from "../fog.ts";
+import { maskRect, rectTriangles, triangulate } from "../model/polygon.ts";
 const MASK_SCALE = 0.25;
 const MASK_MAX = 4096;
 const shapeVertexSource = `#version 300 es

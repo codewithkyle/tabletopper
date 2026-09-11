@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Event, InitiativeEntry, Pawn, State } from "./protocol.ts";
-import type { Rect } from "./render/camera.ts";
+import type { Rect } from "./model/types.ts";
 import { actingBounds, mountFollow } from "./follow.ts";
 import { empty } from "./store.ts";
 const GROUND = "01GROUND";

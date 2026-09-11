@@ -2,8 +2,8 @@ import type { Camera } from "./camera.ts";
 import type { Stroke } from "../protocol.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { parseColor } from "./grid-pass.ts";
-import { strokeSegments } from "../draw.ts";
+import { parseColor } from "../model/color.ts";
+import { strokeSegments } from "../model/stroke.ts";
 const FLOATS_PER_INSTANCE = 9;
 const MIN_HALF_DEVICE = 0.75;
 const vertexSource = `#version 300 es

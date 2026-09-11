@@ -1,7 +1,8 @@
+import type { Rgb } from "../model/types.ts";
 export interface RingTarget {
 	ellipse(
 		x: number, y: number, radius: number,
-		color: readonly [number, number, number], alpha: number, thickness: number,
+		color: Rgb, alpha: number, thickness: number,
 	): void;
 }
 export const RINGS = 3;
@@ -28,10 +29,10 @@ interface Ping {
 	x: number;
 	y: number;
 	born: number;
-	color: readonly [number, number, number];
+	color: Rgb;
 }
 export interface Pings {
-	add(layerID: string, x: number, y: number, color: readonly [number, number, number], now: number): void;
+	add(layerID: string, x: number, y: number, color: Rgb, now: number): void;
 	build(layerID: string, now: number, cell: number, into: RingTarget): void;
 	settling(now: number): boolean;
 }

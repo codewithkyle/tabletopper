@@ -1,9 +1,8 @@
 import type { Camera } from "./camera.ts";
-import type { HPBand } from "../protocol.ts";
-import { BLOOD_FRESH } from "./wounds.ts";
+import type { Rgb } from "../model/types.ts";
 import { clipMatrix } from "./camera.ts";
 import { createProgram, uniforms } from "./gl.ts";
-import { radians } from "./path.ts";
+import { radians } from "../model/shape.ts";
 const FLOATS_PER_INSTANCE = 14;
 export const AURA_DISC = 0;
 export const AURA_RECT = 1;
@@ -14,7 +13,6 @@ const AURA_FAR = 16;
 const AURA_NEAR_A = 0.7;
 const AURA_FAR_A = 0.3;
 const AURA_REACH = AURA_PAD + AURA_FAR + 2;
-export const AURA_GOLD: readonly [number, number, number] = [1, 0.78, 0.35];
 const AURA_TAIL = 0.6;
 const vertexSource = `#version 300 es
 #define REACH ${AURA_REACH}.0
@@ -113,7 +111,7 @@ export interface AuraPass {
 	begin(): void;
 	add(
 		x: number, y: number, halfW: number, halfH: number,
-		color: readonly [number, number, number], alpha: number,
+		color: Rgb, alpha: number,
 		shape: number, rotation?: number,
 	): void;
 	draw(cam: Camera, deviceWidth: number, deviceHeight: number, dpr: number, turn: number): void;
@@ -121,16 +119,6 @@ export interface AuraPass {
 }
 export function auraTurn(now: number): number {
 	return (((now % AURA_PERIOD) + AURA_PERIOD) % AURA_PERIOD) / AURA_PERIOD;
-}
-export function auraColor(band: HPBand | null): readonly [number, number, number] {
-	switch (band) {
-		case "bloody":
-		case "veryBloody":
-		case "nearDeath":
-			return BLOOD_FRESH;
-		default:
-			return AURA_GOLD;
-	}
 }
 export function createAuraPass(gl: WebGL2RenderingContext): AuraPass {
 	const program = createProgram(gl, vertexSource, fragmentSource);

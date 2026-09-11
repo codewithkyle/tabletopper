@@ -17,7 +17,7 @@ func testClient(t *testing.T) *Client {
 		Credentials: credentials.NewStaticCredentialsProvider("AKIATEST", "secrettest", ""),
 	}
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String("https:
+		o.BaseEndpoint = aws.String("https://account.r2.cloudflarestorage.com")
 		o.UsePathStyle = true
 		o.HTTPClient = &http.Client{}
 	})

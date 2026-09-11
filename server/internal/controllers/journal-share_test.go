@@ -118,9 +118,9 @@ func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 		forwarded string
 		want      string
 	}{
-		"plain http":     {"", "http:
-		"behind a proxy": {"https", "https:
-		"a nonsense scheme": {"gopher", "http:
+		"plain http":     {"", "http://tabletopper.test/share/abc"},
+		"behind a proxy": {"https", "https://tabletopper.test/share/abc"},
+		"a nonsense scheme": {"gopher", "http://tabletopper.test/share/abc"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -147,8 +147,8 @@ func TestOnlyThisEntrysOwnImagesSurviveAShareRender(t *testing.T) {
 		"another entry's image": journalImagePath(testCharacterID, otherEntry, assetID),
 		"another character's":   journalImagePath(otherEntry, testEntryID, assetID),
 		"the owner's avatar":    "/assets/images/" + assetID.String(),
-		"somebody's tracker":    "https:
-		"a protocol-relative":   "
+		"somebody's tracker":    "https://tracker.example/pixel.gif",
+		"a protocol-relative":   "//tracker.example/pixel.gif",
 		"a data url":            "data:image/png;base64,AAAA",
 		"the prefix alone":      journalImagePrefix(testCharacterID, testEntryID),
 		"a traversal":           journalImagePrefix(testCharacterID, testEntryID) + "../../../etc",

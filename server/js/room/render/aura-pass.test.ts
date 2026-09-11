@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { HPBand } from "../protocol.ts";
-import { AURA_GOLD, auraColor, auraTurn } from "./aura-pass.ts";
-import { BLOOD_FRESH } from "./wounds.ts";
+import { auraTurn } from "./aura-pass.ts";
 test("the phase is always somewhere in one revolution", () => {
 	for (const now of [0, 1, 17.5, 999, 6000, 123456, 4.2e9]) {
 		const turn = auraTurn(now);
@@ -20,20 +18,4 @@ test("one revolution later is the same place", () => {
 	for (const now of [0, 250, 3333.5]) {
 		assert.ok(Math.abs(auraTurn(now + period) - auraTurn(now)) < 1e-9, `${now}`);
 	}
-});
-test("a creature that is not bleeding is gold", () => {
-	for (const band of [null, "healthy", "bruised"] as (HPBand | null)[]) {
-		assert.equal(auraColor(band), AURA_GOLD, `${band}`);
-	}
-});
-test("a bleeding creature is drawn in its own blood", () => {
-	for (const band of ["bloody", "veryBloody", "nearDeath"] as HPBand[]) {
-		assert.equal(auraColor(band), BLOOD_FRESH, band);
-	}
-});
-test("a corpse still on the count is gold like anybody else", () => {
-	assert.equal(auraColor("dead"), AURA_GOLD);
-});
-test("the gold is the one the tails are painted in", () => {
-	assert.deepEqual(Array.from(AURA_GOLD), [1, 0.78, 0.35]);
 });

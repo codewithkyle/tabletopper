@@ -193,12 +193,12 @@ func TestACharacterPawnFallsBackFromPortraitToAccountToNothing(t *testing.T) {
 	}{
 		"the character's own portrait wins": {
 			asset: &portrait,
-			seat:  &room.Player{Avatar: "https:
+			seat:  &room.Player{Avatar: "https://img.clerk.com/kyle"},
 			want:  "/assets/images/" + portrait.String(),
 		},
 		"no portrait falls back to the account picture": {
-			seat: &room.Player{Avatar: "https:
-			want: "https:
+			seat: &room.Player{Avatar: "https://img.clerk.com/kyle"},
+			want: "https://img.clerk.com/kyle",
 		},
 		"the shared placeholder is refused": {
 			seat: &room.Player{Avatar: room.DefaultAvatar},
