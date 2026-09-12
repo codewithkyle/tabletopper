@@ -1,14 +1,17 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
+	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
@@ -351,9 +354,9 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	if err != nil {
 		validationErrors = append(validationErrors, "XP must be a valid non-negative number.")
 	}
-	ac, err := parseUint16(r.PostFormValue("ac"), 10)
+	ac, err := parseBounded(r.PostFormValue("ac"), 10, room.ACLimit)
 	if err != nil {
-		validationErrors = append(validationErrors, "Armor class must be between 0 and 65535.")
+		validationErrors = append(validationErrors, fmt.Sprintf("Armor class must be between 0 and %d.", room.ACLimit))
 	}
 	initiativeBonus, err := parseInt16(r.PostFormValue("initiative_bonus"), 0)
 	if err != nil {
@@ -394,17 +397,17 @@ type vitalsInput struct {
 
 func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	validationErrors := make([]string, 0)
-	maxHP, err := parseUint16(r.PostFormValue("max_hp"), 1)
+	maxHP, err := parseBounded(r.PostFormValue("max_hp"), 1, room.HPLimit)
 	if err != nil {
-		validationErrors = append(validationErrors, "Max hit points must be between 0 and 65535.")
+		validationErrors = append(validationErrors, fmt.Sprintf("Max hit points must be between 0 and %d.", room.HPLimit))
 	}
-	currentHP, err := parseUint16(r.PostFormValue("current_hp"), 1)
+	currentHP, err := parseBounded(r.PostFormValue("current_hp"), 1, room.HPLimit)
 	if err != nil {
-		validationErrors = append(validationErrors, "Hit points must be between 0 and 65535.")
+		validationErrors = append(validationErrors, fmt.Sprintf("Hit points must be between 0 and %d.", room.HPLimit))
 	}
-	tempHP, err := parseUint16(r.PostFormValue("temp_hp"), 0)
+	tempHP, err := parseBounded(r.PostFormValue("temp_hp"), 0, room.HPLimit)
 	if err != nil {
-		validationErrors = append(validationErrors, "Temp hit points must be between 0 and 65535.")
+		validationErrors = append(validationErrors, fmt.Sprintf("Temp hit points must be between 0 and %d.", room.HPLimit))
 	}
 	hitDice := strings.TrimSpace(r.PostFormValue("hit_dice"))
 	if len([]rune(hitDice)) > characterWordLimit {
@@ -558,6 +561,13 @@ func renderPanelBlock(w http.ResponseWriter, r *http.Request, panel string, mess
 	}
 	render(w, r, pages.PanelFormErrors(panel, messages))
 }
+func (a *App) syncCharacterPawn(ctx context.Context, characterID ulid.ULID) {
+	sess := session.FromContext(ctx)
+	if a.Hub == nil || sess.RoomID == nil {
+		return
+	}
+	a.Hub.SyncCharacter(ctx, *sess.RoomID, sess.UserID, characterID)
+}
 func unknownBonusKind(w http.ResponseWriter, kind string) {
 	slog.Warn("unknown character bonus kind requested", "kind", kind)
 	htmx.Error(w, "Not Found", "That part of the character sheet does not exist. Refresh the page and try again.", http.StatusNotFound)
@@ -611,6 +621,7 @@ func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel
 	if !finishRow(w, r, panel, label, "character", result, err) {
 		return
 	}
+	a.syncCharacterPawn(r.Context(), characterID)
 	character, err := a.Queries.GetCharacter(r.Context(), queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
 	if err != nil {
 		slog.Error("Failed to read back derived values", "panel", panel, "error", err)

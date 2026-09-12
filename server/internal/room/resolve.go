@@ -69,6 +69,7 @@ func (s *State) seatFor(character ulid.ULID) *Player {
 	}
 	return nil
 }
+func (s *State) PawnFor(character ulid.ULID) *Pawn { return s.pawnFor(character) }
 func (s *State) pawnFor(character ulid.ULID) *Pawn {
 	for i := range s.Pawns {
 		p := &s.Pawns[i]

@@ -76,14 +76,20 @@ func (d dbStore) ClearMembership(ctx context.Context, roomID, userID ulid.ULID) 
 	}
 	return nil
 }
-func sheetHP(q *queries.Queries) func(ctx context.Context, character ulid.ULID, hp int) error {
-	return func(ctx context.Context, character ulid.ULID, hp int) error {
-		_, err := q.UpdateCharacterCurrentHP(ctx, queries.UpdateCharacterCurrentHPParams{
-			CurrentHP: uint16(max(0, min(hp, math.MaxUint16))),
+func sheetVitals(q *queries.Queries) func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error {
+	return func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error {
+		_, err := q.UpdateCharacterFromPawn(ctx, queries.UpdateCharacterFromPawnParams{
+			CurrentHP: column(v.HP),
+			MaxHP:     max(1, column(v.MaxHP)),
+			AC:        column(v.AC),
+			Size:      string(v.Size),
 			ID:        character,
 		})
 		return err
 	}
+}
+func column(v int) uint16 {
+	return uint16(max(0, min(v, math.MaxUint16)))
 }
 func hydrate(roomID ulid.ULID, l Loaded) (*room.State, bool) {
 	failed := false

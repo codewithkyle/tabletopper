@@ -2,6 +2,10 @@ package pages
 
 const barGutter = "px-6 max-[900px]:px-4"
 const tabGutter = "px-4"
+const tabActive = tabGutter + " -mb-px border-b-2 border-primary pt-2 pb-2.5 font-semibold transition-colors duration-150"
+const tabIdle = tabGutter + " -mb-px border-b-2 border-transparent pt-2 pb-2.5 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content"
+const levelActive = tabGutter + " shrink-0 rounded-field bg-base-content/15 py-1.5 text-sm font-bold transition-colors duration-150"
+const levelIdle = tabGutter + " shrink-0 rounded-field py-1.5 text-sm font-semibold text-base-content/60 transition-colors duration-150 hover:bg-base-content/10 hover:text-base-content"
 
 templ appBar() {
 	<header class="sticky top-0 z-20 border-b border-base-300 bg-panel/85 backdrop-blur-sm">
@@ -76,7 +80,7 @@ templ characterBarFigure(header CharacterHeader, oob bool) {
 templ characterBarChips(header CharacterHeader, oob bool) {
 	<dl
 		id="character-bar-chips"
-		class="m-0 ml-auto flex flex-wrap items-stretch gap-2 max-[900px]:ml-0"
+		class="m-0 ml-auto flex flex-wrap items-stretch gap-2 @max-[900px]/sheet:ml-0"
 		if oob {
 			hx-swap-oob="true"
 		}

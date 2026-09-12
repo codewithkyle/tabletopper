@@ -15,15 +15,8 @@ templ spellLevelTabs(characterID string, active int) {
 
 templ spellLevelTabLink(href string, name string, current bool) {
 	if current {
-		<a
-			href={ href }
-			aria-current="page"
-			class={ tabGutter + " shrink-0 rounded-field bg-base-content/15 py-1.5 text-sm font-bold transition-colors duration-150" }
-		>{ name }</a>
+		<a href={ href } aria-current="page" class={ levelActive }>{ name }</a>
 	} else {
-		<a
-			href={ href }
-			class={ tabGutter + " shrink-0 rounded-field py-1.5 text-sm font-semibold text-base-content/60 transition-colors duration-150 hover:bg-base-content/10 hover:text-base-content" }
-		>{ name }</a>
+		<a href={ href } class={ levelIdle }>{ name }</a>
 	}
 }

@@ -1,10 +1,14 @@
 package hub
 
 import (
+	"context"
+	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 
 	"github.com/oklog/ulid/v2"
@@ -240,4 +244,95 @@ func TestTheLibraryWillNotReadATrackThatNeverFinishedUploading(t *testing.T) {
 func TestTheLibraryWillNotReadATrackThatIsNotThere(t *testing.T) {
 	_, err := reading(t, noRows()).Track(t.Context(), trackID)
 	refusal(t, err, room.CodeNotFound)
+}
+func stubbedTabletop(t *testing.T, row stubRow) *tabletop {
+	t.Helper()
+	db := sql.OpenDB(stubConnector{row})
+	t.Cleanup(func() { db.Close() })
+	store := &memStore{loaded: Loaded{Name: "The Sunless Citadel"}}
+	h := New(queries.New(db), Options{
+		Store:            store,
+		Version:          "test-build",
+		SnapshotInterval: time.Hour,
+		UnloadGrace:      time.Hour,
+	})
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		h.Shutdown(ctx)
+	})
+	return &tabletop{t: t, Hub: h, store: store}
+}
+func TestASheetSaveDoesNotWakeARoomNobodyIsIn(t *testing.T) {
+	h := stubbedHub(t, characterRow(nil))
+	h.SyncCharacter(t.Context(), roomID, playerID, charID)
+	if h.Loaded() != 0 {
+		t.Errorf("a sheet save loaded %d rooms; there is nobody at that table to tell", h.Loaded())
+	}
+}
+func TestASheetSaveReachesTheSeatedPawn(t *testing.T) {
+	tb := stubbedTabletop(t, characterRow(nil))
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	tb.seat(playerID, charID, "Ari")
+	frames(t, gm)
+	spawned := seatPawn(charID, "Stale", 5, 5, 10, room.SizeSmall)
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
+		CharacterID: &charID, Pawn: &spawned,
+	})
+	id := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
+	tb.SyncCharacter(tb.ctx(), roomID, playerID, charID)
+	tb.settle()
+	p, ok := tb.Pawn(tb.ctx(), roomID, id, room.RoleGM)
+	if !ok {
+		t.Fatal("the pawn is gone")
+	}
+	if p.Name != "Ilyana" || p.Size != room.SizeMedium || *p.HP != 11 || *p.MaxHP != 14 || *p.AC != 16 {
+		t.Errorf("the pawn is %q %s %d/%d ac %d, want the sheet's row", p.Name, p.Size, *p.HP, *p.MaxHP, *p.AC)
+	}
+	if got := only(t, gm, "players.upserted", "pawns.upserted"); len(got) != 2 {
+		t.Fatalf("the table was told %d things", len(got))
+	}
+}
+func roomWithAStalePawn(t *testing.T) json.RawMessage {
+	t.Helper()
+	s := room.NewState(roomID, "The Sunless Citadel", room.Env{})
+	stale := seatPawn(charID, "Stale", 5, 5, 10, room.SizeSmall)
+	stale.ID = testID(70)
+	stale.LayerID = s.Table.ActiveLayer
+	stale.Visible = true
+	s.Pawns = append(s.Pawns, stale)
+	blob, err := room.Marshal(s)
+	if err != nil {
+		t.Fatalf("marshalling the room: %v", err)
+	}
+	return blob
+}
+func TestJoiningARoomBringsTheSheetTheTableMissedWhileItSlept(t *testing.T) {
+	tb := stubbedTabletop(t, characterRow(nil))
+	tb.store.loaded.Snapshot = roomWithAStalePawn(t)
+	c := newClient(room.Player{
+		ID: playerID, Name: "Ari", Role: room.RolePlayer, CharacterID: &charID,
+	}, tb.opts.SendBuffer)
+	if err := tb.actor().post(tb.ctx(), join{c: c}); err != nil {
+		t.Fatalf("join was refused: %v", err)
+	}
+	eventually(t, "the pawn to catch up with the sheet", func() bool {
+		p, ok := tb.Pawn(tb.ctx(), roomID, testID(70), room.RoleGM)
+		return ok && p.Name == "Ilyana" && *p.HP == 11 && *p.MaxHP == 14 && *p.AC == 16
+	})
+}
+func TestAGMJoiningResyncsNobodyElsesCharacter(t *testing.T) {
+	tb := stubbedTabletop(t, characterRow(nil))
+	tb.store.loaded.Snapshot = roomWithAStalePawn(t)
+	tb.join(gmID, "Kyle", room.RoleGM)
+	tb.settle()
+	p, ok := tb.Pawn(tb.ctx(), roomID, testID(70), room.RoleGM)
+	if !ok {
+		t.Fatal("the pawn is gone")
+	}
+	if p.Name != "Stale" || *p.HP != 5 {
+		t.Errorf("the GM's arrival rewrote a player's pawn to %q %d", p.Name, *p.HP)
+	}
 }

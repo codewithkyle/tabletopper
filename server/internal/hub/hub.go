@@ -34,7 +34,7 @@ type Options struct {
 	Burst            int
 	Overs            int
 	OverWindow       time.Duration
-	WriteHP          func(ctx context.Context, character ulid.ULID, hp int) error
+	WriteSheet       func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error
 	ConnsPerUser     int
 	ConnsPerRoom     int
 }
@@ -80,14 +80,14 @@ func (o Options) withDefaults() Options {
 }
 
 type Hub struct {
-	store   Store
-	queries *queries.Queries
-	opts    Options
-	version string
-	writeHP func(ctx context.Context, character ulid.ULID, hp int) error
-	mu      sync.Mutex
-	rooms   map[ulid.ULID]*actor
-	closed  bool
+	store      Store
+	queries    *queries.Queries
+	opts       Options
+	version    string
+	writeSheet func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error
+	mu         sync.Mutex
+	rooms      map[ulid.ULID]*actor
+	closed     bool
 }
 
 func New(q *queries.Queries, opts Options) *Hub {
@@ -95,16 +95,16 @@ func New(q *queries.Queries, opts Options) *Hub {
 	if opts.Store == nil {
 		opts.Store = NewStore(q)
 	}
-	if opts.WriteHP == nil && q != nil {
-		opts.WriteHP = sheetHP(q)
+	if opts.WriteSheet == nil && q != nil {
+		opts.WriteSheet = sheetVitals(q)
 	}
 	return &Hub{
-		store:   opts.Store,
-		queries: q,
-		opts:    opts,
-		version: opts.Version,
-		writeHP: opts.WriteHP,
-		rooms:   make(map[ulid.ULID]*actor),
+		store:      opts.Store,
+		queries:    q,
+		opts:       opts,
+		version:    opts.Version,
+		writeSheet: opts.WriteSheet,
+		rooms:      make(map[ulid.ULID]*actor),
 	}
 }
 func (h *Hub) Version() string { return h.version }
@@ -147,6 +147,17 @@ func (h *Hub) Notify(roomID ulid.ULID, cmd room.Command) {
 	defer cancel()
 	reply := make(chan error, 1)
 	_ = a.post(ctx, dispatch{cmd: cmd, reply: reply})
+}
+func (h *Hub) SyncCharacter(ctx context.Context, roomID, owner, character ulid.ULID) {
+	if !h.live(roomID) {
+		return
+	}
+	info, err := h.library(owner).Character(ctx, character)
+	if err != nil {
+		slog.Error("Failed to read a character back for its pawn", "character", character, "error", err)
+		return
+	}
+	h.Notify(roomID, &room.CharacterSync{Info: info})
 }
 func (h *Hub) Close(ctx context.Context, roomID ulid.ULID) {
 	h.mu.Lock()
@@ -213,6 +224,10 @@ func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
 }
 func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
+}
+
+func (h *Hub) CharacterPawn(ctx context.Context, roomID, character ulid.ULID, role room.Role) (*room.Pawn, bool) {
+	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.characterPawn(character, role) })
 }
 
 type DebugConn struct {

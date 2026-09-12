@@ -8,6 +8,7 @@ const (
 	Rolls      = "room:rolls"
 	Music      = "room:music"
 	Pawn       = "room:pawn"
+	Character  = "room:character"
 )
 const (
 	View  = "room:view"
@@ -37,6 +38,7 @@ var All = map[string]string{
 	"ROOM_ROLLS":      Rolls,
 	"ROOM_MUSIC":      Music,
 	"ROOM_PAWN":       Pawn,
+	"ROOM_CHARACTER":  Character,
 	"ROOM_VIEW":       View,
 	"ROOM_BLOOD":      Blood,
 	"WINDOW_CLOSE":    WindowClose,

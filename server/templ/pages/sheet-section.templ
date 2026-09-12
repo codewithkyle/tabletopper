@@ -37,3 +37,18 @@ templ sheetHeading(title string) {
 		<h2 class="m-0 font-serif text-[0.82rem] leading-none font-bold tracking-[0.09em] uppercase text-base-content/65">{ title }</h2>
 	</header>
 }
+
+templ livePanel(live SheetLive, section string) {
+	if live.On() {
+		<div
+			hx-get={ live.Path(section) }
+			hx-trigger={ live.Trigger() }
+			hx-sync="this:queue last"
+			hx-swap="outerHTML"
+		>
+			{ children... }
+		</div>
+	} else {
+		{ children... }
+	}
+}

@@ -642,6 +642,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// middleware.Fragment carries the contract that follows from that; see it
 	// for what a fragment owes its caller.
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
+	mux.HandleFunc("GET /fragment/character/sheet", auth.Fragment(app.CharacterSheetFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
 	mux.HandleFunc("GET /fragment/character/journal-link", auth.Fragment(app.JournalLinkFragment))
 	// The journal list, filtered by ?q=. It is the one fragment here that reads

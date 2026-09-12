@@ -509,6 +509,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	htmx.Toast(w, "Updated avatar for "+character.Name)
+	a.syncCharacterPawn(ctx, characterID)
 	updated, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
 		ID:      characterID,
 		OwnerID: sess.UserID,

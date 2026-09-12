@@ -25,21 +25,25 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 	if !row.ClosedAt.Valid {
 		socket = "/socket/room/" + row.ID.String()
 	}
-	sess := session.FromContext(r.Context())
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	characterID := roomCharacter(sess, row.ID)
 	render(w, r, pages.Room(pages.RoomPageData{
-		ID:         row.ID.String(),
-		Name:       row.Name,
-		Code:       row.Code.String,
-		Locked:     row.IsLocked,
-		Closed:     row.ClosedAt.Valid,
-		Role:       role,
-		UserID:     sess.UserID.String(),
-		Socket:     socket,
-		Version:    a.hubVersion(),
-		Debug:      a.Config.Development(),
-		FollowTurn: sess.Prefs.FollowTurn,
-		ShowBlood:  sess.Prefs.ShowBlood,
-		PingVolume: sess.Prefs.PingVolume,
+		CharacterID:   idString(characterID),
+		CharacterName: a.characterName(ctx, sess.UserID, characterID),
+		ID:            row.ID.String(),
+		Name:          row.Name,
+		Code:          row.Code.String,
+		Locked:        row.IsLocked,
+		Closed:        row.ClosedAt.Valid,
+		Role:          role,
+		UserID:        sess.UserID.String(),
+		Socket:        socket,
+		Version:       a.hubVersion(),
+		Debug:         a.Config.Development(),
+		FollowTurn:    sess.Prefs.FollowTurn,
+		ShowBlood:     sess.Prefs.ShowBlood,
+		PingVolume:    sess.Prefs.PingVolume,
 	}))
 }
 func (a *App) LockRoom(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +201,13 @@ func (a *App) loadRoomMember(w http.ResponseWriter, r *http.Request) (queries.Ge
 }
 
 var errNotAMember = errors.New("rooms: not a member of that room")
+
+func idString(id *ulid.ULID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
 
 func (a *App) roomMember(ctx context.Context, sess session.UserSession, id string) (queries.GetRoomRow, room.Role, error) {
 	roomID, err := ulid.Parse(id)

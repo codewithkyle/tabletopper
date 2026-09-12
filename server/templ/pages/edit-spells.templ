@@ -6,27 +6,31 @@ import "tabletopper/templ/layouts"
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
 	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabSpells, shellLayout{SubNav: spellLevelTabs(data.CharacterID, data.Level)}) {
-			@sheetPanel(SpellLevelName(data.Level)) {
-				if data.Level > 0 {
-					@spellSlotsForm(data.CharacterID, data.Current) {
-						<span class="font-serif text-base leading-none font-bold">Spell slots</span>
-					}
-				}
-				<div id="spell-rows" class="grid gap-3">
-					for _, spell := range data.Spells {
-						@SpellRow(data.CharacterID, spell)
-					}
-				</div>
-				<button
-					type="button"
-					class="btn btn-soft btn-warning"
-					hx-post={ "/characters/" + data.CharacterID + "/spells/" + strconv.Itoa(data.Level) }
-					hx-target="#spell-rows"
-					hx-swap="append"
-				>
-					Add Spell
-				</button>
+			@spellsSection(data)
+		}
+	}
+}
+
+templ spellsSection(data SpellLevelPageData) {
+	@sheetPanel(SpellLevelName(data.Level)) {
+		if data.Level > 0 {
+			@spellSlotsForm(data.CharacterID, data.Current) {
+				<span class="font-serif text-base leading-none font-bold">Spell slots</span>
 			}
 		}
+		<div id="spell-rows" class="grid gap-3">
+			for _, spell := range data.Spells {
+				@SpellRow(data.CharacterID, spell)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-soft btn-warning"
+			hx-post={ "/characters/" + data.CharacterID + "/spells/" + strconv.Itoa(data.Level) }
+			hx-target="#spell-rows"
+			hx-swap="append"
+		>
+			Add Spell
+		</button>
 	}
 }

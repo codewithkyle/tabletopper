@@ -11,12 +11,12 @@ templ EditCharacter(data EditCharacterPageData) {
 }
 
 templ editCharacterShell(characterID string, header CharacterHeader, active string, layout shellLayout) {
-	<character-editor class="relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
+	<character-editor class="@container/sheet relative block h-screen min-h-dvh w-screen opacity-0 animate-[fadeIn_600ms_300ms_ease-out_forwards]">
 		<div class="grid h-full w-full grid-rows-[auto_minmax(0,1fr)]">
 			@characterBar(characterID, header, active, layout)
-			{{ content := "grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 max-[900px]:px-4" }}
+			{{ content := "grid min-h-0 content-start gap-4 overflow-auto px-6 py-4 @max-[900px]/sheet:px-4" }}
 			if layout.Fill {
-				{{ content = "grid min-h-0 grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden px-6 py-4 max-[900px]:px-4" }}
+				{{ content = "grid min-h-0 grid-rows-[minmax(0,1fr)] gap-4 overflow-hidden px-6 py-4 @max-[900px]/sheet:px-4" }}
 			}
 			<div class={ content }>
 				{ children... }
@@ -27,8 +27,8 @@ templ editCharacterShell(characterID string, header CharacterHeader, active stri
 
 templ characterPanels(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 max-[1280px]:grid-cols-1">
-		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 max-[1280px]:static max-[1280px]:max-h-none max-[1280px]:pb-0">
+	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 @max-[1280px]/sheet:grid-cols-1">
+		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 @max-[1280px]/sheet:static @max-[1280px]/sheet:max-h-none @max-[1280px]/sheet:pb-0">
 			@savingPanel("Abilities", base+"/abilities", "abilities") {
 				<div class="@container">
 					<div class="grid grid-cols-2 gap-3 @[20rem]:grid-cols-3 @[52rem]:grid-cols-6">
@@ -46,56 +46,14 @@ templ characterPanels(data EditCharacterPageData) {
 			}
 		</div>
 		<div class="grid content-start gap-4">
-			@savingPanel("Identity", base+"/identity", "identity") {
-				<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-					<div class="col-span-2 max-[900px]:col-auto">
-						@textField("name", "Character Name", data.Name, "", true)
-					</div>
-					@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", true)
-					@textField("background", "Background", data.Background, "", false)
-					@textField("race", "Species / Race", data.Race, "Human", true)
-					@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
-					@selectField("size", "Size", sizeOptions, data.Size, true)
-				</div>
-			}
-			@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
-				<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-					@numberField("xp", "Experience", data.XP, true)
-					@textField("speed", "Speed", data.Speed, "", false)
-					@numberField("ac", "Armor Class", data.AC, true)
-					@signedNumberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus)
-					@selectField("spellcasting_ability", "Spellcasting Ability", spellcastingAbilityOptions, data.SpellcastingAbility, true)
-					@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
-				</div>
-				<div class={ surfaceInset + " flex flex-wrap items-center gap-x-8 gap-y-2 p-3" }>
-					<span class="flex items-center gap-3">
-						<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
-						@derivedValue("spell-save-dc", data.Derived.SpellSaveDC, false)
-					</span>
-					<span class="flex items-center gap-3">
-						<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Attack</span>
-						@derivedValue("spell-attack-bonus", data.Derived.SpellAttackBonus, false)
-					</span>
-				</div>
-			}
-			@savingPanel("Vitals", base+"/vitals", "vitals") {
-				<div class="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
-					@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
-					@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
-					@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
-					@wordField("hit_dice", "Hit Dice", data.HitDice, "3d8")
-					@countField("hit_dice_spent", "Hit Dice Spent", data.HitDiceSpent, HitDiceSpentLimit)
-					@countField("exhaustion", "Exhaustion", data.Exhaustion, ExhaustionLimit)
-					@deathSaveField("death_save_successes", "Death Save Successes", data.DeathSaveSuccesses)
-					@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
-					@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
-				</div>
-			}
+			@identityPanel(data)
+			@coreStatsPanel(data)
+			@vitalsPanel(data)
 			@sheetPanel("Attacks") {
 				@attacksTable(data.CharacterID, data.Attacks)
 			}
 			@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
-				<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+				<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
 					@textField("languages", "Languages", data.Languages, "", false)
 					@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", true)
 				</div>
@@ -103,7 +61,7 @@ templ characterPanels(data EditCharacterPageData) {
 			@savingPanel("Skills", base+"/bonuses/skills", "skills") {
 				@skillsTable(data.Derived.Skills, data.Derived.PassivePerception)
 			}
-			<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
 				@savingPanel("Features & Traits", base+"/features", FeaturesPanel) {
 					@featuresTable(data.Features)
 				}
@@ -111,7 +69,7 @@ templ characterPanels(data EditCharacterPageData) {
 					@equippedItems(data.CharacterID, data.Equipped)
 				}
 			</div>
-			<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
 				@sheetPanel("Prepared Spells") {
 					@preparedSpells(data.CharacterID, data.Prepared)
 				}
@@ -119,7 +77,7 @@ templ characterPanels(data EditCharacterPageData) {
 					@spellSlotsOverview(data.CharacterID, data.SpellSlots)
 				}
 			</div>
-			<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
 				@savingPanel("Personality", base+"/personality", "personality") {
 					<div class="grid gap-4">
 						@proseField("personality_traits", "Personality Traits", data.PersonalityTraits, "I laugh loudest when the plan is falling apart.")
@@ -143,4 +101,78 @@ templ characterPanels(data EditCharacterPageData) {
 			</div>
 		</div>
 	</div>
+}
+
+templ CharacterSheetSection(data EditCharacterPageData, section string) {
+	switch section {
+		case SheetSectionIdentity:
+			@identityPanel(data)
+		case SheetSectionCoreStats:
+			@coreStatsPanel(data)
+		case SheetSectionVitals:
+			@vitalsPanel(data)
+	}
+}
+
+templ identityPanel(data EditCharacterPageData) {
+	{{ base := "/characters/" + data.CharacterID }}
+	@livePanel(data.Live, SheetSectionIdentity) {
+		@savingPanel("Identity", base+"/identity", "identity") {
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+				<div class="col-span-2 @max-[900px]/sheet:col-auto">
+					@textField("name", "Character Name", data.Name, "", true)
+				</div>
+				@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", true)
+				@textField("background", "Background", data.Background, "", false)
+				@textField("race", "Species / Race", data.Race, "Human", true)
+				@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
+				@selectField("size", "Size", sizeOptions, data.Size, true)
+			</div>
+		}
+	}
+}
+
+templ coreStatsPanel(data EditCharacterPageData) {
+	{{ base := "/characters/" + data.CharacterID }}
+	@livePanel(data.Live, SheetSectionCoreStats) {
+		@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+				@numberField("xp", "Experience", data.XP, true)
+				@textField("speed", "Speed", data.Speed, "", false)
+				@numberField("ac", "Armor Class", data.AC, true)
+				@signedNumberField("initiative_bonus", "Initiative Bonus", data.InitiativeBonus)
+				@selectField("spellcasting_ability", "Spellcasting Ability", spellcastingAbilityOptions, data.SpellcastingAbility, true)
+				@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
+			</div>
+			<div class={ surfaceInset + " flex flex-wrap items-center gap-x-8 gap-y-2 p-3" }>
+				<span class="flex items-center gap-3">
+					<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
+					@derivedValue("spell-save-dc", data.Derived.SpellSaveDC, false)
+				</span>
+				<span class="flex items-center gap-3">
+					<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Attack</span>
+					@derivedValue("spell-attack-bonus", data.Derived.SpellAttackBonus, false)
+				</span>
+			</div>
+		}
+	}
+}
+
+templ vitalsPanel(data EditCharacterPageData) {
+	{{ base := "/characters/" + data.CharacterID }}
+	@livePanel(data.Live, SheetSectionVitals) {
+		@savingPanel("Vitals", base+"/vitals", "vitals") {
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+				@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
+				@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
+				@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
+				@wordField("hit_dice", "Hit Dice", data.HitDice, "3d8")
+				@countField("hit_dice_spent", "Hit Dice Spent", data.HitDiceSpent, HitDiceSpentLimit)
+				@countField("exhaustion", "Exhaustion", data.Exhaustion, ExhaustionLimit)
+				@deathSaveField("death_save_successes", "Death Save Successes", data.DeathSaveSuccesses)
+				@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
+				@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
+			</div>
+		}
+	}
 }

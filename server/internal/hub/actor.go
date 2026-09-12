@@ -55,7 +55,7 @@ type actor struct {
 	saveFailures     int
 	sizeWarned       bool
 	sheet            *sheetWriter
-	lastHP           map[ulid.ULID]int
+	lastSheet        map[ulid.ULID]room.SheetVitals
 	secret           map[ulid.ULID][]room.Roll
 	pending          map[string]command
 	coalesceTimer    *time.Timer
@@ -85,8 +85,8 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 		coalesceTimer: timer,
 		kicked:        make(map[ulid.ULID]time.Time),
 		saved:         make(chan saved, 1),
-		sheet:         newSheetWriter(h.writeHP),
-		lastHP:        make(map[ulid.ULID]int),
+		sheet:         newSheetWriter(h.writeSheet),
+		lastSheet:     make(map[ulid.ULID]room.SheetVitals),
 		secret:        make(map[ulid.ULID][]room.Roll),
 		emptySince:    time.Now(),
 		entropy:       ulid.Monotonic(rand.Reader, 0),
@@ -173,6 +173,18 @@ func (a *actor) join(c *client) {
 	a.exec(c.who, &room.PlayerJoin{Player: c.player}, nil, "")
 	a.conns[c] = struct{}{}
 	a.snapshot(c)
+	a.catchUp(c.player)
+}
+func (a *actor) catchUp(p room.Player) {
+	if p.CharacterID == nil {
+		return
+	}
+	hub, id, owner, character := a.hub, a.id, p.ID, *p.CharacterID
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer cancel()
+		hub.SyncCharacter(ctx, id, owner, character)
+	}()
 }
 func (a *actor) leave(c *client) {
 	if _, ok := a.conns[c]; !ok {
@@ -550,6 +562,13 @@ func (a *actor) table() *TableView {
 }
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
+}
+func (a *actor) characterPawn(character ulid.ULID, role room.Role) *room.Pawn {
+	p := a.state.PawnFor(character)
+	if p == nil {
+		return nil
+	}
+	return a.state.ProjectedPawn(p.ID, role)
 }
 func (a *actor) debug() *DebugView {
 	perUser := make(map[ulid.ULID]int, len(a.conns))

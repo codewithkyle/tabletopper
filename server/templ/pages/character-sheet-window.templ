@@ -1,0 +1,54 @@
+package pages
+
+templ CharacterSheetWindow(data SheetWindowData) {
+	<div id={ SheetBodyID } class="@container/sheet grid content-start gap-3 p-3">
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+			@characterBarFigure(data.Sheet.Header, false)
+			@characterBarChips(data.Sheet.Header, false)
+		</div>
+		@sheetTabs(data)
+		switch data.Section {
+			case SheetSectionInventory:
+				@inventorySection(data.Inventory)
+			case SheetSectionSpells:
+				@sheetLevels(data)
+				@spellsSection(data.Spells)
+			default:
+				@characterPanels(data.Sheet)
+		}
+	</div>
+}
+
+templ sheetTabs(data SheetWindowData) {
+	<nav class="flex gap-1 border-b border-base-300" aria-label="Character sheet sections">
+		for _, tab := range data.Tabs() {
+			@sheetTab(data.SectionPath(tab.Section), tab.Label, data.Section == tab.Section)
+		}
+	</nav>
+}
+
+templ sheetTab(path string, name string, current bool) {
+	if current {
+		<button type="button" aria-current="page" class={ tabActive } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+	} else {
+		<button type="button" class={ tabIdle } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+	}
+}
+
+templ sheetLevels(data SheetWindowData) {
+	<div class="overflow-x-auto">
+		<nav class="flex w-max min-w-full gap-1" aria-label="Spell levels">
+			for level := 0; level <= MaxSpellLevel; level++ {
+				@sheetLevelTab(data.LevelPath(level), SpellLevelTab(level), data.Level == level)
+			}
+		</nav>
+	</div>
+}
+
+templ sheetLevelTab(path string, name string, current bool) {
+	if current {
+		<button type="button" aria-current="page" class={ levelActive } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+	} else {
+		<button type="button" class={ levelIdle } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+	}
+}

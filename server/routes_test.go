@@ -168,6 +168,12 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// the search's.
 		{http.MethodGet, "/fragment/monster/stat-block?monster=" + id, "GET /fragment/monster/stat-block"},
 		{http.MethodPost, "/fragment/monster/stat-block", "/fragment/"},
+		// THE SHEET IN A ROOM WINDOW. The character it serves comes from the
+		// session, never the query, so the only thing on the URL is the room it
+		// is being read inside and which part of the sheet is wanted.
+		{http.MethodGet, "/fragment/character/sheet?room=" + id, "GET /fragment/character/sheet"},
+		{http.MethodGet, "/fragment/character/sheet?room=" + id + "&section=main", "GET /fragment/character/sheet"},
+		{http.MethodPost, "/fragment/character/sheet", "/fragment/"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},
 		// The journal search. Its parameters ride in the query string, which the

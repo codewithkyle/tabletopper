@@ -85,7 +85,7 @@ func TestPawnIsNothingWhenItIsNotThere(t *testing.T) {
 func TestWriteThroughOwesOnlyPlayerPawnsWithASheet(t *testing.T) {
 	var mu sync.Mutex
 	var written []ulid.ULID
-	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
+	tb := newTabletop(t, Options{WriteSheet: func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error {
 		mu.Lock()
 		defer mu.Unlock()
 		written = append(written, character)
@@ -93,13 +93,17 @@ func TestWriteThroughOwesOnlyPlayerPawnsWithASheet(t *testing.T) {
 	}})
 	sheet, monster, projected := testID(41), testID(42), testID(43)
 	hurt, full := 9, 12
-	upserted := []room.Pawn{
-		{ID: testID(50), Kind: room.PawnPlayer, CharacterID: &sheet, HP: &hurt},
-		{ID: testID(51), Kind: room.PawnMonster, CharacterID: &monster, HP: &hurt},
-		{ID: testID(52), Kind: room.PawnObject, HP: &hurt},
-		{ID: testID(53), Kind: room.PawnPlayer, HP: &hurt},
-		{ID: testID(54), Kind: room.PawnPlayer, CharacterID: &projected},
-	}
+	seated := seatPawn(sheet, "Ilyana", hurt, full, 15, room.SizeMedium)
+	seated.ID = testID(50)
+	beast := seatPawn(monster, "Ogre", hurt, full, 15, room.SizeLarge)
+	beast.ID, beast.Kind = testID(51), room.PawnMonster
+	crate := seatPawn(projected, "Crate", hurt, full, 15, room.SizeMedium)
+	crate.ID, crate.Kind, crate.CharacterID = testID(52), room.PawnObject, nil
+	nobody := seatPawn(projected, "Ilyana", hurt, full, 15, room.SizeMedium)
+	nobody.ID, nobody.CharacterID = testID(53), nil
+	hidden := seatPawn(projected, "Ilyana", hurt, full, 15, room.SizeMedium)
+	hidden.ID, hidden.HP = testID(54), nil
+	upserted := []room.Pawn{seated, beast, crate, nobody, hidden}
 	before := room.NewState(roomID, "The Sunless Citadel", room.Env{})
 	for _, p := range upserted {
 		if p.HP != nil {

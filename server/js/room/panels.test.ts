@@ -4,11 +4,15 @@ import type { Change, Frame, InitiativeEntry, Pawn, State } from "./protocol.ts"
 const target = new EventTarget();
 (globalThis as unknown as { window: EventTarget }).window = target;
 const { announce } = await import("./panels.ts");
-function snapshot(entries: InitiativeEntry[]): Frame {
+function snapshot(entries: InitiativeEntry[], character: string | null = null): Frame {
 	return {
 		type: "snapshot",
 		seq: 1,
-		state: { initiative: { entries, active: null, round: 0 } } as State,
+		state: {
+			initiative: { entries, active: null, round: 0 },
+			players: [{ id: "01ME", characterId: character }],
+			pawns: [],
+		} as unknown as State,
 		you: { id: "01ME", role: "gm" },
 		version: "test",
 		now: 0,
@@ -28,6 +32,7 @@ function raised(frame: Frame): { name: string; detail: unknown }[] {
 		"room:info",
 		"room:tabletop",
 		"room:pawn",
+		"room:character",
 		"room:rolls",
 		"room:music",
 		"window:close",
@@ -45,6 +50,9 @@ function raised(frame: Frame): { name: string; detail: unknown }[] {
 		off();
 	}
 	return seen;
+}
+function seated(id: string, character: string, name = "Ilyana"): Pawn {
+	return { ...pawn(id, name), kind: "player", characterId: character };
 }
 function pawn(id: string, name = "Goblin"): Pawn {
 	return {
@@ -186,4 +194,50 @@ test("a shared roll repaints the dice tray", () => {
 test("a secret roll repaints the tray of the one person told about it", () => {
 	const seen = raised({ type: "rolled", seq: 9, roll: {} } as unknown as Frame);
 	assert.deepEqual(seen.map((e) => e.name), ["room:rolls"]);
+});
+
+test("the viewer's own character pawn raises room:character carrying the character's id", () => {
+	raised(snapshot([], "01MINE"));
+	const seen = raised(changes({ type: "pawns.upserted", pawns: [seated("01PAWN", "01MINE")] }));
+	const mine = seen.filter((e) => e.name === "room:character");
+	assert.equal(mine.length, 1);
+	assert.deepEqual(mine[0]?.detail, { id: "01MINE" });
+});
+test("somebody else's character pawn raises no room:character", () => {
+	raised(snapshot([], "01MINE"));
+	const seen = raised(changes({ type: "pawns.upserted", pawns: [seated("01PAWN", "01THEIRS")] }));
+	assert.equal(seen.filter((e) => e.name === "room:character").length, 0);
+});
+test("a pawn with nobody behind it raises no room:character", () => {
+	raised(snapshot([], "01MINE"));
+	const seen = raised(changes({ type: "pawns.upserted", pawns: [pawn("01GOBLIN")] }));
+	assert.equal(seen.filter((e) => e.name === "room:character").length, 0);
+});
+test("the GM, who plays nobody, never raises room:character", () => {
+	raised(snapshot([], null));
+	const seen = raised(changes({ type: "pawns.upserted", pawns: [seated("01PAWN", "01MINE")] }));
+	assert.equal(seen.filter((e) => e.name === "room:character").length, 0);
+});
+test("taking the viewer's own pawn off the table still tells the sheet", () => {
+	raised(snapshot([], "01MINE"));
+	raised(changes({ type: "pawns.upserted", pawns: [seated("01PAWN", "01MINE")] }));
+	const seen = raised(changes({ type: "pawns.removed", ids: ["01PAWN"] }));
+	assert.deepEqual(
+		seen.filter((e) => e.name === "room:character").map((e) => e.detail),
+		[{ id: "01MINE" }],
+	);
+});
+test("renaming the viewer's own character retitles the sheet window", () => {
+	raised(snapshot([], "01MINE"));
+	const seen = raised(changes({
+		type: "pawns.upserted",
+		pawns: [seated("01PAWN", "01MINE", "Ilyana Duskhollow")],
+	}));
+	assert.deepEqual(
+		seen.filter((e) => e.name === "window:retitle").map((e) => e.detail),
+		[
+			{ id: "pawn:01PAWN", title: "Ilyana Duskhollow" },
+			{ id: "character-sheet", title: "Ilyana Duskhollow" },
+		],
+	);
 });

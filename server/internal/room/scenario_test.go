@@ -155,6 +155,10 @@ func scenario(r *recorder) {
 		ID: testID(1100), Name: "Wren", Role: RolePlayer,
 	}})
 	r.hub("and thinks better of it", &PlayerLeave{ID: testID(1100)})
+	r.hub("Ari patches her sheet between rounds", &CharacterSync{Info: CharacterInfo{
+		ID: testCharID, OwnerID: testPlayerID, Name: "Ari Duskhollow",
+		Size: SizeSmall, HP: 6, MaxHP: 16, AC: 17, Image: "/assets/ari.webp",
+	}})
 	r.do("the GM edits the goblin in one form", &Batch{Commands: []Command{
 		&PawnUpdate{ID: goblin, Name: strp("Goblin boss"), AC: intp(13)},
 		&PawnSetConditions{ID: goblin, Conditions: []Condition{

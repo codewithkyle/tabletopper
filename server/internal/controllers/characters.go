@@ -180,6 +180,43 @@ func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
 	data.SpellSlots = levels
 	render(w, r, pages.EditCharacter(data))
 }
+func (a *App) sheetData(ctx context.Context, characterID, ownerID ulid.ULID) (pages.EditCharacterPageData, error) {
+	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
+	if err != nil {
+		return pages.EditCharacterPageData{}, fmt.Errorf("character: %w", err)
+	}
+	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.EditCharacterPageData{}, fmt.Errorf("equipped inventory: %w", err)
+	}
+	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.EditCharacterPageData{}, fmt.Errorf("attacks: %w", err)
+	}
+	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return pages.EditCharacterPageData{}, fmt.Errorf("prepared spells: %w", err)
+	}
+	levels, err := a.spellLevels(ctx, characterID, ownerID)
+	if err != nil {
+		return pages.EditCharacterPageData{}, err
+	}
+	data := characterToEditPageData(characterID.String(), character)
+	data.Attacks = attackPageRows(attacks)
+	data.Equipped = inventoryPageItems(equipped)
+	data.Prepared = preparedSpellGroups(prepared)
+	data.SpellSlots = levels
+	return data, nil
+}
 func (a *App) loadCharacter(w http.ResponseWriter, r *http.Request) (queries.Character, ulid.ULID, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -437,6 +474,16 @@ func parseUint16(value string, fallback uint16) (uint16, error) {
 		return fallback, err
 	}
 	return uint16(parsed), nil
+}
+func parseBounded(value string, fallback uint16, limit int) (uint16, error) {
+	parsed, err := parseUint16(value, fallback)
+	if err != nil {
+		return fallback, err
+	}
+	if int(parsed) > limit {
+		return fallback, strconv.ErrRange
+	}
+	return parsed, nil
 }
 func parseUint8(value string, fallback uint8) (uint8, error) {
 	trimmed := strings.TrimSpace(value)

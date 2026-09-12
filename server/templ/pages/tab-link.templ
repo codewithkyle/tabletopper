@@ -2,15 +2,8 @@ package pages
 
 templ tabLink(href string, name string, current bool) {
 	if current {
-		<a
-			href={ href }
-			aria-current="page"
-			class={ tabGutter + " -mb-px border-b-2 border-primary pt-2 pb-2.5 font-semibold transition-colors duration-150" }
-		>{ name }</a>
+		<a href={ href } aria-current="page" class={ tabActive }>{ name }</a>
 	} else {
-		<a
-			href={ href }
-			class={ tabGutter + " -mb-px border-b-2 border-transparent pt-2 pb-2.5 font-semibold text-base-content/60 transition-colors duration-150 hover:border-base-content/30 hover:text-base-content" }
-		>{ name }</a>
+		<a href={ href } class={ tabIdle }>{ name }</a>
 	}
 }

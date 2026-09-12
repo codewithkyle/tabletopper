@@ -38,24 +38,19 @@ func (a *actor) keepSecret(user ulid.ULID, roll room.Roll) {
 	a.secret[user] = kept
 }
 func (a *actor) remember(p room.Pawn) {
-	if character, hp, owed := writeThroughHP(p); owed {
-		a.lastHP[character] = hp
+	if v, ok := room.PawnVitals(p); ok {
+		a.lastSheet[*p.CharacterID] = v
 	}
 }
 func (a *actor) writeThrough(p room.Pawn) {
-	character, hp, owed := writeThroughHP(p)
-	if !owed || a.sheet == nil {
+	v, ok := room.PawnVitals(p)
+	if !ok || a.sheet == nil {
 		return
 	}
-	if last, known := a.lastHP[character]; known && last == hp {
+	character := *p.CharacterID
+	if last, known := a.lastSheet[character]; known && last == v {
 		return
 	}
-	a.lastHP[character] = hp
-	a.sheet.put(character, hp)
-}
-func writeThroughHP(p room.Pawn) (ulid.ULID, int, bool) {
-	if p.Kind != room.PawnPlayer || p.CharacterID == nil || p.HP == nil {
-		return ulid.ULID{}, 0, false
-	}
-	return *p.CharacterID, *p.HP, true
+	a.lastSheet[character] = v
+	a.sheet.put(character, v)
 }

@@ -1,6 +1,7 @@
 package pages
 
 type EditCharacterPageData struct {
+	Live                SheetLive
 	CharacterID         string
 	Header              CharacterHeader
 	Name                string

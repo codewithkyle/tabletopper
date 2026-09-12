@@ -39,6 +39,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"edit-character-journal-entry": func() error {
 			return render(EditCharacterJournalEntry(JournalEntryPageData{}))
 		},
+		"character-sheet-window": func() error {
+			return render(CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain}))
+		},
 		"journal-link-fragment": func() error { return render(JournalLinkFragment()) },
 		"journal-entries-fragment": func() error {
 			return render(JournalEntriesFragment(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
@@ -2235,4 +2238,111 @@ func renderString(t *testing.T, c templ.Component) string {
 		t.Fatalf("render: %v", err)
 	}
 	return buf.String()
+}
+func TestTheSheetMeasuresItselfAgainstItsOwnBoxRatherThanTheWindow(t *testing.T) {
+	const container = "@container/sheet"
+	page := renderString(t, EditCharacter(EditCharacterPageData{
+		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		Header:      testCharacterHeader(),
+		Derived:     testDerivedValues(),
+	}))
+	editor := regexp.MustCompile(`<character-editor class="([^"]*)"`).FindStringSubmatch(page)
+	if editor == nil {
+		t.Fatal("the page renders no character-editor to hang a container on")
+	}
+	if !strings.Contains(editor[1], container) {
+		t.Errorf("character-editor is %q, which names no %s", editor[1], container)
+	}
+	for name, part := range map[string]templ.Component{
+		"the panels": characterPanels(EditCharacterPageData{
+			CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			Derived:     testDerivedValues(),
+		}),
+		"the chips": characterBarChips(testCharacterHeader(), false),
+	} {
+		rendered := renderString(t, part)
+		if at := viewportVariant.FindStringIndex(rendered); at != nil {
+			t.Errorf("%s still measure the viewport: %s", name, excerpt(rendered, at[0]))
+		}
+		if !strings.Contains(rendered, "/sheet:") {
+			t.Errorf("%s carry no /sheet variant, so they lay out one way at every width", name)
+		}
+	}
+}
+
+var viewportVariant = regexp.MustCompile(`(^|[^@])max-\[\d+px\]:`)
+
+func excerpt(s string, at int) string {
+	start := max(at-40, 0)
+	end := min(at+40, len(s))
+	return s[start:end]
+}
+func TestTheLivePanelsRefetchThemselvesOnlyInsideARoom(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues()}
+	page := renderString(t, characterPanels(data))
+	if strings.Contains(page, "room:character") {
+		t.Error("the standalone page listens for a socket event it will never hear")
+	}
+	data.Live = SheetLive{RoomID: roomID}
+	window := renderString(t, characterPanels(data))
+	for _, section := range LiveSheetSections() {
+		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, section), "&", "&amp;") + `"`
+		if !strings.Contains(window, want) {
+			t.Errorf("the %s panel does not refetch itself: no %s", section, want)
+		}
+	}
+	if got := strings.Count(window, "room:character"); got != len(LiveSheetSections()) {
+		t.Errorf("%d panels listen for room:character, want %d", got, len(LiveSheetSections()))
+	}
+	if !strings.Contains(window, "document.activeElement") {
+		t.Error("a refetch would swap a panel out from under the caret")
+	}
+}
+func TestASheetSectionIsTheSamePanelThePageAlreadyRenders(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues(), Live: SheetLive{RoomID: roomID}}
+	page := renderString(t, characterPanels(data))
+	for _, section := range LiveSheetSections() {
+		fragment := strings.TrimSpace(renderString(t, CharacterSheetSection(data, section)))
+		if fragment == "" {
+			t.Fatalf("the %s section rendered nothing", section)
+		}
+		if !strings.Contains(page, fragment) {
+			t.Errorf("the %s section is not the markup the page carries", section)
+		}
+		for _, other := range LiveSheetSections() {
+			if other != section && strings.Contains(fragment, panelFormID(other)) {
+				t.Errorf("the %s section also carries the %s panel", section, other)
+			}
+		}
+	}
+}
+func TestTheSheetWindowSwapsSectionsInPlace(t *testing.T) {
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	window := renderString(t, CharacterSheetWindow(SheetWindowData{
+		RoomID:  roomID,
+		Section: SheetSectionSpells,
+		Level:   3,
+	}))
+	for _, section := range []string{SheetSectionMain, SheetSectionInventory, SheetSectionSpells} {
+		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, section), "&", "&amp;") + `"`
+		if !strings.Contains(window, want) {
+			t.Errorf("the window offers no way back to %s: no %s", section, want)
+		}
+	}
+	for level := 0; level <= MaxSpellLevel; level++ {
+		want := strings.ReplaceAll(SheetLevelPath(roomID, level), "&", "&amp;")
+		if !strings.Contains(window, want) {
+			t.Errorf("spell level %d is not reachable inside the window", level)
+		}
+	}
+	if got := strings.Count(window, `hx-target="#`+SheetBodyID+`"`); got < 3+MaxSpellLevel+1 {
+		t.Errorf("%d controls swap the window body; every tab and every level must", got)
+	}
+	if strings.Contains(window, `href="/characters/`) {
+		t.Error("a tab inside the window navigates the whole page away from the room")
+	}
 }

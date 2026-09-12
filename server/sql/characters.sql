@@ -126,7 +126,7 @@ WHERE id = ? AND owner_id = ?;
 -- name: GetCharacterForRoom :one
 SELECT id, owner_id, name, size, ac, current_hp, max_hp, initiative_bonus, asset_id FROM characters
 WHERE id = ?;
--- name: UpdateCharacterCurrentHP :execresult
+-- name: UpdateCharacterFromPawn :execresult
 UPDATE characters
-SET current_hp = ?
+SET current_hp = ?, max_hp = ?, ac = ?, size = ?
 WHERE id = ?;

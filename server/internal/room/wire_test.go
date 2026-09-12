@@ -234,3 +234,13 @@ type errString string
 
 func (e errString) Error() string { return string(e) }
 func typeName(v any) string       { return fmt.Sprintf("%T", v) }
+func TestTheCharacterSyncIsServerSideOnly(t *testing.T) {
+	if _, hub := HubCommandPrototypes()["character.sync"]; !hub {
+		t.Fatal("character.sync is not in the hub registry")
+	}
+	_, _, err := DecodeCommand([]byte(`{"type":"character.sync","cid":"1"}`))
+	e, ok := err.(*Error)
+	if !ok || !strings.Contains(e.Message, "does not know") {
+		t.Fatalf("a socket asked for character.sync and got %v; it must not be reachable from the wire", err)
+	}
+}

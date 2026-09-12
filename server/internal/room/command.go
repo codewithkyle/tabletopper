@@ -150,6 +150,7 @@ var hubCommands = map[string]func() Command{
 	"room.setLocked":      func() Command { return &RoomSetLocked{} },
 	"room.setName":        func() Command { return &RoomSetName{} },
 	"room.close":          func() Command { return &RoomClose{} },
+	"character.sync":      func() Command { return &CharacterSync{} },
 }
 
 func DecodeCommand(b []byte) (Command, string, error) {

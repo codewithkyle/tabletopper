@@ -18,6 +18,7 @@ export const ROOM_INITIATIVE = "room:initiative";
 export const ROOM_ROLLS = "room:rolls";
 export const ROOM_MUSIC = "room:music";
 export const ROOM_PAWN = "room:pawn";
+export const ROOM_CHARACTER = "room:character";
 // The menu bar's two messages to the renderer.
 export const ROOM_VIEW = "room:view";
 export const ROOM_BLOOD = "room:blood";

@@ -770,3 +770,35 @@ func TestEveryDebugSurfaceIsAWindowOnAFragment(t *testing.T) {
 		}
 	}
 }
+func TestOnlyAPlayerWithACharacterIsOfferedTheSheet(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	find := func(d RoomPageData, label string) (RoomMenuItem, bool) {
+		for _, menu := range d.Menus() {
+			for _, item := range menu.Items {
+				if item.Label == label {
+					return item, true
+				}
+			}
+		}
+		return RoomMenuItem{}, false
+	}
+	player := RoomPageData{ID: id, Role: room.RolePlayer, CharacterID: id, CharacterName: "Ilyana"}
+	item, ok := find(player, "Character sheet")
+	if !ok {
+		t.Fatal("a player with a character is offered no sheet")
+	}
+	if item.Disabled || item.Window.ID != SheetWindow || item.Window.Title != "Ilyana" {
+		t.Errorf("the sheet item is %+v", item)
+	}
+	if !strings.HasPrefix(item.Window.URL, "/fragment/") {
+		t.Errorf("the sheet window loads %q, which a window refuses", item.Window.URL)
+	}
+	seatless := RoomPageData{ID: id, Role: room.RolePlayer}
+	if item, _ := find(seatless, "Character sheet"); !item.Disabled {
+		t.Error("a player with no character is offered a live sheet")
+	}
+	gm := RoomPageData{ID: id, Role: room.RoleGM}
+	if _, ok := find(gm, "Character sheet"); ok {
+		t.Error("the GM is offered a character sheet")
+	}
+}

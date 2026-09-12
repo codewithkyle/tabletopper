@@ -74,23 +74,30 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 func (a *App) loadSpellSlots(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID, level uint8) (pages.SpellLevel, bool) {
-	counters := pages.SpellLevel{Level: int(level), Slots: "0", Used: "0"}
-	row, err := a.Queries.GetSpellSlots(r.Context(), queries.GetSpellSlotsParams{
-		CharacterID: characterID,
-		OwnerID:     ownerID,
-		Level:       level,
-	})
-	if errors.Is(err, sql.ErrNoRows) {
-		return counters, true
-	}
+	counters, err := a.spellSlotCounters(r.Context(), characterID, ownerID, level)
 	if err != nil {
 		slog.Error("Failed to load spell slots", "error", err, "level", level)
 		redirectToError(w, r)
 		return pages.SpellLevel{}, false
 	}
+	return counters, true
+}
+func (a *App) spellSlotCounters(ctx context.Context, characterID, ownerID ulid.ULID, level uint8) (pages.SpellLevel, error) {
+	counters := pages.SpellLevel{Level: int(level), Slots: "0", Used: "0"}
+	row, err := a.Queries.GetSpellSlots(ctx, queries.GetSpellSlotsParams{
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+		Level:       level,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return counters, nil
+	}
+	if err != nil {
+		return pages.SpellLevel{}, err
+	}
 	counters.Slots = strconv.FormatUint(uint64(row.Slots), 10)
 	counters.Used = strconv.FormatUint(uint64(row.Used), 10)
-	return counters, true
+	return counters, nil
 }
 func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
 	levels, err := a.spellLevels(r.Context(), characterID, ownerID)

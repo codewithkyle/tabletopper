@@ -5,26 +5,28 @@ import (
 	"log/slog"
 	"sync"
 
+	"tabletopper/internal/room"
+
 	"github.com/oklog/ulid/v2"
 )
 
 type sheetWriter struct {
-	write   func(ctx context.Context, character ulid.ULID, hp int) error
+	write   func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error
 	mu      sync.Mutex
-	pending map[ulid.ULID]int
+	pending map[ulid.ULID]room.SheetVitals
 	wake    chan struct{}
 	quit    chan struct{}
 	stopped chan struct{}
 	once    sync.Once
 }
 
-func newSheetWriter(write func(ctx context.Context, character ulid.ULID, hp int) error) *sheetWriter {
+func newSheetWriter(write func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error) *sheetWriter {
 	if write == nil {
 		return nil
 	}
 	w := &sheetWriter{
 		write:   write,
-		pending: make(map[ulid.ULID]int),
+		pending: make(map[ulid.ULID]room.SheetVitals),
 		wake:    make(chan struct{}, 1),
 		quit:    make(chan struct{}),
 		stopped: make(chan struct{}),
@@ -32,12 +34,12 @@ func newSheetWriter(write func(ctx context.Context, character ulid.ULID, hp int)
 	go w.run()
 	return w
 }
-func (w *sheetWriter) put(character ulid.ULID, hp int) {
+func (w *sheetWriter) put(character ulid.ULID, v room.SheetVitals) {
 	if w == nil {
 		return
 	}
 	w.mu.Lock()
-	w.pending[character] = hp
+	w.pending[character] = v
 	w.mu.Unlock()
 	select {
 	case w.wake <- struct{}{}:
@@ -65,19 +67,19 @@ func (w *sheetWriter) run() {
 }
 func (w *sheetWriter) flush() {
 	for {
-		character, hp, ok := w.next()
+		character, v, ok := w.next()
 		if !ok {
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
-		err := w.write(ctx, character, hp)
+		err := w.write(ctx, character, v)
 		cancel()
 		if err != nil {
-			slog.Error("Failed to write a pawn's hit points back to its sheet", "character", character, "error", err)
+			slog.Error("Failed to write a pawn's vitals back to its sheet", "character", character, "error", err)
 		}
 	}
 }
-func (w *sheetWriter) next() (ulid.ULID, int, bool) {
+func (w *sheetWriter) next() (ulid.ULID, room.SheetVitals, bool) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	var lowest ulid.ULID
@@ -88,9 +90,9 @@ func (w *sheetWriter) next() (ulid.ULID, int, bool) {
 		}
 	}
 	if !found {
-		return ulid.ULID{}, 0, false
+		return ulid.ULID{}, room.SheetVitals{}, false
 	}
-	hp := w.pending[lowest]
+	v := w.pending[lowest]
 	delete(w.pending, lowest)
-	return lowest, hp, true
+	return lowest, v, true
 }

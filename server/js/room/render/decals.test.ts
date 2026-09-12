@@ -383,3 +383,26 @@ test("a floor with the blood turned off has nothing left to settle", () => {
 	decals.show(false);
 	assert.equal(decals.settling(10), false);
 });
+test("a wound entered on a character sheet bleeds like any other", () => {
+	const seated = (hp: number): Pawn =>
+		pawn({ kind: "player", characterId: "01CHARACTER", ownerId: "01PLAYER", hp, maxHp: 24 });
+	const decals = newDecals();
+	decals.watch([seated(24)], GROUND, CELL, 0);
+	decals.watch([seated(6)], GROUND, CELL, 10);
+	const marks = drawn(decals, 10);
+	assert.ok(marks.length > 0, "the renderer asked where the hit points came from");
+});
+test("a character taken to nothing on their own sheet still leaves a pool", () => {
+	const seated = (hp: number): Pawn =>
+		pawn({ kind: "player", characterId: "01CHARACTER", ownerId: "01PLAYER", hp, maxHp: 24 });
+	const decals = newDecals();
+	decals.watch([seated(24)], GROUND, CELL, 0);
+	decals.watch([seated(0)], GROUND, CELL, 10);
+	const marks = drawn(decals, 10);
+	const widest = Math.max(...marks.map((mark) => mark.half));
+	const hurt = newDecals();
+	hurt.watch([seated(24)], GROUND, CELL, 0);
+	hurt.watch([seated(1)], GROUND, CELL, 10);
+	const scratched = Math.max(...drawn(hurt, 10).map((mark) => mark.half));
+	assert.ok(widest > scratched, "dying on the sheet left no pool");
+});

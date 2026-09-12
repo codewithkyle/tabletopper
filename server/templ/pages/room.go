@@ -21,19 +21,21 @@ const (
 )
 
 type RoomPageData struct {
-	ID         string
-	Name       string
-	Code       string
-	Locked     bool
-	Closed     bool
-	Role       room.Role
-	UserID     string
-	Socket     string
-	Version    string
-	Debug      bool
-	FollowTurn bool
-	ShowBlood  bool
-	PingVolume int
+	ID            string
+	Name          string
+	Code          string
+	Locked        bool
+	Closed        bool
+	Role          room.Role
+	UserID        string
+	Socket        string
+	Version       string
+	Debug         bool
+	CharacterID   string
+	CharacterName string
+	FollowTurn    bool
+	ShowBlood     bool
+	PingVolume    int
 }
 
 func (d RoomPageData) PingVolumeAttr() string {
@@ -74,6 +76,9 @@ func (d RoomPageData) DrawingClearPath() string {
 }
 func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
+}
+func (d RoomPageData) SheetPath() string {
+	return SheetWindowPath(d.ID)
 }
 func (d RoomPageData) DicePath() string {
 	return "/fragment/room/dice?room=" + d.ID
@@ -146,7 +151,7 @@ func (d RoomPageData) Menus() []RoomMenu {
 	if d.IsGM() {
 		menus = append(menus, d.fogMenu(), d.initiativeMenu())
 	} else {
-		menus = append(menus, characterMenu())
+		menus = append(menus, d.characterMenu())
 	}
 	menus = append(menus,
 		d.toolsMenu(),
@@ -211,8 +216,20 @@ func (d RoomPageData) toolsMenu() RoomMenu {
 	music.Window.Height = 460
 	return RoomMenu{Label: "Tools", Items: append(comingSoon("Monster Manual"), dice, music)}
 }
-func characterMenu() RoomMenu {
-	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
+func (d RoomPageData) characterMenu() RoomMenu {
+	if d.CharacterID == "" {
+		return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
+	}
+	return RoomMenu{Label: "Character", Items: append([]RoomMenuItem{{
+		Label: "Character sheet",
+		Window: RoomWindow{
+			ID:     SheetWindow,
+			Title:  d.CharacterName,
+			URL:    d.SheetPath(),
+			Width:  520,
+			Height: 640,
+		},
+	}}, comingSoon("Journal")...)}
 }
 func (d RoomPageData) roomMenu() RoomMenu {
 	items := []RoomMenuItem{}
