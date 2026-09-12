@@ -6,7 +6,7 @@ templ EditCharacterJournal(data JournalPageData) {
 	@layouts.Base("Journal | Tabletopper") {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabJournal, shellLayout{Actions: journalCreateForm(data.CharacterID)}) {
 			@sheetPanel("Journal") {
-				@journalSearchBox(data.CharacterID)
+				@journalSearchBox(data)
 				<div id={ journalEntriesID } class="grid gap-3">
 					@journalEntryList(data)
 				</div>
@@ -25,17 +25,17 @@ templ journalCreateForm(characterID string) {
 	</form>
 }
 
-templ journalSearchBox(characterID string) {
+templ journalSearchBox(data JournalPageData) {
 	<input
 		type="search"
 		name="q"
-		class="input w-full"
+		class={ "input w-full " + denseInput }
 		placeholder="Search this journal"
 		aria-label="Search this journal"
 		aria-controls={ journalEntriesID }
 		autocomplete="off"
 		maxlength="255"
-		hx-get={ "/fragment/character/journal-entries?character=" + characterID }
+		hx-get={ journalSearchPath(data) }
 		hx-trigger="input changed delay:250ms, search"
 		hx-target={ "#" + journalEntriesID }
 		hx-swap="innerHTML"
@@ -44,7 +44,7 @@ templ journalSearchBox(characterID string) {
 
 templ journalEntryList(data JournalPageData) {
 	for _, entry := range data.Entries {
-		@journalEntryCard(data.CharacterID, entry)
+		@journalEntryCard(data, entry)
 	}
 	if len(data.Entries) == 0 {
 		if data.Query == "" {
@@ -55,12 +55,10 @@ templ journalEntryList(data JournalPageData) {
 	}
 }
 
-templ journalEntryCard(characterID string, entry JournalEntry) {
-	{{ href := "/characters/" + characterID + "/edit/journal/" + entry.ID }}
-	{{ action := "/characters/" + characterID + "/journal/" + entry.ID }}
+templ journalEntryCard(data JournalPageData, entry JournalEntry) {
 	<article class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
 		<div class="grid min-w-0 flex-1 gap-1">
-			<a href={ href } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
+			@journalEntryName(data, entry)
 			if entry.Snippet.Match != "" {
 				<p class="line-clamp-2 text-sm text-base-content/70">{ entry.Snippet.Before }<mark class="rounded-sm bg-warning/30 px-0.5 text-base-content">{ entry.Snippet.Match }</mark>{ entry.Snippet.After }</p>
 			}
@@ -76,12 +74,12 @@ templ journalEntryCard(characterID string, entry JournalEntry) {
 			</p>
 		</div>
 		<div class="flex items-center gap-2">
-			<a href={ href } class="btn btn-soft btn-sm">View</a>
+			@journalEntryOpen(data, entry)
 			<button
 				type="button"
 				class="btn btn-soft btn-error btn-sm"
 				hx-confirm={ "You are about to delete " + journalEntryTitle(entry) + ". This action cannot be undone." }
-				hx-delete={ action }
+				hx-delete={ "/characters/" + data.CharacterID + "/journal/" + entry.ID }
 				hx-target="closest article"
 				hx-swap="delete"
 			>
@@ -89,4 +87,20 @@ templ journalEntryCard(characterID string, entry JournalEntry) {
 			</button>
 		</div>
 	</article>
+}
+
+templ journalEntryName(data JournalPageData, entry JournalEntry) {
+	if data.RoomID == "" {
+		<a href={ journalEntryHref(data, entry) } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
+	} else {
+		<button type="button" class="cursor-pointer text-left font-medium hover:underline" { journalOpens(data.RoomID, entry.ID)... }>{ journalEntryTitle(entry) }</button>
+	}
+}
+
+templ journalEntryOpen(data JournalPageData, entry JournalEntry) {
+	if data.RoomID == "" {
+		<a href={ journalEntryHref(data, entry) } class="btn btn-soft btn-sm">View</a>
+	} else {
+		<button type="button" class="btn btn-soft btn-sm" { journalOpens(data.RoomID, entry.ID)... }>Open</button>
+	}
 }

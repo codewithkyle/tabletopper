@@ -20,11 +20,20 @@ const ACTIVE = {
     orderedList: "orderedList",
 };
 const LEVELS = [2, 3, 4];
-const root = document.querySelector("[data-journal-editor]");
-if (root) {
-    start(root);
+const running = new WeakMap();
+for (const found of document.querySelectorAll("[data-journal-editor]")) {
+    start(found);
 }
-function start(root) {
+export function start(root) {
+    const open = running.get(root);
+    if (open) {
+        return open;
+    }
+    const stop = begin(root) ?? (() => { });
+    running.set(root, stop);
+    return stop;
+}
+function begin(root) {
     const field = root.querySelector("textarea[data-journal-body]");
     const mount = root.querySelector("[data-journal-mount]");
     const toolbar = root.querySelector("[data-journal-toolbar]");
@@ -33,6 +42,7 @@ function start(root) {
         console.error("journal editor markup is incomplete; leaving the textarea");
         return;
     }
+    const listeners = new AbortController();
     const picker = root.querySelector("[data-journal-file]");
     const uploadButton = toolbar.querySelector("[data-journal-upload]");
     let uploads = 0;
@@ -207,7 +217,11 @@ function start(root) {
             },
             { once: true },
         );
-    });
+    }, { signal: listeners.signal });
+    return () => {
+        listeners.abort();
+        editor.destroy();
+    };
 }
 function imageFiles(transfer) {
     return Array.from(transfer?.files ?? []).filter((file) => file.type.startsWith("image/"));

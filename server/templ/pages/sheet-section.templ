@@ -12,9 +12,21 @@ const denseLegend = "@max-[40rem]/sheet:py-1 @max-[40rem]/sheet:text-xs"
 const denseBody = "@max-[40rem]/sheet:gap-3 @max-[40rem]/sheet:p-3"
 
 templ savingPanel(title string, action string, panel string) {
+	@panelForm(sheetSurface, "card-body gap-4 p-4 "+denseBody, title, action, panel) {
+		{ children... }
+	}
+}
+
+templ flatSavingPanel(action string, panel string) {
+	@panelForm("grid", "grid gap-2", "", action, panel) {
+		{ children... }
+	}
+}
+
+templ panelForm(surface string, body string, title string, action string, panel string) {
 	<form
 		id={ panelFormID(panel) }
-		class={ sheetSurface }
+		class={ surface }
 		hx-post={ action }
 		hx-trigger={ panelTrigger }
 		hx-target={ "#errors-" + panel }
@@ -22,8 +34,10 @@ templ savingPanel(title string, action string, panel string) {
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
 		{ autosaves... }
 	>
-		<div class={ "card-body gap-4 p-4 " + denseBody }>
-			@sheetHeading(title)
+		<div class={ body }>
+			if title != "" {
+				@sheetHeading(title)
+			}
 			@PanelFormErrors(panel, []string{})
 			{ children... }
 		</div>

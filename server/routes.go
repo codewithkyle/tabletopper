@@ -651,6 +651,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// sends it. The search stays a GET returning the same component the page
 	// renders, which is exactly what this prefix is for.
 	mux.HandleFunc("GET /fragment/character/journal-entries", auth.Fragment(app.JournalEntriesFragment))
+	mux.HandleFunc("GET /fragment/character/journal", auth.Fragment(app.CharacterJournalFragment))
 	// The share dialog, in whichever of its two states the entry is in. It
 	// reads both ids from the query string and neither from a path, because
 	// this is not the entry's URL -- it is a dialog about the entry.

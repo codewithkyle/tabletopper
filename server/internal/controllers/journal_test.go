@@ -1,13 +1,16 @@
 package controllers
 
 import (
+	"database/sql/driver"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"tabletopper/internal/session"
+	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -355,5 +358,149 @@ func TestJournalSearchRefusesWhatTheBoxCannotSend(t *testing.T) {
 				t.Errorf("reached the database: %v", db.calls)
 			}
 		})
+	}
+}
+
+func journalWindowApp(answers ...roomAnswer) *App {
+	return newRoomApp(&roomDB{rows: 1, answers: append([]roomAnswer{tableRoomAnswer()}, answers...)})
+}
+func journalFragment(t *testing.T, app *App, query string, sess session.UserSession) *httptest.ResponseRecorder {
+	t.Helper()
+	r := httptest.NewRequest(http.MethodGet, "/fragment/character/journal?"+query, nil)
+	r = r.WithContext(session.NewContext(r.Context(), sess))
+	rec := httptest.NewRecorder()
+	app.CharacterJournalFragment(rec, r)
+	return rec
+}
+func journalCreate(t *testing.T, app *App, form url.Values, sess session.UserSession) *httptest.ResponseRecorder {
+	t.Helper()
+	r := httptest.NewRequest(http.MethodPost, "/characters/"+testCharacterID.String()+"/journal", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.SetPathValue("id", testCharacterID.String())
+	r = r.WithContext(session.NewContext(r.Context(), sess))
+	rec := httptest.NewRecorder()
+	app.CreateJournalEntry(rec, r)
+	return rec
+}
+func journalRowAnswer(title string) roomAnswer {
+	return roomAnswer{
+		columns: []string{"id", "title", "created_at", "updated_at"},
+		values:  []driver.Value{testEntryID.Bytes(), title, time.Now(), time.Now()},
+	}
+}
+func journalEntryAnswer(title string, body string) roomAnswer {
+	return roomAnswer{
+		columns: []string{"id", "owner_id", "character_id", "title", "body", "created_at", "updated_at"},
+		values:  []driver.Value{testEntryID.Bytes(), testOwnerID.Bytes(), testCharacterID.Bytes(), title, body, time.Now(), time.Now()},
+	}
+}
+func strangerSession() session.UserSession {
+	sess := sheetSession(true)
+	sess.UserID = ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS8")
+	elsewhere := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS9")
+	sess.RoomID = &elsewhere
+	return sess
+}
+func TestTheJournalWindowIsRefusedWithAnEmptyBody(t *testing.T) {
+	inRoom := sheetSession(true)
+	noCharacter := sheetSession(true)
+	noCharacter.CharacterID = nil
+	for name, c := range map[string]struct {
+		query string
+		sess  session.UserSession
+	}{
+		"no character on the session":  {"room=" + testRoomID.String(), noCharacter},
+		"a room the session is not in": {"room=" + testRoomID.String(), strangerSession()},
+		"a room that is not a ulid":    {"room=nonsense", inRoom},
+		"no room at all":               {"", inRoom},
+		"an entry that is not a ulid":  {"room=" + testRoomID.String() + "&entry=nonsense", inRoom},
+		"a term longer than the box":   {"room=" + testRoomID.String() + "&q=" + strings.Repeat("a", 256), inRoom},
+	} {
+		rec := journalFragment(t, journalWindowApp(), c.query, c.sess)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", name, rec.Code)
+		}
+		if body := strings.TrimSpace(rec.Body.String()); body != "" {
+			t.Errorf("%s: the refusal carries a body: %q", name, body)
+		}
+	}
+}
+func TestTheJournalWindowOpensOnEverythingWritten(t *testing.T) {
+	app := journalWindowApp(journalRowAnswer("Session 12"))
+	rec := journalFragment(t, app, "room="+testRoomID.String(), sheetSession(true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	for _, want := range []string{`id="` + pages.JournalBodyID + `"`, "Session 12", "New Entry", `type="search"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the window is missing %q\n%s", want, body)
+		}
+	}
+}
+func TestSearchingTheJournalWindowRedrawsOnlyTheList(t *testing.T) {
+	app := journalWindowApp(journalRowAnswer("Session 12"))
+	rec := journalFragment(t, app, "room="+testRoomID.String()+"&q=", sheetSession(true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "Session 12") {
+		t.Errorf("the results are missing\n%s", body)
+	}
+	if strings.Contains(body, `id="`+pages.JournalBodyID+`"`) {
+		t.Errorf("a search redrew the whole window, so the box it was typed in was replaced\n%s", body)
+	}
+	if strings.Contains(body, `type="search"`) {
+		t.Errorf("a search redrew the search box\n%s", body)
+	}
+}
+func TestAnEntryOpenedAtTheTableComesBackAsItsEditor(t *testing.T) {
+	app := journalWindowApp(journalEntryAnswer("Session 12", "We went back to the marsh."))
+	rec := journalFragment(t, app, "room="+testRoomID.String()+"&entry="+testEntryID.String(), sheetSession(true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "data-journal-editor-src") {
+		t.Errorf("the entry cannot load the editor\n%s", body)
+	}
+	if !strings.Contains(body, "We went back to the marsh.") {
+		t.Errorf("the entry came back empty\n%s", body)
+	}
+	if strings.Contains(body, `href="/characters/`) {
+		t.Errorf("the entry offers a link that leaves the room\n%s", body)
+	}
+}
+func TestANewEntryAtTheTableComesBackAsItsEditor(t *testing.T) {
+	app := journalWindowApp(journalEntryAnswer("", ""))
+	rec := journalCreate(t, app, url.Values{"room": {testRoomID.String()}}, sheetSession(true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Location"); got != "" {
+		t.Errorf("the window was sent to %q instead of being handed the entry", got)
+	}
+	if !strings.Contains(rec.Body.String(), `id="`+pages.JournalBodyID+`"`) {
+		t.Errorf("what came back is not the window's body\n%s", rec.Body.String())
+	}
+}
+func TestANewEntryOutsideARoomStillOpensItsPage(t *testing.T) {
+	rec := journalCreate(t, journalWindowApp(), url.Values{}, sheetSession(false))
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want 303; body: %s", rec.Code, rec.Body.String())
+	}
+	want := "/characters/" + testCharacterID.String() + "/edit/journal/"
+	if got := rec.Header().Get("Location"); !strings.HasPrefix(got, want) {
+		t.Errorf("Location = %q, want a new entry under %q", got, want)
+	}
+}
+func TestANewEntryRefusesARoomYouAreNotIn(t *testing.T) {
+	rec := journalCreate(t, journalWindowApp(), url.Values{"room": {testRoomID.String()}}, strangerSession())
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+	if body := strings.TrimSpace(rec.Body.String()); body != "" {
+		t.Errorf("the refusal carries a body: %q", body)
 	}
 }

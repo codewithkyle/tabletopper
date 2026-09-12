@@ -116,22 +116,122 @@ func (a *App) CreateJournalEntry(w http.ResponseWriter, r *http.Request) {
 		redirect(w, r, "/characters")
 		return
 	}
-	entryID := ulid.Make()
-	result, err := a.Queries.InsertJournalEntry(ctx, queries.InsertJournalEntryParams{
-		ID:          entryID,
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
+	if roomID := r.PostFormValue("room"); roomID != "" {
+		a.createJournalEntryInRoom(w, r, roomID, characterID)
+		return
+	}
+	entryID, err := a.insertJournalEntry(ctx, characterID, sess.UserID)
 	if err != nil {
 		slog.Error("Failed to create journal entry", "error", err)
 		redirectToError(w, r)
 		return
 	}
-	if inserted, err := result.RowsAffected(); err == nil && inserted == 0 {
+	if entryID == (ulid.ULID{}) {
 		redirect(w, r, "/characters")
 		return
 	}
 	redirect(w, r, "/characters/"+characterID.String()+"/edit/journal/"+entryID.String())
+}
+func (a *App) createJournalEntryInRoom(w http.ResponseWriter, r *http.Request, roomID string, characterID ulid.ULID) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	row, _, err := a.roomMember(ctx, sess, roomID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	entryID, err := a.insertJournalEntry(ctx, characterID, sess.UserID)
+	if err != nil {
+		slog.Error("Failed to create journal entry", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	if entryID == (ulid.ULID{}) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	a.renderJournalWindowEntry(w, r, row.ID.String(), characterID, entryID, sess.UserID)
+}
+func (a *App) insertJournalEntry(ctx context.Context, characterID, ownerID ulid.ULID) (ulid.ULID, error) {
+	entryID := ulid.Make()
+	result, err := a.Queries.InsertJournalEntry(ctx, queries.InsertJournalEntryParams{
+		ID:          entryID,
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if err != nil {
+		return ulid.ULID{}, err
+	}
+	if inserted, err := result.RowsAffected(); err == nil && inserted == 0 {
+		return ulid.ULID{}, nil
+	}
+	return entryID, nil
+}
+func (a *App) CharacterJournalFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	params := r.URL.Query()
+	row, _, err := a.roomMember(ctx, sess, params.Get("room"))
+	if err != nil || sess.CharacterID == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if raw := params.Get("entry"); raw != "" {
+		entryID, err := ulid.Parse(raw)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		a.renderJournalWindowEntry(w, r, row.ID.String(), *sess.CharacterID, entryID, sess.UserID)
+		return
+	}
+	term := strings.TrimSpace(params.Get("q"))
+	if len([]rune(term)) > journalSearchLimit {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	entries, err := a.journalEntries(ctx, *sess.CharacterID, sess.UserID, term)
+	if err != nil {
+		slog.Error("Failed to read a journal for its window", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	data := pages.JournalPageData{
+		CharacterID: sess.CharacterID.String(),
+		RoomID:      row.ID.String(),
+		Entries:     entries,
+		Query:       term,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if params.Has("q") {
+		render(w, r, pages.JournalEntriesFragment(data))
+		return
+	}
+	render(w, r, pages.CharacterJournalWindow(data))
+}
+func (a *App) renderJournalWindowEntry(w http.ResponseWriter, r *http.Request, roomID string, characterID, entryID, ownerID ulid.ULID) {
+	entry, err := a.Queries.GetJournalEntry(r.Context(), queries.GetJournalEntryParams{
+		ID:          entryID,
+		CharacterID: characterID,
+		OwnerID:     ownerID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		slog.Error("Failed to read a journal entry for its window", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.CharacterJournalWindowEntry(pages.JournalEntryPageData{
+		CharacterID: characterID.String(),
+		RoomID:      roomID,
+		EntryID:     entry.ID.String(),
+		Title:       entry.Title,
+		Body:        entry.Body,
+	}))
 }
 func (a *App) SaveJournalEntry(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

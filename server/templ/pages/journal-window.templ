@@ -1,0 +1,41 @@
+package pages
+
+const journalBodyFill = "relative min-h-0"
+const journalBodyTall = "relative min-h-64"
+const journalWindowBody = "@container/sheet grid content-start gap-2"
+
+templ CharacterJournalWindow(data JournalPageData) {
+	<div id={ JournalBodyID } class={ journalWindowBody }>
+		<button
+			type="button"
+			class="btn btn-primary btn-sm"
+			hx-post={ "/characters/" + data.CharacterID + "/journal" }
+			hx-vals={ journalRoomVals(data.RoomID) }
+			hx-target={ "#" + JournalBodyID }
+			hx-swap="outerHTML"
+		>New Entry</button>
+		@journalSearchBox(data)
+		<div id={ journalEntriesID } class="grid gap-2">
+			@journalEntryList(data)
+		</div>
+	</div>
+}
+
+templ CharacterJournalWindowEntry(data JournalEntryPageData) {
+	<div id={ JournalBodyID } class={ journalWindowBody }>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				class="btn btn-soft btn-sm"
+				hx-get={ JournalWindowPath(data.RoomID) }
+				hx-target={ "#" + JournalBodyID }
+				hx-swap="outerHTML"
+			>
+				@arrowLeftIcon()
+				Back to all entries
+			</button>
+			@journalSaveButton(journalEntryAction(data), "btn btn-primary btn-sm ml-auto")
+		</div>
+		@journalEntryPanel(data)
+	</div>
+}

@@ -80,6 +80,9 @@ func (d RoomPageData) LayerNamePath() string {
 func (d RoomPageData) SheetPath() string {
 	return SheetWindowPath(d.ID)
 }
+func (d RoomPageData) JournalPath() string {
+	return JournalWindowPath(d.ID)
+}
 func (d RoomPageData) DicePath() string {
 	return "/fragment/room/dice?room=" + d.ID
 }
@@ -220,16 +223,28 @@ func (d RoomPageData) characterMenu() RoomMenu {
 	if d.CharacterID == "" {
 		return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
 	}
-	return RoomMenu{Label: "Character", Items: append([]RoomMenuItem{{
-		Label: "Character sheet",
-		Window: RoomWindow{
-			ID:     SheetWindow,
-			Title:  d.CharacterName,
-			URL:    d.SheetPath(),
-			Width:  520,
-			Height: 640,
+	return RoomMenu{Label: "Character", Items: []RoomMenuItem{
+		{
+			Label: "Character sheet",
+			Window: RoomWindow{
+				ID:     SheetWindow,
+				Title:  d.CharacterName,
+				URL:    d.SheetPath(),
+				Width:  520,
+				Height: 640,
+			},
 		},
-	}}, comingSoon("Journal")...)}
+		{
+			Label: "Journal",
+			Window: RoomWindow{
+				ID:     JournalWindow,
+				Title:  "Journal",
+				URL:    d.JournalPath(),
+				Width:  420,
+				Height: 520,
+			},
+		},
+	}}
 }
 func (d RoomPageData) roomMenu() RoomMenu {
 	items := []RoomMenuItem{}

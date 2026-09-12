@@ -3,67 +3,83 @@ package pages
 import "tabletopper/templ/layouts"
 
 templ EditCharacterJournalEntry(data JournalEntryPageData) {
-	{{ action := "/characters/" + data.CharacterID + "/journal/" + data.EntryID }}
-	@layouts.Base("Journal | Tabletopper", "/static/journal-editor.js") {
+	@layouts.Base("Journal | Tabletopper", JournalEditorScript) {
 		@editCharacterShell(data.CharacterID, data.Header, characterTabJournal, shellLayout{
 			Fill:     true,
 			Back:     journalBack(data.CharacterID),
 			Actions:  journalEntryActions(data),
 			OwnShare: true,
 		}) {
-			@savingPanel("Entry", action, JournalEntryPanel) {
-				<div class="fieldset">
-					<label class="fieldset-legend" for="title">Title</label>
-					<input
-						id="title"
-						name="title"
-						type="text"
-						class="input w-full font-medium"
-						value={ data.Title }
-						placeholder="The road to Phandalin"
-					/>
-				</div>
-				<div
-					data-journal-editor
-					data-journal-images={ action + "/images" }
-					class="grid min-h-0 grow grid-rows-[auto_minmax(0,1fr)] gap-2"
-				>
-					<div
-						data-journal-toolbar
-						role="toolbar"
-						aria-label="Formatting"
-						class="flex flex-wrap items-center gap-1"
-						hidden
-					>
-						@journalToolbarButton("bold", "Bold")
-						@journalToolbarButton("italic", "Italic")
-						@journalToolbarButton("hyperlink", "Link")
-						<button type="button" class="btn btn-soft btn-sm" data-journal-upload>Image</button>
-						<input type="file" accept="image/png, image/jpeg, image/webp" data-journal-file hidden/>
-						@journalToolbarButton("blockquote", "Quote")
-						@journalToolbarButton("bulletList", "Bullets")
-						@journalToolbarButton("orderedList", "Numbers")
-						<select data-journal-heading class="select select-sm w-auto" aria-label="Text style">
-							<option value="paragraph">Paragraph</option>
-							<option value="2">Heading 2</option>
-							<option value="3">Heading 3</option>
-							<option value="4">Heading 4</option>
-						</select>
-					</div>
-					<div class="relative min-h-0">
-						<div data-journal-mount class="journal-body absolute inset-0" hidden></div>
-						<textarea
-							name="body"
-							data-journal-body
-							class="textarea absolute inset-0 h-full w-full resize-none font-mono"
-							rows="24"
-							placeholder="What happened, and what you want to remember about it."
-						>{ data.Body }</textarea>
-					</div>
-				</div>
-			}
+			@journalEntryPanel(data)
 		}
 	}
+}
+
+templ journalEntryPanel(data JournalEntryPageData) {
+	if data.RoomID == "" {
+		@savingPanel("Entry", journalEntryAction(data), JournalEntryPanel) {
+			@journalEntryFields(data)
+		}
+	} else {
+		@flatSavingPanel(journalEntryAction(data), JournalEntryPanel) {
+			@journalEntryFields(data)
+		}
+	}
+}
+
+templ journalEntryFields(data JournalEntryPageData) {
+	<div class="fieldset">
+		<label class={ "fieldset-legend " + denseLegend } for="title">Title</label>
+		<input
+			id="title"
+			name="title"
+			type="text"
+			class={ "input w-full font-medium " + denseInput }
+			value={ data.Title }
+			placeholder="The road to Phandalin"
+		/>
+	</div>
+	<div
+		data-journal-editor
+		data-journal-images={ journalEntryAction(data) + "/images" }
+		if data.RoomID != "" {
+			data-journal-editor-src={ JournalEditorScript }
+		}
+		class="grid min-h-0 grow grid-rows-[auto_minmax(0,1fr)] gap-2"
+	>
+		<div
+			data-journal-toolbar
+			role="toolbar"
+			aria-label="Formatting"
+			class="flex flex-wrap items-center gap-1"
+			hidden
+		>
+			@journalToolbarButton("bold", "Bold")
+			@journalToolbarButton("italic", "Italic")
+			@journalToolbarButton("hyperlink", "Link")
+			<button type="button" class="btn btn-soft btn-sm" data-journal-upload>Image</button>
+			<input type="file" accept="image/png, image/jpeg, image/webp" data-journal-file hidden/>
+			@journalToolbarButton("blockquote", "Quote")
+			@journalToolbarButton("bulletList", "Bullets")
+			@journalToolbarButton("orderedList", "Numbers")
+			<select data-journal-heading class="select select-sm w-auto" aria-label="Text style">
+				<option value="paragraph">Paragraph</option>
+				<option value="2">Heading 2</option>
+				<option value="3">Heading 3</option>
+				<option value="4">Heading 4</option>
+			</select>
+		</div>
+		<div class={ journalBodyBox(data) }>
+			<div data-journal-mount class="journal-body absolute inset-0" hidden></div>
+			<textarea
+				name="body"
+				data-journal-body
+				class="textarea absolute inset-0 h-full w-full resize-none font-mono"
+				rows="24"
+				placeholder="What happened, and what you want to remember about it."
+			>{ data.Body }</textarea>
+		</div>
+	</div>
 }
 
 templ journalToolbarButton(mark string, label string) {
@@ -77,7 +93,7 @@ templ journalToolbarButton(mark string, label string) {
 
 templ journalEntryActions(data JournalEntryPageData) {
 	@journalShareButton(data.CharacterID, data.EntryID)
-	@journalSaveButton("/characters/" + data.CharacterID + "/journal/" + data.EntryID)
+	@journalSaveButton(journalEntryAction(data), "btn btn-primary max-[640px]:flex-1")
 }
 
 templ journalShareButton(characterID string, entryID string) {
@@ -91,10 +107,10 @@ templ journalShareButton(characterID string, entryID string) {
 	</button>
 }
 
-templ journalSaveButton(action string) {
+templ journalSaveButton(action string, class string) {
 	<button
 		type="button"
-		class="btn btn-primary max-[640px]:flex-1"
+		class={ class }
 		hx-post={ action }
 		hx-include={ "#" + panelFormID(JournalEntryPanel) }
 		hx-vals={ `{"announce":"1"}` }

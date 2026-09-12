@@ -30,6 +30,7 @@ import { mountTools } from "./tools.ts";
 import type { Role, State } from "./protocol.ts";
 import type { Revisions } from "./model/revisions.ts";
 import { mountWindows, openWindow } from "./window.ts";
+import { mountJournalEditors } from "./journal-editor.ts";
 import { pawnWindow } from "./pawn-window.ts";
 import type { Named } from "./pawn-window.ts";
 import type { Hud } from "./hud.ts";
@@ -37,6 +38,7 @@ import type { Table } from "./modes/table.ts";
 const mount = document.getElementById("tabletop");
 if (mount) {
 	mountWindows(mount, mount.dataset.room ?? "");
+	mountJournalEditors();
 	mountHitPoints();
 	mountColorFields();
 	const tools = mountTools(mount);
