@@ -34,6 +34,10 @@ type Command interface {
 type Coalescer interface {
 	CoalesceKey() string
 }
+type Preview interface {
+	Command
+	preview()
+}
 type Audience int
 
 const (

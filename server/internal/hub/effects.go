@@ -19,6 +19,9 @@ func (a *actor) changed(before *room.State, changes []room.Change) {
 			}
 		case *room.PlayersRemoved:
 			for _, id := range c.IDs {
+				if _, kicked := a.kicked[id]; kicked {
+					continue
+				}
 				a.drop(id, reasonLeft)
 			}
 		}

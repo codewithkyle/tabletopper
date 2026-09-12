@@ -350,6 +350,7 @@ type PawnDrag struct {
 }
 
 func (c *PawnDrag) CoalesceKey() string { return "pawn.drag:" + c.Anchor.String() }
+func (c *PawnDrag) preview()            {}
 func (c *PawnDrag) Authorize(s *State, a Actor) error {
 	return s.requireControl(a, c.Anchor, c.Others)
 }

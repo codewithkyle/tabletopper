@@ -212,6 +212,9 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 	if err := cmd.Authorize(a.state, who); err != nil {
 		return err
 	}
+	if _, ok := cmd.(room.Preview); ok {
+		return a.preview(who, cmd, sender)
+	}
 	before := a.state.Clone()
 	sigs, err := cmd.Apply(a.state, who, a.env())
 	if err != nil {
@@ -222,6 +225,14 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 	a.emit(sigs, who, sender, nil)
 	a.signals(sigs)
 	a.changed(&before, derived)
+	return nil
+}
+func (a *actor) preview(who room.Actor, cmd room.Command, sender *client) error {
+	sigs, err := cmd.Apply(a.state, who, a.env())
+	if err != nil {
+		return err
+	}
+	a.emit(sigs, who, sender, nil)
 	return nil
 }
 func (a *actor) broadcast(before *room.State, who room.Actor) []room.Change {

@@ -407,3 +407,44 @@ func ulidField(t *testing.T, body map[string]any, name string) ulid.ULID {
 	}
 	return id
 }
+func TestAPreviewCountsAsNoChange(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	player := tb.join(playerID, "Ari", room.RolePlayer)
+	frames(t, gm)
+	frames(t, player)
+	counted := func() uint64 {
+		reply := make(chan any, 1)
+		if err := tb.actor().post(tb.ctx(), ask{fn: func(a *actor) any { return a.changes }, reply: reply}); err != nil {
+			t.Fatalf("asking the room: %v", err)
+		}
+		return (<-reply).(uint64)
+	}
+	was := counted()
+	tb.send(player, "p", &room.Ping{Layer: tb.actor().state.Table.ActiveLayer, X: 64, Y: 64})
+	only(t, gm, "pinged")
+	if got := counted(); got != was {
+		t.Fatalf("a ping moved the change count from %d to %d; a preview never changes the room and must not be cloned, derived or saved", was, got)
+	}
+}
+func TestAKickedPlayersDepartureIsNeverAlsoALeave(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	tb.join(gmID, "Kyle", room.RoleGM)
+	player := tb.join(playerID, "Ari", room.RolePlayer)
+	reply := make(chan any, 1)
+	err := tb.actor().post(tb.ctx(), ask{fn: func(a *actor) any {
+		a.kicked[playerID] = time.Now()
+		before := a.state.Clone()
+		a.changed(&before, []room.Change{&room.PlayersRemoved{IDs: []ulid.ULID{playerID}}})
+		return nil
+	}, reply: reply})
+	if err != nil {
+		t.Fatalf("asking the room: %v", err)
+	}
+	<-reply
+	select {
+	case <-player.quit:
+		t.Fatalf("the roster change closed a kicked player as %q; the kick signal owns that close and its reason", player.reason)
+	default:
+	}
+}

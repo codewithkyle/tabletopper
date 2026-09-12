@@ -18,6 +18,7 @@ type Ping struct {
 	Y     int       `json:"y"`
 }
 
+func (c *Ping) preview() {}
 func (c *Ping) Authorize(s *State, a Actor) error {
 	return s.requirePlayerLayer(a, c.Layer)
 }

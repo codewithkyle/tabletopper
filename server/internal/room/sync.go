@@ -18,6 +18,7 @@ type SnapshotYou struct {
 }
 type SyncRequest struct{}
 
+func (c *SyncRequest) preview()                          {}
 func (c *SyncRequest) Authorize(s *State, a Actor) error { return nil }
 func (c *SyncRequest) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	return []Signal{signal(ToSender, &Snapshot{
