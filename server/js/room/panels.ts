@@ -7,50 +7,62 @@ import {
 	WINDOW_CLOSE,
 	WINDOW_RETITLE,
 } from "../../public/js/events.js";
-import type { Event, InitiativeEntry, Pawn } from "./protocol.ts";
+import type { Change, Frame, InitiativeEntry, Pawn } from "./protocol.ts";
 import { PAWN_WINDOW } from "./pawn-window.ts";
 import { openWindows } from "./window.ts";
 let tracked = new Set<string>();
-const panelEvents: Partial<Record<Event["type"], string>> = {
-	"player.joined": ROOM_PLAYERS,
-	"player.updated": ROOM_PLAYERS,
-	"player.left": ROOM_PLAYERS,
+const panelEvents: Partial<Record<Change["type"], string>> = {
+	"players.upserted": ROOM_PLAYERS,
+	"players.removed": ROOM_PLAYERS,
 	"initiative.updated": ROOM_INITIATIVE,
 	"room.updated": ROOM_INFO,
 	"table.updated": ROOM_TABLETOP,
+	"layers.updated": ROOM_TABLETOP,
 };
 const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP];
-export function announce(event: Event): void {
-	if (event.type === "snapshot") {
-		track(event.state.initiative.entries);
+export function announce(frame: Frame): void {
+	if (frame.type === "snapshot") {
+		track(frame.state.initiative.entries);
 		for (const name of everything) {
 			window.dispatchEvent(new CustomEvent(name));
 		}
-		reconcilePawnWindows(event.state.pawns);
+		reconcilePawnWindows(frame.state.pawns);
 		return;
 	}
-	if (event.type === "initiative.updated") {
-		track(event.initiative.entries);
+	if (frame.type !== "changes") {
+		return;
 	}
-	switch (event.type) {
-		case "pawn.spawned":
-		case "pawn.updated":
-			pawnChanged(event.pawn.id);
-			window.dispatchEvent(
-				new CustomEvent(WINDOW_RETITLE, {
-					detail: { id: PAWN_WINDOW + event.pawn.id, title: event.pawn.name },
-				}),
-			);
-			return;
-		case "pawn.removed":
-			pawnChanged(event.id);
-			window.dispatchEvent(
-				new CustomEvent(WINDOW_CLOSE, { detail: { id: PAWN_WINDOW + event.id } }),
-			);
-			return;
+	const panels = new Set<string>();
+	for (const change of frame.events) {
+		switch (change.type) {
+			case "pawns.upserted":
+				for (const pawn of change.pawns) {
+					pawnChanged(pawn.id, panels);
+					window.dispatchEvent(
+						new CustomEvent(WINDOW_RETITLE, {
+							detail: { id: PAWN_WINDOW + pawn.id, title: pawn.name },
+						}),
+					);
+				}
+				continue;
+			case "pawns.removed":
+				for (const id of change.ids) {
+					pawnChanged(id, panels);
+					window.dispatchEvent(
+						new CustomEvent(WINDOW_CLOSE, { detail: { id: PAWN_WINDOW + id } }),
+					);
+				}
+				continue;
+			case "initiative.updated":
+				track(change.initiative.entries);
+				break;
+		}
+		const name = panelEvents[change.type];
+		if (name) {
+			panels.add(name);
+		}
 	}
-	const name = panelEvents[event.type];
-	if (name) {
+	for (const name of panels) {
 		window.dispatchEvent(new CustomEvent(name));
 	}
 }
@@ -69,10 +81,10 @@ function reconcilePawnWindows(pawns: readonly Pawn[]): void {
 		}
 	}
 }
-function pawnChanged(id: string): void {
+function pawnChanged(id: string, panels: Set<string>): void {
 	window.dispatchEvent(new CustomEvent(ROOM_PAWN, { detail: { id } }));
 	if (tracked.has(id)) {
-		window.dispatchEvent(new CustomEvent(ROOM_INITIATIVE));
+		panels.add(ROOM_INITIATIVE);
 	}
 }
 function track(entries: readonly InitiativeEntry[]): void {

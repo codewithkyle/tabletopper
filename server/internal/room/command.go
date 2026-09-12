@@ -184,13 +184,16 @@ func (s *State) requirePlayerLayer(a Actor, layer ulid.ULID) error {
 	return forbidden("Wrong layer", "Players can only act on the layer the table is showing.")
 }
 func CloneTable(t Table) Table {
-	src := t.Layers
-	t.Layers = make([]Layer, len(src))
+	t.Layers = cloneLayers(t.Layers)
+	return t
+}
+func cloneLayers(src []Layer) []Layer {
+	out := make([]Layer, len(src))
 	for i, l := range src {
 		l.Map = cloneRef(l.Map)
-		t.Layers[i] = l
+		out[i] = l
 	}
-	return t
+	return out
 }
 func cloneInitiative(i Initiative) Initiative {
 	src := i.Entries

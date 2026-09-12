@@ -7,11 +7,11 @@ import (
 )
 
 type InitiativeUpdated struct {
-	Header
+	Kind
 	Initiative Initiative `json:"initiative"`
 }
 
-func (*InitiativeUpdated) eventType() string { return "initiative.updated" }
+func (*InitiativeUpdated) changeType() string { return "initiative.updated" }
 func (s *State) hasEntryFor(pawn ulid.ULID) bool {
 	for _, e := range s.Initiative.Entries {
 		if slices.Contains(e.PawnIDs, pawn) {

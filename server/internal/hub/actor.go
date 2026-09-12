@@ -218,34 +218,35 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 		a.state = &before
 		return err
 	}
-	derived := a.derive(&before, who)
+	derived := a.broadcast(&before, who)
 	a.emit(sigs, who, sender, nil)
 	a.signals(sigs)
-	a.changed(derived)
+	a.changed(&before, derived)
 	return nil
 }
-func (a *actor) derive(before *room.State, who room.Actor) []room.Event {
+func (a *actor) broadcast(before *room.State, who room.Actor) []room.Change {
 	if reflect.DeepEqual(*before, *a.state) {
 		return nil
 	}
 	a.dirty = true
 	a.changes++
 	by := actorID(who)
-	var gm []room.Event
+	var gm []room.Change
 	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
-		evs := room.Derive(before, a.state, role)
+		changes := room.Derive(before, a.state, role)
 		if role == room.RoleGM {
-			gm = evs
+			gm = changes
 		}
-		for _, ev := range evs {
-			frame, err := room.EncodeEvent(ev, a.advance(role, true), by)
-			if err != nil {
-				slog.Error("Failed to encode an event", "room", a.id, "event", frameType(ev), "error", err)
-				continue
-			}
-			for _, c := range a.byRole(role) {
-				a.send(c, frame)
-			}
+		if len(changes) == 0 {
+			continue
+		}
+		frame, err := room.EncodeEvent(room.NewChanges(changes), a.advance(role, true), by)
+		if err != nil {
+			slog.Error("Failed to encode a frame", "room", a.id, "role", role, "error", err)
+			continue
+		}
+		for _, c := range a.byRole(role) {
+			a.send(c, frame)
 		}
 	}
 	return gm
@@ -383,13 +384,21 @@ func (a *actor) signals(sigs []room.Signal) {
 		}
 	}
 }
-func (a *actor) changed(evs []room.Event) {
-	for _, ev := range evs {
-		switch e := ev.(type) {
-		case *room.PawnUpdated:
-			a.writeThrough(e.Pawn)
-		case *room.PlayerLeft:
-			a.drop(e.ID, reasonLeft)
+func (a *actor) changed(before *room.State, changes []room.Change) {
+	for _, ch := range changes {
+		switch c := ch.(type) {
+		case *room.PawnsUpserted:
+			for _, p := range c.Pawns {
+				if before.Pawn(p.ID) == nil {
+					a.remember(p)
+					continue
+				}
+				a.writeThrough(p)
+			}
+		case *room.PlayersRemoved:
+			for _, id := range c.IDs {
+				a.drop(id, reasonLeft)
+			}
 		}
 	}
 }
@@ -412,6 +421,11 @@ func (a *actor) count(user ulid.ULID) int {
 		}
 	}
 	return n
+}
+func (a *actor) remember(p room.Pawn) {
+	if character, hp, owed := writeThroughHP(p); owed {
+		a.lastHP[character] = hp
+	}
 }
 func (a *actor) writeThrough(p room.Pawn) {
 	character, hp, owed := writeThroughHP(p)

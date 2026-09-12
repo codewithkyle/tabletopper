@@ -42,9 +42,9 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 			t.Fatalf("%s was re-snapped to a cell centre at (%d, %d)", p.Name, p.X, p.Y)
 		}
 	}
-	evs := ch.events(RoleGM)
-	equalStrings(t, "the GM", eventTypesOf(evs), []string{"pawn.moved"})
-	moved := evs[0].(*PawnMoved)
+	evs := ch.changes(RoleGM)
+	equalStrings(t, "the GM", changeTypesOf(evs), []string{"pawns.moved"})
+	moved := evs[0].(*PawnsMoved)
 	if len(moved.Pawns) != 4 {
 		t.Fatalf("the move carried %d positions, want 4", len(moved.Pawns))
 	}
@@ -95,20 +95,20 @@ func TestADragPreviewsWithoutChangingAnything(t *testing.T) {
 		t.Fatal("a drag changed the state")
 	}
 	equalStrings(t, "signals", summary(ch.signals), []string{"pawn.dragging to others"})
-	if got := ch.events(RoleGM); len(got) != 0 {
-		t.Fatalf("a drag derived %v; it changes nothing", eventTypesOf(got))
+	if got := ch.changes(RoleGM); len(got) != 0 {
+		t.Fatalf("a drag derived %v; it changes nothing", changeTypesOf(got))
 	}
 	ghost := ch.signals[0].Event.(*PawnDragging)
 	if ghost.Pawns[0].X != 300 || ghost.Pawns[0].Y != 300 {
 		t.Fatalf("the ghost was snapped to (%d, %d); a drag preview is never snapped", ghost.Pawns[0].X, ghost.Pawns[0].Y)
 	}
-	if got := ch.seen(w.pc); len(got) != 0 {
+	if got := ch.sent(w.pc); len(got) != 0 {
 		t.Fatalf("the dragging player received their own ghost: %v", eventTypesOf(got))
 	}
-	if got := ch.seen(w.gm); len(got) != 1 {
+	if got := ch.sent(w.gm); len(got) != 1 {
 		t.Fatalf("the GM received %v, want the ghost", eventTypesOf(got))
 	}
-	if got := ch.seen(w.other); len(got) != 1 {
+	if got := ch.sent(w.other); len(got) != 1 {
 		t.Fatalf("the other player received %v, want the ghost", eventTypesOf(got))
 	}
 }
@@ -168,21 +168,21 @@ func TestHidingAPawnTellsEachAudienceSomethingDifferent(t *testing.T) {
 	goblin := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 	hide := w.change(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
-	equalStrings(t, "hiding, for the GM", eventTypesOf(hide.events(RoleGM)), []string{"pawn.updated"})
-	players := hide.events(RolePlayer)
-	equalStrings(t, "hiding, for a player", eventTypesOf(players), []string{"pawn.removed", "initiative.updated"})
+	equalStrings(t, "hiding, for the GM", changeTypesOf(hide.changes(RoleGM)), []string{"pawns.upserted"})
+	players := hide.changes(RolePlayer)
+	equalStrings(t, "hiding, for a player", changeTypesOf(players), []string{"pawns.removed", "initiative.updated"})
 	if tracker := players[1].(*InitiativeUpdated); len(tracker.Initiative.Entries) != 0 {
 		t.Fatalf("the players' tracker still names the hidden pawn: %+v", tracker.Initiative.Entries)
 	}
 	reveal := w.change(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: true}, w.gm)
-	equalStrings(t, "revealing, for the GM", eventTypesOf(reveal.events(RoleGM)), []string{"pawn.updated"})
-	equalStrings(t, "revealing, for a player", eventTypesOf(reveal.events(RolePlayer)), []string{"pawn.spawned", "initiative.updated"})
+	equalStrings(t, "revealing, for the GM", changeTypesOf(reveal.changes(RoleGM)), []string{"pawns.upserted"})
+	equalStrings(t, "revealing, for a player", changeTypesOf(reveal.changes(RolePlayer)), []string{"pawns.upserted", "initiative.updated"})
 	again := w.change(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: true}, w.gm)
-	if got := again.events(RoleGM); len(got) != 0 {
-		t.Fatalf("revealing a pawn that was already shown told the GM %v", eventTypesOf(got))
+	if got := again.changes(RoleGM); len(got) != 0 {
+		t.Fatalf("revealing a pawn that was already shown told the GM %v", changeTypesOf(got))
 	}
-	if got := again.events(RolePlayer); len(got) != 0 {
-		t.Fatalf("revealing a pawn that was already shown told the players %v", eventTypesOf(got))
+	if got := again.changes(RolePlayer); len(got) != 0 {
+		t.Fatalf("revealing a pawn that was already shown told the players %v", changeTypesOf(got))
 	}
 }
 func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
@@ -191,9 +191,9 @@ func TestHidingAPawnOnAnotherFloorStillCorrectsThePlayersTracker(t *testing.T) {
 	goblin := w.spawn(Pawn{Name: "Goblin", LayerID: cellar, Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 	hide := w.change(&PawnSetVisible{IDs: []ulid.ULID{goblin}, Visible: false}, w.gm)
-	equalStrings(t, "hiding a pawn downstairs, for the GM", eventTypesOf(hide.events(RoleGM)), []string{"pawn.updated"})
-	players := hide.events(RolePlayer)
-	equalStrings(t, "hiding a pawn downstairs, for a player", eventTypesOf(players), []string{"initiative.updated"})
+	equalStrings(t, "hiding a pawn downstairs, for the GM", changeTypesOf(hide.changes(RoleGM)), []string{"pawns.upserted"})
+	players := hide.changes(RolePlayer)
+	equalStrings(t, "hiding a pawn downstairs, for a player", changeTypesOf(players), []string{"initiative.updated"})
 	tracker, ok := players[len(players)-1].(*InitiativeUpdated)
 	if !ok {
 		t.Fatalf("the last event a player received was %T", players[len(players)-1])
@@ -211,8 +211,8 @@ func TestMovingAPawnBetweenFloorsLeavesTheTrackerAlone(t *testing.T) {
 	goblin := w.spawn(Pawn{Name: "Goblin", Visible: true})
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12}}}, w.gm)
 	ch := w.change(&PawnSetLayer{IDs: []ulid.ULID{goblin}, Layer: cellar}, w.gm)
-	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{"pawn.updated"})
-	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{"pawn.removed"})
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"pawns.upserted"})
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), []string{"pawns.removed"})
 	if got := len(projectInitiative(w.s).Entries); got != 1 {
 		t.Fatalf("the players' tracker holds %d entries after a floor move, want 1", got)
 	}
@@ -226,27 +226,19 @@ func TestHidingASelectionIsOneCommandAndOneTrackerEvent(t *testing.T) {
 		{Name: "Second goblin", PawnIDs: []ulid.ULID{second}, Initiative: 11},
 	}}, w.gm)
 	hide := w.change(&PawnSetVisible{IDs: []ulid.ULID{first, second}, Visible: false}, w.gm)
-	equalStrings(t, "hiding two, for the GM", eventTypesOf(hide.events(RoleGM)), []string{
-		"pawn.updated",
-		"pawn.updated",
-	})
-	players := hide.events(RolePlayer)
-	equalStrings(t, "hiding two, for a player", eventTypesOf(players), []string{
-		"pawn.removed",
-		"pawn.removed",
+	equalStrings(t, "hiding two, for the GM", changeTypesOf(hide.changes(RoleGM)), []string{"pawns.upserted"})
+	players := hide.changes(RolePlayer)
+	equalStrings(t, "hiding two, for a player", changeTypesOf(players), []string{
+		"pawns.removed",
 		"initiative.updated",
 	})
 	if tracker := players[len(players)-1].(*InitiativeUpdated); len(tracker.Initiative.Entries) != 0 {
 		t.Fatalf("the players' tracker still names a hidden pawn: %+v", tracker.Initiative.Entries)
 	}
 	reveal := w.change(&PawnSetVisible{IDs: []ulid.ULID{first, second}, Visible: true}, w.gm)
-	equalStrings(t, "revealing two, for the GM", eventTypesOf(reveal.events(RoleGM)), []string{
-		"pawn.updated",
-		"pawn.updated",
-	})
-	equalStrings(t, "revealing two, for a player", eventTypesOf(reveal.events(RolePlayer)), []string{
-		"pawn.spawned",
-		"pawn.spawned",
+	equalStrings(t, "revealing two, for the GM", changeTypesOf(reveal.changes(RoleGM)), []string{"pawns.upserted"})
+	equalStrings(t, "revealing two, for a player", changeTypesOf(reveal.changes(RolePlayer)), []string{
+		"pawns.upserted",
 		"initiative.updated",
 	})
 }
@@ -255,8 +247,8 @@ func TestHidingAMixedSelectionSetsRatherThanToggles(t *testing.T) {
 	seen := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
 	hidden := w.spawn(Pawn{Name: "Ambusher", X: 160, Y: 96, Visible: false})
 	ch := w.change(&PawnSetVisible{IDs: []ulid.ULID{seen, hidden}, Visible: false}, w.gm)
-	equalStrings(t, "hiding a mixed selection, for the GM", eventTypesOf(ch.events(RoleGM)), []string{"pawn.updated"})
-	equalStrings(t, "hiding a mixed selection, for a player", eventTypesOf(ch.events(RolePlayer)), []string{"pawn.removed"})
+	equalStrings(t, "hiding a mixed selection, for the GM", changeTypesOf(ch.changes(RoleGM)), []string{"pawns.upserted"})
+	equalStrings(t, "hiding a mixed selection, for a player", changeTypesOf(ch.changes(RolePlayer)), []string{"pawns.removed"})
 	if w.s.Pawn(seen).Visible || w.s.Pawn(hidden).Visible {
 		t.Fatal("a pawn is still visible after the whole selection was hidden")
 	}
@@ -276,10 +268,7 @@ func TestTheSpawnedPartyIsVisible(t *testing.T) {
 		{Name: "Rin", Size: SizeMedium, LayerID: w.layer, X: 160, Y: 96, OwnerID: &testOtherID, CharacterID: &testOtherChar},
 	}}, w.gm)
 	for _, role := range []Role{RoleGM, RolePlayer} {
-		equalStrings(t, "spawning the party for the "+string(role), eventTypesOf(ch.events(role)), []string{
-			"pawn.spawned",
-			"pawn.spawned",
-		})
+		equalStrings(t, "spawning the party for the "+string(role), changeTypesOf(ch.changes(role)), []string{"pawns.upserted"})
 	}
 	for _, p := range w.s.Pawns {
 		if !p.Visible {
@@ -297,9 +286,8 @@ func TestRemovingPawnsEmitsOneTrackerEvent(t *testing.T) {
 	}}, w.gm)
 	ch := w.change(&PawnRemove{IDs: []ulid.ULID{first, second}}, w.gm)
 	for _, role := range []Role{RoleGM, RolePlayer} {
-		equalStrings(t, "removing two for the "+string(role), eventTypesOf(ch.events(role)), []string{
-			"pawn.removed",
-			"pawn.removed",
+		equalStrings(t, "removing two for the "+string(role), changeTypesOf(ch.changes(role)), []string{
+			"pawns.removed",
 			"initiative.updated",
 		})
 	}

@@ -92,11 +92,14 @@ type change struct {
 	signals []Signal
 }
 
-func (ch change) events(role Role) []Event {
+func (ch change) changes(role Role) []Change {
 	return Derive(&ch.before, ch.w.s, role)
 }
-func (ch change) seen(viewer Actor) []Event {
-	out := ch.events(viewer.Role)
+func (ch change) sent(viewer Actor) []Event {
+	var out []Event
+	if chs := ch.changes(viewer.Role); len(chs) > 0 {
+		out = append(out, NewChanges(chs))
+	}
 	for _, sig := range ch.signals {
 		if !reaches(sig, ch.actor, viewer) {
 			continue
@@ -197,6 +200,13 @@ func audienceName(a Audience) string {
 		return "player"
 	}
 	return "?"
+}
+func changeTypesOf(chs []Change) []string {
+	out := make([]string, 0, len(chs))
+	for _, ch := range chs {
+		out = append(out, ch.changeType())
+	}
+	return out
 }
 func eventTypesOf(evs []Event) []string {
 	out := make([]string, 0, len(evs))

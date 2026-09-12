@@ -165,9 +165,9 @@ func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 	pawn := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID})
 	ch := w.change(&PlayerKick{ID: testPlayerID}, w.gm)
 	equalStrings(t, "signals", summary(ch.signals), []string{"player.kicked to player"})
-	equalStrings(t, "the room", eventTypesOf(ch.events(RoleGM)), []string{"player.left"})
-	equalStrings(t, "the kicked player", eventTypesOf(ch.seen(w.pc)), []string{"player.left", "player.kicked"})
-	equalStrings(t, "the other player", eventTypesOf(ch.seen(w.other)), []string{"player.left"})
+	equalStrings(t, "the room", changeTypesOf(ch.changes(RoleGM)), []string{"players.removed"})
+	equalStrings(t, "the kicked player", eventTypesOf(ch.sent(w.pc)), []string{"changes", "player.kicked"})
+	equalStrings(t, "the other player", eventTypesOf(ch.sent(w.other)), []string{"changes"})
 	if w.s.Player(testPlayerID) != nil {
 		t.Fatal("the kicked player is still seated")
 	}
@@ -178,7 +178,7 @@ func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 	w := newWorld(t)
 	ch := w.change(&PlayerSetConnected{ID: testPlayerID, Connected: false}, w.gm)
-	equalStrings(t, "a disconnect", eventTypesOf(ch.events(RoleGM)), []string{"player.updated"})
+	equalStrings(t, "a disconnect", changeTypesOf(ch.changes(RoleGM)), []string{"players.upserted"})
 	p := w.s.Player(testPlayerID)
 	if p == nil {
 		t.Fatal("a disconnect removed the player")
@@ -187,7 +187,7 @@ func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 		t.Fatal("the player is still marked connected")
 	}
 	back := w.change(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer}}, w.gm)
-	equalStrings(t, "a return", eventTypesOf(back.events(RoleGM)), []string{"player.updated"})
+	equalStrings(t, "a return", changeTypesOf(back.changes(RoleGM)), []string{"players.upserted"})
 }
 func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", Env{})

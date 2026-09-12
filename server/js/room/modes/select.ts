@@ -342,24 +342,28 @@ export function createSelect(deps: SelectDeps): Select {
 					deps.invalidate();
 					return;
 				}
-				case "pawn.moved":
-				case "pawn.updated":
-				case "pawn.removed": {
-					const touched = event.type === "pawn.moved"
+				case "pawns.moved":
+				case "pawns.upserted":
+				case "pawns.removed": {
+					const touched = event.type === "pawns.moved"
 						? event.pawns.map((at) => at.id)
-						: [event.type === "pawn.updated" ? event.pawn.id : event.id];
+						: event.type === "pawns.upserted"
+						? event.pawns.map((p) => p.id)
+						: event.ids;
 					forgetPreviews(previews, touched);
 					const present = new Set(board.state.pawns.map((p) => p.id));
 					selection.prune(present);
 					if (hovered && !present.has(hovered)) {
 						hovered = null;
 					}
-					if (event.type === "pawn.removed" && gesture?.kind === "drag") {
-						if (gesture.anchor === event.id) {
+					if (event.type === "pawns.removed" && gesture?.kind === "drag") {
+						if (event.ids.includes(gesture.anchor)) {
 							gesture = null;
 						} else {
-							gesture.ids = gesture.ids.filter((id) => id !== event.id);
-							gesture.origins.delete(event.id);
+							gesture.ids = gesture.ids.filter((id) => !event.ids.includes(id));
+							for (const id of event.ids) {
+								gesture.origins.delete(id);
+							}
 						}
 					}
 					board.announce();

@@ -79,6 +79,34 @@ func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 	}
 }
 
+func TestSpawningAPlayerPawnWritesNothingToTheSheet(t *testing.T) {
+	var mu sync.Mutex
+	var writes []int
+	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
+		mu.Lock()
+		writes = append(writes, hp)
+		mu.Unlock()
+		return nil
+	}})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	character := testID(22)
+	full := 12
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
+		CharacterID: &character,
+		Pawn: &room.Pawn{
+			Name: "Ilyana", Size: room.SizeMedium,
+			HP: &full, MaxHP: &full, CharacterID: &character,
+		},
+	})
+	tb.actor().sheet.stop()
+	mu.Lock()
+	defer mu.Unlock()
+	if len(writes) != 0 {
+		t.Errorf("writes = %v; a pawn that has just arrived carries the sheet's own hit points", writes)
+	}
+}
 func TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot(t *testing.T) {
 	var mu sync.Mutex
 	var writes []int
@@ -105,7 +133,7 @@ func TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot(t *testing.
 			HP: &full, MaxHP: &full, CharacterID: &character,
 		},
 	})
-	pawn := ulidField(t, only(t, gm, "pawn.spawned")[0].Body["pawn"].(map[string]any), "id")
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
 	tb.send(gm, "2", &room.PawnUpdate{ID: pawn, HP: &hurt})
 	<-started
 	release <- struct{}{}

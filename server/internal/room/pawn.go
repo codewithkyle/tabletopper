@@ -6,33 +6,26 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-type PawnSpawned struct {
-	Header
-	Pawn Pawn `json:"pawn"`
+type PawnsUpserted struct {
+	Kind
+	Pawns []Pawn `json:"pawns"`
 }
 
-func (*PawnSpawned) eventType() string { return "pawn.spawned" }
+func (*PawnsUpserted) changeType() string { return "pawns.upserted" }
 
-type PawnUpdated struct {
-	Header
-	Pawn Pawn `json:"pawn"`
+type PawnsRemoved struct {
+	Kind
+	IDs []ulid.ULID `json:"ids"`
 }
 
-func (*PawnUpdated) eventType() string { return "pawn.updated" }
+func (*PawnsRemoved) changeType() string { return "pawns.removed" }
 
-type PawnRemoved struct {
-	Header
-	ID ulid.ULID `json:"id"`
-}
-
-func (*PawnRemoved) eventType() string { return "pawn.removed" }
-
-type PawnMoved struct {
-	Header
+type PawnsMoved struct {
+	Kind
 	Pawns []PawnPosition `json:"pawns"`
 }
 
-func (*PawnMoved) eventType() string { return "pawn.moved" }
+func (*PawnsMoved) changeType() string { return "pawns.moved" }
 
 type PawnDragging struct {
 	Header

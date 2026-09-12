@@ -25,7 +25,10 @@ type RoomInfo struct {
 	Locked bool      `json:"locked"`
 }
 type Table struct {
-	Layers             []Layer            `json:"layers"`
+	Layers []Layer `json:"layers"`
+	TableSettings
+}
+type TableSettings struct {
 	ActiveLayer        ulid.ULID          `json:"activeLayer"`
 	Grid               Grid               `json:"grid"`
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
@@ -329,19 +332,21 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 		Schema: Schema,
 		Room:   RoomInfo{ID: roomID, Name: name},
 		Table: Table{
-			Layers:      []Layer{layer},
-			ActiveLayer: layer.ID,
-			Grid: Grid{
-				Lines:       GridLinesSolid,
-				CellSize:    DefaultCellSize,
-				Color:       DefaultGridColor,
-				Snap:        SnapCells,
-				FeetPerCell: DefaultFeetPerCell,
-				Diagonals:   DiagonalsEqual,
+			Layers: []Layer{layer},
+			TableSettings: TableSettings{
+				ActiveLayer: layer.ID,
+				Grid: Grid{
+					Lines:       GridLinesSolid,
+					CellSize:    DefaultCellSize,
+					Color:       DefaultGridColor,
+					Snap:        SnapCells,
+					FeetPerCell: DefaultFeetPerCell,
+					Diagonals:   DiagonalsEqual,
+				},
+				PawnLabels:         LabelsDefault,
+				PlayersCanDraw:     true,
+				InitiativeGrouping: GroupMonsters,
 			},
-			PawnLabels:         LabelsDefault,
-			PlayersCanDraw:     true,
-			InitiativeGrouping: GroupMonsters,
 		},
 	}
 	s.Normalize()

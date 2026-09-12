@@ -138,6 +138,14 @@ export interface Table {
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
+export interface TableSettings {
+	activeLayer: string;
+	grid: Grid;
+	pawnLabels: PawnLabels;
+	playersCanDraw: boolean;
+	initiativeGrouping: InitiativeGrouping;
+	fogPrefill: boolean;
+}
 export interface FogAdd {
 	type: "fog.add";
 	cid: string;
@@ -425,6 +433,90 @@ export type Command =
 	| TableSetLayerMap
 	| TableSetOptions
 	;
+export interface FogRemoved {
+	type: "fog.removed";
+	ids: string[];
+}
+export interface FogUpserted {
+	type: "fog.upserted";
+	shapes: FogShape[];
+}
+export interface InitiativeUpdated {
+	type: "initiative.updated";
+	initiative: Initiative;
+}
+export interface LayersUpdated {
+	type: "layers.updated";
+	layers: Layer[];
+}
+export interface PawnsMoved {
+	type: "pawns.moved";
+	pawns: PawnPosition[];
+}
+export interface PawnsRemoved {
+	type: "pawns.removed";
+	ids: string[];
+}
+export interface PawnsUpserted {
+	type: "pawns.upserted";
+	pawns: Pawn[];
+}
+export interface PlayersRemoved {
+	type: "players.removed";
+	ids: string[];
+}
+export interface PlayersUpserted {
+	type: "players.upserted";
+	players: Player[];
+}
+export interface RoomUpdated {
+	type: "room.updated";
+	room: RoomInfo;
+}
+export interface StrokeEnded {
+	type: "strokes.ended";
+	id: string;
+}
+export interface StrokeExtended {
+	type: "strokes.extended";
+	id: string;
+	points: number[];
+}
+export interface StrokesRemoved {
+	type: "strokes.removed";
+	ids: string[];
+}
+export interface StrokesUpserted {
+	type: "strokes.upserted";
+	strokes: Stroke[];
+}
+export interface TableUpdated {
+	type: "table.updated";
+	table: TableSettings;
+}
+export type Change =
+	| FogRemoved
+	| FogUpserted
+	| InitiativeUpdated
+	| LayersUpdated
+	| PawnsMoved
+	| PawnsRemoved
+	| PawnsUpserted
+	| PlayersRemoved
+	| PlayersUpserted
+	| RoomUpdated
+	| StrokeEnded
+	| StrokeExtended
+	| StrokesRemoved
+	| StrokesUpserted
+	| TableUpdated
+	;
+export interface Changes {
+	type: "changes";
+	seq: number;
+	by?: string;
+	events: Change[];
+}
 export interface ErrorEvent {
 	type: "error";
 	seq: number;
@@ -434,53 +526,11 @@ export interface ErrorEvent {
 	heading: string;
 	message: string;
 }
-export interface FogAdded {
-	type: "fog.added";
-	seq: number;
-	by?: string;
-	shape: FogShape;
-}
-export interface FogRemoved {
-	type: "fog.removed";
-	seq: number;
-	by?: string;
-	id: string;
-}
-export interface InitiativeUpdated {
-	type: "initiative.updated";
-	seq: number;
-	by?: string;
-	initiative: Initiative;
-}
 export interface PawnDragging {
 	type: "pawn.dragging";
 	seq: number;
 	by?: string;
 	pawns: PawnPosition[];
-}
-export interface PawnMoved {
-	type: "pawn.moved";
-	seq: number;
-	by?: string;
-	pawns: PawnPosition[];
-}
-export interface PawnRemoved {
-	type: "pawn.removed";
-	seq: number;
-	by?: string;
-	id: string;
-}
-export interface PawnSpawned {
-	type: "pawn.spawned";
-	seq: number;
-	by?: string;
-	pawn: Pawn;
-}
-export interface PawnUpdated {
-	type: "pawn.updated";
-	seq: number;
-	by?: string;
-	pawn: Pawn;
 }
 export interface Pinged {
 	type: "pinged";
@@ -490,40 +540,16 @@ export interface Pinged {
 	x: number;
 	y: number;
 }
-export interface PlayerJoined {
-	type: "player.joined";
-	seq: number;
-	by?: string;
-	player: Player;
-}
 export interface PlayerKicked {
 	type: "player.kicked";
 	seq: number;
 	by?: string;
 	reason: string;
 }
-export interface PlayerLeft {
-	type: "player.left";
-	seq: number;
-	by?: string;
-	id: string;
-}
-export interface PlayerUpdated {
-	type: "player.updated";
-	seq: number;
-	by?: string;
-	player: Player;
-}
 export interface RoomClosed {
 	type: "room.closed";
 	seq: number;
 	by?: string;
-}
-export interface RoomUpdated {
-	type: "room.updated";
-	seq: number;
-	by?: string;
-	room: RoomInfo;
 }
 export interface Snapshot {
 	type: "snapshot";
@@ -533,62 +559,25 @@ export interface Snapshot {
 	you: SnapshotYou;
 	version: string;
 }
-export interface StrokeBegan {
-	type: "stroke.began";
-	seq: number;
-	by?: string;
-	stroke: Stroke;
-}
-export interface StrokeEnded {
-	type: "stroke.ended";
-	seq: number;
-	by?: string;
-	id: string;
-}
-export interface StrokeErased {
-	type: "stroke.erased";
-	seq: number;
-	by?: string;
-	ids: string[];
-}
-export interface StrokeExtended {
-	type: "stroke.extended";
-	seq: number;
-	by?: string;
-	id: string;
-	points: number[];
-}
-export interface TableUpdated {
-	type: "table.updated";
-	seq: number;
-	by?: string;
-	table: Table;
-}
-export type Event =
+export type Transient =
 	| ErrorEvent
-	| FogAdded
-	| FogRemoved
-	| InitiativeUpdated
 	| PawnDragging
-	| PawnMoved
-	| PawnRemoved
-	| PawnSpawned
-	| PawnUpdated
 	| Pinged
-	| PlayerJoined
 	| PlayerKicked
-	| PlayerLeft
-	| PlayerUpdated
 	| RoomClosed
-	| RoomUpdated
 	| Snapshot
-	| StrokeBegan
-	| StrokeEnded
-	| StrokeErased
-	| StrokeExtended
-	| TableUpdated
 	;
-export const TRANSIENT_EVENTS: ReadonlySet<Event["type"]> = new Set([
+export type Frame =
+	| Changes
+	| ErrorEvent
+	| PawnDragging
+	| Pinged
+	| PlayerKicked
+	| RoomClosed
+	| Snapshot
+	;
+export type Event = Change | Transient;
+export const TRANSIENT_EVENTS: ReadonlySet<Frame["type"]> = new Set([
 	"error",
 	"pawn.dragging",
 	"pinged",

@@ -7,73 +7,124 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-func Derive(before, after *State, role Role) []Event {
+func Derive(before, after *State, role Role) []Change {
 	b, a := before.Project(role), after.Project(role)
-	var out []Event
+	var out []Change
 	if !reflect.DeepEqual(b.Room, a.Room) {
 		out = append(out, &RoomUpdated{Room: a.Room})
 	}
-	out = append(out, derivePlayers(b.Players, a.Players)...)
-	out = append(out, deriveFog(b.Fog, a.Fog)...)
-	out = append(out, deriveStrokes(b.Strokes, a.Strokes)...)
-	out = append(out, derivePawns(b.Pawns, a.Pawns)...)
+	out = append(out, playerDiff.derive(b.Players, a.Players)...)
+	out = append(out, fogDiff.derive(b.Fog, a.Fog)...)
+	out = append(out, strokeDiff.derive(b.Strokes, a.Strokes)...)
+	out = append(out, pawnDiff.derive(b.Pawns, a.Pawns)...)
 	if !reflect.DeepEqual(b.Initiative, a.Initiative) {
 		out = append(out, &InitiativeUpdated{Initiative: cloneInitiative(a.Initiative)})
 	}
-	if !reflect.DeepEqual(b.Table, a.Table) {
-		out = append(out, &TableUpdated{Table: CloneTable(a.Table)})
+	if !reflect.DeepEqual(b.Table.Layers, a.Table.Layers) {
+		out = append(out, &LayersUpdated{Layers: cloneLayers(a.Table.Layers)})
+	}
+	if b.Table.TableSettings != a.Table.TableSettings {
+		out = append(out, &TableUpdated{Table: a.Table.TableSettings})
 	}
 	return out
 }
-func derivePlayers(before, after []Player) []Event {
-	gone, added, changed := compare(before, after, func(p Player) ulid.ULID { return p.ID })
-	out := make([]Event, 0, len(gone)+len(added)+len(changed))
-	for _, p := range gone {
-		out = append(out, &PlayerLeft{ID: p.ID})
-	}
-	for _, p := range added {
-		out = append(out, &PlayerJoined{Player: clonePlayer(p)})
-	}
-	for _, pair := range changed {
-		out = append(out, &PlayerUpdated{Player: clonePlayer(pair.now)})
-	}
-	return out
+
+var playerDiff = diff[Player]{
+	id:       func(p Player) ulid.ULID { return p.ID },
+	clone:    clonePlayer,
+	items:    func(s *State) *[]Player { return &s.Players },
+	upserted: func(items []Player) Change { return &PlayersUpserted{Players: items} },
+	removed:  func(ids []ulid.ULID) Change { return &PlayersRemoved{IDs: ids} },
 }
-func deriveFog(before, after []FogShape) []Event {
-	gone, added, changed := compare(before, after, func(f FogShape) ulid.ULID { return f.ID })
-	out := make([]Event, 0, len(gone)+len(added)+len(changed))
-	for _, f := range gone {
-		out = append(out, &FogRemoved{ID: f.ID})
-	}
-	for _, f := range added {
-		out = append(out, &FogAdded{Shape: cloneShape(f)})
-	}
-	for _, pair := range changed {
-		out = append(out, &FogAdded{Shape: cloneShape(pair.now)})
-	}
-	return out
+var pawnDiff = diff[Pawn]{
+	id:       func(p Pawn) ulid.ULID { return p.ID },
+	clone:    clonePawn,
+	items:    func(s *State) *[]Pawn { return &s.Pawns },
+	upserted: func(items []Pawn) Change { return &PawnsUpserted{Pawns: items} },
+	removed:  func(ids []ulid.ULID) Change { return &PawnsRemoved{IDs: ids} },
+	delta:    movedPawns,
 }
-func deriveStrokes(before, after []Stroke) []Event {
-	gone, added, changed := compare(before, after, func(st Stroke) ulid.ULID { return st.ID })
-	out := make([]Event, 0, len(added)+len(changed)+1)
+var fogDiff = diff[FogShape]{
+	id:       func(f FogShape) ulid.ULID { return f.ID },
+	clone:    cloneShape,
+	items:    func(s *State) *[]FogShape { return &s.Fog },
+	upserted: func(items []FogShape) Change { return &FogUpserted{Shapes: items} },
+	removed:  func(ids []ulid.ULID) Change { return &FogRemoved{IDs: ids} },
+}
+var strokeDiff = diff[Stroke]{
+	id:       func(st Stroke) ulid.ULID { return st.ID },
+	clone:    cloneStroke,
+	items:    func(s *State) *[]Stroke { return &s.Strokes },
+	upserted: func(items []Stroke) Change { return &StrokesUpserted{Strokes: items} },
+	removed:  func(ids []ulid.ULID) Change { return &StrokesRemoved{IDs: ids} },
+	delta:    strokeDeltas,
+}
+
+type diff[T any] struct {
+	id       func(T) ulid.ULID
+	clone    func(T) T
+	items    func(*State) *[]T
+	upserted func([]T) Change
+	removed  func([]ulid.ULID) Change
+	delta    func([]pair[T]) ([]Change, []pair[T])
+}
+
+func (d diff[T]) derive(before, after []T) []Change {
+	gone, added, changed := compare(before, after, d.id)
+	var out []Change
 	if len(gone) > 0 {
 		ids := make([]ulid.ULID, 0, len(gone))
-		for _, st := range gone {
-			ids = append(ids, st.ID)
+		for _, v := range gone {
+			ids = append(ids, d.id(v))
 		}
-		out = append(out, &StrokeErased{IDs: ids})
+		out = append(out, d.removed(ids))
 	}
-	for _, st := range added {
-		out = append(out, &StrokeBegan{Stroke: cloneStroke(st)})
+	var deltas []Change
+	if d.delta != nil {
+		deltas, changed = d.delta(changed)
 	}
-	for _, pair := range changed {
-		out = append(out, strokeChange(pair.was, pair.now))
+	up := make([]T, 0, len(added)+len(changed))
+	for _, v := range added {
+		up = append(up, d.clone(v))
 	}
-	return out
+	for _, p := range changed {
+		up = append(up, d.clone(p.now))
+	}
+	if len(up) > 0 {
+		out = append(out, d.upserted(up))
+	}
+	return append(out, deltas...)
 }
-func strokeChange(was, now Stroke) Event {
+func movedPawns(changed []pair[Pawn]) ([]Change, []pair[Pawn]) {
+	at := make([]PawnPosition, 0, len(changed))
+	for _, p := range changed {
+		still := p.was
+		still.X, still.Y = p.now.X, p.now.Y
+		if !reflect.DeepEqual(still, p.now) {
+			return nil, changed
+		}
+		at = append(at, PawnPosition{ID: p.now.ID, X: p.now.X, Y: p.now.Y})
+	}
+	if len(at) == 0 {
+		return nil, changed
+	}
+	return []Change{&PawnsMoved{Pawns: at}}, nil
+}
+func strokeDeltas(changed []pair[Stroke]) ([]Change, []pair[Stroke]) {
+	var out []Change
+	var rest []pair[Stroke]
+	for _, p := range changed {
+		if ch := strokeDelta(p.was, p.now); ch != nil {
+			out = append(out, ch)
+			continue
+		}
+		rest = append(rest, p)
+	}
+	return out, rest
+}
+func strokeDelta(was, now Stroke) Change {
 	if !reflect.DeepEqual(strokeBody(was), strokeBody(now)) {
-		return &StrokeBegan{Stroke: cloneStroke(now)}
+		return nil
 	}
 	if was.Done == now.Done && prefixes(was.Points, now.Points) {
 		return &StrokeExtended{ID: now.ID, Points: cloneSlice(now.Points[len(was.Points):])}
@@ -81,7 +132,7 @@ func strokeChange(was, now Stroke) Event {
 	if now.Done && !was.Done && slices.Equal(was.Points, now.Points) {
 		return &StrokeEnded{ID: now.ID}
 	}
-	return &StrokeBegan{Stroke: cloneStroke(now)}
+	return nil
 }
 func strokeBody(st Stroke) Stroke {
 	st.Points, st.Done = nil, false
@@ -89,38 +140,6 @@ func strokeBody(st Stroke) Stroke {
 }
 func prefixes(head, whole []int) bool {
 	return len(head) < len(whole) && slices.Equal(head, whole[:len(head)])
-}
-func derivePawns(before, after []Pawn) []Event {
-	gone, added, changed := compare(before, after, func(p Pawn) ulid.ULID { return p.ID })
-	out := make([]Event, 0, len(gone)+len(added)+len(changed))
-	for _, p := range gone {
-		out = append(out, &PawnRemoved{ID: p.ID})
-	}
-	for _, p := range added {
-		out = append(out, &PawnSpawned{Pawn: clonePawn(p)})
-	}
-	if at := onlyMoved(changed); at != nil {
-		return append(out, &PawnMoved{Pawns: at})
-	}
-	for _, pair := range changed {
-		out = append(out, &PawnUpdated{Pawn: clonePawn(pair.now)})
-	}
-	return out
-}
-func onlyMoved(changed []pair[Pawn]) []PawnPosition {
-	at := make([]PawnPosition, 0, len(changed))
-	for _, p := range changed {
-		still := p.was
-		still.X, still.Y = p.now.X, p.now.Y
-		if !reflect.DeepEqual(still, p.now) {
-			return nil
-		}
-		at = append(at, PawnPosition{ID: p.now.ID, X: p.now.X, Y: p.now.Y})
-	}
-	if len(at) == 0 {
-		return nil
-	}
-	return at
 }
 
 type pair[T any] struct {

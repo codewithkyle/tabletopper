@@ -39,8 +39,11 @@ func TestTwoBrowsersInOneRoomSeeTheSameEvent(t *testing.T) {
 		t.Fatalf("the player's first frame was %q, want the snapshot", playerSnapshot.Type)
 	}
 	joined := next(t, ctx, gm)
-	if joined.Type != "player.joined" {
-		t.Fatalf("the GM's second frame was %q, want player.joined", joined.Type)
+	if joined.Type != "changes" {
+		t.Fatalf("the GM's second frame was %q, want the changes frame", joined.Type)
+	}
+	if got := carried(t, joined); !equal(got, []string{"players.upserted"}) {
+		t.Fatalf("the frame carries %v, want the arrival alone", got)
 	}
 	layer := activeLayer(t, playerSnapshot)
 	send(t, ctx, player, map[string]any{"type": "ping", "cid": "p1", "layer": layer.String(), "x": 320, "y": 240})
@@ -102,4 +105,18 @@ func send(t *testing.T, ctx context.Context, c *websocket.Conn, cmd map[string]a
 	if err := c.Write(ctx, websocket.MessageText, data); err != nil {
 		t.Fatalf("write: %v", err)
 	}
+}
+func carried(t *testing.T, f frame) []string {
+	t.Helper()
+	events, ok := f.Body["events"].([]any)
+	if !ok {
+		t.Fatalf("a changes frame carries no events: %+v", f.Body)
+	}
+	out := make([]string, 0, len(events))
+	for _, one := range events {
+		body, _ := one.(map[string]any)
+		name, _ := body["type"].(string)
+		out = append(out, name)
+	}
+	return out
 }

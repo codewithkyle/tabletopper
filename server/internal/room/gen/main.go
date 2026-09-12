@@ -35,6 +35,8 @@ func main() {
 var (
 	ulidType   = reflect.TypeOf(ulid.ULID{})
 	headerType = reflect.TypeOf(room.Header{})
+	kindType   = reflect.TypeOf(room.Kind{})
+	changeType = reflect.TypeOf((*room.Change)(nil)).Elem()
 	valuesType = reflect.TypeOf((*interface{ Values() []string })(nil)).Elem()
 )
 
@@ -55,7 +57,10 @@ func Generate() ([]byte, error) {
 			{Name: "cid", Type: "string"},
 		}
 	})
-	events := g.render(prototypeMap(room.EventPrototypes()), func(name string) []tsField {
+	changes := g.render(prototypeMap(room.ChangePrototypes()), func(name string) []tsField {
+		return []tsField{{Name: "type", Type: quote(name)}}
+	})
+	frames := g.render(prototypeMap(room.EventPrototypes()), func(name string) []tsField {
 		return []tsField{
 			{Name: "type", Type: quote(name)},
 			{Name: "seq", Type: "number"},
@@ -78,9 +83,13 @@ func Generate() ([]byte, error) {
 	}
 	writeBlocks(&b, commands)
 	b.WriteString(union("Command", commands))
-	writeBlocks(&b, events)
-	b.WriteString(union("Event", events))
-	b.WriteString(transient())
+	writeBlocks(&b, changes)
+	b.WriteString(union("Change", changes))
+	writeBlocks(&b, frames)
+	b.WriteString(union("Transient", transients(frames)))
+	b.WriteString(union("Frame", frames))
+	b.WriteString("export type Event = Change | Transient;\n")
+	b.WriteString(transientSet())
 	return b.Bytes(), nil
 }
 
@@ -110,7 +119,7 @@ func (g *generator) tsFields(t reflect.Type) []tsField {
 	var out []tsField
 	for i := range t.NumField() {
 		f := t.Field(i)
-		if f.Anonymous && f.Type == headerType {
+		if f.Anonymous && (f.Type == headerType || f.Type == kindType) {
 			continue
 		}
 		if f.PkgPath != "" {
@@ -140,6 +149,9 @@ func (g *generator) tsFields(t reflect.Type) []tsField {
 func (g *generator) tsType(t reflect.Type) string {
 	if t == ulidType {
 		return "string"
+	}
+	if t == changeType {
+		return "Change"
 	}
 	if t.Kind() == reflect.String && t.Name() != "" && t.Implements(valuesType) {
 		g.enums[t.Name()] = t
@@ -211,7 +223,17 @@ func union(name string, blocks []block) string {
 	b.WriteString("\t;\n")
 	return b.String()
 }
-func transient() string {
+func transients(frames []block) []block {
+	prototypes := room.EventPrototypes()
+	out := make([]block, 0, len(frames))
+	for _, bl := range frames {
+		if _, ok := prototypes[bl.Wire].(room.Transient); ok {
+			out = append(out, bl)
+		}
+	}
+	return out
+}
+func transientSet() string {
 	var names []string
 	for wire, ev := range room.EventPrototypes() {
 		if _, ok := ev.(room.Transient); ok {
@@ -220,7 +242,7 @@ func transient() string {
 	}
 	slices.Sort(names)
 	var b strings.Builder
-	b.WriteString("export const TRANSIENT_EVENTS: ReadonlySet<Event[\"type\"]> = new Set([\n")
+	b.WriteString("export const TRANSIENT_EVENTS: ReadonlySet<Frame[\"type\"]> = new Set([\n")
 	for _, n := range names {
 		fmt.Fprintf(&b, "\t%s,\n", n)
 	}

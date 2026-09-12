@@ -1,11 +1,11 @@
-import type { Event, State } from "./protocol.ts";
+import type { Frame, State } from "./protocol.ts";
 import type { Renderer } from "./render/renderer.ts";
 import type { Socket, Status } from "./socket.ts";
 const historyLimit = 20;
 const STRESS_PAWNS = 500;
 export function wireDebug(root: HTMLElement, socket: Socket, state: State, renderer: Renderer | null): {
 	status(status: Status, detail: string): void;
-	event(event: Event): void;
+	frame(frame: Frame): void;
 } {
 	const connection = root.querySelector("[data-debug-connection]");
 	const sequence = root.querySelector("[data-debug-seq]");
@@ -81,10 +81,12 @@ export function wireDebug(root: HTMLElement, socket: Socket, state: State, rende
 			}
 			refresh();
 		},
-		event(event) {
+		frame(frame) {
 			if (events) {
 				const line = document.createElement("li");
-				line.textContent = JSON.stringify(event);
+				line.textContent = frame.type === "changes"
+					? `changes (${frame.events.length}) ${frame.events.map((e) => e.type).join(" ")}`
+					: JSON.stringify(frame);
 				events.prepend(line);
 				while (events.childElementCount > historyLimit) {
 					events.lastElementChild?.remove();

@@ -334,12 +334,11 @@ func (tb *tabletop) spawnMonster(gm *client, name string, visible bool, hp int, 
 			MonsterID: &monsterID,
 		},
 	})
-	for _, f := range frames(tb.t, gm) {
-		if f.Type != "pawn.spawned" {
+	for _, f := range events(tb.t, gm) {
+		if f.Type != "pawns.upserted" {
 			continue
 		}
-		pawn, _ := f.Body["pawn"].(map[string]any)
-		raw, _ := pawn["id"].(string)
+		raw, _ := onePawn(tb.t, f)["id"].(string)
 		id, err := ulid.Parse(raw)
 		if err != nil {
 			tb.t.Fatalf("a spawned pawn had no id: %v", err)

@@ -280,21 +280,31 @@ rather than once per event.
 - `seq` counts frames per role, not events. Gap detection on the client is
   unchanged. Transient frames and the snapshot stay as they are.
 - The vocabulary becomes regular. Every collection has an upsert and a removal
-  carrying lists, and the two deltas that are cheaper than an upsert survive:
+  carrying lists, and the three deltas that are cheaper than an upsert survive:
   - `players.upserted {players}`, `players.removed {ids}`
   - `pawns.upserted {pawns}`, `pawns.removed {ids}`, `pawns.moved {pawns}`
-  - `layers.upserted {layers}`, `layers.removed {ids}`
   - `fog.upserted {shapes}`, `fog.removed {ids}`
   - `strokes.upserted {strokes}`, `strokes.removed {ids}`,
     `strokes.extended {id, points}`, `strokes.ended {id}`
   - `table.updated {table}` for the grid, options and active layer, with
     `layers` no longer inside it
-  - `initiative.updated`, `room.updated`
-- `Table.Layers` stays where it is in `State`; only the wire splits it out, so
-  the snapshot is unchanged and the differ treats layers as a collection.
+  - `layers.updated {layers}`, `initiative.updated`, `room.updated`
+- **The layers are an aggregate, not a collection.** They were planned as a
+  collection and cannot be one: `TableMoveLayer` changes nothing but their
+  order, and an id-keyed upsert and removal carry membership rather than order,
+  so a reorder would derive nothing and the convergence test would catch a
+  client left holding the old order. `layers.updated` therefore carries the
+  whole ordered list and replaces it, exactly as `initiative.updated` carries
+  entries whose order is meaningful. There are four aggregates, not three:
+  room, table, layers, initiative. The list is bounded at 20 and a layer
+  change is rare, so sending all of it costs nothing.
+- `Table.Layers` stays where it is in `State`; the wire splits it out by
+  embedding the rest of the table in a `TableSettings` the snapshot flattens, so
+  the snapshot is unchanged and a grid change no longer resends every map
+  reference.
 - Both reducers collapse to one generic upsert and remove per collection plus
-  the three deltas and three aggregates. Adding a collection is a `State` field,
-  a line in `Derive`'s collection table, and a line in each reducer's collection
+  the three deltas and the four aggregates. Adding a collection is a `State`
+  field, a line in `Derive`'s collection table, and a line in each reducer's
   table. No switch case.
 - `announce` in `panels.ts` runs once per frame and dedupes the DOM events it
   raises within the frame.
@@ -302,8 +312,9 @@ rather than once per event.
 ### Tests first
 
 - `server/internal/room/derive_test.go`: the expected lists change to the new
-  vocabulary. Add cases for layers as a collection: rename a layer and only
-  `layers.upserted` is derived, no `table.updated`.
+  vocabulary. Add cases for layers on their own: rename a layer and only
+  `layers.updated` is derived, no `table.updated`; move one and the derived
+  list carries the new order.
 - `server/internal/room/wire_test.go`: add `TestAFrameCarriesEveryDerivedEventOfOneCommand`
   encoding a `Frame` and reading it back.
 - `server/internal/room/reduce_test.go`: the generic reducer is tested once per
@@ -315,8 +326,8 @@ rather than once per event.
 - `server/js/room/reduce.test.ts`: the fixture format gains a `frames` column;
   the coverage list becomes the new names. `socket.test.ts`, new, feeds a frame
   with a gap and asserts a resync, feeds a transient and asserts no seq change.
-- `server/js/room/panels.test.ts`: a frame carrying three `pawns.upserted`
-  raises `room:pawn` three times and `room:initiative` at most once.
+- `server/js/room/panels.test.ts`: a frame carrying three pawns raises
+  `room:pawn` three times and `room:initiative` at most once.
 - `server/internal/controllers/room-socket_test.go`:
   `TestTwoBrowsersInOneRoomSeeTheSameEvent` reads frames.
 - `server/js/room/debug.ts` has no test; the panel shows a frame as one line

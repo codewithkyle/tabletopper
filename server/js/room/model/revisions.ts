@@ -19,33 +19,32 @@ export function revise(rev: Revisions, event: Event): void {
 			rev.initiative++;
 			return;
 		case "table.updated":
+		case "layers.updated":
 			rev.table++;
 			return;
 		case "initiative.updated":
 			rev.initiative++;
 			return;
-		case "pawn.spawned":
-		case "pawn.updated":
-		case "pawn.removed":
-		case "pawn.moved":
+		case "pawns.upserted":
+		case "pawns.removed":
+		case "pawns.moved":
 			rev.pawns++;
 			return;
-		case "fog.added":
+		case "fog.upserted":
 		case "fog.removed":
 			rev.fog++;
 			return;
-		case "stroke.began":
-		case "stroke.extended":
-		case "stroke.ended":
-		case "stroke.erased":
+		case "strokes.upserted":
+		case "strokes.removed":
+		case "strokes.extended":
+		case "strokes.ended":
 			rev.strokes++;
 			return;
 		case "error":
 		case "pinged":
 		case "pawn.dragging":
-		case "player.joined":
-		case "player.updated":
-		case "player.left":
+		case "players.upserted":
+		case "players.removed":
 		case "player.kicked":
 		case "room.updated":
 		case "room.closed":

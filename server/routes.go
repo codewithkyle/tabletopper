@@ -413,8 +413,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	//
 	// It answers with the member list it just changed, which is the mutation
 	// case the fragment rules name. The socket says the same thing a moment
-	// later -- player.left raises room:players and the window refetches -- but
-	// a GM whose own connection has dropped still sees the person go.
+	// later -- players.removed raises room:players and the window refetches --
+	// but a GM whose own connection has dropped still sees the person go.
 	mux.HandleFunc("POST /rooms/{id}/players/{player}/kick", auth.RequireSession(app.KickPlayer))
 	// THE TABLE'S CONFIGURATION, and every one of these is HTTP for the reason
 	// the kick above is: the controls are htmx, and a control that posted over

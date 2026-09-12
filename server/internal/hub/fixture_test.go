@@ -213,13 +213,62 @@ func types(fs []frame) []string {
 	}
 	return out
 }
+func events(t *testing.T, c *client) []frame {
+	t.Helper()
+	var out []frame
+	for _, f := range frames(t, c) {
+		if f.Type != "changes" {
+			out = append(out, f)
+			continue
+		}
+		carried, ok := f.Body["events"].([]any)
+		if !ok {
+			t.Fatalf("a changes frame carries no events: %+v", f.Body)
+		}
+		for _, one := range carried {
+			body, ok := one.(map[string]any)
+			if !ok {
+				t.Fatalf("an event inside a frame is not an object: %v", one)
+			}
+			inner := frame{Seq: f.Seq, Body: body}
+			inner.Type, _ = body["type"].(string)
+			out = append(out, inner)
+		}
+	}
+	return out
+}
 func only(t *testing.T, c *client, want ...string) []frame {
 	t.Helper()
-	got := frames(t, c)
+	got := events(t, c)
 	if !equal(types(got), want) {
-		t.Fatalf("frames = %v, want %v", types(got), want)
+		t.Fatalf("events = %v, want %v", types(got), want)
 	}
 	return got
+}
+func onePawn(t *testing.T, f frame) map[string]any {
+	t.Helper()
+	pawns, ok := f.Body["pawns"].([]any)
+	if !ok || len(pawns) != 1 {
+		t.Fatalf("the upsert carries %v, want one pawn", f.Body["pawns"])
+	}
+	pawn, ok := pawns[0].(map[string]any)
+	if !ok {
+		t.Fatalf("the upserted pawn is not an object: %v", pawns[0])
+	}
+	return pawn
+}
+func oneID(t *testing.T, f frame) ulid.ULID {
+	t.Helper()
+	ids, ok := f.Body["ids"].([]any)
+	if !ok || len(ids) != 1 {
+		t.Fatalf("the change names %v, want one id", f.Body["ids"])
+	}
+	raw, _ := ids[0].(string)
+	id, err := ulid.Parse(raw)
+	if err != nil {
+		t.Fatalf("the change names %q, which is not a ULID", raw)
+	}
+	return id
 }
 func equal(a, b []string) bool {
 	if len(a) != len(b) {

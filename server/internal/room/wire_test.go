@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/oklog/ulid/v2"
 )
 
 func TestDecodeCommandReadsAWellFormedFrame(t *testing.T) {
@@ -74,14 +76,83 @@ func TestEveryWireCommandDecodesUnderItsOwnName(t *testing.T) {
 }
 func TestEncodeEventPutsTheHeaderFirst(t *testing.T) {
 	by := testGMID
-	b, err := EncodeEvent(&PawnRemoved{ID: testID(3)}, 4821, &by)
+	b, err := EncodeEvent(&Pinged{Layer: testID(3), X: 64, Y: 32}, 4821, &by)
 	if err != nil {
 		t.Fatalf("encode: %v", err)
 	}
-	want := `{"type":"pawn.removed","seq":4821,"by":"` + by.String() + `","id":"` + testID(3).String() + `"}`
+	want := `{"type":"pinged","seq":4821,"by":"` + by.String() + `","layer":"` + testID(3).String() + `","x":64,"y":32}`
 	if string(b) != want {
 		t.Fatalf("encoded\n got %s\nwant %s", b, want)
 	}
+}
+func TestAFrameCarriesEveryDerivedEventOfOneCommand(t *testing.T) {
+	by := testGMID
+	changes := []Change{
+		&PawnsRemoved{IDs: []ulid.ULID{testID(3)}},
+		&PawnsMoved{Pawns: []PawnPosition{{ID: testID(4), X: 64, Y: 32}}},
+		&TableUpdated{Table: TableSettings{ActiveLayer: testID(5), PawnLabels: LabelsFull}},
+	}
+	b, err := EncodeEvent(NewChanges(changes), 41, &by)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	if !strings.HasPrefix(string(b), `{"type":"changes","seq":41,"by":"`+by.String()+`","events":[`) {
+		t.Fatalf("the frame does not lead with its own header: %s", b)
+	}
+	if !strings.Contains(string(b), `{"type":"pawns.removed","ids":`) {
+		t.Fatalf("an event inside the frame is not named by its own type: %s", b)
+	}
+	if strings.Contains(string(b), `"seq":41,"by":"`+by.String()+`","ids"`) {
+		t.Fatalf("an event inside the frame carries a sequence of its own: %s", b)
+	}
+	var back Changes
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if back.Seq != 41 || back.By == nil || *back.By != by {
+		t.Fatalf("the header came back as %+v", back.Header)
+	}
+	if got := changeTypesOf(back.Events); !equalSlices(got, changeTypesOf(changes)) {
+		t.Fatalf("the frame came back holding %v, want %v", got, changeTypesOf(changes))
+	}
+	if got := back.Events[1].(*PawnsMoved).Pawns; len(got) != 1 || got[0].X != 64 {
+		t.Fatalf("a decoded event lost its payload: %+v", got)
+	}
+}
+func TestAFrameRefusesAnEventNobodyWrote(t *testing.T) {
+	var back Changes
+	err := json.Unmarshal([]byte(`{"type":"changes","seq":1,"events":[{"type":"pawns.teleported"}]}`), &back)
+	if err == nil {
+		t.Fatal("a frame carrying an unknown event was decoded")
+	}
+	if !strings.Contains(err.Error(), "pawns.teleported") {
+		t.Fatalf("the error does not name the event: %v", err)
+	}
+}
+func TestEveryChangeEncodesUnderItsRegisteredType(t *testing.T) {
+	for wire, ch := range ChangePrototypes() {
+		if got := ch.changeType(); got != wire {
+			t.Errorf("the change filed under %s calls itself %s", wire, got)
+		}
+		b, err := EncodeEvent(NewChanges([]Change{ch}), 1, nil)
+		if err != nil {
+			t.Fatalf("%s: encode: %v", wire, err)
+		}
+		if !strings.Contains(string(b), `{"type":"`+wire+`"`) {
+			t.Errorf("%s encoded as %s", wire, b)
+		}
+	}
+}
+func equalSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 func TestEncodeEventOmitsTheActorWhenThereIsNone(t *testing.T) {
 	b, err := EncodeEvent(&RoomClosed{}, 12, nil)
@@ -116,16 +187,22 @@ func TestEveryEventEncodesUnderItsRegisteredType(t *testing.T) {
 		}
 	}
 }
-func TestTheTransientEventsAreTheSixTheDerivationNeverProduces(t *testing.T) {
+func TestEveryFrameIsTheChangesFrameOrATransient(t *testing.T) {
 	want := map[string]bool{
 		"room.closed": true, "player.kicked": true, "snapshot": true,
 		"pawn.dragging": true, "pinged": true, "error": true,
 	}
 	for wire, ev := range EventPrototypes() {
 		_, marked := ev.(Transient)
-		if marked != want[wire] {
+		if marked != want[wire] && wire != "changes" {
 			t.Errorf("%s is a room.Transient = %v", wire, marked)
 		}
+	}
+	if _, ok := EventPrototypes()["changes"]; !ok {
+		t.Fatal("the changes frame is not in the event registry, so the client has no type for it")
+	}
+	if _, marked := EventPrototypes()["changes"].(Transient); marked {
+		t.Fatal("the changes frame is marked transient, so it would not advance the sequence")
 	}
 }
 func TestTheTwoRegistriesDoNotOverlap(t *testing.T) {

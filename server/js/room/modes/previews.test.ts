@@ -15,7 +15,7 @@ test("another player's drag draws ghosts until a move ends it", () => {
 	assert.equal(drawn.length, 1);
 	assert.deepEqual([drawn[0].x, drawn[0].y], [160, 160]);
 	controller.preview({
-		type: "pawn.moved", seq: 5, pawns: [{ id: "goblin", x: 160, y: 160 }],
+		type: "pawns.moved", pawns: [{ id: "goblin", x: 160, y: 160 }],
 	});
 	assert.deepEqual(ghosts(), []);
 });

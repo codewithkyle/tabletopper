@@ -18,8 +18,8 @@ func TestAJoinFromSomebodyJustKickedIsRefusedByTheRoom(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 	tb.send(gm, "k", &room.PlayerKick{ID: playerID})
-	only(t, player, "player.left", "player.kicked")
-	only(t, gm, "player.left")
+	only(t, player, "players.removed", "player.kicked")
+	only(t, gm, "players.removed")
 	again := tb.join(playerID, "Ari", room.RolePlayer)
 	select {
 	case <-again.quit:
@@ -62,7 +62,7 @@ func TestLeavingInOneTabClosesTheOthers(t *testing.T) {
 			t.Errorf("%s: close reason = %q, want %q", name, c.reason, reasonLeft)
 		}
 	}
-	only(t, gm, "player.left")
+	only(t, gm, "players.removed")
 	select {
 	case <-gm.quit:
 		t.Error("the GM's connection was closed by somebody else leaving")

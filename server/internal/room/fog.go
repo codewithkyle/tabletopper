@@ -6,19 +6,19 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-type FogAdded struct {
-	Header
-	Shape FogShape `json:"shape"`
+type FogUpserted struct {
+	Kind
+	Shapes []FogShape `json:"shapes"`
 }
 
-func (*FogAdded) eventType() string { return "fog.added" }
+func (*FogUpserted) changeType() string { return "fog.upserted" }
 
 type FogRemoved struct {
-	Header
-	ID ulid.ULID `json:"id"`
+	Kind
+	IDs []ulid.ULID `json:"ids"`
 }
 
-func (*FogRemoved) eventType() string { return "fog.removed" }
+func (*FogRemoved) changeType() string { return "fog.removed" }
 
 type FogSetEnabled struct {
 	Layer   ulid.ULID `json:"layer"`

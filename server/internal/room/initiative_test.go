@@ -100,8 +100,8 @@ func TestConditionsCountDownAtTheRightEndOfATurn(t *testing.T) {
 		t.Fatalf("Prone is at %d; a duration of -1 never counts down", byName["Prone"])
 	}
 	for _, role := range []Role{RoleGM, RolePlayer} {
-		equalStrings(t, "advancing for the "+string(role), eventTypesOf(ch.events(role)), []string{
-			"pawn.updated",
+		equalStrings(t, "advancing for the "+string(role), changeTypesOf(ch.changes(role)), []string{
+			"pawns.upserted",
 			"initiative.updated",
 		})
 	}
@@ -110,7 +110,7 @@ func TestAnAdvanceWithNoConditionsEmitsOnlyTheTracker(t *testing.T) {
 	w := newWorld(t)
 	w.twoInTheOrder()
 	ch := w.change(&InitiativeNext{}, w.gm)
-	equalStrings(t, "advancing", eventTypesOf(ch.events(RoleGM)), []string{"initiative.updated"})
+	equalStrings(t, "advancing", changeTypesOf(ch.changes(RoleGM)), []string{"initiative.updated"})
 }
 func TestDeletingTheActiveCombatantAdvancesTheTurn(t *testing.T) {
 	w := newWorld(t)
@@ -141,7 +141,7 @@ func TestClearingTheTrackerResetsTheRound(t *testing.T) {
 	w.twoInTheOrder()
 	w.apply(&InitiativeNext{}, w.gm)
 	ch := w.change(&InitiativeClear{}, w.gm)
-	equalStrings(t, "clearing", eventTypesOf(ch.events(RoleGM)), []string{"initiative.updated"})
+	equalStrings(t, "clearing", changeTypesOf(ch.changes(RoleGM)), []string{"initiative.updated"})
 	if len(w.s.Initiative.Entries) != 0 || w.s.Initiative.Active != nil || w.s.Initiative.Round != 0 {
 		t.Fatalf("the tracker after clearing is %+v", w.s.Initiative)
 	}

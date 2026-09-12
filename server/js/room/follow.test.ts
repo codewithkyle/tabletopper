@@ -150,7 +150,7 @@ test("nothing but the tracker is listened to", () => {
 	const seen = watched(state);
 	seen.send(snapshot());
 	state.initiative.active = "01MOBLINE";
-	seen.send({ type: "pawn.moved" } as unknown as Event);
+	seen.send({ type: "pawns.moved" } as unknown as Event);
 	seen.send({ type: "table.updated" } as unknown as Event);
 	assert.equal(seen.boxes.length, 0);
 });

@@ -31,7 +31,7 @@ func TestAFirstRevealCoversTheFloorItIsCutOutOf(t *testing.T) {
 	if !l.FogPrefill {
 		t.Error("a reveal did not leave the floor covered; the hole is cut in nothing")
 	}
-	equalStrings(t, "the waking add", eventTypesOf(ch.events(RoleGM)), []string{"fog.added", "table.updated"})
+	equalStrings(t, "the waking add", changeTypesOf(ch.changes(RoleGM)), []string{"fog.upserted", "layers.updated"})
 }
 func TestAFirstHideLeavesTheFloorClearUnderIt(t *testing.T) {
 	w := newWorld(t)
@@ -50,7 +50,7 @@ func TestASecondShapeDoesNotResendTheTable(t *testing.T) {
 	w := newWorld(t)
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{0, 0, 10, 10}}, w.gm)
 	ch := w.change(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{20, 20, 30, 30}}, w.gm)
-	equalStrings(t, "a second add", eventTypesOf(ch.events(RoleGM)), []string{"fog.added"})
+	equalStrings(t, "a second add", changeTypesOf(ch.changes(RoleGM)), []string{"fog.upserted"})
 }
 func TestAHideOnAnAwakeFloorLeavesThePrefillAlone(t *testing.T) {
 	w := newWorld(t)

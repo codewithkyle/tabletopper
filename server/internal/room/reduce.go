@@ -7,63 +7,113 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-func Reduce(s *State, ev Event) error {
-	if ev == nil {
-		return nil
+func Reduce(s *State, ch Change) error {
+	entry, ok := changeTypes[ch.changeType()]
+	if !ok {
+		return fmt.Errorf("room: no reduction for %s", ch.changeType())
 	}
-	if snap, ok := ev.(*Snapshot); ok {
-		*s = snap.State.Clone()
-		return nil
-	}
-	if _, skip := ev.(Transient); skip {
-		return nil
-	}
-	switch e := ev.(type) {
-	case *RoomUpdated:
-		s.Room = e.Room
-	case *TableUpdated:
-		s.Table = CloneTable(e.Table)
-	case *InitiativeUpdated:
-		s.Initiative = cloneInitiative(e.Initiative)
-	case *PlayerJoined:
-		upsert(&s.Players, clonePlayer(e.Player), func(p Player) ulid.ULID { return p.ID })
-	case *PlayerUpdated:
-		upsert(&s.Players, clonePlayer(e.Player), func(p Player) ulid.ULID { return p.ID })
-	case *PlayerLeft:
-		s.Players = slices.DeleteFunc(s.Players, func(p Player) bool { return p.ID == e.ID })
-	case *PawnSpawned:
-		upsert(&s.Pawns, clonePawn(e.Pawn), func(p Pawn) ulid.ULID { return p.ID })
-	case *PawnUpdated:
-		upsert(&s.Pawns, clonePawn(e.Pawn), func(p Pawn) ulid.ULID { return p.ID })
-	case *PawnRemoved:
-		s.Pawns = slices.DeleteFunc(s.Pawns, func(p Pawn) bool { return p.ID == e.ID })
-	case *FogAdded:
-		upsert(&s.Fog, cloneShape(e.Shape), func(f FogShape) ulid.ULID { return f.ID })
-	case *FogRemoved:
-		s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.ID == e.ID })
-	case *StrokeBegan:
-		upsert(&s.Strokes, cloneStroke(e.Stroke), func(st Stroke) ulid.ULID { return st.ID })
-	case *StrokeEnded:
-		if st := s.Stroke(e.ID); st != nil {
-			st.Done = true
-		}
-	case *StrokeErased:
-		s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return slices.Contains(e.IDs, st.ID) })
-	case *PawnMoved:
-		for _, at := range e.Pawns {
-			if p := s.Pawn(at.ID); p != nil {
-				p.X, p.Y = at.X, at.Y
-			}
-		}
-	case *StrokeExtended:
-		if st := s.Stroke(e.ID); st != nil {
-			st.Points = append(st.Points, e.Points...)
-		}
-	default:
-		return fmt.Errorf("room: no reduction for %s", ev.eventType())
-	}
+	entry.reduce(s, ch)
 	s.Normalize()
 	return nil
+}
+
+type reduction struct {
+	build  func() Change
+	reduce func(*State, Change)
+}
+
+var changeTypes = map[string]reduction{
+	"room.updated": {
+		build:  func() Change { return &RoomUpdated{} },
+		reduce: func(s *State, ch Change) { s.Room = ch.(*RoomUpdated).Room },
+	},
+	"table.updated": {
+		build:  func() Change { return &TableUpdated{} },
+		reduce: func(s *State, ch Change) { s.Table.TableSettings = ch.(*TableUpdated).Table },
+	},
+	"layers.updated": {
+		build:  func() Change { return &LayersUpdated{} },
+		reduce: func(s *State, ch Change) { s.Table.Layers = cloneLayers(ch.(*LayersUpdated).Layers) },
+	},
+	"initiative.updated": {
+		build:  func() Change { return &InitiativeUpdated{} },
+		reduce: func(s *State, ch Change) { s.Initiative = cloneInitiative(ch.(*InitiativeUpdated).Initiative) },
+	},
+	"players.upserted": {
+		build:  func() Change { return &PlayersUpserted{} },
+		reduce: upserts(playerDiff, func(ch Change) []Player { return ch.(*PlayersUpserted).Players }),
+	},
+	"players.removed": {
+		build:  func() Change { return &PlayersRemoved{} },
+		reduce: removes(playerDiff, func(ch Change) []ulid.ULID { return ch.(*PlayersRemoved).IDs }),
+	},
+	"pawns.upserted": {
+		build:  func() Change { return &PawnsUpserted{} },
+		reduce: upserts(pawnDiff, func(ch Change) []Pawn { return ch.(*PawnsUpserted).Pawns }),
+	},
+	"pawns.removed": {
+		build:  func() Change { return &PawnsRemoved{} },
+		reduce: removes(pawnDiff, func(ch Change) []ulid.ULID { return ch.(*PawnsRemoved).IDs }),
+	},
+	"pawns.moved": {
+		build: func() Change { return &PawnsMoved{} },
+		reduce: func(s *State, ch Change) {
+			for _, at := range ch.(*PawnsMoved).Pawns {
+				if p := s.Pawn(at.ID); p != nil {
+					p.X, p.Y = at.X, at.Y
+				}
+			}
+		},
+	},
+	"fog.upserted": {
+		build:  func() Change { return &FogUpserted{} },
+		reduce: upserts(fogDiff, func(ch Change) []FogShape { return ch.(*FogUpserted).Shapes }),
+	},
+	"fog.removed": {
+		build:  func() Change { return &FogRemoved{} },
+		reduce: removes(fogDiff, func(ch Change) []ulid.ULID { return ch.(*FogRemoved).IDs }),
+	},
+	"strokes.upserted": {
+		build:  func() Change { return &StrokesUpserted{} },
+		reduce: upserts(strokeDiff, func(ch Change) []Stroke { return ch.(*StrokesUpserted).Strokes }),
+	},
+	"strokes.removed": {
+		build:  func() Change { return &StrokesRemoved{} },
+		reduce: removes(strokeDiff, func(ch Change) []ulid.ULID { return ch.(*StrokesRemoved).IDs }),
+	},
+	"strokes.extended": {
+		build: func() Change { return &StrokeExtended{} },
+		reduce: func(s *State, ch Change) {
+			e := ch.(*StrokeExtended)
+			if st := s.Stroke(e.ID); st != nil {
+				st.Points = append(st.Points, e.Points...)
+			}
+		},
+	},
+	"strokes.ended": {
+		build: func() Change { return &StrokeEnded{} },
+		reduce: func(s *State, ch Change) {
+			if st := s.Stroke(ch.(*StrokeEnded).ID); st != nil {
+				st.Done = true
+			}
+		},
+	},
+}
+
+func upserts[T any](d diff[T], from func(Change) []T) func(*State, Change) {
+	return func(s *State, ch Change) {
+		into := d.items(s)
+		for _, v := range from(ch) {
+			upsert(into, d.clone(v), d.id)
+		}
+	}
+}
+func removes[T any](d diff[T], from func(Change) []ulid.ULID) func(*State, Change) {
+	return func(s *State, ch Change) {
+		gone := from(ch)
+		into := d.items(s)
+		*into = slices.DeleteFunc(*into, func(v T) bool { return slices.Contains(gone, d.id(v)) })
+	}
 }
 func upsert[T any](into *[]T, v T, id func(T) ulid.ULID) {
 	for i := range *into {
@@ -73,4 +123,11 @@ func upsert[T any](into *[]T, v T, id func(T) ulid.ULID) {
 		}
 	}
 	*into = append(*into, v)
+}
+func ChangePrototypes() map[string]Change {
+	out := make(map[string]Change, len(changeTypes))
+	for name, entry := range changeTypes {
+		out[name] = entry.build()
+	}
+	return out
 }

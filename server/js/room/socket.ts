@@ -1,9 +1,9 @@
-import { TRANSIENT_EVENTS, type Command, type Event } from "./protocol.ts";
+import { TRANSIENT_EVENTS, type Command, type Frame } from "./protocol.ts";
 type Unsent<T> = T extends { cid: string } ? Omit<T, "cid"> : never;
 export type Outgoing = Unsent<Command>;
 export type Status = "connecting" | "open" | "closed" | "ended";
 export interface SocketHandlers {
-	event(event: Event): void;
+	frame(frame: Frame): void;
 	status(status: Status, detail: string): void;
 }
 const backoffFloor = 500;
@@ -76,42 +76,42 @@ export class Socket {
 		});
 	}
 	private receive(text: string): void {
-		let event: Event;
+		let frame: Frame;
 		try {
-			event = JSON.parse(text) as Event;
+			frame = JSON.parse(text) as Frame;
 		} catch {
 			return;
 		}
-		if (event.type === "snapshot") {
-			this.seq = event.seq;
+		if (frame.type === "snapshot") {
+			this.seq = frame.seq;
 			this.resyncing = false;
 			if (this.version === "") {
-				this.version = event.version;
-			} else if (this.version !== event.version) {
+				this.version = frame.version;
+			} else if (this.version !== frame.version) {
 				location.reload();
 				return;
 			}
-			this.handlers.event(event);
+			this.handlers.frame(frame);
 			return;
 		}
-		if (event.type === "room.closed") {
+		if (frame.type === "room.closed") {
 			this.ended = true;
-			this.handlers.event(event);
+			this.handlers.frame(frame);
 			return;
 		}
-		if (TRANSIENT_EVENTS.has(event.type)) {
-			this.handlers.event(event);
+		if (TRANSIENT_EVENTS.has(frame.type)) {
+			this.handlers.frame(frame);
 			return;
 		}
-		if (event.seq <= this.seq) {
+		if (frame.seq <= this.seq) {
 			return;
 		}
-		if (event.seq > this.seq + 1) {
+		if (frame.seq > this.seq + 1) {
 			this.resync();
 			return;
 		}
-		this.seq = event.seq;
-		this.handlers.event(event);
+		this.seq = frame.seq;
+		this.handlers.frame(frame);
 	}
 	resync(): void {
 		if (this.resyncing) {

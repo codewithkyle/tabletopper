@@ -159,8 +159,6 @@ function start(
 			reduce(state, event);
 			revise(rev, event);
 		},
-		announce,
-		(event) => debug?.event(event),
 		(event) => renderer?.event(event),
 		() => {
 			if (shown.changed(rev)) {
@@ -192,7 +190,17 @@ function start(
 		},
 	]);
 	socket = new Socket(path, {
-		event: effect,
+		frame(frame) {
+			if (frame.type === "changes") {
+				for (const change of frame.events) {
+					effect(change);
+				}
+			} else {
+				effect(frame);
+			}
+			announce(frame);
+			debug?.frame(frame);
+		},
 		status(status: Status, detail: string) {
 			debug?.status(status, detail);
 			if (status !== "ended") {

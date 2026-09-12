@@ -1,85 +1,74 @@
 import type {
+	Change,
 	Event,
 	FogShape,
+	Layer,
 	Pawn,
 	Player,
 	State,
 	Stroke,
 } from "./protocol.ts";
-type Identified = Player | Pawn | FogShape | Stroke;
+type Identified = Player | Pawn | Layer | FogShape | Stroke;
+type Reducers = {
+	[K in Change["type"]]: (state: State, change: Extract<Change, { type: K }>) => void;
+};
+const reducers: Reducers = {
+	"room.updated": (state, change) => {
+		state.room = clone(change.room);
+	},
+	"table.updated": (state, change) => {
+		Object.assign(state.table, clone(change.table));
+	},
+	"layers.updated": (state, change) => {
+		state.table.layers = clone(change.layers);
+	},
+	"initiative.updated": (state, change) => {
+		state.initiative = clone(change.initiative);
+	},
+	"players.upserted": (state, change) => upsert(state.players, change.players),
+	"players.removed": (state, change) => remove(state.players, change.ids),
+	"pawns.upserted": (state, change) => upsert(state.pawns, change.pawns),
+	"pawns.removed": (state, change) => remove(state.pawns, change.ids),
+	"pawns.moved": (state, change) => {
+		for (const at of change.pawns) {
+			const pawn = byID(state.pawns, at.id);
+			if (pawn) {
+				pawn.x = at.x;
+				pawn.y = at.y;
+			}
+		}
+	},
+	"fog.upserted": (state, change) => upsert(state.fog, change.shapes),
+	"fog.removed": (state, change) => remove(state.fog, change.ids),
+	"strokes.upserted": (state, change) => upsert(state.strokes, change.strokes),
+	"strokes.removed": (state, change) => remove(state.strokes, change.ids),
+	"strokes.extended": (state, change) => {
+		const stroke = byID(state.strokes, change.id);
+		if (stroke) {
+			stroke.points.push(...change.points);
+		}
+	},
+	"strokes.ended": (state, change) => {
+		const stroke = byID(state.strokes, change.id);
+		if (stroke) {
+			stroke.done = true;
+		}
+	},
+};
 export function reduce(state: State, event: Event): void {
 	switch (event.type) {
 		case "snapshot":
 			Object.assign(state, clone(event.state));
 			break;
-		case "room.updated":
-			state.room = clone(event.room);
-			break;
-		case "table.updated":
-			state.table = clone(event.table);
-			break;
-		case "initiative.updated":
-			state.initiative = clone(event.initiative);
-			break;
-		case "player.joined":
-		case "player.updated":
-			upsert(state.players, clone(event.player));
-			break;
-		case "player.left":
-			state.players = without(state.players, event.id);
-			break;
-		case "pawn.spawned":
-		case "pawn.updated":
-			upsert(state.pawns, clone(event.pawn));
-			break;
-		case "pawn.removed":
-			state.pawns = without(state.pawns, event.id);
-			break;
-		case "fog.added":
-			upsert(state.fog, clone(event.shape));
-			break;
-		case "fog.removed":
-			state.fog = without(state.fog, event.id);
-			break;
-		case "stroke.began":
-			upsert(state.strokes, clone(event.stroke));
-			break;
-		case "stroke.ended": {
-			const stroke = byID(state.strokes, event.id);
-			if (stroke) {
-				stroke.done = true;
-			}
-			break;
-		}
-		case "stroke.erased":
-			state.strokes = state.strokes.filter((stroke) => !event.ids.includes(stroke.id));
-			break;
-		case "pawn.moved":
-			for (const at of event.pawns) {
-				const pawn = byID(state.pawns, at.id);
-				if (pawn) {
-					pawn.x = at.x;
-					pawn.y = at.y;
-				}
-			}
-			break;
-		case "stroke.extended": {
-			const stroke = byID(state.strokes, event.id);
-			if (stroke) {
-				stroke.points.push(...event.points);
-			}
-			break;
-		}
 		case "error":
 		case "pinged":
 		case "pawn.dragging":
 		case "player.kicked":
 		case "room.closed":
 			return;
-		default: {
-			const unreduced: never = event;
-			throw new Error(`room: no reduction for ${(unreduced as Event).type}`);
-		}
+		default:
+			(reducers[event.type] as (state: State, change: Change) => void)(state, event);
+			break;
 	}
 	normalize(state);
 }
@@ -118,16 +107,22 @@ export function empty(): State {
 		strokes: [],
 	};
 }
-function upsert<T extends Identified>(into: T[], value: T): void {
-	const at = into.findIndex((existing) => existing.id === value.id);
-	if (at === -1) {
-		into.push(value);
-		return;
+function upsert<T extends Identified>(into: T[], values: readonly T[]): void {
+	for (const value of values) {
+		const at = into.findIndex((existing) => existing.id === value.id);
+		if (at === -1) {
+			into.push(clone(value));
+			continue;
+		}
+		into[at] = clone(value);
 	}
-	into[at] = value;
 }
-function without<T extends Identified>(from: T[], id: string): T[] {
-	return from.filter((value) => value.id !== id);
+function remove<T extends Identified>(from: T[], ids: readonly string[]): void {
+	for (let at = from.length - 1; at >= 0; at--) {
+		if (ids.includes(from[at].id)) {
+			from.splice(at, 1);
+		}
+	}
 }
 function byID<T extends Identified>(from: T[], id: string): T | undefined {
 	return from.find((value) => value.id === id);

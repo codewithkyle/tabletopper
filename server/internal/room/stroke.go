@@ -7,34 +7,34 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-type StrokeBegan struct {
-	Header
-	Stroke Stroke `json:"stroke"`
+type StrokesUpserted struct {
+	Kind
+	Strokes []Stroke `json:"strokes"`
 }
 
-func (*StrokeBegan) eventType() string { return "stroke.began" }
+func (*StrokesUpserted) changeType() string { return "strokes.upserted" }
+
+type StrokesRemoved struct {
+	Kind
+	IDs []ulid.ULID `json:"ids"`
+}
+
+func (*StrokesRemoved) changeType() string { return "strokes.removed" }
 
 type StrokeExtended struct {
-	Header
+	Kind
 	ID     ulid.ULID `json:"id"`
 	Points []int     `json:"points"`
 }
 
-func (*StrokeExtended) eventType() string { return "stroke.extended" }
+func (*StrokeExtended) changeType() string { return "strokes.extended" }
 
 type StrokeEnded struct {
-	Header
+	Kind
 	ID ulid.ULID `json:"id"`
 }
 
-func (*StrokeEnded) eventType() string { return "stroke.ended" }
-
-type StrokeErased struct {
-	Header
-	IDs []ulid.ULID `json:"ids"`
-}
-
-func (*StrokeErased) eventType() string { return "stroke.erased" }
+func (*StrokeEnded) changeType() string { return "strokes.ended" }
 
 type StrokeBegin struct {
 	ID     ulid.ULID  `json:"id"`

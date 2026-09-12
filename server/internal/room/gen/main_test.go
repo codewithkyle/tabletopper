@@ -29,10 +29,14 @@ func TestTheGeneratedFileIsADiscriminatedUnion(t *testing.T) {
 	out := string(b)
 	for _, want := range []string{
 		`export type Command =`,
-		`export type Event =`,
-		`export const TRANSIENT_EVENTS: ReadonlySet<Event["type"]> = new Set([`,
+		`export type Change =`,
+		`export type Transient =`,
+		`export type Frame =`,
+		`export type Event = Change | Transient;`,
+		`export const TRANSIENT_EVENTS: ReadonlySet<Frame["type"]> = new Set([`,
 		`	type: "pawn.move";`,
-		`	type: "pawn.moved";`,
+		`	type: "pawns.moved";`,
+		`	events: Change[];`,
 		`	cid: string;`,
 		`	seq: number;`,
 		`	by?: string;`,
@@ -46,6 +50,9 @@ func TestTheGeneratedFileIsADiscriminatedUnion(t *testing.T) {
 	}
 	if !strings.Contains(out, "\tanchor: string;") {
 		t.Error("a ULID field was not emitted as a string")
+	}
+	if strings.Contains(out, "\ttype: \"pawns.moved\";\n\tseq") {
+		t.Error("an event inside a frame was given a sequence of its own")
 	}
 	if strings.Contains(out, "\tpawn: Pawn;\n\tcid") || strings.Contains(out, "\tmap: MapRef | null;\n\tcid") {
 		t.Error("a resolved field reached the generated client types")

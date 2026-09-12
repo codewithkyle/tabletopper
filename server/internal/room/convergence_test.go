@@ -21,9 +21,9 @@ func TestDerivedEventsConvergeOnTheServersState(t *testing.T) {
 		}
 		for _, v := range r.viewers() {
 			got := v.before.Clone()
-			for _, ev := range st.change.seen(v.actor) {
-				if err := Reduce(&got, ev); err != nil {
-					t.Fatalf("%s: reducing %s for the %s: %v", st.name, ev.eventType(), v.actor.Role, err)
+			for _, ev := range st.change.sent(v.actor) {
+				if err := replay(&got, ev); err != nil {
+					t.Fatalf("%s: replaying %s for the %s: %v", st.name, ev.eventType(), v.actor.Role, err)
 				}
 			}
 			want := w.s.Project(v.actor.Role)
@@ -31,14 +31,14 @@ func TestDerivedEventsConvergeOnTheServersState(t *testing.T) {
 				t.Fatalf("%s: the %s's reduced state is not the server's\n reduced %s\n  server %s",
 					st.name, v.actor.Role, mustJSON(t, got), mustJSON(t, want))
 			}
-			for _, ev := range st.change.events(v.actor.Role) {
+			for _, ch := range st.change.changes(v.actor.Role) {
 				alone := v.before.Clone()
-				if err := Reduce(&alone, ev); err != nil {
-					t.Fatalf("%s: reducing %s for the %s: %v", st.name, ev.eventType(), v.actor.Role, err)
+				if err := Reduce(&alone, ch); err != nil {
+					t.Fatalf("%s: reducing %s for the %s: %v", st.name, ch.changeType(), v.actor.Role, err)
 				}
 				if mustJSON(t, alone) == mustJSON(t, v.before) {
 					t.Fatalf("%s: %s changes nothing for the %s; the derivation is sending a no-op",
-						st.name, ev.eventType(), v.actor.Role)
+						st.name, ch.changeType(), v.actor.Role)
 				}
 			}
 		}
@@ -63,9 +63,11 @@ func TestReducerFixturesAreCurrent(t *testing.T) {
 				viewer = Actor{ID: testPlayerID, Role: RolePlayer}
 			}
 			r.visit = func(st stepRecord) {
-				events := []json.RawMessage{}
-				for _, ev := range st.change.seen(viewer) {
-					seq++
+				frames := []json.RawMessage{}
+				for _, ev := range st.change.sent(viewer) {
+					if _, transient := ev.(Transient); !transient {
+						seq++
+					}
 					var by *ulid.ULID
 					if !st.hub {
 						id := st.actor.ID
@@ -75,11 +77,11 @@ func TestReducerFixturesAreCurrent(t *testing.T) {
 					if err != nil {
 						t.Fatalf("%s: encode: %v", st.name, err)
 					}
-					events = append(events, json.RawMessage(b))
+					frames = append(frames, json.RawMessage(b))
 				}
 				fixture.Steps = append(fixture.Steps, reducerStep{
 					Name:   st.name,
-					Events: events,
+					Frames: frames,
 					State:  w.s.Project(role),
 				})
 			}
@@ -122,12 +124,12 @@ func TestTheFixturesReplayFromTheirInitialState(t *testing.T) {
 			}
 			state := fixture.Initial.Clone()
 			for _, step := range fixture.Steps {
-				for _, raw := range step.Events {
+				for _, raw := range step.Frames {
 					ev, err := decodeEventForTest(raw)
 					if err != nil {
 						t.Fatalf("%s: %v", step.Name, err)
 					}
-					if err := Reduce(&state, ev); err != nil {
+					if err := replay(&state, ev); err != nil {
 						t.Fatalf("%s: %v", step.Name, err)
 					}
 				}
@@ -147,8 +149,22 @@ type reducerFixture struct {
 }
 type reducerStep struct {
 	Name   string            `json:"name"`
-	Events []json.RawMessage `json:"events"`
+	Frames []json.RawMessage `json:"frames"`
 	State  State             `json:"state"`
+}
+
+func replay(s *State, ev Event) error {
+	switch e := ev.(type) {
+	case *Changes:
+		for _, ch := range e.Events {
+			if err := Reduce(s, ch); err != nil {
+				return err
+			}
+		}
+	case *Snapshot:
+		*s = e.State.Clone()
+	}
+	return nil
 }
 
 func decodeEventForTest(raw json.RawMessage) (Event, error) {

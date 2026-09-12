@@ -6,26 +6,19 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-type PlayerJoined struct {
-	Header
-	Player Player `json:"player"`
+type PlayersUpserted struct {
+	Kind
+	Players []Player `json:"players"`
 }
 
-func (*PlayerJoined) eventType() string { return "player.joined" }
+func (*PlayersUpserted) changeType() string { return "players.upserted" }
 
-type PlayerUpdated struct {
-	Header
-	Player Player `json:"player"`
+type PlayersRemoved struct {
+	Kind
+	IDs []ulid.ULID `json:"ids"`
 }
 
-func (*PlayerUpdated) eventType() string { return "player.updated" }
-
-type PlayerLeft struct {
-	Header
-	ID ulid.ULID `json:"id"`
-}
-
-func (*PlayerLeft) eventType() string { return "player.left" }
+func (*PlayersRemoved) changeType() string { return "players.removed" }
 
 type PlayerKicked struct {
 	Header
@@ -36,11 +29,11 @@ func (*PlayerKicked) eventType() string { return "player.kicked" }
 func (*PlayerKicked) transient()        {}
 
 type RoomUpdated struct {
-	Header
+	Kind
 	Room RoomInfo `json:"room"`
 }
 
-func (*RoomUpdated) eventType() string { return "room.updated" }
+func (*RoomUpdated) changeType() string { return "room.updated" }
 
 type RoomClosed struct {
 	Header

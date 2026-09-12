@@ -18,20 +18,21 @@ func TestRemovingALayerEmptiesItInOrder(t *testing.T) {
 	w.apply(&FogAdd{Layer: cellar, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(700), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
 	ch := w.change(&TableRemoveLayer{Layer: cellar}, w.gm)
-	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{
 		"fog.removed",
-		"stroke.erased",
-		"pawn.removed",
-		"pawn.removed",
+		"strokes.removed",
+		"pawns.removed",
 		"initiative.updated",
+		"layers.updated",
 		"table.updated",
 	})
-	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), []string{
 		"fog.removed",
-		"stroke.erased",
-		"pawn.removed",
-		"pawn.spawned",
+		"strokes.removed",
+		"pawns.removed",
+		"pawns.upserted",
 		"initiative.updated",
+		"layers.updated",
 		"table.updated",
 	})
 	if w.s.Table.ActiveLayer != ground {
@@ -52,7 +53,7 @@ func TestRemovingAnInactiveLayerDoesNotMoveAnybody(t *testing.T) {
 	cellar := w.addLayer("Cellar")
 	w.spawn(Pawn{Name: "Upstairs", Visible: true})
 	ch := w.change(&TableRemoveLayer{Layer: cellar}, w.gm)
-	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{"table.updated"})
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"layers.updated"})
 	if w.s.Table.ActiveLayer != w.layer {
 		t.Fatal("removing another floor moved the active layer")
 	}
@@ -79,21 +80,19 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 	}, w.gm)
 	cell := w.s.Table.Grid.CellSize
 	ch := w.change(&TableClear{}, w.gm)
-	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{
 		"fog.removed",
-		"stroke.erased",
-		"pawn.removed",
-		"pawn.removed",
-		"pawn.removed",
+		"strokes.removed",
+		"pawns.removed",
 		"initiative.updated",
-		"table.updated",
+		"layers.updated",
 	})
-	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), []string{
 		"fog.removed",
-		"stroke.erased",
-		"pawn.removed",
+		"strokes.removed",
+		"pawns.removed",
 		"initiative.updated",
-		"table.updated",
+		"layers.updated",
 	})
 	if len(w.s.Pawns) != 0 || len(w.s.Fog) != 0 || len(w.s.Strokes) != 0 {
 		t.Fatalf("the table still holds %d pawns, %d fog shapes and %d strokes",
@@ -133,8 +132,8 @@ func TestOnlyTheGMMovesPawnsBetweenLayers(t *testing.T) {
 	mine := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID})
 	w.refuse(&PawnSetLayer{IDs: []ulid.ULID{mine}, Layer: cellar}, w.pc, CodeForbidden)
 	ch := w.change(&PawnSetLayer{IDs: []ulid.ULID{mine}, Layer: cellar}, w.gm)
-	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{"pawn.updated"})
-	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{"pawn.removed"})
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"pawns.upserted"})
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), []string{"pawns.removed"})
 }
 func TestTheTrackerKeepsCombatantsOnOtherFloors(t *testing.T) {
 	w := newWorld(t)

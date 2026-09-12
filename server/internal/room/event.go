@@ -22,6 +22,16 @@ type Transient interface {
 	Event
 	transient()
 }
+type Kind struct {
+	Type string `json:"type"`
+}
+
+func (k *Kind) kind() *Kind { return k }
+
+type Change interface {
+	changeType() string
+	kind() *Kind
+}
 
 func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
 	h := ev.header()
@@ -32,28 +42,13 @@ func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
 }
 
 var eventTypes = map[string]func() Event{
-	"snapshot":           func() Event { return &Snapshot{} },
-	"room.updated":       func() Event { return &RoomUpdated{} },
-	"room.closed":        func() Event { return &RoomClosed{} },
-	"table.updated":      func() Event { return &TableUpdated{} },
-	"player.joined":      func() Event { return &PlayerJoined{} },
-	"player.updated":     func() Event { return &PlayerUpdated{} },
-	"player.left":        func() Event { return &PlayerLeft{} },
-	"player.kicked":      func() Event { return &PlayerKicked{} },
-	"pawn.spawned":       func() Event { return &PawnSpawned{} },
-	"pawn.updated":       func() Event { return &PawnUpdated{} },
-	"pawn.removed":       func() Event { return &PawnRemoved{} },
-	"pawn.moved":         func() Event { return &PawnMoved{} },
-	"pawn.dragging":      func() Event { return &PawnDragging{} },
-	"initiative.updated": func() Event { return &InitiativeUpdated{} },
-	"fog.added":          func() Event { return &FogAdded{} },
-	"fog.removed":        func() Event { return &FogRemoved{} },
-	"stroke.began":       func() Event { return &StrokeBegan{} },
-	"stroke.extended":    func() Event { return &StrokeExtended{} },
-	"stroke.ended":       func() Event { return &StrokeEnded{} },
-	"stroke.erased":      func() Event { return &StrokeErased{} },
-	"pinged":             func() Event { return &Pinged{} },
-	"error":              func() Event { return &ErrorEvent{} },
+	"changes":       func() Event { return &Changes{} },
+	"snapshot":      func() Event { return &Snapshot{} },
+	"room.closed":   func() Event { return &RoomClosed{} },
+	"player.kicked": func() Event { return &PlayerKicked{} },
+	"pawn.dragging": func() Event { return &PawnDragging{} },
+	"pinged":        func() Event { return &Pinged{} },
+	"error":         func() Event { return &ErrorEvent{} },
 }
 
 type ErrorEvent struct {

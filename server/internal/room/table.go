@@ -7,11 +7,18 @@ import (
 )
 
 type TableUpdated struct {
-	Header
-	Table Table `json:"table"`
+	Kind
+	Table TableSettings `json:"table"`
 }
 
-func (*TableUpdated) eventType() string { return "table.updated" }
+func (*TableUpdated) changeType() string { return "table.updated" }
+
+type LayersUpdated struct {
+	Kind
+	Layers []Layer `json:"layers"`
+}
+
+func (*LayersUpdated) changeType() string { return "layers.updated" }
 
 type TableAddLayer struct {
 	Name string `json:"name"`

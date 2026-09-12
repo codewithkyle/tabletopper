@@ -15,13 +15,13 @@ func TestJoiningSendsTheSnapshotLastAndTheArrivalFirst(t *testing.T) {
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
 	first := only(t, gm, "snapshot")
 	player := tb.join(playerID, "Ari", room.RolePlayer)
-	joined := only(t, gm, "player.joined")
+	joined := only(t, gm, "players.upserted")
 	second := only(t, player, "snapshot")
 	if first[0].Seq >= second[0].Seq {
 		t.Errorf("the second snapshot's seq is %d, want more than the first's %d", second[0].Seq, first[0].Seq)
 	}
 	if joined[0].Seq != second[0].Seq {
-		t.Errorf("player.joined = seq %d and the snapshot that follows it = seq %d; the two audiences advanced by different amounts on one ToAll event", joined[0].Seq, second[0].Seq)
+		t.Errorf("the arrival = seq %d and the snapshot that follows it = seq %d; the two audiences advanced by different amounts on one ToAll event", joined[0].Seq, second[0].Seq)
 	}
 	if got := stateSeq(t, second[0]); got != second[0].Seq {
 		t.Errorf("snapshot state.seq = %d, envelope seq = %d", got, second[0].Seq)
@@ -65,14 +65,14 @@ func TestHidingAPawnUpdatesTheGMAndRemovesItForPlayers(t *testing.T) {
 		Visible: true,
 		Pawn:    &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
 	})
-	spawned := only(t, gm, "pawn.spawned")
-	only(t, player, "pawn.spawned")
-	pawn := ulidField(t, spawned[0].Body["pawn"].(map[string]any), "id")
+	spawned := only(t, gm, "pawns.upserted")
+	only(t, player, "pawns.upserted")
+	pawn := ulidField(t, onePawn(t, spawned[0]), "id")
 	tb.send(gm, "2", &room.PawnSetVisible{IDs: []ulid.ULID{pawn}, Visible: false})
-	only(t, gm, "pawn.updated")
-	removed := only(t, player, "pawn.removed")
-	if got := ulidField(t, removed[0].Body, "id"); got != pawn {
-		t.Errorf("pawn.removed named %s, want %s", got, pawn)
+	only(t, gm, "pawns.upserted")
+	removed := only(t, player, "pawns.removed")
+	if got := oneID(t, removed[0]); got != pawn {
+		t.Errorf("pawns.removed named %s, want %s", got, pawn)
 	}
 }
 func TestARefusedCommandLeavesTheStateAsItWas(t *testing.T) {
@@ -103,7 +103,7 @@ func TestDragsCoalesceIntoOneFrameForEverybodyElse(t *testing.T) {
 		Kind: room.PawnMonster, Layer: layer, X: 64, Y: 64, Visible: true,
 		Pawn: &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
 	})
-	pawn := ulidField(t, only(t, gm, "pawn.spawned")[0].Body["pawn"].(map[string]any), "id")
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
 	frames(t, player)
 	for _, x := range []int{100, 200, 300} {
 		tb.send(gm, "d", &room.PawnDrag{Anchor: pawn, X: x, Y: 64})
@@ -145,8 +145,8 @@ func TestAKickTellsThePersonClosesThemAndForgetsTheirMembership(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 	tb.send(gm, "k", &room.PlayerKick{ID: playerID})
-	only(t, player, "player.left", "player.kicked")
-	only(t, gm, "player.left")
+	only(t, player, "players.removed", "player.kicked")
+	only(t, gm, "players.removed")
 	select {
 	case <-player.quit:
 	default:
@@ -166,38 +166,74 @@ func TestEachAudienceSeesItsOwnSequenceWithNoGaps(t *testing.T) {
 	layer := activeLayer(t, only(t, gm, "snapshot")[0])
 	player := tb.join(playerID, "Ari", room.RolePlayer)
 	only(t, player, "snapshot")
-	only(t, gm, "player.joined")
+	only(t, gm, "players.upserted")
 	tb.send(gm, "1", &room.PawnSpawn{
 		Kind: room.PawnMonster, Layer: layer, X: 64, Y: 64, Visible: true,
 		Pawn: &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
 	})
-	spawned := only(t, gm, "pawn.spawned")
-	pawn := ulidField(t, spawned[0].Body["pawn"].(map[string]any), "id")
+	spawned := only(t, gm, "pawns.upserted")
+	pawn := ulidField(t, onePawn(t, spawned[0]), "id")
 	gmStart := spawned[0].Seq
-	start := only(t, player, "pawn.spawned")[0].Seq
+	start := only(t, player, "pawns.upserted")[0].Seq
 	tb.send(gm, "2", &room.PawnSpawn{
 		Kind: room.PawnMonster, Layer: layer, X: 128, Y: 64, Visible: false,
 		Pawn: &room.Pawn{Name: "Ambusher", Size: room.SizeSmall},
 	})
 	tb.send(gm, "3", &room.PawnMove{Anchor: pawn, X: 192, Y: 64})
 	tb.send(gm, "p", &room.Ping{Layer: layer, X: 1, Y: 1})
-	contiguous(t, "the GM", gmStart, frames(t, gm))
-	contiguous(t, "a player", start, frames(t, player))
+	gmFrames := frames(t, gm)
+	contiguous(t, "the GM", gmStart, gmFrames)
+	if got := changeFrames(gmFrames); got != 2 {
+		t.Errorf("the GM received %d frames for the two commands that changed the room, want one each", got)
+	}
+	playerFrames := frames(t, player)
+	contiguous(t, "a player", start, playerFrames)
+	if got := changeFrames(playerFrames); got != 1 {
+		t.Errorf("a player received %d frames, want the one command they could see", got)
+	}
+}
+func TestABulkCommandIsOneFramePerRole(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	player := tb.join(playerID, "Ari", room.RolePlayer)
+	for n := range 100 {
+		tb.send(gm, "s", &room.PawnSpawn{
+			Kind: room.PawnMonster, Layer: layer, X: 64 * n, Y: 64, Visible: n%2 == 0,
+			Pawn: &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
+		})
+	}
+	frames(t, gm)
+	frames(t, player)
+	tb.send(gm, "clear", &room.TableClear{})
+	for who, fs := range map[string][]frame{"the GM": frames(t, gm), "a player": frames(t, player)} {
+		if got := changeFrames(fs); got != 1 {
+			t.Errorf("%s received %d frames for one command: %v", who, got, types(fs))
+		}
+	}
+}
+func changeFrames(fs []frame) int {
+	n := 0
+	for _, f := range fs {
+		if f.Type == "changes" {
+			n++
+		}
+	}
+	return n
 }
 func contiguous(t *testing.T, who string, start uint64, fs []frame) {
 	t.Helper()
-	transient := map[string]bool{"error": true, "pawn.dragging": true, "pinged": true, "player.kicked": true, "room.closed": true}
 	seq := start
 	for _, f := range fs {
-		if transient[f.Type] {
+		if f.Type != "changes" {
 			if f.Seq != seq {
-				t.Errorf("%s: %s carries seq %d, want the current %d -- a transient event must not advance the sequence", who, f.Type, f.Seq, seq)
+				t.Errorf("%s: %s carries seq %d, want the current %d -- a transient frame must not advance the sequence", who, f.Type, f.Seq, seq)
 			}
 			continue
 		}
 		seq++
 		if f.Seq != seq {
-			t.Errorf("%s: %s carries seq %d, want %d", who, f.Type, f.Seq, seq)
+			t.Errorf("%s: a frame carries seq %d, want %d", who, f.Seq, seq)
 			seq = f.Seq
 		}
 	}
