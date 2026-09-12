@@ -1,6 +1,6 @@
 import type { Pawn } from "./protocol.ts";
 import type { Rect } from "./model/types.ts";
-export interface OverlayDeps {
+export interface HudDeps {
 	focus: () => Pawn | null;
 	selected: () => string[];
 	bounds: () => Rect | null;
@@ -9,7 +9,7 @@ export interface OverlayDeps {
 	anyShown: (ids: string[]) => boolean;
 	labels: () => string;
 }
-export interface Overlay {
+export interface Hud {
 	refresh(): void;
 	remove(): void;
 	place(): void;
@@ -20,7 +20,7 @@ export function removePrompt(count: number): string {
 	const what = count === 1 ? "the selected pawn" : `the ${count} selected pawns`;
 	return `Remove ${what} from the table. This cannot be undone.`;
 }
-export function mountOverlay(mount: HTMLElement, deps: OverlayDeps): Overlay | null {
+export function mountHud(mount: HTMLElement, deps: HudDeps): Hud | null {
 	const found = mount.querySelector("[data-pawn-overlay]");
 	if (!(found instanceof HTMLElement)) {
 		return null;
@@ -173,7 +173,7 @@ export function bandWord(band: string): string {
 function must(root: HTMLElement, selector: string): HTMLElement {
 	const found = root.querySelector(selector);
 	if (!(found instanceof HTMLElement)) {
-		throw new Error(`the overlay is missing ${selector}`);
+		throw new Error(`the pawn hud is missing ${selector}`);
 	}
 	return found;
 }

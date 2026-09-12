@@ -1,6 +1,6 @@
 import type { FogMode, ShapeKind } from "./protocol.ts";
 import type { Tools } from "./tools.ts";
-import type { FogOptions } from "./fog.ts";
+import type { FogOptions } from "./modes/fog.ts";
 export interface FogTool {
 	options(): FogOptions;
 	stop(): void;
@@ -46,7 +46,7 @@ export function mountFogTool(mount: HTMLElement, tools: Tools | null): FogTool {
 		}
 	}
 	function follow(): void {
-		root.hidden = !(tools?.fogging() ?? false);
+		root.hidden = tools?.chosen() !== "fog";
 	}
 	root.addEventListener("click", onClick);
 	tools?.onChange(follow);

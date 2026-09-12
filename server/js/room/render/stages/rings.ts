@@ -1,5 +1,4 @@
 import type { FrameContext } from "../frame-context.ts";
-import type { Outline } from "../../pawns.ts";
 import type { Pawn } from "../../protocol.ts";
 import type { RingPass } from "../ring-pass.ts";
 import type { Stage, StageFactory } from "./stage.ts";
@@ -36,7 +35,6 @@ export function fillConditionRings(
 }
 export const ringsStage: StageFactory = (gl, resources): Stage => {
 	const pass = createRingPass(gl, resources.ringProgram);
-	const outlines: Outline[] = [];
 	let frame: FrameContext | null = null;
 	const grounded = (pawn: Pawn): boolean => frame !== null && !lifted(frame, pawn);
 	return {
@@ -44,7 +42,7 @@ export const ringsStage: StageFactory = (gl, resources): Stage => {
 			frame = now;
 			pass.begin();
 			fillConditionRings(pass, now, grounded);
-			for (const outline of now.overlay.outlines(outlines)) {
+			for (const outline of now.overlay.outlines) {
 				pass.add(
 					outline.x, outline.y, outline.halfW, outline.halfH,
 					outline.color, outline.alpha, outline.thickness,

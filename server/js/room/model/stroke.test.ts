@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Grid, Stroke, StrokeKind } from "./protocol.ts";
-import { circleSegments, coneCorners, measure, strokeHit, strokeSegments } from "./model/stroke.ts";
-import { GLYPHS } from "./render/glyphs.ts";
+import type { Grid, Stroke, StrokeKind } from "../protocol.ts";
+import { circleSegments, coneCorners, measure, strokeHit, strokeSegments } from "./stroke.ts";
+import { GLYPHS } from "../render/glyphs.ts";
 function stroke(kind: StrokeKind, points: number[]): Pick<Stroke, "kind" | "points"> {
 	return { kind, points };
 }

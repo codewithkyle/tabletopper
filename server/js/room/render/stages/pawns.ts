@@ -1,4 +1,5 @@
-import type { Drawn, PawnPulse } from "../pawn-pass.ts";
+import type { Drawn } from "../../model/overlay.ts";
+import type { PawnPulse } from "../pawn-pass.ts";
 import type { FrameContext } from "../frame-context.ts";
 import type { Pawn } from "../../protocol.ts";
 import type { Stage, StageFactory } from "./stage.ts";

@@ -5,7 +5,7 @@ export const strokesStage: StageFactory = (gl): Stage => {
 	return {
 		build(frame) {
 			pass.sync(frame.state.strokes, frame.viewedID);
-			pass.live(frame.state.strokes, frame.viewedID, frame.overlay.inHand());
+			pass.live(frame.state.strokes, frame.viewedID, frame.overlay.inHand);
 		},
 		draw(frame) {
 			pass.draw(frame);

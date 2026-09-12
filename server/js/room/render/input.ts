@@ -1,4 +1,5 @@
 import type { Camera, Viewport } from "./camera.ts";
+import type { Overlay } from "../model/overlay.ts";
 import type { Point } from "../model/types.ts";
 import { panBy, zoomAt } from "./camera.ts";
 const ZOOM_STEP_MAX = Math.log(1.25);
@@ -15,9 +16,14 @@ export interface Tool {
 	drag(map: Point, screen: Point, mods: Modifiers): void;
 	release(map: Point, screen: Point, mods: Modifiers): void;
 	cancel(): void;
-	secondary(map: Point, screen: Point): void;
+	secondary(map: Point, screen: Point): boolean;
 	hover(map: Point | null): void;
+	key(e: KeyboardEvent): boolean;
+	abandon(): boolean;
 	active(): boolean;
+	contribute(out: Overlay): void;
+	enter?(): void;
+	leave?(): void;
 }
 export interface Pending {
 	panX: number;

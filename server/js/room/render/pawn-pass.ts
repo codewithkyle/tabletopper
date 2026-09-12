@@ -1,5 +1,6 @@
+import type { Drawn } from "../model/overlay.ts";
 import type { FrameContext } from "./frame-context.ts";
-import type { Grid, HPBand, Pawn } from "../protocol.ts";
+import type { Grid } from "../protocol.ts";
 import type { Attribute, QuadBatch } from "../gl/quads.ts";
 import type { Program } from "../gl/program.ts";
 import type { SpriteCache } from "./sprites.ts";
@@ -24,21 +25,6 @@ const PAWN_QUAD: readonly Attribute[] = [{ size: 4 }, { size: 4 }, { size: 4 }, 
 export type PawnProgram = Program<(typeof uniforms)[number]>;
 export function createPawnProgram(gl: WebGL2RenderingContext): PawnProgram {
 	return createProgram(gl, vertexSource, fragmentSource, uniforms);
-}
-export interface Drawn {
-	id: string;
-	kind: Pawn["kind"];
-	name: string;
-	image: string;
-	x: number;
-	y: number;
-	z: number;
-	size: Pawn["size"];
-	width: number;
-	height: number;
-	rotation: number;
-	hidden: boolean;
-	health: HPBand | null;
 }
 export interface PawnPulse {
 	slow: number;

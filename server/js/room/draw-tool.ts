@@ -1,7 +1,7 @@
 import type { HexColorPicker } from "vanilla-colorful/hex-color-picker.js";
-import type { DrawMode, DrawOptions } from "./draw.ts";
+import type { DrawMode, DrawOptions } from "./modes/draw.ts";
 import type { Tools } from "./tools.ts";
-import { DEFAULT_WIDTH } from "./draw.ts";
+import { DEFAULT_WIDTH } from "./modes/draw.ts";
 import { typing } from "./keys.ts";
 export interface DrawTool {
 	options(): DrawOptions;
@@ -103,7 +103,7 @@ export function mountDrawTool(mount: HTMLElement, tools: Tools | null, color: st
 		show(null);
 	}
 	function follow(): void {
-		const drawing = tools?.drawing() ?? false;
+		const drawing = tools?.chosen() === "draw";
 		root.hidden = !drawing;
 		if (!drawing && open !== null) {
 			show(null);

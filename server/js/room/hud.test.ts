@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bandWord } from "./overlay.ts";
+import { bandWord } from "./hud.ts";
 import type { HPBand } from "./protocol.ts";
 const BANDS: HPBand[] = ["healthy", "bruised", "bloody", "veryBloody", "nearDeath", "dead"];
 test("every band has a word", () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Handle } from "./handles.ts";
+import type { Handle } from "./model/overlay.ts";
 import type { Placed } from "./model/shape.ts";
 import { HANDLE_GRAB, OBJECT_PIXELS_MAX, SPIN_GAP, SPIN_STEP, handleAt, handlesFor, resized, turned } from "./handles.ts";
 const CELL = 64;

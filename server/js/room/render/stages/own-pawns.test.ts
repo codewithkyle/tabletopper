@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Drawn } from "../pawn-pass.ts";
+import type { Drawn } from "../../model/overlay.ts";
 import type { FogShape, Layer, Pawn } from "../../protocol.ts";
 import { aboveFog, concealed } from "../../model/polygon.ts";
 import { stagesFor } from "./order.ts";

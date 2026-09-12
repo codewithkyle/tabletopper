@@ -1,5 +1,5 @@
 import { MODAL_CLOSE } from "../../public/js/events.js";
-import type { Armed } from "./pawns.ts";
+import type { Armed } from "./modes/place.ts";
 import type { PawnKind, Size } from "./protocol.ts";
 const ARMED_SIZE: Size = "medium";
 const SIZES: readonly Size[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];

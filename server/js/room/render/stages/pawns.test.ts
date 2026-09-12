@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Drawn } from "../pawn-pass.ts";
+import type { Drawn } from "../../model/overlay.ts";
 import type { Pawn } from "../../protocol.ts";
 import { visiblePawns } from "./pawns.ts";
 const GROUND = "01LAYERGROUND";

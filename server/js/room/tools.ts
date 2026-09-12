@@ -1,15 +1,20 @@
 import { typing } from "./keys.ts";
+export type Mode = "select" | "pan" | "measure" | "fog" | "draw" | "ping";
 export interface Tools {
-	panning(): boolean;
-	measuring(): boolean;
-	fogging(): boolean;
-	drawing(): boolean;
-	pinging(): boolean;
+	mode(): Mode;
+	chosen(): Mode;
 	onChange(fn: () => void): void;
 	stop(): void;
 }
 const PAN_KEY = "Space";
 const GRAB = "grab";
+const MODES: readonly (readonly [string, Mode])[] = [
+	["[data-room-tool-pans]", "pan"],
+	["[data-room-tool-measures]", "measure"],
+	["[data-room-tool-fogs]", "fog"],
+	["[data-room-tool-draws]", "draw"],
+	["[data-room-tool-pings]", "ping"],
+];
 export function showing<T>(chosen: T, pans: T | null, held: boolean): T {
 	return held && pans !== null ? pans : chosen;
 }
@@ -21,10 +26,13 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	const root: HTMLElement = found;
 	const buttons = Array.from(root.querySelectorAll("[data-room-tool]"));
 	const pans = root.querySelector("[data-room-tool-pans]");
-	const measures = root.querySelector("[data-room-tool-measures]");
-	const fogs = root.querySelector("[data-room-tool-fogs]");
-	const draws = root.querySelector("[data-room-tool-draws]");
-	const pings = root.querySelector("[data-room-tool-pings]");
+	const modes = new Map<Element, Mode>();
+	for (const [selector, mode] of MODES) {
+		const button = root.querySelector(selector);
+		if (button) {
+			modes.set(button, mode);
+		}
+	}
 	const keys = new Map<string, Element>();
 	for (const button of buttons) {
 		const key = button.getAttribute("data-room-tool-key");
@@ -39,20 +47,11 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	function lit(): Element | null {
 		return showing(chosen, pans, held);
 	}
-	function panning(): boolean {
-		return pans !== null && lit() === pans;
+	function modeOf(button: Element | null): Mode {
+		return button ? modes.get(button) ?? "select" : "select";
 	}
-	function measuring(): boolean {
-		return measures !== null && chosen === measures;
-	}
-	function fogging(): boolean {
-		return fogs !== null && chosen === fogs;
-	}
-	function drawing(): boolean {
-		return draws !== null && chosen === draws;
-	}
-	function pinging(): boolean {
-		return pings !== null && chosen === pings;
+	function mode(): Mode {
+		return modeOf(lit());
 	}
 	function paint(): void {
 		const current = lit();
@@ -60,7 +59,7 @@ export function mountTools(mount: HTMLElement): Tools | null {
 			button.setAttribute("aria-pressed", String(button === current));
 		}
 		if (canvas instanceof HTMLElement) {
-			canvas.style.cursor = panning() ? GRAB : "";
+			canvas.style.cursor = mode() === "pan" ? GRAB : "";
 		}
 		for (const fn of changed) {
 			fn();
@@ -119,11 +118,8 @@ export function mountTools(mount: HTMLElement): Tools | null {
 	window.addEventListener("blur", onBlur);
 	paint();
 	return {
-		panning,
-		measuring,
-		fogging,
-		drawing,
-		pinging,
+		mode,
+		chosen: () => modeOf(chosen),
 		onChange(fn) {
 			changed.push(fn);
 		},

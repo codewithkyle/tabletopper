@@ -5,13 +5,14 @@ import type { FrameContext } from "./frame-context.ts";
 import type { LayerView } from "./layers.ts";
 import type { Point, Rect } from "../model/types.ts";
 import type { StageList } from "./stages/list.ts";
-import type { Table } from "../pawns.ts";
+import type { Tool } from "./input.ts";
 import { apply, wireInput } from "./input.ts";
 import { clampToMap, newCamera, screenToWorld, worldPerCssPixel, worldToScreen } from "./camera.ts";
 import { createContext } from "../gl/context.ts";
 import { newCameraController } from "./camera-controller.ts";
 import { newFrame, sizeFrame } from "./frame-context.ts";
 import { newLayerView } from "./layers.ts";
+import { newOverlay } from "../model/overlay.ts";
 import { newStageList } from "./stages/list.ts";
 import { startFrames } from "./frame.ts";
 import { touchesPawns } from "../effects.ts";
@@ -33,7 +34,7 @@ export interface Renderer {
 	stop(): void;
 }
 export function mountRenderer(
-	mount: HTMLElement, state: State, role: Role, user: string, table: Table,
+	mount: HTMLElement, state: State, role: Role, user: string, tool: Tool,
 ): Renderer | null {
 	const found = mount.querySelector("[data-tabletop-canvas]");
 	if (!(found instanceof HTMLCanvasElement)) {
@@ -59,12 +60,13 @@ export function mountRenderer(
 	let framed: (() => void) | null = null;
 	const settled: (() => void)[] = [];
 	const list: StageList = newStageList(gl, role, () => frames.invalidate());
-	const frame: FrameContext = newFrame(gl, camera, viewport, role, user, state, table, list.resources());
+	const overlay = newOverlay();
+	const frame: FrameContext = newFrame(gl, camera, viewport, role, user, state, overlay, list.resources());
 	const input = wireInput(
 		canvas,
 		() => frames.invalidate(),
 		(x, y, out) => screenToWorld(camera, viewport, x, y, out),
-		table.tool,
+		tool,
 	);
 	const frames = startFrames({
 		mount,
@@ -133,6 +135,8 @@ export function mountRenderer(
 		frame.cell = cell;
 		frame.painted = layers.draws();
 		frame.rebuild = pawnsDirty || cell !== lastCell || resources.sprites.epoch() !== lastEpoch;
+		overlay.reset();
+		tool.contribute(overlay);
 		resources.begin(frame.rebuild);
 		list.build(frame);
 		if (frame.rebuild) {

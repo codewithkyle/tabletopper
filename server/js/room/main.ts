@@ -3,15 +3,13 @@ import "vanilla-colorful/hex-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
 import { fanOut, refusals, touchesPawns } from "./effects.ts";
-import { createDraw } from "./draw.ts";
 import { mountDrawTool } from "./draw-tool.ts";
 import { FULL, newPingSound } from "./ping-sound.ts";
-import { createFog } from "./fog.ts";
-import { createTable } from "./pawns.ts";
+import { createTable } from "./modes/table.ts";
 import { actorColor, hexColor } from "./model/color.ts";
 import { empty, reduce } from "./store.ts";
 import { mountDialogs } from "./dialogs.ts";
-import { mountOverlay } from "./overlay.ts";
+import { mountHud } from "./hud.ts";
 import { Socket, type Status } from "./socket.ts";
 import { wireDebug } from "./debug.ts";
 import { leaveKicked } from "./exit.ts";
@@ -31,8 +29,8 @@ import type { Event, Role, State } from "./protocol.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { pawnWindow } from "./pawn-window.ts";
 import type { Named } from "./pawn-window.ts";
-import type { Overlay } from "./overlay.ts";
-import type { Table } from "./pawns.ts";
+import type { Hud } from "./hud.ts";
+import type { Table } from "./modes/table.ts";
 const mount = document.getElementById("tabletop");
 if (mount) {
 	mountWindows(mount, mount.dataset.room ?? "");
@@ -60,58 +58,30 @@ if (mount) {
 	const sound = newPingSound();
 	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);
 	sound.volume(Number.isFinite(rendered) ? rendered : FULL);
-	let overlay: Overlay | null = null;
+	let hud: Hud | null = null;
 	let follow: Follow | null = null;
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
-	const fog = createFog({
-		state,
-		role,
-		user,
-		viewed,
-		grid: () => state.table.grid,
-		send: (command) => {
-			socket?.send(command);
-		},
-		invalidate: () => renderer?.invalidate(),
-		fogging: () => tools?.fogging() ?? false,
-		options: fogTool.options,
-	});
-	const draw = createDraw({
-		state,
-		role,
-		user,
-		viewed,
-		grid: () => state.table.grid,
-		send: (command) => {
-			socket?.send(command);
-		},
-		invalidate: () => renderer?.invalidate(),
-		scale: () => renderer?.mapPerPixel() ?? 1,
-		drawing: () => tools?.drawing() ?? false,
-		options: drawTool.options,
-	});
 	const table = createTable({
 		state,
 		role,
 		user,
-		fog,
-		draw,
 		viewed,
 		send: (command) => {
 			socket?.send(command);
 		},
 		invalidate: () => renderer?.invalidate(),
-		panning: () => tools?.panning() ?? false,
-		measuring: () => tools?.measuring() ?? false,
-		pinging: () => tools?.pinging() ?? false,
 		scale: () => renderer?.mapPerPixel() ?? 1,
 		details: openDetails,
 		menu: (pawn, screen) => {
 			menu?.open(pawn, screen);
 		},
-		remove: () => overlay?.remove(),
+		remove: () => hud?.remove(),
+		mode: () => tools?.mode() ?? "select",
+		chosen: () => tools?.chosen() ?? "select",
+		fogOptions: fogTool.options,
+		drawOptions: drawTool.options,
 	});
-	renderer = mountRenderer(mount, state, role, user, table);
+	renderer = mountRenderer(mount, state, role, user, table.tool);
 	tools?.onChange(() => renderer?.invalidate());
 	if (renderer) {
 		const bar = mountLayerBar(mount, state, renderer);
@@ -124,7 +94,7 @@ if (mount) {
 		}
 		renderer.onSettled(() => table.floorChanged());
 		const view = renderer;
-		overlay = mountOverlay(mount, {
+		hud = mountHud(mount, {
 			focus: () => table.focus(),
 			selected: () => table.selection.ids(),
 			bounds: () => table.bounds(),
@@ -133,9 +103,9 @@ if (mount) {
 			anyShown: (ids) => state.pawns.some((pawn) => pawn.visible && ids.includes(pawn.id)),
 			labels: () => state.table.pawnLabels,
 		});
-		if (overlay) {
-			table.onChange(overlay.refresh);
-			view.onFrame(overlay.place);
+		if (hud) {
+			table.onChange(hud.refresh);
+			view.onFrame(hud.place);
 		}
 		follow = mountFollow(state, {
 			viewed: () => view.view.viewed()?.id ?? state.table.activeLayer,
@@ -164,7 +134,7 @@ if (mount) {
 	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table, overlay, turns, follow, pinged);
+		socket = start(path, state, renderer, table, hud, turns, follow, pinged);
 	}
 }
 function start(
@@ -172,7 +142,7 @@ function start(
 	state: State,
 	renderer: Renderer | null,
 	table: Table,
-	overlay: Overlay | null,
+	hud: Hud | null,
 	turns: Turns | null,
 	follow: Follow | null,
 	pinged: (layer: string, by: string) => void,
@@ -186,7 +156,7 @@ function start(
 		(event) => renderer?.event(event),
 		(event) => {
 			if (touchesPawns(event.type)) {
-				overlay?.refresh();
+				hud?.refresh();
 			}
 		},
 		(event) => {

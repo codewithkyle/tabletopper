@@ -1,11 +1,10 @@
 import type { Camera, Viewport } from "./camera.ts";
 import { clipMatrix, inverseClipMatrix, worldPerCssPixel, worldPerDevicePixel } from "./camera.ts";
 import type { Layer, Role, State } from "../protocol.ts";
+import type { Overlay } from "../model/overlay.ts";
 import type { Painted } from "./layers.ts";
 import type { Resources } from "./resources.ts";
 import type { Rgb } from "../model/types.ts";
-import type { Table } from "../pawns.ts";
-export type Overlay = Table;
 export interface FrameContext {
 	gl: WebGL2RenderingContext;
 	now: number;

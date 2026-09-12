@@ -78,6 +78,12 @@ export function containsPoint(pawn: Placed, x: number, y: number, cellSize: numb
 export function snapsToGrid(pawn: Sized, grid: Grid): boolean {
 	return grid.snap !== "off" && pawn.kind !== "object";
 }
+export function snapTo(grid: Grid, pawn: Sized, x: number, y: number, out: Point): Point {
+	const [sx, sy] = snapPawn(grid, pawn, Math.round(x), Math.round(y));
+	out.x = sx;
+	out.y = sy;
+	return out;
+}
 export function snapPawn(grid: Grid, pawn: Sized, x: number, y: number): [number, number] {
 	if (pawn.kind === "object") {
 		return [x, y];

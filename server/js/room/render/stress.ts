@@ -1,4 +1,4 @@
-import type { Drawn } from "./pawn-pass.ts";
+import type { Drawn } from "../model/overlay.ts";
 import type { HPBand, Pawn } from "../protocol.ts";
 const KINDS: Pawn["kind"][] = ["player", "monster", "npc", "object"];
 const SIZES: Pawn["size"][] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];

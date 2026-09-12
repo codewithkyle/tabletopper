@@ -1,19 +1,11 @@
+import type { Handle } from "./model/overlay.ts";
 import type { Placed } from "./model/shape.ts";
 import type { Point } from "./model/types.ts";
 import { pawnExtents, spin, unrotate } from "./model/shape.ts";
-export const HANDLE_HALF = 4;
 export const HANDLE_GRAB = 10;
 export const SPIN_GAP = 26;
 export const SPIN_STEP = 15;
 export const OBJECT_PIXELS_MAX = 8_192;
-export interface Handle {
-	lx: number;
-	ly: number;
-	turns: boolean;
-	x: number;
-	y: number;
-	rotation: number;
-}
 const OFFSETS: readonly (readonly [number, number])[] = [
 	[-1, -1], [1, -1], [1, 1], [-1, 1],
 	[0, -1], [1, 0], [0, 1], [-1, 0],

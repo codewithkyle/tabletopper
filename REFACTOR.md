@@ -75,6 +75,14 @@ Things this document was asked to settle, settled.
 - **Condition rings and outlines are one stage. Over marks and labels are one
   stage.** That is how they are batched today and splitting them adds draw
   calls.
+- **`Tools` answers two questions, not one.** `mode()` is what the pointer
+  should do now and reads `"pan"` while space is held; `chosen()` is the button
+  that is pressed and ignores the hold. The switch routes on `mode()` and
+  brackets `enter`/`leave` on `chosen()`, because a held space bar must not
+  drop the ruler the measure tool is holding.
+- **A tool owns the slots it contributes.** `Overlay.reset()` empties its six
+  arrays; each tool pushes objects it keeps and reuses, so a frame allocates
+  nothing. `pool()` in `model/overlay.ts` is the shared slot allocator.
 - **Concealment is computed by the pawn stage.** Whether a player can see a
   pawn depends on role, user, the viewed layer and the fog shapes, all of
   which are in the frame. The interaction layer does not supply it.
@@ -775,26 +783,26 @@ the switch.
 `fogging` and `inking` flags are deleted. The Escape chain in `abandon()` is
 deleted. `deps.fog?.` and `deps.draw?.` null-chasing is deleted.
 
-- [ ] `tools.ts` gains `Mode` and `mode()`.
-- [ ] Land `modes/switch.ts` with a single `select` tool that is today's
+- [x] `tools.ts` gains `Mode` and `mode()`.
+- [x] Land `modes/switch.ts` with a single `select` tool that is today's
       `pawns.ts` verbatim, and move the keydown listener into the switch.
       Prove the switch is transparent: `pawns.test.ts` changes only in how
       it constructs the thing under test.
-- [ ] Extract pan, ping, measure, place. Each is small.
-- [ ] Move fog and draw under `modes/`. Each gains `contribute` and loses
+- [x] Extract pan, ping, measure, place. Each is small.
+- [x] Move fog and draw under `modes/`. Each gains `contribute` and loses
       `outline`, `marks`, `labels`, `inHand`.
-- [ ] Rename `overlay.ts` to `hud.ts`, `Overlay` to `Hud`, `mountOverlay`
+- [x] Rename `overlay.ts` to `hud.ts`, `Overlay` to `Hud`, `mountOverlay`
       to `mountHud`, `overlay.test.ts` to `hud.test.ts`.
-- [ ] Add `Overlay` and `contribute` on select. The renderer takes the switch
+- [x] Add `Overlay` and `contribute` on select. The renderer takes the switch
       as its `Tool` and fills `frame.overlay` from `overlay.reset()` then
       `tool.contribute(overlay)` each frame. Delete the eight `Table`
       accessors and `Ruler`. `FrameContext.overlay` is typed `Overlay`.
-- [ ] Split what remains of `pawns.ts` into `gestures.ts`, `previews.ts`,
+- [x] Split what remains of `pawns.ts` into `gestures.ts`, `previews.ts`,
       `hit.ts`, `select.ts`.
-- [ ] `pawns.test.ts` (1461 lines) splits along the same lines. The tests for
+- [x] `pawns.test.ts` (1461 lines) splits along the same lines. The tests for
       a drag in progress, a marquee, a measure, an armed spawn, and a remote
       preview assert on what `contribute(out)` wrote.
-- [ ] Delete the five `Tools` predicates.
+- [x] Delete the five `Tools` predicates.
 
 Done when: no file under `modes/` is over 400 lines; `pawns.ts` no longer
 exists; `render/` imports nothing from `modes/` or `handles.ts`;
@@ -867,7 +875,7 @@ button (500 pawns) and record again.
 | 1 | 494 | 177068 | | | | |
 | 2 | 508 | 170127 | | | | |
 | 3 | 519 | 172581 | | | | |
-| 4 | | | | | | |
+| 4 | 556 | 175923 | | | | |
 | 5 | | | | | | |
 
 Visual check after every phase, as GM and as player: map and grid, a layer
