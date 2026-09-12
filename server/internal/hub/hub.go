@@ -224,8 +224,19 @@ type InitiativeView struct {
 func (h *Hub) Initiative(ctx context.Context, roomID ulid.ULID, role room.Role) (*InitiativeView, bool) {
 	return view(ctx, h, roomID, true, func(a *actor) *InitiativeView { return a.initiative(role) })
 }
-func (h *Hub) spawn(ctx context.Context, roomID ulid.ULID) (*SpawnView, bool) {
-	return view(ctx, h, roomID, true, (*actor).spawn)
+func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
+	resolver, ok := cmd.(room.Resolver)
+	if !ok || !who.GM() {
+		return nil
+	}
+	s, ok := view(ctx, h, roomID, true, func(a *actor) *room.State {
+		clone := a.state.Clone()
+		return &clone
+	})
+	if !ok {
+		return errGone
+	}
+	return resolver.Resolve(ctx, h.library(who.ID), s)
 }
 func (h *Hub) Shutdown(ctx context.Context) {
 	h.mu.Lock()

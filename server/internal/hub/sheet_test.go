@@ -90,7 +90,8 @@ func TestSpawningAPlayerPawnWritesNothingToTheSheet(t *testing.T) {
 	}})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
 	layer := activeLayer(t, only(t, gm, "snapshot")[0])
-	character := testID(22)
+	character := testID(23)
+	tb.seat(playerID, character, "Ari")
 	full := 12
 	tb.send(gm, "1", &room.PawnSpawn{
 		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
@@ -124,6 +125,8 @@ func TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot(t *testing.
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
 	layer := activeLayer(t, only(t, gm, "snapshot")[0])
 	character := testID(21)
+	tb.seat(playerID, character, "Ari")
+	frames(t, gm)
 	full, hurt, worse := 12, 9, 5
 	tb.send(gm, "1", &room.PawnSpawn{
 		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,

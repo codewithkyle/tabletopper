@@ -276,6 +276,42 @@ func TestTheSpawnedPartyIsVisible(t *testing.T) {
 		}
 	}
 }
+func TestSpawningThePartySkipsASeatThatLeftAfterResolve(t *testing.T) {
+	w := newWorld(t)
+	cmd := &PawnSpawnCharacters{}
+	w.resolve(cmd, party())
+	if len(cmd.Pawns) != 2 {
+		t.Fatalf("the resolved party is %d pawns, want the two seats", len(cmd.Pawns))
+	}
+	w.apply(&PlayerLeave{ID: testOtherID}, w.gm)
+	w.apply(cmd, w.gm)
+	if len(w.s.Pawns) != 1 {
+		t.Fatalf("the table holds %d pawns, want the one whose player is still here", len(w.s.Pawns))
+	}
+	if w.s.Pawns[0].Name != "Ilyana" {
+		t.Fatalf("the table holds %q", w.s.Pawns[0].Name)
+	}
+}
+func TestSpawningThePartySkipsACharacterAlreadyOnTheTable(t *testing.T) {
+	w := newWorld(t)
+	cmd := &PawnSpawnCharacters{}
+	w.resolve(cmd, party())
+	w.apply(cmd, w.gm)
+	w.apply(cmd, w.gm)
+	if len(w.s.Pawns) != 2 {
+		t.Fatalf("the table holds %d pawns; a resolved party placed twice duplicated it", len(w.s.Pawns))
+	}
+}
+func TestSpawningACharacterWhoseSeatLeftAfterResolveIsRefused(t *testing.T) {
+	w := newWorld(t)
+	cmd := &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, Visible: true, CharacterID: idp(testCharID)}
+	w.resolve(cmd, party())
+	w.apply(&PlayerLeave{ID: testPlayerID}, w.gm)
+	w.refuse(cmd, w.gm, CodeNotFound)
+	if len(w.s.Pawns) != 0 {
+		t.Fatal("a pawn was placed for a character nobody is sitting behind")
+	}
+}
 func TestRemovingPawnsEmitsOneTrackerEvent(t *testing.T) {
 	w := newWorld(t)
 	first := w.spawn(Pawn{Name: "Goblin", Visible: true})

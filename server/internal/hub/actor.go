@@ -567,32 +567,6 @@ func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
 }
 
-type SpawnView struct {
-	ActiveLayer ulid.ULID
-	Grid        room.Grid
-	Map         *room.MapRef
-	Players     []room.Player
-	Characters  map[ulid.ULID]bool
-}
-
-func (a *actor) spawn() *SpawnView {
-	view := &SpawnView{
-		ActiveLayer: a.state.Table.ActiveLayer,
-		Grid:        a.state.Table.Grid,
-		Players:     a.players(),
-		Characters:  make(map[ulid.ULID]bool),
-	}
-	if layer := a.state.Layer(view.ActiveLayer); layer != nil && layer.Map != nil {
-		m := *layer.Map
-		view.Map = &m
-	}
-	for _, p := range a.state.Pawns {
-		if p.Kind == room.PawnPlayer && p.CharacterID != nil {
-			view.Characters[*p.CharacterID] = true
-		}
-	}
-	return view
-}
 func (a *actor) initiative(role room.Role) *InitiativeView {
 	tracker, pawns := a.state.ProjectedInitiative(role)
 	return &InitiativeView{

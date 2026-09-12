@@ -1,9 +1,15 @@
 package room
 
 import (
+	"context"
 	"slices"
 
 	"github.com/oklog/ulid/v2"
+)
+
+const (
+	npcHP = 1
+	npcAC = 10
 )
 
 type PawnsUpserted struct {
@@ -55,6 +61,111 @@ type PawnSpawn struct {
 func (c *PawnSpawn) Authorize(_ *State, a Actor) error {
 	return requireGM(a, "put something on the table")
 }
+func (c *PawnSpawn) Resolve(ctx context.Context, lib Library, s *State) error {
+	switch c.Kind {
+	case PawnMonster:
+		return c.resolveMonster(ctx, lib)
+	case PawnNPC:
+		return c.resolveNPC(ctx, lib)
+	case PawnObject:
+		return c.resolveObject(ctx, lib, s)
+	case PawnPlayer:
+		return c.resolveCharacter(ctx, lib, s)
+	}
+	return invalid("Bad pawn", "That is not a kind of pawn.")
+}
+func (c *PawnSpawn) resolveMonster(ctx context.Context, lib Library) error {
+	if c.MonsterID == nil {
+		return invalid("Nothing to place", "That spawn named no monster.")
+	}
+	info, err := lib.Monster(ctx, *c.MonsterID)
+	if err != nil {
+		return err
+	}
+	hp, ac := info.HP, info.AC
+	c.Pawn = &Pawn{
+		Name:      info.Name,
+		Image:     info.Image,
+		Size:      info.Size,
+		HP:        &hp,
+		MaxHP:     &hp,
+		AC:        &ac,
+		MonsterID: c.MonsterID,
+	}
+	return nil
+}
+func (c *PawnSpawn) resolveNPC(ctx context.Context, lib Library) error {
+	picture, err := c.picture(ctx, lib, PictureAvatar)
+	if err != nil {
+		return err
+	}
+	name := spawnName(c.Name, picture.Name)
+	if name == "" {
+		return invalid("Nothing to place", "That spawn named nothing to place.")
+	}
+	hp, maxHP, ac := npcHP, npcHP, npcAC
+	if c.MaxHP != nil {
+		maxHP = *c.MaxHP
+		hp = maxHP
+	}
+	if c.HP != nil {
+		hp = *c.HP
+	}
+	if c.AC != nil {
+		ac = *c.AC
+	}
+	c.Pawn = &Pawn{
+		Name:  name,
+		Image: picture.Image,
+		Size:  CreatureSize(string(c.Size)),
+		HP:    &hp,
+		MaxHP: &maxHP,
+		AC:    &ac,
+	}
+	return nil
+}
+func (c *PawnSpawn) resolveObject(ctx context.Context, lib Library, s *State) error {
+	if c.AssetID == nil {
+		return invalid("Nothing to place", "An object needs a picture from your library.")
+	}
+	picture, err := c.picture(ctx, lib, PictureToken)
+	if err != nil {
+		return err
+	}
+	name := spawnName(c.Name, picture.Name)
+	if name == "" {
+		return invalid("Nothing to place", "That spawn named nothing to place.")
+	}
+	width, height := picture.Width, picture.Height
+	if width == 0 || height == 0 {
+		width = max(s.Table.Grid.CellSize, 1)
+		height = width
+	}
+	c.Pawn = &Pawn{Name: name, Image: picture.Image, Width: width, Height: height}
+	return nil
+}
+func (c *PawnSpawn) picture(ctx context.Context, lib Library, kind PictureKind) (PictureInfo, error) {
+	if c.AssetID == nil {
+		return PictureInfo{}, nil
+	}
+	return lib.Picture(ctx, *c.AssetID, kind)
+}
+func (c *PawnSpawn) resolveCharacter(ctx context.Context, lib Library, s *State) error {
+	if c.CharacterID == nil {
+		return invalid("Nothing to place", "That spawn named no character.")
+	}
+	seat := s.seatFor(*c.CharacterID)
+	if seat == nil {
+		return notFound("Character gone", "Nobody at this table joined with that character.")
+	}
+	info, err := lib.Character(ctx, *c.CharacterID)
+	if err != nil {
+		return err
+	}
+	pawn := characterPawn(info, seat)
+	c.Pawn = &pawn
+	return nil
+}
 func (c *PawnSpawn) Apply(s *State, _ Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
@@ -64,6 +175,9 @@ func (c *PawnSpawn) Apply(s *State, _ Actor, env Env) ([]Signal, error) {
 	}
 	if c.Pawn == nil {
 		return nil, invalid("Nothing to place", "The server could not work out what to put on the table.")
+	}
+	if c.Kind == PawnPlayer && c.CharacterID != nil && s.seatFor(*c.CharacterID) == nil {
+		return nil, notFound("Character gone", "Nobody at this table joined with that character.")
 	}
 	p := clonePawn(*c.Pawn)
 	p.Kind = c.Kind
@@ -83,11 +197,45 @@ type PawnSpawnCharacters struct {
 func (c *PawnSpawnCharacters) Authorize(s *State, a Actor) error {
 	return requireGM(a, "spawn the party")
 }
+func (c *PawnSpawnCharacters) Resolve(ctx context.Context, lib Library, s *State) error {
+	seats := s.unplacedSeats()
+	if len(seats) == 0 {
+		return invalid("Nobody to place", "Everybody connected with a character already has a pawn on the table.")
+	}
+	centreX, centreY := 0, 0
+	if layer := s.Layer(s.Table.ActiveLayer); layer != nil && layer.Map != nil {
+		centreX, centreY = layer.Map.Width/2, layer.Map.Height/2
+	}
+	cell := max(s.Table.Grid.CellSize, 1)
+	pawns := make([]Pawn, 0, len(seats))
+	for i, seat := range seats {
+		info, err := lib.Character(ctx, *seat.CharacterID)
+		if err != nil {
+			if gone(err) {
+				continue
+			}
+			return err
+		}
+		p := characterPawn(info, &seats[i])
+		p.LayerID = s.Table.ActiveLayer
+		p.X = centreX + (2*i-(len(seats)-1))*cell/2
+		p.Y = centreY
+		pawns = append(pawns, p)
+	}
+	c.Pawns = pawns
+	return nil
+}
 func (c *PawnSpawnCharacters) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if c.Pawns == nil {
 		return nil, invalid("Nothing to place", "The server could not work out who is at the table.")
 	}
 	for _, p := range c.Pawns {
+		if p.CharacterID == nil {
+			continue
+		}
+		if s.seatFor(*p.CharacterID) == nil || s.pawnFor(*p.CharacterID) != nil {
+			continue
+		}
 		p = clonePawn(p)
 		p.Kind = PawnPlayer
 		p.Visible = true

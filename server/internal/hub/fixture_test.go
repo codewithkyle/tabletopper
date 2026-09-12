@@ -156,6 +156,15 @@ func (tb *tabletop) join(id ulid.ULID, name string, role room.Role) *client {
 	tb.settle()
 	return c
 }
+func (tb *tabletop) seat(user, character ulid.ULID, name string) {
+	tb.t.Helper()
+	err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, &room.PlayerJoin{
+		Player: room.Player{ID: user, Name: name, Role: room.RolePlayer, CharacterID: &character},
+	})
+	if err != nil {
+		tb.t.Fatalf("seating %s: %v", name, err)
+	}
+}
 func (tb *tabletop) send(c *client, cid string, cmd room.Command) {
 	tb.t.Helper()
 	if err := tb.actor().post(tb.ctx(), command{c: c, cmd: cmd, cid: cid}); err != nil {

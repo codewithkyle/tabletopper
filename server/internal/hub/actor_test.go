@@ -79,9 +79,13 @@ func TestARefusedCommandLeavesTheStateAsItWas(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
 	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	ari, rin := testID(30), testID(31)
+	tb.seat(playerID, ari, "Ari")
+	tb.seat(otherID, rin, "Rin")
+	frames(t, gm)
 	tb.send(gm, "1", &room.PawnSpawnCharacters{Pawns: []room.Pawn{
-		{Name: "Ari", Size: room.SizeMedium, LayerID: layer, X: 64, Y: 64},
-		{Name: "Rin", LayerID: layer, X: 128, Y: 64},
+		{Name: "Ari", Size: room.SizeMedium, LayerID: layer, X: 64, Y: 64, CharacterID: &ari},
+		{Name: "Rin", LayerID: layer, X: 128, Y: 64, CharacterID: &rin},
 	}})
 	only(t, gm, "error")
 	view, ok := tb.Table(tb.ctx(), roomID)

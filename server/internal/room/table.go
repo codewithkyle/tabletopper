@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"slices"
 
 	"github.com/oklog/ulid/v2"
@@ -128,6 +129,14 @@ type TableSetLayerMap struct {
 
 func (c *TableSetLayerMap) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change a layer's map")
+}
+func (c *TableSetLayerMap) Resolve(ctx context.Context, lib Library, s *State) error {
+	ref, err := lib.Map(ctx, c.AssetID)
+	if err != nil {
+		return err
+	}
+	c.Map = &ref
+	return nil
 }
 func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)

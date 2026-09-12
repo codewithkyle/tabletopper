@@ -358,9 +358,9 @@ type Resolver interface {
 }
 
 type Library interface {
-	Map(ctx context.Context, owner, asset ulid.ULID) (MapRef, error)
-	Monster(ctx context.Context, owner, id ulid.ULID) (MonsterInfo, error)
-	Picture(ctx context.Context, owner, id ulid.ULID, kind PictureKind) (PictureInfo, error)
+	Map(ctx context.Context, asset ulid.ULID) (MapRef, error)
+	Monster(ctx context.Context, id ulid.ULID) (MonsterInfo, error)
+	Picture(ctx context.Context, id ulid.ULID, kind PictureKind) (PictureInfo, error)
 	Character(ctx context.Context, id ulid.ULID) (CharacterInfo, error)
 }
 ```
@@ -368,6 +368,13 @@ type Library interface {
 - `Library` and its info structs live in `room`. The hub implements it over
   sqlc in `hub/library.go`; that file is the only place `queries` rows are read
   for a command.
+- **The library is scoped to one owner when it is built, not per call.** The
+  methods were planned to take an `owner`, which would have meant every command
+  naming the library it reads and `Resolve` needing the actor to name it with.
+  `h.library(who.ID)` hands the command a library it cannot point anywhere
+  else, so a command has no way to express a read of somebody else's library
+  and `Resolve` keeps the signature above. `Character` is unscoped either way:
+  a character belongs to the player, not to the GM whose table it is on.
 - `TableSetLayerMap`, `PawnSpawn` and `PawnSpawnCharacters` implement
   `Resolver`. The resolution logic in `hub/resolve.go` and `hub/spawn.go` moves
   beside each command in `room`. The `Library` errors carry `*room.Error` with
@@ -376,8 +383,12 @@ type Library interface {
   from an ask, and stays outside the actor. That clone can be stale, so:
 - `Apply` re-validates what resolve decided. `PawnSpawnCharacters.Apply` skips
   a character whose seat is gone or whose pawn is already on the table rather
-  than duplicating it. `PawnSpawn.Apply` for a character does the same.
-  `TableSetLayerMap.Apply` already re-checks the layer.
+  than duplicating it. `PawnSpawn.Apply` re-checks the seat, which is the one
+  thing its resolve decided; it does **not** refuse a character that is already
+  on the table, because its resolve never promised otherwise and refusing would
+  be a new rule rather than a re-check. Two pawns for one character both write
+  hit points back to one sheet, which is worth fixing on its own and is not
+  this phase. `TableSetLayerMap.Apply` already re-checks the layer.
 
 ### Tests first
 
@@ -403,8 +414,8 @@ type Library interface {
 
 ### Done when
 
-`grep -n 'queries\.' server/internal/hub/*.go` shows only `persist.go` and
-`library.go`.
+No `queries` row is read outside `persist.go` and `library.go`. `hub.go` still
+names the type: it holds the handle and takes it in `New`.
 
 ## Phase 4: effects are signals, coalescing is a contract
 
