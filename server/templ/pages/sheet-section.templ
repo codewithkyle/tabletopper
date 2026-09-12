@@ -10,9 +10,10 @@ const denseTextarea = "@max-[40rem]/sheet:textarea-sm"
 const denseCheckbox = "@max-[40rem]/sheet:checkbox-sm"
 const denseLegend = "@max-[40rem]/sheet:py-1 @max-[40rem]/sheet:text-xs"
 const denseBody = "@max-[40rem]/sheet:gap-3 @max-[40rem]/sheet:p-3"
+const flatInWindow = "@min-[0px]/window:bg-transparent @min-[0px]/window:shadow-none @min-[0px]/window:backdrop-blur-none"
 
 templ savingPanel(title string, action string, panel string) {
-	@panelForm(sheetSurface, "card-body gap-4 p-4 "+denseBody, title, action, panel) {
+	@panelForm(sheetSurface+" "+flatInWindow, "card-body gap-4 p-4 "+denseBody, title, action, panel) {
 		{ children... }
 	}
 }
@@ -45,7 +46,7 @@ templ panelForm(surface string, body string, title string, action string, panel 
 }
 
 templ sheetPanel(title string) {
-	<div class={ sheetSurface }>
+	<div class={ sheetSurface + " " + flatInWindow }>
 		<div class={ "card-body gap-4 p-4 " + denseBody }>
 			@sheetHeading(title)
 			{ children... }

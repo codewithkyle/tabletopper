@@ -2547,3 +2547,21 @@ func TestEveryControlOnTheSheetShrinksWithIt(t *testing.T) {
 		}
 	}
 }
+
+func TestPanelsFlattenInTheWindowAndFloatOnThePage(t *testing.T) {
+	data := testSheetPage()
+	window := renderString(t, CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain, Sheet: data}))
+	if !strings.Contains(window, "@container/window") {
+		t.Errorf("the sheet window names no container, so the flat variants below never bite\n%s", window)
+	}
+	if !strings.Contains(window, flatInWindow) {
+		t.Errorf("the panels in the window keep their background and shadow\n%s", window)
+	}
+	page := renderString(t, EditCharacter(data))
+	if strings.Contains(page, "@container/window") {
+		t.Error("the full page names a window container, so its panels flatten too")
+	}
+	if !strings.Contains(page, "shadow-panel") {
+		t.Error("the full page lost the floating panels the window does not want")
+	}
+}

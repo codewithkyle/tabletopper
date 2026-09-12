@@ -212,6 +212,10 @@
     container-type: inline-size;
     container-name: sheet;
   }
+  .\@container\/window {
+    container-type: inline-size;
+    container-name: window;
+  }
   .\@container {
     container-type: inline-size;
   }
@@ -5810,6 +5814,20 @@
         --top-mul: 4;
         --font-size: 0.75rem;
       }
+    }
+  }
+  @container window (width >= 0px) {
+    .\@min-\[0px\]\/window\:bg-transparent {
+      background-color: transparent;
+    }
+    .\@min-\[0px\]\/window\:shadow-none {
+      --tw-shadow: 0 0 #0000;
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+    .\@min-\[0px\]\/window\:backdrop-blur-none {
+      --tw-backdrop-blur:  ;
+      -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
+      backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
     }
   }
   @container (width >= 18rem) {

@@ -1,41 +1,41 @@
 package pages
 
 templ CharacterSheetWindow(data SheetWindowData) {
-	<div id={ SheetBodyID } class="@container/sheet grid content-start gap-3 p-3">
+	<div id={ SheetBodyID } class="@container/sheet grid content-start gap-3">
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
 			@characterBarFigure(data.Sheet.Header, false)
 			@characterBarChips(data.Sheet.Header, false)
 		</div>
 		@sheetTabs(data)
-		switch data.Section {
-			case SheetSectionInventory:
-				@inventorySection(data.Inventory)
-			case SheetSectionSpells:
-				@sheetLevels(data)
-				@spellsSection(data.Spells)
-			default:
-				@sheetPanels(data.Sheet)
-		}
+		<div class="@container/window grid content-start gap-3">
+			switch data.Section {
+				case SheetSectionInventory:
+					@inventorySection(data.Inventory)
+				case SheetSectionSpells:
+					@sheetLevels(data)
+					@spellsSection(data.Spells)
+				default:
+					@sheetPanels(data.Sheet)
+			}
+		</div>
 	</div>
 }
 
 templ sheetPanels(data EditCharacterPageData) {
-	<div class="grid content-start gap-3">
-		@vitalsPanel(data)
-		@savingThrowsPanel(data)
-		@abilitiesPanel(data)
-		@skillsPanel(data)
-		@attacksPanel(data)
-		@preparedSpellsPanel(data)
-		@spellSlotsPanel(data)
-		@equipmentPanel(data)
-		@featuresPanel(data)
-		@identityPanel(data)
-		@coreStatsPanel(data)
-		@proficienciesPanel(data)
-		@personalityPanel(data)
-		@appearancePanel(data)
-	</div>
+	@vitalsPanel(data)
+	@savingThrowsPanel(data)
+	@abilitiesPanel(data)
+	@skillsPanel(data)
+	@attacksPanel(data)
+	@preparedSpellsPanel(data)
+	@spellSlotsPanel(data)
+	@equipmentPanel(data)
+	@featuresPanel(data)
+	@identityPanel(data)
+	@coreStatsPanel(data)
+	@proficienciesPanel(data)
+	@personalityPanel(data)
+	@appearancePanel(data)
 }
 
 templ sheetTabs(data SheetWindowData) {
