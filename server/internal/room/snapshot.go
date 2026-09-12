@@ -173,6 +173,7 @@ func (s *State) Clone() State {
 	c.Normalize()
 	return c
 }
+func ClonePawn(p Pawn) Pawn { return clonePawn(p) }
 func clonePawn(p Pawn) Pawn {
 	p.HP = cloneInt(p.HP)
 	p.MaxHP = cloneInt(p.MaxHP)

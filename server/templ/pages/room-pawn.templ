@@ -166,6 +166,7 @@ templ pawnHPForm(data RoomPawnData) {
 		hx-target={ "#errors-" + data.Panel() }
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		<label class="text-[10px] text-base-content/60" for={ data.Field("hp") }>Hit points</label>
 		<div class="flex items-center gap-1">

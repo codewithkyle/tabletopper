@@ -336,3 +336,24 @@ func TestAGMJoiningResyncsNobodyElsesCharacter(t *testing.T) {
 		t.Errorf("the GM's arrival rewrote a player's pawn to %q %d", p.Name, *p.HP)
 	}
 }
+func TestTheSheetSeesItsOwnPawnOnAnyFloorAndWhenHidden(t *testing.T) {
+	tb := stubbedTabletop(t, characterRow(nil))
+	tb.store.loaded.Snapshot = roomWithAStalePawn(t)
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	frames(t, gm)
+	tb.send(gm, "1", &room.PawnSetVisible{IDs: []ulid.ULID{testID(70)}, Visible: false})
+	tb.send(gm, "2", &room.TableAddLayer{Name: "Cellar"})
+	view, ok := tb.Table(tb.ctx(), roomID)
+	if !ok {
+		t.Fatal("the room would not answer with its table")
+	}
+	cellar := view.Table.Layers[len(view.Table.Layers)-1].ID
+	tb.send(gm, "3", &room.TableSetActiveLayer{Layer: cellar})
+	p, ok := tb.CharacterPawn(tb.ctx(), roomID, charID)
+	if !ok || p == nil {
+		t.Fatal("a player looking at their own sheet cannot see their own pawn")
+	}
+	if p.HP == nil || *p.HP != 5 {
+		t.Errorf("the sheet was given %v hit points for a pawn it owns", p.HP)
+	}
+}

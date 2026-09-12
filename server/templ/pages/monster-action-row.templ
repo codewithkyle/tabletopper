@@ -13,6 +13,7 @@ templ MonsterActionRow(monsterID string, action MonsterAction) {
 		hx-target={ "#errors-" + panel }
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		@PanelFormErrors(panel, []string{})
 		<label class="fieldset">

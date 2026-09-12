@@ -206,3 +206,53 @@ func TestThePawnIsWhatTheSheetShowsWhileTheRoomHoldsOne(t *testing.T) {
 		}
 	}
 }
+
+func TestAPawnEditReachesTheCharactersRow(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer(), tableRoomAnswer()}}
+	app := newRoomApp(db)
+	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
+	firstLayer(t, app)
+	rec := tableRequest(t, app.UpdatePawnHP, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/pawns/"+testPawnA.String()+"/hp",
+		map[string]string{"id": testRoomID.String(), "pawn": testPawnA.String()},
+		url.Values{"hp": {"12"}, "maxHp": {"100"}}, gmSession())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d; body: %s", rec.Code, rec.Body.String())
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		for _, call := range db.recorded() {
+			if strings.Contains(call.query, "SET current_hp = ?, max_hp = ?, ac = ?, size = ?") {
+				if len(call.args) != 5 || call.args[1] != int64(100) {
+					t.Fatalf("the sheet was written %v, want a maximum of 100", call.args)
+				}
+				return
+			}
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("the pawn's new maximum never reached the character row; statements run: %v", db.queries())
+}
+
+func TestAnIdentitySaveResizesThePawn(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{characterForRoomAnswer("Ilyana", "large", 15, 12, 12)}}
+	app := newRoomApp(db)
+	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
+	firstLayer(t, app)
+	tableRequest(t, app.SaveCharacterIdentity, http.MethodPost,
+		"/characters/"+testCharacterID.String()+"/identity",
+		map[string]string{"id": testCharacterID.String()},
+		url.Values{
+			"name": {"Ilyana"}, "size": {"large"}, "race": {"Tiefling"},
+			"background": {"Soldier"}, "alignment": {"chaotic good"}, "classes": {"Warlock 5"},
+		}, sheetSession(true))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	pawn, ok := app.Hub.Pawn(ctx, testRoomID, testPawnA, room.RoleGM)
+	if !ok {
+		t.Fatal("the pawn is no longer on the table")
+	}
+	if pawn.Size != room.SizeLarge {
+		t.Errorf("the pawn is %q, want large: the sheet's size did not reach it", pawn.Size)
+	}
+}

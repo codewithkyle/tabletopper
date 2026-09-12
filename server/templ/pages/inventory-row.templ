@@ -11,6 +11,7 @@ templ InventoryRow(characterID string, item InventoryItem) {
 		hx-target={ "#errors-" + panel }
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		@PanelFormErrors(panel, []string{})
 		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_5rem_7rem_6rem]">

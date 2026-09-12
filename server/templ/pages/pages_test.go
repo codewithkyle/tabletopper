@@ -2346,3 +2346,91 @@ func TestTheSheetWindowSwapsSectionsInPlace(t *testing.T) {
 		t.Error("a tab inside the window navigates the whole page away from the room")
 	}
 }
+func TestTheAutosaveGuardStopsTheBrowserSubmitting(t *testing.T) {
+	handler, ok := autosaves["hx-on:submit"].(string)
+	if !ok || !strings.Contains(handler, "preventDefault") {
+		t.Fatalf("autosaves is %v, which does not stop a native submit", autosaves)
+	}
+	pawn := RoomPawnData{RoomID: "01ROOM", CanEdit: true, IsGM: true, Pawn: RoomPawn{ID: "01PAWN", Name: "Ilyana"}}
+	for name, part := range map[string]templ.Component{
+		"a saving panel":    savingPanel("Vitals", "/characters/x/vitals", "vitals"),
+		"the details panel": RoomPawnFragment(pawn),
+		"the grid settings": RoomGrid(RoomGridData{RoomID: "01ROOM"}),
+		"an inventory row":  InventoryRow("01CHAR", InventoryItem{ID: "01ITEM"}),
+		"a spell row":       SpellRow("01CHAR", Spell{ID: "01SPELL"}),
+		"an attack row":     AttackRow("01CHAR", Attack{ID: "01ATK"}),
+	} {
+		if rendered := renderString(t, part); !strings.Contains(rendered, `hx-on:submit="event.preventDefault()"`) {
+			t.Errorf("%s renders without the guard, so Enter in one of its fields reloads the app", name)
+		}
+	}
+}
+func TestAnAutosavingFormCannotSubmitItselfAway(t *testing.T) {
+	files, err := filepath.Glob("*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) == 0 {
+		t.Fatal("read no templates at all")
+	}
+	opens := regexp.MustCompile(`(?s)<form\b[^>]*>`)
+	for _, file := range files {
+		src, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tag := range opens.FindAllString(string(src), -1) {
+			if !strings.Contains(tag, "hx-trigger") || strings.Contains(tag, "submit") {
+				continue
+			}
+			if strings.Contains(tag, "{ autosaves... }") {
+				continue
+			}
+			t.Errorf("%s has a form htmx drives on something other than submit and does "+
+				"not spread autosaves, so Enter in one of its fields navigates the page "+
+				"away:\n%s", file, tag)
+		}
+	}
+}
+func TestNoPanelCanBeMadeUnsaveableByAnEmptyOptionalField(t *testing.T) {
+	sparse := EditCharacterPageData{
+		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+		Name:        "Vex",
+		Size:        DefaultSize,
+		Alignment:   DefaultAlignment,
+		XP:          "0",
+		AC:          "15",
+		MaxHP:       "24",
+		CurrentHP:   "24",
+		TempHP:      "0",
+		Str:         "10",
+		Dex:         "10",
+		Con:         "10",
+		Int:         "10",
+		Wis:         "10",
+		Cha:         "10",
+		Derived:     testDerivedValues(),
+	}
+	rendered := renderString(t, characterPanels(sparse))
+	inputs := regexp.MustCompile(`<input[^>]*>`)
+	named := regexp.MustCompile(`name="([^"]*)"`)
+	valued := regexp.MustCompile(`value="([^"]*)"`)
+	for _, tag := range inputs.FindAllString(rendered, -1) {
+		if !strings.Contains(tag, " required") {
+			continue
+		}
+		if strings.Contains(tag, `type="checkbox"`) {
+			continue
+		}
+		value := valued.FindStringSubmatch(tag)
+		if value != nil && value[1] != "" {
+			continue
+		}
+		field := "an unnamed field"
+		if match := named.FindStringSubmatch(tag); match != nil {
+			field = match[1]
+		}
+		t.Errorf("%s is required and renders empty, so htmx refuses to post the whole "+
+			"panel and form-validity.js swallows the reason: the panel saves nothing, silently", field)
+	}
+}

@@ -13,3 +13,5 @@ type shellLayout struct {
 func panelFormID(panel string) string {
 	return "panel-" + panel
 }
+
+var autosaves = templ.Attributes{"hx-on:submit": "event.preventDefault()"}

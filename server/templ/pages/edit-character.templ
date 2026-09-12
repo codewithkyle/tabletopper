@@ -55,7 +55,7 @@ templ characterPanels(data EditCharacterPageData) {
 			@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
 				<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
 					@textField("languages", "Languages", data.Languages, "", false)
-					@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", true)
+					@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", false)
 				</div>
 			}
 			@savingPanel("Skills", base+"/bonuses/skills", "skills") {
@@ -122,9 +122,9 @@ templ identityPanel(data EditCharacterPageData) {
 				<div class="col-span-2 @max-[900px]/sheet:col-auto">
 					@textField("name", "Character Name", data.Name, "", true)
 				</div>
-				@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", true)
+				@textField("classes", "Class & Level Notes", data.Classes, "Cleric 3, Fighter 1", false)
 				@textField("background", "Background", data.Background, "", false)
-				@textField("race", "Species / Race", data.Race, "Human", true)
+				@textField("race", "Species / Race", data.Race, "Human", false)
 				@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
 				@selectField("size", "Size", sizeOptions, data.Size, true)
 			</div>

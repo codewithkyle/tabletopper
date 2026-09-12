@@ -563,12 +563,13 @@ func (a *actor) table() *TableView {
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
 }
-func (a *actor) characterPawn(character ulid.ULID, role room.Role) *room.Pawn {
+func (a *actor) characterPawn(character ulid.ULID) *room.Pawn {
 	p := a.state.PawnFor(character)
 	if p == nil {
 		return nil
 	}
-	return a.state.ProjectedPawn(p.ID, role)
+	out := room.ClonePawn(*p)
+	return &out
 }
 func (a *actor) debug() *DebugView {
 	perUser := make(map[ulid.ULID]int, len(a.conns))

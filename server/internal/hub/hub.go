@@ -226,8 +226,8 @@ func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }
 
-func (h *Hub) CharacterPawn(ctx context.Context, roomID, character ulid.ULID, role room.Role) (*room.Pawn, bool) {
-	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.characterPawn(character, role) })
+func (h *Hub) CharacterPawn(ctx context.Context, roomID, character ulid.ULID) (*room.Pawn, bool) {
+	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.characterPawn(character) })
 }
 
 type DebugConn struct {

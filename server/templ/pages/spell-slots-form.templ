@@ -13,6 +13,7 @@ templ spellSlotsForm(characterID string, level SpellLevel) {
 		hx-target={ "#errors-" + panel }
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		@PanelFormErrors(panel, []string{})
 		<div class="flex flex-wrap items-center justify-between gap-3">

@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 )
 
 type roomDB struct {
+	mu      sync.Mutex
 	answers []roomAnswer
 	rows    int64
 	calls   []recordedCall
@@ -26,14 +28,16 @@ type roomAnswer struct {
 func (d *roomDB) db() *sql.DB { return sql.OpenDB(roomConnector{d}) }
 func (d *roomDB) only(t *testing.T) recordedCall {
 	t.Helper()
-	if len(d.calls) != 1 {
-		t.Fatalf("statements run = %d, want 1: %v", len(d.calls), d.queries())
+	calls := d.recorded()
+	if len(calls) != 1 {
+		t.Fatalf("statements run = %d, want 1: %v", len(calls), d.queries())
 	}
-	return d.calls[0]
+	return calls[0]
 }
 func (d *roomDB) queries() []string {
-	sent := make([]string, 0, len(d.calls))
-	for _, call := range d.calls {
+	calls := d.recorded()
+	sent := make([]string, 0, len(calls))
+	for _, call := range calls {
 		sent = append(sent, strings.TrimSpace(strings.SplitN(strings.TrimSpace(call.query), "\n", 2)[0]))
 	}
 	return sent
@@ -70,6 +74,8 @@ func (s roomStmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 func (s roomStmt) Query(args []driver.Value) (driver.Rows, error) {
 	s.stub.record(s.query, args)
+	s.stub.mu.Lock()
+	defer s.stub.mu.Unlock()
 	answer := roomAnswer{}
 	if s.stub.next < len(s.stub.answers) {
 		answer = s.stub.answers[s.stub.next]
@@ -82,7 +88,14 @@ func (d *roomDB) record(query string, args []driver.Value) {
 	for _, arg := range args {
 		values = append(values, arg)
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.calls = append(d.calls, recordedCall{query: query, args: values})
+}
+func (d *roomDB) recorded() []recordedCall {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]recordedCall(nil), d.calls...)
 }
 
 type roomRows struct {

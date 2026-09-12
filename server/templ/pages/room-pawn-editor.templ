@@ -12,6 +12,7 @@ templ pawnEditor(data RoomPawnData) {
 		hx-swap="outerHTML"
 		hx-sync="this:queue last"
 		hx-status:422={ "target:#errors-" + data.Panel() + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		if data.IsGM {
 			<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">

@@ -10,6 +10,7 @@ templ RoomGrid(data RoomGridData) {
 		hx-target={ "#errors-" + RoomGridPanel }
 		hx-swap="outerHTML"
 		hx-status:422={ "target:#errors-" + RoomGridPanel + ",swap:outerHTML" }
+		{ autosaves... }
 	>
 		@PanelFormErrors(RoomGridPanel, data.Errors)
 		@gridRadios("gridLines", "Grid lines", GridLineChoices(), data.Lines)

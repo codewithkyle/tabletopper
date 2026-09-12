@@ -34,7 +34,7 @@ func sheetSectionSet(extra ...string) map[string]bool {
 func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
+	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
 	if err != nil || sess.CharacterID == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -54,7 +54,7 @@ func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.RoomID = row.ID.String()
-	applyPawnVitals(&data.Sheet, a.characterPawn(ctx, row.ID, *sess.CharacterID, role))
+	applyPawnVitals(&data.Sheet, a.characterPawn(ctx, row.ID, *sess.CharacterID))
 	data.Sheet.Live = pages.SheetLive{RoomID: data.RoomID}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if slices.Contains(pages.LiveSheetSections(), section) {
@@ -147,11 +147,11 @@ func sheetLevel(raw string) (uint8, bool) {
 	}
 	return uint8(level), true
 }
-func (a *App) characterPawn(ctx context.Context, roomID, characterID ulid.ULID, role room.Role) *room.Pawn {
+func (a *App) characterPawn(ctx context.Context, roomID, characterID ulid.ULID) *room.Pawn {
 	if a.Hub == nil {
 		return nil
 	}
-	pawn, ok := a.Hub.CharacterPawn(ctx, roomID, characterID, role)
+	pawn, ok := a.Hub.CharacterPawn(ctx, roomID, characterID)
 	if !ok {
 		return nil
 	}
