@@ -36,7 +36,7 @@ templ featureRow(row Feature) {
 			<input
 				name={ FeaturesPanel + "-name" }
 				type="text"
-				class="input input-ghost w-full min-w-0 flex-1 rounded-none font-medium focus:-outline-offset-2"
+				class={ "input input-ghost w-full min-w-0 flex-1 rounded-none font-medium focus:-outline-offset-2 " + denseInput }
 				value={ row.Name }
 				placeholder="Name"
 			/>
@@ -51,7 +51,7 @@ templ featureRow(row Feature) {
 		</div>
 		<textarea
 			name={ FeaturesPanel + "-value" }
-			class="textarea textarea-ghost w-full rounded-none focus:-outline-offset-2"
+			class={ "textarea textarea-ghost w-full rounded-none focus:-outline-offset-2 " + denseTextarea }
 			rows="4"
 			placeholder="Description"
 		>{ row.Value }</textarea>

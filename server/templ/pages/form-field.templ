@@ -4,12 +4,12 @@ import "strconv"
 
 templ textField(name string, label string, value string, placeholder string, required bool) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="text"
-			class="input validator peer w-full"
+			class={ "input validator peer w-full " + denseInput }
 			value={ value }
 			if placeholder != "" {
 				placeholder={ placeholder }
@@ -24,13 +24,13 @@ templ textField(name string, label string, value string, placeholder string, req
 
 templ numberField(name string, label string, value string, required bool) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input validator peer w-full"
+			class={ "input validator peer w-full " + denseInput }
 			value={ value }
 			min="0"
 			max="9999"
@@ -43,11 +43,11 @@ templ numberField(name string, label string, value string, required bool) {
 
 templ selectField(name string, label string, options []Option, value string, required bool) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<select
 			id={ name }
 			name={ name }
-			class="select w-full"
+			class={ "select w-full " + denseSelect }
 			required?={ required }
 		>
 			for _, option := range options {
@@ -59,11 +59,11 @@ templ selectField(name string, label string, options []Option, value string, req
 
 templ proseField(name string, label string, value string, placeholder string) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<textarea
 			id={ name }
 			name={ name }
-			class="textarea w-full"
+			class={ "textarea w-full " + denseTextarea }
 			rows="4"
 			maxlength="1024"
 			if placeholder != "" {
@@ -75,12 +75,12 @@ templ proseField(name string, label string, value string, placeholder string) {
 
 templ cappedTextField(name string, label string, value string, placeholder string, limit int) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="text"
-			class="input w-full"
+			class={ "input w-full " + denseInput }
 			value={ value }
 			maxlength={ strconv.Itoa(limit) }
 			if placeholder != "" {
@@ -92,12 +92,12 @@ templ cappedTextField(name string, label string, value string, placeholder strin
 
 templ wordField(name string, label string, value string, placeholder string) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="text"
-			class="input w-full"
+			class={ "input w-full " + denseInput }
 			value={ value }
 			maxlength="64"
 			if placeholder != "" {
@@ -109,13 +109,13 @@ templ wordField(name string, label string, value string, placeholder string) {
 
 templ countField(name string, label string, value string, max int) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input validator peer w-full"
+			class={ "input validator peer w-full " + denseInput }
 			value={ value }
 			min="0"
 			max={ strconv.Itoa(max) }
@@ -127,14 +127,14 @@ templ countField(name string, label string, value string, max int) {
 
 templ deathSaveField(name string, label string, ticked int) {
 	<div class="fieldset">
-		<span class="fieldset-legend">{ label }</span>
+		<span class={ "fieldset-legend " + denseLegend }>{ label }</span>
 		<div class="flex items-center gap-3 py-2">
 			for i := 0; i < DeathSaveLimit; i++ {
 				<input
 					name={ name }
 					type="checkbox"
 					value="1"
-					class="checkbox"
+					class={ "checkbox " + denseCheckbox }
 					aria-label={ label + " " + strconv.Itoa(i+1) }
 					checked?={ i < ticked }
 				/>
@@ -145,13 +145,13 @@ templ deathSaveField(name string, label string, ticked int) {
 
 templ toggleField(name string, label string, checked bool) {
 	<div class="fieldset">
-		<span class="fieldset-legend">{ label }</span>
+		<span class={ "fieldset-legend " + denseLegend }>{ label }</span>
 		<div class="flex items-center py-2">
 			<input
 				name={ name }
 				type="checkbox"
 				value="1"
-				class="checkbox"
+				class={ "checkbox " + denseCheckbox }
 				aria-label={ label }
 				checked?={ checked }
 			/>
@@ -161,14 +161,14 @@ templ toggleField(name string, label string, checked bool) {
 
 templ abilityField(name string, label string, value string, modifier string) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<div class="flex items-center gap-2">
 			<input
 				id={ name }
 				name={ name }
 				type="number"
 				inputmode="numeric"
-				class="input validator peer w-full"
+				class={ "input validator peer w-full " + denseInput }
 				value={ value }
 				min="0"
 				max="9999"
@@ -183,13 +183,13 @@ templ abilityField(name string, label string, value string, modifier string) {
 
 templ signedNumberField(name string, label string, value string) {
 	<div class="fieldset">
-		<label class="fieldset-legend" for={ name }>{ label }</label>
+		<label class={ "fieldset-legend " + denseLegend } for={ name }>{ label }</label>
 		<input
 			id={ name }
 			name={ name }
 			type="number"
 			inputmode="numeric"
-			class="input w-full"
+			class={ "input w-full " + denseInput }
 			value={ value }
 			step="1"
 		/>

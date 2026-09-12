@@ -26,78 +26,29 @@ templ editCharacterShell(characterID string, header CharacterHeader, active stri
 }
 
 templ characterPanels(data EditCharacterPageData) {
-	{{ base := "/characters/" + data.CharacterID }}
 	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 @max-[1280px]/sheet:grid-cols-1">
 		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 @max-[1280px]/sheet:static @max-[1280px]/sheet:max-h-none @max-[1280px]/sheet:pb-0">
-			@savingPanel("Abilities", base+"/abilities", "abilities") {
-				<div class="@container">
-					<div class="grid grid-cols-2 gap-3 @[20rem]:grid-cols-3 @[52rem]:grid-cols-6">
-						@abilityField("str", "Strength", data.Str, data.Derived.StrMod)
-						@abilityField("dex", "Dexterity", data.Dex, data.Derived.DexMod)
-						@abilityField("con", "Constitution", data.Con, data.Derived.ConMod)
-						@abilityField("int", "Intelligence", data.Int, data.Derived.IntMod)
-						@abilityField("wis", "Wisdom", data.Wis, data.Derived.WisMod)
-						@abilityField("cha", "Charisma", data.Cha, data.Derived.ChaMod)
-					</div>
-				</div>
-			}
-			@savingPanel("Saving Throws", base+"/bonuses/saving_throws", "saving_throws") {
-				@savingThrowsTable(data.Derived.SavingThrows)
-			}
+			@abilitiesPanel(data)
+			@savingThrowsPanel(data)
 		</div>
 		<div class="grid content-start gap-4">
 			@identityPanel(data)
 			@coreStatsPanel(data)
 			@vitalsPanel(data)
-			@sheetPanel("Attacks") {
-				@attacksTable(data.CharacterID, data.Attacks)
-			}
-			@savingPanel("Proficiencies & Training", base+"/proficiencies", "proficiencies") {
-				<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
-					@textField("languages", "Languages", data.Languages, "", false)
-					@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", false)
-				</div>
-			}
-			@savingPanel("Skills", base+"/bonuses/skills", "skills") {
-				@skillsTable(data.Derived.Skills, data.Derived.PassivePerception)
-			}
+			@attacksPanel(data)
+			@proficienciesPanel(data)
+			@skillsPanel(data)
 			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
-				@savingPanel("Features & Traits", base+"/features", FeaturesPanel) {
-					@featuresTable(data.Features)
-				}
-				@sheetPanel("Equipment") {
-					@equippedItems(data.CharacterID, data.Equipped)
-				}
+				@featuresPanel(data)
+				@equipmentPanel(data)
 			</div>
 			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
-				@sheetPanel("Prepared Spells") {
-					@preparedSpells(data.CharacterID, data.Prepared)
-				}
-				@sheetPanel("Spell Slots") {
-					@spellSlotsOverview(data.CharacterID, data.SpellSlots)
-				}
+				@preparedSpellsPanel(data)
+				@spellSlotsPanel(data)
 			</div>
 			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
-				@savingPanel("Personality", base+"/personality", "personality") {
-					<div class="grid gap-4">
-						@proseField("personality_traits", "Personality Traits", data.PersonalityTraits, "I laugh loudest when the plan is falling apart.")
-						@proseField("ideals", "Ideals", data.Ideals, "Freedom. Every chain is one worth breaking.")
-						@proseField("bonds", "Bonds", data.Bonds, "The people I served with. I would still die for them.")
-						@proseField("flaws", "Flaws", data.Flaws, "I cannot walk past a locked door.")
-					</div>
-				}
-				@savingPanel("Appearance", base+"/appearance", "appearance") {
-					<div class="@container">
-						<div class="grid grid-cols-1 gap-4 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">
-							@wordField("age", "Age", data.Age, "27")
-							@wordField("height", "Height", data.Height, "5 ft. 10 in.")
-							@wordField("weight", "Weight", data.Weight, "160 lb.")
-							@wordField("eyes", "Eyes", data.Eyes, "Grey")
-							@wordField("skin", "Skin", data.Skin, "Sun-darkened")
-							@wordField("hair", "Hair", data.Hair, "Black, close-cropped")
-						</div>
-					</div>
-				}
+				@personalityPanel(data)
+				@appearancePanel(data)
 			</div>
 		</div>
 	</div>
@@ -118,7 +69,7 @@ templ identityPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
 	@livePanel(data.Live, SheetSectionIdentity) {
 		@savingPanel("Identity", base+"/identity", "identity") {
-			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				<div class="col-span-2 @max-[900px]/sheet:col-auto">
 					@textField("name", "Character Name", data.Name, "", true)
 				</div>
@@ -136,7 +87,7 @@ templ coreStatsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
 	@livePanel(data.Live, SheetSectionCoreStats) {
 		@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
-			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				@numberField("xp", "Experience", data.XP, true)
 				@textField("speed", "Speed", data.Speed, "", false)
 				@numberField("ac", "Armor Class", data.AC, true)
@@ -162,7 +113,7 @@ templ vitalsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
 	@livePanel(data.Live, SheetSectionVitals) {
 		@savingPanel("Vitals", base+"/vitals", "vitals") {
-			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1">
+			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-2 @max-[900px]/sheet:gap-3">
 				@numberField("max_hp", "Hit Point Maximum", data.MaxHP, true)
 				@numberField("current_hp", "Current Hit Points", data.CurrentHP, true)
 				@numberField("temp_hp", "Temporary Hit Points", data.TempHP, true)
@@ -174,5 +125,97 @@ templ vitalsPanel(data EditCharacterPageData) {
 				@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
 			</div>
 		}
+	}
+}
+
+templ abilitiesPanel(data EditCharacterPageData) {
+	@savingPanel("Abilities", "/characters/"+data.CharacterID+"/abilities", "abilities") {
+		<div class="@container">
+			<div class="grid grid-cols-2 gap-3 @[20rem]:grid-cols-3 @[52rem]:grid-cols-6">
+				@abilityField("str", "Strength", data.Str, data.Derived.StrMod)
+				@abilityField("dex", "Dexterity", data.Dex, data.Derived.DexMod)
+				@abilityField("con", "Constitution", data.Con, data.Derived.ConMod)
+				@abilityField("int", "Intelligence", data.Int, data.Derived.IntMod)
+				@abilityField("wis", "Wisdom", data.Wis, data.Derived.WisMod)
+				@abilityField("cha", "Charisma", data.Cha, data.Derived.ChaMod)
+			</div>
+		</div>
+	}
+}
+
+templ savingThrowsPanel(data EditCharacterPageData) {
+	@savingPanel("Saving Throws", "/characters/"+data.CharacterID+"/bonuses/saving_throws", "saving_throws") {
+		@savingThrowsTable(data.Derived.SavingThrows)
+	}
+}
+
+templ skillsPanel(data EditCharacterPageData) {
+	@savingPanel("Skills", "/characters/"+data.CharacterID+"/bonuses/skills", "skills") {
+		@skillsTable(data.Derived.Skills, data.Derived.PassivePerception)
+	}
+}
+
+templ attacksPanel(data EditCharacterPageData) {
+	@sheetPanel("Attacks") {
+		@attacksTable(data.CharacterID, data.Attacks)
+	}
+}
+
+templ proficienciesPanel(data EditCharacterPageData) {
+	@savingPanel("Proficiencies & Training", "/characters/"+data.CharacterID+"/proficiencies", "proficiencies") {
+		<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
+			@textField("languages", "Languages", data.Languages, "", false)
+			@textField("proficiencies", "Other Proficiencies", data.Proficiencies, "Medium armor, thieves tools", false)
+		</div>
+	}
+}
+
+templ featuresPanel(data EditCharacterPageData) {
+	@savingPanel("Features & Traits", "/characters/"+data.CharacterID+"/features", FeaturesPanel) {
+		@featuresTable(data.Features)
+	}
+}
+
+templ equipmentPanel(data EditCharacterPageData) {
+	@sheetPanel("Equipment") {
+		@equippedItems(data.CharacterID, data.Equipped)
+	}
+}
+
+templ preparedSpellsPanel(data EditCharacterPageData) {
+	@sheetPanel("Prepared Spells") {
+		@preparedSpells(data.CharacterID, data.Prepared)
+	}
+}
+
+templ spellSlotsPanel(data EditCharacterPageData) {
+	@sheetPanel("Spell Slots") {
+		@spellSlotsOverview(data.CharacterID, data.SpellSlots)
+	}
+}
+
+templ personalityPanel(data EditCharacterPageData) {
+	@savingPanel("Personality", "/characters/"+data.CharacterID+"/personality", "personality") {
+		<div class="grid gap-4 @max-[900px]/sheet:gap-3">
+			@proseField("personality_traits", "Personality Traits", data.PersonalityTraits, "I laugh loudest when the plan is falling apart.")
+			@proseField("ideals", "Ideals", data.Ideals, "Freedom. Every chain is one worth breaking.")
+			@proseField("bonds", "Bonds", data.Bonds, "The people I served with. I would still die for them.")
+			@proseField("flaws", "Flaws", data.Flaws, "I cannot walk past a locked door.")
+		</div>
+	}
+}
+
+templ appearancePanel(data EditCharacterPageData) {
+	@savingPanel("Appearance", "/characters/"+data.CharacterID+"/appearance", "appearance") {
+		<div class="@container">
+			<div class="grid grid-cols-1 gap-4 @[22rem]:grid-cols-2 @[33rem]:grid-cols-3">
+				@wordField("age", "Age", data.Age, "27")
+				@wordField("height", "Height", data.Height, "5 ft. 10 in.")
+				@wordField("weight", "Weight", data.Weight, "160 lb.")
+				@wordField("eyes", "Eyes", data.Eyes, "Grey")
+				@wordField("skin", "Skin", data.Skin, "Sun-darkened")
+				@wordField("hair", "Hair", data.Hair, "Black, close-cropped")
+			</div>
+		</div>
 	}
 }

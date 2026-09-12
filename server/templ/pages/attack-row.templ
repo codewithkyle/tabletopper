@@ -16,41 +16,41 @@ templ AttackRow(characterID string, attack Attack) {
 		@PanelFormErrors(panel, []string{})
 		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_6rem_8rem_10rem]">
 			<label class="fieldset">
-				<span class="fieldset-legend">Attack</span>
+				<span class={ "fieldset-legend " + denseLegend }>Attack</span>
 				<input
 					name="name"
 					type="text"
-					class="input w-full font-medium"
+					class={ "input w-full font-medium " + denseInput }
 					value={ attack.Name }
 					placeholder="Longsword"
 					maxlength="128"
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">ATK/DC</span>
+				<span class={ "fieldset-legend " + denseLegend }>ATK/DC</span>
 				<input
 					name="attack_bonus"
 					type="text"
-					class="input w-full text-right"
+					class={ "input w-full text-right " + denseInput }
 					value={ attack.Bonus }
 					placeholder="+7"
 					maxlength="32"
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">Damage</span>
+				<span class={ "fieldset-legend " + denseLegend }>Damage</span>
 				<input
 					name="damage"
 					type="text"
-					class="input w-full text-right"
+					class={ "input w-full text-right " + denseInput }
 					value={ attack.Damage }
 					placeholder="1d8+3"
 					maxlength="64"
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">Type</span>
-				<select name="damage_type" class="select w-full">
+				<span class={ "fieldset-legend " + denseLegend }>Type</span>
+				<select name="damage_type" class={ "select w-full " + denseSelect }>
 					for _, option := range damageTypeOptions {
 						<option value={ option.Value } selected?={ option.Value == attack.DamageType }>{ option.Label }</option>
 					}
@@ -61,18 +61,18 @@ templ AttackRow(characterID string, attack Attack) {
 			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
 			<div class="mt-3 grid gap-3">
 				<label class="fieldset">
-					<span class="fieldset-legend">Mastery</span>
-					<select name="mastery" class="select w-full @[38rem]:w-48">
+					<span class={ "fieldset-legend " + denseLegend }>Mastery</span>
+					<select name="mastery" class={ "select w-full @[38rem]:w-48 " + denseSelect }>
 						for _, option := range masteryOptions {
 							<option value={ option.Value } selected?={ option.Value == attack.Mastery }>{ option.Label }</option>
 						}
 					</select>
 				</label>
 				<label class="fieldset">
-					<span class="fieldset-legend">Notes</span>
+					<span class={ "fieldset-legend " + denseLegend }>Notes</span>
 					<textarea
 						name="notes"
-						class="textarea w-full"
+						class={ "textarea w-full " + denseTextarea }
 						rows="2"
 						placeholder="Reach, thrown 20/60, and anything worth reading mid-turn."
 					>{ attack.Notes }</textarea>

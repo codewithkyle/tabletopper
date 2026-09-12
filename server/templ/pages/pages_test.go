@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -2432,5 +2433,117 @@ func TestNoPanelCanBeMadeUnsaveableByAnEmptyOptionalField(t *testing.T) {
 		}
 		t.Errorf("%s is required and renders empty, so htmx refuses to post the whole "+
 			"panel and form-validity.js swallows the reason: the panel saves nothing, silently", field)
+	}
+}
+
+const sheetCharacterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
+var sheetHeadings = regexp.MustCompile(`<h2 class="m-0 font-serif text-\[0\.82rem\][^"]*">([^<]*)</h2>`)
+
+func panelOrder(markup string) []string {
+	var out []string
+	for _, match := range sheetHeadings.FindAllStringSubmatch(markup, -1) {
+		out = append(out, strings.ReplaceAll(match[1], "&amp;", "&"))
+	}
+	return out
+}
+func testSheetPage() EditCharacterPageData {
+	return EditCharacterPageData{
+		CharacterID: sheetCharacterID,
+		Attacks:     []Attack{{ID: testAttackRowID, Name: "Longsword"}},
+		Features:    []Feature{{Name: "Second Wind"}},
+	}
+}
+func TestTheSheetWindowOpensOnWhatIsUsedInPlay(t *testing.T) {
+	want := []string{
+		"Vitals",
+		"Saving Throws",
+		"Abilities",
+		"Skills",
+		"Attacks",
+		"Prepared Spells",
+		"Spell Slots",
+		"Equipment",
+		"Features & Traits",
+		"Identity",
+		"Core Stats",
+		"Proficiencies & Training",
+		"Personality",
+		"Appearance",
+	}
+	var buf bytes.Buffer
+	data := SheetWindowData{Section: SheetSectionMain, Sheet: testSheetPage()}
+	if err := CharacterSheetWindow(data).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	got := panelOrder(buf.String())
+	if len(got) != len(want) {
+		t.Fatalf("panels = %v, want %v", got, want)
+	}
+	for i, name := range want {
+		if got[i] != name {
+			t.Errorf("panel %d = %q, want %q (order = %v)", i, got[i], name, got)
+		}
+	}
+}
+func TestTheSheetWindowAndTheEditorHoldTheSamePanels(t *testing.T) {
+	data := testSheetPage()
+	var page, window bytes.Buffer
+	if err := EditCharacter(data).Render(context.Background(), &page); err != nil {
+		t.Fatalf("render page: %v", err)
+	}
+	if err := CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain, Sheet: data}).Render(context.Background(), &window); err != nil {
+		t.Fatalf("render window: %v", err)
+	}
+	onPage := panelOrder(page.String())
+	inWindow := panelOrder(window.String())
+	slices.Sort(onPage)
+	slices.Sort(inWindow)
+	if !slices.Equal(onPage, inWindow) {
+		t.Errorf("the two arrangements no longer hold the same panels:\n  page   = %v\n  window = %v", onPage, inWindow)
+	}
+}
+
+var controlClass = regexp.MustCompile(`class="(input|select|textarea|checkbox)\b([^"]*)"`)
+
+func TestEveryControlOnTheSheetShrinksWithIt(t *testing.T) {
+	pages := map[string]templ.Component{
+		"character": CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain, Sheet: testSheetPage()}),
+		"inventory": CharacterSheetWindow(SheetWindowData{
+			Section:   SheetSectionInventory,
+			Inventory: InventoryPageData{CharacterID: sheetCharacterID, Items: []InventoryItem{{ID: testItemID}}},
+		}),
+		"spells": CharacterSheetWindow(SheetWindowData{
+			Section: SheetSectionSpells,
+			Level:   3,
+			Spells: SpellLevelPageData{
+				CharacterID: sheetCharacterID,
+				Level:       3,
+				Current:     testSpellCounters(3),
+				Spells:      []Spell{{ID: testSpellID}},
+			},
+		}),
+	}
+	for name, page := range pages {
+		var buf bytes.Buffer
+		if err := page.Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render %s: %v", name, err)
+		}
+		markup := buf.String()
+		controls := controlClass.FindAllStringSubmatch(markup, -1)
+		if len(controls) == 0 {
+			t.Fatalf("%s: found no controls at all, so this proves nothing", name)
+		}
+		for _, match := range controls {
+			if strings.Contains(match[2], "-sm") || strings.Contains(match[2], "-xs") {
+				continue
+			}
+			t.Errorf("%s: a %s on the sheet keeps its page-sized control: %q", name, match[1], match[0])
+		}
+		legends := strings.Count(markup, `class="fieldset-legend`)
+		dense := strings.Count(markup, `class="fieldset-legend `+denseLegend+`"`)
+		if legends != dense {
+			t.Errorf("%s: %d of %d field labels do not shrink with the sheet", name, legends-dense, legends)
+		}
 	}
 }

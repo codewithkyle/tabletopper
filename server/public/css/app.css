@@ -5751,8 +5751,62 @@
     .\@max-\[900px\]\/sheet\:grid-cols-1 {
       grid-template-columns: repeat(1, minmax(0, 1fr));
     }
+    .\@max-\[900px\]\/sheet\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .\@max-\[900px\]\/sheet\:gap-3 {
+      gap: calc(var(--spacing) * 3);
+    }
     .\@max-\[900px\]\/sheet\:px-4 {
       padding-inline: calc(var(--spacing) * 4);
+    }
+  }
+  @container sheet (width < 40rem) {
+    .\@max-\[40rem\]\/sheet\:gap-3 {
+      gap: calc(var(--spacing) * 3);
+    }
+    @layer daisyui.l1.l2 {
+      .\@max-\[40rem\]\/sheet\:checkbox-sm {
+        padding: 0.1875rem;
+        --size: calc(var(--size-selector, 0.25rem) * 5);
+      }
+    }
+    .\@max-\[40rem\]\/sheet\:p-3 {
+      padding: calc(var(--spacing) * 3);
+    }
+    .\@max-\[40rem\]\/sheet\:py-1 {
+      padding-block: var(--spacing);
+    }
+    .\@max-\[40rem\]\/sheet\:text-xs {
+      font-size: var(--text-xs);
+      line-height: var(--tw-leading, var(--text-xs--line-height));
+    }
+    @layer daisyui.l1.l2 {
+      .\@max-\[40rem\]\/sheet\:input-sm {
+        --in-size-mul: 8;
+        --font-size-min: 0.75rem;
+        --spin-my: -2;
+      }
+      .floating-label:has(.\@max-\[40rem\]\/sheet\:input-sm) {
+        --top-mul: 4;
+        --font-size: 0.75rem;
+      }
+      .\@max-\[40rem\]\/sheet\:select-sm {
+        --sl-size-mul: 8;
+        --font-size-min: 0.75rem;
+        --option-px: 2.5;
+      }
+      .floating-label:has(.\@max-\[40rem\]\/sheet\:select-sm) {
+        --top-mul: 4;
+        --font-size: 0.75rem;
+      }
+      .\@max-\[40rem\]\/sheet\:textarea-sm {
+        --font-size-min: 0.75rem;
+      }
+      .floating-label:has(.\@max-\[40rem\]\/sheet\:textarea-sm) {
+        --top-mul: 4;
+        --font-size: 0.75rem;
+      }
     }
   }
   @container (width >= 18rem) {

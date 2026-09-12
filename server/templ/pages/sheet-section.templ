@@ -4,6 +4,12 @@ const surfacePanel = "border border-base-300 bg-panel/85 shadow-panel backdrop-b
 const surfaceInset = "rounded-field bg-base-content/5"
 const sheetSurface = "card " + surfacePanel
 const panelTrigger = "input delay:1s, repeater:changed"
+const denseInput = "@max-[40rem]/sheet:input-sm"
+const denseSelect = "@max-[40rem]/sheet:select-sm"
+const denseTextarea = "@max-[40rem]/sheet:textarea-sm"
+const denseCheckbox = "@max-[40rem]/sheet:checkbox-sm"
+const denseLegend = "@max-[40rem]/sheet:py-1 @max-[40rem]/sheet:text-xs"
+const denseBody = "@max-[40rem]/sheet:gap-3 @max-[40rem]/sheet:p-3"
 
 templ savingPanel(title string, action string, panel string) {
 	<form
@@ -16,7 +22,7 @@ templ savingPanel(title string, action string, panel string) {
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
 		{ autosaves... }
 	>
-		<div class="card-body gap-4 p-4">
+		<div class={ "card-body gap-4 p-4 " + denseBody }>
 			@sheetHeading(title)
 			@PanelFormErrors(panel, []string{})
 			{ children... }
@@ -26,7 +32,7 @@ templ savingPanel(title string, action string, panel string) {
 
 templ sheetPanel(title string) {
 	<div class={ sheetSurface }>
-		<div class="card-body gap-4 p-4">
+		<div class={ "card-body gap-4 p-4 " + denseBody }>
 			@sheetHeading(title)
 			{ children... }
 		</div>

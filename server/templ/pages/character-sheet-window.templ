@@ -14,8 +14,27 @@ templ CharacterSheetWindow(data SheetWindowData) {
 				@sheetLevels(data)
 				@spellsSection(data.Spells)
 			default:
-				@characterPanels(data.Sheet)
+				@sheetPanels(data.Sheet)
 		}
+	</div>
+}
+
+templ sheetPanels(data EditCharacterPageData) {
+	<div class="grid content-start gap-3">
+		@vitalsPanel(data)
+		@savingThrowsPanel(data)
+		@abilitiesPanel(data)
+		@skillsPanel(data)
+		@attacksPanel(data)
+		@preparedSpellsPanel(data)
+		@spellSlotsPanel(data)
+		@equipmentPanel(data)
+		@featuresPanel(data)
+		@identityPanel(data)
+		@coreStatsPanel(data)
+		@proficienciesPanel(data)
+		@personalityPanel(data)
+		@appearancePanel(data)
 	</div>
 }
 

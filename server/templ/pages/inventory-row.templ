@@ -16,46 +16,46 @@ templ InventoryRow(characterID string, item InventoryItem) {
 		@PanelFormErrors(panel, []string{})
 		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_5rem_7rem_6rem]">
 			<label class="fieldset">
-				<span class="fieldset-legend">Item</span>
+				<span class={ "fieldset-legend " + denseLegend }>Item</span>
 				<input
 					name="name"
 					type="text"
-					class="input w-full font-medium"
+					class={ "input w-full font-medium " + denseInput }
 					value={ item.Name }
 					placeholder="Longsword"
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">Qty</span>
+				<span class={ "fieldset-legend " + denseLegend }>Qty</span>
 				<input
 					name="quantity"
 					type="number"
 					inputmode="numeric"
 					step="1"
 					min="0"
-					class="input w-full text-right"
+					class={ "input w-full text-right " + denseInput }
 					value={ item.Quantity }
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">Value</span>
+				<span class={ "fieldset-legend " + denseLegend }>Value</span>
 				<input
 					name="value"
 					type="text"
-					class="input w-full"
+					class={ "input w-full " + denseInput }
 					value={ item.Value }
 					placeholder="15 gp"
 				/>
 			</label>
 			<label class="fieldset">
-				<span class="fieldset-legend">Weight</span>
+				<span class={ "fieldset-legend " + denseLegend }>Weight</span>
 				<input
 					name="weight"
 					type="number"
 					inputmode="decimal"
 					step="any"
 					min="0"
-					class="input w-full text-right"
+					class={ "input w-full text-right " + denseInput }
 					value={ item.Weight }
 				/>
 			</label>
@@ -64,10 +64,10 @@ templ InventoryRow(characterID string, item InventoryItem) {
 			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
 			<div class="mt-3 grid gap-3">
 				<label class="fieldset">
-					<span class="fieldset-legend">Description</span>
+					<span class={ "fieldset-legend " + denseLegend }>Description</span>
 					<textarea
 						name="description"
-						class="textarea w-full"
+						class={ "textarea w-full " + denseTextarea }
 						rows="3"
 						placeholder="What it does, and anything worth reading mid-session."
 					>{ item.Description }</textarea>
@@ -77,7 +77,7 @@ templ InventoryRow(characterID string, item InventoryItem) {
 						name="equipped"
 						type="checkbox"
 						value="1"
-						class="checkbox"
+						class={ "checkbox " + denseCheckbox }
 						checked?={ item.Equipped }
 					/>
 					<span class="font-medium">Equipped</span>

@@ -28,7 +28,7 @@ templ spellSlotsForm(characterID string, level SpellLevel) {
 
 templ spellCountField(name string, label string, value string) {
 	<label class="fieldset">
-		<span class="fieldset-legend">{ label }</span>
+		<span class={ "fieldset-legend " + denseLegend }>{ label }</span>
 		<input
 			name={ name }
 			type="number"
