@@ -12,7 +12,7 @@ import { revise, revisions, watching } from "./model/revisions.ts";
 import { mountDialogs } from "./dialogs.ts";
 import { mountHud } from "./hud.ts";
 import { Socket, type Status } from "./socket.ts";
-import { wireDebug } from "./debug.ts";
+import { mountDebug } from "./debug/panel.ts";
 import { leaveKicked } from "./exit.ts";
 import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
@@ -135,11 +135,25 @@ if (mount) {
 			sound.play();
 		}
 	};
+	const found = mount.querySelector("[data-tabletop-canvas]");
+	const debugging: Debugging = mount.dataset.debugging === undefined ? null : (live) => {
+		mountDebug({
+			socket: live,
+			state,
+			revisions: rev,
+			renderer,
+			tools,
+			canvas: found instanceof HTMLCanvasElement ? found : null,
+			user,
+			viewed,
+		});
+	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, rev, renderer, table, hud, turns, follow, pinged);
+		socket = start(path, state, rev, renderer, table, hud, turns, follow, pinged, debugging);
 	}
 }
+type Debugging = ((socket: Socket) => void) | null;
 function start(
 	path: string,
 	state: State,
@@ -150,8 +164,8 @@ function start(
 	turns: Turns | null,
 	follow: Follow | null,
 	pinged: (layer: string, by: string) => void,
+	debugging: Debugging,
 ): Socket {
-	let debug: ReturnType<typeof wireDebug> | null = null;
 	let socket: Socket | null = null;
 	const shown = watching(["pawns", "table", "fog"]);
 	const effect = fanOut([
@@ -199,10 +213,8 @@ function start(
 				effect(frame);
 			}
 			announce(frame);
-			debug?.frame(frame);
 		},
 		status(status: Status, detail: string) {
-			debug?.status(status, detail);
 			if (status !== "ended") {
 				return;
 			}
@@ -219,10 +231,7 @@ function start(
 			}
 		},
 	});
-	const panel = document.querySelector("[data-room-debug]");
-	if (panel instanceof HTMLElement) {
-		debug = wireDebug(panel, socket, state, renderer);
-	}
+	debugging?.(socket);
 	socket.start();
 	return socket;
 }

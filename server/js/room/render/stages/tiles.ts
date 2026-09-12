@@ -13,6 +13,9 @@ export const tilesStage: StageFactory = (gl, resources): Stage => {
 		},
 		settling: () => uploading,
 		fetched: () => pass.fetched(),
+		textures: () => pass.stats(),
+		level: () => pass.level(),
+		visible: () => pass.visible(),
 		dispose: () => pass.dispose(),
 	};
 };

@@ -1,0 +1,298 @@
+package pages
+
+templ RoomDebugRenderer() {
+	<div data-debug-pane="renderer" class="flex flex-col gap-3 text-xs">
+		<div class="flex flex-col gap-1">
+			<canvas
+				data-debug-graph
+				class="block h-12 w-full rounded border border-base-300 bg-base-200 text-primary"
+			></canvas>
+			<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+				@debugRow("FPS", "fps")
+				@debugRow("Frame", "frame")
+				@debugRow("Average", "average")
+				@debugRow("p95", "p95")
+				@debugRow("Drawing", "again")
+			</dl>
+		</div>
+		@debugSection("Batches")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Draw calls", "calls")
+			@debugRow("Instances", "instances")
+			@debugRow("Rebuilds", "rebuilds")
+			@debugRow("Floors", "painted")
+		</dl>
+		@debugSection("Textures")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Sprites", "sprites")
+			@debugRow("Evictions", "sprite-evictions")
+			@debugRow("Tiles", "tiles")
+			@debugRow("Evictions", "tile-evictions")
+		</dl>
+		@debugSection("Loaders")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Sprites", "sprite-loader")
+			@debugRow("Missing", "sprite-missing")
+			@debugRow("Tiles", "tile-loader")
+			@debugRow("Missing", "tile-missing")
+		</dl>
+		@debugSection("Camera")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Zoom", "zoom")
+			@debugRow("Centre", "centre")
+			@debugRow("Level", "level")
+			@debugRow("Viewport", "viewport")
+			@debugRow("Canvas", "canvas")
+			@debugRow("Lost", "losses")
+		</dl>
+		@debugSection("Stages")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("GPU", "gpu")
+		</dl>
+		<ul data-debug-stages class="flex flex-col font-mono text-[10px] leading-tight"></ul>
+		<template data-debug-stage>
+			<li class="flex justify-between gap-2">
+				<span data-debug-stage-name class="truncate"></span>
+				<span data-debug-stage-cost class="shrink-0 text-base-content/60"></span>
+			</li>
+		</template>
+		@debugSection("Actions")
+		<div class="flex flex-wrap items-center gap-1">
+			<button type="button" data-debug-action="timing" class="btn btn-xs">Time stages</button>
+			<button type="button" data-debug-action="benchmark" class="btn btn-xs">Benchmark</button>
+			<button type="button" data-debug-action="stress" class="btn btn-xs">Stress</button>
+			<input
+				type="number"
+				data-debug-stress-count
+				value="500"
+				min="0"
+				max="20000"
+				step="100"
+				aria-label="How many stress pawns"
+				class="input input-xs w-20 font-mono"
+			/>
+			<button type="button" data-debug-action="lose-context" class="btn btn-xs">Lose context</button>
+		</div>
+		<p data-debug="timing" class="min-h-4 font-mono text-[10px] text-base-content/60"></p>
+	</div>
+}
+
+templ RoomDebugEvents() {
+	<div data-debug-pane="events" class="flex flex-col gap-3 text-xs">
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Connection", "connection")
+			@debugRow("Uptime", "uptime")
+			@debugRow("Sequence", "sequence")
+			@debugRow("Build", "build")
+		</dl>
+		@debugSection("Socket")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("In", "incoming")
+			@debugRow("Out", "outgoing")
+			@debugRow("Dropped", "dropped")
+			@debugRow("Resyncs", "resyncs")
+			@debugRow("Echo", "echo")
+			@debugRow("Backoff", "backoff")
+			@debugRow("Last close", "closed")
+			@debugRow("Faults", "faults")
+		</dl>
+		@debugSection("Faults")
+		<div class="flex flex-wrap items-center gap-1">
+			<button type="button" data-debug-action="skip" class="btn btn-xs">Skip frames</button>
+			<input
+				type="number"
+				data-debug-skip-count
+				value="1"
+				min="1"
+				max="20"
+				aria-label="How many frames to throw away"
+				class="input input-xs w-16 font-mono"
+			/>
+			<button type="button" data-debug-action="reconnect" class="btn btn-xs">Reconnect</button>
+		</div>
+		<div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1">
+			<span class="text-base-content/60">Latency</span>
+			<input
+				type="number"
+				data-debug-latency
+				value="150"
+				min="0"
+				max="5000"
+				step="50"
+				aria-label="Added latency in milliseconds"
+				class="input input-xs w-full font-mono"
+			/>
+			<span class="text-base-content/60">Jitter</span>
+			<input
+				type="number"
+				data-debug-jitter
+				value="50"
+				min="0"
+				max="5000"
+				step="50"
+				aria-label="Added jitter in milliseconds"
+				class="input input-xs w-full font-mono"
+			/>
+			<span class="text-base-content/60">Loss</span>
+			<input
+				type="number"
+				data-debug-loss
+				value="10"
+				min="0"
+				max="100"
+				step="5"
+				aria-label="Percentage of commands to drop"
+				class="input input-xs w-full font-mono"
+			/>
+		</div>
+		<button type="button" data-debug-action="impair" class="btn btn-xs self-start">Impair sending</button>
+		@debugSection("Types")
+		<ul data-debug-types class="flex flex-col font-mono text-[10px] leading-tight"></ul>
+		<template data-debug-type>
+			<li class="flex justify-between gap-2">
+				<span data-debug-type-name class="truncate"></span>
+				<span data-debug-type-count class="shrink-0 text-base-content/60"></span>
+			</li>
+		</template>
+		@debugSection("Frames")
+		<div class="flex items-center gap-1">
+			<input
+				type="search"
+				data-debug-filter
+				placeholder="Filter"
+				aria-label="Filter the frames"
+				class="input input-xs min-w-0 flex-1 font-mono"
+			/>
+			<button type="button" data-debug-action="pause" class="btn btn-xs">Pause</button>
+			<button type="button" data-debug-action="copy" class="btn btn-xs">Copy</button>
+			<button type="button" data-debug-action="clear" class="btn btn-xs">Clear</button>
+		</div>
+		<ol data-debug-events class="max-h-72 overflow-y-auto font-mono text-[10px] leading-tight"></ol>
+		<template data-debug-row>
+			<li class="border-b border-base-300/50 py-0.5">
+				<details>
+					<summary class="cursor-pointer truncate">
+						<span data-debug-row-line></span>
+					</summary>
+					<pre data-debug-row-json class="mt-1 overflow-x-auto rounded bg-base-200 p-1"></pre>
+				</details>
+			</li>
+		</template>
+		@debugSection("Send")
+		<form data-debug-form class="flex flex-col gap-1">
+			<textarea
+				data-debug-input
+				class="textarea textarea-xs w-full font-mono"
+				rows="2"
+				placeholder="A command, as JSON"
+			></textarea>
+			<button type="submit" class="btn btn-xs self-end">Send</button>
+		</form>
+	</div>
+}
+
+templ RoomDebugState() {
+	<div data-debug-pane="state" class="flex flex-col gap-3 text-xs">
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Active", "active-layer")
+			@debugRow("Viewed", "viewed-layer")
+			@debugRow("Tool", "tool")
+			@debugRow("Cursor", "cursor")
+		</dl>
+		@debugSection("Counts")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Players", "count-players")
+			@debugRow("Pawns", "count-pawns")
+			@debugRow("Floors", "count-layers")
+			@debugRow("Fog", "count-fog")
+			@debugRow("Strokes", "count-strokes")
+			@debugRow("Points", "count-points")
+			@debugRow("Initiative", "count-initiative")
+			@debugRow("Size", "state-bytes")
+		</dl>
+		@debugSection("Revisions")
+		<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+			@debugRow("Pawns", "rev-pawns")
+			@debugRow("Table", "rev-table")
+			@debugRow("Fog", "rev-fog")
+			@debugRow("Strokes", "rev-strokes")
+			@debugRow("Initiative", "rev-initiative")
+		</dl>
+		@debugSection("Players")
+		<ul data-debug-players class="font-mono text-[10px] leading-tight"></ul>
+		@debugSection("Convergence")
+		<div class="flex items-center gap-2">
+			<button type="button" data-debug-action="check" class="btn btn-xs">Check</button>
+			<span data-debug="desync" class="min-w-0 flex-1 truncate font-mono text-[10px]"></span>
+		</div>
+		<ul data-debug-slices class="flex flex-col gap-1 font-mono text-[10px] leading-tight"></ul>
+		<template data-debug-slice>
+			<li class="flex flex-col">
+				<span data-debug-slice-name class="font-semibold text-warning"></span>
+				<span data-debug-slice-detail class="break-words text-base-content/60"></span>
+			</li>
+		</template>
+	</div>
+}
+
+templ RoomDebugServer(data RoomDebugServerData) {
+	<div
+		id="room-debug-server"
+		data-debug-pane="server"
+		data-quiet
+		hx-get={ data.Path() }
+		hx-trigger="every 2s"
+		hx-sync="this:replace"
+		hx-swap="outerHTML"
+		class="flex flex-col gap-3 text-xs"
+	>
+		if !data.Live {
+			<p class="text-base-content/60">This room is not loaded in the server right now. It wakes when somebody connects.</p>
+		} else {
+			for _, group := range data.Groups {
+				@debugSection(group.Label)
+				<dl class="grid grid-cols-[auto_1fr] gap-x-3">
+					for _, row := range group.Rows {
+						<dt class="text-base-content/60">{ row.Label }</dt>
+						if row.Warn {
+							<dd class="truncate font-mono text-warning">{ row.Value }</dd>
+						} else {
+							<dd class="truncate font-mono">{ row.Value }</dd>
+						}
+					}
+				</dl>
+			}
+			@debugSection("Connections")
+			<ul class="font-mono text-[10px] leading-tight">
+				for _, conn := range data.PerUser {
+					if conn.Over {
+						<li class="text-warning">{ conn.User } &times; { conn.CountLabel() }</li>
+					} else {
+						<li>{ conn.User } &times; { conn.CountLabel() }</li>
+					}
+				}
+				if len(data.PerUser) == 0 {
+					<li class="text-base-content/60">Nobody is connected.</li>
+				}
+			</ul>
+			@debugSection("Coalescing")
+			<ul class="font-mono text-[10px] leading-tight">
+				for _, key := range data.Coalescing {
+					<li>{ key }</li>
+				}
+				if len(data.Coalescing) == 0 {
+					<li class="text-base-content/60">Nothing is waiting on the timer.</li>
+				}
+			</ul>
+		}
+	</div>
+}
+
+templ debugSection(label string) {
+	<p class="border-b border-base-300 pb-0.5 font-semibold text-base-content/60">{ label }</p>
+}
+
+templ debugRow(label string, key string) {
+	<dt class="text-base-content/60">{ label }</dt>
+	<dd data-debug={ key } class="truncate font-mono"></dd>
+}

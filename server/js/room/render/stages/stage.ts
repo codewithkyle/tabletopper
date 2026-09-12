@@ -1,6 +1,7 @@
 import type { Event } from "../../protocol.ts";
 import type { FrameContext } from "../frame-context.ts";
 import type { Resources } from "../resources.ts";
+import type { TextureStats } from "../stats.ts";
 export interface Stage {
 	build?(frame: FrameContext): void;
 	draw(frame: FrameContext): void;
@@ -9,6 +10,9 @@ export interface Stage {
 	stress?(count: number): number;
 	showBlood?(on: boolean): void;
 	fetched?(): number;
+	textures?(): TextureStats;
+	level?(): number;
+	visible?(): number;
 	dispose(): void;
 }
 export type StageFactory = (gl: WebGL2RenderingContext, resources: Resources) => Stage;

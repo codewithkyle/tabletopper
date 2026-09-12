@@ -53,3 +53,15 @@ function stubFetch(): { started: string[]; aborted: string[]; restore: () => voi
 	}) as typeof globalThis.fetch;
 	return { started, aborted, restore: () => { globalThis.fetch = real; } };
 }
+test("evictions are counted so a thrashing cache is visible", () => {
+	const slots = new Slots(2);
+	slots.claim("a", 512, 512);
+	slots.claim("b", 512, 512);
+	assert.equal(slots.evictions, 0, "nothing has been pushed out yet");
+	slots.tick();
+	slots.claim("c", 512, 512);
+	slots.tick();
+	slots.claim("d", 512, 512);
+	assert.equal(slots.evictions, 2);
+	assert.equal(slots.size, 2, "the cache is still the size it was");
+});

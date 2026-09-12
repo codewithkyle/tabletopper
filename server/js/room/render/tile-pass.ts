@@ -4,6 +4,7 @@ import type { TileRange } from "./tiles.ts";
 import type { Attribute } from "../gl/quads.ts";
 import type { Slot, TextureArray } from "../gl/texture-array.ts";
 import type { MapRef } from "../protocol.ts";
+import type { TextureStats } from "./stats.ts";
 import { blended } from "../gl/blend.ts";
 import { visibleRect } from "./camera.ts";
 import { createProgram } from "../gl/program.ts";
@@ -28,6 +29,9 @@ export interface TilePass {
 	end(): boolean;
 	draw(frame: FrameContext, map: MapRef, alpha: number): void;
 	fetched(): number;
+	stats(): TextureStats;
+	level(): number;
+	visible(): number;
 	dispose(): void;
 }
 export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => void): TilePass {
@@ -40,6 +44,8 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 	const rect: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
 	const uv: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
 	const range: TileRange = newRange();
+	let level = 0;
+	let seen = 0;
 	const flush = () => batch.draw();
 	function storeFor(tileSize: number): TextureArray {
 		const existing = stores.get(tileSize);
@@ -68,6 +74,7 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			for (const store of stores.values()) {
 				store.tick();
 			}
+			seen = 0;
 			loader.begin();
 		},
 		draw(frame, map, alpha) {
@@ -80,6 +87,8 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			visibleRect(cam, frame.viewport, view);
 			visibleRange(map, z, view, range);
 			const wanted = rangeCount(range);
+			level = z;
+			seen += wanted;
 			if (wanted === 0) {
 				return;
 			}
@@ -145,6 +154,19 @@ export function createTilePass(gl: WebGL2RenderingContext, invalidate: () => voi
 			return uploaded > 0 || waiting > 0;
 		},
 		fetched: () => loader.fetched(),
+		level: () => level,
+		visible: () => seen,
+		stats() {
+			let resident = 0;
+			let capacity = 0;
+			let evictions = 0;
+			for (const store of stores.values()) {
+				resident += store.resident();
+				capacity += store.capacity;
+				evictions += store.evictions();
+			}
+			return { resident, capacity, evictions, loader: loader.stats() };
+		},
 		dispose() {
 			loader.stop();
 			program.dispose();

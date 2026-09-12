@@ -2,12 +2,33 @@ const IN_FLIGHT = 8;
 const RETRY_FLOOR = 1_000;
 const RETRY_CEILING = 60_000;
 const UPLOADS_PER_FRAME = 4;
+export interface LoaderStats {
+	inFlight: number;
+	queued: number;
+	ready: number;
+	failed: number;
+	missing: number;
+	fetched: number;
+}
+export function noLoaderStats(): LoaderStats {
+	return { inFlight: 0, queued: 0, ready: 0, failed: 0, missing: 0, fetched: 0 };
+}
+export function addLoaderStats(into: LoaderStats, more: LoaderStats): LoaderStats {
+	into.inFlight += more.inFlight;
+	into.queued += more.queued;
+	into.ready += more.ready;
+	into.failed += more.failed;
+	into.missing += more.missing;
+	into.fetched += more.fetched;
+	return into;
+}
 export interface Loader {
 	begin(): void;
 	want(key: string, url: string, priority: number): void;
 	end(): void;
 	drain(upload: (key: string, bitmap: ImageBitmap) => void): number;
 	fetched(): number;
+	stats(): LoaderStats;
 	stop(): void;
 }
 interface Wanted {
@@ -37,6 +58,7 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 		retryAt.delete(key);
 	}
 	let total = 0;
+	let waiting = 0;
 	let stopped = false;
 	function start(item: Wanted): void {
 		const controller = new AbortController();
@@ -101,6 +123,7 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 		},
 		end() {
 			if (stopped || queue.length === 0) {
+				waiting = 0;
 				return;
 			}
 			queue.sort((a, b) => a.priority - b.priority);
@@ -124,6 +147,12 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 					start(item);
 				}
 			}
+			waiting = 0;
+			for (const item of queue) {
+				if (!inFlight.has(item.key)) {
+					waiting++;
+				}
+			}
 		},
 		drain(upload) {
 			const count = Math.min(ready.length, UPLOADS_PER_FRAME);
@@ -136,6 +165,14 @@ export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): 
 			return ready.length;
 		},
 		fetched: () => total,
+		stats: () => ({
+			inFlight: inFlight.size,
+			queued: waiting,
+			ready: ready.length,
+			failed: failures.size,
+			missing: missing.size,
+			fetched: total,
+		}),
 		stop() {
 			stopped = true;
 			for (const controller of inFlight.values()) {

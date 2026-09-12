@@ -726,3 +726,47 @@ func TestAPlayerSeesNoRemoveButton(t *testing.T) {
 		t.Errorf("the player list offers a player a remove button:\n%s", page)
 	}
 }
+
+func debugRoomPage(role room.Role) RoomPageData {
+	data := testRoomPage(role)
+	data.Debug = true
+	return data
+}
+func TestTheDebugMenuIsOnlyThereOnADevelopmentBuild(t *testing.T) {
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		for _, label := range menuLabels(testRoomPage(role)) {
+			if label == "Debug" {
+				t.Errorf("a %s sees a Debug menu on a build that is not a development one", role)
+			}
+		}
+		labels := menuLabels(debugRoomPage(role))
+		if last := labels[len(labels)-1]; last != "Debug" {
+			t.Errorf("a %s's development bar ends with %q, want Debug", role, last)
+		}
+	}
+}
+func TestTheDebugMenuOpensOneWindowPerSurface(t *testing.T) {
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		got := itemLabels(t, debugRoomPage(role), "Debug")
+		want := []string{"Renderer", "Events", "State", "Server"}
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Errorf("a %s's Debug menu is %v, want %v", role, got, want)
+		}
+	}
+}
+func TestEveryDebugSurfaceIsAWindowOnAFragment(t *testing.T) {
+	seen := map[string]bool{}
+	for _, item := range menuNamed(t, debugRoomPage(room.RoleGM), "Debug").Items {
+		if item.Window.ID == "" {
+			t.Errorf("%q is not a window, so it cannot sit beside the table it reports on", item.Label)
+			continue
+		}
+		if seen[item.Window.ID] {
+			t.Errorf("%q reuses the window id %q, so the two would share a position", item.Label, item.Window.ID)
+		}
+		seen[item.Window.ID] = true
+		if !strings.HasPrefix(item.Window.URL, "/fragment/") {
+			t.Errorf("the %s window loads %q, which the client refuses", item.Label, item.Window.URL)
+		}
+	}
+}

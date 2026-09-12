@@ -16,6 +16,27 @@ import { pingsStage } from "./pings.ts";
 import { ringsStage } from "./rings.ts";
 import { strokesStage } from "./strokes.ts";
 import { tilesStage } from "./tiles.ts";
+const NAMES: ReadonlyMap<StageFactory, string> = new Map([
+	[tilesStage, "tiles"],
+	[gridStage, "grid"],
+	[decalsStage, "decals"],
+	[strokesStage, "strokes"],
+	[fogStage, "fog"],
+	[floorMarksStage, "floor-marks"],
+	[aurasStage, "auras"],
+	[pawnsStage, "pawns"],
+	[ringsStage, "rings"],
+	[ghostsStage, "ghosts"],
+	[handlesStage, "handles"],
+	[pingsStage, "pings"],
+	[ownAurasStage, "own-auras"],
+	[ownPawnsStage, "own-pawns"],
+	[ownRingsStage, "own-rings"],
+	[overMarksStage, "over-marks"],
+]);
+export function nameOf(factory: StageFactory): string {
+	return NAMES.get(factory) ?? "stage";
+}
 export function stagesFor(role: Role): readonly StageFactory[] {
 	return [
 		tilesStage, gridStage, decalsStage, strokesStage,

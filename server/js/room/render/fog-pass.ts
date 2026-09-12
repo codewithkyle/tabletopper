@@ -2,6 +2,7 @@ import type { FrameContext } from "./frame-context.ts";
 import type { FogShape } from "../protocol.ts";
 import type { MaskRect } from "../model/polygon.ts";
 import { blended } from "../gl/blend.ts";
+import { counted } from "../gl/counters.ts";
 import { createVertexStream } from "../gl/vertices.ts";
 import { createProgram } from "../gl/program.ts";
 import { fullscreenTriangle } from "../gl/fullscreen.ts";
@@ -31,7 +32,10 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 	const coverProgram = createProgram(gl, coverVertexSource, coverFragmentSource, coverUniforms);
 	const coverAt = coverProgram.at;
 	const cover = fullscreenTriangle(gl);
-	const flush = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+	const flush = () => {
+		gl.drawArrays(gl.TRIANGLES, 0, 3);
+		counted(1);
+	};
 	const mask = createVertexStream(gl, 2, 1024);
 	const texture = gl.createTexture();
 	const frame = gl.createFramebuffer();
@@ -86,6 +90,7 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 			gl.uniform1f(shapeAt.u_open, mode === "hide" ? 0 : 1);
 			mask.upload(batch, batch.length);
 			gl.drawArrays(gl.TRIANGLES, 0, batch.length / 2);
+			counted(1);
 		}
 	}
 	return {

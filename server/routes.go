@@ -766,6 +766,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/initiative", auth.Fragment(app.RoomInitiativeFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/entry", auth.Fragment(app.RoomInitiativeEntryFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/round", auth.Fragment(app.RoomInitiativeRoundFragment))
+	mux.HandleFunc("GET /fragment/room/debug/renderer", auth.Fragment(app.RoomDebugRendererFragment))
+	mux.HandleFunc("GET /fragment/room/debug/events", auth.Fragment(app.RoomDebugEventsFragment))
+	mux.HandleFunc("GET /fragment/room/debug/state", auth.Fragment(app.RoomDebugStateFragment))
+	mux.HandleFunc("GET /fragment/room/debug/server", auth.Fragment(app.RoomDebugServerFragment))
 	// The grid under one manager page's search box. ONE ROUTE FOR ALL FOUR
 	// KINDS, where the pages above are four literal routes -- the pages have
 	// four handlers that do not resemble each other, and this is the same work

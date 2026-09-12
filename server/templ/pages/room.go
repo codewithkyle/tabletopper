@@ -90,6 +90,18 @@ func (d RoomPageData) InitiativeNextPath() string {
 func (d RoomPageData) InitiativeClearPath() string {
 	return "/rooms/" + d.ID + "/initiative/clear"
 }
+func (d RoomPageData) DebugRendererPath() string {
+	return "/fragment/room/debug/renderer"
+}
+func (d RoomPageData) DebugEventsPath() string {
+	return "/fragment/room/debug/events"
+}
+func (d RoomPageData) DebugStatePath() string {
+	return "/fragment/room/debug/state"
+}
+func (d RoomPageData) DebugServerPath() string {
+	return "/fragment/room/debug/server?room=" + d.ID
+}
 func (d RoomPageData) IsGM() bool {
 	return d.Role == room.RoleGM
 }
@@ -127,11 +139,47 @@ func (d RoomPageData) Menus() []RoomMenu {
 	} else {
 		menus = append(menus, characterMenu())
 	}
-	return append(menus,
+	menus = append(menus,
 		d.toolsMenu(),
 		d.viewMenu(),
 		helpMenu(),
 	)
+	if d.Debug {
+		menus = append(menus, d.debugMenu())
+	}
+	return menus
+}
+func (d RoomPageData) debugMenu() RoomMenu {
+	return RoomMenu{Label: "Debug", Items: []RoomMenuItem{
+		{Label: "Renderer", Window: RoomWindow{
+			ID:     "debug-renderer",
+			Title:  "Renderer",
+			URL:    d.DebugRendererPath(),
+			Width:  340,
+			Height: 460,
+		}},
+		{Label: "Events", Window: RoomWindow{
+			ID:     "debug-events",
+			Title:  "Events",
+			URL:    d.DebugEventsPath(),
+			Width:  400,
+			Height: 420,
+		}},
+		{Label: "State", Window: RoomWindow{
+			ID:     "debug-state",
+			Title:  "State",
+			URL:    d.DebugStatePath(),
+			Width:  280,
+			Height: 380,
+		}},
+		{Label: "Server", Window: RoomWindow{
+			ID:     "debug-server",
+			Title:  "Server",
+			URL:    d.DebugServerPath(),
+			Width:  300,
+			Height: 460,
+		}},
+	}}
 }
 func (d RoomPageData) toolsMenu() RoomMenu {
 	if !d.IsGM() {

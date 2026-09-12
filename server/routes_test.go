@@ -493,6 +493,12 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// in the app gated on membership rather than on ownership.
 		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
 		{http.MethodPost, "/fragment/room/members", "/fragment/"},
+		{http.MethodGet, "/fragment/room/debug/renderer", "GET /fragment/room/debug/renderer"},
+		{http.MethodGet, "/fragment/room/debug/events", "GET /fragment/room/debug/events"},
+		{http.MethodGet, "/fragment/room/debug/state", "GET /fragment/room/debug/state"},
+		{http.MethodGet, "/fragment/room/debug/server", "GET /fragment/room/debug/server"},
+		{http.MethodPost, "/fragment/room/debug/renderer", "/fragment/"},
+		{http.MethodGet, "/fragment/room/debug", "/fragment/"},
 		// The GM's two configuration windows, the picker one of them opens,
 		// and the active layer's name in the bar -- four representations of a
 		// room's configuration, so four fragments. Three are the GM's and the

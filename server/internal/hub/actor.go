@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"tabletopper/internal/room"
@@ -60,6 +61,9 @@ type actor struct {
 	emptySince       time.Time
 	kicked           map[ulid.ULID]time.Time
 	entropy          *ulid.MonotonicEntropy
+	startedAt        time.Time
+	savedAt          time.Time
+	lastBytes        int
 }
 
 const kickGrace = 30 * time.Second
@@ -84,6 +88,7 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 		lastHP:        make(map[ulid.ULID]int),
 		emptySince:    time.Now(),
 		entropy:       ulid.Monotonic(rand.Reader, 0),
+		startedAt:     time.Now(),
 	}
 }
 func (a *actor) env() room.Env {
@@ -456,6 +461,7 @@ func (a *actor) acked(m saved) {
 		return
 	}
 	a.saveFailures = 0
+	a.savedAt = time.Now()
 	if m.changes == a.changes {
 		a.dirty = false
 	}
@@ -482,6 +488,7 @@ func (a *actor) saveNow() {
 		slog.Error("Failed to save a snapshot on the way out", "room", a.id, "error", err)
 		return
 	}
+	a.savedAt = time.Now()
 	a.dirty = false
 }
 func (a *actor) encode() ([]byte, bool) {
@@ -491,6 +498,7 @@ func (a *actor) encode() ([]byte, bool) {
 		slog.Error("Failed to encode a snapshot", "room", a.id, "error", err)
 		return nil, false
 	}
+	a.lastBytes = len(blob)
 	over := len(blob) > snapshotSoftLimit
 	if over && !a.sizeWarned {
 		slog.Error("A room's snapshot has grown past the soft ceiling", "room", a.id, "bytes", len(blob))
@@ -537,6 +545,46 @@ func (a *actor) table() *TableView {
 }
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
+}
+func (a *actor) debug() *DebugView {
+	perUser := make(map[ulid.ULID]int, len(a.conns))
+	for c := range a.conns {
+		perUser[c.who.ID]++
+	}
+	conns := make([]DebugConn, 0, len(perUser))
+	for user, count := range perUser {
+		conns = append(conns, DebugConn{User: user.String(), Count: count})
+	}
+	slices.SortFunc(conns, func(x, y DebugConn) int { return strings.Compare(x.User, y.User) })
+	keys := make([]string, 0, len(a.pending))
+	for key := range a.pending {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return &DebugView{
+		Conns:         len(a.conns),
+		PerUser:       conns,
+		SeqGM:         a.seqGM,
+		SeqPlayer:     a.seqPlayer,
+		Changes:       a.changes,
+		Dirty:         a.dirty,
+		Saving:        a.saving,
+		SaveFailures:  a.saveFailures,
+		SnapshotBytes: a.lastBytes,
+		SoftLimit:     snapshotSoftLimit,
+		SavedAt:       a.savedAt,
+		StartedAt:     a.startedAt,
+		EmptySince:    a.emptySince,
+		Coalescing:    keys,
+		Kicked:        len(a.kicked),
+		Inbox:         len(a.inbox),
+		InboxCap:      cap(a.inbox),
+		Players:       len(a.state.Players),
+		Pawns:         len(a.state.Pawns),
+		Layers:        len(a.state.Table.Layers),
+		Fog:           len(a.state.Fog),
+		Strokes:       len(a.state.Strokes),
+	}
 }
 
 func (a *actor) initiative(role room.Role) *InitiativeView {

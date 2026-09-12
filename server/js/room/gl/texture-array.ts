@@ -8,6 +8,7 @@ export class Slots {
 	private readonly byKey = new Map<string, Slot>();
 	private readonly free: number[] = [];
 	private frame = 0;
+	private evicted = 0;
 	readonly capacity: number;
 	constructor(capacity: number) {
 		this.capacity = capacity;
@@ -64,15 +65,21 @@ export class Slots {
 		}
 		const slot = this.byKey.get(victim);
 		this.byKey.delete(victim);
+		this.evicted++;
 		return slot?.layer;
 	}
 	get size(): number {
 		return this.byKey.size;
 	}
+	get evictions(): number {
+		return this.evicted;
+	}
 }
 export interface TextureArray {
 	readonly texture: WebGLTexture;
 	readonly capacity: number;
+	resident(): number;
+	evictions(): number;
 	tick(): void;
 	get(key: string): Slot | undefined;
 	upload(key: string, source: TexImageSource, w: number, h: number): Slot | null;
@@ -94,6 +101,8 @@ export function createTextureArray(
 	return {
 		texture,
 		capacity,
+		resident: () => slots.size,
+		evictions: () => slots.evictions,
 		tick() {
 			slots.tick();
 		},

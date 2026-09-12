@@ -1,6 +1,7 @@
 import type { FrameContext } from "./frame-context.ts";
 import type { Grid } from "../protocol.ts";
 import { blended } from "../gl/blend.ts";
+import { counted } from "../gl/counters.ts";
 import { createProgram } from "../gl/program.ts";
 import { fullscreenTriangle } from "../gl/fullscreen.ts";
 import { parseColor } from "../model/color.ts";
@@ -13,7 +14,10 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
 	const vao = fullscreenTriangle(gl);
 	const color = new Float32Array(4);
-	const flush = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
+	const flush = () => {
+		gl.drawArrays(gl.TRIANGLES, 0, 3);
+		counted(1);
+	};
 	return {
 		draw(frame, grid) {
 			if (grid.lines === "off" || grid.cellSize < 1) {

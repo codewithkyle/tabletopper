@@ -1,4 +1,5 @@
 import type { GrowableBuffer } from "./buffer.ts";
+import { counted } from "./counters.ts";
 import { createGrowableBuffer } from "./buffer.ts";
 export interface Attribute {
 	size: 1 | 2 | 3 | 4;
@@ -74,6 +75,7 @@ export function createQuadBatch(
 			}
 			gl.bindVertexArray(vao);
 			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.count);
+			counted(this.count);
 			gl.bindVertexArray(null);
 		},
 		dispose() {

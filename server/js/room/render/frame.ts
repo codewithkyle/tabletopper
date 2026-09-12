@@ -8,12 +8,16 @@ export interface Frames {
 	invalidate(): void;
 	timings(): Timings;
 	resetTimings(): void;
+	drawn(): number;
+	last(): number;
+	again(): number;
+	history(out: Float64Array): number;
 	stop(): void;
 }
 export interface FrameOptions {
 	mount: HTMLElement;
 	canvas: HTMLCanvasElement;
-	render(): boolean;
+	render(): number;
 	resized?(): void;
 }
 export function startFrames(options: FrameOptions): Frames {
@@ -23,20 +27,24 @@ export function startFrames(options: FrameOptions): Frames {
 	let next = 0;
 	let pending = 0;
 	let stopped = false;
+	let total = 0;
+	let elapsed = 0;
+	let reasons = 0;
 	function frame(): void {
 		pending = 0;
 		if (stopped) {
 			return;
 		}
 		const started = performance.now();
-		const again = render();
-		const elapsed = performance.now() - started;
+		reasons = render();
+		elapsed = performance.now() - started;
 		times[next] = elapsed;
 		next = (next + 1) % SAMPLES;
+		total++;
 		if (count < SAMPLES) {
 			count++;
 		}
-		if (again) {
+		if (reasons !== 0) {
 			request();
 		}
 	}
@@ -94,6 +102,16 @@ export function startFrames(options: FrameOptions): Frames {
 		resetTimings() {
 			count = 0;
 			next = 0;
+		},
+		drawn: () => total,
+		last: () => elapsed,
+		again: () => reasons,
+		history(out) {
+			const want = Math.min(out.length, count);
+			for (let i = 0; i < want; i++) {
+				out[i] = times[(next - want + i + SAMPLES) % SAMPLES];
+			}
+			return want;
 		},
 		stop() {
 			stopped = true;

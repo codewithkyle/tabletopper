@@ -94,3 +94,32 @@ test("the stage list reports what its stages fetched", () => {
 		dom.restore();
 	}
 });
+test("stage timings are off until they are asked for, and name every stage when they are", () => {
+	const dom = fakeDOM();
+	try {
+		const { frame, list } = scene("gm");
+		assert.ok(list.timings().every((timing) => timing.build === 0 && timing.draw === 0));
+		list.timing(true);
+		list.build(frame);
+		list.draw(frame);
+		const timings = list.timings();
+		assert.equal(timings.length, 13, "a GM's order is thirteen stages");
+		assert.ok(timings.every((timing) => timing.name !== ""), "a timing with no name says nothing");
+		assert.equal(new Set(timings.map((timing) => timing.name)).size, timings.length);
+	} finally {
+		dom.restore();
+	}
+});
+test("turning timing off clears what it measured, so a stale reading cannot be believed", () => {
+	const dom = fakeDOM();
+	try {
+		const { frame, list } = scene("gm");
+		list.timing(true);
+		list.build(frame);
+		list.draw(frame);
+		list.timing(false);
+		assert.ok(list.timings().every((timing) => timing.build === 0 && timing.draw === 0));
+	} finally {
+		dom.restore();
+	}
+});

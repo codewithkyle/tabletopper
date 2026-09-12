@@ -215,6 +215,52 @@ func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }
 
+type DebugConn struct {
+	User  string
+	Count int
+}
+type DebugView struct {
+	Conns         int
+	PerUser       []DebugConn
+	SeqGM         uint64
+	SeqPlayer     uint64
+	Changes       uint64
+	Dirty         bool
+	Saving        bool
+	SaveFailures  int
+	SnapshotBytes int
+	SoftLimit     int
+	SavedAt       time.Time
+	StartedAt     time.Time
+	EmptySince    time.Time
+	Coalescing    []string
+	Kicked        int
+	Inbox         int
+	InboxCap      int
+	Players       int
+	Pawns         int
+	Layers        int
+	Fog           int
+	Strokes       int
+	Loaded        int
+	Limits        Options
+}
+
+func (h *Hub) Debug(ctx context.Context, roomID ulid.ULID) (*DebugView, bool) {
+	view, ok := view(ctx, h, roomID, false, (*actor).debug)
+	if !ok {
+		return nil, false
+	}
+	view.Loaded = h.Loaded()
+	view.Limits = h.opts
+	return view, true
+}
+func (h *Hub) Loaded() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.rooms)
+}
+
 type InitiativeView struct {
 	Initiative room.Initiative
 	Pawns      map[ulid.ULID]room.Pawn

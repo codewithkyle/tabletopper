@@ -14,7 +14,7 @@ import { ownRingsStage } from "./own-rings.ts";
 import { pawnsStage } from "./pawns.ts";
 import { pingsStage } from "./pings.ts";
 import { ringsStage } from "./rings.ts";
-import { stagesFor } from "./order.ts";
+import { nameOf, stagesFor } from "./order.ts";
 import { strokesStage } from "./strokes.ts";
 import { tilesStage } from "./tiles.ts";
 const COMMON = [
@@ -59,4 +59,15 @@ test("marks bracket the pawns: cells under, labels over", () => {
 	assert.ok(order.indexOf(floorMarksStage) < order.indexOf(pawnsStage));
 	assert.ok(order.indexOf(overMarksStage) > order.indexOf(pawnsStage));
 	assert.ok(order.indexOf(ghostsStage) > order.indexOf(pawnsStage), "a ghost is drawn over the pawn it came from");
+});
+test("every stage in the order has a name, because a timing readout of blanks says nothing", () => {
+	const seen = new Set<string>();
+	for (const role of ["gm", "player"] as const) {
+		for (const stage of stagesFor(role)) {
+			const name = nameOf(stage);
+			assert.notEqual(name, "stage", `a stage in the ${role} order is unnamed`);
+			seen.add(name);
+		}
+	}
+	assert.equal(seen.size, 16, "two stages share a name, so their timings would be indistinguishable");
 });

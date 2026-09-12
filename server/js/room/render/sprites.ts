@@ -1,5 +1,6 @@
 import type { Pawn } from "../protocol.ts";
 import type { Slot } from "../gl/texture-array.ts";
+import type { TextureStats } from "./stats.ts";
 import { KIND_COLORS } from "../model/color.ts";
 import { createTextureArray } from "../gl/texture-array.ts";
 import { newLoader } from "../gl/loader.ts";
@@ -14,6 +15,7 @@ export interface SpriteCache {
 	glyph(name: string): Slot | null;
 	texture(): WebGLTexture;
 	epoch(): number;
+	stats(): TextureStats;
 	dispose(): void;
 }
 export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => void): SpriteCache {
@@ -82,6 +84,12 @@ export function createSpriteCache(gl: WebGL2RenderingContext, invalidate: () => 
 		},
 		texture: () => store.texture,
 		epoch: () => epoch,
+		stats: () => ({
+			resident: store.resident(),
+			capacity: store.capacity,
+			evictions: store.evictions(),
+			loader: loader.stats(),
+		}),
 		dispose() {
 			loader.stop();
 			live.clear();
