@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	"tabletopper/internal/room"
 
@@ -42,12 +41,17 @@ func TestSheetWritesLandOneAtATimeAndTheLatestWins(t *testing.T) {
 func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 	var mu sync.Mutex
 	var writes []int
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
 	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
 		mu.Lock()
-		defer mu.Unlock()
 		writes = append(writes, hp)
+		mu.Unlock()
+		started <- struct{}{}
+		<-release
 		return nil
 	}})
+	t.Cleanup(func() { close(release) })
 	a := tb.actor()
 	character := testID(9)
 	hp := 12
@@ -60,16 +64,14 @@ func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 		<-reply
 	}
 	through(pawn)
+	<-started
+	release <- struct{}{}
 	pawn.Name = "Ilyana the Bold"
 	through(pawn)
 	hp = 9
 	through(pawn)
-	eventually(t, "the sheet writes", func() bool {
-		mu.Lock()
-		defer mu.Unlock()
-		return len(writes) >= 2
-	})
-	time.Sleep(20 * time.Millisecond)
+	<-started
+	release <- struct{}{}
 	mu.Lock()
 	defer mu.Unlock()
 	if len(writes) != 2 || writes[0] != 12 || writes[1] != 9 {

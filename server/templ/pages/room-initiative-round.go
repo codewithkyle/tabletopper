@@ -1,6 +1,6 @@
 package pages
 
-import "tabletopper/internal/events"
+import "tabletopper/internal/uievents"
 
 const RoomInitiativeRoundID = "room-initiative-round"
 
@@ -14,7 +14,7 @@ func (d RoomInitiativeRoundData) Path() string {
 	return "/fragment/room/initiative/round?room=" + d.RoomID
 }
 func (d RoomInitiativeRoundData) Trigger() string {
-	const live = events.Initiative + " from:window"
+	const live = uievents.Initiative + " from:window"
 	if d.Fetched {
 		return live
 	}

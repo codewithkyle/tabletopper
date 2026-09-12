@@ -3,7 +3,7 @@
 // are written, and the room bundle built from server/js/room, which imports
 // this file by relative path and inlines it.
 //
-// THE GO COPY IS internal/events, AND A TEST HOLDS THE TWO TOGETHER. Every
+// THE GO COPY IS internal/uievents, AND A TEST HOLDS THE TWO TOGETHER. Every
 // constant here has to match its Go twin by name and value, and neither bundle
 // may spell one of these out as a literal anywhere else; the test reads this
 // file and greps the rest. Before this each name lived in two or three files

@@ -1,6 +1,6 @@
 package pages
 
-import "tabletopper/internal/events"
+import "tabletopper/internal/uievents"
 
 type RoomLayerNameData struct {
 	RoomID  string
@@ -12,7 +12,7 @@ func (d RoomLayerNameData) Path() string {
 	return "/fragment/room/layer?room=" + d.RoomID
 }
 func (d RoomLayerNameData) Trigger() string {
-	const live = events.Tabletop + " from:window"
+	const live = uievents.Tabletop + " from:window"
 	if d.Fetched {
 		return live
 	}

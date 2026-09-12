@@ -3,11 +3,11 @@ package pages
 import (
 	"strconv"
 
-	"tabletopper/internal/events"
+	"tabletopper/internal/uievents"
 )
 
 const RoomInitiativeID = "room-initiative"
-const InitiativeTrigger = events.Initiative + "[!this.hasAttribute('data-dragging')] from:window"
+const InitiativeTrigger = uievents.Initiative + "[!this.hasAttribute('data-dragging')] from:window"
 const InitiativeLoadTrigger = "load, " + InitiativeTrigger
 const (
 	EntrySolo  = "solo"

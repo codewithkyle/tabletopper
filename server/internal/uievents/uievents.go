@@ -1,4 +1,4 @@
-package events
+package uievents
 
 const (
 	Players    = "room:players"

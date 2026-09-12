@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"tabletopper/internal/events"
+	"tabletopper/internal/uievents"
 )
 
 func trigger(w http.ResponseWriter, events map[string]any) {
@@ -28,7 +28,7 @@ func trigger(w http.ResponseWriter, events map[string]any) {
 }
 func Error(w http.ResponseWriter, heading string, msg string, status int) {
 	trigger(w, map[string]any{
-		events.Alert: map[string]string{"heading": heading, "message": msg},
+		uievents.Alert: map[string]string{"heading": heading, "message": msg},
 	})
 	w.WriteHeader(status)
 }
@@ -47,19 +47,19 @@ func Refresh(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 }
 func Toast(w http.ResponseWriter, msg string) {
-	trigger(w, map[string]any{events.Toast: msg})
+	trigger(w, map[string]any{uievents.Toast: msg})
 }
 func CloseModal(w http.ResponseWriter) {
-	trigger(w, map[string]any{events.ModalClose: true})
+	trigger(w, map[string]any{uievents.ModalClose: true})
 }
 func Theme(w http.ResponseWriter, palette string) {
 	trigger(w, map[string]any{
-		events.ThemeChange: map[string]string{"palette": palette},
+		uievents.ThemeChange: map[string]string{"palette": palette},
 	})
 }
 func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool, pingVolume int) {
 	trigger(w, map[string]any{
-		events.SettingsChange: map[string]any{
+		uievents.SettingsChange: map[string]any{
 			"name":       name,
 			"followTurn": followTurn,
 			"showBlood":  showBlood,

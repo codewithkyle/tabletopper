@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"tabletopper/internal/events"
+	"tabletopper/internal/uievents"
 
 	"github.com/a-h/templ"
 )
@@ -108,7 +108,7 @@ func (d RoomPawnData) RenamePath() string {
 	return "/fragment/room/pawn/rename?room=" + d.RoomID + "&pawn=" + d.Pawn.ID
 }
 func (d RoomPawnData) Trigger() string {
-	return events.Pawn + "[detail.id === '" + d.Pawn.ID + "' && !" + typingInPanel + "] from:window"
+	return uievents.Pawn + "[detail.id === '" + d.Pawn.ID + "' && !" + typingInPanel + "] from:window"
 }
 
 const typingInPanel = "(this.contains(document.activeElement) && " +
