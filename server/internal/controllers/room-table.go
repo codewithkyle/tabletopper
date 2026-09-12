@@ -258,17 +258,14 @@ func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	who := room.Actor{ID: sess.UserID, Role: role}
-	if err := a.Hub.Dispatch(ctx, row.ID, who, &room.TableSetGrid{Grid: grid}); err != nil {
+	cmd := &room.Batch{Commands: []room.Command{&room.TableSetGrid{Grid: grid}, &options}}
+	if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
 		var refusal *room.Error
 		if errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
 			renderPanelBlock(w, r, pages.RoomGridPanel, []string{refusal.Message})
 			return
 		}
 		a.rejectCommand(w, "change the grid", err)
-		return
-	}
-	if err := a.Hub.Dispatch(ctx, row.ID, who, &options); err != nil {
-		a.rejectCommand(w, "change the table options", err)
 		return
 	}
 	renderPanelBlock(w, r, pages.RoomGridPanel, nil)
@@ -306,11 +303,9 @@ func (a *App) viewedLayerCommands(w http.ResponseWriter, r *http.Request, action
 		layer = view.Table.ActiveLayer
 	}
 	who := room.Actor{ID: sess.UserID, Role: role}
-	for _, cmd := range build(layer) {
-		if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
-			a.rejectCommand(w, action, err)
-			return
-		}
+	if err := a.Hub.Dispatch(ctx, row.ID, who, &room.Batch{Commands: build(layer)}); err != nil {
+		a.rejectCommand(w, action, err)
+		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

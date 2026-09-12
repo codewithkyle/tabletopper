@@ -14586,11 +14586,337 @@
       }
     },
     {
-      "name": "the goblin dies",
+      "name": "the GM edits the goblin in one form",
       "frames": [
         {
           "type": "changes",
           "seq": 52,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "pawns.upserted",
+              "pawns": [
+                {
+                  "id": "01000000000000000000000005",
+                  "kind": "monster",
+                  "layerId": "01000000000000000000000001",
+                  "name": "Goblin boss",
+                  "image": "/assets/goblin.webp",
+                  "x": 723,
+                  "y": 323,
+                  "z": 3,
+                  "size": "small",
+                  "width": 0,
+                  "height": 0,
+                  "rotation": 0,
+                  "visible": true,
+                  "hp": 3,
+                  "maxHp": 7,
+                  "hpBand": null,
+                  "ac": 13,
+                  "conditions": [
+                    {
+                      "id": "0100000000000000000000000K",
+                      "name": "Frightened",
+                      "color": "blue",
+                      "duration": 1,
+                      "clear": "start"
+                    }
+                  ],
+                  "ownerId": null,
+                  "monsterId": "0100000000000000000000001W",
+                  "characterId": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": true,
+              "fogPrefill": false
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin boss",
+            "image": "/assets/goblin.webp",
+            "x": 723,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 13,
+            "conditions": [
+              {
+                "id": "0100000000000000000000000K",
+                "name": "Frightened",
+                "color": "blue",
+                "duration": 1,
+                "clear": "start"
+              }
+            ],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000006",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 933,
+            "y": 323,
+            "z": 4,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": false,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 20
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005",
+                "01000000000000000000000006"
+              ],
+              "name": "Goblin",
+              "initiative": 14
+            },
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 19
+            }
+          ],
+          "active": "0100000000000000000000000D",
+          "round": 2
+        },
+        "fog": [
+          {
+            "id": "0100000000000000000000000J",
+            "layerId": "01000000000000000000000001",
+            "kind": "poly",
+            "mode": "reveal",
+            "points": [
+              1024,
+              400,
+              1400,
+              400,
+              1400,
+              560,
+              1024,
+              560
+            ]
+          }
+        ],
+        "strokes": [
+          {
+            "id": "010000000000000000000000W4",
+            "by": "010000000000000000000000Z9",
+            "layerId": "01000000000000000000000001",
+            "kind": "free",
+            "color": "#ff0000ff",
+            "width": 6,
+            "points": [
+              100,
+              100,
+              140,
+              130,
+              180,
+              170,
+              220,
+              190
+            ],
+            "done": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "the goblin dies",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 53,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -14885,7 +15211,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 53,
+          "seq": 54,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15128,7 +15454,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 54,
+          "seq": 55,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15352,7 +15678,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 55,
+          "seq": 56,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15556,7 +15882,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 56,
+          "seq": 57,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15751,7 +16077,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 57,
+          "seq": 58,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15945,7 +16271,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 58,
+          "seq": 59,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -16125,7 +16451,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 59,
+          "seq": 60,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -16209,7 +16535,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 60,
+          "seq": 61,
           "events": [
             {
               "type": "room.updated",
@@ -16291,7 +16617,7 @@
       "frames": [
         {
           "type": "room.closed",
-          "seq": 60
+          "seq": 61
         }
       ],
       "state": {

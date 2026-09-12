@@ -502,24 +502,62 @@ type Coalescer interface {
 
 ### The new shapes
 
-- `Batch{Commands []Command}` is a hub-only command. `Authorize` authorizes
-  each. `Apply` applies each in order and returns the first error; the actor's
-  restore-on-error from Phase 1 makes the whole batch atomic and Phase 2 makes
-  it one frame.
-- `UpdatePawn`, `UpdatePawnHP` and the other handlers that dispatch more than
-  once build a `Batch`.
-- `rejectCommand` and `refusePawnForm` stay; the batch surfaces the one
-  refusal they already know how to render.
+- `Batch{Commands []Command}` is a hub-only command in the `hubCommands`
+  registry. `Authorize` authorizes each, so a batch a caller may not finish is
+  refused before any of it applies. `Apply` applies each in order and returns
+  the first error; the actor's restore-on-error from Phase 1 makes the whole
+  batch atomic and Phase 2 makes it one frame. **`Apply` does not clone.**
+  Atomicity has one owner, the actor, and it already guarantees it for every
+  command; a second clone inside `Batch` would buy a guarantee that is already
+  there and put it in two places.
+- **`Batch` implements `Resolver` and resolves every resolver inside it.** The
+  hub's `resolve` looks at the outer command only, so without this a batch
+  carrying a spawn would silently skip resolution and apply an unresolved
+  command. The cost is that a batch dispatched by a GM always takes the
+  clone-and-ask path, even when nothing inside it needs the library; that is one
+  actor round trip and one clone per form submit, which is what each of the
+  three resolvers already pays and is nothing beside a human filling in a form.
+  The alternative — refusing a batch that contains a resolver — would trade a
+  real capability for an unmeasurable saving.
+- `UpdatePawn` builds a `Batch`. **`UpdatePawnHP` needed no change**: it already
+  dispatches once, with the hit points and the maximum in one `PawnUpdate`. The
+  other handlers that dispatched more than once were **`SetRoomGrid`** (the grid
+  and then the options) and **`viewedLayerCommands`** (a loop, so "fill the fog"
+  was clear, then prefill, then enable). Fog filling is the worst of the three:
+  a refusal in the middle left the fog cleared but not filled, and the client
+  saw three frames for one button.
+- `rejectCommand` and `refusePawnForm` stay; the batch surfaces the one refusal
+  they already know how to render. Two consequences worth naming:
+  **`SetRoomGrid`'s invalid-refusal path now covers the options as well as the
+  grid**, so an invalid option renders in the panel the form lives in rather
+  than an alert modal; and **the pawn form reports the size problem and the
+  conditions problem together** rather than stopping at the first, because
+  everything is parsed before anything is dispatched.
 
 ### Tests first
 
-- `server/internal/room/batch_test.go`, new: a batch whose second command is
-  refused leaves the first unapplied and reports the second's error; a batch by
-  a player containing a GM command is refused before anything applies.
+- `server/internal/room/batch_test.go`, new: every command lands and one list is
+  derived for the pair; the refusal reported is the one raised by the command
+  that failed; a batch by a player carrying a GM command is refused with that
+  command's own message and leaves the room byte-identical; every resolver
+  inside a batch is resolved and nothing else reads the library; an empty batch
+  applies and changes nothing. **Atomicity is asserted in the hub, not here** —
+  `Batch.Apply` does not restore, so the layer that owns the restore is the
+  layer that must prove it.
 - `server/internal/controllers/room-pawns_test.go`:
-  `TestAPawnFormWithABadLayerChangesNothing`, red today because the name and
-  hit points are applied before the layer is refused.
-- `server/internal/hub/actor_test.go`: a batch is one frame per role.
+  `TestAPawnFormWithABadLayerChangesNothing`, red today because the size, the
+  armour class and the visibility are applied before the layer is refused. It
+  needs a pawn with an id the test chose, so the room is loaded from a snapshot
+  the test marshalled rather than built by spawning.
+- `server/internal/hub/actor_test.go`: `TestABatchIsOneFramePerRole` and
+  `TestABatchWhoseLastCommandIsRefusedChangesNothing`.
+- Registering `Batch` makes the convergence scenario owe it a step, so the
+  scenario gains one: the GM editing the goblin in one form. It sits immediately
+  before the goblin is removed, so no later step's state moves and the fixture
+  diff is one step plus the sequence numbers after it. Both fixtures now show
+  what the phase is for: two commands, one frame, one `pawns.upserted` carrying
+  the name, the armour class and the conditions together, with the armour class
+  projected away for the player.
 
 ### Then
 

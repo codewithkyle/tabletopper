@@ -137,6 +137,12 @@ func scenario(r *recorder) {
 		ID: testID(1100), Name: "Wren", Role: RolePlayer,
 	}})
 	r.hub("and thinks better of it", &PlayerLeave{ID: testID(1100)})
+	r.do("the GM edits the goblin in one form", &Batch{Commands: []Command{
+		&PawnUpdate{ID: goblin, Name: strp("Goblin boss"), AC: intp(13)},
+		&PawnSetConditions{ID: goblin, Conditions: []Condition{
+			{Name: "Frightened", Color: ColorBlue, Duration: 1, Clear: ClearStart},
+		}},
+	}}, gm)
 	r.do("the goblin dies", &PawnRemove{IDs: []ulid.ULID{goblin}}, gm)
 	r.do("clear the tracker", &InitiativeClear{}, gm)
 	r.do("wipe the fog", &FogClear{Layer: ground}, gm)

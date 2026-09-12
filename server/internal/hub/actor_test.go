@@ -285,6 +285,64 @@ func (c *coalescing) Apply(s *room.State, a room.Actor, env room.Env) ([]room.Si
 	c.seen.add(c.name)
 	return nil, nil
 }
+func TestABatchIsOneFramePerRole(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	player := tb.join(playerID, "Ari", room.RolePlayer)
+	frames(t, gm)
+	frames(t, player)
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnMonster, Layer: layer, X: 64, Y: 64, Visible: true,
+		Pawn: &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
+	})
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
+	frames(t, player)
+	name, size := "Goblin boss", room.SizeLarge
+	err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, &room.Batch{Commands: []room.Command{
+		&room.PawnUpdate{ID: pawn, Name: &name, Size: &size},
+		&room.PawnSetConditions{ID: pawn, Conditions: []room.Condition{
+			{Name: "Prone", Color: room.ColorWhite, Duration: -1, Clear: room.ClearEnd},
+		}},
+		&room.PawnSetVisible{IDs: []ulid.ULID{pawn}, Visible: false},
+	}})
+	if err != nil {
+		t.Fatalf("the batch was refused: %v", err)
+	}
+	for who, fs := range map[string][]frame{"the GM": frames(t, gm), "a player": frames(t, player)} {
+		if got := changeFrames(fs); got != 1 {
+			t.Errorf("%s received %d frames for one batch: %v", who, got, types(fs))
+		}
+	}
+}
+func TestABatchWhoseLastCommandIsRefusedChangesNothing(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnMonster, Layer: layer, X: 64, Y: 64, Visible: true,
+		Pawn: &room.Pawn{Name: "Goblin", Size: room.SizeSmall},
+	})
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
+	name := "Goblin boss"
+	err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, &room.Batch{Commands: []room.Command{
+		&room.PawnUpdate{ID: pawn, Name: &name},
+		&room.PawnSetLayer{IDs: []ulid.ULID{pawn}, Layer: testID(77)},
+	}})
+	if err == nil {
+		t.Fatal("a batch naming a layer that is not on the table was applied")
+	}
+	got, ok := tb.Pawn(tb.ctx(), roomID, pawn, room.RoleGM)
+	if !ok {
+		t.Fatal("the pawn is no longer on the table")
+	}
+	if got.Name != "Goblin" {
+		t.Errorf("the pawn is called %q; the first command of a refused batch was applied", got.Name)
+	}
+	if fs := frames(t, gm); changeFrames(fs) != 0 {
+		t.Errorf("the GM received %v for a batch that was refused", types(fs))
+	}
+}
 func changeFrames(fs []frame) int {
 	n := 0
 	for _, f := range fs {

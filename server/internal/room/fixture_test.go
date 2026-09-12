@@ -235,4 +235,5 @@ func mustJSON(t *testing.T, v any) string {
 	return string(b)
 }
 func intp(v int) *int            { return &v }
+func strp(v string) *string      { return &v }
 func idp(v ulid.ULID) *ulid.ULID { return &v }

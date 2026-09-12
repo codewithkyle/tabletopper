@@ -1,12 +1,16 @@
 package controllers
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 
@@ -349,5 +353,64 @@ func TestThePawnPanelPrintsNumbersOnlyWhereTheSettingAllows(t *testing.T) {
 func TestThePawnPanelFallsBackToWordsWhenTheRoomCannotBeRead(t *testing.T) {
 	if got := tableLabels(nil); got != room.LabelsDefault {
 		t.Fatalf("an unreadable room labels %q, want %q", got, room.LabelsDefault)
+	}
+}
+
+type storedRoom struct {
+	emptyRoomStore
+	snapshot json.RawMessage
+}
+
+func (s storedRoom) Load(context.Context, ulid.ULID) (hub.Loaded, error) {
+	return hub.Loaded{Name: "Curse of Strahd", Snapshot: s.snapshot}, nil
+}
+func roomWithAPawn(t *testing.T) (json.RawMessage, ulid.ULID) {
+	t.Helper()
+	s := room.NewState(testRoomID, "Curse of Strahd", room.Env{})
+	hp, ac := 11, 15
+	s.Pawns = append(s.Pawns, room.Pawn{
+		ID: testPawnA, Kind: room.PawnNPC, Name: "Ismark", Size: room.SizeMedium,
+		LayerID: s.Table.ActiveLayer, X: 64, Y: 64, Visible: false,
+		HP: &hp, MaxHP: &hp, AC: &ac,
+	})
+	blob, err := room.Marshal(s)
+	if err != nil {
+		t.Fatalf("marshalling the room: %v", err)
+	}
+	return blob, s.Table.ActiveLayer
+}
+func TestAPawnFormWithABadLayerChangesNothing(t *testing.T) {
+	snapshot, layer := roomWithAPawn(t)
+	app := newRoomApp(&roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
+	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: snapshot}})
+	if got := firstLayer(t, app); got != layer {
+		t.Fatalf("the room came up with layer %s, want the one the snapshot carried, %s", got, layer)
+	}
+	rec := tableRequest(t, app.UpdatePawn, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/pawns/"+testPawnA.String(),
+		map[string]string{"id": testRoomID.String(), "pawn": testPawnA.String()},
+		url.Values{
+			"size":  {string(room.SizeLarge)},
+			"ac":    {"18"},
+			"shown": {"on"},
+			"layer": {testPawnB.String()},
+		}, gmSession())
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 for a layer that is not on the table; body: %s", rec.Code, rec.Body.String())
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	pawn, ok := app.Hub.Pawn(ctx, testRoomID, testPawnA, room.RoleGM)
+	if !ok {
+		t.Fatal("the pawn is no longer on the table")
+	}
+	if pawn.Size != room.SizeMedium {
+		t.Errorf("the size is %q, want the one it had: the form was refused", pawn.Size)
+	}
+	if pawn.AC == nil || *pawn.AC != 15 {
+		t.Errorf("the armour class is %d, want 15: the form was refused", *pawn.AC)
+	}
+	if pawn.Visible {
+		t.Error("the pawn was revealed by a form that was refused")
 	}
 }

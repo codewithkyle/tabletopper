@@ -122,6 +122,7 @@ var wireCommands = map[string]func() Command{
 	"sync.request":         func() Command { return &SyncRequest{} },
 }
 var hubCommands = map[string]func() Command{
+	"batch":               func() Command { return &Batch{} },
 	"player.join":         func() Command { return &PlayerJoin{} },
 	"player.setConnected": func() Command { return &PlayerSetConnected{} },
 	"player.leave":        func() Command { return &PlayerLeave{} },

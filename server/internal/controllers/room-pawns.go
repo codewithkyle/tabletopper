@@ -449,41 +449,30 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	update, problems := pawnUpdateForm(r, pawn)
-	if len(problems) > 0 {
-		a.renderPawnErrors(w, r, pawnID, problems)
-		return
-	}
-	if err := a.Hub.Dispatch(ctx, roomID, who, update); err != nil {
-		a.refusePawnForm(w, r, pawnID, "change a pawn", err)
-		return
-	}
+	commands := []room.Command{update}
 	if pawn.Kind != room.PawnObject {
 		conditions, bad := pawnConditionsForm(r)
 		if bad != "" {
-			a.renderPawnErrors(w, r, pawnID, []string{bad})
-			return
-		}
-		cmd := &room.PawnSetConditions{ID: pawnID, Conditions: conditions}
-		if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
-			a.refusePawnForm(w, r, pawnID, "change a pawn's conditions", err)
-			return
+			problems = append(problems, bad)
+		} else {
+			commands = append(commands, &room.PawnSetConditions{ID: pawnID, Conditions: conditions})
 		}
 	}
 	if who.Role == room.RoleGM {
 		if shown := r.FormValue("shown") != ""; shown != pawn.Visible {
-			cmd := &room.PawnSetVisible{IDs: []ulid.ULID{pawnID}, Visible: shown}
-			if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
-				a.refusePawnForm(w, r, pawnID, "hide or reveal a pawn", err)
-				return
-			}
+			commands = append(commands, &room.PawnSetVisible{IDs: []ulid.ULID{pawnID}, Visible: shown})
 		}
 		if layer, err := ulid.Parse(r.FormValue("layer")); err == nil && layer != pawn.LayerID {
-			cmd := &room.PawnSetLayer{IDs: []ulid.ULID{pawnID}, Layer: layer}
-			if err := a.Hub.Dispatch(ctx, roomID, who, cmd); err != nil {
-				a.refusePawnForm(w, r, pawnID, "move a pawn between layers", err)
-				return
-			}
+			commands = append(commands, &room.PawnSetLayer{IDs: []ulid.ULID{pawnID}, Layer: layer})
 		}
+	}
+	if len(problems) > 0 {
+		a.renderPawnErrors(w, r, pawnID, problems)
+		return
+	}
+	if err := a.Hub.Dispatch(ctx, roomID, who, &room.Batch{Commands: commands}); err != nil {
+		a.refusePawnForm(w, r, pawnID, "change a pawn", err)
+		return
 	}
 	a.renderPawnErrors(w, r, pawnID, nil)
 }
