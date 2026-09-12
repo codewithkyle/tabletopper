@@ -329,3 +329,69 @@ func TestTheManualListsOneMonsterPerRow(t *testing.T) {
 		t.Errorf("the cards are laid out in columns: %q", container[1])
 	}
 }
+
+func TestTheManualWindowOpensAMonsterWithoutLeavingTheTable(t *testing.T) {
+	card := testMonsterCard()
+	window := markup(t, MonsterManualWindow(MonsterListData{Monsters: []MonsterSummary{card}}))
+	if !strings.Contains(window, `hx-get="`+ManualMonsterPath(card.ID)+`"`) {
+		t.Errorf("the window's card does not ask for the stat block:\n%s", window)
+	}
+	if !strings.Contains(window, `hx-target="#`+ManualBodyID+`"`) {
+		t.Errorf("the window's card swaps something other than the window body:\n%s", window)
+	}
+	if strings.Contains(window, "href=") {
+		t.Errorf("the window carries a link that would navigate the table away:\n%s", window)
+	}
+	for _, gone := range []string{"hx-delete", "/edit"} {
+		if strings.Contains(window, gone) {
+			t.Errorf("the window carries %q, which belongs on the manual page:\n%s", gone, window)
+		}
+	}
+	for _, stat := range []string{card.CR, card.AC, card.HP} {
+		if !strings.Contains(window, ">"+stat+"<") {
+			t.Errorf("the window's card drops the %q it is consulted for:\n%s", stat, window)
+		}
+	}
+}
+
+func TestTheManualWindowSearchesItselfAndRedrawsOnlyTheList(t *testing.T) {
+	window := markup(t, MonsterManualWindow(MonsterListData{Monsters: []MonsterSummary{testMonsterCard()}}))
+	box := regexp.MustCompile(`<input[^>]*type="search"[^>]*>`).FindString(window)
+	if box == "" {
+		t.Fatalf("the window has no search box:\n%s", window)
+	}
+	if !strings.Contains(box, `hx-get="`+ManualWindowPath()+`"`) {
+		t.Errorf("the window's search leaves the window: %s", box)
+	}
+	if !strings.Contains(box, `hx-target="#`+manualListID+`"`) {
+		t.Errorf("the search redraws more than the list: %s", box)
+	}
+	if !strings.Contains(box, "input-sm") {
+		t.Errorf("the search box is full height in a window where space is scarce: %s", box)
+	}
+	list := markup(t, MonsterManualListFragment(MonsterListData{Query: "dragon"}))
+	if strings.Contains(list, `id="`+manualListID+`"`) {
+		t.Errorf("the search answer brings the list container it is swapped into:\n%s", list)
+	}
+	if !strings.Contains(list, "dragon") {
+		t.Errorf("an empty result says nothing about what was searched for:\n%s", list)
+	}
+}
+
+func TestTheManualWindowStatBlockWearsNoPanelOfItsOwn(t *testing.T) {
+	entry := markup(t, MonsterManualWindowEntry(testStatBlock()))
+	if !strings.Contains(entry, "Back to all monsters") {
+		t.Errorf("the stat block is a one-way trip:\n%s", entry)
+	}
+	if !strings.Contains(entry, `hx-get="`+ManualWindowPath()+`"`) {
+		t.Errorf("the way back does not ask for the list:\n%s", entry)
+	}
+	if !strings.Contains(entry, markup(t, statBlockBody(testStatBlock()))) {
+		t.Error("the window renders its own copy of the block")
+	}
+	for _, chrome := range []string{"shadow-panel", "bg-panel", `id="stat-block"`} {
+		if strings.Contains(entry, chrome) {
+			t.Errorf("the window's block brings %q, which floats it off the window ground:\n%s", chrome, entry)
+		}
+	}
+}

@@ -829,3 +829,25 @@ func TestOnlyAPlayerWithACharacterIsOfferedTheirJournal(t *testing.T) {
 		t.Error("the GM is offered a character journal")
 	}
 }
+
+func TestOnlyTheGMIsOfferedTheMonsterManual(t *testing.T) {
+	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	gm := RoomPageData{ID: id, Role: room.RoleGM}
+	item, ok := roomMenuItem(gm, "Monster Manual")
+	if !ok {
+		t.Fatal("the GM is offered no manual")
+	}
+	if item.Disabled || item.Window.ID != ManualWindow {
+		t.Errorf("the manual item is %+v", item)
+	}
+	if !strings.HasPrefix(item.Window.URL, "/fragment/") {
+		t.Errorf("the manual window loads %q, which a window refuses", item.Window.URL)
+	}
+	if strings.Contains(item.Window.URL, id) {
+		t.Errorf("the manual window is keyed to a room in %q, so a GM's layout would not follow them between tables", item.Window.URL)
+	}
+	player := RoomPageData{ID: id, Role: room.RolePlayer, CharacterID: id}
+	if _, ok := roomMenuItem(player, "Monster Manual"); ok {
+		t.Error("a player is offered the GM's manual")
+	}
+}

@@ -308,3 +308,100 @@ func TestSearchingTheManualEscapesWhatLIKEWouldRead(t *testing.T) {
 		t.Errorf("term = %q, want the wildcards escaped and the whole thing wrapped", got)
 	}
 }
+
+func manualFragment(t *testing.T, app *App, query string) *httptest.ResponseRecorder {
+	t.Helper()
+	r := httptest.NewRequest(http.MethodGet, "/fragment/monster/manual?"+query, nil)
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	rec := httptest.NewRecorder()
+	app.MonsterManualFragment(rec, r)
+	return rec
+}
+func TestTheManualWindowRefusesABadParameterWithAnEmptyBody(t *testing.T) {
+	for name, query := range map[string]string{
+		"a monster that is not a ulid": "monster=nonsense",
+		"a term longer than the box":   "q=" + strings.Repeat("a", pages.MonsterNameLimit+1),
+	} {
+		db := &roomDB{}
+		rec := manualFragment(t, newRoomApp(db), query)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", name, rec.Code)
+		}
+		if body := rec.Body.String(); body != "" {
+			t.Errorf("%s: body = %q, want empty -- http.NotFound would write a page-shaped one", name, body)
+		}
+		if calls := db.recorded(); len(calls) != 0 {
+			t.Errorf("%s: it reached the database anyway: %v", name, db.queries())
+		}
+	}
+}
+func TestTheManualWindowOpensOnTheAccountsOwnMonsters(t *testing.T) {
+	db := &roomDB{}
+	rec := manualFragment(t, newRoomApp(db), "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `id="`+pages.ManualBodyID+`"`) {
+		t.Errorf("the window has no body for its own swaps to find:\n%s", body)
+	}
+	if !strings.Contains(body, "Nothing in your manual yet") {
+		t.Errorf("an empty manual says nothing at all:\n%s", body)
+	}
+	call := db.only(t)
+	if !strings.Contains(call.query, "FROM monsters") || strings.Contains(call.query, "LIKE") {
+		t.Errorf("an empty box searched instead of listing:\n%s", call.query)
+	}
+	if len(call.args) != 1 {
+		t.Fatalf("the list ran with %v, want the owner alone", call.args)
+	}
+	if owner, ok := boundRoomID(call.args[0]); !ok || owner != testOwnerID {
+		t.Errorf("the list is not scoped to the session's account: %v", call.args)
+	}
+}
+func TestSearchingTheManualWindowRedrawsOnlyTheList(t *testing.T) {
+	for name, query := range map[string]string{
+		"a term":       "q=dragon",
+		"an empty box": "q=",
+	} {
+		db := &roomDB{}
+		rec := manualFragment(t, newRoomApp(db), query)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s: status = %d, want 200", name, rec.Code)
+		}
+		if body := rec.Body.String(); strings.Contains(body, `id="`+pages.ManualBodyID+`"`) {
+			t.Errorf("%s: the whole window came back, so the box being typed in was replaced under the caret:\n%s", name, body)
+		}
+	}
+	db := &roomDB{}
+	rec := manualFragment(t, newRoomApp(db), "q=dragon")
+	if body := rec.Body.String(); !strings.Contains(body, "dragon") {
+		t.Errorf("a search that matched nothing says nothing about what was searched for:\n%s", body)
+	}
+	if call := db.only(t); !strings.Contains(call.query, "LIKE") {
+		t.Errorf("a term listed the lot instead of searching:\n%s", call.query)
+	}
+}
+func TestAMonsterOpenedAtTheTableIsReadAsTheAccountsOwn(t *testing.T) {
+	db := &roomDB{}
+	rec := manualFragment(t, newRoomApp(db), "monster="+testMonsterID.String())
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 -- the stub holds no monster", rec.Code)
+	}
+	if rec.Header().Get("HX-Trigger") == "" {
+		t.Error("a card the manual no longer holds opens nothing and says nothing")
+	}
+	call := db.only(t)
+	if !strings.Contains(call.query, "FROM monsters") {
+		t.Errorf("the window read something other than the monster:\n%s", call.query)
+	}
+	found := map[ulid.ULID]bool{}
+	for _, arg := range call.args {
+		if id, ok := boundRoomID(arg); ok {
+			found[id] = true
+		}
+	}
+	if !found[testMonsterID] || !found[testOwnerID] {
+		t.Errorf("the read ran with %v, want both the monster and the account", call.args)
+	}
+}

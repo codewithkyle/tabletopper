@@ -689,6 +689,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// It is also the lookup a pawn will make when the VTT exists, since a pawn
 	// holds nothing but this id and its own instance stats.
 	mux.HandleFunc("GET /fragment/monster/stat-block", auth.Fragment(app.MonsterStatBlockFragment))
+	mux.HandleFunc("GET /fragment/monster/manual", auth.Fragment(app.MonsterManualFragment))
 	// One map's card, which is what a card whose tiling job has not finished
 	// asks for every couple of seconds until it has. It is the only fragment
 	// here that is fetched by a timer rather than by something the owner did,

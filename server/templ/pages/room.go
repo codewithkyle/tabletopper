@@ -83,6 +83,9 @@ func (d RoomPageData) SheetPath() string {
 func (d RoomPageData) JournalPath() string {
 	return JournalWindowPath(d.ID)
 }
+func (d RoomPageData) ManualPath() string {
+	return ManualWindowPath()
+}
 func (d RoomPageData) DicePath() string {
 	return "/fragment/room/dice?room=" + d.ID
 }
@@ -217,7 +220,14 @@ func (d RoomPageData) toolsMenu() RoomMenu {
 		return RoomMenu{Label: "Tools", Items: []RoomMenuItem{dice, music}}
 	}
 	music.Window.Height = 460
-	return RoomMenu{Label: "Tools", Items: append(comingSoon("Monster Manual"), dice, music)}
+	manual := RoomMenuItem{Label: "Monster Manual", Window: RoomWindow{
+		ID:     ManualWindow,
+		Title:  "Monster Manual",
+		URL:    d.ManualPath(),
+		Width:  440,
+		Height: 560,
+	}}
+	return RoomMenu{Label: "Tools", Items: []RoomMenuItem{manual, dice, music}}
 }
 func (d RoomPageData) characterMenu() RoomMenu {
 	if d.CharacterID == "" {

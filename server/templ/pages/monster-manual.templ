@@ -1,0 +1,108 @@
+package pages
+
+import "strconv"
+
+const manualWindowBody = "grid content-start gap-2"
+const manualCard = "flex w-full cursor-pointer items-center gap-2 p-2 text-left hover:bg-base-content/10"
+const manualChip = "grid min-w-9 justify-items-center rounded-field bg-base-content/10 px-1.5 py-0.5"
+
+templ MonsterManualWindow(data MonsterListData) {
+	<div id={ ManualBodyID } class={ manualWindowBody }>
+		@manualSearchBox()
+		<div id={ manualListID } class="grid gap-2">
+			@manualList(data)
+		</div>
+	</div>
+}
+
+templ MonsterManualWindowEntry(sb StatBlock) {
+	<div id={ ManualBodyID } class={ manualWindowBody }>
+		<div class="flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				class="btn btn-soft btn-sm"
+				hx-get={ ManualWindowPath() }
+				hx-target={ "#" + ManualBodyID }
+				hx-swap="outerHTML"
+			>
+				@arrowLeftIcon()
+				Back to all monsters
+			</button>
+		</div>
+		@MonsterStatBlockPanel(sb)
+	</div>
+}
+
+templ MonsterManualListFragment(data MonsterListData) {
+	@manualList(data)
+}
+
+templ manualSearchBox() {
+	<input
+		type="search"
+		name="q"
+		class="input input-sm w-full"
+		placeholder="Search the manual"
+		aria-label="Search the manual"
+		aria-controls={ manualListID }
+		autocomplete="off"
+		maxlength={ strconv.Itoa(MonsterNameLimit) }
+		hx-get={ ManualWindowPath() }
+		hx-trigger="input changed delay:250ms, search"
+		hx-target={ "#" + manualListID }
+		hx-swap="innerHTML"
+	/>
+}
+
+templ manualList(data MonsterListData) {
+	for _, m := range data.Monsters {
+		@manualCardButton(m)
+	}
+	if len(data.Monsters) == 0 {
+		if data.Query == "" {
+			<p class="text-sm text-base-content/70">Nothing in your manual yet.</p>
+		} else {
+			<p class="text-sm text-base-content/70">No monsters match &#34;{ data.Query }&#34;.</p>
+		}
+	}
+}
+
+templ manualCardButton(m MonsterSummary) {
+	<button
+		type="button"
+		class={ surfaceInset + " " + manualCard }
+		hx-get={ ManualMonsterPath(m.ID) }
+		hx-target={ "#" + ManualBodyID }
+		hx-swap="outerHTML"
+	>
+		@manualThumb(m)
+		<span class="grid min-w-0 flex-1 gap-0.5">
+			<span class="truncate font-serif text-base leading-tight">{ m.Name }</span>
+			if m.Subtitle != "" {
+				<span class="truncate text-xs text-base-content/70">{ m.Subtitle }</span>
+			}
+		</span>
+		<span class="flex shrink-0 items-center gap-1">
+			@manualStat("CR", m.CR)
+			@manualStat("AC", m.AC)
+			@manualStat("HP", m.HP)
+		</span>
+	</button>
+}
+
+templ manualThumb(m MonsterSummary) {
+	<span class="grid size-10 shrink-0 place-content-center overflow-hidden rounded-field bg-base-content/10">
+		if m.ImageID != "" {
+			<img src={ monsterImageURL(m.ImageID) } alt="" class="size-10 object-cover select-none"/>
+		} else {
+			<span class="font-serif text-base text-base-content/50">{ characterInitial(m.Name) }</span>
+		}
+	</span>
+}
+
+templ manualStat(label string, value string) {
+	<span class={ manualChip }>
+		<span class="text-[0.55rem] font-semibold tracking-[0.11em] uppercase text-base-content/60">{ label }</span>
+		<span class="text-xs leading-tight font-extrabold tabular-nums">{ value }</span>
+	</span>
+}

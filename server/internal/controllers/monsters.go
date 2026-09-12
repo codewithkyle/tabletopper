@@ -154,6 +154,62 @@ func (a *App) MonsterStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.MonsterStatBlockFragment(monsterStatBlock(monster, actions, derived)))
 }
+func (a *App) MonsterManualFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	params := r.URL.Query()
+	if raw := params.Get("monster"); raw != "" {
+		monsterID, err := ulid.Parse(raw)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		a.renderManualMonster(w, r, monsterID, sess.UserID)
+		return
+	}
+	term := strings.TrimSpace(params.Get("q"))
+	if len([]rune(term)) > pages.MonsterNameLimit {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	monsters, err := a.monsterList(ctx, sess.UserID, term)
+	if err != nil {
+		slog.Error("Failed to read the manual for its window", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	data := pages.MonsterListData{Monsters: monsters, Query: term}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if params.Has("q") {
+		render(w, r, pages.MonsterManualListFragment(data))
+		return
+	}
+	render(w, r, pages.MonsterManualWindow(data))
+}
+func (a *App) renderManualMonster(w http.ResponseWriter, r *http.Request, monsterID ulid.ULID, ownerID ulid.ULID) {
+	ctx := r.Context()
+	monster, err := a.Queries.GetMonster(ctx, queries.GetMonsterParams{ID: monsterID, OwnerID: ownerID})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "monster")
+		return
+	}
+	if err != nil {
+		slog.Error("Failed to read a monster for the manual window", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	actions, err := a.Queries.ListMonsterActions(ctx, queries.ListMonsterActionsParams{
+		MonsterID: monsterID,
+		OwnerID:   ownerID,
+	})
+	if err != nil {
+		slog.Error("Failed to read a monster's actions for the manual window", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.MonsterManualWindowEntry(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
+}
 func monsterToEditPageData(id string, monster queries.Monster, actions []queries.MonsterAction) pages.EditMonsterPageData {
 	derived := monsterDerived(monster, actions)
 	return pages.EditMonsterPageData{
