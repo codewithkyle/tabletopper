@@ -219,5 +219,13 @@
       "mod": 0,
       "total": 12
     }
-  ]
+  ],
+  "music": {
+    "trackId": null,
+    "name": "",
+    "playing": false,
+    "loop": false,
+    "at": 0,
+    "since": 0
+  }
 }

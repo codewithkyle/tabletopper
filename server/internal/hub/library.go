@@ -82,6 +82,19 @@ func (l library) Picture(ctx context.Context, id ulid.ULID, kind room.PictureKin
 		Height: height,
 	}, nil
 }
+func (l library) Track(ctx context.Context, id ulid.ULID) (room.TrackInfo, error) {
+	if l.q == nil {
+		return room.TrackInfo{}, notBuilt("Music is not ready", "This server cannot read your music.")
+	}
+	row, err := l.q.GetMusicTrack(ctx, queries.GetMusicTrackParams{ID: id, OwnerID: l.owner})
+	if err != nil {
+		return room.TrackInfo{}, missing(err, "Track gone", "That track is no longer in your library.")
+	}
+	if !row.UploadedAt.Valid {
+		return room.TrackInfo{}, absent("Track gone", "That track is no longer in your library.")
+	}
+	return room.TrackInfo{Name: row.Name}, nil
+}
 func (l library) Character(ctx context.Context, id ulid.ULID) (room.CharacterInfo, error) {
 	if l.q == nil {
 		return room.CharacterInfo{}, notBuilt("Spawning is not ready", "This server cannot read the roster.")

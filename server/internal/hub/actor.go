@@ -96,6 +96,7 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 func (a *actor) env() room.Env {
 	return room.Env{
 		NewID:   func() ulid.ULID { return ulid.MustNew(ulid.Now(), a.entropy) },
+		Now:     time.Now,
 		Version: a.hub.version,
 	}
 }
@@ -598,6 +599,9 @@ func (a *actor) initiative(role room.Role) *InitiativeView {
 		Pawns:      pawns,
 		Table:      a.state.Clone().Table,
 	}
+}
+func (a *actor) music() *MusicView {
+	return &MusicView{Music: room.CloneMusic(a.state.Music)}
 }
 func (a *actor) rolls(viewer ulid.ULID) *RollsView {
 	return &RollsView{Rolls: room.MergeRolls(a.state.Rolls, a.secret[viewer])}

@@ -81,6 +81,9 @@ templ roomContent(data RoomPageData) {
 				}
 				@roomToolbar(data)
 				@roomWindowTemplate()
+				if !data.Closed {
+					<audio data-music-player preload="metadata" hidden></audio>
+				}
 			</div>
 		</div>
 	</room-page>

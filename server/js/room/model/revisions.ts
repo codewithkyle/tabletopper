@@ -42,6 +42,7 @@ export function revise(rev: Revisions, event: Event): void {
 			return;
 		case "rolls.upserted":
 		case "rolls.removed":
+		case "music.updated":
 		case "rolled":
 		case "error":
 		case "pinged":

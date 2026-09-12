@@ -1,0 +1,172 @@
+package pages
+
+import "tabletopper/internal/uievents"
+
+templ RoomMusic(data RoomMusicData) {
+	<room-music class="flex flex-col gap-3">
+		@RoomMusicNow(data)
+		@roomMusicMeter()
+		@roomMusicVolume()
+		if data.CanControl {
+			@roomMusicLibrary(data)
+		}
+	</room-music>
+}
+
+templ RoomMusicNow(data RoomMusicData) {
+	<div
+		id={ RoomMusicNowID }
+		class="flex flex-col gap-2"
+		hx-get={ data.Path() }
+		hx-trigger={ uievents.Music + " from:window" }
+		hx-select={ data.NowSelect() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+	>
+		<div class="flex min-w-0 items-center gap-2">
+			@musicIcon()
+			<span class="min-w-0 flex-1 truncate text-sm font-medium">{ data.Title() }</span>
+			if data.Loaded {
+				<span class={ "badge badge-xs", templ.KV("badge-success", data.Playing) }>{ data.StateLabel() }</span>
+			}
+		</div>
+		if data.CanControl {
+			<div class="flex flex-wrap items-center justify-between gap-2">
+				<div class="join">
+					if data.Playing {
+						<button
+							type="button"
+							class="btn btn-sm join-item"
+							aria-label="Pause"
+							hx-post={ data.PausePath() }
+							hx-swap="none"
+						>
+							@pauseIcon()
+						</button>
+					} else {
+						<button
+							type="button"
+							class="btn btn-sm join-item"
+							aria-label="Play"
+							disabled?={ !data.Loaded }
+							hx-post={ data.PlayPath() }
+							hx-swap="none"
+						>
+							@playIcon()
+						</button>
+					}
+					<button
+						type="button"
+						class="btn btn-sm join-item"
+						aria-label="Stop"
+						disabled?={ !data.Loaded }
+						hx-post={ data.StopPath() }
+						hx-swap="none"
+					>
+						@stopIcon()
+					</button>
+				</div>
+				<label class="flex cursor-pointer items-center gap-1.5 text-xs">
+					<input
+						type="checkbox"
+						name="loop"
+						value="1"
+						class="toggle toggle-xs"
+						checked?={ data.Loop }
+						hx-post={ data.LoopPath() }
+						hx-swap="none"
+					/>
+					Repeat
+				</label>
+			</div>
+		}
+	</div>
+}
+
+templ roomMusicMeter() {
+	<div class="flex flex-col gap-1">
+		<progress data-music-bar class="progress w-full" value="0" max="1000"></progress>
+		<div class="flex items-center justify-between text-[10px] tabular-nums text-base-content/60">
+			<span data-music-elapsed>0:00</span>
+			<span data-music-duration>--:--</span>
+		</div>
+	</div>
+}
+
+templ roomMusicVolume() {
+	<div class="flex flex-col gap-2">
+		<div class="flex items-center gap-2">
+			@volumeIcon()
+			<input
+				type="range"
+				data-music-volume
+				min="0"
+				max="100"
+				step="1"
+				value="100"
+				aria-label="Volume"
+				class="range range-xs min-w-0 flex-1"
+			/>
+			<span data-music-volume-value class="w-8 shrink-0 text-right text-[10px] tabular-nums text-base-content/60">100%</span>
+		</div>
+		<button type="button" data-music-unblock hidden class="btn btn-sm btn-warning">Turn the sound on</button>
+	</div>
+}
+
+templ roomMusicLibrary(data RoomMusicData) {
+	<div class="flex flex-col gap-2 border-t border-base-300 pt-2">
+		<div class="flex items-center gap-2">
+			<input
+				type="search"
+				name="q"
+				data-music-search
+				value={ data.Query }
+				placeholder="Search your music"
+				aria-label="Search your music"
+				aria-controls={ data.ListID() }
+				autocomplete="off"
+				maxlength={ data.SearchLimit() }
+				class="input input-xs min-w-0 flex-1"
+				hx-get={ data.LibraryPath() }
+				hx-trigger="input changed delay:250ms, search"
+				hx-target={ data.ListTarget() }
+				hx-swap="outerHTML"
+			/>
+			<label for={ data.UploadID() } class="btn btn-xs btn-primary relative" data-music-upload>
+				Upload
+				<input
+					class="absolute top-0 left-0 h-0 w-0 opacity-0"
+					id={ data.UploadID() }
+					type="file"
+					accept={ MusicAccept }
+					data-music-file
+				/>
+			</label>
+		</div>
+		<div class="flex items-center gap-2" data-music-uploading hidden>
+			<progress class="progress min-w-0 flex-1" value="0" max="100" data-music-upload-bar></progress>
+			<span class="shrink-0 text-[10px] tabular-nums text-base-content/70" data-music-percent></span>
+		</div>
+		@RoomMusicList(data)
+	</div>
+}
+
+templ RoomMusicList(data RoomMusicData) {
+	<ul id={ RoomMusicListID } class="list max-h-64 overflow-y-auto">
+		for _, t := range data.Tracks {
+			<li class="list-row items-center px-1 py-1.5">
+				<span class="list-col-grow min-w-0 truncate text-xs">{ t.Name }</span>
+				<button
+					type="button"
+					class="btn btn-xs"
+					hx-post={ data.LoadPath() }
+					hx-vals={ data.TrackVals(t) }
+					hx-swap="none"
+				>Play</button>
+			</li>
+		}
+		if len(data.Tracks) == 0 {
+			<li class="px-1 py-2 text-xs text-base-content/60">{ data.EmptyText() }</li>
+		}
+	</ul>
+}

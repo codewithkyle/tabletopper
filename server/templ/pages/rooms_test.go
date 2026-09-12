@@ -169,12 +169,12 @@ func TestTheCharacterMenuIsThePlayersAlone(t *testing.T) {
 }
 func TestTheMonsterManualIsTheGMsAndTheDiceTrayIsEverybodys(t *testing.T) {
 	gm := itemLabels(t, testRoomPage(room.RoleGM), "Tools")
-	want := []string{"Monster Manual", "Dice tray"}
+	want := []string{"Monster Manual", "Dice tray", "Music"}
 	if strings.Join(gm, ",") != strings.Join(want, ",") {
 		t.Errorf("the GM's Tools menu is %v, want %v", gm, want)
 	}
 	player := itemLabels(t, testRoomPage(room.RolePlayer), "Tools")
-	want = []string{"Dice tray"}
+	want = []string{"Dice tray", "Music"}
 	if strings.Join(player, ",") != strings.Join(want, ",") {
 		t.Errorf("the player's Tools menu is %v, want %v", player, want)
 	}
@@ -192,7 +192,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear blood", "Clear drawing", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Roll initiative", "Add entry", "Next turn", "Clear tracker"},
-		"Tools":      {"Monster Manual", "Dice tray"},
+		"Tools":      {"Monster Manual", "Dice tray", "Music"},
 		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Fit map", "Toggle fullscreen"},
 		"Help":       {"Settings", "Report issue", "Privacy policy", "Terms of service"},
 	} {

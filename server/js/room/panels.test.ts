@@ -11,6 +11,7 @@ function snapshot(entries: InitiativeEntry[]): Frame {
 		state: { initiative: { entries, active: null, round: 0 } } as State,
 		you: { id: "01ME", role: "gm" },
 		version: "test",
+		now: 0,
 	};
 }
 function changes(...events: Change[]): Frame {
@@ -28,6 +29,7 @@ function raised(frame: Frame): { name: string; detail: unknown }[] {
 		"room:tabletop",
 		"room:pawn",
 		"room:rolls",
+		"room:music",
 		"window:close",
 		"window:retitle",
 	];
@@ -132,6 +134,7 @@ test("a snapshot raises every panel event and no pawn event", () => {
 	assert.deepEqual(seen.map((e) => e.name).sort(), [
 		"room:info",
 		"room:initiative",
+		"room:music",
 		"room:players",
 		"room:rolls",
 		"room:tabletop",

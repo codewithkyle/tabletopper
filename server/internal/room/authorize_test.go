@@ -57,6 +57,12 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"stroke.clear", &StrokeClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"ping", &Ping{Layer: w.layer}, ok, ok, ok},
 		{"dice.roll", &DiceRoll{Expr: "1d20"}, ok, ok, ok},
+		{"music.load", &MusicLoad{AssetID: testAssetID}, ok, CodeForbidden, CodeForbidden},
+		{"music.play", &MusicPlay{}, ok, CodeForbidden, CodeForbidden},
+		{"music.pause", &MusicPause{}, ok, CodeForbidden, CodeForbidden},
+		{"music.stop", &MusicStop{}, ok, CodeForbidden, CodeForbidden},
+		{"music.setLoop", &MusicSetLoop{Loop: true}, ok, CodeForbidden, CodeForbidden},
+		{"music.ended", &MusicEnded{TrackID: testAssetID}, ok, CodeForbidden, CodeForbidden},
 		{"player.kick", &PlayerKick{ID: testOtherID}, ok, CodeForbidden, CodeForbidden},
 		{"sync.request", &SyncRequest{}, ok, ok, ok},
 	}

@@ -17,6 +17,7 @@ type fakeLibrary struct {
 	monsters   map[ulid.ULID]MonsterInfo
 	pictures   map[pictureKey]PictureInfo
 	characters map[ulid.ULID]CharacterInfo
+	tracks     map[ulid.ULID]TrackInfo
 	broken     error
 	reads      []string
 }
@@ -54,6 +55,17 @@ func (l *fakeLibrary) Picture(ctx context.Context, id ulid.ULID, kind PictureKin
 	}
 	return info, nil
 }
+func (l *fakeLibrary) Track(ctx context.Context, id ulid.ULID) (TrackInfo, error) {
+	l.reads = append(l.reads, "track")
+	if l.broken != nil {
+		return TrackInfo{}, l.broken
+	}
+	info, ok := l.tracks[id]
+	if !ok {
+		return TrackInfo{}, notFound("Track gone", "That track is no longer in your library.")
+	}
+	return info, nil
+}
 func (l *fakeLibrary) Character(ctx context.Context, id ulid.ULID) (CharacterInfo, error) {
 	l.reads = append(l.reads, "character")
 	if l.broken != nil {
@@ -71,6 +83,7 @@ func newLibrary() *fakeLibrary {
 		monsters:   map[ulid.ULID]MonsterInfo{},
 		pictures:   map[pictureKey]PictureInfo{},
 		characters: map[ulid.ULID]CharacterInfo{},
+		tracks:     map[ulid.ULID]TrackInfo{},
 	}
 }
 func (w *world) resolve(c Resolver, lib Library) {
@@ -436,7 +449,7 @@ func TestEveryResolverIsACommandThatCarriesAResolvedField(t *testing.T) {
 			t.Errorf("%s resolved against an empty library without refusing", wire)
 		}
 	}
-	if found != 4 {
-		t.Fatalf("%d commands resolve, want the map, the spawn, the party and the initiative roll", found)
+	if found != 5 {
+		t.Fatalf("%d commands resolve, want the map, the spawn, the party, the initiative roll and the music", found)
 	}
 }

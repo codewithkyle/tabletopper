@@ -1,4 +1,5 @@
 import { WINDOW_CLOSE, WINDOW_RETITLE } from "../../public/js/events.js";
+import { read, store } from "./model/storage.ts";
 const SNAP = 10;
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 120;
@@ -447,20 +448,6 @@ function must(root: HTMLElement, selector: string): HTMLElement {
 function size(value: string | undefined): number | undefined {
 	const parsed = Number.parseInt(value ?? "", 10);
 	return Number.isFinite(parsed) ? parsed : undefined;
-}
-function store(key: string, value: unknown): void {
-	try {
-		localStorage.setItem(`tabletopper:${key}`, JSON.stringify(value));
-	} catch {
-	}
-}
-function read<T>(key: string): T | null {
-	try {
-		const raw = localStorage.getItem(`tabletopper:${key}`);
-		return raw === null ? null : (JSON.parse(raw) as T);
-	} catch {
-		return null;
-	}
 }
 function geometry(id: string): Geometry | null {
 	const saved = read<Partial<Geometry>>(`window:${id}`);

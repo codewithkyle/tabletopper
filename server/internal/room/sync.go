@@ -7,6 +7,7 @@ type Snapshot struct {
 	State   State       `json:"state"`
 	You     SnapshotYou `json:"you"`
 	Version string      `json:"version"`
+	Now     int64       `json:"now"`
 }
 
 func (*Snapshot) eventType() string { return "snapshot" }
@@ -25,5 +26,6 @@ func (c *SyncRequest) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 		State:   s.Project(a.Role),
 		You:     SnapshotYou{ID: a.ID, Role: a.Role},
 		Version: env.Version,
+		Now:     env.now(),
 	})}, nil
 }

@@ -492,6 +492,18 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		// The player window behind the Room menu, which is the first fragment
 		// in the app gated on membership rather than on ownership.
 		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
+		{http.MethodPost, "/rooms/" + id + "/music", "POST /rooms/{id}/music"},
+		{http.MethodPost, "/rooms/" + id + "/music/play", "POST /rooms/{id}/music/play"},
+		{http.MethodPost, "/rooms/" + id + "/music/pause", "POST /rooms/{id}/music/pause"},
+		{http.MethodPost, "/rooms/" + id + "/music/stop", "POST /rooms/{id}/music/stop"},
+		{http.MethodPost, "/rooms/" + id + "/music/loop", "POST /rooms/{id}/music/loop"},
+		{http.MethodPost, "/rooms/" + id + "/music/ended", "POST /rooms/{id}/music/ended"},
+		{http.MethodGet, "/rooms/" + id + "/music/audio", "GET /rooms/{id}/music/audio"},
+		{http.MethodGet, "/rooms/" + id + "/music", "/"},
+		{http.MethodPost, "/rooms/" + id + "/music/audio", "/"},
+		{http.MethodGet, "/fragment/room/music", "GET /fragment/room/music"},
+		{http.MethodGet, "/fragment/room/music/library", "GET /fragment/room/music/library"},
+		{http.MethodPost, "/fragment/room/music", "/fragment/"},
 		{http.MethodPost, "/fragment/room/members", "/fragment/"},
 		{http.MethodGet, "/fragment/room/debug/renderer", "GET /fragment/room/debug/renderer"},
 		{http.MethodGet, "/fragment/room/debug/events", "GET /fragment/room/debug/events"},

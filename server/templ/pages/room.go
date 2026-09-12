@@ -78,6 +78,9 @@ func (d RoomPageData) LayerNamePath() string {
 func (d RoomPageData) DicePath() string {
 	return "/fragment/room/dice?room=" + d.ID
 }
+func (d RoomPageData) MusicPath() string {
+	return "/fragment/room/music?room=" + d.ID
+}
 func (d RoomPageData) InitiativePath() string {
 	return "/fragment/room/initiative?room=" + d.ID
 }
@@ -195,10 +198,18 @@ func (d RoomPageData) toolsMenu() RoomMenu {
 		Width:  320,
 		Height: 420,
 	}}
+	music := RoomMenuItem{Label: "Music", Window: RoomWindow{
+		ID:     "music",
+		Title:  "Music",
+		URL:    d.MusicPath(),
+		Width:  300,
+		Height: 240,
+	}}
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tools", Items: []RoomMenuItem{dice}}
+		return RoomMenu{Label: "Tools", Items: []RoomMenuItem{dice, music}}
 	}
-	return RoomMenu{Label: "Tools", Items: append(comingSoon("Monster Manual"), dice)}
+	music.Window.Height = 460
+	return RoomMenu{Label: "Tools", Items: append(comingSoon("Monster Manual"), dice, music)}
 }
 func characterMenu() RoomMenu {
 	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}

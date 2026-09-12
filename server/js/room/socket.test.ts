@@ -58,6 +58,7 @@ function snapshot(seq: number): Frame {
 		state: { seq } as never,
 		you: { id: "01ME", role: "gm" },
 		version: "test-build",
+		now: 0,
 	};
 }
 function changes(seq: number): Frame {

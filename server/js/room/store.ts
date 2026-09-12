@@ -41,6 +41,9 @@ const reducers: Reducers = {
 	},
 	"fog.upserted": (state, change) => upsert(state.fog, change.shapes),
 	"fog.removed": (state, change) => remove(state.fog, change.ids),
+	"music.updated": (state, change) => {
+		state.music = clone(change.music);
+	},
 	"rolls.upserted": (state, change) => upsert(state.rolls, change.rolls),
 	"rolls.removed": (state, change) => remove(state.rolls, change.ids),
 	"strokes.upserted": (state, change) => upsert(state.strokes, change.strokes),
@@ -111,6 +114,7 @@ export function empty(): State {
 		fog: [],
 		strokes: [],
 		rolls: [],
+		music: { trackId: null, name: "", playing: false, loop: false, at: 0, since: 0 },
 	};
 }
 function upsert<T extends Identified>(into: T[], values: readonly T[]): void {

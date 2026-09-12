@@ -71,7 +71,15 @@
     },
     "fog": [],
     "strokes": [],
-    "rolls": []
+    "rolls": [],
+    "music": {
+      "trackId": null,
+      "name": "",
+      "playing": false,
+      "loop": false,
+      "at": 0,
+      "since": 0
+    }
   },
   "steps": [
     {
@@ -148,7 +156,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -259,7 +275,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -384,7 +408,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -509,7 +541,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -648,7 +688,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -787,7 +835,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -926,7 +982,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1052,7 +1116,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1178,7 +1250,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1291,7 +1371,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1449,7 +1537,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1630,7 +1726,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -1834,7 +1938,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -2002,7 +2114,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -2229,7 +2349,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -2456,7 +2584,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -2703,7 +2839,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -2960,7 +3104,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -3213,7 +3365,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -3466,7 +3626,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -3719,7 +3887,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -3951,7 +4127,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -4165,7 +4349,15 @@
         },
         "fog": [],
         "strokes": [],
-        "rolls": []
+        "rolls": [],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -4433,7 +4625,15 @@
             "mod": 7,
             "total": 11
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -4733,7 +4933,15 @@
             "mod": 7,
             "total": 13
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -5047,7 +5255,15 @@
             "mod": 4,
             "total": 11
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -5328,7 +5544,15 @@
             "mod": 4,
             "total": 11
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -5635,7 +5859,15 @@
             "mod": 4,
             "total": 11
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -5969,7 +6201,2639 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": null,
+          "name": "",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "the GM puts a tavern song on",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 25,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": true,
+                "loop": false,
+                "at": 0,
+                "since": 1767225601000
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": true,
+          "loop": false,
+          "at": 0,
+          "since": 1767225601000
+        }
+      }
+    },
+    {
+      "name": "and sets it to repeat",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 26,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": true,
+                "loop": true,
+                "at": 0,
+                "since": 1767225601000
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": true,
+          "loop": true,
+          "at": 0,
+          "since": 1767225601000
+        }
+      }
+    },
+    {
+      "name": "somebody is talking, so it pauses",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 27,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": false,
+                "loop": true,
+                "at": 1000,
+                "since": 0
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": true,
+          "at": 1000,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "and starts again",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 28,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": true,
+                "loop": true,
+                "at": 1000,
+                "since": 1767225603000
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": true,
+          "loop": true,
+          "at": 1000,
+          "since": 1767225603000
+        }
+      }
+    },
+    {
+      "name": "the fight starts, so it stops",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 29,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": false,
+                "loop": true,
+                "at": 0,
+                "since": 0
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": true,
+          "at": 0,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "one last run through",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 30,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": true,
+                "loop": true,
+                "at": 0,
+                "since": 1767225604000
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": true,
+          "loop": true,
+          "at": 0,
+          "since": 1767225604000
+        }
+      }
+    },
+    {
+      "name": "this time it plays out",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 31,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": true,
+                "loop": false,
+                "at": 0,
+                "since": 1767225604000
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": true,
+          "loop": false,
+          "at": 0,
+          "since": 1767225604000
+        }
+      }
+    },
+    {
+      "name": "and it reaches the end",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 32,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "music.updated",
+              "music": {
+                "trackId": "010000000000000000000000ZF",
+                "name": "Tavern Brawl",
+                "playing": false,
+                "loop": false,
+                "at": 0,
+                "since": 0
+              }
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "fogEnabled": false,
+              "fogPrefill": true
+            }
+          ],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "diagonals": "equal"
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            }
+          ],
+          "active": "0100000000000000000000000B",
+          "round": 1
+        },
+        "fog": [],
+        "strokes": [],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -5977,7 +8841,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 25,
+          "seq": 33,
           "by": "010000000000000000000000ZA",
           "events": [
             {
@@ -6309,7 +9173,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -6317,7 +9189,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 26,
+          "seq": 34,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -6646,7 +9518,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -6654,7 +9534,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 27,
+          "seq": 35,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -7013,7 +9893,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -7021,7 +9909,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 28,
+          "seq": 36,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -7347,7 +10235,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -7355,7 +10251,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 29,
+          "seq": 37,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -7702,7 +10598,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -7710,7 +10614,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 30,
+          "seq": 38,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -8057,7 +10961,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -8065,7 +10977,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 31,
+          "seq": 39,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -8424,7 +11336,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -8746,7 +11666,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -8754,7 +11682,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 32,
+          "seq": 40,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -9113,7 +12041,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -9121,7 +12057,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 33,
+          "seq": 41,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -9480,7 +12416,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -9488,7 +12432,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 34,
+          "seq": 42,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -9835,7 +12779,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -9843,7 +12795,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 35,
+          "seq": 43,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -10243,7 +13195,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -10251,7 +13211,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 36,
+          "seq": 44,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -10604,7 +13564,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -10612,7 +13580,7 @@
       "frames": [
         {
           "type": "pinged",
-          "seq": 36,
+          "seq": 44,
           "by": "010000000000000000000000ZA",
           "layer": "01000000000000000000000001",
           "x": 512,
@@ -10929,7 +13897,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -10937,7 +13913,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 37,
+          "seq": 45,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -11286,7 +14262,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -11294,7 +14278,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 38,
+          "seq": 46,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -11643,7 +14627,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -11651,7 +14643,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 39,
+          "seq": 47,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -11997,7 +14989,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -12005,7 +15005,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 40,
+          "seq": 48,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -12371,7 +15371,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -12379,7 +15387,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 41,
+          "seq": 49,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -12718,7 +15726,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -12726,7 +15742,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 42,
+          "seq": 50,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -13095,7 +16111,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -13103,7 +16127,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 43,
+          "seq": 51,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -13466,7 +16490,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -13474,7 +16506,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 44,
+          "seq": 52,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -13831,7 +16863,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -13839,7 +16879,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 45,
+          "seq": 53,
           "by": "010000000000000000000000ZA",
           "events": [
             {
@@ -14227,7 +17267,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -14235,7 +17283,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 46,
+          "seq": 54,
           "by": "010000000000000000000000ZA",
           "events": [
             {
@@ -14594,7 +17642,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -14602,7 +17658,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 47,
+          "seq": 55,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -14938,7 +17994,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -14946,7 +18010,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 48,
+          "seq": 56,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15271,7 +18335,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -15279,7 +18351,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 49,
+          "seq": 57,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -15724,7 +18796,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -15732,7 +18812,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 50,
+          "seq": 58,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -16113,7 +19193,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -16121,7 +19209,7 @@
       "frames": [
         {
           "type": "snapshot",
-          "seq": 50,
+          "seq": 58,
           "by": "010000000000000000000000ZA",
           "state": {
             "schema": 3,
@@ -16470,13 +19558,22 @@
                 "mod": -1,
                 "total": 9
               }
-            ]
+            ],
+            "music": {
+              "trackId": "010000000000000000000000ZF",
+              "name": "Tavern Brawl",
+              "playing": false,
+              "loop": false,
+              "at": 0,
+              "since": 0
+            }
           },
           "you": {
             "id": "010000000000000000000000ZA",
             "role": "player"
           },
-          "version": "test-build"
+          "version": "test-build",
+          "now": 1767225605000
         }
       ],
       "state": {
@@ -16826,7 +19923,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -17179,7 +20284,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -17187,7 +20300,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 51,
+          "seq": 59,
           "events": [
             {
               "type": "players.upserted",
@@ -17553,7 +20666,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -17561,7 +20682,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 52,
+          "seq": 60,
           "events": [
             {
               "type": "players.upserted",
@@ -17927,7 +21048,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -17935,7 +21064,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 53,
+          "seq": 61,
           "events": [
             {
               "type": "players.upserted",
@@ -18310,7 +21439,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -18318,7 +21455,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 54,
+          "seq": 62,
           "events": [
             {
               "type": "players.removed",
@@ -18676,7 +21813,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -18684,7 +21829,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 55,
+          "seq": 63,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -19066,7 +22211,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -19074,7 +22227,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 56,
+          "seq": 64,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -19410,7 +22563,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -19418,7 +22579,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 57,
+          "seq": 65,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -19718,7 +22879,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -19726,7 +22895,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 58,
+          "seq": 66,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -20007,7 +23176,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -20015,7 +23192,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 59,
+          "seq": 67,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -20276,7 +23453,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -20284,7 +23469,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 60,
+          "seq": 68,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -20536,7 +23721,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -20544,7 +23737,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 61,
+          "seq": 69,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -20795,7 +23988,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -20803,7 +24004,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 62,
+          "seq": 70,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -21040,7 +24241,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -21048,7 +24257,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 63,
+          "seq": 71,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -21211,7 +24420,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -21219,7 +24436,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 64,
+          "seq": 72,
           "events": [
             {
               "type": "room.updated",
@@ -21381,7 +24598,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     },
     {
@@ -21389,7 +24614,7 @@
       "frames": [
         {
           "type": "room.closed",
-          "seq": 64
+          "seq": 72
         }
       ],
       "state": {
@@ -21541,7 +24766,15 @@
             "mod": -1,
             "total": 9
           }
-        ]
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
       }
     }
   ]

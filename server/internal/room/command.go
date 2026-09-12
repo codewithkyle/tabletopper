@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -18,6 +19,7 @@ func (a Actor) GM() bool { return a.Role == RoleGM }
 type Env struct {
 	NewID   func() ulid.ULID
 	Dice    func(sides int) int
+	Now     func() time.Time
 	Version string
 }
 
@@ -26,6 +28,12 @@ func (e Env) id() ulid.ULID {
 		return ulid.Make()
 	}
 	return e.NewID()
+}
+func (e Env) now() int64 {
+	if e.Now == nil {
+		return time.Now().UnixMilli()
+	}
+	return e.Now().UnixMilli()
 }
 
 type Command interface {
@@ -124,6 +132,12 @@ var wireCommands = map[string]func() Command{
 	"stroke.erase":         func() Command { return &StrokeErase{} },
 	"stroke.clear":         func() Command { return &StrokeClear{} },
 	"ping":                 func() Command { return &Ping{} },
+	"music.load":           func() Command { return &MusicLoad{} },
+	"music.play":           func() Command { return &MusicPlay{} },
+	"music.pause":          func() Command { return &MusicPause{} },
+	"music.stop":           func() Command { return &MusicStop{} },
+	"music.setLoop":        func() Command { return &MusicSetLoop{} },
+	"music.ended":          func() Command { return &MusicEnded{} },
 	"dice.roll":            func() Command { return &DiceRoll{} },
 	"player.kick":          func() Command { return &PlayerKick{} },
 	"sync.request":         func() Command { return &SyncRequest{} },

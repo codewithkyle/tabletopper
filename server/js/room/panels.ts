@@ -1,6 +1,7 @@
 import {
 	ROOM_INFO,
 	ROOM_INITIATIVE,
+	ROOM_MUSIC,
 	ROOM_PAWN,
 	ROOM_PLAYERS,
 	ROOM_ROLLS,
@@ -18,11 +19,12 @@ const panelEvents: Partial<Record<Change["type"], string>> = {
 	"initiative.updated": ROOM_INITIATIVE,
 	"rolls.upserted": ROOM_ROLLS,
 	"rolls.removed": ROOM_ROLLS,
+	"music.updated": ROOM_MUSIC,
 	"room.updated": ROOM_INFO,
 	"table.updated": ROOM_TABLETOP,
 	"layers.updated": ROOM_TABLETOP,
 };
-const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP, ROOM_ROLLS];
+const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP, ROOM_ROLLS, ROOM_MUSIC];
 export function announce(frame: Frame): void {
 	if (frame.type === "snapshot") {
 		track(frame.state.initiative.entries);

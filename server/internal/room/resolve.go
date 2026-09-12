@@ -14,6 +14,7 @@ type Library interface {
 	Map(ctx context.Context, asset ulid.ULID) (MapRef, error)
 	Monster(ctx context.Context, id ulid.ULID) (MonsterInfo, error)
 	Picture(ctx context.Context, id ulid.ULID, kind PictureKind) (PictureInfo, error)
+	Track(ctx context.Context, id ulid.ULID) (TrackInfo, error)
 	Character(ctx context.Context, id ulid.ULID) (CharacterInfo, error)
 }
 type PictureKind string

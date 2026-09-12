@@ -3,6 +3,7 @@ package hub
 import (
 	"database/sql/driver"
 	"testing"
+	"time"
 
 	"tabletopper/internal/room"
 
@@ -195,4 +196,48 @@ func TestEveryLibraryReadSaysSoOnAServerWithNoDatabase(t *testing.T) {
 			refusal(t, read(), room.CodeInvalid)
 		})
 	}
+}
+
+var trackID = testID(23)
+
+func trackRow(name string, uploaded bool) stubRow {
+	var at driver.Value
+	if uploaded {
+		at = time.Unix(0, 0)
+	}
+	return stubRow{
+		columns: []string{
+			"id", "owner_id", "journal_id", "file_path", "preview_path", "type",
+			"file_name", "size_bytes", "name", "detached_at", "width", "height",
+			"tile_size", "max_zoom", "tile_gen", "tile_state", "tile_attempts",
+			"tile_lease", "tile_leased_at", "tiled_at", "uploaded_at",
+			"created_at", "updated_at",
+		},
+		values: []driver.Value{
+			idValue(trackID), idValue(gmID), nil, []byte("music/x"), nil, []byte("music"),
+			[]byte("tavern.mp3"), int64(4 << 20), []byte(name), nil, nil, nil,
+			nil, nil, nil, nil, int64(0),
+			nil, nil, nil, at,
+			time.Unix(0, 0), time.Unix(0, 0),
+		},
+	}
+}
+func TestTheLibraryReadsATrackByName(t *testing.T) {
+	got, err := reading(t, trackRow("Tavern Brawl", true)).Track(t.Context(), trackID)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if got.Name != "Tavern Brawl" {
+		t.Fatalf("the track is %+v, want the name the library holds", got)
+	}
+}
+func TestTheLibraryWillNotReadATrackThatNeverFinishedUploading(t *testing.T) {
+	_, err := reading(t, trackRow("Tavern Brawl", false)).Track(t.Context(), trackID)
+	if got := refusal(t, err, room.CodeNotFound); got.Heading != "Track gone" {
+		t.Errorf("heading = %q, want the same one a missing track gives", got.Heading)
+	}
+}
+func TestTheLibraryWillNotReadATrackThatIsNotThere(t *testing.T) {
+	_, err := reading(t, noRows()).Track(t.Context(), trackID)
+	refusal(t, err, room.CodeNotFound)
 }

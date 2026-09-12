@@ -19,6 +19,7 @@ type State struct {
 	Fog        []FogShape `json:"fog"`
 	Strokes    []Stroke   `json:"strokes"`
 	Rolls      []Roll     `json:"rolls"`
+	Music      Music      `json:"music"`
 }
 type RoomInfo struct {
 	ID     ulid.ULID `json:"id"`

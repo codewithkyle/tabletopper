@@ -16,6 +16,7 @@ import { mountDebug } from "./debug/panel.ts";
 import { leaveKicked } from "./exit.ts";
 import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
+import { mountMusic, type MusicPlayer } from "./music.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
 import { mountEntryMenu } from "./initiative-menu.ts";
@@ -58,6 +59,7 @@ if (mount) {
 	let renderer: Renderer | null = null;
 	const fogTool = mountFogTool(mount, tools);
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
+	const music = mountMusic(mount, state, role);
 	const sound = newPingSound();
 	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);
 	sound.volume(Number.isFinite(rendered) ? rendered : FULL);
@@ -150,7 +152,7 @@ if (mount) {
 	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, rev, renderer, table, hud, turns, follow, pinged, debugging);
+		socket = start(path, state, rev, renderer, table, hud, turns, follow, music, pinged, debugging);
 	}
 }
 type Debugging = ((socket: Socket) => void) | null;
@@ -163,6 +165,7 @@ function start(
 	hud: Hud | null,
 	turns: Turns | null,
 	follow: Follow | null,
+	music: MusicPlayer | null,
 	pinged: (layer: string, by: string) => void,
 	debugging: Debugging,
 ): Socket {
@@ -190,6 +193,7 @@ function start(
 			}
 		},
 		(event) => follow?.event(event),
+		(event) => music?.event(event),
 		(event) => table.preview(event),
 		refusals({
 			alert: (heading, message) => {

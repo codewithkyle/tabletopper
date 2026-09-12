@@ -107,6 +107,9 @@ func hydrate(roomID ulid.ULID, l Loaded) (*room.State, bool) {
 	for i := range s.Players {
 		s.Players[i].Connected = false
 	}
+	s.Music.Playing = false
+	s.Music.At = 0
+	s.Music.Since = 0
 	s.Normalize()
 	return s, failed
 }

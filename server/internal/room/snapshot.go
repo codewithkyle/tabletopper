@@ -169,6 +169,7 @@ func (s *State) Clone() State {
 	for i, r := range s.Rolls {
 		c.Rolls[i] = cloneRoll(r)
 	}
+	c.Music = CloneMusic(s.Music)
 	c.Normalize()
 	return c
 }

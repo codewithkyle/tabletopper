@@ -18,6 +18,9 @@ func Derive(before, after *State, role Role) []Change {
 	out = append(out, strokeDiff.derive(b.Strokes, a.Strokes)...)
 	out = append(out, pawnDiff.derive(b.Pawns, a.Pawns)...)
 	out = append(out, rollDiff.derive(b.Rolls, a.Rolls)...)
+	if !reflect.DeepEqual(b.Music, a.Music) {
+		out = append(out, &MusicUpdated{Music: CloneMusic(a.Music)})
+	}
 	if !reflect.DeepEqual(b.Initiative, a.Initiative) {
 		out = append(out, &InitiativeUpdated{Initiative: cloneInitiative(a.Initiative)})
 	}

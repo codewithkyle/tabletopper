@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -23,10 +24,14 @@ var (
 	testCharID    = testID(1004)
 	testOtherChar = testID(1005)
 	testAssetID   = testID(1006)
+	testTrackID   = testID(1007)
 )
 
+const testClockStart = 1_767_225_600_000
+const testClockStep = 1_000
+
 func newEnv() Env {
-	n, faces := 0, 0
+	n, faces, ticks := 0, 0, 0
 	return Env{
 		NewID: func() ulid.ULID {
 			n++
@@ -35,6 +40,10 @@ func newEnv() Env {
 		Dice: func(sides int) int {
 			faces++
 			return (faces-1)%sides + 1
+		},
+		Now: func() time.Time {
+			ticks++
+			return time.UnixMilli(testClockStart + int64(ticks*testClockStep)).UTC()
 		},
 		Version: "test-build",
 	}

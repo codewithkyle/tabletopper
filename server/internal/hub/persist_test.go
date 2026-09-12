@@ -119,6 +119,30 @@ func TestARestartRestoresTheStateTheSequenceAndNobodysConnection(t *testing.T) {
 		t.Error("a player came back connected; the process they were connected to is gone")
 	}
 }
+func TestARestartLeavesTheTrackLoadedAndSilent(t *testing.T) {
+	track := testID(77)
+	before := room.NewState(roomID, "The Sunless Citadel", room.Env{})
+	before.Music = room.Music{
+		TrackID: &track,
+		Name:    "Tavern Brawl",
+		Playing: true,
+		Loop:    true,
+		At:      12_000,
+		Since:   1_767_225_600_000,
+	}
+	blob, err := room.Marshal(before)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	after, _ := hydrate(roomID, Loaded{Name: "The Sunless Citadel", Snapshot: blob})
+	music := after.Music
+	if music.TrackID == nil || *music.TrackID != track || music.Name != "Tavern Brawl" || !music.Loop {
+		t.Fatalf("music = %+v, want the track and the repeat that were saved", music)
+	}
+	if music.Playing || music.At != 0 || music.Since != 0 {
+		t.Errorf("music = %+v, want it back at the start and silent; the moment it was playing from is weeks gone", music)
+	}
+}
 func TestDispatchLoadsARoomThatIsNotRunning(t *testing.T) {
 	tb := newTabletop(t, Options{})
 	if tb.live(roomID) {

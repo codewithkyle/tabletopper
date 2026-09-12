@@ -35,6 +35,10 @@ var changeTypes = map[string]reduction{
 		build:  func() Change { return &LayersUpdated{} },
 		reduce: func(s *State, ch Change) { s.Table.Layers = cloneLayers(ch.(*LayersUpdated).Layers) },
 	},
+	"music.updated": {
+		build:  func() Change { return &MusicUpdated{} },
+		reduce: func(s *State, ch Change) { s.Music = CloneMusic(ch.(*MusicUpdated).Music) },
+	},
 	"initiative.updated": {
 		build:  func() Change { return &InitiativeUpdated{} },
 		reduce: func(s *State, ch Change) { s.Initiative = cloneInitiative(ch.(*InitiativeUpdated).Initiative) },

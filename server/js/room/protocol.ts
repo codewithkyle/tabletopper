@@ -68,6 +68,14 @@ export interface MapRef {
 	tileSize: number;
 	maxZoom: number;
 }
+export interface Music {
+	trackId: string | null;
+	name: string;
+	playing: boolean;
+	loop: boolean;
+	at: number;
+	since: number;
+}
 export interface Pawn {
 	id: string;
 	kind: PawnKind;
@@ -138,6 +146,7 @@ export interface State {
 	fog: FogShape[];
 	strokes: Stroke[];
 	rolls: Roll[];
+	music: Music;
 }
 export interface Stroke {
 	id: string;
@@ -245,6 +254,33 @@ export interface InitiativeSet {
 }
 export interface InitiativeSync {
 	type: "initiative.sync";
+	cid: string;
+}
+export interface MusicEnded {
+	type: "music.ended";
+	cid: string;
+	trackId: string;
+}
+export interface MusicLoad {
+	type: "music.load";
+	cid: string;
+	assetId: string;
+}
+export interface MusicPause {
+	type: "music.pause";
+	cid: string;
+}
+export interface MusicPlay {
+	type: "music.play";
+	cid: string;
+}
+export interface MusicSetLoop {
+	type: "music.setLoop";
+	cid: string;
+	loop: boolean;
+}
+export interface MusicStop {
+	type: "music.stop";
 	cid: string;
 }
 export interface PawnDrag {
@@ -439,6 +475,12 @@ export type Command =
 	| InitiativeRoll
 	| InitiativeSet
 	| InitiativeSync
+	| MusicEnded
+	| MusicLoad
+	| MusicPause
+	| MusicPlay
+	| MusicSetLoop
+	| MusicStop
 	| PawnDrag
 	| PawnMove
 	| PawnRemove
@@ -482,6 +524,10 @@ export interface InitiativeUpdated {
 export interface LayersUpdated {
 	type: "layers.updated";
 	layers: Layer[];
+}
+export interface MusicUpdated {
+	type: "music.updated";
+	music: Music;
 }
 export interface PawnsMoved {
 	type: "pawns.moved";
@@ -541,6 +587,7 @@ export type Change =
 	| FogUpserted
 	| InitiativeUpdated
 	| LayersUpdated
+	| MusicUpdated
 	| PawnsMoved
 	| PawnsRemoved
 	| PawnsUpserted
@@ -608,6 +655,7 @@ export interface Snapshot {
 	state: State;
 	you: SnapshotYou;
 	version: string;
+	now: number;
 }
 export type Transient =
 	| ErrorEvent

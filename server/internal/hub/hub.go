@@ -278,6 +278,14 @@ type RollsView struct {
 func (h *Hub) Rolls(ctx context.Context, roomID ulid.ULID, viewer ulid.ULID) (*RollsView, bool) {
 	return view(ctx, h, roomID, true, func(a *actor) *RollsView { return a.rolls(viewer) })
 }
+
+type MusicView struct {
+	Music room.Music
+}
+
+func (h *Hub) Music(ctx context.Context, roomID ulid.ULID) (*MusicView, bool) {
+	return view(ctx, h, roomID, true, (*actor).music)
+}
 func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
 	resolver, ok := cmd.(room.Resolver)
 	if !ok || !who.GM() {
