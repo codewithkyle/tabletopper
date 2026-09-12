@@ -31,6 +31,7 @@ type RoomInitiativeData struct {
 type RoomInitiativeEntry struct {
 	ID         string
 	Name       string
+	Initiative string
 	Kind       string
 	Side       string
 	Image      string

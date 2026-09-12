@@ -305,3 +305,18 @@ func TestTheEntryFieldMatchesTheProtocolsNameLimit(t *testing.T) {
 		t.Errorf("the field takes %s characters and the protocol takes %d", EntryNameMax, room.NameLimit)
 	}
 }
+
+func TestARolledEntryWearsItsNumber(t *testing.T) {
+	strip := turnStrip(true)
+	strip.Entries[0].Initiative = "18"
+	markup := decoded(t, RoomInitiative(strip))
+	if !strings.Contains(markup, `class="badge badge-xs badge-neutral absolute top-0.5 left-0.5">18<`) {
+		t.Errorf("the rolled number is not on the portrait:\n%s", markup)
+	}
+}
+func TestAnUnrolledEntryWearsNoNumber(t *testing.T) {
+	markup := decoded(t, RoomInitiative(turnStrip(true)))
+	if strings.Contains(markup, "badge-neutral absolute top-0.5 left-0.5") {
+		t.Errorf("an entry nobody has rolled for is wearing a number:\n%s", markup)
+	}
+}

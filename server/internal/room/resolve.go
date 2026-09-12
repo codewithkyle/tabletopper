@@ -24,11 +24,12 @@ const (
 )
 
 type MonsterInfo struct {
-	Name  string
-	Size  Size
-	HP    int
-	AC    int
-	Image string
+	Name            string
+	Size            Size
+	HP              int
+	AC              int
+	Image           string
+	InitiativeBonus int
 }
 type PictureInfo struct {
 	Name   string
@@ -37,14 +38,15 @@ type PictureInfo struct {
 	Height int
 }
 type CharacterInfo struct {
-	ID      ulid.ULID
-	OwnerID ulid.ULID
-	Name    string
-	Size    Size
-	HP      int
-	MaxHP   int
-	AC      int
-	Image   string
+	ID              ulid.ULID
+	OwnerID         ulid.ULID
+	Name            string
+	Size            Size
+	HP              int
+	MaxHP           int
+	AC              int
+	Image           string
+	InitiativeBonus int
 }
 
 func CreatureSize(value string) Size {

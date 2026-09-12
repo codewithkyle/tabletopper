@@ -29,6 +29,15 @@ const (
 	ObjectPixelsMax    = 8_192
 	InitiativeMax      = 200
 	LayersMax          = 20
+	DiceExprLimit      = 64
+	DiceTermsMax       = 8
+	DiceCountMax       = 100
+	DieSidesMin        = 2
+	DieSidesMax        = 1_000
+	DiceModLimit       = 9_999
+	DiceLabelLimit     = 64
+	RollsMax           = 50
+	SecretRollsMax     = 50
 )
 const (
 	DefaultCellSize    = 64
@@ -48,6 +57,12 @@ func checkRequiredName(what, s string) error {
 		return invalid("Name required", fmt.Sprintf("A %s needs a name.", what))
 	}
 	return checkName(what, s)
+}
+func checkDiceLabel(s string) error {
+	if utf8.RuneCountInString(s) > DiceLabelLimit {
+		return invalid("Label too long", fmt.Sprintf("A dice label can be at most %d characters.", DiceLabelLimit))
+	}
+	return nil
 }
 func checkCoord(what string, v int) error {
 	if v < -CoordLimit || v > CoordLimit {

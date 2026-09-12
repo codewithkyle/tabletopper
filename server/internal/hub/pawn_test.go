@@ -178,8 +178,8 @@ func monsterRow(asset ulid.ULID) stubRow {
 		image = idValue(asset)
 	}
 	return stubRow{
-		columns: []string{"id", "name", "size", "ac", "hp", "asset_id"},
-		values:  []driver.Value{idValue(monsterID), []byte("Goblin"), []byte("small"), int64(15), int64(7), image},
+		columns: []string{"id", "name", "size", "ac", "hp", "initiative_bonus", "asset_id"},
+		values:  []driver.Value{idValue(monsterID), []byte("Goblin"), []byte("small"), int64(15), int64(7), int64(2), image},
 	}
 }
 func tokenRow(id ulid.ULID, name string) stubRow {

@@ -75,6 +75,9 @@ func (d RoomPageData) DrawingClearPath() string {
 func (d RoomPageData) LayerNamePath() string {
 	return "/fragment/room/layer?room=" + d.ID
 }
+func (d RoomPageData) DicePath() string {
+	return "/fragment/room/dice?room=" + d.ID
+}
 func (d RoomPageData) InitiativePath() string {
 	return "/fragment/room/initiative?room=" + d.ID
 }
@@ -83,6 +86,9 @@ func (d RoomPageData) InitiativeEntryPath() string {
 }
 func (d RoomPageData) InitiativeSyncPath() string {
 	return "/rooms/" + d.ID + "/initiative/sync"
+}
+func (d RoomPageData) InitiativeRollPath() string {
+	return "/rooms/" + d.ID + "/initiative/roll"
 }
 func (d RoomPageData) InitiativeNextPath() string {
 	return "/rooms/" + d.ID + "/initiative/next"
@@ -182,10 +188,17 @@ func (d RoomPageData) debugMenu() RoomMenu {
 	}}
 }
 func (d RoomPageData) toolsMenu() RoomMenu {
+	dice := RoomMenuItem{Label: "Dice tray", Window: RoomWindow{
+		ID:     "dice",
+		Title:  "Dice tray",
+		URL:    d.DicePath(),
+		Width:  320,
+		Height: 420,
+	}}
 	if !d.IsGM() {
-		return RoomMenu{Label: "Tools", Items: comingSoon("Dice tray")}
+		return RoomMenu{Label: "Tools", Items: []RoomMenuItem{dice}}
 	}
-	return RoomMenu{Label: "Tools", Items: comingSoon("Monster Manual", "Dice tray")}
+	return RoomMenu{Label: "Tools", Items: append(comingSoon("Monster Manual"), dice)}
 }
 func characterMenu() RoomMenu {
 	return RoomMenu{Label: "Character", Items: comingSoon("Character sheet", "Journal")}
@@ -299,6 +312,7 @@ func (d RoomPageData) fogMenu() RoomMenu {
 func (d RoomPageData) initiativeMenu() RoomMenu {
 	return RoomMenu{Label: "Initiative", Items: []RoomMenuItem{
 		{Label: "Sync tracker", Post: d.InitiativeSyncPath()},
+		{Label: "Roll initiative", Post: d.InitiativeRollPath()},
 		{Label: "Add entry", Modal: RoomModal{URL: d.InitiativeEntryPath(), Size: "sm"}},
 		{Label: "Next turn", Post: d.InitiativeNextPath(), Key: "N"},
 		{

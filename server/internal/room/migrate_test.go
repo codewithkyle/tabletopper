@@ -111,6 +111,8 @@ func TestTheCurrentSchemaHasAGoldenSnapshot(t *testing.T) {
 	w.apply(&StrokeEnd{ID: testID(900)}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(901), Layer: w.layer, Kind: StrokeCircle, Color: "#00FF00FF", Width: 2, Points: []int{128, 128, 256, 128}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(902), Layer: w.layer, Kind: StrokeFree, Color: "#0000FFFF", Width: 2, Points: []int{4, 4}}, w.pc)
+	w.apply(&DiceRoll{Expr: "1d20 + 7", Label: "Longsword"}, w.pc)
+	w.apply(&DiceRoll{Expr: "4d6kh3", Adv: AdvLow}, w.gm)
 	blob, err := json.MarshalIndent(w.s, "", "  ")
 	if err != nil {
 		t.Fatal(err)

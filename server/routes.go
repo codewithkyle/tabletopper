@@ -497,8 +497,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// EVERY ONE OF THEM ANSWERS 204 AND REDRAWS NOTHING. Each ends in
 	// initiative.updated, the strip listens for it, and the tab that sent the
 	// command is corrected by the same event as the tab beside it.
+	mux.HandleFunc("POST /rooms/{id}/dice", auth.RequireSession(app.RollDice))
 	mux.HandleFunc("POST /rooms/{id}/initiative", auth.RequireSession(app.AddInitiative))
 	mux.HandleFunc("POST /rooms/{id}/initiative/sync", auth.RequireSession(app.SyncInitiative))
+	mux.HandleFunc("POST /rooms/{id}/initiative/roll", auth.RequireSession(app.RollInitiative))
 	mux.HandleFunc("POST /rooms/{id}/initiative/order", auth.RequireSession(app.OrderInitiative))
 	mux.HandleFunc("POST /rooms/{id}/initiative/next", auth.RequireSession(app.NextInitiative))
 	mux.HandleFunc("POST /rooms/{id}/initiative/clear", auth.RequireSession(app.ClearInitiative))
@@ -763,6 +765,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	//
 	// THE ADD DIALOG IS THE GM'S, like the layer manager: it is a control for
 	// the fight rather than a reading of it.
+	mux.HandleFunc("GET /fragment/room/dice", auth.Fragment(app.RoomDiceFragment))
 	mux.HandleFunc("GET /fragment/room/initiative", auth.Fragment(app.RoomInitiativeFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/entry", auth.Fragment(app.RoomInitiativeEntryFragment))
 	mux.HandleFunc("GET /fragment/room/initiative/round", auth.Fragment(app.RoomInitiativeRoundFragment))

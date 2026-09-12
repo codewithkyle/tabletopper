@@ -38,6 +38,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"pawn.remove", &PawnRemove{IDs: []ulid.ULID{fx.owned}}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.set", &InitiativeSet{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.sync", &InitiativeSync{}, ok, CodeForbidden, CodeForbidden},
+		{"initiative.roll", &InitiativeRoll{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.next", &InitiativeNext{}, ok, ok, CodeForbidden},
 		{"initiative.clear", &InitiativeClear{}, ok, CodeForbidden, CodeForbidden},
 		{"initiative.activate", &InitiativeActivate{}, ok, CodeForbidden, CodeForbidden},
@@ -55,6 +56,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"stroke.erase", &StrokeErase{IDs: []ulid.ULID{fx.stroke}}, ok, ok, CodeForbidden},
 		{"stroke.clear", &StrokeClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"ping", &Ping{Layer: w.layer}, ok, ok, ok},
+		{"dice.roll", &DiceRoll{Expr: "1d20"}, ok, ok, ok},
 		{"player.kick", &PlayerKick{ID: testOtherID}, ok, CodeForbidden, CodeForbidden},
 		{"sync.request", &SyncRequest{}, ok, ok, ok},
 	}

@@ -5,10 +5,11 @@ import type {
 	Layer,
 	Pawn,
 	Player,
+	Roll,
 	State,
 	Stroke,
 } from "./protocol.ts";
-type Identified = Player | Pawn | Layer | FogShape | Stroke;
+type Identified = Player | Pawn | Layer | FogShape | Stroke | Roll;
 type Reducers = {
 	[K in Change["type"]]: (state: State, change: Extract<Change, { type: K }>) => void;
 };
@@ -40,6 +41,8 @@ const reducers: Reducers = {
 	},
 	"fog.upserted": (state, change) => upsert(state.fog, change.shapes),
 	"fog.removed": (state, change) => remove(state.fog, change.ids),
+	"rolls.upserted": (state, change) => upsert(state.rolls, change.rolls),
+	"rolls.removed": (state, change) => remove(state.rolls, change.ids),
 	"strokes.upserted": (state, change) => upsert(state.strokes, change.strokes),
 	"strokes.removed": (state, change) => remove(state.strokes, change.ids),
 	"strokes.extended": (state, change) => {
@@ -62,6 +65,7 @@ export function reduce(state: State, event: Event): void {
 			break;
 		case "error":
 		case "pinged":
+		case "rolled":
 		case "pawn.dragging":
 		case "player.kicked":
 		case "room.closed":
@@ -76,6 +80,7 @@ export function normalize(state: State): void {
 	state.players.sort(byIdentifier);
 	state.pawns.sort(byIdentifier);
 	state.strokes.sort(byIdentifier);
+	state.rolls.sort(byIdentifier);
 }
 export function empty(): State {
 	return {
@@ -105,6 +110,7 @@ export function empty(): State {
 		initiative: { entries: [], active: null, round: 0 },
 		fog: [],
 		strokes: [],
+		rolls: [],
 	};
 }
 function upsert<T extends Identified>(into: T[], values: readonly T[]): void {

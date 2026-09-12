@@ -1,0 +1,103 @@
+package pages
+
+import "tabletopper/internal/uievents"
+
+templ RoomDice(data RoomDiceData) {
+	<div class="flex flex-col gap-3">
+		@roomDiceForm(data)
+		@roomDiceLog(data)
+	</div>
+}
+
+templ roomDiceForm(data RoomDiceData) {
+	<form
+		class="flex flex-col gap-2"
+		hx-post={ data.RollPath() }
+		hx-swap="none"
+	>
+		<div class="join w-full">
+			<input
+				type="text"
+				name="expr"
+				required
+				autocomplete="off"
+				spellcheck="false"
+				maxlength={ data.ExprLimit() }
+				placeholder="1d20 + 5"
+				aria-label="Dice to roll"
+				class="input input-sm join-item w-full font-mono"
+			/>
+			<button type="submit" class="btn btn-sm join-item">Roll</button>
+		</div>
+		<div class="flex flex-wrap items-center justify-between gap-2">
+			<select name="adv" aria-label="How to roll" class="select select-xs w-auto">
+				<option value="0" selected>Straight</option>
+				<option value="1">Advantage</option>
+				<option value="-1">Disadvantage</option>
+			</select>
+			<label class="flex cursor-pointer items-center gap-1.5 text-xs">
+				<input type="checkbox" name="secret" value="1" class="toggle toggle-xs"/>
+				Secret
+			</label>
+		</div>
+	</form>
+}
+
+templ roomDiceLog(data RoomDiceData) {
+	<ul
+		id={ RoomDiceLogID }
+		class="list"
+		hx-get={ data.Path() }
+		hx-trigger={ uievents.Rolls + " from:window" }
+		hx-select={ data.LogSelect() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+	>
+		for _, r := range data.Rolls {
+			@roomDiceRow(r)
+		}
+		if len(data.Rolls) == 0 {
+			<li class="px-1 py-2 text-xs text-base-content/60">Nothing has been rolled yet.</li>
+		}
+	</ul>
+}
+
+templ roomDiceRow(r RoomDiceRoll) {
+	<li class="list-row px-1 py-2">
+		<div class="list-col-grow min-w-0">
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="truncate text-sm font-medium">{ r.Who }</span>
+				if r.Label != "" {
+					<span class="badge badge-xs badge-neutral">{ r.Label }</span>
+				}
+				if r.AdvLabel() != "" {
+					<span class="badge badge-xs badge-ghost">{ r.AdvLabel() }</span>
+				}
+				if r.Secret {
+					<span class="badge badge-xs badge-ghost">Secret</span>
+				}
+			</div>
+			<div class="flex flex-wrap items-baseline gap-x-1.5 text-xs text-base-content/60">
+				<span class="font-mono">{ r.Expr }</span>
+				<span aria-hidden="true">&rarr;</span>
+				for _, d := range r.Dice {
+					if d.Kept {
+						<span class="font-mono text-base-content/80">{ d.Text() }</span>
+					} else {
+						<span class="font-mono text-base-content/30 line-through">{ d.Text() }</span>
+					}
+				}
+				if r.ModText() != "" {
+					<span class="font-mono">{ r.ModText() }</span>
+				}
+			</div>
+		</div>
+		if r.Crit {
+			<span class="shrink-0 self-center text-lg leading-none font-semibold tabular-nums text-success">{ r.TotalText() }</span>
+		} else if r.Fumble {
+			<span class="shrink-0 self-center text-lg leading-none font-semibold tabular-nums text-error">{ r.TotalText() }</span>
+		} else {
+			<span class="shrink-0 self-center text-lg leading-none font-semibold tabular-nums">{ r.TotalText() }</span>
+		}
+	</li>
+}

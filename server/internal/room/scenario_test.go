@@ -81,9 +81,19 @@ func scenario(r *recorder) {
 		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 14},
 		{Name: "Lair action", Initiative: 20},
 	}}, gm)
+	r.do("and the GM rolls the order", &InitiativeRoll{Bonuses: map[ulid.ULID]int{
+		entryNamed(w.s, "Ari"):    3,
+		entryNamed(w.s, "Goblin"): 2,
+	}}, gm)
 	r.do("Ari goes first", &InitiativeNext{}, gm)
 	r.do("Ari moves up", &PawnMove{Anchor: ari, X: 430, Y: 300}, pc)
 	r.do("and shows everybody where she is going next", &PawnDrag{Anchor: ari, X: 520, Y: 310}, pc)
+	r.do("Ari swings at the goblin", &DiceRoll{Expr: "1d20 + 7", Label: "Longsword"}, pc)
+	r.do("the flanking gives her advantage", &DiceRoll{Expr: "1d20 + 7", Label: "Longsword", Adv: AdvHigh}, pc)
+	r.do("and she rolls the damage", &DiceRoll{Expr: "1d8 + 4", Label: "Longsword damage"}, pc)
+	r.do("the GM rolls the goblin's save behind the screen", &DiceRoll{Expr: "1d20 - 1", Secret: true}, gm)
+	r.do("and Ari checks something of her own the same way", &DiceRoll{Expr: "1d20 + 2", Label: "Stealth", Secret: true}, pc)
+	r.do("the GM rolls the next one in the open", &DiceRoll{Expr: "1d20 - 1"}, gm)
 	r.do("Ari ends her turn", &InitiativeNext{}, pc)
 	r.do("the goblin takes a hit", &PawnUpdate{ID: goblin, HP: intp(3)}, gm)
 	r.do("and goes prone", &PawnSetConditions{ID: goblin, Conditions: []Condition{

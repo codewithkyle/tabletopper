@@ -73,6 +73,14 @@ var changeTypes = map[string]reduction{
 		build:  func() Change { return &FogRemoved{} },
 		reduce: removes(fogDiff, func(ch Change) []ulid.ULID { return ch.(*FogRemoved).IDs }),
 	},
+	"rolls.upserted": {
+		build:  func() Change { return &RollsUpserted{} },
+		reduce: upserts(rollDiff, func(ch Change) []Roll { return ch.(*RollsUpserted).Rolls }),
+	},
+	"rolls.removed": {
+		build:  func() Change { return &RollsRemoved{} },
+		reduce: removes(rollDiff, func(ch Change) []ulid.ULID { return ch.(*RollsRemoved).IDs }),
+	},
 	"strokes.upserted": {
 		build:  func() Change { return &StrokesUpserted{} },
 		reduce: upserts(strokeDiff, func(ch Change) []Stroke { return ch.(*StrokesUpserted).Strokes }),

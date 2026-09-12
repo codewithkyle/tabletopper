@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -261,5 +262,45 @@ func TestACardsSideIsItsCreaturesKind(t *testing.T) {
 		room.InitiativeEntry{ID: entry, Name: "Lair action"})
 	if lair.Side != "" {
 		t.Errorf("a lair action was put on the %q side", lair.Side)
+	}
+}
+
+func TestRollingTheOrderNumbersTheTrackerAndSortsIt(t *testing.T) {
+	app, _ := initiativeApp(t)
+	rec := initiativeRequest(t, app.RollInitiative, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/initiative/roll", map[string]string{}, nil,
+		session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
+	}
+	got := tracker(t, app)
+	for _, e := range got.Entries {
+		if e.Initiative == 0 {
+			t.Fatalf("%s was left without a number", e.Name)
+		}
+	}
+	if got.Entries[0].Initiative < got.Entries[1].Initiative {
+		t.Fatalf("the tracker is not in order: %d then %d",
+			got.Entries[0].Initiative, got.Entries[1].Initiative)
+	}
+	markup := tableRequest(t, app.RoomInitiativeFragment, http.MethodGet,
+		"/fragment/room/initiative?room="+testRoomID.String(), nil, nil,
+		session.UserSession{UserID: testOwnerID}).Body.String()
+	if !strings.Contains(markup, strconv.Itoa(got.Entries[0].Initiative)) {
+		t.Errorf("the strip does not show what was rolled:\n%s", markup)
+	}
+}
+func TestRollingTheOrderIsTheGMsAlone(t *testing.T) {
+	app, _ := initiativeApp(t)
+	rec := initiativeRequest(t, app.RollInitiative, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/initiative/roll", map[string]string{}, nil,
+		memberSession(testRoomID))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("a player got status %d from rolling the order, want 403", rec.Code)
+	}
+	for _, e := range tracker(t, app).Entries {
+		if e.Initiative != 0 {
+			t.Fatalf("a refused roll still numbered %s", e.Name)
+		}
 	}
 }

@@ -40,6 +40,9 @@ export function revise(rev: Revisions, event: Event): void {
 		case "strokes.ended":
 			rev.strokes++;
 			return;
+		case "rolls.upserted":
+		case "rolls.removed":
+		case "rolled":
 		case "error":
 		case "pinged":
 		case "pawn.dragging":

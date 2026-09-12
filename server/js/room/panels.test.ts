@@ -27,6 +27,7 @@ function raised(frame: Frame): { name: string; detail: unknown }[] {
 		"room:info",
 		"room:tabletop",
 		"room:pawn",
+		"room:rolls",
 		"window:close",
 		"window:retitle",
 	];
@@ -132,6 +133,7 @@ test("a snapshot raises every panel event and no pawn event", () => {
 		"room:info",
 		"room:initiative",
 		"room:players",
+		"room:rolls",
 		"room:tabletop",
 	]);
 });
@@ -172,4 +174,13 @@ test("a removed pawn the tracker names refetches the strip", () => {
 		"room:pawn",
 		"window:close",
 	]);
+});
+
+test("a shared roll repaints the dice tray", () => {
+	const seen = raised(changes({ type: "rolls.upserted", rolls: [] } as unknown as Change));
+	assert.deepEqual(seen.map((e) => e.name), ["room:rolls"]);
+});
+test("a secret roll repaints the tray of the one person told about it", () => {
+	const seen = raised({ type: "rolled", seq: 9, roll: {} } as unknown as Frame);
+	assert.deepEqual(seen.map((e) => e.name), ["room:rolls"]);
 });

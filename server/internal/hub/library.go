@@ -51,11 +51,12 @@ func (l library) Monster(ctx context.Context, id ulid.ULID) (room.MonsterInfo, e
 		return room.MonsterInfo{}, missing(err, "Monster gone", "That monster is no longer in your manual.")
 	}
 	return room.MonsterInfo{
-		Name:  row.Name,
-		Size:  room.CreatureSize(row.Size),
-		HP:    int(row.HP),
-		AC:    int(row.AC),
-		Image: imageURL(row.AssetID),
+		Name:            row.Name,
+		Size:            room.CreatureSize(row.Size),
+		HP:              int(row.HP),
+		AC:              int(row.AC),
+		Image:           imageURL(row.AssetID),
+		InitiativeBonus: int(row.InitiativeBonus),
 	}, nil
 }
 func (l library) Picture(ctx context.Context, id ulid.ULID, kind room.PictureKind) (room.PictureInfo, error) {
@@ -90,14 +91,15 @@ func (l library) Character(ctx context.Context, id ulid.ULID) (room.CharacterInf
 		return room.CharacterInfo{}, missing(err, "Character gone", "That character no longer exists.")
 	}
 	return room.CharacterInfo{
-		ID:      row.ID,
-		OwnerID: row.OwnerID,
-		Name:    row.Name,
-		Size:    room.CreatureSize(row.Size),
-		HP:      int(row.CurrentHP),
-		MaxHP:   int(row.MaxHP),
-		AC:      int(row.AC),
-		Image:   imageURL(row.AssetID),
+		ID:              row.ID,
+		OwnerID:         row.OwnerID,
+		Name:            row.Name,
+		Size:            room.CreatureSize(row.Size),
+		HP:              int(row.CurrentHP),
+		MaxHP:           int(row.MaxHP),
+		AC:              int(row.AC),
+		Image:           imageURL(row.AssetID),
+		InitiativeBonus: int(row.InitiativeBonus),
 	}, nil
 }
 func assetType(kind room.PictureKind) queries.AssetsType {

@@ -191,7 +191,7 @@ func TestEveryMenuCarriesItsItems(t *testing.T) {
 	for heading, want := range map[string][]string{
 		"Tabletop":   {"Layers", "Grid & settings", "Spawn pawns", "Spawn from library", "Clear blood", "Clear drawing", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
-		"Initiative": {"Sync tracker", "Add entry", "Next turn", "Clear tracker"},
+		"Initiative": {"Sync tracker", "Roll initiative", "Add entry", "Next turn", "Clear tracker"},
 		"Tools":      {"Monster Manual", "Dice tray"},
 		"View":       {"Zoom in", "Zoom out", "100%", "200%", "Fit map", "Toggle fullscreen"},
 		"Help":       {"Settings", "Report issue", "Privacy policy", "Terms of service"},

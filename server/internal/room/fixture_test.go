@@ -26,11 +26,15 @@ var (
 )
 
 func newEnv() Env {
-	n := 0
+	n, faces := 0, 0
 	return Env{
 		NewID: func() ulid.ULID {
 			n++
 			return testID(n)
+		},
+		Dice: func(sides int) int {
+			faces++
+			return (faces-1)%sides + 1
 		},
 		Version: "test-build",
 	}

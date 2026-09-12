@@ -17,6 +17,7 @@ func Derive(before, after *State, role Role) []Change {
 	out = append(out, fogDiff.derive(b.Fog, a.Fog)...)
 	out = append(out, strokeDiff.derive(b.Strokes, a.Strokes)...)
 	out = append(out, pawnDiff.derive(b.Pawns, a.Pawns)...)
+	out = append(out, rollDiff.derive(b.Rolls, a.Rolls)...)
 	if !reflect.DeepEqual(b.Initiative, a.Initiative) {
 		out = append(out, &InitiativeUpdated{Initiative: cloneInitiative(a.Initiative)})
 	}
@@ -50,6 +51,13 @@ var fogDiff = diff[FogShape]{
 	items:    func(s *State) *[]FogShape { return &s.Fog },
 	upserted: func(items []FogShape) Change { return &FogUpserted{Shapes: items} },
 	removed:  func(ids []ulid.ULID) Change { return &FogRemoved{IDs: ids} },
+}
+var rollDiff = diff[Roll]{
+	id:       func(r Roll) ulid.ULID { return r.ID },
+	clone:    cloneRoll,
+	items:    func(s *State) *[]Roll { return &s.Rolls },
+	upserted: func(items []Roll) Change { return &RollsUpserted{Rolls: items} },
+	removed:  func(ids []ulid.ULID) Change { return &RollsRemoved{IDs: ids} },
 }
 var strokeDiff = diff[Stroke]{
 	id:       func(st Stroke) ulid.ULID { return st.ID },

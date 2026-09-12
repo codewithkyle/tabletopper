@@ -70,6 +70,10 @@ func (a *App) SyncInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "sync the initiative tracker",
 		func() (room.Command, bool) { return &room.InitiativeSync{}, true })
 }
+func (a *App) RollInitiative(w http.ResponseWriter, r *http.Request) {
+	a.initiativeCommand(w, r, "roll the initiative order",
+		func() (room.Command, bool) { return &room.InitiativeRoll{}, true })
+}
 func (a *App) NextInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "advance the turn",
 		func() (room.Command, bool) { return &room.InitiativeNext{}, true })
@@ -167,8 +171,19 @@ func initiativeData(roomID ulid.ULID, role room.Role, user ulid.ULID, view *hub.
 		IsGM:   role == room.RoleGM,
 		Empty:  len(view.Initiative.Entries) == 0,
 	}
+	rolled := false
 	for _, e := range view.Initiative.Entries {
-		data.Entries = append(data.Entries, initiativeEntryData(role, user, view, e))
+		if e.Initiative != 0 {
+			rolled = true
+			break
+		}
+	}
+	for _, e := range view.Initiative.Entries {
+		entry := initiativeEntryData(role, user, view, e)
+		if rolled {
+			entry.Initiative = strconv.Itoa(e.Initiative)
+		}
+		data.Entries = append(data.Entries, entry)
 	}
 	return data
 }

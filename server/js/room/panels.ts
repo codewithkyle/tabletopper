@@ -3,6 +3,7 @@ import {
 	ROOM_INITIATIVE,
 	ROOM_PAWN,
 	ROOM_PLAYERS,
+	ROOM_ROLLS,
 	ROOM_TABLETOP,
 	WINDOW_CLOSE,
 	WINDOW_RETITLE,
@@ -15,11 +16,13 @@ const panelEvents: Partial<Record<Change["type"], string>> = {
 	"players.upserted": ROOM_PLAYERS,
 	"players.removed": ROOM_PLAYERS,
 	"initiative.updated": ROOM_INITIATIVE,
+	"rolls.upserted": ROOM_ROLLS,
+	"rolls.removed": ROOM_ROLLS,
 	"room.updated": ROOM_INFO,
 	"table.updated": ROOM_TABLETOP,
 	"layers.updated": ROOM_TABLETOP,
 };
-const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP];
+const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP, ROOM_ROLLS];
 export function announce(frame: Frame): void {
 	if (frame.type === "snapshot") {
 		track(frame.state.initiative.entries);
@@ -27,6 +30,10 @@ export function announce(frame: Frame): void {
 			window.dispatchEvent(new CustomEvent(name));
 		}
 		reconcilePawnWindows(frame.state.pawns);
+		return;
+	}
+	if (frame.type === "rolled") {
+		window.dispatchEvent(new CustomEvent(ROOM_ROLLS));
 		return;
 	}
 	if (frame.type !== "changes") {

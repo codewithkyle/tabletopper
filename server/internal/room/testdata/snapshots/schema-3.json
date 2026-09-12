@@ -159,5 +159,65 @@
       ],
       "done": false
     }
+  ],
+  "rolls": [
+    {
+      "id": "01000000000000000000000004",
+      "by": "010000000000000000000000ZA",
+      "name": "Ilyana",
+      "gm": false,
+      "label": "Longsword",
+      "expr": "1d20 + 7",
+      "adv": 0,
+      "secret": false,
+      "dice": [
+        {
+          "sides": 20,
+          "value": 1,
+          "sign": 1,
+          "kept": true
+        }
+      ],
+      "mod": 7,
+      "total": 8
+    },
+    {
+      "id": "01000000000000000000000005",
+      "by": "010000000000000000000000Z9",
+      "name": "Kyle",
+      "gm": true,
+      "label": "",
+      "expr": "4d6kh3",
+      "adv": -1,
+      "secret": false,
+      "dice": [
+        {
+          "sides": 6,
+          "value": 2,
+          "sign": 1,
+          "kept": false
+        },
+        {
+          "sides": 6,
+          "value": 3,
+          "sign": 1,
+          "kept": true
+        },
+        {
+          "sides": 6,
+          "value": 4,
+          "sign": 1,
+          "kept": true
+        },
+        {
+          "sides": 6,
+          "value": 5,
+          "sign": 1,
+          "kept": true
+        }
+      ],
+      "mod": 0,
+      "total": 12
+    }
   ]
 }

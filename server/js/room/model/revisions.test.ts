@@ -40,6 +40,7 @@ test("what the table does not hold bumps nothing", () => {
 	const rev = after([
 		"error", "pinged", "pawn.dragging", "players.upserted",
 		"players.removed", "player.kicked", "room.updated", "room.closed",
+		"rolls.upserted", "rolls.removed", "rolled",
 	]);
 	assert.deepEqual(rev, revisions());
 });

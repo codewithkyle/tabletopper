@@ -29,10 +29,10 @@ func characterRow(asset *ulid.ULID) stubRow {
 		image = idValue(*asset)
 	}
 	return stubRow{
-		columns: []string{"id", "owner_id", "name", "size", "ac", "current_hp", "max_hp", "asset_id"},
+		columns: []string{"id", "owner_id", "name", "size", "ac", "current_hp", "max_hp", "initiative_bonus", "asset_id"},
 		values: []driver.Value{
 			idValue(charID), idValue(playerID), []byte("Ilyana"), []byte("Medium"),
-			int64(16), int64(11), int64(14), image,
+			int64(16), int64(11), int64(14), int64(3), image,
 		},
 	}
 }
@@ -90,7 +90,7 @@ func TestTheLibraryReadsAMonsterIntoAStatLine(t *testing.T) {
 	}
 	want := room.MonsterInfo{
 		Name: "Goblin", Size: room.SizeSmall, HP: 7, AC: 15,
-		Image: "/assets/images/" + mapAssetID.String(),
+		Image: "/assets/images/" + mapAssetID.String(), InitiativeBonus: 2,
 	}
 	if got != want {
 		t.Fatalf("the stat line is %+v, want %+v", got, want)
@@ -129,6 +129,7 @@ func TestTheLibraryReadsACharacterIntoItsStatLine(t *testing.T) {
 	want := room.CharacterInfo{
 		ID: charID, OwnerID: playerID, Name: "Ilyana", Size: room.SizeMedium,
 		HP: 11, MaxHP: 14, AC: 16, Image: "/assets/images/" + mapAssetID.String(),
+		InitiativeBonus: 3,
 	}
 	if got != want {
 		t.Fatalf("the stat line is %+v, want %+v", got, want)

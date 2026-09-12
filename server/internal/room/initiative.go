@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"slices"
 
 	"github.com/oklog/ulid/v2"
@@ -233,6 +234,75 @@ func (s *State) entry(id ulid.ULID) *InitiativeEntry {
 		}
 	}
 	return nil
+}
+
+type InitiativeRoll struct {
+	Bonuses map[ulid.ULID]int `json:"-"`
+}
+
+func (c *InitiativeRoll) Authorize(s *State, a Actor) error {
+	return requireGM(a, "roll the initiative order")
+}
+func (c *InitiativeRoll) Resolve(ctx context.Context, lib Library, s *State) error {
+	if len(s.Initiative.Entries) == 0 {
+		return invalid("Nothing to roll for",
+			"The tracker is empty, so there is nobody to roll for. Sync it first.")
+	}
+	bonuses := make(map[ulid.ULID]int, len(s.Initiative.Entries))
+	for _, e := range s.Initiative.Entries {
+		bonus, err := s.initiativeBonus(ctx, lib, e)
+		if err != nil {
+			return err
+		}
+		bonuses[e.ID] = min(max(bonus, -DiceModLimit), DiceModLimit)
+	}
+	c.Bonuses = bonuses
+	return nil
+}
+func (s *State) initiativeBonus(ctx context.Context, lib Library, e InitiativeEntry) (int, error) {
+	for _, id := range e.PawnIDs {
+		p := s.Pawn(id)
+		switch {
+		case p == nil:
+			continue
+		case p.CharacterID != nil:
+			info, err := lib.Character(ctx, *p.CharacterID)
+			if err != nil {
+				return 0, skipIfGone(err)
+			}
+			return info.InitiativeBonus, nil
+		case p.MonsterID != nil:
+			info, err := lib.Monster(ctx, *p.MonsterID)
+			if err != nil {
+				return 0, skipIfGone(err)
+			}
+			return info.InitiativeBonus, nil
+		}
+	}
+	return 0, nil
+}
+func skipIfGone(err error) error {
+	if gone(err) {
+		return nil
+	}
+	return err
+}
+func (c *InitiativeRoll) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	if c.Bonuses == nil {
+		return nil, invalid("Nothing to roll for", "The server could not work out anybody's initiative bonus.")
+	}
+	if len(s.Initiative.Entries) == 0 {
+		return nil, invalid("Nothing to roll for",
+			"The tracker is empty, so there is nobody to roll for. Sync it first.")
+	}
+	entries := cloneInitiative(s.Initiative).Entries
+	for i := range entries {
+		entries[i].Initiative = rollWithBonus(c.Bonuses[entries[i].ID], env).Total
+	}
+	slices.SortStableFunc(entries, func(x, y InitiativeEntry) int { return y.Initiative - x.Initiative })
+	s.Initiative.Entries = entries
+	s.Normalize()
+	return nil, nil
 }
 
 type InitiativeSync struct{}

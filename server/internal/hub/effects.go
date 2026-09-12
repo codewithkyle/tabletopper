@@ -1,6 +1,8 @@
 package hub
 
 import (
+	"slices"
+
 	"tabletopper/internal/room"
 
 	"github.com/oklog/ulid/v2"
@@ -19,6 +21,7 @@ func (a *actor) changed(before *room.State, changes []room.Change) {
 			}
 		case *room.PlayersRemoved:
 			for _, id := range c.IDs {
+				delete(a.secret, id)
 				if _, kicked := a.kicked[id]; kicked {
 					continue
 				}
@@ -26,6 +29,13 @@ func (a *actor) changed(before *room.State, changes []room.Change) {
 			}
 		}
 	}
+}
+func (a *actor) keepSecret(user ulid.ULID, roll room.Roll) {
+	kept := append(a.secret[user], roll)
+	if len(kept) > room.SecretRollsMax {
+		kept = slices.Delete(kept, 0, len(kept)-room.SecretRollsMax)
+	}
+	a.secret[user] = kept
 }
 func (a *actor) remember(p room.Pawn) {
 	if character, hp, owed := writeThroughHP(p); owed {

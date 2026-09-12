@@ -136,6 +136,9 @@ templ initiativePortrait(data RoomInitiativeData, e RoomInitiativeEntry) {
 		} else if data.ShowHP(e) {
 			<span class={ initiativeUnderlay, "truncate" }>{ e.HP }</span>
 		}
+		if e.Initiative != "" {
+			<span class="badge badge-xs badge-neutral absolute top-0.5 left-0.5">{ e.Initiative }</span>
+		}
 		if e.Hidden {
 			<span class="badge badge-xs badge-warning absolute top-0.5 left-1/2 -translate-x-1/2">Hidden</span>
 		}

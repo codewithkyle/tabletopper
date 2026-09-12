@@ -124,7 +124,7 @@ UPDATE characters
 SET features = ?
 WHERE id = ? AND owner_id = ?;
 -- name: GetCharacterForRoom :one
-SELECT id, owner_id, name, size, ac, current_hp, max_hp, asset_id FROM characters
+SELECT id, owner_id, name, size, ac, current_hp, max_hp, initiative_bonus, asset_id FROM characters
 WHERE id = ?;
 -- name: UpdateCharacterCurrentHP :execresult
 UPDATE characters

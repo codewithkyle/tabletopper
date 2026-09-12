@@ -5,6 +5,7 @@ const (
 	Tabletop   = "room:tabletop"
 	Info       = "room:info"
 	Initiative = "room:initiative"
+	Rolls      = "room:rolls"
 	Pawn       = "room:pawn"
 )
 const (
@@ -32,6 +33,7 @@ var All = map[string]string{
 	"ROOM_TABLETOP":   Tabletop,
 	"ROOM_INFO":       Info,
 	"ROOM_INITIATIVE": Initiative,
+	"ROOM_ROLLS":      Rolls,
 	"ROOM_PAWN":       Pawn,
 	"ROOM_VIEW":       View,
 	"ROOM_BLOOD":      Blood,

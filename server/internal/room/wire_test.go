@@ -190,7 +190,7 @@ func TestEveryEventEncodesUnderItsRegisteredType(t *testing.T) {
 func TestEveryFrameIsTheChangesFrameOrATransient(t *testing.T) {
 	want := map[string]bool{
 		"room.closed": true, "player.kicked": true, "snapshot": true,
-		"pawn.dragging": true, "pinged": true, "error": true,
+		"pawn.dragging": true, "pinged": true, "error": true, "rolled": true,
 	}
 	for wire, ev := range EventPrototypes() {
 		_, marked := ev.(Transient)

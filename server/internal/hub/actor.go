@@ -56,6 +56,7 @@ type actor struct {
 	sizeWarned       bool
 	sheet            *sheetWriter
 	lastHP           map[ulid.ULID]int
+	secret           map[ulid.ULID][]room.Roll
 	pending          map[string]command
 	coalesceTimer    *time.Timer
 	emptySince       time.Time
@@ -86,6 +87,7 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 		saved:         make(chan saved, 1),
 		sheet:         newSheetWriter(h.writeHP),
 		lastHP:        make(map[ulid.ULID]int),
+		secret:        make(map[ulid.ULID][]room.Roll),
 		emptySince:    time.Now(),
 		entropy:       ulid.Monotonic(rand.Reader, 0),
 		startedAt:     time.Now(),
@@ -228,7 +230,7 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 	}
 	derived := a.broadcast(&before, who)
 	a.emit(sigs, who, sender, nil)
-	a.signals(sigs)
+	a.signals(sigs, who)
 	a.changed(&before, derived)
 	return nil
 }
@@ -391,13 +393,15 @@ func (a *actor) snapshot(c *client) {
 	}
 	a.emit(sigs, c.who, c, c)
 }
-func (a *actor) signals(sigs []room.Signal) {
+func (a *actor) signals(sigs []room.Signal, who room.Actor) {
 	for _, sig := range sigs {
-		switch sig.Event.(type) {
+		switch ev := sig.Event.(type) {
 		case *room.PlayerKicked:
 			a.kicked[sig.Player] = time.Now()
 			a.forget(sig.Player)
 			a.drop(sig.Player, reasonKicked)
+		case *room.Rolled:
+			a.keepSecret(who.ID, ev.Roll)
 		}
 	}
 }
@@ -594,6 +598,9 @@ func (a *actor) initiative(role room.Role) *InitiativeView {
 		Pawns:      pawns,
 		Table:      a.state.Clone().Table,
 	}
+}
+func (a *actor) rolls(viewer ulid.ULID) *RollsView {
+	return &RollsView{Rolls: room.MergeRolls(a.state.Rolls, a.secret[viewer])}
 }
 func (a *actor) drain() {
 	for {

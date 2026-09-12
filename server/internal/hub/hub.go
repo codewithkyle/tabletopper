@@ -270,6 +270,14 @@ type InitiativeView struct {
 func (h *Hub) Initiative(ctx context.Context, roomID ulid.ULID, role room.Role) (*InitiativeView, bool) {
 	return view(ctx, h, roomID, true, func(a *actor) *InitiativeView { return a.initiative(role) })
 }
+
+type RollsView struct {
+	Rolls []room.Roll
+}
+
+func (h *Hub) Rolls(ctx context.Context, roomID ulid.ULID, viewer ulid.ULID) (*RollsView, bool) {
+	return view(ctx, h, roomID, true, func(a *actor) *RollsView { return a.rolls(viewer) })
+}
 func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd room.Command) error {
 	resolver, ok := cmd.(room.Resolver)
 	if !ok || !who.GM() {

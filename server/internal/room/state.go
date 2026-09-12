@@ -18,6 +18,7 @@ type State struct {
 	Initiative Initiative `json:"initiative"`
 	Fog        []FogShape `json:"fog"`
 	Strokes    []Stroke   `json:"strokes"`
+	Rolls      []Roll     `json:"rolls"`
 }
 type RoomInfo struct {
 	ID     ulid.ULID `json:"id"`
@@ -374,10 +375,12 @@ func (s *State) Normalize() {
 	slices.SortFunc(s.Players, func(a, b Player) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Pawns, func(a, b Pawn) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Strokes, func(a, b Stroke) int { return a.ID.Compare(b.ID) })
+	slices.SortFunc(s.Rolls, func(a, b Roll) int { return a.ID.Compare(b.ID) })
 	s.Players = emptied(s.Players)
 	s.Pawns = emptied(s.Pawns)
 	s.Fog = emptied(s.Fog)
 	s.Strokes = emptied(s.Strokes)
+	s.Rolls = emptied(s.Rolls)
 	s.Table.Layers = emptied(s.Table.Layers)
 	s.Initiative.Entries = emptied(s.Initiative.Entries)
 	for i := range s.Initiative.Entries {
@@ -391,6 +394,9 @@ func (s *State) Normalize() {
 	}
 	for i := range s.Strokes {
 		s.Strokes[i].Points = emptied(s.Strokes[i].Points)
+	}
+	for i := range s.Rolls {
+		s.Rolls[i].Dice = emptied(s.Rolls[i].Dice)
 	}
 }
 func emptied[T any](v []T) []T {

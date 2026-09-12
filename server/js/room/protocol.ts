@@ -19,6 +19,12 @@ export interface Condition {
 	duration: number;
 	clear: ClearTrigger;
 }
+export interface Die {
+	sides: number;
+	value: number;
+	sign: number;
+	kept: boolean;
+}
 export interface FogShape {
 	id: string;
 	layerId: string;
@@ -99,6 +105,19 @@ export interface Player {
 	role: Role;
 	connected: boolean;
 }
+export interface Roll {
+	id: string;
+	by: string;
+	name: string;
+	gm: boolean;
+	label: string;
+	expr: string;
+	adv: number;
+	secret: boolean;
+	dice: Die[];
+	mod: number;
+	total: number;
+}
 export interface RoomInfo {
 	id: string;
 	name: string;
@@ -118,6 +137,7 @@ export interface State {
 	initiative: Initiative;
 	fog: FogShape[];
 	strokes: Stroke[];
+	rolls: Roll[];
 }
 export interface Stroke {
 	id: string;
@@ -145,6 +165,14 @@ export interface TableSettings {
 	playersCanDraw: boolean;
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
+}
+export interface DiceRoll {
+	type: "dice.roll";
+	cid: string;
+	expr: string;
+	label: string;
+	adv: number;
+	secret: boolean;
 }
 export interface FogAdd {
 	type: "fog.add";
@@ -204,6 +232,10 @@ export interface InitiativeReorder {
 	type: "initiative.reorder";
 	cid: string;
 	ids: string[];
+}
+export interface InitiativeRoll {
+	type: "initiative.roll";
+	cid: string;
 }
 export interface InitiativeSet {
 	type: "initiative.set";
@@ -392,6 +424,7 @@ export interface TableSetOptions {
 	fogPrefill: boolean;
 }
 export type Command =
+	| DiceRoll
 	| FogAdd
 	| FogClear
 	| FogRemove
@@ -403,6 +436,7 @@ export type Command =
 	| InitiativeNext
 	| InitiativeRemove
 	| InitiativeReorder
+	| InitiativeRoll
 	| InitiativeSet
 	| InitiativeSync
 	| PawnDrag
@@ -469,6 +503,14 @@ export interface PlayersUpserted {
 	type: "players.upserted";
 	players: Player[];
 }
+export interface RollsRemoved {
+	type: "rolls.removed";
+	ids: string[];
+}
+export interface RollsUpserted {
+	type: "rolls.upserted";
+	rolls: Roll[];
+}
 export interface RoomUpdated {
 	type: "room.updated";
 	room: RoomInfo;
@@ -504,6 +546,8 @@ export type Change =
 	| PawnsUpserted
 	| PlayersRemoved
 	| PlayersUpserted
+	| RollsRemoved
+	| RollsUpserted
 	| RoomUpdated
 	| StrokeEnded
 	| StrokeExtended
@@ -546,6 +590,12 @@ export interface PlayerKicked {
 	by?: string;
 	reason: string;
 }
+export interface Rolled {
+	type: "rolled";
+	seq: number;
+	by?: string;
+	roll: Roll;
+}
 export interface RoomClosed {
 	type: "room.closed";
 	seq: number;
@@ -564,6 +614,7 @@ export type Transient =
 	| PawnDragging
 	| Pinged
 	| PlayerKicked
+	| Rolled
 	| RoomClosed
 	| Snapshot
 	;
@@ -573,6 +624,7 @@ export type Frame =
 	| PawnDragging
 	| Pinged
 	| PlayerKicked
+	| Rolled
 	| RoomClosed
 	| Snapshot
 	;
@@ -582,6 +634,7 @@ export const TRANSIENT_EVENTS: ReadonlySet<Frame["type"]> = new Set([
 	"pawn.dragging",
 	"pinged",
 	"player.kicked",
+	"rolled",
 	"room.closed",
 	"snapshot",
 ]);

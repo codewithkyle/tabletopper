@@ -104,5 +104,5 @@ SET
     description = ?
 WHERE id = ? AND owner_id = ?;
 -- name: GetMonsterForRoom :one
-SELECT id, name, size, ac, hp, asset_id FROM monsters
+SELECT id, name, size, ac, hp, initiative_bonus, asset_id FROM monsters
 WHERE id = ? AND owner_id = ?;

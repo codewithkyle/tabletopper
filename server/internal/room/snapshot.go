@@ -165,6 +165,10 @@ func (s *State) Clone() State {
 	for i, st := range s.Strokes {
 		c.Strokes[i] = cloneStroke(st)
 	}
+	c.Rolls = make([]Roll, len(s.Rolls))
+	for i, r := range s.Rolls {
+		c.Rolls[i] = cloneRoll(r)
+	}
 	c.Normalize()
 	return c
 }
