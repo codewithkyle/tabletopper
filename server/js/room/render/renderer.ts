@@ -4,6 +4,7 @@ import type { Event as RoomEvent, Role, State } from "../protocol.ts";
 import type { FrameContext } from "./frame-context.ts";
 import type { LayerView } from "./layers.ts";
 import type { Point, Rect } from "../model/types.ts";
+import type { Revisions } from "../store.ts";
 import type { StageList } from "./stages/list.ts";
 import type { Tool } from "./input.ts";
 import { apply, wireInput } from "./input.ts";
@@ -15,8 +16,8 @@ import { newLayerView } from "./layers.ts";
 import { newOverlay } from "../model/overlay.ts";
 import { newStageList } from "./stages/list.ts";
 import { startFrames } from "./frame.ts";
-import { touchesPawns } from "../effects.ts";
 import { watchContextLoss } from "./context-loss.ts";
+import { watching } from "../store.ts";
 import { watchTheme } from "./theme.ts";
 export type { Benchmark } from "./camera-controller.ts";
 export interface Renderer {
@@ -34,7 +35,7 @@ export interface Renderer {
 	stop(): void;
 }
 export function mountRenderer(
-	mount: HTMLElement, state: State, role: Role, user: string, tool: Tool,
+	mount: HTMLElement, state: State, revisions: Revisions, role: Role, user: string, tool: Tool,
 ): Renderer | null {
 	const found = mount.querySelector("[data-tabletop-canvas]");
 	if (!(found instanceof HTMLCanvasElement)) {
@@ -52,8 +53,8 @@ export function mountRenderer(
 	const camera: Camera = newCamera();
 	const viewport: Viewport = { width: 1, height: 1 };
 	let dpr = window.devicePixelRatio || 1;
-	let pawnsDirty = true;
-	let lastCell = 0;
+	const rebuild = watching(["pawns", "table", "fog"]);
+	let builtFloor = "";
 	let lastEpoch = -1;
 	let lastViewed = "";
 	let lastFollowing = true;
@@ -61,7 +62,7 @@ export function mountRenderer(
 	const settled: (() => void)[] = [];
 	const list: StageList = newStageList(gl, role, () => frames.invalidate());
 	const overlay = newOverlay();
-	const frame: FrameContext = newFrame(gl, camera, viewport, role, user, state, overlay, list.resources());
+	const frame: FrameContext = newFrame(gl, camera, viewport, role, user, state, revisions, overlay, list.resources());
 	const input = wireInput(
 		canvas,
 		() => frames.invalidate(),
@@ -84,7 +85,7 @@ export function mountRenderer(
 	const loss = watchContextLoss(mount, canvas, () => {
 		list.reset();
 		frame.resources = list.resources();
-		pawnsDirty = true;
+		rebuild.reset();
 		lastEpoch = -1;
 	});
 	const controller: CameraController = newCameraController({
@@ -128,20 +129,18 @@ export function mountRenderer(
 			}
 		}
 		const resources = list.resources();
-		const cell = Math.max(1, state.table.grid.cellSize);
 		sizeFrame(frame, now, canvas.width, canvas.height, dpr);
 		frame.viewed = viewed;
 		frame.viewedID = viewedID;
-		frame.cell = cell;
+		frame.cell = Math.max(1, state.table.grid.cellSize);
 		frame.painted = layers.draws();
-		frame.rebuild = pawnsDirty || cell !== lastCell || resources.sprites.epoch() !== lastEpoch;
+		frame.rebuild = rebuild.changed(revisions) || viewedID !== builtFloor || resources.sprites.epoch() !== lastEpoch;
 		overlay.reset();
 		tool.contribute(overlay);
 		resources.begin(frame.rebuild);
 		list.build(frame);
 		if (frame.rebuild) {
-			pawnsDirty = false;
-			lastCell = cell;
+			builtFloor = viewedID;
 			lastEpoch = resources.sprites.epoch();
 		}
 		gl.viewport(0, 0, canvas.width, canvas.height);
@@ -164,9 +163,6 @@ export function mountRenderer(
 		},
 		benchmark: controller.benchmark,
 		event(event) {
-			if (touchesPawns(event.type)) {
-				pawnsDirty = true;
-			}
 			list.event(event);
 			frames.invalidate();
 		},
@@ -178,7 +174,7 @@ export function mountRenderer(
 		mapPerPixel: () => worldPerCssPixel(camera),
 		stress(count) {
 			const added = list.stress(count);
-			pawnsDirty = true;
+			rebuild.reset();
 			frames.invalidate();
 			return added;
 		},

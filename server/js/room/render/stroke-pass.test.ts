@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Stroke } from "../protocol.ts";
 import { createFakeBatch } from "../gl/fake-batch.ts";
-import { fillStrokes } from "./stroke-pass.ts";
+import { fillStrokes, keptStrokes } from "./stroke-pass.ts";
 import { layout } from "./shaders/stroke.ts";
 function stroke(over: Partial<Stroke> = {}): Stroke {
 	return {
@@ -45,4 +45,23 @@ test("filling again starts from the beginning", () => {
 	assert.equal(batch.count, 2);
 	fillStrokes(batch, [stroke()]);
 	assert.equal(batch.count, 1);
+});
+test("filling from an index leaves what is already there alone", () => {
+	const batch = createFakeBatch(layout);
+	fillStrokes(batch, [stroke({ id: "a" }), stroke({ id: "b" })]);
+	fillStrokes(batch, [stroke({ id: "a" }), stroke({ id: "b" }), stroke({ id: "c" })], 2);
+	assert.equal(batch.count, 3);
+	assert.deepEqual(batch.instance(0), [0, 0, 10, 0, 1, 0, 0, 1, 2]);
+});
+test("a longer list that starts the same keeps what was filled", () => {
+	const filled = ["a", "b"];
+	assert.equal(keptStrokes([stroke({ id: "a" }), stroke({ id: "b" }), stroke({ id: "c" })], filled), 2);
+});
+test("an erased stroke throws the whole batch away", () => {
+	assert.equal(keptStrokes([stroke({ id: "a" }), stroke({ id: "c" })], ["a", "b", "c"]), 0);
+	assert.equal(keptStrokes([stroke({ id: "b" }), stroke({ id: "c" })], ["a", "b"]), 0);
+});
+test("a list that has not moved keeps all of it", () => {
+	assert.equal(keptStrokes([stroke({ id: "a" })], ["a"]), 1);
+	assert.equal(keptStrokes([], []), 0);
 });

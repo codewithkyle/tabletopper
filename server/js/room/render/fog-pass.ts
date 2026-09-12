@@ -40,7 +40,6 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 	let sized = false;
 	let prefilled = false;
 	const drawn: string[] = [];
-	let signature = "";
 	const measured: MaskRect = { x: 0, y: 0, width: 0, height: 0 };
 	let width = 0;
 	let height = 0;
@@ -97,14 +96,6 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 					mine.push(shape);
 				}
 			}
-			const now = layerID + "/" + String(prefill) + "/" + mine.length
-				+ "/" + (mine.length > 0 ? mine[mine.length - 1].id : "")
-				+ "/" + (map ? map.width + "x" + map.height : "")
-				+ "/" + cell;
-			if (now === signature) {
-				return;
-			}
-			signature = now;
 			const next = maskRect(map, mine, layerID, cell, measured);
 			if (!next) {
 				sized = false;
@@ -118,7 +109,7 @@ export function createFogPass(gl: WebGL2RenderingContext): FogPass {
 				|| next.width !== rect.width || next.height !== rect.height;
 			const restart = moved || layerID !== floorID || prefill !== prefilled;
 			let from = 0;
-			if (!restart && mine.length > drawn.length) {
+			if (!restart && mine.length >= drawn.length) {
 				from = drawn.length;
 				for (let i = 0; i < drawn.length; i++) {
 					if (mine[i].id !== drawn[i]) {

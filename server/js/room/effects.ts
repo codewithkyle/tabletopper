@@ -7,12 +7,6 @@ export function fanOut(effects: readonly Effect[]): Effect {
 		}
 	};
 }
-export function touchesPawns(type: Event["type"]): boolean {
-	if (type === "snapshot" || type === "table.updated" || type.startsWith("fog.")) {
-		return true;
-	}
-	return type.startsWith("pawn.") && type !== "pawn.dragging";
-}
 export interface RefusalDeps {
 	alert(heading: string, message: string): void;
 	resync(): void;

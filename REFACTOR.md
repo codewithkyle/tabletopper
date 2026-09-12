@@ -83,6 +83,18 @@ Things this document was asked to settle, settled.
 - **A tool owns the slots it contributes.** `Overlay.reset()` empties its six
   arrays; each tool pushes objects it keeps and reuses, so a frame allocates
   nothing. `pool()` in `model/overlay.ts` is the shared slot allocator.
+- **A revision counts every change to its slice, even one only the live path
+  reads.** `stroke.extended` bumps `strokes` although the finished batch holds
+  no live stroke, because a counter that skips an event is a trap for the next
+  consumer to read it. A counter is also blunter than the string it replaced: it
+  cannot say which layer a change landed on. Both passes absorb that in the same
+  way the fog mask already did, by comparing the ids they have already drawn and
+  appending the rest, so a call with nothing new in it paints nothing.
+- **`watching(slices)` is how a consumer reads revisions.** Four of them ask the
+  same question, so the comparison and its remembered values sit beside `revise`
+  rather than being written out four times. `reset()` is how the renderer forces
+  a rebuild for the two things no event describes: stress pawns and a context
+  that was lost and remade.
 - **Concealment is computed by the pawn stage.** Whether a player can see a
   pawn depends on role, user, the viewed layer and the fog shapes, all of
   which are in the frame. The interaction layer does not supply it.
@@ -832,17 +844,17 @@ export function revise(rev: Revisions, event: Event): void;
 fixtures do not change. `main.ts` calls `revise` in the same effect as
 `reduce`, and the renderer takes the `Revisions` object at mount.
 
-- [ ] `store.ts`: `Revisions`, `revisions()`, `revise`.
-- [ ] Fog stage: `if (rev.fog === lastRev && viewedID === lastLayer && ...) return`.
+- [x] `store.ts`: `Revisions`, `revisions()`, `revise`.
+- [x] Fog stage: `if (rev.fog === lastRev && viewedID === lastLayer && ...) return`.
       The incremental paint-from-index logic stays; only the "did anything
       change" check moves to the counter.
-- [ ] Stroke stage: same, on `rev.strokes`.
-- [ ] `frame.rebuild` becomes `rev.pawns`, `rev.table`, `rev.fog` (for
+- [x] Stroke stage: same, on `rev.strokes`.
+- [x] `frame.rebuild` becomes `rev.pawns`, `rev.table`, `rev.fog` (for
       concealment) and the sprite epoch against their last values. Delete
       `pawnsDirty`, `touchesPawns` in `effects.ts`, and the last event-name
       match in the renderer. The `hud.refresh` effect in `main.ts` keys on
       the same revisions.
-- [ ] Tests for `revise`: each event type bumps exactly the slices it should.
+- [x] Tests for `revise`: each event type bumps exactly the slices it should.
 
 Done when: `grep -rn 'signature\|pawnsDirty\|touchesPawns\|let key = ""' server/js/room --include='*.ts'`
 returns only the `signature` in `layer-bar.ts`, which is a DOM concern and
@@ -876,7 +888,7 @@ button (500 pawns) and record again.
 | 2 | 508 | 170127 | | | | |
 | 3 | 519 | 172581 | | | | |
 | 4 | 556 | 175923 | | | | |
-| 5 | | | | | | |
+| 5 | 572 | 177031 | | | | |
 
 Visual check after every phase, as GM and as player: map and grid, a layer
 switch with crossfade, fog reveal and hide with prefill, a pawn hidden under

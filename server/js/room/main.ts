@@ -2,12 +2,12 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 import "vanilla-colorful/hex-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
-import { fanOut, refusals, touchesPawns } from "./effects.ts";
+import { fanOut, refusals } from "./effects.ts";
 import { mountDrawTool } from "./draw-tool.ts";
 import { FULL, newPingSound } from "./ping-sound.ts";
 import { createTable } from "./modes/table.ts";
 import { actorColor, hexColor } from "./model/color.ts";
-import { empty, reduce } from "./store.ts";
+import { empty, reduce, revise, revisions, watching } from "./store.ts";
 import { mountDialogs } from "./dialogs.ts";
 import { mountHud } from "./hud.ts";
 import { Socket, type Status } from "./socket.ts";
@@ -25,7 +25,8 @@ import { mountTurns, type Turns } from "./initiative.ts";
 import { mountLayerTool } from "./layer-tool.ts";
 import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import { mountTools } from "./tools.ts";
-import type { Event, Role, State } from "./protocol.ts";
+import type { Role, State } from "./protocol.ts";
+import type { Revisions } from "./store.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { pawnWindow } from "./pawn-window.ts";
 import type { Named } from "./pawn-window.ts";
@@ -38,6 +39,7 @@ if (mount) {
 	mountColorFields();
 	const tools = mountTools(mount);
 	const state = empty();
+	const rev = revisions();
 	const roomID = mount.dataset.room ?? "";
 	const role: Role = mount.dataset.role === "gm" ? "gm" : "player";
 	const user = mount.dataset.user ?? "";
@@ -81,7 +83,7 @@ if (mount) {
 		fogOptions: fogTool.options,
 		drawOptions: drawTool.options,
 	});
-	renderer = mountRenderer(mount, state, role, user, table.tool);
+	renderer = mountRenderer(mount, state, rev, role, user, table.tool);
 	tools?.onChange(() => renderer?.invalidate());
 	if (renderer) {
 		const bar = mountLayerBar(mount, state, renderer);
@@ -134,12 +136,13 @@ if (mount) {
 	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, renderer, table, hud, turns, follow, pinged);
+		socket = start(path, state, rev, renderer, table, hud, turns, follow, pinged);
 	}
 }
 function start(
 	path: string,
 	state: State,
+	rev: Revisions,
 	renderer: Renderer | null,
 	table: Table,
 	hud: Hud | null,
@@ -149,13 +152,17 @@ function start(
 ): Socket {
 	let debug: ReturnType<typeof wireDebug> | null = null;
 	let socket: Socket | null = null;
+	const shown = watching(["pawns", "table", "fog"]);
 	const effect = fanOut([
-		(event) => reduce(state, event),
+		(event) => {
+			reduce(state, event);
+			revise(rev, event);
+		},
 		announce,
 		(event) => debug?.event(event),
 		(event) => renderer?.event(event),
-		(event) => {
-			if (touchesPawns(event.type)) {
+		() => {
+			if (shown.changed(rev)) {
 				hud?.refresh();
 			}
 		},

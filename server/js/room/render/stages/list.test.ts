@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { FrameContext } from "../frame-context.ts";
-import { empty } from "../../store.ts";
+import { empty, revisions } from "../../store.ts";
 import { fakeDOM, recordingGL } from "./testing.ts";
 import { newFrame } from "../frame-context.ts";
 import { newOverlay } from "../../model/overlay.ts";
@@ -17,6 +17,7 @@ function scene(role: "gm" | "player"): { frame: FrameContext; list: ReturnType<t
 		role,
 		"01USER",
 		state,
+		revisions(),
 		newOverlay(),
 		list.resources(),
 	);

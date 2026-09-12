@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Event } from "./protocol.ts";
-import { fanOut, refusals, touchesPawns } from "./effects.ts";
+import { fanOut, refusals } from "./effects.ts";
 test("a refused command opens the alert with the server's words", () => {
 	const shown: string[][] = [];
 	let resyncs = 0;
@@ -39,20 +39,4 @@ test("the fan-out runs every effect in order", () => {
 	effect({ type: "room.closed", seq: 1 });
 	effect({ type: "room.closed", seq: 2 });
 	assert.deepEqual(seen, ["first", "second", "first", "second"]);
-});
-test("the fog family rebuilds the pawn buffer", () => {
-	for (const type of ["fog.added", "fog.removed", "fog.cleared"] as const) {
-		assert.equal(touchesPawns(type), true, type + " does not rebuild the pawns");
-	}
-});
-test("the pawn family and the whole table rebuild it too", () => {
-	assert.equal(touchesPawns("snapshot"), true);
-	assert.equal(touchesPawns("table.updated"), true);
-	assert.equal(touchesPawns("pawn.moved"), true);
-	assert.equal(touchesPawns("pawn.updated"), true);
-});
-test("a drag preview does not rebuild the pawn buffer", () => {
-	assert.equal(touchesPawns("pawn.dragging"), false);
-	assert.equal(touchesPawns("player.joined"), false);
-	assert.equal(touchesPawns("initiative.updated"), false);
 });

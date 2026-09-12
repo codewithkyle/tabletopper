@@ -1,15 +1,22 @@
 import type { Stage, StageFactory } from "./stage.ts";
 import { createFogPass } from "../fog-pass.ts";
+import { watching } from "../../store.ts";
 const PLAYER_FOG_ALPHA = 1;
 const GM_FOG_ALPHA = 0.5;
 export const fogStage: StageFactory = (gl): Stage => {
 	const pass = createFogPass(gl);
+	const painted = watching(["fog", "table"]);
+	let layer = "";
 	return {
 		build(frame) {
 			const viewed = frame.viewed;
 			if (!viewed?.fogEnabled) {
 				return;
 			}
+			if (!painted.changed(frame.revisions) && viewed.id === layer) {
+				return;
+			}
+			layer = viewed.id;
 			pass.sync(frame.state.fog, viewed.id, viewed.map, viewed.fogPrefill, frame.state.table.grid.cellSize);
 		},
 		draw(frame) {

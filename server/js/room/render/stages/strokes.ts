@@ -1,10 +1,16 @@
 import type { Stage, StageFactory } from "./stage.ts";
 import { createStrokePass } from "../stroke-pass.ts";
+import { watching } from "../../store.ts";
 export const strokesStage: StageFactory = (gl): Stage => {
 	const pass = createStrokePass(gl);
+	const inked = watching(["strokes"]);
+	let layer = "";
 	return {
 		build(frame) {
-			pass.sync(frame.state.strokes, frame.viewedID);
+			if (inked.changed(frame.revisions) || frame.viewedID !== layer) {
+				layer = frame.viewedID;
+				pass.sync(frame.state.strokes, frame.viewedID);
+			}
 			pass.live(frame.state.strokes, frame.viewedID, frame.overlay.inHand);
 		},
 		draw(frame) {

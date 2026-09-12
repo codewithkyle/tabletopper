@@ -16,9 +16,12 @@ export interface StrokePass {
 	draw(frame: FrameContext): void;
 	dispose(): void;
 }
-export function fillStrokes(batch: QuadBatch, strokes: readonly Stroke[]): void {
-	batch.begin();
-	for (const stroke of strokes) {
+export function fillStrokes(batch: QuadBatch, strokes: readonly Stroke[], from = 0): void {
+	if (from === 0) {
+		batch.begin();
+	}
+	for (let n = from; n < strokes.length; n++) {
+		const stroke = strokes[n];
 		segments.length = 0;
 		strokeSegments(stroke, segments);
 		if (segments.length === 0) {
@@ -41,13 +44,25 @@ export function fillStrokes(batch: QuadBatch, strokes: readonly Stroke[]): void 
 		}
 	}
 }
+export function keptStrokes(strokes: readonly Stroke[], filled: readonly string[]): number {
+	if (strokes.length < filled.length) {
+		return 0;
+	}
+	for (let i = 0; i < filled.length; i++) {
+		if (strokes[i].id !== filled[i]) {
+			return 0;
+		}
+	}
+	return filled.length;
+}
 export function createStrokePass(gl: WebGL2RenderingContext): StrokePass {
 	const program = createProgram(gl, vertexSource, fragmentSource, uniforms);
 	const done = createQuadBatch(gl, layout, 1024);
 	const drawing = createQuadBatch(gl, layout, 64);
-	let key = "";
 	const finished: Stroke[] = [];
+	const filled: string[] = [];
 	const live: Stroke[] = [];
+	let floor = "";
 	const flush = () => {
 		done.draw();
 		drawing.draw();
@@ -55,21 +70,23 @@ export function createStrokePass(gl: WebGL2RenderingContext): StrokePass {
 	return {
 		sync(strokes, layerID) {
 			finished.length = 0;
-			let newest = "";
 			for (const stroke of strokes) {
 				if (stroke.layerId !== layerID || !stroke.done) {
 					continue;
 				}
 				finished.push(stroke);
-				newest = stroke.id;
 			}
-			const next = layerID + "|" + finished.length + "|" + newest;
-			if (next === key) {
+			const from = layerID === floor ? keptStrokes(finished, filled) : 0;
+			floor = layerID;
+			if (from === filled.length && from === finished.length) {
 				return;
 			}
-			key = next;
-			fillStrokes(done, finished);
+			fillStrokes(done, finished, from);
 			done.upload();
+			filled.length = 0;
+			for (const stroke of finished) {
+				filled.push(stroke.id);
+			}
 		},
 		live(strokes, layerID, own) {
 			live.length = 0;

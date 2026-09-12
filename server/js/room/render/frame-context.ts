@@ -4,6 +4,7 @@ import type { Layer, Role, State } from "../protocol.ts";
 import type { Overlay } from "../model/overlay.ts";
 import type { Painted } from "./layers.ts";
 import type { Resources } from "./resources.ts";
+import type { Revisions } from "../store.ts";
 import type { Rgb } from "../model/types.ts";
 export interface FrameContext {
 	gl: WebGL2RenderingContext;
@@ -22,6 +23,7 @@ export interface FrameContext {
 	role: Role;
 	user: string;
 	state: State;
+	revisions: Revisions;
 	viewed: Layer | null;
 	viewedID: string;
 	cell: number;
@@ -37,6 +39,7 @@ export function newFrame(
 	role: Role,
 	user: string,
 	state: State,
+	revisions: Revisions,
 	overlay: Overlay,
 	resources: Resources,
 ): FrameContext {
@@ -57,6 +60,7 @@ export function newFrame(
 		role,
 		user,
 		state,
+		revisions,
 		viewed: null,
 		viewedID: "",
 		cell: 1,
