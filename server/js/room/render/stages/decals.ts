@@ -22,10 +22,6 @@ export const decalsStage: StageFactory = (gl, resources): Stage => {
 		},
 		settling: (frame) => decals.settling(frame.now),
 		event(event) {
-			if (event.type === "stroke.cleared") {
-				decals.clear(event.layer);
-				resources.invalidate();
-			}
 			if (event.type === "snapshot") {
 				decals.resync();
 			}

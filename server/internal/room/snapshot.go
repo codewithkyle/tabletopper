@@ -207,33 +207,6 @@ func cloneRef(v *MapRef) *MapRef {
 	c := *v
 	return &c
 }
-func (s *State) Project(role Role) State {
-	c := s.Clone()
-	if role == RoleGM {
-		return c
-	}
-	pawns := make([]Pawn, 0, len(c.Pawns))
-	for _, p := range c.Pawns {
-		if !s.Shown(p) {
-			continue
-		}
-		pawns = append(pawns, projectPawn(p, c.Table))
-	}
-	c.Pawns = pawns
-	c.Initiative = projectInitiative(s)
-	c.Normalize()
-	return c
-}
-func Health(p Pawn) *HPBand {
-	if p.HP != nil {
-		return hpBand(p.HP, p.MaxHP)
-	}
-	return p.HPBand
-}
-func Dead(p Pawn) bool {
-	b := Health(p)
-	return b != nil && *b == BandDead
-}
 func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {
 	for _, e := range entries {
 		if e.ID == id {
@@ -241,37 +214,4 @@ func hasEntry(entries []InitiativeEntry, id ulid.ULID) bool {
 		}
 	}
 	return false
-}
-func projectPawn(p Pawn, t Table) Pawn {
-	if p.Kind != PawnMonster && p.Kind != PawnNPC {
-		return p
-	}
-	if t.PawnLabels == LabelsFull {
-		return p
-	}
-	p.AC = nil
-	p.HPBand = nil
-	if t.PawnLabels == LabelsDefault {
-		p.HPBand = hpBand(p.HP, p.MaxHP)
-	}
-	return p
-}
-func hpBand(hp, maxHP *int) *HPBand {
-	if hp == nil || maxHP == nil || *maxHP < 1 {
-		return nil
-	}
-	band := BandHealthy
-	switch {
-	case *hp <= 0:
-		band = BandDead
-	case *hp*20 <= *maxHP:
-		band = BandNearDeath
-	case *hp*4 <= *maxHP:
-		band = BandVeryBloody
-	case *hp*2 <= *maxHP:
-		band = BandBloody
-	case *hp*4 <= *maxHP*3:
-		band = BandBruised
-	}
-	return &band
 }

@@ -10,6 +10,7 @@ type Snapshot struct {
 }
 
 func (*Snapshot) eventType() string { return "snapshot" }
+func (*Snapshot) transient()        {}
 
 type SnapshotYou struct {
 	ID   ulid.ULID `json:"id"`
@@ -18,8 +19,8 @@ type SnapshotYou struct {
 type SyncRequest struct{}
 
 func (c *SyncRequest) Authorize(s *State, a Actor) error { return nil }
-func (c *SyncRequest) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	return []Emission{to(ToSender, &Snapshot{
+func (c *SyncRequest) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	return []Signal{signal(ToSender, &Snapshot{
 		State:   s.Project(a.Role),
 		You:     SnapshotYou{ID: a.ID, Role: a.Role},
 		Version: env.Version,

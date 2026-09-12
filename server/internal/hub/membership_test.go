@@ -18,7 +18,7 @@ func TestAJoinFromSomebodyJustKickedIsRefusedByTheRoom(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 	tb.send(gm, "k", &room.PlayerKick{ID: playerID})
-	only(t, player, "player.kicked")
+	only(t, player, "player.left", "player.kicked")
 	only(t, gm, "player.left")
 	again := tb.join(playerID, "Ari", room.RolePlayer)
 	select {

@@ -29,29 +29,24 @@ func (e Env) id() ulid.ULID {
 
 type Command interface {
 	Authorize(s *State, a Actor) error
-	Apply(s *State, a Actor, env Env) ([]Emission, error)
+	Apply(s *State, a Actor, env Env) ([]Signal, error)
 }
 type Audience int
 
 const (
 	ToAll Audience = iota
-	ToGM
-	ToPlayers
 	ToSender
 	ToOthers
 	ToPlayer
 )
 
-type Emission struct {
-	Event  Event
+type Signal struct {
+	Event  Transient
 	To     Audience
 	Player ulid.ULID
 }
 
-func to(a Audience, ev Event) Emission { return Emission{Event: ev, To: a} }
-func toPlayer(id ulid.ULID, ev Event) Emission {
-	return Emission{Event: ev, To: ToPlayer, Player: id}
-}
+func signal(a Audience, ev Transient) Signal { return Signal{Event: ev, To: a} }
 
 type Error struct {
 	Code    string `json:"code"`
@@ -187,27 +182,6 @@ func (s *State) requirePlayerLayer(a Actor, layer ulid.ULID) error {
 		return nil
 	}
 	return forbidden("Wrong layer", "Players can only act on the layer the table is showing.")
-}
-func (s *State) shownSet() map[ulid.ULID]bool {
-	set := make(map[ulid.ULID]bool, len(s.Pawns))
-	for _, p := range s.Pawns {
-		if s.Shown(p) {
-			set[p.ID] = true
-		}
-	}
-	return set
-}
-func (s *State) shownTransitions(before map[ulid.ULID]bool) []Emission {
-	var removed, spawned []Emission
-	for _, p := range s.Pawns {
-		switch {
-		case before[p.ID] && !s.Shown(p):
-			removed = append(removed, to(ToPlayers, &PawnRemoved{ID: p.ID}))
-		case !before[p.ID] && s.Shown(p):
-			spawned = append(spawned, to(ToPlayers, &PawnSpawned{Pawn: projectPawn(clonePawn(p), s.Table)}))
-		}
-	}
-	return append(removed, spawned...)
 }
 func CloneTable(t Table) Table {
 	src := t.Layers

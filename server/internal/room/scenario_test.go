@@ -29,7 +29,7 @@ func scenario(r *recorder) {
 	r.do("line the grid up with the map", &TableSetGrid{Grid: grid}, gm)
 	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 	r.hub("lock the room once everybody is in", &RoomSetLocked{Locked: true})
-	spawnAri := r.do("the GM puts Ari's character on the map", &PawnSpawn{
+	r.do("the GM puts Ari's character on the map", &PawnSpawn{
 		Kind: PawnPlayer, Layer: ground, X: 300, Y: 300, Visible: true,
 		CharacterID: &testCharID,
 		Pawn: &Pawn{
@@ -38,14 +38,14 @@ func scenario(r *recorder) {
 			OwnerID: &testPlayerID, CharacterID: &testCharID,
 		},
 	}, gm)
-	ari := spawnAri[0].Event.(*PawnSpawned).Pawn.ID
+	ari := newestPawn(w.s)
 	r.do("and Spawn pawns brings the rest of the party", &PawnSpawnCharacters{Pawns: []Pawn{{
 		Name: "Rin", Image: "/assets/rin.webp", Size: SizeMedium, LayerID: ground,
 		X: 380, Y: 300, Visible: true,
 		HP: intp(9), MaxHP: intp(9), AC: intp(14),
 		OwnerID: &testOtherID, CharacterID: &testOtherChar,
 	}}}, gm)
-	spawnGoblin := r.do("a goblin steps out", &PawnSpawn{
+	r.do("a goblin steps out", &PawnSpawn{
 		Kind: PawnMonster, Layer: ground, X: 620, Y: 300, Visible: true,
 		MonsterID: idp(testID(60)),
 		Pawn: &Pawn{
@@ -53,8 +53,8 @@ func scenario(r *recorder) {
 			HP: intp(7), MaxHP: intp(7), AC: intp(15), MonsterID: idp(testID(60)),
 		},
 	}, gm)
-	goblin := spawnGoblin[0].Event.(*PawnSpawned).Pawn.ID
-	spawnAmbush := r.do("and one waits in the dark", &PawnSpawn{
+	goblin := newestPawn(w.s)
+	r.do("and one waits in the dark", &PawnSpawn{
 		Kind: PawnMonster, Layer: ground, X: 900, Y: 300, Visible: false,
 		MonsterID: idp(testID(60)),
 		Pawn: &Pawn{
@@ -62,15 +62,15 @@ func scenario(r *recorder) {
 			HP: intp(7), MaxHP: intp(7), AC: intp(15), MonsterID: idp(testID(60)),
 		},
 	}, gm)
-	ambusher := spawnAmbush[0].Event.(*PawnSpawned).Pawn.ID
-	spawnWagon := r.do("the party's wagon is in the way", &PawnSpawn{
+	ambusher := newestPawn(w.s)
+	r.do("the party's wagon is in the way", &PawnSpawn{
 		Kind: PawnObject, Layer: ground, X: 480, Y: 480, Visible: true, Name: "Wagon",
 		Pawn: &Pawn{
 			Image: "/assets/wagon.webp", Width: 128, Height: 256,
 			HP: intp(30), MaxHP: intp(30), AC: intp(12),
 		},
 	}, gm)
-	wagon := spawnWagon[0].Event.(*PawnSpawned).Pawn.ID
+	wagon := newestPawn(w.s)
 	r.do("turn the wagon across the road and stretch it", &PawnUpdate{
 		ID: wagon, Width: intp(96), Height: intp(320), Rotation: intp(-90),
 	}, gm)
@@ -107,10 +107,10 @@ func scenario(r *recorder) {
 	r.do("somebody points at the door", &Ping{Layer: ground, X: 512, Y: 96}, pc)
 	r.do("turn the fog on", &FogSetEnabled{Layer: ground, Enabled: true}, gm)
 	r.do("this map is better uncovered", &FogSetPrefill{Layer: ground, Prefill: false}, gm)
-	fogged := r.do("cover the far room", &FogAdd{
+	r.do("cover the far room", &FogAdd{
 		Layer: ground, Kind: ShapeRect, Mode: FogHide, Points: []int{1024, 0, 2048, 1024},
 	}, gm)
-	hidden := fogged[0].Event.(*FogAdded).Shape.ID
+	hidden := w.s.Fog[len(w.s.Fog)-1].ID
 	r.do("cut a corridor out of it", &FogAdd{
 		Layer: ground, Kind: ShapePoly, Mode: FogReveal,
 		Points: []int{1024, 400, 1400, 400, 1400, 560, 1024, 560},

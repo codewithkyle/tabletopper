@@ -20,13 +20,6 @@ type FogRemoved struct {
 
 func (*FogRemoved) eventType() string { return "fog.removed" }
 
-type FogCleared struct {
-	Header
-	Layer ulid.ULID `json:"layer"`
-}
-
-func (*FogCleared) eventType() string { return "fog.cleared" }
-
 type FogSetEnabled struct {
 	Layer   ulid.ULID `json:"layer"`
 	Enabled bool      `json:"enabled"`
@@ -35,14 +28,14 @@ type FogSetEnabled struct {
 func (c *FogSetEnabled) Authorize(s *State, a Actor) error {
 	return requireGM(a, "turn fog on or off")
 }
-func (c *FogSetEnabled) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *FogSetEnabled) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
 	}
 	l.FogEnabled = c.Enabled
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type FogSetPrefill struct {
@@ -53,14 +46,14 @@ type FogSetPrefill struct {
 func (c *FogSetPrefill) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change how a layer's fog works")
 }
-func (c *FogSetPrefill) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *FogSetPrefill) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
 	}
 	l.FogPrefill = c.Prefill
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type FogAdd struct {
@@ -73,7 +66,7 @@ type FogAdd struct {
 func (c *FogAdd) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the fog")
 }
-func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
@@ -110,17 +103,12 @@ func (c *FogAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		Points:  slices.Clone(c.Points),
 	}
 	s.Fog = append(s.Fog, shape)
-	woke := !l.FogEnabled
-	if woke {
+	if !l.FogEnabled {
 		l.FogEnabled = true
 		l.FogPrefill = c.Mode == FogReveal
 	}
 	s.Normalize()
-	emissions := make([]Emission, 0, 2)
-	if woke {
-		emissions = append(emissions, tableUpdated(s))
-	}
-	return append(emissions, to(ToAll, &FogAdded{Shape: cloneShape(shape)})), nil
+	return nil, nil
 }
 
 type FogRemove struct {
@@ -130,13 +118,13 @@ type FogRemove struct {
 func (c *FogRemove) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the fog")
 }
-func (c *FogRemove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *FogRemove) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if !slices.ContainsFunc(s.Fog, func(f FogShape) bool { return f.ID == c.ID }) {
 		return nil, notFound("Fog gone", "That fog shape is no longer there.")
 	}
 	s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.ID == c.ID })
 	s.Normalize()
-	return []Emission{to(ToAll, &FogRemoved{ID: c.ID})}, nil
+	return nil, nil
 }
 
 type FogClear struct {
@@ -146,11 +134,11 @@ type FogClear struct {
 func (c *FogClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the fog")
 }
-func (c *FogClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *FogClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
 	s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.LayerID == c.Layer })
 	s.Normalize()
-	return []Emission{to(ToAll, &FogCleared{Layer: c.Layer})}, nil
+	return nil, nil
 }

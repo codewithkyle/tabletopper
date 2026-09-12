@@ -21,12 +21,12 @@ test("the pawn family bumps the pawns and leaves the rest alone", () => {
 	assert.deepEqual(rev, { pawns: 4, fog: 0, strokes: 0, table: 0, initiative: 0 });
 });
 test("the fog family bumps the fog", () => {
-	const rev = after(["fog.added", "fog.removed", "fog.cleared"]);
-	assert.deepEqual(rev, { pawns: 0, fog: 3, strokes: 0, table: 0, initiative: 0 });
+	const rev = after(["fog.added", "fog.removed"]);
+	assert.deepEqual(rev, { pawns: 0, fog: 2, strokes: 0, table: 0, initiative: 0 });
 });
 test("the stroke family bumps the strokes, extensions included", () => {
-	const rev = after(["stroke.began", "stroke.extended", "stroke.ended", "stroke.erased", "stroke.cleared"]);
-	assert.deepEqual(rev, { pawns: 0, fog: 0, strokes: 5, table: 0, initiative: 0 });
+	const rev = after(["stroke.began", "stroke.extended", "stroke.ended", "stroke.erased"]);
+	assert.deepEqual(rev, { pawns: 0, fog: 0, strokes: 4, table: 0, initiative: 0 });
 });
 test("the table and the initiative each bump their own", () => {
 	assert.deepEqual(after(["table.updated"]), { pawns: 0, fog: 0, strokes: 0, table: 1, initiative: 0 });

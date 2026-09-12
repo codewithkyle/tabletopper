@@ -12,7 +12,7 @@ import (
 
 var update = flag.Bool("update", false, "rewrite the reducer fixtures in testdata")
 
-func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
+func TestDerivedEventsConvergeOnTheServersState(t *testing.T) {
 	w := newWorld(t)
 	r := &recorder{t: t, w: w}
 	r.visit = func(st stepRecord) {
@@ -21,7 +21,7 @@ func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
 		}
 		for _, v := range r.viewers() {
 			got := v.before.Clone()
-			for _, ev := range delivered(st.emissions, st.actor, v.actor) {
+			for _, ev := range st.change.seen(v.actor) {
 				if err := Reduce(&got, ev); err != nil {
 					t.Fatalf("%s: reducing %s for the %s: %v", st.name, ev.eventType(), v.actor.Role, err)
 				}
@@ -30,6 +30,16 @@ func TestEmittedEventsConvergeOnTheServersState(t *testing.T) {
 			if mustJSON(t, got) != mustJSON(t, want) {
 				t.Fatalf("%s: the %s's reduced state is not the server's\n reduced %s\n  server %s",
 					st.name, v.actor.Role, mustJSON(t, got), mustJSON(t, want))
+			}
+			for _, ev := range st.change.events(v.actor.Role) {
+				alone := v.before.Clone()
+				if err := Reduce(&alone, ev); err != nil {
+					t.Fatalf("%s: reducing %s for the %s: %v", st.name, ev.eventType(), v.actor.Role, err)
+				}
+				if mustJSON(t, alone) == mustJSON(t, v.before) {
+					t.Fatalf("%s: %s changes nothing for the %s; the derivation is sending a no-op",
+						st.name, ev.eventType(), v.actor.Role)
+				}
 			}
 		}
 	}
@@ -54,7 +64,7 @@ func TestReducerFixturesAreCurrent(t *testing.T) {
 			}
 			r.visit = func(st stepRecord) {
 				events := []json.RawMessage{}
-				for _, ev := range delivered(st.emissions, st.actor, viewer) {
+				for _, ev := range st.change.seen(viewer) {
 					seq++
 					var by *ulid.ULID
 					if !st.hub {
@@ -159,11 +169,11 @@ func decodeEventForTest(raw json.RawMessage) (Event, error) {
 }
 
 type stepRecord struct {
-	name      string
-	actor     Actor
-	hub       bool
-	emissions []Emission
-	before    map[Role]State
+	name   string
+	actor  Actor
+	hub    bool
+	change change
+	before map[Role]State
 }
 type recorder struct {
 	t       *testing.T
@@ -184,15 +194,15 @@ func (r *recorder) viewers() []viewer {
 		{actor: r.w.pc, before: r.current[RolePlayer]},
 	}
 }
-func (r *recorder) do(name string, cmd Command, actor Actor) []Emission {
+func (r *recorder) do(name string, cmd Command, actor Actor) {
 	r.t.Helper()
-	return r.record(name, cmd, actor, false)
+	r.record(name, cmd, actor, false)
 }
-func (r *recorder) hub(name string, cmd Command) []Emission {
+func (r *recorder) hub(name string, cmd Command) {
 	r.t.Helper()
-	return r.record(name, cmd, r.w.gm, true)
+	r.record(name, cmd, r.w.gm, true)
 }
-func (r *recorder) record(name string, cmd Command, actor Actor, hub bool) []Emission {
+func (r *recorder) record(name string, cmd Command, actor Actor, hub bool) {
 	r.t.Helper()
 	if r.ran == nil {
 		r.ran = map[string]bool{}
@@ -203,9 +213,8 @@ func (r *recorder) record(name string, cmd Command, actor Actor, hub bool) []Emi
 		RoleGM:     r.w.s.Project(RoleGM),
 		RolePlayer: r.w.s.Project(RolePlayer),
 	}
-	ems := r.w.apply(cmd, actor)
-	r.visit(stepRecord{name: name, actor: actor, hub: hub, emissions: ems, before: r.current})
-	return ems
+	ch := r.w.change(cmd, actor)
+	r.visit(stepRecord{name: name, actor: actor, hub: hub, change: ch, before: r.current})
 }
 func (r *recorder) uncovered() []string {
 	var missing []string

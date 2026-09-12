@@ -10,7 +10,7 @@ type Pinged struct {
 }
 
 func (*Pinged) eventType() string { return "pinged" }
-func (*Pinged) Transient() bool   { return true }
+func (*Pinged) transient()        {}
 
 type Ping struct {
 	Layer ulid.ULID `json:"layer"`
@@ -21,7 +21,7 @@ type Ping struct {
 func (c *Ping) Authorize(s *State, a Actor) error {
 	return s.requirePlayerLayer(a, c.Layer)
 }
-func (c *Ping) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *Ping) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
@@ -31,5 +31,5 @@ func (c *Ping) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	if err := checkCoord("ping", c.Y); err != nil {
 		return nil, err
 	}
-	return []Emission{to(ToAll, &Pinged{Layer: c.Layer, X: c.X, Y: c.Y})}, nil
+	return []Signal{signal(ToAll, &Pinged{Layer: c.Layer, X: c.X, Y: c.Y})}, nil
 }

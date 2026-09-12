@@ -9,76 +9,9 @@ import (
 type InitiativeUpdated struct {
 	Header
 	Initiative Initiative `json:"initiative"`
-	player     *Initiative
 }
 
 func (*InitiativeUpdated) eventType() string { return "initiative.updated" }
-func (e *InitiativeUpdated) ForRole(role Role) Event {
-	if role == RoleGM || e.player == nil {
-		return e
-	}
-	c := *e
-	c.Initiative = *e.player
-	return &c
-}
-func initiativeUpdated(s *State) []Emission {
-	player := projectInitiative(s)
-	return []Emission{to(ToAll, &InitiativeUpdated{
-		Initiative: cloneInitiative(s.Initiative),
-		player:     &player,
-	})}
-}
-func projectInitiative(s *State) Initiative {
-	in := cloneInitiative(s.Initiative)
-	entries := make([]InitiativeEntry, 0, len(in.Entries))
-	for _, e := range in.Entries {
-		if len(e.PawnIDs) > 0 {
-			kept := make([]ulid.ULID, 0, len(e.PawnIDs))
-			for _, id := range e.PawnIDs {
-				if p := s.Pawn(id); p != nil && p.Visible {
-					kept = append(kept, id)
-				}
-			}
-			if len(kept) == 0 {
-				continue
-			}
-			e.PawnIDs = kept
-		}
-		entries = append(entries, e)
-	}
-	in.Entries = entries
-	if in.Active != nil && !hasEntry(entries, *in.Active) {
-		in.Active = nil
-	}
-	return in
-}
-func (s *State) ProjectedInitiative(role Role) (Initiative, map[ulid.ULID]Pawn) {
-	in := cloneInitiative(s.Initiative)
-	if role != RoleGM {
-		in = projectInitiative(s)
-	}
-	pawns := map[ulid.ULID]Pawn{}
-	for _, e := range in.Entries {
-		for _, id := range e.PawnIDs {
-			if _, done := pawns[id]; done {
-				continue
-			}
-			p := s.Pawn(id)
-			if p == nil {
-				continue
-			}
-			if role == RoleGM {
-				pawns[id] = clonePawn(*p)
-				continue
-			}
-			if !p.Visible {
-				continue
-			}
-			pawns[id] = projectPawn(clonePawn(*p), s.Table)
-		}
-	}
-	return in, pawns
-}
 func (s *State) hasEntryFor(pawn ulid.ULID) bool {
 	for _, e := range s.Initiative.Entries {
 		if slices.Contains(e.PawnIDs, pawn) {
@@ -87,26 +20,19 @@ func (s *State) hasEntryFor(pawn ulid.ULID) bool {
 	}
 	return false
 }
-func (s *State) dropEntriesFor(pawn ulid.ULID) bool {
+func (s *State) dropEntriesFor(pawn ulid.ULID) {
 	if !s.hasEntryFor(pawn) {
-		return false
+		return
 	}
-	return s.dropMembers(func(id ulid.ULID) bool { return id == pawn })
-}
-func (s *State) dropMembers(gone func(ulid.ULID) bool) bool {
-	entries, active, changed := dropped(s.Initiative.Entries, s.Initiative.Active, gone)
+	entries, active := dropped(s.Initiative.Entries, s.Initiative.Active, func(id ulid.ULID) bool { return id == pawn })
 	s.Initiative.Entries = entries
 	s.Initiative.Active = active
 	if len(entries) == 0 {
-		if s.Initiative.Active != nil || s.Initiative.Round != 0 {
-			changed = true
-		}
 		s.Initiative.Active = nil
 		s.Initiative.Round = 0
 	}
-	return changed
 }
-func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) bool) ([]InitiativeEntry, *ulid.ULID, bool) {
+func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) bool) ([]InitiativeEntry, *ulid.ULID) {
 	empties := func(e InitiativeEntry) bool {
 		if len(e.PawnIDs) == 0 {
 			return false
@@ -118,7 +44,6 @@ func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) 
 		}
 		return true
 	}
-	changed := false
 	at := -1
 	if active != nil {
 		at = slices.IndexFunc(entries, func(e InitiativeEntry) bool { return e.ID == *active })
@@ -135,18 +60,15 @@ func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) 
 			}
 		}
 		active = successor
-		changed = true
 	}
 	kept := make([]InitiativeEntry, 0, len(entries))
 	for _, e := range entries {
 		if empties(e) {
-			changed = true
 			continue
 		}
 		members := make([]ulid.ULID, 0, len(e.PawnIDs))
 		for _, id := range e.PawnIDs {
 			if gone(id) {
-				changed = true
 				continue
 			}
 			members = append(members, id)
@@ -154,7 +76,7 @@ func dropped(entries []InitiativeEntry, active *ulid.ULID, gone func(ulid.ULID) 
 		e.PawnIDs = members
 		kept = append(kept, e)
 	}
-	return kept, active, changed
+	return kept, active
 }
 
 type InitiativeSet struct {
@@ -165,7 +87,7 @@ type InitiativeSet struct {
 func (c *InitiativeSet) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the initiative order")
 }
-func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if len(c.Entries) > InitiativeMax {
 		return nil, invalid("Too many entries", "The tracker holds at most 200 entries.")
 	}
@@ -200,7 +122,7 @@ func (c *InitiativeSet) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Initiative.Entries = entries
 	s.Initiative.Active = cloneID(c.Active)
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 
 type InitiativeNext struct{}
@@ -220,7 +142,7 @@ func (c *InitiativeNext) Authorize(s *State, a Actor) error {
 	}
 	return forbidden("Not your turn", "Only the GM, or whoever's turn it is, can advance the tracker.")
 }
-func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if len(s.Initiative.Entries) == 0 {
 		return nil, invalid("Nothing to advance", "There is nothing in the initiative tracker.")
 	}
@@ -256,21 +178,14 @@ func (c *InitiativeNext) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 			s.Initiative.Round++
 		}
 	}
-	touched := map[ulid.ULID]bool{}
 	if from >= 0 {
-		s.tick(s.Initiative.Entries[from], ClearEnd, touched)
+		s.tick(s.Initiative.Entries[from], ClearEnd)
 	}
-	s.tick(s.Initiative.Entries[next], ClearStart, touched)
+	s.tick(s.Initiative.Entries[next], ClearStart)
 	active := s.Initiative.Entries[next].ID
 	s.Initiative.Active = &active
 	s.Normalize()
-	out := initiativeUpdated(s)
-	for _, p := range s.Pawns {
-		if touched[p.ID] {
-			out = append(out, s.pawnUpdated(p.ID)...)
-		}
-	}
-	return out, nil
+	return nil, nil
 }
 func (s *State) skips(e InitiativeEntry) bool {
 	found := false
@@ -286,7 +201,7 @@ func (s *State) skips(e InitiativeEntry) bool {
 	}
 	return found
 }
-func (s *State) tick(e InitiativeEntry, when ClearTrigger, touched map[ulid.ULID]bool) {
+func (s *State) tick(e InitiativeEntry, when ClearTrigger) {
 	for _, id := range e.PawnIDs {
 		p := s.Pawn(id)
 		if p == nil {
@@ -309,7 +224,6 @@ func (s *State) tick(e InitiativeEntry, when ClearTrigger, touched map[ulid.ULID
 			continue
 		}
 		p.Conditions = kept
-		touched[p.ID] = true
 	}
 }
 func (s *State) entry(id ulid.ULID) *InitiativeEntry {
@@ -326,8 +240,8 @@ type InitiativeSync struct{}
 func (c *InitiativeSync) Authorize(s *State, a Actor) error {
 	return requireGM(a, "sync the initiative tracker")
 }
-func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	entries, active, _ := dropped(s.Initiative.Entries, s.Initiative.Active, func(id ulid.ULID) bool {
+func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	entries, active := dropped(s.Initiative.Entries, s.Initiative.Active, func(id ulid.ULID) bool {
 		p := s.Pawn(id)
 		return p == nil || (p.Kind != PawnPlayer && Dead(*p))
 	})
@@ -372,7 +286,7 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Initiative.Entries = entries
 	s.Initiative.Active = active
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 func (s *State) enlist(entries []InitiativeEntry, p Pawn, env Env) []InitiativeEntry {
 	if s.Table.InitiativeGrouping != GroupIndividual && p.Kind == PawnMonster {
@@ -416,10 +330,10 @@ type InitiativeClear struct{}
 func (c *InitiativeClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the initiative tracker")
 }
-func (c *InitiativeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Initiative = Initiative{}
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 
 type InitiativeActivate struct {
@@ -429,14 +343,14 @@ type InitiativeActivate struct {
 func (c *InitiativeActivate) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change whose turn it is")
 }
-func (c *InitiativeActivate) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeActivate) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if s.entry(c.Entry) == nil {
 		return nil, notFound("Entry gone", "That line is no longer in the initiative tracker.")
 	}
 	id := c.Entry
 	s.Initiative.Active = &id
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 
 type InitiativeRemove struct {
@@ -446,7 +360,7 @@ type InitiativeRemove struct {
 func (c *InitiativeRemove) Authorize(s *State, a Actor) error {
 	return requireGM(a, "remove an entry from the initiative tracker")
 }
-func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	entries := s.Initiative.Entries
 	at := slices.IndexFunc(entries, func(e InitiativeEntry) bool { return e.ID == c.Entry })
 	if at < 0 {
@@ -463,7 +377,7 @@ func (c *InitiativeRemove) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	s.Initiative.Entries = slices.Delete(slices.Clone(entries), at, at+1)
 	s.Initiative.Active = active
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 
 type InitiativeReorder struct {
@@ -473,7 +387,7 @@ type InitiativeReorder struct {
 func (c *InitiativeReorder) Authorize(s *State, a Actor) error {
 	return requireGM(a, "reorder the initiative tracker")
 }
-func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if len(c.IDs) != len(s.Initiative.Entries) {
 		return nil, invalid("Order out of date", "The tracker changed while you were dragging. Try again.")
 	}
@@ -492,7 +406,7 @@ func (c *InitiativeReorder) Apply(s *State, a Actor, env Env) ([]Emission, error
 	}
 	s.Initiative.Entries = entries
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }
 
 type InitiativeAdd struct {
@@ -503,7 +417,7 @@ type InitiativeAdd struct {
 func (c *InitiativeAdd) Authorize(s *State, a Actor) error {
 	return requireGM(a, "add an entry to the initiative tracker")
 }
-func (c *InitiativeAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *InitiativeAdd) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if (c.Name == "") == (c.Pawn == nil) {
 		return nil, invalid("Bad entry", "An entry is a name or a pawn, and not both.")
 	}
@@ -528,5 +442,5 @@ func (c *InitiativeAdd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	s.Initiative.Entries = entries
 	s.Normalize()
-	return initiativeUpdated(s), nil
+	return nil, nil
 }

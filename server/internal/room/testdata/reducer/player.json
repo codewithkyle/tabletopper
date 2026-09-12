@@ -75,17 +75,7 @@
   "steps": [
     {
       "name": "name the room",
-      "events": [
-        {
-          "type": "room.updated",
-          "seq": 1,
-          "room": {
-            "id": "010000000000000000000000Z8",
-            "name": "The Sunless Citadel",
-            "locked": false
-          }
-        }
-      ],
+      "events": [],
       "state": {
         "schema": 3,
         "seq": 0,
@@ -164,7 +154,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 2,
+          "seq": 1,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -286,7 +276,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 3,
+          "seq": 2,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -422,7 +412,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 4,
+          "seq": 3,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -558,7 +548,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 5,
+          "seq": 4,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -708,7 +698,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 6,
+          "seq": 5,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -858,7 +848,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 7,
+          "seq": 6,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -1008,7 +998,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 8,
+          "seq": 7,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -1158,7 +1148,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 9,
+          "seq": 8,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -1308,7 +1298,7 @@
       "events": [
         {
           "type": "room.updated",
-          "seq": 10,
+          "seq": 9,
           "room": {
             "id": "010000000000000000000000Z8",
             "name": "The Sunless Citadel",
@@ -1415,7 +1405,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 11,
+          "seq": 10,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000003",
@@ -1565,7 +1555,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 12,
+          "seq": 11,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000004",
@@ -1738,7 +1728,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 13,
+          "seq": 12,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000005",
@@ -2101,7 +2091,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 14,
+          "seq": 13,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000007",
@@ -2320,7 +2310,7 @@
       "events": [
         {
           "type": "pawn.updated",
-          "seq": 15,
+          "seq": 14,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000007",
@@ -2538,6 +2528,34 @@
       "name": "hide the numbers again now the fight is on",
       "events": [
         {
+          "type": "pawn.updated",
+          "seq": 15,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 653,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": "healthy",
+            "ac": null,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          }
+        },
+        {
           "type": "table.updated",
           "seq": 16,
           "by": "010000000000000000000000Z9",
@@ -2587,34 +2605,6 @@
             "playersCanDraw": true,
             "initiativeGrouping": "grouped",
             "fogPrefill": false
-          }
-        },
-        {
-          "type": "pawn.updated",
-          "seq": 17,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 653,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 7,
-            "maxHp": 7,
-            "hpBand": "healthy",
-            "ac": null,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
           }
         }
       ],
@@ -2810,7 +2800,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 18,
+          "seq": 17,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -3061,7 +3051,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 19,
+          "seq": 18,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -3308,7 +3298,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 20,
+          "seq": 19,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -3555,7 +3545,7 @@
       "events": [
         {
           "type": "pawn.moved",
-          "seq": 21,
+          "seq": 20,
           "by": "010000000000000000000000ZA",
           "pawns": [
             {
@@ -3994,7 +3984,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 22,
+          "seq": 21,
           "by": "010000000000000000000000ZA",
           "initiative": {
             "entries": [
@@ -4241,7 +4231,7 @@
       "events": [
         {
           "type": "pawn.updated",
-          "seq": 23,
+          "seq": 22,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000005",
@@ -4483,7 +4473,7 @@
       "events": [
         {
           "type": "pawn.updated",
-          "seq": 24,
+          "seq": 23,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000005",
@@ -4755,7 +4745,7 @@
       "events": [
         {
           "type": "pawn.moved",
-          "seq": 25,
+          "seq": 24,
           "by": "010000000000000000000000Z9",
           "pawns": [
             {
@@ -4996,7 +4986,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 26,
+          "seq": 25,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -5258,7 +5248,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 27,
+          "seq": 26,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -5520,7 +5510,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 28,
+          "seq": 27,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -5791,47 +5781,7 @@
     },
     {
       "name": "and the ambusher from its own menu",
-      "events": [
-        {
-          "type": "initiative.updated",
-          "seq": 29,
-          "by": "010000000000000000000000Z9",
-          "initiative": {
-            "entries": [
-              {
-                "id": "0100000000000000000000000B",
-                "pawnIds": [
-                  "01000000000000000000000003"
-                ],
-                "name": "Ari",
-                "initiative": 19
-              },
-              {
-                "id": "0100000000000000000000000C",
-                "pawnIds": [
-                  "01000000000000000000000005"
-                ],
-                "name": "Goblin",
-                "initiative": 14
-              },
-              {
-                "id": "0100000000000000000000000D",
-                "pawnIds": [],
-                "name": "Lair action",
-                "initiative": 20
-              },
-              {
-                "id": "0100000000000000000000000G",
-                "pawnIds": [],
-                "name": "The volcano erupts",
-                "initiative": 0
-              }
-            ],
-            "active": "0100000000000000000000000B",
-            "round": 2
-          }
-        }
-      ],
+      "events": [],
       "state": {
         "schema": 3,
         "seq": 0,
@@ -6068,7 +6018,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 30,
+          "seq": 28,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -6342,7 +6292,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 31,
+          "seq": 29,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -6616,7 +6566,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 32,
+          "seq": 30,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -6878,7 +6828,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 33,
+          "seq": 31,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000006",
@@ -6906,7 +6856,7 @@
         },
         {
           "type": "initiative.updated",
-          "seq": 34,
+          "seq": 32,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -7193,13 +7143,13 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 35,
+          "seq": 33,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000006"
         },
         {
           "type": "initiative.updated",
-          "seq": 36,
+          "seq": 34,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -7461,7 +7411,7 @@
       "events": [
         {
           "type": "pinged",
-          "seq": 37,
+          "seq": 35,
           "by": "010000000000000000000000ZA",
           "layer": "01000000000000000000000001",
           "x": 512,
@@ -7698,7 +7648,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 38,
+          "seq": 36,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -7979,7 +7929,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 39,
+          "seq": 37,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -8260,7 +8210,7 @@
       "events": [
         {
           "type": "fog.added",
-          "seq": 40,
+          "seq": 38,
           "by": "010000000000000000000000Z9",
           "shape": {
             "id": "0100000000000000000000000H",
@@ -8519,7 +8469,7 @@
       "events": [
         {
           "type": "fog.added",
-          "seq": 41,
+          "seq": 39,
           "by": "010000000000000000000000Z9",
           "shape": {
             "id": "0100000000000000000000000J",
@@ -8798,7 +8748,7 @@
       "events": [
         {
           "type": "fog.removed",
-          "seq": 42,
+          "seq": 40,
           "by": "010000000000000000000000Z9",
           "id": "0100000000000000000000000H"
         }
@@ -9050,7 +9000,7 @@
       "events": [
         {
           "type": "stroke.began",
-          "seq": 43,
+          "seq": 41,
           "by": "010000000000000000000000Z9",
           "stroke": {
             "id": "010000000000000000000000W4",
@@ -9332,7 +9282,7 @@
       "events": [
         {
           "type": "stroke.extended",
-          "seq": 44,
+          "seq": 42,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000W4",
           "points": [
@@ -9610,7 +9560,7 @@
       "events": [
         {
           "type": "stroke.ended",
-          "seq": 45,
+          "seq": 43,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000W4"
         }
@@ -9882,7 +9832,7 @@
       "events": [
         {
           "type": "stroke.began",
-          "seq": 46,
+          "seq": 44,
           "by": "010000000000000000000000ZA",
           "stroke": {
             "id": "010000000000000000000000W5",
@@ -10183,7 +10133,7 @@
       "events": [
         {
           "type": "stroke.erased",
-          "seq": 47,
+          "seq": 45,
           "by": "010000000000000000000000ZA",
           "ids": [
             "010000000000000000000000W5"
@@ -10457,7 +10407,7 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 48,
+          "seq": 46,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000007"
         }
@@ -10705,8 +10655,54 @@
       "name": "the party follows it down",
       "events": [
         {
-          "type": "table.updated",
+          "type": "pawn.removed",
+          "seq": 47,
+          "by": "010000000000000000000000Z9",
+          "id": "01000000000000000000000003"
+        },
+        {
+          "type": "pawn.removed",
+          "seq": 48,
+          "by": "010000000000000000000000Z9",
+          "id": "01000000000000000000000004"
+        },
+        {
+          "type": "pawn.removed",
           "seq": 49,
+          "by": "010000000000000000000000Z9",
+          "id": "01000000000000000000000005"
+        },
+        {
+          "type": "pawn.spawned",
+          "seq": 50,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000002",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        },
+        {
+          "type": "table.updated",
+          "seq": 51,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -10754,52 +10750,6 @@
             "playersCanDraw": true,
             "initiativeGrouping": "grouped",
             "fogPrefill": false
-          }
-        },
-        {
-          "type": "pawn.removed",
-          "seq": 50,
-          "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000003"
-        },
-        {
-          "type": "pawn.removed",
-          "seq": 51,
-          "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000004"
-        },
-        {
-          "type": "pawn.removed",
-          "seq": 52,
-          "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000005"
-        },
-        {
-          "type": "pawn.spawned",
-          "seq": 53,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000002",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
           }
         }
       ],
@@ -10985,8 +10935,113 @@
       "name": "and comes back up",
       "events": [
         {
-          "type": "table.updated",
+          "type": "pawn.removed",
+          "seq": 52,
+          "by": "010000000000000000000000Z9",
+          "id": "01000000000000000000000007"
+        },
+        {
+          "type": "pawn.spawned",
+          "seq": 53,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          }
+        },
+        {
+          "type": "pawn.spawned",
           "seq": 54,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          }
+        },
+        {
+          "type": "pawn.spawned",
+          "seq": 55,
+          "by": "010000000000000000000000Z9",
+          "pawn": {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 723,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": "bloody",
+            "ac": null,
+            "conditions": [
+              {
+                "id": "0100000000000000000000000E",
+                "name": "Prone",
+                "color": "white",
+                "duration": -1,
+                "clear": "end"
+              },
+              {
+                "id": "0100000000000000000000000F",
+                "name": "Blessed",
+                "color": "yellow",
+                "duration": 2,
+                "clear": "start"
+              }
+            ],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          }
+        },
+        {
+          "type": "table.updated",
+          "seq": 56,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -11034,111 +11089,6 @@
             "playersCanDraw": true,
             "initiativeGrouping": "grouped",
             "fogPrefill": false
-          }
-        },
-        {
-          "type": "pawn.removed",
-          "seq": 55,
-          "by": "010000000000000000000000Z9",
-          "id": "01000000000000000000000007"
-        },
-        {
-          "type": "pawn.spawned",
-          "seq": 56,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          }
-        },
-        {
-          "type": "pawn.spawned",
-          "seq": 57,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          }
-        },
-        {
-          "type": "pawn.spawned",
-          "seq": 58,
-          "by": "010000000000000000000000Z9",
-          "pawn": {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 723,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [
-              {
-                "id": "0100000000000000000000000E",
-                "name": "Prone",
-                "color": "white",
-                "duration": -1,
-                "clear": "end"
-              },
-              {
-                "id": "0100000000000000000000000F",
-                "name": "Blessed",
-                "color": "yellow",
-                "duration": 2,
-                "clear": "start"
-              }
-            ],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
           }
         }
       ],
@@ -11386,7 +11336,7 @@
       "events": [
         {
           "type": "pawn.spawned",
-          "seq": 59,
+          "seq": 57,
           "by": "010000000000000000000000Z9",
           "pawn": {
             "id": "01000000000000000000000007",
@@ -11680,7 +11630,7 @@
       "events": [
         {
           "type": "snapshot",
-          "seq": 60,
+          "seq": 58,
           "by": "010000000000000000000000ZA",
           "state": {
             "schema": 3,
@@ -12482,7 +12432,7 @@
       "events": [
         {
           "type": "player.updated",
-          "seq": 61,
+          "seq": 59,
           "player": {
             "id": "010000000000000000000000ZB",
             "name": "Rin",
@@ -12761,7 +12711,7 @@
       "events": [
         {
           "type": "player.updated",
-          "seq": 62,
+          "seq": 60,
           "player": {
             "id": "010000000000000000000000ZB",
             "name": "Rin",
@@ -13040,7 +12990,7 @@
       "events": [
         {
           "type": "player.joined",
-          "seq": 63,
+          "seq": 61,
           "player": {
             "id": "0100000000000000000000012C",
             "name": "Wren",
@@ -13328,7 +13278,7 @@
       "events": [
         {
           "type": "player.left",
-          "seq": 64,
+          "seq": 62,
           "id": "0100000000000000000000012C"
         }
       ],
@@ -13599,13 +13549,13 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 65,
+          "seq": 63,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000005"
         },
         {
           "type": "initiative.updated",
-          "seq": 66,
+          "seq": 64,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [
@@ -13850,7 +13800,7 @@
       "events": [
         {
           "type": "initiative.updated",
-          "seq": 67,
+          "seq": 65,
           "by": "010000000000000000000000Z9",
           "initiative": {
             "entries": [],
@@ -14064,10 +14014,10 @@
       "name": "wipe the fog",
       "events": [
         {
-          "type": "fog.cleared",
-          "seq": 68,
+          "type": "fog.removed",
+          "seq": 66,
           "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000001"
+          "id": "0100000000000000000000000J"
         }
       ],
       "state": {
@@ -14258,10 +14208,12 @@
       "name": "wipe the drawing",
       "events": [
         {
-          "type": "stroke.cleared",
-          "seq": 69,
+          "type": "stroke.erased",
+          "seq": 67,
           "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000001"
+          "ids": [
+            "010000000000000000000000W4"
+          ]
         }
       ],
       "state": {
@@ -14433,7 +14385,7 @@
       "events": [
         {
           "type": "player.left",
-          "seq": 70,
+          "seq": 68,
           "by": "010000000000000000000000Z9",
           "id": "010000000000000000000000ZB"
         }
@@ -14597,20 +14549,8 @@
       "name": "the cellar is not needed after all",
       "events": [
         {
-          "type": "fog.cleared",
-          "seq": 71,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000002"
-        },
-        {
-          "type": "stroke.cleared",
-          "seq": 72,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000002"
-        },
-        {
           "type": "table.updated",
-          "seq": 73,
+          "seq": 69,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -14793,7 +14733,7 @@
       "events": [
         {
           "type": "table.updated",
-          "seq": 74,
+          "seq": 70,
           "by": "010000000000000000000000Z9",
           "table": {
             "layers": [
@@ -14962,74 +14902,21 @@
       "events": [
         {
           "type": "pawn.removed",
-          "seq": 75,
+          "seq": 71,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000003"
         },
         {
           "type": "pawn.removed",
-          "seq": 76,
+          "seq": 72,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000004"
         },
         {
           "type": "pawn.removed",
-          "seq": 77,
+          "seq": 73,
           "by": "010000000000000000000000Z9",
           "id": "01000000000000000000000007"
-        },
-        {
-          "type": "fog.cleared",
-          "seq": 78,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000001"
-        },
-        {
-          "type": "stroke.cleared",
-          "seq": 79,
-          "by": "010000000000000000000000Z9",
-          "layer": "01000000000000000000000001"
-        },
-        {
-          "type": "table.updated",
-          "seq": 80,
-          "by": "010000000000000000000000Z9",
-          "table": {
-            "layers": [
-              {
-                "id": "01000000000000000000000001",
-                "name": "Ground floor",
-                "map": null,
-                "fogEnabled": true,
-                "fogPrefill": false
-              }
-            ],
-            "activeLayer": "01000000000000000000000001",
-            "grid": {
-              "lines": "solid",
-              "cellSize": 70,
-              "offsetX": -12,
-              "offsetY": 8,
-              "color": "#334455ff",
-              "snap": "cells",
-              "feetPerCell": 5,
-              "diagonals": "equal"
-            },
-            "pawnLabels": "default",
-            "playersCanDraw": true,
-            "initiativeGrouping": "grouped",
-            "fogPrefill": false
-          }
-        },
-        {
-          "type": "initiative.updated",
-          "seq": 81,
-          "by": "010000000000000000000000Z9",
-          "initiative": {
-            "entries": [],
-            "active": null,
-            "round": 0
-          }
         }
       ],
       "state": {
@@ -15101,7 +14988,7 @@
       "events": [
         {
           "type": "room.updated",
-          "seq": 82,
+          "seq": 74,
           "room": {
             "id": "010000000000000000000000Z8",
             "name": "The Sunless Citadel",
@@ -15178,7 +15065,7 @@
       "events": [
         {
           "type": "room.closed",
-          "seq": 83
+          "seq": 75
         }
       ],
       "state": {

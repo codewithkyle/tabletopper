@@ -75,6 +75,23 @@ func TestHidingAPawnUpdatesTheGMAndRemovesItForPlayers(t *testing.T) {
 		t.Errorf("pawn.removed named %s, want %s", got, pawn)
 	}
 }
+func TestARefusedCommandLeavesTheStateAsItWas(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	tb.send(gm, "1", &room.PawnSpawnCharacters{Pawns: []room.Pawn{
+		{Name: "Ari", Size: room.SizeMedium, LayerID: layer, X: 64, Y: 64},
+		{Name: "Rin", LayerID: layer, X: 128, Y: 64},
+	}})
+	only(t, gm, "error")
+	view, ok := tb.Table(tb.ctx(), roomID)
+	if !ok {
+		t.Fatal("the room would not say what is on the table")
+	}
+	if got := view.Pawns[layer]; got != 0 {
+		t.Fatalf("%d pawns are on the table; the first of the two was applied before the second was refused", got)
+	}
+}
 func TestDragsCoalesceIntoOneFrameForEverybodyElse(t *testing.T) {
 	tb := newTabletop(t, Options{DragInterval: 10 * time.Millisecond})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
@@ -128,7 +145,7 @@ func TestAKickTellsThePersonClosesThemAndForgetsTheirMembership(t *testing.T) {
 	frames(t, gm)
 	frames(t, player)
 	tb.send(gm, "k", &room.PlayerKick{ID: playerID})
-	only(t, player, "player.kicked")
+	only(t, player, "player.left", "player.kicked")
 	only(t, gm, "player.left")
 	select {
 	case <-player.quit:

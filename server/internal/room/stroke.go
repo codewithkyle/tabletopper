@@ -36,13 +36,6 @@ type StrokeErased struct {
 
 func (*StrokeErased) eventType() string { return "stroke.erased" }
 
-type StrokeCleared struct {
-	Header
-	Layer ulid.ULID `json:"layer"`
-}
-
-func (*StrokeCleared) eventType() string { return "stroke.cleared" }
-
 type StrokeBegin struct {
 	ID     ulid.ULID  `json:"id"`
 	Layer  ulid.ULID  `json:"layer"`
@@ -61,7 +54,7 @@ func (c *StrokeBegin) Authorize(s *State, a Actor) error {
 	}
 	return nil
 }
-func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
@@ -107,7 +100,7 @@ func (c *StrokeBegin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	s.Strokes = append(s.Strokes, stroke)
 	s.Normalize()
-	return []Emission{to(ToAll, &StrokeBegan{Stroke: cloneStroke(stroke)})}, nil
+	return nil, nil
 }
 
 type StrokeExtend struct {
@@ -118,7 +111,7 @@ type StrokeExtend struct {
 func (c *StrokeExtend) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
-func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	st := s.Stroke(c.ID)
 	if st == nil {
 		return nil, notFound("Stroke gone", "That stroke is no longer on the table.")
@@ -137,7 +130,7 @@ func (c *StrokeExtend) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	st.Points = append(st.Points, c.Points...)
 	s.Normalize()
-	return []Emission{to(ToAll, &StrokeExtended{ID: c.ID, Points: slices.Clone(c.Points)})}, nil
+	return nil, nil
 }
 
 type StrokeEnd struct {
@@ -147,14 +140,14 @@ type StrokeEnd struct {
 func (c *StrokeEnd) Authorize(s *State, a Actor) error {
 	return s.requireOwnStroke(a, c.ID)
 }
-func (c *StrokeEnd) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *StrokeEnd) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	st := s.Stroke(c.ID)
 	if st == nil {
 		return nil, notFound("Stroke gone", "That stroke is no longer on the table.")
 	}
 	st.Done = true
 	s.Normalize()
-	return []Emission{to(ToAll, &StrokeEnded{ID: c.ID})}, nil
+	return nil, nil
 }
 
 type StrokeErase struct {
@@ -172,23 +165,15 @@ func (c *StrokeErase) Authorize(s *State, a Actor) error {
 	}
 	return nil
 }
-func (c *StrokeErase) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *StrokeErase) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if err := checkSelection(len(c.IDs)); err != nil {
 		return nil, err
 	}
-	erased := make([]ulid.ULID, 0, len(c.IDs))
 	for _, id := range c.IDs {
-		if s.Stroke(id) == nil {
-			continue
-		}
-		erased = append(erased, id)
 		s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.ID == id })
 	}
 	s.Normalize()
-	if len(erased) == 0 {
-		return nil, nil
-	}
-	return []Emission{to(ToAll, &StrokeErased{IDs: erased})}, nil
+	return nil, nil
 }
 
 type StrokeClear struct {
@@ -198,13 +183,13 @@ type StrokeClear struct {
 func (c *StrokeClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the drawing")
 }
-func (c *StrokeClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *StrokeClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
 	s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.LayerID == c.Layer })
 	s.Normalize()
-	return []Emission{to(ToAll, &StrokeCleared{Layer: c.Layer})}, nil
+	return nil, nil
 }
 func (s *State) requireOwnStroke(a Actor, id ulid.ULID) error {
 	st := s.Stroke(id)

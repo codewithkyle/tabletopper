@@ -33,7 +33,7 @@ type PlayerKicked struct {
 }
 
 func (*PlayerKicked) eventType() string { return "player.kicked" }
-func (*PlayerKicked) Transient() bool   { return true }
+func (*PlayerKicked) transient()        {}
 
 type RoomUpdated struct {
 	Header
@@ -47,7 +47,7 @@ type RoomClosed struct {
 }
 
 func (*RoomClosed) eventType() string { return "room.closed" }
-func (*RoomClosed) Transient() bool   { return true }
+func (*RoomClosed) transient()        {}
 
 type PlayerKick struct {
 	ID ulid.ULID `json:"id"`
@@ -64,7 +64,7 @@ func (c *PlayerKick) Authorize(s *State, a Actor) error {
 	}
 	return nil
 }
-func (c *PlayerKick) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *PlayerKick) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	p := s.Player(c.ID)
 	if p == nil {
 		return nil, notFound("Nobody there", "That player is no longer in the room.")
@@ -74,10 +74,7 @@ func (c *PlayerKick) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	}
 	s.Players = slices.DeleteFunc(s.Players, func(q Player) bool { return q.ID == c.ID })
 	s.Normalize()
-	return []Emission{
-		toPlayer(c.ID, &PlayerKicked{Reason: KickReason}),
-		to(ToAll, &PlayerLeft{ID: c.ID}),
-	}, nil
+	return []Signal{{Event: &PlayerKicked{Reason: KickReason}, To: ToPlayer, Player: c.ID}}, nil
 }
 
 type PlayerJoin struct {
@@ -85,17 +82,17 @@ type PlayerJoin struct {
 }
 
 func (c *PlayerJoin) Authorize(s *State, a Actor) error { return nil }
-func (c *PlayerJoin) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *PlayerJoin) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	p := clonePlayer(c.Player)
 	p.Connected = true
 	if existing := s.Player(p.ID); existing != nil {
 		*existing = p
 		s.Normalize()
-		return []Emission{to(ToAll, &PlayerUpdated{Player: clonePlayer(p)})}, nil
+		return nil, nil
 	}
 	s.Players = append(s.Players, p)
 	s.Normalize()
-	return []Emission{to(ToAll, &PlayerJoined{Player: clonePlayer(p)})}, nil
+	return nil, nil
 }
 
 type PlayerSetConnected struct {
@@ -104,14 +101,14 @@ type PlayerSetConnected struct {
 }
 
 func (c *PlayerSetConnected) Authorize(s *State, a Actor) error { return nil }
-func (c *PlayerSetConnected) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *PlayerSetConnected) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	p := s.Player(c.ID)
 	if p == nil {
 		return nil, nil
 	}
 	p.Connected = c.Connected
 	s.Normalize()
-	return []Emission{to(ToAll, &PlayerUpdated{Player: clonePlayer(*p)})}, nil
+	return nil, nil
 }
 
 type PlayerLeave struct {
@@ -119,13 +116,13 @@ type PlayerLeave struct {
 }
 
 func (c *PlayerLeave) Authorize(s *State, a Actor) error { return nil }
-func (c *PlayerLeave) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *PlayerLeave) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if s.Player(c.ID) == nil {
 		return nil, nil
 	}
 	s.Players = slices.DeleteFunc(s.Players, func(q Player) bool { return q.ID == c.ID })
 	s.Normalize()
-	return []Emission{to(ToAll, &PlayerLeft{ID: c.ID})}, nil
+	return nil, nil
 }
 
 type RoomSetLocked struct {
@@ -133,10 +130,10 @@ type RoomSetLocked struct {
 }
 
 func (c *RoomSetLocked) Authorize(s *State, a Actor) error { return nil }
-func (c *RoomSetLocked) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *RoomSetLocked) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Room.Locked = c.Locked
 	s.Normalize()
-	return []Emission{to(ToAll, &RoomUpdated{Room: s.Room})}, nil
+	return nil, nil
 }
 
 type RoomSetName struct {
@@ -144,20 +141,20 @@ type RoomSetName struct {
 }
 
 func (c *RoomSetName) Authorize(s *State, a Actor) error { return nil }
-func (c *RoomSetName) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *RoomSetName) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if err := checkRequiredName("room", c.Name); err != nil {
 		return nil, err
 	}
 	s.Room.Name = c.Name
 	s.Normalize()
-	return []Emission{to(ToAll, &RoomUpdated{Room: s.Room})}, nil
+	return nil, nil
 }
 
 type RoomClose struct{}
 
 func (c *RoomClose) Authorize(s *State, a Actor) error { return nil }
-func (c *RoomClose) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	return []Emission{to(ToAll, &RoomClosed{})}, nil
+func (c *RoomClose) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	return []Signal{signal(ToAll, &RoomClosed{})}, nil
 }
 func clonePlayer(p Player) Player {
 	p.CharacterID = cloneID(p.CharacterID)

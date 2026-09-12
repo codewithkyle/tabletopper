@@ -6,28 +6,6 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-func TestChangingTheActiveLayerRebuildsThePlayersTable(t *testing.T) {
-	w := newWorld(t)
-	cellar := w.addLayer("Cellar")
-	upstairs := w.spawn(Pawn{Name: "Upstairs", Visible: true})
-	downstairs := w.spawn(Pawn{Name: "Downstairs", LayerID: cellar, Visible: true})
-	w.spawn(Pawn{Name: "Hidden downstairs", LayerID: cellar, Visible: false})
-	ems := w.apply(&TableSetActiveLayer{Layer: cellar}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"table.updated to all",
-		"pawn.removed to players",
-		"pawn.spawned to players",
-	})
-	if got := ems[1].Event.(*PawnRemoved).ID; got != upstairs {
-		t.Fatal("the wrong pawn was taken off the players' table")
-	}
-	if got := ems[2].Event.(*PawnSpawned).Pawn.ID; got != downstairs {
-		t.Fatal("the wrong pawn was put on the players' table")
-	}
-	if got := eventTypesOf(delivered(ems, w.gm, w.gm)); len(got) != 1 || got[0] != "table.updated" {
-		t.Fatalf("the GM received %v, want only the table", got)
-	}
-}
 func TestRemovingALayerEmptiesItInOrder(t *testing.T) {
 	w := newWorld(t)
 	ground := w.layer
@@ -39,16 +17,22 @@ func TestRemovingALayerEmptiesItInOrder(t *testing.T) {
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: cellar, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(700), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
-	ems := w.apply(&TableRemoveLayer{Layer: cellar}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"pawn.removed to gm",
-		"pawn.removed to players",
-		"pawn.removed to gm",
-		"fog.cleared to all",
-		"stroke.cleared to all",
-		"initiative.updated to all",
-		"table.updated to all",
-		"pawn.spawned to players",
+	ch := w.change(&TableRemoveLayer{Layer: cellar}, w.gm)
+	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{
+		"fog.removed",
+		"stroke.erased",
+		"pawn.removed",
+		"pawn.removed",
+		"initiative.updated",
+		"table.updated",
+	})
+	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{
+		"fog.removed",
+		"stroke.erased",
+		"pawn.removed",
+		"pawn.spawned",
+		"initiative.updated",
+		"table.updated",
 	})
 	if w.s.Table.ActiveLayer != ground {
 		t.Fatal("the active layer did not fall back to the remaining floor")
@@ -67,12 +51,8 @@ func TestRemovingAnInactiveLayerDoesNotMoveAnybody(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")
 	w.spawn(Pawn{Name: "Upstairs", Visible: true})
-	ems := w.apply(&TableRemoveLayer{Layer: cellar}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"fog.cleared to all",
-		"stroke.cleared to all",
-		"table.updated to all",
-	})
+	ch := w.change(&TableRemoveLayer{Layer: cellar}, w.gm)
+	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{"table.updated"})
 	if w.s.Table.ActiveLayer != w.layer {
 		t.Fatal("removing another floor moved the active layer")
 	}
@@ -92,19 +72,28 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}}}}, w.gm)
 	w.apply(&FogAdd{Layer: ground, Kind: ShapeRect, Mode: FogHide, Points: []int{0, 0, 64, 64}}, w.gm)
 	w.apply(&StrokeBegin{ID: testID(701), Layer: cellar, Kind: StrokeFree, Color: "#ffffff", Width: 2, Points: []int{0, 0}}, w.gm)
+	w.apply(&TableSetLayerMap{
+		Layer:   ground,
+		AssetID: testAssetID,
+		Map:     &MapRef{AssetID: testAssetID, Gen: testID(50), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
+	}, w.gm)
 	cell := w.s.Table.Grid.CellSize
-	ems := w.apply(&TableClear{}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"pawn.removed to gm",
-		"pawn.removed to players",
-		"pawn.removed to gm",
-		"pawn.removed to gm",
-		"fog.cleared to all",
-		"stroke.cleared to all",
-		"fog.cleared to all",
-		"stroke.cleared to all",
-		"table.updated to all",
-		"initiative.updated to all",
+	ch := w.change(&TableClear{}, w.gm)
+	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{
+		"fog.removed",
+		"stroke.erased",
+		"pawn.removed",
+		"pawn.removed",
+		"pawn.removed",
+		"initiative.updated",
+		"table.updated",
+	})
+	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{
+		"fog.removed",
+		"stroke.erased",
+		"pawn.removed",
+		"initiative.updated",
+		"table.updated",
 	})
 	if len(w.s.Pawns) != 0 || len(w.s.Fog) != 0 || len(w.s.Strokes) != 0 {
 		t.Fatalf("the table still holds %d pawns, %d fog shapes and %d strokes",
@@ -143,11 +132,9 @@ func TestOnlyTheGMMovesPawnsBetweenLayers(t *testing.T) {
 	cellar := w.addLayer("Cellar")
 	mine := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID})
 	w.refuse(&PawnSetLayer{IDs: []ulid.ULID{mine}, Layer: cellar}, w.pc, CodeForbidden)
-	ems := w.apply(&PawnSetLayer{IDs: []ulid.ULID{mine}, Layer: cellar}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"pawn.updated to gm",
-		"pawn.removed to players",
-	})
+	ch := w.change(&PawnSetLayer{IDs: []ulid.ULID{mine}, Layer: cellar}, w.gm)
+	equalStrings(t, "the GM", eventTypesOf(ch.events(RoleGM)), []string{"pawn.updated"})
+	equalStrings(t, "the players", eventTypesOf(ch.events(RolePlayer)), []string{"pawn.removed"})
 }
 func TestTheTrackerKeepsCombatantsOnOtherFloors(t *testing.T) {
 	w := newWorld(t)

@@ -32,14 +32,12 @@ export function revise(rev: Revisions, event: Event): void {
 			return;
 		case "fog.added":
 		case "fog.removed":
-		case "fog.cleared":
 			rev.fog++;
 			return;
 		case "stroke.began":
 		case "stroke.extended":
 		case "stroke.ended":
 		case "stroke.erased":
-		case "stroke.cleared":
 			rev.strokes++;
 			return;
 		case "error":

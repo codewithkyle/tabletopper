@@ -82,9 +82,9 @@ func TestAProjectionDoesNotShareStorageWithTheRoom(t *testing.T) {
 }
 func TestSyncRequestAnswersTheAskerAlone(t *testing.T) {
 	w := busyWorld(t)
-	ems := w.apply(&SyncRequest{}, w.pc)
-	equalStrings(t, "emissions", summary(ems), []string{"snapshot to sender"})
-	snap := ems[0].Event.(*Snapshot)
+	sigs := w.apply(&SyncRequest{}, w.pc)
+	equalStrings(t, "signals", summary(sigs), []string{"snapshot to sender"})
+	snap := sigs[0].Event.(*Snapshot)
 	if snap.You.ID != testPlayerID || snap.You.Role != RolePlayer {
 		t.Fatalf("the snapshot says the receiver is %+v", snap.You)
 	}

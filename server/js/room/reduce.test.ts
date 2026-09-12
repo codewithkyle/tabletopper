@@ -56,12 +56,10 @@ test("the fixtures between them exercise every event that changes state", () => 
 		"initiative.updated",
 		"fog.added",
 		"fog.removed",
-		"fog.cleared",
 		"stroke.began",
 		"stroke.extended",
 		"stroke.ended",
 		"stroke.erased",
-		"stroke.cleared",
 	].filter((type) => !seen.has(type));
 	assert.deepStrictEqual(missing, [], "the scenario never produced these events");
 });

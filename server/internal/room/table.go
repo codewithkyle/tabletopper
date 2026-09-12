@@ -12,9 +12,6 @@ type TableUpdated struct {
 }
 
 func (*TableUpdated) eventType() string { return "table.updated" }
-func tableUpdated(s *State) Emission {
-	return to(ToAll, &TableUpdated{Table: CloneTable(s.Table)})
-}
 
 type TableAddLayer struct {
 	Name string `json:"name"`
@@ -23,7 +20,7 @@ type TableAddLayer struct {
 func (c *TableAddLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "add a layer")
 }
-func (c *TableAddLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableAddLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if len(s.Table.Layers) >= LayersMax {
 		return nil, invalid("Too many layers", "A room can hold at most 20 layers.")
 	}
@@ -37,7 +34,7 @@ func (c *TableAddLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 		FogPrefill: true,
 	})
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableRemoveLayer struct {
@@ -47,37 +44,21 @@ type TableRemoveLayer struct {
 func (c *TableRemoveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "remove a layer")
 }
-func (c *TableRemoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableRemoveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
 	if len(s.Table.Layers) == 1 {
 		return nil, invalid("Last layer", "A room needs at least one layer.")
 	}
-	var out []Emission
-	var entriesChanged bool
 	for _, p := range s.Pawns {
-		if p.LayerID != c.Layer {
-			continue
-		}
-		out = append(out, to(ToGM, &PawnRemoved{ID: p.ID}))
-		if s.Shown(p) {
-			out = append(out, to(ToPlayers, &PawnRemoved{ID: p.ID}))
-		}
-		if s.dropEntriesFor(p.ID) {
-			entriesChanged = true
+		if p.LayerID == c.Layer {
+			s.dropEntriesFor(p.ID)
 		}
 	}
 	s.Pawns = slices.DeleteFunc(s.Pawns, func(p Pawn) bool { return p.LayerID == c.Layer })
 	s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.LayerID == c.Layer })
 	s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.LayerID == c.Layer })
-	out = append(out,
-		to(ToAll, &FogCleared{Layer: c.Layer}),
-		to(ToAll, &StrokeCleared{Layer: c.Layer}),
-	)
-	if entriesChanged {
-		out = append(out, initiativeUpdated(s)...)
-	}
 	index := slices.IndexFunc(s.Table.Layers, func(l Layer) bool { return l.ID == c.Layer })
 	wasActive := s.Table.ActiveLayer == c.Layer
 	s.Table.Layers = slices.Delete(s.Table.Layers, index, index+1)
@@ -85,11 +66,7 @@ func (c *TableRemoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error)
 		s.Table.ActiveLayer = s.Table.Layers[max(index-1, 0)].ID
 	}
 	s.Normalize()
-	out = append(out, tableUpdated(s))
-	if wasActive {
-		out = append(out, s.shownTransitions(map[ulid.ULID]bool{})...)
-	}
-	return out, nil
+	return nil, nil
 }
 
 type TableRenameLayer struct {
@@ -100,7 +77,7 @@ type TableRenameLayer struct {
 func (c *TableRenameLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "rename a layer")
 }
-func (c *TableRenameLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableRenameLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
@@ -110,7 +87,7 @@ func (c *TableRenameLayer) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	}
 	l.Name = c.Name
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableMoveLayer struct {
@@ -121,7 +98,7 @@ type TableMoveLayer struct {
 func (c *TableMoveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "reorder the layers")
 }
-func (c *TableMoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableMoveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	from := slices.IndexFunc(s.Table.Layers, func(l Layer) bool { return l.ID == c.Layer })
 	if from < 0 {
 		return nil, notFound("Layer gone", "That layer is no longer on the table.")
@@ -133,7 +110,7 @@ func (c *TableMoveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Table.Layers = slices.Delete(s.Table.Layers, from, from+1)
 	s.Table.Layers = slices.Insert(s.Table.Layers, c.Index, l)
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableSetLayerMap struct {
@@ -145,7 +122,7 @@ type TableSetLayerMap struct {
 func (c *TableSetLayerMap) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change a layer's map")
 }
-func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
@@ -158,7 +135,7 @@ func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, error)
 	}
 	l.Map = cloneRef(c.Map)
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableClearLayerMap struct {
@@ -168,14 +145,14 @@ type TableClearLayerMap struct {
 func (c *TableClearLayerMap) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear a layer's map")
 }
-func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	l, err := s.requireLayer(c.Layer)
 	if err != nil {
 		return nil, err
 	}
 	l.Map = nil
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableClear struct{}
@@ -183,20 +160,7 @@ type TableClear struct{}
 func (c *TableClear) Authorize(s *State, a Actor) error {
 	return requireGM(a, "clear the tabletop")
 }
-func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
-	var out []Emission
-	for _, p := range s.Pawns {
-		out = append(out, to(ToGM, &PawnRemoved{ID: p.ID}))
-		if s.Shown(p) {
-			out = append(out, to(ToPlayers, &PawnRemoved{ID: p.ID}))
-		}
-	}
-	for _, l := range s.Table.Layers {
-		out = append(out,
-			to(ToAll, &FogCleared{Layer: l.ID}),
-			to(ToAll, &StrokeCleared{Layer: l.ID}),
-		)
-	}
+func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	for i := range s.Table.Layers {
 		s.Table.Layers[i].Map = nil
 	}
@@ -205,8 +169,7 @@ func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Emission, error) {
 	s.Strokes = nil
 	s.Initiative = Initiative{}
 	s.Normalize()
-	out = append(out, tableUpdated(s))
-	return append(out, initiativeUpdated(s)...), nil
+	return nil, nil
 }
 
 type TableSetActiveLayer struct {
@@ -216,15 +179,13 @@ type TableSetActiveLayer struct {
 func (c *TableSetActiveLayer) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the active layer")
 }
-func (c *TableSetActiveLayer) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableSetActiveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
 		return nil, err
 	}
-	before := s.shownSet()
 	s.Table.ActiveLayer = c.Layer
 	s.Normalize()
-	out := []Emission{tableUpdated(s)}
-	return append(out, s.shownTransitions(before)...), nil
+	return nil, nil
 }
 
 type TableSetGrid struct {
@@ -234,13 +195,13 @@ type TableSetGrid struct {
 func (c *TableSetGrid) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the grid")
 }
-func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if err := checkGrid(c.Grid); err != nil {
 		return nil, err
 	}
 	s.Table.Grid = c.Grid
 	s.Normalize()
-	return []Emission{tableUpdated(s)}, nil
+	return nil, nil
 }
 
 type TableSetOptions struct {
@@ -253,31 +214,17 @@ type TableSetOptions struct {
 func (c *TableSetOptions) Authorize(s *State, a Actor) error {
 	return requireGM(a, "change the table options")
 }
-func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Emission, error) {
+func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if !c.PawnLabels.Valid() {
 		return nil, invalid("Bad setting", "That is not a pawn label setting.")
 	}
 	if !c.InitiativeGrouping.Valid() {
 		return nil, invalid("Bad setting", "That is not an initiative grouping.")
 	}
-	changed := s.Table.PawnLabels != c.PawnLabels
 	s.Table.PawnLabels = c.PawnLabels
 	s.Table.PlayersCanDraw = c.PlayersCanDraw
 	s.Table.InitiativeGrouping = c.InitiativeGrouping
 	s.Table.FogPrefill = c.FogPrefill
 	s.Normalize()
-	out := []Emission{tableUpdated(s)}
-	if !changed {
-		return out, nil
-	}
-	for _, p := range s.Pawns {
-		if p.Kind != PawnMonster && p.Kind != PawnNPC {
-			continue
-		}
-		if !s.Shown(p) {
-			continue
-		}
-		out = append(out, to(ToPlayers, &PawnUpdated{Pawn: projectPawn(clonePawn(p), s.Table)}))
-	}
-	return out, nil
+	return nil, nil
 }

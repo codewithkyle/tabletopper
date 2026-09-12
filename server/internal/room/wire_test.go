@@ -116,14 +116,15 @@ func TestEveryEventEncodesUnderItsRegisteredType(t *testing.T) {
 		}
 	}
 }
-func TestTheTransientEventsAreTheFiveThatAreNotState(t *testing.T) {
+func TestTheTransientEventsAreTheSixTheDerivationNeverProduces(t *testing.T) {
 	want := map[string]bool{
-		"room.closed": true, "player.kicked": true,
+		"room.closed": true, "player.kicked": true, "snapshot": true,
 		"pawn.dragging": true, "pinged": true, "error": true,
 	}
 	for wire, ev := range EventPrototypes() {
-		if ev.Transient() != want[wire] {
-			t.Errorf("%s reports Transient() = %v", wire, ev.Transient())
+		_, marked := ev.(Transient)
+		if marked != want[wire] {
+			t.Errorf("%s is a room.Transient = %v", wire, marked)
 		}
 	}
 }
@@ -140,7 +141,7 @@ func TestTheErrorEventCarriesTheRefusal(t *testing.T) {
 	if ev.CID != "a9" || ev.Code != CodeForbidden || ev.Heading != "Not your pawn" {
 		t.Fatalf("built %+v", ev)
 	}
-	if !ev.Transient() {
+	if _, marked := any(ev).(Transient); !marked {
 		t.Fatal("an error is not marked transient, so it would be reduced into state")
 	}
 	generic := NewErrorEvent("a9", errString("the database is on fire"))

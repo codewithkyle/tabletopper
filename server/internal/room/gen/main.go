@@ -214,7 +214,7 @@ func union(name string, blocks []block) string {
 func transient() string {
 	var names []string
 	for wire, ev := range room.EventPrototypes() {
-		if ev.Transient() {
+		if _, ok := ev.(room.Transient); ok {
 			names = append(names, quote(wire))
 		}
 	}

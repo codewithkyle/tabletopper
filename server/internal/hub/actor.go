@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"time"
 
@@ -211,28 +212,50 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 	if err := cmd.Authorize(a.state, who); err != nil {
 		return err
 	}
-	ems, err := cmd.Apply(a.state, who, a.env())
+	before := a.state.Clone()
+	sigs, err := cmd.Apply(a.state, who, a.env())
 	if err != nil {
+		a.state = &before
 		return err
 	}
-	a.emit(ems, who, sender, nil)
+	derived := a.derive(&before, who)
+	a.emit(sigs, who, sender, nil)
+	a.signals(sigs)
+	a.changed(derived)
 	return nil
 }
-func (a *actor) emit(ems []room.Emission, who room.Actor, sender, only *client) {
-	var by *ulid.ULID
-	if !who.ID.IsZero() {
-		id := who.ID
-		by = &id
+func (a *actor) derive(before *room.State, who room.Actor) []room.Event {
+	if reflect.DeepEqual(*before, *a.state) {
+		return nil
 	}
-	for _, em := range ems {
-		counted := counts(em.Event)
-		if counted && (em.To == room.ToSender || em.To == room.ToOthers || em.To == room.ToPlayer) {
-			slog.Error("A state event was addressed to part of an audience",
-				"room", a.id, "event", frameType(em.Event))
+	a.dirty = true
+	a.changes++
+	by := actorID(who)
+	var gm []room.Event
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		evs := room.Derive(before, a.state, role)
+		if role == room.RoleGM {
+			gm = evs
 		}
-		for _, role := range a.audience(em, who) {
-			seq := a.advance(role, counted)
-			ev := room.ForRole(em.Event, role)
+		for _, ev := range evs {
+			frame, err := room.EncodeEvent(ev, a.advance(role, true), by)
+			if err != nil {
+				slog.Error("Failed to encode an event", "room", a.id, "event", frameType(ev), "error", err)
+				continue
+			}
+			for _, c := range a.byRole(role) {
+				a.send(c, frame)
+			}
+		}
+	}
+	return gm
+}
+func (a *actor) emit(sigs []room.Signal, who room.Actor, sender, only *client) {
+	by := actorID(who)
+	for _, sig := range sigs {
+		for _, role := range a.audience(sig, who) {
+			seq := a.advance(role, false)
+			ev := room.ProjectSignal(a.state, sig, role)
 			if ev == nil {
 				continue
 			}
@@ -244,38 +267,29 @@ func (a *actor) emit(ems []room.Emission, who room.Actor, sender, only *client) 
 				slog.Error("Failed to encode an event", "room", a.id, "event", frameType(ev), "error", err)
 				continue
 			}
-			for _, c := range a.recipients(em, role, who, sender, only) {
+			for _, c := range a.recipients(sig, role, who, sender, only) {
 				a.send(c, frame)
 			}
 		}
-		if counted {
-			a.dirty = true
-			a.changes++
-		}
-		a.effect(em)
 	}
 }
-func counts(ev room.Event) bool {
-	if ev.Transient() {
-		return false
+func actorID(who room.Actor) *ulid.ULID {
+	if who.ID.IsZero() {
+		return nil
 	}
-	_, snapshot := ev.(*room.Snapshot)
-	return !snapshot
+	id := who.ID
+	return &id
 }
-func (a *actor) audience(em room.Emission, who room.Actor) []room.Role {
-	switch em.To {
+func (a *actor) audience(sig room.Signal, who room.Actor) []room.Role {
+	switch sig.To {
 	case room.ToAll, room.ToOthers:
 		return []room.Role{room.RoleGM, room.RolePlayer}
-	case room.ToGM:
-		return []room.Role{room.RoleGM}
-	case room.ToPlayers:
-		return []room.Role{room.RolePlayer}
 	case room.ToSender:
 		return []room.Role{who.Role}
 	case room.ToPlayer:
 		var roles []room.Role
 		for c := range a.conns {
-			if c.who.ID == em.Player && !slices.Contains(roles, c.who.Role) {
+			if c.who.ID == sig.Player && !slices.Contains(roles, c.who.Role) {
 				roles = append(roles, c.who.Role)
 			}
 		}
@@ -283,7 +297,16 @@ func (a *actor) audience(em room.Emission, who room.Actor) []room.Role {
 	}
 	return nil
 }
-func (a *actor) recipients(em room.Emission, role room.Role, who room.Actor, sender, only *client) []*client {
+func (a *actor) byRole(role room.Role) []*client {
+	var out []*client
+	for c := range a.conns {
+		if c.who.Role == role {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+func (a *actor) recipients(sig room.Signal, role room.Role, who room.Actor, sender, only *client) []*client {
 	if only != nil {
 		if only.who.Role != role {
 			return nil
@@ -295,7 +318,7 @@ func (a *actor) recipients(em room.Emission, role room.Role, who room.Actor, sen
 		if c.who.Role != role {
 			continue
 		}
-		switch em.To {
+		switch sig.To {
 		case room.ToSender:
 			if c.who.ID != who.ID {
 				continue
@@ -305,7 +328,7 @@ func (a *actor) recipients(em room.Emission, role room.Role, who room.Actor, sen
 				continue
 			}
 		case room.ToPlayer:
-			if c.who.ID != em.Player {
+			if c.who.ID != sig.Player {
 				continue
 			}
 		}
@@ -344,25 +367,30 @@ func (a *actor) refuse(c *client, cid string, err error) {
 	a.send(c, frame)
 }
 func (a *actor) snapshot(c *client) {
-	ems, err := (&room.SyncRequest{}).Apply(a.state, c.who, a.env())
+	sigs, err := (&room.SyncRequest{}).Apply(a.state, c.who, a.env())
 	if err != nil {
 		slog.Error("Failed to build a snapshot", "room", a.id, "error", err)
 		return
 	}
-	a.emit(ems, c.who, c, c)
+	a.emit(sigs, c.who, c, c)
 }
-func (a *actor) effect(em room.Emission) {
-	if updated, ok := em.Event.(*room.PawnUpdated); ok && em.To == room.ToGM {
-		a.writeThrough(updated.Pawn)
-		return
+func (a *actor) signals(sigs []room.Signal) {
+	for _, sig := range sigs {
+		if _, kicked := sig.Event.(*room.PlayerKicked); kicked {
+			a.kicked[sig.Player] = time.Now()
+			a.forget(sig.Player)
+			a.drop(sig.Player, reasonKicked)
+		}
 	}
-	switch ev := em.Event.(type) {
-	case *room.PlayerKicked:
-		a.kicked[em.Player] = time.Now()
-		a.forget(em.Player)
-		a.drop(em.Player, reasonKicked)
-	case *room.PlayerLeft:
-		a.drop(ev.ID, reasonLeft)
+}
+func (a *actor) changed(evs []room.Event) {
+	for _, ev := range evs {
+		switch e := ev.(type) {
+		case *room.PawnUpdated:
+			a.writeThrough(e.Pawn)
+		case *room.PlayerLeft:
+			a.drop(e.ID, reasonLeft)
+		}
 	}
 }
 func (a *actor) drop(user ulid.ULID, reason string) {

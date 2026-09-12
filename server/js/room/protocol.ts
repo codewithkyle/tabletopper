@@ -440,12 +440,6 @@ export interface FogAdded {
 	by?: string;
 	shape: FogShape;
 }
-export interface FogCleared {
-	type: "fog.cleared";
-	seq: number;
-	by?: string;
-	layer: string;
-}
 export interface FogRemoved {
 	type: "fog.removed";
 	seq: number;
@@ -545,12 +539,6 @@ export interface StrokeBegan {
 	by?: string;
 	stroke: Stroke;
 }
-export interface StrokeCleared {
-	type: "stroke.cleared";
-	seq: number;
-	by?: string;
-	layer: string;
-}
 export interface StrokeEnded {
 	type: "stroke.ended";
 	seq: number;
@@ -579,7 +567,6 @@ export interface TableUpdated {
 export type Event =
 	| ErrorEvent
 	| FogAdded
-	| FogCleared
 	| FogRemoved
 	| InitiativeUpdated
 	| PawnDragging
@@ -596,7 +583,6 @@ export type Event =
 	| RoomUpdated
 	| Snapshot
 	| StrokeBegan
-	| StrokeCleared
 	| StrokeEnded
 	| StrokeErased
 	| StrokeExtended
@@ -608,4 +594,5 @@ export const TRANSIENT_EVENTS: ReadonlySet<Event["type"]> = new Set([
 	"pinged",
 	"player.kicked",
 	"room.closed",
+	"snapshot",
 ]);

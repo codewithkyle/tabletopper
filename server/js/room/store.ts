@@ -51,12 +51,6 @@ export function reduce(state: State, event: Event): void {
 			}
 			break;
 		}
-		case "fog.cleared":
-			state.fog = state.fog.filter((shape) => shape.layerId !== event.layer);
-			break;
-		case "stroke.cleared":
-			state.strokes = state.strokes.filter((stroke) => stroke.layerId !== event.layer);
-			break;
 		case "stroke.erased":
 			state.strokes = state.strokes.filter((stroke) => !event.ids.includes(stroke.id));
 			break;

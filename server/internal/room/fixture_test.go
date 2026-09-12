@@ -64,20 +64,61 @@ func newWorld(t *testing.T) *world {
 	w.apply(&PlayerJoin{Player: Player{ID: testOtherID, Name: "Rin", Role: RolePlayer, CharacterID: &testOtherChar, CharacterName: "Brannor"}}, w.gm)
 	return w
 }
-func (w *world) run(c Command, a Actor) ([]Emission, error) {
+func (w *world) run(c Command, a Actor) ([]Signal, error) {
 	w.t.Helper()
 	if err := c.Authorize(w.s, a); err != nil {
 		return nil, err
 	}
 	return c.Apply(w.s, a, w.env)
 }
-func (w *world) apply(c Command, a Actor) []Emission {
+func (w *world) apply(c Command, a Actor) []Signal {
 	w.t.Helper()
-	ems, err := w.run(c, a)
+	sigs, err := w.run(c, a)
 	if err != nil {
 		w.t.Fatalf("%T by %s: unexpected refusal: %v", c, a.Role, err)
 	}
-	return ems
+	return sigs
+}
+func (w *world) change(c Command, a Actor) change {
+	w.t.Helper()
+	before := w.s.Clone()
+	return change{w: w, actor: a, before: before, signals: w.apply(c, a)}
+}
+
+type change struct {
+	w       *world
+	actor   Actor
+	before  State
+	signals []Signal
+}
+
+func (ch change) events(role Role) []Event {
+	return Derive(&ch.before, ch.w.s, role)
+}
+func (ch change) seen(viewer Actor) []Event {
+	out := ch.events(viewer.Role)
+	for _, sig := range ch.signals {
+		if !reaches(sig, ch.actor, viewer) {
+			continue
+		}
+		if ev := ProjectSignal(ch.w.s, sig, viewer.Role); ev != nil {
+			out = append(out, ev)
+		}
+	}
+	return out
+}
+func reaches(sig Signal, actor, viewer Actor) bool {
+	switch sig.To {
+	case ToAll:
+		return true
+	case ToSender:
+		return viewer.ID == actor.ID
+	case ToOthers:
+		return viewer.ID != actor.ID
+	case ToPlayer:
+		return viewer.ID == sig.Player
+	}
+	return false
 }
 func (w *world) refuse(c Command, a Actor, code string) *Error {
 	w.t.Helper()
@@ -117,8 +158,11 @@ func (w *world) spawn(p Pawn) ulid.ULID {
 	if len(w.s.Pawns) != before+1 {
 		w.t.Fatalf("spawn: pawn count went from %d to %d", before, len(w.s.Pawns))
 	}
+	return newestPawn(w.s)
+}
+func newestPawn(s *State) ulid.ULID {
 	var newest Pawn
-	for _, q := range w.s.Pawns {
+	for _, q := range s.Pawns {
 		if q.Z >= newest.Z {
 			newest = q
 		}
@@ -134,37 +178,10 @@ func (w *world) addLayer(name string) ulid.ULID {
 	}
 	return w.s.Table.Layers[len(w.s.Table.Layers)-1].ID
 }
-func delivered(ems []Emission, actor, viewer Actor) []Event {
-	var out []Event
-	for _, em := range ems {
-		reaches := false
-		switch em.To {
-		case ToAll:
-			reaches = true
-		case ToGM:
-			reaches = viewer.Role == RoleGM
-		case ToPlayers:
-			reaches = viewer.Role == RolePlayer
-		case ToSender:
-			reaches = viewer.ID == actor.ID
-		case ToOthers:
-			reaches = viewer.ID != actor.ID
-		case ToPlayer:
-			reaches = viewer.ID == em.Player
-		}
-		if !reaches {
-			continue
-		}
-		if ev := ForRole(em.Event, viewer.Role); ev != nil {
-			out = append(out, ev)
-		}
-	}
-	return out
-}
-func summary(ems []Emission) []string {
-	out := make([]string, 0, len(ems))
-	for _, em := range ems {
-		out = append(out, em.Event.eventType()+" to "+audienceName(em.To))
+func summary(sigs []Signal) []string {
+	out := make([]string, 0, len(sigs))
+	for _, sig := range sigs {
+		out = append(out, sig.Event.eventType()+" to "+audienceName(sig.To))
 	}
 	return out
 }
@@ -172,10 +189,6 @@ func audienceName(a Audience) string {
 	switch a {
 	case ToAll:
 		return "all"
-	case ToGM:
-		return "gm"
-	case ToPlayers:
-		return "players"
 	case ToSender:
 		return "sender"
 	case ToOthers:

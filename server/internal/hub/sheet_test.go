@@ -78,3 +78,45 @@ func TestOnlyAChangedHitPointTotalReachesTheSheet(t *testing.T) {
 		t.Errorf("writes = %v, want [12 9]: the rename cost nothing", writes)
 	}
 }
+
+func TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot(t *testing.T) {
+	var mu sync.Mutex
+	var writes []int
+	started := make(chan struct{}, 4)
+	release := make(chan struct{})
+	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
+		mu.Lock()
+		writes = append(writes, hp)
+		mu.Unlock()
+		started <- struct{}{}
+		<-release
+		return nil
+	}})
+	t.Cleanup(func() { close(release) })
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	character := testID(21)
+	full, hurt, worse := 12, 9, 5
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
+		CharacterID: &character,
+		Pawn: &room.Pawn{
+			Name: "Ilyana", Size: room.SizeMedium,
+			HP: &full, MaxHP: &full, CharacterID: &character,
+		},
+	})
+	pawn := ulidField(t, only(t, gm, "pawn.spawned")[0].Body["pawn"].(map[string]any), "id")
+	tb.send(gm, "2", &room.PawnUpdate{ID: pawn, HP: &hurt})
+	<-started
+	release <- struct{}{}
+	name := "Ilyana the Bold"
+	tb.send(gm, "3", &room.PawnUpdate{ID: pawn, Name: &name})
+	tb.send(gm, "4", &room.PawnUpdate{ID: pawn, HP: &worse})
+	<-started
+	release <- struct{}{}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(writes) != 2 || writes[0] != hurt || writes[1] != worse {
+		t.Errorf("writes = %v, want [9 5]: the change went through the derived event and the rename did not", writes)
+	}
+}

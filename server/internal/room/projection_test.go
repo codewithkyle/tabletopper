@@ -160,43 +160,14 @@ func TestTheHealthBandsSitWhereTheyAreDescribed(t *testing.T) {
 		t.Fatal("a pawn with no maximum was given a band")
 	}
 }
-func TestChangingTheHitPointSettingReprojectsTheMonsters(t *testing.T) {
-	w := newWorld(t)
-	cellar := w.addLayer("Cellar")
-	w.spawn(Pawn{Kind: PawnMonster, Name: "Goblin", Visible: true, HP: intp(5), MaxHP: intp(7)})
-	w.spawn(Pawn{Kind: PawnNPC, Name: "Innkeeper", Visible: true, HP: intp(9), MaxHP: intp(9)})
-	w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, HP: intp(12), MaxHP: intp(12)})
-	w.spawn(Pawn{Kind: PawnMonster, Name: "Ambusher", Visible: false, HP: intp(5), MaxHP: intp(5)})
-	w.spawn(Pawn{Kind: PawnMonster, Name: "Downstairs", LayerID: cellar, Visible: true, HP: intp(5), MaxHP: intp(5)})
-	ems := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"table.updated to all",
-		"pawn.updated to players",
-		"pawn.updated to players",
-	})
-	for _, em := range ems[1:] {
-		p := em.Event.(*PawnUpdated).Pawn
-		if p.HP == nil {
-			t.Fatalf("%s was re-emitted without the exact hit points the change was about", p.Name)
-		}
-	}
-	again := w.apply(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false, InitiativeGrouping: GroupMonsters}, w.gm)
-	equalStrings(t, "emissions", summary(again), []string{"table.updated to all"})
-}
 func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 	w := newWorld(t)
 	pawn := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID})
-	ems := w.apply(&PlayerKick{ID: testPlayerID}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{
-		"player.kicked to player",
-		"player.left to all",
-	})
-	if got := eventTypesOf(delivered(ems, w.gm, w.pc)); len(got) != 2 || got[0] != "player.kicked" {
-		t.Fatalf("the kicked player received %v", got)
-	}
-	if got := eventTypesOf(delivered(ems, w.gm, w.other)); len(got) != 1 || got[0] != "player.left" {
-		t.Fatalf("the other player received %v, want only player.left", got)
-	}
+	ch := w.change(&PlayerKick{ID: testPlayerID}, w.gm)
+	equalStrings(t, "signals", summary(ch.signals), []string{"player.kicked to player"})
+	equalStrings(t, "the room", eventTypesOf(ch.events(RoleGM)), []string{"player.left"})
+	equalStrings(t, "the kicked player", eventTypesOf(ch.seen(w.pc)), []string{"player.left", "player.kicked"})
+	equalStrings(t, "the other player", eventTypesOf(ch.seen(w.other)), []string{"player.left"})
 	if w.s.Player(testPlayerID) != nil {
 		t.Fatal("the kicked player is still seated")
 	}
@@ -206,8 +177,8 @@ func TestAKickTellsTheTargetAndTheRoomDifferentThings(t *testing.T) {
 }
 func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 	w := newWorld(t)
-	ems := w.apply(&PlayerSetConnected{ID: testPlayerID, Connected: false}, w.gm)
-	equalStrings(t, "emissions", summary(ems), []string{"player.updated to all"})
+	ch := w.change(&PlayerSetConnected{ID: testPlayerID, Connected: false}, w.gm)
+	equalStrings(t, "a disconnect", eventTypesOf(ch.events(RoleGM)), []string{"player.updated"})
 	p := w.s.Player(testPlayerID)
 	if p == nil {
 		t.Fatal("a disconnect removed the player")
@@ -215,8 +186,8 @@ func TestADisconnectKeepsThePlayerSeated(t *testing.T) {
 	if p.Connected {
 		t.Fatal("the player is still marked connected")
 	}
-	back := w.apply(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer}}, w.gm)
-	equalStrings(t, "emissions", summary(back), []string{"player.updated to all"})
+	back := w.change(&PlayerJoin{Player: Player{ID: testPlayerID, Name: "Ari", Role: RolePlayer}}, w.gm)
+	equalStrings(t, "a return", eventTypesOf(back.events(RoleGM)), []string{"player.updated"})
 }
 func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
 	s := NewState(testRoomID, "The Sunless Citadel", Env{})

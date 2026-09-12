@@ -13,12 +13,14 @@ type Header struct {
 }
 
 func (h *Header) header() *Header { return h }
-func (h *Header) Transient() bool { return false }
 
 type Event interface {
 	eventType() string
 	header() *Header
-	Transient() bool
+}
+type Transient interface {
+	Event
+	transient()
 }
 
 func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
@@ -27,17 +29,6 @@ func EncodeEvent(ev Event, seq uint64, by *ulid.ULID) ([]byte, error) {
 	h.Seq = seq
 	h.By = by
 	return json.Marshal(ev)
-}
-
-type roleView interface {
-	ForRole(role Role) Event
-}
-
-func ForRole(ev Event, role Role) Event {
-	if v, ok := ev.(roleView); ok {
-		return v.ForRole(role)
-	}
-	return ev
 }
 
 var eventTypes = map[string]func() Event{
@@ -57,12 +48,10 @@ var eventTypes = map[string]func() Event{
 	"initiative.updated": func() Event { return &InitiativeUpdated{} },
 	"fog.added":          func() Event { return &FogAdded{} },
 	"fog.removed":        func() Event { return &FogRemoved{} },
-	"fog.cleared":        func() Event { return &FogCleared{} },
 	"stroke.began":       func() Event { return &StrokeBegan{} },
 	"stroke.extended":    func() Event { return &StrokeExtended{} },
 	"stroke.ended":       func() Event { return &StrokeEnded{} },
 	"stroke.erased":      func() Event { return &StrokeErased{} },
-	"stroke.cleared":     func() Event { return &StrokeCleared{} },
 	"pinged":             func() Event { return &Pinged{} },
 	"error":              func() Event { return &ErrorEvent{} },
 }
@@ -76,7 +65,7 @@ type ErrorEvent struct {
 }
 
 func (*ErrorEvent) eventType() string { return "error" }
-func (*ErrorEvent) Transient() bool   { return true }
+func (*ErrorEvent) transient()        {}
 func NewErrorEvent(cid string, err error) *ErrorEvent {
 	e, ok := err.(*Error)
 	if !ok {

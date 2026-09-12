@@ -8,13 +8,17 @@ import (
 )
 
 func Reduce(s *State, ev Event) error {
-	if ev == nil || ev.Transient() {
+	if ev == nil {
+		return nil
+	}
+	if snap, ok := ev.(*Snapshot); ok {
+		*s = snap.State.Clone()
+		return nil
+	}
+	if _, skip := ev.(Transient); skip {
 		return nil
 	}
 	switch e := ev.(type) {
-	case *Snapshot:
-		*s = e.State.Clone()
-		return nil
 	case *RoomUpdated:
 		s.Room = e.Room
 	case *TableUpdated:
@@ -43,10 +47,6 @@ func Reduce(s *State, ev Event) error {
 		if st := s.Stroke(e.ID); st != nil {
 			st.Done = true
 		}
-	case *FogCleared:
-		s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.LayerID == e.Layer })
-	case *StrokeCleared:
-		s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.LayerID == e.Layer })
 	case *StrokeErased:
 		s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return slices.Contains(e.IDs, st.ID) })
 	case *PawnMoved:

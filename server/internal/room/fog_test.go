@@ -21,7 +21,7 @@ func TestAFirstRevealCoversTheFloorItIsCutOutOf(t *testing.T) {
 	if l := layerNamed(t, w.s, w.layer); l.FogEnabled {
 		t.Fatal("a new room's floor already has fog on")
 	}
-	ems := w.apply(&FogAdd{
+	ch := w.change(&FogAdd{
 		Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{0, 0, 100, 100},
 	}, w.gm)
 	l := layerNamed(t, w.s, w.layer)
@@ -31,15 +31,7 @@ func TestAFirstRevealCoversTheFloorItIsCutOutOf(t *testing.T) {
 	if !l.FogPrefill {
 		t.Error("a reveal did not leave the floor covered; the hole is cut in nothing")
 	}
-	if len(ems) != 2 {
-		t.Fatalf("the waking add emitted %d events, want 2", len(ems))
-	}
-	if got := ems[0].Event.eventType(); got != "table.updated" {
-		t.Errorf("the first event is %s, want table.updated", got)
-	}
-	if got := ems[1].Event.eventType(); got != "fog.added" {
-		t.Errorf("the second event is %s, want fog.added", got)
-	}
+	equalStrings(t, "the waking add", eventTypesOf(ch.events(RoleGM)), []string{"fog.added", "table.updated"})
 }
 func TestAFirstHideLeavesTheFloorClearUnderIt(t *testing.T) {
 	w := newWorld(t)
@@ -57,13 +49,8 @@ func TestAFirstHideLeavesTheFloorClearUnderIt(t *testing.T) {
 func TestASecondShapeDoesNotResendTheTable(t *testing.T) {
 	w := newWorld(t)
 	w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{0, 0, 10, 10}}, w.gm)
-	ems := w.apply(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{20, 20, 30, 30}}, w.gm)
-	if len(ems) != 1 {
-		t.Fatalf("a second add emitted %d events, want 1", len(ems))
-	}
-	if got := ems[0].Event.eventType(); got != "fog.added" {
-		t.Errorf("the event is %s, want fog.added", got)
-	}
+	ch := w.change(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{20, 20, 30, 30}}, w.gm)
+	equalStrings(t, "a second add", eventTypesOf(ch.events(RoleGM)), []string{"fog.added"})
 }
 func TestAHideOnAnAwakeFloorLeavesThePrefillAlone(t *testing.T) {
 	w := newWorld(t)
