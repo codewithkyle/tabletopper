@@ -16,7 +16,7 @@ export interface Hud {
 	stop(): void;
 }
 const LIFT = 8;
-export function removePrompt(count: number): string {
+function removePrompt(count: number): string {
 	const what = count === 1 ? "the selected pawn" : `the ${count} selected pawns`;
 	return `Remove ${what} from the table. This cannot be undone.`;
 }

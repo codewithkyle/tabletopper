@@ -16,7 +16,7 @@ interface Wanted {
 	priority: number;
 }
 export type Decode = (blob: Blob) => Promise<ImageBitmap | null>;
-export function decodeAsIs(blob: Blob): Promise<ImageBitmap | null> {
+function decodeAsIs(blob: Blob): Promise<ImageBitmap | null> {
 	return createImageBitmap(blob, { premultiplyAlpha: "none", colorSpaceConversion: "none" });
 }
 export function newLoader(invalidate: () => void, decode: Decode = decodeAsIs): Loader {

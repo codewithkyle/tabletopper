@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Event } from "./protocol.ts";
-import type { Revisions } from "./store.ts";
-import { revise, revisions, watching } from "./store.ts";
+import type { Event } from "../protocol.ts";
+import type { Revisions } from "./revisions.ts";
+import { revise, revisions, watching } from "./revisions.ts";
 function sent(type: Event["type"]): Event {
 	return { type, seq: 1 } as Event;
 }

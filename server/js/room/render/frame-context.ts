@@ -4,7 +4,7 @@ import type { Layer, Role, State } from "../protocol.ts";
 import type { Overlay } from "../model/overlay.ts";
 import type { Painted } from "./layers.ts";
 import type { Resources } from "./resources.ts";
-import type { Revisions } from "../store.ts";
+import type { Revisions } from "../model/revisions.ts";
 import type { Rgb } from "../model/types.ts";
 export interface FrameContext {
 	gl: WebGL2RenderingContext;

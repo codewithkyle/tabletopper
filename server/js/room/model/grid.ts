@@ -1,5 +1,5 @@
 import type { Grid } from "../protocol.ts";
-export const PATH_CELLS_MAX = 512;
+const PATH_CELLS_MAX = 512;
 function round(value: number): number {
 	return value < 0 ? -Math.round(-value) : Math.round(value);
 }

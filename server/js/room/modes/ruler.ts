@@ -5,9 +5,9 @@ import { blankCell, blankLabel, blankSegment, pool } from "../model/overlay.ts";
 import {
 	cellAt,
 	cellCentre,
-	cellsMoved,
 	distanceLabel,
 	feetBetween,
+	feetMoved,
 	supercover,
 } from "../model/grid.ts";
 const RULER_WIDTH = 2;
@@ -55,7 +55,7 @@ export function walkRuler(
 	}
 	const start = cellCentre(grid, a[0], a[1]);
 	const end = cellCentre(grid, b[0], b[1]);
-	const feet = cellsMoved(b[0] - a[0], b[1] - a[1], grid.diagonals) * Math.max(0, grid.feetPerCell);
+	const feet = feetMoved(b[0] - a[0], b[1] - a[1], grid);
 	rule(out, pens, start[0], start[1], end[0], end[1], distanceLabel(feet), color);
 }
 export function lineRuler(

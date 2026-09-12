@@ -1,6 +1,6 @@
 import type { Stage, StageFactory } from "./stage.ts";
 import { createFogPass } from "../fog-pass.ts";
-import { watching } from "../../store.ts";
+import { watching } from "../../model/revisions.ts";
 const PLAYER_FOG_ALPHA = 1;
 const GM_FOG_ALPHA = 0.5;
 export const fogStage: StageFactory = (gl): Stage => {

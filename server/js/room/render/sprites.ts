@@ -4,7 +4,7 @@ import { KIND_COLORS } from "../model/color.ts";
 import { createTextureArray } from "../gl/texture-array.ts";
 import { newLoader } from "../gl/loader.ts";
 export const SPRITE_SIZE = 256;
-export const SPRITE_LAYERS = 128;
+const SPRITE_LAYERS = 128;
 export const SKULL = "skull";
 export interface SpriteCache {
 	begin(rebuilding: boolean): void;
@@ -106,7 +106,7 @@ async function decodeSprite(blob: Blob): Promise<ImageBitmap | null> {
 	full.close();
 	return resized;
 }
-export function initialsOf(name: string): string {
+function initialsOf(name: string): string {
 	const words = name.trim().split(/\s+/).filter((word) => word !== "");
 	if (words.length === 0) {
 		return "?";

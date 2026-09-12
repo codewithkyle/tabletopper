@@ -1,6 +1,6 @@
 import type { Stage, StageFactory } from "./stage.ts";
 import { createStrokePass } from "../stroke-pass.ts";
-import { watching } from "../../store.ts";
+import { watching } from "../../model/revisions.ts";
 export const strokesStage: StageFactory = (gl): Stage => {
 	const pass = createStrokePass(gl);
 	const inked = watching(["strokes"]);

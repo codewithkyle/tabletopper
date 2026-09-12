@@ -14,7 +14,7 @@ const FIT_MARGIN = 0.9;
 export function newCamera(): Camera {
 	return { x: 0, y: 0, zoom: 1 };
 }
-export function clampZoom(zoom: number): number {
+function clampZoom(zoom: number): number {
 	return Math.min(Math.max(zoom, ZOOM_MIN), ZOOM_MAX);
 }
 export function worldToScreen(cam: Camera, vp: Viewport, wx: number, wy: number, out: Point): Point {

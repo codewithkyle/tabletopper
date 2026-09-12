@@ -154,7 +154,7 @@ export function covered(
 	}
 	return coveredBy(shapes, viewed.id, viewed.fogPrefill, pawn.x, pawn.y);
 }
-export function ownedBy(pawn: Pick<Pawn, "ownerId">, user: string): boolean {
+function ownedBy(pawn: Pick<Pawn, "ownerId">, user: string): boolean {
 	return pawn.ownerId !== null && pawn.ownerId === user;
 }
 export function concealed(

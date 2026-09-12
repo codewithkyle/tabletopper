@@ -3,7 +3,7 @@ import type { Point } from "./types.ts";
 import { snapPoint } from "./grid.ts";
 export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height" | "rotation">;
 export type Placed = Sized & Pick<Pawn, "x" | "y">;
-export const TINY_SCALE = 0.5;
+const TINY_SCALE = 0.5;
 export function footprintOf(size: Size): number {
 	switch (size) {
 		case "large":

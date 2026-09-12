@@ -4,7 +4,7 @@ import type { Event as RoomEvent, Role, State } from "../protocol.ts";
 import type { FrameContext } from "./frame-context.ts";
 import type { LayerView } from "./layers.ts";
 import type { Point, Rect } from "../model/types.ts";
-import type { Revisions } from "../store.ts";
+import type { Revisions } from "../model/revisions.ts";
 import type { StageList } from "./stages/list.ts";
 import type { Tool } from "./input.ts";
 import { apply, wireInput } from "./input.ts";
@@ -17,7 +17,7 @@ import { newOverlay } from "../model/overlay.ts";
 import { newStageList } from "./stages/list.ts";
 import { startFrames } from "./frame.ts";
 import { watchContextLoss } from "./context-loss.ts";
-import { watching } from "../store.ts";
+import { watching } from "../model/revisions.ts";
 import { watchTheme } from "./theme.ts";
 export type { Benchmark } from "./camera-controller.ts";
 export interface Renderer {

@@ -33,7 +33,7 @@ export function evaluate(entry: string, current: string): number | null {
 	}
 	return total;
 }
-export function isRelative(entry: string): boolean {
+function isRelative(entry: string): boolean {
 	const text = entry.trim();
 	return text.length > 0 && (text[0] === "+" || text[0] === "-");
 }
