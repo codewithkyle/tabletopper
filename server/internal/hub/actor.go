@@ -55,8 +55,8 @@ type actor struct {
 	sizeWarned       bool
 	sheet            *sheetWriter
 	lastHP           map[ulid.ULID]int
-	drags            map[ulid.ULID]command
-	dragTimer        *time.Timer
+	pending          map[string]command
+	coalesceTimer    *time.Timer
 	emptySince       time.Time
 	kicked           map[ulid.ULID]time.Time
 	entropy          *ulid.MonotonicEntropy
@@ -68,22 +68,22 @@ func newActor(h *Hub, id ulid.ULID, state *room.State, seq uint64) *actor {
 	timer := time.NewTimer(time.Hour)
 	timer.Stop()
 	return &actor{
-		hub:        h,
-		id:         id,
-		inbox:      make(chan any, inboxSize),
-		done:       make(chan struct{}),
-		state:      state,
-		conns:      make(map[*client]struct{}),
-		seqGM:      seq,
-		seqPlayer:  seq,
-		drags:      make(map[ulid.ULID]command),
-		dragTimer:  timer,
-		kicked:     make(map[ulid.ULID]time.Time),
-		saved:      make(chan saved, 1),
-		sheet:      newSheetWriter(h.writeHP),
-		lastHP:     make(map[ulid.ULID]int),
-		emptySince: time.Now(),
-		entropy:    ulid.Monotonic(rand.Reader, 0),
+		hub:           h,
+		id:            id,
+		inbox:         make(chan any, inboxSize),
+		done:          make(chan struct{}),
+		state:         state,
+		conns:         make(map[*client]struct{}),
+		seqGM:         seq,
+		seqPlayer:     seq,
+		pending:       make(map[string]command),
+		coalesceTimer: timer,
+		kicked:        make(map[ulid.ULID]time.Time),
+		saved:         make(chan saved, 1),
+		sheet:         newSheetWriter(h.writeHP),
+		lastHP:        make(map[ulid.ULID]int),
+		emptySince:    time.Now(),
+		entropy:       ulid.Monotonic(rand.Reader, 0),
 	}
 }
 func (a *actor) env() room.Env {
@@ -95,15 +95,15 @@ func (a *actor) env() room.Env {
 func (a *actor) run() {
 	save := time.NewTicker(a.hub.opts.SnapshotInterval)
 	defer save.Stop()
-	defer a.dragTimer.Stop()
+	defer a.coalesceTimer.Stop()
 	for {
 		select {
 		case m := <-a.inbox:
 			if a.handle(m) {
 				return
 			}
-		case <-a.dragTimer.C:
-			a.flushDrags()
+		case <-a.coalesceTimer.C:
+			a.flushPending()
 		case m := <-a.saved:
 			a.acked(m)
 		case <-save.C:
@@ -183,26 +183,26 @@ func (a *actor) fromClient(m command) {
 		a.refuse(m.c, m.cid, m.err)
 		return
 	}
-	if drag, ok := m.cmd.(*room.PawnDrag); ok {
-		if len(a.drags) == 0 {
-			a.dragTimer.Reset(a.hub.opts.DragInterval)
+	if c, ok := m.cmd.(room.Coalescer); ok {
+		if len(a.pending) == 0 {
+			a.coalesceTimer.Reset(a.hub.opts.CoalesceInterval)
 		}
-		a.drags[drag.Anchor] = m
+		a.pending[c.CoalesceKey()] = m
 		return
 	}
 	if err := a.exec(m.c.who, m.cmd, m.c, m.cid); err != nil {
 		a.refuse(m.c, m.cid, err)
 	}
 }
-func (a *actor) flushDrags() {
-	anchors := make([]ulid.ULID, 0, len(a.drags))
-	for id := range a.drags {
-		anchors = append(anchors, id)
+func (a *actor) flushPending() {
+	keys := make([]string, 0, len(a.pending))
+	for key := range a.pending {
+		keys = append(keys, key)
 	}
-	slices.SortFunc(anchors, func(x, y ulid.ULID) int { return x.Compare(y) })
-	for _, id := range anchors {
-		m := a.drags[id]
-		delete(a.drags, id)
+	slices.Sort(keys)
+	for _, key := range keys {
+		m := a.pending[key]
+		delete(a.pending, key)
 		if err := a.exec(m.c.who, m.cmd, m.c, m.cid); err != nil {
 			a.refuse(m.c, m.cid, err)
 		}
@@ -377,28 +377,11 @@ func (a *actor) snapshot(c *client) {
 }
 func (a *actor) signals(sigs []room.Signal) {
 	for _, sig := range sigs {
-		if _, kicked := sig.Event.(*room.PlayerKicked); kicked {
+		switch sig.Event.(type) {
+		case *room.PlayerKicked:
 			a.kicked[sig.Player] = time.Now()
 			a.forget(sig.Player)
 			a.drop(sig.Player, reasonKicked)
-		}
-	}
-}
-func (a *actor) changed(before *room.State, changes []room.Change) {
-	for _, ch := range changes {
-		switch c := ch.(type) {
-		case *room.PawnsUpserted:
-			for _, p := range c.Pawns {
-				if before.Pawn(p.ID) == nil {
-					a.remember(p)
-					continue
-				}
-				a.writeThrough(p)
-			}
-		case *room.PlayersRemoved:
-			for _, id := range c.IDs {
-				a.drop(id, reasonLeft)
-			}
 		}
 	}
 }
@@ -421,28 +404,6 @@ func (a *actor) count(user ulid.ULID) int {
 		}
 	}
 	return n
-}
-func (a *actor) remember(p room.Pawn) {
-	if character, hp, owed := writeThroughHP(p); owed {
-		a.lastHP[character] = hp
-	}
-}
-func (a *actor) writeThrough(p room.Pawn) {
-	character, hp, owed := writeThroughHP(p)
-	if !owed || a.sheet == nil {
-		return
-	}
-	if last, known := a.lastHP[character]; known && last == hp {
-		return
-	}
-	a.lastHP[character] = hp
-	a.sheet.put(character, hp)
-}
-func writeThroughHP(p room.Pawn) (ulid.ULID, int, bool) {
-	if p.Kind != room.PawnPlayer || p.CharacterID == nil || p.HP == nil {
-		return ulid.ULID{}, 0, false
-	}
-	return *p.CharacterID, *p.HP, true
 }
 func (a *actor) forget(user ulid.ULID) {
 	store, id := a.hub.store, a.id

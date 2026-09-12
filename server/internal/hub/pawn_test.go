@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -82,49 +83,44 @@ func TestPawnIsNothingWhenItIsNotThere(t *testing.T) {
 	}
 }
 func TestWriteThroughOwesOnlyPlayerPawnsWithASheet(t *testing.T) {
-	character := testID(7)
-	hp := 12
-	cases := []struct {
-		name string
-		pawn room.Pawn
-		want bool
-	}{
-		{
-			name: "a player pawn with a sheet",
-			pawn: room.Pawn{Kind: room.PawnPlayer, CharacterID: &character, HP: &hp},
-			want: true,
-		},
-		{
-			name: "a monster",
-			pawn: room.Pawn{Kind: room.PawnMonster, CharacterID: &character, HP: &hp},
-			want: false,
-		},
-		{
-			name: "an object",
-			pawn: room.Pawn{Kind: room.PawnObject, HP: &hp},
-			want: false,
-		},
-		{
-			name: "a player pawn with no sheet behind it",
-			pawn: room.Pawn{Kind: room.PawnPlayer, HP: &hp},
-			want: false,
-		},
-		{
-			name: "a player pawn whose hit points were projected away",
-			pawn: room.Pawn{Kind: room.PawnPlayer, CharacterID: &character},
-			want: false,
-		},
+	var mu sync.Mutex
+	var written []ulid.ULID
+	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
+		mu.Lock()
+		defer mu.Unlock()
+		written = append(written, character)
+		return nil
+	}})
+	sheet, monster, projected := testID(41), testID(42), testID(43)
+	hurt, full := 9, 12
+	upserted := []room.Pawn{
+		{ID: testID(50), Kind: room.PawnPlayer, CharacterID: &sheet, HP: &hurt},
+		{ID: testID(51), Kind: room.PawnMonster, CharacterID: &monster, HP: &hurt},
+		{ID: testID(52), Kind: room.PawnObject, HP: &hurt},
+		{ID: testID(53), Kind: room.PawnPlayer, HP: &hurt},
+		{ID: testID(54), Kind: room.PawnPlayer, CharacterID: &projected},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			id, value, owed := writeThroughHP(tc.pawn)
-			if owed != tc.want {
-				t.Fatalf("owed = %v, want %v", owed, tc.want)
-			}
-			if owed && (id != character || value != hp) {
-				t.Errorf("owed a write of %d to %s, want %d to %s", value, id, hp, character)
-			}
-		})
+	before := room.NewState(roomID, "The Sunless Citadel", room.Env{})
+	for _, p := range upserted {
+		if p.HP != nil {
+			p.HP = &full
+		}
+		before.Pawns = append(before.Pawns, p)
+	}
+	a := tb.actor()
+	reply := make(chan any, 1)
+	if err := a.post(tb.ctx(), ask{fn: func(a *actor) any {
+		a.changed(before, []room.Change{&room.PawnsUpserted{Pawns: upserted}})
+		return nil
+	}, reply: reply}); err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	<-reply
+	a.sheet.stop()
+	mu.Lock()
+	defer mu.Unlock()
+	if len(written) != 1 || written[0] != sheet {
+		t.Fatalf("the sheets written were %v, want %s alone: a monster, an object, a pawn with nobody behind it and a pawn whose hit points were projected away owe nothing", written, sheet)
 	}
 }
 func (tb *tabletop) spawnMonster(gm *client, name string, visible bool, hp int, maxHP int) ulid.ULID {

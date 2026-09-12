@@ -151,3 +151,38 @@ func TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot(t *testing.
 		t.Errorf("writes = %v, want [9 5]: the change went through the derived event and the rename did not", writes)
 	}
 }
+func TestAHitPointChangeFromTheHTTPFormReachesTheSheet(t *testing.T) {
+	var mu sync.Mutex
+	var writes []int
+	tb := newTabletop(t, Options{WriteHP: func(ctx context.Context, character ulid.ULID, hp int) error {
+		mu.Lock()
+		defer mu.Unlock()
+		writes = append(writes, hp)
+		return nil
+	}})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	character := testID(24)
+	tb.seat(playerID, character, "Ari")
+	frames(t, gm)
+	full, hurt := 12, 7
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
+		CharacterID: &character,
+		Pawn: &room.Pawn{
+			Name: "Ilyana", Size: room.SizeMedium,
+			HP: &full, MaxHP: &full, CharacterID: &character,
+		},
+	})
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
+	who := room.Actor{ID: gmID, Role: room.RoleGM}
+	if err := tb.Dispatch(tb.ctx(), roomID, who, &room.PawnUpdate{ID: pawn, HP: &hurt}); err != nil {
+		t.Fatalf("the form was refused: %v", err)
+	}
+	tb.actor().sheet.stop()
+	mu.Lock()
+	defer mu.Unlock()
+	if len(writes) != 1 || writes[0] != hurt {
+		t.Errorf("writes = %v, want [7]: a change nobody sent over a socket owes the sheet just the same", writes)
+	}
+}

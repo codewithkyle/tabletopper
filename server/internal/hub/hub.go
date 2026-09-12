@@ -27,7 +27,7 @@ type Options struct {
 	Version          string
 	SnapshotInterval time.Duration
 	UnloadGrace      time.Duration
-	DragInterval     time.Duration
+	CoalesceInterval time.Duration
 	SendBuffer       int
 	ReadLimit        int64
 	Rate             int
@@ -46,8 +46,8 @@ func (o Options) withDefaults() Options {
 	if o.UnloadGrace <= 0 {
 		o.UnloadGrace = 10 * time.Minute
 	}
-	if o.DragInterval <= 0 {
-		o.DragInterval = 50 * time.Millisecond
+	if o.CoalesceInterval <= 0 {
+		o.CoalesceInterval = 50 * time.Millisecond
 	}
 	if o.SendBuffer <= 0 {
 		o.SendBuffer = 256

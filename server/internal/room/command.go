@@ -31,6 +31,9 @@ type Command interface {
 	Authorize(s *State, a Actor) error
 	Apply(s *State, a Actor, env Env) ([]Signal, error)
 }
+type Coalescer interface {
+	CoalesceKey() string
+}
 type Audience int
 
 const (

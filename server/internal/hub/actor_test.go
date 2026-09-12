@@ -2,6 +2,7 @@ package hub
 
 import (
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -97,7 +98,7 @@ func TestARefusedCommandLeavesTheStateAsItWas(t *testing.T) {
 	}
 }
 func TestDragsCoalesceIntoOneFrameForEverybodyElse(t *testing.T) {
-	tb := newTabletop(t, Options{DragInterval: 10 * time.Millisecond})
+	tb := newTabletop(t, Options{CoalesceInterval: 10 * time.Millisecond})
 	gm := tb.join(gmID, "Kyle", room.RoleGM)
 	layer := activeLayer(t, only(t, gm, "snapshot")[0])
 	player := tb.join(playerID, "Ari", room.RolePlayer)
@@ -215,6 +216,74 @@ func TestABulkCommandIsOneFramePerRole(t *testing.T) {
 			t.Errorf("%s received %d frames for one command: %v", who, got, types(fs))
 		}
 	}
+}
+func TestALeaveOverHTTPClosesThatPersonsSockets(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	player := tb.join(playerID, "Ari", room.RolePlayer)
+	frames(t, gm)
+	frames(t, player)
+	if err := tb.Dispatch(tb.ctx(), roomID, room.Actor{}, &room.PlayerLeave{ID: playerID}); err != nil {
+		t.Fatalf("the leave was refused: %v", err)
+	}
+	only(t, gm, "players.removed")
+	select {
+	case <-player.quit:
+	default:
+		t.Fatal("somebody who left over HTTP was left holding an open socket")
+	}
+	if player.reason != reasonLeft {
+		t.Errorf("close reason = %q, want %q", player.reason, reasonLeft)
+	}
+}
+func TestAnyCoalescerIsCoalescedByItsKey(t *testing.T) {
+	tb := newTabletop(t, Options{CoalesceInterval: time.Hour})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	seen := &applied{}
+	for _, cmd := range []*coalescing{
+		{key: "left", name: "left-1", seen: seen},
+		{key: "left", name: "left-2", seen: seen},
+		{key: "right", name: "right-1", seen: seen},
+		{key: "left", name: "left-3", seen: seen},
+	} {
+		tb.send(gm, "c", cmd)
+	}
+	if got := seen.all(); len(got) != 0 {
+		t.Fatalf("%v were applied while the window was open; a coalescer waits for it to close", got)
+	}
+	tb.flush()
+	if got := seen.all(); !equal(got, []string{"left-3", "right-1"}) {
+		t.Fatalf("applied %v, want [left-3 right-1]: the last of each key and nothing before it", got)
+	}
+}
+
+type applied struct {
+	mu    sync.Mutex
+	names []string
+}
+
+func (a *applied) add(name string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.names = append(a.names, name)
+}
+func (a *applied) all() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.names...)
+}
+
+type coalescing struct {
+	key  string
+	name string
+	seen *applied
+}
+
+func (c *coalescing) CoalesceKey() string                         { return c.key }
+func (c *coalescing) Authorize(s *room.State, a room.Actor) error { return nil }
+func (c *coalescing) Apply(s *room.State, a room.Actor, env room.Env) ([]room.Signal, error) {
+	c.seen.add(c.name)
+	return nil, nil
 }
 func changeFrames(fs []frame) int {
 	n := 0

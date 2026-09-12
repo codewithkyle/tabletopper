@@ -349,6 +349,7 @@ type PawnDrag struct {
 	Others []ulid.ULID `json:"others"`
 }
 
+func (c *PawnDrag) CoalesceKey() string { return "pawn.drag:" + c.Anchor.String() }
 func (c *PawnDrag) Authorize(s *State, a Actor) error {
 	return s.requireControl(a, c.Anchor, c.Others)
 }

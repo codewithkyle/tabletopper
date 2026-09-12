@@ -419,20 +419,33 @@ names the type: it holds the handle and takes it in `New`.
 
 ## Phase 4: effects are signals, coalescing is a contract
 
+**Most of this phase landed inside Phase 2.** Re-keying the write-through was not
+separable from changing the vocabulary it was keyed on, so the split of
+`actor.effect` into `signals` and `changed`, the `pawns.upserted` key, the
+`players.removed` drop and the `PlayerKicked` and `RoomClosed` signals all
+arrived with the frame. What was left, and what this phase did, is the
+coalescing contract, the two switches as switches, and the tests that pin the
+rest so it cannot drift back.
+
 ### The new shapes
 
 - `PlayerKick.Apply` returns a `PlayerKicked` signal to the player and mutates
-  the roster; the hub's `effect` handles the signal: drop connections, start the
-  kick grace, clear membership. `PlayerLeave` derives `players.removed` and
-  needs no effect; the hub drops that user's connections when it sees them gone
-  from the roster it projected.
-- The hit point write-through is keyed on the GM's derived events: a
+  the roster; the hub's `signals` handles it: drop connections, start the kick
+  grace, clear membership. `PlayerLeave` derives `players.removed` and needs no
+  effect; the hub drops that user's connections when it sees them gone from the
+  roster it projected.
+- The hit point write-through is keyed on the GM's derived changes: a
   `pawns.upserted` whose pawn is a player pawn with a sheet and an HP that
   differs from `lastHP`. No audience, no event type coupling beyond the
   collection.
 - `RoomClose` returns a `RoomClosed` signal to all; nothing else changes.
-- `actor.effect` becomes two functions: `signals(sigs)` and `changed(events)`,
-  each a short switch over a closed set that the type system names.
+- `actor.effect` is two functions: `signals(sigs)` and `changed(before,
+  changes)`, each a short switch over a closed set that the type system names.
+  **`changed` and the write-through live in `hub/effects.go`, not in
+  `actor.go`.** The done-when below can only mean anything if the file it greps
+  holds the signal switch alone, and `actor.go` was six hundred lines of mixed
+  concerns already. `signals` stays beside `exec` and `emit`, which is where it
+  is called from and all it touches is the actor's own bookkeeping.
 - Coalescing:
 
 ```go
@@ -441,26 +454,44 @@ type Coalescer interface {
 }
 ```
 
-  `PawnDrag` returns its anchor. `fromClient` checks the interface. The
-  drag-specific map, timer and `flushDrags` are renamed for coalescing in
-  general and are otherwise unchanged.
+  `PawnDrag` returns `"pawn.drag:" + anchor`. **The key is namespaced by the
+  command, not bare.** Every coalescer shares one keyspace, so two commands that
+  chose the same key would silently drop one another, and the namespace makes
+  the question disappear for the price of a concatenation on a path that already
+  formats a ULID. `fromClient` checks the interface. `drags`, `dragTimer` and
+  `flushDrags` became `pending`, `coalesceTimer` and `flushPending`, and
+  **`Options.DragInterval` became `Options.CoalesceInterval`** with them: a
+  general mechanism configured by a drag-specific knob is the same mistake one
+  layer up, and nothing outside the hub sets it.
 
 ### Tests first
 
-- `server/internal/hub/pawn_test.go`: `TestWriteThroughOwesOnlyPlayerPawnsWithASheet`
-  is re-expressed against derived events; add
-  `TestARenameOfAPlayerPawnWritesNothingToTheSheet` and
-  `TestAHitPointChangeFromTheHTTPFormReachesTheSheet` (a `Dispatch`, not a
-  socket command, to prove the hook does not depend on who sent it).
-- `server/internal/hub/actor_test.go`: `TestAKickTellsThePersonClosesThemAndForgetsTheirMembership`
-  unchanged; add `TestALeaveOverHTTPClosesThatPersonsSockets`, red today
-  because `PlayerLeft` is handled by event type and will not be after Phase 2.
-  Add `TestAnyCoalescerIsCoalescedByItsKey` with a test-only command type that
-  implements `Coalescer`.
+- `server/internal/room/coalesce_test.go`, new: a drag coalesces under its
+  anchor and two anchors do not share a key; `pawn.drag` is the only wire
+  command that coalesces, because coalescing drops the commands it replaces and
+  only a preview can afford that; no command the hub sends itself coalesces,
+  since none of them passes through the window.
+- `server/internal/hub/pawn_test.go`:
+  `TestWriteThroughOwesOnlyPlayerPawnsWithASheet` is re-expressed against
+  derived changes — one `pawns.upserted` carrying a player pawn with a sheet, a
+  monster, an object, a player pawn with nobody behind it and a player pawn
+  whose hit points were projected away, and only the first owes a write.
+  `TestAHitPointChangeFromTheHTTPFormReachesTheSheet` goes through `Dispatch`
+  rather than a socket command, to prove the hook does not depend on who sent
+  it. The rename case is already
+  `TestAHitPointChangeFromACommandReachesTheSheetAndARenameDoesNot`.
+- `server/internal/hub/actor_test.go`:
+  `TestAKickTellsThePersonClosesThemAndForgetsTheirMembership` unchanged.
+  `TestALeaveOverHTTPClosesThatPersonsSockets` was written as a red test and was
+  green on arrival: Phase 2 re-keyed that drop onto `players.removed` when it
+  re-keyed everything else. It is kept as the pin the plan wanted.
+  `TestAnyCoalescerIsCoalescedByItsKey` uses a test-only command implementing
+  `Coalescer`, holds the window open, and asserts the last of each key applied
+  and nothing before it.
 
 ### Then
 
-- The two switches, the interface, the rename.
+- The two switches, the interface, the rename, the file.
 
 ### Done when
 

@@ -179,6 +179,14 @@ func (tb *tabletop) leave(c *client) {
 	}
 	tb.settle()
 }
+func (tb *tabletop) flush() {
+	tb.t.Helper()
+	reply := make(chan any, 1)
+	if err := tb.actor().post(tb.ctx(), ask{fn: func(a *actor) any { a.flushPending(); return nil }, reply: reply}); err != nil {
+		tb.t.Fatalf("the coalescing window would not close: %v", err)
+	}
+	<-reply
+}
 func (tb *tabletop) settle() {
 	tb.t.Helper()
 	if _, ok := tb.Players(tb.ctx(), roomID); !ok {
