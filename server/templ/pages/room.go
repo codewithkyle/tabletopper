@@ -72,6 +72,12 @@ func (d RoomPageData) SettingsPath() string {
 func (d RoomPageData) ScenesPath() string {
 	return ScenesWindowPath(d.ID)
 }
+func (d RoomPageData) PalettePath() string {
+	return PaletteWindowPath(d.ID)
+}
+func (d RoomPageData) TilesClearPath() string {
+	return "/rooms/" + d.ID + "/tiles/clear"
+}
 func (d RoomPageData) TableMenuPath() string {
 	return "/fragment/room/table-menu?room=" + d.ID
 }
@@ -347,6 +353,13 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Width:  380,
 			Height: 480,
 		}},
+		{Label: "Tile palette", Window: RoomWindow{
+			ID:     PaletteWindow,
+			Title:  "Tile palette",
+			URL:    d.PalettePath(),
+			Width:  300,
+			Height: 440,
+		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
 		blood,
@@ -359,9 +372,17 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			ConfirmLabel:   "Clear drawing",
 		},
 		{
+			Label:          "Clear tiles",
+			Post:           d.TilesClearPath(),
+			Layered:        true,
+			Confirm:        "Every tile stamped on the floor you are looking at goes, for everybody at the table. The palette keeps its pictures. This cannot be undone.",
+			ConfirmHeading: "Clear this floor's tiles?",
+			ConfirmLabel:   "Clear tiles",
+		},
+		{
 			Label:          "Clear tabletop",
 			Post:           d.ClearPath(),
-			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid. The open scene is closed, and is written back to first if it autosaves its changes.",
+			Confirm:        "Every map, pawn, tile, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid. The open scene is closed, and is written back to first if it autosaves its changes.",
 			ConfirmHeading: "Clear the tabletop?",
 			ConfirmLabel:   "Clear tabletop",
 			Danger:         true,

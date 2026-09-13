@@ -18,10 +18,12 @@ export const HIDDEN_ALPHA = 0.6;
 const HIDDEN_GREY = 0.7;
 const SKULL_SCALE = 0.7;
 const SHAPE_DISC = 0;
-const SHAPE_RECT = 1;
+export const SHAPE_RECT = 1;
 const SHAPE_STAIN = 2;
+export const SHAPE_HEX = 3;
+export const SHAPE_HEX_FLAT = 4;
 const STAIN_ALPHA = 0.62;
-const PAWN_QUAD: readonly Attribute[] = [{ size: 4 }, { size: 4 }, { size: 4 }, { size: 4 }, { size: 4 }];
+export const PAWN_QUAD: readonly Attribute[] = [{ size: 4 }, { size: 4 }, { size: 4 }, { size: 4 }, { size: 4 }];
 export type PawnProgram = Program<(typeof uniforms)[number]>;
 export function createPawnProgram(gl: WebGL2RenderingContext): PawnProgram {
 	return createProgram(gl, vertexSource, fragmentSource, uniforms);
@@ -36,7 +38,7 @@ export interface PawnPass {
 	beating(): boolean;
 	dispose(): void;
 }
-function push(
+export function pushQuad(
 	batch: QuadBatch,
 	x: number, y: number, halfW: number, halfH: number,
 	border: Rgb, borderAlpha: number,
@@ -107,7 +109,7 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 				const angle = radians(pawn.rotation);
 				const cos = pawn.rotation === 0 ? 1 : Math.cos(angle);
 				const sin = pawn.rotation === 0 ? 0 : Math.sin(angle);
-				push(
+				pushQuad(
 					batch,
 					pawn.x, pawn.y, halfW, halfH,
 					KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc,
@@ -124,7 +126,7 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 					if (stain) {
 						const turn = radians(mark % 360);
 						const [bx, by] = fitFactors(stain.w, stain.h, halfW, halfH, true);
-						push(
+						pushQuad(
 							batch,
 							pawn.x, pawn.y, halfW, halfH,
 							dead ? BLOOD_DRIED : BLOOD_FRESH, 0,
@@ -140,7 +142,7 @@ export function createPawnPass(gl: WebGL2RenderingContext, program: PawnProgram)
 					if (skull) {
 						const size = halfW * SKULL_SCALE;
 						const [sx, sy] = fitFactors(skull.w, skull.h, size, size, false);
-						push(
+						pushQuad(
 							batch,
 							pawn.x, pawn.y, size, size,
 							KIND_COLORS[pawn.kind] ?? KIND_COLORS.npc, 0,

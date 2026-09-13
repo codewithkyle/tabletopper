@@ -143,6 +143,8 @@ func Unmarshal(b []byte) (*State, error) {
 func (s *State) Clone() State {
 	c := *s
 	c.Table.Layers = cloneLayers(s.Table.Layers)
+	c.Table.Palette = cloneSlice(s.Table.Palette)
+	c.Tiles = cloneSlice(s.Tiles)
 	c.Players = make([]Player, len(s.Players))
 	for i, p := range s.Players {
 		p.CharacterID = cloneID(p.CharacterID)

@@ -230,8 +230,7 @@ func TestACardCarriesTheRestOfTheVerbs(t *testing.T) {
 	}
 }
 func TestTheTableWheelLabelsItsSpokeWithATooltip(t *testing.T) {
-	data := RoomTableMenuData{RoomID: testTableRoomID, Items: TableMenuItems(true)}
-	page := renderToString(t, RoomTableMenu(data))
+	page := renderToString(t, RoomTableMenu(NewTableMenu(testTableRoomID, true, nil)))
 	for _, want := range []string{
 		`data-tip="` + tableMenuPartyLabel + `"`,
 		`aria-label="` + tableMenuPartyLabel + `"`,

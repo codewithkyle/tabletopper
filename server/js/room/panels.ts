@@ -28,6 +28,7 @@ const panelEvents: Partial<Record<Change["type"], string>> = {
 	"room.updated": ROOM_INFO,
 	"table.updated": ROOM_TABLETOP,
 	"layers.updated": ROOM_TABLETOP,
+	"palette.updated": ROOM_TABLETOP,
 };
 const everything = [ROOM_PLAYERS, ROOM_INITIATIVE, ROOM_INFO, ROOM_TABLETOP, ROOM_ROLLS, ROOM_MUSIC];
 export function announce(frame: Frame): void {

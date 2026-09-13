@@ -449,7 +449,7 @@ func TestEveryResolverIsACommandThatCarriesAResolvedField(t *testing.T) {
 			t.Errorf("%s resolved against an empty library without refusing", wire)
 		}
 	}
-	if found != 5 {
-		t.Fatalf("%d commands resolve, want the map, the spawn, the party, the initiative roll and the music", found)
+	if found != 6 {
+		t.Fatalf("%d commands resolve, want the map, the spawn, the party, the initiative roll, the music and the palette", found)
 	}
 }

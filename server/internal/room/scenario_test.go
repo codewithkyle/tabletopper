@@ -144,6 +144,28 @@ func scenario(r *recorder) {
 		ID: testID(901), Layer: ground, Kind: StrokeFree, Color: "#00ff00ff", Width: 3, Points: []int{300, 100, 320, 140},
 	}, pc)
 	r.do("and rubs her own line out", &StrokeErase{IDs: []ulid.ULID{testID(901)}}, pc)
+	r.do("the GM puts pines in the tile palette", &PaletteAdd{
+		Asset: testTerrainID,
+		Art:   &TileArt{AssetID: testTerrainID, Name: "Pine forest", Image: "/assets/terrain/pine.webp"},
+	}, gm)
+	pine := w.s.Table.Palette[len(w.s.Table.Palette)-1].ID
+	r.do("and hills beside them", &PaletteAdd{
+		Asset: testTerrainAlt,
+		Art:   &TileArt{AssetID: testTerrainAlt, Name: "Rolling hills", Image: "/assets/terrain/hills.webp"},
+	}, gm)
+	hill := w.s.Table.Palette[len(w.s.Table.Palette)-1].ID
+	r.do("a stand of pines goes down", &TilesStamp{
+		Layer: ground, Art: pine, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}, {Q: 1, R: -1}},
+	}, gm)
+	r.do("one of them was meant to be a hill", &TilesStamp{
+		Layer: ground, Art: hill, Rotation: 90, Cells: []Cell{{Q: 1, R: 0}},
+	}, gm)
+	r.do("the cellar gets a floor of its own", &TilesStamp{
+		Layer: cellar, Art: pine, Cells: []Cell{{Q: 0, R: 0}},
+	}, gm)
+	r.do("the GM rubs one cell out", &TilesErase{Layer: ground, Cells: []Cell{{Q: 1, R: -1}}}, gm)
+	r.do("the hills come back out of the bag", &PaletteRemove{Art: hill}, gm)
+	r.do("and the ground floor is swept", &TilesClear{Layer: ground}, gm)
 	r.do("send the wagon down to the cellar", &PawnSetLayer{IDs: []ulid.ULID{wagon}, Layer: cellar}, gm)
 	r.do("the party follows it down", &TableSetActiveLayer{Layer: cellar}, gm)
 	r.do("and comes back up", &TableSetActiveLayer{Layer: ground}, gm)

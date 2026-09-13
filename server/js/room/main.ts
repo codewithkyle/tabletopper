@@ -73,7 +73,11 @@ if (mount) {
 		grid: () => state.table.grid,
 		viewed,
 		partyStart: () => state.table.layers.find((l) => l.id === viewed())?.partyStart ?? null,
+		scale: () => renderer?.mapPerPixel() ?? 1,
 		invalidate: () => renderer?.invalidate(),
+		send: (command) => {
+			socket?.send(command);
+		},
 	});
 	const table = createTable({
 		state,

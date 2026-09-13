@@ -8,6 +8,7 @@ import type {
 	Roll,
 	State,
 	Stroke,
+	Tile,
 } from "./protocol.ts";
 type Identified = Player | Pawn | Layer | FogShape | Stroke | Roll;
 type Reducers = {
@@ -54,6 +55,32 @@ const reducers: Reducers = {
 			stroke.points.push(...change.points);
 		}
 	},
+	"tiles.stamped": (state, change) => {
+		for (const tile of change.tiles) {
+			const at = state.tiles.findIndex(
+				(held) => held.layerId === tile.layerId && held.q === tile.q && held.r === tile.r,
+			);
+			if (at === -1) {
+				state.tiles.push(clone(tile));
+				continue;
+			}
+			state.tiles[at] = clone(tile);
+		}
+	},
+	"tiles.erased": (state, change) => {
+		for (let at = state.tiles.length - 1; at >= 0; at--) {
+			const held = state.tiles[at];
+			if (held.layerId !== change.layer) {
+				continue;
+			}
+			if (change.cells.some((cell) => cell.q === held.q && cell.r === held.r)) {
+				state.tiles.splice(at, 1);
+			}
+		}
+	},
+	"palette.updated": (state, change) => {
+		state.table.palette = clone(change.palette);
+	},
 	"strokes.ended": (state, change) => {
 		const stroke = byID(state.strokes, change.id);
 		if (stroke) {
@@ -84,6 +111,7 @@ export function normalize(state: State): void {
 	state.pawns.sort(byIdentifier);
 	state.strokes.sort(byIdentifier);
 	state.rolls.sort(byIdentifier);
+	state.tiles.sort(byCell);
 }
 export function empty(): State {
 	return {
@@ -92,6 +120,7 @@ export function empty(): State {
 		room: { id: "", name: "", locked: false },
 		table: {
 			layers: [],
+			palette: [],
 			activeLayer: "",
 			grid: {
 				type: "square",
@@ -115,6 +144,7 @@ export function empty(): State {
 		initiative: { entries: [], active: null, round: 0 },
 		fog: [],
 		strokes: [],
+		tiles: [],
 		rolls: [],
 		music: { trackId: null, name: "", playing: false, loop: false, at: 0, since: 0 },
 	};
@@ -138,6 +168,15 @@ function remove<T extends Identified>(from: T[], ids: readonly string[]): void {
 }
 function byID<T extends Identified>(from: T[], id: string): T | undefined {
 	return from.find((value) => value.id === id);
+}
+function byCell(a: Tile, b: Tile): number {
+	if (a.layerId !== b.layerId) {
+		return a.layerId < b.layerId ? -1 : 1;
+	}
+	if (a.q !== b.q) {
+		return a.q - b.q;
+	}
+	return a.r - b.r;
 }
 function byIdentifier(a: Identified, b: Identified): number {
 	return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;

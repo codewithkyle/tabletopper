@@ -18,6 +18,7 @@ type State struct {
 	Initiative Initiative `json:"initiative"`
 	Fog        []FogShape `json:"fog"`
 	Strokes    []Stroke   `json:"strokes"`
+	Tiles      []Tile     `json:"tiles"`
 	Rolls      []Roll     `json:"rolls"`
 	Music      Music      `json:"music"`
 }
@@ -27,7 +28,8 @@ type RoomInfo struct {
 	Locked bool      `json:"locked"`
 }
 type Table struct {
-	Layers []Layer `json:"layers"`
+	Layers  []Layer   `json:"layers"`
+	Palette []TileArt `json:"palette"`
 	TableSettings
 }
 type TableSettings struct {
@@ -419,12 +421,15 @@ func (s *State) Normalize() {
 	slices.SortFunc(s.Pawns, func(a, b Pawn) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Strokes, func(a, b Stroke) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Rolls, func(a, b Roll) int { return a.ID.Compare(b.ID) })
+	slices.SortFunc(s.Tiles, compareTiles)
 	s.Players = emptied(s.Players)
 	s.Pawns = emptied(s.Pawns)
 	s.Fog = emptied(s.Fog)
 	s.Strokes = emptied(s.Strokes)
 	s.Rolls = emptied(s.Rolls)
 	s.Table.Layers = emptied(s.Table.Layers)
+	s.Table.Palette = emptied(s.Table.Palette)
+	s.Tiles = emptied(s.Tiles)
 	s.Initiative.Entries = emptied(s.Initiative.Entries)
 	for i := range s.Initiative.Entries {
 		s.Initiative.Entries[i].PawnIDs = emptied(s.Initiative.Entries[i].PawnIDs)
@@ -441,6 +446,15 @@ func (s *State) Normalize() {
 	for i := range s.Rolls {
 		s.Rolls[i].Dice = emptied(s.Rolls[i].Dice)
 	}
+}
+func compareTiles(a, b Tile) int {
+	if c := a.LayerID.Compare(b.LayerID); c != 0 {
+		return c
+	}
+	if a.Q != b.Q {
+		return a.Q - b.Q
+	}
+	return a.R - b.R
 }
 func emptied[T any](v []T) []T {
 	if v == nil {

@@ -6,6 +6,7 @@ class El {
 	attrs = new Map<string, string>();
 	children: El[] = [];
 	style: Record<string, string> = {};
+	textContent = "";
 	hidden = true;
 	clientWidth = 1000;
 	clientHeight = 800;
@@ -32,6 +33,15 @@ class El {
 		}
 		this.children.push(...kids);
 		return this;
+	}
+	closest(selector: string): El | null {
+		const name = selector.slice(1, -1);
+		for (let at: El | null = this; at; at = at.parent) {
+			if (at.hasAttribute(name)) {
+				return at;
+			}
+		}
+		return null;
 	}
 	contains(node: El): boolean {
 		for (let at: El | null = node; at; at = at.parent) {
@@ -76,28 +86,47 @@ function grid(): Grid {
 		color: "#000000ff", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal",
 	};
 }
-function room(): { mount: El; host: El; wheel: El; party: El; drawn: number[] } {
+function room(): {
+	mount: El; host: El; wheel: El; party: El; erase: El;
+	pine: El; picture: El; drawn: number[];
+} {
 	const party = new El(
 		"data-table-menu-party",
 		"data-set-label=Party starts here",
 		"data-clear-label=Take it back",
 	);
-	const wheel = new El("data-table-menu", "data-reach=60").append(party);
+	const erase = new El("data-table-menu-erase");
+	const picture = new El();
+	const pine = new El(
+		"data-table-menu-art=01ARTPINE",
+		"data-image=/pine.webp",
+	).append(picture);
+	const wheel = new El("data-table-menu", "data-reach=60").append(pine, erase, party);
 	const host = new El("data-table-menu-host").append(wheel);
 	const mount = new El().append(host);
-	return { mount, host, wheel, party, drawn: [] };
+	return { mount, host, wheel, party, erase, pine, picture, drawn: [] };
 }
-function menuFor(parts: ReturnType<typeof room>, start: { x: number; y: number } | null = null) {
+function menuFor(
+	parts: ReturnType<typeof room>,
+	start: { x: number; y: number } | null = null,
+	scale = 1,
+	board: () => Grid = grid,
+) {
 	let drawn = 0;
+	const sent: Record<string, unknown>[] = [];
 	const menu = mountTableMenu(parts.mount as unknown as HTMLElement, {
-		grid,
+		grid: board,
 		viewed: () => "01FLOOR",
 		partyStart: () => start,
+		scale: () => scale,
 		invalidate: () => {
 			drawn++;
 		},
+		send: (command) => {
+			sent.push(command as unknown as Record<string, unknown>);
+		},
 	});
-	return { menu, redraws: () => drawn };
+	return { menu, redraws: () => drawn, sent };
 }
 test("a secondary click over empty ground opens the wheel on the cell under it", () => {
 	const parts = room();
@@ -105,8 +134,19 @@ test("a secondary click over empty ground opens the wheel on the cell under it",
 	assert.equal(menu.open({ x: 100, y: 40 }, { x: 400, y: 300 }), true);
 	assert.equal(parts.wheel.hidden, false);
 	const cell = menu.marked();
-	assert.deepEqual(cell, { x: 64, y: 0, size: 64, centreX: 96, centreY: 32 });
-	assert.equal(parts.wheel.style.transform, "translate(400px, 300px)");
+	assert.deepEqual(cell, { x: 64, y: 0, size: 64, centreX: 96, centreY: 32, q: 1, r: 0 });
+	assert.equal(
+		parts.wheel.style.transform,
+		"translate(396px, 292px)",
+		"the wheel opened under the pointer rather than over the cell",
+	);
+	menu.stop();
+});
+test("the wheel opens over the cell's centre however far in the table is zoomed", () => {
+	const parts = room();
+	const { menu } = menuFor(parts, null, 4);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	assert.equal(parts.wheel.style.transform, "translate(399px, 298px)");
 	menu.stop();
 });
 test("the wheel shifts inward where the pointer is nearer an edge than its reach", () => {
@@ -206,7 +246,9 @@ test("a player has no wheel to open", () => {
 		grid,
 		viewed: () => "01FLOOR",
 		partyStart: () => null,
+		scale: () => 1,
 		invalidate: () => {},
+		send: () => {},
 	});
 	assert.equal(menu.open({ x: 10, y: 10 }, { x: 300, y: 300 }), false);
 	assert.equal(menu.marked(), null);
@@ -223,15 +265,141 @@ test("opening and closing asks for a redraw", () => {
 	assert.equal(redraws(), 2);
 	menu.stop();
 });
+test("picking a picture stamps the cell the wheel was opened on", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("click", { target: parts.picture });
+	assert.deepEqual(sent, [{
+		type: "tiles.stamp",
+		layer: "01FLOOR",
+		art: "01ARTPINE",
+		rotation: 0,
+		cells: [{ q: 1, r: 0 }],
+	}]);
+	assert.equal(menu.marked(), null, "the wheel stayed open after a pick");
+	menu.stop();
+});
+test("hovering a picture previews it on the cell the wheel was opened on", () => {
+	const parts = room();
+	const { menu } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	assert.equal(menu.preview(), null, "something was previewed before anything was hovered");
+	doc.fire("pointerover", { target: parts.picture });
+	assert.deepEqual(menu.preview(), { image: "/pine.webp", q: 1, r: 0, rotation: 0 });
+	doc.fire("pointerover", { target: parts.erase });
+	assert.equal(menu.preview(), null, "the preview outlived the picture under the pointer");
+	menu.stop();
+});
+test("a preview belongs to an open wheel and goes with it", () => {
+	const parts = room();
+	const { menu } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("pointerover", { target: parts.picture });
+	menu.close();
+	assert.equal(menu.preview(), null);
+	menu.stop();
+});
+test("the brackets turn the preview by the step the cells have", () => {
+	const parts = room();
+	const { menu } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("pointerover", { target: parts.picture });
+	doc.fire("keydown", { key: "]" });
+	assert.equal(menu.preview()?.rotation, 90);
+	doc.fire("keydown", { key: "]" });
+	doc.fire("keydown", { key: "]" });
+	doc.fire("keydown", { key: "]" });
+	assert.equal(menu.preview()?.rotation, 0, "four quarter turns is a whole one");
+	doc.fire("keydown", { key: "[" });
+	assert.equal(menu.preview()?.rotation, 270);
+	menu.stop();
+});
+test("a picture is stamped at the turn the preview was showing", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("pointerover", { target: parts.picture });
+	doc.fire("keydown", { key: "]" });
+	doc.fire("click", { target: parts.picture });
+	assert.equal(sent[0].rotation, 90);
+	menu.stop();
+});
+test("the turn outlives the wheel, so a row goes down the same way up", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("keydown", { key: "]" });
+	doc.fire("click", { target: parts.picture });
+	menu.open({ x: 200, y: 40 }, { x: 400, y: 300 });
+	doc.fire("click", { target: parts.picture });
+	assert.deepEqual(sent.map((c) => (c as { rotation: number }).rotation), [90, 90]);
+	menu.stop();
+});
+test("the brackets do nothing while the wheel is shut", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	doc.fire("keydown", { key: "]" });
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("click", { target: parts.picture });
+	assert.equal(sent[0].rotation, 0, "a key pressed over the table turned a wheel that was not open");
+	menu.stop();
+});
+test("a turn carried over from a square grid is snapped to what a hex can do", () => {
+	const parts = room();
+	let type: Grid["type"] = "square";
+	const { menu, sent } = menuFor(parts, null, 1, () => ({ ...grid(), type }));
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("keydown", { key: "]" });
+	menu.close();
+	type = "hexPointy";
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("pointerover", { target: parts.picture });
+	assert.equal(menu.preview()?.rotation, 120, "a quarter turn was sent to a grid that turns in sixths");
+	doc.fire("click", { target: parts.picture });
+	assert.equal(sent[0].rotation, 120);
+	menu.stop();
+});
+test("on a hex grid the brackets turn in sixths", () => {
+	const parts = room();
+	const { menu } = menuFor(parts, null, 1, () => ({ ...grid(), type: "hexPointy" }));
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("pointerover", { target: parts.picture });
+	doc.fire("keydown", { key: "]" });
+	assert.equal(menu.preview()?.rotation, 60);
+	doc.fire("keydown", { key: "[" });
+	doc.fire("keydown", { key: "[" });
+	assert.equal(menu.preview()?.rotation, 300);
+	menu.stop();
+});
+test("erase takes the cell back rather than stamping over it", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	doc.fire("click", { target: parts.erase });
+	assert.deepEqual(sent, [{
+		type: "tiles.erase",
+		layer: "01FLOOR",
+		cells: [{ q: 1, r: 0 }],
+	}]);
+	menu.stop();
+});
+test("a pick with no cell remembered sends nothing", () => {
+	const parts = room();
+	const { menu, sent } = menuFor(parts);
+	doc.fire("click", { target: parts.picture });
+	assert.deepEqual(sent, []);
+	menu.stop();
+});
 test("the module writes no class name", () => {
 	const src = readFileSync(new URL("./table-menu.ts", import.meta.url), "utf8");
-	for (const written of ["classList", "className", 'setAttribute("class"']) {
+	for (const written of ["classList", "className", 'setAttribute("class"', "textContent"]) {
 		assert.equal(src.includes(written), false, `${written} is in table-menu.ts`);
 	}
 });
 test("the cell under a point is the one the grid offset says it is", () => {
 	const offset = { ...grid(), offsetX: 10, offsetY: 10 };
 	assert.deepEqual(cellUnder(offset, { x: 10, y: 10 }), {
-		x: 10, y: 10, size: 64, centreX: 42, centreY: 42,
+		x: 10, y: 10, size: 64, centreX: 42, centreY: 42, q: 0, r: 0,
 	});
 });

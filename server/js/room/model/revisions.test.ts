@@ -14,27 +14,35 @@ function after(types: readonly Event["type"][]): Revisions {
 	return rev;
 }
 test("a fresh set of revisions counts nothing", () => {
-	assert.deepEqual(revisions(), { pawns: 0, fog: 0, strokes: 0, table: 0, initiative: 0 });
+	assert.deepEqual(revisions(), { pawns: 0, fog: 0, strokes: 0, tiles: 0, table: 0, initiative: 0 });
 });
 test("the pawn family bumps the pawns and leaves the rest alone", () => {
 	const rev = after(["pawns.upserted", "pawns.moved", "pawns.removed"]);
-	assert.deepEqual(rev, { pawns: 3, fog: 0, strokes: 0, table: 0, initiative: 0 });
+	assert.deepEqual(rev, { pawns: 3, fog: 0, strokes: 0, tiles: 0, table: 0, initiative: 0 });
 });
 test("the fog family bumps the fog", () => {
 	const rev = after(["fog.upserted", "fog.removed"]);
-	assert.deepEqual(rev, { pawns: 0, fog: 2, strokes: 0, table: 0, initiative: 0 });
+	assert.deepEqual(rev, { pawns: 0, fog: 2, strokes: 0, tiles: 0, table: 0, initiative: 0 });
 });
 test("the stroke family bumps the strokes, extensions included", () => {
 	const rev = after(["strokes.upserted", "strokes.extended", "strokes.ended", "strokes.removed"]);
-	assert.deepEqual(rev, { pawns: 0, fog: 0, strokes: 4, table: 0, initiative: 0 });
+	assert.deepEqual(rev, { pawns: 0, fog: 0, strokes: 4, tiles: 0, table: 0, initiative: 0 });
 });
 test("the table and the initiative each bump their own", () => {
-	assert.deepEqual(after(["table.updated"]), { pawns: 0, fog: 0, strokes: 0, table: 1, initiative: 0 });
-	assert.deepEqual(after(["layers.updated"]), { pawns: 0, fog: 0, strokes: 0, table: 1, initiative: 0 });
-	assert.deepEqual(after(["initiative.updated"]), { pawns: 0, fog: 0, strokes: 0, table: 0, initiative: 1 });
+	assert.deepEqual(after(["table.updated"]), { pawns: 0, fog: 0, strokes: 0, tiles: 0, table: 1, initiative: 0 });
+	assert.deepEqual(after(["layers.updated"]), { pawns: 0, fog: 0, strokes: 0, tiles: 0, table: 1, initiative: 0 });
+	assert.deepEqual(after(["initiative.updated"]), { pawns: 0, fog: 0, strokes: 0, tiles: 0, table: 0, initiative: 1 });
+});
+test("the tile family bumps the tiles, and the bag bumps the table with them", () => {
+	assert.deepEqual(after(["tiles.stamped", "tiles.erased"]), {
+		pawns: 0, fog: 0, strokes: 0, tiles: 2, table: 0, initiative: 0,
+	});
+	assert.deepEqual(after(["palette.updated"]), {
+		pawns: 0, fog: 0, strokes: 0, tiles: 1, table: 1, initiative: 0,
+	});
 });
 test("a snapshot bumps every slice", () => {
-	assert.deepEqual(after(["snapshot"]), { pawns: 1, fog: 1, strokes: 1, table: 1, initiative: 1 });
+	assert.deepEqual(after(["snapshot"]), { pawns: 1, fog: 1, strokes: 1, tiles: 1, table: 1, initiative: 1 });
 });
 test("what the table does not hold bumps nothing", () => {
 	const rev = after([

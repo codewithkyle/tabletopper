@@ -1,5 +1,5 @@
 import type { Grid } from "../protocol.ts";
-import { PATH_CELLS_MAX, hexAt, hexCentre, hexDistance, hexLine, isHex, roundAway as round } from "./hex.ts";
+import { PATH_CELLS_MAX, SQRT3, hexAt, hexCentre, hexDistance, hexLine, isHex, roundAway as round } from "./hex.ts";
 export function snapAxis(cell: number, offset: number, footprint: number, mode: Grid["snap"], value: number): number {
 	if (mode === "off" || cell < 1) {
 		return value;
@@ -33,6 +33,16 @@ export function cellCentre(grid: Grid, cx: number, cy: number): [number, number]
 	}
 	const cell = Math.max(1, grid.cellSize);
 	return [grid.offsetX + (cx + 0.5) * cell, grid.offsetY + (cy + 0.5) * cell];
+}
+export function cellExtents(grid: Grid): [number, number] {
+	const half = Math.max(1, grid.cellSize) / 2;
+	if (grid.type === "hexPointy") {
+		return [half, half * 2 / SQRT3];
+	}
+	if (grid.type === "hexFlat") {
+		return [half * 2 / SQRT3, half];
+	}
+	return [half, half];
 }
 export function cellPath(grid: Grid, x0: number, y0: number, x1: number, y1: number, out: number[]): number[] {
 	if (isHex(grid)) {

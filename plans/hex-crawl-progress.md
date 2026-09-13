@@ -2,16 +2,16 @@
 
 Working notes against `plans/hex-crawl.md`. Delete this file when the plan is done.
 
-Branch `yet-another-rewrite`. Checkpoint 1 is committed as `edcae11` and checkpoints 2
-and 3 as `4f17aed`; **everything for checkpoint 4 is uncommitted, in the working tree**.
+Branch `yet-another-rewrite`. Checkpoints 1-4 are committed (`edcae11`, `4f17aed`,
+`6ddd4a5`); **everything for checkpoint 5 is uncommitted, in the working tree**.
 `make check` is green and `make js`, `make css`, `make protocol`, `make sqlc`, `make db`
 and `templ generate` have all been run, so `make run` is enough to look at it.
 
 ## Where we are
 
-**Checkpoints 1, 2 and 3 are built and verified in a browser.** Checkpoint 4 is built and
-unverified. The next session starts by running the CP4 test plan at the bottom of this
-file, then moves to Checkpoint 5.
+**Checkpoints 1 to 4 are built and verified in a browser.** Checkpoint 5 is built and
+unverified. The next session starts by running the CP5 test plan at the bottom of this
+file, then moves to Checkpoint 6.
 
 ## Decisions taken on 2026-09-12
 
@@ -45,8 +45,8 @@ file, then moves to Checkpoint 5.
 | **CP1** | 0, 1, 2 | A hex grid you can see, snap to and measure in. **Verified.** |
 | **CP2** | 3 | A layer carries two pictures: the GM's map and the players' map. **Verified.** |
 | **CP3** | 4 | The fog brush paints by the cell, square or hex. **Verified.** |
-| **CP4** | 5 | Terrain is its own asset kind with its own tab and its own shelf. **Built, unverified.** |
-| **CP5** | 6 | The palette, the wheel's ring, the stamp brush and the tile stage. |
+| **CP4** | 5 | Terrain is its own asset kind with its own tab and its own shelf. **Verified.** |
+| **CP5** | 6 | The palette, the wheel's ring, the stamp brush and the tile stage. **Built, unverified.** |
 | **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. |
 | **CP7** | 8 | The hex key: notes per cell, revealed by the GM. |
 | **CP8** | 9 | The party pawn reveals fog as it moves. |
@@ -166,6 +166,95 @@ the same gate.**
 - The tab strip is five wide, *Terrain* second, after *Maps*. The picker prose and the
   empty state live in `asset-grid.go` beside the other four.
 
+## What Checkpoint 5 landed — phase 6, tiles
+
+- **A tile has no id.** `(LayerID, Q, R)` is its identity, so one-per-cell is a property
+  of the data rather than a rule. `Palette []TileArt` sits on `Table` beside `Layers`
+  (never inside `TableSettings`, which `Derive` compares with `!=`); `Tiles []Tile` sits
+  on `State`. The image URL lives once per palette entry, not once per stamp.
+- `cellDiff[T]` in `derive.go` beside `diff[T]`, keyed by `(layer, cell)`. It emits one
+  `TilesErased{Layer, Cells}` **per floor** — `PaletteRemove` can take cells off several
+  at once — and one `TilesStamped{Tiles}` for everything added or changed. Neither maps
+  to a UI event in `panels.ts`; `palette.updated` maps to `ROOM_TABLETOP` the way
+  `layers.updated` does. `revisions.ts` gained a `tiles` slice, bumped by both tile
+  changes and by `palette.updated` (a changed bag changes what is drawn).
+- Commands: `PaletteAdd` (a `Resolver` reading `lib.Picture(..., PictureTerrain)`, so a
+  token id is refused), `PaletteRemove` (erases the tiles), `TilesStamp`, `TilesErase`,
+  `TilesClear`. All GM-only until phase 7. Caps `TilesMax = 4_000`, `PaletteMax = 24`,
+  `TileBatchMax = 64`, `CellLimit = 100_000` in `validate.go`.
+- **`TilesStamp` counts the fresh cells before it lays any of them**, so a batch that
+  would cross `TilesMax` is refused whole rather than half-applied. Cells are deduped on
+  the way in, which is also what makes one batch naming a cell twice leave one tile.
+- **Rendering is the pawn program with a fourth branch.** `SHAPE_HEX = 3` and
+  `SHAPE_HEX_FLAT = 4` share one branch: `d = max(|x|, 0.5|x| + |y|) <= 1` over the
+  quad's own local coordinates, with the axes swapped for a flat top. The quad is the
+  cell's bounding box from `cellExtents`, so a pointy-top hex is `S` wide and `2S/√3`
+  tall. `render/terrain-pass.ts` is a second batch on `resources.pawnProgram`;
+  `stages/terrain.ts` sits between `tilesStage` and `gridStage` and draws the ghost from
+  `overlay.stamps` in a second pass at half alpha.
+- **Rotation is restricted to 60° on a hex grid and 90° on a square one because the mask
+  turns with the art.** The vertex shader rotates the quad and the fragment tests
+  `v_local`, so the hexagon rotates too — and a regular hexagon is invariant under 60°,
+  a square under 90°. Any other angle would cut the art against a turned cell.
+- The wheel grew a ring: **one ring carrying the actions and then the pictures**, each
+  button `--degree` (`90 - i×360/n`, clockwise from the top) and `--radius`
+  (`max(96px, n×48px/2π)`) from the server, numbered across both lists by
+  `NewTableMenu`. One arbitrary-property class in the `.templ` moves them; the script
+  never computes a position but the wheel's own. The centre holds a
+  `data-table-menu-label` naming the picture under the pointer, and **the wheel opens
+  centred on the cell it acts on, not on the pointer**.
+- **There is no stamp brush.** A tile is placed one at a time, from the wheel: hover a
+  picture and it previews on the cell the wheel was opened on, `[` and `]` turn the
+  preview by the cell's own step, a click stamps it at that turn, and Escape closes.
+  The turn outlives the wheel so a row goes down the same way up, and it is snapped to
+  what the grid can do, so an angle set on a square grid is legal on a hex one. The
+  preview reaches the overlay through `TableMarks`, the channel `select.ts` already
+  used to draw the marked cell.
+- The GM manages the bag in a *Tile palette* window: a compact strip of chips at the
+  top, each with a *Remove* on hover behind a confirm that says the stamped cells go
+  with it, and the terrain shelf beneath it, scrolling on its own, where a picture
+  already in the bag is marked *In use* and offers no *Add*. **The bag and the shelf
+  are two short lists that swap themselves**, `?part=bag` and `?part=shelf` off the one
+  fragment route, so adding a picture never replaces the window under the pointer.
+
+**The stamp brush was cut on 2026-09-13, at Kyle's call, after the first browser pass.**
+The plan's phase 6 gives a drag-painting brush armed by Shift-clicking the wheel. It went
+in, and it was wrong: the arming gesture was invisible, the brush was a second mode
+layered over a menu that already knew which cell it was acting on, and laying terrain a
+region at a time is not how a hex crawl is drawn. **`modes/stamp.ts` is deleted and the
+wheel does the whole job.** `switch.ts` is back to one special-cased tool (`place`), and
+`TileBatchMax` stays on the server as a wire cap with nothing on the client mirroring it.
+**Phase 7's `TilesErase` ownership rules still apply** -- the wheel's *Erase* is the one
+control they gate.
+
+**Fixed at the first hand-over, from five reports in a browser:**
+
+1. **A tile never appeared for anyone.** `terrainStage` rebuilt its batch only when its
+   own `tiles`/`table` watch moved, but `sprites.sprite()` returns `null` until the
+   picture has loaded — so the first build pushed nothing and no later frame ever built
+   again. **A stage that reads the sprite cache must also rebuild on `frame.rebuild`,**
+   which is the renderer's signal that `sprites.epoch()` moved. Worse than the missing
+   tile: `resources.begin(rebuild)` clears the cache's `live` set on every rebuild
+   frame, so a stage that skips those frames lets its own pictures be evicted.
+   `stages/pawns.ts` had it right all along and is the precedent.
+
+2. **The wheel had two rings.** The plan's hub-in-the-middle read as two unrelated
+   controls. Everything now sits on one ring, actions first from the top so they keep
+   their place as the bag grows, all at `btn-circle` size.
+
+3. **The wheel opened under the pointer.** It now opens centred on the cell it acts on:
+   `screen + (centre - map) / mapPerPixel`, which needed the scale the rest of the
+   tools already take.
+
+4. **The palette window was unreadable.** Two grids of large cards with no way to tell
+   the bag from the shelf. The bag is now 40px chips in a capped strip and the shelf is
+   a tighter grid marked *In use*, with the shelf scrolling inside the window rather
+   than the window scrolling.
+
+5. **Adding a picture threw the window to the bottom of its scroll**, because the whole
+   fragment swapped itself on `room:tabletop`. Only the bag and the shelf refetch now,
+   each replacing a short list in place.
+
 ## Departures from the plan, and why
 
 1. **The pre-field snapshot fixture is new.** The plan asks phase 0 to assert against
@@ -220,6 +309,49 @@ the same gate.**
     the shared builder would have said *No terrain match "pine"*. `noMatchFor(subject,
     verb, query)` is the general form and `noMatchHeading` is now one line of it; only
     terrain passes `matches`.
+
+11. **The hub has no *Hex note*.** The plan's phase 6 test names it, but the hex key is
+    phase 8 and a button that does nothing is worse than no button. The hub is *Erase*
+    and *Party starts here*; phase 8 adds the third and `TableMenuActions` is where it
+    goes.
+
+12. **`SHAPE_HEX` is two constants, not one.** A flat-top hexagon is a pointy-top one
+    turned 90°, and turning the quad would have turned the art with it. `SHAPE_HEX = 3`
+    and `SHAPE_HEX_FLAT = 4` share a single branch that swaps the axes.
+
+13. **`overlay.stamp` is `overlay.stamps`, an array.** Every other overlay channel is a
+    list and the render pass wants a list; one ghost is a list of one.
+
+14. **`TableClear` empties the tiles and keeps the palette.** Tiles are on the board and
+    go with the rest; the bag is a library the GM filled, and re-adding 24 pictures
+    after every clear would be a punishment. *Clear tiles* is the separate, layered
+    menu item the plan asks for.
+
+15. **The eraser's ghost is an `overlay.cells` outline, not a picture**, because it has
+    no picture to ghost. It follows CP3's rule and takes the corner, not the centre.
+
+16. **There is no stamp brush at all** -- see the note above the departures. CP3 warned
+    that a hover-only ghost needs a gate; the wheel's preview has one, because it only
+    exists while the wheel is open and the pointer is on a picture.
+
+17. **The wheel owns the stamp rotation**, not a tool. `[` and `]` are handled by
+    `table-menu.ts`'s own keydown while the wheel is open, and ignored while it is
+    shut.
+
+18. **The wheel is one ring, not a hub and a ring**, and it centres on the cell rather
+    than the pointer. Both were reported in the first browser pass; see the fixes above.
+
+19. **The wheel writes no words over the table.** It is pictures and icons: the ring
+    carries the art, the hub icons carry `data-tip` tooltips, and every button carries
+    an `aria-label` so a screen reader still gets the name. A label in the middle of the
+    wheel naming what was under the pointer was tried and cut -- over a map it reads as
+    debug text, and the preview already says what the picture is.
+    `TestTheWheelIsPicturesAndIconsAndNoWordsOverTheTable` is the guard.
+
+20. **The palette fragment serves three parts off one route** (`?part=bag`,
+    `?part=shelf`, or the whole window). A window that replaces itself on every table
+    change throws away the reader's place in it, and the palette is the first window
+    long enough for that to matter.
 
 ## Geometry, settled
 
@@ -348,6 +480,55 @@ Two browsers: you as GM, a second signed-in account as a player in the same room
 8. **Reload**, and the pictures are still there. Nothing in the room changed this
    checkpoint — the shelf is stocked, and phase 6 is what spends it.
 
+## Verifying Checkpoint 5
+
+Upload two or three terrain pictures under *Assets → Terrain* first; the palette has
+nothing to offer until you do.
+
+1. **The palette window.** *Tabletop → Tile palette*. An empty chip strip at the top
+   with a count reading *0 of 24*, and the terrain shelf below it. **Only the shelf
+   scrolls**; the window itself does not. Type in the search box: the shelf filters and
+   nothing else on the window moves.
+2. **Add two pictures.** *Add* on a shelf card; it becomes *In use* and a chip appears
+   in the strip above. **The window does not jump** — you stay exactly where you were
+   in the shelf. Adding the same picture twice is not offered. Hovering a chip in the
+   strip reveals its *Remove*.
+3. **The ring.** Right-click empty ground. **The wheel opens centred on the cell, not
+   on the pointer** — click near a cell's edge and it still lands on the middle of that
+   cell. *Erase* and *Party starts here* sit at the top of **one ring** with your
+   pictures following them round; the actions stay put as you add pictures. Hover a
+   picture and it previews in the cell rather than naming itself -- **nothing on the
+   wheel writes text over the table**. With one picture the ring is close in; with
+   twenty-four it is pushed out far enough that none of them overlap.
+4. **Stamp one cell.** Pick a picture. The wheel closes and that cell fills with the
+   art, clipped to the cell — square on a square grid, a hexagon on a hex one, tiling
+   against its neighbours with no square corners. **The tile sits under the grid lines,
+   under the drawing and under the fog, and over the map.**
+5. **Stamp over it.** Right-click the same cell, pick the other picture: it replaces the
+   first. There is never more than one tile in a cell.
+6. **The preview.** Right-click a cell and **hover** a picture without clicking: a
+   half-transparent copy of it appears in that cell. Move to another picture and the
+   preview follows; move off the ring and it goes.
+7. **Turning it.** While hovering, press `]` and `[`. The preview turns -- by 90 degrees
+   on a square grid and 60 on a hex one -- and clicking lays it at that turn. **The cell
+   never changes shape**, only the picture inside it. The turn is remembered for the
+   next cell, so a row goes down the same way up.
+8. **The eraser.** *Erase* takes the one cell the wheel was opened on.
+9. **Escape** closes the wheel and takes the preview with it. So does clicking away,
+   scrolling, or picking anything.
+10. **There is no brush and no dragging.** One right-click lays one tile.
+11. **The players see it.** In a second browser as a player, every tile appears as it is
+    painted, under their fog. A player right-clicking empty ground gets **no wheel at
+    all** — phase 7 is what opens it to them.
+12. **Remove a picture from the bag.** The confirm says the stamped cells go with it.
+    They do, on every floor, and the ring loses that button.
+13. **Floors.** Stamp on the ground floor, switch floors, stamp there: each floor keeps
+    its own tiles. *Tabletop → Clear tiles* empties the floor you are looking at and
+    leaves the other alone, and leaves the bag full.
+14. **Reload both browsers**, and everything is still there. Save a scene with tiles on
+    it, clear the tabletop — the tiles go and **the palette stays** — then reopen the
+    scene and both come back.
+
 ## Files
 
 **Checkpoint 1.** Added: `server/internal/room/hex.go`, `hex_test.go`,
@@ -379,6 +560,18 @@ Changed: `db/schema.sql`, `server/sql/assets.sql`,
 `internal/hub/{library.go,library_test.go,pawn_test.go}`, `routes.go`,
 `templ/pages/{assets.go,assets.templ,asset-tabs.templ,asset-grid.go,notice-panel.go}`,
 `templ/pages/pages_test.go`.
+
+**Checkpoint 5.** Added: `internal/room/{tile.go,tile_test.go}`,
+`internal/controllers/{room-palette.go,room-palette_test.go}`,
+`templ/pages/{room-palette.go,room-palette.templ,room-palette_test.go,room-table-menu_test.go}`,
+`js/room/render/terrain-pass.ts`, `js/room/render/stages/{terrain.ts,terrain.test.ts}`.
+Changed: `internal/room/{state,derive,reduce,command,snapshot,table,validate}.go` and
+their tests plus `scenario_test.go`, `authorize_test.go` and `resolve_test.go`;
+`internal/controllers/room-table-menu.go`; `routes.go`;
+`templ/pages/{room.go,room-table-menu.go,room-table-menu.templ,rooms_test.go,scenes_test.go}`;
+and on the client `model/{overlay,revisions,grid,hex}.ts`, `modes/{switch,table,select,testing}.ts`,
+`render/{pawn-pass.ts,shaders/pawn.ts,stages/order.ts}`, `store.ts`, `panels.ts`,
+`table-menu.ts`, `main.ts` and their tests.
 
 Regenerated across all three: `protocol.ts`, `testdata/reducer/{gm,player}.json`,
 `testdata/snapshots/schema-3.json`, `public/css/app.css`, `public/static/room.js`.

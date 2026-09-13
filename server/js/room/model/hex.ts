@@ -1,6 +1,6 @@
 import type { Grid } from "../protocol.ts";
 export const PATH_CELLS_MAX = 512;
-const SQRT3 = Math.sqrt(3);
+export const SQRT3 = Math.sqrt(3);
 const NUDGE = 1e-6;
 export function roundAway(value: number): number {
 	return (value < 0 ? -Math.round(-value) : Math.round(value)) + 0;

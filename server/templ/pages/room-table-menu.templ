@@ -1,7 +1,8 @@
 package pages
 
 const tableMenuHub = "pointer-events-auto absolute top-0 left-0 size-0"
-const tableMenuSpoke = "btn btn-circle btn-sm tooltip tooltip-bottom absolute top-0 left-0 -mt-4 -ml-4 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
+const tableMenuSpoke = "btn btn-circle tooltip tooltip-bottom absolute top-0 left-0 -mt-6 -ml-6 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
+const tableMenuArtButton = "btn btn-circle absolute top-0 left-0 -mt-6 -ml-6 overflow-hidden p-0 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
 
 templ RoomTableMenu(data RoomTableMenuData) {
 	if !data.Empty() {
@@ -20,10 +21,28 @@ templ RoomTableMenu(data RoomTableMenuData) {
 						hx-post={ data.PartyStartPath() }
 						hx-swap="none"
 					}
+					if item.IsErase() {
+						data-table-menu-erase
+					}
 				>
 					if item.IsParty() {
 						@partyStartIcon()
 					}
+					if item.IsErase() {
+						@eraserIcon()
+					}
+				</button>
+			}
+			for _, art := range data.Ring {
+				<button
+					type="button"
+					data-table-menu-art={ art.ID }
+					data-image={ art.Image }
+					aria-label={ art.Name }
+					style={ art.Placement() }
+					class={ tableMenuArtButton }
+				>
+					<img src={ art.Image } alt="" class="h-full w-full object-cover"/>
 				</button>
 			}
 		</div>

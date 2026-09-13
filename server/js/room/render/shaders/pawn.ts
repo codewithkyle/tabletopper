@@ -89,7 +89,7 @@ void main() {
 			discard;
 		}
 		rgb = picture.rgb;
-	} else {
+	} else if (shape < 2.5) {
 		float r = length(v_local);
 		float aa = max(fwidth(r), 1e-5);
 		cover = picture.a
@@ -99,6 +99,18 @@ void main() {
 			discard;
 		}
 		rgb = v_border.rgb * picture.r;
+	} else {
+		vec2 p = abs(v_local);
+		if (shape > 3.5) {
+			p = p.yx;
+		}
+		float d = max(p.x, 0.5 * p.x + p.y);
+		float aa = max(fwidth(d), 1e-5);
+		cover = picture.a * (1.0 - smoothstep(1.0 - aa, 1.0, d));
+		if (cover <= 0.0) {
+			discard;
+		}
+		rgb = picture.rgb;
 	}
 	rgb = mix(rgb, vec3(dot(rgb, LUMA)), grey);
 	outColor = vec4(rgb, cover * alpha);

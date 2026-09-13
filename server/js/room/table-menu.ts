@@ -1,6 +1,9 @@
 import type { Grid } from "./protocol.ts";
+import type { Outgoing } from "./socket.ts";
 import type { Point } from "./model/types.ts";
+import type { Stamp } from "./model/overlay.ts";
 import { cellAt, cellCentre } from "./model/grid.ts";
+import { isHex } from "./model/hex.ts";
 import { nextZ } from "./window.ts";
 export interface MarkedCell {
 	x: number;
@@ -8,28 +11,39 @@ export interface MarkedCell {
 	size: number;
 	centreX: number;
 	centreY: number;
+	q: number;
+	r: number;
 }
 export interface TableMenuDeps {
 	grid: () => Grid;
 	viewed: () => string;
 	partyStart: () => Point | null;
+	scale: () => number;
 	invalidate: () => void;
+	send: (command: Outgoing) => void;
 }
 export interface TableMenu {
 	open(map: Point, screen: Point): boolean;
 	close(): void;
 	marked(): MarkedCell | null;
+	preview(): Stamp | null;
 	stop(): void;
+}
+interface Picked {
+	art: string;
+	image: string;
 }
 const FALLBACK_REACH = 64;
 export function cellUnder(grid: Grid, map: Point): MarkedCell {
-	const [cx, cy] = cellAt(grid, map.x, map.y);
-	const [centreX, centreY] = cellCentre(grid, cx, cy);
+	const [q, r] = cellAt(grid, map.x, map.y);
+	const [centreX, centreY] = cellCentre(grid, q, r);
 	const size = Math.max(1, grid.cellSize);
-	return { x: centreX - size / 2, y: centreY - size / 2, size, centreX, centreY };
+	return { x: centreX - size / 2, y: centreY - size / 2, size, centreX, centreY, q, r };
 }
 export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMenu {
 	let cell: MarkedCell | null = null;
+	let hovered: Picked | null = null;
+	let turn = 0;
 	function host(): HTMLElement | null {
 		const found = mount.querySelector("[data-table-menu-host]");
 		return found instanceof HTMLElement ? found : null;
@@ -60,7 +74,7 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 		cell = found;
 		root.hidden = false;
 		root.style.zIndex = String(nextZ());
-		place(root, screen);
+		place(root, centred(found, map, screen, deps.scale()));
 		deps.invalidate();
 		return true;
 	}
@@ -70,6 +84,7 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 			return;
 		}
 		cell = null;
+		hovered = null;
 		if (root) {
 			root.hidden = true;
 		}
@@ -92,17 +107,78 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 		}
 		close();
 	}
+	function step(): number {
+		return isHex(deps.grid()) ? 60 : 90;
+	}
+	function turned(): number {
+		const by = step();
+		return ((Math.round(turn / by) * by) % 360 + 360) % 360;
+	}
+	function picked(e: Event): Picked | null {
+		if (!(e.target instanceof Element)) {
+			return null;
+		}
+		const art = e.target.closest("[data-table-menu-art]");
+		if (art instanceof HTMLElement) {
+			return {
+				art: art.getAttribute("data-table-menu-art") ?? "",
+				image: art.getAttribute("data-image") ?? "",
+			};
+		}
+		if (e.target.closest("[data-table-menu-erase]") !== null) {
+			return { art: "", image: "" };
+		}
+		return null;
+	}
 	function onClick(e: Event): void {
 		const root = wheel();
 		if (!root || root.hidden || !(e.target instanceof Node) || !root.contains(e.target)) {
 			return;
 		}
+		const chosen = picked(e);
+		const at = cell;
+		if (chosen && at) {
+			const layer = deps.viewed();
+			if (chosen.art === "") {
+				deps.send({ type: "tiles.erase", layer, cells: [{ q: at.q, r: at.r }] });
+			} else {
+				deps.send({
+					type: "tiles.stamp",
+					layer,
+					art: chosen.art,
+					rotation: turned(),
+					cells: [{ q: at.q, r: at.r }],
+				});
+			}
+		}
 		close();
+	}
+	function onPointerOver(e: Event): void {
+		const root = wheel();
+		if (!root || root.hidden || !(e.target instanceof Node) || !root.contains(e.target)) {
+			return;
+		}
+		const chosen = picked(e);
+		const next = chosen && chosen.art !== "" ? chosen : null;
+		if (next?.art === hovered?.art) {
+			return;
+		}
+		hovered = next;
+		deps.invalidate();
 	}
 	function onKeyDown(e: KeyboardEvent): void {
 		if (e.key === "Escape") {
 			close();
+			return;
 		}
+		if (cell === null || e.ctrlKey || e.metaKey || e.altKey) {
+			return;
+		}
+		if (e.key !== "[" && e.key !== "]") {
+			return;
+		}
+		turn = turned() + (e.key === "]" ? step() : -step());
+		deps.invalidate();
 	}
 	function onSwap(e: Event): void {
 		const shell = host();
@@ -110,10 +186,12 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 			return;
 		}
 		cell = null;
+		hovered = null;
 		deps.invalidate();
 	}
 	document.addEventListener("pointerdown", onPointerDown);
 	document.addEventListener("click", onClick);
+	document.addEventListener("pointerover", onPointerOver);
 	document.addEventListener("wheel", close);
 	document.addEventListener("keydown", onKeyDown);
 	document.addEventListener("htmx:after:swap", onSwap);
@@ -121,14 +199,28 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 		open,
 		close,
 		marked: () => cell,
+		preview() {
+			if (!cell || !hovered) {
+				return null;
+			}
+			return { image: hovered.image, q: cell.q, r: cell.r, rotation: turned() };
+		},
 		stop() {
 			close();
 			document.removeEventListener("pointerdown", onPointerDown);
 			document.removeEventListener("click", onClick);
+			document.removeEventListener("pointerover", onPointerOver);
 			document.removeEventListener("wheel", close);
 			document.removeEventListener("keydown", onKeyDown);
 			document.removeEventListener("htmx:after:swap", onSwap);
 		},
+	};
+}
+function centred(cell: MarkedCell, map: Point, screen: Point, scale: number): Point {
+	const perPixel = scale > 0 ? scale : 1;
+	return {
+		x: screen.x + (cell.centreX - map.x) / perPixel,
+		y: screen.y + (cell.centreY - map.y) / perPixel,
 	};
 }
 function holds(grid: Grid, start: Point | null, cell: MarkedCell): boolean {

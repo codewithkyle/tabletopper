@@ -246,3 +246,58 @@ func TestChangingTheMapOnlyTheGMSeesIsNoNewsToThePlayers(t *testing.T) {
 	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"layers.updated"})
 	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), nil)
 }
+func TestAStampIsItsOwnChangeAndNotATableRefetch(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	ch := w.change(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}}}, w.gm)
+	for _, role := range []Role{RoleGM, RolePlayer} {
+		equalStrings(t, string(role), changeTypesOf(ch.changes(role)), []string{"tiles.stamped"})
+	}
+	laid := ch.changes(RoleGM)[0].(*TilesStamped).Tiles
+	if len(laid) != 2 || laid[0].Art != art {
+		t.Fatalf("the change carries %d tiles, want the two that were stamped", len(laid))
+	}
+}
+func TestAnErasedCellIsCarriedAsACellAndNotATileID(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	w.apply(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}}}, w.gm)
+	ch := w.change(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"tiles.erased"})
+	gone := ch.changes(RoleGM)[0].(*TilesErased)
+	if gone.Layer != w.layer {
+		t.Error("the change does not say which floor the cells were on")
+	}
+	if len(gone.Cells) != 1 || gone.Cells[0] != (Cell{Q: 0, R: 0}) {
+		t.Fatalf("the change carries %v, want the one cell that was erased", gone.Cells)
+	}
+}
+func TestRestampingACellIsOneStampAndNoErase(t *testing.T) {
+	w := newWorld(t)
+	pine := w.addArt(testTerrainID, pines())
+	hill := w.addArt(testTerrainAlt, hills())
+	w.apply(&TilesStamp{Layer: w.layer, Art: pine, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	ch := w.change(&TilesStamp{Layer: w.layer, Art: hill, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"tiles.stamped"})
+}
+func TestFillingTheBagIsAPaletteChange(t *testing.T) {
+	w := newWorld(t)
+	lib := newLibrary()
+	lib.pictures[pictureKey{id: testTerrainID, kind: PictureTerrain}] = pines()
+	cmd := &PaletteAdd{Asset: testTerrainID}
+	w.resolve(cmd, lib)
+	ch := w.change(cmd, w.gm)
+	for _, role := range []Role{RoleGM, RolePlayer} {
+		equalStrings(t, string(role), changeTypesOf(ch.changes(role)), []string{"palette.updated"})
+	}
+	if got := ch.changes(RoleGM)[0].(*PaletteUpdated).Palette; len(got) != 1 || got[0].Name != "Pine forest" {
+		t.Fatalf("the change carries %v, want the bag as it now stands", got)
+	}
+}
+func TestEmptyingTheBagCarriesThePaletteAndTheCellsItTook(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	w.apply(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	ch := w.change(&PaletteRemove{Art: art}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"tiles.erased", "palette.updated"})
+}

@@ -47,6 +47,12 @@ export interface Cell {
 	color: Rgb;
 	alpha: number;
 }
+export interface Stamp {
+	image: string;
+	q: number;
+	r: number;
+	rotation: number;
+}
 export interface Label {
 	text: string;
 	x: number;
@@ -67,6 +73,7 @@ export interface Overlay {
 	readonly outlines: Outline[];
 	readonly segments: Segment[];
 	readonly cells: Cell[];
+	readonly stamps: Stamp[];
 	readonly labels: Label[];
 	readonly handles: Handle[];
 	inHand: Stroke | null;
@@ -77,6 +84,7 @@ export function newOverlay(): Overlay {
 	const outlines: Outline[] = [];
 	const segments: Segment[] = [];
 	const cells: Cell[] = [];
+	const stamps: Stamp[] = [];
 	const labels: Label[] = [];
 	const handles: Handle[] = [];
 	const overlay: Overlay = {
@@ -84,6 +92,7 @@ export function newOverlay(): Overlay {
 		outlines,
 		segments,
 		cells,
+		stamps,
 		labels,
 		handles,
 		inHand: null,
@@ -92,6 +101,7 @@ export function newOverlay(): Overlay {
 			outlines.length = 0;
 			segments.length = 0;
 			cells.length = 0;
+			stamps.length = 0;
 			labels.length = 0;
 			handles.length = 0;
 			overlay.inHand = null;
@@ -151,6 +161,9 @@ export function blankSegment(): Segment {
 }
 export function blankCell(): Cell {
 	return { x: 0, y: 0, size: 0, type: "square", color: [1, 1, 1], alpha: 1 };
+}
+export function blankStamp(): Stamp {
+	return { image: "", q: 0, r: 0, rotation: 0 };
 }
 export function blankLabel(): Label {
 	return { text: "", x: 0, y: 0, color: [1, 1, 1], alpha: 1 };

@@ -16,9 +16,26 @@ func (a *App) RoomTableMenuFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	isGM := role == room.RoleGM
+	var ring []pages.RoomTableMenuArt
+	if isGM && a.Hub != nil {
+		if view, ok := a.Hub.Table(ctx, row.ID); ok {
+			ring = tableMenuRing(view.Table.Palette)
+		}
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomTableMenu(pages.RoomTableMenuData{
-		RoomID: row.ID.String(),
-		Items:  pages.TableMenuItems(role == room.RoleGM),
-	}))
+	render(w, r, pages.RoomTableMenu(pages.NewTableMenu(row.ID.String(), isGM, ring)))
+}
+func tableMenuRing(palette []room.TileArt) []pages.RoomTableMenuArt {
+	out := make([]pages.RoomTableMenuArt, 0, len(palette))
+	for i, art := range palette {
+		out = append(out, pages.RoomTableMenuArt{
+			ID:    art.ID.String(),
+			Name:  art.Name,
+			Image: art.Image,
+			Index: i,
+			Count: len(palette),
+		})
+	}
+	return out
 }

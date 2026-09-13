@@ -40,6 +40,10 @@ const (
 	ScenesMax          = 200
 	SecretRollsMax     = 50
 	PathCellsMax       = 512
+	TilesMax           = 4_000
+	PaletteMax         = 24
+	TileBatchMax       = 64
+	CellLimit          = 100_000
 )
 const (
 	DefaultCellSize    = 64

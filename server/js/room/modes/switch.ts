@@ -35,7 +35,13 @@ export function newToolSwitch(deps: SwitchDeps): ToolSwitch {
 	byMode[seated].enter?.();
 	function routed(): Tool {
 		const on = deps.mode();
-		return on !== "pan" && deps.place.active() ? deps.place : byMode[on];
+		if (on === "pan") {
+			return byMode[on];
+		}
+		if (deps.place.active()) {
+			return deps.place;
+		}
+		return byMode[on];
 	}
 	function settle(): void {
 		if (held !== null) {

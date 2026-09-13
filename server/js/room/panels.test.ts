@@ -138,6 +138,20 @@ test("the three hot paths raise nothing at all", () => {
 		[],
 	);
 });
+test("a stamp and an erase raise nothing, however fast they arrive", () => {
+	assert.deepEqual(
+		raised(changes({ type: "tiles.stamped", tiles: [] })),
+		[],
+		"a stamp per drag sample would refetch every window listening on room:tabletop",
+	);
+	assert.deepEqual(raised(changes({ type: "tiles.erased", layer: "01FLOOR", cells: [] })), []);
+});
+test("filling the bag repaints the tabletop, the way a floor change does", () => {
+	assert.deepEqual(
+		raised(changes({ type: "palette.updated", palette: [] })).map((e) => e.name),
+		["room:tabletop"],
+	);
+});
 test("a snapshot raises every panel event and no pawn event", () => {
 	const seen = raised(snapshot([]));
 	assert.deepEqual(seen.map((e) => e.name).sort(), [

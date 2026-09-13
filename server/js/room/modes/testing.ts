@@ -178,6 +178,7 @@ export function table(
 		segments: () => out().segments,
 		labels: () => out().labels,
 		cells: () => out().cells,
+		stamps: () => out().stamps,
 		handles: () => out().handles,
 		inHand: () => out().inHand,
 	};

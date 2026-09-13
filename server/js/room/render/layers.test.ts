@@ -11,6 +11,7 @@ function layer(id: string, map: MapRef | null, gmMap: MapRef | null = null): Lay
 function table(active: string, layers: Layer[]): Table {
 	return {
 		layers,
+		palette: [],
 		activeLayer: active,
 		grid: grid(),
 		fogPrefill: false,

@@ -102,6 +102,31 @@ var changeTypes = map[string]reduction{
 			}
 		},
 	},
+	"tiles.stamped": {
+		build: func() Change { return &TilesStamped{} },
+		reduce: func(s *State, ch Change) {
+			for _, t := range ch.(*TilesStamped).Tiles {
+				if held := s.Tile(t.LayerID, t.Q, t.R); held != nil {
+					*held = t
+					continue
+				}
+				s.Tiles = append(s.Tiles, t)
+			}
+		},
+	},
+	"tiles.erased": {
+		build: func() Change { return &TilesErased{} },
+		reduce: func(s *State, ch Change) {
+			e := ch.(*TilesErased)
+			s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool {
+				return t.LayerID == e.Layer && slices.Contains(e.Cells, Cell{Q: t.Q, R: t.R})
+			})
+		},
+	},
+	"palette.updated": {
+		build:  func() Change { return &PaletteUpdated{} },
+		reduce: func(s *State, ch Change) { s.Table.Palette = cloneSlice(ch.(*PaletteUpdated).Palette) },
+	},
 	"strokes.ended": {
 		build: func() Change { return &StrokeEnded{} },
 		reduce: func(s *State, ch Change) {

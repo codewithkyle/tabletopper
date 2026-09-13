@@ -16,15 +16,16 @@ import { pingsStage } from "./pings.ts";
 import { ringsStage } from "./rings.ts";
 import { nameOf, stagesFor } from "./order.ts";
 import { strokesStage } from "./strokes.ts";
+import { terrainStage } from "./terrain.ts";
 import { tilesStage } from "./tiles.ts";
 const COMMON = [
-	tilesStage, gridStage, decalsStage, strokesStage,
+	tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
 	floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 	handlesStage, pingsStage, overMarksStage,
 ];
 test("a GM sees fog over the floor and under everything that stands on it", () => {
 	assert.deepEqual(stagesFor("gm"), [
-		tilesStage, gridStage, decalsStage, strokesStage,
+		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
 		fogStage,
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
@@ -33,7 +34,7 @@ test("a GM sees fog over the floor and under everything that stands on it", () =
 });
 test("a player sees fog over the pawns it hides", () => {
 	assert.deepEqual(stagesFor("player"), [
-		tilesStage, gridStage, decalsStage, strokesStage,
+		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
 		fogStage, ownAurasStage, ownPawnsStage, ownRingsStage,
@@ -44,7 +45,7 @@ test("fog is one stage, drawn once, wherever the role puts it", () => {
 	for (const role of ["gm", "player"] as const) {
 		const order = stagesFor(role);
 		assert.equal(order.filter((stage) => stage === fogStage).length, 1, role);
-		assert.equal(order.length, role === "player" ? 16 : 13, role);
+		assert.equal(order.length, role === "player" ? 17 : 14, role);
 	}
 });
 test("every other stage keeps its place whichever side of the table you are on", () => {
@@ -52,6 +53,15 @@ test("every other stage keeps its place whichever side of the table you are on",
 		const lifted = [fogStage, ownAurasStage, ownPawnsStage, ownRingsStage];
 		const order = stagesFor(role).filter((stage) => !lifted.includes(stage));
 		assert.deepEqual(order, COMMON, role);
+	}
+});
+test("terrain lies on the map and under everything drawn on it", () => {
+	for (const role of ["gm", "player"] as const) {
+		const order = stagesFor(role);
+		assert.ok(order.indexOf(terrainStage) > order.indexOf(tilesStage), role + ": terrain is under the map");
+		assert.ok(order.indexOf(terrainStage) < order.indexOf(gridStage), role + ": terrain is over the grid lines");
+		assert.ok(order.indexOf(terrainStage) < order.indexOf(strokesStage), role + ": terrain is over the drawing");
+		assert.ok(order.indexOf(terrainStage) < order.indexOf(fogStage), role + ": terrain is over the fog");
 	}
 });
 test("marks bracket the pawns: cells under, labels over", () => {
@@ -69,5 +79,5 @@ test("every stage in the order has a name, because a timing readout of blanks sa
 			seen.add(name);
 		}
 	}
-	assert.equal(seen.size, 16, "two stages share a name, so their timings would be indistinguishable");
+	assert.equal(seen.size, 17, "two stages share a name, so their timings would be indistinguishable");
 });

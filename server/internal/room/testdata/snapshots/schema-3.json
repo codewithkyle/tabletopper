@@ -18,6 +18,7 @@
         "partyStart": null
       }
     ],
+    "palette": [],
     "activeLayer": "01000000000000000000000001",
     "grid": {
       "type": "square",
@@ -164,6 +165,7 @@
       "done": false
     }
   ],
+  "tiles": [],
   "rolls": [
     {
       "id": "01000000000000000000000004",

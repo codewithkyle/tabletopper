@@ -16,6 +16,7 @@ func Derive(before, after *State, role Role) []Change {
 	out = append(out, playerDiff.derive(b.Players, a.Players)...)
 	out = append(out, fogDiff.derive(b.Fog, a.Fog)...)
 	out = append(out, strokeDiff.derive(b.Strokes, a.Strokes)...)
+	out = append(out, tileDiff.derive(b.Tiles, a.Tiles)...)
 	out = append(out, pawnDiff.derive(b.Pawns, a.Pawns)...)
 	out = append(out, rollDiff.derive(b.Rolls, a.Rolls)...)
 	if !reflect.DeepEqual(b.Music, a.Music) {
@@ -26,6 +27,9 @@ func Derive(before, after *State, role Role) []Change {
 	}
 	if !reflect.DeepEqual(b.Table.Layers, a.Table.Layers) {
 		out = append(out, &LayersUpdated{Layers: cloneLayers(a.Table.Layers)})
+	}
+	if !reflect.DeepEqual(b.Table.Palette, a.Table.Palette) {
+		out = append(out, &PaletteUpdated{Palette: cloneSlice(a.Table.Palette)})
 	}
 	if b.Table.TableSettings != a.Table.TableSettings {
 		out = append(out, &TableUpdated{Table: a.Table.TableSettings})
@@ -69,6 +73,67 @@ var strokeDiff = diff[Stroke]{
 	upserted: func(items []Stroke) Change { return &StrokesUpserted{Strokes: items} },
 	removed:  func(ids []ulid.ULID) Change { return &StrokesRemoved{IDs: ids} },
 	delta:    strokeDeltas,
+}
+
+var tileDiff = cellDiff[Tile]{
+	cell:    func(t Tile) (ulid.ULID, Cell) { return t.LayerID, Cell{Q: t.Q, R: t.R} },
+	items:   func(s *State) *[]Tile { return &s.Tiles },
+	stamped: func(items []Tile) Change { return &TilesStamped{Tiles: items} },
+	erased:  func(layer ulid.ULID, cells []Cell) Change { return &TilesErased{Layer: layer, Cells: cells} },
+}
+
+type cellDiff[T comparable] struct {
+	cell    func(T) (ulid.ULID, Cell)
+	items   func(*State) *[]T
+	stamped func([]T) Change
+	erased  func(ulid.ULID, []Cell) Change
+}
+
+type cellKey struct {
+	layer ulid.ULID
+	cell  Cell
+}
+
+func (d cellDiff[T]) key(v T) cellKey {
+	layer, cell := d.cell(v)
+	return cellKey{layer: layer, cell: cell}
+}
+func (d cellDiff[T]) derive(before, after []T) []Change {
+	was := make(map[cellKey]T, len(before))
+	for _, v := range before {
+		was[d.key(v)] = v
+	}
+	now := make(map[cellKey]bool, len(after))
+	for _, v := range after {
+		now[d.key(v)] = true
+	}
+	var out []Change
+	var floors []ulid.ULID
+	gone := map[ulid.ULID][]Cell{}
+	for _, v := range before {
+		k := d.key(v)
+		if now[k] {
+			continue
+		}
+		if _, seen := gone[k.layer]; !seen {
+			floors = append(floors, k.layer)
+		}
+		gone[k.layer] = append(gone[k.layer], k.cell)
+	}
+	for _, layer := range floors {
+		out = append(out, d.erased(layer, gone[layer]))
+	}
+	up := make([]T, 0, len(after))
+	for _, v := range after {
+		if old, had := was[d.key(v)]; had && old == v {
+			continue
+		}
+		up = append(up, v)
+	}
+	if len(up) > 0 {
+		out = append(out, d.stamped(up))
+	}
+	return out
 }
 
 type diff[T any] struct {

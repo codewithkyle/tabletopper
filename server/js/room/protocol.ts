@@ -14,6 +14,10 @@ export type ShapeKind = "rect" | "poly";
 export type Size = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
 export type Snap = "off" | "cells" | "halfCells";
 export type StrokeKind = "free" | "rect" | "circle" | "cone";
+export interface Cell {
+	q: number;
+	r: number;
+}
 export interface Condition {
 	id: string;
 	name: string;
@@ -155,6 +159,7 @@ export interface State {
 	initiative: Initiative;
 	fog: FogShape[];
 	strokes: Stroke[];
+	tiles: Tile[];
 	rolls: Roll[];
 	music: Music;
 }
@@ -170,6 +175,7 @@ export interface Stroke {
 }
 export interface Table {
 	layers: Layer[];
+	palette: TileArt[];
 	activeLayer: string;
 	grid: Grid;
 	pawnLabels: PawnLabels;
@@ -184,6 +190,20 @@ export interface TableSettings {
 	playersCanDraw: boolean;
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
+}
+export interface Tile {
+	layerId: string;
+	art: string;
+	q: number;
+	r: number;
+	rotation: number;
+	by: string;
+}
+export interface TileArt {
+	id: string;
+	assetId: string;
+	name: string;
+	image: string;
 }
 export interface DiceRoll {
 	type: "dice.roll";
@@ -292,6 +312,16 @@ export interface MusicSetLoop {
 export interface MusicStop {
 	type: "music.stop";
 	cid: string;
+}
+export interface PaletteAdd {
+	type: "palette.add";
+	cid: string;
+	asset: string;
+}
+export interface PaletteRemove {
+	type: "palette.remove";
+	cid: string;
+	art: string;
 }
 export interface PawnDrag {
 	type: "pawn.drag";
@@ -478,6 +508,25 @@ export interface TableSetPartyStart {
 	x: number | null;
 	y: number | null;
 }
+export interface TilesClear {
+	type: "tiles.clear";
+	cid: string;
+	layer: string;
+}
+export interface TilesErase {
+	type: "tiles.erase";
+	cid: string;
+	layer: string;
+	cells: Cell[];
+}
+export interface TilesStamp {
+	type: "tiles.stamp";
+	cid: string;
+	layer: string;
+	art: string;
+	rotation: number;
+	cells: Cell[];
+}
 export type Command =
 	| DiceRoll
 	| FogAdd
@@ -500,6 +549,8 @@ export type Command =
 	| MusicPlay
 	| MusicSetLoop
 	| MusicStop
+	| PaletteAdd
+	| PaletteRemove
 	| PawnDrag
 	| PawnMove
 	| PawnRemove
@@ -528,6 +579,9 @@ export type Command =
 	| TableSetLayerMap
 	| TableSetOptions
 	| TableSetPartyStart
+	| TilesClear
+	| TilesErase
+	| TilesStamp
 	;
 export interface FogRemoved {
 	type: "fog.removed";
@@ -548,6 +602,10 @@ export interface LayersUpdated {
 export interface MusicUpdated {
 	type: "music.updated";
 	music: Music;
+}
+export interface PaletteUpdated {
+	type: "palette.updated";
+	palette: TileArt[];
 }
 export interface PawnsMoved {
 	type: "pawns.moved";
@@ -602,12 +660,22 @@ export interface TableUpdated {
 	type: "table.updated";
 	table: TableSettings;
 }
+export interface TilesErased {
+	type: "tiles.erased";
+	layer: string;
+	cells: Cell[];
+}
+export interface TilesStamped {
+	type: "tiles.stamped";
+	tiles: Tile[];
+}
 export type Change =
 	| FogRemoved
 	| FogUpserted
 	| InitiativeUpdated
 	| LayersUpdated
 	| MusicUpdated
+	| PaletteUpdated
 	| PawnsMoved
 	| PawnsRemoved
 	| PawnsUpserted
@@ -621,6 +689,8 @@ export type Change =
 	| StrokesRemoved
 	| StrokesUpserted
 	| TableUpdated
+	| TilesErased
+	| TilesStamped
 	;
 export interface Changes {
 	type: "changes";

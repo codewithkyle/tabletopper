@@ -3,11 +3,12 @@ export interface Revisions {
 	pawns: number;
 	fog: number;
 	strokes: number;
+	tiles: number;
 	table: number;
 	initiative: number;
 }
 export function revisions(): Revisions {
-	return { pawns: 0, fog: 0, strokes: 0, table: 0, initiative: 0 };
+	return { pawns: 0, fog: 0, strokes: 0, tiles: 0, table: 0, initiative: 0 };
 }
 export function revise(rev: Revisions, event: Event): void {
 	switch (event.type) {
@@ -15,12 +16,21 @@ export function revise(rev: Revisions, event: Event): void {
 			rev.pawns++;
 			rev.fog++;
 			rev.strokes++;
+			rev.tiles++;
 			rev.table++;
 			rev.initiative++;
 			return;
 		case "table.updated":
 		case "layers.updated":
 			rev.table++;
+			return;
+		case "palette.updated":
+			rev.tiles++;
+			rev.table++;
+			return;
+		case "tiles.stamped":
+		case "tiles.erased":
+			rev.tiles++;
 			return;
 		case "initiative.updated":
 			rev.initiative++;

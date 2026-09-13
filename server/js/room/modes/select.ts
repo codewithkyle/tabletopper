@@ -1,7 +1,7 @@
 import type { Board } from "./board.ts";
 import type { Event, Grid, Pawn } from "../protocol.ts";
 import type { Gesture } from "./gestures.ts";
-import type { Ghostable, Handle, Overlay } from "../model/overlay.ts";
+import type { Ghostable, Handle, Overlay, Stamp } from "../model/overlay.ts";
 import type { Placed } from "../model/shape.ts";
 import type { Point, Rect } from "../model/types.ts";
 import type { Preview } from "./previews.ts";
@@ -38,6 +38,7 @@ const MARQUEE_ALPHA = 0.8;
 export interface TableMarks {
 	open(map: Point, screen: Point): boolean;
 	marked(): { x: number; y: number; size: number } | null;
+	preview(): Stamp | null;
 }
 export interface SelectDeps {
 	board: Board;
@@ -353,6 +354,10 @@ function activeHandles(out: Handle[]): Handle[] {
 			const held = deps.marks?.marked();
 			if (held) {
 				paint(out, pens, held.x + held.size / 2, held.y + held.size / 2, held.size, grid.type, SELECT_COLOR, MARK_ALPHA);
+			}
+			const ghost = deps.marks?.preview();
+			if (ghost) {
+				out.stamps.push(ghost);
 			}
 		},
 		selection,

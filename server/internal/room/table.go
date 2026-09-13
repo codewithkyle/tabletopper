@@ -67,6 +67,7 @@ func (c *TableRemoveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Pawns = slices.DeleteFunc(s.Pawns, func(p Pawn) bool { return p.LayerID == c.Layer })
 	s.Fog = slices.DeleteFunc(s.Fog, func(f FogShape) bool { return f.LayerID == c.Layer })
 	s.Strokes = slices.DeleteFunc(s.Strokes, func(st Stroke) bool { return st.LayerID == c.Layer })
+	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool { return t.LayerID == c.Layer })
 	index := slices.IndexFunc(s.Table.Layers, func(l Layer) bool { return l.ID == c.Layer })
 	wasActive := s.Table.ActiveLayer == c.Layer
 	s.Table.Layers = slices.Delete(s.Table.Layers, index, index+1)
@@ -194,6 +195,7 @@ func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Pawns = nil
 	s.Fog = nil
 	s.Strokes = nil
+	s.Tiles = nil
 	s.Initiative = Initiative{}
 	s.Normalize()
 	return nil, nil

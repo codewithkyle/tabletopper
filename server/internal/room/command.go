@@ -140,6 +140,11 @@ var wireCommands = map[string]func() Command{
 	"stroke.end":           func() Command { return &StrokeEnd{} },
 	"stroke.erase":         func() Command { return &StrokeErase{} },
 	"stroke.clear":         func() Command { return &StrokeClear{} },
+	"palette.add":          func() Command { return &PaletteAdd{} },
+	"palette.remove":       func() Command { return &PaletteRemove{} },
+	"tiles.stamp":          func() Command { return &TilesStamp{} },
+	"tiles.erase":          func() Command { return &TilesErase{} },
+	"tiles.clear":          func() Command { return &TilesClear{} },
 	"ping":                 func() Command { return &Ping{} },
 	"music.load":           func() Command { return &MusicLoad{} },
 	"music.play":           func() Command { return &MusicPlay{} },
@@ -221,6 +226,7 @@ func (s *State) requirePlayerLayer(a Actor, layer ulid.ULID) error {
 }
 func CloneTable(t Table) Table {
 	t.Layers = cloneLayers(t.Layers)
+	t.Palette = cloneSlice(t.Palette)
 	return t
 }
 func cloneLayers(src []Layer) []Layer {

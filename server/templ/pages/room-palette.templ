@@ -1,0 +1,110 @@
+package pages
+
+import "tabletopper/internal/uievents"
+
+const paletteRow = "flex flex-wrap content-start gap-1.5"
+const paletteGrid = "grid grid-cols-[repeat(auto-fill,minmax(3.75rem,1fr))] content-start gap-1.5"
+const paletteChip = "group relative block size-10 shrink-0 overflow-hidden rounded-field border border-base-300 bg-base-300"
+const paletteCard = "relative flex flex-col overflow-hidden rounded-field border border-base-300"
+const paletteThumb = "block aspect-square w-full bg-base-300 object-cover"
+const paletteImage = "absolute inset-0 h-full w-full object-cover"
+const paletteNote = "m-0 px-2 py-4 text-center text-xs text-base-content/60"
+const paletteHeading = "m-0 font-serif text-xs leading-none text-base-content/70"
+const paletteRemove = "absolute inset-x-0 bottom-0 hidden h-4 bg-error/90 text-[9px] leading-4 text-error-content group-hover:block group-focus-within:block"
+const paletteAdd = "absolute inset-x-0 bottom-0 h-4 bg-primary/90 text-[9px] leading-4 text-primary-content"
+const paletteHeldMark = "absolute inset-x-0 bottom-0 h-4 bg-base-300/90 text-[9px] leading-4 text-base-content/70"
+
+templ RoomPalette(data RoomPaletteData) {
+	<div class="flex h-full min-h-0 flex-col gap-2">
+		<div class="flex shrink-0 items-center justify-between gap-2">
+			<h3 class={ paletteHeading }>In the palette</h3>
+			<span class="text-[10px] text-base-content/60">{ data.Count() }</span>
+		</div>
+		@RoomPaletteBag(data)
+		<div class="flex shrink-0 items-center justify-between gap-2 border-t border-base-300 pt-2">
+			<h3 class={ paletteHeading }>Your terrain</h3>
+		</div>
+		<input
+			type="search"
+			name="q"
+			value={ data.Query }
+			class="input input-xs w-full shrink-0"
+			placeholder={ data.SearchLabel() }
+			aria-label={ data.SearchLabel() }
+			autocomplete="off"
+			maxlength={ data.NameLimit() }
+			hx-get={ data.ShelfPath() }
+			hx-trigger="input changed delay:250ms, search"
+			hx-target="#room-palette-shelf"
+			hx-swap="outerHTML"
+		/>
+		@RoomPaletteShelf(data)
+	</div>
+}
+
+templ RoomPaletteBag(data RoomPaletteData) {
+	<div
+		id="room-palette-bag"
+		class={ paletteRow + " max-h-24 shrink-0 overflow-y-auto" }
+		hx-get={ data.BagPath() }
+		hx-trigger={ uievents.Tabletop + " from:window" }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+	>
+		if len(data.Entries) == 0 {
+			<p class={ paletteNote }>{ data.EmptyBag() }</p>
+		} else {
+			for _, entry := range data.Entries {
+				<span class={ paletteChip } title={ entry.Name }>
+					<img class={ paletteImage } src={ entry.Image } alt={ entry.Name }/>
+					<button
+						type="button"
+						class={ paletteRemove }
+						aria-label={ entry.RemoveLabel() }
+						hx-delete={ entry.RemovePath() }
+						hx-swap="none"
+						hx-confirm={ entry.RemovePrompt() }
+						data-confirm-heading="Remove this picture?"
+						data-confirm-label="Remove"
+					>Remove</button>
+				</span>
+			}
+		}
+	</div>
+}
+
+templ RoomPaletteShelf(data RoomPaletteData) {
+	<div
+		id="room-palette-shelf"
+		class={ paletteGrid + " min-h-0 flex-1 overflow-y-auto" }
+		hx-get={ data.ShelfPath() }
+		hx-trigger={ uievents.Tabletop + " from:window" }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+	>
+		if data.Full() {
+			<p class={ paletteNote + " col-span-full" }>{ data.FullNotice() }</p>
+		}
+		if len(data.Shelf) == 0 {
+			<p class={ paletteNote + " col-span-full" }>{ data.EmptyShelf() }</p>
+		} else {
+			for _, choice := range data.Shelf {
+				<article class={ paletteCard } title={ choice.Name }>
+					<img class={ paletteThumb } src={ choice.Image } alt={ choice.Name }/>
+					if choice.Held {
+						<span class={ paletteHeldMark }>{ choice.HeldLabel() }</span>
+					} else if !data.Full() {
+						<button
+							type="button"
+							class={ paletteAdd }
+							aria-label={ choice.AddLabel() }
+							hx-post={ data.AddPath() }
+							hx-vals={ choice.AddVals() }
+							hx-swap="none"
+						>Add</button>
+					}
+				</article>
+			}
+		}
+	</div>
+}

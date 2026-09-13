@@ -56,6 +56,11 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"stroke.end", &StrokeEnd{ID: fx.stroke}, CodeForbidden, ok, CodeForbidden},
 		{"stroke.erase", &StrokeErase{IDs: []ulid.ULID{fx.stroke}}, ok, ok, CodeForbidden},
 		{"stroke.clear", &StrokeClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
+		{"palette.add", &PaletteAdd{Asset: testAssetID}, ok, CodeForbidden, CodeForbidden},
+		{"palette.remove", &PaletteRemove{Art: fx.art}, ok, CodeForbidden, CodeForbidden},
+		{"tiles.stamp", &TilesStamp{Layer: w.layer, Art: fx.art, Cells: []Cell{{Q: 0, R: 0}}}, ok, CodeForbidden, CodeForbidden},
+		{"tiles.erase", &TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, ok, CodeForbidden, CodeForbidden},
+		{"tiles.clear", &TilesClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"ping", &Ping{Layer: w.layer}, ok, ok, ok},
 		{"dice.roll", &DiceRoll{Expr: "1d20"}, ok, ok, ok},
 		{"music.load", &MusicLoad{AssetID: testAssetID}, ok, CodeForbidden, CodeForbidden},
@@ -109,6 +114,7 @@ type authorizeFixture struct {
 	owned  ulid.ULID
 	stroke ulid.ULID
 	shape  ulid.ULID
+	art    ulid.ULID
 }
 
 func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
@@ -124,6 +130,7 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 		Entries: []InitiativeEntry{{Name: "Ari", PawnIDs: []ulid.ULID{fx.owned}, Initiative: 18}},
 	}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
+	fx.art = w.addArt(testTerrainID, pines())
 	return w, fx
 }
 func TestAuthorizeNeverMutates(t *testing.T) {
