@@ -6,7 +6,7 @@ export const floorMarksStage: StageFactory = (gl, resources): Stage => {
 		build(frame) {
 			pass.begin(frame.worldPerCssPixel);
 			for (const cell of frame.overlay.cells) {
-				pass.cell(cell.x, cell.y, cell.size, cell.color, cell.alpha);
+				pass.cell(cell.x, cell.y, cell.size, cell.type, cell.color, cell.alpha);
 			}
 		},
 		draw(frame) {

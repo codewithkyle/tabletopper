@@ -4,6 +4,8 @@ import type { Grid } from "../protocol.ts";
 import {
 	cellAt,
 	cellCentre,
+	cellPath,
+	cellsBetween,
 	cellsMoved,
 	distanceLabel,
 	feetBetween,
@@ -14,6 +16,7 @@ import {
 } from "./grid.ts";
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
+		type: "square",
 		lines: "solid",
 		cellSize: 64,
 		offsetX: 0,
@@ -21,6 +24,7 @@ function grid(over: Partial<Grid> = {}): Grid {
 		color: "#000000FF",
 		snap: "cells",
 		feetPerCell: 5,
+		units: "feet",
 		diagonals: "equal",
 		...over,
 	};
@@ -150,7 +154,39 @@ test("cells and their centres are inverses under an offset", () => {
 });
 test("a distance label uses only what the glyph atlas holds", () => {
 	for (const feet of [0, 5, 15, 120, 1005]) {
-		assert.match(distanceLabel(feet), /^[0-9]+ ft\.$/);
+		assert.match(distanceLabel(feet, grid()), /^[0-9]+ ft\.$/);
 	}
-	assert.equal(distanceLabel(14.6), "15 ft.");
+	assert.equal(distanceLabel(14.6, grid()), "15 ft.");
+});
+test("a distance label names the unit the table is measured in", () => {
+	assert.equal(distanceLabel(12, grid({ units: "miles" })), "12 mi");
+	assert.equal(distanceLabel(12, grid({ units: "kilometres" })), "12 km");
+	assert.equal(distanceLabel(12, grid({ units: "cells" })), "12 sq.");
+	assert.equal(distanceLabel(12, grid({ type: "hexPointy", units: "cells" })), "12 hex");
+	assert.equal(distanceLabel(12, grid({ type: "hexFlat", units: "cells" })), "12 hex");
+});
+test("a table measured in cells counts cells and not feet", () => {
+	assert.equal(feetMoved(3, 2, grid({ units: "cells", feetPerCell: 5 })), 3);
+	assert.equal(feetBetween(3 * 64, 0, grid({ units: "cells", feetPerCell: 5 })), 3);
+});
+test("cells and their centres are inverses on a hex grid too", () => {
+	for (const type of ["hexPointy", "hexFlat"] as const) {
+		const g = grid({ type, offsetX: -16, offsetY: 24 });
+		for (const [q, r] of [[0, 0], [3, -2], [-7, 5]]) {
+			const [x, y] = cellCentre(g, q, r);
+			assert.deepEqual(cellAt(g, x, y), [q, r], `${type} (${q}, ${r})`);
+		}
+	}
+});
+test("a hex path is walked in hexes and a square one in squares", () => {
+	const cells: number[] = [];
+	assert.deepEqual(cellPath(grid({ type: "hexPointy" }), 0, 0, 3, -1, cells), [0, 0, 1, 0, 2, -1, 3, -1]);
+	assert.deepEqual(cellPath(grid(), 0, 0, 3, 0, cells), [0, 0, 1, 0, 2, 0, 3, 0]);
+});
+test("a hex grid counts cube distance and ignores the diagonal rule", () => {
+	const g = grid({ type: "hexPointy" });
+	assert.equal(cellsBetween(3, -3, g), 3);
+	assert.equal(cellsBetween(-2, 5, g), 5);
+	assert.equal(cellsBetween(3, 3, g), cellsBetween(3, 3, grid({ type: "hexPointy", diagonals: "alternating" })));
+	assert.equal(feetMoved(-2, 5, g), 25);
 });

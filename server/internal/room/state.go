@@ -59,6 +59,7 @@ type MapRef struct {
 	MaxZoom  int       `json:"maxZoom"`
 }
 type Grid struct {
+	Type        GridType  `json:"type"`
 	Lines       GridLines `json:"lines"`
 	CellSize    int       `json:"cellSize"`
 	OffsetX     int       `json:"offsetX"`
@@ -66,6 +67,7 @@ type Grid struct {
 	Color       string    `json:"color"`
 	Snap        Snap      `json:"snap"`
 	FeetPerCell int       `json:"feetPerCell"`
+	Units       GridUnits `json:"units"`
 	Diagonals   Diagonals `json:"diagonals"`
 }
 type Player struct {
@@ -153,6 +155,32 @@ type Stroke struct {
 	Points  []int      `json:"points"`
 	Done    bool       `json:"done"`
 }
+type GridType string
+
+const (
+	GridSquare    GridType = "square"
+	GridHexPointy GridType = "hexPointy"
+	GridHexFlat   GridType = "hexFlat"
+)
+
+func (GridType) Values() []string { return []string{"square", "hexPointy", "hexFlat"} }
+func (t GridType) Valid() bool    { return inValues(t, t.Values()) }
+func (t GridType) Hex() bool      { return t == GridHexPointy || t == GridHexFlat }
+
+type GridUnits string
+
+const (
+	UnitsFeet       GridUnits = "feet"
+	UnitsMiles      GridUnits = "miles"
+	UnitsKilometres GridUnits = "kilometres"
+	UnitsCells      GridUnits = "cells"
+)
+
+func (GridUnits) Values() []string {
+	return []string{"feet", "miles", "kilometres", "cells"}
+}
+func (u GridUnits) Valid() bool { return inValues(u, u.Values()) }
+
 type GridLines string
 
 const (
@@ -343,11 +371,13 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 			TableSettings: TableSettings{
 				ActiveLayer: layer.ID,
 				Grid: Grid{
+					Type:        GridSquare,
 					Lines:       GridLinesSolid,
 					CellSize:    DefaultCellSize,
 					Color:       DefaultGridColor,
 					Snap:        SnapCells,
 					FeetPerCell: DefaultFeetPerCell,
+					Units:       UnitsFeet,
 					Diagonals:   DiagonalsEqual,
 				},
 				PawnLabels:         LabelsDefault,
@@ -361,6 +391,12 @@ func NewState(roomID ulid.ULID, name string, env Env) *State {
 }
 func (s *State) Normalize() {
 	s.Schema = Schema
+	if !s.Table.Grid.Type.Valid() {
+		s.Table.Grid.Type = GridSquare
+	}
+	if !s.Table.Grid.Units.Valid() {
+		s.Table.Grid.Units = UnitsFeet
+	}
 	if !s.Table.Grid.Snap.Valid() {
 		s.Table.Grid.Snap = SnapCells
 	}

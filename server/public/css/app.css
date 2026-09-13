@@ -4168,6 +4168,9 @@
   .w-20 {
     width: calc(var(--spacing) * 20);
   }
+  .w-24 {
+    width: calc(var(--spacing) * 24);
+  }
   .w-28 {
     width: calc(var(--spacing) * 28);
   }
@@ -5568,6 +5571,9 @@
     display: block;
     -webkit-box-orient: horizontal;
     -webkit-line-clamp: unset;
+  }
+  .group-has-\[input\[value\^\=hex\]\:checked\]\:hidden:is(:where(.group):has(:is(input[value^=hex]:checked)) *) {
+    display: none;
   }
   .peer-checked\:grid:is(:where(.peer):checked ~ *) {
     display: grid;

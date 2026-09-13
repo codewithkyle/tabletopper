@@ -3,6 +3,8 @@ export type ConditionColor = "blue" | "green" | "orange" | "pink" | "purple" | "
 export type Diagonals = "equal" | "alternating";
 export type FogMode = "reveal" | "hide";
 export type GridLines = "off" | "solid" | "dashed";
+export type GridType = "square" | "hexPointy" | "hexFlat";
+export type GridUnits = "feet" | "miles" | "kilometres" | "cells";
 export type HPBand = "healthy" | "bruised" | "bloody" | "veryBloody" | "nearDeath" | "dead";
 export type InitiativeGrouping = "grouped" | "individual";
 export type PawnKind = "player" | "monster" | "npc" | "object";
@@ -33,6 +35,7 @@ export interface FogShape {
 	points: number[];
 }
 export interface Grid {
+	type: GridType;
 	lines: GridLines;
 	cellSize: number;
 	offsetX: number;
@@ -40,6 +43,7 @@ export interface Grid {
 	color: string;
 	snap: Snap;
 	feetPerCell: number;
+	units: GridUnits;
 	diagonals: Diagonals;
 }
 export interface Initiative {

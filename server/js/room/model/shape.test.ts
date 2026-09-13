@@ -4,6 +4,7 @@ import type { Grid } from "../protocol.ts";
 import { boundsOf, footprintOf, pawnExtents, snapPawn, snapsToGrid } from "./shape.ts";
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
+		type: "square",
 		lines: "solid",
 		cellSize: 64,
 		offsetX: 0,
@@ -11,6 +12,7 @@ function grid(over: Partial<Grid> = {}): Grid {
 		color: "#000000FF",
 		snap: "cells",
 		feetPerCell: 5,
+		units: "feet",
 		diagonals: "equal",
 		...over,
 	};

@@ -8,6 +8,7 @@ const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
+		type: "square",
 		lines: "solid",
 		cellSize: 64,
 		offsetX: 0,
@@ -15,6 +16,7 @@ function grid(over: Partial<Grid> = {}): Grid {
 		color: "#000000FF",
 		snap: "cells",
 		feetPerCell: 5,
+		units: "feet",
 		diagonals: "equal",
 		...over,
 	};

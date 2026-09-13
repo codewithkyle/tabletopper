@@ -10,6 +10,7 @@ const RoomGridPanel = "room-grid"
 
 type RoomGridData struct {
 	RoomID      string
+	Type        string
 	Lines       string
 	CellSize    int
 	OffsetX     int
@@ -17,6 +18,7 @@ type RoomGridData struct {
 	Color       string
 	Snap        string
 	FeetPerCell int
+	Units       string
 	Diagonals   string
 	Errors      []string
 }
@@ -70,6 +72,21 @@ func GridSnapChoices() []Choice {
 		{Value: "cells", Label: "Centre only", Hint: "A creature stands in the middle of the squares it fills."},
 		{Value: "halfCells", Label: "Centre and corners", Hint: "Half a square at a time, so a pawn may also stand where four squares meet."},
 		{Value: "off", Label: "No snapping", Hint: "Pawns go exactly where they are dropped."},
+	}
+}
+func GridTypeChoices() []Choice {
+	return []Choice{
+		{Value: "square", Label: "Squares"},
+		{Value: "hexPointy", Label: "Hexes, point up", Hint: "Columns lean; a row runs straight across."},
+		{Value: "hexFlat", Label: "Hexes, flat top", Hint: "Rows lean; a column runs straight down."},
+	}
+}
+func GridUnitChoices() []Choice {
+	return []Choice{
+		{Value: "feet", Label: "Feet"},
+		{Value: "miles", Label: "Miles"},
+		{Value: "kilometres", Label: "Kilometres"},
+		{Value: "cells", Label: "Cells"},
 	}
 }
 func GridDiagonalChoices() []Choice {

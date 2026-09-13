@@ -39,6 +39,7 @@ const (
 	RollsMax           = 50
 	ScenesMax          = 200
 	SecretRollsMax     = 50
+	PathCellsMax       = 512
 )
 const (
 	DefaultCellSize    = 64
@@ -140,6 +141,12 @@ func checkGrid(g Grid) error {
 	}
 	if err := checkColor("grid colour", g.Color); err != nil {
 		return err
+	}
+	if !g.Type.Valid() {
+		return invalid("Bad grid", "That is not a grid type.")
+	}
+	if !g.Units.Valid() {
+		return invalid("Bad grid", "That is not a distance unit.")
 	}
 	if !g.Lines.Valid() {
 		return invalid("Bad grid", "That is not a grid line style.")

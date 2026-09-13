@@ -21,6 +21,7 @@
       ],
       "activeLayer": "01000000000000000000000001",
       "grid": {
+        "type": "square",
         "lines": "solid",
         "cellSize": 64,
         "offsetX": 0,
@@ -28,6 +29,7 @@
         "color": "#000000FF",
         "snap": "cells",
         "feetPerCell": 5,
+        "units": "feet",
         "diagonals": "equal"
       },
       "pawnLabels": "default",
@@ -107,6 +109,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -114,6 +117,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -228,6 +232,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -235,6 +240,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -365,6 +371,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -372,6 +379,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -502,6 +510,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -509,6 +518,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -653,6 +663,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -660,6 +671,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -804,6 +816,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -811,6 +824,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -955,6 +969,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 64,
             "offsetX": 0,
@@ -962,6 +977,7 @@
             "color": "#000000FF",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -1030,6 +1046,7 @@
               "table": {
                 "activeLayer": "01000000000000000000000001",
                 "grid": {
+                  "type": "square",
                   "lines": "solid",
                   "cellSize": 70,
                   "offsetX": -12,
@@ -1037,6 +1054,7 @@
                   "color": "#334455ff",
                   "snap": "cells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "default",
@@ -1091,6 +1109,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1098,6 +1117,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -1248,6 +1268,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1255,6 +1276,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -1323,6 +1345,7 @@
               "table": {
                 "activeLayer": "01000000000000000000000001",
                 "grid": {
+                  "type": "square",
                   "lines": "solid",
                   "cellSize": 70,
                   "offsetX": -12,
@@ -1330,6 +1353,7 @@
                   "color": "#334455ff",
                   "snap": "cells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "full",
@@ -1387,6 +1411,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1394,6 +1419,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -1513,6 +1539,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1520,6 +1547,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -1660,6 +1688,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1667,6 +1696,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -1831,6 +1861,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -1838,6 +1869,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -2025,6 +2057,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -2032,6 +2065,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -2242,6 +2276,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -2249,6 +2284,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -2482,6 +2518,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -2489,6 +2526,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -2745,6 +2783,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -2752,6 +2791,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "full",
@@ -2936,6 +2976,7 @@
               "table": {
                 "activeLayer": "01000000000000000000000001",
                 "grid": {
+                  "type": "square",
                   "lines": "solid",
                   "cellSize": 70,
                   "offsetX": -12,
@@ -2943,6 +2984,7 @@
                   "color": "#334455ff",
                   "snap": "cells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "default",
@@ -3000,6 +3042,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -3007,6 +3050,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -3268,6 +3312,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -3275,6 +3320,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -3559,6 +3605,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -3566,6 +3613,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -3848,6 +3896,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -3855,6 +3904,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -4137,6 +4187,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -4144,6 +4195,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -4405,6 +4457,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -4412,6 +4465,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -4668,6 +4722,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -4675,6 +4730,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -4951,6 +5007,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -4958,6 +5015,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -5261,6 +5319,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -5268,6 +5327,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -5591,6 +5651,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -5598,6 +5659,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -5934,6 +5996,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -5941,6 +6004,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -6251,6 +6315,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -6258,6 +6323,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -6601,6 +6667,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -6608,6 +6675,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -6957,6 +7025,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -6964,6 +7033,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -7313,6 +7383,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -7320,6 +7391,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -7669,6 +7741,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -7676,6 +7749,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -8025,6 +8099,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -8032,6 +8107,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -8381,6 +8457,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -8388,6 +8465,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -8737,6 +8815,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -8744,6 +8823,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -9093,6 +9173,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -9100,6 +9181,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -9449,6 +9531,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -9456,6 +9539,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -9825,6 +9909,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -9832,6 +9917,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -10198,6 +10284,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -10205,6 +10292,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -10586,6 +10674,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -10593,6 +10682,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -10956,6 +11046,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -10963,6 +11054,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -11347,6 +11439,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -11354,6 +11447,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -11738,6 +11832,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -11745,6 +11840,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -12135,6 +12231,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -12142,6 +12239,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -12539,6 +12637,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -12546,6 +12645,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -12944,6 +13044,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -12951,6 +13052,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -13349,6 +13451,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -13356,6 +13459,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -13748,6 +13852,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -13755,6 +13860,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -14137,6 +14243,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -14144,6 +14251,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -14526,6 +14634,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -14533,6 +14642,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -14888,6 +14998,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -14895,6 +15006,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -15287,6 +15399,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -15294,6 +15407,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -15686,6 +15800,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -15693,6 +15808,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -16064,6 +16180,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -16071,6 +16188,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -16459,6 +16577,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -16466,6 +16585,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -16855,6 +16975,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -16862,6 +16983,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -17253,6 +17375,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -17260,6 +17383,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -17657,6 +17781,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -17664,6 +17789,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -18059,6 +18185,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -18066,6 +18193,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -18477,6 +18605,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -18484,6 +18613,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -18896,6 +19026,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -18903,6 +19034,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -19322,6 +19454,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -19329,6 +19462,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -19676,6 +19810,7 @@
               "table": {
                 "activeLayer": "01000000000000000000000002",
                 "grid": {
+                  "type": "square",
                   "lines": "solid",
                   "cellSize": 70,
                   "offsetX": -12,
@@ -19683,6 +19818,7 @@
                   "color": "#334455ff",
                   "snap": "cells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "default",
@@ -19740,6 +19876,7 @@
           ],
           "activeLayer": "01000000000000000000000002",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -19747,6 +19884,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -20094,6 +20232,7 @@
               "table": {
                 "activeLayer": "01000000000000000000000001",
                 "grid": {
+                  "type": "square",
                   "lines": "solid",
                   "cellSize": 70,
                   "offsetX": -12,
@@ -20101,6 +20240,7 @@
                   "color": "#334455ff",
                   "snap": "cells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "default",
@@ -20158,6 +20298,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -20165,6 +20306,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -20584,6 +20726,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -20591,6 +20734,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -20974,6 +21118,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -20981,6 +21126,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -21368,6 +21514,7 @@
               ],
               "activeLayer": "01000000000000000000000001",
               "grid": {
+                "type": "square",
                 "lines": "solid",
                 "cellSize": 70,
                 "offsetX": -12,
@@ -21375,6 +21522,7 @@
                 "color": "#334455ff",
                 "snap": "cells",
                 "feetPerCell": 5,
+                "units": "feet",
                 "diagonals": "equal"
               },
               "pawnLabels": "default",
@@ -21762,6 +21910,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -21769,6 +21918,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -22173,6 +22323,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -22180,6 +22331,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -22584,6 +22736,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -22591,6 +22744,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -22995,6 +23149,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -23002,6 +23157,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -23407,6 +23563,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -23414,6 +23571,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -23846,6 +24004,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -23853,6 +24012,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -24280,6 +24440,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -24287,6 +24448,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -24708,6 +24870,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -24715,6 +24878,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -25075,6 +25239,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -25082,6 +25247,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -25417,6 +25583,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -25424,6 +25591,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -25742,6 +25910,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -25749,6 +25918,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -26047,6 +26217,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -26054,6 +26225,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -26345,6 +26517,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -26352,6 +26525,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -26629,6 +26803,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -26636,6 +26811,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -26906,6 +27082,7 @@
           ],
           "activeLayer": "01000000000000000000000001",
           "grid": {
+            "type": "square",
             "lines": "solid",
             "cellSize": 70,
             "offsetX": -12,
@@ -26913,6 +27090,7 @@
             "color": "#334455ff",
             "snap": "cells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -27166,6 +27344,7 @@
               "table": {
                 "activeLayer": "0100000000000000000000015G",
                 "grid": {
+                  "type": "square",
                   "lines": "dashed",
                   "cellSize": 80,
                   "offsetX": 0,
@@ -27173,6 +27352,7 @@
                   "color": "#000000FF",
                   "snap": "halfCells",
                   "feetPerCell": 5,
+                  "units": "feet",
                   "diagonals": "equal"
                 },
                 "pawnLabels": "default",
@@ -27212,6 +27392,7 @@
           ],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
+            "type": "square",
             "lines": "dashed",
             "cellSize": 80,
             "offsetX": 0,
@@ -27219,6 +27400,7 @@
             "color": "#000000FF",
             "snap": "halfCells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -27474,6 +27656,7 @@
           ],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
+            "type": "square",
             "lines": "dashed",
             "cellSize": 80,
             "offsetX": 0,
@@ -27481,6 +27664,7 @@
             "color": "#000000FF",
             "snap": "halfCells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",
@@ -27726,6 +27910,7 @@
           ],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
+            "type": "square",
             "lines": "dashed",
             "cellSize": 80,
             "offsetX": 0,
@@ -27733,6 +27918,7 @@
             "color": "#000000FF",
             "snap": "halfCells",
             "feetPerCell": 5,
+            "units": "feet",
             "diagonals": "equal"
           },
           "pawnLabels": "default",

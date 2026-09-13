@@ -1,6 +1,7 @@
 import type { Pawn, Grid, Size } from "../protocol.ts";
 import type { Point } from "./types.ts";
 import { snapPoint } from "./grid.ts";
+import { hexAt, hexCentre, isHex } from "./hex.ts";
 export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height" | "rotation">;
 export type Placed = Sized & Pick<Pawn, "x" | "y">;
 const TINY_SCALE = 0.5;
@@ -87,6 +88,13 @@ export function snapTo(grid: Grid, pawn: Sized, x: number, y: number, out: Point
 export function snapPawn(grid: Grid, pawn: Sized, x: number, y: number): [number, number] {
 	if (pawn.kind === "object") {
 		return [x, y];
+	}
+	if (isHex(grid)) {
+		if (grid.snap === "off") {
+			return [x, y];
+		}
+		const [q, r] = hexAt(grid, x, y);
+		return hexCentre(grid, q, r);
 	}
 	const f = footprintOf(pawn.size);
 	return snapPoint(grid, f, f, x, y);

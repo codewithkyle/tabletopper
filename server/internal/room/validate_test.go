@@ -89,6 +89,30 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 			w.refuse(&TableSetGrid{Grid: g}, w.gm, CodeInvalid)
 		}
 	})
+	t.Run("a grid type is one of the three", func(t *testing.T) {
+		w := newWorld(t)
+		g := w.s.Table.Grid
+		for _, good := range []GridType{GridSquare, GridHexPointy, GridHexFlat} {
+			g.Type = good
+			w.apply(&TableSetGrid{Grid: g}, w.gm)
+		}
+		for _, bad := range []GridType{"", "hex", "Square", "triangle"} {
+			g.Type = bad
+			w.refuse(&TableSetGrid{Grid: g}, w.gm, CodeInvalid)
+		}
+	})
+	t.Run("a grid unit is one of the four", func(t *testing.T) {
+		w := newWorld(t)
+		g := w.s.Table.Grid
+		for _, good := range []GridUnits{UnitsFeet, UnitsMiles, UnitsKilometres, UnitsCells} {
+			g.Units = good
+			w.apply(&TableSetGrid{Grid: g}, w.gm)
+		}
+		for _, bad := range []GridUnits{"", "ft", "metres", "Miles"} {
+			g.Units = bad
+			w.refuse(&TableSetGrid{Grid: g}, w.gm, CodeInvalid)
+		}
+	})
 	t.Run("a stroke stops at the maximum width", func(t *testing.T) {
 		w := newWorld(t)
 		w.apply(&StrokeBegin{ID: testID(600), Layer: w.layer, Kind: StrokeFree, Color: "#ffffff", Width: StrokeWidthMax, Points: []int{0, 0}}, w.gm)
@@ -289,6 +313,24 @@ func TestTheCanvasClampMatchesTheObjectSizeLimit(t *testing.T) {
 	}
 	if written != ObjectPixelsMax {
 		t.Errorf("the canvas clamps a resize at %d and the core refuses past %d", written, ObjectPixelsMax)
+	}
+}
+func TestThePathCapMatchesTheServers(t *testing.T) {
+	const source = "../../js/room/model/hex.ts"
+	body, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatalf("reading %s: %v", source, err)
+	}
+	found := regexp.MustCompile(`PATH_CELLS_MAX = ([0-9_]+)`).FindSubmatch(body)
+	if found == nil {
+		t.Fatalf("%s no longer declares PATH_CELLS_MAX", source)
+	}
+	written, err := strconv.Atoi(strings.ReplaceAll(string(found[1]), "_", ""))
+	if err != nil {
+		t.Fatalf("PATH_CELLS_MAX is %q, which is not a number", found[1])
+	}
+	if written != PathCellsMax {
+		t.Errorf("the client walks at most %d cells and the core walks %d", written, PathCellsMax)
 	}
 }
 func TestTheSelectionCapMatchesTheServers(t *testing.T) {

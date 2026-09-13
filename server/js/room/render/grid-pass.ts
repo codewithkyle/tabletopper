@@ -30,10 +30,12 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 			program.use();
 			gl.bindVertexArray(vao);
 			gl.uniformMatrix3fv(program.at.u_clipToWorld, false, frame.clipInverse);
-			gl.uniform2f(program.at.u_offset, wrap(grid.offsetX, grid.cellSize), wrap(grid.offsetY, grid.cellSize));
+			const [ox, oy] = origin(grid);
+			gl.uniform2f(program.at.u_offset, ox, oy);
 			gl.uniform1f(program.at.u_cell, grid.cellSize);
 			gl.uniform4f(program.at.u_color, color[0], color[1], color[2], color[3]);
 			gl.uniform1f(program.at.u_dash, grid.lines === "dashed" ? 1 : 0);
+			gl.uniform1f(program.at.u_type, TYPES[grid.type] ?? 0);
 			blended(gl, flush);
 			gl.bindVertexArray(null);
 		},
@@ -42,6 +44,20 @@ export function createGridPass(gl: WebGL2RenderingContext): GridPass {
 			gl.deleteVertexArray(vao);
 		},
 	};
+}
+const SQRT3 = Math.sqrt(3);
+const TYPES: Record<string, number> = { square: 0, hexPointy: 1, hexFlat: 2 };
+function origin(grid: Grid): [number, number] {
+	const cell = grid.cellSize;
+	if (grid.type === "square") {
+		return [wrap(grid.offsetX, cell), wrap(grid.offsetY, cell)];
+	}
+	const x = grid.offsetX + cell / 2;
+	const y = grid.offsetY + cell / 2;
+	if (grid.type === "hexFlat") {
+		return [wrap(x, cell * SQRT3), wrap(y, cell)];
+	}
+	return [wrap(x, cell), wrap(y, cell * SQRT3)];
 }
 function wrap(value: number, size: number): number {
 	return ((value % size) + size) % size;

@@ -1,6 +1,7 @@
 import type { FrameContext } from "./frame-context.ts";
 import type { GlyphAtlas } from "./glyphs.ts";
 import type { Attribute, QuadBatch } from "../gl/quads.ts";
+import type { Grid } from "../protocol.ts";
 import type { Rgb } from "../model/types.ts";
 import { blended } from "../gl/blend.ts";
 import { createProgram } from "../gl/program.ts";
@@ -23,7 +24,7 @@ const HALO_RING: readonly (readonly [number, number])[] = [
 const PATH_QUAD: readonly Attribute[] = [{ size: 4 }, { size: 4 }, { size: 4 }, { size: 4 }];
 export interface PathPass {
 	begin(worldPerPixel: number): void;
-	cell(x: number, y: number, size: number, color: Rgb, alpha: number): void;
+	cell(x: number, y: number, size: number, type: Grid["type"], color: Rgb, alpha: number): void;
 	line(
 		x0: number, y0: number, x1: number, y1: number,
 		width: number, color: Rgb, alpha: number,
@@ -100,8 +101,25 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			batch.begin();
 			scale = worldPerPixel;
 		},
-		cell(x, y, size, color, alpha) {
-			push(batch, x, y, size, 0, 0, size, 0, color, alpha, 0, 0, 0, 0);
+		cell(x, y, size, type, color, alpha) {
+			if (type === "square") {
+				push(batch, x, y, size, 0, 0, size, 0, color, alpha, 0, 0, 0, 0);
+				return;
+			}
+			const cx = x + size / 2;
+			const cy = y + size / 2;
+			const radius = size / Math.sqrt(3);
+			const start = type === "hexFlat" ? 0 : -30;
+			for (let i = 0; i < 6; i += 2) {
+				const a = ((start + 60 * i) * Math.PI) / 180;
+				const b = ((start + 60 * (i + 2)) * Math.PI) / 180;
+				push(
+					batch, cx, cy,
+					radius * Math.cos(a), radius * Math.sin(a),
+					radius * Math.cos(b), radius * Math.sin(b),
+					0, color, alpha, 0, 0, 0, 0,
+				);
+			}
 		},
 		line(x0, y0, x1, y1, width, color, alpha) {
 			const dx = x1 - x0;

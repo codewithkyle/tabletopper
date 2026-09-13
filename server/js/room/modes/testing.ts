@@ -31,6 +31,7 @@ export const ALT = { shift: false, alt: true };
 export const at = (x: number, y: number) => ({ x, y });
 export function grid(over: Partial<Grid> = {}): Grid {
 	return {
+		type: "square",
 		lines: "solid",
 		cellSize: 64,
 		offsetX: 0,
@@ -38,6 +39,7 @@ export function grid(over: Partial<Grid> = {}): Grid {
 		color: "#000000FF",
 		snap: "cells",
 		feetPerCell: 5,
+		units: "feet",
 		diagonals: "equal",
 		...over,
 	};

@@ -29,6 +29,13 @@ func snapPawn(g Grid, p Pawn, x, y int) (int, int) {
 	if p.Kind == PawnObject {
 		return x, y
 	}
+	if g.Type.Hex() {
+		if g.Snap == SnapOff {
+			return x, y
+		}
+		q, r := hexAt(g, x, y)
+		return hexCentre(g, q, r)
+	}
 	f := p.Size.Footprint()
 	return SnapPoint(g, f, f, x, y)
 }

@@ -5,11 +5,12 @@ import { blankCell, blankLabel, blankSegment, pool } from "../model/overlay.ts";
 import {
 	cellAt,
 	cellCentre,
+	cellPath,
 	distanceLabel,
 	feetBetween,
 	feetMoved,
-	supercover,
 } from "../model/grid.ts";
+import { isHex } from "../model/hex.ts";
 const RULER_WIDTH = 2;
 const RULER_ALPHA = 0.9;
 const CELL_ALPHA = 0.16;
@@ -42,13 +43,14 @@ export function walkRuler(
 	const a = cellAt(grid, fromX, fromY);
 	const b = cellAt(grid, toX, toY);
 	const size = Math.max(1, grid.cellSize);
-	supercover(a[0], a[1], b[0], b[1], crossed);
+	cellPath(grid, a[0], a[1], b[0], b[1], crossed);
 	for (let i = 0; i + 1 < crossed.length; i += 2) {
 		const [cx, cy] = cellCentre(grid, crossed[i], crossed[i + 1]);
 		const cell = pens.cells.take();
 		cell.x = cx - size / 2;
 		cell.y = cy - size / 2;
 		cell.size = size;
+		cell.type = grid.type;
 		cell.color = color;
 		cell.alpha = CELL_ALPHA;
 		out.cells.push(cell);
@@ -56,14 +58,18 @@ export function walkRuler(
 	const start = cellCentre(grid, a[0], a[1]);
 	const end = cellCentre(grid, b[0], b[1]);
 	const feet = feetMoved(b[0] - a[0], b[1] - a[1], grid);
-	rule(out, pens, start[0], start[1], end[0], end[1], distanceLabel(feet), color);
+	rule(out, pens, start[0], start[1], end[0], end[1], distanceLabel(feet, grid), color);
 }
 export function lineRuler(
 	out: Overlay, pens: Pens, grid: Grid,
 	fromX: number, fromY: number, toX: number, toY: number, color: Rgb,
 ): void {
+	if (isHex(grid)) {
+		walkRuler(out, pens, grid, fromX, fromY, toX, toY, color);
+		return;
+	}
 	const feet = feetBetween(toX - fromX, toY - fromY, grid);
-	rule(out, pens, fromX, fromY, toX, toY, distanceLabel(feet), color);
+	rule(out, pens, fromX, fromY, toX, toY, distanceLabel(feet, grid), color);
 }
 function rule(
 	out: Overlay, pens: Pens,

@@ -94,6 +94,7 @@ export function empty(): State {
 			layers: [],
 			activeLayer: "",
 			grid: {
+				type: "square",
 				lines: "solid",
 				cellSize: 64,
 				offsetX: 0,
@@ -101,6 +102,7 @@ export function empty(): State {
 				color: "#000000FF",
 				snap: "cells",
 				feetPerCell: 5,
+				units: "feet",
 				diagonals: "equal",
 			},
 			pawnLabels: "default",

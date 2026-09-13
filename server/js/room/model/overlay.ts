@@ -1,4 +1,4 @@
-import type { HPBand, Pawn, Stroke } from "../protocol.ts";
+import type { Grid, HPBand, Pawn, Stroke } from "../protocol.ts";
 import type { Rgb } from "./types.ts";
 export interface Drawn {
 	id: string;
@@ -43,6 +43,7 @@ export interface Cell {
 	x: number;
 	y: number;
 	size: number;
+	type: Grid["type"];
 	color: Rgb;
 	alpha: number;
 }
@@ -149,7 +150,7 @@ export function blankSegment(): Segment {
 	return { x0: 0, y0: 0, x1: 0, y1: 0, color: [1, 1, 1], alpha: 1, width: 1 };
 }
 export function blankCell(): Cell {
-	return { x: 0, y: 0, size: 0, color: [1, 1, 1], alpha: 1 };
+	return { x: 0, y: 0, size: 0, type: "square", color: [1, 1, 1], alpha: 1 };
 }
 export function blankLabel(): Label {
 	return { text: "", x: 0, y: 0, color: [1, 1, 1], alpha: 1 };

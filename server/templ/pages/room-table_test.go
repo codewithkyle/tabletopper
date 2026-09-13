@@ -107,7 +107,7 @@ func TestOnlyTheOddlySizedFloorIsWarnedAbout(t *testing.T) {
 	}
 }
 func testGridData() RoomGridData {
-	return RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}
+	return RoomGridData{RoomID: testTableRoomID, Type: "square", CellSize: 64, FeetPerCell: 5, Units: "feet", Color: "#000000FF"}
 }
 func testSettingsData() RoomSettingsData {
 	return RoomSettingsData{RoomID: testTableRoomID, PawnLabels: "default", InitiativeGrouping: "grouped"}
@@ -167,7 +167,9 @@ func TestTheGridRedrawsWhenASceneLandsUnderIt(t *testing.T) {
 }
 func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 	assertChoices(t, map[string][2][]string{
+		"gridType":  {values(GridTypeChoices()), room.GridType("").Values()},
 		"gridLines": {values(GridLineChoices()), room.GridLines("").Values()},
+		"units":     {values(GridUnitChoices()), room.GridUnits("").Values()},
 		"snap":      {values(GridSnapChoices()), room.Snap("").Values()},
 		"diagonals": {values(GridDiagonalChoices()), room.Diagonals("").Values()},
 	})
@@ -195,7 +197,7 @@ func assertChoices(t *testing.T, pairs map[string][2][]string) {
 }
 func TestNeitherTableFormCarriesTheOthersFields(t *testing.T) {
 	for name, pair := range map[string][2][]string{
-		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "offsetX", "offsetY", "snap"}},
+		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "gridType", "offsetX", "offsetY", "snap", "units"}},
 		"settings": {fieldNames(renderToString(t, RoomSettings(testSettingsData()))), []string{"fogPrefill", "initiativeGrouping", "pawnLabels", "playersCanDraw"}},
 	} {
 		if !slices.Equal(pair[0], pair[1]) {
@@ -211,6 +213,50 @@ func fieldNames(page string) []string {
 	out := slices.Collect(maps.Keys(found))
 	slices.Sort(out)
 	return out
+}
+func TestTheGridFormHidesDiagonalsOnAHexGridWithoutAskingTheServer(t *testing.T) {
+	page := renderToString(t, RoomGrid(testGridData()))
+	if !strings.Contains(page, "group-has-[input[value^=hex]:checked]:hidden") {
+		t.Fatalf("the Diagonals fieldset has no rule that hides it on a hex type:\n%s", page)
+	}
+	if !regexp.MustCompile(`<form[^>]*class="[^"]*\bgroup\b`).MatchString(page) {
+		t.Errorf("the rule keys off a group the form does not declare:\n%s", page)
+	}
+	if strings.Contains(page, uievents.Tabletop) {
+		t.Errorf("hiding Diagonals costs a round trip:\n%s", page)
+	}
+	for _, value := range []string{"hexPointy", "hexFlat"} {
+		if !strings.Contains(page, `value="`+value+`"`) {
+			t.Errorf("the rule matches inputs whose value starts with hex, and %q is not offered:\n%s", value, page)
+		}
+	}
+}
+func TestTheGridFormOpensOnTheTypeAndUnitTheTableIsOn(t *testing.T) {
+	data := testGridData()
+	data.Type = "hexFlat"
+	data.Units = "miles"
+	page := renderToString(t, RoomGrid(data))
+	if !strings.Contains(page, `value="hexFlat" checked`) {
+		t.Errorf("a flat-top table does not open on Hexes, flat top:\n%s", page)
+	}
+	if strings.Contains(page, `value="square" checked`) {
+		t.Errorf("a flat-top table also opens on Squares:\n%s", page)
+	}
+	if !strings.Contains(page, `value="miles" selected`) {
+		t.Errorf("a table measured in miles does not open on Miles:\n%s", page)
+	}
+}
+func TestTheDistanceFieldNoLongerSaysFeet(t *testing.T) {
+	page := renderToString(t, RoomGrid(testGridData()))
+	if strings.Contains(page, "Feet per cell") {
+		t.Errorf("the caption still names one of the four units:\n%s", page)
+	}
+	if !strings.Contains(page, "Distance per cell") {
+		t.Errorf("the distance field has no caption:\n%s", page)
+	}
+	if !strings.Contains(page, `name="feetPerCell"`) {
+		t.Errorf("the field was renamed, which costs a migration of every snapshot:\n%s", page)
+	}
 }
 func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{

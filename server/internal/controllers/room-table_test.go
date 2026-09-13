@@ -400,8 +400,9 @@ func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
-			"gridLines": {"solid"}, "cellSize": {"4"}, "offsetX": {"0"}, "offsetY": {"0"},
-			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
+			"gridType": {"square"}, "gridLines": {"solid"}, "cellSize": {"4"},
+			"offsetX": {"0"}, "offsetY": {"0"},
+			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "units": {"feet"},
 			"diagonals": {"equal"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -421,8 +422,9 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
-			"gridLines": {"dashed"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
-			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"},
+			"gridType": {"hexPointy"}, "gridLines": {"dashed"}, "cellSize": {"70"},
+			"offsetX": {"12"}, "offsetY": {"-4"},
+			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"}, "units": {"miles"},
 			"diagonals": {"alternating"}, "pawnLabels": {"none"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusOK {
@@ -433,8 +435,8 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	}
 	view := tableView(t, app)
 	want := room.Grid{
-		Lines: room.GridLinesDashed, CellSize: 70, OffsetX: 12, OffsetY: -4,
-		Color: "#3355FFCC", Snap: room.SnapHalfCells, FeetPerCell: 10,
+		Type: room.GridHexPointy, Lines: room.GridLinesDashed, CellSize: 70, OffsetX: 12, OffsetY: -4,
+		Color: "#3355FFCC", Snap: room.SnapHalfCells, FeetPerCell: 10, Units: room.UnitsMiles,
 		Diagonals: room.DiagonalsAlternating,
 	}
 	if view.Table.Grid != want {
@@ -511,8 +513,10 @@ func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 }
 func TestACompleteGridFormIsAccepted(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
-		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
-		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
+		"gridType": {"hexFlat"}, "gridLines": {"solid"}, "cellSize": {"64"},
+		"offsetX": {"0"}, "offsetY": {"0"},
+		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "units": {"kilometres"},
+		"diagonals": {"equal"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	grid, problems := gridForm(r)
@@ -522,6 +526,12 @@ func TestACompleteGridFormIsAccepted(t *testing.T) {
 	if grid.Lines != room.GridLinesSolid {
 		t.Errorf("the line style read as %q", grid.Lines)
 	}
+	if grid.Type != room.GridHexFlat {
+		t.Errorf("the grid type read as %q", grid.Type)
+	}
+	if grid.Units != room.UnitsKilometres {
+		t.Errorf("the unit read as %q", grid.Units)
+	}
 }
 func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
@@ -529,8 +539,8 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 	rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
-			"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
-			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
+			"gridType": {"square"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
+			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "units": {"feet"},
 			"diagonals": {"equal"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -540,10 +550,32 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 		t.Errorf("the message is not the core's:\n%s", body)
 	}
 }
+func TestAGridWithNoTypeOrNoUnitIsRefused(t *testing.T) {
+	for field, want := range map[string]string{"gridType": "grid type", "units": "distance unit"} {
+		form := url.Values{
+			"gridType": {"square"}, "gridLines": {"solid"}, "cellSize": {"64"},
+			"offsetX": {"0"}, "offsetY": {"0"},
+			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "units": {"feet"},
+			"diagonals": {"equal"},
+		}
+		form.Del(field)
+		db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+		app := tableApp(t, db)
+		rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
+			map[string]string{"id": testRoomID.String()}, form, session.UserSession{UserID: testOwnerID})
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("a form with no %s returned %d, want 422; body: %s", field, rec.Code, rec.Body.String())
+		}
+		if body := rec.Body.String(); !strings.Contains(body, want) {
+			t.Errorf("a form with no %s says:\n%s", field, body)
+		}
+	}
+}
 func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
-		"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"  3355ffcc  "},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
+		"gridType": {"square"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
+		"color": {"  3355ffcc  "},
+		"snap":  {"cells"}, "feetPerCell": {"5"}, "units": {"feet"}, "diagonals": {"equal"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	grid, problems := gridForm(r)
@@ -556,8 +588,9 @@ func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 }
 func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
-		"cellSize": {"sixty four"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"#000000FF"},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
+		"gridType": {"square"}, "cellSize": {"sixty four"}, "offsetX": {"0"}, "offsetY": {"0"},
+		"color": {"#000000FF"},
+		"snap":  {"cells"}, "feetPerCell": {"5"}, "units": {"feet"}, "diagonals": {"equal"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	_, problems := gridForm(r)

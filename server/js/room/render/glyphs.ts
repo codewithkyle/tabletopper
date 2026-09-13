@@ -1,4 +1,4 @@
-export const GLYPHS = "0123456789 ft.";
+export const GLYPHS = "0123456789 ft.mikhexsq";
 const GLYPH_PIXELS = 48;
 const PADDING = 2;
 export interface Glyph {

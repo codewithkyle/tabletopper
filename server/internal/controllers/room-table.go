@@ -468,6 +468,7 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridData {
 	return pages.RoomGridData{
 		RoomID:      roomID.String(),
+		Type:        string(t.Grid.Type),
 		Lines:       string(t.Grid.Lines),
 		CellSize:    t.Grid.CellSize,
 		OffsetX:     t.Grid.OffsetX,
@@ -475,6 +476,7 @@ func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridD
 		Color:       t.Grid.Color,
 		Snap:        string(t.Grid.Snap),
 		FeetPerCell: t.Grid.FeetPerCell,
+		Units:       string(t.Grid.Units),
 		Diagonals:   string(t.Grid.Diagonals),
 		Errors:      problems,
 	}
@@ -500,13 +502,15 @@ func gridForm(r *http.Request) (room.Grid, []string) {
 		return v
 	}
 	grid := room.Grid{
+		Type:        room.GridType(r.FormValue("gridType")),
 		Lines:       room.GridLines(r.FormValue("gridLines")),
 		CellSize:    number("cellSize", "Cell size"),
 		OffsetX:     number("offsetX", "The offset across"),
 		OffsetY:     number("offsetY", "The offset down"),
 		Color:       strings.ToUpper(strings.TrimSpace(r.FormValue("color"))),
 		Snap:        room.Snap(r.FormValue("snap")),
-		FeetPerCell: number("feetPerCell", "Feet per cell"),
+		FeetPerCell: number("feetPerCell", "Distance per cell"),
+		Units:       room.GridUnits(r.FormValue("units")),
 		Diagonals:   room.Diagonals(r.FormValue("diagonals")),
 	}
 	if grid.Color != "" && !strings.HasPrefix(grid.Color, "#") {

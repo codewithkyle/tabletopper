@@ -11,7 +11,7 @@ templ RoomGrid(data RoomGridData) {
 	>
 		<form
 			id="room-grid"
-			class="flex flex-col gap-3"
+			class="group flex flex-col gap-3"
 			hx-post={ data.SavePath() }
 			hx-trigger="change"
 			hx-sync="this:queue last"
@@ -21,17 +21,43 @@ templ RoomGrid(data RoomGridData) {
 			{ autosaves... }
 		>
 			@PanelFormErrors(RoomGridPanel, data.Errors)
+			@panelRadios("gridType", "Grid type", GridTypeChoices(), data.Type)
 			@panelRadios("gridLines", "Grid lines", GridLineChoices(), data.Lines)
 			<div class="grid grid-cols-2 gap-2">
 				@gridNumber("cellSize", "Cell size", data.CellSizeText(), GridCellMin, GridCellMax)
-				@gridNumber("feetPerCell", "Feet per cell", data.FeetText(), GridFeetMin, GridFeetMax)
+				@gridDistance(data)
 				@gridNumber("offsetX", "Offset across", data.OffsetXText(), "", "")
 				@gridNumber("offsetY", "Offset down", data.OffsetYText(), "", "")
 			</div>
 			@gridColor(data)
 			@panelRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
-			@panelRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
+			<div class="group-has-[input[value^=hex]:checked]:hidden">
+				@panelRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
+			</div>
 		</form>
+	</div>
+}
+
+templ gridDistance(data RoomGridData) {
+	<div class="flex flex-col gap-0.5">
+		<span class="text-[10px] text-base-content/60">Distance per cell</span>
+		<div class="flex gap-1">
+			<input
+				type="number"
+				name="feetPerCell"
+				value={ data.FeetText() }
+				required
+				min={ GridFeetMin }
+				max={ GridFeetMax }
+				aria-label="Distance per cell"
+				class="input input-xs w-full min-w-0"
+			/>
+			<select name="units" aria-label="Units" class="select select-xs w-24 shrink-0">
+				for _, c := range GridUnitChoices() {
+					<option value={ c.Value } selected?={ c.Value == data.Units }>{ c.Label }</option>
+				}
+			</select>
+		</div>
 	</div>
 }
 

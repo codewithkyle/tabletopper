@@ -152,7 +152,7 @@ export function measure(
 		if (r <= 0) {
 			return;
 		}
-		add(distanceLabel(feetBetween(dx, dy, grid)), points[0], points[1] - r, color);
+		add(distanceLabel(feetBetween(dx, dy, grid), grid), points[0], points[1] - r, color);
 		return;
 	}
 	if (kind === "cone") {
@@ -171,7 +171,7 @@ export function measure(
 			maxX = Math.max(maxX, corners[i]);
 			minY = Math.min(minY, corners[i + 1]);
 		}
-		add(distanceLabel(feetBetween(dx, dy, grid)), (minX + maxX) / 2, minY, color);
+		add(distanceLabel(feetBetween(dx, dy, grid), grid), (minX + maxX) / 2, minY, color);
 		return;
 	}
 	if (kind !== "rect") {
@@ -182,9 +182,9 @@ export function measure(
 	const x1 = Math.max(points[0], points[2]);
 	const y1 = Math.max(points[1], points[3]);
 	if (x1 > x0) {
-		add(distanceLabel(feetBetween(x1 - x0, 0, grid)), (x0 + x1) / 2, y0, color);
+		add(distanceLabel(feetBetween(x1 - x0, 0, grid), grid), (x0 + x1) / 2, y0, color);
 	}
 	if (y1 > y0) {
-		add(distanceLabel(feetBetween(0, y1 - y0, grid)), x0, (y0 + y1) / 2, color);
+		add(distanceLabel(feetBetween(0, y1 - y0, grid), grid), x0, (y0 + y1) / 2, color);
 	}
 }

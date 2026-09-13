@@ -1,6 +1,9 @@
 package room
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -127,6 +130,7 @@ func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 	}
 	enums := map[string]enum{
 		"Role": RoleGM, "Snap": SnapCells, "Diagonals": DiagonalsEqual,
+		"GridType": GridSquare, "GridUnits": UnitsFeet,
 		"PawnLabels": LabelsDefault, "PawnKind": PawnMonster, "Size": SizeMedium,
 		"HPBand": BandHealthy, "ConditionColor": ColorRed,
 		"ClearTrigger": ClearStart, "ShapeKind": ShapeRect, "FogMode": FogReveal,
@@ -135,6 +139,8 @@ func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 		"Role":       func(v string) bool { return Role(v).Valid() },
 		"Snap":       func(v string) bool { return Snap(v).Valid() },
 		"Diagonals":  func(v string) bool { return Diagonals(v).Valid() },
+		"GridType":   func(v string) bool { return GridType(v).Valid() },
+		"GridUnits":  func(v string) bool { return GridUnits(v).Valid() },
 		"PawnLabels": func(v string) bool { return PawnLabels(v).Valid() },
 		"PawnKind":   func(v string) bool { return PawnKind(v).Valid() },
 		"Size":       func(v string) bool { return Size(v).Valid() },
@@ -159,5 +165,56 @@ func TestEnumsAgreeWithTheirOwnValues(t *testing.T) {
 		if valid[name]("nonsense-" + name) {
 			t.Fatalf("%s.Valid accepts a value that is not in its list", name)
 		}
+	}
+}
+
+func TestNormalizeFillsTheGridTypeAndUnitASnapshotPredates(t *testing.T) {
+	blob, err := os.ReadFile(filepath.Join("testdata", "snapshots", "grid-before-type.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw struct {
+		Table struct {
+			Grid map[string]json.RawMessage `json:"grid"`
+		} `json:"table"`
+	}
+	if err := json.Unmarshal(blob, &raw); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"type", "units"} {
+		if _, ok := raw.Table.Grid[field]; ok {
+			t.Fatalf("the fixture already carries %q, so it no longer stands for a snapshot written before the field", field)
+		}
+	}
+	s, err := Unmarshal(blob)
+	if err != nil {
+		t.Fatalf("a snapshot written before the field no longer decodes: %v", err)
+	}
+	if s.Schema != Schema || Schema != 3 {
+		t.Fatalf("schema = %d at version %d; the grid type and unit are additive and need no migration", s.Schema, Schema)
+	}
+	if s.Table.Grid.Type != GridSquare {
+		t.Errorf("grid type = %q, want %q", s.Table.Grid.Type, GridSquare)
+	}
+	if s.Table.Grid.Units != UnitsFeet {
+		t.Errorf("grid units = %q, want %q", s.Table.Grid.Units, UnitsFeet)
+	}
+}
+func TestNormalizeRepairsAGridTypeAndUnitThatNoLongerExist(t *testing.T) {
+	s := NewState(testRoomID, "The Sunless Citadel", newEnv())
+	s.Table.Grid.Type = GridType("triangles")
+	s.Table.Grid.Units = GridUnits("furlongs")
+	s.Normalize()
+	if s.Table.Grid.Type != GridSquare {
+		t.Errorf("a retired grid type came back as %q, want %q", s.Table.Grid.Type, GridSquare)
+	}
+	if s.Table.Grid.Units != UnitsFeet {
+		t.Errorf("a retired unit came back as %q, want %q", s.Table.Grid.Units, UnitsFeet)
+	}
+	s.Table.Grid.Type = GridHexFlat
+	s.Table.Grid.Units = UnitsMiles
+	s.Normalize()
+	if s.Table.Grid.Type != GridHexFlat || s.Table.Grid.Units != UnitsMiles {
+		t.Errorf("a live type and unit were rewritten to %q and %q", s.Table.Grid.Type, s.Table.Grid.Units)
 	}
 }

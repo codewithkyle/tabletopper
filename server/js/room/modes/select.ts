@@ -1,5 +1,5 @@
 import type { Board } from "./board.ts";
-import type { Event, Pawn } from "../protocol.ts";
+import type { Event, Grid, Pawn } from "../protocol.ts";
 import type { Gesture } from "./gestures.ts";
 import type { Ghostable, Handle, Overlay } from "../model/overlay.ts";
 import type { Placed } from "../model/shape.ts";
@@ -90,12 +90,13 @@ export function createSelect(deps: SelectDeps): Select {
 	}
 	function paint(
 	out: Overlay, pens: Pens, centreX: number, centreY: number,
-	size: number, color: Rgb, alpha: number,
+	size: number, type: Grid["type"], color: Rgb, alpha: number,
 ): void {
 	const cell = pens.cells.take();
 	cell.x = centreX - size / 2;
 	cell.y = centreY - size / 2;
 	cell.size = size;
+	cell.type = type;
 	cell.color = color;
 	cell.alpha = alpha;
 	out.cells.push(cell);
@@ -347,11 +348,11 @@ function activeHandles(out: Handle[]): Handle[] {
 			}
 			const floor = board.state.table.layers.find((l) => l.id === board.viewed());
 			if (board.role === "gm" && floor?.partyStart) {
-				paint(out, pens, floor.partyStart.x, floor.partyStart.y, grid.cellSize, SELF_COLOR, START_ALPHA);
+				paint(out, pens, floor.partyStart.x, floor.partyStart.y, grid.cellSize, grid.type, SELF_COLOR, START_ALPHA);
 			}
 			const held = deps.marks?.marked();
 			if (held) {
-				paint(out, pens, held.x + held.size / 2, held.y + held.size / 2, held.size, SELECT_COLOR, MARK_ALPHA);
+				paint(out, pens, held.x + held.size / 2, held.y + held.size / 2, held.size, grid.type, SELECT_COLOR, MARK_ALPHA);
 			}
 		},
 		selection,

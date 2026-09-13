@@ -72,8 +72,8 @@ Object.assign(globalThis, { HTMLElement: El, Element: El, Node: El, document: do
 const { mountTableMenu, cellUnder } = await import("./table-menu.ts");
 function grid(): Grid {
 	return {
-		lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
-		color: "#000000ff", snap: "cells", feetPerCell: 5, diagonals: "equal",
+		type: "square", lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
+		color: "#000000ff", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal",
 	};
 }
 function room(): { mount: El; host: El; wheel: El; party: El; drawn: number[] } {
