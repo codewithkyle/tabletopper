@@ -169,6 +169,9 @@ func (emptyRoomStore) ClearMembership(context.Context, ulid.ULID, ulid.ULID) err
 	return nil
 }
 func (emptyRoomStore) Preserve(context.Context, ulid.ULID, []byte) error { return nil }
+func (emptyRoomStore) AutosaveScene(context.Context, ulid.ULID, []byte, *ulid.ULID) error {
+	return nil
+}
 func kickRequest(t *testing.T, app *App, target ulid.ULID, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()
 	return roomRequest(t, app.KickPlayer, http.MethodPost,

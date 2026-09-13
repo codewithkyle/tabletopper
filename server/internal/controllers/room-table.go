@@ -292,16 +292,20 @@ func (a *App) tableSetting(w http.ResponseWriter, r *http.Request, panel string,
 	renderPanelBlock(w, r, panel, nil)
 }
 func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
-	if !a.dispatchLayer(w, r, "clear the tabletop", func(ulid.ULID) (room.Command, bool) {
-		return &room.TableClear{}, true
-	}) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	row, ok := a.sceneRoom(w, r, "clear the tabletop")
+	if !ok {
 		return
 	}
-	sess := session.FromContext(r.Context())
-	if roomID, err := ulid.Parse(r.PathValue("id")); err == nil {
-		if _, err := a.Queries.ClearRoomScene(r.Context(), queries.ClearRoomSceneParams{ID: roomID, OwnerID: sess.UserID}); err != nil {
-			slog.Error("Failed to forget the open scene", "room", roomID, "error", err)
-		}
+	a.autosaveScene(ctx, row.ID, sess.UserID, row.SceneID)
+	who := room.Actor{ID: sess.UserID, Role: room.RoleGM}
+	if err := a.Hub.Dispatch(ctx, row.ID, who, &room.TableClear{}); err != nil {
+		a.rejectCommand(w, "clear the tabletop", err)
+		return
+	}
+	if _, err := a.Queries.ClearRoomScene(ctx, queries.ClearRoomSceneParams{ID: row.ID, OwnerID: sess.UserID}); err != nil {
+		slog.Error("Failed to forget the open scene", "room", row.ID, "error", err)
 	}
 	htmx.Scenes(w)
 	w.WriteHeader(http.StatusNoContent)

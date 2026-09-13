@@ -13,13 +13,13 @@ const (
 )
 
 type SceneCard struct {
-	RoomID      string
-	ID          string
-	Name        string
-	PreviewID   string
-	Updated     Timestamp
-	Open        bool
-	KeepChanges bool
+	RoomID    string
+	ID        string
+	Name      string
+	PreviewID string
+	Updated   Timestamp
+	Open      bool
+	Autosave  bool
 }
 type RoomScenesData struct {
 	RoomID string
@@ -79,8 +79,8 @@ func (c SceneCard) DeletePrompt() string {
 func (c SceneCard) NameLimit() string {
 	return strconv.Itoa(SceneNameLimit)
 }
-func (c SceneCard) KeepPath() string {
-	return "/scenes/" + c.ID + "/keep"
+func (c SceneCard) AutosavePath() string {
+	return "/scenes/" + c.ID + "/autosave"
 }
 func (c SceneCard) SavePath() string {
 	return "/rooms/" + c.RoomID + "/scenes/" + c.ID + "/save"
@@ -91,8 +91,11 @@ func (c SceneCard) SavePrompt() string {
 func (c SceneCard) SaveHeading() string {
 	return "Overwrite " + c.Name + "?"
 }
-func (c SceneCard) KeepHint() string {
-	return sceneKeepHint
+func (c SceneCard) AutosaveHint() string {
+	return sceneAutosaveHint
+}
+func (c SceneCard) AutosaveLabel() string {
+	return sceneAutosaveLabel
 }
 func (c SceneCard) CardClass() string {
 	if c.Open {
@@ -104,7 +107,8 @@ func (c SceneCard) CardClass() string {
 const (
 	roomScenesEmptyHeading = "No scenes yet."
 	roomScenesEmptyBlurb   = "Lay the tabletop out the way you want it and save it here. Opening it again puts the maps, the fog, the drawing and every monster back where they were, for everybody at the table."
-	sceneKeepHint          = "Keep changes: what happens on this scene is written back to it when another is opened or the room is closed. Leave it off for an encounter you run more than once."
+	sceneAutosaveLabel     = "Autosave changes"
+	sceneAutosaveHint      = "Autosave changes: what happens on this scene is written back to it when another scene is opened, when the tabletop is cleared, when the last GM disconnects, and when the room is closed or the server restarts. Leave it off for an encounter you run more than once."
 	sceneOverwritePrompt   = "This scene is replaced by what is on the tabletop now. The version you saved before is gone."
 	sceneOpenPrompt        = "Every pawn on the tabletop goes, the party's included, along with the fog, the drawing and the turn order. This cannot be undone."
 	sceneSaveBlurb         = "The grid, the floors and their maps, the fog, the drawing and every pawn that is not a person's. Nothing about the people at this table is saved with it."

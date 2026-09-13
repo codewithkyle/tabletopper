@@ -175,18 +175,21 @@ func TestSaveChangesIsOfferedOnTheOpenSceneAlone(t *testing.T) {
 		t.Errorf("overwriting a scene is not confirmed:\n%s", page)
 	}
 }
-func TestTheKeepToggleIsOnEveryCardAndReadsTheFlag(t *testing.T) {
+func TestTheAutosaveToggleIsOnEveryCardAndReadsTheFlag(t *testing.T) {
 	data := testScenesData()
-	data.Scenes[0].KeepChanges = true
+	data.Scenes[0].Autosave = true
 	page := renderToString(t, RoomScenes(data))
-	if got := strings.Count(page, `name="keep"`); got != 2 {
-		t.Errorf("%d keep toggles, want one per scene", got)
+	if got := strings.Count(page, `name="autosave"`); got != 2 {
+		t.Errorf("%d autosave toggles, want one per scene", got)
 	}
 	if got := strings.Count(page, "checked"); got != 1 {
-		t.Errorf("%d toggles are on, want the one scene that keeps its changes", got)
+		t.Errorf("%d toggles are on, want the one scene that autosaves", got)
 	}
-	if !strings.Contains(page, `hx-post="/scenes/`+data.Scenes[0].ID+`/keep"`) {
+	if !strings.Contains(page, `hx-post="/scenes/`+data.Scenes[0].ID+`/autosave"`) {
 		t.Errorf("the toggle does not post to the scene's own URL:\n%s", page)
+	}
+	if !strings.Contains(page, sceneAutosaveLabel) {
+		t.Errorf("the toggle is not labelled %q:\n%s", sceneAutosaveLabel, page)
 	}
 }
 func TestTheRoomBarNamesTheOpenSceneAndAsksOnce(t *testing.T) {

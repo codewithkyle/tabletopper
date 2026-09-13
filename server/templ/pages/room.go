@@ -361,7 +361,7 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		{
 			Label:          "Clear tabletop",
 			Post:           d.ClearPath(),
-			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid. The open scene is closed without being saved.",
+			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid. The open scene is closed, and is written back to first if it autosaves its changes.",
 			ConfirmHeading: "Clear the tabletop?",
 			ConfirmLabel:   "Clear tabletop",
 			Danger:         true,

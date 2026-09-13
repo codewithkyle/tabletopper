@@ -64,17 +64,17 @@ templ sceneTile(s SceneCard) {
 				<span class="badge badge-primary badge-xs shrink-0">Open</span>
 			}
 		</span>
-		<label class="flex items-start gap-1.5" title={ s.KeepHint() }>
+		<label class="flex items-start gap-1.5" title={ s.AutosaveHint() }>
 			<input
 				type="checkbox"
-				name="keep"
+				name="autosave"
 				value="on"
-				checked?={ s.KeepChanges }
+				checked?={ s.Autosave }
 				class="toggle toggle-xs mt-0.5 shrink-0"
-				hx-post={ s.KeepPath() }
+				hx-post={ s.AutosavePath() }
 				hx-trigger="change"
 			/>
-			<span class="min-w-0 text-[10px] leading-tight">Keep changes</span>
+			<span class="min-w-0 text-[10px] leading-tight">{ s.AutosaveLabel() }</span>
 		</label>
 		if s.Open {
 			<button

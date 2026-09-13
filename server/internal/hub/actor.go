@@ -138,7 +138,9 @@ func (a *actor) handle(m any) bool {
 		m.reply <- m.fn(a)
 	case shutdown:
 		a.stopAll(closeGoingAway, reasonRestarting)
+		scene := a.autosave()
 		a.saveNow()
+		<-scene
 		a.sheet.stop()
 		a.hub.forget(a)
 		a.drain()
@@ -194,9 +196,38 @@ func (a *actor) leave(c *client) {
 	if !a.connected(c.who.ID) {
 		a.exec(room.Actor{}, &room.PlayerSetConnected{ID: c.who.ID, Connected: false}, nil, "")
 	}
+	if c.who.GM() && !a.gmConnected() {
+		a.autosave()
+	}
 	if len(a.conns) == 0 {
 		a.emptySince = time.Now()
 	}
+}
+func (a *actor) gmConnected() bool {
+	for c := range a.conns {
+		if c.who.GM() {
+			return true
+		}
+	}
+	return false
+}
+func (a *actor) autosave() <-chan struct{} {
+	done := make(chan struct{})
+	view := a.export()
+	if view == nil {
+		close(done)
+		return done
+	}
+	store, id := a.hub.store, a.id
+	go func() {
+		defer close(done)
+		ctx, cancel := context.WithTimeout(context.Background(), storeTimeout)
+		defer cancel()
+		if err := store.AutosaveScene(ctx, id, view.Body, view.Preview); err != nil {
+			slog.Error("Failed to autosave the open scene", "room", id, "error", err)
+		}
+	}()
+	return done
 }
 func (a *actor) fromClient(m command) {
 	if m.err != nil {

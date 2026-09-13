@@ -124,7 +124,7 @@ func (a *App) OpenScene(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	was := row.SceneID
-	a.keepScene(ctx, row.ID, sess.UserID, was)
+	a.autosaveScene(ctx, row.ID, sess.UserID, was)
 	a.adoptScene(ctx, row.ID, sess.UserID, &sceneID)
 	cmd := &room.SceneLoad{Scene: scene}
 	if err := a.Hub.Dispatch(ctx, row.ID, room.Actor{ID: sess.UserID, Role: room.RoleGM}, cmd); err != nil {
@@ -173,7 +173,7 @@ func (a *App) SaveSceneChanges(w http.ResponseWriter, r *http.Request) {
 	htmx.Scenes(w)
 	w.WriteHeader(http.StatusNoContent)
 }
-func (a *App) SetSceneKeep(w http.ResponseWriter, r *http.Request) {
+func (a *App) SetSceneAutosave(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 	sceneID, err := ulid.Parse(r.PathValue("scene"))
@@ -181,12 +181,12 @@ func (a *App) SetSceneKeep(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "scene")
 		return
 	}
-	result, err := a.Queries.SetSceneKeep(ctx, queries.SetSceneKeepParams{
-		KeepChanges: r.FormValue("keep") != "",
-		ID:          sceneID,
-		OwnerID:     sess.UserID,
+	result, err := a.Queries.SetSceneAutosave(ctx, queries.SetSceneAutosaveParams{
+		Autosave: r.FormValue("autosave") != "",
+		ID:       sceneID,
+		OwnerID:  sess.UserID,
 	})
-	if !a.sceneWritten(w, result, err, "set a scene's keep flag", sceneID) {
+	if !a.sceneWritten(w, result, err, "set a scene's autosave flag", sceneID) {
 		return
 	}
 	htmx.Scenes(w)
@@ -331,7 +331,7 @@ func (a *App) sceneRoom(w http.ResponseWriter, r *http.Request, action string) (
 	}
 	return row, true
 }
-func (a *App) keepScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID *ulid.ULID) {
+func (a *App) autosaveScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID *ulid.ULID) {
 	if sceneID == nil {
 		return
 	}
@@ -343,11 +343,11 @@ func (a *App) keepScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID 
 		slog.Error("Failed to read the open scene back", "scene", sceneID, "error", err)
 		return
 	}
-	if !saved.KeepChanges {
+	if !saved.Autosave {
 		return
 	}
 	if err := a.putSceneBody(ctx, roomID, ownerID, *sceneID); err != nil {
-		slog.Error("Failed to keep a scene's changes", "scene", sceneID, "error", err)
+		slog.Error("Failed to autosave a scene", "scene", sceneID, "error", err)
 	}
 }
 func (a *App) putSceneBody(ctx context.Context, roomID, ownerID, sceneID ulid.ULID) error {
@@ -371,7 +371,7 @@ func (a *App) closeScene(ctx context.Context, roomID, ownerID ulid.ULID) {
 	if err != nil || row.OwnerID != ownerID {
 		return
 	}
-	a.keepScene(ctx, roomID, ownerID, row.SceneID)
+	a.autosaveScene(ctx, roomID, ownerID, row.SceneID)
 }
 func (a *App) adoptScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID *ulid.ULID) {
 	if _, err := a.Queries.SetRoomScene(ctx, queries.SetRoomSceneParams{
@@ -410,12 +410,12 @@ func scenesData(row queries.GetRoomRow, sess session.UserSession, rows []queries
 	cards := make([]pages.SceneCard, 0, len(rows))
 	for _, s := range rows {
 		card := pages.SceneCard{
-			RoomID:      row.ID.String(),
-			ID:          s.ID.String(),
-			Name:        s.Name,
-			Updated:     sceneTimestamp(sess, s.UpdatedAt),
-			Open:        open != nil && *open == s.ID,
-			KeepChanges: s.KeepChanges,
+			RoomID:   row.ID.String(),
+			ID:       s.ID.String(),
+			Name:     s.Name,
+			Updated:  sceneTimestamp(sess, s.UpdatedAt),
+			Open:     open != nil && *open == s.ID,
+			Autosave: s.Autosave,
 		}
 		if !s.PreviewID.IsZero() {
 			card.PreviewID = s.PreviewID.String()

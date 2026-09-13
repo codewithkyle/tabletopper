@@ -72,6 +72,7 @@ if (mount) {
 	const marks = mountTableMenu(mount, {
 		grid: () => state.table.grid,
 		viewed,
+		partyStart: () => state.table.layers.find((l) => l.id === viewed())?.partyStart ?? null,
 		invalidate: () => renderer?.invalidate(),
 	});
 	const table = createTable({

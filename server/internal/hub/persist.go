@@ -22,6 +22,7 @@ type Store interface {
 	Save(ctx context.Context, roomID ulid.ULID, snapshot []byte, seq uint64) error
 	ClearMembership(ctx context.Context, roomID, userID ulid.ULID) error
 	Preserve(ctx context.Context, roomID ulid.ULID, snapshot []byte) error
+	AutosaveScene(ctx context.Context, roomID ulid.ULID, body []byte, preview *ulid.ULID) error
 }
 type Loaded struct {
 	Name     string
@@ -63,6 +64,37 @@ func (d dbStore) Preserve(ctx context.Context, roomID ulid.ULID, snapshot []byte
 		ID:             roomID,
 	}); err != nil {
 		return fmt.Errorf("hub: keep failed snapshot: %w", err)
+	}
+	return nil
+}
+func (d dbStore) AutosaveScene(ctx context.Context, roomID ulid.ULID, body []byte, preview *ulid.ULID) error {
+	row, err := d.q.GetRoom(ctx, roomID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("hub: read the room's open scene: %w", err)
+	}
+	if row.SceneID == nil {
+		return nil
+	}
+	scene, err := d.q.GetScene(ctx, queries.GetSceneParams{ID: *row.SceneID, OwnerID: row.OwnerID})
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("hub: read a scene before autosaving it: %w", err)
+	}
+	if !scene.Autosave {
+		return nil
+	}
+	if _, err := d.q.UpdateSceneBody(ctx, queries.UpdateSceneBodyParams{
+		Body:      body,
+		PreviewID: preview,
+		ID:        scene.ID,
+		OwnerID:   row.OwnerID,
+	}); err != nil {
+		return fmt.Errorf("hub: autosave a scene: %w", err)
 	}
 	return nil
 }

@@ -77,17 +77,22 @@ function grid(): Grid {
 	};
 }
 function room(): { mount: El; host: El; wheel: El; party: El; drawn: number[] } {
-	const party = new El("data-table-menu-party");
+	const party = new El(
+		"data-table-menu-party",
+		"data-set-label=Party starts here",
+		"data-clear-label=Take it back",
+	);
 	const wheel = new El("data-table-menu", "data-reach=60").append(party);
 	const host = new El("data-table-menu-host").append(wheel);
 	const mount = new El().append(host);
 	return { mount, host, wheel, party, drawn: [] };
 }
-function menuFor(parts: ReturnType<typeof room>) {
+function menuFor(parts: ReturnType<typeof room>, start: { x: number; y: number } | null = null) {
 	let drawn = 0;
 	const menu = mountTableMenu(parts.mount as unknown as HTMLElement, {
 		grid,
 		viewed: () => "01FLOOR",
+		partyStart: () => start,
 		invalidate: () => {
 			drawn++;
 		},
@@ -168,12 +173,39 @@ test("party starts here carries the centre of the cell, not the pointer", () => 
 	);
 	menu.stop();
 });
+test("the cell the party already starts on offers to take it back instead", () => {
+	const parts = room();
+	const { menu } = menuFor(parts, { x: 96, y: 32 });
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	assert.equal(
+		parts.party.getAttribute("hx-vals"),
+		JSON.stringify({ layer: "01FLOOR" }),
+	);
+	assert.equal(parts.party.getAttribute("title"), "Take it back");
+	assert.equal(parts.party.getAttribute("aria-label"), "Take it back");
+	menu.close();
+	menu.open({ x: 200, y: 40 }, { x: 400, y: 300 });
+	assert.equal(
+		parts.party.getAttribute("hx-vals"),
+		JSON.stringify({ layer: "01FLOOR", x: 224, y: 32 }),
+	);
+	assert.equal(parts.party.getAttribute("title"), "Party starts here");
+	menu.stop();
+});
+test("a party start set under an older grid still matches the cell it lands in", () => {
+	const parts = room();
+	const { menu } = menuFor(parts, { x: 70, y: 10 });
+	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
+	assert.equal(parts.party.getAttribute("hx-vals"), JSON.stringify({ layer: "01FLOOR" }));
+	menu.stop();
+});
 test("a player has no wheel to open", () => {
 	const host = new El("data-table-menu-host");
 	const mount = new El().append(host);
 	const menu = mountTableMenu(mount as unknown as HTMLElement, {
 		grid,
 		viewed: () => "01FLOOR",
+		partyStart: () => null,
 		invalidate: () => {},
 	});
 	assert.equal(menu.open({ x: 10, y: 10 }, { x: 300, y: 300 }), false);

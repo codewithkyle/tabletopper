@@ -45,5 +45,11 @@ func (i RoomTableMenuItem) Placement() map[string]string {
 func (i RoomTableMenuItem) IsParty() bool {
 	return i.Action == TableMenuParty
 }
+func (d RoomTableMenuData) ClearPartyLabel() string {
+	return tableMenuClearPartyLabel
+}
 
-const tableMenuPartyLabel = "Party starts here"
+const (
+	tableMenuPartyLabel      = "Party starts here"
+	tableMenuClearPartyLabel = "The party starts here: click to take it back"
+)

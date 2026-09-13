@@ -12,6 +12,7 @@ export interface MarkedCell {
 export interface TableMenuDeps {
 	grid: () => Grid;
 	viewed: () => string;
+	partyStart: () => Point | null;
 	invalidate: () => void;
 }
 export interface TableMenu {
@@ -42,13 +43,19 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 		if (!root) {
 			return false;
 		}
-		const found = cellUnder(deps.grid(), map);
+		const grid = deps.grid();
+		const found = cellUnder(grid, map);
 		const party = root.querySelector("[data-table-menu-party]");
 		if (party instanceof HTMLElement) {
+			const layer = deps.viewed();
+			const taken = holds(grid, deps.partyStart(), found);
 			party.setAttribute(
 				"hx-vals",
-				JSON.stringify({ layer: deps.viewed(), x: found.centreX, y: found.centreY }),
+				JSON.stringify(taken ? { layer } : { layer, x: found.centreX, y: found.centreY }),
 			);
+			const label = party.getAttribute(taken ? "data-clear-label" : "data-set-label") ?? "";
+			party.setAttribute("title", label);
+			party.setAttribute("aria-label", label);
 		}
 		cell = found;
 		root.hidden = false;
@@ -123,6 +130,13 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 			document.removeEventListener("htmx:after:swap", onSwap);
 		},
 	};
+}
+function holds(grid: Grid, start: Point | null, cell: MarkedCell): boolean {
+	if (!start) {
+		return false;
+	}
+	const at = cellUnder(grid, start);
+	return at.centreX === cell.centreX && at.centreY === cell.centreY;
 }
 function inside(value: number, reach: number, limit: number): number {
 	if (limit <= reach * 2) {

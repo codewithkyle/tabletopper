@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql/driver"
 	"net/http"
 	"net/http/httptest"
@@ -172,11 +173,11 @@ func sceneBody(t *testing.T, withMap bool) []byte {
 	}
 	return body
 }
-func sceneRowAnswer(id ulid.ULID, name string, keep bool, body []byte) roomAnswer {
+func sceneRowAnswer(id ulid.ULID, name string, autosave bool, body []byte) roomAnswer {
 	return roomAnswer{
-		columns: []string{"id", "owner_id", "name", "body", "keep_changes", "preview_id", "created_at", "updated_at"},
+		columns: []string{"id", "owner_id", "name", "body", "autosave", "preview_id", "created_at", "updated_at"},
 		values: []driver.Value{
-			id.Bytes(), testOwnerID.Bytes(), name, body, keep, nil, time.Now(), time.Now(),
+			id.Bytes(), testOwnerID.Bytes(), name, body, autosave, nil, time.Now(), time.Now(),
 		},
 	}
 }
@@ -284,7 +285,7 @@ func openAnotherRequest(t *testing.T, app *App) *httptest.ResponseRecorder {
 		map[string]string{"id": testRoomID.String(), "scene": testOtherSceneID.String()}, nil,
 		session.UserSession{UserID: testOwnerID})
 }
-func TestOpeningAnotherSceneWritesBackTheOneThatKeepsItsChanges(t *testing.T) {
+func TestOpeningAnotherSceneWritesBackTheOneThatAutosaves(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testOtherSceneID, "Town square", false, sceneBody(t, false)),
@@ -306,7 +307,7 @@ func TestOpeningAnotherSceneWritesBackTheOneThatKeepsItsChanges(t *testing.T) {
 		t.Error("the room adopted the new scene before the old one was written back")
 	}
 }
-func TestOpeningAnotherSceneLeavesOneThatDoesNotKeepChangesAlone(t *testing.T) {
+func TestOpeningAnotherSceneLeavesOneThatDoesNotAutosaveAlone(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testOtherSceneID, "Town square", false, sceneBody(t, false)),
@@ -365,20 +366,83 @@ func TestOnlyTheOpenSceneCanBeSavedOver(t *testing.T) {
 		t.Errorf("a scene nobody is looking at was overwritten: %v", db.queries())
 	}
 }
-func TestClearingTheTabletopForgetsTheSceneAndWritesNothingBack(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{roomWithSceneAnswer(testSceneID)}}
-	app := tableApp(t, db)
-	rec := tableRequest(t, app.ClearTabletop, http.MethodPost,
+func clearRequest(t *testing.T, app *App) *httptest.ResponseRecorder {
+	t.Helper()
+	return tableRequest(t, app.ClearTabletop, http.MethodPost,
 		"/rooms/"+testRoomID.String()+"/tabletop/clear",
 		map[string]string{"id": testRoomID.String()}, nil, session.UserSession{UserID: testOwnerID})
-	if rec.Code != http.StatusNoContent {
+}
+func fogTheFloor(t *testing.T, app *App) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := app.Hub.Dispatch(ctx, testRoomID, room.Actor{ID: testOwnerID, Role: room.RoleGM}, &room.FogAdd{
+		Layer:  firstLayer(t, app),
+		Kind:   room.ShapeRect,
+		Mode:   room.FogHide,
+		Points: []int{0, 0, 64, 64},
+	})
+	if err != nil {
+		t.Fatalf("could not put a shape on the floor: %v", err)
+	}
+}
+func TestClearingTheTabletopAutosavesTheSceneThatAsksForIt(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		roomWithSceneAnswer(testSceneID),
+		sceneRowAnswer(testSceneID, "The haunted moor", true, sceneBody(t, false)),
+	}}
+	app := tableApp(t, db)
+	fogTheFloor(t, app)
+	if rec := clearRequest(t, app); rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
+	}
+	back := onlyStatement(t, db, "UPDATE scenes")
+	if id, ok := boundRoomID(back.args[2]); !ok || id != testSceneID {
+		t.Errorf("the write-back went to %v, want the scene that was open", back.args[2])
+	}
+	body, ok := back.args[0].([]byte)
+	if !ok {
+		t.Fatalf("the body was written as %T", back.args[0])
+	}
+	kept, err := room.Unmarshal(body)
+	if err != nil {
+		t.Fatalf("the written body does not decode: %v", err)
+	}
+	if len(kept.Fog) != 1 {
+		t.Error("the table was written back after it was cleared, so the scene kept nothing")
+	}
+	if len(statementsLike(db, "SET scene_id = NULL")) != 1 {
+		t.Errorf("the room still thinks a scene is open: %v", db.queries())
+	}
+}
+func TestClearingTheTabletopForgetsASceneThatDoesNotAutosave(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		roomWithSceneAnswer(testSceneID),
+		sceneRowAnswer(testSceneID, "The prepped ambush", false, sceneBody(t, false)),
+	}}
+	app := tableApp(t, db)
+	fogTheFloor(t, app)
+	if rec := clearRequest(t, app); rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
 	}
 	if len(statementsLike(db, "SET scene_id = NULL")) != 1 {
 		t.Errorf("the room still thinks a scene is open: %v", db.queries())
 	}
 	if len(statementsLike(db, "UPDATE scenes")) != 0 {
-		t.Errorf("clearing the tabletop wrote the empty table over the scene: %v", db.queries())
+		t.Errorf("clearing the tabletop wrote over a scene that never asked for it: %v", db.queries())
+	}
+}
+func TestClearingTheTabletopWithNoSceneOpenReadsNoScene(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+	if rec := clearRequest(t, app); rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
+	}
+	if len(statementsLike(db, "FROM scenes")) != 0 {
+		t.Errorf("a room with no scene open still went looking for one: %v", db.queries())
+	}
+	if len(statementsLike(db, "UPDATE scenes")) != 0 {
+		t.Errorf("a room with no scene open wrote to one: %v", db.queries())
 	}
 }
 func TestClosingTheRoomWritesTheSceneBackBeforeItCloses(t *testing.T) {
@@ -483,7 +547,7 @@ func TestEachSceneVerbIsScopedToItsOwner(t *testing.T) {
 		"rename":    {func(a *App) http.HandlerFunc { return a.RenameScene }, http.MethodPatch, url.Values{"name": {"Elsewhere"}}},
 		"duplicate": {func(a *App) http.HandlerFunc { return a.DuplicateScene }, http.MethodPost, nil},
 		"delete":    {func(a *App) http.HandlerFunc { return a.DeleteScene }, http.MethodDelete, nil},
-		"keep":      {func(a *App) http.HandlerFunc { return a.SetSceneKeep }, http.MethodPost, url.Values{"keep": {"on"}}},
+		"autosave":  {func(a *App) http.HandlerFunc { return a.SetSceneAutosave }, http.MethodPost, url.Values{"autosave": {"on"}}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			db := &roomDB{rows: 0, answers: []roomAnswer{countAnswer(0)}}

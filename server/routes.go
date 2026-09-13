@@ -446,7 +446,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/scenes", auth.RequireSession(app.SaveScene))
 	mux.HandleFunc("POST /rooms/{id}/scenes/{scene}/open", auth.RequireSession(app.OpenScene))
 	mux.HandleFunc("POST /rooms/{id}/scenes/{scene}/save", auth.RequireSession(app.SaveSceneChanges))
-	mux.HandleFunc("POST /scenes/{scene}/keep", auth.RequireSession(app.SetSceneKeep))
+	mux.HandleFunc("POST /scenes/{scene}/autosave", auth.RequireSession(app.SetSceneAutosave))
 	mux.HandleFunc("PATCH /scenes/{scene}/name", auth.RequireSession(app.RenameScene))
 	mux.HandleFunc("POST /scenes/{scene}/duplicate", auth.RequireSession(app.DuplicateScene))
 	mux.HandleFunc("DELETE /scenes/{scene}", auth.RequireSession(app.DeleteScene))

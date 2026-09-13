@@ -38,6 +38,7 @@ type memStore struct {
 	inFlight  int
 	cleared   [][2]ulid.ULID
 	preserved [][]byte
+	scenes    [][]byte
 }
 
 func (m *memStore) Load(ctx context.Context, id ulid.ULID) (Loaded, error) {
@@ -97,6 +98,17 @@ func (m *memStore) saved() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.saves)
+}
+func (m *memStore) AutosaveScene(ctx context.Context, id ulid.ULID, body []byte, preview *ulid.ULID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.scenes = append(m.scenes, body)
+	return nil
+}
+func (m *memStore) autosaved() [][]byte {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([][]byte(nil), m.scenes...)
 }
 func (m *memStore) clears() [][2]ulid.ULID {
 	m.mu.Lock()
