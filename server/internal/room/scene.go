@@ -24,6 +24,9 @@ func (s *State) ExportScene() ([]byte, error) {
 	for i := range c.Strokes {
 		c.Strokes[i].By = ulid.ULID{}
 	}
+	for i := range c.Tiles {
+		c.Tiles[i].By = ulid.ULID{}
+	}
 	return Marshal(&c)
 }
 func (s *State) ImportScene(from *State) {
@@ -42,6 +45,8 @@ func (s *State) ImportScene(from *State) {
 	for i, p := range from.Pawns {
 		s.Pawns[i] = clonePawn(p)
 	}
+	s.Table.Palette = cloneSlice(from.Table.Palette)
+	s.Tiles = slices.Clone(from.Tiles)
 	s.Initiative = Initiative{}
 	if s.Layer(s.Table.ActiveLayer) == nil && len(s.Table.Layers) > 0 {
 		s.Table.ActiveLayer = s.Table.Layers[0].ID
@@ -83,6 +88,27 @@ func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
 			*slot = cloneRef(&ref)
 		}
 	}
+	return c.resolveTerrain(ctx, lib)
+}
+func (c *SceneLoad) resolveTerrain(ctx context.Context, lib Library) error {
+	gone := map[ulid.ULID]bool{}
+	kept := make([]TileArt, 0, len(c.Scene.Table.Palette))
+	for _, art := range c.Scene.Table.Palette {
+		info, err := lib.Picture(ctx, art.AssetID, PictureTerrain)
+		if err != nil {
+			refusal, ok := err.(*Error)
+			if !ok {
+				return err
+			}
+			gone[art.ID] = true
+			c.Missing = append(c.Missing, art.Name+": "+refusal.Message)
+			continue
+		}
+		art.Name, art.Image = info.Name, info.Image
+		kept = append(kept, art)
+	}
+	c.Scene.Table.Palette = kept
+	c.Scene.Tiles = slices.DeleteFunc(c.Scene.Tiles, func(t Tile) bool { return gone[t.Art] })
 	return nil
 }
 func (c *SceneLoad) Apply(s *State, a Actor, env Env) ([]Signal, error) {

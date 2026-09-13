@@ -34,7 +34,7 @@ type RoomTableMenuData struct {
 
 func NewTableMenu(roomID string, isGM bool, ring []RoomTableMenuArt) RoomTableMenuData {
 	var items []RoomTableMenuItem
-	if isGM && len(ring) > 0 {
+	if len(ring) > 0 {
 		items = append(items, RoomTableMenuItem{Action: TableMenuErase, Label: tableMenuEraseLabel})
 	}
 	if isGM {

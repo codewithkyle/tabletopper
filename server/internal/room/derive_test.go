@@ -76,6 +76,13 @@ func TestTurningOnExactHitPointsReprojectsEveryShownMonster(t *testing.T) {
 	again := w.change(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false, InitiativeGrouping: GroupMonsters}, w.gm)
 	equalStrings(t, "the players", changeTypesOf(again.changes(RolePlayer)), []string{"table.updated"})
 }
+func TestFlippingStampingIsNewsToThePlayersSoTheirWheelRefetches(t *testing.T) {
+	w := newWorld(t)
+	ch := w.change(&TableSetOptions{
+		PawnLabels: LabelsDefault, PlayersCanDraw: true, PlayersCanStamp: true, InitiativeGrouping: GroupMonsters,
+	}, w.gm)
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), []string{"table.updated"})
+}
 func TestAGroupMoveIsOnePawnsMovedCarryingWhatTheRoleMaySee(t *testing.T) {
 	w := newWorld(t)
 	first := w.spawn(Pawn{Name: "Ari", X: 96, Y: 96, Visible: true})

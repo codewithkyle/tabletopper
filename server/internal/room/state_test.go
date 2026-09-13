@@ -40,6 +40,9 @@ func TestNewStateStartsUsable(t *testing.T) {
 	if !s.Table.PlayersCanDraw {
 		t.Fatal("players cannot draw in a new room")
 	}
+	if s.Table.PlayersCanStamp {
+		t.Fatal("players can stamp terrain in a new room, which is the GM's map to lay")
+	}
 	g := s.Table.Grid
 	if g.Lines != GridLinesSolid || g.CellSize != DefaultCellSize || g.Color != DefaultGridColor ||
 		g.Snap != SnapCells || g.FeetPerCell != DefaultFeetPerCell || g.Diagonals != DiagonalsEqual {

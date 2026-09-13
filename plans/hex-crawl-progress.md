@@ -2,16 +2,17 @@
 
 Working notes against `plans/hex-crawl.md`. Delete this file when the plan is done.
 
-Branch `yet-another-rewrite`. Checkpoints 1-4 are committed (`edcae11`, `4f17aed`,
-`6ddd4a5`); **everything for checkpoint 5 is uncommitted, in the working tree**.
+Branch `yet-another-rewrite`. Checkpoints 1-5 are committed (`edcae11`, `4f17aed`,
+`6ddd4a5`, `7b51195`); **everything for checkpoint 6 is uncommitted, in the working
+tree**.
 `make check` is green and `make js`, `make css`, `make protocol`, `make sqlc`, `make db`
 and `templ generate` have all been run, so `make run` is enough to look at it.
 
 ## Where we are
 
-**Checkpoints 1 to 4 are built and verified in a browser.** Checkpoint 5 is built and
-unverified. The next session starts by running the CP5 test plan at the bottom of this
-file, then moves to Checkpoint 6.
+**Checkpoints 1 to 5 are built and driven in a browser.** Checkpoint 6 is built and
+unverified. The next session starts by running the CP6 test plan at the bottom of this
+file, then moves to Checkpoint 7.
 
 ## Decisions taken on 2026-09-12
 
@@ -46,8 +47,8 @@ file, then moves to Checkpoint 6.
 | **CP2** | 3 | A layer carries two pictures: the GM's map and the players' map. **Verified.** |
 | **CP3** | 4 | The fog brush paints by the cell, square or hex. **Verified.** |
 | **CP4** | 5 | Terrain is its own asset kind with its own tab and its own shelf. **Verified.** |
-| **CP5** | 6 | The palette, the wheel's ring, the stamp brush and the tile stage. **Built, unverified.** |
-| **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. |
+| **CP5** | 6 | The palette, the wheel's ring, one-at-a-time stamping and the tile stage. **Verified.** |
+| **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. **Built, unverified.** |
 | **CP7** | 8 | The hex key: notes per cell, revealed by the GM. |
 | **CP8** | 9 | The party pawn reveals fog as it moves. |
 
@@ -255,6 +256,47 @@ control they gate.
    fragment swapped itself on `room:tabletop`. Only the bag and the shelf refetch now,
    each replacing a short list in place.
 
+## What Checkpoint 6 landed — phase 7, players stamp
+
+- **`PlayersCanStamp` is a table option, off by default.** It sits on `TableSettings`
+  beside `PlayersCanDraw`, travels in `TableSetOptions`, and is rendered in the *Table
+  settings* window rather than the *Grid* one: it is how the GM runs the table, not what
+  is on it, so it stays with the room across a scene load. The two forms are kept apart
+  by `TestNeitherTableFormCarriesTheOthersFields`, and `scene_test.go` holds the setting
+  across an import.
+- **`TilesStamp.Authorize` is `StrokeBegin.Authorize` with a different noun.** The floor
+  check first (`requirePlayerLayer` — a player acts on the floor the table is showing),
+  then the setting, and the refusal reads *Stamping is off / The GM has turned off
+  stamping for players.* `TestStampingOffIsRefusedTheWayDrawingOffIs` holds that
+  sentence against the drawing one word for word, so the two cannot drift apart.
+- **`TilesErase.Authorize` is `StrokeErase.Authorize`:** the GM erases anything, a
+  player only cells whose tile carries their id, through a `requireOwnTile` shaped like
+  `requireOwnStroke`. `Authorize` runs over the whole batch before `Apply` lays a
+  finger on it, so one cell that is not theirs takes the whole erase down with it.
+- **Anybody stamps over anybody.** A tile in a cell is replaced by whoever stamps next,
+  GM or player, and the tile remembers who laid it last -- so stamping over somebody
+  else's tile makes it yours to rub out. Erasing stays own-only. See departure 22.
+- **The ring follows the setting, not the role.** `tableMenuRingFor(isGM, table)` in
+  `internal/controllers/room-table-menu.go` is the whole policy: a player gets the GM's
+  ring, the same entries in the same order, once the toggle is on, and nothing while it
+  is off. The wheel already refetches on `ROOM_TABLETOP`, which `table.updated` raises,
+  so flipping the toggle reaches a player's wheel with no reload.
+- **The eraser is on the wheel whenever there is a ring**, GM or player; *Party starts
+  here* is still the GM's alone, and so is the palette window — only their Tabletop menu
+  lists it, and `RoomPaletteFragment` still goes through `gmTable`.
+- **A scene carries its tiles and the bag that keys them** -- a CP5 gap found while
+  building this checkpoint, and fixed here. `ExportScene` already cloned them into the body; it now clears
+  `Tile.By` the way it clears a stroke's, so a loaded scene's tiles belong to nobody and
+  only the GM can rub them out. `ImportScene` copies `Tiles` and `Table.Palette` beside
+  the layers, and `SceneLoad.Resolve` re-reads every palette picture out of the library
+  the way it re-reads a map ref: a renamed or reprocessed picture arrives current, one
+  that has been deleted is dropped along with its tiles and named in `Missing`, and a
+  library that is *broken* rather than missing still fails the whole load.
+- **A scene's bag replaces the room's, it does not merge with it.** See departure 25.
+- **Nothing on the client changed but `store.ts`'s `empty()`.** The wheel is
+  server-rendered per role and `table-menu.ts` has never known what a role is, so a
+  player's wheel is the GM's code reading the GM's markup with the party start left out.
+
 ## Departures from the plan, and why
 
 1. **The pre-field snapshot fixture is new.** The plan asks phase 0 to assert against
@@ -352,6 +394,43 @@ control they gate.
     `?part=shelf`, or the whole window). A window that replaces itself on every table
     change throws away the reader's place in it, and the palette is the first window
     long enough for that to matter.
+
+21. **Erasing is ownership, not permission.** `TilesErase` never consults
+    `PlayersCanStamp`, exactly as `StrokeErase` never consults `PlayersCanDraw`. The
+    wheel takes *Erase* away along with the ring when the GM turns stamping off, so in
+    the browser the difference is only a command already in flight -- but the rule keeps
+    the shape the drawing rules have, and a player is never told a tile they laid is
+    somebody else's.
+
+22. **Anybody may stamp over anybody's tile.** It was built the other way first -- a
+    player could only replace their own -- on the reasoning that replacing a tile is
+    erasing it by another name. Cut at the table's request: a shared map is stamped over
+    by whoever is looking at it, and the GM has *Clear tiles* if it gets out of hand.
+    Erasing is still own-only, so what a player cannot do is take a cell *away*; they
+    can take it *over*, and `By` moves to them when they do.
+
+23. **A player rubbing at an empty cell is told the tile is gone** (`CodeNotFound`),
+    where the GM's erase treats an empty cell as a no-op. That is `requireOwnStroke`'s
+    own shape: there is nothing there to own.
+
+24. **The palette fragment answers a player 404, not the 403 the plan names.** Every
+    GM-only fragment goes through `gmTable`, which is a bare 404 with an empty body,
+    which is what CLAUDE.md asks a fragment's refusal to look like;
+    `TestOnlyTheGMSeesTheTilePalette` is the guard. The palette *mutations* do answer
+    403 -- `POST /rooms/{id}/palette` by a player is
+    `TestOnlyTheGMFillsTheTilePalette` -- because they are not fragments.
+
+25. **A scene's palette replaces the room's rather than merging into it.** Everything
+    else a scene carries is replaced -- layers, grid, fog, drawing, pawns -- and a
+    merged bag is both harder to explain and easy to overflow: `PaletteMax` is 24, and
+    a GM cycling between two scenes would collect both their sets. The cost is real and
+    visible in the convergence fixture: **opening a scene that has no terrain in it
+    empties the bag.** The pictures are still on the terrain shelf, two clicks each to
+    put back, and saving a scene captures the bag as it stood.
+
+26. **The *scene is open* toast no longer blames the maps.** It read *without these
+    maps*; terrain can be missing too, so it now reads *but not all of it could be
+    read*, followed by the same list. `TestTheOpenedToastNamesWhateverCouldNotBeRead`.
 
 ## Geometry, settled
 
@@ -526,8 +605,54 @@ nothing to offer until you do.
     its own tiles. *Tabletop → Clear tiles* empties the floor you are looking at and
     leaves the other alone, and leaves the bag full.
 14. **Reload both browsers**, and everything is still there. Save a scene with tiles on
-    it, clear the tabletop — the tiles go and **the palette stays** — then reopen the
-    scene and both come back.
+    it and clear the tabletop: the tiles go and **the palette stays**. Reopen the scene
+    and both come back — that is the CP6 scene fix, and step 12 of the CP6 plan drives
+    it properly.
+
+## Verifying Checkpoint 6
+
+Two browsers, the GM in one and a player in the other, at a table with a few pictures
+in the bag and a tile or two already stamped.
+
+1. **The toggle.** *Tabletop → Table settings* carries *Players may stamp terrain*
+   under *Players may draw on the tabletop*, **off**, with its own line of prose. The
+   *Grid* window does not carry it, and saving one form does not disturb the other.
+2. **While it is off**, the player right-clicks empty ground and **nothing opens** --
+   the same as at the end of CP5.
+3. **Turn it on.** Without either browser reloading, the player right-clicks again: the
+   wheel opens carrying **your ring, in your order**, and *Erase*, and **no *Party
+   starts here***.
+4. **The player stamps.** Hovering a picture previews it in the cell, `[` and `]` turn
+   the preview, clicking lays it. It appears on your table at once, and on any other
+   player's.
+5. **The player takes their own back.** *Erase* over the cell they just laid: gone.
+6. **The player cannot erase yours.** *Erase* over a cell you stamped is refused with
+   *Not your tile*, and the tile stays put.
+7. **But they can stamp over yours.** Picking a picture over a cell you stamped
+   replaces it, turn and all — and the cell is now theirs, so they can rub it out and
+   you are the one who cannot. Whoever stamped last owns the cell.
+8. **You are unchanged.** Erase their tile, stamp over it, *Clear tiles* -- all still
+   yours, however the toggle sits.
+9. **The bag is yours alone.** The player's *Tabletop* menu has no *Tile palette*, and
+   `/fragment/room/palette?room=…` typed into their address bar is an empty 404.
+10. **Turn it off again.** On the player's next right-click the wheel is gone, ring and
+    eraser together; the tiles they laid stay on the table.
+11. **Reload both.** The setting survives, and so does who laid what: the player can
+    still erase their own and still cannot erase yours.
+12. **Scenes carry the tiles now.** Stamp a few, save a scene, *Clear tabletop*, then
+    reopen the scene: **the tiles come back and so does the bag**, on the right floors,
+    at the right turns. The reopened tiles belong to nobody, so a player cannot rub them
+    out and you can.
+13. **A scene with no terrain empties the bag.** Open an older scene saved before any of
+    this: your palette goes with it, because a scene's bag replaces the room's. The
+    pictures are still on the *Terrain* shelf. Say so if that is the wrong call —
+    departure 25 is where the reasoning is.
+14. **Terrain that has been deleted.** Save a scene, delete one of its terrain pictures
+    from *Assets → Terrain*, then reopen the scene: it opens with a toast naming the
+    picture, its cells are empty rather than blank-but-stamped, and the rest of the
+    scene is fine.
+15. **The setting is the room's.** Open another scene and come back: *Players may stamp
+    terrain* has not moved.
 
 ## Files
 
@@ -573,5 +698,15 @@ and on the client `model/{overlay,revisions,grid,hex}.ts`, `modes/{switch,table,
 `render/{pawn-pass.ts,shaders/pawn.ts,stages/order.ts}`, `store.ts`, `panels.ts`,
 `table-menu.ts`, `main.ts` and their tests.
 
-Regenerated across all three: `protocol.ts`, `testdata/reducer/{gm,player}.json`,
+**Checkpoint 6.** Added: `internal/controllers/room-table-menu_test.go` (which takes
+`TestTheRingIsThePaletteInTheOrderTheGMBuiltIt` over from `room-palette_test.go`).
+Changed: `internal/room/{state,table,tile,scene}.go`,
+`internal/room/{tile,authorize,derive,fixture,scene,scene_load,state}_test.go`,
+`internal/controllers/{room-table.go,room-table-menu.go,scenes.go}` and
+`internal/controllers/{room-table_test.go,scenes_test.go}`,
+`templ/pages/{room-settings.go,room-settings.templ,room-table-menu.go}`,
+`templ/pages/{room-table_test.go,room-table-menu_test.go}`, and on the client
+`js/room/store.ts` and `js/room/render/layers.test.ts`.
+
+Regenerated across all of them: `protocol.ts`, `testdata/reducer/{gm,player}.json`,
 `testdata/snapshots/schema-3.json`, `public/css/app.css`, `public/static/room.js`.

@@ -454,7 +454,7 @@ func TestASavedSettingsFormLeavesTheGridAlone(t *testing.T) {
 		map[string]string{"id": testRoomID.String()},
 		url.Values{
 			"pawnLabels": {"none"}, "initiativeGrouping": {"individual"},
-			"playersCanDraw": {"on"}, "fogPrefill": {"on"},
+			"playersCanDraw": {"on"}, "playersCanStamp": {"on"}, "fogPrefill": {"on"},
 			"cellSize": {"9999"}, "gridLines": {"off"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusOK {
@@ -464,8 +464,8 @@ func TestASavedSettingsFormLeavesTheGridAlone(t *testing.T) {
 	if view.Table.PawnLabels != room.LabelsNone || view.Table.InitiativeGrouping != room.GroupIndividual {
 		t.Errorf("the options are %q / %q", view.Table.PawnLabels, view.Table.InitiativeGrouping)
 	}
-	if !view.Table.PlayersCanDraw || !view.Table.FogPrefill {
-		t.Errorf("the toggles are %v / %v", view.Table.PlayersCanDraw, view.Table.FogPrefill)
+	if !view.Table.PlayersCanDraw || !view.Table.PlayersCanStamp || !view.Table.FogPrefill {
+		t.Errorf("the toggles are %v / %v / %v", view.Table.PlayersCanDraw, view.Table.PlayersCanStamp, view.Table.FogPrefill)
 	}
 	if view.Table.Grid != before {
 		t.Errorf("a stray grid field in the settings form moved the grid to %+v, want %+v", view.Table.Grid, before)
@@ -507,7 +507,7 @@ func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
 	if options.PawnLabels != room.LabelsDefault {
 		t.Errorf("the labels read as %q", options.PawnLabels)
 	}
-	if options.PlayersCanDraw || options.FogPrefill {
+	if options.PlayersCanDraw || options.PlayersCanStamp || options.FogPrefill {
 		t.Errorf("an absent toggle read as on: %+v", options)
 	}
 }

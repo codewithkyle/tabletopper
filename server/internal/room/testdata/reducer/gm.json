@@ -36,6 +36,7 @@
       },
       "pawnLabels": "default",
       "playersCanDraw": true,
+      "playersCanStamp": false,
       "initiativeGrouping": "grouped",
       "fogPrefill": false
     },
@@ -127,6 +128,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -254,6 +256,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -399,6 +402,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -544,6 +548,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -703,6 +708,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -862,6 +868,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1021,6 +1028,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1099,6 +1107,7 @@
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -1165,6 +1174,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1330,6 +1340,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1408,6 +1419,7 @@
                 },
                 "pawnLabels": "full",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -1477,6 +1489,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1609,6 +1622,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1762,6 +1776,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -1939,6 +1954,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -2139,6 +2155,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -2362,6 +2379,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -2608,6 +2626,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -2877,6 +2896,7 @@
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -3071,6 +3091,7 @@
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -3140,6 +3161,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -3414,6 +3436,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -3711,6 +3734,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -4006,6 +4030,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -4301,6 +4326,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -4575,6 +4601,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -4844,6 +4871,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -5133,6 +5161,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -5449,6 +5478,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -5785,6 +5815,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -6134,6 +6165,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -6457,6 +6489,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -6813,6 +6846,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -7175,6 +7209,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -7537,6 +7572,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -7899,6 +7935,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -8261,6 +8298,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -8623,6 +8661,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -8985,6 +9024,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -9347,6 +9387,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -9709,6 +9750,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -10091,6 +10133,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -10470,6 +10513,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -10864,6 +10908,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -11240,6 +11285,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -11637,6 +11683,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -12034,6 +12081,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -12437,6 +12485,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -12847,6 +12896,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -13258,6 +13308,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -13669,6 +13720,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -14074,6 +14126,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -14469,6 +14522,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -14864,6 +14918,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -15232,6 +15287,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -15639,6 +15695,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -16046,6 +16103,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -16430,6 +16488,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -16831,6 +16890,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -17233,6 +17293,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -17637,6 +17698,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -18047,6 +18109,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -18455,6 +18518,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -18879,6 +18943,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -19304,6 +19369,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -19726,6 +19792,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -20160,6 +20227,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -20606,6 +20674,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -21061,6 +21130,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -21516,6 +21586,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -21976,6 +22047,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -22433,6 +22505,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -22871,6 +22944,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -23319,6 +23393,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -23685,6 +23760,7 @@
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -23761,6 +23837,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -24127,6 +24204,7 @@
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -24203,6 +24281,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -24651,6 +24730,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -25063,6 +25143,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -25479,6 +25560,7 @@
               },
               "pawnLabels": "default",
               "playersCanDraw": true,
+              "playersCanStamp": false,
               "initiativeGrouping": "grouped",
               "fogPrefill": false
             },
@@ -25895,6 +25977,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -26328,6 +26411,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -26761,6 +26845,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -27194,6 +27279,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -27628,6 +27714,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -28089,6 +28176,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -28545,6 +28633,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -28995,6 +29084,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -29384,6 +29474,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -29748,6 +29839,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -30095,6 +30187,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -30422,6 +30515,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -30752,6 +30846,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -31049,6 +31144,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -31338,6 +31434,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -31585,6 +31682,10 @@
               ]
             },
             {
+              "type": "palette.updated",
+              "palette": []
+            },
+            {
               "type": "table.updated",
               "table": {
                 "activeLayer": "0100000000000000000000015G",
@@ -31602,6 +31703,7 @@
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
+                "playersCanStamp": false,
                 "initiativeGrouping": "grouped",
                 "fogPrefill": false
               }
@@ -31636,14 +31738,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
             "type": "square",
@@ -31659,6 +31754,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -31910,14 +32006,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
             "type": "square",
@@ -31933,6 +32022,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },
@@ -32174,14 +32264,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "0100000000000000000000015G",
           "grid": {
             "type": "square",
@@ -32197,6 +32280,7 @@
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
+          "playersCanStamp": false,
           "initiativeGrouping": "grouped",
           "fogPrefill": false
         },

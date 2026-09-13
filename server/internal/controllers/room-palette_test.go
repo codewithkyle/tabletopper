@@ -78,27 +78,6 @@ func TestThePaletteIsAskedForAPartItKnowsOrNoneAtAll(t *testing.T) {
 		t.Errorf("a refused parameter answered with a body: %s", rec.Body.String())
 	}
 }
-func TestTheRingIsThePaletteInTheOrderTheGMBuiltIt(t *testing.T) {
-	palette := []room.TileArt{
-		{ID: testArtID, AssetID: testAssetID, Name: "Pine forest", Image: "/assets/images/a"},
-		{ID: testRoomID, AssetID: testOwnerID, Name: "Rolling hills", Image: "/assets/images/b"},
-	}
-	ring := tableMenuRing(palette)
-	if len(ring) != 2 {
-		t.Fatalf("the ring carries %d pictures, want 2", len(ring))
-	}
-	for i, art := range ring {
-		if art.Index != i || art.Count != 2 {
-			t.Errorf("picture %d is %d of %d, want %d of 2", i, art.Index, art.Count, i)
-		}
-	}
-	if ring[0].Name != "Pine forest" || ring[1].Image != "/assets/images/b" {
-		t.Errorf("the ring is not the palette: %+v", ring)
-	}
-	if got := tableMenuRing(nil); len(got) != 0 {
-		t.Errorf("an empty palette made a ring of %d", len(got))
-	}
-}
 func TestThePaletteWindowMarksWhatIsAlreadyInTheBag(t *testing.T) {
 	palette := []room.TileArt{{ID: testArtID, AssetID: testAssetID, Name: "Pine forest"}}
 	data := paletteData(testRoomID.String(), "pine", palette, terrainRows())

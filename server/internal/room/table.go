@@ -266,6 +266,7 @@ func (c *TableSetGrid) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 type TableSetOptions struct {
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
+	PlayersCanStamp    bool               `json:"playersCanStamp"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
 	FogPrefill         bool               `json:"fogPrefill"`
 }
@@ -282,6 +283,7 @@ func (c *TableSetOptions) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	}
 	s.Table.PawnLabels = c.PawnLabels
 	s.Table.PlayersCanDraw = c.PlayersCanDraw
+	s.Table.PlayersCanStamp = c.PlayersCanStamp
 	s.Table.InitiativeGrouping = c.InitiativeGrouping
 	s.Table.FogPrefill = c.FogPrefill
 	s.Normalize()

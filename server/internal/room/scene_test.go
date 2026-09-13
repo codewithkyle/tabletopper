@@ -32,6 +32,7 @@ func sceneWorld(t *testing.T) *world {
 	w.apply(&TableSetOptions{
 		PawnLabels:         LabelsFull,
 		PlayersCanDraw:     true,
+		PlayersCanStamp:    true,
 		InitiativeGrouping: GroupMonsters,
 		FogPrefill:         true,
 	}, w.gm)
@@ -52,6 +53,10 @@ func sceneWorld(t *testing.T) *world {
 	w.apply(&StrokeBegin{ID: testID(801), Layer: w.layer, Kind: StrokeFree, Color: "#00ff00ff", Width: 2, Points: []int{4, 4, 12, 12}}, w.pc)
 	w.apply(&StrokeEnd{ID: testID(801)}, w.pc)
 	w.apply(&StrokeBegin{ID: testID(802), Layer: cellar, Kind: StrokeFree, Color: "#0000ffff", Width: 2, Points: []int{4, 4}}, w.gm)
+	pine := w.addArt(testTerrainID, pines())
+	hill := w.addArt(testTerrainAlt, hills())
+	w.apply(&TilesStamp{Layer: w.layer, Art: pine, Rotation: 90, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}}}, w.gm)
+	w.apply(&TilesStamp{Layer: cellar, Art: hill, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
 	w.apply(&InitiativeSet{Entries: []InitiativeEntry{
 		{Name: "Ari", PawnIDs: []ulid.ULID{ari}, Initiative: 18},
 		{Name: "Goblin", PawnIDs: []ulid.ULID{goblin}, Initiative: 12},
@@ -68,6 +73,7 @@ func liveWorld(t *testing.T) *world {
 	w.apply(&TableSetOptions{
 		PawnLabels:         LabelsNone,
 		PlayersCanDraw:     false,
+		PlayersCanStamp:    false,
 		InitiativeGrouping: GroupIndividual,
 		FogPrefill:         false,
 	}, w.gm)
@@ -104,6 +110,8 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	fog := mustJSON(t, scene.Fog)
 	strokes := mustJSON(t, scene.Strokes)
 	pawns := mustJSON(t, scene.Pawns)
+	tiles := mustJSON(t, scene.Tiles)
+	palette := mustJSON(t, scene.Table.Palette)
 
 	live := liveWorld(t)
 	players := mustJSON(t, live.s.Players)
@@ -112,6 +120,7 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	info := live.s.Room
 	labels := live.s.Table.PawnLabels
 	canDraw := live.s.Table.PlayersCanDraw
+	canStamp := live.s.Table.PlayersCanStamp
 	grouping := live.s.Table.InitiativeGrouping
 	prefill := live.s.Table.FogPrefill
 
@@ -135,6 +144,12 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	if got := mustJSON(t, live.s.Pawns); got != pawns {
 		t.Errorf("the pawns did not cross:\n got %s\nwant %s", got, pawns)
 	}
+	if got := mustJSON(t, live.s.Tiles); got != tiles {
+		t.Errorf("the tiles did not cross:\n got %s\nwant %s", got, tiles)
+	}
+	if got := mustJSON(t, live.s.Table.Palette); got != palette {
+		t.Errorf("the tiles crossed without the bag that keys them:\n got %s\nwant %s", got, palette)
+	}
 	for _, name := range []string{"Goblin", "Wagon"} {
 		if !hasPawnNamed(live.s, name) {
 			t.Errorf("the %s did not arrive", name)
@@ -155,6 +170,7 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 		t.Errorf("the room's music changed:\n got %s\nwant %s", got, music)
 	}
 	if live.s.Table.PawnLabels != labels || live.s.Table.PlayersCanDraw != canDraw ||
+		live.s.Table.PlayersCanStamp != canStamp ||
 		live.s.Table.InitiativeGrouping != grouping || live.s.Table.FogPrefill != prefill {
 		t.Errorf("a scene load reset how the GM runs their table: %+v", live.s.Table.TableSettings)
 	}
@@ -190,6 +206,14 @@ func TestAnExportedSceneHoldsNothingAboutAnybody(t *testing.T) {
 		}
 		if p.CharacterID != nil {
 			t.Errorf("%q names a character sheet in the scene", p.Name)
+		}
+	}
+	if len(scene.Tiles) == 0 || len(scene.Table.Palette) == 0 {
+		t.Error("the scene carries no terrain at all, so the rest of this proves nothing")
+	}
+	for _, tile := range scene.Tiles {
+		if !tile.By.IsZero() {
+			t.Errorf("a tile in the scene remembers %s stamped it", tile.By)
 		}
 	}
 	for _, st := range scene.Strokes {

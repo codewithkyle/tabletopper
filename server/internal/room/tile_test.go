@@ -167,6 +167,8 @@ func TestAStampNamingArtThatIsNotInTheBagIsRefused(t *testing.T) {
 	w := newWorld(t)
 	w.addArt(testTerrainID, pines())
 	w.refuse(&TilesStamp{Layer: w.layer, Art: testID(9999), Cells: []Cell{{Q: 0, R: 0}}}, w.gm, CodeNotFound)
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.refuse(&TilesStamp{Layer: w.layer, Art: testID(9999), Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeNotFound)
 }
 func TestRemovingAPaletteEntryTakesItsTilesWithIt(t *testing.T) {
 	w := newWorld(t)
@@ -253,14 +255,111 @@ func TestClearingTheTabletopTakesTheTilesAndLeavesTheBag(t *testing.T) {
 		t.Error("clearing the tabletop emptied the bag, which is a library and not a board")
 	}
 }
-func TestForNowOnlyTheGMStamps(t *testing.T) {
+func TestAPlayerStampsOnlyOnceTheGMTurnsItOn(t *testing.T) {
 	w := newWorld(t)
 	art := w.addArt(testTerrainID, pines())
-	w.refuse(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeForbidden)
-	w.refuse(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeForbidden)
+	stamp := func() *TilesStamp {
+		return &TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}
+	}
+	w.refuse(stamp(), w.pc, CodeForbidden)
+	if w.tileAt(w.layer, 0, 0) != nil {
+		t.Fatal("a refused stamp landed anyway")
+	}
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.apply(stamp(), w.pc)
+	laid := w.tileAt(w.layer, 0, 0)
+	if laid == nil || laid.By != testPlayerID {
+		t.Fatalf("the tile is %+v, want one that remembers the player laid it", laid)
+	}
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = false })
+	w.refuse(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 1, R: 0}}}, w.pc, CodeForbidden)
+}
+func TestStampingOffIsRefusedTheWayDrawingOffIs(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	w.options(func(o *TableSetOptions) {
+		o.PlayersCanDraw = false
+		o.PlayersCanStamp = false
+	})
+	drawing := w.refuse(&StrokeBegin{
+		ID: testID(700), Layer: w.layer, Kind: StrokeFree, Color: "#ff0000", Width: 2, Points: []int{0, 0},
+	}, w.pc, CodeForbidden)
+	stamping := w.refuse(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeForbidden)
+	if got := strings.Replace(drawing.Heading, "Drawing", "Stamping", 1); got != stamping.Heading {
+		t.Errorf("drawing is refused as %q and stamping as %q; they are the same setting", drawing.Heading, stamping.Heading)
+	}
+	if got := strings.Replace(drawing.Message, "drawing", "stamping", 1); got != stamping.Message {
+		t.Errorf("drawing is refused with %q and stamping with %q; they are the same setting", drawing.Message, stamping.Message)
+	}
+}
+func TestAPlayerStampsOnTheFloorTheTableIsShowing(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	cellar := w.addLayer("Cellar")
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.refuse(&TilesStamp{Layer: cellar, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeForbidden)
+	w.apply(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+}
+func TestAPlayerErasesTheirOwnTileAndNobodyElsesAndTheGMErasesAnything(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.apply(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 0, R: 0}}}, w.pc)
+	w.apply(&TilesStamp{Layer: w.layer, Art: art, Cells: []Cell{{Q: 1, R: 0}}}, w.gm)
+	w.refuse(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 1, R: 0}}}, w.pc, CodeForbidden)
+	w.refuse(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}}}, w.pc, CodeForbidden)
+	if w.tileAt(w.layer, 0, 0) == nil {
+		t.Fatal("a batch refused for one cell erased another anyway")
+	}
+	w.apply(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, w.pc)
+	if w.tileAt(w.layer, 0, 0) != nil {
+		t.Error("a player could not take back their own tile")
+	}
+	w.apply(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 1, R: 0}}}, w.gm)
+	if w.tileAt(w.layer, 1, 0) != nil {
+		t.Error("the GM could not erase a tile")
+	}
+}
+func TestAPlayerRubbingAtAnEmptyCellIsToldTheTileIsGone(t *testing.T) {
+	w := newWorld(t)
+	w.addArt(testTerrainID, pines())
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.refuse(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, w.pc, CodeNotFound)
+	w.apply(&TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+}
+func TestAnybodyMayStampOverAnybodysTile(t *testing.T) {
+	w := newWorld(t)
+	pine := w.addArt(testTerrainID, pines())
+	hill := w.addArt(testTerrainAlt, hills())
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.apply(&TilesStamp{Layer: w.layer, Art: pine, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	w.apply(&TilesStamp{Layer: w.layer, Art: hill, Cells: []Cell{{Q: 0, R: 0}}}, w.pc)
+	held := w.tileAt(w.layer, 0, 0)
+	if held == nil || held.Art != hill || held.By != testPlayerID {
+		t.Fatalf("the cell holds %+v, want the player's hills over the GM's pines", held)
+	}
+	w.apply(&TilesStamp{Layer: w.layer, Art: pine, Cells: []Cell{{Q: 0, R: 0}}}, w.other)
+	if held := w.tileAt(w.layer, 0, 0); held == nil || held.By != testOtherID {
+		t.Fatalf("the cell holds %+v, want the other player's stamp over the first player's", held)
+	}
+	w.apply(&TilesStamp{Layer: w.layer, Art: hill, Cells: []Cell{{Q: 0, R: 0}}}, w.gm)
+	if held := w.tileAt(w.layer, 0, 0); held == nil || held.By != testGMID {
+		t.Fatalf("the GM could not stamp over a player's tile: %+v", held)
+	}
+	if len(w.s.Tiles) != 1 {
+		t.Errorf("%d tiles are in the one cell everybody stamped", len(w.s.Tiles))
+	}
+}
+func TestTheBagAndTheBigClearStayTheGMsHoweverTheToggleSits(t *testing.T) {
+	w := newWorld(t)
+	art := w.addArt(testTerrainID, pines())
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
 	w.refuse(&TilesClear{Layer: w.layer}, w.pc, CodeForbidden)
-	w.refuse(&PaletteAdd{Asset: testTerrainID}, w.pc, CodeForbidden)
+	w.refuse(&PaletteAdd{Asset: testTerrainAlt}, w.pc, CodeForbidden)
 	w.refuse(&PaletteRemove{Art: art}, w.pc, CodeForbidden)
+	w.refuse(&TableSetOptions{
+		PawnLabels: LabelsDefault, InitiativeGrouping: GroupMonsters, PlayersCanStamp: true,
+	}, w.pc, CodeForbidden)
 }
 func TestThePlayersSeeEveryTileTheGMSees(t *testing.T) {
 	w := newWorld(t)

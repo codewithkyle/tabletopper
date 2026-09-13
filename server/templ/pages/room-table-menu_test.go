@@ -124,6 +124,31 @@ func TestAGMWithAnEmptyBagStillGetsTheHub(t *testing.T) {
 		t.Error("there is an eraser with nothing to erase with")
 	}
 }
+func TestAPlayersWheelIsThePicturesAndTheEraserAndNothingElse(t *testing.T) {
+	page := renderToString(t, RoomTableMenu(NewTableMenu(testTableRoomID, false, testRing(2))))
+	if got := strings.Count(page, "data-table-menu-art="); got != 2 {
+		t.Fatalf("a player's ring carries %d pictures, want the GM's two:\n%s", got, page)
+	}
+	if !strings.Contains(page, "data-table-menu-erase") {
+		t.Error("a player who may stamp has no way to rub one out")
+	}
+	if strings.Contains(page, "data-table-menu-party") || strings.Contains(page, tableMenuPartyLabel) {
+		t.Errorf("a player can move where the party starts:\n%s", page)
+	}
+	if got := len(styleOf(t, page, "--degree")); got != 3 {
+		t.Errorf("a player's wheel has %d buttons, want two pictures and the eraser", got)
+	}
+}
+func TestAPlayerWhoMayNotStampGetsNoWheelAtAll(t *testing.T) {
+	data := NewTableMenu(testTableRoomID, false, nil)
+	if !data.Empty() {
+		t.Fatalf("a player with no ring still has %d items", len(data.Items))
+	}
+	page := renderToString(t, RoomTableMenu(data))
+	if strings.Contains(page, "data-table-menu") {
+		t.Errorf("a player with nothing to stamp got a wheel anyway:\n%s", page)
+	}
+}
 func TestTheWheelReachesPastWhicheverRingItHas(t *testing.T) {
 	bare, err := strconv.Atoi(NewTableMenu(testTableRoomID, true, nil).Reach())
 	if err != nil {

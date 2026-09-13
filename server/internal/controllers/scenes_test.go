@@ -510,6 +510,23 @@ func TestThePartyStartIsTheGMsAlone(t *testing.T) {
 		t.Fatalf("status = %d, want 403; body: %s", rec.Code, rec.Body.String())
 	}
 }
+func TestTheOpenedToastNamesWhateverCouldNotBeRead(t *testing.T) {
+	if got := openedMessage("Keep on the Borderlands", nil); got != "Keep on the Borderlands is open." {
+		t.Errorf("a clean load says %q", got)
+	}
+	got := openedMessage("Keep on the Borderlands", []string{
+		"Cellar: That map is no longer in your library.",
+		"Pine forest: That picture is no longer in your library.",
+	})
+	for _, want := range []string{"Cellar:", "Pine forest:"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the toast does not name %s: %q", want, got)
+		}
+	}
+	if strings.Contains(got, "maps") {
+		t.Errorf("the toast blames the maps for terrain that is gone as well: %q", got)
+	}
+}
 func TestTheTableMenuIsRenderedForTheRoleThatAsks(t *testing.T) {
 	for name, sess := range map[string]session.UserSession{
 		"the GM":   {UserID: testOwnerID},

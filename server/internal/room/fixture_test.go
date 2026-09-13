@@ -194,6 +194,19 @@ func (w *world) addLayer(name string) ulid.ULID {
 	}
 	return w.s.Table.Layers[len(w.s.Table.Layers)-1].ID
 }
+func (w *world) options(fn func(*TableSetOptions)) {
+	w.t.Helper()
+	held := w.s.Table.TableSettings
+	cmd := &TableSetOptions{
+		PawnLabels:         held.PawnLabels,
+		PlayersCanDraw:     held.PlayersCanDraw,
+		PlayersCanStamp:    held.PlayersCanStamp,
+		InitiativeGrouping: held.InitiativeGrouping,
+		FogPrefill:         held.FogPrefill,
+	}
+	fn(cmd)
+	w.apply(cmd, w.gm)
+}
 func summary(sigs []Signal) []string {
 	out := make([]string, 0, len(sigs))
 	for _, sig := range sigs {

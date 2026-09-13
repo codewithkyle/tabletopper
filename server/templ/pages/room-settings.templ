@@ -16,6 +16,7 @@ templ RoomSettings(data RoomSettingsData) {
 		@panelRadios("pawnLabels", "What a pawn is labelled with", PawnLabelChoices(), data.PawnLabels)
 		@panelRadios("initiativeGrouping", "How monsters take their turns", InitiativeGroupingChoices(), data.InitiativeGrouping)
 		@panelToggle("playersCanDraw", "Players may draw on the tabletop", "", data.PlayersCanDraw)
+		@panelToggle("playersCanStamp", "Players may stamp terrain", "They lay tiles from your palette on the floor the table is showing, and rub out their own. Yours stay yours.", data.PlayersCanStamp)
 		@panelToggle("fogPrefill", "Prefill fog", "A floor added from now on starts covered. Floors that are already here do not change.", data.FogPrefill)
 	</form>
 }

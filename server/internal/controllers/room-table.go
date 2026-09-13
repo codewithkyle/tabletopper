@@ -511,6 +511,7 @@ func settingsData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomS
 		RoomID:             roomID.String(),
 		PawnLabels:         string(t.PawnLabels),
 		PlayersCanDraw:     t.PlayersCanDraw,
+		PlayersCanStamp:    t.PlayersCanStamp,
 		InitiativeGrouping: string(t.InitiativeGrouping),
 		FogPrefill:         t.FogPrefill,
 		Errors:             problems,
@@ -547,6 +548,7 @@ func tableOptionsForm(r *http.Request) room.TableSetOptions {
 	return room.TableSetOptions{
 		PawnLabels:         room.PawnLabels(r.FormValue("pawnLabels")),
 		PlayersCanDraw:     r.FormValue("playersCanDraw") != "",
+		PlayersCanStamp:    r.FormValue("playersCanStamp") != "",
 		InitiativeGrouping: room.InitiativeGrouping(r.FormValue("initiativeGrouping")),
 		FogPrefill:         r.FormValue("fogPrefill") != "",
 	}

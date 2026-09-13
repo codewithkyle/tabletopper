@@ -37,6 +37,7 @@ type TableSettings struct {
 	Grid               Grid               `json:"grid"`
 	PawnLabels         PawnLabels         `json:"pawnLabels"`
 	PlayersCanDraw     bool               `json:"playersCanDraw"`
+	PlayersCanStamp    bool               `json:"playersCanStamp"`
 	InitiativeGrouping InitiativeGrouping `json:"initiativeGrouping"`
 	FogPrefill         bool               `json:"fogPrefill"`
 }

@@ -261,7 +261,7 @@ func assertChoices(t *testing.T, pairs map[string][2][]string) {
 func TestNeitherTableFormCarriesTheOthersFields(t *testing.T) {
 	for name, pair := range map[string][2][]string{
 		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "gridType", "offsetX", "offsetY", "snap", "units"}},
-		"settings": {fieldNames(renderToString(t, RoomSettings(testSettingsData()))), []string{"fogPrefill", "initiativeGrouping", "pawnLabels", "playersCanDraw"}},
+		"settings": {fieldNames(renderToString(t, RoomSettings(testSettingsData()))), []string{"fogPrefill", "initiativeGrouping", "pawnLabels", "playersCanDraw", "playersCanStamp"}},
 	} {
 		if !slices.Equal(pair[0], pair[1]) {
 			t.Errorf("the %s form posts %v, want %v", name, pair[0], pair[1])

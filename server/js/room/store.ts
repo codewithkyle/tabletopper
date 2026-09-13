@@ -136,6 +136,7 @@ export function empty(): State {
 			},
 			pawnLabels: "default",
 			playersCanDraw: true,
+			playersCanStamp: false,
 			fogPrefill: false,
 			initiativeGrouping: "grouped",
 		},

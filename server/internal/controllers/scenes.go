@@ -140,7 +140,7 @@ func openedMessage(name string, missing []string) string {
 	if len(missing) == 0 {
 		return name + " is open."
 	}
-	return name + " is open, without these maps. " + strings.Join(missing, " ")
+	return name + " is open, but not all of it could be read. " + strings.Join(missing, " ")
 }
 func (a *App) SaveSceneChanges(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

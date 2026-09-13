@@ -139,7 +139,16 @@ type TilesStamp struct {
 }
 
 func (c *TilesStamp) Authorize(s *State, a Actor) error {
-	return requireGM(a, "stamp terrain")
+	if a.GM() {
+		return nil
+	}
+	if err := s.requirePlayerLayer(a, c.Layer); err != nil {
+		return err
+	}
+	if !s.Table.PlayersCanStamp {
+		return forbidden("Stamping is off", "The GM has turned off stamping for players.")
+	}
+	return nil
 }
 func (c *TilesStamp) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
@@ -188,7 +197,15 @@ type TilesErase struct {
 }
 
 func (c *TilesErase) Authorize(s *State, a Actor) error {
-	return requireGM(a, "erase terrain")
+	if a.GM() {
+		return nil
+	}
+	for _, cell := range c.Cells {
+		if err := s.requireOwnTile(a, c.Layer, cell); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 func (c *TilesErase) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if _, err := s.requireLayer(c.Layer); err != nil {
@@ -219,6 +236,16 @@ func (c *TilesClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool { return t.LayerID == c.Layer })
 	s.Normalize()
 	return nil, nil
+}
+func (s *State) requireOwnTile(a Actor, layer ulid.ULID, cell Cell) error {
+	held := s.Tile(layer, cell.Q, cell.R)
+	if held == nil {
+		return notFound("Tile gone", "That cell no longer holds a tile.")
+	}
+	if held.By != a.ID {
+		return forbidden("Not your tile", "You can only erase a tile you stamped.")
+	}
+	return nil
 }
 func checkedCells(cells []Cell) ([]Cell, error) {
 	if len(cells) == 0 {

@@ -6,6 +6,7 @@ type RoomSettingsData struct {
 	RoomID             string
 	PawnLabels         string
 	PlayersCanDraw     bool
+	PlayersCanStamp    bool
 	InitiativeGrouping string
 	FogPrefill         bool
 	Errors             []string

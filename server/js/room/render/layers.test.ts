@@ -17,6 +17,7 @@ function table(active: string, layers: Layer[]): Table {
 		fogPrefill: false,
 		pawnLabels: "default",
 		playersCanDraw: true,
+		playersCanStamp: false,
 		initiativeGrouping: "grouped",
 	};
 }

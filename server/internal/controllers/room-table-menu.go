@@ -18,13 +18,19 @@ func (a *App) RoomTableMenuFragment(w http.ResponseWriter, r *http.Request) {
 	}
 	isGM := role == room.RoleGM
 	var ring []pages.RoomTableMenuArt
-	if isGM && a.Hub != nil {
+	if a.Hub != nil {
 		if view, ok := a.Hub.Table(ctx, row.ID); ok {
-			ring = tableMenuRing(view.Table.Palette)
+			ring = tableMenuRingFor(isGM, view.Table)
 		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	render(w, r, pages.RoomTableMenu(pages.NewTableMenu(row.ID.String(), isGM, ring)))
+}
+func tableMenuRingFor(isGM bool, t room.Table) []pages.RoomTableMenuArt {
+	if !isGM && !t.PlayersCanStamp {
+		return nil
+	}
+	return tableMenuRing(t.Palette)
 }
 func tableMenuRing(palette []room.TileArt) []pages.RoomTableMenuArt {
 	out := make([]pages.RoomTableMenuArt, 0, len(palette))

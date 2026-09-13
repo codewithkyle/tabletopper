@@ -25,6 +25,11 @@ func stockedLibrary(gen ulid.ULID) *fakeLibrary {
 	lib := newLibrary()
 	lib.maps[testAssetID] = MapRef{AssetID: testAssetID, Gen: gen, Width: 8192, Height: 8192, TileSize: 512, MaxZoom: 4}
 	lib.maps[sceneCellarAsset] = MapRef{AssetID: sceneCellarAsset, Gen: gen, Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2}
+	return stockTerrain(lib)
+}
+func stockTerrain(lib *fakeLibrary) *fakeLibrary {
+	lib.pictures[pictureKey{id: testTerrainID, kind: PictureTerrain}] = pines()
+	lib.pictures[pictureKey{id: testTerrainAlt, kind: PictureTerrain}] = hills()
 	return lib
 }
 func floorCalled(s *State, name string) *Layer {
@@ -63,7 +68,7 @@ func TestARetiledMapIsReadAgainRatherThanTrusted(t *testing.T) {
 }
 func TestAMapThatIsGoneClearsItsFloorAndSaysWhich(t *testing.T) {
 	scene := savedScene(t)
-	lib := newLibrary()
+	lib := stockTerrain(newLibrary())
 	lib.maps[testAssetID] = MapRef{AssetID: testAssetID, Gen: testID(77), Width: 4096, Height: 4096, TileSize: 512, MaxZoom: 3}
 	cmd := &SceneLoad{Scene: scene}
 	if err := cmd.Resolve(context.Background(), lib, liveWorld(t).s); err != nil {
@@ -83,6 +88,61 @@ func TestAMapThatIsGoneClearsItsFloorAndSaysWhich(t *testing.T) {
 	}
 	if l := floorCalled(cmd.Scene, DefaultLayerName); l == nil || l.Map == nil {
 		t.Error("the floor whose map is fine lost it too")
+	}
+}
+func TestTerrainIsReadAgainRatherThanTrusted(t *testing.T) {
+	scene := savedScene(t)
+	if len(scene.Table.Palette) != 2 {
+		t.Fatalf("the scene carries %d pictures, want 2", len(scene.Table.Palette))
+	}
+	lib := stockedLibrary(testID(77))
+	renamed := pines()
+	renamed.Name = "Deep pines"
+	renamed.Image = "/assets/images/" + testTerrainID.String() + "?fresh"
+	lib.pictures[pictureKey{id: testTerrainID, kind: PictureTerrain}] = renamed
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), lib, liveWorld(t).s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(cmd.Missing) != 0 {
+		t.Fatalf("a scene whose terrain is all there reports %v", cmd.Missing)
+	}
+	art := cmd.Scene.Table.Palette[0]
+	if art.Name != "Deep pines" || art.Image != renamed.Image {
+		t.Errorf("the bag carries %+v, want the library's current name and picture", art)
+	}
+	if len(cmd.Scene.Tiles) != 3 {
+		t.Errorf("%d tiles survived a scene whose terrain is all there, want 3", len(cmd.Scene.Tiles))
+	}
+}
+func TestTerrainThatIsGoneTakesItsTilesAndSaysWhich(t *testing.T) {
+	scene := savedScene(t)
+	pine := scene.Table.Palette[0].ID
+	lib := stockedLibrary(testID(77))
+	delete(lib.pictures, pictureKey{id: testTerrainID, kind: PictureTerrain})
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), lib, liveWorld(t).s); err != nil {
+		t.Fatalf("a scene with one missing picture failed the whole load: %v", err)
+	}
+	if len(cmd.Missing) != 1 {
+		t.Fatalf("Missing = %v, want the one picture", cmd.Missing)
+	}
+	if !strings.Contains(cmd.Missing[0], "Pine forest") {
+		t.Errorf("the report does not name the picture: %q", cmd.Missing[0])
+	}
+	if !strings.Contains(cmd.Missing[0], "no longer in your library") {
+		t.Errorf("the report does not carry the library's own message: %q", cmd.Missing[0])
+	}
+	if len(cmd.Scene.Table.Palette) != 1 || cmd.Scene.Table.Palette[0].Name != "Rolling hills" {
+		t.Fatalf("the bag is %+v, want the hills alone", cmd.Scene.Table.Palette)
+	}
+	for _, tile := range cmd.Scene.Tiles {
+		if tile.Art == pine {
+			t.Fatal("a tile still names a picture that is gone, so it draws nothing and cannot be explained")
+		}
+	}
+	if len(cmd.Scene.Tiles) != 1 {
+		t.Errorf("%d tiles survived, want the one stamped with the hills", len(cmd.Scene.Tiles))
 	}
 }
 func TestALibraryThatIsBrokenFailsTheWholeLoad(t *testing.T) {
@@ -121,6 +181,10 @@ func TestLoadingPutsTheSceneOnTheTableAndLeavesThePeople(t *testing.T) {
 	}
 	if len(live.s.Initiative.Entries) != 0 {
 		t.Errorf("the turn order survived the load: %+v", live.s.Initiative)
+	}
+	if len(live.s.Tiles) != 3 || len(live.s.Table.Palette) != 2 {
+		t.Errorf("the table holds %d tiles and %d pictures after the load, want 3 and 2",
+			len(live.s.Tiles), len(live.s.Table.Palette))
 	}
 	if got := mustJSON(t, live.s.Players); got != players {
 		t.Errorf("the people at the table changed:\n got %s\nwant %s", got, players)

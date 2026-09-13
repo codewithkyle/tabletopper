@@ -58,8 +58,8 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"stroke.clear", &StrokeClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"palette.add", &PaletteAdd{Asset: testAssetID}, ok, CodeForbidden, CodeForbidden},
 		{"palette.remove", &PaletteRemove{Art: fx.art}, ok, CodeForbidden, CodeForbidden},
-		{"tiles.stamp", &TilesStamp{Layer: w.layer, Art: fx.art, Cells: []Cell{{Q: 0, R: 0}}}, ok, CodeForbidden, CodeForbidden},
-		{"tiles.erase", &TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, ok, CodeForbidden, CodeForbidden},
+		{"tiles.stamp", &TilesStamp{Layer: w.layer, Art: fx.art, Cells: []Cell{{Q: 0, R: 0}}}, ok, ok, ok},
+		{"tiles.erase", &TilesErase{Layer: w.layer, Cells: []Cell{{Q: 0, R: 0}}}, ok, ok, CodeForbidden},
 		{"tiles.clear", &TilesClear{Layer: w.layer}, ok, CodeForbidden, CodeForbidden},
 		{"ping", &Ping{Layer: w.layer}, ok, ok, ok},
 		{"dice.roll", &DiceRoll{Expr: "1d20"}, ok, ok, ok},
@@ -131,6 +131,8 @@ func authorizeWorld(t *testing.T) (*world, authorizeFixture) {
 	}, w.gm)
 	w.apply(&InitiativeNext{}, w.gm)
 	fx.art = w.addArt(testTerrainID, pines())
+	w.options(func(o *TableSetOptions) { o.PlayersCanStamp = true })
+	w.apply(&TilesStamp{Layer: w.layer, Art: fx.art, Cells: []Cell{{Q: 0, R: 0}}}, w.pc)
 	return w, fx
 }
 func TestAuthorizeNeverMutates(t *testing.T) {

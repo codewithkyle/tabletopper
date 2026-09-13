@@ -180,6 +180,7 @@ export interface Table {
 	grid: Grid;
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
+	playersCanStamp: boolean;
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
@@ -188,6 +189,7 @@ export interface TableSettings {
 	grid: Grid;
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
+	playersCanStamp: boolean;
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
@@ -498,6 +500,7 @@ export interface TableSetOptions {
 	cid: string;
 	pawnLabels: PawnLabels;
 	playersCanDraw: boolean;
+	playersCanStamp: boolean;
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
