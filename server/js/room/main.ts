@@ -33,6 +33,7 @@ import type { Revisions } from "./model/revisions.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { mountJournalEditors } from "./journal-editor.ts";
 import { pawnWindow } from "./pawn-window.ts";
+import { cellName } from "./model/numbering.ts";
 import { noteWindow } from "./note-window.ts";
 import type { Named } from "./pawn-window.ts";
 import type { Hud } from "./hud.ts";
@@ -71,7 +72,10 @@ if (mount) {
 	let follow: Follow | null = null;
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
 	const openNote = (q: number, r: number): void => {
-		openWindow(noteWindow(roomID, viewed(), q, r));
+		const layer = viewed();
+		const floor = state.table.layers.find((l) => l.id === layer);
+		const named = role === "gm" ? cellName(state.table.grid, floor?.map ?? floor?.gmMap, q, r) : `${q}, ${r}`;
+		openWindow(noteWindow(roomID, layer, q, r, named));
 	};
 	const marks = mountTableMenu(mount, {
 		grid: () => state.table.grid,

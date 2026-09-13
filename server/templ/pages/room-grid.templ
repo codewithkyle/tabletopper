@@ -30,6 +30,7 @@ templ RoomGrid(data RoomGridData) {
 				@gridNumber("offsetY", "Offset down", data.OffsetYText(), "", "")
 			</div>
 			@gridColor(data)
+			@panelToggle("numbered", "Number the cells", "You see a number in every cell that sits over the map, counting down each column from the top left. Players never see them.", data.Numbered)
 			@panelRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
 			<div class="group-has-[input[value^=hex]:checked]:hidden">
 				@panelRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)

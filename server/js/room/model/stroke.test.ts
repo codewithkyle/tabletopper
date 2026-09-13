@@ -154,7 +154,7 @@ test("the hit test does not accumulate across calls", () => {
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
 		type: "square", lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
-		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal", ...over,
+		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal", numbered: false, ...over,
 	};
 }
 function said(kind: StrokeKind, points: number[], g: Grid = grid()): string[] {

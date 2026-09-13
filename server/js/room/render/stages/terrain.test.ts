@@ -51,7 +51,7 @@ const HILL = "01ARTHILL";
 function grid(over: Partial<Grid> = {}): Grid {
 	return {
 		type: "square", lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
-		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal",
+		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal", numbered: false,
 		...over,
 	};
 }

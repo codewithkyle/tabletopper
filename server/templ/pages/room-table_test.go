@@ -260,7 +260,7 @@ func assertChoices(t *testing.T, pairs map[string][2][]string) {
 }
 func TestNeitherTableFormCarriesTheOthersFields(t *testing.T) {
 	for name, pair := range map[string][2][]string{
-		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "gridType", "offsetX", "offsetY", "snap", "units"}},
+		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "gridType", "numbered", "offsetX", "offsetY", "snap", "units"}},
 		"settings": {fieldNames(renderToString(t, RoomSettings(testSettingsData()))), []string{"fogPrefill", "initiativeGrouping", "pawnLabels", "playersCanDraw", "playersCanStamp"}},
 	} {
 		if !slices.Equal(pair[0], pair[1]) {
@@ -548,5 +548,20 @@ func TestThePawnMenusHeadingIsTrimmedRatherThanWidening(t *testing.T) {
 		if !slices.Contains(strings.Fields(heading[1]), class) {
 			t.Errorf("the heading is missing %q, so a long name sets the width of the whole menu: %q", class, heading[1])
 		}
+	}
+}
+func TestTheGridFormOpensOnWhetherTheCellsAreNumbered(t *testing.T) {
+	off := renderToString(t, RoomGrid(testGridData()))
+	if !strings.Contains(off, `name="numbered"`) {
+		t.Fatalf("the grid form cannot number the cells:\n%s", off)
+	}
+	if strings.Contains(off, `name="numbered" value="on" checked`) {
+		t.Errorf("an unnumbered table opens with numbering on:\n%s", off)
+	}
+	data := testGridData()
+	data.Numbered = true
+	on := renderToString(t, RoomGrid(data))
+	if !strings.Contains(on, `name="numbered" value="on" checked`) {
+		t.Errorf("a numbered table opens with the toggle off:\n%s", on)
 	}
 }

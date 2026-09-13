@@ -157,6 +157,7 @@ export function empty(): State {
 				feetPerCell: 5,
 				units: "feet",
 				diagonals: "equal",
+				numbered: false,
 			},
 			pawnLabels: "default",
 			playersCanDraw: true,

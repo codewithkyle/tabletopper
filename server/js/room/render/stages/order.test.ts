@@ -15,6 +15,7 @@ import { pawnsStage } from "./pawns.ts";
 import { pingsStage } from "./pings.ts";
 import { ringsStage } from "./rings.ts";
 import { nameOf, stagesFor } from "./order.ts";
+import { numbersStage } from "./numbers.ts";
 import { strokesStage } from "./strokes.ts";
 import { terrainStage } from "./terrain.ts";
 import { tilesStage } from "./tiles.ts";
@@ -26,7 +27,7 @@ const COMMON = [
 test("a GM sees fog over the floor and under everything that stands on it", () => {
 	assert.deepEqual(stagesFor("gm"), [
 		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
-		fogStage,
+		fogStage, numbersStage,
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
 		overMarksStage,
@@ -45,12 +46,12 @@ test("fog is one stage, drawn once, wherever the role puts it", () => {
 	for (const role of ["gm", "player"] as const) {
 		const order = stagesFor(role);
 		assert.equal(order.filter((stage) => stage === fogStage).length, 1, role);
-		assert.equal(order.length, role === "player" ? 17 : 14, role);
+		assert.equal(order.length, role === "player" ? 17 : 15, role);
 	}
 });
 test("every other stage keeps its place whichever side of the table you are on", () => {
 	for (const role of ["gm", "player"] as const) {
-		const lifted = [fogStage, ownAurasStage, ownPawnsStage, ownRingsStage];
+		const lifted = [fogStage, numbersStage, ownAurasStage, ownPawnsStage, ownRingsStage];
 		const order = stagesFor(role).filter((stage) => !lifted.includes(stage));
 		assert.deepEqual(order, COMMON, role);
 	}
@@ -79,5 +80,11 @@ test("every stage in the order has a name, because a timing readout of blanks sa
 			seen.add(name);
 		}
 	}
-	assert.equal(seen.size, 17, "two stages share a name, so their timings would be indistinguishable");
+	assert.equal(seen.size, 18, "two stages share a name, so their timings would be indistinguishable");
+});
+test("only the GM is handed cell numbers, and they sit over the fog that dims the map", () => {
+	assert.ok(!stagesFor("player").includes(numbersStage), "a player was handed the GM's reference numbers");
+	const order = stagesFor("gm");
+	assert.ok(order.indexOf(numbersStage) > order.indexOf(fogStage), "the fog dims the numbers under it");
+	assert.ok(order.indexOf(numbersStage) < order.indexOf(pawnsStage), "a number is drawn over the pawn standing on it");
 });

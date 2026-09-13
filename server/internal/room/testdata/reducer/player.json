@@ -32,7 +32,8 @@
         "snap": "cells",
         "feetPerCell": 5,
         "units": "feet",
-        "diagonals": "equal"
+        "diagonals": "equal",
+        "numbered": false
       },
       "pawnLabels": "default",
       "playersCanDraw": true,
@@ -125,7 +126,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -254,7 +256,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -401,7 +404,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -548,7 +552,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -709,7 +714,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -870,7 +876,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -1031,7 +1038,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -1111,7 +1119,8 @@
                   "snap": "cells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
@@ -1178,7 +1187,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -1345,7 +1355,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -1425,7 +1436,8 @@
                   "snap": "cells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "full",
                 "playersCanDraw": true,
@@ -1495,7 +1507,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -1629,7 +1642,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -1784,7 +1798,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -1963,7 +1978,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -2165,7 +2181,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -2354,7 +2371,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -2579,7 +2597,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -2827,7 +2846,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "full",
           "playersCanDraw": true,
@@ -3028,7 +3048,8 @@
                   "snap": "cells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
@@ -3098,7 +3119,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -3351,7 +3373,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -3627,7 +3650,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -3901,7 +3925,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -4175,7 +4200,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -4428,7 +4454,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -4663,7 +4690,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -4931,7 +4959,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -5226,7 +5255,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -5541,7 +5571,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -5843,7 +5874,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -6171,7 +6203,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -6506,7 +6539,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -6847,7 +6881,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -7188,7 +7223,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -7529,7 +7565,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -7870,7 +7907,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -8211,7 +8249,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -8552,7 +8591,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -8893,7 +8933,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -9234,7 +9275,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -9595,7 +9637,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -9953,7 +9996,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -10326,7 +10370,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -10681,7 +10726,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -11057,7 +11103,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -11433,7 +11480,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -11815,7 +11863,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -12158,7 +12207,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -12546,7 +12596,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -12934,7 +12985,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -13316,7 +13368,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -13721,7 +13774,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -14127,7 +14181,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -14473,7 +14528,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -14858,7 +14914,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -15243,7 +15300,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -15605,7 +15663,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -15984,7 +16043,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -16364,7 +16424,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -16746,7 +16807,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -17134,7 +17196,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -17520,7 +17583,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -17922,7 +17986,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -18325,7 +18390,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -18725,7 +18791,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -19137,7 +19204,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -19561,7 +19629,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -19994,7 +20063,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -20427,7 +20497,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -20865,7 +20936,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -21300,7 +21372,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -21716,7 +21789,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -22106,7 +22180,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -22517,7 +22592,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -22916,7 +22992,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -23315,7 +23392,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -23728,7 +23806,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -24094,7 +24173,8 @@
                   "snap": "cells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
@@ -24171,7 +24251,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -24535,7 +24616,8 @@
                   "snap": "cells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
@@ -24612,7 +24694,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -25024,7 +25107,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -25427,7 +25511,8 @@
                 "snap": "cells",
                 "feetPerCell": 5,
                 "units": "feet",
-                "diagonals": "equal"
+                "diagonals": "equal",
+                "numbered": false
               },
               "pawnLabels": "default",
               "playersCanDraw": true,
@@ -25830,7 +25915,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -26229,7 +26315,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -26649,7 +26736,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -27069,7 +27157,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -27489,7 +27578,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -27910,7 +28000,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -28358,7 +28449,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -28801,7 +28893,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -29230,7 +29323,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -29599,7 +29693,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -29951,7 +30046,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -30286,7 +30382,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -30601,7 +30698,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -30919,7 +31017,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -31204,7 +31303,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -31490,7 +31590,8 @@
             "snap": "cells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -31760,7 +31861,8 @@
                   "snap": "halfCells",
                   "feetPerCell": 5,
                   "units": "feet",
-                  "diagonals": "equal"
+                  "diagonals": "equal",
+                  "numbered": false
                 },
                 "pawnLabels": "default",
                 "playersCanDraw": true,
@@ -31811,7 +31913,8 @@
             "snap": "halfCells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -32080,7 +32183,8 @@
             "snap": "halfCells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,
@@ -32339,7 +32443,8 @@
             "snap": "halfCells",
             "feetPerCell": 5,
             "units": "feet",
-            "diagonals": "equal"
+            "diagonals": "equal",
+            "numbered": false
           },
           "pawnLabels": "default",
           "playersCanDraw": true,

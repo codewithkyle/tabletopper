@@ -103,7 +103,7 @@ test("stage timings are off until they are asked for, and name every stage when 
 		list.build(frame);
 		list.draw(frame);
 		const timings = list.timings();
-		assert.equal(timings.length, 14, "a GM's order is fourteen stages");
+		assert.equal(timings.length, 15, "a GM's order is fifteen stages");
 		assert.ok(timings.every((timing) => timing.name !== ""), "a timing with no name says nothing");
 		assert.equal(new Set(timings.map((timing) => timing.name)).size, timings.length);
 	} finally {

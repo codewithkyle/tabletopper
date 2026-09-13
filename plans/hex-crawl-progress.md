@@ -2,16 +2,18 @@
 
 Working notes against `plans/hex-crawl.md`. Delete this file when the plan is done.
 
-Branch `yet-another-rewrite`. Checkpoints 1-5 are committed (`edcae11`, `4f17aed`,
-`6ddd4a5`, `7b51195`); **checkpoints 6 and 7 are uncommitted, in the working tree**.
+Branch `yet-another-rewrite`. Checkpoints 1-7 are committed (`edcae11`, `4f17aed`,
+`6ddd4a5`, `7b51195`, `1fb5899`, `bb275db`); **checkpoint 8 is uncommitted, in the
+working tree**.
 `make check` is green and `make js`, `make css`, `make protocol`, `make sqlc`, `make db`
 and `templ generate` have all been run, so `make run` is enough to look at it.
 
 ## Where we are
 
-**Checkpoints 1 to 5 are built and driven in a browser.** Checkpoints 6 and 7 are built
-and unverified. The next session starts by running the CP6 and CP7 test plans at the
-bottom of this file, then moves to Checkpoint 8.
+**Checkpoints 1 to 6 are built and driven in a browser.** Checkpoint 7 is committed but
+was never reported as driven, and checkpoint 8 is built and unverified. The next session
+starts by running the CP7 and CP8 test plans at the bottom of this file. **That is the
+whole plan** — there is no checkpoint 9.
 
 ## Decisions taken on 2026-09-12
 
@@ -32,7 +34,18 @@ bottom of this file, then moves to Checkpoint 8.
    A `DELETE` carries no body, and a GM clearing the keyed map must not be one dropped
    query parameter away from clearing the table's. The picker fragments carry `gm=1`,
    because there the slot is only display state deciding where a card posts.
-5. **The cell brush is a third button in the fog shape group, not a fourth control.**
+5. **Phase 9 was thrown out and rewritten on the GM's say-so.** It was *the party pawn
+   reveals fog as it moves*; it is now *numbering the cells*. Reveal-on-move automates a
+   call the GM makes deliberately and fights the fog tool; a reference number is the thing
+   a hex crawl cannot be run without, because the GM needs to say a hex out loud and find
+   it in their own notes. `Pawn.Party` and `TableSettings.AutoReveal` are not built and
+   are not in the plan any more.
+6. **A running count, not `0412`.** I argued for column-and-row references, because a
+   running count renumbers the whole map whenever its extent changes and a coordinate does
+   not. The GM's answer was that there is no prep to break — it is a local app with test
+   data. Built as asked. The format is one function in `model/numbering.ts` if it ever
+   proves to matter.
+7. **The cell brush is a third button in the fog shape group, not a fourth control.**
    `FogOptions` gains `cells: boolean` exactly as the plan says, but the UI renders it
    as `data-fog-shape="cells"` beside Rectangle and Polygon, because a boolean beside a
    radio group leaves "cells + polygon" meaning nothing. `fog-tool.ts` derives the
@@ -47,9 +60,9 @@ bottom of this file, then moves to Checkpoint 8.
 | **CP3** | 4 | The fog brush paints by the cell, square or hex. **Verified.** |
 | **CP4** | 5 | Terrain is its own asset kind with its own tab and its own shelf. **Verified.** |
 | **CP5** | 6 | The palette, the wheel's ring, one-at-a-time stamping and the tile stage. **Verified.** |
-| **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. **Built, unverified.** |
-| **CP7** | 8 | The hex key: notes per cell, revealed by the GM. **Built, unverified.** |
-| **CP8** | 9 | The party pawn reveals fog as it moves. |
+| **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. **Verified.** |
+| **CP7** | 8 | The hex key: notes per cell, revealed by the GM. **Committed, unverified.** |
+| **CP8** | 9 | The cells are numbered, so the GM can name a hex. **Built, unverified.** |
 
 CP5 is by far the largest. CP1 was three phases only because two of them were invisible.
 
@@ -333,6 +346,37 @@ control they gate.
 - **A scene carries the hex key**, including which hexes the party had already been told
   about, the same way fog carries its reveals.
 
+## What Checkpoint 8 landed — phase 9, numbering the cells
+
+- **`Grid.Numbered bool`** (`json:"numbered"`), a *Number the cells* toggle in the *Grid*
+  window under the colour. It sits in `Grid`, so it travels with the scene: the numbering
+  belongs to the map, not to the viewer. Nothing migrates and `room.Schema` stays at 3.
+- **The map is what starts and stops the count.** Only cells whose centre sits over the
+  floor's picture are numbered, and a floor with no map is not numbered at all. The
+  players' map is preferred over the GM's keyed one, so flipping to a keyed map of a
+  different size does not renumber the table.
+- **1 is the top-left cell; the count runs down a column and then into the next.**
+  Columns come from offset coordinates -- odd-r for point-up hexes, odd-q for flat-top --
+  so a column on a point-up grid is the zigzag every paper hex crawl uses, and the same
+  code numbers a square grid.
+- **`model/numbering.ts`** builds the numbering once per grid and map and holds the last
+  one. `of(q, r)` is a lookup into an `Int32Array`; `each(rect)` walks only what is on
+  screen. A 1024 by 768 map at 64px runs to 231 cells on a point-up grid, 225 flat-top,
+  192 square.
+- **`render/stages/numbers.ts`** is a second `createPathPass`, like `floor-marks` and
+  `over-marks`. `PathPass` grew `caption`, which is `label` at a world size rather than a
+  fixed thirteen pixels and with no outline behind it; `label` keeps its halo through
+  `haloed`. The numbers fade out between eleven and six pixels tall, the way the grid
+  lines fade.
+- **They are drawn flat, in the grid's colour**, alpha and all.
+  **No new shader, no new atlas, no new pass** -- `GLYPHS` already held the digits and
+  `visibleRect` already culled.
+- **The GM sees them and players do not.** The stage is in the GM's order alone, between
+  the fog and `floor-marks`, so the fog does not dim it and a pawn stands over it.
+- **The hex window is titled by the number** when the table is numbered, so
+  double-clicking a hex names it the way the GM's notes do. A player's window still reads
+  `Hex 3, -2`, because a player has no numbers to match it against.
+
 ## Departures from the plan, and why
 
 1. **The pre-field snapshot fixture is new.** The plan asks phase 0 to assert against
@@ -511,6 +555,32 @@ control they gate.
     player's read view, and an editor that refetches under a writer's hands is worse than
     one that goes stale. `notes.removed` still closes an open window through
     `window:close`, and a snapshot still reconciles a player's open hexes.
+
+34. **The numbers are the grid's colour, drawn flat with no outline.** They were white
+    with the ruler's near-black halo at first; both went on 2026-09-13, on the GM's say-so.
+    `inkFor` reads the grid colour and nothing else, and `PathPass.caption` lays one run
+    of glyphs where `label` lays nine. `label` keeps its halo through `haloed`, so the
+    ruler is untouched.
+    **The numbers take the grid's alpha as well as its hue**, so a faint grid is faint
+    numbers, and a grid colour at zero alpha draws none at all -- the same early return
+    the grid pass makes.
+    **Nothing separates a number from what it sits on now**, so a number over busy terrain
+    art is as readable as the colour the GM picked makes it. That is the trade the flat
+    look buys.
+
+35. **A hex whose centre lands exactly on the map's edge is numbered.** The rule is
+    *centre over the picture*, which is the only rule that can be said in one sentence.
+    On a point-up grid with the default offset of zero, that puts a half-column of
+    half-hexes at the very left edge: with a 1024 by 768 map at 64px, cells 1 to 7 run
+    down seven hexes that are half off the picture, and 8 starts the first full column.
+    Any other grid offset, which is what aligning a real map gives you, does not do this.
+    Worth an eyeball in the browser; a quarter-cell inset is a one-line change if it
+    reads badly.
+
+36. **The party pawn's reveal was cut, not deferred.** Everything phase 9 used to ask
+    for -- `Pawn.Party`, `PawnSetParty`, `TableSettings.AutoReveal`, the reveal inside
+    `PawnMove.Apply` -- is out of `plans/hex-crawl.md` as well as unbuilt. The scenes
+    plan's note about `Pawn.Party` being lost on export went with it.
 
 ## Geometry, settled
 
@@ -774,6 +844,48 @@ Two browsers again, GM and player, on a floor with a hex grid and a few tiles st
 15. **The long one.** Four thousand characters in a body is taken; more is refused with a
     plain message rather than a silent truncation.
 
+## Verifying Checkpoint 8
+
+One browser as the GM, one as a player, on a floor whose map is loaded.
+
+1. **The toggle.** *Tabletop -> Grid* carries *Number the cells* under the colour, off.
+   Turn it on: numbers appear over the map without a reload, one per cell, anchored at
+   the top of each.
+2. **The count.** 1 is the top-left cell. Counting runs **down** the leftmost column,
+   and the next number after the bottom one is at the top of the next column to the
+   right.
+3. **The map is the edge.** Nothing outside the picture is numbered, on any side. Pan
+   off the map: no numbers out there, however far you go.
+4. **Both hex types and squares.** Switch *Grid type* between the three: the numbering
+   follows and stays readable. On *Hexes, point up* a column zigzags left and right as it
+   descends, which is what a paper hex crawl does; on *flat top* it runs straight down.
+5. **The left edge on a point-up grid.** With *Offset across* at 0 the first few numbers
+   sit on half-hexes hanging off the left edge (departure 35). Nudge *Offset across* by
+   half a cell and they go. Say if the default should hide them instead.
+6. **Zoom.** Zoom out: the numbers shrink with the hexes and fade out rather than piling
+   into mush. Zoom back in: they come back. Zoom right in: they stay at the top of each
+   cell, not the middle.
+7. **The colour follows the grid.** Change *Colour*: the numbers change with it. Drop the
+   colour's alpha and the numbers go as faint as the lines; take it to zero and they go
+   altogether. There is no outline behind them, so check the colour you run with reads
+   over your darkest map, your lightest one and a stamped tile.
+8. **Cell size and offsets.** Change *Cell size* and both offsets: the numbering rebuilds
+   to match, and the count starts again from the new top-left cell.
+9. **The player sees nothing.** With numbering on, the player's table has no numbers
+   anywhere, and their *Tabletop* menu has no *Grid* window to turn it on with.
+10. **The hex key knows the number.** Double-click a numbered hex: the window is titled
+    *Hex 47* rather than *Hex 3, -2*. The player double-clicking the same hex gets
+    *Hex 3, -2*. Turn numbering off and the GM's next open reads *Hex 3, -2* too.
+11. **A floor with no map.** Switch to a floor with no picture on it: no numbers, and no
+    error.
+12. **Two floors, two maps.** Each floor numbers its own map from its own top-left, and
+    the layer bar moving you between them renumbers cleanly.
+13. **The GM's own map.** Put a keyed map of a different size in *You see* on the same
+    floor: the numbers do **not** move, because they are anchored to the players' map.
+14. **Scenes.** Save a scene with numbering on, *Clear tabletop*, reopen it: numbering
+    comes back on with the map, and the numbers are the same ones.
+15. **Reload.** The toggle and the numbers survive.
+
 ## Files
 
 **Checkpoint 1.** Added: `server/internal/room/hex.go`, `hex_test.go`,
@@ -839,6 +951,13 @@ room-table-menu_test.go,scenes_test.go}`; `routes.go`; `templ/pages/{room-table-
 room-table-menu_test.go}`; and on the client `store.ts`, `panels.ts`,
 `model/revisions.ts`, `table-menu.ts`, `modes/{select.ts,table.ts,testing.ts}`,
 `main.ts` and their tests.
+
+**Checkpoint 8.** Added: `js/room/model/{numbering.ts,numbering.test.ts}`,
+`js/room/render/stages/{numbers.ts,numbers.test.ts}`, `js/room/note-window.test.ts`. Changed:
+`internal/room/state.go`, `internal/controllers/{room-table.go,room-table_test.go}`,
+`templ/pages/{room-grid.go,room-grid.templ,room-table_test.go}`, and on the client
+`render/path-pass.ts`, `render/stages/{order.ts,order.test.ts,list.test.ts}`,
+`note-window.ts`, `main.ts`, plus every grid literal in the test helpers.
 
 Regenerated across all of them: `protocol.ts`, `testdata/reducer/{gm,player}.json`,
 `testdata/snapshots/schema-3.json`, `public/css/app.css`, `public/static/room.js`.

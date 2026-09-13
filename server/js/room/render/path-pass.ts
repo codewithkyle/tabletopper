@@ -30,6 +30,7 @@ export interface PathPass {
 		width: number, color: Rgb, alpha: number,
 	): void;
 	label(text: string, x: number, y: number, color: Rgb, alpha: number): void;
+	caption(text: string, x: number, top: number, height: number, color: Rgb, alpha: number): void;
 	draw(frame: FrameContext): void;
 	dispose(): void;
 }
@@ -96,6 +97,29 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			pen += glyph.advance * height;
 		}
 	}
+	function centred(
+		text: string, x: number, top: number, height: number,
+		color: Rgb, alpha: number,
+	): void {
+		if (!atlas) {
+			return;
+		}
+		run(text, x - (atlas.measure(text) * height) / 2, top, height, color, alpha);
+	}
+	function haloed(
+		text: string, x: number, top: number, height: number,
+		color: Rgb, alpha: number,
+	): void {
+		if (!atlas) {
+			return;
+		}
+		const left = x - (atlas.measure(text) * height) / 2;
+		const reach = HALO_PIXELS * scale;
+		for (const [ox, oy] of HALO_RING) {
+			run(text, left + ox * reach, top + oy * reach, height, HALO_COLOR, alpha);
+		}
+		run(text, left, top, height, color, alpha);
+	}
 	return {
 		begin(worldPerPixel) {
 			batch.begin();
@@ -138,18 +162,11 @@ export function createPathPass(gl: WebGL2RenderingContext, atlas: GlyphAtlas | n
 			segment(x0, y0, dx, dy, width * scale, color, alpha);
 		},
 		label(text, x, y, color, alpha) {
-			if (!atlas) {
-				return;
-			}
 			const height = LABEL_PIXELS * scale;
-			const width = atlas.measure(text) * height;
-			const left = x - width / 2;
-			const top = y - LABEL_LIFT * scale - height;
-			const reach = HALO_PIXELS * scale;
-			for (const [ox, oy] of HALO_RING) {
-				run(text, left + ox * reach, top + oy * reach, height, HALO_COLOR, alpha);
-			}
-			run(text, left, top, height, color, alpha);
+			haloed(text, x, y - LABEL_LIFT * scale - height, height, color, alpha);
+		},
+		caption(text, x, top, height, color, alpha) {
+			centred(text, x, top, height, color, alpha);
 		},
 		draw(frame) {
 			if (batch.count === 0) {

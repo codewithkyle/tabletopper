@@ -503,6 +503,7 @@ func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridD
 		FeetPerCell: t.Grid.FeetPerCell,
 		Units:       string(t.Grid.Units),
 		Diagonals:   string(t.Grid.Diagonals),
+		Numbered:    t.Grid.Numbered,
 		Errors:      problems,
 	}
 }
@@ -538,6 +539,7 @@ func gridForm(r *http.Request) (room.Grid, []string) {
 		FeetPerCell: number("feetPerCell", "Distance per cell"),
 		Units:       room.GridUnits(r.FormValue("units")),
 		Diagonals:   room.Diagonals(r.FormValue("diagonals")),
+		Numbered:    r.FormValue("numbered") != "",
 	}
 	if grid.Color != "" && !strings.HasPrefix(grid.Color, "#") {
 		grid.Color = "#" + grid.Color

@@ -24,7 +24,7 @@ function table(active: string, layers: Layer[]): Table {
 function grid(): Table["grid"] {
 	return {
 		type: "square", lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
-		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal",
+		color: "#000000FF", snap: "cells", feetPerCell: 5, units: "feet", diagonals: "equal", numbered: false,
 	};
 }
 const ground = layer("ground", mapRef("m-ground"));

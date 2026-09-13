@@ -668,3 +668,38 @@ func TestThePickerPostsToTheSlotItWasOpenedFor(t *testing.T) {
 		})
 	}
 }
+func TestTheGMTurnsCellNumbersOnAndOffFromTheGridForm(t *testing.T) {
+	fields := func(numbered string) url.Values {
+		form := url.Values{
+			"gridType": {"hexFlat"}, "gridLines": {"solid"}, "cellSize": {"64"},
+			"offsetX": {"0"}, "offsetY": {"0"},
+			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"6"}, "units": {"miles"},
+			"diagonals": {"equal"},
+		}
+		if numbered != "" {
+			form.Set("numbered", numbered)
+		}
+		return form
+	}
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer(), tableRoomAnswer(), tableRoomAnswer(), tableRoomAnswer()}}
+	app := tableApp(t, db)
+	for _, tc := range []struct {
+		name string
+		on   string
+		want bool
+	}{
+		{"on", "on", true},
+		{"off", "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := tableRequest(t, app.SetRoomGrid, http.MethodPost, "/rooms/"+testRoomID.String()+"/grid",
+				map[string]string{"id": testRoomID.String()}, fields(tc.on), session.UserSession{UserID: testOwnerID})
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+			}
+			if got := tableView(t, app).Table.Grid.Numbered; got != tc.want {
+				t.Errorf("the grid is numbered: %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

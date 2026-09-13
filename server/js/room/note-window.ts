@@ -5,11 +5,11 @@ const HEIGHT = 380;
 export function noteWindowID(layer: string, q: number, r: number): string {
 	return `${NOTE_WINDOW}${layer}:${q}:${r}`;
 }
-export function noteWindow(roomID: string, layer: string, q: number, r: number): WindowSpec {
+export function noteWindow(roomID: string, layer: string, q: number, r: number, name: string): WindowSpec {
 	return {
 		id: noteWindowID(layer, q, r),
 		url: `/fragment/room/hex?room=${roomID}&layer=${layer}&q=${q}&r=${r}`,
-		title: `Hex ${q}, ${r}`,
+		title: `Hex ${name}`,
 		width: WIDTH,
 		height: HEIGHT,
 	};

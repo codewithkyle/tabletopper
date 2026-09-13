@@ -74,6 +74,7 @@ type Grid struct {
 	FeetPerCell int       `json:"feetPerCell"`
 	Units       GridUnits `json:"units"`
 	Diagonals   Diagonals `json:"diagonals"`
+	Numbered    bool      `json:"numbered"`
 }
 type Player struct {
 	ID            ulid.ULID  `json:"id"`

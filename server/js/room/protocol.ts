@@ -49,6 +49,7 @@ export interface Grid {
 	feetPerCell: number;
 	units: GridUnits;
 	diagonals: Diagonals;
+	numbered: boolean;
 }
 export interface HexNote {
 	layerId: string;

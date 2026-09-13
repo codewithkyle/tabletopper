@@ -20,6 +20,7 @@ type RoomGridData struct {
 	FeetPerCell int
 	Units       string
 	Diagonals   string
+	Numbered    bool
 	Errors      []string
 }
 

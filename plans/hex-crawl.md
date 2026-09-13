@@ -654,38 +654,57 @@ pointer is how you reach into the bag.
   `floor-marks` stage, which draws tinted cell outlines today and needs no new
   pass; for players only once revealed.
 
-## Phase 9: reveal as the party moves
+## Phase 9: numbering the cells
+
+The GM needs a name for a hex they can say at the table and look up in their
+own notes. Phase 8 gives them the key; this gives them the reference.
 
 ### Tests first
 
-- `pawn_test.go`: moving the party pawn into a cell with `AutoReveal` on `cell`
-  adds one reveal shape for that cell and nothing else; on `neighbours` it adds
-  the cell and its ring — six on a hex grid, eight on a square one; with it off
-  it adds nothing; on a floor without `FogEnabled` it adds nothing.
-- Re-entering a revealed cell adds no second shape.
-- Only the pawn marked as the party triggers it, and marking a second pawn
-  unmarks the first.
-- A reveal the fog budget cannot afford is skipped and the move still lands.
-- The regenerated fixtures show the move's frame carrying `pawns.moved` and
-  `fog.upserted` together.
+- `model/numbering.test.ts`: a square map three cells by two is numbered 1 to 6
+  down each column in turn; a cell that is not over the map is not numbered, so
+  the count starts and stops with the picture; every numbered cell sits over the
+  map and every cell over the map is numbered, on all three grid types; the
+  numbers are 1 upwards with no gaps; every step is either down a column or the
+  top of the next one; a column is a strip of the map and each is to the right of
+  the last; offset and axial coordinates round trip.
+- `each` walks only the cells inside a world rectangle, so the stage pays for
+  what is on screen and not for the map.
+- `order.test.ts`: the stage is in the GM's order and not a player's, over the
+  fog that dims the map and under the pawns that stand on it.
+- `room-table_test.go`: the grid form carries `numbered` and opens on whether the
+  table has it on; the GM turns it on and off and the grid keeps what they chose.
+- `note-window.test.ts`: a hex window is titled the way the table refers to the
+  cell.
 
 ### Then
 
-- `Pawn.Party bool` and a GM-only `PawnSetParty{ID}` that clears the flag on
-  every other pawn; *This is the party* on the pawn context menu. The mark
-  travels with the pawn, so it is in the scene.
-- `TableSettings.AutoReveal` of `off | cell | neighbours`, an enum in the
-  `Values()`/`Valid()` idiom, in `TableSetOptions` and the *Table settings*
-  window. It is how the GM runs the table, so it stays with the room.
-- The reveal happens **inside `PawnMove.Apply`**, the one command that moves
-  pawns: after the move, for the anchor and each of `Others` that carries the
-  mark, on a floor with `FogEnabled`, it appends a `poly` (hex) or `rect`
-  (square) reveal for the cell and, on `neighbours`, its ring, skipping any
-  whose points exactly match a reveal already there, and skipping the lot when
-  `fogBudget` says no. `Derive` reports the new shapes as `fog.upserted` in the
-  same frame as the move, so the client learns both at once; the fog tool lists
-  and removes them like any other shape. Nothing in `hub/effects.go`, which
-  runs after the fact and cannot dispatch.
+- `Grid.Numbered bool` (`json:"numbered"`), a toggle in the grid form. It is in
+  `Grid`, so it travels with the scene: the numbering belongs to the map, not to
+  the viewer, and a scene carries its own map. Nothing migrates and `room.Schema`
+  stays at 3.
+- **The extent is the floor's players' map.** A floor with no map is not
+  numbered, which is the answer to where counting starts and stops on an
+  infinite grid. The players' map is preferred over the GM's keyed one, so
+  flipping to a keyed map of another size does not renumber the table.
+- **The count runs down a column and then into the next**, starting at 1 in the
+  top left. A cell is over the map when its centre is. Columns come from offset
+  coordinates — odd-r for point-up hexes, odd-q for flat-top — so a column on a
+  point-up grid is the zigzag every paper hex crawl uses, and the same code
+  numbers a square grid.
+- `model/numbering.ts` builds the numbering once per grid and map and keeps the
+  last one, because the grid changes far less often than the frame.
+- `render/stages/numbers.ts` is a second `createPathPass`, like `floor-marks`
+  and `over-marks`. `PathPass` grows `caption`, which is `label` at a world size
+  rather than a fixed thirteen pixels, and the numbers fade out below the size
+  at which they could be read. **No new shader, no new atlas, no new pass**:
+  `GLYPHS` already carries the digits and `visibleRect` already culls.
+- **A number is drawn flat in the grid's colour**, alpha included, with no
+  outline behind it.
+- **The GM sees the numbers; players do not.** The stage is in the GM's order
+  alone. A player who wants a hex pings it.
+- The hex note window is titled by the number when the table is numbered, so
+  double-clicking a hex names it the way the GM's notes do.
 
 ---
 
@@ -699,19 +718,19 @@ pointer is how you reach into the bag.
   and `scene_test.go` inside this plan's phases 6 and 8, tests first.
 - **`SceneLoad.Resolve` re-resolves `GMMap` exactly as it re-resolves `Map`.**
   Same `lib.Map`, same clearing on a `*room.Error`, same line in the toast.
-- **`Type` and `Units` are grid and travel with the scene; `PlayersCanStamp`
-  and `AutoReveal` are table options and stay with the room.** The split scenes
+- **`Type`, `Units` and `Numbered` are grid and travel with the scene;
+  `PlayersCanStamp` is a table option and stays with the room.** The split scenes
   phase 1 draws in the UI is the split this plan follows in the structs.
-- **`Pawn.Party` is lost when the marked pawn is a player's**, because export
-  drops player pawns. A hex crawl's party marker is an object or an NPC, which
-  survive.
 
 ## What this deliberately does not do
 
 - **No travel, weather, foraging or encounter mechanics.** See the top.
-- **No hex coordinate labels drawn on the grid.** Rendering `0412` in every hex
-  needs the glyph atlas in a new pass at a new scale, and a GM who needs
-  coordinates has a keyed map that already carries them.
+- **No column-and-row references.** Phase 9 counts 1, 2, 3 rather than naming a
+  hex `0412`. A running count renumbers the whole map when its extent changes,
+  where a coordinate does not; the format is one function in
+  `model/numbering.ts` if that ever proves to matter.
+- **No reveal as the party moves.** It was phase 9 and was cut on 2026-09-13:
+  it automates a call the GM makes deliberately, and it fights the fog tool.
 - **No tile layering.** One tile per cell; the map underneath is the base. Two
   tiles in a cell is a compositing question that a stamped forest over a stamped
   hill does not repay.

@@ -15,6 +15,7 @@ function grid(type: Grid["type"], units: Grid["units"]): Grid {
 		feetPerCell: 5,
 		units,
 		diagonals: "equal",
+		numbered: false,
 	};
 }
 test("the atlas covers every character a distance label can emit", () => {

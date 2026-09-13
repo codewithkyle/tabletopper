@@ -14,6 +14,7 @@ function grid(over: Partial<Grid> = {}): Grid {
 		feetPerCell: 5,
 		units: "feet",
 		diagonals: "equal",
+		numbered: false,
 		...over,
 	};
 }

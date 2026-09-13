@@ -7,6 +7,7 @@ import { fogStage } from "./fog.ts";
 import { ghostsStage } from "./ghosts.ts";
 import { gridStage } from "./grid.ts";
 import { handlesStage } from "./handles.ts";
+import { numbersStage } from "./numbers.ts";
 import { overMarksStage } from "./over-marks.ts";
 import { ownPawnsStage } from "./own-pawns.ts";
 import { ownAurasStage } from "./own-auras.ts";
@@ -24,6 +25,7 @@ const NAMES: ReadonlyMap<StageFactory, string> = new Map([
 	[decalsStage, "decals"],
 	[strokesStage, "strokes"],
 	[fogStage, "fog"],
+	[numbersStage, "numbers"],
 	[floorMarksStage, "floor-marks"],
 	[aurasStage, "auras"],
 	[pawnsStage, "pawns"],
@@ -42,7 +44,7 @@ export function nameOf(factory: StageFactory): string {
 export function stagesFor(role: Role): readonly StageFactory[] {
 	return [
 		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
-		...(role === "gm" ? [fogStage] : []),
+		...(role === "gm" ? [fogStage, numbersStage] : []),
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
 		...(role === "player" ? [fogStage, ownAurasStage, ownPawnsStage, ownRingsStage] : []),
