@@ -549,24 +549,25 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// THE ASSET MANAGER IS A PAGE PER KIND, joined by the sub-nav across the
 	// top. /assets is a redirect onto the first of them rather than an index:
 	// there is nothing to show above the kinds that the tab strip does not
-	// already show, and a page whose whole content is four links to the pages
+	// already show, and a page whose whole content is five links to the pages
 	// beneath it is a page nobody wants to land on twice.
 	//
-	// FOUR LITERAL ROUTES RATHER THAN "GET /assets/{kind}". The kinds are a
+	// FIVE LITERAL ROUTES RATHER THAN "GET /assets/{kind}". The kinds are a
 	// closed set whose handlers do not resemble each other -- a map is tiled by
 	// a background worker, music is not an image at all -- so a wildcard would
 	// be matched against an allowlist and then switched on, which is a longer
 	// way of writing what the mux does here for nothing.
 	mux.HandleFunc("GET /assets", auth.RequireSession(app.AssetsPage))
 	mux.HandleFunc("GET /assets/maps", auth.RequireSession(app.MapAssetsPage))
+	mux.HandleFunc("GET /assets/terrain", auth.RequireSession(app.TerrainAssetsPage))
 	mux.HandleFunc("GET /assets/tokens", auth.RequireSession(app.TokenAssetsPage))
 	mux.HandleFunc("GET /assets/avatars", auth.RequireSession(app.AvatarAssetsPage))
 	mux.HandleFunc("GET /assets/music", auth.RequireSession(app.MusicAssetsPage))
-	// THE LIBRARY KINDS, which are the two that are one stored image and
+	// THE LIBRARY KINDS, which are the three that are one stored image and
 	// nothing else. Each is the collection-and-member pair every other resource
-	// here uses, and the two sets are identical but for the segment -- one set
-	// of handlers serves both, with the kind bound at registration rather than
-	// read from the path. See internal/controllers/library-assets.go.
+	// here uses, and the three sets are identical but for the segment -- one set
+	// of handlers serves them all, with the kind bound at registration rather
+	// than read from the path. See internal/controllers/library-assets.go.
 	//
 	// THE KIND IN THE PATH IS ENFORCED AND NOT DECORATIVE. Every statement
 	// behind these carries the type, so a token's id sent to an avatars route
@@ -590,6 +591,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /assets/avatars/{id}", auth.RequireSession(app.ReplaceAvatar))
 	mux.HandleFunc("PATCH /assets/avatars/{id}/name", auth.RequireSession(app.RenameAvatar))
 	mux.HandleFunc("DELETE /assets/avatars/{id}", auth.RequireSession(app.DeleteAvatar))
+	mux.HandleFunc("POST /assets/terrain", auth.RequireSession(app.UploadTerrain))
+	mux.HandleFunc("POST /assets/terrain/{id}", auth.RequireSession(app.ReplaceTerrain))
+	mux.HandleFunc("PATCH /assets/terrain/{id}/name", auth.RequireSession(app.RenameTerrain))
+	mux.HandleFunc("DELETE /assets/terrain/{id}", auth.RequireSession(app.DeleteTerrain))
 	// MUSIC, WHOSE UPLOAD IS TWO REQUESTS BECAUSE ITS BYTES NEVER COME HERE. A
 	// track is 115 to 175 MB, so the browser PUTs it straight to R2 through a
 	// presigned URL: the first route writes the row that claims the key and

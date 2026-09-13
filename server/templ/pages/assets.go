@@ -8,6 +8,7 @@ import (
 
 const (
 	assetTabMaps    = "maps"
+	assetTabTerrain = "terrain"
 	assetTabTokens  = "tokens"
 	assetTabAvatars = "avatars"
 	assetTabMusic   = "music"

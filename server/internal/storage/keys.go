@@ -34,6 +34,9 @@ func AvatarKey(userID ulid.ULID, assetID ulid.ULID) string {
 func TokenKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/tokens/" + assetID.String()
 }
+func TerrainKey(userID ulid.ULID, assetID ulid.ULID) string {
+	return "users/" + userID.String() + "/terrain/" + assetID.String()
+}
 func MusicKey(userID ulid.ULID, assetID ulid.ULID) string {
 	return "users/" + userID.String() + "/music/" + assetID.String()
 }

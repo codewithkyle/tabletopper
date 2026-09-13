@@ -126,6 +126,41 @@ func TestTheLibraryReadsAPictureWithNoSizeAsHavingNone(t *testing.T) {
 		t.Fatalf("the picture is %dx%d, want nothing the command can size a pawn by", got.Width, got.Height)
 	}
 }
+func TestTheLibraryReadsTerrainAsItsOwnKind(t *testing.T) {
+	got, err := reading(t, terrainRow(mapAssetID, "Pine forest")).
+		Picture(t.Context(), mapAssetID, room.PictureTerrain)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	want := room.PictureInfo{
+		Name: "Pine forest", Image: "/assets/images/" + mapAssetID.String(),
+		Width: 512, Height: 442,
+	}
+	if got != want {
+		t.Fatalf("the terrain is %+v, want %+v", got, want)
+	}
+}
+func TestATokenIsNotServedAsTerrainNorTerrainAsAToken(t *testing.T) {
+	_, err := reading(t, tokenRow(mapAssetID, "Ox-drawn wagon")).
+		Picture(t.Context(), mapAssetID, room.PictureTerrain)
+	refusal(t, err, room.CodeNotFound)
+	_, err = reading(t, terrainRow(mapAssetID, "Pine forest")).
+		Picture(t.Context(), mapAssetID, room.PictureToken)
+	refusal(t, err, room.CodeNotFound)
+}
+func TestEveryPictureKindReadsAnAssetTypeOfItsOwn(t *testing.T) {
+	taken := map[queries.AssetsType]room.PictureKind{}
+	for _, kind := range []room.PictureKind{room.PictureToken, room.PictureAvatar, room.PictureTerrain} {
+		got := assetType(kind)
+		if other, seen := taken[got]; seen {
+			t.Errorf("%s and %s both read %q", kind, other, got)
+		}
+		taken[got] = kind
+		if string(got) != string(kind) {
+			t.Errorf("%s reads %q", kind, got)
+		}
+	}
+}
 func TestTheLibraryReadsACharacterIntoItsStatLine(t *testing.T) {
 	got, err := reading(t, characterRow(&mapAssetID)).Character(t.Context(), charID)
 	if err != nil {

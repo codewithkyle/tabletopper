@@ -25,6 +25,22 @@ templ MapCards(maps []MapAsset, query string) {
 	}
 }
 
+templ TerrainAssets(terrain []LibraryAsset) {
+	@layouts.Base("Terrain | Asset Manager | Tabletopper") {
+		@assetsShell(assetTabTerrain, libraryUploadButton(assetTabTerrain, "Upload terrain")) {
+			@TerrainCards(terrain, "")
+		}
+	}
+}
+
+templ TerrainCards(terrain []LibraryAsset, query string) {
+	@assetCards(terrainGrid(query)) {
+		for _, t := range terrain {
+			@LibraryAssetCard(t)
+		}
+	}
+}
+
 templ TokenAssets(tokens []LibraryAsset) {
 	@layouts.Base("Tokens | Asset Manager | Tabletopper") {
 		@assetsShell(assetTabTokens, libraryUploadButton(assetTabTokens, "Upload token")) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"io"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -212,6 +213,30 @@ func avatarRow(id ulid.ULID, name string) stubRow {
 	row.values[10], row.values[11] = int64(256), int64(256)
 	return row
 }
+func terrainRow(id ulid.ULID, name string) stubRow {
+	row := tokenRow(id, name)
+	row.values[3] = []byte("terrain/x.webp")
+	row.values[5] = []byte("terrain")
+	row.values[6] = []byte("pines.png")
+	row.values[10], row.values[11] = int64(512), int64(442)
+	return row
+}
+func (r stubRow) otherKind(args []driver.Value) bool {
+	at := slices.Index(r.columns, "type")
+	if at < 0 || at >= len(r.values) {
+		return false
+	}
+	held, ok := r.values[at].([]byte)
+	if !ok {
+		return false
+	}
+	for _, arg := range args {
+		if asked, ok := arg.(string); ok && asked != string(held) {
+			return true
+		}
+	}
+	return false
+}
 
 type stubConnector struct{ row stubRow }
 
@@ -229,8 +254,8 @@ type stubStmt struct{ row stubRow }
 func (s stubStmt) Close() error                               { return nil }
 func (s stubStmt) NumInput() int                              { return -1 }
 func (s stubStmt) Exec([]driver.Value) (driver.Result, error) { return driver.RowsAffected(0), nil }
-func (s stubStmt) Query([]driver.Value) (driver.Rows, error) {
-	return &stubRows{row: s.row, done: s.row.empty}, nil
+func (s stubStmt) Query(args []driver.Value) (driver.Rows, error) {
+	return &stubRows{row: s.row, done: s.row.empty || s.row.otherKind(args)}, nil
 }
 
 type stubRows struct {

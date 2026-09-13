@@ -49,6 +49,8 @@ func (a *App) assetCards(ctx context.Context, ownerID ulid.ULID, kind string, te
 		return a.libraryCards(ctx, ownerID, tokenKind, term)
 	case avatarKind.Slug:
 		return a.libraryCards(ctx, ownerID, avatarKind, term)
+	case terrainKind.Slug:
+		return a.libraryCards(ctx, ownerID, terrainKind, term)
 	case musicKind.Slug:
 		tracks, err := a.musicList(ctx, ownerID, term)
 		if err != nil {

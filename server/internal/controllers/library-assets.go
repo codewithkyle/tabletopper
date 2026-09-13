@@ -23,6 +23,7 @@ import (
 const (
 	avatarLibrarySize = 256
 	tokenSize         = 512
+	terrainSize       = 512
 )
 
 type assetKind struct {
@@ -53,6 +54,13 @@ var (
 		Page:      pages.TokenAssets,
 		Cards:     pages.TokenCards,
 	}
+	terrainKind = libraryKind{
+		assetKind: assetKind{Type: queries.AssetsTypeTerrain, Slug: "terrain", One: "terrain picture"},
+		Key:       storage.TerrainKey,
+		Store:     func(src image.Image) image.Image { return images.Fit(src, terrainSize) },
+		Page:      pages.TerrainAssets,
+		Cards:     pages.TerrainCards,
+	}
 	musicKind = assetKind{Type: queries.AssetsTypeMusic, Slug: "music", One: "track"}
 )
 
@@ -77,6 +85,21 @@ func (a *App) RenameToken(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	a.deleteLibrary(w, r, tokenKind.assetKind)
+}
+func (a *App) TerrainAssetsPage(w http.ResponseWriter, r *http.Request) {
+	a.libraryPage(w, r, terrainKind)
+}
+func (a *App) UploadTerrain(w http.ResponseWriter, r *http.Request) {
+	a.uploadLibrary(w, r, terrainKind)
+}
+func (a *App) ReplaceTerrain(w http.ResponseWriter, r *http.Request) {
+	a.replaceLibrary(w, r, terrainKind)
+}
+func (a *App) RenameTerrain(w http.ResponseWriter, r *http.Request) {
+	a.renameLibrary(w, r, terrainKind.assetKind)
+}
+func (a *App) DeleteTerrain(w http.ResponseWriter, r *http.Request) {
+	a.deleteLibrary(w, r, terrainKind.assetKind)
 }
 func libraryCard(kind libraryKind, row queries.Asset) pages.LibraryAsset {
 	card := pages.LibraryAsset{

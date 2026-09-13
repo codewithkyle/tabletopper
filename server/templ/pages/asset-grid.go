@@ -19,6 +19,16 @@ func mapsGrid(query string) assetGrid {
 		NoMatch:      noMatchHeading("maps", query),
 	}
 }
+func terrainGrid(query string) assetGrid {
+	return assetGrid{
+		Kind:         assetTabTerrain,
+		Cols:         assetTileGrid,
+		Query:        query,
+		EmptyHeading: "No terrain yet.",
+		EmptyBlurb:   "The pictures you stamp onto a hex crawl -- forest, hills, a river bend. One is cut to the shape of a cell as it lands, so upload the art whole and let the board do the trimming.",
+		NoMatch:      noMatchFor("terrain", "matches", query),
+	}
+}
 func tokensGrid(query string) assetGrid {
 	return assetGrid{
 		Kind:         assetTabTokens,

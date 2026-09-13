@@ -116,10 +116,14 @@ func (l library) Character(ctx context.Context, id ulid.ULID) (room.CharacterInf
 	}, nil
 }
 func assetType(kind room.PictureKind) queries.AssetsType {
-	if kind == room.PictureAvatar {
+	switch kind {
+	case room.PictureAvatar:
 		return queries.AssetsTypeAvatar
+	case room.PictureTerrain:
+		return queries.AssetsTypeTerrain
+	default:
+		return queries.AssetsTypeToken
 	}
-	return queries.AssetsTypeToken
 }
 func imageURL(id *ulid.ULID) string {
 	if id == nil {

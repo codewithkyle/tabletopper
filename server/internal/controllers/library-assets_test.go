@@ -14,6 +14,8 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+
+	"github.com/oklog/ulid/v2"
 )
 
 func pngPixels(t *testing.T, width, height int) []byte {
@@ -57,6 +59,10 @@ func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 		"a tall token keeps its aspect":         {tokenKind, 256, 1024, tokenSize / 4, tokenSize},
 		"a square token fills the box":          {tokenKind, 1024, 1024, tokenSize, tokenSize},
 		"a small token is left alone":           {tokenKind, 64, 21, 64, 21},
+		"a wide terrain keeps its aspect":       {terrainKind, 1024, 256, terrainSize, terrainSize / 4},
+		"a tall terrain keeps its aspect":       {terrainKind, 256, 1024, terrainSize / 4, terrainSize},
+		"a square terrain fills the box":        {terrainKind, 1024, 1024, terrainSize, terrainSize},
+		"a small terrain is left alone":         {terrainKind, 64, 21, 64, 21},
 	} {
 		t.Run(name, func(t *testing.T) {
 			src := image.NewNRGBA(image.Rect(0, 0, c.width, c.height))
@@ -81,7 +87,7 @@ func TestAvatarsAreCroppedSquareAndTokensKeepTheirShape(t *testing.T) {
 	}
 }
 func TestUploadLibraryAssetWritesTheRowBeforeReachingR2(t *testing.T) {
-	for _, kind := range []libraryKind{avatarKind, tokenKind} {
+	for _, kind := range libraryKinds() {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}
@@ -111,7 +117,7 @@ func TestUploadLibraryAssetWritesTheRowBeforeReachingR2(t *testing.T) {
 }
 func TestLibraryReadsAndRenamesAreScopedToTheirKind(t *testing.T) {
 	const id = "01BX5ZZKBKACTAV9WEVGEMMVS2"
-	for _, kind := range []libraryKind{avatarKind, tokenKind} {
+	for _, kind := range libraryKinds() {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}
@@ -153,24 +159,38 @@ func TestAssetNameIsCutToWhatTheColumnHolds(t *testing.T) {
 		})
 	}
 }
+func libraryKinds() []libraryKind {
+	return []libraryKind{avatarKind, tokenKind, terrainKind}
+}
 func TestTheLibraryKindsShareNothing(t *testing.T) {
-	if avatarKind.Type == tokenKind.Type {
-		t.Error("both kinds insert the same assets.type")
+	kinds := libraryKinds()
+	for i, a := range kinds {
+		for _, b := range kinds[i+1:] {
+			if a.Type == b.Type {
+				t.Errorf("%s and %s insert the same assets.type", a.Slug, b.Slug)
+			}
+			if a.Slug == b.Slug {
+				t.Errorf("%s and %s route under the same segment", a.Slug, b.Slug)
+			}
+			if a.One == b.One {
+				t.Errorf("%s and %s call themselves the same thing", a.Slug, b.Slug)
+			}
+			if a.Key(testOwnerID, testOwnerID) == b.Key(testOwnerID, testOwnerID) {
+				t.Errorf("%s and %s store their objects at the same key", a.Slug, b.Slug)
+			}
+		}
 	}
-	if avatarKind.Slug == tokenKind.Slug {
-		t.Error("both kinds route under the same segment")
-	}
-	if avatarKind.One == tokenKind.One {
-		t.Error("both kinds call themselves the same thing")
-	}
-	if avatarKind.Key(testOwnerID, testOwnerID) == tokenKind.Key(testOwnerID, testOwnerID) {
-		t.Error("both kinds store their objects at the same key")
-	}
-	if got := avatarKind.Key(testOwnerID, testOwnerID); got != storage.AvatarKey(testOwnerID, testOwnerID) {
-		t.Errorf("the avatar kind stores at %q", got)
-	}
-	if got := tokenKind.Key(testOwnerID, testOwnerID); got != storage.TokenKey(testOwnerID, testOwnerID) {
-		t.Errorf("the token kind stores at %q", got)
+	for _, c := range []struct {
+		kind libraryKind
+		key  func(ulid.ULID, ulid.ULID) string
+	}{
+		{avatarKind, storage.AvatarKey},
+		{tokenKind, storage.TokenKey},
+		{terrainKind, storage.TerrainKey},
+	} {
+		if got, want := c.kind.Key(testOwnerID, testOwnerID), c.key(testOwnerID, testOwnerID); got != want {
+			t.Errorf("the %s kind stores at %q, want %q", c.kind.Slug, got, want)
+		}
 	}
 }
 func TestACharacterPortraitIsNotWrittenAsALibraryAvatar(t *testing.T) {
@@ -206,7 +226,7 @@ func TestTheImageRouteStillServesACharacterPortrait(t *testing.T) {
 	}
 }
 func TestALibraryPageListsOneKindForOneOwner(t *testing.T) {
-	for _, kind := range []libraryKind{avatarKind, tokenKind} {
+	for _, kind := range libraryKinds() {
 		t.Run(kind.Slug, func(t *testing.T) {
 			db := &recordingDB{err: errNoRowsToGive}
 			app := &App{Queries: queries.New(db)}

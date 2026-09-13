@@ -20,7 +20,7 @@ SET tile_state = 'pending'
 WHERE id = ? AND owner_id = ? AND type = 'map';
 -- name: GetImage :one
 SELECT id, type, file_path, preview_path, updated_at FROM assets
-WHERE id = ? AND type IN ('map', 'avatar', 'token', 'monster', 'character', 'profile');
+WHERE id = ? AND type IN ('map', 'avatar', 'token', 'terrain', 'monster', 'character', 'profile');
 -- name: GetMapPyramid :one
 SELECT owner_id, width, height, tile_size, max_zoom, tile_gen FROM assets
 WHERE id = ? AND type = 'map';

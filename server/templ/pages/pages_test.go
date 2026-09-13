@@ -1745,22 +1745,35 @@ func TestThePageIsMadeOfTheSameCardTheFragmentServes(t *testing.T) {
 	}
 }
 func TestEveryAssetPageOffersEveryKind(t *testing.T) {
-	kinds := []string{"/assets/maps", "/assets/tokens", "/assets/avatars", "/assets/music"}
+	kinds := []string{"/assets/maps", "/assets/terrain", "/assets/tokens", "/assets/avatars", "/assets/music"}
 	for name, c := range map[string]struct {
 		page    templ.Component
 		current string
 	}{
 		"maps":    {MapAssets(nil), "/assets/maps"},
+		"terrain": {TerrainAssets(nil), "/assets/terrain"},
 		"tokens":  {TokenAssets(nil), "/assets/tokens"},
 		"avatars": {AvatarAssets(nil), "/assets/avatars"},
 		"music":   {MusicAssets(nil), "/assets/music"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			body := markup(t, c.page)
+			strip := body[strings.Index(body, `aria-label="Asset kinds"`):]
+			strip = strip[:strings.Index(strip, "</nav>")]
+			at := -1
 			for _, href := range kinds {
-				if !strings.Contains(body, `href="`+href+`"`) {
+				next := strings.Index(strip, `href="`+href+`"`)
+				if next < 0 {
 					t.Errorf("no way to reach %s from here", href)
+					continue
 				}
+				if next < at {
+					t.Errorf("%s is out of order in the strip:\n%s", href, strip)
+				}
+				at = next
+			}
+			if got := strings.Count(strip, `href="/assets/`); got != len(kinds) {
+				t.Errorf("the strip carries %d tabs, want %d:\n%s", got, len(kinds), strip)
 			}
 			if want := `href="` + c.current + `" aria-current="page"`; !strings.Contains(body, want) {
 				t.Errorf("the current tab is not %s", c.current)
@@ -1892,11 +1905,13 @@ func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 		match string
 	}{
 		"maps searched":     {MapCards(nil, "keep"), `No maps match "keep".`},
+		"terrain searched":  {TerrainCards(nil, "pine"), `No terrain matches "pine".`},
 		"tokens searched":   {TokenCards(nil, "wagon"), `No tokens match "wagon".`},
 		"avatars searched":  {AvatarCards(nil, "elf"), `No avatars match "elf".`},
 		"music searched":    {MusicCards(nil, "rain"), `No tracks match "rain".`},
 		"monsters searched": {MonsterCardsFragment(MonsterListData{Query: "goblin"}), `No monsters match "goblin".`},
 		"maps empty":        {MapCards(nil, ""), ""},
+		"terrain empty":     {TerrainCards(nil, ""), ""},
 		"tokens empty":      {TokenCards(nil, ""), ""},
 		"avatars empty":     {AvatarCards(nil, ""), ""},
 		"music empty":       {MusicCards(nil, ""), ""},
@@ -1935,6 +1950,7 @@ func TestTheAssetSearchFragmentIsTheSectionThePageAlreadyHas(t *testing.T) {
 		cards templ.Component
 	}{
 		"maps":    {MapAssets(nil), MapCards(nil, "")},
+		"terrain": {TerrainAssets(nil), TerrainCards(nil, "")},
 		"tokens":  {TokenAssets(nil), TokenCards(nil, "")},
 		"avatars": {AvatarAssets(nil), AvatarCards(nil, "")},
 		"music":   {MusicAssets(nil), MusicCards(nil, "")},
@@ -1956,6 +1972,7 @@ func TestTheAssetGridsSizeTheCardRatherThanCountColumns(t *testing.T) {
 		want string
 	}{
 		"maps":    {MapAssets(nil), assetTileGrid},
+		"terrain": {TerrainAssets(nil), assetTileGrid},
 		"tokens":  {TokenAssets(nil), assetTileGrid},
 		"avatars": {AvatarAssets(nil), assetFaceGrid},
 	} {
@@ -1990,7 +2007,7 @@ func testLibraryCard(kind string) LibraryAsset {
 	}
 }
 func TestALibraryCardOnlyEverAddressesItsOwnKind(t *testing.T) {
-	for _, kind := range []string{"tokens", "avatars"} {
+	for _, kind := range []string{"tokens", "avatars", "terrain"} {
 		t.Run(kind, func(t *testing.T) {
 			body := markup(t, LibraryAssetCard(testLibraryCard(kind)))
 			base := "/assets/" + kind + "/" + testMapID

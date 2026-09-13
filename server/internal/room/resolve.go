@@ -20,8 +20,9 @@ type Library interface {
 type PictureKind string
 
 const (
-	PictureToken  PictureKind = "token"
-	PictureAvatar PictureKind = "avatar"
+	PictureToken   PictureKind = "token"
+	PictureAvatar  PictureKind = "avatar"
+	PictureTerrain PictureKind = "terrain"
 )
 
 type MonsterInfo struct {
