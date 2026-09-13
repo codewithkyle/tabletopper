@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Grid, MapRef } from "../protocol.ts";
-import { axialOf, cellName, newNumbering, numberingFor, offsetOf } from "./numbering.ts";
+import { axialOf, cellName, newNumbering, numberingCache, numberingFor, offsetOf } from "./numbering.ts";
 import { cellCentre } from "./grid.ts";
 function newGrid(over: Partial<Grid> = {}): Grid {
 	return {
@@ -159,10 +159,10 @@ test("walking a rectangle visits the numbered cells inside it and no others", ()
 test("a hex is named by its number only when the table is numbered and there is a map under it", () => {
 	const grid = newGrid();
 	const map = newMap(192, 128);
-	assert.equal(cellName(grid, map, 1, 1), "4");
-	assert.equal(cellName(grid, map, 9, 9), "9, 9", "a hex off the map keeps its coordinates");
-	assert.equal(cellName(newGrid({ numbered: false }), map, 1, 1), "1, 1");
-	assert.equal(cellName(grid, null, 1, 1), "1, 1", "a floor with no map has nothing to count over");
+	assert.equal(cellName(numberingFor(grid, map), 1, 1), "4");
+	assert.equal(cellName(numberingFor(grid, map), 9, 9), "9, 9", "a hex off the map keeps its coordinates");
+	assert.equal(cellName(numberingFor(newGrid({ numbered: false }), map), 1, 1), "1, 1");
+	assert.equal(cellName(numberingFor(grid, null), 1, 1), "1, 1", "a floor with no map has nothing to count over");
 });
 test("numbering is only built for a table that asked for it", () => {
 	const map = newMap(192, 128);
@@ -170,8 +170,15 @@ test("numbering is only built for a table that asked for it", () => {
 	assert.equal(numberingFor(newGrid(), null), null);
 	assert.ok(numberingFor(newGrid(), map));
 });
-test("the same grid and map hand back the same numbering rather than building it again", () => {
+test("a cache hands the same numbering back until the grid or the map changes", () => {
 	const map = newMap(192, 128);
-	assert.equal(numberingFor(newGrid(), map), numberingFor(newGrid(), map));
-	assert.notEqual(numberingFor(newGrid(), map), numberingFor(newGrid({ cellSize: 32 }), map));
+	const cache = numberingCache();
+	assert.equal(cache(newGrid(), map), cache(newGrid(), map));
+	assert.notEqual(cache(newGrid(), map), cache(newGrid({ cellSize: 32 }), map));
+	assert.equal(cache(newGrid({ numbered: false }), map), null);
+});
+test("each cache holds its own numbering rather than one the module keeps", () => {
+	const map = newMap(192, 128);
+	assert.notEqual(numberingCache()(newGrid(), map), numberingCache()(newGrid(), map));
+	assert.notEqual(numberingFor(newGrid(), map), numberingFor(newGrid(), map));
 });

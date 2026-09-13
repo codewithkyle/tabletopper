@@ -2,7 +2,7 @@ import type { Stage, StageFactory } from "./stage.ts";
 import type { Rect, Rgb } from "../../model/types.ts";
 import { cellCentre, cellExtents } from "../../model/grid.ts";
 import { createPathPass } from "../path-pass.ts";
-import { numberingFor } from "../../model/numbering.ts";
+import { numberingCache } from "../../model/numbering.ts";
 import { parseColor } from "../../model/color.ts";
 import { visibleRect } from "../camera.ts";
 const HEIGHT = 0.22;
@@ -30,6 +30,7 @@ function fade(pixels: number): number {
 export const numbersStage: StageFactory = (gl, resources): Stage => {
 	const pass = createPathPass(gl, resources.atlas);
 	const seen: Rect = { x1: 0, y1: 0, x2: 0, y2: 0 };
+	const numberingFor = numberingCache();
 	return {
 		build(frame) {
 			pass.begin(frame.worldPerCssPixel);

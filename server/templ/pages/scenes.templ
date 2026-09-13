@@ -57,6 +57,7 @@ templ sceneTile(s SceneCard) {
 			class="input input-xs w-full"
 			hx-patch={ s.NamePath() }
 			hx-trigger="change"
+			hx-swap="none"
 		/>
 		<span class="flex items-center justify-between gap-1">
 			<time class="truncate text-[10px] text-base-content/60" datetime={ s.Updated.ISO }>{ s.Updated.Text }</time>
@@ -73,6 +74,7 @@ templ sceneTile(s SceneCard) {
 				class="toggle toggle-xs mt-0.5 shrink-0"
 				hx-post={ s.AutosavePath() }
 				hx-trigger="change"
+				hx-swap="none"
 			/>
 			<span class="min-w-0 text-[10px] leading-tight">{ s.AutosaveLabel() }</span>
 		</label>
@@ -81,6 +83,7 @@ templ sceneTile(s SceneCard) {
 				type="button"
 				class="btn btn-xs w-full"
 				hx-post={ s.SavePath() }
+				hx-swap="none"
 				hx-confirm={ s.SavePrompt() }
 				data-confirm-heading={ s.SaveHeading() }
 				data-confirm-label="Save changes"
@@ -90,17 +93,19 @@ templ sceneTile(s SceneCard) {
 				type="button"
 				class="btn btn-xs w-full"
 				hx-post={ s.OpenPath() }
+				hx-swap="none"
 				hx-confirm={ s.OpenPrompt() }
 				data-confirm-heading={ s.OpenHeading() }
 				data-confirm-label="Open scene"
 			>Open</button>
 		}
 		<span class="flex gap-1">
-			<button type="button" class="btn btn-xs flex-1" hx-post={ s.DuplicatePath() }>Copy</button>
+			<button type="button" class="btn btn-xs flex-1" hx-post={ s.DuplicatePath() } hx-swap="none">Copy</button>
 			<button
 				type="button"
 				class="btn btn-xs btn-soft btn-error flex-1"
 				hx-delete={ s.DeletePath() }
+				hx-swap="none"
 				hx-confirm={ s.DeletePrompt() }
 				data-confirm-heading="Delete this scene?"
 				data-confirm-label="Delete"

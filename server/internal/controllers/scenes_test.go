@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"database/sql/driver"
 	"net/http"
@@ -190,6 +191,14 @@ func roomWithSceneAnswer(scene ulid.ULID) roomAnswer {
 	}
 	return answer
 }
+func forgotItsScene(db *roomDB) bool {
+	for _, call := range statementsLike(db, "SET scene_id = ?") {
+		if len(call.args) > 0 && call.args[0] == nil {
+			return true
+		}
+	}
+	return false
+}
 func indexOfStatement(db *roomDB, fragment string) int {
 	for i, call := range db.recorded() {
 		if strings.Contains(call.query, fragment) {
@@ -208,6 +217,7 @@ func TestOpeningASceneReplacesTheTableAndMarksItOpen(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
 		sceneRowAnswer(testSceneID, "The prepped ambush", false, sceneBody(t, true)),
+		tableRoomAnswer(),
 		pyramidAnswer(testOwnerID, testMapGen, 4096, 4096, 512, 3),
 	}}
 	app := tableApp(t, db)
@@ -240,6 +250,7 @@ func TestOpeningASceneWhoseMapIsGoneSaysWhichFloorLostIt(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		tableRoomAnswer(),
 		sceneRowAnswer(testSceneID, "The prepped ambush", false, sceneBody(t, true)),
+		tableRoomAnswer(),
 	}}
 	app := tableApp(t, db)
 	rec := openSceneRequest(t, app, session.UserSession{UserID: testOwnerID})
@@ -289,6 +300,7 @@ func TestOpeningAnotherSceneWritesBackTheOneThatAutosaves(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testOtherSceneID, "Town square", false, sceneBody(t, false)),
+		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testSceneID, "The prepped ambush", true, sceneBody(t, false)),
 	}}
 	app := tableApp(t, db)
@@ -311,6 +323,7 @@ func TestOpeningAnotherSceneLeavesOneThatDoesNotAutosaveAlone(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testOtherSceneID, "Town square", false, sceneBody(t, false)),
+		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testSceneID, "The prepped ambush", false, sceneBody(t, false)),
 	}}
 	app := tableApp(t, db)
@@ -325,6 +338,7 @@ func TestARoomWhoseOpenSceneWasDeletedStillOpensAnother(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testOtherSceneID, "Town square", false, sceneBody(t, false)),
+		roomWithSceneAnswer(testSceneID),
 	}}
 	app := tableApp(t, db)
 	if rec := openAnotherRequest(t, app); rec.Code != http.StatusNoContent {
@@ -389,6 +403,7 @@ func fogTheFloor(t *testing.T, app *App) {
 func TestClearingTheTabletopAutosavesTheSceneThatAsksForIt(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
 		roomWithSceneAnswer(testSceneID),
+		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testSceneID, "The haunted moor", true, sceneBody(t, false)),
 	}}
 	app := tableApp(t, db)
@@ -411,12 +426,13 @@ func TestClearingTheTabletopAutosavesTheSceneThatAsksForIt(t *testing.T) {
 	if len(kept.Fog) != 1 {
 		t.Error("the table was written back after it was cleared, so the scene kept nothing")
 	}
-	if len(statementsLike(db, "SET scene_id = NULL")) != 1 {
+	if !forgotItsScene(db) {
 		t.Errorf("the room still thinks a scene is open: %v", db.queries())
 	}
 }
 func TestClearingTheTabletopForgetsASceneThatDoesNotAutosave(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{
+		roomWithSceneAnswer(testSceneID),
 		roomWithSceneAnswer(testSceneID),
 		sceneRowAnswer(testSceneID, "The prepped ambush", false, sceneBody(t, false)),
 	}}
@@ -425,7 +441,7 @@ func TestClearingTheTabletopForgetsASceneThatDoesNotAutosave(t *testing.T) {
 	if rec := clearRequest(t, app); rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
 	}
-	if len(statementsLike(db, "SET scene_id = NULL")) != 1 {
+	if !forgotItsScene(db) {
 		t.Errorf("the room still thinks a scene is open: %v", db.queries())
 	}
 	if len(statementsLike(db, "UPDATE scenes")) != 0 {
@@ -433,7 +449,7 @@ func TestClearingTheTabletopForgetsASceneThatDoesNotAutosave(t *testing.T) {
 	}
 }
 func TestClearingTheTabletopWithNoSceneOpenReadsNoScene(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer(), tableRoomAnswer()}}
 	app := tableApp(t, db)
 	if rec := clearRequest(t, app); rec.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
@@ -453,9 +469,11 @@ func TestClosingTheRoomWritesTheSceneBackBeforeItCloses(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := &roomDB{rows: 1, answers: []roomAnswer{
 				roomWithSceneAnswer(testSceneID),
+				roomWithSceneAnswer(testSceneID),
 				sceneRowAnswer(testSceneID, "The prepped ambush", true, sceneBody(t, false)),
 			}}
 			app := tableApp(t, db)
+			fogTheFloor(t, app)
 			rec := tableRequest(t, close(app), http.MethodPost, "/rooms/"+testRoomID.String(),
 				map[string]string{"id": testRoomID.String()}, nil, session.UserSession{UserID: testOwnerID})
 			if rec.Code != http.StatusOK {
@@ -473,6 +491,25 @@ func TestClosingTheRoomWritesTheSceneBackBeforeItCloses(t *testing.T) {
 				t.Error("the export ran after the room was closed, and a closed room cannot be loaded")
 			}
 		})
+	}
+}
+func TestEveryMutationOnASceneCardSaysItSwapsNothing(t *testing.T) {
+	for _, open := range []bool{true, false} {
+		var buf bytes.Buffer
+		data := pages.RoomScenesData{RoomID: testRoomID.String(), Scenes: []pages.SceneCard{{
+			RoomID: testRoomID.String(), ID: testSceneID.String(), Name: "The prepped ambush", Open: open,
+		}}}
+		if err := pages.RoomScenes(data).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		markup := buf.String()
+		mutations := 0
+		for _, verb := range []string{"hx-patch=", "hx-post=", "hx-delete="} {
+			mutations += strings.Count(markup, verb)
+		}
+		if got := strings.Count(markup, `hx-swap="none"`); got != mutations {
+			t.Errorf("open=%v: %d of the card's %d mutations say what they swap", open, got, mutations)
+		}
 	}
 }
 func TestMarkingWhereThePartyStartsUsesTheFloorTheGMIsLookingAt(t *testing.T) {

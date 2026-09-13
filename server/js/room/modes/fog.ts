@@ -4,8 +4,9 @@ import type { Outline, Segment } from "../model/overlay.ts";
 import type { Point, Rgb } from "../model/types.ts";
 import type { Tool } from "../render/input.ts";
 import { blankCell, blankOutline, blankSegment, pool } from "../model/overlay.ts";
-import { cellAt, cellCentre, snapAxis } from "../model/grid.ts";
+import { cellAt, cellCentre, cellExtents, snapAxis } from "../model/grid.ts";
 import { hexCorners, isHex } from "../model/hex.ts";
+import { markCell } from "./ruler.ts";
 import { newCellWalker } from "./cells.ts";
 const REVEAL_COLOR: Rgb = [1.0, 0.82, 0.35];
 const HIDE_COLOR: Rgb = [0.55, 0.83, 0.99];
@@ -64,10 +65,9 @@ export function createFog(deps: FogDeps): Tool {
 				send("poly", hexCorners(grid, q, r, corners).slice());
 				continue;
 			}
-			const cell = Math.max(1, grid.cellSize);
-			const x = grid.offsetX + q * cell;
-			const y = grid.offsetY + r * cell;
-			send("rect", [x, y, x + cell, y + cell]);
+			const [cx, cy] = cellCentre(grid, q, r);
+			const [halfW, halfH] = cellExtents(grid);
+			send("rect", [cx - halfW, cy - halfH, cx + halfW, cy + halfH]);
 		}
 	}
 	function corner(map: Point, alt: boolean): [number, number] {
@@ -231,15 +231,7 @@ export function createFog(deps: FogDeps): Tool {
 				const grid = deps.grid();
 				const [q, r] = cellAt(grid, pointer.x, pointer.y);
 				const [cx, cy] = cellCentre(grid, q, r);
-				const size = Math.max(1, grid.cellSize);
-				const mark = marks.take();
-				mark.x = cx - size / 2;
-				mark.y = cy - size / 2;
-				mark.size = size;
-				mark.type = grid.type;
-				mark.color = previewColor();
-				mark.alpha = PREVIEW_ALPHA;
-				out.cells.push(mark);
+				markCell(out, marks, cx, cy, Math.max(1, grid.cellSize), grid.type, previewColor(), PREVIEW_ALPHA);
 			}
 			if (gesture?.kind === "rect") {
 				const halfW = Math.abs(gesture.x1 - gesture.x0) / 2;

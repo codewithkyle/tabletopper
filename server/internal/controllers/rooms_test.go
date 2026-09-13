@@ -173,7 +173,9 @@ func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	}
 }
 func TestDeleteRoomClosesTheLiveRoom(t *testing.T) {
-	db := &roomDB{rows: 1}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false),
+	}}
 	app := newRoomApp(db)
 	app.Hub = hub.New(nil, hub.Options{Store: emptyRoomStore{}})
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

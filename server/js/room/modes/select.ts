@@ -1,5 +1,5 @@
 import type { Board } from "./board.ts";
-import type { Event, Grid, Pawn } from "../protocol.ts";
+import type { Event, Pawn } from "../protocol.ts";
 import type { Gesture } from "./gestures.ts";
 import type { Ghostable, Handle, Overlay, Stamp } from "../model/overlay.ts";
 import type { Placed } from "../model/shape.ts";
@@ -7,7 +7,7 @@ import type { Point, Rect } from "../model/types.ts";
 import type { Preview } from "./previews.ts";
 import type { Tool } from "../render/input.ts";
 import { SELECT_COLOR, SELF_COLOR, actorColor } from "../model/color.ts";
-import { cellAt } from "../model/grid.ts";
+import { cellUnder } from "../model/grid.ts";
 import { Selection, marqueeSelect, mayMove } from "../selection.ts";
 import { blankDrawn, blankOutline, ghostOf, pool } from "../model/overlay.ts";
 import { boxAround } from "./board.ts";
@@ -15,9 +15,7 @@ import { pawnExtents } from "../model/shape.ts";
 import { conceals, hitTest } from "./hit.ts";
 import { expirePreviews, forgetPreviews, remember, showPreviews } from "./previews.ts";
 import { handleAt, handlesFor } from "../handles.ts";
-import type { Pens } from "./ruler.ts";
-import type { Rgb } from "../model/types.ts";
-import { newPens, walkRuler } from "./ruler.ts";
+import { markCell, newPens, walkRuler } from "./ruler.ts";
 import {
 	beginDrag,
 	clickedPawn,
@@ -31,7 +29,6 @@ import {
 	proposedGhost,
 	shapeOf,
 } from "./gestures.ts";
-const START_ALPHA = 0.22;
 const noteKey = (cell: { q: number; r: number }) => `hex:${cell.q}:${cell.r}`;
 const MARK_ALPHA = 0.3;
 const OUTLINE_WIDTH = 2;
@@ -77,10 +74,6 @@ export function createSelect(deps: SelectDeps): Select {
 	};
 	let gesture: Gesture = null;
 	let hovered: string | null = null;
-	function cellUnder(map: Point): { q: number; r: number } {
-		const [q, r] = cellAt(board.grid(), map.x, map.y);
-		return { q, r };
-	}
 	function shaped(p: Pawn): Placed {
 		return shapeOf(gesture, p, shape);
 	}
@@ -96,20 +89,7 @@ export function createSelect(deps: SelectDeps): Select {
 		const p = hovered ? board.pawn(hovered) : null;
 		return p && p.kind !== "object" ? p : null;
 	}
-	function paint(
-	out: Overlay, pens: Pens, centreX: number, centreY: number,
-	size: number, type: Grid["type"], color: Rgb, alpha: number,
-): void {
-	const cell = pens.cells.take();
-	cell.x = centreX - size / 2;
-	cell.y = centreY - size / 2;
-	cell.size = size;
-	cell.type = type;
-	cell.color = color;
-	cell.alpha = alpha;
-	out.cells.push(cell);
-}
-function activeHandles(out: Handle[]): Handle[] {
+	function activeHandles(out: Handle[]): Handle[] {
 		const p = selectedToken();
 		if (!p) {
 			out.length = 0;
@@ -226,7 +206,7 @@ function activeHandles(out: Handle[]): Handle[] {
 				return;
 			}
 			const clicked = clickedPawn(board, active);
-			const hex = clicked ? null : cellUnder(map);
+			const hex = clicked ? null : cellUnder(board.grid(), map);
 			const twice = clicks.count(clicked?.id ?? (hex ? noteKey(hex) : null));
 			switch (active.kind) {
 				case "drag":
@@ -359,13 +339,9 @@ function activeHandles(out: Handle[]): Handle[] {
 			for (const handle of activeHandles(handleList)) {
 				out.handles.push(handle);
 			}
-			const floor = board.state.table.layers.find((l) => l.id === board.viewed());
-			if (board.role === "gm" && floor?.partyStart) {
-				paint(out, pens, floor.partyStart.x, floor.partyStart.y, grid.cellSize, grid.type, SELF_COLOR, START_ALPHA);
-			}
 			const held = deps.marks?.marked();
 			if (held) {
-				paint(out, pens, held.x + held.size / 2, held.y + held.size / 2, held.size, grid.type, SELECT_COLOR, MARK_ALPHA);
+				markCell(out, pens.cells, held.x + held.size / 2, held.y + held.size / 2, held.size, grid.type, SELECT_COLOR, MARK_ALPHA);
 			}
 			const ghost = deps.marks?.preview();
 			if (ghost) {

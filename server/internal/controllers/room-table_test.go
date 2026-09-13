@@ -68,8 +68,17 @@ func tableRoomAnswer() roomAnswer {
 func tableApp(t *testing.T, db *roomDB) *App {
 	t.Helper()
 	app := newRoomApp(db)
-	app.Hub = hub.New(app.Queries, hub.Options{Store: emptyRoomStore{}})
+	app.Hub = hub.New(app.Queries, hub.Options{Store: tableStore{scenes: hub.NewStore(app.Queries)}})
 	return app
+}
+
+type tableStore struct {
+	emptyRoomStore
+	scenes hub.Store
+}
+
+func (s tableStore) AutosaveScene(ctx context.Context, id ulid.ULID, body []byte, preview *ulid.ULID) error {
+	return s.scenes.AutosaveScene(ctx, id, body, preview)
 }
 func tableRequest(t *testing.T, handler http.HandlerFunc, method, path string, values map[string]string, form url.Values, sess session.UserSession) *httptest.ResponseRecorder {
 	t.Helper()

@@ -1,4 +1,5 @@
 import type {
+	Cell,
 	Change,
 	Event,
 	FogShape,
@@ -55,52 +56,10 @@ const reducers: Reducers = {
 			stroke.points.push(...change.points);
 		}
 	},
-	"tiles.stamped": (state, change) => {
-		for (const tile of change.tiles) {
-			const at = state.tiles.findIndex(
-				(held) => held.layerId === tile.layerId && held.q === tile.q && held.r === tile.r,
-			);
-			if (at === -1) {
-				state.tiles.push(clone(tile));
-				continue;
-			}
-			state.tiles[at] = clone(tile);
-		}
-	},
-	"tiles.erased": (state, change) => {
-		for (let at = state.tiles.length - 1; at >= 0; at--) {
-			const held = state.tiles[at];
-			if (held.layerId !== change.layer) {
-				continue;
-			}
-			if (change.cells.some((cell) => cell.q === held.q && cell.r === held.r)) {
-				state.tiles.splice(at, 1);
-			}
-		}
-	},
-	"notes.upserted": (state, change) => {
-		for (const note of change.notes) {
-			const at = state.notes.findIndex(
-				(held) => held.layerId === note.layerId && held.q === note.q && held.r === note.r,
-			);
-			if (at === -1) {
-				state.notes.push(clone(note));
-				continue;
-			}
-			state.notes[at] = clone(note);
-		}
-	},
-	"notes.removed": (state, change) => {
-		for (let at = state.notes.length - 1; at >= 0; at--) {
-			const held = state.notes[at];
-			if (held.layerId !== change.layer) {
-				continue;
-			}
-			if (change.cells.some((cell) => cell.q === held.q && cell.r === held.r)) {
-				state.notes.splice(at, 1);
-			}
-		}
-	},
+	"tiles.stamped": (state, change) => upsertCells(state.tiles, change.tiles),
+	"tiles.erased": (state, change) => removeCells(state.tiles, change.layer, change.cells),
+	"notes.upserted": (state, change) => upsertCells(state.notes, change.notes),
+	"notes.removed": (state, change) => removeCells(state.notes, change.layer, change.cells),
 	"palette.updated": (state, change) => {
 		state.table.palette = clone(change.palette);
 	},
@@ -192,6 +151,27 @@ function remove<T extends Identified>(from: T[], ids: readonly string[]): void {
 			from.splice(at, 1);
 		}
 	}
+}
+function upsertCells<T extends Celled>(into: T[], values: readonly T[]): void {
+	for (const value of values) {
+		const at = into.findIndex((held) => sameCell(held, value));
+		if (at === -1) {
+			into.push(clone(value));
+			continue;
+		}
+		into[at] = clone(value);
+	}
+}
+function removeCells<T extends Celled>(from: T[], layer: string, cells: readonly Cell[]): void {
+	for (let at = from.length - 1; at >= 0; at--) {
+		const held = from[at];
+		if (held.layerId === layer && cells.some((cell) => cell.q === held.q && cell.r === held.r)) {
+			from.splice(at, 1);
+		}
+	}
+}
+function sameCell(a: Celled, b: Celled): boolean {
+	return a.layerId === b.layerId && a.q === b.q && a.r === b.r;
 }
 function byID<T extends Identified>(from: T[], id: string): T | undefined {
 	return from.find((value) => value.id === id);

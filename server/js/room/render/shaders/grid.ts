@@ -36,13 +36,16 @@ vec2 centreOf(vec2 axial) {
 	}
 	return vec2(u_cell * (axial.x + axial.y / 2.0), u_cell * (SQRT3 / 2.0) * axial.y);
 }
+float roundAway(float v) {
+	return sign(v) * floor(abs(v) + 0.5);
+}
 vec2 roundAxial(vec2 f) {
 	float x = f.x;
 	float z = f.y;
 	float y = -x - z;
-	float rx = floor(x + 0.5);
-	float ry = floor(y + 0.5);
-	float rz = floor(z + 0.5);
+	float rx = roundAway(x);
+	float ry = roundAway(y);
+	float rz = roundAway(z);
 	float dx = abs(rx - x);
 	float dy = abs(ry - y);
 	float dz = abs(rz - z);

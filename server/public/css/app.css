@@ -4369,8 +4369,8 @@
       translate: 0 1px;
     }
   }
-  .\[transform\:translate\(calc\(cos\(var\(--degree\)\)\*var\(--radius\)\)\,calc\(sin\(var\(--degree\)\)\*-1\*var\(--radius\)\)\)\] {
-    transform: translate(calc(cos(var(--degree)) * var(--radius)),calc(sin(var(--degree)) * -1 * var(--radius)));
+  .spoke {
+    transform: translate( calc(cos(var(--degree)) * var(--radius)), calc(sin(var(--degree)) * -1 * var(--radius)) );
   }
   .animate-\[fadeIn_600ms_300ms_ease-out_forwards\] {
     animation: fadeIn 600ms 300ms ease-out forwards;

@@ -2,18 +2,10 @@ import type { Grid } from "./protocol.ts";
 import type { Outgoing } from "./socket.ts";
 import type { Point } from "./model/types.ts";
 import type { Stamp } from "./model/overlay.ts";
-import { cellAt, cellCentre } from "./model/grid.ts";
+import type { MarkedCell } from "./model/grid.ts";
+import { cellUnder } from "./model/grid.ts";
 import { isHex } from "./model/hex.ts";
 import { nextZ } from "./window.ts";
-export interface MarkedCell {
-	x: number;
-	y: number;
-	size: number;
-	centreX: number;
-	centreY: number;
-	q: number;
-	r: number;
-}
 export interface TableMenuDeps {
 	grid: () => Grid;
 	viewed: () => string;
@@ -35,12 +27,6 @@ interface Picked {
 	image: string;
 }
 const FALLBACK_REACH = 64;
-export function cellUnder(grid: Grid, map: Point): MarkedCell {
-	const [q, r] = cellAt(grid, map.x, map.y);
-	const [centreX, centreY] = cellCentre(grid, q, r);
-	const size = Math.max(1, grid.cellSize);
-	return { x: centreX - size / 2, y: centreY - size / 2, size, centreX, centreY, q, r };
-}
 export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMenu {
 	let cell: MarkedCell | null = null;
 	let hovered: Picked | null = null;

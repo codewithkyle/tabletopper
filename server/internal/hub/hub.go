@@ -231,6 +231,21 @@ type ExportView struct {
 func (h *Hub) Export(ctx context.Context, roomID ulid.ULID) (*ExportView, bool) {
 	return view(ctx, h, roomID, true, (*actor).export)
 }
+func (h *Hub) Autosave(ctx context.Context, roomID ulid.ULID) bool {
+	done, ok := view(ctx, h, roomID, true, func(a *actor) *(<-chan struct{}) {
+		written := a.autosave()
+		return &written
+	})
+	if !ok {
+		return false
+	}
+	select {
+	case <-*done:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
 func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }

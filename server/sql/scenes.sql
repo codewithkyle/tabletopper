@@ -34,7 +34,3 @@ INSERT INTO scenes (id, owner_id, name, body, autosave, preview_id)
 SELECT sqlc.arg(new_id), original.owner_id, sqlc.arg(name), original.body, original.autosave, original.preview_id
 FROM scenes original
 WHERE original.id = sqlc.arg(id) AND original.owner_id = sqlc.arg(owner_id);
--- name: ForgetScene :execresult
-UPDATE rooms
-SET scene_id = NULL
-WHERE scene_id = ? AND owner_id = ?;

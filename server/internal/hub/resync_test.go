@@ -1,9 +1,13 @@
 package hub
 
 import (
+	"context"
+	"sync"
 	"testing"
 
 	"tabletopper/internal/room"
+
+	"github.com/oklog/ulid/v2"
 )
 
 type tableSwap struct {
@@ -138,4 +142,52 @@ type idleSwap struct {
 func (c *idleSwap) Authorize(s *room.State, a room.Actor) error { return nil }
 func (c *idleSwap) Apply(s *room.State, a room.Actor, env room.Env) ([]room.Signal, error) {
 	return nil, nil
+}
+
+type pawnSwap struct {
+	room.Resync
+	pawn ulid.ULID
+	hp   int
+}
+
+func (c *pawnSwap) Authorize(s *room.State, a room.Actor) error { return nil }
+func (c *pawnSwap) Apply(s *room.State, a room.Actor, env room.Env) ([]room.Signal, error) {
+	for i := range s.Pawns {
+		if s.Pawns[i].ID == c.pawn {
+			hp := c.hp
+			s.Pawns[i].HP = &hp
+		}
+	}
+	return nil, nil
+}
+func TestAResyncingCommandStillWritesAPawnsVitalsThrough(t *testing.T) {
+	var mu sync.Mutex
+	var writes []room.SheetVitals
+	tb := newTabletop(t, Options{WriteSheet: func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error {
+		mu.Lock()
+		defer mu.Unlock()
+		writes = append(writes, v)
+		return nil
+	}})
+	gm := tb.join(gmID, "Kyle", room.RoleGM)
+	layer := activeLayer(t, only(t, gm, "snapshot")[0])
+	character := testID(31)
+	tb.seat(playerID, character, "Ari")
+	frames(t, gm)
+	spawned := seatPawn(character, "Ilyana", 12, 12, 15, room.SizeMedium)
+	tb.send(gm, "1", &room.PawnSpawn{
+		Kind: room.PawnPlayer, Layer: layer, X: 64, Y: 64, Visible: true,
+		CharacterID: &character, Pawn: &spawned,
+	})
+	pawn := ulidField(t, onePawn(t, only(t, gm, "pawns.upserted")[0]), "id")
+	if err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, &pawnSwap{pawn: pawn, hp: 4}); err != nil {
+		t.Fatalf("the swap was refused: %v", err)
+	}
+	tb.actor().sheet.stop()
+	mu.Lock()
+	defer mu.Unlock()
+	want := seatVitals(4, 12, 15, room.SizeMedium)
+	if len(writes) != 1 || writes[0] != want {
+		t.Errorf("writes = %v, want %v: the resync left the sheet where it was", writes, want)
+	}
 }

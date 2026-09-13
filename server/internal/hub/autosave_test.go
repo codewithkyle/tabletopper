@@ -100,3 +100,49 @@ func TestShuttingDownWritesTheSceneBackBesideTheSnapshot(t *testing.T) {
 		t.Errorf("the body carries %d fog shapes, want the one that was on the table", len(written.Fog))
 	}
 }
+func TestClosingARoomOffersTheTableToTheOpenSceneOnce(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	tb.join(gmID, "Strahd", room.RoleGM)
+	markTheTable(t, tb)
+	tb.Close(tb.ctx(), roomID)
+	found := tb.store.autosaved()
+	if len(found) != 1 {
+		t.Fatalf("%d scene write-backs as the room closed, want 1", len(found))
+	}
+	written, err := room.Unmarshal(found[0])
+	if err != nil {
+		t.Fatalf("the body written back does not decode: %v", err)
+	}
+	if len(written.Fog) != 1 {
+		t.Errorf("the body carries %d fog shapes, want the one that was on the table", len(written.Fog))
+	}
+}
+func TestAutosaveWritesOnceAndWaitsForTheWrite(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	tb.join(gmID, "Strahd", room.RoleGM)
+	markTheTable(t, tb)
+	if !tb.Autosave(tb.ctx(), roomID) {
+		t.Fatal("the room could not be reached")
+	}
+	found := tb.store.autosaved()
+	if len(found) != 1 {
+		t.Fatalf("%d scene write-backs, want 1 finished by the time Autosave returned", len(found))
+	}
+	written, err := room.Unmarshal(found[0])
+	if err != nil {
+		t.Fatalf("the body written back does not decode: %v", err)
+	}
+	if len(written.Fog) != 1 {
+		t.Errorf("the body carries %d fog shapes, want the one on the table", len(written.Fog))
+	}
+}
+func TestAutosavingARoomThatCannotBeReachedSaysSo(t *testing.T) {
+	tb := newTabletop(t, Options{})
+	tb.store.loadErr = ErrNoRoom
+	if tb.Autosave(tb.ctx(), testID(99)) {
+		t.Error("a room that will not load reported a write-back")
+	}
+	if found := tb.store.autosaved(); len(found) != 0 {
+		t.Errorf("%d scene write-backs for a room that is not there", len(found))
+	}
+}

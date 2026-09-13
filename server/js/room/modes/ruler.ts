@@ -36,6 +36,19 @@ export function newPens(): Pens {
 		},
 	};
 }
+export function markCell(
+	out: Overlay, cells: Pool<Cell>, centreX: number, centreY: number,
+	size: number, type: Grid["type"], color: Rgb, alpha: number,
+): void {
+	const cell = cells.take();
+	cell.x = centreX - size / 2;
+	cell.y = centreY - size / 2;
+	cell.size = size;
+	cell.type = type;
+	cell.color = color;
+	cell.alpha = alpha;
+	out.cells.push(cell);
+}
 export function walkRuler(
 	out: Overlay, pens: Pens, grid: Grid,
 	fromX: number, fromY: number, toX: number, toY: number, color: Rgb,
@@ -46,14 +59,7 @@ export function walkRuler(
 	cellPath(grid, a[0], a[1], b[0], b[1], crossed);
 	for (let i = 0; i + 1 < crossed.length; i += 2) {
 		const [cx, cy] = cellCentre(grid, crossed[i], crossed[i + 1]);
-		const cell = pens.cells.take();
-		cell.x = cx - size / 2;
-		cell.y = cy - size / 2;
-		cell.size = size;
-		cell.type = grid.type;
-		cell.color = color;
-		cell.alpha = CELL_ALPHA;
-		out.cells.push(cell);
+		markCell(out, pens.cells, cx, cy, size, grid.type, color, CELL_ALPHA);
 	}
 	const start = cellCentre(grid, a[0], a[1]);
 	const end = cellCentre(grid, b[0], b[1]);

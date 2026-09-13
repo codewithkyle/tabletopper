@@ -4,6 +4,7 @@ import type { FogShape, Grid } from "../protocol.ts";
 import { snapCorner } from "./fog.ts";
 import { coveredBy, insideShape, maskRect, rectTriangles, triangulate } from "../model/polygon.ts";
 import { NONE, at, pawn, press, table } from "./testing.ts";
+import { cellCentre, cellExtents } from "../model/grid.ts";
 import { hexCorners } from "../model/hex.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
@@ -304,6 +305,15 @@ test("the cell brush paints one square per cell it crosses", () => {
 		fogAdd("rect", [64, 0, 128, 64]),
 		fogAdd("rect", [128, 0, 192, 64]),
 	]);
+});
+test("the cell brush paints the square the grid describes on an offset grid", () => {
+	const offset = grid({ offsetX: 10, offsetY: -6 });
+	const { controller, sent } = table([], { ...CELLS_ON, grid: offset });
+	controller.tool.press(at(42, 26), at(0, 0), NONE);
+	controller.tool.release(at(42, 26), at(0, 0), NONE);
+	const [cx, cy] = cellCentre(offset, 0, 0);
+	const [halfW, halfH] = cellExtents(offset);
+	assert.deepEqual(sent, [fogAdd("rect", [cx - halfW, cy - halfH, cx + halfW, cy + halfH])]);
 });
 test("the cell brush does not paint one loose rectangle across the drag", () => {
 	const { controller, sent } = table([], CELLS_ON);

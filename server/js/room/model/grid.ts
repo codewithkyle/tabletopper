@@ -1,5 +1,15 @@
 import type { Grid } from "../protocol.ts";
+import type { Point } from "./types.ts";
 import { PATH_CELLS_MAX, SQRT3, hexAt, hexCentre, hexDistance, hexLine, isHex, roundAway as round } from "./hex.ts";
+export interface MarkedCell {
+	x: number;
+	y: number;
+	size: number;
+	centreX: number;
+	centreY: number;
+	q: number;
+	r: number;
+}
 export function snapAxis(cell: number, offset: number, footprint: number, mode: Grid["snap"], value: number): number {
 	if (mode === "off" || cell < 1) {
 		return value;
@@ -33,6 +43,12 @@ export function cellCentre(grid: Grid, cx: number, cy: number): [number, number]
 	}
 	const cell = Math.max(1, grid.cellSize);
 	return [grid.offsetX + (cx + 0.5) * cell, grid.offsetY + (cy + 0.5) * cell];
+}
+export function cellUnder(grid: Grid, map: Point): MarkedCell {
+	const [q, r] = cellAt(grid, map.x, map.y);
+	const [centreX, centreY] = cellCentre(grid, q, r);
+	const size = Math.max(1, grid.cellSize);
+	return { x: centreX - size / 2, y: centreY - size / 2, size, centreX, centreY, q, r };
 }
 export function cellExtents(grid: Grid): [number, number] {
 	const half = Math.max(1, grid.cellSize) / 2;

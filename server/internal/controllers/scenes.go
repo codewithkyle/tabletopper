@@ -124,7 +124,7 @@ func (a *App) OpenScene(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	was := row.SceneID
-	a.autosaveScene(ctx, row.ID, sess.UserID, was)
+	a.Hub.Autosave(ctx, row.ID)
 	a.adoptScene(ctx, row.ID, sess.UserID, &sceneID)
 	cmd := &room.SceneLoad{Scene: scene}
 	if err := a.Hub.Dispatch(ctx, row.ID, room.Actor{ID: sess.UserID, Role: room.RoleGM}, cmd); err != nil {
@@ -164,7 +164,17 @@ func (a *App) SaveSceneChanges(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	if err := a.putSceneBody(ctx, row.ID, sess.UserID, sceneID); err != nil {
+	export, ok := a.Hub.Export(ctx, row.ID)
+	if !ok {
+		htmx.NotFound(w, "room")
+		return
+	}
+	if _, err := a.Queries.UpdateSceneBody(ctx, queries.UpdateSceneBodyParams{
+		Body:      export.Body,
+		PreviewID: export.Preview,
+		ID:        sceneID,
+		OwnerID:   sess.UserID,
+	}); err != nil {
 		slog.Error("Failed to write a scene back", "scene", sceneID, "error", err)
 		htmx.ServerError(w)
 		return
@@ -330,48 +340,6 @@ func (a *App) sceneRoom(w http.ResponseWriter, r *http.Request, action string) (
 		return queries.GetRoomRow{}, false
 	}
 	return row, true
-}
-func (a *App) autosaveScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID *ulid.ULID) {
-	if sceneID == nil {
-		return
-	}
-	saved, err := a.Queries.GetScene(ctx, queries.GetSceneParams{ID: *sceneID, OwnerID: ownerID})
-	if errors.Is(err, sql.ErrNoRows) {
-		return
-	}
-	if err != nil {
-		slog.Error("Failed to read the open scene back", "scene", sceneID, "error", err)
-		return
-	}
-	if !saved.Autosave {
-		return
-	}
-	if err := a.putSceneBody(ctx, roomID, ownerID, *sceneID); err != nil {
-		slog.Error("Failed to autosave a scene", "scene", sceneID, "error", err)
-	}
-}
-func (a *App) putSceneBody(ctx context.Context, roomID, ownerID, sceneID ulid.ULID) error {
-	if a.Hub == nil {
-		return errRoomNotFound
-	}
-	export, ok := a.Hub.Export(ctx, roomID)
-	if !ok {
-		return errRoomNotFound
-	}
-	_, err := a.Queries.UpdateSceneBody(ctx, queries.UpdateSceneBodyParams{
-		Body:      export.Body,
-		PreviewID: export.Preview,
-		ID:        sceneID,
-		OwnerID:   ownerID,
-	})
-	return err
-}
-func (a *App) closeScene(ctx context.Context, roomID, ownerID ulid.ULID) {
-	row, err := a.Queries.GetRoom(ctx, roomID)
-	if err != nil || row.OwnerID != ownerID {
-		return
-	}
-	a.autosaveScene(ctx, roomID, ownerID, row.SceneID)
 }
 func (a *App) adoptScene(ctx context.Context, roomID, ownerID ulid.ULID, sceneID *ulid.ULID) {
 	if _, err := a.Queries.SetRoomScene(ctx, queries.SetRoomSceneParams{

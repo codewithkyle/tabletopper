@@ -7,6 +7,7 @@ import {
 	cellPath,
 	cellsBetween,
 	cellsMoved,
+	cellUnder,
 	distanceLabel,
 	feetBetween,
 	feetMoved,
@@ -190,4 +191,10 @@ test("a hex grid counts cube distance and ignores the diagonal rule", () => {
 	assert.equal(cellsBetween(-2, 5, g), 5);
 	assert.equal(cellsBetween(3, 3, g), cellsBetween(3, 3, grid({ type: "hexPointy", diagonals: "alternating" })));
 	assert.equal(feetMoved(-2, 5, g), 25);
+});
+test("the cell under a point is the one the grid offset says it is", () => {
+	const offset = grid({ offsetX: 10, offsetY: 10 });
+	assert.deepEqual(cellUnder(offset, { x: 10, y: 10 }), {
+		x: 10, y: 10, size: 64, centreX: 42, centreY: 42, q: 0, r: 0,
+	});
 });

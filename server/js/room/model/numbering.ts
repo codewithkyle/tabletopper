@@ -95,18 +95,23 @@ export function newNumbering(grid: Grid, width: number, height: number): Numberi
 		total: () => count,
 	};
 }
-let held: { key: string; numbering: Numbering } | null = null;
 export function numberingFor(grid: Grid, map: MapRef | null | undefined): Numbering | null {
 	if (!grid.numbered || !map) {
 		return null;
 	}
-	const key = [grid.type, grid.cellSize, grid.offsetX, grid.offsetY, map.width, map.height].join(":");
-	if (held?.key !== key) {
-		held = { key, numbering: newNumbering(grid, map.width, map.height) };
-	}
-	return held.numbering;
+	return newNumbering(grid, map.width, map.height);
 }
-export function cellName(grid: Grid, map: MapRef | null | undefined, q: number, r: number): string {
-	const n = numberingFor(grid, map)?.of(q, r);
+export function numberingCache(): (grid: Grid, map: MapRef | null | undefined) => Numbering | null {
+	let held: { key: string; numbering: Numbering | null } | null = null;
+	return (grid, map) => {
+		const key = [grid.numbered, grid.type, grid.cellSize, grid.offsetX, grid.offsetY, map?.width, map?.height].join(":");
+		if (held?.key !== key) {
+			held = { key, numbering: numberingFor(grid, map) };
+		}
+		return held.numbering;
+	};
+}
+export function cellName(numbering: Numbering | null, q: number, r: number): string {
+	const n = numbering?.of(q, r);
 	return n ? String(n) : `${q}, ${r}`;
 }

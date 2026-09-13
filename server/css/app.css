@@ -588,3 +588,9 @@
   --btn-color: var(--color-error);
   --btn-fg: var(--color-error-content);
 }
+@utility spoke {
+  transform: translate(
+    calc(cos(var(--degree)) * var(--radius)),
+    calc(sin(var(--degree)) * -1 * var(--radius))
+  );
+}

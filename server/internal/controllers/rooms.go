@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -92,7 +93,7 @@ func (a *App) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "room")
 		return
 	}
-	a.closeScene(ctx, roomID, sess.UserID)
+	a.stopRoom(ctx, roomID, sess.UserID)
 	err = a.tx(ctx, func(q *queries.Queries) error {
 		result, err := q.DeleteRoom(ctx, queries.DeleteRoomParams{ID: roomID, OwnerID: sess.UserID})
 		if err != nil {
@@ -115,10 +116,14 @@ func (a *App) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	if a.Hub != nil {
-		a.Hub.Close(ctx, roomID)
-	}
 	w.WriteHeader(http.StatusOK)
+}
+func (a *App) stopRoom(ctx context.Context, roomID, ownerID ulid.ULID) {
+	row, err := a.Queries.GetRoom(ctx, roomID)
+	if err != nil || row.OwnerID != ownerID || a.Hub == nil {
+		return
+	}
+	a.Hub.Close(ctx, roomID)
 }
 func rejectNewRoom(w http.ResponseWriter, r *http.Request, message string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

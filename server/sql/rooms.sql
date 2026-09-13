@@ -14,10 +14,10 @@ WHERE id = ?;
 UPDATE rooms
 SET scene_id = ?
 WHERE id = ? AND owner_id = ?;
--- name: ClearRoomScene :execresult
+-- name: ForgetScene :execresult
 UPDATE rooms
 SET scene_id = NULL
-WHERE id = ? AND owner_id = ?;
+WHERE scene_id = ? AND owner_id = ?;
 -- name: GetOpenRoomByCode :one
 SELECT id, name, is_locked
 FROM rooms

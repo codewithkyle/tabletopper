@@ -315,15 +315,13 @@ func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	a.autosaveScene(ctx, row.ID, sess.UserID, row.SceneID)
+	a.Hub.Autosave(ctx, row.ID)
 	who := room.Actor{ID: sess.UserID, Role: room.RoleGM}
 	if err := a.Hub.Dispatch(ctx, row.ID, who, &room.TableClear{}); err != nil {
 		a.rejectCommand(w, "clear the tabletop", err)
 		return
 	}
-	if _, err := a.Queries.ClearRoomScene(ctx, queries.ClearRoomSceneParams{ID: row.ID, OwnerID: sess.UserID}); err != nil {
-		slog.Error("Failed to forget the open scene", "room", row.ID, "error", err)
-	}
+	a.adoptScene(ctx, row.ID, sess.UserID, nil)
 	htmx.Scenes(w)
 	w.WriteHeader(http.StatusNoContent)
 }

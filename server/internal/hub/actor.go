@@ -149,7 +149,9 @@ func (a *actor) handle(m any) bool {
 	case closeRoom:
 		a.exec(room.Actor{}, &room.RoomClose{}, nil, "")
 		a.stopAll(closeNormal, reasonClosed)
+		scene := a.autosave()
 		a.saveNow()
+		<-scene
 		a.sheet.stop()
 		a.hub.forget(a)
 		a.drain()
@@ -276,6 +278,7 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 		a.resync(&before)
 		a.emit(sigs, who, sender, nil)
 		a.signals(sigs, who)
+		a.changed(&before, room.Derive(&before, a.state, room.RoleGM))
 		return nil
 	}
 	derived := a.broadcast(&before, who)

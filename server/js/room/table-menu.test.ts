@@ -79,7 +79,7 @@ class El {
 }
 const doc = new El();
 Object.assign(globalThis, { HTMLElement: El, Element: El, Node: El, document: doc });
-const { mountTableMenu, cellUnder } = await import("./table-menu.ts");
+const { mountTableMenu } = await import("./table-menu.ts");
 function grid(): Grid {
 	return {
 		type: "square", lines: "solid", cellSize: 64, offsetX: 0, offsetY: 0,
@@ -402,13 +402,6 @@ test("the module writes no class name", () => {
 		assert.equal(src.includes(written), false, `${written} is in table-menu.ts`);
 	}
 });
-test("the cell under a point is the one the grid offset says it is", () => {
-	const offset = { ...grid(), offsetX: 10, offsetY: 10 };
-	assert.deepEqual(cellUnder(offset, { x: 10, y: 10 }), {
-		x: 10, y: 10, size: 64, centreX: 42, centreY: 42, q: 0, r: 0,
-	});
-});
-
 test("the hex note opens on the cell the wheel was opened over", () => {
 	const parts = room();
 	const { menu, sent, opened } = menuFor(parts);
