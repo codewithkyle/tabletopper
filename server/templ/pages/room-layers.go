@@ -11,18 +11,29 @@ type RoomLayersData struct {
 	Full   bool
 }
 type RoomLayer struct {
+	ID     string
+	Name   string
+	Index  int
+	Active bool
+	Bottom bool
+	Top    bool
+	Pawns  int
+	Map    RoomLayerMap
+	GMMap  RoomLayerMap
+}
+type RoomLayerMap struct {
 	ID       string
 	Name     string
-	Index    int
-	Active   bool
-	Bottom   bool
-	Top      bool
-	Pawns    int
-	MapID    string
-	MapName  string
 	Width    int
 	Height   int
 	Mismatch bool
+}
+type RoomLayerSlot struct {
+	Label  string
+	Empty  string
+	Map    RoomLayerMap
+	Path   string
+	Picker string
 }
 
 func (d RoomLayersData) Path() string {
@@ -43,17 +54,39 @@ func (d RoomLayersData) MovePath(l RoomLayer) string {
 func (d RoomLayersData) ActivatePath(l RoomLayer) string {
 	return d.LayerPath(l) + "/activate"
 }
-func (d RoomLayersData) MapPath(l RoomLayer) string {
+func (d RoomLayersData) SlotPath(l RoomLayer, gm bool) string {
+	if gm {
+		return d.LayerPath(l) + "/gm-map"
+	}
 	return d.LayerPath(l) + "/map"
 }
-func (d RoomLayersData) ChooseMapPath(l RoomLayer) string {
-	return "/fragment/room/maps?room=" + d.RoomID + "&layer=" + l.ID
+func (d RoomLayersData) ChooseMapPath(l RoomLayer, gm bool) string {
+	picker := "/fragment/room/maps?room=" + d.RoomID + "&layer=" + l.ID
+	if gm {
+		return picker + "&gm=1"
+	}
+	return picker
+}
+func (d RoomLayersData) Slots(l RoomLayer) []RoomLayerSlot {
+	return []RoomLayerSlot{
+		{
+			Label:  roomLayerPlayersSlot,
+			Empty:  roomLayerNoMap,
+			Map:    l.Map,
+			Path:   d.SlotPath(l, false),
+			Picker: d.ChooseMapPath(l, false),
+		},
+		{
+			Label:  roomLayerGMSlot,
+			Empty:  roomLayerSameAsPlayers,
+			Map:    l.GMMap,
+			Path:   d.SlotPath(l, true),
+			Picker: d.ChooseMapPath(l, true),
+		},
+	}
 }
 func (d RoomLayersData) MoveVals(l RoomLayer, by int) string {
 	return `{"index": "` + strconv.Itoa(l.Index+by) + `"}`
-}
-func (d RoomLayersData) PreviewURL(l RoomLayer) string {
-	return "/assets/images/" + l.MapID + "/preview"
 }
 func (d RoomLayersData) RemovePrompt(l RoomLayer) string {
 	if l.Pawns == 0 {
@@ -67,10 +100,13 @@ func pawnCount(n int) string {
 	}
 	return strconv.Itoa(n) + " pawns"
 }
-func (l RoomLayer) HasMap() bool     { return l.MapID != "" }
-func (l RoomLayer) MapMissing() bool { return l.MapID != "" && l.MapName == "" }
-func (l RoomLayer) Size() string {
-	return strconv.Itoa(l.Width) + " × " + strconv.Itoa(l.Height)
+func (m RoomLayerMap) Set() bool     { return m.ID != "" }
+func (m RoomLayerMap) Missing() bool { return m.ID != "" && m.Name == "" }
+func (m RoomLayerMap) PreviewURL() string {
+	return "/assets/images/" + m.ID + "/preview"
+}
+func (m RoomLayerMap) Size() string {
+	return strconv.Itoa(m.Width) + " × " + strconv.Itoa(m.Height)
 }
 func (l RoomLayer) PawnLabel() string {
 	if l.Pawns == 0 {
@@ -78,6 +114,15 @@ func (l RoomLayer) PawnLabel() string {
 	}
 	return pawnCount(l.Pawns)
 }
+
+const (
+	roomLayerPlayersSlot   = "Players see"
+	roomLayerGMSlot        = "You see"
+	roomLayerNoMap         = "No map"
+	roomLayerSameAsPlayers = "Same as the players"
+	roomLayerMapGone       = "That map is no longer in your library."
+	roomLayerMismatch      = "A different size from the other maps, so the grid will not line up."
+)
 
 const LayerNameLimit = 60
 

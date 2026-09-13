@@ -1,7 +1,10 @@
 package room
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/oklog/ulid/v2"
 )
 
 func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
@@ -204,5 +207,41 @@ func TestNormalizeRepairsALabelSettingThatNoLongerExists(t *testing.T) {
 		if s.Table.PawnLabels != live {
 			t.Fatalf("a live setting was rewritten from %q to %q", live, s.Table.PawnLabels)
 		}
+	}
+}
+
+func TestThePlayersAreNeverToldWhichMapTheGMIsLookingAt(t *testing.T) {
+	w := newWorld(t)
+	w.mapTheFloors()
+	gm := w.s.Project(RoleGM).Table.Layers[0]
+	if gm.GMMap == nil || gm.GMMap.AssetID != gmMapAsset {
+		t.Fatal("the GM's copy lost the map only they can see")
+	}
+	if gm.Map == nil || gm.Map.AssetID != testAssetID {
+		t.Fatal("the GM's copy lost the map the players are on")
+	}
+	seen := w.s.Project(RolePlayer).Table.Layers[0]
+	if seen.GMMap != nil {
+		t.Fatal("the players were handed the GM's map")
+	}
+	if seen.Map == nil || seen.Map.AssetID != testAssetID {
+		t.Fatal("the players lost their own map")
+	}
+	body := mustJSON(t, w.s.Project(RolePlayer))
+	for what, id := range map[string]ulid.ULID{"asset": gmMapAsset, "generation": gmMapGen} {
+		if strings.Contains(body, id.String()) {
+			t.Fatalf("the players' copy names the GM map's %s, so its whole pyramid is theirs to walk:\n%s", what, body)
+		}
+	}
+}
+func TestAFloorMappedForTheGMAloneIsBareToThePlayers(t *testing.T) {
+	w := newWorld(t)
+	w.apply(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
+	seen := w.s.Project(RolePlayer).Table.Layers[0]
+	if seen.Map != nil || seen.GMMap != nil {
+		t.Fatalf("the players' floor carries a map: %+v", seen)
+	}
+	if w.s.Project(RoleGM).Table.Layers[0].GMMap == nil {
+		t.Fatal("the GM lost the only map on the floor")
 	}
 }

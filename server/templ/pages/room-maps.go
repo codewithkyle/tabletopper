@@ -11,12 +11,14 @@ const RoomMapListID = "room-map-list"
 type RoomMapsData struct {
 	RoomID  string
 	LayerID string
+	GM      bool
 	Query   string
 	Maps    []RoomMapChoice
 }
 type RoomMapChoice struct {
 	RoomID     string
 	LayerID    string
+	GM         bool
 	ID         string
 	Name       string
 	FileName   string
@@ -27,20 +29,35 @@ type RoomMapChoice struct {
 	AutoRetry  bool
 }
 
+func slotQuery(gm bool) string {
+	if gm {
+		return "&gm=1"
+	}
+	return ""
+}
+func slotParam(gm bool) string {
+	if gm {
+		return "?gm=1"
+	}
+	return ""
+}
 func (d RoomMapsData) ListPath() string {
-	return "/fragment/room/map-list?room=" + d.RoomID + "&layer=" + d.LayerID
+	return "/fragment/room/map-list?room=" + d.RoomID + "&layer=" + d.LayerID + slotQuery(d.GM)
 }
 func (d RoomMapsData) UploadPath() string {
-	return "/rooms/" + d.RoomID + "/layers/" + d.LayerID + "/maps"
+	return "/rooms/" + d.RoomID + "/layers/" + d.LayerID + "/maps" + slotParam(d.GM)
 }
 func (m RoomMapChoice) SetPath() string {
+	if m.GM {
+		return "/rooms/" + m.RoomID + "/layers/" + m.LayerID + "/gm-map"
+	}
 	return "/rooms/" + m.RoomID + "/layers/" + m.LayerID + "/map"
 }
 func (m RoomMapChoice) CardURL() string {
-	return "/fragment/room/map-card?room=" + m.RoomID + "&layer=" + m.LayerID + "&asset=" + m.ID
+	return "/fragment/room/map-card?room=" + m.RoomID + "&layer=" + m.LayerID + "&asset=" + m.ID + slotQuery(m.GM)
 }
 func (m RoomMapChoice) RetryPath() string {
-	return "/rooms/" + m.RoomID + "/layers/" + m.LayerID + "/maps/" + m.ID
+	return "/rooms/" + m.RoomID + "/layers/" + m.LayerID + "/maps/" + m.ID + slotParam(m.GM)
 }
 func (m RoomMapChoice) PreviewURL() string {
 	return "/assets/images/" + m.ID + "/preview"
@@ -76,10 +93,18 @@ func (m RoomMapChoice) FileLabel() string {
 }
 
 const (
-	roomMapsEmptyHeading = "No maps yet."
-	roomMapsEmptyBlurb   = "Upload one and it is cut into tiles, so it stays sharp however far in you zoom. It becomes choosable here the moment they are ready."
+	roomMapPickerHeading   = "Choose the map the players see"
+	roomGMMapPickerHeading = "Choose the map you see"
+	roomMapsEmptyHeading   = "No maps yet."
+	roomMapsEmptyBlurb     = "Upload one and it is cut into tiles, so it stays sharp however far in you zoom. It becomes choosable here the moment they are ready."
 )
 
+func (d RoomMapsData) Heading() string {
+	if d.GM {
+		return roomGMMapPickerHeading
+	}
+	return roomMapPickerHeading
+}
 func (d RoomMapsData) NoMatchHeading() string { return noMatchHeading("maps", d.Query) }
 func (d RoomMapsData) EmptyHeading() string   { return roomMapsEmptyHeading }
 func (d RoomMapsData) EmptyBlurb() string     { return roomMapsEmptyBlurb }

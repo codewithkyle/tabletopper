@@ -490,10 +490,14 @@ func DrawModeChoices() []Choice {
 		{Value: "erase", Label: "Eraser", Hint: "Drag over a line to rub it out. Ctrl+Z takes back your last one."},
 	}
 }
+
+const FogShapeCells = "cells"
+
 func FogShapeChoices() []Choice {
 	return []Choice{
 		{Value: "rect", Label: "Rectangle", Hint: "Drag a box."},
 		{Value: "poly", Label: "Polygon", Hint: "Click each corner. Right click closes it."},
+		{Value: FogShapeCells, Label: "Cells", Hint: "Paint whole cells as you drag across them."},
 	}
 }
 func FogModeChoices() []Choice {

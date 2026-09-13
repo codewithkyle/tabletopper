@@ -42,6 +42,7 @@ type Layer struct {
 	ID         ulid.ULID `json:"id"`
 	Name       string    `json:"name"`
 	Map        *MapRef   `json:"map"`
+	GMMap      *MapRef   `json:"gmMap"`
 	FogEnabled bool      `json:"fogEnabled"`
 	FogPrefill bool      `json:"fogPrefill"`
 	PartyStart *Point    `json:"partyStart"`

@@ -14,6 +14,7 @@
           "id": "01000000000000000000000001",
           "name": "Ground floor",
           "map": null,
+          "gmMap": null,
           "fogEnabled": false,
           "fogPrefill": true,
           "partyStart": null
@@ -102,6 +103,7 @@
               "id": "01000000000000000000000001",
               "name": "Ground floor",
               "map": null,
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -195,6 +197,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -225,6 +228,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -318,6 +322,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -326,6 +331,7 @@
                   "id": "01000000000000000000000002",
                   "name": "Cellar",
                   "map": null,
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -356,6 +362,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -364,6 +371,7 @@
               "id": "01000000000000000000000002",
               "name": "Cellar",
               "map": null,
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -457,6 +465,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -465,6 +474,7 @@
                   "id": "01000000000000000000000002",
                   "name": "Cellar, flooded",
                   "map": null,
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -495,6 +505,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -503,6 +514,7 @@
               "id": "01000000000000000000000002",
               "name": "Cellar, flooded",
               "map": null,
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -596,6 +608,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -611,6 +624,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -641,6 +655,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -656,6 +671,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -749,6 +765,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -764,6 +781,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -794,6 +812,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -809,6 +828,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -902,6 +922,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -917,6 +938,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -947,6 +969,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -962,6 +985,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1087,6 +1111,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1102,6 +1127,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1195,6 +1221,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": {
@@ -1213,6 +1240,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -1243,6 +1271,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -1261,6 +1290,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1386,6 +1416,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -1404,6 +1435,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1514,6 +1546,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -1532,6 +1565,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1663,6 +1697,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -1681,6 +1716,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -1836,6 +1872,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -1854,6 +1891,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -2032,6 +2070,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -2050,6 +2089,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -2215,6 +2255,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -2233,6 +2274,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -2434,6 +2476,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -2452,6 +2495,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -2676,6 +2720,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -2694,6 +2739,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -2940,6 +2986,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -2958,6 +3005,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -3187,6 +3235,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -3205,6 +3254,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -3457,6 +3507,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -3475,6 +3526,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -3725,6 +3777,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -3743,6 +3796,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -3993,6 +4047,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -4011,6 +4066,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -4240,6 +4296,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -4258,6 +4315,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -4469,6 +4527,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -4487,6 +4546,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -4731,6 +4791,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -4749,6 +4810,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -5020,6 +5082,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -5038,6 +5101,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -5329,6 +5393,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -5347,6 +5412,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -5625,6 +5691,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -5643,6 +5710,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -5947,6 +6015,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -5965,6 +6034,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -6276,6 +6346,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -6294,6 +6365,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -6611,6 +6683,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -6629,6 +6702,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -6946,6 +7020,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -6964,6 +7039,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -7281,6 +7357,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -7299,6 +7376,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -7616,6 +7694,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -7634,6 +7713,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -7951,6 +8031,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -7969,6 +8050,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -8286,6 +8368,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -8304,6 +8387,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -8621,6 +8705,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -8639,6 +8724,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -8956,6 +9042,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -8974,6 +9061,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -9311,6 +9399,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -9329,6 +9418,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -9663,6 +9753,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -9681,6 +9772,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -10030,6 +10122,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -10048,6 +10141,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -10379,6 +10473,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -10397,6 +10492,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -10749,6 +10845,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -10767,6 +10864,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -11119,6 +11217,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -11137,6 +11236,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -11495,6 +11595,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -11513,6 +11614,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -11832,6 +11934,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -11850,6 +11953,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -12214,6 +12318,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -12232,6 +12337,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -12596,6 +12702,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -12614,6 +12721,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -12972,6 +13080,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -12990,6 +13099,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -13371,6 +13481,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -13389,6 +13500,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -13771,6 +13883,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -13789,6 +13902,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -14111,6 +14225,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": {
@@ -14129,6 +14244,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -14440,6 +14556,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": true,
                   "partyStart": {
@@ -14458,6 +14575,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -14488,6 +14606,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": true,
               "partyStart": {
@@ -14506,6 +14625,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -14817,6 +14937,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": false,
                   "partyStart": {
@@ -14835,6 +14956,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -14865,6 +14987,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -14883,6 +15006,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -15221,6 +15345,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -15239,6 +15364,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -15594,6 +15720,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -15612,6 +15739,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -15968,6 +16096,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -15986,6 +16115,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -16344,6 +16474,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -16362,6 +16493,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -16726,6 +16858,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -16744,6 +16877,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -17106,6 +17240,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -17124,6 +17259,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -17502,6 +17638,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -17520,6 +17657,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -17899,6 +18037,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -17917,6 +18056,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -18281,6 +18421,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -18299,6 +18440,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -18692,6 +18834,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -18710,6 +18853,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -19101,6 +19245,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -19119,6 +19264,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -19482,6 +19628,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -19500,6 +19647,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -19854,6 +20002,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": false,
                   "partyStart": {
@@ -19872,6 +20021,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": false,
                   "fogPrefill": true,
                   "partyStart": null
@@ -20226,6 +20376,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -20244,6 +20395,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -20594,6 +20746,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -20612,6 +20765,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -20983,6 +21137,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -21001,6 +21156,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -21372,6 +21528,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -21390,6 +21547,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -21761,6 +21919,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -21779,6 +21938,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -22151,6 +22311,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -22169,6 +22330,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -22568,6 +22730,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -22586,6 +22749,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -22980,6 +23144,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -22998,6 +23163,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -23378,6 +23544,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -23396,6 +23563,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -23716,6 +23884,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -23734,6 +23903,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -24037,6 +24207,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -24055,6 +24226,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -24341,6 +24513,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -24359,6 +24532,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -24625,6 +24799,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -24643,6 +24818,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": false,
               "fogPrefill": true,
               "partyStart": null
@@ -24884,6 +25060,7 @@
                     "tileSize": 512,
                     "maxZoom": 3
                   },
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": false,
                   "partyStart": {
@@ -24917,6 +25094,7 @@
                 "tileSize": 512,
                 "maxZoom": 3
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -25154,6 +25332,7 @@
                   "id": "01000000000000000000000001",
                   "name": "Ground floor",
                   "map": null,
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": false,
                   "partyStart": {
@@ -25180,6 +25359,7 @@
               "id": "01000000000000000000000001",
               "name": "Ground floor",
               "map": null,
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -25435,6 +25615,7 @@
               "id": "01000000000000000000000001",
               "name": "Ground floor",
               "map": null,
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
               "partyStart": {
@@ -25696,6 +25877,7 @@
                     "tileSize": 512,
                     "maxZoom": 2
                   },
+                  "gmMap": null,
                   "fogEnabled": true,
                   "fogPrefill": true,
                   "partyStart": null
@@ -25748,6 +25930,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": true,
               "partyStart": null
@@ -26012,6 +26195,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": true,
               "partyStart": null
@@ -26266,6 +26450,7 @@
                 "tileSize": 512,
                 "maxZoom": 2
               },
+              "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": true,
               "partyStart": null

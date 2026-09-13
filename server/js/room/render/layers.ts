@@ -40,7 +40,7 @@ export function newLayerView(isGM: boolean): LayerView {
 				override = "";
 			}
 			layer = find(table, override) ?? find(table, table.activeLayer);
-			const map = layer?.map ?? null;
+			const map = layer?.gmMap ?? layer?.map ?? null;
 			if (key(map) !== key(current)) {
 				previous = current;
 				current = map;

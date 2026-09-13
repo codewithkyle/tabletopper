@@ -61,6 +61,7 @@ export interface Layer {
 	id: string;
 	name: string;
 	map: MapRef | null;
+	gmMap: MapRef | null;
 	fogEnabled: boolean;
 	fogPrefill: boolean;
 	partyStart: Point | null;
@@ -426,6 +427,7 @@ export interface TableClearLayerMap {
 	type: "table.clearLayerMap";
 	cid: string;
 	layer: string;
+	gm: boolean;
 }
 export interface TableMoveLayer {
 	type: "table.moveLayer";
@@ -459,6 +461,7 @@ export interface TableSetLayerMap {
 	cid: string;
 	layer: string;
 	assetId: string;
+	gm: boolean;
 }
 export interface TableSetOptions {
 	type: "table.setOptions";

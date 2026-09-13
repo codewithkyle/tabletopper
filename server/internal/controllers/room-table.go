@@ -68,23 +68,38 @@ func (a *App) ActivateLayer(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (a *App) ClearLayerMap(w http.ResponseWriter, r *http.Request) {
+	a.clearLayerMap(w, r, false)
+}
+func (a *App) ClearGMLayerMap(w http.ResponseWriter, r *http.Request) {
+	a.clearLayerMap(w, r, true)
+}
+func (a *App) clearLayerMap(w http.ResponseWriter, r *http.Request, gm bool) {
 	a.layerCommand(w, r, "clear a layer's map", func(layer ulid.ULID) (room.Command, bool) {
-		return &room.TableClearLayerMap{Layer: layer}, true
+		return &room.TableClearLayerMap{Layer: layer, GM: gm}, true
 	})
 }
 func (a *App) SetLayerMap(w http.ResponseWriter, r *http.Request) {
+	a.setLayerMap(w, r, false)
+}
+func (a *App) SetGMLayerMap(w http.ResponseWriter, r *http.Request) {
+	a.setLayerMap(w, r, true)
+}
+func (a *App) setLayerMap(w http.ResponseWriter, r *http.Request, gm bool) {
 	ok := a.dispatchLayer(w, r, "change a layer's map", func(layer ulid.ULID) (room.Command, bool) {
 		asset, err := ulid.Parse(strings.TrimSpace(r.FormValue("asset")))
 		if err != nil {
 			return nil, false
 		}
-		return &room.TableSetLayerMap{Layer: layer, AssetID: asset}, true
+		return &room.TableSetLayerMap{Layer: layer, AssetID: asset, GM: gm}, true
 	})
 	if !ok {
 		return
 	}
 	htmx.CloseModal(w)
 	w.WriteHeader(http.StatusNoContent)
+}
+func gmSlot(r *http.Request) bool {
+	return r.URL.Query().Get("gm") != "" && r.URL.Query().Get("gm") != "false"
 }
 func (a *App) RoomMapsFragment(w http.ResponseWriter, r *http.Request) {
 	data, ok := a.pickerMaps(w, r)
@@ -125,7 +140,7 @@ func (a *App) pickerMaps(w http.ResponseWriter, r *http.Request) (pages.RoomMaps
 		htmx.ServerError(w)
 		return pages.RoomMapsData{}, false
 	}
-	return mapsData(row.ID, layer, term, rows), true
+	return mapsData(row.ID, layer, gmSlot(r), term, rows), true
 }
 func (a *App) RoomMapCardFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -149,7 +164,7 @@ func (a *App) RoomMapCardFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, m)))
+	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, gmSlot(r), m)))
 }
 func (a *App) UploadRoomMap(w http.ResponseWriter, r *http.Request) {
 	roomID, layerID, ok := a.pickerLayer(r.Context(), r, r.PathValue("id"), r.PathValue("layer"))
@@ -164,6 +179,7 @@ func (a *App) UploadRoomMap(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.RoomMapCard(pages.RoomMapChoice{
 		RoomID:   roomID,
 		LayerID:  layerID,
+		GM:       gmSlot(r),
 		ID:       assetID.String(),
 		Name:     filename,
 		FileName: filename,
@@ -187,7 +203,7 @@ func (a *App) RetryRoomMapTiling(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, m)))
+	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, gmSlot(r), m)))
 }
 func (a *App) pickerLayer(ctx context.Context, r *http.Request, roomID string, layerID string) (string, string, bool) {
 	row, _, ok := a.gmTable(ctx, r, roomID)
@@ -200,10 +216,11 @@ func (a *App) pickerLayer(ctx context.Context, r *http.Request, roomID string, l
 	}
 	return row.ID.String(), layer.String(), true
 }
-func pickerChoice(roomID string, layerID string, m queries.Asset) pages.RoomMapChoice {
+func pickerChoice(roomID string, layerID string, gm bool, m queries.Asset) pages.RoomMapChoice {
 	choice := pages.RoomMapChoice{
 		RoomID:    roomID,
 		LayerID:   layerID,
+		GM:        gm,
 		ID:        m.ID.String(),
 		Name:      m.Name,
 		FileName:  m.FileName,
@@ -414,7 +431,7 @@ func layersData(roomID ulid.ULID, view *hub.TableView, names map[ulid.ULID]strin
 	last := len(view.Table.Layers) - 1
 	out := make([]pages.RoomLayer, 0, len(view.Table.Layers))
 	for i, l := range view.Table.Layers {
-		row := pages.RoomLayer{
+		out = append(out, pages.RoomLayer{
 			ID:     l.ID.String(),
 			Name:   pages.SafeLayerName(l.Name),
 			Index:  i,
@@ -422,15 +439,9 @@ func layersData(roomID ulid.ULID, view *hub.TableView, names map[ulid.ULID]strin
 			Bottom: i == 0,
 			Top:    i == last,
 			Pawns:  view.Pawns[l.ID],
-		}
-		if l.Map != nil {
-			row.MapID = l.Map.AssetID.String()
-			row.MapName = names[l.Map.AssetID]
-			row.Width = l.Map.Width
-			row.Height = l.Map.Height
-			row.Mismatch = refW > 0 && (l.Map.Width != refW || l.Map.Height != refH)
-		}
-		out = append(out, row)
+			Map:    layerMapSlot(l.Map, names, refW, refH),
+			GMMap:  layerMapSlot(l.GMMap, names, refW, refH),
+		})
 	}
 	return pages.RoomLayersData{
 		RoomID: roomID.String(),
@@ -438,13 +449,26 @@ func layersData(roomID ulid.ULID, view *hub.TableView, names map[ulid.ULID]strin
 		Full:   len(out) >= room.LayersMax,
 	}
 }
-func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.ListPickerMapsRow) pages.RoomMapsData {
+func layerMapSlot(ref *room.MapRef, names map[ulid.ULID]string, refW, refH int) pages.RoomLayerMap {
+	if ref == nil {
+		return pages.RoomLayerMap{}
+	}
+	return pages.RoomLayerMap{
+		ID:       ref.AssetID.String(),
+		Name:     names[ref.AssetID],
+		Width:    ref.Width,
+		Height:   ref.Height,
+		Mismatch: refW > 0 && (ref.Width != refW || ref.Height != refH),
+	}
+}
+func mapsData(roomID ulid.ULID, layer ulid.ULID, gm bool, term string, rows []queries.ListPickerMapsRow) pages.RoomMapsData {
 	roomText, layerText := roomID.String(), layer.String()
 	out := make([]pages.RoomMapChoice, 0, len(rows))
 	for _, m := range rows {
 		choice := pages.RoomMapChoice{
 			RoomID:    roomText,
 			LayerID:   layerText,
+			GM:        gm,
 			ID:        m.ID.String(),
 			Name:      m.Name,
 			FileName:  m.FileName,
@@ -461,6 +485,7 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 	return pages.RoomMapsData{
 		RoomID:  roomText,
 		LayerID: layerText,
+		GM:      gm,
 		Query:   term,
 		Maps:    out,
 	}

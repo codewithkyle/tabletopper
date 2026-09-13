@@ -114,3 +114,18 @@ func TestTheSettingsWindowCarriesThePrefillSwitch(t *testing.T) {
 		t.Error("the switch is checked for a room that has it off")
 	}
 }
+
+func TestTheFogOptionsPillOffersTheCellBrush(t *testing.T) {
+	page := markup(t, Room(testRoomPage(room.RoleGM)))
+	if !strings.Contains(page, `data-fog-shape="`+FogShapeCells+`"`) {
+		t.Errorf("the fog options pill has no cell brush")
+	}
+	if got := len(FogShapeChoices()); got != 3 {
+		t.Errorf("the shape group offers %d ways to paint fog, want a rectangle, a polygon and the cell brush", got)
+	}
+	for _, c := range FogShapeChoices() {
+		if c.Value != FogShapeCells && !room.ShapeKind(c.Value).Valid() {
+			t.Errorf("%q is not a shape the server knows", c.Value)
+		}
+	}
+}

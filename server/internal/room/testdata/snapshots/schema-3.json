@@ -12,6 +12,7 @@
         "id": "01000000000000000000000001",
         "name": "Ground floor",
         "map": null,
+        "gmMap": null,
         "fogEnabled": false,
         "fogPrefill": true,
         "partyStart": null

@@ -124,6 +124,7 @@ func (c *TableMoveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 type TableSetLayerMap struct {
 	Layer   ulid.ULID `json:"layer"`
 	AssetID ulid.ULID `json:"assetId"`
+	GM      bool      `json:"gm"`
 	Map     *MapRef   `json:"-"`
 }
 
@@ -149,13 +150,18 @@ func (c *TableSetLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if c.Map.Width < 1 || c.Map.Height < 1 || c.Map.TileSize < 1 || c.Map.MaxZoom < 0 {
 		return nil, invalid("Map not ready", "That map has not finished tiling.")
 	}
-	l.Map = cloneRef(c.Map)
+	if c.GM {
+		l.GMMap = cloneRef(c.Map)
+	} else {
+		l.Map = cloneRef(c.Map)
+	}
 	s.Normalize()
 	return nil, nil
 }
 
 type TableClearLayerMap struct {
 	Layer ulid.ULID `json:"layer"`
+	GM    bool      `json:"gm"`
 }
 
 func (c *TableClearLayerMap) Authorize(s *State, a Actor) error {
@@ -166,7 +172,11 @@ func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error)
 	if err != nil {
 		return nil, err
 	}
-	l.Map = nil
+	if c.GM {
+		l.GMMap = nil
+	} else {
+		l.Map = nil
+	}
 	s.Normalize()
 	return nil, nil
 }
@@ -179,6 +189,7 @@ func (c *TableClear) Authorize(s *State, a Actor) error {
 func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	for i := range s.Table.Layers {
 		s.Table.Layers[i].Map = nil
+		s.Table.Layers[i].GMMap = nil
 	}
 	s.Pawns = nil
 	s.Fog = nil

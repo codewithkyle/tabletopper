@@ -4,6 +4,7 @@ import type { FogShape, Grid } from "../protocol.ts";
 import { snapCorner } from "./fog.ts";
 import { coveredBy, insideShape, maskRect, rectTriangles, triangulate } from "../model/polygon.ts";
 import { NONE, at, pawn, press, table } from "./testing.ts";
+import { hexCorners } from "../model/hex.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 function grid(over: Partial<Grid> = {}): Grid {
@@ -286,4 +287,105 @@ test("leaving the fog tool drops the polygon it was holding", () => {
 	controller.tool.hover(at(200, 200));
 	choose("select");
 	assert.deepEqual(segments(), [], "a half-drawn polygon outlived the tool that drew it");
+});
+const CELLS_ON = { ...FOG_ON, fogCells: true } as const;
+function fogAdd(kind: string, points: number[]): Record<string, unknown> {
+	return { type: "fog.add", layer: GROUND, kind, mode: "reveal", points };
+}
+test("the cell brush paints one square per cell it crosses", () => {
+	const { controller, sent } = table([], CELLS_ON);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(96, 32), at(0, 0), NONE);
+	controller.tool.drag(at(160, 32), at(0, 0), NONE);
+	controller.tool.release(at(160, 32), at(0, 0), NONE);
+	assert.deepEqual(sent, [
+		fogAdd("rect", [0, 0, 64, 64]),
+		fogAdd("rect", [64, 0, 128, 64]),
+		fogAdd("rect", [128, 0, 192, 64]),
+	]);
+});
+test("the cell brush does not paint one loose rectangle across the drag", () => {
+	const { controller, sent } = table([], CELLS_ON);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(160, 160), at(0, 0), NONE);
+	controller.tool.release(at(160, 160), at(0, 0), NONE);
+	assert.ok(sent.length > 1, "the whole drag came back as one shape");
+	for (const command of sent) {
+		assert.equal((command.points as number[]).length, 4);
+	}
+});
+test("dragging back over a cell it painted does not send it twice", () => {
+	const { controller, sent } = table([], CELLS_ON);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.drag(at(96, 32), at(0, 0), NONE);
+	controller.tool.drag(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	assert.deepEqual(sent, [
+		fogAdd("rect", [0, 0, 64, 64]),
+		fogAdd("rect", [64, 0, 128, 64]),
+	]);
+});
+test("a second gesture paints a cell the first one already had", () => {
+	const { controller, sent } = table([], CELLS_ON);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	assert.equal(sent.length, 2);
+});
+test("on a hex grid the cell brush paints hexagons", () => {
+	const hex = grid({ type: "hexPointy" });
+	const { controller, sent } = table([], { ...CELLS_ON, grid: hex });
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	assert.deepEqual(sent, [fogAdd("poly", hexCorners(hex, 0, 0, []))]);
+	assert.equal((sent[0].points as number[]).length, 12);
+});
+test("the cell brush covers as well as it uncovers", () => {
+	const { controller, sent } = table([], { ...CELLS_ON, fogMode: "hide" });
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	assert.equal(sent[0].mode, "hide");
+});
+test("the cell brush outlines the cell it would paint, not the point under the pointer", () => {
+	const t = table([], CELLS_ON);
+	t.controller.tool.hover(at(100, 40));
+	const [marked] = t.cells();
+	assert.ok(marked, "nothing is marked under the pointer");
+	assert.deepEqual([marked.x, marked.y, marked.size], [64, 0, 64]);
+	assert.equal(marked.type, "square");
+});
+test("the cell brush's outline goes when another tool is chosen", () => {
+	const t = table([], CELLS_ON);
+	t.controller.tool.hover(at(100, 40));
+	assert.equal(t.cells().length, 1, "nothing is outlined while the fog tool is up");
+	t.choose("select");
+	t.controller.tool.hover(at(100, 40));
+	assert.equal(t.cells().length, 0, "the brush outlived the fog tool");
+	t.choose("fog");
+	t.controller.tool.hover(at(100, 40));
+	assert.equal(t.cells().length, 1, "the brush did not come back with the fog tool");
+});
+test("the outlined cell is the one the brush sends", () => {
+	for (const type of ["square", "hexPointy", "hexFlat"] as const) {
+		const t = table([], { ...CELLS_ON, grid: grid({ type }) });
+		t.controller.tool.hover(at(100, 40));
+		const [marked] = t.cells();
+		t.controller.tool.press(at(100, 40), at(0, 0), NONE);
+		t.controller.tool.release(at(100, 40), at(0, 0), NONE);
+		const points = t.sent[0].points as number[];
+		let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+		for (let i = 0; i < points.length; i += 2) {
+			minX = Math.min(minX, points[i]);
+			minY = Math.min(minY, points[i + 1]);
+			maxX = Math.max(maxX, points[i]);
+			maxY = Math.max(maxY, points[i + 1]);
+		}
+		const centre = [(minX + maxX) / 2, (minY + maxY) / 2];
+		const outlined = [marked.x + marked.size / 2, marked.y + marked.size / 2];
+		assert.ok(
+			Math.abs(centre[0] - outlined[0]) <= 1 && Math.abs(centre[1] - outlined[1]) <= 1,
+			`on a ${type} grid the outline sits at ${outlined} and the shape at ${centre}`,
+		);
+	}
 });

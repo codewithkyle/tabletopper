@@ -3,8 +3,10 @@ import type { Outgoing } from "../socket.ts";
 import type { Outline, Segment } from "../model/overlay.ts";
 import type { Point, Rgb } from "../model/types.ts";
 import type { Tool } from "../render/input.ts";
-import { blankOutline, blankSegment, pool } from "../model/overlay.ts";
-import { snapAxis } from "../model/grid.ts";
+import { blankCell, blankOutline, blankSegment, pool } from "../model/overlay.ts";
+import { cellAt, cellCentre, snapAxis } from "../model/grid.ts";
+import { hexCorners, isHex } from "../model/hex.ts";
+import { newCellWalker } from "./cells.ts";
 const REVEAL_COLOR: Rgb = [1.0, 0.82, 0.35];
 const HIDE_COLOR: Rgb = [0.55, 0.83, 0.99];
 const PREVIEW_WIDTH = 2;
@@ -22,6 +24,7 @@ export function snapCorner(grid: Grid, x: number, y: number, alt: boolean): [num
 export interface FogOptions {
 	shape: ShapeKind;
 	mode: FogMode;
+	cells: boolean;
 }
 export interface FogDeps {
 	state: State;
@@ -39,11 +42,34 @@ export function createFog(deps: FogDeps): Tool {
 	const state = deps.state;
 	let gesture: Gesture = null;
 	let pointer: Point | null = null;
+	let chosen = false;
 	const segments = pool(blankSegment);
+	const marks = pool(blankCell);
+	const walker = newCellWalker();
+	const corners: number[] = [];
 	const box: Outline = blankOutline();
 	box.alpha = PREVIEW_ALPHA;
 	box.thickness = PREVIEW_WIDTH;
 	box.rect = true;
+	function painting(): boolean {
+		return deps.options().cells;
+	}
+	function paint(map: Point): void {
+		const grid = deps.grid();
+		const entered = walker.enter(grid, map.x, map.y);
+		for (let i = 0; i < entered.length; i += 2) {
+			const q = entered[i];
+			const r = entered[i + 1];
+			if (isHex(grid)) {
+				send("poly", hexCorners(grid, q, r, corners).slice());
+				continue;
+			}
+			const cell = Math.max(1, grid.cellSize);
+			const x = grid.offsetX + q * cell;
+			const y = grid.offsetY + r * cell;
+			send("rect", [x, y, x + cell, y + cell]);
+		}
+	}
 	function corner(map: Point, alt: boolean): [number, number] {
 		return snapCorner(deps.grid(), map.x, map.y, alt);
 	}
@@ -90,6 +116,7 @@ export function createFog(deps: FogDeps): Tool {
 		out.push(slot);
 	}
 	function abandon(): boolean {
+		walker.reset();
 		if (!gesture) {
 			return false;
 		}
@@ -99,6 +126,12 @@ export function createFog(deps: FogDeps): Tool {
 	}
 	return {
 		press(map, screen, mods) {
+			if (painting()) {
+				walker.reset();
+				paint(map);
+				deps.invalidate();
+				return true;
+			}
 			const [x, y] = corner(map, mods.alt);
 			if (deps.options().shape === "poly") {
 				if (gesture?.kind !== "poly") {
@@ -116,6 +149,12 @@ export function createFog(deps: FogDeps): Tool {
 			return true;
 		},
 		drag(map, screen, mods) {
+			if (painting()) {
+				pointer = { x: map.x, y: map.y };
+				paint(map);
+				deps.invalidate();
+				return;
+			}
 			if (gesture?.kind !== "rect") {
 				return;
 			}
@@ -125,6 +164,11 @@ export function createFog(deps: FogDeps): Tool {
 			deps.invalidate();
 		},
 		release(map, screen, mods) {
+			if (painting()) {
+				walker.reset();
+				deps.invalidate();
+				return;
+			}
 			if (gesture?.kind !== "rect") {
 				return;
 			}
@@ -170,11 +214,33 @@ export function createFog(deps: FogDeps): Tool {
 		},
 		abandon,
 		active: () => false,
+		enter() {
+			chosen = true;
+		},
 		leave() {
+			chosen = false;
 			pointer = null;
 		},
 		contribute(out) {
 			segments.reset();
+			marks.reset();
+			if (!chosen) {
+				return;
+			}
+			if (painting() && pointer) {
+				const grid = deps.grid();
+				const [q, r] = cellAt(grid, pointer.x, pointer.y);
+				const [cx, cy] = cellCentre(grid, q, r);
+				const size = Math.max(1, grid.cellSize);
+				const mark = marks.take();
+				mark.x = cx - size / 2;
+				mark.y = cy - size / 2;
+				mark.size = size;
+				mark.type = grid.type;
+				mark.color = previewColor();
+				mark.alpha = PREVIEW_ALPHA;
+				out.cells.push(mark);
+			}
 			if (gesture?.kind === "rect") {
 				const halfW = Math.abs(gesture.x1 - gesture.x0) / 2;
 				const halfH = Math.abs(gesture.y1 - gesture.y0) / 2;

@@ -619,9 +619,15 @@ func (a *actor) export() *ExportView {
 		return nil
 	}
 	out := &ExportView{Body: body}
-	if l := a.state.Layer(a.state.Table.ActiveLayer); l != nil && l.Map != nil {
-		asset := l.Map.AssetID
-		out.Preview = &asset
+	if l := a.state.Layer(a.state.Table.ActiveLayer); l != nil {
+		ref := l.Map
+		if ref == nil {
+			ref = l.GMMap
+		}
+		if ref != nil {
+			asset := ref.AssetID
+			out.Preview = &asset
+		}
 	}
 	return out
 }

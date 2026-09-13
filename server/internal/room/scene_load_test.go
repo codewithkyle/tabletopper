@@ -154,3 +154,65 @@ func TestSceneLoadIsServerSideOnly(t *testing.T) {
 		t.Fatalf("a socket asked for scene.load and got %v; a client that could send a whole State could put anything on the table", err)
 	}
 }
+
+func gmMappedScene(t *testing.T) *State {
+	t.Helper()
+	w := sceneWorld(t)
+	w.apply(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
+	body, err := w.s.ExportScene()
+	if err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	scene, err := Unmarshal(body)
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if scene.Table.Layers[0].GMMap == nil {
+		t.Fatal("the map only the GM sees did not survive the export")
+	}
+	return scene
+}
+func TestTheGMsOwnMapIsReadAgainLikeTheOneThePlayersSee(t *testing.T) {
+	scene := gmMappedScene(t)
+	stale := scene.Table.Layers[0].GMMap.Gen
+	fresh := testID(77)
+	lib := stockedLibrary(fresh)
+	lib.maps[gmMapAsset] = MapRef{AssetID: gmMapAsset, Gen: fresh, Width: 8192, Height: 8192, TileSize: 512, MaxZoom: 4}
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), lib, liveWorld(t).s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(cmd.Missing) != 0 {
+		t.Fatalf("a scene whose maps are all there reports %v", cmd.Missing)
+	}
+	got := cmd.Scene.Table.Layers[0].GMMap
+	if got == nil {
+		t.Fatal("the ground floor lost the map only the GM sees")
+	}
+	if got.Gen == stale {
+		t.Errorf("the GM's map kept the generation it was saved with; its tiles are gone")
+	}
+	if got.Gen != fresh || got.Width != 8192 {
+		t.Errorf("the GM's map is %+v, want the library's current one", *got)
+	}
+}
+func TestAGMsMapThatIsGoneClearsItsSlotAndLeavesThePlayersMap(t *testing.T) {
+	scene := gmMappedScene(t)
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), stockedLibrary(testID(77)), liveWorld(t).s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if len(cmd.Missing) != 1 {
+		t.Fatalf("Missing = %v, want the one slot that could not be read", cmd.Missing)
+	}
+	if !strings.Contains(cmd.Missing[0], DefaultLayerName) {
+		t.Errorf("the report does not name the floor: %q", cmd.Missing[0])
+	}
+	ground := cmd.Scene.Table.Layers[0]
+	if ground.GMMap != nil {
+		t.Error("the floor still points at a map whose tiles are gone")
+	}
+	if ground.Map == nil {
+		t.Error("the players' map went with the GM's")
+	}
+}

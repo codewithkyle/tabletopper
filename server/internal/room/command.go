@@ -227,6 +227,7 @@ func cloneLayers(src []Layer) []Layer {
 	out := make([]Layer, len(src))
 	for i, l := range src {
 		l.Map = cloneRef(l.Map)
+		l.GMMap = cloneRef(l.GMMap)
 		l.PartyStart = clonePoint(l.PartyStart)
 		out[i] = l
 	}

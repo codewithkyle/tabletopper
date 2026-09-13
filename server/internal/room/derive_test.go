@@ -238,3 +238,11 @@ func onePawn(t *testing.T, ch Change) Pawn {
 	}
 	return up.Pawns[0]
 }
+
+func TestChangingTheMapOnlyTheGMSeesIsNoNewsToThePlayers(t *testing.T) {
+	w := newWorld(t)
+	w.apply(&TableSetLayerMap{Layer: w.layer, AssetID: testAssetID, Map: playersMapRef()}, w.gm)
+	ch := w.change(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"layers.updated"})
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), nil)
+}

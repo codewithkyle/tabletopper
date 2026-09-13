@@ -41,17 +41,82 @@ func TestAnEmptyLayerSaysNothingAboutPawns(t *testing.T) {
 	}
 }
 func TestAMissingMapIsNotTheSameAsNoMap(t *testing.T) {
-	none := RoomLayer{}
-	if none.HasMap() || none.MapMissing() {
-		t.Error("a layer with no map claims to have one")
+	none := RoomLayerMap{}
+	if none.Set() || none.Missing() {
+		t.Error("a slot with no map claims to have one")
 	}
-	gone := RoomLayer{MapID: "01BX5ZZKBKACTAV9WEVGEMMVT2"}
-	if !gone.HasMap() || !gone.MapMissing() {
-		t.Error("a layer whose asset has gone is not reported as missing")
+	gone := RoomLayerMap{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2"}
+	if !gone.Set() || !gone.Missing() {
+		t.Error("a slot whose asset has gone is not reported as missing")
 	}
-	here := RoomLayer{MapID: "01BX5ZZKBKACTAV9WEVGEMMVT2", MapName: "Death House"}
-	if !here.HasMap() || here.MapMissing() {
-		t.Error("a layer with a map is reported as missing")
+	here := RoomLayerMap{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: "Death House"}
+	if !here.Set() || here.Missing() {
+		t.Error("a slot with a map is reported as missing")
+	}
+}
+func TestEachFloorOffersAMapForThePlayersAndOneForTheGM(t *testing.T) {
+	l := RoomLayer{
+		ID:   "01BX5ZZKBKACTAV9WEVGEMMVT1",
+		Name: "Ground floor",
+		Map:  RoomLayerMap{ID: "m1", Name: "The village", Width: 4000, Height: 3000},
+	}
+	data := RoomLayersData{RoomID: testTableRoomID, Layers: []RoomLayer{l}}
+	page := renderToString(t, RoomLayers(data))
+	for _, want := range []string{roomLayerPlayersSlot, roomLayerGMSlot, roomLayerSameAsPlayers} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the floor does not say %q:\n%s", want, page)
+		}
+	}
+	if got := strings.Count(page, "Choose"); got != 2 {
+		t.Errorf("the floor offers %d map pickers, want one per slot:\n%s", got, page)
+	}
+	if got := strings.Count(page, "gm=1"); got != 1 {
+		t.Errorf("%d pickers open on the GM's own slot, want the one beside %q:\n%s", got, roomLayerGMSlot, page)
+	}
+	if got := strings.Count(page, "Clear"); got != 1 {
+		t.Errorf("%d slots offer to clear, want only the one holding a map:\n%s", got, page)
+	}
+}
+func TestTheSlotHoldingAMapIsTheOneThatClearsIt(t *testing.T) {
+	l := RoomLayer{
+		ID:    "01BX5ZZKBKACTAV9WEVGEMMVT1",
+		Name:  "Ground floor",
+		Map:   RoomLayerMap{ID: "m1", Name: "The village", Width: 4000, Height: 3000},
+		GMMap: RoomLayerMap{ID: "m2", Name: "The village, keyed", Width: 4000, Height: 3000},
+	}
+	data := RoomLayersData{RoomID: testTableRoomID, Layers: []RoomLayer{l}}
+	page := renderToString(t, RoomLayers(data))
+	if strings.Contains(page, roomLayerSameAsPlayers) {
+		t.Errorf("a floor the GM has their own map for still says they share one:\n%s", page)
+	}
+	for _, want := range []string{
+		`hx-delete="` + data.SlotPath(l, false) + `"`,
+		`hx-delete="` + data.SlotPath(l, true) + `"`,
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the floor does not carry %s:\n%s", want, page)
+		}
+	}
+}
+func TestTheTwoSlotsAreDifferentResourcesAndDifferentPickers(t *testing.T) {
+	data := RoomLayersData{RoomID: testTableRoomID}
+	l := testLayer("Cellar", 0)
+	if data.SlotPath(l, false) == data.SlotPath(l, true) {
+		t.Fatalf("both slots are the same resource: %q", data.SlotPath(l, false))
+	}
+	if data.SlotPath(l, false) != data.LayerPath(l)+"/map" {
+		t.Errorf("the players' map is at %q", data.SlotPath(l, false))
+	}
+	if data.SlotPath(l, true) != data.LayerPath(l)+"/gm-map" {
+		t.Errorf("the GM's own map is at %q", data.SlotPath(l, true))
+	}
+	for _, gm := range []bool{false, true} {
+		if !strings.HasPrefix(data.ChooseMapPath(l, gm), "/fragment/") {
+			t.Errorf("the picker is not a fragment: %q", data.ChooseMapPath(l, gm))
+		}
+	}
+	if data.ChooseMapPath(l, false) == data.ChooseMapPath(l, true) {
+		t.Fatalf("both slots open the same picker: %q", data.ChooseMapPath(l, false))
 	}
 }
 func TestTheManagerPointsAtTheLayerRoutes(t *testing.T) {
@@ -65,8 +130,9 @@ func TestTheManagerPointsAtTheLayerRoutes(t *testing.T) {
 		"name":     data.NamePath(l),
 		"move":     data.MovePath(l),
 		"activate": data.ActivatePath(l),
-		"map":      data.MapPath(l),
-		"picker":   data.ChooseMapPath(l),
+		"map":      data.SlotPath(l, false),
+		"gm map":   data.SlotPath(l, true),
+		"picker":   data.ChooseMapPath(l, false),
 	} {
 		if !strings.Contains(got, testTableRoomID) {
 			t.Errorf("the %s path does not name the room: %q", name, got)
@@ -77,9 +143,6 @@ func TestTheManagerPointsAtTheLayerRoutes(t *testing.T) {
 	}
 	if data.LayerPath(l) != base+"/"+l.ID {
 		t.Errorf("the layer is at %q", data.LayerPath(l))
-	}
-	if !strings.HasPrefix(data.ChooseMapPath(l), "/fragment/") {
-		t.Errorf("the picker is not a fragment: %q", data.ChooseMapPath(l))
 	}
 }
 func TestUpAndDownMoveOneStepEachWay(t *testing.T) {
@@ -96,9 +159,9 @@ func TestOnlyTheOddlySizedFloorIsWarnedAbout(t *testing.T) {
 	data := RoomLayersData{
 		RoomID: testTableRoomID,
 		Layers: []RoomLayer{
-			{ID: "a", Name: "Ground floor", MapID: "m1", MapName: "Ground", Width: 4000, Height: 3000},
-			{ID: "b", Name: "First floor", MapID: "m2", MapName: "First", Width: 4000, Height: 3000},
-			{ID: "c", Name: "Cellar", MapID: "m3", MapName: "Cellar", Width: 2048, Height: 2048, Mismatch: true},
+			{ID: "a", Name: "Ground floor", Map: RoomLayerMap{ID: "m1", Name: "Ground", Width: 4000, Height: 3000}},
+			{ID: "b", Name: "First floor", Map: RoomLayerMap{ID: "m2", Name: "First", Width: 4000, Height: 3000}},
+			{ID: "c", Name: "Cellar", Map: RoomLayerMap{ID: "m3", Name: "Cellar", Width: 2048, Height: 2048, Mismatch: true}},
 		},
 	}
 	page := renderToString(t, RoomLayers(data))

@@ -438,6 +438,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/activate", auth.RequireSession(app.ActivateLayer))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.SetLayerMap))
 	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.ClearLayerMap))
+	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/gm-map", auth.RequireSession(app.SetGMLayerMap))
+	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/gm-map", auth.RequireSession(app.ClearGMLayerMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
 	mux.HandleFunc("POST /rooms/{id}/party-start", auth.RequireSession(app.SetPartyStart))

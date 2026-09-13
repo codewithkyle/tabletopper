@@ -103,3 +103,19 @@ func TestClearingOneFloorsFogLeavesTheOtherFloorsAlone(t *testing.T) {
 		t.Error("fog.clear turned the fog off as well; that belongs to fog.setEnabled")
 	}
 }
+
+func TestAHexagonOfFogIsAcceptedAndCostsItsTwelveCoordinates(t *testing.T) {
+	w := newWorld(t)
+	hexagon := []int{32, 0, 64, 18, 64, 55, 32, 74, 0, 55, 0, 18}
+	w.apply(&FogAdd{Layer: w.layer, Kind: ShapePoly, Mode: FogReveal, Points: hexagon}, w.gm)
+	if len(w.s.Fog) != 1 {
+		t.Fatalf("the room holds %d fog shapes, want the hexagon", len(w.s.Fog))
+	}
+	if got := len(w.s.Fog[0].Points); got != len(hexagon) {
+		t.Fatalf("the stored hexagon holds %d coordinates, want %d", got, len(hexagon))
+	}
+	w.s.Fog[0].Points = points(FogPointsBudget - len(hexagon))
+	w.s.Normalize()
+	w.apply(&FogAdd{Layer: w.layer, Kind: ShapePoly, Mode: FogReveal, Points: hexagon}, w.gm)
+	w.refuse(&FogAdd{Layer: w.layer, Kind: ShapeRect, Mode: FogReveal, Points: []int{0, 0, 10, 10}}, w.gm, CodeInvalid)
+}

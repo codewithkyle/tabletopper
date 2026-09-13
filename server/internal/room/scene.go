@@ -65,20 +65,23 @@ func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
 	c.Missing = nil
 	for i := range c.Scene.Table.Layers {
 		l := &c.Scene.Table.Layers[i]
-		if l.Map == nil {
-			continue
-		}
-		ref, err := lib.Map(ctx, l.Map.AssetID)
-		if err != nil {
-			refusal, ok := err.(*Error)
-			if !ok {
-				return err
+		for _, slot := range []**MapRef{&l.Map, &l.GMMap} {
+			held := *slot
+			if held == nil {
+				continue
 			}
-			c.Missing = append(c.Missing, l.Name+": "+refusal.Message)
-			l.Map = nil
-			continue
+			ref, err := lib.Map(ctx, held.AssetID)
+			if err != nil {
+				refusal, ok := err.(*Error)
+				if !ok {
+					return err
+				}
+				c.Missing = append(c.Missing, l.Name+": "+refusal.Message)
+				*slot = nil
+				continue
+			}
+			*slot = cloneRef(&ref)
 		}
-		l.Map = cloneRef(&ref)
 	}
 	return nil
 }

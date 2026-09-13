@@ -81,43 +81,48 @@ templ layerRow(data RoomLayersData, l RoomLayer) {
 				</button>
 			</div>
 		</div>
-		<div class="mt-1.5 flex items-center gap-2 pl-6">
-			if l.HasMap() && !l.MapMissing() {
-				<img src={ data.PreviewURL(l) } alt="" class="size-8 shrink-0 rounded-sm object-cover"/>
-				<div class="min-w-0 flex-1">
-					<p class="truncate text-xs">{ l.MapName }</p>
-					<p class="text-[10px] text-base-content/60">{ l.Size() }</p>
-				</div>
-			} else if l.MapMissing() {
-				<p class="min-w-0 flex-1 text-xs text-warning">That map is no longer in your library.</p>
-			} else {
-				<p class="min-w-0 flex-1 text-xs text-base-content/60">No map</p>
-			}
-			<button
-				type="button"
-				class="btn btn-xs shrink-0"
-				data-modal-open={ data.ChooseMapPath(l) }
-				data-modal-size="xl"
-			>Choose</button>
-			if l.HasMap() {
-				<button
-					type="button"
-					class="btn btn-ghost btn-xs shrink-0"
-					hx-delete={ data.MapPath(l) }
-				>Clear</button>
+		<div class="mt-1.5 flex flex-col gap-1 pl-6">
+			for _, slot := range data.Slots(l) {
+				@layerMapSlot(slot)
 			}
 		</div>
-		if l.PawnLabel() != "" || l.Mismatch {
-			<div class="mt-1 pl-6 text-[10px] leading-tight">
-				if l.PawnLabel() != "" {
-					<p class="text-base-content/60">{ l.PawnLabel() }</p>
-				}
-				if l.Mismatch {
-					<p class="text-warning">A different size from the other floors, so the grid will not line up.</p>
-				}
-			</div>
+		if l.PawnLabel() != "" {
+			<p class="mt-1 pl-6 text-[10px] leading-tight text-base-content/60">{ l.PawnLabel() }</p>
 		}
 	</li>
+}
+
+templ layerMapSlot(slot RoomLayerSlot) {
+	<div class="flex items-center gap-2">
+		<span class="w-16 shrink-0 text-[10px] leading-tight text-base-content/60">{ slot.Label }</span>
+		if slot.Map.Set() && !slot.Map.Missing() {
+			<img src={ slot.Map.PreviewURL() } alt="" class="size-8 shrink-0 rounded-sm object-cover"/>
+			<div class="min-w-0 flex-1">
+				<p class="truncate text-xs">{ slot.Map.Name }</p>
+				<p class="text-[10px] text-base-content/60">{ slot.Map.Size() }</p>
+				if slot.Map.Mismatch {
+					<p class="text-[10px] leading-tight text-warning">{ roomLayerMismatch }</p>
+				}
+			</div>
+		} else if slot.Map.Missing() {
+			<p class="min-w-0 flex-1 text-xs text-warning">{ roomLayerMapGone }</p>
+		} else {
+			<p class="min-w-0 flex-1 text-xs text-base-content/60">{ slot.Empty }</p>
+		}
+		<button
+			type="button"
+			class="btn btn-xs shrink-0"
+			data-modal-open={ slot.Picker }
+			data-modal-size="xl"
+		>Choose</button>
+		if slot.Map.Set() {
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs shrink-0"
+				hx-delete={ slot.Path }
+			>Clear</button>
+		}
+	</div>
 }
 
 templ addLayerForm(data RoomLayersData) {

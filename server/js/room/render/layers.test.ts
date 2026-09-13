@@ -5,8 +5,8 @@ import { CROSSFADE_MS, newLayerView } from "./layers.ts";
 function mapRef(asset: string, gen = "g1"): MapRef {
 	return { assetId: asset, gen, width: 4000, height: 3000, tileSize: 512, maxZoom: 3 };
 }
-function layer(id: string, map: MapRef | null): Layer {
-	return { id, name: id, map, fogEnabled: false, fogPrefill: true, partyStart: null };
+function layer(id: string, map: MapRef | null, gmMap: MapRef | null = null): Layer {
+	return { id, name: id, map, gmMap, fogEnabled: false, fogPrefill: true, partyStart: null };
 }
 function table(active: string, layers: Layer[]): Table {
 	return {
@@ -146,4 +146,33 @@ test("draws reuses its array", () => {
 	const view = newLayerView(true);
 	view.update(twoFloors, 0);
 	assert.equal(view.draws(), view.draws());
+});
+test("a floor the GM has their own map for paints that one", () => {
+	const keyed = table("ground", [layer("ground", mapRef("m-players"), mapRef("m-gm"))]);
+	const view = newLayerView(true);
+	view.update(keyed, 0);
+	const drawn = view.draws();
+	assert.equal(drawn.length, 1);
+	assert.equal(drawn[0].map.assetId, "m-gm");
+});
+test("a floor with no GM map of its own paints the one the players are on", () => {
+	const view = newLayerView(true);
+	view.update(twoFloors, 0);
+	assert.equal(view.draws()[0].map.assetId, "m-ground");
+});
+test("clearing the GM's own map dissolves back to the players' map", () => {
+	const keyed = table("ground", [layer("ground", mapRef("m-players"), mapRef("m-gm"))]);
+	const view = newLayerView(true);
+	view.update(keyed, 0);
+	view.update(table("ground", [layer("ground", mapRef("m-players"))]), 1000);
+	assert.ok(view.fading());
+	const drawn = view.draws();
+	assert.equal(drawn[0].map.assetId, "m-gm");
+	assert.equal(drawn[1].map.assetId, "m-players");
+});
+test("a floor only the GM has a map for paints nothing for a client sent no gmMap", () => {
+	const bare = table("ground", [layer("ground", null)]);
+	const view = newLayerView(false);
+	view.update(bare, 0);
+	assert.equal(view.draws().length, 0);
 });

@@ -78,6 +78,7 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 		AssetID: testAssetID,
 		Map:     &MapRef{AssetID: testAssetID, Gen: testID(50), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
 	}, w.gm)
+	w.apply(&TableSetLayerMap{Layer: ground, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
 	cell := w.s.Table.Grid.CellSize
 	ch := w.change(&TableClear{}, w.gm)
 	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{
@@ -107,6 +108,9 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 	for _, l := range w.s.Table.Layers {
 		if l.Map != nil {
 			t.Errorf("the %s layer kept its map", l.Name)
+		}
+		if l.GMMap != nil {
+			t.Errorf("the %s layer kept the map only the GM sees", l.Name)
 		}
 	}
 	if w.s.Table.Grid.CellSize != cell {
@@ -180,4 +184,51 @@ func TestLayersReorderWithinTheList(t *testing.T) {
 	}
 	w.refuse(&TableMoveLayer{Layer: cellar, Index: 2}, w.gm, CodeInvalid)
 	w.refuse(&TableMoveLayer{Layer: cellar, Index: -1}, w.gm, CodeInvalid)
+}
+
+var (
+	gmMapAsset = testID(1010)
+	gmMapGen   = testID(1011)
+)
+
+func playersMapRef() *MapRef {
+	return &MapRef{AssetID: testAssetID, Gen: testID(50), Width: 4096, Height: 4096, TileSize: 512, MaxZoom: 3}
+}
+func gmMapRef() *MapRef {
+	return &MapRef{AssetID: gmMapAsset, Gen: gmMapGen, Width: 4096, Height: 4096, TileSize: 512, MaxZoom: 3}
+}
+func (w *world) mapTheFloors() {
+	w.t.Helper()
+	w.apply(&TableSetLayerMap{Layer: w.layer, AssetID: testAssetID, Map: playersMapRef()}, w.gm)
+	w.apply(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
+}
+func TestTheTwoMapSlotsAreSetAndClearedApart(t *testing.T) {
+	w := newWorld(t)
+	w.mapTheFloors()
+	l := w.s.Layer(w.layer)
+	if l.Map == nil || l.Map.AssetID != testAssetID {
+		t.Fatal("setting the GM's map took the players' map with it")
+	}
+	if l.GMMap == nil || l.GMMap.AssetID != gmMapAsset {
+		t.Fatal("the GM's own map was not stored")
+	}
+	w.apply(&TableClearLayerMap{Layer: w.layer, GM: true}, w.gm)
+	if w.s.Layer(w.layer).GMMap != nil {
+		t.Fatal("the GM's own map was not cleared")
+	}
+	if w.s.Layer(w.layer).Map == nil {
+		t.Fatal("clearing the GM's map cleared the players' map with it")
+	}
+	w.apply(&TableClearLayerMap{Layer: w.layer}, w.gm)
+	if w.s.Layer(w.layer).Map != nil {
+		t.Fatal("the players' map was not cleared")
+	}
+}
+func TestTheGMsOwnMapIsResolvedBeforeItIsSet(t *testing.T) {
+	w := newWorld(t)
+	w.refuse(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset}, w.gm, CodeInvalid)
+	w.refuse(&TableSetLayerMap{Layer: w.layer, GM: true, AssetID: gmMapAsset, Map: &MapRef{}}, w.gm, CodeInvalid)
+	if w.s.Layer(w.layer).GMMap != nil {
+		t.Fatal("a map that has not finished tiling was stored anyway")
+	}
 }

@@ -7,6 +7,9 @@ func (s *State) Project(role Role) State {
 	if role == RoleGM {
 		return c
 	}
+	for i := range c.Table.Layers {
+		c.Table.Layers[i].GMMap = nil
+	}
 	pawns := make([]Pawn, 0, len(c.Pawns))
 	for _, p := range c.Pawns {
 		if !s.Shown(p) {

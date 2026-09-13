@@ -613,3 +613,58 @@ func TestTheLayerNameFragmentDoesNotAskForItselfAgain(t *testing.T) {
 		t.Errorf("the fragment arms its own load trigger again:\n%s", rec.Body.String())
 	}
 }
+
+func TestTheGMsOwnMapGoesInTheirSlotAndNotThePlayers(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		tableRoomAnswer(),
+		pyramidAnswer(testOwnerID, testMapGen, 12000, 9000, 512, 5),
+	}}
+	app := tableApp(t, db)
+	layer := firstLayer(t, app)
+	rec := tableRequest(t, app.SetGMLayerMap, http.MethodPost,
+		"/rooms/"+testRoomID.String()+"/layers/"+layer.String()+"/gm-map",
+		map[string]string{"id": testRoomID.String(), "layer": layer.String()},
+		url.Values{"asset": {testMapID.String()}}, session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204; body: %s", rec.Code, rec.Body.String())
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	view, ok := app.Hub.Table(ctx, testRoomID)
+	if !ok {
+		t.Fatal("the table is gone")
+	}
+	if view.Table.Layers[0].GMMap == nil {
+		t.Fatal("the GM's own slot is empty")
+	}
+	if view.Table.Layers[0].Map != nil {
+		t.Error("the map the players see was set instead")
+	}
+}
+func TestThePickerPostsToTheSlotItWasOpenedFor(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		query string
+		want  string
+	}{
+		{"the players' map", "", "Choose the map the players see"},
+		{"the GM's own map", "&gm=1", "Choose the map you see"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &roomDB{rows: 1, answers: []roomAnswer{
+				tableRoomAnswer(),
+				pickerMapAnswer(testMapID, "Death House", 4000, 3000),
+			}}
+			app := tableApp(t, db)
+			rec := pickerRequest(t, app, app.RoomMapsFragment, "/fragment/room/maps", tc.query)
+			body := rec.Body.String()
+			if !strings.Contains(body, tc.want) {
+				t.Errorf("the picker is headed something else:\n%s", body)
+			}
+			posts := strings.Contains(body, "/gm-map")
+			if posts != (tc.query != "") {
+				t.Errorf("the card posts to the wrong slot:\n%s", body)
+			}
+		})
+	}
+}

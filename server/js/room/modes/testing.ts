@@ -93,7 +93,7 @@ export function table(
 		role: "gm" | "player"; user: string; grid: Grid;
 		scale: number; mode: Mode;
 		shape: ShapeKind; fogMode: FogMode;
-		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[];
+		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[]; fogCells: boolean;
 		drawMode: DrawMode; strokes: Stroke[];
 	}> = {},
 ) {
@@ -102,7 +102,7 @@ export function table(
 	state.table.grid = over.grid ?? grid();
 	state.table.activeLayer = GROUND;
 	state.table.layers = [{
-		id: GROUND, name: "Ground floor", map: null,
+		id: GROUND, name: "Ground floor", map: null, gmMap: null,
 		fogEnabled: over.fogEnabled ?? false,
 		fogPrefill: over.fogPrefill ?? true,
 		partyStart: null,
@@ -116,7 +116,7 @@ export function table(
 	let chosen: Mode = over.mode ?? "select";
 	let held = false;
 	const drawOptions = { mode: over.drawMode ?? "pen", color: "#FF0000", width: 4 };
-	const fogOptions = { shape: over.shape ?? "rect", mode: over.fogMode ?? "reveal" };
+	const fogOptions = { shape: over.shape ?? "rect", mode: over.fogMode ?? "reveal", cells: over.fogCells ?? false };
 	const controller = createTable({
 		state,
 		role: over.role ?? "gm",
@@ -167,9 +167,10 @@ export function table(
 			drawOptions.color = color;
 			drawOptions.width = width;
 		},
-		chooseFog: (shape: ShapeKind, mode: FogMode) => {
+		chooseFog: (shape: ShapeKind, mode: FogMode, cells = false) => {
 			fogOptions.shape = shape;
 			fogOptions.mode = mode;
+			fogOptions.cells = cells;
 		},
 		out,
 		outlines: () => out().outlines,
