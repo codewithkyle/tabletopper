@@ -47,6 +47,7 @@ func (s *State) ImportScene(from *State) {
 	}
 	s.Table.Palette = cloneSlice(from.Table.Palette)
 	s.Tiles = slices.Clone(from.Tiles)
+	s.Notes = slices.Clone(from.Notes)
 	s.Initiative = Initiative{}
 	if s.Layer(s.Table.ActiveLayer) == nil && len(s.Table.Layers) > 0 {
 		s.Table.ActiveLayer = s.Table.Layers[0].ID

@@ -76,6 +76,22 @@ func TestTurningOnExactHitPointsReprojectsEveryShownMonster(t *testing.T) {
 	again := w.change(&TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: false, InitiativeGrouping: GroupMonsters}, w.gm)
 	equalStrings(t, "the players", changeTypesOf(again.changes(RolePlayer)), []string{"table.updated"})
 }
+func TestAHiddenHexNoteIsNoNewsToThePlayers(t *testing.T) {
+	w := newWorld(t)
+	ch := w.change(&NoteSet{Layer: w.layer, Q: 0, R: 0, Title: "Ruined tower", Body: "An owlbear."}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{"notes.upserted"})
+	equalStrings(t, "the players", changeTypesOf(ch.changes(RolePlayer)), nil)
+}
+func TestSharingAHexIsNewsAndTakingItBackIsARemoval(t *testing.T) {
+	w := newWorld(t)
+	w.writeNote(0, 0, "Ruined tower", "An owlbear.")
+	shared := w.change(&NoteReveal{Layer: w.layer, Q: 0, R: 0, Revealed: true}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(shared.changes(RoleGM)), []string{"notes.upserted"})
+	equalStrings(t, "the players", changeTypesOf(shared.changes(RolePlayer)), []string{"notes.upserted"})
+	back := w.change(&NoteReveal{Layer: w.layer, Q: 0, R: 0, Revealed: false}, w.gm)
+	equalStrings(t, "the GM", changeTypesOf(back.changes(RoleGM)), []string{"notes.upserted"})
+	equalStrings(t, "the players", changeTypesOf(back.changes(RolePlayer)), []string{"notes.removed"})
+}
 func TestFlippingStampingIsNewsToThePlayersSoTheirWheelRefetches(t *testing.T) {
 	w := newWorld(t)
 	ch := w.change(&TableSetOptions{

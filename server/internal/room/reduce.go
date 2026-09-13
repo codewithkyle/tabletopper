@@ -123,6 +123,27 @@ var changeTypes = map[string]reduction{
 			})
 		},
 	},
+	"notes.upserted": {
+		build: func() Change { return &NotesUpserted{} },
+		reduce: func(s *State, ch Change) {
+			for _, n := range ch.(*NotesUpserted).Notes {
+				if held := s.Note(n.LayerID, n.Q, n.R); held != nil {
+					*held = n
+					continue
+				}
+				s.Notes = append(s.Notes, n)
+			}
+		},
+	},
+	"notes.removed": {
+		build: func() Change { return &NotesRemoved{} },
+		reduce: func(s *State, ch Change) {
+			e := ch.(*NotesRemoved)
+			s.Notes = slices.DeleteFunc(s.Notes, func(n HexNote) bool {
+				return n.LayerID == e.Layer && slices.Contains(e.Cells, Cell{Q: n.Q, R: n.R})
+			})
+		},
+	},
 	"palette.updated": {
 		build:  func() Change { return &PaletteUpdated{} },
 		reduce: func(s *State, ch Change) { s.Table.Palette = cloneSlice(ch.(*PaletteUpdated).Palette) },

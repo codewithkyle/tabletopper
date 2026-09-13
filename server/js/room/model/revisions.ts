@@ -50,6 +50,8 @@ export function revise(rev: Revisions, event: Event): void {
 		case "strokes.ended":
 			rev.strokes++;
 			return;
+		case "notes.upserted":
+		case "notes.removed":
 		case "rolls.upserted":
 		case "rolls.removed":
 		case "music.updated":

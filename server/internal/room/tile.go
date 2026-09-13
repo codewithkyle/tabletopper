@@ -218,6 +218,11 @@ func (c *TilesErase) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool {
 		return t.LayerID == c.Layer && slices.Contains(cells, Cell{Q: t.Q, R: t.R})
 	})
+	if a.GM() {
+		s.Notes = slices.DeleteFunc(s.Notes, func(n HexNote) bool {
+			return n.LayerID == c.Layer && slices.Contains(cells, Cell{Q: n.Q, R: n.R})
+		})
+	}
 	s.Normalize()
 	return nil, nil
 }
@@ -234,6 +239,7 @@ func (c *TilesClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 		return nil, err
 	}
 	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool { return t.LayerID == c.Layer })
+	s.Notes = slices.DeleteFunc(s.Notes, func(n HexNote) bool { return n.LayerID == c.Layer })
 	s.Normalize()
 	return nil, nil
 }
@@ -256,14 +262,20 @@ func checkedCells(cells []Cell) ([]Cell, error) {
 	}
 	out := make([]Cell, 0, len(cells))
 	for _, cell := range cells {
-		if cell.Q < -CellLimit || cell.Q > CellLimit || cell.R < -CellLimit || cell.R > CellLimit {
-			return nil, invalid("Off the map", fmt.Sprintf("A cell is within %d of the origin.", CellLimit))
+		if err := checkCell(cell); err != nil {
+			return nil, err
 		}
 		if !slices.Contains(out, cell) {
 			out = append(out, cell)
 		}
 	}
 	return out, nil
+}
+func checkCell(cell Cell) error {
+	if cell.Q < -CellLimit || cell.Q > CellLimit || cell.R < -CellLimit || cell.R > CellLimit {
+		return invalid("Off the map", fmt.Sprintf("A cell is within %d of the origin.", CellLimit))
+	}
+	return nil
 }
 func checkTileRotation(g Grid, degrees int) error {
 	step := 90

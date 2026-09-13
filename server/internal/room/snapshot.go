@@ -145,6 +145,7 @@ func (s *State) Clone() State {
 	c.Table.Layers = cloneLayers(s.Table.Layers)
 	c.Table.Palette = cloneSlice(s.Table.Palette)
 	c.Tiles = cloneSlice(s.Tiles)
+	c.Notes = cloneSlice(s.Notes)
 	c.Players = make([]Player, len(s.Players))
 	for i, p := range s.Players {
 		p.CharacterID = cloneID(p.CharacterID)

@@ -264,3 +264,15 @@ test("renaming the viewer's own character retitles the sheet window", () => {
 		],
 	);
 });
+
+test("a hex note that goes takes its window with it", () => {
+	const seen = raised(changes({
+		type: "notes.removed",
+		layer: "01FLOOR",
+		cells: [{ q: 3, r: -2 }, { q: 0, r: 0 }],
+	}));
+	assert.deepEqual(seen.filter((e) => e.name === "window:close").map((e) => e.detail), [
+		{ id: "hex:01FLOOR:3:-2" },
+		{ id: "hex:01FLOOR:0:0" },
+	]);
+});

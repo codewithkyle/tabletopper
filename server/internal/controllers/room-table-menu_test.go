@@ -28,20 +28,30 @@ func (seededRoomStore) Preserve(context.Context, ulid.ULID, []byte) error { retu
 func (seededRoomStore) AutosaveScene(context.Context, ulid.ULID, []byte, *ulid.ULID) error {
 	return nil
 }
-func stampingApp(t *testing.T, on bool) *App {
+func seededApp(t *testing.T, fill func(*room.State)) *App {
 	t.Helper()
 	s := room.NewState(testRoomID, "Curse of Strahd", room.Env{})
-	s.Table.PlayersCanStamp = on
-	s.Table.Palette = []room.TileArt{
-		{ID: testArtID, AssetID: testAssetID, Name: "Pine forest", Image: "/assets/images/" + testAssetID.String()},
-	}
+	fill(s)
 	body, err := room.Marshal(s)
 	if err != nil {
 		t.Fatalf("seeding the room: %v", err)
 	}
-	app := newRoomApp(&roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer(), tableRoomAnswer()}})
+	answers := make([]roomAnswer, 12)
+	for i := range answers {
+		answers[i] = tableRoomAnswer()
+	}
+	app := newRoomApp(&roomDB{rows: 1, answers: answers})
 	app.Hub = hub.New(app.Queries, hub.Options{Store: seededRoomStore{snapshot: body}})
 	return app
+}
+func stampingApp(t *testing.T, on bool) *App {
+	t.Helper()
+	return seededApp(t, func(s *room.State) {
+		s.Table.PlayersCanStamp = on
+		s.Table.Palette = []room.TileArt{
+			{ID: testArtID, AssetID: testAssetID, Name: "Pine forest", Image: "/assets/images/" + testAssetID.String()},
+		}
+	})
 }
 func TestTheRingIsThePaletteInTheOrderTheGMBuiltIt(t *testing.T) {
 	palette := []room.TileArt{

@@ -28,6 +28,7 @@ export interface TableDeps {
 	details: (pawn: Pawn) => void;
 	menu: (pawn: Pawn, screen: Point) => void;
 	marks?: TableMarks;
+	note?: (q: number, r: number) => void;
 	remove: () => void;
 	mode: () => Mode;
 	chosen: () => Mode;
@@ -67,6 +68,7 @@ export function createTable(deps: TableDeps): Table {
 		details: deps.details,
 		menu: deps.menu,
 		marks: deps.marks,
+		note: deps.note,
 	});
 	const place = createPlace({
 		viewed: deps.viewed,

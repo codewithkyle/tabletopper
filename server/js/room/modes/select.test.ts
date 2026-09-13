@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALT, NONE, SHIFT, at, pawn, press, table } from "./testing.ts";
+import { ALT, NONE, SHIFT, at, hexNote, pawn, press, table } from "./testing.ts";
 test("a press that goes nowhere selects rather than moving", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller, sent } = table([goblin]);
@@ -258,4 +258,30 @@ test("a group is boxed by the whole selection", () => {
 	controller.tool.hover(null);
 	const box = controller.bounds();
 	assert.deepEqual([box?.x1, box?.x2], [-32, 432], "the group's box is not both of them");
+});
+
+function click(controller: ReturnType<typeof table>["controller"], x: number, y: number): void {
+	controller.tool.press(at(x, y), at(x, y), NONE);
+	controller.tool.release(at(x, y), at(x, y), NONE);
+}
+test("double-clicking a hex opens what is written on it", () => {
+	const t = table([]);
+	click(t.controller, 200, -100);
+	click(t.controller, 200, -100);
+	assert.deepEqual(t.hexes, ["3,-2"]);
+});
+test("one click on a hex opens nothing", () => {
+	const t = table([]);
+	click(t.controller, 200, -100);
+	assert.deepEqual(t.hexes, []);
+});
+test("double-clicking two different hexes opens neither", () => {
+	const t = table([]);
+	click(t.controller, 200, -100);
+	click(t.controller, 20, 20);
+	assert.deepEqual(t.hexes, []);
+});
+test("a hex with a note is not tinted, so the terrain under it is left alone", () => {
+	const t = table([], { notes: [hexNote(3, -2, true)] });
+	assert.deepEqual(t.cells(), []);
 });

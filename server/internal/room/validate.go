@@ -41,6 +41,9 @@ const (
 	SecretRollsMax     = 50
 	PathCellsMax       = 512
 	TilesMax           = 4_000
+	NotesMax           = 500
+	NoteBodyLimit      = 4_000
+	NoteBytesBudget    = 200_000
 	PaletteMax         = 24
 	TileBatchMax       = 64
 	CellLimit          = 100_000

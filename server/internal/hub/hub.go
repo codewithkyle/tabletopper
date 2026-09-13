@@ -235,6 +235,10 @@ func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }
 
+func (h *Hub) Note(ctx context.Context, roomID, layer ulid.ULID, q, r int, role room.Role) (*room.HexNote, bool) {
+	return view(ctx, h, roomID, true, func(a *actor) *room.HexNote { return a.note(layer, q, r, role) })
+}
+
 func (h *Hub) CharacterPawn(ctx context.Context, roomID, character ulid.ULID) (*room.Pawn, bool) {
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.characterPawn(character) })
 }

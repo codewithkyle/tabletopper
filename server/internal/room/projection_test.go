@@ -25,6 +25,28 @@ func TestAPlayerNeverReceivesAHiddenPawn(t *testing.T) {
 		}
 	}
 }
+func TestAPlayerReadsOnlyTheHexesTheGMHasShared(t *testing.T) {
+	w := newWorld(t)
+	w.writeNote(0, 0, "Ruined tower", "An owlbear nests on the top floor.")
+	w.writeNote(1, 0, "Standing stones", "Seven of them, one fallen.")
+	w.apply(&NoteReveal{Layer: w.layer, Q: 1, R: 0, Revealed: true}, w.gm)
+	if gm := w.s.Project(RoleGM); len(gm.Notes) != 2 {
+		t.Fatalf("the GM's copy holds %d notes, want both", len(gm.Notes))
+	}
+	players := w.s.Project(RolePlayer)
+	if len(players.Notes) != 1 || players.Notes[0].Q != 1 {
+		t.Fatalf("the players' copy holds %+v, want the shared hex alone", players.Notes)
+	}
+	body := mustJSON(t, players)
+	for _, secret := range []string{"Ruined tower", "owlbear"} {
+		if strings.Contains(body, secret) {
+			t.Errorf("the players' copy carries %q, so the hex key is one devtools tab away", secret)
+		}
+	}
+	if !strings.Contains(body, "Standing stones") {
+		t.Error("the shared hex did not reach the players whole")
+	}
+}
 func TestAPlayerNeverReceivesAPawnFromAnotherLayer(t *testing.T) {
 	w := newWorld(t)
 	cellar := w.addLayer("Cellar")

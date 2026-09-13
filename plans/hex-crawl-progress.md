@@ -3,16 +3,15 @@
 Working notes against `plans/hex-crawl.md`. Delete this file when the plan is done.
 
 Branch `yet-another-rewrite`. Checkpoints 1-5 are committed (`edcae11`, `4f17aed`,
-`6ddd4a5`, `7b51195`); **everything for checkpoint 6 is uncommitted, in the working
-tree**.
+`6ddd4a5`, `7b51195`); **checkpoints 6 and 7 are uncommitted, in the working tree**.
 `make check` is green and `make js`, `make css`, `make protocol`, `make sqlc`, `make db`
 and `templ generate` have all been run, so `make run` is enough to look at it.
 
 ## Where we are
 
-**Checkpoints 1 to 5 are built and driven in a browser.** Checkpoint 6 is built and
-unverified. The next session starts by running the CP6 test plan at the bottom of this
-file, then moves to Checkpoint 7.
+**Checkpoints 1 to 5 are built and driven in a browser.** Checkpoints 6 and 7 are built
+and unverified. The next session starts by running the CP6 and CP7 test plans at the
+bottom of this file, then moves to Checkpoint 8.
 
 ## Decisions taken on 2026-09-12
 
@@ -49,7 +48,7 @@ file, then moves to Checkpoint 7.
 | **CP4** | 5 | Terrain is its own asset kind with its own tab and its own shelf. **Verified.** |
 | **CP5** | 6 | The palette, the wheel's ring, one-at-a-time stamping and the tile stage. **Verified.** |
 | **CP6** | 7 | Players stamp, behind `PlayersCanStamp`. **Built, unverified.** |
-| **CP7** | 8 | The hex key: notes per cell, revealed by the GM. |
+| **CP7** | 8 | The hex key: notes per cell, revealed by the GM. **Built, unverified.** |
 | **CP8** | 9 | The party pawn reveals fog as it moves. |
 
 CP5 is by far the largest. CP1 was three phases only because two of them were invisible.
@@ -297,6 +296,43 @@ control they gate.
   server-rendered per role and `table-menu.ts` has never known what a role is, so a
   player's wheel is the GM's code reading the GM's markup with the party start left out.
 
+## What Checkpoint 7 landed — phase 8, the hex key
+
+- **A note has no id either.** `HexNote{LayerID, Q, R, Title, Body, Revealed}` is keyed by
+  its cell exactly as a tile is, sorted by the same `compareCells` and diffed by the same
+  `cellDiff[T]` into `notes.upserted` and one `notes.removed` per floor. Commands
+  `NoteSet`, `NoteReveal` and `NoteRemove`.
+- **Everybody writes the key; the GM decides what is shared and what is rubbed out.**
+  `NoteSet` takes a player on the floor the table is showing, and **a note a player
+  writes is shared from the moment it exists** -- an unshared note is invisible to them,
+  so writing one they could not then read would be a hole in the floor. `NoteReveal` and
+  `NoteRemove` stay the GM's. A hex already holding a note the GM is keeping refuses a
+  player's write: *The GM is keeping that hex to themselves.*
+- **A player's copy holds the shared hexes and nothing else.** `Project` drops every
+  unrevealed note rather than blanking it -- departure 27 -- so revealing derives as
+  `notes.upserted` to the players and taking it back derives as `notes.removed`, which
+  is also what shuts a player's open window. A hex the GM is keeping opens for a player
+  as an **empty editor**, so opening it discloses nothing; only a write collides.
+- `NotesMax = 500`, `NoteBodyLimit = 4_000` and `NoteBytesBudget = 200_000` in
+  `validate.go`, with `noteBudget` shaped like `fogBudget`. A note with neither a title
+  nor a body is refused: an empty note is a hex that looks written on for nothing.
+- **`GET /fragment/room/hex?room=&layer=&q=&r=`** answers everybody with the same editor;
+  the GM's additionally carries *Shared with the party* and *Rub out*. The window id is
+  `hex:{layer}:{q}:{r}`, the way a stat block's is suffixed.
+- **The hex key is opened by double-clicking any hex**, the gesture that opens a pawn,
+  and by *Hex note* on the wheel, which everybody now has. **Nothing is drawn on the map
+  for a hex that has a note** -- departures 28 and 31.
+- **The editor never re-renders under anybody's hands.** A save swaps only
+  `#room-note-actions`, so a first save on an empty hex unlocks the GM's two controls
+  without taking the caret out of the textarea, and nothing refetches a note that is
+  open. Last writer wins on a hex two people are editing at once.
+- **Erasing a cell rubs out what is written on it.** The wheel's *Erase* and *Clear
+  tiles* take the notes on those cells with the tiles, for the GM. A player's erase takes
+  their tile and leaves the writing, because rubbing out a note is the GM's however it is
+  rubbed out.
+- **A scene carries the hex key**, including which hexes the party had already been told
+  about, the same way fog carries its reveals.
+
 ## Departures from the plan, and why
 
 1. **The pre-field snapshot fixture is new.** The plan asks phase 0 to assert against
@@ -431,6 +467,50 @@ control they gate.
 26. **The *scene is open* toast no longer blames the maps.** It read *without these
     maps*; terrain can be missing too, so it now reads *but not all of it could be
     read*, followed by the same list. `TestTheOpenedToastNamesWhateverCouldNotBeRead`.
+
+27. **An unrevealed note is dropped from a player's copy, not blanked.** The plan asks
+    for a note that projects with no title and no body so the marker still crosses.
+    Blanking leaves a row saying *this hex has something in it* in a payload the player
+    can read, and the plan's own sentence is that players learn a hex has something in it
+    only once it is revealed. Hidden pawns are dropped rather than blanked for the same
+    reason, so notes follow them.
+    `TestAPlayerReadsOnlyTheHexesTheGMHasShared` still asserts on the marshalled bytes.
+
+28. **Double-clicking any hex opens it, and *Hex note* is on everybody's wheel.** The
+    wheel is fetched once per room and then shown at whatever cell was right-clicked, so
+    an item that depends on *this* cell cannot be rendered server-side -- but it does not
+    need to be, because every hex is worth opening now that everybody can write. The
+    double-click is the gesture that already opens a pawn; a single click still just
+    deselects.
+
+29. **The reveal toggle and the rub-out live in their own swappable block.** A first save
+    on an empty hex has to unlock them, and re-rendering the whole editor would take the
+    caret out of the textarea mid-sentence. `POST /rooms/{id}/notes` answers with
+    `RoomNoteActions` and the form targets `#room-note-actions` -- the palette's
+    `?part=` lesson in a smaller place. The GM's editor deliberately does **not** listen
+    for `room:notes`; a player's read view does.
+
+30. **`paletteCommand` is now `roomCommand`, over a new `dispatchRoom`.** Three note
+    routes wanted the same body, and one of them wanted to render afterwards instead of
+    answering 204. `checkCell` came out of `checkedCells` for the same reason.
+
+31. **A hex with a note is not marked on the map.** It was tinted gold at first --
+    brighter once shared, fainter while the GM kept it -- and cut at the table's request:
+    a wash over a stamped tile fights the terrain art it is painted on. The cost is that
+    a hex keeps no sign of what is written on it, and the only way to find out is to
+    open it; nothing is lost by opening one, because every hex opens.
+
+32. **A hex note is plain text, not markdown.** The plan asks for the note to be rendered
+    through `internal/markdown` for the player's read view -- but once everybody can
+    write, there is no read view left to render into. The editor is what everybody gets,
+    and the body is the text as typed. Say the word and the rendered view comes back as
+    a second mode of the same fragment.
+
+33. **The key's own UI event went away with the read view.** `room:notes` was added and
+    then removed in the same checkpoint: the only fragment that listened for it was the
+    player's read view, and an editor that refetches under a writer's hands is worse than
+    one that goes stale. `notes.removed` still closes an open window through
+    `window:close`, and a snapshot still reconciles a player's open hexes.
 
 ## Geometry, settled
 
@@ -597,8 +677,9 @@ nothing to offer until you do.
    scrolling, or picking anything.
 10. **There is no brush and no dragging.** One right-click lays one tile.
 11. **The players see it.** In a second browser as a player, every tile appears as it is
-    painted, under their fog. A player right-clicking empty ground gets **no wheel at
-    all** — phase 7 is what opens it to them.
+    painted, under their fog. A player right-clicking empty ground gets **no ring and no
+    eraser** — phase 7 is what opens those to them. (From CP7 their wheel does carry
+    *Hex note*.)
 12. **Remove a picture from the bag.** The confirm says the stamped cells go with it.
     They do, on every floor, and the ring loses that button.
 13. **Floors.** Stamp on the ground floor, switch floors, stamp there: each floor keeps
@@ -620,8 +701,8 @@ in the bag and a tile or two already stamped.
 2. **While it is off**, the player right-clicks empty ground and **nothing opens** --
    the same as at the end of CP5.
 3. **Turn it on.** Without either browser reloading, the player right-clicks again: the
-   wheel opens carrying **your ring, in your order**, and *Erase*, and **no *Party
-   starts here***.
+   wheel carries **your ring, in your order**, and *Erase*, beside the *Hex note* they
+   always had — and **no *Party starts here***.
 4. **The player stamps.** Hovering a picture previews it in the cell, `[` and `]` turn
    the preview, clicking lays it. It appears on your table at once, and on any other
    player's.
@@ -635,8 +716,9 @@ in the bag and a tile or two already stamped.
    yours, however the toggle sits.
 9. **The bag is yours alone.** The player's *Tabletop* menu has no *Tile palette*, and
    `/fragment/room/palette?room=…` typed into their address bar is an empty 404.
-10. **Turn it off again.** On the player's next right-click the wheel is gone, ring and
-    eraser together; the tiles they laid stay on the table.
+10. **Turn it off again.** On the player's next right-click the ring and the eraser are
+    gone together, leaving *Hex note* alone on the wheel; the tiles they laid stay on
+    the table.
 11. **Reload both.** The setting survives, and so does who laid what: the player can
     still erase their own and still cannot erase yours.
 12. **Scenes carry the tiles now.** Stamp a few, save a scene, *Clear tabletop*, then
@@ -653,6 +735,44 @@ in the bag and a tile or two already stamped.
     scene is fine.
 15. **The setting is the room's.** Open another scene and come back: *Players may stamp
     terrain* has not moved.
+
+## Verifying Checkpoint 7
+
+Two browsers again, GM and player, on a floor with a hex grid and a few tiles stamped.
+
+1. **Write one.** Right-click a hex: the wheel has a third action, the book. Pick it and
+   a *Hex q, r* window opens with a title and a body. Write something and click away:
+   **the window does not jump or lose what you typed**, and *Shared with the party* and
+   *Rub out* appear under it.
+2. **Double-click instead.** Double-click any hex — written on or not — and the same
+   window opens. A single click still just deselects, and double-clicking two different
+   hexes in a row opens neither.
+3. **Nothing is drawn on the map.** A hex with a note looks exactly like one without,
+   over terrain and over bare grid alike.
+4. **The player cannot read it yet.** They open the same hex: an empty editor, with no
+   sign that you have written anything there.
+5. **Share it.** Flip *Shared with the party*. The player reopens the hex and your words
+   are in it.
+6. **They write.** The player types into a hex of their own and saves: it appears on your
+   table, already shared — their editor has **no share toggle and no *Rub out***.
+7. **They edit yours.** With the hex shared, the player changes the body: your next open
+   shows their words. Both of you writing the same hex at once is last-writer-wins.
+8. **They cannot take one of yours.** Write a hex and leave it unshared, then have the
+   player write on that same hex: refused with *The GM is keeping that hex to
+   themselves*, and what you wrote is untouched.
+9. **Take one back.** Turn sharing off on a hex the player has open: **their window
+   closes itself**.
+10. **Rub it out.** *Rub out* asks first, then closes the window everywhere.
+11. **The eraser takes the writing.** Stamp a tile on a hex with a note, then *Erase*
+    that cell from the wheel: the tile and the note both go. *Clear tiles* empties the
+    floor's notes with its tiles. A player erasing their own tile leaves the note alone.
+12. **Floors.** A note on the ground floor and one in the cellar stay apart. Deleting a
+    floor takes its notes.
+13. **Scenes.** Save a scene with a written and a shared hex on it, *Clear tabletop* —
+    the notes go — then reopen: **both come back, and the shared one is still shared.**
+14. **Reload both browsers.** Everything is where it was.
+15. **The long one.** Four thousand characters in a body is taken; more is refused with a
+    plain message rather than a silent truncation.
 
 ## Files
 
@@ -707,6 +827,18 @@ Changed: `internal/room/{state,table,tile,scene}.go`,
 `templ/pages/{room-settings.go,room-settings.templ,room-table-menu.go}`,
 `templ/pages/{room-table_test.go,room-table-menu_test.go}`, and on the client
 `js/room/store.ts` and `js/room/render/layers.test.ts`.
+
+**Checkpoint 7.** Added: `internal/room/{note.go,note_test.go}`,
+`internal/controllers/{room-notes.go,room-notes_test.go}`,
+`templ/pages/{room-note.go,room-note.templ,room-note_test.go}`,
+`js/room/note-window.ts`. Changed: `internal/room/{state,validate,derive,reduce,command,
+snapshot,project,scene,table,tile}.go` and their tests plus `scenario_test.go`,
+`projection_test.go`, `derive_test.go`, `authorize_test.go` and `scene_test.go`;
+`internal/hub/{hub.go,actor.go}`; `internal/controllers/{room-palette.go,
+room-table-menu_test.go,scenes_test.go}`; `routes.go`; `templ/pages/{room-table-menu.go,room-table-menu.templ,
+room-table-menu_test.go}`; and on the client `store.ts`, `panels.ts`,
+`model/revisions.ts`, `table-menu.ts`, `modes/{select.ts,table.ts,testing.ts}`,
+`main.ts` and their tests.
 
 Regenerated across all of them: `protocol.ts`, `testdata/reducer/{gm,player}.json`,
 `testdata/snapshots/schema-3.json`, `public/css/app.css`, `public/static/room.js`.

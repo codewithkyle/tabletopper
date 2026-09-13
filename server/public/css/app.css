@@ -43,6 +43,7 @@
     --tracking-wide: 0.025em;
     --tracking-wider: 0.05em;
     --leading-tight: 1.25;
+    --leading-snug: 1.375;
     --radius-xs: 0.125rem;
     --radius-sm: 0.25rem;
     --radius-md: 0.375rem;
@@ -5267,6 +5268,10 @@
     --tw-leading: 1;
     line-height: 1;
   }
+  .leading-snug {
+    --tw-leading: var(--leading-snug);
+    line-height: var(--leading-snug);
+  }
   .leading-tight {
     --tw-leading: var(--leading-tight);
     line-height: var(--leading-tight);
@@ -5578,6 +5583,13 @@
       --btn-p: 0.5rem;
       --size: calc(var(--size-field, 0.25rem) * 6);
     }
+    .textarea-sm {
+      --font-size-min: 0.75rem;
+    }
+    .floating-label:has(.textarea-sm) {
+      --top-mul: 4;
+      --font-size: 0.75rem;
+    }
     .textarea-xs {
       --font-size-min: 0.6875rem;
     }
@@ -5711,6 +5723,9 @@
   }
   .checked\:text-success:checked {
     color: var(--color-success);
+  }
+  .empty\:hidden:empty {
+    display: none;
   }
   .focus-within\:border-primary:focus-within {
     border-color: var(--color-primary);

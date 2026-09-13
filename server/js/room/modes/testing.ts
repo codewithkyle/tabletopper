@@ -1,5 +1,5 @@
 import type { DrawMode } from "./draw.ts";
-import type { FogMode, FogShape, Grid, Pawn, ShapeKind, State, Stroke } from "../protocol.ts";
+import type { FogMode, FogShape, Grid, HexNote, Pawn, ShapeKind, State, Stroke } from "../protocol.ts";
 import type { Mode } from "../tools.ts";
 import type { Overlay } from "../model/overlay.ts";
 import { empty } from "../store.ts";
@@ -43,6 +43,9 @@ export function grid(over: Partial<Grid> = {}): Grid {
 		diagonals: "equal",
 		...over,
 	};
+}
+export function hexNote(q: number, r: number, revealed: boolean): HexNote {
+	return { layerId: GROUND, q, r, title: "Ruined tower", body: "An owlbear.", revealed };
 }
 export function pawn(over: Partial<Pawn> = {}): Pawn {
 	return {
@@ -94,7 +97,7 @@ export function table(
 		scale: number; mode: Mode;
 		shape: ShapeKind; fogMode: FogMode;
 		fogEnabled: boolean; fogPrefill: boolean; fog: FogShape[]; fogCells: boolean;
-		drawMode: DrawMode; strokes: Stroke[];
+		drawMode: DrawMode; strokes: Stroke[]; notes: HexNote[];
 	}> = {},
 ) {
 	const state: State = empty();
@@ -109,9 +112,11 @@ export function table(
 	}];
 	state.fog = over.fog ?? [];
 	state.strokes = over.strokes ?? [];
+	state.notes = over.notes ?? [];
 	const sent: Record<string, unknown>[] = [];
 	const opened: string[] = [];
 	const menus: string[] = [];
+	const hexes: string[] = [];
 	let removals = 0;
 	let chosen: Mode = over.mode ?? "select";
 	let held = false;
@@ -133,6 +138,9 @@ export function table(
 		menu: (p) => {
 			menus.push(p.id);
 		},
+		note: (q, r) => {
+			hexes.push(`${q},${r}`);
+		},
 		remove: () => {
 			removals += 1;
 		},
@@ -153,6 +161,7 @@ export function table(
 		state,
 		opened,
 		menus,
+		hexes,
 		removals: () => removals,
 		choose: (next: Mode) => {
 			chosen = next;

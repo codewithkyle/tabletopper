@@ -8,9 +8,9 @@ import type {
 	Roll,
 	State,
 	Stroke,
-	Tile,
 } from "./protocol.ts";
 type Identified = Player | Pawn | Layer | FogShape | Stroke | Roll;
+type Celled = { layerId: string; q: number; r: number };
 type Reducers = {
 	[K in Change["type"]]: (state: State, change: Extract<Change, { type: K }>) => void;
 };
@@ -78,6 +78,29 @@ const reducers: Reducers = {
 			}
 		}
 	},
+	"notes.upserted": (state, change) => {
+		for (const note of change.notes) {
+			const at = state.notes.findIndex(
+				(held) => held.layerId === note.layerId && held.q === note.q && held.r === note.r,
+			);
+			if (at === -1) {
+				state.notes.push(clone(note));
+				continue;
+			}
+			state.notes[at] = clone(note);
+		}
+	},
+	"notes.removed": (state, change) => {
+		for (let at = state.notes.length - 1; at >= 0; at--) {
+			const held = state.notes[at];
+			if (held.layerId !== change.layer) {
+				continue;
+			}
+			if (change.cells.some((cell) => cell.q === held.q && cell.r === held.r)) {
+				state.notes.splice(at, 1);
+			}
+		}
+	},
 	"palette.updated": (state, change) => {
 		state.table.palette = clone(change.palette);
 	},
@@ -112,6 +135,7 @@ export function normalize(state: State): void {
 	state.strokes.sort(byIdentifier);
 	state.rolls.sort(byIdentifier);
 	state.tiles.sort(byCell);
+	state.notes.sort(byCell);
 }
 export function empty(): State {
 	return {
@@ -146,6 +170,7 @@ export function empty(): State {
 		fog: [],
 		strokes: [],
 		tiles: [],
+		notes: [],
 		rolls: [],
 		music: { trackId: null, name: "", playing: false, loop: false, at: 0, since: 0 },
 	};
@@ -170,7 +195,7 @@ function remove<T extends Identified>(from: T[], ids: readonly string[]): void {
 function byID<T extends Identified>(from: T[], id: string): T | undefined {
 	return from.find((value) => value.id === id);
 }
-function byCell(a: Tile, b: Tile): number {
+function byCell(a: Celled, b: Celled): number {
 	if (a.layerId !== b.layerId) {
 		return a.layerId < b.layerId ? -1 : 1;
 	}

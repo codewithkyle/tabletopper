@@ -166,6 +166,14 @@ func scenario(r *recorder) {
 	r.do("the GM rubs one cell out", &TilesErase{Layer: ground, Cells: []Cell{{Q: 1, R: -1}}}, gm)
 	r.do("the hills come back out of the bag", &PaletteRemove{Art: hill}, gm)
 	r.do("and the ground floor is swept", &TilesClear{Layer: ground}, gm)
+	r.do("the GM writes up the ruined tower", &NoteSet{
+		Layer: ground, Q: 0, R: 0, Title: "Ruined tower", Body: "An owlbear nests on the top floor.",
+	}, gm)
+	r.do("and tells the party what is there", &NoteReveal{Layer: ground, Q: 0, R: 0, Revealed: true}, gm)
+	r.do("the standing stones get a note too", &NoteSet{
+		Layer: ground, Q: 1, R: 0, Title: "Standing stones", Body: "Seven of them, one fallen.",
+	}, gm)
+	r.do("and that one is rubbed out again", &NoteRemove{Layer: ground, Q: 1, R: 0}, gm)
 	r.do("send the wagon down to the cellar", &PawnSetLayer{IDs: []ulid.ULID{wagon}, Layer: cellar}, gm)
 	r.do("the party follows it down", &TableSetActiveLayer{Layer: cellar}, gm)
 	r.do("and comes back up", &TableSetActiveLayer{Layer: ground}, gm)

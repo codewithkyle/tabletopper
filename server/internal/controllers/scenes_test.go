@@ -540,12 +540,12 @@ func TestTheTableMenuIsRenderedForTheRoleThatAsks(t *testing.T) {
 			if rec.Code != http.StatusOK {
 				t.Fatalf("status = %d, want 200", rec.Code)
 			}
-			wheel := strings.Contains(rec.Body.String(), "data-table-menu")
-			if name == "the GM" && !wheel {
-				t.Errorf("the GM got no wheel:\n%s", rec.Body.String())
+			body := rec.Body.String()
+			if !strings.Contains(body, "data-table-menu-note") {
+				t.Errorf("%s got no wheel at all:\n%s", name, body)
 			}
-			if name == "a player" && wheel {
-				t.Errorf("a player got the GM's wheel:\n%s", rec.Body.String())
+			if got := strings.Contains(body, "data-table-menu-party"); got != (name == "the GM") {
+				t.Errorf("%s was served the party start: %v:\n%s", name, got, body)
 			}
 		})
 	}

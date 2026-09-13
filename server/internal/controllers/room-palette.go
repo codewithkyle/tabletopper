@@ -82,7 +82,7 @@ func (a *App) AddToPalette(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "terrain picture")
 		return
 	}
-	a.paletteCommand(w, r, "add terrain to the palette", &room.PaletteAdd{Asset: asset})
+	a.roomCommand(w, r, "add terrain to the palette", &room.PaletteAdd{Asset: asset})
 }
 func (a *App) RemoveFromPalette(w http.ResponseWriter, r *http.Request) {
 	art, err := ulid.Parse(r.PathValue("art"))
@@ -90,26 +90,31 @@ func (a *App) RemoveFromPalette(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "terrain picture")
 		return
 	}
-	a.paletteCommand(w, r, "remove terrain from the palette", &room.PaletteRemove{Art: art})
+	a.roomCommand(w, r, "remove terrain from the palette", &room.PaletteRemove{Art: art})
 }
-func (a *App) paletteCommand(w http.ResponseWriter, r *http.Request, action string, cmd room.Command) {
+func (a *App) roomCommand(w http.ResponseWriter, r *http.Request, action string, cmd room.Command) {
+	if _, _, ok := a.dispatchRoom(w, r, action, cmd); ok {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+func (a *App) dispatchRoom(w http.ResponseWriter, r *http.Request, action string, cmd room.Command) (queries.GetRoomRow, room.Role, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 	if a.Hub == nil {
 		htmx.NotFound(w, "room")
-		return
+		return queries.GetRoomRow{}, "", false
 	}
 	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
 	if err != nil {
 		htmx.NotFound(w, "room")
-		return
+		return queries.GetRoomRow{}, "", false
 	}
 	who := room.Actor{ID: sess.UserID, Role: role}
 	if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
 		a.rejectCommand(w, action, err)
-		return
+		return queries.GetRoomRow{}, "", false
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return row, role, true
 }
 func (a *App) ClearLayerTiles(w http.ResponseWriter, r *http.Request) {
 	a.viewedLayerCommands(w, r, "clear the tiles", func(layer ulid.ULID) []room.Command {

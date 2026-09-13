@@ -1,6 +1,10 @@
 package room
 
-import "github.com/oklog/ulid/v2"
+import (
+	"slices"
+
+	"github.com/oklog/ulid/v2"
+)
 
 func (s *State) Project(role Role) State {
 	c := s.Clone()
@@ -10,6 +14,7 @@ func (s *State) Project(role Role) State {
 	for i := range c.Table.Layers {
 		c.Table.Layers[i].GMMap = nil
 	}
+	c.Notes = slices.DeleteFunc(c.Notes, func(n HexNote) bool { return !n.Revealed })
 	pawns := make([]Pawn, 0, len(c.Pawns))
 	for _, p := range c.Pawns {
 		if !s.Shown(p) {

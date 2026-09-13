@@ -11,7 +11,8 @@ import {
 	WINDOW_CLOSE,
 	WINDOW_RETITLE,
 } from "../../public/js/events.js";
-import type { Change, Frame, InitiativeEntry, Pawn } from "./protocol.ts";
+import type { Change, Frame, HexNote, InitiativeEntry, Pawn } from "./protocol.ts";
+import { NOTE_WINDOW, noteWindowID } from "./note-window.ts";
 import { PAWN_WINDOW } from "./pawn-window.ts";
 import { SHEET_WINDOW } from "./sheet-window.ts";
 import { openWindows } from "./window.ts";
@@ -43,6 +44,9 @@ export function announce(frame: Frame): void {
 			window.dispatchEvent(new CustomEvent(ROOM_CHARACTER, { detail: { id: mine } }));
 		}
 		reconcilePawnWindows(frame.state.pawns);
+		if (frame.you.role !== "gm") {
+			reconcileNoteWindows(frame.state.notes);
+		}
 		return;
 	}
 	if (frame.type === "rolled") {
@@ -93,6 +97,13 @@ export function announce(frame: Frame): void {
 			case "initiative.updated":
 				track(change.initiative.entries);
 				break;
+			case "notes.removed":
+				for (const cell of change.cells) {
+					window.dispatchEvent(new CustomEvent(WINDOW_CLOSE, {
+						detail: { id: noteWindowID(change.layer, cell.q, cell.r) },
+					}));
+				}
+				break;
 		}
 		const name = panelEvents[change.type];
 		if (name) {
@@ -114,6 +125,18 @@ function reconcilePawnWindows(pawns: readonly Pawn[]): void {
 		if (present.has(pawn)) {
 			window.dispatchEvent(new CustomEvent(ROOM_PAWN, { detail: { id: pawn } }));
 		} else {
+			window.dispatchEvent(new CustomEvent(WINDOW_CLOSE, { detail: { id } }));
+		}
+	}
+}
+function reconcileNoteWindows(notes: readonly HexNote[]): void {
+	let present: Set<string> | null = null;
+	for (const id of openWindows()) {
+		if (!id.startsWith(NOTE_WINDOW)) {
+			continue;
+		}
+		present ??= new Set(notes.map((note) => noteWindowID(note.layerId, note.q, note.r)));
+		if (!present.has(id)) {
 			window.dispatchEvent(new CustomEvent(WINDOW_CLOSE, { detail: { id } }));
 		}
 	}

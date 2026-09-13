@@ -24,12 +24,18 @@ templ RoomTableMenu(data RoomTableMenuData) {
 					if item.IsErase() {
 						data-table-menu-erase
 					}
+					if item.IsNote() {
+						data-table-menu-note
+					}
 				>
 					if item.IsParty() {
 						@partyStartIcon()
 					}
 					if item.IsErase() {
 						@eraserIcon()
+					}
+					if item.IsNote() {
+						@bookIcon()
 					}
 				</button>
 			}

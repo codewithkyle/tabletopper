@@ -53,6 +53,9 @@ func sceneWorld(t *testing.T) *world {
 	w.apply(&StrokeBegin{ID: testID(801), Layer: w.layer, Kind: StrokeFree, Color: "#00ff00ff", Width: 2, Points: []int{4, 4, 12, 12}}, w.pc)
 	w.apply(&StrokeEnd{ID: testID(801)}, w.pc)
 	w.apply(&StrokeBegin{ID: testID(802), Layer: cellar, Kind: StrokeFree, Color: "#0000ffff", Width: 2, Points: []int{4, 4}}, w.gm)
+	w.apply(&NoteSet{Layer: w.layer, Q: 0, R: 0, Title: "Ruined tower", Body: "An owlbear nests up top."}, w.gm)
+	w.apply(&NoteSet{Layer: cellar, Q: 2, R: -1, Title: "Sealed door", Body: "Dwarvish, barred from the far side."}, w.gm)
+	w.apply(&NoteReveal{Layer: w.layer, Q: 0, R: 0, Revealed: true}, w.gm)
 	pine := w.addArt(testTerrainID, pines())
 	hill := w.addArt(testTerrainAlt, hills())
 	w.apply(&TilesStamp{Layer: w.layer, Art: pine, Rotation: 90, Cells: []Cell{{Q: 0, R: 0}, {Q: 1, R: 0}}}, w.gm)
@@ -112,6 +115,7 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	pawns := mustJSON(t, scene.Pawns)
 	tiles := mustJSON(t, scene.Tiles)
 	palette := mustJSON(t, scene.Table.Palette)
+	notes := mustJSON(t, scene.Notes)
 
 	live := liveWorld(t)
 	players := mustJSON(t, live.s.Players)
@@ -149,6 +153,15 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	}
 	if got := mustJSON(t, live.s.Table.Palette); got != palette {
 		t.Errorf("the tiles crossed without the bag that keys them:\n got %s\nwant %s", got, palette)
+	}
+	if got := mustJSON(t, live.s.Notes); got != notes {
+		t.Errorf("the hex key did not cross:\n got %s\nwant %s", got, notes)
+	}
+	if len(live.s.Notes) != 2 {
+		t.Fatalf("the scene put %d notes on the table, want 2", len(live.s.Notes))
+	}
+	if !live.s.Notes[0].Revealed && !live.s.Notes[1].Revealed {
+		t.Error("a scene forgot which hexes the party had already been told about")
 	}
 	for _, name := range []string{"Goblin", "Wagon"} {
 		if !hasPawnNamed(live.s, name) {

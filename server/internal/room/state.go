@@ -19,6 +19,7 @@ type State struct {
 	Fog        []FogShape `json:"fog"`
 	Strokes    []Stroke   `json:"strokes"`
 	Tiles      []Tile     `json:"tiles"`
+	Notes      []HexNote  `json:"notes"`
 	Rolls      []Roll     `json:"rolls"`
 	Music      Music      `json:"music"`
 }
@@ -423,6 +424,7 @@ func (s *State) Normalize() {
 	slices.SortFunc(s.Strokes, func(a, b Stroke) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Rolls, func(a, b Roll) int { return a.ID.Compare(b.ID) })
 	slices.SortFunc(s.Tiles, compareTiles)
+	slices.SortFunc(s.Notes, compareNotes)
 	s.Players = emptied(s.Players)
 	s.Pawns = emptied(s.Pawns)
 	s.Fog = emptied(s.Fog)
@@ -431,6 +433,7 @@ func (s *State) Normalize() {
 	s.Table.Layers = emptied(s.Table.Layers)
 	s.Table.Palette = emptied(s.Table.Palette)
 	s.Tiles = emptied(s.Tiles)
+	s.Notes = emptied(s.Notes)
 	s.Initiative.Entries = emptied(s.Initiative.Entries)
 	for i := range s.Initiative.Entries {
 		s.Initiative.Entries[i].PawnIDs = emptied(s.Initiative.Entries[i].PawnIDs)
@@ -449,13 +452,19 @@ func (s *State) Normalize() {
 	}
 }
 func compareTiles(a, b Tile) int {
-	if c := a.LayerID.Compare(b.LayerID); c != 0 {
+	return compareCells(a.LayerID, a.Q, a.R, b.LayerID, b.Q, b.R)
+}
+func compareNotes(a, b HexNote) int {
+	return compareCells(a.LayerID, a.Q, a.R, b.LayerID, b.Q, b.R)
+}
+func compareCells(aLayer ulid.ULID, aQ, aR int, bLayer ulid.ULID, bQ, bR int) int {
+	if c := aLayer.Compare(bLayer); c != 0 {
 		return c
 	}
-	if a.Q != b.Q {
-		return a.Q - b.Q
+	if aQ != bQ {
+		return aQ - bQ
 	}
-	return a.R - b.R
+	return aR - bR
 }
 func emptied[T any](v []T) []T {
 	if v == nil {

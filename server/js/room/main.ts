@@ -33,6 +33,7 @@ import type { Revisions } from "./model/revisions.ts";
 import { mountWindows, openWindow } from "./window.ts";
 import { mountJournalEditors } from "./journal-editor.ts";
 import { pawnWindow } from "./pawn-window.ts";
+import { noteWindow } from "./note-window.ts";
 import type { Named } from "./pawn-window.ts";
 import type { Hud } from "./hud.ts";
 import type { Table } from "./modes/table.ts";
@@ -69,6 +70,9 @@ if (mount) {
 	let hud: Hud | null = null;
 	let follow: Follow | null = null;
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
+	const openNote = (q: number, r: number): void => {
+		openWindow(noteWindow(roomID, viewed(), q, r));
+	};
 	const marks = mountTableMenu(mount, {
 		grid: () => state.table.grid,
 		viewed,
@@ -78,6 +82,7 @@ if (mount) {
 		send: (command) => {
 			socket?.send(command);
 		},
+		note: openNote,
 	});
 	const table = createTable({
 		state,
@@ -94,6 +99,7 @@ if (mount) {
 			menu?.open(pawn, screen);
 		},
 		marks,
+		note: openNote,
 		remove: () => hud?.remove(),
 		mode: () => tools?.mode() ?? "select",
 		chosen: () => tools?.chosen() ?? "select",

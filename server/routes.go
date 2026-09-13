@@ -441,6 +441,9 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/palette", auth.RequireSession(app.AddToPalette))
 	mux.HandleFunc("DELETE /rooms/{id}/palette/{art}", auth.RequireSession(app.RemoveFromPalette))
 	mux.HandleFunc("POST /rooms/{id}/tiles/clear", auth.RequireSession(app.ClearLayerTiles))
+	mux.HandleFunc("POST /rooms/{id}/notes", auth.RequireSession(app.SetHexNote))
+	mux.HandleFunc("POST /rooms/{id}/notes/reveal", auth.RequireSession(app.RevealHexNote))
+	mux.HandleFunc("DELETE /rooms/{id}/notes", auth.RequireSession(app.RemoveHexNote))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/gm-map", auth.RequireSession(app.SetGMLayerMap))
 	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/gm-map", auth.RequireSession(app.ClearGMLayerMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
@@ -760,6 +763,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/scene-name", auth.Fragment(app.RoomSceneNameFragment))
 	mux.HandleFunc("GET /fragment/room/table-menu", auth.Fragment(app.RoomTableMenuFragment))
 	mux.HandleFunc("GET /fragment/room/palette", auth.Fragment(app.RoomPaletteFragment))
+	mux.HandleFunc("GET /fragment/room/hex", auth.Fragment(app.HexNoteFragment))
 	mux.HandleFunc("GET /fragment/room/scene/save", auth.Fragment(app.RoomSceneSaveFragment))
 	// The pawn fragments, and they split three ways on who may read them.
 	//

@@ -17,6 +17,7 @@ func Derive(before, after *State, role Role) []Change {
 	out = append(out, fogDiff.derive(b.Fog, a.Fog)...)
 	out = append(out, strokeDiff.derive(b.Strokes, a.Strokes)...)
 	out = append(out, tileDiff.derive(b.Tiles, a.Tiles)...)
+	out = append(out, noteDiff.derive(b.Notes, a.Notes)...)
 	out = append(out, pawnDiff.derive(b.Pawns, a.Pawns)...)
 	out = append(out, rollDiff.derive(b.Rolls, a.Rolls)...)
 	if !reflect.DeepEqual(b.Music, a.Music) {
@@ -80,6 +81,13 @@ var tileDiff = cellDiff[Tile]{
 	items:   func(s *State) *[]Tile { return &s.Tiles },
 	stamped: func(items []Tile) Change { return &TilesStamped{Tiles: items} },
 	erased:  func(layer ulid.ULID, cells []Cell) Change { return &TilesErased{Layer: layer, Cells: cells} },
+}
+
+var noteDiff = cellDiff[HexNote]{
+	cell:    func(n HexNote) (ulid.ULID, Cell) { return n.LayerID, Cell{Q: n.Q, R: n.R} },
+	items:   func(s *State) *[]HexNote { return &s.Notes },
+	stamped: func(items []HexNote) Change { return &NotesUpserted{Notes: items} },
+	erased:  func(layer ulid.ULID, cells []Cell) Change { return &NotesRemoved{Layer: layer, Cells: cells} },
 }
 
 type cellDiff[T comparable] struct {

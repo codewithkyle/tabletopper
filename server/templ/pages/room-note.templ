@@ -1,0 +1,62 @@
+package pages
+
+const noteField = "input input-sm w-full"
+const noteBody = "textarea textarea-sm min-h-0 w-full flex-1 resize-none leading-snug"
+
+templ RoomNote(data RoomNoteData) {
+	<div class="flex h-full min-h-0 flex-col gap-2">
+		<form
+			class="flex min-h-0 flex-1 flex-col gap-2"
+			hx-post={ data.SavePath() }
+			hx-trigger="change"
+			hx-sync="this:queue last"
+			hx-target={ "#" + noteActions }
+			hx-swap="outerHTML"
+			{ autosaves... }
+		>
+			<input type="hidden" name="layer" value={ data.Layer }/>
+			<input type="hidden" name="q" value={ data.Across() }/>
+			<input type="hidden" name="r" value={ data.Down() }/>
+			<input
+				type="text"
+				name="title"
+				value={ data.Title }
+				class={ noteField }
+				placeholder="Title"
+				aria-label="Title"
+				maxlength={ data.TitleLimit() }
+				autocomplete="off"
+			/>
+			<textarea
+				name="body"
+				class={ noteBody }
+				placeholder="What is here"
+				aria-label="What is here"
+				maxlength={ data.BodyLimit() }
+			>{ data.Body }</textarea>
+		</form>
+		@RoomNoteActions(data)
+	</div>
+}
+
+templ RoomNoteActions(data RoomNoteData) {
+	<div id={ noteActions } class="flex shrink-0 items-center justify-between gap-2 empty:hidden">
+		if data.IsGM && data.Exists {
+			<form hx-post={ data.RevealPath() } hx-trigger="change" hx-swap="none" { autosaves... }>
+				<input type="hidden" name="layer" value={ data.Layer }/>
+				<input type="hidden" name="q" value={ data.Across() }/>
+				<input type="hidden" name="r" value={ data.Down() }/>
+				@panelToggle("revealed", "Shared with the party", "", data.Revealed)
+			</form>
+			<button
+				type="button"
+				class="btn btn-xs btn-soft btn-error"
+				hx-delete={ data.RemovePath() }
+				hx-swap="none"
+				hx-confirm={ data.RemoveConfirm() }
+				data-confirm-heading="Rub out this hex note?"
+				data-confirm-label="Rub it out"
+			>Rub out</button>
+		}
+	</div>
+}

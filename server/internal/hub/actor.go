@@ -634,6 +634,9 @@ func (a *actor) export() *ExportView {
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)
 }
+func (a *actor) note(layer ulid.ULID, q, r int, role room.Role) *room.HexNote {
+	return a.state.ProjectedNote(layer, q, r, role)
+}
 func (a *actor) characterPawn(character ulid.ULID) *room.Pawn {
 	p := a.state.PawnFor(character)
 	if p == nil {

@@ -47,8 +47,8 @@ func TestTheRingCarriesOneButtonPerPaletteEntry(t *testing.T) {
 func TestEverythingOnTheWheelSitsOnOneRing(t *testing.T) {
 	page := renderToString(t, RoomTableMenu(testWheel(2)))
 	radii := styleOf(t, page, "--radius")
-	if len(radii) != 4 {
-		t.Fatalf("%d buttons carry a radius, want two actions and two pictures", len(radii))
+	if len(radii) != 5 {
+		t.Fatalf("%d buttons carry a radius, want three actions and two pictures", len(radii))
 	}
 	for _, radius := range radii {
 		if radius != radii[0] {
@@ -56,11 +56,14 @@ func TestEverythingOnTheWheelSitsOnOneRing(t *testing.T) {
 		}
 	}
 	degrees := styleOf(t, page, "--degree")
-	if len(degrees) != 4 || degrees[0] != "90deg" {
-		t.Fatalf("the wheel's degrees are %v, want four starting at the top", degrees)
+	if len(degrees) != 5 || degrees[0] != "90deg" {
+		t.Fatalf("the wheel's degrees are %v, want five starting at the top", degrees)
 	}
-	if degrees[1] != "0deg" || degrees[2] != "-90deg" || degrees[3] != "-180deg" {
-		t.Errorf("the wheel's degrees are %v, want a quarter turn between each", degrees)
+	for i, want := range []string{"90deg", "18deg", "-54deg", "-126deg", "-198deg"} {
+		if degrees[i] != want {
+			t.Errorf("the wheel's degrees are %v, want a fifth of a turn between each", degrees)
+			break
+		}
 	}
 }
 func TestTheActionsComeFirstSoTheyStayWhereTheGMLeftThem(t *testing.T) {
@@ -72,10 +75,10 @@ func TestTheActionsComeFirstSoTheyStayWhereTheGMLeftThem(t *testing.T) {
 }
 func TestAFullWheelIsPushedOutUntilItsPicturesFit(t *testing.T) {
 	page := renderToString(t, RoomTableMenu(testWheel(24)))
-	want := strconv.Itoa(int(math.Round(26*48/(2*math.Pi)))) + "px"
+	want := strconv.Itoa(int(math.Round(27*48/(2*math.Pi)))) + "px"
 	got := styleOf(t, page, "--radius")
-	if len(got) != 26 {
-		t.Fatalf("%d buttons carry a radius, want 24 pictures and two actions", len(got))
+	if len(got) != 27 {
+		t.Fatalf("%d buttons carry a radius, want 24 pictures and three actions", len(got))
 	}
 	if got[0] != want {
 		t.Errorf("a full wheel sits at %s, want %s -- any tighter and the buttons overlap", got[0], want)
@@ -114,7 +117,7 @@ func TestTheWheelIsPicturesAndIconsAndNoWordsOverTheTable(t *testing.T) {
 }
 func TestAGMWithAnEmptyBagStillGetsTheHub(t *testing.T) {
 	page := renderToString(t, RoomTableMenu(NewTableMenu(testTableRoomID, true, nil)))
-	if !strings.Contains(page, "data-table-menu") {
+	if !strings.Contains(page, "data-table-menu-party") {
 		t.Fatalf("a GM with nothing in the bag lost the wheel:\n%s", page)
 	}
 	if strings.Contains(page, "data-table-menu-art=") {
@@ -135,18 +138,22 @@ func TestAPlayersWheelIsThePicturesAndTheEraserAndNothingElse(t *testing.T) {
 	if strings.Contains(page, "data-table-menu-party") || strings.Contains(page, tableMenuPartyLabel) {
 		t.Errorf("a player can move where the party starts:\n%s", page)
 	}
-	if got := len(styleOf(t, page, "--degree")); got != 3 {
-		t.Errorf("a player's wheel has %d buttons, want two pictures and the eraser", got)
+	if got := len(styleOf(t, page, "--degree")); got != 4 {
+		t.Errorf("a player's wheel has %d buttons, want two pictures, the eraser and the hex note", got)
 	}
 }
-func TestAPlayerWhoMayNotStampGetsNoWheelAtAll(t *testing.T) {
-	data := NewTableMenu(testTableRoomID, false, nil)
-	if !data.Empty() {
-		t.Fatalf("a player with no ring still has %d items", len(data.Items))
+func TestAPlayerWhoMayNotStampGetsTheHexKeyAndNothingElse(t *testing.T) {
+	page := renderToString(t, RoomTableMenu(NewTableMenu(testTableRoomID, false, nil)))
+	if !strings.Contains(page, "data-table-menu-note") {
+		t.Fatalf("a player who cannot stamp lost the hex key too:\n%s", page)
 	}
-	page := renderToString(t, RoomTableMenu(data))
-	if strings.Contains(page, "data-table-menu") {
-		t.Errorf("a player with nothing to stamp got a wheel anyway:\n%s", page)
+	for _, forbidden := range []string{"data-table-menu-art=", "data-table-menu-erase", "data-table-menu-party"} {
+		if strings.Contains(page, forbidden) {
+			t.Errorf("a player who cannot stamp was handed %s:\n%s", forbidden, page)
+		}
+	}
+	if got := len(styleOf(t, page, "--degree")); got != 1 {
+		t.Errorf("a player's bare wheel has %d buttons, want the hex note alone", got)
 	}
 }
 func TestTheWheelReachesPastWhicheverRingItHas(t *testing.T) {
