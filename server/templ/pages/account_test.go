@@ -21,7 +21,9 @@ func testAccountSettings() AccountSettingsData {
 			{Value: "dark", Label: "Dark"},
 		},
 		Theme:      "dark",
-		PingVolume: prefs.PingVolumeMax,
+		PingVolume: prefs.VolumeMax,
+		TurnAlert:  true,
+		TurnVolume: prefs.VolumeMax,
 		Zones: []ZoneGroup{
 			{Label: "Universal", Zones: []ZoneOption{{Value: "UTC", Label: "UTC"}}},
 			{Label: "Americas", Zones: []ZoneOption{
@@ -251,6 +253,7 @@ func TestTheTableTogglesOpenOnWhatIsStored(t *testing.T) {
 	}{
 		{name: "the camera", field: "follow_turn", off: func(d *AccountSettingsData) { d.FollowTurn = false }},
 		{name: "the blood", field: "show_blood", off: func(d *AccountSettingsData) { d.ShowBlood = false }},
+		{name: "the on-deck alert", field: "turn_alert", off: func(d *AccountSettingsData) { d.TurnAlert = false }},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -288,8 +291,8 @@ func TestThePingVolumeSliderRunsFromSilentToFull(t *testing.T) {
 	for _, want := range []string{
 		`<span class="fieldset-legend">Sounds</span>`,
 		`name="ping_volume" type="range" min="0"`,
-		`max="` + PingVolumeMax + `"`,
-		`step="` + PingVolumeStep + `"`,
+		`max="` + VolumeMax + `"`,
+		`step="` + VolumeStep + `"`,
 	} {
 		if !strings.Contains(markup, want) {
 			t.Errorf("the Sounds section is missing %s\n%s", want, markup)
@@ -298,7 +301,7 @@ func TestThePingVolumeSliderRunsFromSilentToFull(t *testing.T) {
 }
 func TestThePingVolumeSliderOpensOnWhatIsStored(t *testing.T) {
 	full := collapseWhitespace(renderSettings(t))
-	if !strings.Contains(full, `value="`+PingVolumeMax+`"`) {
+	if !strings.Contains(full, `value="`+VolumeMax+`"`) {
 		t.Errorf("a stored full volume did not reach the slider\n%s", full)
 	}
 	data := testAccountSettings()
@@ -323,15 +326,15 @@ func TestThePingVolumeSliderWritesIntoItsOwnReading(t *testing.T) {
 	}
 }
 func TestEveryPositionOnTheSliderCanBeSaved(t *testing.T) {
-	for v := 0; v <= prefs.PingVolumeMax; v += prefs.PingVolumeStep {
-		if got, ok := prefs.ParsePingVolume(strconv.Itoa(v)); !ok || got != v {
+	for v := 0; v <= prefs.VolumeMax; v += prefs.VolumeStep {
+		if got, ok := prefs.ParseVolume(strconv.Itoa(v), prefs.Default.PingVolume); !ok || got != v {
 			t.Errorf("the save refuses %d, which the slider offers (got %d, ok %v)", v, got, ok)
 		}
 	}
 }
 func TestTheWelcomeDialogCarriesBothTableToggles(t *testing.T) {
 	welcome := collapseWhitespace(renderWelcome(t))
-	for _, field := range []string{"follow_turn", "show_blood", "ping_volume"} {
+	for _, field := range []string{"follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify"} {
 		if !strings.Contains(welcome, `name="`+field+`"`) {
 			t.Errorf("the welcome dialog would post no answer for %s, which its save writes", field)
 		}
@@ -398,5 +401,44 @@ func TestTheWelcomeOpensItselfOnlyForAnAccountThatHasNotAnswered(t *testing.T) {
 	}
 	if strings.Contains(renderHomepage(t, session.UserSession{}), "data-modal-autoopen") {
 		t.Errorf("the signed-out homepage opens a welcome dialog")
+	}
+}
+
+func TestTheOnDeckAlertHasBothItsToggleAndItsVolume(t *testing.T) {
+	markup := collapseWhitespace(renderSettings(t))
+	for _, want := range []string{
+		`name="turn_alert" type="checkbox"`,
+		`name="turn_notify" type="checkbox"`,
+		`name="turn_volume" type="range" min="0"`,
+		`data-range-output="` + TurnVolumeOutputID + `"`,
+		`id="` + TurnVolumeOutputID + `"`,
+	} {
+		if !strings.Contains(markup, want) {
+			t.Errorf("the settings dialog is missing %s\n%s", want, markup)
+		}
+	}
+}
+func TestTheTwoVolumeSlidersReadIntoDifferentPlaces(t *testing.T) {
+	if PingVolumeOutputID == TurnVolumeOutputID {
+		t.Fatal("both sliders write into one reading")
+	}
+	data := testAccountSettings()
+	data.PingVolume = 30
+	data.TurnVolume = 70
+	markup := collapseWhitespace(markup(t, AccountSettingsFragment(data)))
+	if !strings.Contains(markup, `<span data-range-value>30</span>%`) {
+		t.Errorf("the ping reading did not open on 30\n%s", markup)
+	}
+	if !strings.Contains(markup, `<span data-range-value>70</span>%`) {
+		t.Errorf("the turn reading did not open on 70\n%s", markup)
+	}
+}
+func TestTheNotificationToggleOwnsTheHintAboutBeingRefused(t *testing.T) {
+	markup := collapseWhitespace(renderSettings(t))
+	if !strings.Contains(markup, "data-notify-permission") {
+		t.Errorf("nothing asks the browser for permission\n%s", markup)
+	}
+	if !strings.Contains(markup, "data-notify-blocked hidden") {
+		t.Errorf("the refused hint is missing, or is on screen before it is true\n%s", markup)
 	}
 }

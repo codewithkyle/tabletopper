@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"tabletopper/internal/prefs"
 	"tabletopper/internal/uievents"
 )
 
@@ -60,13 +61,16 @@ func Theme(w http.ResponseWriter, palette string) {
 		uievents.ThemeChange: map[string]string{"palette": palette},
 	})
 }
-func Settings(w http.ResponseWriter, name string, followTurn, showBlood bool, pingVolume int) {
+func Settings(w http.ResponseWriter, name string, p prefs.Preferences) {
 	trigger(w, map[string]any{
 		uievents.SettingsChange: map[string]any{
 			"name":       name,
-			"followTurn": followTurn,
-			"showBlood":  showBlood,
-			"pingVolume": pingVolume,
+			"followTurn": p.FollowTurn,
+			"showBlood":  p.ShowBlood,
+			"pingVolume": p.PingVolume,
+			"turnAlert":  p.TurnAlert,
+			"turnVolume": p.TurnVolume,
+			"turnNotify": p.TurnNotify,
 		},
 	})
 }

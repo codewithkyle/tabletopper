@@ -51,12 +51,15 @@ var Default = Preferences{
 	TimeFormat: Time12H,
 	FollowTurn: true,
 	ShowBlood:  true,
-	PingVolume: PingVolumeMax,
+	PingVolume: VolumeMax,
+	TurnAlert:  true,
+	TurnVolume: VolumeMax,
+	TurnNotify: false,
 }
 
 const (
-	PingVolumeMax  = 100
-	PingVolumeStep = 10
+	VolumeMax  = 100
+	VolumeStep = 10
 )
 
 type Preferences struct {
@@ -67,33 +70,52 @@ type Preferences struct {
 	FollowTurn bool
 	ShowBlood  bool
 	PingVolume int
+	TurnAlert  bool
+	TurnVolume int
+	TurnNotify bool
 }
 
-func New(theme, timezone, dateFormat, timeFormat string, followTurn, showBlood bool, pingVolume int) Preferences {
+type Stored struct {
+	Theme      string
+	Timezone   string
+	DateFormat string
+	TimeFormat string
+	FollowTurn bool
+	ShowBlood  bool
+	PingVolume int
+	TurnAlert  bool
+	TurnVolume int
+	TurnNotify bool
+}
+
+func New(row Stored) Preferences {
 	p := Default
-	if v, ok := ParseTheme(theme); ok {
+	if v, ok := ParseTheme(row.Theme); ok {
 		p.Theme = v
 	}
-	if v, ok := ParseTimezone(timezone); ok {
+	if v, ok := ParseTimezone(row.Timezone); ok {
 		p.Timezone = v
 	}
-	if v, ok := ParseDateFormat(dateFormat); ok {
+	if v, ok := ParseDateFormat(row.DateFormat); ok {
 		p.DateFormat = v
 	}
-	if v, ok := ParseTimeFormat(timeFormat); ok {
+	if v, ok := ParseTimeFormat(row.TimeFormat); ok {
 		p.TimeFormat = v
 	}
-	p.FollowTurn = followTurn
-	p.ShowBlood = showBlood
-	p.PingVolume = ClampPingVolume(pingVolume)
+	p.FollowTurn = row.FollowTurn
+	p.ShowBlood = row.ShowBlood
+	p.PingVolume = ClampVolume(row.PingVolume)
+	p.TurnAlert = row.TurnAlert
+	p.TurnVolume = ClampVolume(row.TurnVolume)
+	p.TurnNotify = row.TurnNotify
 	return p
 }
-func ClampPingVolume(v int) int {
+func ClampVolume(v int) int {
 	if v < 0 {
 		return 0
 	}
-	if v > PingVolumeMax {
-		return PingVolumeMax
+	if v > VolumeMax {
+		return VolumeMax
 	}
 	return v
 }
@@ -126,13 +148,13 @@ func ParseTimeFormat(s string) (TimeFormat, bool) {
 	}
 	return Default.TimeFormat, false
 }
-func ParsePingVolume(s string) (int, bool) {
+func ParseVolume(s string, fallback int) (int, bool) {
 	if s == "" {
-		return Default.PingVolume, true
+		return fallback, true
 	}
 	v, err := strconv.Atoi(s)
-	if err != nil || v < 0 || v > PingVolumeMax || v%PingVolumeStep != 0 {
-		return Default.PingVolume, false
+	if err != nil || v < 0 || v > VolumeMax || v%VolumeStep != 0 {
+		return fallback, false
 	}
 	return v, true
 }

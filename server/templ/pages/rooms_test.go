@@ -15,7 +15,8 @@ func testRoomPage(role room.Role) RoomPageData {
 		Name:       "Curse of Strahd",
 		Code:       "AB2C",
 		Role:       role,
-		PingVolume: prefs.PingVolumeMax,
+		PingVolume: prefs.VolumeMax,
+		TurnVolume: prefs.VolumeMax,
 	}
 }
 func menuLabels(data RoomPageData) []string {

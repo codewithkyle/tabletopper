@@ -69,6 +69,9 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		FollowTurn: updated.FollowTurn,
 		ShowBlood:  updated.ShowBlood,
 		PingVolume: uint8(updated.PingVolume),
+		TurnAlert:  updated.TurnAlert,
+		TurnVolume: uint8(updated.TurnVolume),
+		TurnNotify: updated.TurnNotify,
 	})
 	if err != nil {
 		slog.Error("Failed to save account settings", "error", err)
@@ -104,6 +107,9 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		FollowTurn: updated.FollowTurn,
 		ShowBlood:  updated.ShowBlood,
 		PingVolume: uint8(updated.PingVolume),
+		TurnAlert:  updated.TurnAlert,
+		TurnVolume: uint8(updated.TurnVolume),
+		TurnNotify: updated.TurnNotify,
 	})
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err)
@@ -125,7 +131,7 @@ func (a *App) DismissOnboarding(w http.ResponseWriter, r *http.Request) {
 }
 func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name string, p prefs.Preferences, message string) {
 	htmx.Theme(w, p.Theme.Palette())
-	htmx.Settings(w, name, p.FollowTurn, p.ShowBlood, p.PingVolume)
+	htmx.Settings(w, name, p)
 	htmx.CloseModal(w)
 	htmx.Toast(w, message)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -162,11 +168,18 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 	p.TimeFormat = timeFormat
 	p.FollowTurn = r.PostFormValue("follow_turn") != ""
 	p.ShowBlood = r.PostFormValue("show_blood") != ""
-	pingVolume, ok := prefs.ParsePingVolume(r.PostFormValue("ping_volume"))
+	p.TurnAlert = r.PostFormValue("turn_alert") != ""
+	p.TurnNotify = r.PostFormValue("turn_notify") != ""
+	pingVolume, ok := prefs.ParseVolume(r.PostFormValue("ping_volume"), prefs.Default.PingVolume)
 	if !ok {
 		problems = append(problems, "Choose one of the offered ping volumes.")
 	}
 	p.PingVolume = pingVolume
+	turnVolume, ok := prefs.ParseVolume(r.PostFormValue("turn_volume"), prefs.Default.TurnVolume)
+	if !ok {
+		problems = append(problems, "Choose one of the offered turn alert volumes.")
+	}
+	p.TurnVolume = turnVolume
 	return name, p, problems
 }
 func accountDisplayName(r *http.Request) (string, string) {
@@ -190,6 +203,9 @@ func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.
 		FollowTurn: p.FollowTurn,
 		ShowBlood:  p.ShowBlood,
 		PingVolume: p.PingVolume,
+		TurnAlert:  p.TurnAlert,
+		TurnVolume: p.TurnVolume,
+		TurnNotify: p.TurnNotify,
 	}
 	for _, theme := range prefs.Themes() {
 		data.Themes = append(data.Themes, pages.Option{

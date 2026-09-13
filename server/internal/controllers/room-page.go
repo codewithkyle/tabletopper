@@ -44,6 +44,9 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 		FollowTurn:    sess.Prefs.FollowTurn,
 		ShowBlood:     sess.Prefs.ShowBlood,
 		PingVolume:    sess.Prefs.PingVolume,
+		TurnAlert:     sess.Prefs.TurnAlert,
+		TurnVolume:    sess.Prefs.TurnVolume,
+		TurnNotify:    sess.Prefs.TurnNotify,
 	}))
 }
 func (a *App) LockRoom(w http.ResponseWriter, r *http.Request) {

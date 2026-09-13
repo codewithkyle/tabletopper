@@ -51,6 +51,13 @@ templ roomContent(data RoomPageData) {
 					data-show-blood
 				}
 				data-ping-volume={ data.PingVolumeAttr() }
+				data-turn-volume={ data.TurnVolumeAttr() }
+				if data.TurnAlert {
+					data-turn-alert
+				}
+				if data.TurnNotify {
+					data-turn-notify
+				}
 				if data.Debug {
 					data-debugging
 				}
@@ -73,7 +80,10 @@ templ roomContent(data RoomPageData) {
 				}
 				@roomOverlay(data)
 				if !data.Closed {
-					@roomInitiativeMount(data)
+					<div class="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center">
+						@roomInitiativeMount(data)
+						@roomTurnAlert()
+					</div>
 					if data.IsGM() {
 						@roomInitiativeMenu(data)
 					}

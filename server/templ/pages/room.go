@@ -37,10 +37,16 @@ type RoomPageData struct {
 	FollowTurn    bool
 	ShowBlood     bool
 	PingVolume    int
+	TurnAlert     bool
+	TurnVolume    int
+	TurnNotify    bool
 }
 
 func (d RoomPageData) PingVolumeAttr() string {
-	return strconv.Itoa(prefs.ClampPingVolume(d.PingVolume))
+	return strconv.Itoa(prefs.ClampVolume(d.PingVolume))
+}
+func (d RoomPageData) TurnVolumeAttr() string {
+	return strconv.Itoa(prefs.ClampVolume(d.TurnVolume))
 }
 func (d RoomPageData) Bundle() string {
 	if d.Version == "" {

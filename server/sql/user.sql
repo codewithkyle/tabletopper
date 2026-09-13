@@ -26,7 +26,10 @@ SET username = sqlc.arg(username),
     time_format = sqlc.arg(time_format),
     follow_turn = sqlc.arg(follow_turn),
     show_blood = sqlc.arg(show_blood),
-    ping_volume = sqlc.arg(ping_volume)
+    ping_volume = sqlc.arg(ping_volume),
+    turn_alert = sqlc.arg(turn_alert),
+    turn_volume = sqlc.arg(turn_volume),
+    turn_notify = sqlc.arg(turn_notify)
 WHERE id = sqlc.arg(id);
 -- name: CompleteOnboarding :exec
 UPDATE users
@@ -38,6 +41,9 @@ SET username = sqlc.arg(username),
     follow_turn = sqlc.arg(follow_turn),
     show_blood = sqlc.arg(show_blood),
     ping_volume = sqlc.arg(ping_volume),
+    turn_alert = sqlc.arg(turn_alert),
+    turn_volume = sqlc.arg(turn_volume),
+    turn_notify = sqlc.arg(turn_notify),
     onboarded_at = COALESCE(onboarded_at, NOW())
 WHERE id = sqlc.arg(id);
 -- name: DismissOnboarding :exec

@@ -43,7 +43,8 @@ func (r *sessionRows) Columns() []string {
 		"created_at", "refreshed_at",
 		"username", "avatar_asset_id",
 		"theme", "timezone", "date_format", "time_format",
-		"follow_turn", "show_blood", "ping_volume", "onboarded_at",
+		"follow_turn", "show_blood", "ping_volume",
+		"turn_alert", "turn_volume", "turn_notify", "onboarded_at",
 	}
 }
 func (r *sessionRows) Close() error { return nil }
@@ -70,6 +71,9 @@ func (r *sessionRows) Next(dest []driver.Value) error {
 		int64(1),
 		int64(1),
 		int64(100),
+		int64(1),
+		int64(100),
+		int64(0),
 		nil,
 	} {
 		dest[i] = v

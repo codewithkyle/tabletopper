@@ -152,7 +152,7 @@ func TestTheZeroValueStillRenders(t *testing.T) {
 	}
 }
 func TestNewFallsBackFieldByField(t *testing.T) {
-	p := New("dark", "nonsense/Nowhere", "iso", "", true, true, PingVolumeMax)
+	p := New(Stored{Theme: "dark", Timezone: "nonsense/Nowhere", DateFormat: "iso", FollowTurn: true, ShowBlood: true, PingVolume: VolumeMax, TurnAlert: true, TurnVolume: VolumeMax})
 	if p.Theme != ThemeDark {
 		t.Errorf("Theme = %q, want %q", p.Theme, ThemeDark)
 	}
@@ -176,7 +176,7 @@ func TestTheCameraFollowsTheTurnUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.FollowTurn {
 		t.Error("Default.FollowTurn = false, want true")
 	}
-	if p := New("", "", "", "", false, true, PingVolumeMax); p.FollowTurn {
+	if p := New(Stored{ShowBlood: true, PingVolume: VolumeMax}); p.FollowTurn {
 		t.Error("New ignored a stored false")
 	}
 	if (Preferences{}).FollowTurn {
@@ -187,7 +187,7 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	if !Default.ShowBlood {
 		t.Error("Default.ShowBlood = false, want true")
 	}
-	if p := New("", "", "", "", true, false, PingVolumeMax); p.ShowBlood {
+	if p := New(Stored{FollowTurn: true, PingVolume: VolumeMax}); p.ShowBlood {
 		t.Error("New ignored a stored false")
 	}
 	if (Preferences{}).ShowBlood {
@@ -195,10 +195,10 @@ func TestTheFloorTakesBloodUntilSomebodySaysOtherwise(t *testing.T) {
 	}
 }
 func TestTheTwoTableSettingsAreNotEachOther(t *testing.T) {
-	if p := New("", "", "", "", true, false, PingVolumeMax); !p.FollowTurn || p.ShowBlood {
+	if p := New(Stored{FollowTurn: true, PingVolume: VolumeMax}); !p.FollowTurn || p.ShowBlood {
 		t.Errorf("New(followTurn: true, showBlood: false) = %+v", p)
 	}
-	if p := New("", "", "", "", false, true, PingVolumeMax); p.FollowTurn || !p.ShowBlood {
+	if p := New(Stored{ShowBlood: true, PingVolume: VolumeMax}); p.FollowTurn || !p.ShowBlood {
 		t.Errorf("New(followTurn: false, showBlood: true) = %+v", p)
 	}
 }
@@ -307,5 +307,48 @@ func TestEveryAliasIsTheSameZoneUnderItsOldName(t *testing.T) {
 	}
 	if len(seen) != 5 {
 		t.Errorf("%d aliases, want the 5 that ICU still canonicalises", len(seen))
+	}
+}
+
+func TestTheOnDeckAlertIsOnUntilSomebodySaysOtherwise(t *testing.T) {
+	if !Default.TurnAlert {
+		t.Error("Default.TurnAlert = false, want true: the old client alerted without being asked")
+	}
+	if p := New(Stored{PingVolume: VolumeMax, TurnVolume: VolumeMax}); p.TurnAlert {
+		t.Error("New ignored a stored false")
+	}
+}
+func TestTheDesktopNotificationIsOffUntilSomebodyAsksForIt(t *testing.T) {
+	if Default.TurnNotify {
+		t.Error("Default.TurnNotify = true; a browser permission prompt is nobody's default")
+	}
+	if p := New(Stored{TurnNotify: true}); !p.TurnNotify {
+		t.Error("New ignored a stored true")
+	}
+}
+func TestTheTwoVolumesAreNotEachOther(t *testing.T) {
+	p := New(Stored{PingVolume: 30, TurnVolume: 90})
+	if p.PingVolume != 30 || p.TurnVolume != 90 {
+		t.Errorf("New(ping: 30, turn: 90) = %d, %d", p.PingVolume, p.TurnVolume)
+	}
+}
+func TestAVolumeFromOutsideTheSliderIsBroughtOntoIt(t *testing.T) {
+	p := New(Stored{PingVolume: -5, TurnVolume: VolumeMax + 40})
+	if p.PingVolume != 0 {
+		t.Errorf("PingVolume = %d, want 0", p.PingVolume)
+	}
+	if p.TurnVolume != VolumeMax {
+		t.Errorf("TurnVolume = %d, want %d", p.TurnVolume, VolumeMax)
+	}
+}
+func TestAVolumeOffTheStepIsRefusedRatherThanRounded(t *testing.T) {
+	if _, ok := ParseVolume("35", Default.TurnVolume); ok {
+		t.Error("ParseVolume accepted a value the slider cannot land on")
+	}
+	if _, ok := ParseVolume("110", Default.TurnVolume); ok {
+		t.Error("ParseVolume accepted a value above full")
+	}
+	if got, ok := ParseVolume("", 40); !ok || got != 40 {
+		t.Errorf("an unsent slider = %d, %v; want the fallback 40", got, ok)
 	}
 }

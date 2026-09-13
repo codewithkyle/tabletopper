@@ -11,7 +11,7 @@ const initiativeUnderlay = "absolute inset-x-0 bottom-0 bg-black/55 px-0.5 text-
 templ RoomInitiative(data RoomInitiativeData) {
 	<div
 		id={ RoomInitiativeID }
-		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1 p-2"
+		class="pointer-events-none flex w-full flex-col items-center gap-1 p-2"
 		hx-get={ data.Path() }
 		hx-trigger={ data.Trigger() }
 		hx-sync="this:queue last"
@@ -191,7 +191,7 @@ templ roomInitiativeMount(data RoomPageData) {
 	<div
 		id={ RoomInitiativeID }
 		hidden
-		class="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center gap-1 p-2"
+		class="pointer-events-none flex w-full flex-col items-center gap-1 p-2"
 		hx-get={ data.InitiativePath() }
 		hx-trigger={ InitiativeLoadTrigger }
 		hx-sync="this:queue last"

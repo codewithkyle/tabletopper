@@ -79,36 +79,55 @@ templ accountSettingsFields(data AccountSettingsData) {
 templ soundFields(data AccountSettingsData) {
 	<div class="fieldset">
 		<span class="fieldset-legend">Sounds</span>
-		<div class="grid gap-1">
-			<label class="font-medium" for="ping-volume">Ping volume</label>
-			<p class="m-0 text-sm text-base-content/75">
-				How loud it is when somebody points at the tabletop. All the way down is silent.
-			</p>
-			<div class="mt-2 flex items-center gap-3">
-				<div class="min-w-0 flex-1">
-					<input
-						id="ping-volume"
-						name="ping_volume"
-						type="range"
-						min="0"
-						max={ PingVolumeMax }
-						step={ PingVolumeStep }
-						value={ data.PingVolumeValue() }
-						data-range-output={ PingVolumeOutputID }
-						class="range range-sm w-full"
-					/>
-					<div class="flex justify-between text-xs text-base-content/60">
-						<span>Silent</span>
-						<span>Full</span>
-					</div>
+		<div class="grid gap-4">
+			@volumeField(
+				"ping-volume",
+				"ping_volume",
+				"Ping volume",
+				"How loud it is when somebody points at the tabletop. All the way down is silent.",
+				PingVolumeOutputID,
+				data.PingVolumeValue(),
+			)
+			@volumeField(
+				"turn-volume",
+				"turn_volume",
+				"Turn alert volume",
+				"How loud the chime is when your turn is the next one up. All the way down keeps the banner and takes the sound away.",
+				TurnVolumeOutputID,
+				data.TurnVolumeValue(),
+			)
+		</div>
+	</div>
+}
+
+templ volumeField(id string, name string, label string, description string, output string, value string) {
+	<div class="grid gap-1">
+		<label class="font-medium" for={ id }>{ label }</label>
+		<p class="m-0 text-sm text-base-content/75">{ description }</p>
+		<div class="mt-2 flex items-center gap-3">
+			<div class="min-w-0 flex-1">
+				<input
+					id={ id }
+					name={ name }
+					type="range"
+					min="0"
+					max={ VolumeMax }
+					step={ VolumeStep }
+					value={ value }
+					data-range-output={ output }
+					class="range range-sm w-full"
+				/>
+				<div class="flex justify-between text-xs text-base-content/60">
+					<span>Silent</span>
+					<span>Full</span>
 				</div>
-				<output
-					id={ PingVolumeOutputID }
-					for="ping-volume"
-					aria-hidden="true"
-					class="w-12 shrink-0 text-right font-mono text-sm"
-				><span data-range-value>{ data.PingVolumeValue() }</span>%</output>
 			</div>
+			<output
+				id={ output }
+				for={ id }
+				aria-hidden="true"
+				class="w-12 shrink-0 text-right font-mono text-sm"
+			><span data-range-value>{ value }</span>%</output>
 		</div>
 	</div>
 }
@@ -119,7 +138,25 @@ templ tabletopFields(data AccountSettingsData) {
 		<div class="grid gap-4">
 			@tabletopToggle("follow-turn", "follow_turn", "Follow the turn", "Move the tabletop to whoever's turn it is.", data.FollowTurn)
 			@tabletopToggle("show-blood", "show_blood", "Show blood", "Mark the tabletop where a creature is hit with a splatter of blood, and a pool of it where one dies.", data.ShowBlood)
+			@tabletopToggle("turn-alert", "turn_alert", "Tell me when I'm on deck", "Raise a banner and sound a chime when your turn is the next one up.", data.TurnAlert)
+			@turnNotifyField(data)
 		</div>
+	</div>
+}
+
+templ turnNotifyField(data AccountSettingsData) {
+	<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1">
+		<label class="col-start-1 row-start-1 font-medium" for="turn-notify">Tell me in another tab too</label>
+		<input
+			id="turn-notify"
+			name="turn_notify"
+			type="checkbox"
+			class="toggle col-start-2 row-start-1"
+			data-notify-permission
+			checked?={ data.TurnNotify }
+		/>
+		<p class="col-span-2 m-0 text-sm text-base-content/75">Post a desktop notification as well, for when Tabletopper is not the tab you are looking at. Your browser will ask permission.</p>
+		<p data-notify-blocked hidden class="col-span-2 m-0 text-sm text-warning">This browser is not showing Tabletopper's notifications. Allow them in its site settings to turn them on; the banner and the chime carry on either way.</p>
 	</div>
 }
 

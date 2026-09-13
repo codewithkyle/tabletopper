@@ -5,6 +5,9 @@ import { announce } from "./panels.ts";
 import { fanOut, refusals } from "./effects.ts";
 import { mountDrawTool } from "./draw-tool.ts";
 import { FULL, newPingSound } from "./ping-sound.ts";
+import { newSpeaker } from "./sound.ts";
+import { newTurnSound } from "./turn-sound.ts";
+import { mountTurnAlert, type TurnAlert } from "./turn-alert.ts";
 import { createTable } from "./modes/table.ts";
 import { actorColor, hexColor } from "./model/color.ts";
 import { empty, reduce } from "./store.ts";
@@ -65,9 +68,26 @@ if (mount) {
 	const fogTool = mountFogTool(mount, tools);
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
 	const music = mountMusic(mount, state, role);
-	const sound = newPingSound();
+	const speaker = newSpeaker();
+	const sound = newPingSound(speaker);
 	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);
 	sound.volume(Number.isFinite(rendered) ? rendered : FULL);
+	const chime = newTurnSound(speaker);
+	const turned = Number.parseInt(mount.dataset.turnVolume ?? "", 10);
+	chime.volume(Number.isFinite(turned) ? turned : FULL);
+	const deck = mountTurnAlert(mount, state, { user, sound: chime });
+	deck?.settings(mount.dataset.turnAlert !== undefined, mount.dataset.turnNotify !== undefined);
+	window.addEventListener(SETTINGS_CHANGE, (e) => {
+		const detail = (e as CustomEvent<{
+			turnAlert?: boolean;
+			turnVolume?: number;
+			turnNotify?: boolean;
+		}>).detail;
+		deck?.settings(detail?.turnAlert !== false, detail?.turnNotify === true);
+		if (typeof detail?.turnVolume === "number") {
+			chime.volume(detail.turnVolume);
+		}
+	});
 	let hud: Hud | null = null;
 	let follow: Follow | null = null;
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
@@ -177,7 +197,7 @@ if (mount) {
 	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, rev, renderer, table, hud, turns, follow, music, pinged, debugging);
+		socket = start(path, state, rev, renderer, table, hud, turns, follow, deck, music, pinged, debugging);
 	}
 }
 type Debugging = ((socket: Socket) => void) | null;
@@ -190,6 +210,7 @@ function start(
 	hud: Hud | null,
 	turns: Turns | null,
 	follow: Follow | null,
+	deck: TurnAlert | null,
 	music: MusicPlayer | null,
 	pinged: (layer: string, by: string) => void,
 	debugging: Debugging,
@@ -218,6 +239,7 @@ function start(
 			}
 		},
 		(event) => follow?.event(event),
+		(event) => deck?.event(event),
 		(event) => music?.event(event),
 		(event) => table.preview(event),
 		refusals({

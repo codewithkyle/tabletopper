@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"testing"
+
+	"tabletopper/internal/prefs"
 )
 
 func TestToastSurvivesQuotesInTheMessage(t *testing.T) {
@@ -37,7 +39,7 @@ func TestTriggerMergesWithAnExistingHeader(t *testing.T) {
 }
 func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 	rec := httptest.NewRecorder()
-	Settings(rec, `Say "hi"`, true, false, 40)
+	Settings(rec, `Say "hi"`, prefs.Preferences{FollowTurn: true, ShowBlood: false, PingVolume: 40, TurnAlert: true, TurnVolume: 70, TurnNotify: true})
 	var events map[string]map[string]any
 	if err := json.Unmarshal([]byte(rec.Header().Get("HX-Trigger")), &events); err != nil {
 		t.Fatalf("HX-Trigger is not JSON: %v", err)
@@ -58,11 +60,20 @@ func TestTheSettingsEventCarriesWhatThePageIsAlreadyObeying(t *testing.T) {
 	if got := detail["pingVolume"]; got != float64(40) {
 		t.Errorf("pingVolume = %#v, want the number 40", got)
 	}
+	if got := detail["turnAlert"]; got != true {
+		t.Errorf("turnAlert = %#v, want the boolean true", got)
+	}
+	if got := detail["turnVolume"]; got != float64(70) {
+		t.Errorf("turnVolume = %#v, want the number 70", got)
+	}
+	if got := detail["turnNotify"]; got != true {
+		t.Errorf("turnNotify = %#v, want the boolean true", got)
+	}
 }
 func TestASavesEventsAllSurviveEachOther(t *testing.T) {
 	rec := httptest.NewRecorder()
 	Theme(rec, "coffee")
-	Settings(rec, "kyle", true, true, 100)
+	Settings(rec, "kyle", prefs.Default)
 	CloseModal(rec)
 	Toast(rec, "Settings saved.")
 	var events map[string]any

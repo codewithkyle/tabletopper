@@ -37,16 +37,25 @@ type AccountSettingsData struct {
 	FollowTurn  bool
 	ShowBlood   bool
 	PingVolume  int
+	TurnAlert   bool
+	TurnVolume  int
+	TurnNotify  bool
 	Storage     string
 }
 
 var (
-	PingVolumeMax  = strconv.Itoa(prefs.PingVolumeMax)
-	PingVolumeStep = strconv.Itoa(prefs.PingVolumeStep)
+	VolumeMax  = strconv.Itoa(prefs.VolumeMax)
+	VolumeStep = strconv.Itoa(prefs.VolumeStep)
 )
 
-const PingVolumeOutputID = "ping-volume-value"
+const (
+	PingVolumeOutputID = "ping-volume-value"
+	TurnVolumeOutputID = "turn-volume-value"
+)
 
 func (d AccountSettingsData) PingVolumeValue() string {
 	return strconv.Itoa(d.PingVolume)
+}
+func (d AccountSettingsData) TurnVolumeValue() string {
+	return strconv.Itoa(d.TurnVolume)
 }
