@@ -2356,7 +2356,8 @@ func TestTheAutosaveGuardStopsTheBrowserSubmitting(t *testing.T) {
 	for name, part := range map[string]templ.Component{
 		"a saving panel":    savingPanel("Vitals", "/characters/x/vitals", "vitals"),
 		"the details panel": RoomPawnFragment(pawn),
-		"the grid settings": RoomGrid(RoomGridData{RoomID: "01ROOM"}),
+		"the grid window":   RoomGrid(RoomGridData{RoomID: "01ROOM"}),
+		"the table options": RoomSettings(RoomSettingsData{RoomID: "01ROOM"}),
 		"an inventory row":  InventoryRow("01CHAR", InventoryItem{ID: "01ITEM"}),
 		"a spell row":       SpellRow("01CHAR", Spell{ID: "01SPELL"}),
 		"an attack row":     AttackRow("01CHAR", Attack{ID: "01ATK"}),

@@ -7,9 +7,17 @@ FROM rooms
 WHERE owner_id = ?
 ORDER BY created_at DESC;
 -- name: GetRoom :one
-SELECT id, owner_id, name, code, is_locked, created_at, closed_at
+SELECT id, owner_id, name, code, is_locked, scene_id, created_at, closed_at
 FROM rooms
 WHERE id = ?;
+-- name: SetRoomScene :execresult
+UPDATE rooms
+SET scene_id = ?
+WHERE id = ? AND owner_id = ?;
+-- name: ClearRoomScene :execresult
+UPDATE rooms
+SET scene_id = NULL
+WHERE id = ? AND owner_id = ?;
 -- name: GetOpenRoomByCode :one
 SELECT id, name, is_locked
 FROM rooms

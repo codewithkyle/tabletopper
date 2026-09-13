@@ -1,12 +1,14 @@
 package pages
 
 import (
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
 	"testing"
 
 	"tabletopper/internal/room"
+	"tabletopper/internal/uievents"
 )
 
 const testTableRoomID = "01BX5ZZKBKACTAV9WEVGEMMVT0"
@@ -104,41 +106,81 @@ func TestOnlyTheOddlySizedFloorIsWarnedAbout(t *testing.T) {
 		t.Errorf("%d size warnings, want 1:\n%s", got, page)
 	}
 }
-func TestTheGridFormRoutesItsRejectionToItsErrorBlock(t *testing.T) {
-	page := renderToString(t, RoomGrid(RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}))
-	block := "#errors-" + RoomGridPanel
-	for _, want := range []string{
-		`hx-post="/rooms/` + testTableRoomID + `/grid"`,
-		`hx-target="` + block + `"`,
-		`hx-swap="outerHTML"`,
-		`hx-status:422="target:` + block + `,swap:outerHTML"`,
+func testGridData() RoomGridData {
+	return RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}
+}
+func testSettingsData() RoomSettingsData {
+	return RoomSettingsData{RoomID: testTableRoomID, PawnLabels: "default", InitiativeGrouping: "grouped"}
+}
+func TestBothTableFormsRouteTheirRejectionToTheirOwnErrorBlock(t *testing.T) {
+	if RoomGridPanel == RoomSettingsPanel {
+		t.Fatalf("both windows swap into #errors-%s, so whichever is open second wins", RoomGridPanel)
+	}
+	for name, form := range map[string]struct {
+		page  string
+		panel string
+		path  string
+	}{
+		"grid":     {renderToString(t, RoomGrid(testGridData())), RoomGridPanel, "/rooms/" + testTableRoomID + "/grid"},
+		"settings": {renderToString(t, RoomSettings(testSettingsData())), RoomSettingsPanel, "/rooms/" + testTableRoomID + "/settings"},
 	} {
-		if !strings.Contains(page, want) {
-			t.Errorf("the grid form is missing %s:\n%s", want, page)
+		block := "#errors-" + form.panel
+		for _, want := range []string{
+			`hx-post="` + form.path + `"`,
+			`hx-target="` + block + `"`,
+			`hx-swap="outerHTML"`,
+			`hx-status:422="target:` + block + `,swap:outerHTML"`,
+		} {
+			if !strings.Contains(form.page, want) {
+				t.Errorf("the %s form is missing %s:\n%s", name, want, form.page)
+			}
+		}
+		if !strings.Contains(form.page, `id="errors-`+form.panel+`"`) {
+			t.Errorf("the %s form has no error block to swap into", name)
 		}
 	}
-	if !strings.Contains(page, `id="errors-`+RoomGridPanel+`"`) {
-		t.Error("the form has no error block to swap into")
-	}
 }
-func TestTheGridFormDoesNotRedrawItselfOnItsOwnSave(t *testing.T) {
-	page := renderToString(t, RoomGrid(RoomGridData{RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF"}))
-	if strings.Contains(page, "room:tabletop") {
-		t.Errorf("the grid form refetches on its own save:\n%s", page)
+func TestNeitherTableFormRedrawsItselfOnItsOwnSave(t *testing.T) {
+	grid := renderToString(t, RoomGrid(testGridData()))
+	settings := renderToString(t, RoomSettings(testSettingsData()))
+	for name, page := range map[string]string{"grid": grid, "settings": settings} {
+		if strings.Contains(page, uievents.Tabletop) {
+			t.Errorf("the %s form refetches on its own save:\n%s", name, page)
+		}
 	}
 	manager := renderToString(t, RoomLayers(RoomLayersData{RoomID: testTableRoomID}))
-	if !strings.Contains(manager, "room:tabletop from:window") {
+	if !strings.Contains(manager, uievents.Tabletop+" from:window") {
 		t.Errorf("the layer manager does not refetch:\n%s", manager)
 	}
 }
+func TestTheGridRedrawsWhenASceneLandsUnderIt(t *testing.T) {
+	grid := renderToString(t, RoomGrid(testGridData()))
+	if !strings.Contains(grid, uievents.Resync+" from:window") {
+		t.Errorf("a scene load leaves the grid window showing the grid it replaced:\n%s", grid)
+	}
+	if !strings.Contains(grid, `hx-get="/fragment/room/grid?room=`+testTableRoomID+`"`) {
+		t.Errorf("the grid window has nowhere to refetch from:\n%s", grid)
+	}
+	if strings.Contains(grid, `hx-trigger="load`) || strings.Contains(grid, `hx-trigger="`+uievents.Resync+`, load`) {
+		t.Errorf("the grid refetches itself the moment it is swapped in, which never stops:\n%s", grid)
+	}
+}
 func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
-	for name, pair := range map[string][2][]string{
-		"gridLines":          {values(GridLineChoices()), room.GridLines("").Values()},
-		"snap":               {values(GridSnapChoices()), room.Snap("").Values()},
-		"diagonals":          {values(GridDiagonalChoices()), room.Diagonals("").Values()},
+	assertChoices(t, map[string][2][]string{
+		"gridLines": {values(GridLineChoices()), room.GridLines("").Values()},
+		"snap":      {values(GridSnapChoices()), room.Snap("").Values()},
+		"diagonals": {values(GridDiagonalChoices()), room.Diagonals("").Values()},
+	})
+}
+func TestTheSettingsFormOffersExactlyTheProtocolsChoices(t *testing.T) {
+	assertChoices(t, map[string][2][]string{
 		"pawnLabels":         {values(PawnLabelChoices()), room.PawnLabels("").Values()},
 		"initiativeGrouping": {values(InitiativeGroupingChoices()), room.InitiativeGrouping("").Values()},
-	} {
+	})
+}
+func assertChoices(t *testing.T, pairs map[string][2][]string) {
+	t.Helper()
+	for name, pair := range pairs {
 		got, want := pair[0], pair[1]
 		if len(got) != len(want) {
 			t.Errorf("%s offers %v, the protocol takes %v", name, got, want)
@@ -150,6 +192,25 @@ func TestTheGridFormOffersExactlyTheProtocolsChoices(t *testing.T) {
 			}
 		}
 	}
+}
+func TestNeitherTableFormCarriesTheOthersFields(t *testing.T) {
+	for name, pair := range map[string][2][]string{
+		"grid":     {fieldNames(renderToString(t, RoomGrid(testGridData()))), []string{"cellSize", "color", "diagonals", "feetPerCell", "gridLines", "offsetX", "offsetY", "snap"}},
+		"settings": {fieldNames(renderToString(t, RoomSettings(testSettingsData()))), []string{"fogPrefill", "initiativeGrouping", "pawnLabels", "playersCanDraw"}},
+	} {
+		if !slices.Equal(pair[0], pair[1]) {
+			t.Errorf("the %s form posts %v, want %v", name, pair[0], pair[1])
+		}
+	}
+}
+func fieldNames(page string) []string {
+	found := map[string]bool{}
+	for _, m := range regexp.MustCompile(`name="([^"]+)"`).FindAllStringSubmatch(page, -1) {
+		found[m[1]] = true
+	}
+	out := slices.Collect(maps.Keys(found))
+	slices.Sort(out)
+	return out
 }
 func TestTheGridFormOpensOnTheLineStyleTheTableIsOn(t *testing.T) {
 	page := renderToString(t, RoomGrid(RoomGridData{
@@ -231,15 +292,21 @@ func contains(haystack []string, needle string) bool {
 	}
 	return false
 }
-func TestTheGMsTabletopMenuOpensTwoWindows(t *testing.T) {
+func TestTheGMsTabletopMenuOpensThreeWindows(t *testing.T) {
 	items := menuNamed(t, testRoomPage(room.RoleGM), "Tabletop").Items
+	for _, item := range items {
+		if item.Label == "Grid & settings" {
+			t.Error("the grid and the four table options are still one window")
+		}
+	}
 	for _, want := range []struct {
 		label string
 		id    string
 		url   string
 	}{
 		{"Layers", "layers", "/fragment/room/layers?room="},
-		{"Grid & settings", "grid", "/fragment/room/grid?room="},
+		{"Grid", "grid", "/fragment/room/grid?room="},
+		{"Table settings", "settings", "/fragment/room/settings?room="},
 	} {
 		found := false
 		for _, item := range items {

@@ -1,0 +1,36 @@
+package pages
+
+templ panelRadios(name string, caption string, choices []Choice, chosen string) {
+	<fieldset class="flex flex-col gap-0.5">
+		<legend class="text-[10px] text-base-content/60">{ caption }</legend>
+		for _, c := range choices {
+			<label class="flex items-start gap-1.5 py-0.5">
+				<input
+					type="radio"
+					name={ name }
+					value={ c.Value }
+					checked?={ c.Value == chosen }
+					class="radio radio-xs mt-0.5 shrink-0"
+				/>
+				<span class="min-w-0 text-xs leading-tight">
+					{ c.Label }
+					if c.Hint != "" {
+						<span class="block text-[10px] text-base-content/50">{ c.Hint }</span>
+					}
+				</span>
+			</label>
+		}
+	</fieldset>
+}
+
+templ panelToggle(name string, caption string, hint string, on bool) {
+	<label class="flex items-start gap-2">
+		<input type="checkbox" name={ name } value="on" checked?={ on } class="toggle toggle-xs mt-0.5 shrink-0"/>
+		<span class="min-w-0 text-xs leading-tight">
+			{ caption }
+			if hint != "" {
+				<span class="block text-[10px] text-base-content/50">{ hint }</span>
+			}
+		</span>
+	</label>
+}

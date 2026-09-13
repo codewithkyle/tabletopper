@@ -103,9 +103,10 @@ func firstLayer(t *testing.T, app *App) ulid.ULID {
 }
 func TestTheTableFragmentsAreTheGMsAlone(t *testing.T) {
 	for name, handler := range map[string]func(*App) http.HandlerFunc{
-		"layers": func(a *App) http.HandlerFunc { return a.RoomLayersFragment },
-		"grid":   func(a *App) http.HandlerFunc { return a.RoomGridFragment },
-		"maps":   func(a *App) http.HandlerFunc { return a.RoomMapsFragment },
+		"layers":   func(a *App) http.HandlerFunc { return a.RoomLayersFragment },
+		"grid":     func(a *App) http.HandlerFunc { return a.RoomGridFragment },
+		"settings": func(a *App) http.HandlerFunc { return a.RoomSettingsFragment },
+		"maps":     func(a *App) http.HandlerFunc { return a.RoomMapsFragment },
 	} {
 		t.Run(name, func(t *testing.T) {
 			app := tableApp(t, &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}})
@@ -401,7 +402,7 @@ func TestABadCellSizeComesBackIntoTheFormsErrorBlock(t *testing.T) {
 		url.Values{
 			"gridLines": {"solid"}, "cellSize": {"4"}, "offsetX": {"0"}, "offsetY": {"0"},
 			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-			"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
+			"diagonals": {"equal"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want 422; body: %s", rec.Code, rec.Body.String())
@@ -422,7 +423,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 		url.Values{
 			"gridLines": {"dashed"}, "cellSize": {"70"}, "offsetX": {"12"}, "offsetY": {"-4"},
 			"color": {"#3355ffcc"}, "snap": {"halfCells"}, "feetPerCell": {"10"},
-			"diagonals": {"alternating"}, "pawnLabels": {"none"}, "initiativeGrouping": {"grouped"}, "playersCanDraw": {"on"},
+			"diagonals": {"alternating"}, "pawnLabels": {"none"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
@@ -430,12 +431,7 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	if strings.Contains(rec.Body.String(), "Could not save") {
 		t.Errorf("a good save still shows an error:\n%s", rec.Body.String())
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	view, ok := app.Hub.Table(ctx, testRoomID)
-	if !ok {
-		t.Fatal("the table is gone")
-	}
+	view := tableView(t, app)
 	want := room.Grid{
 		Lines: room.GridLinesDashed, CellSize: 70, OffsetX: 12, OffsetY: -4,
 		Color: "#3355FFCC", Snap: room.SnapHalfCells, FeetPerCell: 10,
@@ -444,26 +440,87 @@ func TestASavedGridClearsTheMessageTheLastAttemptLeft(t *testing.T) {
 	if view.Table.Grid != want {
 		t.Errorf("the grid is %+v, want %+v", view.Table.Grid, want)
 	}
-	if view.Table.PawnLabels != room.LabelsNone || !view.Table.PlayersCanDraw {
-		t.Errorf("the options are %q / %v", view.Table.PawnLabels, view.Table.PlayersCanDraw)
+	if view.Table.PawnLabels != room.LabelsDefault {
+		t.Errorf("a stray pawnLabels in the grid form changed the table options to %q", view.Table.PawnLabels)
 	}
 }
+func TestASavedSettingsFormLeavesTheGridAlone(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+	before := tableView(t, app).Table.Grid
+	rec := tableRequest(t, app.SetRoomSettings, http.MethodPost, "/rooms/"+testRoomID.String()+"/settings",
+		map[string]string{"id": testRoomID.String()},
+		url.Values{
+			"pawnLabels": {"none"}, "initiativeGrouping": {"individual"},
+			"playersCanDraw": {"on"}, "fogPrefill": {"on"},
+			"cellSize": {"9999"}, "gridLines": {"off"},
+		}, session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	view := tableView(t, app)
+	if view.Table.PawnLabels != room.LabelsNone || view.Table.InitiativeGrouping != room.GroupIndividual {
+		t.Errorf("the options are %q / %q", view.Table.PawnLabels, view.Table.InitiativeGrouping)
+	}
+	if !view.Table.PlayersCanDraw || !view.Table.FogPrefill {
+		t.Errorf("the toggles are %v / %v", view.Table.PlayersCanDraw, view.Table.FogPrefill)
+	}
+	if view.Table.Grid != before {
+		t.Errorf("a stray grid field in the settings form moved the grid to %+v, want %+v", view.Table.Grid, before)
+	}
+}
+func TestABadSettingIsRefusedIntoTheSettingsErrorBlock(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
+	app := tableApp(t, db)
+	rec := tableRequest(t, app.SetRoomSettings, http.MethodPost, "/rooms/"+testRoomID.String()+"/settings",
+		map[string]string{"id": testRoomID.String()},
+		url.Values{"pawnLabels": {"loud"}, "initiativeGrouping": {"grouped"}},
+		session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want 422; body: %s", rec.Code, rec.Body.String())
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "pawn label setting") {
+		t.Errorf("the message is not the core's:\n%s", body)
+	}
+	if rec.Header().Get("HX-Trigger") != "" {
+		t.Errorf("a form error also opened the alert modal: %q", rec.Header().Get("HX-Trigger"))
+	}
+}
+func tableView(t *testing.T, app *App) *hub.TableView {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	view, ok := app.Hub.Table(ctx, testRoomID)
+	if !ok {
+		t.Fatal("the table is gone")
+	}
+	return view
+}
 func TestAnUncheckedToggleReadsAsFalse(t *testing.T) {
-	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
-		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
-		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-		"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
+	r := httptest.NewRequest(http.MethodPost, "/rooms/x/settings", strings.NewReader(url.Values{
+		"pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	grid, options, problems := gridForm(r)
+	options := tableOptionsForm(r)
+	if options.PawnLabels != room.LabelsDefault {
+		t.Errorf("the labels read as %q", options.PawnLabels)
+	}
+	if options.PlayersCanDraw || options.FogPrefill {
+		t.Errorf("an absent toggle read as on: %+v", options)
+	}
+}
+func TestACompleteGridFormIsAccepted(t *testing.T) {
+	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
+		"gridLines": {"solid"}, "cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
+		"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
+	}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	grid, problems := gridForm(r)
 	if len(problems) != 0 {
 		t.Fatalf("a complete form was refused: %v", problems)
 	}
 	if grid.Lines != room.GridLinesSolid {
 		t.Errorf("the line style read as %q", grid.Lines)
-	}
-	if options.PlayersCanDraw {
-		t.Error("an absent drawing toggle read as on")
 	}
 }
 func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
@@ -474,7 +531,7 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 		url.Values{
 			"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"},
 			"color": {"#000000FF"}, "snap": {"cells"}, "feetPerCell": {"5"},
-			"diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
+			"diagonals": {"equal"},
 		}, session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want 422; body: %s", rec.Code, rec.Body.String())
@@ -486,10 +543,10 @@ func TestAGridWithNoLineStyleIsRefused(t *testing.T) {
 func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"64"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"  3355ffcc  "},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
+		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	grid, _, problems := gridForm(r)
+	grid, problems := gridForm(r)
 	if len(problems) != 0 {
 		t.Fatalf("refused: %v", problems)
 	}
@@ -500,10 +557,10 @@ func TestAColourWithoutAHashIsStillAColour(t *testing.T) {
 func TestAFieldThatIsNotANumberIsCaughtBeforeTheCoreSeesIt(t *testing.T) {
 	r := httptest.NewRequest(http.MethodPost, "/rooms/x/grid", strings.NewReader(url.Values{
 		"cellSize": {"sixty four"}, "offsetX": {"0"}, "offsetY": {"0"}, "color": {"#000000FF"},
-		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"}, "pawnLabels": {"default"}, "initiativeGrouping": {"grouped"},
+		"snap": {"cells"}, "feetPerCell": {"5"}, "diagonals": {"equal"},
 	}.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	_, _, problems := gridForm(r)
+	_, problems := gridForm(r)
 	if len(problems) != 1 || !strings.Contains(problems[0], "Cell size") {
 		t.Errorf("problems = %v, want one about the cell size", problems)
 	}

@@ -427,8 +427,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// deleting the layer are different destructions and a GM who confuses them
 	// loses an encounter.
 	//
-	// NONE OF THEM ANSWERS WITH MARKUP except the grid, which answers with its
-	// error block. Every command here ends in table.updated, the windows
+	// NONE OF THEM ANSWERS WITH MARKUP except the grid and the table settings,
+	// which answer with their error blocks. Every command here ends in table.updated, the windows
 	// refetch on it, and a reply carrying the new list would leave a second
 	// tab showing the old one.
 	mux.HandleFunc("POST /rooms/{id}/layers", auth.RequireSession(app.AddLayer))
@@ -441,6 +441,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
 	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
+	mux.HandleFunc("POST /rooms/{id}/settings", auth.RequireSession(app.SetRoomSettings))
 	mux.HandleFunc("POST /rooms/{id}/fog/fill", auth.RequireSession(app.FillLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/fog/clear", auth.RequireSession(app.ClearLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/drawing/clear", auth.RequireSession(app.ClearLayerDrawing))
@@ -726,7 +727,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	// A bar that permanently said "Ground floor" would be labelling the only
 	// thing there is.
 	mux.HandleFunc("GET /fragment/room/layer", auth.Fragment(app.RoomLayerFragment))
-	// THE GM'S TWO CONFIGURATION WINDOWS AND THE PICKER ONE OF THEM OPENS.
+	// THE GM'S THREE CONFIGURATION WINDOWS AND THE PICKER ONE OF THEM OPENS.
 	// Unlike the members fragment above, these are gated on OWNERSHIP: they are
 	// the controls that decide what the table is, and a player who fetched one
 	// would be reading the room's configuration. The handlers answer a player
@@ -736,6 +737,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/map-list", auth.Fragment(app.RoomMapListFragment))
 	mux.HandleFunc("GET /fragment/room/map-card", auth.Fragment(app.RoomMapCardFragment))
 	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
+	mux.HandleFunc("GET /fragment/room/settings", auth.Fragment(app.RoomSettingsFragment))
 	// The pawn fragments, and they split three ways on who may read them.
 	//
 	// THE SPAWN DIALOG AND ITS RESULTS ARE THE GM'S, like the layer manager

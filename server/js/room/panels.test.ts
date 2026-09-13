@@ -31,6 +31,7 @@ function raised(frame: Frame): { name: string; detail: unknown }[] {
 		"room:initiative",
 		"room:info",
 		"room:tabletop",
+		"room:resync",
 		"room:pawn",
 		"room:character",
 		"room:rolls",
@@ -144,9 +145,17 @@ test("a snapshot raises every panel event and no pawn event", () => {
 		"room:initiative",
 		"room:music",
 		"room:players",
+		"room:resync",
 		"room:rolls",
 		"room:tabletop",
 	]);
+});
+test("only a snapshot says the table was replaced under the windows", () => {
+	const seen = raised(changes({ type: "table.updated", table: {} as never }));
+	assert.deepEqual(
+		seen.map((e) => e.name),
+		["room:tabletop"],
+	);
 });
 test("a pawn the tracker names refetches the strip as well as its own window", () => {
 	raised(snapshot([entry("01ENTRY", "01GOBLIN", "01OGRE")]));

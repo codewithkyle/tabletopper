@@ -134,7 +134,7 @@ func getRoomAnswer(id ulid.ULID, ownerID ulid.ULID, name string, code string, lo
 		closedValue = time.Now()
 	}
 	return roomAnswer{
-		columns: []string{"id", "owner_id", "name", "code", "is_locked", "created_at", "closed_at"},
-		values:  []driver.Value{id.Bytes(), ownerID.Bytes(), name, codeValue, locked, time.Now(), closedValue},
+		columns: []string{"id", "owner_id", "name", "code", "is_locked", "scene_id", "created_at", "closed_at"},
+		values:  []driver.Value{id.Bytes(), ownerID.Bytes(), name, codeValue, locked, nil, time.Now(), closedValue},
 	}
 }

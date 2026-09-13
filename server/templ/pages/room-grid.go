@@ -9,24 +9,23 @@ import (
 const RoomGridPanel = "room-grid"
 
 type RoomGridData struct {
-	RoomID             string
-	Lines              string
-	CellSize           int
-	OffsetX            int
-	OffsetY            int
-	Color              string
-	Snap               string
-	FeetPerCell        int
-	Diagonals          string
-	PawnLabels         string
-	PlayersCanDraw     bool
-	FogPrefill         bool
-	InitiativeGrouping string
-	Errors             []string
+	RoomID      string
+	Lines       string
+	CellSize    int
+	OffsetX     int
+	OffsetY     int
+	Color       string
+	Snap        string
+	FeetPerCell int
+	Diagonals   string
+	Errors      []string
 }
 
 func (d RoomGridData) SavePath() string {
 	return "/rooms/" + d.RoomID + "/grid"
+}
+func (d RoomGridData) Path() string {
+	return "/fragment/room/grid?room=" + d.RoomID
 }
 func (d RoomGridData) CellSizeText() string { return strconv.Itoa(d.CellSize) }
 func (d RoomGridData) OffsetXText() string  { return strconv.Itoa(d.OffsetX) }
@@ -77,18 +76,5 @@ func GridDiagonalChoices() []Choice {
 	return []Choice{
 		{Value: "equal", Label: "Every diagonal counts one square"},
 		{Value: "alternating", Label: "Every second diagonal counts two"},
-	}
-}
-func InitiativeGroupingChoices() []Choice {
-	return []Choice{
-		{Value: "grouped", Label: "Grouped", Hint: "Nine goblins take one turn together, on one line, with a dot each for how hurt they are."},
-		{Value: "individual", Label: "One at a time", Hint: "Every monster gets a line of its own. Switch to this for a fight where each of them matters."},
-	}
-}
-func PawnLabelChoices() []Choice {
-	return []Choice{
-		{Value: "none", Label: "None", Hint: "No panel over any pawn, for anybody. Every pawn's window is still yours."},
-		{Value: "default", Label: "Default", Hint: "You read the numbers. Players read a name and a word: healthy, bruised, bloody, and so on down to near death."},
-		{Value: "full", Label: "Full", Hint: "Everybody reads the name, the armour class and the hit points, the same as you do."},
 	}
 }

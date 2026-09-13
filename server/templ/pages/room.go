@@ -65,6 +65,9 @@ func (d RoomPageData) LayersPath() string {
 func (d RoomPageData) GridPath() string {
 	return "/fragment/room/grid?room=" + d.ID
 }
+func (d RoomPageData) SettingsPath() string {
+	return "/fragment/room/settings?room=" + d.ID
+}
 func (d RoomPageData) FogFillPath() string {
 	return "/rooms/" + d.ID + "/fog/fill"
 }
@@ -313,12 +316,19 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Width:  320,
 			Height: 360,
 		}},
-		{Label: "Grid & settings", Window: RoomWindow{
+		{Label: "Grid", Window: RoomWindow{
 			ID:     "grid",
-			Title:  "Grid & settings",
+			Title:  "Grid",
 			URL:    d.GridPath(),
 			Width:  300,
 			Height: 420,
+		}},
+		{Label: "Table settings", Window: RoomWindow{
+			ID:     "settings",
+			Title:  "Table settings",
+			URL:    d.SettingsPath(),
+			Width:  300,
+			Height: 380,
 		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},

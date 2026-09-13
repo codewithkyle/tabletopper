@@ -98,11 +98,10 @@ func TestAPlayerHasNoFogMenu(t *testing.T) {
 		}
 	}
 }
-func TestTheGridWindowCarriesThePrefillSwitch(t *testing.T) {
-	page := renderToString(t, RoomGrid(RoomGridData{
-		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF",
-		FogPrefill: true,
-	}))
+func TestTheSettingsWindowCarriesThePrefillSwitch(t *testing.T) {
+	on := testSettingsData()
+	on.FogPrefill = true
+	page := renderToString(t, RoomSettings(on))
 	field := regexp.MustCompile(`<input[^>]*name="fogPrefill"[^>]*>`).FindString(page)
 	if field == "" {
 		t.Fatalf("the window has no prefill switch:\n%s", page)
@@ -110,9 +109,7 @@ func TestTheGridWindowCarriesThePrefillSwitch(t *testing.T) {
 	if !strings.Contains(field, "checked") {
 		t.Error("the switch does not read the room's own value")
 	}
-	off := renderToString(t, RoomGrid(RoomGridData{
-		RoomID: testTableRoomID, CellSize: 64, FeetPerCell: 5, Color: "#000000FF",
-	}))
+	off := renderToString(t, RoomSettings(testSettingsData()))
 	if strings.Contains(regexp.MustCompile(`<input[^>]*name="fogPrefill"[^>]*>`).FindString(off), "checked") {
 		t.Error("the switch is checked for a room that has it off")
 	}

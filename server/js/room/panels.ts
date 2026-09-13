@@ -5,6 +5,7 @@ import {
 	ROOM_MUSIC,
 	ROOM_PAWN,
 	ROOM_PLAYERS,
+	ROOM_RESYNC,
 	ROOM_ROLLS,
 	ROOM_TABLETOP,
 	WINDOW_CLOSE,
@@ -36,6 +37,7 @@ export function announce(frame: Frame): void {
 		for (const name of everything) {
 			window.dispatchEvent(new CustomEvent(name));
 		}
+		window.dispatchEvent(new CustomEvent(ROOM_RESYNC));
 		if (mine !== "") {
 			window.dispatchEvent(new CustomEvent(ROOM_CHARACTER, { detail: { id: mine } }));
 		}

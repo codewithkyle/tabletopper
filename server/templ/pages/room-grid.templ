@@ -1,33 +1,38 @@
 package pages
 
+import "tabletopper/internal/uievents"
+
 templ RoomGrid(data RoomGridData) {
-	<form
-		id="room-grid"
-		class="flex flex-col gap-3"
-		hx-post={ data.SavePath() }
-		hx-trigger="change"
+	<div
+		hx-get={ data.Path() }
+		hx-trigger={ uievents.Resync + " from:window" }
 		hx-sync="this:queue last"
-		hx-target={ "#errors-" + RoomGridPanel }
 		hx-swap="outerHTML"
-		hx-status:422={ "target:#errors-" + RoomGridPanel + ",swap:outerHTML" }
-		{ autosaves... }
 	>
-		@PanelFormErrors(RoomGridPanel, data.Errors)
-		@gridRadios("gridLines", "Grid lines", GridLineChoices(), data.Lines)
-		<div class="grid grid-cols-2 gap-2">
-			@gridNumber("cellSize", "Cell size", data.CellSizeText(), GridCellMin, GridCellMax)
-			@gridNumber("feetPerCell", "Feet per cell", data.FeetText(), GridFeetMin, GridFeetMax)
-			@gridNumber("offsetX", "Offset across", data.OffsetXText(), "", "")
-			@gridNumber("offsetY", "Offset down", data.OffsetYText(), "", "")
-		</div>
-		@gridColor(data)
-		@gridRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
-		@gridRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
-		@gridRadios("pawnLabels", "What a pawn is labelled with", PawnLabelChoices(), data.PawnLabels)
-		@gridRadios("initiativeGrouping", "How monsters take their turns", InitiativeGroupingChoices(), data.InitiativeGrouping)
-		@gridToggle("playersCanDraw", "Players may draw on the tabletop", "", data.PlayersCanDraw)
-		@gridToggle("fogPrefill", "Prefill fog", "A floor added from now on starts covered. Floors that are already here do not change.", data.FogPrefill)
-	</form>
+		<form
+			id="room-grid"
+			class="flex flex-col gap-3"
+			hx-post={ data.SavePath() }
+			hx-trigger="change"
+			hx-sync="this:queue last"
+			hx-target={ "#errors-" + RoomGridPanel }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:#errors-" + RoomGridPanel + ",swap:outerHTML" }
+			{ autosaves... }
+		>
+			@PanelFormErrors(RoomGridPanel, data.Errors)
+			@panelRadios("gridLines", "Grid lines", GridLineChoices(), data.Lines)
+			<div class="grid grid-cols-2 gap-2">
+				@gridNumber("cellSize", "Cell size", data.CellSizeText(), GridCellMin, GridCellMax)
+				@gridNumber("feetPerCell", "Feet per cell", data.FeetText(), GridFeetMin, GridFeetMax)
+				@gridNumber("offsetX", "Offset across", data.OffsetXText(), "", "")
+				@gridNumber("offsetY", "Offset down", data.OffsetYText(), "", "")
+			</div>
+			@gridColor(data)
+			@panelRadios("snap", "Snapping", GridSnapChoices(), data.Snap)
+			@panelRadios("diagonals", "Diagonals", GridDiagonalChoices(), data.Diagonals)
+		</form>
+	</div>
 }
 
 templ gridNumber(name string, caption string, value string, min string, max string) {
@@ -82,39 +87,4 @@ templ gridColor(data RoomGridData) {
 			class="mt-1 h-44 w-full"
 		></hex-alpha-color-picker>
 	</div>
-}
-
-templ gridRadios(name string, caption string, choices []Choice, chosen string) {
-	<fieldset class="flex flex-col gap-0.5">
-		<legend class="text-[10px] text-base-content/60">{ caption }</legend>
-		for _, c := range choices {
-			<label class="flex items-start gap-1.5 py-0.5">
-				<input
-					type="radio"
-					name={ name }
-					value={ c.Value }
-					checked?={ c.Value == chosen }
-					class="radio radio-xs mt-0.5 shrink-0"
-				/>
-				<span class="min-w-0 text-xs leading-tight">
-					{ c.Label }
-					if c.Hint != "" {
-						<span class="block text-[10px] text-base-content/50">{ c.Hint }</span>
-					}
-				</span>
-			</label>
-		}
-	</fieldset>
-}
-
-templ gridToggle(name string, caption string, hint string, on bool) {
-	<label class="flex items-start gap-2">
-		<input type="checkbox" name={ name } value="on" checked?={ on } class="toggle toggle-xs mt-0.5 shrink-0"/>
-		<span class="min-w-0 text-xs leading-tight">
-			{ caption }
-			if hint != "" {
-				<span class="block text-[10px] text-base-content/50">{ hint }</span>
-			}
-		</span>
-	</label>
 }

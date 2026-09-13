@@ -245,6 +245,28 @@ func (a *App) RoomGridFragment(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.RoomGrid(gridData(row.ID, view.Table, nil)))
 }
 func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
+	a.tableSetting(w, r, pages.RoomGridPanel, "change the grid", func(r *http.Request) (room.Command, []string) {
+		grid, problems := gridForm(r)
+		return &room.TableSetGrid{Grid: grid}, problems
+	})
+}
+func (a *App) RoomSettingsFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	row, view, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.RoomSettings(settingsData(row.ID, view.Table, nil)))
+}
+func (a *App) SetRoomSettings(w http.ResponseWriter, r *http.Request) {
+	a.tableSetting(w, r, pages.RoomSettingsPanel, "change the table options", func(r *http.Request) (room.Command, []string) {
+		options := tableOptionsForm(r)
+		return &options, nil
+	})
+}
+func (a *App) tableSetting(w http.ResponseWriter, r *http.Request, panel string, action string, build func(*http.Request) (room.Command, []string)) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
@@ -252,23 +274,22 @@ func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "room")
 		return
 	}
-	grid, options, problems := gridForm(r)
+	cmd, problems := build(r)
 	if len(problems) > 0 {
-		renderPanelBlock(w, r, pages.RoomGridPanel, problems)
+		renderPanelBlock(w, r, panel, problems)
 		return
 	}
 	who := room.Actor{ID: sess.UserID, Role: role}
-	cmd := &room.Batch{Commands: []room.Command{&room.TableSetGrid{Grid: grid}, &options}}
 	if err := a.Hub.Dispatch(ctx, row.ID, who, cmd); err != nil {
 		var refusal *room.Error
 		if errors.As(err, &refusal) && refusal.Code == room.CodeInvalid {
-			renderPanelBlock(w, r, pages.RoomGridPanel, []string{refusal.Message})
+			renderPanelBlock(w, r, panel, []string{refusal.Message})
 			return
 		}
-		a.rejectCommand(w, "change the grid", err)
+		a.rejectCommand(w, action, err)
 		return
 	}
-	renderPanelBlock(w, r, pages.RoomGridPanel, nil)
+	renderPanelBlock(w, r, panel, nil)
 }
 func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
 	a.layerCommand(w, r, "clear the tabletop", func(ulid.ULID) (room.Command, bool) {
@@ -421,23 +442,29 @@ func mapsData(roomID ulid.ULID, layer ulid.ULID, term string, rows []queries.Lis
 }
 func gridData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomGridData {
 	return pages.RoomGridData{
+		RoomID:      roomID.String(),
+		Lines:       string(t.Grid.Lines),
+		CellSize:    t.Grid.CellSize,
+		OffsetX:     t.Grid.OffsetX,
+		OffsetY:     t.Grid.OffsetY,
+		Color:       t.Grid.Color,
+		Snap:        string(t.Grid.Snap),
+		FeetPerCell: t.Grid.FeetPerCell,
+		Diagonals:   string(t.Grid.Diagonals),
+		Errors:      problems,
+	}
+}
+func settingsData(roomID ulid.ULID, t room.Table, problems []string) pages.RoomSettingsData {
+	return pages.RoomSettingsData{
 		RoomID:             roomID.String(),
-		Lines:              string(t.Grid.Lines),
-		CellSize:           t.Grid.CellSize,
-		OffsetX:            t.Grid.OffsetX,
-		OffsetY:            t.Grid.OffsetY,
-		Color:              t.Grid.Color,
-		Snap:               string(t.Grid.Snap),
-		FeetPerCell:        t.Grid.FeetPerCell,
-		Diagonals:          string(t.Grid.Diagonals),
 		PawnLabels:         string(t.PawnLabels),
 		PlayersCanDraw:     t.PlayersCanDraw,
-		FogPrefill:         t.FogPrefill,
 		InitiativeGrouping: string(t.InitiativeGrouping),
+		FogPrefill:         t.FogPrefill,
 		Errors:             problems,
 	}
 }
-func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {
+func gridForm(r *http.Request) (room.Grid, []string) {
 	var problems []string
 	number := func(field, caption string) int {
 		v, err := strconv.Atoi(strings.TrimSpace(r.FormValue(field)))
@@ -460,13 +487,15 @@ func gridForm(r *http.Request) (room.Grid, room.TableSetOptions, []string) {
 	if grid.Color != "" && !strings.HasPrefix(grid.Color, "#") {
 		grid.Color = "#" + grid.Color
 	}
-	options := room.TableSetOptions{
+	return grid, problems
+}
+func tableOptionsForm(r *http.Request) room.TableSetOptions {
+	return room.TableSetOptions{
 		PawnLabels:         room.PawnLabels(r.FormValue("pawnLabels")),
 		PlayersCanDraw:     r.FormValue("playersCanDraw") != "",
 		InitiativeGrouping: room.InitiativeGrouping(r.FormValue("initiativeGrouping")),
 		FogPrefill:         r.FormValue("fogPrefill") != "",
 	}
-	return grid, options, problems
 }
 func (a *App) RoomLayerFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
