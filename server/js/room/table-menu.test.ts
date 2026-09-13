@@ -181,7 +181,7 @@ test("the cell the party already starts on offers to take it back instead", () =
 		parts.party.getAttribute("hx-vals"),
 		JSON.stringify({ layer: "01FLOOR" }),
 	);
-	assert.equal(parts.party.getAttribute("title"), "Take it back");
+	assert.equal(parts.party.getAttribute("data-tip"), "Take it back");
 	assert.equal(parts.party.getAttribute("aria-label"), "Take it back");
 	menu.close();
 	menu.open({ x: 200, y: 40 }, { x: 400, y: 300 });
@@ -189,7 +189,7 @@ test("the cell the party already starts on offers to take it back instead", () =
 		parts.party.getAttribute("hx-vals"),
 		JSON.stringify({ layer: "01FLOOR", x: 224, y: 32 }),
 	);
-	assert.equal(parts.party.getAttribute("title"), "Party starts here");
+	assert.equal(parts.party.getAttribute("data-tip"), "Party starts here");
 	menu.stop();
 });
 test("a party start set under an older grid still matches the cell it lands in", () => {

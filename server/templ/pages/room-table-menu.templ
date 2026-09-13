@@ -1,7 +1,7 @@
 package pages
 
 const tableMenuHub = "pointer-events-auto absolute top-0 left-0 size-0"
-const tableMenuSpoke = "btn btn-circle btn-sm absolute top-0 left-0 -mt-4 -ml-4 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
+const tableMenuSpoke = "btn btn-circle btn-sm tooltip tooltip-bottom absolute top-0 left-0 -mt-4 -ml-4 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
 
 templ RoomTableMenu(data RoomTableMenuData) {
 	if !data.Empty() {
@@ -9,7 +9,7 @@ templ RoomTableMenu(data RoomTableMenuData) {
 			for _, item := range data.Items {
 				<button
 					type="button"
-					title={ item.Label }
+					data-tip={ item.Label }
 					aria-label={ item.Label }
 					style={ item.Placement() }
 					class={ tableMenuSpoke }

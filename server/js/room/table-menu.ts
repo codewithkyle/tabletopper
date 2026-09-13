@@ -54,7 +54,7 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 				JSON.stringify(taken ? { layer } : { layer, x: found.centreX, y: found.centreY }),
 			);
 			const label = party.getAttribute(taken ? "data-clear-label" : "data-set-label") ?? "";
-			party.setAttribute("title", label);
+			party.setAttribute("data-tip", label);
 			party.setAttribute("aria-label", label);
 		}
 		cell = found;

@@ -229,3 +229,20 @@ func TestACardCarriesTheRestOfTheVerbs(t *testing.T) {
 		t.Errorf("%d delete controls, want one per scene", got)
 	}
 }
+func TestTheTableWheelLabelsItsSpokeWithATooltip(t *testing.T) {
+	data := RoomTableMenuData{RoomID: testTableRoomID, Items: TableMenuItems(true)}
+	page := renderToString(t, RoomTableMenu(data))
+	for _, want := range []string{
+		`data-tip="` + tableMenuPartyLabel + `"`,
+		`aria-label="` + tableMenuPartyLabel + `"`,
+		`data-clear-label="` + tableMenuClearPartyLabel + `"`,
+		"tooltip",
+	} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the wheel's spoke is missing %s:\n%s", want, page)
+		}
+	}
+	if strings.Contains(page, "title=") {
+		t.Errorf("the spoke carries a native tooltip beside the styled one:\n%s", page)
+	}
+}
