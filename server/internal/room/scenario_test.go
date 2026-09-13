@@ -27,6 +27,7 @@ func scenario(r *recorder) {
 	grid.OffsetX, grid.OffsetY = -12, 8
 	grid.Color = "#334455ff"
 	r.do("line the grid up with the map", &TableSetGrid{Grid: grid}, gm)
+	r.do("mark where the party comes in", &TableSetPartyStart{Layer: ground, X: intp(640), Y: intp(320)}, gm)
 	r.do("show the party exact hit points for a while", &TableSetOptions{PawnLabels: LabelsFull, PlayersCanDraw: true, InitiativeGrouping: GroupMonsters}, gm)
 	r.hub("lock the room once everybody is in", &RoomSetLocked{Locked: true})
 	r.do("the GM puts Ari's character on the map", &PawnSpawn{
@@ -174,8 +175,56 @@ func scenario(r *recorder) {
 	r.do("the cellar is not needed after all", &TableRemoveLayer{Layer: cellar}, gm)
 	r.do("clear the ground floor's map", &TableClearLayerMap{Layer: ground}, gm)
 	r.do("and clear the tabletop for next week", &TableClear{}, gm)
+	r.hub("open next week's prepped ambush over the empty table", &SceneLoad{Scene: preppedScene()})
 	r.hub("unlock on the way out", &RoomSetLocked{Locked: false})
 	r.hub("and close the room", &RoomClose{})
+}
+func preppedScene() *State {
+	floor := testID(1200)
+	s := &State{
+		Schema: Schema,
+		Table: Table{
+			Layers: []Layer{{
+				ID:         floor,
+				Name:       "Ambush point",
+				FogEnabled: true,
+				FogPrefill: true,
+				Map:        &MapRef{AssetID: testAssetID, Gen: testID(52), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
+			}},
+			TableSettings: TableSettings{
+				ActiveLayer: floor,
+				Grid: Grid{
+					Lines:       GridLinesDashed,
+					CellSize:    80,
+					Color:       DefaultGridColor,
+					Snap:        SnapHalfCells,
+					FeetPerCell: 5,
+					Diagonals:   DiagonalsEqual,
+				},
+			},
+		},
+		Pawns: []Pawn{
+			{
+				ID: testID(1201), Kind: PawnMonster, LayerID: floor, Name: "Goblin",
+				Image: "/assets/goblin.webp", X: 640, Y: 320, Size: SizeSmall, Visible: true,
+				HP: intp(7), MaxHP: intp(7), AC: intp(15), MonsterID: idp(testID(60)),
+			},
+			{
+				ID: testID(1202), Kind: PawnObject, LayerID: floor, Name: "Cart",
+				Image: "/assets/wagon.webp", X: 480, Y: 480, Width: 128, Height: 256, Visible: true,
+			},
+		},
+		Fog: []FogShape{{
+			ID: testID(1203), LayerID: floor, Kind: ShapeRect, Mode: FogHide,
+			Points: []int{0, 0, 1024, 1024},
+		}},
+		Strokes: []Stroke{{
+			ID: testID(1204), LayerID: floor, Kind: StrokeFree, Color: "#ff0000ff",
+			Width: 4, Points: []int{16, 16, 64, 64}, Done: true,
+		}},
+	}
+	s.Normalize()
+	return s
 }
 func entryNamed(s *State, name string) ulid.ULID {
 	for _, e := range s.Initiative.Entries {

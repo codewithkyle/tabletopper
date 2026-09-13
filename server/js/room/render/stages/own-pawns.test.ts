@@ -10,7 +10,7 @@ import { pawnsStage } from "./pawns.ts";
 import { visiblePawns } from "./pawns.ts";
 const GROUND = "01LAYERGROUND";
 const PLAYER = "01PLAYER";
-const viewed: Layer = { id: GROUND, name: "Ground", map: null, fogEnabled: true, fogPrefill: true };
+const viewed: Layer = { id: GROUND, name: "Ground", map: null, fogEnabled: true, fogPrefill: true, partyStart: null };
 const fog: FogShape[] = [{ id: "01CLEARED", layerId: GROUND, kind: "rect", mode: "reveal", points: [0, 0, 128, 128] }];
 function pawn(over: Partial<Pawn> = {}): Pawn {
 	return {

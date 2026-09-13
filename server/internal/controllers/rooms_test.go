@@ -154,19 +154,22 @@ func TestDeleteRoomRemovesTheRoomBeforeEmptyingIt(t *testing.T) {
 	if body := rec.Body.String(); body != "" {
 		t.Errorf("body = %q, want empty", body)
 	}
-	if len(db.calls) != 2 {
-		t.Fatalf("ran %d statements, want 2: %v", len(db.calls), db.queries())
+	if len(db.calls) != 3 {
+		t.Fatalf("ran %d statements, want 3: %v", len(db.calls), db.queries())
 	}
-	if !strings.Contains(db.calls[0].query, "DELETE FROM rooms") {
-		t.Errorf("the first statement is not the delete: %q", db.calls[0].query)
+	if !strings.Contains(db.calls[0].query, "GetRoom") {
+		t.Errorf("the first statement is not the read that finds the open scene: %q", db.calls[0].query)
 	}
-	if !strings.Contains(db.calls[1].query, "UPDATE sessions") {
-		t.Errorf("the second statement is not the session sweep: %q", db.calls[1].query)
+	if !strings.Contains(db.calls[1].query, "DELETE FROM rooms") {
+		t.Errorf("the second statement is not the delete: %q", db.calls[1].query)
 	}
-	assertBoundToRoom(t, db.calls[0], testRoomID)
+	if !strings.Contains(db.calls[2].query, "UPDATE sessions") {
+		t.Errorf("the third statement is not the session sweep: %q", db.calls[2].query)
+	}
 	assertBoundToRoom(t, db.calls[1], testRoomID)
-	if owner, ok := boundRoomID(db.calls[0].args[1]); !ok || owner != testOwnerID {
-		t.Errorf("the delete is not owner-scoped: %v", db.calls[0].args)
+	assertBoundToRoom(t, db.calls[2], testRoomID)
+	if owner, ok := boundRoomID(db.calls[1].args[1]); !ok || owner != testOwnerID {
+		t.Errorf("the delete is not owner-scoped: %v", db.calls[1].args)
 	}
 }
 func TestDeleteRoomClosesTheLiveRoom(t *testing.T) {
@@ -199,8 +202,8 @@ func TestDeletingSomebodyElsesRoomIsA404(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-	if len(db.calls) != 1 {
-		t.Errorf("ran %d statements, want 1 -- the sweep should not have been reached: %v", len(db.calls), db.queries())
+	if len(db.calls) != 2 {
+		t.Errorf("ran %d statements, want 2 -- the sweep should not have been reached: %v", len(db.calls), db.queries())
 	}
 }
 func assertBoundToRoom(t *testing.T, call recordedCall, want ulid.ULID) {

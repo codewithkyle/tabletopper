@@ -8,6 +8,8 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+var sceneCellarAsset = testID(1009)
+
 func sceneWorld(t *testing.T) *world {
 	t.Helper()
 	w := newWorld(t)
@@ -19,8 +21,8 @@ func sceneWorld(t *testing.T) *world {
 	}, w.gm)
 	w.apply(&TableSetLayerMap{
 		Layer:   cellar,
-		AssetID: testAssetID,
-		Map:     &MapRef{AssetID: testAssetID, Gen: testID(51), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
+		AssetID: sceneCellarAsset,
+		Map:     &MapRef{AssetID: sceneCellarAsset, Gen: testID(51), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
 	}, w.gm)
 	grid := w.s.Table.Grid
 	grid.CellSize = 70

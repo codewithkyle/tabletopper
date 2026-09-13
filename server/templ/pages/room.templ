@@ -32,6 +32,9 @@ templ roomContent(data RoomPageData) {
 					} else if !data.Closed {
 						@RoomLayerName(RoomLayerNameData{RoomID: data.ID})
 					}
+					if !data.Closed {
+						@RoomSceneName(RoomSceneNameData{RoomID: data.ID})
+					}
 				</div>
 			}
 			<div
@@ -76,6 +79,14 @@ templ roomContent(data RoomPageData) {
 					}
 				}
 				@roomPawnMenu(data)
+				<div
+					data-table-menu-host
+					class="pointer-events-none absolute inset-0 z-30"
+					hx-get={ data.TableMenuPath() }
+					hx-trigger={ data.TableMenuTrigger() }
+					hx-sync="this:queue last"
+					hx-swap="innerHTML"
+				></div>
 				if data.IsGM() {
 					@roomRemoveKey(data)
 				}

@@ -5,7 +5,7 @@ import { aboveFog, concealed, covered } from "./polygon.ts";
 const GROUND = "01LAYERGROUND";
 const PLAYER = "01PLAYER";
 function layer(over: Partial<Layer> = {}): Layer {
-	return { id: GROUND, name: "Ground", map: null, fogEnabled: true, fogPrefill: true, ...over };
+	return { id: GROUND, name: "Ground", map: null, fogEnabled: true, fogPrefill: true, partyStart: null, ...over };
 }
 function shape(): FogShape {
 	return { id: "01CLEARED", layerId: GROUND, kind: "rect", mode: "reveal", points: [0, 0, 128, 128] };

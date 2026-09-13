@@ -1,0 +1,148 @@
+package pages
+
+import "tabletopper/internal/uievents"
+
+const sceneCardBox = "flex flex-col gap-1 rounded-box border border-base-300 p-1.5"
+const sceneOpenBox = "flex flex-col gap-1 rounded-box border border-primary p-1.5"
+const sceneGrid = "grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] content-start gap-2"
+const sceneThumbBox = "relative block aspect-video w-full overflow-hidden rounded-field bg-base-300"
+const sceneThumbImage = "absolute inset-0 h-full w-full object-cover"
+
+templ RoomScenes(data RoomScenesData) {
+	<div
+		hx-get={ data.Path() }
+		hx-trigger={ uievents.Tabletop + " from:window, " + uievents.Scenes + " from:window" }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		class="flex flex-col gap-2"
+	>
+		<div class="flex justify-end">
+			<button
+				type="button"
+				class="btn btn-primary btn-xs"
+				data-modal-open={ data.SaveFormPath() }
+				data-modal-size="sm"
+			>Save scene</button>
+		</div>
+		if len(data.Scenes) == 0 {
+			<div class="flex flex-col items-center gap-1 px-3 py-8 text-center">
+				<p class="m-0 font-serif text-base">{ data.EmptyHeading() }</p>
+				<p class="m-0 text-xs text-base-content/70">{ data.EmptyBlurb() }</p>
+			</div>
+		} else {
+			<div class={ sceneGrid }>
+				for _, s := range data.Scenes {
+					@sceneTile(s)
+				}
+			</div>
+		}
+	</div>
+}
+
+templ sceneTile(s SceneCard) {
+	<article class={ s.CardClass() }>
+		<span class={ sceneThumbBox }>
+			if s.HasPreview() {
+				<img class={ sceneThumbImage } src={ s.PreviewURL() } alt=""/>
+			}
+		</span>
+		<input
+			type="text"
+			name="name"
+			value={ s.Name }
+			maxlength={ s.NameLimit() }
+			required
+			aria-label="Scene name"
+			title={ s.Name }
+			class="input input-xs w-full"
+			hx-patch={ s.NamePath() }
+			hx-trigger="change"
+		/>
+		<span class="flex items-center justify-between gap-1">
+			<time class="truncate text-[10px] text-base-content/60" datetime={ s.Updated.ISO }>{ s.Updated.Text }</time>
+			if s.Open {
+				<span class="badge badge-primary badge-xs shrink-0">Open</span>
+			}
+		</span>
+		<label class="flex items-start gap-1.5" title={ s.KeepHint() }>
+			<input
+				type="checkbox"
+				name="keep"
+				value="on"
+				checked?={ s.KeepChanges }
+				class="toggle toggle-xs mt-0.5 shrink-0"
+				hx-post={ s.KeepPath() }
+				hx-trigger="change"
+			/>
+			<span class="min-w-0 text-[10px] leading-tight">Keep changes</span>
+		</label>
+		if s.Open {
+			<button
+				type="button"
+				class="btn btn-xs w-full"
+				hx-post={ s.SavePath() }
+				hx-confirm={ s.SavePrompt() }
+				data-confirm-heading={ s.SaveHeading() }
+				data-confirm-label="Save changes"
+			>Save changes</button>
+		} else {
+			<button
+				type="button"
+				class="btn btn-xs w-full"
+				hx-post={ s.OpenPath() }
+				hx-confirm={ s.OpenPrompt() }
+				data-confirm-heading={ s.OpenHeading() }
+				data-confirm-label="Open scene"
+			>Open</button>
+		}
+		<span class="flex gap-1">
+			<button type="button" class="btn btn-xs flex-1" hx-post={ s.DuplicatePath() }>Copy</button>
+			<button
+				type="button"
+				class="btn btn-xs btn-soft btn-error flex-1"
+				hx-delete={ s.DeletePath() }
+				hx-confirm={ s.DeletePrompt() }
+				data-confirm-heading="Delete this scene?"
+				data-confirm-label="Delete"
+			>Delete</button>
+		</span>
+	</article>
+}
+
+templ RoomSceneSave(data RoomSceneSaveData) {
+	{{ errorBlock := "#errors-" + SceneSavePanel }}
+	<div class="grid gap-4">
+		<h3 class="m-0 pr-10 font-serif text-xl leading-none">Save scene</h3>
+		<form
+			class="grid gap-4"
+			hx-post={ data.SavePath() }
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(SceneSavePanel, []string{})
+			<div class="fieldset">
+				<label class="fieldset-legend" for="scene-name">Scene name</label>
+				<input
+					id="scene-name"
+					name="name"
+					type="text"
+					class="input validator peer w-full"
+					maxlength={ data.NameLimit() }
+					placeholder="The prepped ambush"
+					required
+				/>
+				<p class="validator-hint hidden peer-user-invalid:block text-hint">This field is required.</p>
+			</div>
+			<p class="m-0 text-xs text-base-content/70">{ data.Blurb() }</p>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary">Save scene</button>
+			</div>
+		</form>
+	</div>
+}

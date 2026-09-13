@@ -96,6 +96,7 @@ func (a *App) CloseRoom(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "room")
 		return
 	}
+	a.closeScene(ctx, roomID, sess.UserID)
 	err = a.tx(ctx, func(q *queries.Queries) error {
 		result, err := q.CloseRoom(ctx, queries.CloseRoomParams{ID: roomID, OwnerID: sess.UserID})
 		if err != nil {

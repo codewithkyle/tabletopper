@@ -59,6 +59,7 @@ export interface Layer {
 	map: MapRef | null;
 	fogEnabled: boolean;
 	fogPrefill: boolean;
+	partyStart: Point | null;
 }
 export interface MapRef {
 	assetId: string;
@@ -112,6 +113,10 @@ export interface Player {
 	characterName: string;
 	role: Role;
 	connected: boolean;
+}
+export interface Point {
+	x: number;
+	y: number;
 }
 export interface Roll {
 	id: string;
@@ -459,6 +464,13 @@ export interface TableSetOptions {
 	initiativeGrouping: InitiativeGrouping;
 	fogPrefill: boolean;
 }
+export interface TableSetPartyStart {
+	type: "table.setPartyStart";
+	cid: string;
+	layer: string;
+	x: number | null;
+	y: number | null;
+}
 export type Command =
 	| DiceRoll
 	| FogAdd
@@ -508,6 +520,7 @@ export type Command =
 	| TableSetGrid
 	| TableSetLayerMap
 	| TableSetOptions
+	| TableSetPartyStart
 	;
 export interface FogRemoved {
 	type: "fog.removed";

@@ -47,6 +47,14 @@ type Preview interface {
 	Command
 	preview()
 }
+type Resync struct{}
+
+func (Resync) resyncing() {}
+
+type Resyncing interface {
+	Command
+	resyncing()
+}
 type Audience int
 
 const (
@@ -101,6 +109,7 @@ var wireCommands = map[string]func() Command{
 	"table.clearLayerMap":  func() Command { return &TableClearLayerMap{} },
 	"table.setActiveLayer": func() Command { return &TableSetActiveLayer{} },
 	"table.setGrid":        func() Command { return &TableSetGrid{} },
+	"table.setPartyStart":  func() Command { return &TableSetPartyStart{} },
 	"table.setOptions":     func() Command { return &TableSetOptions{} },
 	"table.clear":          func() Command { return &TableClear{} },
 	"pawn.spawn":           func() Command { return &PawnSpawn{} },
@@ -151,6 +160,7 @@ var hubCommands = map[string]func() Command{
 	"room.setName":        func() Command { return &RoomSetName{} },
 	"room.close":          func() Command { return &RoomClose{} },
 	"character.sync":      func() Command { return &CharacterSync{} },
+	"scene.load":          func() Command { return &SceneLoad{} },
 }
 
 func DecodeCommand(b []byte) (Command, string, error) {
@@ -217,6 +227,7 @@ func cloneLayers(src []Layer) []Layer {
 	out := make([]Layer, len(src))
 	for i, l := range src {
 		l.Map = cloneRef(l.Map)
+		l.PartyStart = clonePoint(l.PartyStart)
 		out[i] = l
 	}
 	return out

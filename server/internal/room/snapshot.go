@@ -142,11 +142,7 @@ func Unmarshal(b []byte) (*State, error) {
 }
 func (s *State) Clone() State {
 	c := *s
-	c.Table.Layers = make([]Layer, len(s.Table.Layers))
-	for i, l := range s.Table.Layers {
-		l.Map = cloneRef(l.Map)
-		c.Table.Layers[i] = l
-	}
+	c.Table.Layers = cloneLayers(s.Table.Layers)
 	c.Players = make([]Player, len(s.Players))
 	for i, p := range s.Players {
 		p.CharacterID = cloneID(p.CharacterID)
@@ -200,6 +196,13 @@ func cloneID(v *ulid.ULID) *ulid.ULID {
 	return &c
 }
 func cloneBand(v *HPBand) *HPBand {
+	if v == nil {
+		return nil
+	}
+	c := *v
+	return &c
+}
+func clonePoint(v *Point) *Point {
 	if v == nil {
 		return nil
 	}

@@ -189,7 +189,7 @@ func TestFogAndInitiativeAreTheGMsAlone(t *testing.T) {
 func TestEveryMenuCarriesItsItems(t *testing.T) {
 	data := testRoomPage(room.RoleGM)
 	for heading, want := range map[string][]string{
-		"Tabletop":   {"Layers", "Grid", "Table settings", "Spawn pawns", "Spawn from library", "Clear blood", "Clear drawing", "Clear tabletop"},
+		"Tabletop":   {"Layers", "Grid", "Table settings", "Scenes", "Spawn pawns", "Spawn from library", "Clear blood", "Clear drawing", "Clear tabletop"},
 		"Fog":        {"Fill fog", "Clear fog"},
 		"Initiative": {"Sync tracker", "Roll initiative", "Add entry", "Next turn", "Clear tracker"},
 		"Tools":      {"Monster Manual", "Dice tray", "Music"},

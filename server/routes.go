@@ -440,8 +440,16 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("DELETE /rooms/{id}/layers/{layer}/map", auth.RequireSession(app.ClearLayerMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps", auth.RequireSession(app.UploadRoomMap))
 	mux.HandleFunc("POST /rooms/{id}/layers/{layer}/maps/{asset}", auth.RequireSession(app.RetryRoomMapTiling))
+	mux.HandleFunc("POST /rooms/{id}/party-start", auth.RequireSession(app.SetPartyStart))
 	mux.HandleFunc("POST /rooms/{id}/grid", auth.RequireSession(app.SetRoomGrid))
 	mux.HandleFunc("POST /rooms/{id}/settings", auth.RequireSession(app.SetRoomSettings))
+	mux.HandleFunc("POST /rooms/{id}/scenes", auth.RequireSession(app.SaveScene))
+	mux.HandleFunc("POST /rooms/{id}/scenes/{scene}/open", auth.RequireSession(app.OpenScene))
+	mux.HandleFunc("POST /rooms/{id}/scenes/{scene}/save", auth.RequireSession(app.SaveSceneChanges))
+	mux.HandleFunc("POST /scenes/{scene}/keep", auth.RequireSession(app.SetSceneKeep))
+	mux.HandleFunc("PATCH /scenes/{scene}/name", auth.RequireSession(app.RenameScene))
+	mux.HandleFunc("POST /scenes/{scene}/duplicate", auth.RequireSession(app.DuplicateScene))
+	mux.HandleFunc("DELETE /scenes/{scene}", auth.RequireSession(app.DeleteScene))
 	mux.HandleFunc("POST /rooms/{id}/fog/fill", auth.RequireSession(app.FillLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/fog/clear", auth.RequireSession(app.ClearLayerFog))
 	mux.HandleFunc("POST /rooms/{id}/drawing/clear", auth.RequireSession(app.ClearLayerDrawing))
@@ -738,6 +746,10 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/map-card", auth.Fragment(app.RoomMapCardFragment))
 	mux.HandleFunc("GET /fragment/room/grid", auth.Fragment(app.RoomGridFragment))
 	mux.HandleFunc("GET /fragment/room/settings", auth.Fragment(app.RoomSettingsFragment))
+	mux.HandleFunc("GET /fragment/room/scenes", auth.Fragment(app.RoomScenesFragment))
+	mux.HandleFunc("GET /fragment/room/scene-name", auth.Fragment(app.RoomSceneNameFragment))
+	mux.HandleFunc("GET /fragment/room/table-menu", auth.Fragment(app.RoomTableMenuFragment))
+	mux.HandleFunc("GET /fragment/room/scene/save", auth.Fragment(app.RoomSceneSaveFragment))
 	// The pawn fragments, and they split three ways on who may read them.
 	//
 	// THE SPAWN DIALOG AND ITS RESULTS ARE THE GM'S, like the layer manager

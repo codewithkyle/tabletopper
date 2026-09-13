@@ -13,7 +13,8 @@
         "name": "Ground floor",
         "map": null,
         "fogEnabled": false,
-        "fogPrefill": true
+        "fogPrefill": true,
+        "partyStart": null
       }
     ],
     "activeLayer": "01000000000000000000000001",

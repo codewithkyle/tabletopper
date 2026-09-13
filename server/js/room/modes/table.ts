@@ -13,6 +13,7 @@ import { createMeasure } from "./measure.ts";
 import { createPan } from "./pan.ts";
 import { createPing } from "./ping.ts";
 import { createPlace } from "./place.ts";
+import type { TableMarks } from "./select.ts";
 import { createSelect } from "./select.ts";
 import { newBoard } from "./board.ts";
 import { newToolSwitch } from "./switch.ts";
@@ -26,6 +27,7 @@ export interface TableDeps {
 	scale: () => number;
 	details: (pawn: Pawn) => void;
 	menu: (pawn: Pawn, screen: Point) => void;
+	marks?: TableMarks;
 	remove: () => void;
 	mode: () => Mode;
 	chosen: () => Mode;
@@ -64,6 +66,7 @@ export function createTable(deps: TableDeps): Table {
 		scale: deps.scale,
 		details: deps.details,
 		menu: deps.menu,
+		marks: deps.marks,
 	});
 	const place = createPlace({
 		viewed: deps.viewed,

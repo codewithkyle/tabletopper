@@ -204,6 +204,36 @@ func (c *TableSetActiveLayer) Apply(s *State, a Actor, env Env) ([]Signal, error
 	return nil, nil
 }
 
+type TableSetPartyStart struct {
+	Layer ulid.ULID `json:"layer"`
+	X     *int      `json:"x"`
+	Y     *int      `json:"y"`
+}
+
+func (c *TableSetPartyStart) Authorize(s *State, a Actor) error {
+	return requireGM(a, "say where the party starts")
+}
+func (c *TableSetPartyStart) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	l, err := s.requireLayer(c.Layer)
+	if err != nil {
+		return nil, err
+	}
+	if c.X == nil || c.Y == nil {
+		l.PartyStart = nil
+		s.Normalize()
+		return nil, nil
+	}
+	if err := checkCoord("party start", *c.X); err != nil {
+		return nil, err
+	}
+	if err := checkCoord("party start", *c.Y); err != nil {
+		return nil, err
+	}
+	l.PartyStart = &Point{X: *c.X, Y: *c.Y}
+	s.Normalize()
+	return nil, nil
+}
+
 type TableSetGrid struct {
 	Grid Grid `json:"grid"`
 }

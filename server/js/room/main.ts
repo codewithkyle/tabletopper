@@ -19,6 +19,7 @@ import { mountHitPoints } from "./hp.ts";
 import { mountMusic, type MusicPlayer } from "./music.ts";
 import { mountLayerBar } from "./layer-bar.ts";
 import { mountPawnMenu } from "./pawn-menu.ts";
+import { mountTableMenu } from "./table-menu.ts";
 import { mountEntryMenu } from "./initiative-menu.ts";
 import { mountLayeredMenu } from "./layered-menu.ts";
 import { mountFogTool } from "./fog-tool.ts";
@@ -68,6 +69,11 @@ if (mount) {
 	let hud: Hud | null = null;
 	let follow: Follow | null = null;
 	const viewed = () => renderer?.view.viewed()?.id ?? state.table.activeLayer;
+	const marks = mountTableMenu(mount, {
+		grid: () => state.table.grid,
+		viewed,
+		invalidate: () => renderer?.invalidate(),
+	});
 	const table = createTable({
 		state,
 		role,
@@ -82,6 +88,7 @@ if (mount) {
 		menu: (pawn, screen) => {
 			menu?.open(pawn, screen);
 		},
+		marks,
 		remove: () => hud?.remove(),
 		mode: () => tools?.mode() ?? "select",
 		chosen: () => tools?.chosen() ?? "select",

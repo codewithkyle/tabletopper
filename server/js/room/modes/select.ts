@@ -14,6 +14,8 @@ import { pawnExtents } from "../model/shape.ts";
 import { conceals, hitTest } from "./hit.ts";
 import { expirePreviews, forgetPreviews, remember, showPreviews } from "./previews.ts";
 import { handleAt, handlesFor } from "../handles.ts";
+import type { Pens } from "./ruler.ts";
+import type { Rgb } from "../model/types.ts";
 import { newPens, walkRuler } from "./ruler.ts";
 import {
 	beginDrag,
@@ -28,15 +30,22 @@ import {
 	proposedGhost,
 	shapeOf,
 } from "./gestures.ts";
+const START_ALPHA = 0.22;
+const MARK_ALPHA = 0.3;
 const OUTLINE_WIDTH = 2;
 const OUTLINE_ALPHA = 0.95;
 const MARQUEE_ALPHA = 0.8;
+export interface TableMarks {
+	open(map: Point, screen: Point): boolean;
+	marked(): { x: number; y: number; size: number } | null;
+}
 export interface SelectDeps {
 	board: Board;
 	invalidate: () => void;
 	scale: () => number;
 	details: (pawn: Pawn) => void;
 	menu: (pawn: Pawn, screen: Point) => void;
+	marks?: TableMarks;
 }
 export interface Select extends Tool {
 	selection: Selection;
@@ -79,7 +88,19 @@ export function createSelect(deps: SelectDeps): Select {
 		const p = hovered ? board.pawn(hovered) : null;
 		return p && p.kind !== "object" ? p : null;
 	}
-	function activeHandles(out: Handle[]): Handle[] {
+	function paint(
+	out: Overlay, pens: Pens, centreX: number, centreY: number,
+	size: number, color: Rgb, alpha: number,
+): void {
+	const cell = pens.cells.take();
+	cell.x = centreX - size / 2;
+	cell.y = centreY - size / 2;
+	cell.size = size;
+	cell.color = color;
+	cell.alpha = alpha;
+	out.cells.push(cell);
+}
+function activeHandles(out: Handle[]): Handle[] {
 		const p = selectedToken();
 		if (!p) {
 			out.length = 0;
@@ -263,7 +284,7 @@ export function createSelect(deps: SelectDeps): Select {
 			}
 			const hit = under(map);
 			if (!hit) {
-				return false;
+				return deps.marks?.open(map, { x: screen.x, y: screen.y }) ?? false;
 			}
 			deps.menu(hit, { x: screen.x, y: screen.y });
 			return true;
@@ -323,6 +344,14 @@ export function createSelect(deps: SelectDeps): Select {
 			}
 			for (const handle of activeHandles(handleList)) {
 				out.handles.push(handle);
+			}
+			const floor = board.state.table.layers.find((l) => l.id === board.viewed());
+			if (board.role === "gm" && floor?.partyStart) {
+				paint(out, pens, floor.partyStart.x, floor.partyStart.y, grid.cellSize, SELF_COLOR, START_ALPHA);
+			}
+			const held = deps.marks?.marked();
+			if (held) {
+				paint(out, pens, held.x + held.size / 2, held.y + held.size / 2, held.size, SELECT_COLOR, MARK_ALPHA);
 			}
 		},
 		selection,

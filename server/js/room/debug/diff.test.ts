@@ -76,8 +76,8 @@ test("keyed slices ignore the order the client happened to receive them in", () 
 test("an ordered slice reports the position that differs", () => {
 	const [mine, theirs] = pair();
 	mine.table.layers = [
-		{ id: "one", name: "Ground", map: null, fogEnabled: false, fogPrefill: false },
-		{ id: "two", name: "Upper", map: null, fogEnabled: false, fogPrefill: false },
+		{ id: "one", name: "Ground", map: null, fogEnabled: false, fogPrefill: false, partyStart: null },
+		{ id: "two", name: "Upper", map: null, fogEnabled: false, fogPrefill: false, partyStart: null },
 	];
 	theirs.table.layers = [mine.table.layers[1], mine.table.layers[0]];
 	const [found] = diffState(mine, theirs);

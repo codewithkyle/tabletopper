@@ -103,6 +103,7 @@ export function table(
 		id: GROUND, name: "Ground floor", map: null,
 		fogEnabled: over.fogEnabled ?? false,
 		fogPrefill: over.fogPrefill ?? true,
+		partyStart: null,
 	}];
 	state.fog = over.fog ?? [];
 	state.strokes = over.strokes ?? [];

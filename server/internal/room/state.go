@@ -44,6 +44,11 @@ type Layer struct {
 	Map        *MapRef   `json:"map"`
 	FogEnabled bool      `json:"fogEnabled"`
 	FogPrefill bool      `json:"fogPrefill"`
+	PartyStart *Point    `json:"partyStart"`
+}
+type Point struct {
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 type MapRef struct {
 	AssetID  ulid.ULID `json:"assetId"`

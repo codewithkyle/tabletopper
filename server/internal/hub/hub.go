@@ -222,6 +222,15 @@ type TableView struct {
 func (h *Hub) Table(ctx context.Context, roomID ulid.ULID) (*TableView, bool) {
 	return view(ctx, h, roomID, true, (*actor).table)
 }
+
+type ExportView struct {
+	Body    []byte
+	Preview *ulid.ULID
+}
+
+func (h *Hub) Export(ctx context.Context, roomID ulid.ULID) (*ExportView, bool) {
+	return view(ctx, h, roomID, true, (*actor).export)
+}
 func (h *Hub) Pawn(ctx context.Context, roomID ulid.ULID, pawnID ulid.ULID, role room.Role) (*room.Pawn, bool) {
 	return view(ctx, h, roomID, false, func(a *actor) *room.Pawn { return a.pawn(pawnID, role) })
 }

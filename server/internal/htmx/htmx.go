@@ -49,6 +49,9 @@ func Refresh(w http.ResponseWriter) {
 func Toast(w http.ResponseWriter, msg string) {
 	trigger(w, map[string]any{uievents.Toast: msg})
 }
+func Scenes(w http.ResponseWriter) {
+	trigger(w, map[string]any{uievents.Scenes: true})
+}
 func CloseModal(w http.ResponseWriter) {
 	trigger(w, map[string]any{uievents.ModalClose: true})
 }

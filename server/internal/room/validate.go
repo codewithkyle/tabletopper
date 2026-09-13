@@ -37,6 +37,7 @@ const (
 	DiceModLimit       = 9_999
 	DiceLabelLimit     = 64
 	RollsMax           = 50
+	ScenesMax          = 200
 	SecretRollsMax     = 50
 )
 const (

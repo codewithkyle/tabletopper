@@ -241,11 +241,32 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 		a.state = &before
 		return err
 	}
+	if _, ok := cmd.(room.Resyncing); ok {
+		a.resync(&before)
+		a.emit(sigs, who, sender, nil)
+		a.signals(sigs, who)
+		return nil
+	}
 	derived := a.broadcast(&before, who)
 	a.emit(sigs, who, sender, nil)
 	a.signals(sigs, who)
 	a.changed(&before, derived)
 	return nil
+}
+func (a *actor) resync(before *room.State) {
+	if reflect.DeepEqual(*before, *a.state) {
+		return
+	}
+	a.dirty = true
+	a.changes++
+	conns := make([]*client, 0, len(a.conns))
+	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
+		a.advance(role, true)
+		conns = append(conns, a.byRole(role)...)
+	}
+	for _, c := range conns {
+		a.snapshot(c)
+	}
 }
 func (a *actor) preview(who room.Actor, cmd room.Command, sender *client) error {
 	sigs, err := cmd.Apply(a.state, who, a.env())
@@ -559,6 +580,19 @@ func (a *actor) table() *TableView {
 		pawns[p.LayerID]++
 	}
 	return &TableView{Table: room.CloneTable(a.state.Table), Pawns: pawns}
+}
+func (a *actor) export() *ExportView {
+	body, err := a.state.ExportScene()
+	if err != nil {
+		slog.Error("Failed to export a scene", "room", a.id, "error", err)
+		return nil
+	}
+	out := &ExportView{Body: body}
+	if l := a.state.Layer(a.state.Table.ActiveLayer); l != nil && l.Map != nil {
+		asset := l.Map.AssetID
+		out.Preview = &asset
+	}
+	return out
 }
 func (a *actor) pawn(id ulid.ULID, role room.Role) *room.Pawn {
 	return a.state.ProjectedPawn(id, role)

@@ -1,6 +1,7 @@
 package room
 
 import (
+	"context"
 	"slices"
 
 	"github.com/oklog/ulid/v2"
@@ -46,4 +47,45 @@ func (s *State) ImportScene(from *State) {
 		s.Table.ActiveLayer = s.Table.Layers[0].ID
 	}
 	s.Normalize()
+}
+
+type SceneLoad struct {
+	Resync
+	Scene   *State   `json:"-"`
+	Missing []string `json:"-"`
+}
+
+func (c *SceneLoad) Authorize(s *State, a Actor) error {
+	return requireGM(a, "open a scene")
+}
+func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
+	if c.Scene == nil {
+		return nil
+	}
+	c.Missing = nil
+	for i := range c.Scene.Table.Layers {
+		l := &c.Scene.Table.Layers[i]
+		if l.Map == nil {
+			continue
+		}
+		ref, err := lib.Map(ctx, l.Map.AssetID)
+		if err != nil {
+			refusal, ok := err.(*Error)
+			if !ok {
+				return err
+			}
+			c.Missing = append(c.Missing, l.Name+": "+refusal.Message)
+			l.Map = nil
+			continue
+		}
+		l.Map = cloneRef(&ref)
+	}
+	return nil
+}
+func (c *SceneLoad) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	if c.Scene == nil {
+		return nil, notFound("Scene gone", "That scene could not be read.")
+	}
+	s.ImportScene(c.Scene)
+	return nil, nil
 }

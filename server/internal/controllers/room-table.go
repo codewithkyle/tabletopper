@@ -292,8 +292,29 @@ func (a *App) tableSetting(w http.ResponseWriter, r *http.Request, panel string,
 	renderPanelBlock(w, r, panel, nil)
 }
 func (a *App) ClearTabletop(w http.ResponseWriter, r *http.Request) {
-	a.layerCommand(w, r, "clear the tabletop", func(ulid.ULID) (room.Command, bool) {
+	if !a.dispatchLayer(w, r, "clear the tabletop", func(ulid.ULID) (room.Command, bool) {
 		return &room.TableClear{}, true
+	}) {
+		return
+	}
+	sess := session.FromContext(r.Context())
+	if roomID, err := ulid.Parse(r.PathValue("id")); err == nil {
+		if _, err := a.Queries.ClearRoomScene(r.Context(), queries.ClearRoomSceneParams{ID: roomID, OwnerID: sess.UserID}); err != nil {
+			slog.Error("Failed to forget the open scene", "room", roomID, "error", err)
+		}
+	}
+	htmx.Scenes(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+func (a *App) SetPartyStart(w http.ResponseWriter, r *http.Request) {
+	a.viewedLayerCommands(w, r, "say where the party starts", func(layer ulid.ULID) []room.Command {
+		cmd := &room.TableSetPartyStart{Layer: layer}
+		x, xErr := strconv.Atoi(strings.TrimSpace(r.FormValue("x")))
+		y, yErr := strconv.Atoi(strings.TrimSpace(r.FormValue("y")))
+		if xErr == nil && yErr == nil {
+			cmd.X, cmd.Y = &x, &y
+		}
+		return []room.Command{cmd}
 	})
 }
 func (a *App) viewedLayerCommands(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) []room.Command) {

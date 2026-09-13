@@ -1,0 +1,12 @@
+package pages
+
+templ RoomSceneName(data RoomSceneNameData) {
+	<span
+		id="room-scene-name"
+		hx-get={ data.Path() }
+		hx-trigger={ data.Trigger() }
+		hx-sync="this:queue last"
+		hx-swap="outerHTML"
+		class="max-w-44 truncate px-2 text-xs text-base-content/60"
+	>{ data.Name }</span>
+}

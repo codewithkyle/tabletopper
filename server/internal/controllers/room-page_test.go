@@ -118,16 +118,19 @@ func TestClosingARoomClosesItThenEmptiesIt(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if len(db.calls) != 2 {
-		t.Fatalf("ran %d statements, want 2: %v", len(db.calls), db.queries())
+	if len(db.calls) != 3 {
+		t.Fatalf("ran %d statements, want 3: %v", len(db.calls), db.queries())
 	}
-	if !strings.Contains(db.calls[0].query, "UPDATE rooms") || !strings.Contains(db.calls[0].query, "closed_at = NOW()") {
-		t.Errorf("the first statement is not the close: %q", db.calls[0].query)
+	if !strings.Contains(db.calls[0].query, "GetRoom") {
+		t.Errorf("the first statement is not the read that finds the open scene: %q", db.calls[0].query)
 	}
-	if !strings.Contains(db.calls[1].query, "UPDATE sessions") {
-		t.Errorf("the second statement is not the session sweep: %q", db.calls[1].query)
+	if !strings.Contains(db.calls[1].query, "UPDATE rooms") || !strings.Contains(db.calls[1].query, "closed_at = NOW()") {
+		t.Errorf("the second statement is not the close: %q", db.calls[1].query)
 	}
-	assertBoundToRoom(t, db.calls[0], testRoomID)
+	if !strings.Contains(db.calls[2].query, "UPDATE sessions") {
+		t.Errorf("the third statement is not the session sweep: %q", db.calls[2].query)
+	}
+	assertBoundToRoom(t, db.calls[1], testRoomID)
 	assertBoundToRoom(t, db.calls[1], testRoomID)
 	if got := rec.Header().Get("HX-Redirect"); got != "/rooms" {
 		t.Errorf("HX-Redirect = %q, want %q", got, "/rooms")
@@ -144,8 +147,8 @@ func TestClosingSomebodyElsesRoomIsA404(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-	if len(db.calls) != 1 {
-		t.Errorf("ran %d statements, want 1 -- the sweep should not have been reached: %v", len(db.calls), db.queries())
+	if len(db.calls) != 2 {
+		t.Errorf("ran %d statements, want 2 -- the sweep should not have been reached: %v", len(db.calls), db.queries())
 	}
 }
 func TestLockingARoomAnswersWithTheControl(t *testing.T) {

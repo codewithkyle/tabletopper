@@ -1,0 +1,29 @@
+package pages
+
+const tableMenuHub = "pointer-events-auto absolute top-0 left-0 size-0"
+const tableMenuSpoke = "btn btn-circle btn-sm absolute top-0 left-0 -mt-4 -ml-4 shadow [transform:translate(calc(cos(var(--degree))*var(--radius)),calc(sin(var(--degree))*-1*var(--radius)))]"
+
+templ RoomTableMenu(data RoomTableMenuData) {
+	if !data.Empty() {
+		<div data-table-menu data-reach={ data.Reach() } hidden class={ tableMenuHub }>
+			for _, item := range data.Items {
+				<button
+					type="button"
+					title={ item.Label }
+					aria-label={ item.Label }
+					style={ item.Placement() }
+					class={ tableMenuSpoke }
+					if item.IsParty() {
+						data-table-menu-party
+						hx-post={ data.PartyStartPath() }
+						hx-swap="none"
+					}
+				>
+					if item.IsParty() {
+						@partyStartIcon()
+					}
+				</button>
+			}
+		</div>
+	}
+}

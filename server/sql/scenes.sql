@@ -29,3 +29,12 @@ WHERE id = ? AND owner_id = ?;
 -- name: DeleteScene :execresult
 DELETE FROM scenes
 WHERE id = ? AND owner_id = ?;
+-- name: DuplicateScene :execresult
+INSERT INTO scenes (id, owner_id, name, body, keep_changes, preview_id)
+SELECT sqlc.arg(new_id), original.owner_id, sqlc.arg(name), original.body, original.keep_changes, original.preview_id
+FROM scenes original
+WHERE original.id = sqlc.arg(id) AND original.owner_id = sqlc.arg(owner_id);
+-- name: ForgetScene :execresult
+UPDATE rooms
+SET scene_id = NULL
+WHERE scene_id = ? AND owner_id = ?;

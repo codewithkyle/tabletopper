@@ -25,6 +25,7 @@ func TestAuthorizeCoversEveryWireCommand(t *testing.T) {
 		{"table.clearLayerMap", &TableClearLayerMap{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setActiveLayer", &TableSetActiveLayer{Layer: fx.spare}, ok, CodeForbidden, CodeForbidden},
 		{"table.setGrid", &TableSetGrid{Grid: w.s.Table.Grid}, ok, CodeForbidden, CodeForbidden},
+		{"table.setPartyStart", &TableSetPartyStart{Layer: w.layer, X: intp(64), Y: intp(64)}, ok, CodeForbidden, CodeForbidden},
 		{"table.setOptions", &TableSetOptions{PawnLabels: LabelsFull, InitiativeGrouping: GroupMonsters}, ok, CodeForbidden, CodeForbidden},
 		{"table.clear", &TableClear{}, ok, CodeForbidden, CodeForbidden},
 		{"pawn.spawn", &PawnSpawn{Kind: PawnPlayer, Layer: w.layer, CharacterID: &testCharID}, ok, CodeForbidden, CodeForbidden},

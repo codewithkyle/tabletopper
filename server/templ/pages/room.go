@@ -7,6 +7,7 @@ import (
 
 	"tabletopper/internal/prefs"
 	"tabletopper/internal/room"
+	"tabletopper/internal/uievents"
 )
 
 const tooltipBody = "tooltip-content"
@@ -67,6 +68,15 @@ func (d RoomPageData) GridPath() string {
 }
 func (d RoomPageData) SettingsPath() string {
 	return "/fragment/room/settings?room=" + d.ID
+}
+func (d RoomPageData) ScenesPath() string {
+	return ScenesWindowPath(d.ID)
+}
+func (d RoomPageData) TableMenuPath() string {
+	return "/fragment/room/table-menu?room=" + d.ID
+}
+func (d RoomPageData) TableMenuTrigger() string {
+	return "load, " + uievents.Tabletop + " from:window"
 }
 func (d RoomPageData) FogFillPath() string {
 	return "/rooms/" + d.ID + "/fog/fill"
@@ -330,6 +340,13 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 			Width:  300,
 			Height: 380,
 		}},
+		{Label: "Scenes", Window: RoomWindow{
+			ID:     ScenesWindow,
+			Title:  "Scenes",
+			URL:    d.ScenesPath(),
+			Width:  380,
+			Height: 480,
+		}},
 		{Label: "Spawn pawns", Post: d.PartyPath()},
 		{Label: "Spawn from library", Modal: RoomModal{URL: d.SpawnPath(), Size: "lg"}},
 		blood,
@@ -344,7 +361,7 @@ func (d RoomPageData) tabletopMenu() RoomMenu {
 		{
 			Label:          "Clear tabletop",
 			Post:           d.ClearPath(),
-			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid.",
+			Confirm:        "Every map, pawn, fog shape and drawing goes, on every floor, and the initiative tracker is emptied. The floors themselves stay, and so does the grid. The open scene is closed without being saved.",
 			ConfirmHeading: "Clear the tabletop?",
 			ConfirmLabel:   "Clear tabletop",
 			Danger:         true,

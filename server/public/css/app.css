@@ -3823,6 +3823,9 @@
   .mb-auto {
     margin-bottom: auto;
   }
+  .-ml-4 {
+    margin-left: calc(var(--spacing) * -4);
+  }
   .ml-auto {
     margin-left: auto;
   }
@@ -3977,6 +3980,10 @@
       width: var(--size);
       height: var(--size);
     }
+  }
+  .size-0 {
+    width: 0px;
+    height: 0px;
   }
   .size-1\.5 {
     width: calc(var(--spacing) * 1.5);
@@ -4260,6 +4267,9 @@
       translate: 0 1px;
     }
   }
+  .\[transform\:translate\(calc\(cos\(var\(--degree\)\)\*var\(--radius\)\)\,calc\(sin\(var\(--degree\)\)\*-1\*var\(--radius\)\)\)\] {
+    transform: translate(calc(cos(var(--degree)) * var(--radius)),calc(sin(var(--degree)) * -1 * var(--radius)));
+  }
   .animate-\[fadeIn_600ms_300ms_ease-out_forwards\] {
     animation: fadeIn 600ms 300ms ease-out forwards;
   }
@@ -4330,6 +4340,9 @@
   }
   .grid-cols-\[auto_1fr\] {
     grid-template-columns: auto 1fr;
+  }
+  .grid-cols-\[repeat\(auto-fill\,minmax\(10rem\,1fr\)\)\] {
+    grid-template-columns: repeat(auto-fill,minmax(10rem,1fr));
   }
   .grid-cols-\[repeat\(auto-fill\,minmax\(11rem\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fill,minmax(11rem,1fr));
@@ -4974,6 +4987,9 @@
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
   }
+  .py-8 {
+    padding-block: calc(var(--spacing) * 8);
+  }
   .py-10 {
     padding-block: calc(var(--spacing) * 10);
   }
@@ -5306,6 +5322,10 @@
   .opacity-80 {
     opacity: 80%;
   }
+  .shadow {
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-panel {
     --tw-shadow: var(--panel-shadow-edge), var(--panel-shadow-lift);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -5446,6 +5466,10 @@
     .badge-neutral {
       --badge-color: var(--color-neutral);
       --badge-fg: var(--color-neutral-content);
+    }
+    .badge-primary {
+      --badge-color: var(--color-primary);
+      --badge-fg: var(--color-primary-content);
     }
     .badge-success {
       --badge-color: var(--color-success);

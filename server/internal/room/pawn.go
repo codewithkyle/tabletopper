@@ -203,8 +203,13 @@ func (c *PawnSpawnCharacters) Resolve(ctx context.Context, lib Library, s *State
 		return invalid("Nobody to place", "Everybody connected with a character already has a pawn on the table.")
 	}
 	centreX, centreY := 0, 0
-	if layer := s.Layer(s.Table.ActiveLayer); layer != nil && layer.Map != nil {
-		centreX, centreY = layer.Map.Width/2, layer.Map.Height/2
+	if layer := s.Layer(s.Table.ActiveLayer); layer != nil {
+		switch {
+		case layer.PartyStart != nil:
+			centreX, centreY = layer.PartyStart.X, layer.PartyStart.Y
+		case layer.Map != nil:
+			centreX, centreY = layer.Map.Width/2, layer.Map.Height/2
+		}
 	}
 	cell := max(s.Table.Grid.CellSize, 1)
 	pawns := make([]Pawn, 0, len(seats))

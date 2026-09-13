@@ -6,7 +6,7 @@ function mapRef(asset: string, gen = "g1"): MapRef {
 	return { assetId: asset, gen, width: 4000, height: 3000, tileSize: 512, maxZoom: 3 };
 }
 function layer(id: string, map: MapRef | null): Layer {
-	return { id, name: id, map, fogEnabled: false, fogPrefill: true };
+	return { id, name: id, map, fogEnabled: false, fogPrefill: true, partyStart: null };
 }
 function table(active: string, layers: Layer[]): Table {
 	return {
