@@ -107,11 +107,11 @@ func (d RoomSpawnData) SearchLimit() string { return strconv.Itoa(AssetNameLimit
 func (d RoomSpawnData) EmptyHeading() string {
 	switch d.Kind {
 	case RoomSpawnMonsters:
-		return "Nothing in your manual yet."
+		return "No monsters in your manual yet"
 	case RoomSpawnNPCs:
-		return "No faces in your library yet."
+		return "No faces in your library yet"
 	default:
-		return "No tokens in your library yet."
+		return "No tokens in your library yet"
 	}
 }
 func (d RoomSpawnData) EmptyBlurb() string {

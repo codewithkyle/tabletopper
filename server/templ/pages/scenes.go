@@ -105,7 +105,7 @@ func (c SceneCard) CardClass() string {
 }
 
 const (
-	roomScenesEmptyHeading = "No scenes yet."
+	roomScenesEmptyHeading = "No scenes yet"
 	roomScenesEmptyBlurb   = "Lay the tabletop out the way you want it and save it here. Opening it again puts the maps, the fog, the drawing and every monster back where they were, for everybody at the table."
 	sceneAutosaveLabel     = "Autosave changes"
 	sceneAutosaveHint      = "Autosave changes: what happens on this scene is written back to it when another scene is opened, when the tabletop is cleared, when the last GM disconnects, and when the room is closed or the server restarts. Leave it off for an encounter you run more than once."

@@ -95,8 +95,8 @@ func (m RoomMapChoice) FileLabel() string {
 const (
 	roomMapPickerHeading   = "Choose the map the players see"
 	roomGMMapPickerHeading = "Choose the map you see"
-	roomMapsEmptyHeading   = "No maps yet."
-	roomMapsEmptyBlurb     = "Upload one and it is cut into tiles, so it stays sharp however far in you zoom. It becomes choosable here the moment they are ready."
+	roomMapsEmptyHeading   = "No maps yet"
+	roomMapsEmptyBlurb     = "Upload one and it shows up here."
 )
 
 func (d RoomMapsData) Heading() string {

@@ -14,8 +14,8 @@ func mapsGrid(query string) assetGrid {
 		Kind:         assetTabMaps,
 		Cols:         assetTileGrid,
 		Query:        query,
-		EmptyHeading: "No maps yet.",
-		EmptyBlurb:   "A map is the board you play on. Upload one and it is cut into tiles, so it stays sharp however far in you zoom.",
+		EmptyHeading: "No maps yet",
+		EmptyBlurb:   "A map is the board you play on.",
 		NoMatch:      noMatchHeading("maps", query),
 	}
 }
@@ -24,8 +24,8 @@ func terrainGrid(query string) assetGrid {
 		Kind:         assetTabTerrain,
 		Cols:         assetTileGrid,
 		Query:        query,
-		EmptyHeading: "No terrain yet.",
-		EmptyBlurb:   "The pictures you stamp onto a hex crawl -- forest, hills, a river bend. One is cut to the shape of a cell as it lands, so upload the art whole and let the board do the trimming.",
+		EmptyHeading: "No terrain yet",
+		EmptyBlurb:   "The pictures you stamp onto a hex crawl (forest, hills, a river bend).",
 		NoMatch:      noMatchFor("terrain", "matches", query),
 	}
 }
@@ -34,8 +34,8 @@ func tokensGrid(query string) assetGrid {
 		Kind:         assetTabTokens,
 		Cols:         assetTileGrid,
 		Query:        query,
-		EmptyHeading: "No tokens yet.",
-		EmptyBlurb:   "A token is a thing on the board that is not a creature -- a wagon, a rowboat, a barricade. They sit on their own layer, under the pawns.",
+		EmptyHeading: "No tokens yet",
+		EmptyBlurb:   "A token is a thing on the board that you can move or resize (a wagon, rowboat, barricade).",
 		NoMatch:      noMatchHeading("tokens", query),
 	}
 }
@@ -44,8 +44,8 @@ func avatarsGrid(query string) assetGrid {
 		Kind:         assetTabAvatars,
 		Cols:         assetFaceGrid,
 		Query:        query,
-		EmptyHeading: "No avatars yet.",
-		EmptyBlurb:   "A face to put on an NPC. Gather them here before a session, and spawning one mid-game is a search rather than a hunt through your folders.",
+		EmptyHeading: "No avatars yet",
+		EmptyBlurb:   "A face to put on an NPC.",
 		NoMatch:      noMatchHeading("avatars", query),
 	}
 }
@@ -54,8 +54,8 @@ func musicGrid(query string) assetGrid {
 		Kind:         assetTabMusic,
 		Cols:         assetRowGrid,
 		Query:        query,
-		EmptyHeading: "No music yet.",
-		EmptyBlurb:   "The tracks you play behind a session -- a battle, a tavern, an hour of rain. One plays at a time and loops until you stop it or pick another.",
+		EmptyHeading: "No music yet",
+		EmptyBlurb:   "The tracks you play during a session.",
 		NoMatch:      noMatchHeading("tracks", query),
 	}
 }

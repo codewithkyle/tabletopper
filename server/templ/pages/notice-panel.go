@@ -9,5 +9,5 @@ func noMatchFor(subject string, verb string, query string) string {
 	if query == "" {
 		return ""
 	}
-	return "No " + subject + " " + verb + " \"" + query + "\"."
+	return "No " + subject + " " + verb + " \"" + query + "\""
 }

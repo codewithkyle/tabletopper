@@ -345,7 +345,7 @@ func TestTheManualWindowOpensOnTheAccountsOwnMonsters(t *testing.T) {
 	if !strings.Contains(body, `id="`+pages.ManualBodyID+`"`) {
 		t.Errorf("the window has no body for its own swaps to find:\n%s", body)
 	}
-	if !strings.Contains(body, "Nothing in your manual yet") {
+	if !strings.Contains(body, "No monsters in your manual yet") {
 		t.Errorf("an empty manual says nothing at all:\n%s", body)
 	}
 	call := db.only(t)

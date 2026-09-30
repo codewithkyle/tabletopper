@@ -81,8 +81,8 @@ templ monsterCards(data MonsterListData) {
 	<section id={ monsterCardsID } class="grid min-h-0 content-start gap-3.5 overflow-auto">
 		if len(data.Monsters) == 0 {
 			if data.Query == "" {
-				@noticePanel("Nothing in your manual yet.") {
-					Write up what you plan to run <strong>before</strong> your session.
+				@noticePanel("No monsters in your manual yet") {
+					Create the monsters you plan to run <strong>before</strong> your session so they're ready to go.
 				}
 			} else {
 				@noticePanel(data.noMatch()) {

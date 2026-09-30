@@ -1816,7 +1816,7 @@ func TestTheEmptyStateSitsLastInAGridThatIsAlwaysThere(t *testing.T) {
 			if empty < 0 {
 				t.Fatalf("the empty state is not rendered:\n%s", body)
 			}
-			if !strings.Contains(body, "No maps yet.") {
+			if !strings.Contains(body, "No maps yet") {
 				t.Error("the empty state says nothing")
 			}
 			if c.cards {
@@ -1836,10 +1836,10 @@ func TestEachKindsEmptyStateNamesItsOwnKind(t *testing.T) {
 		page    templ.Component
 		heading string
 	}{
-		"maps":    {MapAssets(nil), "No maps yet."},
-		"tokens":  {TokenAssets(nil), "No tokens yet."},
-		"avatars": {AvatarAssets(nil), "No avatars yet."},
-		"music":   {MusicAssets(nil), "No music yet."},
+		"maps":    {MapAssets(nil), "No maps yet"},
+		"tokens":  {TokenAssets(nil), "No tokens yet"},
+		"avatars": {AvatarAssets(nil), "No avatars yet"},
+		"music":   {MusicAssets(nil), "No music yet"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if body := markup(t, c.page); !strings.Contains(body, c.heading) {
@@ -1880,10 +1880,10 @@ func TestASearchThatMatchedNothingRepeatsTheTermBack(t *testing.T) {
 		heading string
 		match   string
 	}{
-		"maps":    {MapCards(nil, "keep"), "No maps yet.", `No maps match "keep".`},
-		"tokens":  {TokenCards(nil, "wagon"), "No tokens yet.", `No tokens match "wagon".`},
-		"avatars": {AvatarCards(nil, "elf"), "No avatars yet.", `No avatars match "elf".`},
-		"music":   {MusicCards(nil, "rain"), "No music yet.", `No tracks match "rain".`},
+		"maps":    {MapCards(nil, "keep"), "No maps yet", `No maps match "keep"`},
+		"tokens":  {TokenCards(nil, "wagon"), "No tokens yet", `No tokens match "wagon"`},
+		"avatars": {AvatarCards(nil, "elf"), "No avatars yet", `No avatars match "elf"`},
+		"music":   {MusicCards(nil, "rain"), "No music yet", `No tracks match "rain"`},
 	} {
 		t.Run(name, func(t *testing.T) {
 			body := markup(t, c.cards)
@@ -1904,12 +1904,12 @@ func TestEveryEmptyListSpeaksFromTheSamePanel(t *testing.T) {
 		cards templ.Component
 		match string
 	}{
-		"maps searched":     {MapCards(nil, "keep"), `No maps match "keep".`},
-		"terrain searched":  {TerrainCards(nil, "pine"), `No terrain matches "pine".`},
-		"tokens searched":   {TokenCards(nil, "wagon"), `No tokens match "wagon".`},
-		"avatars searched":  {AvatarCards(nil, "elf"), `No avatars match "elf".`},
-		"music searched":    {MusicCards(nil, "rain"), `No tracks match "rain".`},
-		"monsters searched": {MonsterCardsFragment(MonsterListData{Query: "goblin"}), `No monsters match "goblin".`},
+		"maps searched":     {MapCards(nil, "keep"), `No maps match "keep"`},
+		"terrain searched":  {TerrainCards(nil, "pine"), `No terrain matches "pine"`},
+		"tokens searched":   {TokenCards(nil, "wagon"), `No tokens match "wagon"`},
+		"avatars searched":  {AvatarCards(nil, "elf"), `No avatars match "elf"`},
+		"music searched":    {MusicCards(nil, "rain"), `No tracks match "rain"`},
+		"monsters searched": {MonsterCardsFragment(MonsterListData{Query: "goblin"}), `No monsters match "goblin"`},
 		"maps empty":        {MapCards(nil, ""), ""},
 		"terrain empty":     {TerrainCards(nil, ""), ""},
 		"tokens empty":      {TokenCards(nil, ""), ""},
