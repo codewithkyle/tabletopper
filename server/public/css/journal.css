@@ -1,39 +1,7 @@
-/* The journal editor's content area, and the toolbar's pressed state.
-   HAND-WRITTEN BECAUSE TAILWIND CANNOT SEE THIS DOM. Everything inside the
-   mount is built by ProseMirror at runtime from the markdown in the entry --
-   there is no .templ file with an <h2> or a <blockquote> in it for the scanner
-   to find, so no utility for either would ever be emitted. @tailwindcss/
-   typography would be the usual answer and is npm-only; it would have to be
-   vendored the way DaisyUI was, for forty lines of CSS.
-   Served exactly as authored from public/css, like core.css, toast.css and
-   soft-loading.css. Native nesting, which browsers run directly.
-   The reset is why the element selectors below say things that look like
-   defaults. Tailwind's preflight zeroes heading and paragraph margins and
-   strips the markers off ul and ol, and that is correct everywhere else in the
-   app -- every list in a template carries its own utilities. In here it would
-   leave a document whose headings, paragraphs and bullets are all the same
-   undifferentiated block. */
-/* The panel's error block is a flex item in a gap-4 column, so an empty one
-   costs a whole 1rem of dead space between the panel heading and the title
-   field -- the block is 0px tall and the gaps either side of it are not. This
-   is visual only: htmx still swaps the element, and a block with a message in
-   it is not :empty and comes back. */
 #errors-journal:empty {
     display: none;
 }
-/* THE MOUNT IS ABSOLUTELY POSITIONED BY THE PAGE, and that is what makes the
-   panel's height independent of how much has been written. An absolutely
-   positioned box contributes nothing to its parent's content size, so a
-   thousand lines of entry cannot grow the row, the card body, the card or the
-   page -- they scroll inside this box instead. Sizing it by grid stretch
-   instead looked identical when the entry was short and pushed the panel off
-   the bottom of the screen when it was not: every box between here and
-   character-editor has to decline to grow for that to work, and one flex item
-   with an automatic minimum size is enough to break the chain.
-   The positioning lives in the markup rather than here because the read view
-   will share this class for its typography and will be a block in a normal
-   page flow. What this file owns is what the text looks like and the fact that
-   it scrolls. */
+
 .journal-body {
     display: block;
     line-height: 1.45;
@@ -42,9 +10,7 @@
     border: var(--border) solid var(--color-base-300);
     border-radius: var(--radius-field);
     background-color: var(--color-base-100);
-    /* The editable element itself. Its focus ring is suppressed and the border
-       above carries the state instead, because the ring would be drawn around
-       the text rather than around the box the writer is typing in. */
+
     & .tiptap {
         min-height: 100%;
         outline: none;
@@ -52,9 +18,7 @@
     &:focus-within {
         border-color: var(--color-base-content);
     }
-    /* Headings are sized and never numbered down. The entry title is the page's
-       only h1 and the toolbar offers h2-h4, but a pasted h1 is still modelled,
-       still saved and has to render as something. */
+
     & h1 { margin: 1.25rem 0 0.5rem; font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
     & h2 { margin: 1.25rem 0 0.5rem; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
     & h3 { margin: 1rem 0 0.5rem; font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
@@ -106,13 +70,7 @@
         border: 0;
         border-top: 2px solid var(--color-base-300);
     }
-    /* An image is a block with a bottom margin, which is to say it sits in the
-       paragraph rhythm: the markdown that produces one is `![](src)` on a line
-       of its own, so it is a block in the document and should read as one.
-       max-width with an automatic height is what keeps a 1600px picture inside
-       a narrower column without distorting it -- the server fits every upload
-       to that long edge and stores no second size, so the browser does the
-       last bit of scaling. */
+
     & img {
         display: block;
         max-width: 100%;
@@ -120,33 +78,17 @@
         margin: 0 0 0.75rem;
         border-radius: var(--radius-field);
     }
-    /* ProseMirror puts this class on a selected block node, which for an image
-       is the only way to see that it is selected -- there is no text cursor
-       inside one. It is not a Tailwind concern: this file is hand-written and
-       the class comes from the editor rather than from any markup. */
+
     & img.ProseMirror-selectednode {
         outline: 2px solid var(--color-primary);
         outline-offset: 2px;
     }
 }
-/* An upload in flight. Busy is an attribute for the reason pressed is one:
-   public/js is not a Tailwind source, so a class name set from
-   journal-editor.js would never be emitted -- and aria-busy is what the root
-   owes a screen reader while it is waiting anyway.
-   The cursor is the whole of the feedback, deliberately. Nothing is inserted
-   into the document until the server has answered, because a placeholder would
-   be a node markdown cannot express and the one-second debounce would either
-   serialise it into the entry or throw it away. */
+
 [data-journal-editor][aria-busy="true"] .journal-body {
     cursor: progress;
 }
-/* The toolbar's active state is an attribute, not a class, and that is the
-   point: public/js is not a Tailwind source, so a class name set from
-   journal-editor.js would never be emitted. aria-pressed is what a toggle
-   button owes a screen reader anyway, so styling it costs nothing extra.
-   The buttons are .btn-soft, whose background is a low-alpha mix of its colour
-   into the surface. Pressed is the same mix at full strength plus the weight,
-   so the state reads without a border -- these carry none. */
+
 [data-journal-toolbar] [aria-pressed="true"] {
     background-color: var(--color-base-300);
     color: var(--color-base-content);

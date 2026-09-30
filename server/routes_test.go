@@ -9,11 +9,6 @@ import (
 	"tabletopper/internal/middleware"
 )
 
-// http.ServeMux panics on two patterns that overlap without one being more
-// specific, and it does it at registration -- which is boot, in main. This
-// builds the whole URL space so that failure lands in `make check` instead of
-// on the first deploy. The handlers are never called, so the zero-valued App
-// and Auth are enough.
 func TestRoutesRegisterWithoutConflict(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -23,17 +18,11 @@ func TestRoutesRegisterWithoutConflict(t *testing.T) {
 	routes(&controllers.App{}, middleware.Auth{})
 }
 
-// The panel saves and the routes that already lived under /characters/{id} have
-// to stay distinguishable. ServeMux accepts all of them, so this checks the one
-// thing acceptance does not prove: that a request lands on the pattern it looks
-// like it should.
 func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
 	id := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	item := "01BX5ZZKBKACTAV9WEVGEMMVS0"
 	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
-	// A share token is not a ULID: 22 characters of base64url, which is what
-	// the reader's routes carry instead of an id.
 	token := "yA1rMcJ4TkK9wQ2sVbNpXg"
 	for _, c := range []struct{ method, path, want string }{
 		{http.MethodPost, "/characters/" + id + "/avatar", "POST /characters/{id}/avatar"},
@@ -42,78 +31,34 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/characters/" + id + "/bonuses/skills", "POST /characters/{id}/bonuses/{kind}"},
 		{http.MethodPost, "/characters/" + id + "/features", "POST /characters/{id}/features"},
 		{http.MethodGet, "/characters/" + id + "/edit", "GET /characters/{id}/edit"},
-		// The bare path is still a route, but it is a redirect to cantrips
-		// rather than a page -- there is no index above the levels, and a
-		// bookmark to it should land somewhere.
 		{http.MethodGet, "/characters/" + id + "/edit/spells", "GET /characters/{id}/edit/spells"},
 		{http.MethodGet, "/characters/" + id + "/edit/spells/0", "GET /characters/{id}/edit/spells/{level}"},
 		{http.MethodGet, "/characters/" + id + "/edit/spells/3", "GET /characters/{id}/edit/spells/{level}"},
 		{http.MethodGet, "/characters/" + id + "/edit/inventory", "GET /characters/{id}/edit/inventory"},
-		// The collection and the member have to stay apart. They differ by one
-		// segment, and getting them confused would send an add to the save
-		// handler with no itemId to parse.
 		{http.MethodPost, "/characters/" + id + "/inventory", "POST /characters/{id}/inventory"},
 		{http.MethodPost, "/characters/" + id + "/inventory/" + item, "POST /characters/{id}/inventory/{itemId}"},
 		{http.MethodDelete, "/characters/" + id + "/inventory/" + item, "DELETE /characters/{id}/inventory/{itemId}"},
-		// Spells are the same collection-and-member pair with the level in
-		// between. THE FIRST OF THESE IS THE ONE THAT MATTERS: "slots" and a
-		// level occupy the same position, and the mux is being trusted to
-		// prefer the literal. If it ever stopped, every slot save would arrive
-		// at AddSpell with a level of "slots" and 404 -- which looks like a save
-		// that quietly did nothing rather than like a routing bug.
 		{http.MethodPost, "/characters/" + id + "/spells/slots/3", "POST /characters/{id}/spells/slots/{level}"},
 		{http.MethodPost, "/characters/" + id + "/spells/3", "POST /characters/{id}/spells/{level}"},
 		{http.MethodPost, "/characters/" + id + "/spells/3/" + item, "POST /characters/{id}/spells/{level}/{spellId}"},
 		{http.MethodDelete, "/characters/" + id + "/spells/3/" + item, "DELETE /characters/{id}/spells/{level}/{spellId}"},
-		// The journal repeats the collection-and-member pair, with the page
-		// routes one segment deeper under /edit/. The list page and the entry
-		// page differ only by that segment, and the mutations differ from both
-		// by not carrying /edit/ at all -- so a create arriving at the save
-		// handler, or a save arriving at a page, is exactly the confusion this
-		// rules out.
 		{http.MethodGet, "/characters/" + id + "/edit/journal", "GET /characters/{id}/edit/journal"},
 		{http.MethodGet, "/characters/" + id + "/edit/journal/" + item, "GET /characters/{id}/edit/journal/{entryId}"},
 		{http.MethodPost, "/characters/" + id + "/journal", "POST /characters/{id}/journal"},
 		{http.MethodPost, "/characters/" + id + "/journal/" + item, "POST /characters/{id}/journal/{entryId}"},
 		{http.MethodDelete, "/characters/" + id + "/journal/" + item, "DELETE /characters/{id}/journal/{entryId}"},
-		// THE TWO SHARES OCCUPY THE SAME POSITION AS EACH OTHER'S SUBJECT. The
-		// sheet's is /characters/{id}/share and an entry's is the same word
-		// three segments deeper, so a sheet's revoke arriving at the entry's
-		// handler would delete a link nobody asked about -- and the two delete
-		// different rows on purpose. "share" is also a literal sitting where a
-		// panel name goes, which is the same trust in the mux the slot save
-		// above depends on.
 		{http.MethodPost, "/characters/" + id + "/share", "POST /characters/{id}/share"},
 		{http.MethodDelete, "/characters/" + id + "/share", "DELETE /characters/{id}/share"},
 		{http.MethodGet, "/characters/" + id + "/export.md", "GET /characters/{id}/export.md"},
 		{http.MethodPost, "/characters/" + id + "/journal/" + item + "/share", "POST /characters/{id}/journal/{entryId}/share"},
 		{http.MethodDelete, "/characters/" + id + "/journal/" + item + "/share", "DELETE /characters/{id}/journal/{entryId}/share"},
-		// An entry's images hang off the member as a sub-collection, so the
-		// upload and the entry's own save differ by one segment and the serve
-		// route sits two below the member. The mux is being trusted to keep
-		// POST .../journal/{entryId} and POST .../journal/{entryId}/images
-		// apart -- confusing them would send an upload to SaveJournalEntry,
-		// which would read no title and no body off a multipart form and blank
-		// the entry the image was going into.
 		{http.MethodPost, "/characters/" + id + "/journal/" + item + "/images", "POST /characters/{id}/journal/{entryId}/images"},
 		{http.MethodGet, "/characters/" + id + "/journal/" + item + "/images/" + asset, "GET /characters/{id}/journal/{entryId}/images/{assetId}"},
-		// The sub-collection has no GET of its own: an entry's images are
-		// listed by the markdown that references them, not by a route.
 		{http.MethodGet, "/characters/" + id + "/journal/" + item + "/images", "/"},
-		// THE MANUAL IS A SECOND TOP-LEVEL COLLECTION, so its three routes have
-		// to stay apart from each other the way the roster's do -- and the
-		// delete is the one that matters: DELETE /monsters/{id} and POST
-		// /monsters differ by a segment, and confusing them would send a delete
-		// to the create handler, which reads a form that is not there and
-		// answers 422 as though the name were missing.
 		{http.MethodGet, "/monsters", "GET /monsters"},
 		{http.MethodPost, "/monsters", "POST /monsters"},
 		{http.MethodDelete, "/monsters/" + id, "DELETE /monsters/{id}"},
 		{http.MethodGet, "/monsters/" + id + "/edit", "GET /monsters/{id}/edit"},
-		// The panel saves, which sit at the same depth as /edit and are told
-		// apart from it by their literals alone. A save arriving at the editor
-		// page would answer a POST with a whole page; the page arriving at a
-		// save would write a panel from a form that is not there.
 		{http.MethodPost, "/monsters/" + id + "/identity", "POST /monsters/{id}/identity"},
 		{http.MethodPost, "/monsters/" + id + "/abilities", "POST /monsters/{id}/abilities"},
 		{http.MethodPost, "/monsters/" + id + "/combat", "POST /monsters/{id}/combat"},
@@ -121,120 +66,52 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/monsters/" + id + "/description", "POST /monsters/{id}/description"},
 		{http.MethodPost, "/monsters/" + id + "/bonuses/skills", "POST /monsters/{id}/bonuses/{kind}"},
 		{http.MethodPost, "/monsters/" + id + "/bonuses/saving_throws", "POST /monsters/{id}/bonuses/{kind}"},
-		// The action rows repeat the collection-and-member pair with the section
-		// in between. The collection and the member differ by one segment, and
-		// confusing them would send an add to the save handler with no actionId
-		// to parse -- which is the same trap the inventory pair sets.
 		{http.MethodPost, "/monsters/" + id + "/actions/trait", "POST /monsters/{id}/actions/{kind}"},
 		{http.MethodPost, "/monsters/" + id + "/actions/legendary_action", "POST /monsters/{id}/actions/{kind}"},
 		{http.MethodPost, "/monsters/" + id + "/actions/trait/" + item, "POST /monsters/{id}/actions/{kind}/{actionId}"},
 		{http.MethodDelete, "/monsters/" + id + "/actions/trait/" + item, "DELETE /monsters/{id}/actions/{kind}/{actionId}"},
-		// A kind the mux accepts and the allowlist does not. Which of the two
-		// refuses it matters: the pattern has to match so the handler gets to
-		// answer, rather than the request falling to the catch-all's page-shaped
-		// 404.
 		{http.MethodPost, "/monsters/" + id + "/actions/mythic_action", "POST /monsters/{id}/actions/{kind}"},
-		// A section has no GET of its own: its rows are rendered by the editor,
-		// not fetched by a route.
 		{http.MethodGet, "/monsters/" + id + "/actions/trait", "/"},
 		{http.MethodPost, "/monsters/" + id + "/image", "POST /monsters/{id}/image"},
-		// The manual's share pair, which sits where a panel name goes -- the
-		// same trust in the mux preferring a literal that the sheet's pair and
-		// the slot save depend on. A revoke arriving at a panel save would
-		// answer a DELETE by writing columns from a form that is not there.
 		{http.MethodPost, "/monsters/" + id + "/share", "POST /monsters/{id}/share"},
 		{http.MethodDelete, "/monsters/" + id + "/share", "DELETE /monsters/{id}/share"},
-		// The Markdown download, which sits where a panel name goes with a dot
-		// in it. The extension is part of the literal, so /monsters/{id}/export
-		// is a miss rather than the same route -- which is the point of putting
-		// it there: the path says what the file is.
 		{http.MethodGet, "/monsters/" + id + "/export.md", "GET /monsters/{id}/export.md"},
 		{http.MethodGet, "/monsters/" + id + "/export", "/"},
 		{http.MethodPost, "/monsters/" + id + "/export.md", "/"},
-		// Creation has no page here either, and "/monsters/new" is the path most
-		// likely to be added by accident -- it looks like the matched pair of
-		// "/monsters/{id}/edit".
 		{http.MethodGet, "/monsters/new", "/"},
 		{http.MethodGet, "/fragment/character/new", "GET /fragment/character/new"},
 		{http.MethodGet, "/fragment/monster/new", "GET /fragment/monster/new"},
-		// The manual's search, whose parameters ride in the query string. A POST
-		// to it is not a route at all but the /fragment/ subtree's 404, which is
-		// what keeps the prefix meaning "a GET that returns partial HTML".
 		{http.MethodGet, "/fragment/monster/share?monster=" + id, "GET /fragment/monster/share"},
 		{http.MethodGet, "/fragment/monster/list", "GET /fragment/monster/list"},
 		{http.MethodGet, "/fragment/monster/list?q=goblin", "GET /fragment/monster/list"},
 		{http.MethodPost, "/fragment/monster/list", "/fragment/"},
-		// The stat block dialog, whose parameters ride in the query string like
-		// the search's.
 		{http.MethodGet, "/fragment/monster/stat-block?monster=" + id, "GET /fragment/monster/stat-block"},
 		{http.MethodPost, "/fragment/monster/stat-block", "/fragment/"},
-		// THE SHEET IN A ROOM WINDOW. The character it serves comes from the
-		// session, never the query, so the only thing on the URL is the room it
-		// is being read inside and which part of the sheet is wanted.
 		{http.MethodGet, "/fragment/character/sheet?room=" + id, "GET /fragment/character/sheet"},
 		{http.MethodGet, "/fragment/character/sheet?room=" + id + "&section=main", "GET /fragment/character/sheet"},
 		{http.MethodPost, "/fragment/character/sheet", "/fragment/"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/journal-link", "GET /fragment/character/journal-link"},
-		// The journal search. Its parameters ride in the query string, which the
-		// mux does not see, so the pattern is the bare path -- and a POST to it
-		// is not a route at all but the /fragment/ subtree's 404, which is what
-		// keeps the prefix meaning "a GET that returns partial HTML".
 		{http.MethodGet, "/fragment/character/journal-entries", "GET /fragment/character/journal-entries"},
 		{http.MethodGet, "/fragment/character/journal-entries?character=" + id + "&q=hag", "GET /fragment/character/journal-entries"},
 		{http.MethodPost, "/fragment/character/journal-entries", "/fragment/"},
-		// None of these is a route any more, so all three fall to the catch-all
-		// rather than to one of the above. The first two were the whole-sheet
-		// save, which the panels replaced. The third was the create page, which
-		// the dialog replaced -- and it is the one most likely to be re-added by
-		// accident, because "/characters/new" and "/characters/{id}/edit" look
-		// like a matched pair.
 		{http.MethodPost, "/characters/" + id + "/rows", "/"},
 		{http.MethodPost, "/characters/" + id, "/"},
 		{http.MethodGet, "/characters/new", "/"},
-		// The whole-sheet spells save, which held all ten levels in one JSON
-		// column. Every spell route carries a level now, so the bare collection
-		// is a miss.
 		{http.MethodPost, "/characters/" + id + "/spells", "/"},
-		// Inventory rows are edited through the collection above, not through a
-		// GET of their own -- there is no representation of a single item to
-		// fetch, so this is a miss rather than a route waiting to be written.
 		{http.MethodGet, "/characters/" + id + "/inventory", "/"},
 		{http.MethodDelete, "/characters/" + id + "/inventory", "/"},
-		// The repeaters' shared route. Features was the last one through it and
-		// now has a route naming itself, so the old path is a miss -- and it is
-		// worth pinning, because a stale hx-post attribute pointing here would
-		// post, 404, and look like a save that quietly did nothing.
 		{http.MethodPost, "/characters/" + id + "/rows/features", "/"},
-		// Same for the add-row fragment, which no longer takes a ?field=. This
-		// one lands on the /fragment/ subtree rather than the root catch-all,
-		// which is the difference between a 404 shaped like a page and one
-		// shaped like nothing.
 		{http.MethodGet, "/fragment/character/info-row", "/fragment/"},
-		// And the blank-spell-card fragment. Adding a spell is a POST that
-		// answers with the row it created, so there is nothing left to GET.
 		{http.MethodGet, "/fragment/character/spell-card", "/fragment/"},
-		// THE READER'S BLOCK, WHERE TWO POSTS SIT ONE SEGMENT APART. The bare
-		// path is the password gate and the deeper one takes a copy of a shared
-		// monster, so confusing them would either check a password against a
-		// form that carries none, or copy a monster on somebody typing one in.
-		// The portrait is a GET at the same depth as the import, which is the
-		// other half of the same question.
 		{http.MethodGet, "/share/" + token, "GET /share/{token}"},
 		{http.MethodPost, "/share/" + token, "POST /share/{token}"},
 		{http.MethodPost, "/share/" + token + "/import", "POST /share/{token}/import"},
 		{http.MethodGet, "/share/" + token + "/portrait", "GET /share/{token}/portrait"},
 		{http.MethodGet, "/share/" + token + "/export.md", "GET /share/{token}/export.md"},
 		{http.MethodGet, "/share/" + token + "/images/" + asset, "GET /share/{token}/images/{assetId}"},
-		// The import is a mutation and has no representation to fetch, and the
-		// portrait is a representation and is not written by anybody. Both are
-		// misses rather than routes waiting to be written.
 		{http.MethodGet, "/share/" + token + "/import", "/"},
 		{http.MethodPost, "/share/" + token + "/portrait", "/"},
-		// The old name of the portrait route, which served a character's avatar
-		// before a monster had a picture to serve here too. Nothing links to it
-		// -- every shared page builds the URL from the token as it renders --
-		// so this is a miss rather than a redirect.
 		{http.MethodGet, "/share/" + token + "/avatar", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
@@ -244,18 +121,6 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 	}
 }
 
-// The map's routes, which now go three segments deeper than any other asset
-// route. Two things here are worth pinning rather than trusting.
-//
-// THE RETRY AND A TILE ARE THE SAME WORD AT THE SAME DEPTH. POST
-// /assets/maps/{id}/tiles re-queues a failed build and GET
-// .../tiles/{gen}/{z}/{tile} serves one tile of a finished one, so they differ
-// by three segments and a method and by nothing else.
-//
-// THE LAST SEGMENT IS ONE WILDCARD, so the mux checks nothing about what is in
-// it. A path with no .webp on the end still matches the pattern and is refused
-// by the handler, and this pins that division: the mux decides the shape and
-// the handler decides the contents.
 func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
 	id := "01BX5ZZKBKACTAV9WEVGEMMVS2"
@@ -269,41 +134,22 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, tiles, "POST /assets/maps/{id}/tiles"},
 		{http.MethodGet, tiles + "/" + gen + "/3/2_1.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
 		{http.MethodGet, tiles + "/" + gen + "/0/23_17.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
-		// The handler's job, not the mux's.
 		{http.MethodGet, tiles + "/" + gen + "/3/2_1", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
 		{http.MethodGet, tiles + "/not-a-ulid/3/2_1.webp", "GET /assets/maps/{id}/tiles/{gen}/{z}/{tile}"},
-		// A wildcard does not match an empty segment, and it does not match two.
 		{http.MethodGet, tiles + "/" + gen + "/3/", "/"},
 		{http.MethodGet, tiles + "/" + gen + "/3/z/2_1.webp", "/"},
-		// A tile is a GET. The retry is the only thing posted under this path,
-		// and it is posted three segments higher up.
 		{http.MethodPost, tiles + "/" + gen + "/3/2_1.webp", "/"},
-		// There is no listing of a map's generations or of its tiles: a
-		// renderer computes every URL it needs from five columns on the row.
 		{http.MethodGet, tiles, "/"},
 		{http.MethodGet, tiles + "/" + gen, "/"},
-		// The card's own representation, which a card polls while its tiles
-		// are built. A GET returning partial HTML, so it is under /fragment/
-		// -- and only a GET: the subtree catch-all takes every other verb,
-		// which is what keeps the prefix meaning one thing.
 		{http.MethodGet, "/fragment/assets/maps/" + id + "/card", "GET /fragment/assets/maps/{id}/card"},
 		{http.MethodPost, "/fragment/assets/maps/" + id + "/card", "/fragment/"},
 		{http.MethodGet, "/fragment/assets/maps/" + id, "/fragment/"},
-		// The card is a fragment and the tile is not, and they must not be
-		// confused: one is markup for a swap and the other is image bytes.
 		{http.MethodGet, "/assets/maps/" + id + "/card", "/"},
-		// The search box's grid. ONE ROUTE FOR ALL FOUR KINDS, taking the kind
-		// as a query parameter rather than a segment -- so it is a literal path
-		// and there is no id in it to name somebody else's shelf with. A GET
-		// only, like every other fragment: the subtree catch-all takes the rest.
 		{http.MethodGet, "/fragment/assets/list", "GET /fragment/assets/list"},
 		{http.MethodGet, "/fragment/assets/list?kind=maps&q=keep", "GET /fragment/assets/list"},
 		{http.MethodPost, "/fragment/assets/list", "/fragment/"},
 		{http.MethodDelete, "/fragment/assets/list", "/fragment/"},
-		// The kind is not a segment, so a path shaped like one is not this
-		// route -- it falls to the catch-all rather than being served as maps.
 		{http.MethodGet, "/fragment/assets/list/maps", "/fragment/"},
-		// And it is a fragment, so it does not answer outside the prefix.
 		{http.MethodGet, "/assets/list", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
@@ -313,16 +159,6 @@ func TestMapRoutesMatchTheirOwnPatterns(t *testing.T) {
 	}
 }
 
-// THE ASSET MANAGER IS FOUR PAGES AND A REDIRECT ONTO THE FIRST OF THEM, and
-// all four are literals. Nothing here is a wildcard, so the mux has nothing to
-// disambiguate -- which is exactly why it is worth pinning: the day one of
-// these is rewritten as "/assets/{kind}", "images" becomes a kind, every
-// avatar and map preview on every page routes to the asset manager instead of
-// to its bytes, and every one of them renders as a broken image.
-//
-// Only maps carries a mutation so far. The other three are a page and nothing
-// else, and a POST to one is a miss rather than a pattern that would answer it
-// with the page -- which is what a method-less registration would have done.
 func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
 	asset := "01BX5ZZKBKACTAV9WEVGEMMVS2"
@@ -332,16 +168,9 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/assets/tokens", "GET /assets/tokens"},
 		{http.MethodGet, "/assets/avatars", "GET /assets/avatars"},
 		{http.MethodGet, "/assets/music", "GET /assets/music"},
-		// The image proxy sits at the same depth as the four pages, and stays
-		// there.
 		{http.MethodGet, "/assets/images/" + asset, "GET /assets/images/{id}"},
 		{http.MethodGet, "/assets/images/" + asset + "/preview", "GET /assets/images/{id}/preview"},
-		// "images" is not a kind and there is no page listing it.
 		{http.MethodGet, "/assets/images", "/"},
-		// The three kinds that take an upload, each a collection and a member.
-		// Tokens and avatars are the same four patterns twice, and they must
-		// stay apart: one set of handlers serves both, and the only thing
-		// saying which kind a request is for is which pattern it arrived on.
 		{http.MethodPost, "/assets/maps", "POST /assets/maps"},
 		{http.MethodPost, "/assets/tokens", "POST /assets/tokens"},
 		{http.MethodPost, "/assets/tokens/" + asset, "POST /assets/tokens/{id}"},
@@ -351,41 +180,19 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/assets/avatars/" + asset, "POST /assets/avatars/{id}"},
 		{http.MethodPatch, "/assets/avatars/" + asset + "/name", "PATCH /assets/avatars/{id}/name"},
 		{http.MethodDelete, "/assets/avatars/" + asset, "DELETE /assets/avatars/{id}"},
-		// THE COLLECTION AND THE MEMBER DIFFER BY ONE SEGMENT, which is the
-		// trap the inventory and spell pairs set too: an upload arriving at the
-		// replace handler would parse no id, and a replace arriving at the
-		// upload handler would write a second row for a picture that already
-		// had one.
 		{http.MethodDelete, "/assets/tokens", "/"},
 		{http.MethodPatch, "/assets/tokens/" + asset, "/"},
-		// A library asset has no representation of its own to GET: its card is
-		// rendered by the page, and its bytes come from /assets/images/{id}.
 		{http.MethodGet, "/assets/tokens/" + asset, "/"},
 		{http.MethodGet, "/assets/avatars/" + asset, "/"},
-		// MUSIC, WHOSE UPLOAD IS TWO REQUESTS. The begin is the collection and
-		// the confirm hangs off the member, so they differ by two segments; the
-		// bytes go to R2 in between and never touch a route here.
-		//
-		// "confirm" and "audio" are literals in the third segment where no
-		// wildcard sits, so neither can be taken for an id.
 		{http.MethodPost, "/assets/music", "POST /assets/music"},
 		{http.MethodPost, "/assets/music/" + asset + "/confirm", "POST /assets/music/{id}/confirm"},
 		{http.MethodPatch, "/assets/music/" + asset + "/name", "PATCH /assets/music/{id}/name"},
 		{http.MethodDelete, "/assets/music/" + asset, "DELETE /assets/music/{id}"},
 		{http.MethodGet, "/assets/music/" + asset + "/audio", "GET /assets/music/{id}/audio"},
-		// There is no replace: a track is deleted and uploaded again, because
-		// overwriting one is a second presigned round trip for no gain.
 		{http.MethodPost, "/assets/music/" + asset, "/"},
-		// The confirm and the player are each one method only. A GET of the
-		// confirm would be a mutation behind a link, and a POST to the player
-		// is nothing at all.
 		{http.MethodGet, "/assets/music/" + asset + "/confirm", "/"},
 		{http.MethodPost, "/assets/music/" + asset + "/audio", "/"},
-		// No representation of a track to fetch: its card is rendered by the
-		// page and its bytes come from the bucket.
 		{http.MethodGet, "/assets/music/" + asset, "/"},
-		// A kind that is not one of the four. There is no wildcard to catch it,
-		// so it falls to the root the way any other unknown path does.
 		{http.MethodGet, "/assets/handouts", "/"},
 	} {
 		_, pattern := mux.Handler(httptest.NewRequest(c.method, c.path, nil))
@@ -395,21 +202,6 @@ func TestAssetKindPagesMatchTheirOwnPatterns(t *testing.T) {
 	}
 }
 
-// THE ROOM BLOCK, WHERE A LITERAL SITS WHERE AN ID GOES. /rooms/join and
-// /rooms/{id} are the same shape to a reader and not to the mux, which prefers
-// the literal -- the same trust the slot save and the two share pairs depend
-// on. If it ever stopped, every join would arrive at RoomPage with "join" as
-// the id, fail to parse it, and redirect to itself.
-//
-// THE PREFILL AND THE SUBMIT ARE THE SAME PATH WITH DIFFERENT METHODS, one
-// segment apart. GET /rooms/join/{code} fills the field in and joins nothing; a
-// GET that seated somebody would be a state change behind a link, which is the
-// rule that put /logout on POST.
-//
-// The five room mutations sit at the same depth as each other and are told
-// apart by their literals alone. A close arriving at the lock route would leave
-// a room open and locked; a leave arriving at the close route would end
-// somebody else's game.
 func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
 	id := "01BX5ZZKBKACTAV9WEVGEMMVT0"
@@ -417,7 +209,6 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 	for _, c := range []struct{ method, path, want string }{
 		{http.MethodGet, "/rooms", "GET /rooms"},
 		{http.MethodPost, "/rooms", "POST /rooms"},
-		// THE ONE THAT MATTERS: the literal has to win over the wildcard.
 		{http.MethodGet, "/rooms/join", "GET /rooms/join"},
 		{http.MethodPost, "/rooms/join", "POST /rooms/join"},
 		{http.MethodGet, "/rooms/join/" + code, "GET /rooms/join/{code}"},
@@ -428,24 +219,10 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/rooms/" + id + "/close", "POST /rooms/{id}/close"},
 		{http.MethodPost, "/rooms/" + id + "/open", "POST /rooms/{id}/open"},
 		{http.MethodPost, "/rooms/" + id + "/leave", "POST /rooms/{id}/leave"},
-		// THE KICK IS TWO SEGMENTS DEEPER and names the person it removes, so
-		// it is the only room mutation with a wildcard after the room's own.
-		// A kick arriving anywhere else would be a GM pressing a button that
-		// did something to a different table.
 		{http.MethodPost, "/rooms/" + id + "/players/" + id + "/kick", "POST /rooms/{id}/players/{player}/kick"},
-		// And it is the whole of what lives under /players/. There is no roster
-		// resource: who is at the table is answered by the live room through
-		// GET /fragment/room/members, which is a representation and belongs
-		// under the prefix that marks one.
 		{http.MethodGet, "/rooms/" + id + "/players", "/"},
 		{http.MethodGet, "/rooms/" + id + "/players/" + id, "/"},
 		{http.MethodDelete, "/rooms/" + id + "/players/" + id, "/"},
-		// THE TABLE'S CONFIGURATION, and the shape of it is the point: a layer
-		// is a resource under the room and its MAP is a resource under the
-		// layer. Setting one is a POST to .../map and clearing it is a DELETE
-		// of the same URL, which is what keeps "clear this floor's map" and
-		// "delete this floor" from being the same request with a different
-		// verb -- two destructions a GM must not be able to confuse.
 		{http.MethodPost, "/rooms/" + id + "/layers", "POST /rooms/{id}/layers"},
 		{http.MethodDelete, "/rooms/" + id + "/layers/" + id, "DELETE /rooms/{id}/layers/{layer}"},
 		{http.MethodPatch, "/rooms/" + id + "/layers/" + id + "/name", "PATCH /rooms/{id}/layers/{layer}/name"},
@@ -454,49 +231,21 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/map", "POST /rooms/{id}/layers/{layer}/map"},
 		{http.MethodDelete, "/rooms/" + id + "/layers/" + id + "/map", "DELETE /rooms/{id}/layers/{layer}/map"},
 		{http.MethodPost, "/rooms/" + id + "/grid", "POST /rooms/{id}/grid"},
-		// A layer is written and never read here: the list is a fragment,
-		// because it is a representation of the room's configuration and the
-		// prefix is what marks those.
 		{http.MethodGet, "/rooms/" + id + "/layers", "/"},
 		{http.MethodGet, "/rooms/" + id + "/layers/" + id, "/"},
 		{http.MethodGet, "/rooms/" + id + "/grid", "/"},
-		// And the grid is the room's, not a layer's. It is room-wide on the
-		// assumption that a building's floors were exported at one scale, and a
-		// per-layer URL would be an invitation to change that.
 		{http.MethodPost, "/rooms/" + id + "/layers/" + id + "/grid", "/"},
-		// THE LIVE CONNECTION IS NOT UNDER THE ROOM, and this pins why. A
-		// pattern "GET /rooms/{id}/socket" and "GET /rooms/join/{code}" both
-		// match "/rooms/join/socket" with neither more specific, which
-		// ServeMux answers by panicking at registration -- so the socket has a
-		// prefix of its own and the path that looks like it should work is a
-		// miss.
 		{http.MethodGet, "/socket/room/" + id, "GET /socket/room/{id}"},
 		{http.MethodGet, "/rooms/" + id + "/socket", "/"},
-		// And nothing else hangs off it. A socket is one route, and a GET.
 		{http.MethodPost, "/socket/room/" + id, "/"},
 		{http.MethodGet, "/socket/room/" + id + "/frames", "/"},
-		// The join page's own POST is the collection's, not the member's:
-		// there is nothing to post at one room's join.
 		{http.MethodPost, "/rooms/" + id + "/join", "/"},
-		// A code is not an id and the two never swap places. The prefill takes
-		// a code and the room page takes a ULID, and the handler is what checks
-		// the contents -- the mux only decides the shape.
 		{http.MethodPost, "/rooms/join/" + code, "/"},
-		// Creation has no page, and "/rooms/new" is the path most likely to be
-		// added by accident -- it looks like the matched pair of "/rooms/{id}".
 		{http.MethodGet, "/rooms/new", "GET /rooms/{id}"},
-		// A room is not renamed from a route yet, and it is not saved panel by
-		// panel: everything about a room that changes goes through one of the
-		// five above.
 		{http.MethodPost, "/rooms/" + id, "/"},
 		{http.MethodPatch, "/rooms/" + id + "/name", "/"},
-		// The create dialog, which is the only room fragment. A GET only, like
-		// every other fragment: the subtree catch-all takes the rest, which is
-		// what keeps the prefix meaning "a GET that returns partial HTML".
 		{http.MethodGet, "/fragment/room/new", "GET /fragment/room/new"},
 		{http.MethodPost, "/fragment/room/new", "/fragment/"},
-		// The player window behind the Room menu, which is the first fragment
-		// in the app gated on membership rather than on ownership.
 		{http.MethodGet, "/fragment/room/members", "GET /fragment/room/members"},
 		{http.MethodPost, "/rooms/" + id + "/music", "POST /rooms/{id}/music"},
 		{http.MethodPost, "/rooms/" + id + "/music/play", "POST /rooms/{id}/music/play"},
@@ -517,18 +266,10 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/fragment/room/debug/server", "GET /fragment/room/debug/server"},
 		{http.MethodPost, "/fragment/room/debug/renderer", "/fragment/"},
 		{http.MethodGet, "/fragment/room/debug", "/fragment/"},
-		// The GM's two configuration windows, the picker one of them opens,
-		// and the active layer's name in the bar -- four representations of a
-		// room's configuration, so four fragments. Three are the GM's and the
-		// fourth is everybody's; that is a decision in the handler, because the
-		// room is a query parameter and a wrapper would have to parse it twice.
 		{http.MethodGet, "/fragment/room/layers", "GET /fragment/room/layers"},
 		{http.MethodGet, "/fragment/room/maps", "GET /fragment/room/maps"},
 		{http.MethodGet, "/fragment/room/grid", "GET /fragment/room/grid"},
 		{http.MethodGet, "/fragment/room/layer", "GET /fragment/room/layer"},
-		// EVERY ONE OF THEM IS A GET AND NOTHING ELSE. A mutation keeps its
-		// resource URL, so the layer routes above are where the writing lives
-		// and the catch-all answers anything else here.
 		{http.MethodPost, "/fragment/room/layers", "/fragment/"},
 		{http.MethodPost, "/fragment/room/grid", "/fragment/"},
 		{http.MethodDelete, "/fragment/room/layers", "/fragment/"},
@@ -542,26 +283,8 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 	}
 }
 
-// The mutation half of the CSRF defence, driven through the real chain rather
-// than a rebuilt one: a POST that says it came from another site is refused
-// before it reaches a handler.
-//
-// Only the refusal can go through a zero-valued App and Auth. The same-origin
-// case would pass the check and land on RequireSession with a nil store, so
-// what the two cases below prove between them is that the wrapper is there and
-// that it lets a same-site request through to where the session lookup is.
 func TestCrossSiteMutationsAreRefused(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
-	// `same-site` is refused alongside `cross-site`, which is exactly where
-	// this is stricter than the SameSite=Lax cookie underneath it: Lax counts
-	// every host under one registrable domain as the same site, and this counts
-	// only the same origin. Pinned because serving the app from a second name
-	// would refuse every mutation, and the fix is csrf.AddTrustedOrigin rather
-	// than a puzzle.
-	// One mutation per top-level collection, and both room writes that are
-	// reachable without already being in a room: the create, which mints a code
-	// on a stranger's behalf, and the join, which would seat a browser at a
-	// table from a page nobody at that table wrote.
 	mutations := []struct{ method, path string }{
 		{http.MethodPost, "/characters"},
 		{http.MethodPost, "/rooms"},
@@ -581,15 +304,6 @@ func TestCrossSiteMutationsAreRefused(t *testing.T) {
 	}
 }
 
-// And a request from the page itself is not, which is what every htmx swap in
-// the app is.
-//
-// A 303 TO THE SIGN-IN PAGE IS THE PASS. It means the request went through the
-// cross-origin check and reached RequireSession, which found no cookie -- so
-// the assertion is that the refusal came from the session and not from the
-// wrapper. Anything further needs a session store, and this mux is built with a
-// zero-valued Auth on purpose: it is the URL space under test, not the
-// database.
 func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
 	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
@@ -604,12 +318,6 @@ func TestSameOriginMutationsReachTheSessionCheck(t *testing.T) {
 	}
 }
 
-// A WebSocket upgrade cannot follow a redirect: the browser reports a failed
-// handshake and the client retries it on its backoff, forever, against a
-// sign-in page. So the socket route sits behind the 404 wrapper rather than the
-// one every other room route uses, and this pins that -- the two wrappers are
-// one word apart at the call site and the difference only shows up in a room
-// that will not connect.
 func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
 	req := httptest.NewRequest(http.MethodGet, "/socket/room/01BX5ZZKBKACTAV9WEVGEMMVT0", nil)
@@ -623,9 +331,6 @@ func TestTheRoomSocketRefusesWithA404RatherThanARedirect(t *testing.T) {
 	}
 }
 
-// A safe method is not covered, which is deliberate and is why /logout moved to
-// POST. This pins the boundary so that a state change added behind a GET does
-// not quietly inherit a protection that was never there.
 func TestCrossSiteReadsAreNotRefused(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
 	req := httptest.NewRequest(http.MethodGet, "/tos", nil)
@@ -637,9 +342,6 @@ func TestCrossSiteReadsAreNotRefused(t *testing.T) {
 	}
 }
 
-// The floor from middleware.SecurityHeaders, on a response that is itself a
-// refusal -- the case that proves the wrapper is outside the check rather than
-// inside it.
 func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
 	h := handler(&controllers.App{}, middleware.Auth{})
 	req := httptest.NewRequest(http.MethodPost, "/characters", nil)
@@ -657,10 +359,6 @@ func TestEveryResponseCarriesTheSecurityFloor(t *testing.T) {
 	}
 }
 
-// Logging out is a state change and has to stay off GET: SameSite=Lax sends the
-// session cookie on a top-level GET navigation, and the cross-origin check
-// above does not cover safe methods, so a GET here is a logout anybody can put
-// behind a link.
 func TestLogoutIsPostOnly(t *testing.T) {
 	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
 	if _, pattern := mux.Handler(httptest.NewRequest(http.MethodPost, "/logout", nil)); pattern != "POST /logout" {
@@ -671,9 +369,6 @@ func TestLogoutIsPostOnly(t *testing.T) {
 	}
 }
 
-// A directory under public/ has no index.html, so http.FileServer would answer
-// one of these with a listing of the scripts or the stylesheets. The file
-// itself still serves.
 func TestStaticDirectoriesAreNotListed(t *testing.T) {
 	h := routes(&controllers.App{}, middleware.Auth{})
 	for _, path := range []string{"/css/", "/js/", "/static/", "/images/"} {
