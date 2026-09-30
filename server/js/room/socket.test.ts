@@ -238,3 +238,18 @@ test("clearing impairment puts the socket back on the wire", () => {
 	socket.raw('{"type":"ping","cid":"1"}');
 	assert.equal(ws.sent.length, 1);
 });
+test("a room.closed frame ends the session, so the socket never dials a room that is gone", () => {
+	const reported: string[][] = [];
+	const socket = new Socket("/socket/room/01ROOM", {
+		frame: () => {},
+		status: (status, detail) => reported.push([status, detail]),
+	});
+	socket.start();
+	const ws = FakeSocket.last;
+	assert.ok(ws);
+	ws.fire("open", {});
+	ws.deliver({ type: "room.closed", seq: 7 });
+	ws.fire("close", { reason: "closed" });
+	assert.deepEqual(reported.at(-1), ["ended", "closed"]);
+	assert.equal(socket.stats().backoff, 0, "a closed room must not be reconnected to");
+});

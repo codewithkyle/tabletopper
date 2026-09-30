@@ -2,7 +2,7 @@ import "vanilla-colorful/hex-alpha-color-picker.js";
 import "vanilla-colorful/hex-color-picker.js";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
-import { fanOut, refusals } from "./effects.ts";
+import { departures, fanOut, refusals } from "./effects.ts";
 import { mountDrawTool } from "./draw-tool.ts";
 import { FULL, newPingSound } from "./ping-sound.ts";
 import { newSpeaker } from "./sound.ts";
@@ -16,7 +16,7 @@ import { mountDialogs } from "./dialogs.ts";
 import { mountHud } from "./hud.ts";
 import { Socket, type Status } from "./socket.ts";
 import { mountDebug } from "./debug/panel.ts";
-import { leaveKicked } from "./exit.ts";
+import { leaveClosed, leaveKicked } from "./exit.ts";
 import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountMusic, type MusicPlayer } from "./music.ts";
@@ -197,12 +197,13 @@ if (mount) {
 	};
 	const path = mount.dataset.socket ?? "";
 	if (path !== "") {
-		socket = start(path, state, rev, renderer, table, hud, turns, follow, deck, music, pinged, debugging);
+		socket = start(path, role, state, rev, renderer, table, hud, turns, follow, deck, music, pinged, debugging);
 	}
 }
 type Debugging = ((socket: Socket) => void) | null;
 function start(
 	path: string,
+	role: Role,
 	state: State,
 	rev: Revisions,
 	renderer: Renderer | null,
@@ -248,11 +249,7 @@ function start(
 			},
 			resync: () => socket?.resync(),
 		}),
-		(event) => {
-			if (event.type === "player.kicked") {
-				leaveKicked(event.reason);
-			}
-		},
+		departures({ role, kicked: leaveKicked, closed: leaveClosed }),
 	]);
 	socket = new Socket(path, {
 		frame(frame) {
