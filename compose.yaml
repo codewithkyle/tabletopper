@@ -19,16 +19,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-  #migrate:
-    #image: amacneil/dbmate:latest
-    #environment:
-      #DATABASE_URL: ${DATABASE_URL}
-    #volumes:
-      #- ./db/migrations:/db/migrations:ro
-    #command: ["--wait", "--migrations-dir=/db/migrations", "up"]
-    #depends_on:
-      #mysql:
-        #condition: service_healthy
   tabletopper:
     build:
       context: .

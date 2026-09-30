@@ -7,34 +7,8 @@ sql:
       go:
         package: "queries"
         out: "./server/internal/queries"
-        # Go initialisms sqlc should keep upper-case when it builds field
-        # names, so a column like max_hp becomes MaxHP rather than MaxHp and
-        # matches the hand-written structs that mirror it.
         initialisms: ["id", "url", "dc", "ac", "hp", "xp", "cr"]
         overrides:
-          # THE FIRST MATCH WINS, AND `nullable: true` DOES NOT NARROW IT.
-          # sqlc walks this list, takes the first entry whose column pattern
-          # matches the name, and stops. The flag on the wildcards further down
-          # does not restrict them to nullable columns, so a NOT NULL column
-          # called character_id, asset_id or room_id picks up the pointer type
-          # meant for the nullable ones unless it is named up here first.
-          #
-          # A nil pointer there writes SQL NULL into a NOT NULL column, which
-          # fails at runtime rather than failing to compile.
-          #
-          # The five below are the NOT NULL *_id columns that collide with a
-          # wildcard. Two columns are deliberately not among them, and both are
-          # nullable, so the pointer wildcards further down are exactly the
-          # entries they want: monsters.asset_id, because a monster may have no
-          # image, and shares.character_id, because a share hangs off a
-          # character only when there is one to hang off -- a monster belongs to
-          # the account rather than to a character, and its share row carries
-          # NULL there.
-          #
-          # shares.resource_id is here for the opposite reason: it collides with
-          # no wildcard at all -- they name id, user_id, owner_id, asset_id,
-          # character_id and room_id -- so without an entry it would come back
-          # as []byte rather than as the ULID it holds.
           - column: "inventory.character_id"
             go_type: &ulid
               import: "github.com/oklog/ulid/v2"
@@ -50,22 +24,8 @@ sql:
             go_type: *ulid
           - column: "shares.resource_id"
             go_type: *ulid
-          # DECIMAL comes back as a string by default. float64 is what lets an
-          # unweighed item render blank as `weight == 0` rather than a comparison
-          # against "0.00"; the column keeps the two-place rounding either way.
           - column: "inventory.weight"
             go_type: "float64"
-          # NOTE: every VARBINARY(16) column in this schema holds a ULID, and
-          # they are all named id or <thing>_id. Matching on the name keeps new
-          # tables covered without touching this file. sessions.hash is excluded
-          # by naming rather than by luck -- it is not an *_id.
-          #
-          # The three below hand back *ulid.ULID, where a nil pointer reads and
-          # writes as SQL NULL and a zero-valued ulid.ULID would have written
-          # sixteen zero bytes instead. characters.asset_id, monsters.asset_id,
-          # sessions.character_id, sessions.room_id and shares.character_id are
-          # the columns that want that. Every other column these patterns reach
-          # does not, which is what the entries at the top of the list are for.
           - column: "*.asset_id"
             nullable: true
             go_type: &nullable_ulid
@@ -73,39 +33,20 @@ sql:
               package: "ulid"
               type: "ULID"
               pointer: true
-          # shares.character_id is the column this one exists for besides
-          # sessions.character_id: NULL on a monster's share, and a ULID on the
-          # other two kinds. A nil pointer reads and writes that NULL, where a
-          # zero-valued ulid.ULID would have written sixteen zero bytes and
-          # matched no character.
           - column: "*.character_id"
             nullable: true
             go_type: *nullable_ulid
           - column: "*.room_id"
             nullable: true
             go_type: *nullable_ulid
-          # assets.journal_id is NULL for every type but journal, and a nil
-          # pointer is what reads and writes that NULL. It matches none of the
-          # wildcards below -- they name id, user_id, owner_id, asset_id,
-          # character_id and room_id -- so without this it would come back as
-          # []byte.
           - column: "assets.journal_id"
             go_type: *nullable_ulid
-          # users.avatar_asset_id is the account's own uploaded picture, NULL
-          # until somebody sets one. The `*.asset_id` pattern above matches the
-          # column named asset_id and not one ENDING in it, so without this
-          # entry it would come back as []byte -- see assets.journal_id.
           - column: "users.avatar_asset_id"
             go_type: *nullable_ulid
           - column: "rooms.scene_id"
             go_type: *nullable_ulid
           - column: "scenes.preview_id"
             go_type: *nullable_ulid
-          # assets.tile_gen and assets.tile_lease are here for the same reason:
-          # each holds a ULID naming one generation of a map's tile pyramid,
-          # each is NULL until a tiling job has something to say, and neither
-          # matches a wildcard either. Without these they would come back as
-          # []byte.
           - column: "assets.tile_gen"
             go_type: *nullable_ulid
           - column: "assets.tile_lease"
@@ -122,9 +63,5 @@ sql:
             go_type: *ulid
           - column: "*.room_id"
             go_type: *ulid
-          # monster_id is the newest of these names and matches none of the
-          # patterns above it, so without this entry it would come back as
-          # []byte. It takes the non-pointer type: an action row always belongs
-          # to a monster, and the column is NOT NULL.
           - column: "*.monster_id"
             go_type: *ulid
