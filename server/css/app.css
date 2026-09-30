@@ -1,10 +1,8 @@
 /* Tailwind entry stylesheet.
    Source lives here, outside public/; the build output lands in
    server/public/css/app.css, which is what the Dockerfile copies. */
-/* source(none) disables Tailwind's automatic file discovery. Without it
-   Tailwind walks up to the git root and scans client/ -- the legacy SPA,
-   which is full of Brixi class names that would bloat this build with
-   utilities nothing on the server renders. Sources are declared below. */
+/* source(none) disables Tailwind's automatic file discovery. Sources are
+   declared below. */
 @import "tailwindcss" source(none);
 /* DaisyUI 5.7.28, vendored in css/vendor/. The standalone Tailwind binary
    bundles Node's runtime but not any npm packages, so `@plugin "daisyui"`

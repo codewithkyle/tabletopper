@@ -6,11 +6,6 @@
 goes here. Migrations live in `./db/migrations`; the Docker image copies `./server` and
 nothing else.
 
-`./client` **is the old TypeScript SPA, kept only as a reference until the rewrite is
-finished, then deleted.** It is not built, not served, and not part of the app. Read it to
-see how a feature used to behave. Do not edit it. Do not import from it. Do not carry its
-patterns, its class names, or its client-side state into `./server`.
-
 The rules below are not suggestions. Follow them exactly. If a change cannot be made
 without breaking one, stop and say so.
 
