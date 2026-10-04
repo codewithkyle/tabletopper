@@ -4,6 +4,7 @@ import "tabletopper/templ/layouts"
 
 type ClerkFrontend struct {
 	PublishableKey string
+	UIScriptURL    string
 	ScriptURL      string
 }
 
@@ -21,6 +22,7 @@ templ SignUp(clerk ClerkFrontend) {
 
 templ clerkMount(mode string, clerk ClerkFrontend) {
 	<div data-clerk-mount={ mode }></div>
-	<script async crossorigin="anonymous" data-clerk-publishable-key={ clerk.PublishableKey } src={ clerk.ScriptURL }></script>
+	<script defer crossorigin="anonymous" src={ clerk.UIScriptURL }></script>
+	<script defer crossorigin="anonymous" data-clerk-publishable-key={ clerk.PublishableKey } src={ clerk.ScriptURL }></script>
 	<script type="module" src="/js/clerk-mount.js"></script>
 }

@@ -19,7 +19,8 @@ func (a *App) SignUp(w http.ResponseWriter, r *http.Request) {
 func (a *App) clerkFrontend() pages.ClerkFrontend {
 	return pages.ClerkFrontend{
 		PublishableKey: a.Config.ClerkPublishableKey,
-		ScriptURL:      a.Config.ClerkFrontendAPI + "/npm/@clerk/clerk-js@4/dist/clerk.browser.js",
+		UIScriptURL:    a.Config.ClerkFrontendAPI + "/npm/@clerk/ui@1/dist/ui.browser.js",
+		ScriptURL:      a.Config.ClerkFrontendAPI + "/npm/@clerk/clerk-js@6/dist/clerk.browser.js",
 	}
 }
 func (a *App) TOS(w http.ResponseWriter, r *http.Request) {
