@@ -25,7 +25,6 @@ const (
 	spellRangeLimit       = 64
 	spellDurationLimit    = 64
 	spellDescriptionLimit = 65535
-	spellSlotLimit        = 99
 )
 
 func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
@@ -356,7 +355,7 @@ func parseSlotCount(raw string) uint8 {
 	if err != nil {
 		return 0
 	}
-	return uint8(min(max(count, 0), spellSlotLimit))
+	return uint8(min(max(count, 0), pages.SpellSlotLimit))
 }
 func parseSpellLevel(raw string) (uint8, bool) {
 	level, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 8)

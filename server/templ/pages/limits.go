@@ -15,4 +15,5 @@ const (
 	ShareMaxDays      = 365
 	SharePasswordMin  = share.PasswordMin
 	SharePasswordMax  = share.PasswordMax
+	SpellSlotLimit    = 99
 )

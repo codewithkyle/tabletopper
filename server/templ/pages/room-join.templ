@@ -69,7 +69,7 @@ templ joinRoomForm(data JoinRoomPageData) {
 					id="code"
 					name="code"
 					type="text"
-					class="uppercase"
+					class="validator uppercase"
 					value={ data.Code }
 					maxlength={ strconv.Itoa(room.CodeLength) }
 					pattern={ room.CodePattern() }

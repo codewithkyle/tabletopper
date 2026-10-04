@@ -42,7 +42,7 @@ templ RoomGrid(data RoomGridData) {
 templ gridDistance(data RoomGridData) {
 	<div class="flex flex-col gap-0.5">
 		<span class="text-[10px] text-base-content/60">Distance per cell</span>
-		<div class="flex gap-1">
+		<div class="peer flex gap-1">
 			<input
 				type="number"
 				name="feetPerCell"
@@ -51,7 +51,7 @@ templ gridDistance(data RoomGridData) {
 				min={ GridFeetMin }
 				max={ GridFeetMax }
 				aria-label="Distance per cell"
-				class="input input-xs w-full min-w-0"
+				class="input input-xs validator w-full min-w-0"
 			/>
 			<select name="units" aria-label="Units" class="select select-xs w-24 shrink-0">
 				for _, c := range GridUnitChoices() {
@@ -59,6 +59,7 @@ templ gridDistance(data RoomGridData) {
 				}
 			</select>
 		</div>
+		<p class="validator-hint hidden text-[10px] peer-has-[:user-invalid]:block">Enter a number from { GridFeetMin } to { GridFeetMax }.</p>
 	</div>
 }
 
@@ -76,15 +77,20 @@ templ gridNumber(name string, caption string, value string, min string, max stri
 			if max != "" {
 				max={ max }
 			}
-			class="input input-xs w-full"
+			class="input input-xs validator peer w-full"
 		/>
+		if min != "" && max != "" {
+			<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from { min } to { max }.</span>
+		} else {
+			<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number.</span>
+		}
 	</label>
 }
 
 templ gridColor(data RoomGridData) {
 	<div data-color class="flex flex-col gap-0.5">
 		<span class="text-[10px] text-base-content/60">Colour</span>
-		<div class="flex items-center gap-1.5">
+		<div class="peer flex items-center gap-1.5">
 			<button
 				type="button"
 				data-color-open
@@ -103,9 +109,10 @@ templ gridColor(data RoomGridData) {
 				required
 				pattern={ GridColorPat }
 				aria-label="Grid colour, as hex"
-				class="input input-xs min-w-0 flex-1 font-mono"
+				class="input input-xs validator min-w-0 flex-1 font-mono"
 			/>
 		</div>
+		<p class="validator-hint hidden text-[10px] peer-has-[:user-invalid]:block">Write the colour as #RRGGBB or #RRGGBBAA.</p>
 		<hex-alpha-color-picker
 			id={ GridColorPickerID }
 			data-color-picker

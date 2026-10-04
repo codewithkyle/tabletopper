@@ -33,9 +33,10 @@ templ InventoryRow(characterID string, item InventoryItem) {
 					inputmode="numeric"
 					step="1"
 					min="0"
-					class={ "input w-full text-right " + denseInput }
+					class={ "input validator peer w-full text-right " + denseInput }
 					value={ item.Quantity }
 				/>
+				<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number, 0 or more.</span>
 			</label>
 			<label class="fieldset">
 				<span class={ "fieldset-legend " + denseLegend }>Value</span>
@@ -55,9 +56,10 @@ templ InventoryRow(characterID string, item InventoryItem) {
 					inputmode="decimal"
 					step="any"
 					min="0"
-					class={ "input w-full text-right " + denseInput }
+					class={ "input validator peer w-full text-right " + denseInput }
 					value={ item.Weight }
 				/>
+				<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a weight of 0 or more.</span>
 			</label>
 		</div>
 		<details open?={ item.Name == "" }>

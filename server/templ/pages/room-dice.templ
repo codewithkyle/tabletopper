@@ -15,7 +15,7 @@ templ roomDiceForm(data RoomDiceData) {
 		hx-post={ data.RollPath() }
 		hx-swap="none"
 	>
-		<div class="join w-full">
+		<div class="join peer w-full">
 			<input
 				type="text"
 				name="expr"
@@ -25,10 +25,11 @@ templ roomDiceForm(data RoomDiceData) {
 				maxlength={ data.ExprLimit() }
 				placeholder="1d20 + 5"
 				aria-label="Dice to roll"
-				class="input input-sm join-item w-full font-mono"
+				class="input input-sm validator join-item w-full font-mono"
 			/>
 			<button type="submit" class="btn btn-sm join-item">Roll</button>
 		</div>
+		<p class="validator-hint hidden text-[10px] peer-has-[:user-invalid]:block">Type some dice to roll, such as 1d20 + 5.</p>
 		<div class="flex flex-wrap items-center justify-between gap-2">
 			<select name="adv" aria-label="How to roll" class="select select-xs w-auto">
 				<option value="0" selected>Straight</option>

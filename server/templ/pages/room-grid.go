@@ -47,12 +47,13 @@ func (d RoomGridData) SwatchStyle() map[string]string {
 	return map[string]string{"background-color": d.PickerColor()}
 }
 
-const (
-	GridCellMin  = "8"
-	GridCellMax  = "512"
-	GridFeetMin  = "1"
-	GridFeetMax  = "1000"
-	GridColorPat = "#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?"
+const GridColorPat = "#?[0-9a-fA-F]{6}([0-9a-fA-F]{2})?"
+
+var (
+	GridCellMin = strconv.Itoa(room.CellSizeMin)
+	GridCellMax = strconv.Itoa(room.CellSizeMax)
+	GridFeetMin = strconv.Itoa(room.FeetPerCellMin)
+	GridFeetMax = strconv.Itoa(room.FeetPerCellMax)
 )
 
 type Choice struct {

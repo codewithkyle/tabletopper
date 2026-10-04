@@ -2411,6 +2411,81 @@ func TestAnAutosavingFormCannotSubmitItselfAway(t *testing.T) {
 		}
 	}
 }
+
+var constrainedField = regexp.MustCompile(`(?s)<(?:input|textarea)\b[^>]*?>`)
+
+func TestAFieldThatCanRefuseAFormSaysSoItself(t *testing.T) {
+	files, err := filepath.Glob("*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) == 0 {
+		t.Fatal("read no templates at all")
+	}
+	unprompted := []string{"hidden", "checkbox", "radio", "file", "range", "color"}
+	verbs := []string{"hx-post", "hx-patch", "hx-put", "hx-delete", "hx-get"}
+	constraints := []string{"required", "minlength=", "pattern=", "min=", "max="}
+	checked := 0
+	for _, file := range files {
+		src, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := string(src)
+		if !strings.Contains(body, "validator") {
+			continue
+		}
+		for _, tag := range constrainedField.FindAllString(body, -1) {
+			if anyOf(tag, unprompted, `type="`, `"`) || anyOf(tag, verbs, "", "") {
+				continue
+			}
+			if !anyOf(tag, constraints, "", "") {
+				continue
+			}
+			checked++
+			if !strings.Contains(tag, "validator") {
+				t.Errorf("%s has a field that can refuse the form it is in and no validator to "+
+					"say why, so htmx abandons the save in silence:\n%s", file, tag)
+			}
+		}
+	}
+	if checked == 0 {
+		t.Fatal("the sweep examined no fields, so it proves nothing")
+	}
+}
+func anyOf(tag string, wants []string, prefix, suffix string) bool {
+	for _, want := range wants {
+		if strings.Contains(tag, prefix+want+suffix) {
+			return true
+		}
+	}
+	return false
+}
+func TestEveryValidatorIsPairedWithAHintThatCanAppear(t *testing.T) {
+	files, err := filepath.Glob("*.templ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range files {
+		src, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := string(src)
+		if !strings.Contains(body, "validator") {
+			continue
+		}
+		if !strings.Contains(body, "validator-hint") {
+			t.Errorf("%s marks a field with validator and never renders a validator-hint, "+
+				"so the field colours itself and still explains nothing", file)
+			continue
+		}
+		if !strings.Contains(body, "peer-user-invalid") && !strings.Contains(body, "peer-has-[:user-invalid]") {
+			t.Errorf("%s renders a validator-hint that nothing reveals, so it stays hidden "+
+				"however wrong the field is", file)
+		}
+	}
+}
 func TestNoPanelCanBeMadeUnsaveableByAnEmptyOptionalField(t *testing.T) {
 	sparse := EditCharacterPageData{
 		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",

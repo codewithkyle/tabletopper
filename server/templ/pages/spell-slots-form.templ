@@ -35,9 +35,10 @@ templ spellCountField(name string, label string, value string) {
 			inputmode="numeric"
 			step="1"
 			min="0"
-			max="99"
-			class="input input-sm w-16 text-right"
+			max={ strconv.Itoa(SpellSlotLimit) }
+			class="input input-sm validator peer w-16 text-right"
 			value={ value }
 		/>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from 0 to { strconv.Itoa(SpellSlotLimit) }.</span>
 	</label>
 }

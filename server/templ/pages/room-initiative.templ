@@ -234,8 +234,9 @@ templ RoomInitiativeEntryForm(data RoomInitiativeEntryData) {
 				autocomplete="off"
 				maxlength={ EntryNameMax }
 				placeholder="Lair action"
-				class="input input-sm w-full"
+				class="input input-sm validator peer w-full"
 			/>
+			<span class="validator-hint hidden text-xs peer-user-invalid:block">Name what acts on this count.</span>
 		</label>
 		<div class="flex justify-end gap-2">
 			<button

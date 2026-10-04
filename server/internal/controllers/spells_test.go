@@ -295,9 +295,9 @@ func TestSlotCountsAreCoercedNotRejected(t *testing.T) {
 		{raw: "0", want: 0},
 		{raw: "-4", want: 0},
 		{raw: "7", want: 7},
-		{raw: "99", want: spellSlotLimit},
-		{raw: "255", want: spellSlotLimit},
-		{raw: "99999999999999", want: spellSlotLimit},
+		{raw: "99", want: pages.SpellSlotLimit},
+		{raw: "255", want: pages.SpellSlotLimit},
+		{raw: "99999999999999", want: pages.SpellSlotLimit},
 	} {
 		if got := parseSlotCount(c.raw); got != c.want {
 			t.Errorf("slots %q = %d, want %d", c.raw, got, c.want)

@@ -50,7 +50,10 @@ const (
 	DefaultFeetPerCell = 5
 	DefaultGridColor   = "#000000FF"
 )
-const FeetPerCellMax = 1_000
+const (
+	FeetPerCellMin = 1
+	FeetPerCellMax = 1_000
+)
 
 func checkName(what, s string) error {
 	if utf8.RuneCountInString(s) > NameLimit {
@@ -154,8 +157,8 @@ func checkGrid(g Grid) error {
 	if !g.Diagonals.Valid() {
 		return invalid("Bad grid", "That is not a diagonal rule.")
 	}
-	if g.FeetPerCell < 1 || g.FeetPerCell > FeetPerCellMax {
-		return invalid("Bad grid", fmt.Sprintf("Feet per cell must be between 1 and %d.", FeetPerCellMax))
+	if g.FeetPerCell < FeetPerCellMin || g.FeetPerCell > FeetPerCellMax {
+		return invalid("Bad grid", fmt.Sprintf("Feet per cell must be between %d and %d.", FeetPerCellMin, FeetPerCellMax))
 	}
 	return nil
 }
