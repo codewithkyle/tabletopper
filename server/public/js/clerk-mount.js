@@ -8,8 +8,14 @@ window.addEventListener("load", async () => {
         return;
     }
     if (mount.dataset.clerkMount === "sign-up") {
-        window.Clerk.mountSignUp(mount, { forceRedirectUrl: "/authorize" });
+        window.Clerk.mountSignUp(mount, {
+            forceRedirectUrl: "/authorize",
+            signInUrl: "/sign-in",
+        });
     } else {
-        window.Clerk.mountSignIn(mount, { forceRedirectUrl: "/authorize" });
+        window.Clerk.mountSignIn(mount, {
+            forceRedirectUrl: "/authorize",
+            signUpUrl: "/sign-up",
+        });
     }
 });
