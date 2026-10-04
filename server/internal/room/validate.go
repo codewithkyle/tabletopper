@@ -110,31 +110,24 @@ func checkPoints(what string, points []int, minPoints, maxNumbers int) error {
 	return nil
 }
 func checkHP(hp, maxHP *int) error {
-	if maxHP != nil && (*maxHP < 1 || *maxHP > HPLimit) {
-		return invalid("Bad hit points", fmt.Sprintf("Maximum hit points must be between 1 and %d.", HPLimit))
-	}
-	if hp != nil {
-		if *hp < 0 || *hp > HPLimit {
-			return invalid("Bad hit points", fmt.Sprintf("Hit points must be between 0 and %d.", HPLimit))
-		}
-		if maxHP == nil {
-			return invalid("Bad hit points", "Hit points need a maximum to go with them.")
-		}
+	if hp != nil && maxHP == nil {
+		return invalid("Bad hit points", "Hit points need a maximum to go with them.")
 	}
 	return nil
 }
-func clampHP(p *Pawn) {
-	if p.HP == nil || p.MaxHP == nil {
-		return
+func clampPawn(p *Pawn) {
+	if p.MaxHP != nil {
+		top := min(max(*p.MaxHP, 1), HPLimit)
+		p.MaxHP = &top
 	}
-	v := min(max(*p.HP, 0), *p.MaxHP)
-	p.HP = &v
-}
-func checkAC(ac *int) error {
-	if ac != nil && (*ac < 0 || *ac > ACLimit) {
-		return invalid("Bad armour class", fmt.Sprintf("Armour class must be between 0 and %d.", ACLimit))
+	if p.HP != nil && p.MaxHP != nil {
+		v := min(max(*p.HP, 0), *p.MaxHP)
+		p.HP = &v
 	}
-	return nil
+	if p.AC != nil {
+		ac := min(max(*p.AC, 0), ACLimit)
+		p.AC = &ac
+	}
 }
 func checkGrid(g Grid) error {
 	if g.CellSize < CellSizeMin || g.CellSize > CellSizeMax {

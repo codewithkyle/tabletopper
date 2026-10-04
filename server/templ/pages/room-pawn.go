@@ -22,8 +22,6 @@ var ConditionNames = []string{
 }
 var ConditionColors = []string{"red", "orange", "yellow", "green", "blue", "purple", "pink", "white"}
 
-const ObjectPixelsMax = 8_192
-
 func ConditionColorLabel(color string) string {
 	if color == "" {
 		return ""

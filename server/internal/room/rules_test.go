@@ -60,6 +60,7 @@ func TestRuleFixturesAreCurrent(t *testing.T) {
 		var cases []hpCase
 		for _, entry := range []string{
 			"12", "0", "-7", "+3", "  -7  ", "12-7", "12-7-4", "12 - 7", "-7-4", "-99", "+0",
+			"-12", "12-999", "99999", "+99999", "9999", "12-12",
 			"lots", "7hp", "--7", "12-", "+", "1+2+3+4+5+6+7+8+9+10+11+12",
 		} {
 			for _, current := range []*int{&twelve, nil} {

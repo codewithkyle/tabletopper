@@ -31,20 +31,16 @@ func (c *CharacterSync) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 		return nil, nil
 	}
 	want := characterPawn(c.Info, seat)
-	hp, maxHP, ac := clampVitals(*want.HP, *want.MaxHP, *want.AC)
 	next := clonePawn(*p)
 	next.Name = want.Name
 	next.Image = want.Image
 	next.Size = want.Size
-	next.HP, next.MaxHP, next.AC = &hp, &maxHP, &ac
+	next.HP, next.MaxHP, next.AC = want.HP, want.MaxHP, want.AC
 	if err := checkPawn(next); err != nil {
 		return nil, err
 	}
+	clampPawn(&next)
 	*p = next
 	s.Normalize()
 	return nil, nil
-}
-func clampVitals(hp, maxHP, ac int) (int, int, int) {
-	maxHP = min(max(maxHP, 1), HPLimit)
-	return min(max(hp, 0), maxHP), maxHP, min(max(ac, 0), ACLimit)
 }

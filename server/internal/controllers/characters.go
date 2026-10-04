@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -460,48 +461,32 @@ func nullableString(value string) sql.NullString {
 	}
 	return sql.NullString{String: trimmed, Valid: true}
 }
-func parseUint32(value string, fallback uint32) (uint32, error) {
+
+type bounded interface {
+	~uint8 | ~uint16 | ~uint32
+}
+
+func clamped[T bounded](value string, fallback T, low T, high T) T {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return fallback, nil
+		return fallback
 	}
-	parsed, err := strconv.ParseUint(trimmed, 10, 32)
-	if err != nil {
-		return fallback, err
+	parsed, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil && !errors.Is(err, strconv.ErrRange) {
+		return fallback
 	}
-	return uint32(parsed), nil
+	return T(min(max(parsed, int64(low)), int64(high)))
 }
-func parseUint16(value string, fallback uint16) (uint16, error) {
+func clampedBonus(value string, fallback int16) int16 {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return fallback, nil
+		return fallback
 	}
-	parsed, err := strconv.ParseUint(trimmed, 10, 16)
-	if err != nil {
-		return fallback, err
+	parsed, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil && !errors.Is(err, strconv.ErrRange) {
+		return fallback
 	}
-	return uint16(parsed), nil
-}
-func parseBounded(value string, fallback uint16, limit int) (uint16, error) {
-	parsed, err := parseUint16(value, fallback)
-	if err != nil {
-		return fallback, err
-	}
-	if int(parsed) > limit {
-		return fallback, strconv.ErrRange
-	}
-	return parsed, nil
-}
-func parseUint8(value string, fallback uint8) (uint8, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return fallback, nil
-	}
-	parsed, err := strconv.ParseUint(trimmed, 10, 8)
-	if err != nil {
-		return fallback, err
-	}
-	return uint8(parsed), nil
+	return int16(min(max(parsed, math.MinInt16), math.MaxInt16))
 }
 func parseBonus(value string) int {
 	parsed, err := strconv.Atoi(strings.TrimSpace(value))
@@ -509,17 +494,6 @@ func parseBonus(value string) int {
 		return 0
 	}
 	return parsed
-}
-func parseInt16(value string, fallback int16) (int16, error) {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return fallback, nil
-	}
-	parsed, err := strconv.ParseInt(trimmed, 10, 16)
-	if err != nil {
-		return fallback, err
-	}
-	return int16(parsed), nil
 }
 
 type featurePayload struct {

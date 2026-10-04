@@ -1,4 +1,5 @@
 const LIMIT = 24;
+const CEILING = 9999;
 const EXPRESSION = /^[+-]?\d+([+-]\d+)*$/;
 const ENTRY_SUFFIX = "Entry";
 export function mountHitPoints(): void {
@@ -29,9 +30,12 @@ export function evaluate(entry: string, current: string): number | null {
 	}
 	const total = sum(text);
 	if (text[0] === "+" || text[0] === "-") {
-		return number(current) + total;
+		return hitPoints(number(current) + total);
 	}
-	return total;
+	return hitPoints(total);
+}
+function hitPoints(value: number): number {
+	return Math.min(Math.max(value, 0), CEILING);
 }
 function isRelative(entry: string): boolean {
 	const text = entry.trim();

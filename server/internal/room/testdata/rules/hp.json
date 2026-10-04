@@ -32,7 +32,7 @@
   {
     "entry": "-7",
     "current": null,
-    "value": -7,
+    "value": 0,
     "refused": false
   },
   {
@@ -56,7 +56,7 @@
   {
     "entry": "  -7  ",
     "current": null,
-    "value": -7,
+    "value": 0,
     "refused": false
   },
   {
@@ -104,19 +104,19 @@
   {
     "entry": "-7-4",
     "current": null,
-    "value": -11,
+    "value": 0,
     "refused": false
   },
   {
     "entry": "-99",
     "current": 12,
-    "value": -87,
+    "value": 0,
     "refused": false
   },
   {
     "entry": "-99",
     "current": null,
-    "value": -99,
+    "value": 0,
     "refused": false
   },
   {
@@ -127,6 +127,78 @@
   },
   {
     "entry": "+0",
+    "current": null,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "-12",
+    "current": 12,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "-12",
+    "current": null,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "12-999",
+    "current": 12,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "12-999",
+    "current": null,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "99999",
+    "current": 12,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "99999",
+    "current": null,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "+99999",
+    "current": 12,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "+99999",
+    "current": null,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "9999",
+    "current": 12,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "9999",
+    "current": null,
+    "value": 9999,
+    "refused": false
+  },
+  {
+    "entry": "12-12",
+    "current": 12,
+    "value": 0,
+    "refused": false
+  },
+  {
+    "entry": "12-12",
     "current": null,
     "value": 0,
     "refused": false

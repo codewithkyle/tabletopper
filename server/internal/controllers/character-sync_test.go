@@ -108,14 +108,19 @@ func TestASheetSaveOutsideARoomReadsNothingBack(t *testing.T) {
 	}
 }
 func TestASheetSaveIsHeldToTheSameLimitsAsThePawn(t *testing.T) {
-	for name, form := range map[string]url.Values{
-		"maximum hit points": withValue(vitalsForm(), "max_hp", "60000"),
-		"current hit points": withValue(vitalsForm(), "current_hp", "60000"),
+	for name, column := range map[string]string{
+		"maximum hit points": "max_hp",
+		"current hit points": "current_hp",
 	} {
 		app, db := newPanelApp(1)
-		rec := panelPost(t, db, app.SaveCharacterVitals, form, map[string]string{"id": testCharacterID.String()})
-		if rec.Code != http.StatusUnprocessableEntity {
-			t.Errorf("%s of 60000 was accepted with %d; the room caps at %d", name, rec.Code, room.HPLimit)
+		rec := panelPost(t, db, app.SaveCharacterVitals,
+			withValue(vitalsForm(), column, "60000"),
+			map[string]string{"id": testCharacterID.String()})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s of 60000 answered %d; a number out of range is brought into range, not refused", name, rec.Code)
+		}
+		if got := writtenValue(t, db.only(t), column); got != uint16(room.HPLimit) {
+			t.Errorf("%s = %v, want the room's cap of %d", name, got, room.HPLimit)
 		}
 	}
 	app, db := newPanelApp(1)
@@ -123,8 +128,11 @@ func TestASheetSaveIsHeldToTheSameLimitsAsThePawn(t *testing.T) {
 		"xp": {"0"}, "speed": {"30 ft."}, "ac": {"400"},
 		"initiative_bonus": {"0"}, "spellcasting_ability": {"none"}, "spell_bonus_misc": {"0"},
 	}, map[string]string{"id": testCharacterID.String()})
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Errorf("an armour class of 400 was accepted with %d; the room caps at %d", rec.Code, room.ACLimit)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("an armour class of 400 answered %d; a number out of range is brought into range, not refused", rec.Code)
+	}
+	if got := writtenValue(t, db.only(t), "ac"); got != uint16(room.ACLimit) {
+		t.Errorf("ac = %v, want the room's cap of %d", got, room.ACLimit)
 	}
 }
 func withValue(form url.Values, key, value string) url.Values {

@@ -19,7 +19,16 @@ test("a chain behind a leading sign is added to the current value", () => {
 	assert.equal(evaluate("+5+5", "0"), 10);
 });
 test("the terms are added left to right", () => {
-	assert.equal(evaluate("1-2-3", ""), -4);
+	assert.equal(evaluate("10-2-3", ""), 5);
+});
+test("a hit bigger than the pawn stops at zero rather than going under", () => {
+	assert.equal(evaluate("-75", "50"), 0);
+	assert.equal(evaluate("1-2-3", ""), 0);
+	assert.equal(evaluate("-1", "0"), 0);
+});
+test("a total past what a pawn can hold stops at the ceiling", () => {
+	assert.equal(evaluate("99999", "50"), 9999);
+	assert.equal(evaluate("+99999", "50"), 9999);
 });
 test("spaces are how people type and are not an error", () => {
 	assert.equal(evaluate(" 23 - 7 ", "23"), 16);
@@ -35,9 +44,9 @@ test("anything that is not a sum is left alone", () => {
 });
 test("an entry longer than a hit-point total could be is refused", () => {
 	assert.equal(evaluate("1".repeat(25), "23"), null);
-	assert.equal(evaluate("1".repeat(24), "23"), Number("1".repeat(24)));
+	assert.equal(evaluate("1".repeat(24), "23"), 9999);
 });
 test("a relative entry against an empty box counts from zero", () => {
 	assert.equal(evaluate("+5", ""), 5);
-	assert.equal(evaluate("-5", ""), -5);
+	assert.equal(evaluate("-5", ""), 0);
 });

@@ -29,12 +29,12 @@ templ pawnEditor(data RoomPawnData) {
 			</div>
 			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnDegrees(data.Field("rotation"), data.Pawn.Rotation)
-				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
+				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC, ACLimit)
 			</div>
 		} else {
 			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
-				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC)
+				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC, ACLimit)
 			</div>
 		}
 		if !data.Pawn.Object {
@@ -74,7 +74,7 @@ templ pawnField(id string, caption string) {
 	</label>
 }
 
-templ pawnNumberField(id string, name string, caption string, value string) {
+templ pawnNumberField(id string, name string, caption string, value string, max int) {
 	@pawnField(id, caption) {
 		<input
 			id={ id }
@@ -84,10 +84,10 @@ templ pawnNumberField(id string, name string, caption string, value string) {
 			class="input input-xs validator peer w-full"
 			value={ value }
 			min="0"
-			max="9999"
+			max={ strconv.Itoa(max) }
 			step="1"
 		/>
-		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from 0 to 9999.</span>
+		<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a number from 0 to { strconv.Itoa(max) }.</span>
 	}
 }
 

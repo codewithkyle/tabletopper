@@ -309,29 +309,28 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 		t.Errorf("cr = %q, want %q", got, pages.DefaultChallengeRating)
 	}
 }
-func TestMonsterNumbersOutsideTheirColumnsAreRejected(t *testing.T) {
+func TestMonsterNumbersOutsideTheirColumnsAreClamped(t *testing.T) {
 	for _, c := range []struct {
 		field string
 		value string
-		want  string
+		want  any
 	}{
-		{"ac", "256", "Armor class must be between 0 and 255."},
-		{"hp", "10000", "Hit points must be between 0 and 9999."},
-		{"legendary_action_uses", "256", "Legendary action uses must be between 0 and 255."},
+		{"ac", "256", uint8(pages.MonsterACLimit)},
+		{"ac", "-4", uint8(0)},
+		{"hp", "10000", uint16(pages.MonsterHPLimit)},
+		{"hp", "-20", uint16(1)},
+		{"legendary_action_uses", "256", uint8(pages.MonsterLegendaryUsesLimit)},
 	} {
-		t.Run(c.field, func(t *testing.T) {
+		t.Run(c.field+" "+c.value, func(t *testing.T) {
 			form := monsterPanelForm("combat")
 			form.Set(c.field, c.value)
 			app, db := newPanelApp(1)
 			rec := panelPost(t, db, app.SaveMonsterCombat, form, monsterPathValues(nil))
-			if rec.Code != http.StatusUnprocessableEntity {
-				t.Errorf("status = %d, want 422", rec.Code)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200: a number out of range is brought into range, not refused", rec.Code)
 			}
-			if len(db.calls) != 0 {
-				t.Error("the out-of-range value was sent to the column anyway")
-			}
-			if body := rec.Body.String(); !strings.Contains(body, c.want) {
-				t.Errorf("body = %q, want it to carry %q", body, c.want)
+			if got := writtenValue(t, db.only(t), c.field); got != c.want {
+				t.Errorf("%s = %v, want %v", c.field, got, c.want)
 			}
 		})
 	}

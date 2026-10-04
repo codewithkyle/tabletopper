@@ -58,10 +58,10 @@ func TestEveryNumberFieldStopsWhereTheSaveDoes(t *testing.T) {
 		limit int
 	}{
 		{"xp", CharacterXPLimit},
-		{"ac", CharacterACLimit},
-		{"max_hp", CharacterHPLimit},
-		{"current_hp", CharacterHPLimit},
-		{"temp_hp", CharacterHPLimit},
+		{"ac", ACLimit},
+		{"max_hp", HPLimit},
+		{"current_hp", HPLimit},
+		{"temp_hp", HPLimit},
 		{"str", AbilityScoreLimit},
 	} {
 		want := `max="` + strconv.Itoa(field.limit) + `"`

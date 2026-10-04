@@ -234,27 +234,11 @@ func buildMonsterCombatInput(r *http.Request) (monsterCombatInput, []string) {
 		{"hit_dice", "Hit dice", pages.MonsterHitDiceLimit},
 		{"speed", "Speed", pages.MonsterSpeedLimit},
 	})
-	ac, err := parseUint8(r.PostFormValue("ac"), 10)
-	if err != nil {
-		validationErrors = append(validationErrors, "Armor class must be between 0 and "+strconv.Itoa(pages.MonsterACLimit)+".")
-	}
-	hp, err := parseUint16(r.PostFormValue("hp"), 1)
-	if err != nil || hp > pages.MonsterHPLimit {
-		validationErrors = append(validationErrors, "Hit points must be between 0 and "+strconv.Itoa(pages.MonsterHPLimit)+".")
-		hp = 1
-	}
-	initiativeBonus, err := parseInt16(r.PostFormValue("initiative_bonus"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Initiative bonus must be between -32768 and 32767.")
-	}
-	uses, err := parseUint8(r.PostFormValue("legendary_action_uses"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Legendary action uses must be between 0 and "+strconv.Itoa(pages.MonsterLegendaryUsesLimit)+".")
-	}
-	usesInLair, err := parseUint8(r.PostFormValue("legendary_action_uses_in_lair"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Legendary uses in lair must be between 0 and "+strconv.Itoa(pages.MonsterLegendaryUsesLimit)+".")
-	}
+	ac := clamped(r.PostFormValue("ac"), uint8(acDefault), 0, pages.MonsterACLimit)
+	hp := clamped(r.PostFormValue("hp"), uint16(1), 1, pages.MonsterHPLimit)
+	initiativeBonus := clampedBonus(r.PostFormValue("initiative_bonus"), 0)
+	uses := clamped(r.PostFormValue("legendary_action_uses"), uint8(0), 0, pages.MonsterLegendaryUsesLimit)
+	usesInLair := clamped(r.PostFormValue("legendary_action_uses_in_lair"), uint8(0), 0, pages.MonsterLegendaryUsesLimit)
 	return monsterCombatInput{
 		AC:                        ac,
 		HP:                        hp,

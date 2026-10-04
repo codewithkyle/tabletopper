@@ -4,19 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
-	"tabletopper/internal/room"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
+)
+
+const (
+	abilityDefault = 10
+	acDefault      = 10
 )
 
 var bonusPanels = map[string]string{
@@ -314,19 +316,8 @@ type abilitiesInput struct {
 func buildAbilitiesInput(r *http.Request) (abilitiesInput, []string) {
 	validationErrors := make([]string, 0)
 	abilities := map[string]uint8{}
-	for _, ability := range []struct{ Field, Label string }{
-		{"str", "Strength"},
-		{"dex", "Dexterity"},
-		{"con", "Constitution"},
-		{"int", "Intelligence"},
-		{"wis", "Wisdom"},
-		{"cha", "Charisma"},
-	} {
-		value, err := parseUint8(r.PostFormValue(ability.Field), 10)
-		if err != nil {
-			validationErrors = append(validationErrors, ability.Label+" must be between 0 and 255.")
-		}
-		abilities[ability.Field] = value
+	for _, ability := range []string{"str", "dex", "con", "int", "wis", "cha"} {
+		abilities[ability] = clamped(r.PostFormValue(ability), uint8(abilityDefault), 0, pages.AbilityScoreLimit)
 	}
 	return abilitiesInput{
 		Str: abilities["str"],
@@ -351,26 +342,10 @@ type coreStatsInput struct {
 
 func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	validationErrors := make([]string, 0)
-	xp, err := parseUint32(r.PostFormValue("xp"), 0)
-	if err == nil && xp > pages.CharacterXPLimit {
-		err = strconv.ErrRange
-	}
-	if err != nil {
-		xp = 0
-		validationErrors = append(validationErrors, fmt.Sprintf("XP must be between 0 and %d.", pages.CharacterXPLimit))
-	}
-	ac, err := parseBounded(r.PostFormValue("ac"), 10, room.ACLimit)
-	if err != nil {
-		validationErrors = append(validationErrors, fmt.Sprintf("Armor class must be between 0 and %d.", room.ACLimit))
-	}
-	initiativeBonus, err := parseInt16(r.PostFormValue("initiative_bonus"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Initiative bonus must be between -32768 and 32767.")
-	}
-	spellBonusMisc, err := parseInt16(r.PostFormValue("spell_bonus_misc"), 0)
-	if err != nil {
-		validationErrors = append(validationErrors, "Spell bonus must be between -32768 and 32767.")
-	}
+	xp := clamped(r.PostFormValue("xp"), uint32(0), 0, pages.CharacterXPLimit)
+	ac := clamped(r.PostFormValue("ac"), uint16(acDefault), 0, pages.ACLimit)
+	initiativeBonus := clampedBonus(r.PostFormValue("initiative_bonus"), 0)
+	spellBonusMisc := clampedBonus(r.PostFormValue("spell_bonus_misc"), 0)
 	speed := strings.TrimSpace(r.PostFormValue("speed"))
 	if speed == "" {
 		speed = "30 ft."
@@ -402,40 +377,17 @@ type vitalsInput struct {
 
 func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	validationErrors := make([]string, 0)
-	maxHP, err := parseBounded(r.PostFormValue("max_hp"), 1, room.HPLimit)
-	if err != nil {
-		validationErrors = append(validationErrors, fmt.Sprintf("Max hit points must be between 0 and %d.", room.HPLimit))
-	}
-	currentHP, err := parseBounded(r.PostFormValue("current_hp"), 1, room.HPLimit)
-	if err != nil {
-		validationErrors = append(validationErrors, fmt.Sprintf("Hit points must be between 0 and %d.", room.HPLimit))
-	}
-	tempHP, err := parseBounded(r.PostFormValue("temp_hp"), 0, room.HPLimit)
-	if err != nil {
-		validationErrors = append(validationErrors, fmt.Sprintf("Temp hit points must be between 0 and %d.", room.HPLimit))
-	}
+	maxHP := clamped(r.PostFormValue("max_hp"), uint16(1), 1, pages.HPLimit)
+	currentHP := clamped(r.PostFormValue("current_hp"), uint16(1), 0, pages.HPLimit)
+	tempHP := clamped(r.PostFormValue("temp_hp"), uint16(0), 0, pages.HPLimit)
 	hitDice := strings.TrimSpace(r.PostFormValue("hit_dice"))
 	if len([]rune(hitDice)) > characterWordLimit {
 		validationErrors = append(validationErrors, "Hit dice must be 64 characters or fewer.")
 	}
-	spent, err := parseUint8(r.PostFormValue("hit_dice_spent"), 0)
-	if err != nil || spent > pages.HitDiceSpentLimit {
-		validationErrors = append(validationErrors, "Spent hit dice must be between 0 and 20.")
-		spent = 0
-	}
-	exhaustion, err := parseUint8(r.PostFormValue("exhaustion"), 0)
-	if err != nil || exhaustion > pages.ExhaustionLimit {
-		validationErrors = append(validationErrors, "Exhaustion must be between 0 and 6.")
-		exhaustion = 0
-	}
-	successes, ok := deathSaves(r, "death_save_successes")
-	if !ok {
-		validationErrors = append(validationErrors, "Death save successes must be between 0 and 3.")
-	}
-	failures, ok := deathSaves(r, "death_save_failures")
-	if !ok {
-		validationErrors = append(validationErrors, "Death save failures must be between 0 and 3.")
-	}
+	spent := clamped(r.PostFormValue("hit_dice_spent"), uint8(0), 0, pages.HitDiceSpentLimit)
+	exhaustion := clamped(r.PostFormValue("exhaustion"), uint8(0), 0, pages.ExhaustionLimit)
+	successes := deathSaves(r, "death_save_successes")
+	failures := deathSaves(r, "death_save_failures")
 	return vitalsInput{
 		MaxHP:              maxHP,
 		CurrentHP:          currentHP,
@@ -448,12 +400,8 @@ func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 		Exhaustion:         exhaustion,
 	}, validationErrors
 }
-func deathSaves(r *http.Request, field string) (uint8, bool) {
-	ticked := len(r.PostForm[field])
-	if ticked > pages.DeathSaveLimit {
-		return 0, false
-	}
-	return uint8(ticked), true
+func deathSaves(r *http.Request, field string) uint8 {
+	return uint8(min(len(r.PostForm[field]), pages.DeathSaveLimit))
 }
 
 type proficienciesInput struct {

@@ -42,12 +42,18 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		w.refuse(&Ping{Layer: w.layer, X: CoordLimit + 1}, w.gm, CodeInvalid)
 		w.refuse(&Ping{Layer: w.layer, Y: -CoordLimit - 1}, w.gm, CodeInvalid)
 	})
-	t.Run("hit points stop at their limit and need a maximum", func(t *testing.T) {
+	t.Run("a maximum is brought into range rather than refused, and hit points still need one", func(t *testing.T) {
 		w := newWorld(t)
 		pawn := w.spawn(Pawn{Visible: true})
 		w.apply(&PawnUpdate{ID: pawn, HP: intp(HPLimit), MaxHP: intp(HPLimit)}, w.gm)
-		w.refuse(&PawnUpdate{ID: pawn, MaxHP: intp(HPLimit + 1)}, w.gm, CodeInvalid)
-		w.refuse(&PawnUpdate{ID: pawn, MaxHP: intp(0)}, w.gm, CodeInvalid)
+		w.apply(&PawnUpdate{ID: pawn, MaxHP: intp(HPLimit + 1)}, w.gm)
+		if got := *w.s.Pawn(pawn).MaxHP; got != HPLimit {
+			t.Fatalf("a maximum past the limit was stored as %d, want %d", got, HPLimit)
+		}
+		w.apply(&PawnUpdate{ID: pawn, MaxHP: intp(0)}, w.gm)
+		if got := *w.s.Pawn(pawn).MaxHP; got != 1 {
+			t.Fatalf("a maximum of nothing was stored as %d, want 1", got)
+		}
 		bare := w.spawn(Pawn{Visible: true})
 		w.refuse(&PawnUpdate{ID: bare, HP: intp(5)}, w.gm, CodeInvalid)
 	})
@@ -58,12 +64,22 @@ func TestLimitsHoldAtTheirBoundary(t *testing.T) {
 		if got := *w.s.Pawn(pawn).HP; got != 10 {
 			t.Fatalf("hit points above the maximum were stored as %d, want 10", got)
 		}
+		w.apply(&PawnUpdate{ID: pawn, HP: intp(-75)}, w.gm)
+		if got := *w.s.Pawn(pawn).HP; got != 0 {
+			t.Fatalf("a hit bigger than the pawn was stored as %d, want 0", got)
+		}
 	})
-	t.Run("armour class stops at its limit", func(t *testing.T) {
+	t.Run("armour class is brought into range rather than refused", func(t *testing.T) {
 		w := newWorld(t)
 		pawn := w.spawn(Pawn{Visible: true})
-		w.apply(&PawnUpdate{ID: pawn, AC: intp(ACLimit)}, w.gm)
-		w.refuse(&PawnUpdate{ID: pawn, AC: intp(ACLimit + 1)}, w.gm, CodeInvalid)
+		w.apply(&PawnUpdate{ID: pawn, AC: intp(ACLimit + 1)}, w.gm)
+		if got := *w.s.Pawn(pawn).AC; got != ACLimit {
+			t.Fatalf("an armour class past the limit was stored as %d, want %d", got, ACLimit)
+		}
+		w.apply(&PawnUpdate{ID: pawn, AC: intp(-3)}, w.gm)
+		if got := *w.s.Pawn(pawn).AC; got != 0 {
+			t.Fatalf("a negative armour class was stored as %d, want 0", got)
+		}
 	})
 	t.Run("the grid's cell size stops at both ends", func(t *testing.T) {
 		w := newWorld(t)

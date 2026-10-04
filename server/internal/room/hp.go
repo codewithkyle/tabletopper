@@ -18,13 +18,16 @@ func EvaluateHP(entry string, current *int) (int, bool, string) {
 		return 0, false, "has to be a number, or a change such as -7 or 23-7."
 	}
 	if text[0] != '+' && text[0] != '-' {
-		return total, true, ""
+		return hitPoints(total), true, ""
 	}
 	from := 0
 	if current != nil {
 		from = *current
 	}
-	return from + total, true, ""
+	return hitPoints(from + total), true, ""
+}
+func hitPoints(v int) int {
+	return min(max(v, 0), HPLimit)
 }
 func sumTerms(text string) (int, bool) {
 	if len(text) > HPEntryLimit {

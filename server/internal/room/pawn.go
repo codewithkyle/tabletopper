@@ -269,7 +269,7 @@ func (s *State) addPawn(p Pawn, env Env) error {
 	} else {
 		p.Width, p.Height, p.Rotation = 0, 0, 0
 	}
-	clampHP(&p)
+	clampPawn(&p)
 	p.X, p.Y = snapPawn(s.Table.Grid, p, p.X, p.Y)
 	p.Z = s.maxZ() + 1
 	s.Pawns = append(s.Pawns, p)
@@ -287,9 +287,6 @@ func checkPawn(p Pawn) error {
 		return err
 	}
 	if err := checkHP(p.HP, p.MaxHP); err != nil {
-		return err
-	}
-	if err := checkAC(p.AC); err != nil {
 		return err
 	}
 	if p.Kind == PawnObject {
@@ -472,7 +469,7 @@ func (c *PawnUpdate) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	if err := checkPawn(next); err != nil {
 		return nil, err
 	}
-	clampHP(&next)
+	clampPawn(&next)
 	*p = next
 	s.Normalize()
 	return nil, nil

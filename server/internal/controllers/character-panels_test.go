@@ -363,16 +363,16 @@ func TestATwentiethLevelCharacterCanBeSaved(t *testing.T) {
 		t.Errorf("level = %v, want 20", got)
 	}
 }
-func TestAnExperienceTheFieldCannotHoldIsRefused(t *testing.T) {
+func TestAnExperiencePastTheLimitLandsOnTheLimit(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
 		"xp": {strconv.Itoa(pages.CharacterXPLimit + 1)},
 	}, map[string]string{"id": testCharacterID.String()})
-	if rec.Code != http.StatusUnprocessableEntity {
-		t.Errorf("status = %d, want 422", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: a number out of range is brought into range, not refused", rec.Code)
 	}
-	if len(db.calls) != 0 {
-		t.Errorf("an experience past the limit was written anyway: %q", db.calls[0].query)
+	if got := writtenValue(t, db.only(t), "xp"); got != uint32(pages.CharacterXPLimit) {
+		t.Errorf("xp = %v, want %d", got, pages.CharacterXPLimit)
 	}
 }
 func TestBonusPanelRejectsAnUnknownKind(t *testing.T) {
@@ -573,51 +573,87 @@ func TestTheCappedBoxesCannotOutrunTheirCaps(t *testing.T) {
 		t.Errorf("a full prose box is at most %d bytes and the cap is %d: a browser can now trip it", proseMaxlength*3, characterProseLimit)
 	}
 }
-func TestVitalsRefusesAValueOutsideTheRules(t *testing.T) {
+func TestVitalsBringsANumberOutsideTheRulesIntoRange(t *testing.T) {
 	for _, c := range []struct {
-		name string
-		form url.Values
-		want string
+		name   string
+		form   url.Values
+		column string
+		want   any
 	}{
 		{
-			name: "a fourth death save success",
-			form: url.Values{"death_save_successes": {"1", "1", "1", "1"}},
-			want: "Death save successes must be between 0 and 3.",
+			name:   "a fourth death save success",
+			form:   url.Values{"death_save_successes": {"1", "1", "1", "1"}},
+			column: "death_save_successes",
+			want:   uint8(pages.DeathSaveLimit),
 		},
 		{
-			name: "a fourth death save failure",
-			form: url.Values{"death_save_failures": {"1", "1", "1", "1"}},
-			want: "Death save failures must be between 0 and 3.",
+			name:   "a fourth death save failure",
+			form:   url.Values{"death_save_failures": {"1", "1", "1", "1"}},
+			column: "death_save_failures",
+			want:   uint8(pages.DeathSaveLimit),
 		},
 		{
-			name: "exhaustion past the level that kills",
-			form: url.Values{"exhaustion": {"7"}},
-			want: "Exhaustion must be between 0 and 6.",
+			name:   "exhaustion past the level that kills",
+			form:   url.Values{"exhaustion": {"7"}},
+			column: "exhaustion",
+			want:   uint8(pages.ExhaustionLimit),
 		},
 		{
-			name: "more hit dice spent than a character can hold",
-			form: url.Values{"hit_dice_spent": {"21"}},
-			want: "Spent hit dice must be between 0 and 20.",
+			name:   "more hit dice spent than a character can hold",
+			form:   url.Values{"hit_dice_spent": {"21"}},
+			column: "hit_dice_spent",
+			want:   uint8(pages.HitDiceSpentLimit),
 		},
 		{
-			name: "a hit dice pool wider than its column",
-			form: url.Values{"hit_dice": {strings.Repeat("d", characterWordLimit+1)}},
-			want: "Hit dice must be 64 characters or fewer.",
+			name:   "a hit that takes the character past death",
+			form:   url.Values{"current_hp": {"-75"}},
+			column: "current_hp",
+			want:   uint16(0),
+		},
+		{
+			name:   "temporary hit points below nothing",
+			form:   url.Values{"temp_hp": {"-4"}},
+			column: "temp_hp",
+			want:   uint16(0),
+		},
+		{
+			name:   "a maximum of nothing",
+			form:   url.Values{"max_hp": {"0"}},
+			column: "max_hp",
+			want:   uint16(1),
+		},
+		{
+			name:   "hit points past the limit",
+			form:   url.Values{"current_hp": {"60000"}},
+			column: "current_hp",
+			want:   uint16(pages.HPLimit),
 		},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, db := newPanelApp(1)
 			rec := panelPost(t, db, app.SaveCharacterVitals, c.form, map[string]string{"id": testCharacterID.String()})
-			if rec.Code != http.StatusUnprocessableEntity {
-				t.Errorf("status = %d, want 422", rec.Code)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200: a number out of range is brought into range, not refused", rec.Code)
 			}
-			if len(db.calls) != 0 {
-				t.Error("the value was written anyway, and the CHECK constraint is now the only thing between it and the column")
-			}
-			if body := rec.Body.String(); !strings.Contains(body, c.want) {
-				t.Errorf("body = %q, want it to carry %q", body, c.want)
+			if got := writtenValue(t, db.only(t), c.column); got != c.want {
+				t.Errorf("%s = %v, want %v", c.column, got, c.want)
 			}
 		})
+	}
+}
+func TestVitalsStillRefusesAHitDicePoolWiderThanItsColumn(t *testing.T) {
+	app, db := newPanelApp(1)
+	rec := panelPost(t, db, app.SaveCharacterVitals, url.Values{
+		"hit_dice": {strings.Repeat("d", characterWordLimit+1)},
+	}, map[string]string{"id": testCharacterID.String()})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", rec.Code)
+	}
+	if len(db.calls) != 0 {
+		t.Error("the value was written anyway, and the column width is now the only thing between it and the column")
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "Hit dice must be 64 characters or fewer.") {
+		t.Errorf("body = %q, want it to say what is wrong with the hit dice", body)
 	}
 }
 func TestVitalsReadsItsCheckboxesFromWhatArrived(t *testing.T) {
