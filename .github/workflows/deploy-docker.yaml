@@ -1,15 +1,22 @@
 name: Build and Deploy Docker Image
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+    environment: Production
     steps:
+      - name: Refuse to deploy from anything but master
+        if: github.ref != 'refs/heads/master'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::tabletopper.app is served from the master branch. Refusing to deploy $REF."
+          exit 1
+    
       - uses: actions/checkout@v3
 
       - name: Setup Node and NPM
