@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Grid, MapRef } from "../protocol.ts";
-import { axialOf, cellName, newNumbering, numberingCache, numberingFor, offsetOf } from "./numbering.ts";
+import { axialOf, newNumbering, numberingCache, numberingFor, offsetOf } from "./numbering.ts";
 import { cellCentre } from "./grid.ts";
 function newGrid(over: Partial<Grid> = {}): Grid {
 	return {
@@ -155,14 +155,6 @@ test("walking a rectangle visits the numbered cells inside it and no others", ()
 		assert.ok(seen.length > 0, `${type}: nothing was visited`);
 		assert.equal(new Set(seen).size, seen.length, `${type}: a cell was visited twice`);
 	}
-});
-test("a hex is named by its number only when the table is numbered and there is a map under it", () => {
-	const grid = newGrid();
-	const map = newMap(192, 128);
-	assert.equal(cellName(numberingFor(grid, map), 1, 1), "4");
-	assert.equal(cellName(numberingFor(grid, map), 9, 9), "9, 9", "a hex off the map keeps its coordinates");
-	assert.equal(cellName(numberingFor(newGrid({ numbered: false }), map), 1, 1), "1, 1");
-	assert.equal(cellName(numberingFor(grid, null), 1, 1), "1, 1", "a floor with no map has nothing to count over");
 });
 test("numbering is only built for a table that asked for it", () => {
 	const map = newMap(192, 128);

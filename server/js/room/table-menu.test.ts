@@ -87,7 +87,7 @@ function grid(): Grid {
 	};
 }
 function room(): {
-	mount: El; host: El; wheel: El; party: El; erase: El; note: El;
+	mount: El; host: El; wheel: El; party: El; erase: El;
 	pine: El; picture: El; drawn: number[];
 } {
 	const party = new El(
@@ -96,16 +96,15 @@ function room(): {
 		"data-clear-label=Take it back",
 	);
 	const erase = new El("data-table-menu-erase");
-	const note = new El("data-table-menu-note");
 	const picture = new El();
 	const pine = new El(
 		"data-table-menu-art=01ARTPINE",
 		"data-image=/pine.webp",
 	).append(picture);
-	const wheel = new El("data-table-menu", "data-reach=60").append(pine, erase, note, party);
+	const wheel = new El("data-table-menu", "data-reach=60").append(pine, erase, party);
 	const host = new El("data-table-menu-host").append(wheel);
 	const mount = new El().append(host);
-	return { mount, host, wheel, party, erase, note, pine, picture, drawn: [] };
+	return { mount, host, wheel, party, erase, pine, picture, drawn: [] };
 }
 function menuFor(
 	parts: ReturnType<typeof room>,
@@ -115,7 +114,6 @@ function menuFor(
 ) {
 	let drawn = 0;
 	const sent: Record<string, unknown>[] = [];
-	const opened: { q: number; r: number }[] = [];
 	const menu = mountTableMenu(parts.mount as unknown as HTMLElement, {
 		grid: board,
 		viewed: () => "01FLOOR",
@@ -127,11 +125,8 @@ function menuFor(
 		send: (command) => {
 			sent.push(command as unknown as Record<string, unknown>);
 		},
-		note: (q, r) => {
-			opened.push({ q, r });
-		},
 	});
-	return { menu, redraws: () => drawn, sent, opened };
+	return { menu, redraws: () => drawn, sent };
 }
 test("a secondary click over empty ground opens the wheel on the cell under it", () => {
 	const parts = room();
@@ -401,20 +396,4 @@ test("the module writes no class name", () => {
 	for (const written of ["classList", "className", 'setAttribute("class"', "textContent"]) {
 		assert.equal(src.includes(written), false, `${written} is in table-menu.ts`);
 	}
-});
-test("the hex note opens on the cell the wheel was opened over", () => {
-	const parts = room();
-	const { menu, sent, opened } = menuFor(parts);
-	menu.open({ x: 100, y: 40 }, { x: 400, y: 300 });
-	doc.fire("click", { target: parts.note });
-	assert.deepEqual(opened, [{ q: 1, r: 0 }]);
-	assert.deepEqual(sent, [], "picking the hex note sent a command to the table");
-	assert.equal(parts.wheel.hidden, true, "the wheel stayed open behind the note");
-});
-test("the hex note does nothing with no cell remembered", () => {
-	const parts = room();
-	const { menu, opened } = menuFor(parts);
-	menu.close();
-	doc.fire("click", { target: parts.note });
-	assert.deepEqual(opened, []);
 });

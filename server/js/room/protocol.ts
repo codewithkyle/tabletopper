@@ -51,14 +51,6 @@ export interface Grid {
 	diagonals: Diagonals;
 	numbered: boolean;
 }
-export interface HexNote {
-	layerId: string;
-	q: number;
-	r: number;
-	title: string;
-	body: string;
-	revealed: boolean;
-}
 export interface Initiative {
 	entries: InitiativeEntry[];
 	active: string | null;
@@ -169,7 +161,6 @@ export interface State {
 	fog: FogShape[];
 	strokes: Stroke[];
 	tiles: Tile[];
-	notes: HexNote[];
 	rolls: Roll[];
 	music: Music;
 }
@@ -324,30 +315,6 @@ export interface MusicSetLoop {
 export interface MusicStop {
 	type: "music.stop";
 	cid: string;
-}
-export interface NoteRemove {
-	type: "note.remove";
-	cid: string;
-	layer: string;
-	q: number;
-	r: number;
-}
-export interface NoteReveal {
-	type: "note.reveal";
-	cid: string;
-	layer: string;
-	q: number;
-	r: number;
-	revealed: boolean;
-}
-export interface NoteSet {
-	type: "note.set";
-	cid: string;
-	layer: string;
-	q: number;
-	r: number;
-	title: string;
-	body: string;
 }
 export interface PaletteAdd {
 	type: "palette.add";
@@ -586,9 +553,6 @@ export type Command =
 	| MusicPlay
 	| MusicSetLoop
 	| MusicStop
-	| NoteRemove
-	| NoteReveal
-	| NoteSet
 	| PaletteAdd
 	| PaletteRemove
 	| PawnDrag
@@ -642,15 +606,6 @@ export interface LayersUpdated {
 export interface MusicUpdated {
 	type: "music.updated";
 	music: Music;
-}
-export interface NotesRemoved {
-	type: "notes.removed";
-	layer: string;
-	cells: Cell[];
-}
-export interface NotesUpserted {
-	type: "notes.upserted";
-	notes: HexNote[];
 }
 export interface PaletteUpdated {
 	type: "palette.updated";
@@ -724,8 +679,6 @@ export type Change =
 	| InitiativeUpdated
 	| LayersUpdated
 	| MusicUpdated
-	| NotesRemoved
-	| NotesUpserted
 	| PaletteUpdated
 	| PawnsMoved
 	| PawnsRemoved

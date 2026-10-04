@@ -7,6 +7,7 @@ const DEFAULT_WIDTH = 280;
 const DEFAULT_HEIGHT = 320;
 const RECLAMP_DELAY = 150;
 const FRAGMENT_PREFIX = "/fragment/";
+const RETIRED_WINDOWS = ["hex:"];
 declare const htmx: {
 	ajax(verb: string, path: string, context: { target: Element; source: Element }): void;
 };
@@ -477,6 +478,7 @@ function restored(): WindowSpec[] {
 		(spec): spec is WindowSpec =>
 			typeof spec?.id === "string" &&
 			typeof spec?.title === "string" &&
-			typeof spec?.url === "string",
+			typeof spec?.url === "string" &&
+			!RETIRED_WINDOWS.some((gone) => spec.id.startsWith(gone)),
 	);
 }

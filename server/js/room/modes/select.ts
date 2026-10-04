@@ -7,7 +7,6 @@ import type { Point, Rect } from "../model/types.ts";
 import type { Preview } from "./previews.ts";
 import type { Tool } from "../render/input.ts";
 import { SELECT_COLOR, SELF_COLOR, actorColor } from "../model/color.ts";
-import { cellUnder } from "../model/grid.ts";
 import { Selection, marqueeSelect, mayMove } from "../selection.ts";
 import { blankDrawn, blankOutline, ghostOf, pool } from "../model/overlay.ts";
 import { boxAround } from "./board.ts";
@@ -29,7 +28,6 @@ import {
 	proposedGhost,
 	shapeOf,
 } from "./gestures.ts";
-const noteKey = (cell: { q: number; r: number }) => `hex:${cell.q}:${cell.r}`;
 const MARK_ALPHA = 0.3;
 const OUTLINE_WIDTH = 2;
 const OUTLINE_ALPHA = 0.95;
@@ -46,7 +44,6 @@ export interface SelectDeps {
 	details: (pawn: Pawn) => void;
 	menu: (pawn: Pawn, screen: Point) => void;
 	marks?: TableMarks;
-	note?: (q: number, r: number) => void;
 }
 export interface Select extends Tool {
 	selection: Selection;
@@ -207,8 +204,7 @@ export function createSelect(deps: SelectDeps): Select {
 				return;
 			}
 			const clicked = clickedPawn(board, active);
-			const hex = clicked ? null : cellUnder(board.grid(), map);
-			const twice = clicks.count(clicked?.id ?? (hex ? noteKey(hex) : null));
+			const twice = clicks.count(clicked?.id ?? null);
 			switch (active.kind) {
 				case "drag":
 					commitDrag(board, active, false);
@@ -238,10 +234,6 @@ export function createSelect(deps: SelectDeps): Select {
 						}
 						if (twice && !mods.shift && clicked) {
 							deps.details(clicked);
-							return;
-						}
-						if (twice && !mods.shift && hex) {
-							deps.note?.(hex.q, hex.r);
 						}
 						return;
 					}

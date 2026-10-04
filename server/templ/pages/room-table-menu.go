@@ -8,7 +8,6 @@ import (
 const (
 	TableMenuParty = "party"
 	TableMenuErase = "erase"
-	TableMenuNote  = "note"
 	tableMenuRing  = 96
 	tableMenuSize  = 48
 	tableMenuEdge  = 6
@@ -41,7 +40,6 @@ func NewTableMenu(roomID string, isGM bool, ring []RoomTableMenuArt) RoomTableMe
 	if isGM {
 		items = append(items, RoomTableMenuItem{Action: TableMenuParty, Label: tableMenuPartyLabel})
 	}
-	items = append(items, RoomTableMenuItem{Action: TableMenuNote, Label: tableMenuNoteLabel})
 	count := len(items) + len(ring)
 	for i := range items {
 		items[i].Index = i
@@ -71,9 +69,6 @@ func (i RoomTableMenuItem) IsParty() bool {
 func (i RoomTableMenuItem) IsErase() bool {
 	return i.Action == TableMenuErase
 }
-func (i RoomTableMenuItem) IsNote() bool {
-	return i.Action == TableMenuNote
-}
 func (a RoomTableMenuArt) Placement() map[string]string {
 	return placement(spokeDegree(a.Index, a.Count), ringRadius(a.Count))
 }
@@ -100,5 +95,4 @@ const (
 	tableMenuPartyLabel      = "Party starts here"
 	tableMenuClearPartyLabel = "The party starts here: click to take it back"
 	tableMenuEraseLabel      = "Erase this cell"
-	tableMenuNoteLabel       = "Hex note"
 )

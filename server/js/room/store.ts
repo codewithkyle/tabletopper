@@ -58,8 +58,6 @@ const reducers: Reducers = {
 	},
 	"tiles.stamped": (state, change) => upsertCells(state.tiles, change.tiles),
 	"tiles.erased": (state, change) => removeCells(state.tiles, change.layer, change.cells),
-	"notes.upserted": (state, change) => upsertCells(state.notes, change.notes),
-	"notes.removed": (state, change) => removeCells(state.notes, change.layer, change.cells),
 	"palette.updated": (state, change) => {
 		state.table.palette = clone(change.palette);
 	},
@@ -95,7 +93,6 @@ export function normalize(state: State): void {
 	state.strokes.sort(byIdentifier);
 	state.rolls.sort(byIdentifier);
 	state.tiles.sort(byCell);
-	state.notes.sort(byCell);
 }
 export function empty(): State {
 	return {
@@ -131,7 +128,6 @@ export function empty(): State {
 		fog: [],
 		strokes: [],
 		tiles: [],
-		notes: [],
 		rolls: [],
 		music: { trackId: null, name: "", playing: false, loop: false, at: 0, since: 0 },
 	};

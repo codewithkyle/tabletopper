@@ -13,7 +13,6 @@ export interface TableMenuDeps {
 	scale: () => number;
 	invalidate: () => void;
 	send: (command: Outgoing) => void;
-	note?: (q: number, r: number) => void;
 }
 export interface TableMenu {
 	open(map: Point, screen: Point): boolean;
@@ -120,14 +119,6 @@ export function mountTableMenu(mount: HTMLElement, deps: TableMenuDeps): TableMe
 	function onClick(e: Event): void {
 		const root = wheel();
 		if (!root || root.hidden || !(e.target instanceof Node) || !root.contains(e.target)) {
-			return;
-		}
-		if (e.target instanceof Element && e.target.closest("[data-table-menu-note]") !== null) {
-			const on = cell;
-			close();
-			if (on) {
-				deps.note?.(on.q, on.r);
-			}
 			return;
 		}
 		const chosen = picked(e);

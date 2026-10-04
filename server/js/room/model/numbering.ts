@@ -111,7 +111,3 @@ export function numberingCache(): (grid: Grid, map: MapRef | null | undefined) =
 		return held.numbering;
 	};
 }
-export function cellName(numbering: Numbering | null, q: number, r: number): string {
-	const n = numbering?.of(q, r);
-	return n ? String(n) : `${q}, ${r}`;
-}

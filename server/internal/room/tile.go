@@ -218,11 +218,6 @@ func (c *TilesErase) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool {
 		return t.LayerID == c.Layer && slices.Contains(cells, Cell{Q: t.Q, R: t.R})
 	})
-	if a.GM() {
-		s.Notes = slices.DeleteFunc(s.Notes, func(n HexNote) bool {
-			return n.LayerID == c.Layer && slices.Contains(cells, Cell{Q: n.Q, R: n.R})
-		})
-	}
 	s.Normalize()
 	return nil, nil
 }
@@ -239,7 +234,6 @@ func (c *TilesClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 		return nil, err
 	}
 	s.Tiles = slices.DeleteFunc(s.Tiles, func(t Tile) bool { return t.LayerID == c.Layer })
-	s.Notes = slices.DeleteFunc(s.Notes, func(n HexNote) bool { return n.LayerID == c.Layer })
 	s.Normalize()
 	return nil, nil
 }

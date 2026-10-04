@@ -79,7 +79,6 @@
     "fog": [],
     "strokes": [],
     "tiles": [],
-    "notes": [],
     "rolls": [],
     "music": {
       "trackId": null,
@@ -173,7 +172,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -303,7 +301,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -451,7 +448,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -599,7 +595,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -761,7 +756,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -923,7 +917,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1085,7 +1078,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1234,7 +1226,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1402,7 +1393,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1554,7 +1544,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1689,7 +1678,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -1869,7 +1857,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -2072,7 +2059,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -2298,7 +2284,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -2488,7 +2473,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -2737,7 +2721,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -2986,7 +2969,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -3259,7 +3241,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -3538,7 +3519,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -3813,7 +3793,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -4088,7 +4067,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -4363,7 +4341,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -4617,7 +4594,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -4853,7 +4829,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [],
         "music": {
           "trackId": null,
@@ -5122,7 +5097,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -5418,7 +5392,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -5734,7 +5707,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -6037,7 +6009,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -6366,7 +6337,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -6702,7 +6672,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -7044,7 +7013,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -7386,7 +7354,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -7728,7 +7695,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -8070,7 +8036,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -8412,7 +8377,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -8754,7 +8718,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -9096,7 +9059,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -9438,7 +9400,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -9800,7 +9761,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -10159,7 +10119,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -10548,7 +10507,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -10904,7 +10862,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -11281,7 +11238,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -11658,7 +11614,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -12047,7 +12002,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -12391,7 +12345,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -12780,7 +12733,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -13169,7 +13121,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -13546,7 +13497,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -13976,7 +13926,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -14359,7 +14308,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -14706,7 +14654,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -15092,7 +15039,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -15478,7 +15424,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -15854,7 +15799,6 @@
         ],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -16250,7 +16194,6 @@
         ],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -16619,7 +16562,6 @@
         ],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -17018,7 +16960,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -17411,7 +17352,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -17798,7 +17738,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -18216,7 +18155,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -18605,7 +18543,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -19006,7 +18943,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -19419,7 +19355,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -19869,7 +19804,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -20303,7 +20237,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -20745,7 +20678,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -21176,7 +21108,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -21604,7 +21535,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -22013,7 +21943,6 @@
             "by": "010000000000000000000000Z9"
           }
         ],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -22409,1555 +22338,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
-        "rolls": [
-          {
-            "id": "0100000000000000000000000E",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 4,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000F",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 1,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 5,
-                "sign": 1,
-                "kept": false
-              },
-              {
-                "sides": 20,
-                "value": 6,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 13
-          },
-          {
-            "id": "0100000000000000000000000G",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword damage",
-            "expr": "1d8 + 4",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 8,
-                "value": 7,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 4,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000K",
-            "by": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "gm": true,
-            "label": "",
-            "expr": "1d20 - 1",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 10,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": -1,
-            "total": 9
-          }
-        ],
-        "music": {
-          "trackId": "010000000000000000000000ZF",
-          "name": "Tavern Brawl",
-          "playing": false,
-          "loop": false,
-          "at": 0,
-          "since": 0
-        }
-      }
-    },
-    {
-      "name": "the GM writes up the ruined tower",
-      "frames": [],
-      "state": {
-        "schema": 3,
-        "seq": 0,
-        "room": {
-          "id": "010000000000000000000000Z8",
-          "name": "The Sunless Citadel",
-          "locked": true
-        },
-        "table": {
-          "layers": [
-            {
-              "id": "01000000000000000000000001",
-              "name": "Ground floor",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001J",
-                "width": 4096,
-                "height": 4096,
-                "tileSize": 512,
-                "maxZoom": 3
-              },
-              "gmMap": null,
-              "fogEnabled": true,
-              "fogPrefill": false,
-              "partyStart": {
-                "x": 640,
-                "y": 320
-              }
-            },
-            {
-              "id": "01000000000000000000000002",
-              "name": "Cellar, flooded",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001K",
-                "width": 2048,
-                "height": 2048,
-                "tileSize": 512,
-                "maxZoom": 2
-              },
-              "gmMap": null,
-              "fogEnabled": false,
-              "fogPrefill": true,
-              "partyStart": null
-            }
-          ],
-          "palette": [],
-          "activeLayer": "01000000000000000000000001",
-          "grid": {
-            "type": "square",
-            "lines": "solid",
-            "cellSize": 70,
-            "offsetX": -12,
-            "offsetY": 8,
-            "color": "#334455ff",
-            "snap": "cells",
-            "feetPerCell": 5,
-            "units": "feet",
-            "diagonals": "equal",
-            "numbered": false
-          },
-          "pawnLabels": "default",
-          "playersCanDraw": true,
-          "playersCanStamp": false,
-          "initiativeGrouping": "grouped",
-          "fogPrefill": false
-        },
-        "players": [
-          {
-            "id": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "avatar": "",
-            "characterId": null,
-            "characterName": "",
-            "role": "gm",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZA",
-            "name": "Ari",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZC",
-            "characterName": "Ilyana",
-            "role": "player",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZB",
-            "name": "Rin",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZD",
-            "characterName": "Brannor",
-            "role": "player",
-            "connected": true
-          }
-        ],
-        "pawns": [
-          {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          },
-          {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 723,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [
-              {
-                "id": "0100000000000000000000000M",
-                "name": "Prone",
-                "color": "white",
-                "duration": -1,
-                "clear": "end"
-              },
-              {
-                "id": "0100000000000000000000000N",
-                "name": "Blessed",
-                "color": "yellow",
-                "duration": 2,
-                "clear": "start"
-              }
-            ],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          },
-          {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000001",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
-          }
-        ],
-        "initiative": {
-          "entries": [
-            {
-              "id": "0100000000000000000000000D",
-              "pawnIds": [],
-              "name": "Lair action",
-              "initiative": 3
-            },
-            {
-              "id": "0100000000000000000000000C",
-              "pawnIds": [
-                "01000000000000000000000005"
-              ],
-              "name": "Goblin",
-              "initiative": 4
-            },
-            {
-              "id": "0100000000000000000000000B",
-              "pawnIds": [
-                "01000000000000000000000003"
-              ],
-              "name": "Ari",
-              "initiative": 4
-            }
-          ],
-          "active": "0100000000000000000000000D",
-          "round": 2
-        },
-        "fog": [
-          {
-            "id": "0100000000000000000000000R",
-            "layerId": "01000000000000000000000001",
-            "kind": "poly",
-            "mode": "reveal",
-            "points": [
-              1024,
-              400,
-              1400,
-              400,
-              1400,
-              560,
-              1024,
-              560
-            ]
-          }
-        ],
-        "strokes": [
-          {
-            "id": "010000000000000000000000W4",
-            "by": "010000000000000000000000Z9",
-            "layerId": "01000000000000000000000001",
-            "kind": "free",
-            "color": "#ff0000ff",
-            "width": 6,
-            "points": [
-              100,
-              100,
-              140,
-              130,
-              180,
-              170,
-              220,
-              190
-            ],
-            "done": true
-          }
-        ],
-        "tiles": [],
-        "notes": [],
-        "rolls": [
-          {
-            "id": "0100000000000000000000000E",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 4,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000F",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 1,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 5,
-                "sign": 1,
-                "kept": false
-              },
-              {
-                "sides": 20,
-                "value": 6,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 13
-          },
-          {
-            "id": "0100000000000000000000000G",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword damage",
-            "expr": "1d8 + 4",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 8,
-                "value": 7,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 4,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000K",
-            "by": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "gm": true,
-            "label": "",
-            "expr": "1d20 - 1",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 10,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": -1,
-            "total": 9
-          }
-        ],
-        "music": {
-          "trackId": "010000000000000000000000ZF",
-          "name": "Tavern Brawl",
-          "playing": false,
-          "loop": false,
-          "at": 0,
-          "since": 0
-        }
-      }
-    },
-    {
-      "name": "and tells the party what is there",
-      "frames": [
-        {
-          "type": "changes",
-          "seq": 65,
-          "by": "010000000000000000000000Z9",
-          "events": [
-            {
-              "type": "notes.upserted",
-              "notes": [
-                {
-                  "layerId": "01000000000000000000000001",
-                  "q": 0,
-                  "r": 0,
-                  "title": "Ruined tower",
-                  "body": "An owlbear nests on the top floor.",
-                  "revealed": true
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "state": {
-        "schema": 3,
-        "seq": 0,
-        "room": {
-          "id": "010000000000000000000000Z8",
-          "name": "The Sunless Citadel",
-          "locked": true
-        },
-        "table": {
-          "layers": [
-            {
-              "id": "01000000000000000000000001",
-              "name": "Ground floor",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001J",
-                "width": 4096,
-                "height": 4096,
-                "tileSize": 512,
-                "maxZoom": 3
-              },
-              "gmMap": null,
-              "fogEnabled": true,
-              "fogPrefill": false,
-              "partyStart": {
-                "x": 640,
-                "y": 320
-              }
-            },
-            {
-              "id": "01000000000000000000000002",
-              "name": "Cellar, flooded",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001K",
-                "width": 2048,
-                "height": 2048,
-                "tileSize": 512,
-                "maxZoom": 2
-              },
-              "gmMap": null,
-              "fogEnabled": false,
-              "fogPrefill": true,
-              "partyStart": null
-            }
-          ],
-          "palette": [],
-          "activeLayer": "01000000000000000000000001",
-          "grid": {
-            "type": "square",
-            "lines": "solid",
-            "cellSize": 70,
-            "offsetX": -12,
-            "offsetY": 8,
-            "color": "#334455ff",
-            "snap": "cells",
-            "feetPerCell": 5,
-            "units": "feet",
-            "diagonals": "equal",
-            "numbered": false
-          },
-          "pawnLabels": "default",
-          "playersCanDraw": true,
-          "playersCanStamp": false,
-          "initiativeGrouping": "grouped",
-          "fogPrefill": false
-        },
-        "players": [
-          {
-            "id": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "avatar": "",
-            "characterId": null,
-            "characterName": "",
-            "role": "gm",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZA",
-            "name": "Ari",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZC",
-            "characterName": "Ilyana",
-            "role": "player",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZB",
-            "name": "Rin",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZD",
-            "characterName": "Brannor",
-            "role": "player",
-            "connected": true
-          }
-        ],
-        "pawns": [
-          {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          },
-          {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 723,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [
-              {
-                "id": "0100000000000000000000000M",
-                "name": "Prone",
-                "color": "white",
-                "duration": -1,
-                "clear": "end"
-              },
-              {
-                "id": "0100000000000000000000000N",
-                "name": "Blessed",
-                "color": "yellow",
-                "duration": 2,
-                "clear": "start"
-              }
-            ],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          },
-          {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000001",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
-          }
-        ],
-        "initiative": {
-          "entries": [
-            {
-              "id": "0100000000000000000000000D",
-              "pawnIds": [],
-              "name": "Lair action",
-              "initiative": 3
-            },
-            {
-              "id": "0100000000000000000000000C",
-              "pawnIds": [
-                "01000000000000000000000005"
-              ],
-              "name": "Goblin",
-              "initiative": 4
-            },
-            {
-              "id": "0100000000000000000000000B",
-              "pawnIds": [
-                "01000000000000000000000003"
-              ],
-              "name": "Ari",
-              "initiative": 4
-            }
-          ],
-          "active": "0100000000000000000000000D",
-          "round": 2
-        },
-        "fog": [
-          {
-            "id": "0100000000000000000000000R",
-            "layerId": "01000000000000000000000001",
-            "kind": "poly",
-            "mode": "reveal",
-            "points": [
-              1024,
-              400,
-              1400,
-              400,
-              1400,
-              560,
-              1024,
-              560
-            ]
-          }
-        ],
-        "strokes": [
-          {
-            "id": "010000000000000000000000W4",
-            "by": "010000000000000000000000Z9",
-            "layerId": "01000000000000000000000001",
-            "kind": "free",
-            "color": "#ff0000ff",
-            "width": 6,
-            "points": [
-              100,
-              100,
-              140,
-              130,
-              180,
-              170,
-              220,
-              190
-            ],
-            "done": true
-          }
-        ],
-        "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
-        "rolls": [
-          {
-            "id": "0100000000000000000000000E",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 4,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000F",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 1,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 5,
-                "sign": 1,
-                "kept": false
-              },
-              {
-                "sides": 20,
-                "value": 6,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 13
-          },
-          {
-            "id": "0100000000000000000000000G",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword damage",
-            "expr": "1d8 + 4",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 8,
-                "value": 7,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 4,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000K",
-            "by": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "gm": true,
-            "label": "",
-            "expr": "1d20 - 1",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 10,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": -1,
-            "total": 9
-          }
-        ],
-        "music": {
-          "trackId": "010000000000000000000000ZF",
-          "name": "Tavern Brawl",
-          "playing": false,
-          "loop": false,
-          "at": 0,
-          "since": 0
-        }
-      }
-    },
-    {
-      "name": "the standing stones get a note too",
-      "frames": [],
-      "state": {
-        "schema": 3,
-        "seq": 0,
-        "room": {
-          "id": "010000000000000000000000Z8",
-          "name": "The Sunless Citadel",
-          "locked": true
-        },
-        "table": {
-          "layers": [
-            {
-              "id": "01000000000000000000000001",
-              "name": "Ground floor",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001J",
-                "width": 4096,
-                "height": 4096,
-                "tileSize": 512,
-                "maxZoom": 3
-              },
-              "gmMap": null,
-              "fogEnabled": true,
-              "fogPrefill": false,
-              "partyStart": {
-                "x": 640,
-                "y": 320
-              }
-            },
-            {
-              "id": "01000000000000000000000002",
-              "name": "Cellar, flooded",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001K",
-                "width": 2048,
-                "height": 2048,
-                "tileSize": 512,
-                "maxZoom": 2
-              },
-              "gmMap": null,
-              "fogEnabled": false,
-              "fogPrefill": true,
-              "partyStart": null
-            }
-          ],
-          "palette": [],
-          "activeLayer": "01000000000000000000000001",
-          "grid": {
-            "type": "square",
-            "lines": "solid",
-            "cellSize": 70,
-            "offsetX": -12,
-            "offsetY": 8,
-            "color": "#334455ff",
-            "snap": "cells",
-            "feetPerCell": 5,
-            "units": "feet",
-            "diagonals": "equal",
-            "numbered": false
-          },
-          "pawnLabels": "default",
-          "playersCanDraw": true,
-          "playersCanStamp": false,
-          "initiativeGrouping": "grouped",
-          "fogPrefill": false
-        },
-        "players": [
-          {
-            "id": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "avatar": "",
-            "characterId": null,
-            "characterName": "",
-            "role": "gm",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZA",
-            "name": "Ari",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZC",
-            "characterName": "Ilyana",
-            "role": "player",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZB",
-            "name": "Rin",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZD",
-            "characterName": "Brannor",
-            "role": "player",
-            "connected": true
-          }
-        ],
-        "pawns": [
-          {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          },
-          {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 723,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [
-              {
-                "id": "0100000000000000000000000M",
-                "name": "Prone",
-                "color": "white",
-                "duration": -1,
-                "clear": "end"
-              },
-              {
-                "id": "0100000000000000000000000N",
-                "name": "Blessed",
-                "color": "yellow",
-                "duration": 2,
-                "clear": "start"
-              }
-            ],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          },
-          {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000001",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
-          }
-        ],
-        "initiative": {
-          "entries": [
-            {
-              "id": "0100000000000000000000000D",
-              "pawnIds": [],
-              "name": "Lair action",
-              "initiative": 3
-            },
-            {
-              "id": "0100000000000000000000000C",
-              "pawnIds": [
-                "01000000000000000000000005"
-              ],
-              "name": "Goblin",
-              "initiative": 4
-            },
-            {
-              "id": "0100000000000000000000000B",
-              "pawnIds": [
-                "01000000000000000000000003"
-              ],
-              "name": "Ari",
-              "initiative": 4
-            }
-          ],
-          "active": "0100000000000000000000000D",
-          "round": 2
-        },
-        "fog": [
-          {
-            "id": "0100000000000000000000000R",
-            "layerId": "01000000000000000000000001",
-            "kind": "poly",
-            "mode": "reveal",
-            "points": [
-              1024,
-              400,
-              1400,
-              400,
-              1400,
-              560,
-              1024,
-              560
-            ]
-          }
-        ],
-        "strokes": [
-          {
-            "id": "010000000000000000000000W4",
-            "by": "010000000000000000000000Z9",
-            "layerId": "01000000000000000000000001",
-            "kind": "free",
-            "color": "#ff0000ff",
-            "width": 6,
-            "points": [
-              100,
-              100,
-              140,
-              130,
-              180,
-              170,
-              220,
-              190
-            ],
-            "done": true
-          }
-        ],
-        "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
-        "rolls": [
-          {
-            "id": "0100000000000000000000000E",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 4,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000F",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword",
-            "expr": "1d20 + 7",
-            "adv": 1,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 5,
-                "sign": 1,
-                "kept": false
-              },
-              {
-                "sides": 20,
-                "value": 6,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 7,
-            "total": 13
-          },
-          {
-            "id": "0100000000000000000000000G",
-            "by": "010000000000000000000000ZA",
-            "name": "Ilyana",
-            "gm": false,
-            "label": "Longsword damage",
-            "expr": "1d8 + 4",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 8,
-                "value": 7,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": 4,
-            "total": 11
-          },
-          {
-            "id": "0100000000000000000000000K",
-            "by": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "gm": true,
-            "label": "",
-            "expr": "1d20 - 1",
-            "adv": 0,
-            "secret": false,
-            "dice": [
-              {
-                "sides": 20,
-                "value": 10,
-                "sign": 1,
-                "kept": true
-              }
-            ],
-            "mod": -1,
-            "total": 9
-          }
-        ],
-        "music": {
-          "trackId": "010000000000000000000000ZF",
-          "name": "Tavern Brawl",
-          "playing": false,
-          "loop": false,
-          "at": 0,
-          "since": 0
-        }
-      }
-    },
-    {
-      "name": "and that one is rubbed out again",
-      "frames": [],
-      "state": {
-        "schema": 3,
-        "seq": 0,
-        "room": {
-          "id": "010000000000000000000000Z8",
-          "name": "The Sunless Citadel",
-          "locked": true
-        },
-        "table": {
-          "layers": [
-            {
-              "id": "01000000000000000000000001",
-              "name": "Ground floor",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001J",
-                "width": 4096,
-                "height": 4096,
-                "tileSize": 512,
-                "maxZoom": 3
-              },
-              "gmMap": null,
-              "fogEnabled": true,
-              "fogPrefill": false,
-              "partyStart": {
-                "x": 640,
-                "y": 320
-              }
-            },
-            {
-              "id": "01000000000000000000000002",
-              "name": "Cellar, flooded",
-              "map": {
-                "assetId": "010000000000000000000000ZE",
-                "gen": "0100000000000000000000001K",
-                "width": 2048,
-                "height": 2048,
-                "tileSize": 512,
-                "maxZoom": 2
-              },
-              "gmMap": null,
-              "fogEnabled": false,
-              "fogPrefill": true,
-              "partyStart": null
-            }
-          ],
-          "palette": [],
-          "activeLayer": "01000000000000000000000001",
-          "grid": {
-            "type": "square",
-            "lines": "solid",
-            "cellSize": 70,
-            "offsetX": -12,
-            "offsetY": 8,
-            "color": "#334455ff",
-            "snap": "cells",
-            "feetPerCell": 5,
-            "units": "feet",
-            "diagonals": "equal",
-            "numbered": false
-          },
-          "pawnLabels": "default",
-          "playersCanDraw": true,
-          "playersCanStamp": false,
-          "initiativeGrouping": "grouped",
-          "fogPrefill": false
-        },
-        "players": [
-          {
-            "id": "010000000000000000000000Z9",
-            "name": "Kyle",
-            "avatar": "",
-            "characterId": null,
-            "characterName": "",
-            "role": "gm",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZA",
-            "name": "Ari",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZC",
-            "characterName": "Ilyana",
-            "role": "player",
-            "connected": true
-          },
-          {
-            "id": "010000000000000000000000ZB",
-            "name": "Rin",
-            "avatar": "",
-            "characterId": "010000000000000000000000ZD",
-            "characterName": "Brannor",
-            "role": "player",
-            "connected": true
-          }
-        ],
-        "pawns": [
-          {
-            "id": "01000000000000000000000003",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Ari",
-            "image": "/assets/ari.webp",
-            "x": 443,
-            "y": 323,
-            "z": 1,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 11,
-            "maxHp": 14,
-            "hpBand": null,
-            "ac": 16,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZA",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZC"
-          },
-          {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
-            "id": "01000000000000000000000005",
-            "kind": "monster",
-            "layerId": "01000000000000000000000001",
-            "name": "Goblin",
-            "image": "/assets/goblin.webp",
-            "x": 723,
-            "y": 323,
-            "z": 3,
-            "size": "small",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 3,
-            "maxHp": 7,
-            "hpBand": "bloody",
-            "ac": null,
-            "conditions": [
-              {
-                "id": "0100000000000000000000000M",
-                "name": "Prone",
-                "color": "white",
-                "duration": -1,
-                "clear": "end"
-              },
-              {
-                "id": "0100000000000000000000000N",
-                "name": "Blessed",
-                "color": "yellow",
-                "duration": 2,
-                "clear": "start"
-              }
-            ],
-            "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
-            "characterId": null
-          },
-          {
-            "id": "01000000000000000000000007",
-            "kind": "object",
-            "layerId": "01000000000000000000000001",
-            "name": "Wagon",
-            "image": "/assets/wagon.webp",
-            "x": 480,
-            "y": 480,
-            "z": 5,
-            "size": "",
-            "width": 96,
-            "height": 320,
-            "rotation": 270,
-            "visible": true,
-            "hp": 30,
-            "maxHp": 30,
-            "hpBand": null,
-            "ac": 12,
-            "conditions": [],
-            "ownerId": null,
-            "monsterId": null,
-            "characterId": null
-          }
-        ],
-        "initiative": {
-          "entries": [
-            {
-              "id": "0100000000000000000000000D",
-              "pawnIds": [],
-              "name": "Lair action",
-              "initiative": 3
-            },
-            {
-              "id": "0100000000000000000000000C",
-              "pawnIds": [
-                "01000000000000000000000005"
-              ],
-              "name": "Goblin",
-              "initiative": 4
-            },
-            {
-              "id": "0100000000000000000000000B",
-              "pawnIds": [
-                "01000000000000000000000003"
-              ],
-              "name": "Ari",
-              "initiative": 4
-            }
-          ],
-          "active": "0100000000000000000000000D",
-          "round": 2
-        },
-        "fog": [
-          {
-            "id": "0100000000000000000000000R",
-            "layerId": "01000000000000000000000001",
-            "kind": "poly",
-            "mode": "reveal",
-            "points": [
-              1024,
-              400,
-              1400,
-              400,
-              1400,
-              560,
-              1024,
-              560
-            ]
-          }
-        ],
-        "strokes": [
-          {
-            "id": "010000000000000000000000W4",
-            "by": "010000000000000000000000Z9",
-            "layerId": "01000000000000000000000001",
-            "kind": "free",
-            "color": "#ff0000ff",
-            "width": 6,
-            "points": [
-              100,
-              100,
-              140,
-              130,
-              180,
-              170,
-              220,
-              190
-            ],
-            "done": true
-          }
-        ],
-        "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -24061,7 +22441,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 66,
+          "seq": 65,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -24323,16 +22703,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -24436,7 +22806,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 67,
+          "seq": 66,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -24691,16 +23061,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -24804,7 +23164,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 68,
+          "seq": 67,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -25179,16 +23539,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -25292,7 +23642,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 69,
+          "seq": 68,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -25599,16 +23949,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -25712,7 +24052,7 @@
       "frames": [
         {
           "type": "snapshot",
-          "seq": 69,
+          "seq": 68,
           "by": "010000000000000000000000ZA",
           "state": {
             "schema": 3,
@@ -25987,16 +24327,6 @@
               }
             ],
             "tiles": [],
-            "notes": [
-              {
-                "layerId": "01000000000000000000000001",
-                "q": 0,
-                "r": 0,
-                "title": "Ruined tower",
-                "body": "An owlbear nests on the top floor.",
-                "revealed": true
-              }
-            ],
             "rolls": [
               {
                 "id": "0100000000000000000000000E",
@@ -26375,16 +24705,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -26759,16 +25079,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -26872,7 +25182,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 70,
+          "seq": 69,
           "events": [
             {
               "type": "players.upserted",
@@ -27164,16 +25474,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -27277,7 +25577,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 71,
+          "seq": 70,
           "events": [
             {
               "type": "players.upserted",
@@ -27569,16 +25869,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -27682,7 +25972,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 72,
+          "seq": 71,
           "events": [
             {
               "type": "players.upserted",
@@ -27983,16 +26273,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -28096,7 +26376,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 73,
+          "seq": 72,
           "events": [
             {
               "type": "players.removed",
@@ -28380,16 +26660,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -28493,7 +26763,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 74,
+          "seq": 73,
           "events": [
             {
               "type": "players.upserted",
@@ -28813,16 +27083,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -28926,7 +27186,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 75,
+          "seq": 74,
           "events": [
             {
               "type": "pawns.upserted",
@@ -29247,16 +27507,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -29360,7 +27610,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 76,
+          "seq": 75,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -29668,16 +27918,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -29781,7 +28021,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 77,
+          "seq": 76,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -30043,16 +28283,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -30156,7 +28386,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 78,
+          "seq": 77,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -30382,16 +28612,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -30495,7 +28715,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 79,
+          "seq": 78,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -30702,16 +28922,6 @@
           }
         ],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -30815,7 +29025,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 80,
+          "seq": 79,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31002,16 +29212,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -31115,7 +29315,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 81,
+          "seq": 80,
           "events": [
             {
               "type": "players.upserted",
@@ -31292,16 +29492,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -31405,7 +29595,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 82,
+          "seq": 81,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31560,16 +29750,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -31673,7 +29853,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 83,
+          "seq": 82,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31830,16 +30010,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -31943,7 +30113,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 84,
+          "seq": 83,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -32086,16 +30256,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [
-          {
-            "layerId": "01000000000000000000000001",
-            "q": 0,
-            "r": 0,
-            "title": "Ruined tower",
-            "body": "An owlbear nests on the top floor.",
-            "revealed": true
-          }
-        ],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -32199,19 +30359,9 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 85,
+          "seq": 84,
           "by": "010000000000000000000000Z9",
           "events": [
-            {
-              "type": "notes.removed",
-              "layer": "01000000000000000000000001",
-              "cells": [
-                {
-                  "q": 0,
-                  "r": 0
-                }
-              ]
-            },
             {
               "type": "pawns.removed",
               "ids": [
@@ -32237,7 +30387,7 @@
         },
         {
           "type": "table.cleared",
-          "seq": 85,
+          "seq": 84,
           "by": "010000000000000000000000Z9"
         }
       ],
@@ -32311,7 +30461,6 @@
         "fog": [],
         "strokes": [],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -32415,7 +30564,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 86,
+          "seq": 85,
           "events": [
             {
               "type": "fog.upserted",
@@ -32554,7 +30703,7 @@
         },
         {
           "type": "table.cleared",
-          "seq": 86
+          "seq": 85
         }
       ],
       "state": {
@@ -32710,7 +30859,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -32814,7 +30962,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 87,
+          "seq": 86,
           "events": [
             {
               "type": "room.updated",
@@ -32980,7 +31128,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
@@ -33084,7 +31231,7 @@
       "frames": [
         {
           "type": "room.closed",
-          "seq": 87
+          "seq": 86
         }
       ],
       "state": {
@@ -33240,7 +31387,6 @@
           }
         ],
         "tiles": [],
-        "notes": [],
         "rolls": [
           {
             "id": "0100000000000000000000000E",
