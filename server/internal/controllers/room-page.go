@@ -47,6 +47,7 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 		TurnAlert:     sess.Prefs.TurnAlert,
 		TurnVolume:    sess.Prefs.TurnVolume,
 		TurnNotify:    sess.Prefs.TurnNotify,
+		MusicVolume:   sess.Prefs.MusicVolume,
 	}))
 }
 func (a *App) LockRoom(w http.ResponseWriter, r *http.Request) {

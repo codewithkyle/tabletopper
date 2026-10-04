@@ -40,6 +40,7 @@ type AccountSettingsData struct {
 	TurnAlert   bool
 	TurnVolume  int
 	TurnNotify  bool
+	MusicVolume int
 	Storage     string
 }
 
@@ -49,8 +50,9 @@ var (
 )
 
 const (
-	PingVolumeOutputID = "ping-volume-value"
-	TurnVolumeOutputID = "turn-volume-value"
+	PingVolumeOutputID  = "ping-volume-value"
+	TurnVolumeOutputID  = "turn-volume-value"
+	MusicVolumeOutputID = "music-volume-value"
 )
 
 func (d AccountSettingsData) PingVolumeValue() string {
@@ -58,4 +60,7 @@ func (d AccountSettingsData) PingVolumeValue() string {
 }
 func (d AccountSettingsData) TurnVolumeValue() string {
 	return strconv.Itoa(d.TurnVolume)
+}
+func (d AccountSettingsData) MusicVolumeValue() string {
+	return strconv.Itoa(d.MusicVolume)
 }

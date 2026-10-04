@@ -42,9 +42,10 @@ func testAccountSettings() AccountSettingsData {
 			{Value: "12h", Label: "12-hour (2:04 PM)"},
 			{Value: "24h", Label: "24-hour (14:04)"},
 		},
-		TimeFormat: "24h",
-		FollowTurn: true,
-		ShowBlood:  true,
+		TimeFormat:  "24h",
+		FollowTurn:  true,
+		ShowBlood:   true,
+		MusicVolume: prefs.MusicVolumeDefault,
 	}
 }
 func renderSettings(t *testing.T) string {
@@ -231,6 +232,8 @@ func TestTheWelcomeAndSettingsDialogsOfferTheSameFields(t *testing.T) {
 		`name="follow_turn"`,
 		`name="show_blood"`,
 		`name="ping_volume"`,
+		`name="turn_volume"`,
+		`name="music_volume"`,
 		`<optgroup label="Americas">`,
 		`<option value="dark" selected>Dark</option>`,
 		`<option value="America/Chicago" selected>Chicago</option>`,
@@ -334,7 +337,7 @@ func TestEveryPositionOnTheSliderCanBeSaved(t *testing.T) {
 }
 func TestTheWelcomeDialogCarriesBothTableToggles(t *testing.T) {
 	welcome := collapseWhitespace(renderWelcome(t))
-	for _, field := range []string{"follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify"} {
+	for _, field := range []string{"follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify", "music_volume"} {
 		if !strings.Contains(welcome, `name="`+field+`"`) {
 			t.Errorf("the welcome dialog would post no answer for %s, which its save writes", field)
 		}
@@ -418,19 +421,122 @@ func TestTheOnDeckAlertHasBothItsToggleAndItsVolume(t *testing.T) {
 		}
 	}
 }
-func TestTheTwoVolumeSlidersReadIntoDifferentPlaces(t *testing.T) {
-	if PingVolumeOutputID == TurnVolumeOutputID {
-		t.Fatal("both sliders write into one reading")
+func TestEveryVolumeSliderReadsIntoItsOwnPlace(t *testing.T) {
+	ids := map[string]string{
+		"ping":  PingVolumeOutputID,
+		"turn":  TurnVolumeOutputID,
+		"music": MusicVolumeOutputID,
+	}
+	seen := map[string]string{}
+	for name, id := range ids {
+		if other, taken := seen[id]; taken {
+			t.Fatalf("%s and %s write into one reading", name, other)
+		}
+		seen[id] = name
 	}
 	data := testAccountSettings()
 	data.PingVolume = 30
 	data.TurnVolume = 70
-	markup := collapseWhitespace(markup(t, AccountSettingsFragment(data)))
-	if !strings.Contains(markup, `<span data-range-value>30</span>%`) {
-		t.Errorf("the ping reading did not open on 30\n%s", markup)
+	data.MusicVolume = 45
+	rendered := collapseWhitespace(markup(t, AccountSettingsFragment(data)))
+	for _, want := range []int{30, 70, 45} {
+		if !strings.Contains(rendered, `<span data-range-value>`+strconv.Itoa(want)+`</span>%`) {
+			t.Errorf("no reading opened on %d\n%s", want, rendered)
+		}
 	}
-	if !strings.Contains(markup, `<span data-range-value>70</span>%`) {
-		t.Errorf("the turn reading did not open on 70\n%s", markup)
+}
+func TestTheMusicSliderOpensOnAQuarterForANewAccount(t *testing.T) {
+	if prefs.Default.MusicVolume != 25 {
+		t.Errorf("a new account's music volume = %d, want 25", prefs.Default.MusicVolume)
+	}
+	if prefs.MusicVolumeDefault%prefs.VolumeStep != 0 {
+		t.Errorf("the default %d is not a position the slider can land on, which is every %d", prefs.MusicVolumeDefault, prefs.VolumeStep)
+	}
+	if _, ok := prefs.ParseVolume(strconv.Itoa(prefs.MusicVolumeDefault), 0); !ok {
+		t.Errorf("the save refuses the default the slider opens on")
+	}
+}
+func TestOnlyTheSynthesisedSoundsPreviewThemselves(t *testing.T) {
+	rendered := collapseWhitespace(renderSettings(t))
+	for _, kind := range []string{"ping", "turn"} {
+		if !strings.Contains(rendered, `data-sound-preview="`+kind+`"`) {
+			t.Errorf("the %s slider previews nothing when it is let go\n%s", kind, rendered)
+		}
+	}
+	if got := strings.Count(rendered, "data-sound-preview="); got != 2 {
+		t.Errorf("%d sliders preview themselves, want the two the browser synthesises\n%s", got, rendered)
+	}
+	musicAt := strings.Index(rendered, `name="music_volume"`)
+	if musicAt < 0 {
+		t.Fatalf("no music slider\n%s", rendered)
+	}
+	tag := rendered[musicAt:]
+	if end := strings.Index(tag, ">"); end >= 0 {
+		tag = tag[:end]
+	}
+	if strings.Contains(tag, "data-sound-preview") {
+		t.Errorf("the music slider previews itself, but there is no track to play\n%s", tag)
+	}
+	if strings.Contains(rendered, ">Test<") {
+		t.Errorf("a test button survived\n%s", rendered)
+	}
+}
+func TestOnlyTheSoundsThatNeedExplainingCarryADescription(t *testing.T) {
+	rendered := collapseWhitespace(renderSettings(t))
+	if strings.Contains(rendered, `for="music-volume"</label><p`) {
+		t.Errorf("the music slider carries a description it does not need\n%s", rendered)
+	}
+	if got := strings.Count(rendered, `<p class="m-0 text-sm text-base-content/75">How loud`); got != 2 {
+		t.Errorf("%d volume sliders explain themselves, want the two that are not obvious\n%s", got, rendered)
+	}
+}
+func TestTheSettingsSplitIntoTwoColumnsWithTheWideRowsSpanningThem(t *testing.T) {
+	rendered := collapseWhitespace(renderSettings(t))
+	if got := strings.Count(rendered, "sm:grid-cols-2"); got != 2 {
+		t.Errorf("%d two-column grids, want the fields and the sounds\n%s", got, rendered)
+	}
+	if !strings.Contains(rendered, "sm:col-span-2") {
+		t.Errorf("the third slider does not span the two columns beside it\n%s", rendered)
+	}
+	data := testAccountSettings()
+	data.Storage = "1.5 GB"
+	full := markup(t, AccountSettingsFragment(data))
+	soundsAt := strings.Index(full, "music_volume")
+	storageAt := strings.Index(full, "Storage used")
+	actionsAt := strings.Index(full, "modal-action")
+	switch {
+	case storageAt < 0:
+		t.Fatalf("no usage row\n%s", full)
+	case storageAt < soundsAt:
+		t.Errorf("the usage row sits inside the columns rather than under them\n%s", full)
+	case storageAt > actionsAt:
+		t.Errorf("the usage row sits below the buttons\n%s", full)
+	}
+}
+func TestDeleteAccountSitsInTheActionRowLeftOfClose(t *testing.T) {
+	rendered := renderSettings(t)
+	actionsAt := strings.Index(rendered, "modal-action")
+	deleteAt := strings.Index(rendered, ">Delete account<")
+	closeAt := strings.Index(rendered, ">Close<")
+	saveAt := strings.Index(rendered, ">Save settings<")
+	switch {
+	case deleteAt < 0:
+		t.Fatalf("no way to delete the account\n%s", rendered)
+	case deleteAt < actionsAt:
+		t.Errorf("Delete account is above the action row\n%s", rendered)
+	case deleteAt > closeAt:
+		t.Errorf("Delete account is not to the left of Close\n%s", rendered)
+	case closeAt > saveAt:
+		t.Errorf("Close comes after the affirmative action\n%s", rendered)
+	}
+	if !strings.Contains(rendered, `hx-params="none"`) {
+		t.Errorf("the delete posts the settings form it now sits inside\n%s", rendered)
+	}
+	if !strings.Contains(rendered, `data-confirm-label="Delete my account"`) {
+		t.Errorf("the delete is not gated by a confirm\n%s", rendered)
+	}
+	if strings.Contains(renderWelcome(t), ">Delete account<") {
+		t.Error("the welcome dialog offers to delete the account it just made")
 	}
 }
 func TestTheNotificationToggleOwnsTheHintAboutBeingRefused(t *testing.T) {

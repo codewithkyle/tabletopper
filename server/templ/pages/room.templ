@@ -52,6 +52,7 @@ templ roomContent(data RoomPageData) {
 				}
 				data-ping-volume={ data.PingVolumeAttr() }
 				data-turn-volume={ data.TurnVolumeAttr() }
+				data-music-level={ data.MusicVolumeAttr() }
 				if data.TurnAlert {
 					data-turn-alert
 				}

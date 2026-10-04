@@ -16,17 +16,18 @@ import (
 
 func settingsForm() url.Values {
 	return url.Values{
-		"username":    {"kyle"},
-		"theme":       {"dark"},
-		"timezone":    {"Europe/London"},
-		"date_format": {"iso"},
-		"time_format": {"24h"},
-		"follow_turn": {"on"},
-		"show_blood":  {"on"},
-		"ping_volume": {"40"},
-		"turn_alert":  {"on"},
-		"turn_volume": {"70"},
-		"turn_notify": {"on"},
+		"username":     {"kyle"},
+		"theme":        {"dark"},
+		"timezone":     {"Europe/London"},
+		"date_format":  {"iso"},
+		"time_format":  {"24h"},
+		"follow_turn":  {"on"},
+		"show_blood":   {"on"},
+		"ping_volume":  {"40"},
+		"turn_alert":   {"on"},
+		"turn_volume":  {"70"},
+		"turn_notify":  {"on"},
+		"music_volume": {"25"},
 	}
 }
 func saveSettings(t *testing.T, db *recordingDB, form url.Values) *httptest.ResponseRecorder {
@@ -95,7 +96,7 @@ func TestAValidSaveWritesEveryPreferenceColumnOnce(t *testing.T) {
 		t.Fatalf("statements run = %d, want 1\n%v", len(db.calls), db.calls)
 	}
 	call := db.calls[0]
-	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify"}; !equalStrings(setColumns(t, call.query), want) {
+	if want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify", "music_volume"}; !equalStrings(setColumns(t, call.query), want) {
 		t.Errorf("wrote %v, want %v", setColumns(t, call.query), want)
 	}
 	wantArgs := []any{
@@ -110,6 +111,7 @@ func TestAValidSaveWritesEveryPreferenceColumnOnce(t *testing.T) {
 		true,
 		uint8(70),
 		true,
+		uint8(25),
 		testOwnerID,
 	}
 	if len(call.args) != len(wantArgs) {
@@ -268,7 +270,7 @@ func TestFinishingTheWelcomeWritesTheSettingsAndTheStampTogether(t *testing.T) {
 	if len(db.calls) != 1 {
 		t.Fatalf("statements run = %d, want 1", len(db.calls))
 	}
-	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify", "onboarded_at"}
+	want := []string{"username", "theme", "timezone", "date_format", "time_format", "follow_turn", "show_blood", "ping_volume", "turn_alert", "turn_volume", "turn_notify", "music_volume", "onboarded_at"}
 	if got := setColumns(t, db.calls[0].query); !equalStrings(got, want) {
 		t.Errorf("wrote %v, want %v", got, want)
 	}
@@ -438,7 +440,7 @@ func TestTheRoomIsToldAboutTheOnDeckAlertWithoutAReload(t *testing.T) {
 func TestAVolumeTheSliderCannotLandOnIsRefused(t *testing.T) {
 	db := &recordingDB{rows: 1}
 	form := settingsForm()
-	form.Set("turn_volume", "35")
+	form.Set("turn_volume", "37")
 	rec := saveSettings(t, db, form)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want 422\n%s", rec.Code, rec.Body.String())

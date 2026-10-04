@@ -55,7 +55,8 @@ jobs:
             server/public/css/app.css \
             server/public/static/room.js \
             server/public/static/room.js.map \
-            server/public/static/journal-editor.js
+            server/public/static/journal-editor.js \
+            server/public/static/sound-preview.js
 
       - name: Build the image
         run: docker build -f server/Dockerfile -t codewithkyle/tabletopper:prod .

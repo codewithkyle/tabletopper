@@ -342,7 +342,7 @@ func TestAVolumeFromOutsideTheSliderIsBroughtOntoIt(t *testing.T) {
 	}
 }
 func TestAVolumeOffTheStepIsRefusedRatherThanRounded(t *testing.T) {
-	if _, ok := ParseVolume("35", Default.TurnVolume); ok {
+	if _, ok := ParseVolume("37", Default.TurnVolume); ok {
 		t.Error("ParseVolume accepted a value the slider cannot land on")
 	}
 	if _, ok := ParseVolume("110", Default.TurnVolume); ok {

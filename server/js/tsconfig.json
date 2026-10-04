@@ -15,5 +15,5 @@
 		"types": ["node"],
 		"forceConsistentCasingInFileNames": true
 	},
-	"include": ["room/**/*.ts"]
+	"include": ["*.ts", "room/**/*.ts"]
 }

@@ -53,7 +53,7 @@ templ homepageContent(session session.UserSession) {
 				</div>
 			</div>
 			if !session.Onboarded {
-				<div hidden data-modal-autoopen="/fragment/account/welcome"></div>
+				<div hidden data-modal-autoopen="/fragment/account/welcome" data-modal-size="xl"></div>
 			}
 			<nav class="mt-[4vh] inline-block pl-4">
 				if session.RoomID != nil {
@@ -78,6 +78,7 @@ templ footer(signedIn bool) {
 					type="button"
 					class="btn btn-ghost btn-circle"
 					data-modal-open={ AccountSettingsPath }
+					data-modal-size="xl"
 				>
 					@settingsIcon()
 				</button>

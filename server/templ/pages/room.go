@@ -40,10 +40,14 @@ type RoomPageData struct {
 	TurnAlert     bool
 	TurnVolume    int
 	TurnNotify    bool
+	MusicVolume   int
 }
 
 func (d RoomPageData) PingVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampVolume(d.PingVolume))
+}
+func (d RoomPageData) MusicVolumeAttr() string {
+	return strconv.Itoa(prefs.ClampVolume(d.MusicVolume))
 }
 func (d RoomPageData) TurnVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampVolume(d.TurnVolume))

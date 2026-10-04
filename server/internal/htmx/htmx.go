@@ -64,13 +64,14 @@ func Theme(w http.ResponseWriter, palette string) {
 func Settings(w http.ResponseWriter, name string, p prefs.Preferences) {
 	trigger(w, map[string]any{
 		uievents.SettingsChange: map[string]any{
-			"name":       name,
-			"followTurn": p.FollowTurn,
-			"showBlood":  p.ShowBlood,
-			"pingVolume": p.PingVolume,
-			"turnAlert":  p.TurnAlert,
-			"turnVolume": p.TurnVolume,
-			"turnNotify": p.TurnNotify,
+			"name":        name,
+			"followTurn":  p.FollowTurn,
+			"showBlood":   p.ShowBlood,
+			"pingVolume":  p.PingVolume,
+			"turnAlert":   p.TurnAlert,
+			"turnVolume":  p.TurnVolume,
+			"turnNotify":  p.TurnNotify,
+			"musicVolume": p.MusicVolume,
 		},
 	})
 }

@@ -1,4 +1,4 @@
-import { ALERT } from "../../public/js/events.js";
+import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { read, store } from "./model/storage.ts";
 import type { Event, Role, State } from "./protocol.ts";
 const VOLUME_KEY = "music:volume";
@@ -42,7 +42,9 @@ export function mountMusic(mount: HTMLElement, state: State, role: Role): MusicP
 	const audio = found;
 	const room = mount.dataset.room ?? "";
 	let skew = 0;
-	let volume = clampVolume(read<number>(VOLUME_KEY) ?? FULL);
+	const saved = Number.parseInt(mount.dataset.musicLevel ?? "", 10);
+	const preferred = Number.isFinite(saved) ? saved : FULL;
+	let volume = clampVolume(read<number>(VOLUME_KEY) ?? preferred);
 	let blocked = false;
 	let waking = false;
 	audio.volume = volume / FULL;
@@ -299,6 +301,18 @@ export function mountMusic(mount: HTMLElement, state: State, role: Role): MusicP
 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: `track=${encodeURIComponent(music.trackId)}`,
 		}).catch(() => {});
+	});
+	function setVolume(percent: number): void {
+		volume = clampVolume(percent);
+		audio.volume = volume / FULL;
+		store(VOLUME_KEY, volume);
+		paint();
+	}
+	window.addEventListener(SETTINGS_CHANGE, (e) => {
+		const detail = (e as CustomEvent<{ musicVolume?: number }>).detail;
+		if (typeof detail?.musicVolume === "number") {
+			setVolume(detail.musicVolume);
+		}
 	});
 	document.addEventListener("input", onVolume);
 	document.addEventListener("click", onClick);

@@ -45,47 +45,51 @@ func (t Theme) Palette() string {
 const DefaultTimezone = "America/New_York"
 
 var Default = Preferences{
-	Theme:      ThemeSystem,
-	Timezone:   DefaultTimezone,
-	DateFormat: DateDMYText,
-	TimeFormat: Time12H,
-	FollowTurn: true,
-	ShowBlood:  true,
-	PingVolume: VolumeMax,
-	TurnAlert:  true,
-	TurnVolume: VolumeMax,
-	TurnNotify: false,
+	Theme:       ThemeSystem,
+	Timezone:    DefaultTimezone,
+	DateFormat:  DateDMYText,
+	TimeFormat:  Time12H,
+	FollowTurn:  true,
+	ShowBlood:   true,
+	PingVolume:  VolumeMax,
+	TurnAlert:   true,
+	TurnVolume:  VolumeMax,
+	TurnNotify:  false,
+	MusicVolume: MusicVolumeDefault,
 }
 
 const (
-	VolumeMax  = 100
-	VolumeStep = 10
+	VolumeMax          = 100
+	VolumeStep         = 5
+	MusicVolumeDefault = 25
 )
 
 type Preferences struct {
-	Theme      Theme
-	Timezone   string
-	DateFormat DateFormat
-	TimeFormat TimeFormat
-	FollowTurn bool
-	ShowBlood  bool
-	PingVolume int
-	TurnAlert  bool
-	TurnVolume int
-	TurnNotify bool
+	Theme       Theme
+	Timezone    string
+	DateFormat  DateFormat
+	TimeFormat  TimeFormat
+	FollowTurn  bool
+	ShowBlood   bool
+	PingVolume  int
+	TurnAlert   bool
+	TurnVolume  int
+	TurnNotify  bool
+	MusicVolume int
 }
 
 type Stored struct {
-	Theme      string
-	Timezone   string
-	DateFormat string
-	TimeFormat string
-	FollowTurn bool
-	ShowBlood  bool
-	PingVolume int
-	TurnAlert  bool
-	TurnVolume int
-	TurnNotify bool
+	Theme       string
+	Timezone    string
+	DateFormat  string
+	TimeFormat  string
+	FollowTurn  bool
+	ShowBlood   bool
+	PingVolume  int
+	TurnAlert   bool
+	TurnVolume  int
+	TurnNotify  bool
+	MusicVolume int
 }
 
 func New(row Stored) Preferences {
@@ -108,6 +112,7 @@ func New(row Stored) Preferences {
 	p.TurnAlert = row.TurnAlert
 	p.TurnVolume = ClampVolume(row.TurnVolume)
 	p.TurnNotify = row.TurnNotify
+	p.MusicVolume = ClampVolume(row.MusicVolume)
 	return p
 }
 func ClampVolume(v int) int {

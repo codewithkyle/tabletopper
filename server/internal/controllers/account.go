@@ -60,18 +60,19 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := a.Queries.UpdateUserPreferences(ctx, queries.UpdateUserPreferencesParams{
-		ID:         sess.UserID,
-		Username:   name,
-		Theme:      queries.UsersTheme(updated.Theme),
-		Timezone:   updated.Timezone,
-		DateFormat: queries.UsersDateFormat(updated.DateFormat),
-		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
-		FollowTurn: updated.FollowTurn,
-		ShowBlood:  updated.ShowBlood,
-		PingVolume: uint8(updated.PingVolume),
-		TurnAlert:  updated.TurnAlert,
-		TurnVolume: uint8(updated.TurnVolume),
-		TurnNotify: updated.TurnNotify,
+		ID:          sess.UserID,
+		Username:    name,
+		Theme:       queries.UsersTheme(updated.Theme),
+		Timezone:    updated.Timezone,
+		DateFormat:  queries.UsersDateFormat(updated.DateFormat),
+		TimeFormat:  queries.UsersTimeFormat(updated.TimeFormat),
+		FollowTurn:  updated.FollowTurn,
+		ShowBlood:   updated.ShowBlood,
+		PingVolume:  uint8(updated.PingVolume),
+		TurnAlert:   updated.TurnAlert,
+		TurnVolume:  uint8(updated.TurnVolume),
+		TurnNotify:  updated.TurnNotify,
+		MusicVolume: uint8(updated.MusicVolume),
 	})
 	if err != nil {
 		slog.Error("Failed to save account settings", "error", err)
@@ -114,18 +115,19 @@ func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err := a.Queries.CompleteOnboarding(ctx, queries.CompleteOnboardingParams{
-		ID:         sess.UserID,
-		Username:   name,
-		Theme:      queries.UsersTheme(updated.Theme),
-		Timezone:   updated.Timezone,
-		DateFormat: queries.UsersDateFormat(updated.DateFormat),
-		TimeFormat: queries.UsersTimeFormat(updated.TimeFormat),
-		FollowTurn: updated.FollowTurn,
-		ShowBlood:  updated.ShowBlood,
-		PingVolume: uint8(updated.PingVolume),
-		TurnAlert:  updated.TurnAlert,
-		TurnVolume: uint8(updated.TurnVolume),
-		TurnNotify: updated.TurnNotify,
+		ID:          sess.UserID,
+		Username:    name,
+		Theme:       queries.UsersTheme(updated.Theme),
+		Timezone:    updated.Timezone,
+		DateFormat:  queries.UsersDateFormat(updated.DateFormat),
+		TimeFormat:  queries.UsersTimeFormat(updated.TimeFormat),
+		FollowTurn:  updated.FollowTurn,
+		ShowBlood:   updated.ShowBlood,
+		PingVolume:  uint8(updated.PingVolume),
+		TurnAlert:   updated.TurnAlert,
+		TurnVolume:  uint8(updated.TurnVolume),
+		TurnNotify:  updated.TurnNotify,
+		MusicVolume: uint8(updated.MusicVolume),
 	})
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err)
@@ -196,6 +198,11 @@ func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string)
 		problems = append(problems, "Choose one of the offered turn alert volumes.")
 	}
 	p.TurnVolume = turnVolume
+	musicVolume, ok := prefs.ParseVolume(r.PostFormValue("music_volume"), prefs.Default.MusicVolume)
+	if !ok {
+		problems = append(problems, "Choose one of the offered music volumes.")
+	}
+	p.MusicVolume = musicVolume
 	return name, p, problems
 }
 func accountDisplayName(r *http.Request) (string, string) {
@@ -211,17 +218,18 @@ func accountDisplayName(r *http.Request) (string, string) {
 func accountSettingsData(name string, p prefs.Preferences, now time.Time) pages.AccountSettingsData {
 	local := now.In(p.Location())
 	data := pages.AccountSettingsData{
-		Name:       name,
-		Theme:      string(p.Theme),
-		Zone:       p.Timezone,
-		DateFormat: string(p.DateFormat),
-		TimeFormat: string(p.TimeFormat),
-		FollowTurn: p.FollowTurn,
-		ShowBlood:  p.ShowBlood,
-		PingVolume: p.PingVolume,
-		TurnAlert:  p.TurnAlert,
-		TurnVolume: p.TurnVolume,
-		TurnNotify: p.TurnNotify,
+		Name:        name,
+		Theme:       string(p.Theme),
+		Zone:        p.Timezone,
+		DateFormat:  string(p.DateFormat),
+		TimeFormat:  string(p.TimeFormat),
+		FollowTurn:  p.FollowTurn,
+		ShowBlood:   p.ShowBlood,
+		PingVolume:  p.PingVolume,
+		TurnAlert:   p.TurnAlert,
+		TurnVolume:  p.TurnVolume,
+		TurnNotify:  p.TurnNotify,
+		MusicVolume: p.MusicVolume,
 	}
 	for _, theme := range prefs.Themes() {
 		data.Themes = append(data.Themes, pages.Option{

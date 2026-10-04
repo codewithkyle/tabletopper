@@ -4,7 +4,7 @@ SELECT s.id, s.profile_image_url, s.user_id, s.character_id, s.room_id,
        u.username, u.avatar_asset_id,
        u.theme, u.timezone, u.date_format, u.time_format,
        u.follow_turn, u.show_blood, u.ping_volume,
-       u.turn_alert, u.turn_volume, u.turn_notify, u.onboarded_at
+       u.turn_alert, u.turn_volume, u.turn_notify, u.music_volume, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
 WHERE s.expires_at > NOW() AND s.hash = ? AND u.deleted_at IS NULL;

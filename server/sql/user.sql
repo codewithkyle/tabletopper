@@ -33,7 +33,8 @@ SET username = sqlc.arg(username),
     ping_volume = sqlc.arg(ping_volume),
     turn_alert = sqlc.arg(turn_alert),
     turn_volume = sqlc.arg(turn_volume),
-    turn_notify = sqlc.arg(turn_notify)
+    turn_notify = sqlc.arg(turn_notify),
+    music_volume = sqlc.arg(music_volume)
 WHERE id = sqlc.arg(id);
 -- name: CompleteOnboarding :exec
 UPDATE users
@@ -48,6 +49,7 @@ SET username = sqlc.arg(username),
     turn_alert = sqlc.arg(turn_alert),
     turn_volume = sqlc.arg(turn_volume),
     turn_notify = sqlc.arg(turn_notify),
+    music_volume = sqlc.arg(music_volume),
     onboarded_at = COALESCE(onboarded_at, NOW())
 WHERE id = sqlc.arg(id);
 -- name: DismissOnboarding :exec
