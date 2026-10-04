@@ -68,17 +68,38 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSHKEY }}
 
-      - name: Copy the image to the server
-        run: scp -o StrictHostKeyChecking=no ./tabletopper.tar.gz ${{ secrets.USERNAME }}@${{ secrets.HOST }}:~/
+      - name: Trust the host key
+        env:
+          HOST: ${{ secrets.HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
 
-      - name: Load the image so Watchtower picks it up
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          port: 22
-          key: ${{ secrets.SSHKEY }}
-          script: docker load -i ~/tabletopper.tar.gz && rm ~/tabletopper.tar.gz
+      - name: Copy the image to the server
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: scp ./tabletopper.tar.gz "$TARGET":~/
+
+      - name: Sync the migrations and the compose file
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: |
+          ssh "$TARGET" 'mkdir -p ~/tabletopper/db/migrations'
+          rsync -az --delete ./db/migrations/ "$TARGET":~/tabletopper/db/migrations/
+          rsync -az ./deploy/compose.yaml "$TARGET":~/tabletopper/compose.yaml
+
+      - name: Load the image and bring the stack up
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: |
+          ssh "$TARGET" bash -euo pipefail <<'REMOTE'
+          docker load -i ~/tabletopper.tar.gz
+          rm ~/tabletopper.tar.gz
+          cd ~/tabletopper
+          docker compose up -d --remove-orphans
+          docker compose ps
+          docker image prune -f
+          REMOTE
 
       - name: Purge the cache
         uses: nathanvaughn/actions-cloudflare-purge@master
