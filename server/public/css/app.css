@@ -5783,6 +5783,12 @@
   .peer-user-invalid\:block:is(:where(.peer):user-invalid ~ *) {
     display: block;
   }
+  .peer-user-invalid\/days\:block:is(:where(.peer\/days):user-invalid ~ *) {
+    display: block;
+  }
+  .peer-user-invalid\/password\:block:is(:where(.peer\/password):user-invalid ~ *) {
+    display: block;
+  }
   .peer-has-\[\:user-invalid\]\:block:is(:where(.peer):has(:is(:user-invalid)) ~ *) {
     display: block;
   }

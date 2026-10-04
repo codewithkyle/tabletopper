@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,11 +12,6 @@ import (
 	"tabletopper/internal/session"
 	"tabletopper/internal/share"
 	"tabletopper/templ/pages"
-)
-
-const (
-	shareMinDays = 1
-	shareMaxDays = 365
 )
 
 type shareInput struct {
@@ -28,8 +24,9 @@ func buildShareInput(r *http.Request) (shareInput, []string) {
 	var problems []string
 	if r.PostFormValue("expiry") != "" {
 		days, err := strconv.Atoi(strings.TrimSpace(r.PostFormValue("days")))
-		if err != nil || days < shareMinDays || days > shareMaxDays {
-			problems = append(problems, "Choose between 1 and 365 days, or turn the expiry off.")
+		if err != nil || days < pages.ShareMinDays || days > pages.ShareMaxDays {
+			problems = append(problems, fmt.Sprintf(
+				"Choose between %d and %d days, or turn the expiry off.", pages.ShareMinDays, pages.ShareMaxDays))
 		} else {
 			input.Days = days
 		}
@@ -38,9 +35,9 @@ func buildShareInput(r *http.Request) (shareInput, []string) {
 		password := r.PostFormValue("password")
 		switch {
 		case len(password) < share.PasswordMin:
-			problems = append(problems, "A password must be at least 6 characters.")
+			problems = append(problems, fmt.Sprintf("A password must be at least %d characters.", share.PasswordMin))
 		case len(password) > share.PasswordMax:
-			problems = append(problems, "A password must be 72 characters or fewer.")
+			problems = append(problems, fmt.Sprintf("A password must be %d characters or fewer.", share.PasswordMax))
 		default:
 			input.Password = password
 		}

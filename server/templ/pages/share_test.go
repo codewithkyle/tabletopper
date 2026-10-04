@@ -117,6 +117,20 @@ func TestTheShareDialogShowsTheFormOrTheLinkAndNeverBoth(t *testing.T) {
 		})
 	}
 }
+func TestEveryConstrainedShareFieldCanSayWhyItIsRefusing(t *testing.T) {
+	form := renderToString(t, ShareDialog(ShareDialogData{Action: "/characters/C/share"}))
+	for _, field := range []string{`id="share-days"`, `id="share-password"`} {
+		tag := fieldTag(t, form, field)
+		if !strings.Contains(tag, "validator") {
+			t.Errorf("%s carries a constraint with no validator, so htmx abandons the post in silence\n%s", field, tag)
+		}
+	}
+	for _, hint := range []string{"peer-user-invalid/days:block", "peer-user-invalid/password:block"} {
+		if !strings.Contains(form, hint) {
+			t.Errorf("no hint is revealed by %s:\n%s", hint, form)
+		}
+	}
+}
 func TestTheDialogSaysWhatKindOfLinkItIs(t *testing.T) {
 	cases := map[string]struct {
 		data ShareDialogData

@@ -1,5 +1,7 @@
 package pages
 
+import "strconv"
+
 templ ShareDialog(data ShareDialogData) {
 	<div id={ shareDialogID } class="grid gap-4">
 		<h3 class="m-0 pr-10 font-serif text-xl leading-none">{ data.Heading }</h3>
@@ -37,12 +39,13 @@ templ shareDialogForm(data ShareDialogData) {
 					name="days"
 					type="number"
 					inputmode="numeric"
-					class="input w-full"
+					class="input validator w-full peer/days"
 					value={ ShareDefaultDays }
-					min="1"
-					max="365"
+					min={ strconv.Itoa(ShareMinDays) }
+					max={ strconv.Itoa(ShareMaxDays) }
 					step="1"
 				/>
+				<p class="validator-hint hidden text-hint peer-user-invalid/days:block">Enter a number from { strconv.Itoa(ShareMinDays) } to { strconv.Itoa(ShareMaxDays) }.</p>
 			</div>
 		</div>
 		<div class="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2">
@@ -59,11 +62,12 @@ templ shareDialogForm(data ShareDialogData) {
 					id="share-password"
 					name="password"
 					type="password"
-					class="input w-full"
+					class="input validator w-full peer/password"
 					autocomplete="new-password"
-					minlength="6"
-					maxlength="72"
+					minlength={ strconv.Itoa(SharePasswordMin) }
+					maxlength={ strconv.Itoa(SharePasswordMax) }
 				/>
+				<p class="validator-hint hidden text-hint peer-user-invalid/password:block">Use at least { strconv.Itoa(SharePasswordMin) } characters.</p>
 			</div>
 		</div>
 		<div class="modal-action">
