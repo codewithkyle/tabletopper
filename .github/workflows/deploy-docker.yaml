@@ -7,6 +7,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Refuse to deploy from anything but beta
+        if: github.ref != 'refs/heads/beta'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::beta.tabletopper.app is served from the beta branch. Refusing to deploy $REF."
+          exit 1
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
