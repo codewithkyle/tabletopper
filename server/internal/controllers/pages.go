@@ -31,3 +31,6 @@ func (a *App) PrivacyPolicy(w http.ResponseWriter, r *http.Request) {
 func (a *App) ServerError(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.ServerError())
 }
+func (a *App) AccountDeleting(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.AccountDeleting())
+}

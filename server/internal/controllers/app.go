@@ -28,6 +28,10 @@ type App struct {
 	DB               *sql.DB
 	ShareAttempts    *share.Attempts
 	RoomJoinAttempts *share.Attempts
+	Purger           Purger
+}
+type Purger interface {
+	Wake()
 }
 
 func (a *App) tx(ctx context.Context, fn func(q *queries.Queries) error) error {

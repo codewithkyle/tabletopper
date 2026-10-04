@@ -80,6 +80,22 @@ func (a *App) SaveAccountSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	announceSettings(w, r, pages.AccountSettingsPanel, name, updated, "Settings saved.")
 }
+func (a *App) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	if _, err := a.Queries.MarkUserDeleted(ctx, sess.UserID); err != nil {
+		slog.Error("Failed to mark an account for deletion", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	if err := a.Sessions.Logout(w, r); err != nil {
+		slog.Warn("Failed to end the session of a deleted account", "error", err)
+	}
+	if a.Purger != nil {
+		a.Purger.Wake()
+	}
+	htmx.Redirect(w, "/")
+}
 func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())
 	p := sess.Prefs

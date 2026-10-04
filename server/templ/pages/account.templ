@@ -30,6 +30,21 @@ templ AccountSettingsFragment(data AccountSettingsData) {
 				<button type="submit" class="btn btn-primary">Save settings</button>
 			</div>
 		</form>
+		<div class="grid gap-2 border-t border-base-content/15 pt-4">
+			<div class="flex flex-row flex-nowrap items-baseline justify-between gap-4">
+				<span class="text-sm text-base-content/75">Delete account</span>
+				<button
+					type="button"
+					class="btn btn-error"
+					hx-delete="/account"
+					hx-swap="none"
+					hx-confirm="You are about to delete your account. Every character, monster, room, scene, map and upload you own will be deleted. This action cannot be undone."
+					data-confirm-heading="Delete your account?"
+					data-confirm-label="Delete my account"
+				>Delete account</button>
+			</div>
+			<p class="m-0 text-sm text-base-content/75">You are signed out straight away. Everything you own is removed within a few minutes, and signing in again starts a fresh account.</p>
+		</div>
 	</div>
 }
 

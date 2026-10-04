@@ -51,6 +51,9 @@ func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to query user by Clerk ID", "error", err)
 		redirectToError(w, r)
 		return
+	case row.DeletedAt.Valid:
+		redirect(w, r, "/account/deleting")
+		return
 	default:
 		sess.UserID = row.ID
 		sess.Username = row.Username

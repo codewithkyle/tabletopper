@@ -7,7 +7,7 @@ SELECT s.id, s.profile_image_url, s.user_id, s.character_id, s.room_id,
        u.turn_alert, u.turn_volume, u.turn_notify, u.onboarded_at
 FROM sessions s
 INNER JOIN users u ON u.id = s.user_id
-WHERE s.expires_at > NOW() AND s.hash = ?;
+WHERE s.expires_at > NOW() AND s.hash = ? AND u.deleted_at IS NULL;
 -- name: EndSession :exec
 UPDATE sessions
 SET expires_at = NOW()

@@ -459,3 +459,55 @@ func settingsChange(t *testing.T, rec *httptest.ResponseRecorder) map[string]any
 	}
 	return change
 }
+
+type wakeCounter struct{ woken int }
+
+func (w *wakeCounter) Wake() { w.woken++ }
+func deleteAccount(t *testing.T, db *recordingDB, purger *wakeCounter) *httptest.ResponseRecorder {
+	t.Helper()
+	q := queries.New(db)
+	app := &App{Queries: q, Sessions: session.NewStore(q, false), Purger: purger}
+	r := httptest.NewRequest(http.MethodDelete, "/account", nil)
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	rec := httptest.NewRecorder()
+	app.DeleteAccount(rec, r)
+	return rec
+}
+func TestDeletingTheAccountLocksItSignsOutAndWakesThePurge(t *testing.T) {
+	db := &recordingDB{rows: 1}
+	purger := &wakeCounter{}
+	rec := deleteAccount(t, db, purger)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	call := db.only(t)
+	if !strings.Contains(call.query, "UPDATE users") || !strings.Contains(call.query, "deleted_at = NOW()") {
+		t.Errorf("the statement does not lock the account:\n%s", call.query)
+	}
+	if !strings.Contains(call.query, "deleted_at IS NULL") {
+		t.Errorf("the lock can be re-stamped, which would move the deletion time:\n%s", call.query)
+	}
+	if id, ok := boundID(call.args[0]); !ok || id != testOwnerID {
+		t.Errorf("the lock is bound to %v, want the signed-in user", call.args)
+	}
+	if got := rec.Header().Get("HX-Redirect"); got != "/" {
+		t.Errorf("HX-Redirect = %q, want the homepage", got)
+	}
+	if purger.woken != 1 {
+		t.Errorf("the purge was woken %d times, want once", purger.woken)
+	}
+}
+func TestAFailedLockDeletesNothingAndWakesNobody(t *testing.T) {
+	db := &recordingDB{err: errNoRowsToGive}
+	purger := &wakeCounter{}
+	rec := deleteAccount(t, db, purger)
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+	if purger.woken != 0 {
+		t.Error("the purge was woken for an account that is not locked")
+	}
+	if rec.Header().Get("HX-Redirect") != "" {
+		t.Error("the user was signed out of an account that is not locked")
+	}
+}

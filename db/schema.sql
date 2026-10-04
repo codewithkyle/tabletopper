@@ -434,8 +434,10 @@ CREATE TABLE `users` (
   `turn_volume` tinyint unsigned NOT NULL DEFAULT '100',
   `turn_notify` tinyint(1) NOT NULL DEFAULT '0',
   `onboarded_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `ux_users_clerk_id` (`clerk_id`)
+  UNIQUE KEY `ux_users_clerk_id` (`clerk_id`),
+  KEY `idx_users_deleted` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -503,5 +505,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20260912120000'),
   ('20260913090000'),
   ('20260913120000'),
-  ('20260913130000');
+  ('20260913130000'),
+  ('20261004120000');
 UNLOCK TABLES;

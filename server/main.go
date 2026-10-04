@@ -65,6 +65,7 @@ func run() error {
 	sweep.MusicUploads(ctx, q, store)
 	tiling.Maps(ctx, q, store)
 	rooms := hub.New(q, hub.Options{})
+	purger := sweep.DeletedAccounts(ctx, q, store, rooms)
 	app := &controllers.App{
 		DB:               pool,
 		Queries:          q,
@@ -75,6 +76,7 @@ func run() error {
 		Hub:              rooms,
 		ShareAttempts:    share.NewAttempts(10, time.Minute),
 		RoomJoinAttempts: share.NewAttempts(10, time.Minute),
+		Purger:           purger,
 	}
 	auth := middleware.Auth{Sessions: sessions}
 	server := &http.Server{

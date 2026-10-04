@@ -1,0 +1,11 @@
+package pages
+
+import "tabletopper/templ/layouts"
+
+templ AccountDeleting() {
+	@layouts.Base("Account deleted | Tabletopper") {
+		@documentCard("Your account is being deleted", "/", "Go Home") {
+			<p>Everything you owned is being removed. That takes a few minutes. Once it is done you can sign in again and you will start with a fresh account.</p>
+		}
+	}
+}

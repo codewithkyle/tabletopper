@@ -11,8 +11,11 @@ import (
 
 const cleanupTimeout = 15 * time.Second
 
+func UserPrefix(userID ulid.ULID) string {
+	return "users/" + userID.String() + "/"
+}
 func MapPrefix(userID ulid.ULID, assetID ulid.ULID) string {
-	return "users/" + userID.String() + "/maps/" + assetID.String() + "/"
+	return UserPrefix(userID) + "maps/" + assetID.String() + "/"
 }
 func MapGenerationPrefix(userID ulid.ULID, assetID ulid.ULID, gen ulid.ULID) string {
 	return MapPrefix(userID, assetID) + gen.String() + "/"

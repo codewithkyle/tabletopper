@@ -1,6 +1,10 @@
 -- name: GetUserByClerkID :one
-SELECT id, username, profile_image_url FROM users
+SELECT id, username, profile_image_url, deleted_at FROM users
 WHERE clerk_id = ?;
+-- name: MarkUserDeleted :execresult
+UPDATE users
+SET deleted_at = NOW()
+WHERE id = ? AND deleted_at IS NULL;
 -- name: GetUserAvatar :one
 SELECT u.avatar_asset_id, a.file_path FROM users u
 LEFT JOIN assets a ON a.id = u.avatar_asset_id AND a.owner_id = u.id
