@@ -1,0 +1,109 @@
+name: Build and Deploy Beta
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Beta
+    steps:
+      - name: Refuse to deploy from anything but beta
+        if: github.ref != 'refs/heads/beta'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::beta.tabletopper.app is served from the beta branch. Refusing to deploy $REF."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install the code generators
+        run: |
+          go install github.com/a-h/templ/cmd/templ@v0.3.977
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install the pinned Tailwind binary
+        run: |
+          mkdir -p build/bin
+          curl -sSfL -o build/bin/tailwindcss \
+            https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64
+          chmod +x build/bin/tailwindcss
+
+      - name: Install the build inputs
+        run: npm ci
+
+      - name: Generate templ and sqlc
+        run: make templ sqlc
+
+      - name: Vet and test
+        run: make vet test
+
+      - name: Fail if a committed bundle is stale
+        run: |
+          make css js
+          git diff --exit-code -- \
+            server/public/css/app.css \
+            server/public/static/room.js \
+            server/public/static/room.js.map \
+            server/public/static/journal-editor.js
+
+      - name: Build the image
+        run: docker build -f server/Dockerfile -t codewithkyle/tabletopper:prod .
+
+      - name: Save the image
+        run: docker save codewithkyle/tabletopper:prod | gzip > tabletopper.tar.gz
+
+      - name: Load the SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSHKEY }}
+
+      - name: Trust the host key
+        env:
+          HOST: ${{ secrets.HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy the image to the server
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: scp ./tabletopper.tar.gz "$TARGET":~/
+
+      - name: Sync the migrations and the compose file
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: |
+          ssh "$TARGET" 'mkdir -p ~/tabletopper/db/migrations'
+          rsync -az --delete ./db/migrations/ "$TARGET":~/tabletopper/db/migrations/
+          rsync -az ./deploy/compose.yaml "$TARGET":~/tabletopper/compose.yaml
+
+      - name: Load the image and bring the stack up
+        env:
+          TARGET: ${{ secrets.USERNAME }}@${{ secrets.HOST }}
+        run: |
+          ssh "$TARGET" bash -euo pipefail <<'REMOTE'
+          docker load -i ~/tabletopper.tar.gz
+          rm ~/tabletopper.tar.gz
+          cd ~/tabletopper
+          docker compose up -d --remove-orphans
+          docker compose ps
+          docker image prune -f
+          REMOTE
+
+      - name: Purge the cache
+        uses: nathanvaughn/actions-cloudflare-purge@master
+        if: success()
+        with:
+          cf_zone: ${{ secrets.CLOUDFLARE_ZONE }}
+          cf_auth: ${{ secrets.CLOUDFLARE_AUTH_KEY }}
