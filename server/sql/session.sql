@@ -38,6 +38,10 @@ WHERE hash = ?;
 UPDATE sessions
 SET room_id = NULL, character_id = NULL
 WHERE room_id = ?;
+-- name: ClearCharacterSessions :execresult
+UPDATE sessions
+SET character_id = NULL
+WHERE character_id = ? AND user_id = ?;
 -- name: ClearUserRoomSessions :execresult
 UPDATE sessions
 SET room_id = NULL, character_id = NULL

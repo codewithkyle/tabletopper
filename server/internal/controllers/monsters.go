@@ -390,6 +390,7 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
+	a.forgetMonster(ctx, monsterID, monster.AssetID)
 	htmx.Toast(w, monster.Name+" has been deleted.")
 }
 func deleteMonsterRows(ctx context.Context, q *queries.Queries, monsterID, ownerID ulid.ULID) error {

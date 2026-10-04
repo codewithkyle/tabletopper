@@ -715,6 +715,7 @@ func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
+	a.forgetAsset(ctx, assetID)
 	htmx.Toast(w, m.Name+" deleted.")
 }
 func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {

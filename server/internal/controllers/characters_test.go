@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,6 +14,7 @@ import (
 	"testing"
 
 	"tabletopper/internal/queries"
+	"tabletopper/internal/session"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -36,7 +39,7 @@ func tablesHoldingCharacterRows(t *testing.T) []string {
 }
 
 var unpurgedTables = map[string]string{
-	"sessions": "a dangling id already reads as no character",
+	"sessions": "DeleteCharacter clears its character_id with an UPDATE beside the purge",
 }
 
 const journalImageTable = "assets"
@@ -241,4 +244,30 @@ func TestTheSubtitleOmitsWhatTheCharacterHasNot(t *testing.T) {
 }
 func nullString(value string) sql.NullString {
 	return sql.NullString{String: value, Valid: value != ""}
+}
+func TestDeletingACharacterClearsTheSeatItHeld(t *testing.T) {
+	db := &roomDB{rows: 1, answers: []roomAnswer{{
+		columns: []string{"name", "asset_id", "file_path"},
+		values:  []driver.Value{"Ilyana", nil, nil},
+	}}}
+	app := newRoomApp(db)
+	rec := roomRequest(t, app.DeleteCharacter, http.MethodDelete, "/characters/"+testCharacterID.String(),
+		map[string]string{"id": testCharacterID.String()}, session.UserSession{UserID: testOwnerID})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var cleared []recordedCall
+	for _, call := range db.recorded() {
+		if strings.Contains(call.query, "UPDATE sessions") {
+			cleared = append(cleared, call)
+		}
+	}
+	if len(cleared) != 1 {
+		t.Fatalf("%d statements touch sessions, want one: %v", len(cleared), db.queries())
+	}
+	if !strings.Contains(cleared[0].query, "character_id = NULL") {
+		t.Errorf("the statement does not clear the seat:\n%s", cleared[0].query)
+	}
+	assertBoundToRoom(t, cleared[0], testCharacterID)
+	assertBoundToRoom(t, cleared[0], testOwnerID)
 }

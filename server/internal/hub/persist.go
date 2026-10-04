@@ -25,6 +25,7 @@ type Store interface {
 	AutosaveScene(ctx context.Context, roomID ulid.ULID, body []byte, preview *ulid.ULID) error
 }
 type Loaded struct {
+	Owner    ulid.ULID
 	Name     string
 	Locked   bool
 	Snapshot json.RawMessage
@@ -42,7 +43,7 @@ func (d dbStore) Load(ctx context.Context, roomID ulid.ULID) (Loaded, error) {
 	if err != nil {
 		return Loaded{}, fmt.Errorf("hub: load room: %w", err)
 	}
-	return Loaded{Name: row.Name, Locked: row.IsLocked, Snapshot: row.Snapshot}, nil
+	return Loaded{Owner: row.OwnerID, Name: row.Name, Locked: row.IsLocked, Snapshot: row.Snapshot}, nil
 }
 func (d dbStore) Save(ctx context.Context, roomID ulid.ULID, snapshot []byte, seq uint64) error {
 	result, err := d.q.SaveRoomSnapshot(ctx, queries.SaveRoomSnapshotParams{

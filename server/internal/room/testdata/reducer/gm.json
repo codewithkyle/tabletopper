@@ -23431,25 +23431,25 @@
       }
     },
     {
-      "name": "the GM writes up the ruined tower",
+      "name": "the pines are deleted from the GM's library",
       "frames": [
         {
           "type": "changes",
           "seq": 66,
-          "by": "010000000000000000000000Z9",
           "events": [
             {
-              "type": "notes.upserted",
-              "notes": [
+              "type": "tiles.erased",
+              "layer": "01000000000000000000000002",
+              "cells": [
                 {
-                  "layerId": "01000000000000000000000001",
                   "q": 0,
-                  "r": 0,
-                  "title": "Ruined tower",
-                  "body": "An owlbear nests on the top floor.",
-                  "revealed": false
+                  "r": 0
                 }
               ]
+            },
+            {
+              "type": "palette.updated",
+              "palette": []
             }
           ]
         }
@@ -23500,14 +23500,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -23757,16 +23750,427 @@
             "done": true
           }
         ],
-        "tiles": [
+        "tiles": [],
+        "notes": [],
+        "rolls": [
           {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
           }
         ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "the GM writes up the ruined tower",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 67,
+          "by": "010000000000000000000000Z9",
+          "events": [
+            {
+              "type": "notes.upserted",
+              "notes": [
+                {
+                  "layerId": "01000000000000000000000001",
+                  "q": 0,
+                  "r": 0,
+                  "title": "Ruined tower",
+                  "body": "An owlbear nests on the top floor.",
+                  "revealed": false
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "gmMap": null,
+              "fogEnabled": true,
+              "fogPrefill": false,
+              "partyStart": {
+                "x": 640,
+                "y": 320
+              }
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "gmMap": null,
+              "fogEnabled": false,
+              "fogPrefill": true,
+              "partyStart": null
+            }
+          ],
+          "palette": [],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "type": "square",
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "units": "feet",
+            "diagonals": "equal",
+            "numbered": false
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "playersCanStamp": false,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ilyana",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 11,
+            "maxHp": 14,
+            "hpBand": null,
+            "ac": 16,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 723,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [
+              {
+                "id": "0100000000000000000000000M",
+                "name": "Prone",
+                "color": "white",
+                "duration": -1,
+                "clear": "end"
+              },
+              {
+                "id": "0100000000000000000000000N",
+                "name": "Blessed",
+                "color": "yellow",
+                "duration": 2,
+                "clear": "start"
+              }
+            ],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000006",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 933,
+            "y": 323,
+            "z": 4,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": false,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": "0100000000000000000000001W",
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005",
+                "01000000000000000000000006"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            }
+          ],
+          "active": "0100000000000000000000000D",
+          "round": 2
+        },
+        "fog": [
+          {
+            "id": "0100000000000000000000000R",
+            "layerId": "01000000000000000000000001",
+            "kind": "poly",
+            "mode": "reveal",
+            "points": [
+              1024,
+              400,
+              1400,
+              400,
+              1400,
+              560,
+              1024,
+              560
+            ]
+          }
+        ],
+        "strokes": [
+          {
+            "id": "010000000000000000000000W4",
+            "by": "010000000000000000000000Z9",
+            "layerId": "01000000000000000000000001",
+            "kind": "free",
+            "color": "#ff0000ff",
+            "width": 6,
+            "points": [
+              100,
+              100,
+              140,
+              130,
+              180,
+              170,
+              220,
+              190
+            ],
+            "done": true
+          }
+        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -23880,7 +24284,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 67,
+          "seq": 68,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -23945,14 +24349,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -24202,16 +24599,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -24325,7 +24713,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 68,
+          "seq": 69,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -24390,14 +24778,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -24647,16 +25028,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -24778,7 +25150,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 69,
+          "seq": 70,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -24840,14 +25212,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -25097,16 +25462,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -25220,7 +25576,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 70,
+          "seq": 71,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -25300,14 +25656,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -25557,16 +25906,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -25680,7 +26020,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 71,
+          "seq": 72,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -25756,14 +26096,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000002",
           "grid": {
             "type": "square",
@@ -26013,16 +26346,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -26136,7 +26460,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 72,
+          "seq": 73,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -26212,14 +26536,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -26469,16 +26786,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -26592,7 +26900,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 73,
+          "seq": 74,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -26672,14 +26980,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -26929,16 +27230,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -27096,14 +27388,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -27353,16 +27638,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -27476,7 +27752,7 @@
       "frames": [
         {
           "type": "snapshot",
-          "seq": 73,
+          "seq": 74,
           "by": "010000000000000000000000Z9",
           "state": {
             "schema": 3,
@@ -27524,14 +27800,7 @@
                   "partyStart": null
                 }
               ],
-              "palette": [
-                {
-                  "id": "0100000000000000000000000S",
-                  "assetId": "010000000000000000000000ZW",
-                  "name": "Pine forest",
-                  "image": "/assets/terrain/pine.webp"
-                }
-              ],
+              "palette": [],
               "activeLayer": "01000000000000000000000001",
               "grid": {
                 "type": "square",
@@ -27781,16 +28050,7 @@
                 "done": true
               }
             ],
-            "tiles": [
-              {
-                "layerId": "01000000000000000000000002",
-                "art": "0100000000000000000000000S",
-                "q": 0,
-                "r": 0,
-                "rotation": 0,
-                "by": "010000000000000000000000Z9"
-              }
-            ],
+            "tiles": [],
             "notes": [
               {
                 "layerId": "01000000000000000000000001",
@@ -27952,14 +28212,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -28209,16 +28462,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -28332,7 +28576,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 74,
+          "seq": 75,
           "events": [
             {
               "type": "players.upserted",
@@ -28397,14 +28641,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -28654,16 +28891,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -28777,7 +29005,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 75,
+          "seq": 76,
           "events": [
             {
               "type": "players.upserted",
@@ -28842,14 +29070,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -29099,16 +29320,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -29222,7 +29434,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 76,
+          "seq": 77,
           "events": [
             {
               "type": "players.upserted",
@@ -29287,14 +29499,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -29553,16 +29758,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -29676,7 +29872,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 77,
+          "seq": 78,
           "events": [
             {
               "type": "players.removed",
@@ -29733,14 +29929,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -29990,16 +30179,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -30113,7 +30293,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 78,
+          "seq": 79,
           "events": [
             {
               "type": "players.upserted",
@@ -30206,14 +30386,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -30463,16 +30636,488 @@
             "done": true
           }
         ],
-        "tiles": [
+        "tiles": [],
+        "notes": [
           {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
+            "layerId": "01000000000000000000000001",
             "q": 0,
             "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
+            "title": "Ruined tower",
+            "body": "An owlbear nests on the top floor.",
+            "revealed": true
           }
         ],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "the goblin is struck from the manual",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 80,
+          "events": [
+            {
+              "type": "pawns.upserted",
+              "pawns": [
+                {
+                  "id": "01000000000000000000000005",
+                  "kind": "monster",
+                  "layerId": "01000000000000000000000001",
+                  "name": "Goblin",
+                  "image": "/assets/goblin.webp",
+                  "x": 723,
+                  "y": 323,
+                  "z": 3,
+                  "size": "small",
+                  "width": 0,
+                  "height": 0,
+                  "rotation": 0,
+                  "visible": true,
+                  "hp": 3,
+                  "maxHp": 7,
+                  "hpBand": null,
+                  "ac": 15,
+                  "conditions": [
+                    {
+                      "id": "0100000000000000000000000M",
+                      "name": "Prone",
+                      "color": "white",
+                      "duration": -1,
+                      "clear": "end"
+                    },
+                    {
+                      "id": "0100000000000000000000000N",
+                      "name": "Blessed",
+                      "color": "yellow",
+                      "duration": 2,
+                      "clear": "start"
+                    }
+                  ],
+                  "ownerId": null,
+                  "monsterId": null,
+                  "characterId": null
+                },
+                {
+                  "id": "01000000000000000000000006",
+                  "kind": "monster",
+                  "layerId": "01000000000000000000000001",
+                  "name": "Goblin",
+                  "image": "/assets/goblin.webp",
+                  "x": 933,
+                  "y": 323,
+                  "z": 4,
+                  "size": "small",
+                  "width": 0,
+                  "height": 0,
+                  "rotation": 0,
+                  "visible": false,
+                  "hp": 7,
+                  "maxHp": 7,
+                  "hpBand": null,
+                  "ac": 15,
+                  "conditions": [],
+                  "ownerId": null,
+                  "monsterId": null,
+                  "characterId": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "gmMap": null,
+              "fogEnabled": true,
+              "fogPrefill": false,
+              "partyStart": {
+                "x": 640,
+                "y": 320
+              }
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "gmMap": null,
+              "fogEnabled": false,
+              "fogPrefill": true,
+              "partyStart": null
+            }
+          ],
+          "palette": [],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "type": "square",
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "units": "feet",
+            "diagonals": "equal",
+            "numbered": false
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "playersCanStamp": false,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ari Duskhollow",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZD",
+            "characterName": "Brannor",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari Duskhollow",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 6,
+            "maxHp": 16,
+            "hpBand": null,
+            "ac": 17,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000004",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Rin",
+            "image": "/assets/rin.webp",
+            "x": 373,
+            "y": 323,
+            "z": 2,
+            "size": "medium",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 9,
+            "maxHp": 9,
+            "hpBand": null,
+            "ac": 14,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZB",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZD"
+          },
+          {
+            "id": "01000000000000000000000005",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 723,
+            "y": 323,
+            "z": 3,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 3,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [
+              {
+                "id": "0100000000000000000000000M",
+                "name": "Prone",
+                "color": "white",
+                "duration": -1,
+                "clear": "end"
+              },
+              {
+                "id": "0100000000000000000000000N",
+                "name": "Blessed",
+                "color": "yellow",
+                "duration": 2,
+                "clear": "start"
+              }
+            ],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000006",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 933,
+            "y": 323,
+            "z": 4,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": false,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [
+            {
+              "id": "0100000000000000000000000D",
+              "pawnIds": [],
+              "name": "Lair action",
+              "initiative": 3
+            },
+            {
+              "id": "0100000000000000000000000C",
+              "pawnIds": [
+                "01000000000000000000000005",
+                "01000000000000000000000006"
+              ],
+              "name": "Goblin",
+              "initiative": 4
+            },
+            {
+              "id": "0100000000000000000000000B",
+              "pawnIds": [
+                "01000000000000000000000003"
+              ],
+              "name": "Ari",
+              "initiative": 4
+            }
+          ],
+          "active": "0100000000000000000000000D",
+          "round": 2
+        },
+        "fog": [
+          {
+            "id": "0100000000000000000000000R",
+            "layerId": "01000000000000000000000001",
+            "kind": "poly",
+            "mode": "reveal",
+            "points": [
+              1024,
+              400,
+              1400,
+              400,
+              1400,
+              560,
+              1024,
+              560
+            ]
+          }
+        ],
+        "strokes": [
+          {
+            "id": "010000000000000000000000W4",
+            "by": "010000000000000000000000Z9",
+            "layerId": "01000000000000000000000001",
+            "kind": "free",
+            "color": "#ff0000ff",
+            "width": 6,
+            "points": [
+              100,
+              100,
+              140,
+              130,
+              180,
+              170,
+              220,
+              190
+            ],
+            "done": true
+          }
+        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -30586,7 +31231,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 79,
+          "seq": 81,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -30620,7 +31265,7 @@
                     }
                   ],
                   "ownerId": null,
-                  "monsterId": "0100000000000000000000001W",
+                  "monsterId": null,
                   "characterId": null
                 }
               ]
@@ -30674,14 +31319,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -30806,7 +31444,7 @@
               }
             ],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -30829,7 +31467,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -30924,16 +31562,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -31047,7 +31676,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 80,
+          "seq": 82,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31136,14 +31765,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -31260,7 +31882,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -31354,16 +31976,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -31477,7 +32090,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 81,
+          "seq": 83,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31537,14 +32150,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -31661,7 +32267,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -31732,16 +32338,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -31855,7 +32452,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 82,
+          "seq": 84,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -31913,14 +32510,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -32037,7 +32627,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -32091,16 +32681,7 @@
             "done": true
           }
         ],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -32214,7 +32795,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 83,
+          "seq": 85,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -32272,14 +32853,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -32396,7 +32970,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -32430,16 +33004,320 @@
         },
         "fog": [],
         "strokes": [],
-        "tiles": [
+        "tiles": [],
+        "notes": [
           {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
+            "layerId": "01000000000000000000000001",
             "q": 0,
             "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
+            "title": "Ruined tower",
+            "body": "An owlbear nests on the top floor.",
+            "revealed": true
           }
         ],
+        "rolls": [
+          {
+            "id": "0100000000000000000000000E",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 4,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000F",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword",
+            "expr": "1d20 + 7",
+            "adv": 1,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 5,
+                "sign": 1,
+                "kept": false
+              },
+              {
+                "sides": 20,
+                "value": 6,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 7,
+            "total": 13
+          },
+          {
+            "id": "0100000000000000000000000G",
+            "by": "010000000000000000000000ZA",
+            "name": "Ilyana",
+            "gm": false,
+            "label": "Longsword damage",
+            "expr": "1d8 + 4",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 8,
+                "value": 7,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": 4,
+            "total": 11
+          },
+          {
+            "id": "0100000000000000000000000K",
+            "by": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "gm": true,
+            "label": "",
+            "expr": "1d20 - 1",
+            "adv": 0,
+            "secret": false,
+            "dice": [
+              {
+                "sides": 20,
+                "value": 10,
+                "sign": 1,
+                "kept": true
+              }
+            ],
+            "mod": -1,
+            "total": 9
+          }
+        ],
+        "music": {
+          "trackId": "010000000000000000000000ZF",
+          "name": "Tavern Brawl",
+          "playing": false,
+          "loop": false,
+          "at": 0,
+          "since": 0
+        }
+      }
+    },
+    {
+      "name": "Rin's character is deleted from her roster",
+      "frames": [
+        {
+          "type": "changes",
+          "seq": 86,
+          "events": [
+            {
+              "type": "players.upserted",
+              "players": [
+                {
+                  "id": "010000000000000000000000ZB",
+                  "name": "Rin",
+                  "avatar": "",
+                  "characterId": null,
+                  "characterName": "",
+                  "role": "player",
+                  "connected": true
+                }
+              ]
+            },
+            {
+              "type": "pawns.removed",
+              "ids": [
+                "01000000000000000000000004"
+              ]
+            }
+          ]
+        }
+      ],
+      "state": {
+        "schema": 3,
+        "seq": 0,
+        "room": {
+          "id": "010000000000000000000000Z8",
+          "name": "The Sunless Citadel",
+          "locked": true
+        },
+        "table": {
+          "layers": [
+            {
+              "id": "01000000000000000000000001",
+              "name": "Ground floor",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001J",
+                "width": 4096,
+                "height": 4096,
+                "tileSize": 512,
+                "maxZoom": 3
+              },
+              "gmMap": null,
+              "fogEnabled": true,
+              "fogPrefill": false,
+              "partyStart": {
+                "x": 640,
+                "y": 320
+              }
+            },
+            {
+              "id": "01000000000000000000000002",
+              "name": "Cellar, flooded",
+              "map": {
+                "assetId": "010000000000000000000000ZE",
+                "gen": "0100000000000000000000001K",
+                "width": 2048,
+                "height": 2048,
+                "tileSize": 512,
+                "maxZoom": 2
+              },
+              "gmMap": null,
+              "fogEnabled": false,
+              "fogPrefill": true,
+              "partyStart": null
+            }
+          ],
+          "palette": [],
+          "activeLayer": "01000000000000000000000001",
+          "grid": {
+            "type": "square",
+            "lines": "solid",
+            "cellSize": 70,
+            "offsetX": -12,
+            "offsetY": 8,
+            "color": "#334455ff",
+            "snap": "cells",
+            "feetPerCell": 5,
+            "units": "feet",
+            "diagonals": "equal",
+            "numbered": false
+          },
+          "pawnLabels": "default",
+          "playersCanDraw": true,
+          "playersCanStamp": false,
+          "initiativeGrouping": "grouped",
+          "fogPrefill": false
+        },
+        "players": [
+          {
+            "id": "010000000000000000000000Z9",
+            "name": "Kyle",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "gm",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZA",
+            "name": "Ari",
+            "avatar": "",
+            "characterId": "010000000000000000000000ZC",
+            "characterName": "Ari Duskhollow",
+            "role": "player",
+            "connected": true
+          },
+          {
+            "id": "010000000000000000000000ZB",
+            "name": "Rin",
+            "avatar": "",
+            "characterId": null,
+            "characterName": "",
+            "role": "player",
+            "connected": true
+          }
+        ],
+        "pawns": [
+          {
+            "id": "01000000000000000000000003",
+            "kind": "player",
+            "layerId": "01000000000000000000000001",
+            "name": "Ari Duskhollow",
+            "image": "/assets/ari.webp",
+            "x": 443,
+            "y": 323,
+            "z": 1,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": true,
+            "hp": 6,
+            "maxHp": 16,
+            "hpBand": null,
+            "ac": 17,
+            "conditions": [],
+            "ownerId": "010000000000000000000000ZA",
+            "monsterId": null,
+            "characterId": "010000000000000000000000ZC"
+          },
+          {
+            "id": "01000000000000000000000006",
+            "kind": "monster",
+            "layerId": "01000000000000000000000001",
+            "name": "Goblin",
+            "image": "/assets/goblin.webp",
+            "x": 933,
+            "y": 323,
+            "z": 4,
+            "size": "small",
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "visible": false,
+            "hp": 7,
+            "maxHp": 7,
+            "hpBand": null,
+            "ac": 15,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          },
+          {
+            "id": "01000000000000000000000007",
+            "kind": "object",
+            "layerId": "01000000000000000000000001",
+            "name": "Wagon",
+            "image": "/assets/wagon.webp",
+            "x": 480,
+            "y": 480,
+            "z": 5,
+            "size": "",
+            "width": 96,
+            "height": 320,
+            "rotation": 270,
+            "visible": true,
+            "hp": 30,
+            "maxHp": 30,
+            "hpBand": null,
+            "ac": 12,
+            "conditions": [],
+            "ownerId": null,
+            "monsterId": null,
+            "characterId": null
+          }
+        ],
+        "initiative": {
+          "entries": [],
+          "active": null,
+          "round": 0
+        },
+        "fog": [],
+        "strokes": [],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -32553,7 +33431,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 84,
+          "seq": 87,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -32611,14 +33489,7 @@
               "partyStart": null
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -32684,29 +33555,6 @@
             "characterId": "010000000000000000000000ZC"
           },
           {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
             "id": "01000000000000000000000006",
             "kind": "monster",
             "layerId": "01000000000000000000000001",
@@ -32726,7 +33574,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -32760,16 +33608,7 @@
         },
         "fog": [],
         "strokes": [],
-        "tiles": [
-          {
-            "layerId": "01000000000000000000000002",
-            "art": "0100000000000000000000000S",
-            "q": 0,
-            "r": 0,
-            "rotation": 0,
-            "by": "010000000000000000000000Z9"
-          }
-        ],
+        "tiles": [],
         "notes": [
           {
             "layerId": "01000000000000000000000001",
@@ -32883,19 +33722,9 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 85,
+          "seq": 88,
           "by": "010000000000000000000000Z9",
           "events": [
-            {
-              "type": "tiles.erased",
-              "layer": "01000000000000000000000002",
-              "cells": [
-                {
-                  "q": 0,
-                  "r": 0
-                }
-              ]
-            },
             {
               "type": "layers.updated",
               "layers": [
@@ -32953,14 +33782,7 @@
               }
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -33026,29 +33848,6 @@
             "characterId": "010000000000000000000000ZC"
           },
           {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
             "id": "01000000000000000000000006",
             "kind": "monster",
             "layerId": "01000000000000000000000001",
@@ -33068,7 +33867,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -33216,7 +34015,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 86,
+          "seq": 89,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -33262,14 +34061,7 @@
               }
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -33335,29 +34127,6 @@
             "characterId": "010000000000000000000000ZC"
           },
           {
-            "id": "01000000000000000000000004",
-            "kind": "player",
-            "layerId": "01000000000000000000000001",
-            "name": "Rin",
-            "image": "/assets/rin.webp",
-            "x": 373,
-            "y": 323,
-            "z": 2,
-            "size": "medium",
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "visible": true,
-            "hp": 9,
-            "maxHp": 9,
-            "hpBand": null,
-            "ac": 14,
-            "conditions": [],
-            "ownerId": "010000000000000000000000ZB",
-            "monsterId": null,
-            "characterId": "010000000000000000000000ZD"
-          },
-          {
             "id": "01000000000000000000000006",
             "kind": "monster",
             "layerId": "01000000000000000000000001",
@@ -33377,7 +34146,7 @@
             "ac": 15,
             "conditions": [],
             "ownerId": null,
-            "monsterId": "0100000000000000000000001W",
+            "monsterId": null,
             "characterId": null
           },
           {
@@ -33525,7 +34294,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 87,
+          "seq": 90,
           "by": "010000000000000000000000Z9",
           "events": [
             {
@@ -33542,7 +34311,6 @@
               "type": "pawns.removed",
               "ids": [
                 "01000000000000000000000003",
-                "01000000000000000000000004",
                 "01000000000000000000000006",
                 "01000000000000000000000007"
               ]
@@ -33573,14 +34341,7 @@
               }
             }
           ],
-          "palette": [
-            {
-              "id": "0100000000000000000000000S",
-              "assetId": "010000000000000000000000ZW",
-              "name": "Pine forest",
-              "image": "/assets/terrain/pine.webp"
-            }
-          ],
+          "palette": [],
           "activeLayer": "01000000000000000000000001",
           "grid": {
             "type": "square",
@@ -33734,7 +34495,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 88,
+          "seq": 91,
           "events": [
             {
               "type": "fog.upserted",
@@ -33844,10 +34605,6 @@
                   "partyStart": null
                 }
               ]
-            },
-            {
-              "type": "palette.updated",
-              "palette": []
             },
             {
               "type": "table.updated",
@@ -34133,7 +34890,7 @@
       "frames": [
         {
           "type": "changes",
-          "seq": 89,
+          "seq": 92,
           "events": [
             {
               "type": "room.updated",
@@ -34403,7 +35160,7 @@
       "frames": [
         {
           "type": "room.closed",
-          "seq": 89
+          "seq": 92
         }
       ],
       "state": {

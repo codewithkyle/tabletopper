@@ -30,6 +30,7 @@ func stockedLibrary(gen ulid.ULID) *fakeLibrary {
 func stockTerrain(lib *fakeLibrary) *fakeLibrary {
 	lib.pictures[pictureKey{id: testTerrainID, kind: PictureTerrain}] = pines()
 	lib.pictures[pictureKey{id: testTerrainAlt, kind: PictureTerrain}] = hills()
+	lib.monsters[testID(60)] = goblin()
 	return lib
 }
 func floorCalled(s *State, name string) *Layer {

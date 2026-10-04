@@ -166,6 +166,7 @@ func scenario(r *recorder) {
 	r.do("the GM rubs one cell out", &TilesErase{Layer: ground, Cells: []Cell{{Q: 1, R: -1}}}, gm)
 	r.do("the hills come back out of the bag", &PaletteRemove{Art: hill}, gm)
 	r.do("and the ground floor is swept", &TilesClear{Layer: ground}, gm)
+	r.hub("the pines are deleted from the GM's library", &AssetGone{ID: testTerrainID})
 	r.do("the GM writes up the ruined tower", &NoteSet{
 		Layer: ground, Q: 0, R: 0, Title: "Ruined tower", Body: "An owlbear nests on the top floor.",
 	}, gm)
@@ -190,6 +191,7 @@ func scenario(r *recorder) {
 		ID: testCharID, OwnerID: testPlayerID, Name: "Ari Duskhollow",
 		Size: SizeSmall, HP: 6, MaxHP: 16, AC: 17, Image: "/assets/ari.webp",
 	}})
+	r.hub("the goblin is struck from the manual", &MonsterGone{ID: testID(60)})
 	r.do("the GM edits the goblin in one form", &Batch{Commands: []Command{
 		&PawnUpdate{ID: goblin, Name: strp("Goblin boss"), AC: intp(13)},
 		&PawnSetConditions{ID: goblin, Conditions: []Condition{
@@ -200,6 +202,7 @@ func scenario(r *recorder) {
 	r.do("clear the tracker", &InitiativeClear{}, gm)
 	r.do("wipe the fog", &FogClear{Layer: ground}, gm)
 	r.do("wipe the drawing", &StrokeClear{Layer: ground}, gm)
+	r.hub("Rin's character is deleted from her roster", &CharacterGone{ID: testOtherChar})
 	r.do("Rin is thrown out", &PlayerKick{ID: testOtherID}, gm)
 	_ = other
 	r.do("the cellar is not needed after all", &TableRemoveLayer{Layer: cellar}, gm)

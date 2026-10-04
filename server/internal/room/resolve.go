@@ -16,6 +16,7 @@ type Library interface {
 	Picture(ctx context.Context, id ulid.ULID, kind PictureKind) (PictureInfo, error)
 	Track(ctx context.Context, id ulid.ULID) (TrackInfo, error)
 	Character(ctx context.Context, id ulid.ULID) (CharacterInfo, error)
+	Image(ctx context.Context, id ulid.ULID) error
 }
 type PictureKind string
 

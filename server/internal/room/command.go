@@ -168,6 +168,9 @@ var hubCommands = map[string]func() Command{
 	"room.setName":        func() Command { return &RoomSetName{} },
 	"room.close":          func() Command { return &RoomClose{} },
 	"character.sync":      func() Command { return &CharacterSync{} },
+	"character.gone":      func() Command { return &CharacterGone{} },
+	"monster.gone":        func() Command { return &MonsterGone{} },
+	"asset.gone":          func() Command { return &AssetGone{} },
 	"scene.load":          func() Command { return &SceneLoad{} },
 }
 

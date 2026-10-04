@@ -42,7 +42,7 @@ WHERE id = ? AND owner_id = ?;
 DELETE FROM rooms
 WHERE id = ? AND owner_id = ?;
 -- name: GetRoomSnapshot :one
-SELECT name, is_locked, snapshot
+SELECT owner_id, name, is_locked, snapshot
 FROM rooms
 WHERE id = ? AND closed_at IS NULL;
 -- name: SaveRoomSnapshot :execresult

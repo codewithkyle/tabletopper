@@ -301,6 +301,7 @@ func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind assetKi
 		htmx.ServerError(w)
 		return
 	}
+	a.forgetAsset(ctx, row.ID)
 	htmx.Toast(w, row.Name+" deleted.")
 }
 func (a *App) libraryAsset(w http.ResponseWriter, r *http.Request, kind assetKind) (queries.Asset, bool) {

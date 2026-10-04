@@ -18,6 +18,7 @@ type fakeLibrary struct {
 	pictures   map[pictureKey]PictureInfo
 	characters map[ulid.ULID]CharacterInfo
 	tracks     map[ulid.ULID]TrackInfo
+	images     map[ulid.ULID]bool
 	broken     error
 	reads      []string
 }
@@ -77,6 +78,16 @@ func (l *fakeLibrary) Character(ctx context.Context, id ulid.ULID) (CharacterInf
 	}
 	return info, nil
 }
+func (l *fakeLibrary) Image(ctx context.Context, id ulid.ULID) error {
+	l.reads = append(l.reads, "image")
+	if l.broken != nil {
+		return l.broken
+	}
+	if !l.images[id] {
+		return notFound("Picture gone", "That picture is no longer in your library.")
+	}
+	return nil
+}
 func newLibrary() *fakeLibrary {
 	return &fakeLibrary{
 		maps:       map[ulid.ULID]MapRef{},
@@ -84,6 +95,7 @@ func newLibrary() *fakeLibrary {
 		pictures:   map[pictureKey]PictureInfo{},
 		characters: map[ulid.ULID]CharacterInfo{},
 		tracks:     map[ulid.ULID]TrackInfo{},
+		images:     map[ulid.ULID]bool{},
 	}
 }
 func (w *world) resolve(c Resolver, lib Library) {

@@ -65,6 +65,12 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		if err := deleteCharacterRows(ctx, q, characterID, sess.UserID); err != nil {
 			return err
 		}
+		if _, err := q.ClearCharacterSessions(ctx, queries.ClearCharacterSessionsParams{
+			CharacterID: &characterID,
+			UserID:      sess.UserID,
+		}); err != nil {
+			return fmt.Errorf("sessions: %w", err)
+		}
 		err := q.DeleteCharacter(ctx, queries.DeleteCharacterParams{
 			ID:      characterID,
 			OwnerID: sess.UserID,
@@ -88,6 +94,7 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
+	a.forgetCharacter(ctx, characterID)
 	htmx.Toast(w, character.Name+" has been deleted.")
 }
 func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, ownerID ulid.ULID) error {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
 
@@ -37,6 +38,7 @@ type Options struct {
 	WriteSheet       func(ctx context.Context, character ulid.ULID, v room.SheetVitals) error
 	ConnsPerUser     int
 	ConnsPerRoom     int
+	Library          func(owner ulid.ULID) room.Library
 }
 
 func (o Options) withDefaults() Options {
@@ -154,10 +156,46 @@ func (h *Hub) SyncCharacter(ctx context.Context, roomID, owner, character ulid.U
 	}
 	info, err := h.library(owner).Character(ctx, character)
 	if err != nil {
+		if gone(err) {
+			h.Notify(roomID, &room.CharacterGone{ID: character})
+			return
+		}
 		slog.Error("Failed to read a character back for its pawn", "character", character, "error", err)
 		return
 	}
 	h.Notify(roomID, &room.CharacterSync{Info: info})
+}
+func gone(err error) bool {
+	e, ok := err.(*room.Error)
+	return ok && e.Code == room.CodeNotFound
+}
+func (h *Hub) ForgetCharacter(ctx context.Context, character ulid.ULID) {
+	h.everywhere(ctx, func() room.Command { return &room.CharacterGone{ID: character} })
+}
+func (h *Hub) ForgetMonster(ctx context.Context, monster ulid.ULID) {
+	h.everywhere(ctx, func() room.Command { return &room.MonsterGone{ID: monster} })
+}
+func (h *Hub) ForgetAsset(ctx context.Context, asset ulid.ULID) {
+	h.everywhere(ctx, func() room.Command { return &room.AssetGone{ID: asset} })
+}
+func (h *Hub) everywhere(ctx context.Context, build func() room.Command) {
+	h.mu.Lock()
+	rooms := make([]*actor, 0, len(h.rooms))
+	for _, a := range h.rooms {
+		rooms = append(rooms, a)
+	}
+	h.mu.Unlock()
+	for _, a := range rooms {
+		reply := make(chan error, 1)
+		if err := a.post(ctx, dispatch{cmd: build(), reply: reply}); err != nil {
+			continue
+		}
+		select {
+		case <-reply:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 func (h *Hub) Close(ctx context.Context, roomID ulid.ULID) {
 	h.mu.Lock()
@@ -392,6 +430,7 @@ func (h *Hub) room(ctx context.Context, roomID ulid.ULID) (*actor, error) {
 	if failed {
 		h.preserve(roomID, loaded.Snapshot)
 	}
+	pruned := h.prune(ctx, roomID, loaded.Owner, state)
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.closed {
@@ -401,9 +440,25 @@ func (h *Hub) room(ctx context.Context, roomID ulid.ULID) (*actor, error) {
 		return a, nil
 	}
 	a := newActor(h, roomID, state, state.Seq)
+	a.dirty = pruned
 	h.rooms[roomID] = a
 	go a.run()
 	return a, nil
+}
+func (h *Hub) prune(ctx context.Context, roomID, owner ulid.ULID, s *room.State) bool {
+	if h.queries == nil && h.opts.Library == nil {
+		return false
+	}
+	before := s.Clone()
+	missing, err := room.Prune(ctx, h.library(owner), s)
+	if err != nil {
+		slog.Error("Failed to check a room against the library; keeping every reference", "room", roomID, "error", err)
+		return false
+	}
+	if len(missing) > 0 {
+		slog.Info("Dropped what the library no longer holds", "room", roomID, "missing", missing)
+	}
+	return !reflect.DeepEqual(before, *s)
 }
 func (h *Hub) preserve(roomID ulid.ULID, snapshot []byte) {
 	store := h.store

@@ -72,7 +72,10 @@ func sheetPost(t *testing.T, app *App, handler http.HandlerFunc, form url.Values
 		map[string]string{"id": testCharacterID.String()}, form, sess)
 }
 func TestASheetSaveInARoomReachesThePawn(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{characterForRoomAnswer("Ilyana Duskhollow", "large", 18, 7, 24)}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterForRoomAnswer("Ilyana", "medium", 15, 12, 12),
+		characterForRoomAnswer("Ilyana Duskhollow", "large", 18, 7, 24),
+	}}
 	app := newRoomApp(db)
 	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
 	firstLayer(t, app)
@@ -235,7 +238,10 @@ func TestAPawnEditReachesTheCharactersRow(t *testing.T) {
 }
 
 func TestAnIdentitySaveResizesThePawn(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{characterForRoomAnswer("Ilyana", "large", 15, 12, 12)}}
+	db := &roomDB{rows: 1, answers: []roomAnswer{
+		characterForRoomAnswer("Ilyana", "medium", 15, 12, 12),
+		characterForRoomAnswer("Ilyana", "large", 15, 12, 12),
+	}}
 	app := newRoomApp(db)
 	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
 	firstLayer(t, app)

@@ -69,47 +69,13 @@ func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
 		return nil
 	}
 	c.Missing = nil
-	for i := range c.Scene.Table.Layers {
-		l := &c.Scene.Table.Layers[i]
-		for _, slot := range []**MapRef{&l.Map, &l.GMMap} {
-			held := *slot
-			if held == nil {
-				continue
-			}
-			ref, err := lib.Map(ctx, held.AssetID)
-			if err != nil {
-				refusal, ok := err.(*Error)
-				if !ok {
-					return err
-				}
-				c.Missing = append(c.Missing, l.Name+": "+refusal.Message)
-				*slot = nil
-				continue
-			}
-			*slot = cloneRef(&ref)
+	p := newPruner(lib, refused)
+	for _, step := range []func(context.Context, *State) error{p.maps, p.palette, p.pawns} {
+		if err := step(ctx, c.Scene); err != nil {
+			return err
 		}
 	}
-	return c.resolveTerrain(ctx, lib)
-}
-func (c *SceneLoad) resolveTerrain(ctx context.Context, lib Library) error {
-	gone := map[ulid.ULID]bool{}
-	kept := make([]TileArt, 0, len(c.Scene.Table.Palette))
-	for _, art := range c.Scene.Table.Palette {
-		info, err := lib.Picture(ctx, art.AssetID, PictureTerrain)
-		if err != nil {
-			refusal, ok := err.(*Error)
-			if !ok {
-				return err
-			}
-			gone[art.ID] = true
-			c.Missing = append(c.Missing, art.Name+": "+refusal.Message)
-			continue
-		}
-		art.Name, art.Image = info.Name, info.Image
-		kept = append(kept, art)
-	}
-	c.Scene.Table.Palette = kept
-	c.Scene.Tiles = slices.DeleteFunc(c.Scene.Tiles, func(t Tile) bool { return gone[t.Art] })
+	c.Missing = p.missing
 	return nil
 }
 func (c *SceneLoad) Apply(s *State, a Actor, env Env) ([]Signal, error) {

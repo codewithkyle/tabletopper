@@ -17,6 +17,9 @@ type library struct {
 }
 
 func (h *Hub) library(owner ulid.ULID) room.Library {
+	if h.opts.Library != nil {
+		return h.opts.Library(owner)
+	}
 	return library{q: h.queries, owner: owner}
 }
 func (l library) Map(ctx context.Context, asset ulid.ULID) (room.MapRef, error) {
@@ -115,6 +118,15 @@ func (l library) Character(ctx context.Context, id ulid.ULID) (room.CharacterInf
 		InitiativeBonus: int(row.InitiativeBonus),
 	}, nil
 }
+func (l library) Image(ctx context.Context, id ulid.ULID) error {
+	if l.q == nil {
+		return notBuilt("Spawning is not ready", "This server cannot read the library.")
+	}
+	if _, err := l.q.GetImage(ctx, id); err != nil {
+		return missing(err, "Picture gone", "That picture is no longer in your library.")
+	}
+	return nil
+}
 func assetType(kind room.PictureKind) queries.AssetsType {
 	switch kind {
 	case room.PictureAvatar:
@@ -129,7 +141,7 @@ func imageURL(id *ulid.ULID) string {
 	if id == nil {
 		return ""
 	}
-	return "/assets/images/" + id.String()
+	return room.ImageURL(*id)
 }
 func notBuilt(heading, message string) error {
 	return &room.Error{Code: room.CodeInvalid, Heading: heading, Message: message}
