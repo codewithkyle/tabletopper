@@ -102,6 +102,24 @@ test("a drag reports itself and commits on release", () => {
 	assert.deepEqual([move?.x, move?.y], [96, 96]);
 	assert.deepEqual(move?.others, []);
 });
+test("a pawn under the hand says so, so the hud can get out of the way", () => {
+	const anchor = pawn({ id: "anchor", x: 32, y: 32 });
+	const { controller } = table([anchor]);
+	assert.equal(controller.dragging(), false, "an idle table reported a drag");
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	assert.equal(controller.dragging(), false, "a press that has not moved yet counted as a drag");
+	controller.tool.drag(at(90, 90), at(58, 58), NONE);
+	assert.equal(controller.dragging(), true, "a pawn on the move did not count as a drag");
+	controller.tool.release(at(90, 90), at(58, 58), NONE);
+	assert.equal(controller.dragging(), false, "the drag outlived the hand that made it");
+});
+test("a marquee is not a drag, because it covers no pawn's hud", () => {
+	const anchor = pawn({ id: "anchor", x: 32, y: 32 });
+	const { controller } = table([anchor]);
+	controller.tool.press(at(900, 900), at(400, 400), NONE);
+	controller.tool.drag(at(1200, 1200), at(700, 700), NONE);
+	assert.equal(controller.dragging(), false);
+});
 test("Escape sends the committed position with the same others", () => {
 	const anchor = pawn({ id: "anchor", x: 32, y: 32, z: 1 });
 	const rider = pawn({ id: "rider", x: 100, y: 200, z: 2 });

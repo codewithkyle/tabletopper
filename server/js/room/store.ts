@@ -81,6 +81,7 @@ export function reduce(state: State, event: Event): void {
 		case "pawn.dragging":
 		case "player.kicked":
 		case "room.closed":
+		case "table.cleared":
 			return;
 		default:
 			(reducers[event.type] as (state: State, change: Change) => void)(state, event);

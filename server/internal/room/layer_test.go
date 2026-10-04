@@ -79,6 +79,8 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 		Map:     &MapRef{AssetID: testAssetID, Gen: testID(50), Width: 2048, Height: 2048, TileSize: 512, MaxZoom: 2},
 	}, w.gm)
 	w.apply(&TableSetLayerMap{Layer: ground, GM: true, AssetID: gmMapAsset, Map: gmMapRef()}, w.gm)
+	start := 128
+	w.apply(&TableSetPartyStart{Layer: ground, X: &start, Y: &start}, w.gm)
 	cell := w.s.Table.Grid.CellSize
 	ch := w.change(&TableClear{}, w.gm)
 	equalStrings(t, "the GM", changeTypesOf(ch.changes(RoleGM)), []string{
@@ -95,6 +97,8 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 		"initiative.updated",
 		"layers.updated",
 	})
+	equalStrings(t, "the GM", eventTypesOf(ch.sent(w.gm)), []string{"changes", "table.cleared"})
+	equalStrings(t, "a player", eventTypesOf(ch.sent(w.pc)), []string{"changes", "table.cleared"})
 	if len(w.s.Pawns) != 0 || len(w.s.Fog) != 0 || len(w.s.Strokes) != 0 {
 		t.Fatalf("the table still holds %d pawns, %d fog shapes and %d strokes",
 			len(w.s.Pawns), len(w.s.Fog), len(w.s.Strokes))
@@ -111,6 +115,9 @@ func TestClearingTheTabletopEmptiesEveryFloor(t *testing.T) {
 		}
 		if l.GMMap != nil {
 			t.Errorf("the %s layer kept the map only the GM sees", l.Name)
+		}
+		if l.PartyStart != nil {
+			t.Errorf("the %s layer kept the mark where the party starts, on a floor with no map under it", l.Name)
 		}
 	}
 	if w.s.Table.Grid.CellSize != cell {

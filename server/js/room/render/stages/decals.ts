@@ -25,6 +25,9 @@ export const decalsStage: StageFactory = (gl, resources): Stage => {
 			if (event.type === "snapshot") {
 				decals.resync();
 			}
+			if (event.type === "table.cleared") {
+				wipe();
+			}
 		},
 		showBlood(on) {
 			decals.show(on);

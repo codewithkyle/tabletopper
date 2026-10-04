@@ -52,6 +52,7 @@ export interface Select extends Tool {
 	selection: Selection;
 	focus(): Pawn | null;
 	bounds(): Rect | null;
+	dragging(): boolean;
 	preview(event: Event): void;
 	floorChanged(): void;
 }
@@ -350,6 +351,7 @@ export function createSelect(deps: SelectDeps): Select {
 		},
 		selection,
 		focus: described,
+		dragging: () => gesture?.kind === "drag",
 		bounds() {
 			const one = described();
 			const ids = selection.size > 1 ? selection.ids() : one ? [one.id] : [];

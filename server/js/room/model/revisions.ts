@@ -64,6 +64,7 @@ export function revise(rev: Revisions, event: Event): void {
 		case "player.kicked":
 		case "room.updated":
 		case "room.closed":
+		case "table.cleared":
 			return;
 		default: {
 			const unrevised: never = event;

@@ -3,6 +3,7 @@ import type { Rect } from "./model/types.ts";
 export interface HudDeps {
 	focus: () => Pawn | null;
 	selected: () => string[];
+	dragging: () => boolean;
 	bounds: () => Rect | null;
 	project: (x: number, y: number, out: { x: number; y: number }) => { x: number; y: number };
 	layers: () => { id: string; name: string }[];
@@ -42,6 +43,10 @@ export function mountHud(mount: HTMLElement, deps: HudDeps): Hud | null {
 	function refresh(): void {
 		const chosen = deps.selected();
 		armRemoveKey(chosen);
+		if (deps.dragging()) {
+			hide();
+			return;
+		}
 		if (chosen.length > 1) {
 			showMany(chosen);
 			return;
@@ -129,6 +134,10 @@ export function mountHud(mount: HTMLElement, deps: HudDeps): Hud | null {
 	}
 	function place(): void {
 		if (!showing) {
+			return;
+		}
+		if (deps.dragging()) {
+			hide();
 			return;
 		}
 		const box = deps.bounds();

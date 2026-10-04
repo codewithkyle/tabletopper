@@ -47,6 +47,7 @@ var eventTypes = map[string]func() Event{
 	"room.closed":   func() Event { return &RoomClosed{} },
 	"player.kicked": func() Event { return &PlayerKicked{} },
 	"pawn.dragging": func() Event { return &PawnDragging{} },
+	"table.cleared": func() Event { return &TableCleared{} },
 	"pinged":        func() Event { return &Pinged{} },
 	"rolled":        func() Event { return &Rolled{} },
 	"error":         func() Event { return &ErrorEvent{} },

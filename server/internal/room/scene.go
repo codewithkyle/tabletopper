@@ -83,5 +83,5 @@ func (c *SceneLoad) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 		return nil, notFound("Scene gone", "That scene could not be read.")
 	}
 	s.ImportScene(c.Scene)
-	return nil, nil
+	return []Signal{signal(ToAll, &TableCleared{})}, nil
 }

@@ -32218,8 +32218,27 @@
                 "01000000000000000000000003",
                 "01000000000000000000000007"
               ]
+            },
+            {
+              "type": "layers.updated",
+              "layers": [
+                {
+                  "id": "01000000000000000000000001",
+                  "name": "Ground floor",
+                  "map": null,
+                  "gmMap": null,
+                  "fogEnabled": true,
+                  "fogPrefill": false,
+                  "partyStart": null
+                }
+              ]
             }
           ]
+        },
+        {
+          "type": "table.cleared",
+          "seq": 85,
+          "by": "010000000000000000000000Z9"
         }
       ],
       "state": {
@@ -32239,10 +32258,7 @@
               "gmMap": null,
               "fogEnabled": true,
               "fogPrefill": false,
-              "partyStart": {
-                "x": 640,
-                "y": 320
-              }
+              "partyStart": null
             }
           ],
           "palette": [],
@@ -32535,6 +32551,10 @@
               }
             }
           ]
+        },
+        {
+          "type": "table.cleared",
+          "seq": 86
         }
       ],
       "state": {

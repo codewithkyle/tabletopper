@@ -798,6 +798,11 @@ export interface Snapshot {
 	version: string;
 	now: number;
 }
+export interface TableCleared {
+	type: "table.cleared";
+	seq: number;
+	by?: string;
+}
 export type Transient =
 	| ErrorEvent
 	| PawnDragging
@@ -806,6 +811,7 @@ export type Transient =
 	| Rolled
 	| RoomClosed
 	| Snapshot
+	| TableCleared
 	;
 export type Frame =
 	| Changes
@@ -816,6 +822,7 @@ export type Frame =
 	| Rolled
 	| RoomClosed
 	| Snapshot
+	| TableCleared
 	;
 export type Event = Change | Transient;
 export const TRANSIENT_EVENTS: ReadonlySet<Frame["type"]> = new Set([
@@ -826,4 +833,5 @@ export const TRANSIENT_EVENTS: ReadonlySet<Frame["type"]> = new Set([
 	"rolled",
 	"room.closed",
 	"snapshot",
+	"table.cleared",
 ]);

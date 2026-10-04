@@ -183,6 +183,13 @@ func (c *TableClearLayerMap) Apply(s *State, a Actor, env Env) ([]Signal, error)
 	return nil, nil
 }
 
+type TableCleared struct {
+	Header
+}
+
+func (*TableCleared) eventType() string { return "table.cleared" }
+func (*TableCleared) transient()        {}
+
 type TableClear struct{}
 
 func (c *TableClear) Authorize(s *State, a Actor) error {
@@ -192,6 +199,7 @@ func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	for i := range s.Table.Layers {
 		s.Table.Layers[i].Map = nil
 		s.Table.Layers[i].GMMap = nil
+		s.Table.Layers[i].PartyStart = nil
 	}
 	s.Pawns = nil
 	s.Fog = nil
@@ -200,7 +208,7 @@ func (c *TableClear) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	s.Notes = nil
 	s.Initiative = Initiative{}
 	s.Normalize()
-	return nil, nil
+	return []Signal{signal(ToAll, &TableCleared{})}, nil
 }
 
 type TableSetActiveLayer struct {

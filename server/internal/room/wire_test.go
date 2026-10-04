@@ -191,6 +191,7 @@ func TestEveryFrameIsTheChangesFrameOrATransient(t *testing.T) {
 	want := map[string]bool{
 		"room.closed": true, "player.kicked": true, "snapshot": true,
 		"pawn.dragging": true, "pinged": true, "error": true, "rolled": true,
+		"table.cleared": true,
 	}
 	for wire, ev := range EventPrototypes() {
 		_, marked := ev.(Transient)

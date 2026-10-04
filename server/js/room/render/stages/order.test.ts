@@ -22,7 +22,7 @@ import { terrainStage } from "./terrain.ts";
 import { tilesStage } from "./tiles.ts";
 const COMMON = [
 	tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
-	floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
+	numbersStage, floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 	handlesStage, pingsStage, overMarksStage,
 ];
 test("a GM sees fog over the floor and under everything that stands on it", () => {
@@ -37,6 +37,7 @@ test("a GM sees fog over the floor and under everything that stands on it", () =
 test("a player sees fog over the pawns it hides", () => {
 	assert.deepEqual(stagesFor("player"), [
 		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
+		numbersStage,
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
 		fogStage, ownAurasStage, ownPawnsStage, ownRingsStage,
@@ -47,12 +48,12 @@ test("fog is one stage, drawn once, wherever the role puts it", () => {
 	for (const role of ["gm", "player"] as const) {
 		const order = stagesFor(role);
 		assert.equal(order.filter((stage) => stage === fogStage).length, 1, role);
-		assert.equal(order.length, role === "player" ? 17 : 16, role);
+		assert.equal(order.length, role === "player" ? 18 : 16, role);
 	}
 });
 test("every other stage keeps its place whichever side of the table you are on", () => {
 	for (const role of ["gm", "player"] as const) {
-		const lifted = [fogStage, numbersStage, partyStartStage, ownAurasStage, ownPawnsStage, ownRingsStage];
+		const lifted = [fogStage, partyStartStage, ownAurasStage, ownPawnsStage, ownRingsStage];
 		const order = stagesFor(role).filter((stage) => !lifted.includes(stage));
 		assert.deepEqual(order, COMMON, role);
 	}
@@ -83,11 +84,16 @@ test("every stage in the order has a name, because a timing readout of blanks sa
 	}
 	assert.equal(seen.size, 19, "two stages share a name, so their timings would be indistinguishable");
 });
-test("only the GM is handed cell numbers, and they sit over the fog that dims the map", () => {
-	assert.ok(!stagesFor("player").includes(numbersStage), "a player was handed the GM's reference numbers");
-	const order = stagesFor("gm");
-	assert.ok(order.indexOf(numbersStage) > order.indexOf(fogStage), "the fog dims the numbers under it");
-	assert.ok(order.indexOf(numbersStage) < order.indexOf(pawnsStage), "a number is drawn over the pawn standing on it");
+test("both sides of the table are handed cell numbers, because the setting is the room's", () => {
+	for (const role of ["gm", "player"] as const) {
+		const order = stagesFor(role);
+		assert.ok(order.includes(numbersStage), `${role} was not handed the numbers the room turned on`);
+		assert.ok(order.indexOf(numbersStage) < order.indexOf(pawnsStage), `${role}: a number is drawn over the pawn standing on it`);
+	}
+	const gm = stagesFor("gm");
+	assert.ok(gm.indexOf(numbersStage) > gm.indexOf(fogStage), "the GM's fog hid the numbers they are counting with");
+	const player = stagesFor("player");
+	assert.ok(player.indexOf(numbersStage) < player.indexOf(fogStage), "a player read a number off ground their fog still covers");
 });
 test("only the GM is shown where the party starts", () => {
 	assert.ok(!stagesFor("player").includes(partyStartStage), "a player was shown the GM's party start");

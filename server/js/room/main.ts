@@ -95,7 +95,7 @@ if (mount) {
 		const layer = viewed();
 		const floor = state.table.layers.find((l) => l.id === layer);
 		const numbering = numberingFor(state.table.grid, floor?.map ?? floor?.gmMap);
-		const named = role === "gm" ? cellName(numbering, q, r) : `${q}, ${r}`;
+		const named = cellName(numbering, q, r);
 		openWindow(noteWindow(roomID, layer, q, r, named));
 	};
 	const marks = mountTableMenu(mount, {
@@ -147,6 +147,7 @@ if (mount) {
 		hud = mountHud(mount, {
 			focus: () => table.focus(),
 			selected: () => table.selection.ids(),
+			dragging: () => table.dragging(),
 			bounds: () => table.bounds(),
 			project: (x, y, out) => view.toScreen(x, y, out),
 			layers: () => state.table.layers.map((layer) => ({ id: layer.id, name: layer.name })),

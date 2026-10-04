@@ -46,7 +46,9 @@ export function nameOf(factory: StageFactory): string {
 export function stagesFor(role: Role): readonly StageFactory[] {
 	return [
 		tilesStage, terrainStage, gridStage, decalsStage, strokesStage,
-		...(role === "gm" ? [fogStage, numbersStage, partyStartStage] : []),
+		...(role === "gm" ? [fogStage] : []),
+		numbersStage,
+		...(role === "gm" ? [partyStartStage] : []),
 		floorMarksStage, aurasStage, pawnsStage, ringsStage, ghostsStage,
 		handlesStage, pingsStage,
 		...(role === "player" ? [fogStage, ownAurasStage, ownPawnsStage, ownRingsStage] : []),

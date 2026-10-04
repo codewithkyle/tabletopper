@@ -40,6 +40,7 @@ export interface Table {
 	selection: Selection;
 	focus(): Pawn | null;
 	bounds(): Rect | null;
+	dragging(): boolean;
 	preview(event: Event): void;
 	floorChanged(): void;
 	arm(armed: Armed | null): void;
@@ -114,6 +115,7 @@ export function createTable(deps: TableDeps): Table {
 		selection: select.selection,
 		focus: select.focus,
 		bounds: select.bounds,
+		dragging: select.dragging,
 		preview: select.preview,
 		floorChanged: select.floorChanged,
 		arm: place.arm,
