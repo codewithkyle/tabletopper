@@ -6,6 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: Beta
     steps:
       - name: Refuse to deploy from anything but beta
         if: github.ref != 'refs/heads/beta'
