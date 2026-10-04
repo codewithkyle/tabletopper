@@ -49,7 +49,7 @@ function begin(root) {
     const editor = new Editor({
         element: mount,
         extensions: [
-            StarterKit.configure({ link: { openOnClick: false } }),
+            StarterKit.configure({ link: { openOnClick: true } }),
             Markdown,
             ImageNode.configure({ inline: false, allowBase64: false }),
         ],

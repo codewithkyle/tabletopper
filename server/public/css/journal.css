@@ -43,6 +43,7 @@
     & a {
         color: var(--color-primary);
         text-decoration: underline;
+        cursor: pointer;
     }
     & strong { font-weight: 700; }
     & em { font-style: italic; }

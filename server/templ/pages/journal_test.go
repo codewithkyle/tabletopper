@@ -211,3 +211,28 @@ func TestSavingSitsRightOfTheWayBack(t *testing.T) {
 		t.Errorf("the way back carries no arrow\n%s", window)
 	}
 }
+
+func TestALongEntryTitleIsCutRatherThanWideningTheCard(t *testing.T) {
+	long := strings.Repeat("Vecna", 40)
+	entry := JournalEntry{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Title: long}
+	for where, markup := range map[string]string{
+		"window": journalWindow(t, entry),
+		"page":   journalList(t, entry),
+	} {
+		at := strings.Index(markup, `title="`+long+`"`)
+		if at < 0 {
+			t.Fatalf("the %s hides the full title even from a hover\n%s", where, markup)
+		}
+		open := strings.LastIndex(markup[:at], "<")
+		tag := markup[open : at+strings.Index(markup[at:], ">")+1]
+		if !strings.Contains(tag, "truncate") {
+			t.Errorf("a long title is not cut in the %s, so it pushes the buttons out of the panel\n%s", where, tag)
+		}
+		if !strings.Contains(markup, "min-w-0") {
+			t.Errorf("the title column of the %s cannot shrink, so nothing can be cut\n%s", where, markup)
+		}
+		if !strings.Contains(markup, `class="flex shrink-0 items-center gap-2"`) {
+			t.Errorf("the %s lets Open and Delete be squeezed instead of wrapping below\n%s", where, markup)
+		}
+	}
+}

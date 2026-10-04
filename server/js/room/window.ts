@@ -317,7 +317,7 @@ class RoomWindow {
 		}
 		this.icon("maximize", this.restoreTo !== null);
 		this.icon("restore", this.restoreTo === null);
-		this.reclamp();
+		this.collapse(false);
 	}
 	private icon(name: string, hide: boolean): void {
 		const icon = this.el.querySelector(`[data-window-icon="${name}"]`);

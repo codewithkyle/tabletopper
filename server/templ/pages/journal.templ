@@ -57,7 +57,7 @@ templ journalEntryList(data JournalPageData) {
 
 templ journalEntryCard(data JournalPageData, entry JournalEntry) {
 	<article class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
-		<div class="grid min-w-0 flex-1 gap-1">
+		<div class="grid min-w-0 flex-1 basis-48 gap-1">
 			@journalEntryName(data, entry)
 			if entry.Snippet.Match != "" {
 				<p class="line-clamp-2 text-sm text-base-content/70">{ entry.Snippet.Before }<mark class="rounded-sm bg-warning/30 px-0.5 text-base-content">{ entry.Snippet.Match }</mark>{ entry.Snippet.After }</p>
@@ -73,7 +73,7 @@ templ journalEntryCard(data JournalPageData, entry JournalEntry) {
 				</span>
 			</p>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="flex shrink-0 items-center gap-2">
 			@journalEntryOpen(data, entry)
 			<button
 				type="button"
@@ -91,9 +91,18 @@ templ journalEntryCard(data JournalPageData, entry JournalEntry) {
 
 templ journalEntryName(data JournalPageData, entry JournalEntry) {
 	if data.RoomID == "" {
-		<a href={ journalEntryHref(data, entry) } class="font-medium hover:underline">{ journalEntryTitle(entry) }</a>
+		<a
+			href={ journalEntryHref(data, entry) }
+			title={ journalEntryTitle(entry) }
+			class="block min-w-0 truncate font-medium hover:underline"
+		>{ journalEntryTitle(entry) }</a>
 	} else {
-		<button type="button" class="cursor-pointer text-left font-medium hover:underline" { journalOpens(data.RoomID, entry.ID)... }>{ journalEntryTitle(entry) }</button>
+		<button
+			type="button"
+			title={ journalEntryTitle(entry) }
+			class="block w-full min-w-0 cursor-pointer truncate text-left font-medium hover:underline"
+			{ journalOpens(data.RoomID, entry.ID)... }
+		>{ journalEntryTitle(entry) }</button>
 	}
 }
 

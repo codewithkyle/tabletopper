@@ -1,5 +1,14 @@
 package pages
 
+import "tabletopper/internal/room"
+
+const (
+	CharacterXPLimit  = 9_999_999
+	CharacterACLimit  = room.ACLimit
+	CharacterHPLimit  = room.HPLimit
+	AbilityScoreLimit = 255
+)
+
 type EditCharacterPageData struct {
 	Live                SheetLive
 	CharacterID         string

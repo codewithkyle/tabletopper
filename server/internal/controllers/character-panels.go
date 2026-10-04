@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"tabletopper/internal/htmx"
@@ -351,8 +352,12 @@ type coreStatsInput struct {
 func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	validationErrors := make([]string, 0)
 	xp, err := parseUint32(r.PostFormValue("xp"), 0)
+	if err == nil && xp > pages.CharacterXPLimit {
+		err = strconv.ErrRange
+	}
 	if err != nil {
-		validationErrors = append(validationErrors, "XP must be a valid non-negative number.")
+		xp = 0
+		validationErrors = append(validationErrors, fmt.Sprintf("XP must be between 0 and %d.", pages.CharacterXPLimit))
 	}
 	ac, err := parseBounded(r.PostFormValue("ac"), 10, room.ACLimit)
 	if err != nil {

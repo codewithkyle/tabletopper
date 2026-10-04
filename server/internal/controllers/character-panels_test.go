@@ -350,6 +350,31 @@ func TestCoreStatsDerivesLevelAndProficiencyFromXP(t *testing.T) {
 		t.Errorf("proficiency bonus = %v, want 4", got)
 	}
 }
+func TestATwentiethLevelCharacterCanBeSaved(t *testing.T) {
+	app, db := newPanelApp(1)
+	panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
+		"xp": {"355000"},
+	}, map[string]string{"id": testCharacterID.String()})
+	call := db.only(t)
+	if got := call.args[0]; got != uint32(355000) {
+		t.Errorf("xp = %v, want 355000", got)
+	}
+	if got := call.args[1]; got != uint8(20) {
+		t.Errorf("level = %v, want 20", got)
+	}
+}
+func TestAnExperienceTheFieldCannotHoldIsRefused(t *testing.T) {
+	app, db := newPanelApp(1)
+	rec := panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
+		"xp": {strconv.Itoa(pages.CharacterXPLimit + 1)},
+	}, map[string]string{"id": testCharacterID.String()})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("status = %d, want 422", rec.Code)
+	}
+	if len(db.calls) != 0 {
+		t.Errorf("an experience past the limit was written anyway: %q", db.calls[0].query)
+	}
+}
 func TestBonusPanelRejectsAnUnknownKind(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterBonuses, url.Values{},
