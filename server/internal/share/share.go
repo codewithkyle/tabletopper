@@ -52,6 +52,9 @@ func HashPassword(plain string) (string, error) {
 var bcryptSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
 
 func PasswordMatches(ctx context.Context, hash, plain string) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	select {
 	case bcryptSlots <- struct{}{}:
 		defer func() { <-bcryptSlots }()
