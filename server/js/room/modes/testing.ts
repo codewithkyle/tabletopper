@@ -25,9 +25,10 @@ export const GROUND = "01LAYERGROUND";
 export const CELLAR = "01LAYERCELLAR";
 export const GM = "01GM";
 export const PLAYER = "01PLAYER";
-export const NONE = { shift: false, alt: false };
-export const SHIFT = { shift: true, alt: false };
-export const ALT = { shift: false, alt: true };
+export const NONE = { shift: false, ctrl: false, alt: false };
+export const SHIFT = { shift: true, ctrl: false, alt: false };
+export const CTRL = { shift: false, ctrl: true, alt: false };
+export const ALT = { shift: false, ctrl: false, alt: true };
 export const at = (x: number, y: number) => ({ x, y });
 export function grid(over: Partial<Grid> = {}): Grid {
 	return {

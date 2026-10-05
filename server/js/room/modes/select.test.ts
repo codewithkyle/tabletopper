@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALT, NONE, SHIFT, at, pawn, press, table } from "./testing.ts";
+import { ALT, CTRL, NONE, SHIFT, at, pawn, press, table } from "./testing.ts";
 test("a press that goes nowhere selects rather than moving", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller, sent } = table([goblin]);
@@ -173,6 +173,44 @@ test("a shift-drag adds to the selection rather than replacing it", () => {
 	assert.equal(controller.tool.press(at(0, 0), at(0, 0), SHIFT), true);
 	controller.tool.drag(at(200, 200), at(200, 200), SHIFT);
 	controller.tool.release(at(200, 200), at(200, 200), SHIFT);
+	assert.deepEqual(controller.selection.ids(), ["b", "a"]);
+});
+test("ctrl-clicking adds to the selection", () => {
+	const a = pawn({ id: "a", x: 32, y: 32 });
+	const b = pawn({ id: "b", x: 300, y: 32 });
+	const { controller } = table([a, b]);
+	controller.tool.press(at(32, 32), at(0, 0), NONE);
+	controller.tool.release(at(32, 32), at(0, 0), NONE);
+	controller.tool.press(at(300, 32), at(0, 0), CTRL);
+	controller.tool.release(at(300, 32), at(0, 0), CTRL);
+	assert.deepEqual(controller.selection.ids(), ["a", "b"]);
+});
+test("ctrl-clicking a selected pawn takes it back out", () => {
+	const a = pawn({ id: "a", x: 32, y: 32 });
+	const b = pawn({ id: "b", x: 300, y: 32 });
+	const { controller, sent } = table([a, b]);
+	controller.selection.set(["a", "b"]);
+	controller.tool.press(at(300, 32), at(0, 0), CTRL);
+	controller.tool.release(at(300, 32), at(0, 0), CTRL);
+	assert.deepEqual(controller.selection.ids(), ["a"]);
+	assert.deepEqual(sent, [], "a ctrl-click moved a pawn");
+});
+test("a ctrl-click on empty table keeps the selection", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller } = table([goblin]);
+	controller.selection.set(["goblin"]);
+	controller.tool.press(at(900, 900), at(0, 0), CTRL);
+	controller.tool.release(at(900, 900), at(0, 0), CTRL);
+	assert.deepEqual(controller.selection.ids(), ["goblin"]);
+});
+test("a ctrl-drag adds to the selection rather than replacing it", () => {
+	const a = pawn({ id: "a", x: 100, y: 100 });
+	const b = pawn({ id: "b", x: 900, y: 900 });
+	const { controller } = table([a, b]);
+	controller.selection.set(["b"]);
+	assert.equal(controller.tool.press(at(0, 0), at(0, 0), CTRL), true);
+	controller.tool.drag(at(200, 200), at(200, 200), CTRL);
+	controller.tool.release(at(200, 200), at(200, 200), CTRL);
 	assert.deepEqual(controller.selection.ids(), ["b", "a"]);
 });
 test("a shift click on empty table keeps the selection", () => {

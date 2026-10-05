@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { NONE, SHIFT, at, pawn, table, wait } from "./testing.ts";
+import { CTRL, NONE, SHIFT, at, pawn, table, wait } from "./testing.ts";
 type Harness = ReturnType<typeof table>;
 function click(t: Harness, x: number, y: number, mods = NONE): void {
 	t.controller.tool.press(at(x, y), at(x, y), mods);
@@ -64,6 +64,14 @@ test("shift clicks never open anything", () => {
 	click(t, 32, 32, SHIFT);
 	assert.deepEqual(t.opened, []);
 	assert.deepEqual(t.controller.selection.ids(), [], "the second shift click did not toggle it back out");
+});
+test("ctrl clicks never open anything", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const t = table([goblin]);
+	click(t, 32, 32, CTRL);
+	click(t, 32, 32, CTRL);
+	assert.deepEqual(t.opened, []);
+	assert.deepEqual(t.controller.selection.ids(), [], "the second ctrl click did not toggle it back out");
 });
 test("handles are drawn for one selected token and for nothing else", () => {
 	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });

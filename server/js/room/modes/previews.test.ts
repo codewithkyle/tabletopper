@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { GM, PLAYER, at, cleared, pawn, table } from "./testing.ts";
+import { GM, NONE, PLAYER, at, cleared, pawn, table } from "./testing.ts";
 const DARK = {
 	role: "player", user: PLAYER, fogEnabled: true, fogPrefill: true,
 } as const;
@@ -51,8 +51,8 @@ test("a player is still shown the path of a pawn standing in the clear", () => {
 test("a drag of one's own draws a path across the squares it crossed", () => {
 	const goblin = pawn({ id: "goblin", x: 0, y: 0 });
 	const { controller, segments, labels, cells } = table([goblin]);
-	controller.tool.press(at(0, 0), at(0, 0), { shift: false, alt: false });
-	controller.tool.drag(at(192, 0), at(192, 0), { shift: false, alt: false });
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.drag(at(192, 0), at(192, 0), NONE);
 	assert.equal(segments().length, 1, "the drag drew no ruler");
 	assert.deepEqual(labels().map((l) => l.text), ["15 ft."]);
 	assert.equal(cells().length, 4, "the squares between the start and the ghost were not tinted");

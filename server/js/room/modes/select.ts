@@ -205,6 +205,7 @@ export function createSelect(deps: SelectDeps): Select {
 			}
 			const clicked = clickedPawn(board, active);
 			const twice = clicks.count(clicked?.id ?? null);
+			const adding = mods.shift || mods.ctrl;
 			switch (active.kind) {
 				case "drag":
 					commitDrag(board, active, false);
@@ -216,23 +217,23 @@ export function createSelect(deps: SelectDeps): Select {
 					if (!clicked) {
 						return;
 					}
-					if (mods.shift) {
+					if (adding) {
 						selection.toggle(clicked.id);
 					} else {
 						selection.set([clicked.id]);
 					}
 					board.announce();
-					if (twice && !mods.shift) {
+					if (twice && !adding) {
 						deps.details(clicked);
 					}
 					return;
 				}
 				case "marquee": {
 					if (!active.moved) {
-						if (!mods.shift && selection.clear()) {
+						if (!adding && selection.clear()) {
 							board.announce();
 						}
-						if (twice && !mods.shift && clicked) {
+						if (twice && !adding && clicked) {
 							deps.details(clicked);
 						}
 						return;
@@ -241,7 +242,7 @@ export function createSelect(deps: SelectDeps): Select {
 						board.state.pawns, board.viewed(), marqueeRect(active),
 						board.role, board.user, concealed,
 					);
-					if (mods.shift) {
+					if (adding) {
 						selection.add(found);
 					} else {
 						selection.set(found);

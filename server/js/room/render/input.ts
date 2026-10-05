@@ -9,6 +9,7 @@ const PIXELS_PER_LINE = 16;
 const PIXELS_PER_PAGE = 400;
 export interface Modifiers {
 	shift: boolean;
+	ctrl: boolean;
 	alt: boolean;
 }
 export interface Tool {
@@ -95,7 +96,7 @@ export function wireInput(
 		return map;
 	}
 	function mods(e: PointerEvent): Modifiers {
-		return { shift: e.shiftKey, alt: e.altKey };
+		return { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey, alt: e.altKey };
 	}
 	let bounds = { left: 0, top: 0 };
 	function measure(): void {
