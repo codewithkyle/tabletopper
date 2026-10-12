@@ -1,0 +1,82 @@
+package pages
+
+templ inventoryList(items []SharedItem, group string) {
+	<div class="overflow-x-auto">
+		<div class="list min-w-[28rem]">
+			@inventoryHeader(false)
+			for _, item := range items {
+				@inventoryReadingRow(group, item)
+			}
+		</div>
+	</div>
+}
+
+templ inventoryReadingRow(group string, item SharedItem) {
+	<div class={ inventoryRowLayout + " min-h-10" }>
+		<span class={ inventoryNameCell + " px-2 font-medium" }>{ item.Name }</span>
+		<span class={ inventoryEquippedCell }>
+			if item.Equipped {
+				<span class="text-success" role="img" aria-label="Equipped">
+					@checkIcon()
+				</span>
+			}
+		</span>
+		<span class={ inventoryQuantityCell + " px-2 text-right tabular-nums" }>{ item.Quantity }</span>
+		<span class={ inventoryValueCell + " px-2" }>{ item.Value }</span>
+		<span class={ inventoryWeightCell + " px-2 text-right tabular-nums" }>{ item.Weight }</span>
+		if item.Description != "" {
+			<div class="col-span-5 col-start-1 row-start-2 pt-1">
+				@rowDetails(group) {
+					<p class="m-0 whitespace-pre-line text-sm">{ item.Description }</p>
+				}
+			</div>
+		}
+	</div>
+}
+
+templ spellBook(levels []SharedSpellLevel, group string) {
+	<div class="grid w-full gap-4">
+		for _, level := range levels {
+			<section class="grid gap-2">
+				<header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+					<h3 class="m-0 font-serif text-sm leading-none font-bold">{ level.Name }</h3>
+					if level.Slots != "" {
+						<span class="text-sm text-base-content/75">{ level.Slots }</span>
+					}
+				</header>
+				for _, spell := range level.Spells {
+					@spellReading(group, spell)
+				}
+			</section>
+		}
+	</div>
+}
+
+templ spellReading(group string, spell SharedSpell) {
+	<article class={ surfaceInset + " @container grid gap-3 p-3" }>
+		<header class="flex flex-wrap items-center gap-x-3 gap-y-1">
+			<span class="min-w-0 font-medium">{ spell.Name }</span>
+			if spell.CastingTime != "" {
+				<span class="text-sm text-base-content/75">{ spell.CastingTime }</span>
+			}
+			if spell.Prepared {
+				<span class="badge badge-soft badge-success badge-sm ms-auto">Prepared</span>
+			}
+		</header>
+		@rowDetails(group) {
+			<div class="grid gap-3">
+				<dl class="m-0 grid grid-cols-1 gap-x-4 gap-y-2 @[24rem]:grid-cols-2">
+					for _, fact := range spellFacts(spell) {
+						<div class="grid gap-0.5">
+							<dt class="text-xs font-semibold tracking-wider uppercase text-base-content/60">{ fact.Label }</dt>
+							<dd class="m-0 text-sm">{ fact.Value }</dd>
+						</div>
+					}
+				</dl>
+				if spell.Description != "" {
+					<p class="m-0 whitespace-pre-line text-sm">{ spell.Description }</p>
+				}
+			</div>
+		}
+	</article>
+}

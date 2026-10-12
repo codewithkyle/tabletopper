@@ -127,8 +127,8 @@ func (a *App) RevokeCharacterShare(w http.ResponseWriter, r *http.Request) {
 func characterShareDialogData(characterID ulid.ULID) pages.ShareDialogData {
 	return pages.ShareDialogData{
 		Heading: "Share this character",
-		Blurb: "Anyone with the link can read this character sheet, and it stays in step with the sheet as you edit it. " +
-			"Journal entries are not included, and neither is the full inventory or spellbook -- only what is equipped and prepared.",
+		Blurb: "Anyone with the link can read this whole character sheet, inventory and spells included, and it stays in step with the sheet as you edit it. " +
+			"Journal entries are not included.",
 		Action: "/characters/" + characterID.String() + "/share",
 	}
 }

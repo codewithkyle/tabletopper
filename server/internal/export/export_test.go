@@ -56,19 +56,24 @@ func fullSheet() pages.SharedCharacterSheet {
 		Vitals:            []pages.SharedFact{{Label: "Hit Dice", Value: "5d10"}},
 		Abilities:         []pages.SharedAbility{{Label: "Dexterity", Score: "18", Mod: "+4"}},
 		SavingThrows:      []pages.SharedBonus{{Label: "Dexterity", Total: "+7"}},
-		Skills:            []pages.SharedBonus{{Label: "Stealth", Abbr: "DEX", Total: "+9"}},
+		Skills:            []pages.SharedBonus{{Label: "Stealth", Abbr: "DEX", Proficiency: "Expertise", Total: "+9"}},
 		PassivePerception: "15",
 		Training:          []pages.SharedFact{{Label: "Languages", Value: "Common, Elvish"}},
 		Attacks: []pages.SharedAttack{
 			{Name: "Longbow", Bonus: "+8", Damage: "1d8+5", DamageType: "Piercing", Mastery: "Slow", Notes: "Silvered."},
 		},
-		Features:   []pages.SharedFact{{Label: "Favoured Enemy", Value: "Undead"}},
-		Equipped:   []pages.SharedItem{{Name: "Arrow", Quantity: "20", Description: "In a quiver."}},
-		SpellSlots: []pages.SharedSpellLevel{{Name: "Level 1", Slots: "4 slots", Spells: "3 spells"}},
-		Prepared: []pages.SharedSpellGroup{{
-			Name:   "Level 1",
-			Spells: []pages.SharedSpell{{Name: "Hunter's Mark", Meta: "1 bonus action", Description: "An extra 1d6."}},
-		}},
+		Features: []pages.SharedFact{{Label: "Favoured Enemy", Value: "Undead"}},
+		Inventory: []pages.SharedItem{
+			{Name: "Longbow", Quantity: "1", Value: "50 gp", Weight: "2", Equipped: true},
+			{Name: "Arrow", Quantity: "20", Value: "1 gp", Weight: "1", Description: "In a quiver."},
+		},
+		Spells: []pages.SharedSpellLevel{
+			{Name: "Cantrips", Slots: "Unlimited", Spells: []pages.SharedSpell{{Name: "Druidcraft", School: "Transmutation"}}},
+			{Name: "Level 1", Slots: "3 of 4 slots left", Spells: []pages.SharedSpell{
+				{Name: "Hunter's Mark", Prepared: true, School: "Divination", CastingTime: "1 bonus action", Range: "90 feet", Duration: "1 hour", Components: "V", Description: "An extra 1d6."},
+				{Name: "Ensnaring Strike", School: "Conjuration", CastingTime: "1 bonus action"},
+			}},
+		},
 		Personality: []pages.SharedFact{{Label: "Bonds", Value: "My brother."}},
 		Appearance:  []pages.SharedFact{{Label: "Eyes", Value: "Grey"}},
 	}
@@ -82,13 +87,16 @@ func TestEveryValueOnTheSheetReachesTheFile(t *testing.T) {
 		"## Vitals", "Hit Dice", "5d10",
 		"## Abilities", "Dexterity", "18", "+4",
 		"## Saving Throws", "+7",
-		"## Skills", "Stealth", "+9", "Passive Perception",
+		"## Skills", "Stealth", "+9", "Expertise", "Passive Perception",
 		"## Proficiencies & Training", "Common, Elvish",
 		"## Attacks", "Longbow", "1d8+5", "Piercing", "Slow", "Silvered.",
 		"## Features & Traits", "Favoured Enemy", "Undead",
-		"## Equipment", "Arrow ×20", "In a quiver.",
-		"## Spell Slots", "4 slots", "3 spells",
-		"## Prepared Spells", "### Level 1", "Hunter's Mark", "1 bonus action", "An extra 1d6.",
+		"## Spells", "### Cantrips", "*Unlimited*", "**Druidcraft.** *Transmutation*",
+		"### Level 1", "*3 of 4 slots left*",
+		"**Hunter's Mark.** *Prepared · Divination · 1 bonus action · 90 feet · 1 hour · V*", "An extra 1d6.",
+		"**Ensnaring Strike.** *Conjuration · 1 bonus action*",
+		"## Inventory", "| Item | Qty | Value | Weight | Equipped |",
+		"| Longbow | 1 | 50 gp | 2 | Yes |", "| Arrow | 20 | 1 gp | 1 |  |", "**Arrow.** In a quiver.",
 		"## Personality", "My brother.",
 		"## Appearance", "Grey",
 	} {
@@ -171,7 +179,7 @@ func TestTheSavingThrowsTableHasNoEmptyAbilityColumn(t *testing.T) {
 		t.Errorf("the saving throws table lost its rows:\n%s", saves)
 	}
 	skills, _, _ := strings.Cut(strings.SplitN(file, "## Skills\n\n", 2)[1], "\n\n")
-	if !strings.Contains(skills, "| Skill | Ability | Bonus |") {
+	if !strings.Contains(skills, "| Skill | Ability | Proficiency | Bonus |") {
 		t.Errorf("the skills table dropped the column that is filled:\n%s", skills)
 	}
 }
@@ -277,7 +285,7 @@ func TestTheExportedTypesHaveNotGrownAFieldNobodyExports(t *testing.T) {
 		"SharedCharacterSheet": {pages.SharedCharacterSheet{}, []string{
 			"Header", "Avatar", "Identity", "CoreStats", "Spellcasting", "Vitals",
 			"Abilities", "SavingThrows", "Skills", "PassivePerception", "Training",
-			"Attacks", "Features", "Equipped", "SpellSlots", "Prepared",
+			"Attacks", "Features", "Inventory", "Spells",
 			"Personality", "Appearance", "Actions",
 		}},
 	} {

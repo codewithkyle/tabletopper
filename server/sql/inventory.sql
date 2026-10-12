@@ -2,10 +2,6 @@
 SELECT * FROM inventory
 WHERE character_id = ? AND owner_id = ?
 ORDER BY id;
--- name: ListEquippedInventory :many
-SELECT * FROM inventory
-WHERE character_id = ? AND owner_id = ? AND equipped = TRUE
-ORDER BY id;
 -- name: InsertInventoryItem :execresult
 INSERT INTO inventory (id, owner_id, character_id)
 SELECT sqlc.arg(id), characters.owner_id, characters.id

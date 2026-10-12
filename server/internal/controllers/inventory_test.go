@@ -370,22 +370,3 @@ func TestEveryInventoryQueryIsScopedToTheOwner(t *testing.T) {
 		}
 	}
 }
-func TestEquippedQueryFiltersInSQL(t *testing.T) {
-	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "inventory.sql"))
-	if err != nil {
-		t.Fatalf("cannot read the queries: %v", err)
-	}
-	body := string(source)
-	start := strings.Index(body, "-- name: ListEquippedInventory")
-	if start < 0 {
-		t.Fatal("no ListEquippedInventory query")
-	}
-	end := strings.Index(body[start+1:], "-- name:")
-	statement := body[start:]
-	if end >= 0 {
-		statement = body[start : start+1+end]
-	}
-	if !strings.Contains(statement, "equipped = TRUE") {
-		t.Errorf("the equipped view is not filtered in the statement:\n%s", statement)
-	}
-}

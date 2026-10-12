@@ -75,9 +75,10 @@ func (a *App) roomCharacter(ctx context.Context, roomID, characterID ulid.ULID) 
 func (a *App) characterView(ctx context.Context, character queries.Character, section string, level int) (pages.CharacterViewData, error) {
 	data := pages.CharacterViewData{Section: section, Level: level}
 	var (
-		attacks  []queries.Attack
-		prepared []queries.Spell
-		err      error
+		attacks []queries.Attack
+		items   []queries.Inventory
+		spells  []queries.Spell
+		err     error
 	)
 	switch {
 	case section == pages.SheetSectionAttacks:
@@ -86,14 +87,12 @@ func (a *App) characterView(ctx context.Context, character queries.Character, se
 			OwnerID:     character.OwnerID,
 		})
 	case section == pages.SheetSectionInventory:
-		var items []queries.Inventory
 		items, err = a.Queries.ListCharacterInventory(ctx, queries.ListCharacterInventoryParams{
 			CharacterID: character.ID,
 			OwnerID:     character.OwnerID,
 		})
-		data.Inventory = inventoryPageItems(items)
 	case section == pages.SheetSectionSpells && level == pages.SpellsPrepared:
-		prepared, err = a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+		spells, err = a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
 			CharacterID: character.ID,
 			OwnerID:     character.OwnerID,
 		})
@@ -101,36 +100,35 @@ func (a *App) characterView(ctx context.Context, character queries.Character, se
 			data.Levels, err = a.spellLevels(ctx, character.ID, character.OwnerID)
 		}
 	case section == pages.SheetSectionSpells:
-		data.Spells, err = a.spellLevelReading(ctx, character, level)
+		err = a.spellLevelReading(ctx, character, &data)
 	}
 	if err != nil {
 		return data, err
 	}
-	data.Sheet = sharedCharacterSheet(character, attacks, nil, prepared, data.Levels)
+	data.Sheet = sharedCharacterSheet(character, attacks, items, spells, nil)
 	if character.AssetID != nil {
 		data.Sheet.Header.AvatarID = character.AssetID.String()
 	}
 	return data, nil
 }
-func (a *App) spellLevelReading(ctx context.Context, character queries.Character, level int) (pages.SpellLevelPageData, error) {
-	counters, err := a.spellSlotCounters(ctx, character.ID, character.OwnerID, uint8(level))
+func (a *App) spellLevelReading(ctx context.Context, character queries.Character, data *pages.CharacterViewData) error {
+	counters, err := a.spellSlotCounters(ctx, character.ID, character.OwnerID, uint8(data.Level))
 	if err != nil {
-		return pages.SpellLevelPageData{}, err
+		return err
 	}
 	rows, err := a.Queries.ListSpellsAtLevel(ctx, queries.ListSpellsAtLevelParams{
 		CharacterID: character.ID,
 		OwnerID:     character.OwnerID,
-		Level:       uint8(level),
+		Level:       uint8(data.Level),
 	})
 	if err != nil {
-		return pages.SpellLevelPageData{}, err
+		return err
 	}
-	return pages.SpellLevelPageData{
-		CharacterID: character.ID.String(),
-		Level:       level,
-		Current:     counters,
-		Spells:      spellPageRows(rows),
-	}, nil
+	data.Current = counters
+	for _, row := range rows {
+		data.LevelSpells = append(data.LevelSpells, sharedSpell(spellPageRow(row)))
+	}
+	return nil
 }
 func pawnVitalsOnCharacter(character *queries.Character, pawn *room.Pawn) {
 	vitals, ok := room.PawnVitals(pawnOrEmpty(pawn))

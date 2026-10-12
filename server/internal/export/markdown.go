@@ -102,8 +102,17 @@ func entryParagraph(label, value string) string {
 }
 func spellParagraph(spell pages.SharedSpell) string {
 	line := bold(spell.Name + ".")
-	if meta := oneLine(spell.Meta); meta != "" {
-		line += " *" + meta + "*"
+	parts := make([]string, 0, 6)
+	if spell.Prepared {
+		parts = append(parts, "Prepared")
+	}
+	for _, part := range []string{spell.School, spell.CastingTime, spell.Range, spell.Duration, spell.Components} {
+		if part = oneLine(part); part != "" {
+			parts = append(parts, part)
+		}
+	}
+	if len(parts) > 0 {
+		line += " *" + strings.Join(parts, " · ") + "*"
 	}
 	if description := strings.TrimSpace(spell.Description); description != "" {
 		line += "\n\n" + description
@@ -118,22 +127,31 @@ func abilityTable(abilities []pages.StatBlockAbility) string {
 	return table([]string{"Ability", "Score", "Mod", "Save"}, rows)
 }
 func bonusTable(heading string, bonuses []pages.SharedBonus) string {
-	keyed := false
+	keyed, trained := false, false
 	for _, bonus := range bonuses {
 		keyed = keyed || strings.TrimSpace(bonus.Abbr) != ""
+		trained = trained || strings.TrimSpace(bonus.Proficiency) != ""
 	}
+	headings := []string{heading}
+	if keyed {
+		headings = append(headings, "Ability")
+	}
+	if trained {
+		headings = append(headings, "Proficiency")
+	}
+	headings = append(headings, "Bonus")
 	rows := make([][]string, 0, len(bonuses))
 	for _, bonus := range bonuses {
+		cells := []string{bonus.Label}
 		if keyed {
-			rows = append(rows, []string{bonus.Label, bonus.Abbr, bonus.Total})
-			continue
+			cells = append(cells, bonus.Abbr)
 		}
-		rows = append(rows, []string{bonus.Label, bonus.Total})
+		if trained {
+			cells = append(cells, bonus.Proficiency)
+		}
+		rows = append(rows, append(cells, bonus.Total))
 	}
-	if keyed {
-		return table([]string{heading, "Ability", "Bonus"}, rows)
-	}
-	return table([]string{heading, "Bonus"}, rows)
+	return table(headings, rows)
 }
 func attackTable(attacks []pages.SharedAttack) string {
 	rows := make([][]string, 0, len(attacks))
@@ -195,15 +213,9 @@ func hitPointRange(header pages.CharacterHeader) string {
 	}
 	return header.CurrentHP + "/" + header.MaxHP
 }
-func itemName(item pages.SharedItem) string {
-	if item.Quantity == "" {
-		return item.Name
-	}
-	return item.Name + " ×" + item.Quantity
-}
-func description(text string) string {
-	if text = oneLine(text); text != "" {
-		return " — " + text
+func yes(on bool) string {
+	if on {
+		return "Yes"
 	}
 	return ""
 }

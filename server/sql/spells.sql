@@ -5,7 +5,11 @@ ORDER BY created_at DESC, id DESC;
 -- name: ListPreparedSpells :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND is_prepared = TRUE
-ORDER BY level, id;
+ORDER BY level, created_at DESC, id DESC;
+-- name: ListCharacterSpells :many
+SELECT * FROM spells
+WHERE character_id = ? AND owner_id = ?
+ORDER BY level, created_at DESC, id DESC;
 -- name: CountSpellsByLevel :many
 SELECT level, COUNT(*) AS total FROM spells
 WHERE character_id = ? AND owner_id = ?

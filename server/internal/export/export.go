@@ -101,29 +101,27 @@ func Character(sheet pages.SharedCharacterSheet) []byte {
 			d.add(entryParagraph(feature.Label, feature.Value))
 		}
 	}
-	if len(sheet.Equipped) > 0 {
-		items := make([]string, 0, len(sheet.Equipped))
-		for _, item := range sheet.Equipped {
-			items = append(items, "- "+bold(itemName(item))+description(item.Description))
-		}
-		d.section("Equipment", strings.Join(items, "\n"))
-	}
-	if len(sheet.SpellSlots) > 0 {
-		rows := make([][]string, 0, len(sheet.SpellSlots))
-		for _, level := range sheet.SpellSlots {
-			rows = append(rows, []string{level.Name, level.Slots, level.Spells})
-		}
-		d.section("Spell Slots", table([]string{"Level", "Slots", "Prepared"}, rows))
-	}
-	if len(sheet.Prepared) > 0 {
-		d.add("## Prepared Spells")
-		for _, group := range sheet.Prepared {
-			if len(group.Spells) == 0 {
-				continue
+	if len(sheet.Spells) > 0 {
+		d.add("## Spells")
+		for _, level := range sheet.Spells {
+			d.add("### " + level.Name)
+			if level.Slots != "" {
+				d.add("*" + level.Slots + "*")
 			}
-			d.add("### " + group.Name)
-			for _, spell := range group.Spells {
+			for _, spell := range level.Spells {
 				d.add(spellParagraph(spell))
+			}
+		}
+	}
+	if len(sheet.Inventory) > 0 {
+		rows := make([][]string, 0, len(sheet.Inventory))
+		for _, item := range sheet.Inventory {
+			rows = append(rows, []string{item.Name, item.Quantity, item.Value, item.Weight, yes(item.Equipped)})
+		}
+		d.section("Inventory", table([]string{"Item", "Qty", "Value", "Weight", "Equipped"}, rows))
+		for _, item := range sheet.Inventory {
+			if strings.TrimSpace(item.Description) != "" {
+				d.add(entryParagraph(item.Name, item.Description))
 			}
 		}
 	}

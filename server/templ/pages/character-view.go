@@ -20,9 +20,9 @@ type CharacterViewData struct {
 	Section     string
 	Level       int
 	Sheet       SharedCharacterSheet
-	Inventory   []InventoryItem
 	Levels      []SpellLevel
-	Spells      SpellLevelPageData
+	Current     SpellLevel
+	LevelSpells []SharedSpell
 }
 
 func CharacterViewWindow(characterID string) string {
@@ -84,11 +84,11 @@ func SpellSlotsLeft(level SpellLevel) string {
 	}
 	return strconv.Itoa(max(slots-used, 0)) + " of " + strconv.Itoa(slots) + unit
 }
-func spellFacts(spell Spell) []SharedFact {
+func spellFacts(spell SharedSpell) []SharedFact {
 	facts := []SharedFact{}
 	for _, fact := range []SharedFact{
 		{Label: "School", Value: spell.School},
-		{Label: "Range", Value: spell.CastingRange},
+		{Label: "Range", Value: spell.Range},
 		{Label: "Duration", Value: spell.Duration},
 		{Label: "Components", Value: spell.Components},
 	} {
@@ -97,10 +97,4 @@ func spellFacts(spell Spell) []SharedFact {
 		}
 	}
 	return facts
-}
-func inventoryItemName(item InventoryItem) string {
-	if strings.TrimSpace(item.Name) == "" {
-		return "Unnamed item"
-	}
-	return item.Name
 }

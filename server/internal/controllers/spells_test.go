@@ -520,3 +520,29 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 		t.Errorf("the prepared view is not ordered by level:\n%s", statement)
 	}
 }
+func TestEverySpellAndAttackListIsNewestFirst(t *testing.T) {
+	for file, names := range map[string][]string{
+		"spells.sql":  {"ListSpellsAtLevel", "ListPreparedSpells", "ListCharacterSpells"},
+		"attacks.sql": {"ListCharacterAttacks"},
+	} {
+		source, err := os.ReadFile(filepath.Join("..", "..", "sql", file))
+		if err != nil {
+			t.Fatalf("cannot read the queries: %v", err)
+		}
+		body := string(source)
+		for _, name := range names {
+			start := strings.Index(body, "-- name: "+name+" ")
+			if start < 0 {
+				t.Errorf("no %s query", name)
+				continue
+			}
+			statement := body[start:]
+			if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
+				statement = statement[:end+1]
+			}
+			if !strings.Contains(statement, "created_at DESC, id DESC") {
+				t.Errorf("%s is not newest first:\n%s", name, statement)
+			}
+		}
+	}
+}

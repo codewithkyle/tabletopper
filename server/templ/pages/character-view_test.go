@@ -24,23 +24,15 @@ func testCharacterView(section string) CharacterViewData {
 		Section:     section,
 		Level:       SpellsPrepared,
 		Sheet:       testSharedSheet(),
-		Inventory: []InventoryItem{
-			{ID: "01BX5ZZKBKACTAV9WEVGEMMVA1", Name: "Studded Leather", Quantity: "1", Value: "45 gp", Weight: "13", Equipped: true},
-			{ID: "01BX5ZZKBKACTAV9WEVGEMMVA2", Name: "Hempen Rope", Quantity: "2", Value: "1 gp", Weight: "10", Description: "Fifty feet, knotted every ten."},
-		},
 		Levels: []SpellLevel{
 			{Level: 0, Slots: "0", Used: "0", Count: 2},
 			{Level: 1, Slots: "4", Used: "1", Count: 3},
 			{Level: 2, Slots: "0", Used: "0", Count: 0},
 		},
-		Spells: SpellLevelPageData{
-			CharacterID: testViewCharacterID,
-			Level:       1,
-			Current:     SpellLevel{Level: 1, Slots: "4", Used: "1", Count: 2},
-			Spells: []Spell{
-				{ID: "01BX5ZZKBKACTAV9WEVGEMMVB1", Level: 1, Name: "Hunter's Mark", School: "Divination", CastingTime: "Bonus action", CastingRange: "90 feet", Duration: "1 hour", Components: "V", Description: "You choose a creature you can see.", Prepared: true},
-				{ID: "01BX5ZZKBKACTAV9WEVGEMMVB2", Level: 1, Name: "Ensnaring Strike", School: "Conjuration", CastingTime: "Bonus action"},
-			},
+		Current: SpellLevel{Level: 1, Slots: "4", Used: "1", Count: 2},
+		LevelSpells: []SharedSpell{
+			{Name: "Hunter's Mark", School: "Divination", CastingTime: "Bonus action", Range: "90 feet", Duration: "1 hour", Components: "V", Description: "You choose a creature you can see.", Prepared: true},
+			{Name: "Ensnaring Strike", School: "Conjuration", CastingTime: "Bonus action"},
 		},
 	}
 }
@@ -162,7 +154,7 @@ func TestTheInventoryTabShowsEveryColumnTheEditorDoes(t *testing.T) {
 	}
 }
 func TestEveryLineUnderAReadOnlyItemStartsInItsFirstColumn(t *testing.T) {
-	row := renderString(t, inventoryReadingRow("group", InventoryItem{Name: "Rope", Description: "Long."}))
+	row := renderString(t, inventoryReadingRow("group", SharedItem{Name: "Rope", Description: "Long."}))
 	classes := regexp.MustCompile(`class="([^"]*\brow-start-[2-9][^"]*)"`).FindAllStringSubmatch(row, -1)
 	if len(classes) == 0 {
 		t.Fatal("found nothing below the row, so this proves nothing")
@@ -263,9 +255,8 @@ func TestAnEmptyViewTabSaysSo(t *testing.T) {
 		}
 		empty := data
 		empty.Sheet = SharedCharacterSheet{}
-		empty.Inventory = nil
 		empty.Levels = nil
-		empty.Spells.Spells = nil
+		empty.LevelSpells = nil
 		if body := renderString(t, characterViewSection(empty)); !strings.Contains(body, want) {
 			t.Errorf("an empty %s tab does not say %q:\n%s", section, want, body)
 		}

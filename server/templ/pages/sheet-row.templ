@@ -20,7 +20,12 @@ templ rowDelete(action string, label string) {
 }
 
 templ rowDetails(group string) {
-	<details name={ group } class="collapse collapse-arrow rounded-field border border-base-300 bg-base-100">
+	<details
+		if group != "" {
+			name={ group }
+		}
+		class="collapse collapse-arrow rounded-field border border-base-300 bg-base-100"
+	>
 		<summary class="collapse-title py-2 ps-3 text-sm font-semibold text-base-content/75">Details</summary>
 		<div class="collapse-content px-3 pb-3">
 			{ children... }

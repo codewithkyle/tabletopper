@@ -1,7 +1,7 @@
 -- name: ListCharacterAttacks :many
 SELECT * FROM attacks
 WHERE character_id = ? AND owner_id = ?
-ORDER BY id;
+ORDER BY created_at DESC, id DESC;
 -- name: InsertAttack :execresult
 INSERT INTO attacks (id, owner_id, character_id)
 SELECT sqlc.arg(id), characters.owner_id, characters.id

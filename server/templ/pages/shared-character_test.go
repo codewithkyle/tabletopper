@@ -3,7 +3,6 @@ package pages
 import (
 	"reflect"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -29,16 +28,22 @@ func testSharedSheet() SharedCharacterSheet {
 		Vitals:            []SharedFact{{Label: "Current Hit Points", Value: "31"}},
 		Abilities:         []SharedAbility{{Label: "Strength", Score: "12", Mod: "+1"}},
 		SavingThrows:      []SharedBonus{{Label: "Dexterity", Abbr: "DEX", Total: "+6"}},
-		Skills:            []SharedBonus{{Label: "Stealth", Abbr: "DEX", Total: "+9"}},
+		Skills:            []SharedBonus{{Label: "Stealth", Abbr: "DEX", Proficiency: "Expertise", Total: "+9"}},
 		PassivePerception: "15",
 		Training:          []SharedFact{{Label: "Languages", Value: "Common, Elvish"}},
 		Attacks:           []SharedAttack{{Name: "Longbow", Bonus: "+8", Damage: "1d8+5", Mastery: "Slow"}},
 		Features:          []SharedFact{{Label: "Favoured Enemy", Value: "Undead"}},
-		Equipped:          []SharedItem{{Name: "Studded Leather", Quantity: "2"}},
-		SpellSlots:        []SharedSpellLevel{{Name: "Level 1", Slots: "4 slots", Spells: "3 spells"}},
-		Prepared: []SharedSpellGroup{{
-			Name:   "Level 1",
-			Spells: []SharedSpell{{Name: "Hunter's Mark", Meta: "Bonus action | 90 feet"}},
+		Inventory: []SharedItem{
+			{Name: "Studded Leather", Quantity: "1", Value: "45 gp", Weight: "13", Equipped: true},
+			{Name: "Hempen Rope", Quantity: "2", Value: "1 gp", Weight: "10", Description: "Fifty feet, knotted every ten."},
+		},
+		Spells: []SharedSpellLevel{{
+			Name:  "Level 1",
+			Slots: "3 of 4 slots left",
+			Spells: []SharedSpell{
+				{Name: "Hunter's Mark", Prepared: true, School: "Divination", CastingTime: "Bonus action", Range: "90 feet", Duration: "1 hour", Components: "V", Description: "You choose a creature you can see."},
+				{Name: "Ensnaring Strike", School: "Conjuration", CastingTime: "Bonus action"},
+			},
 		}},
 		Personality: []SharedFact{{Label: "Bonds", Value: "My brother."}},
 		Appearance:  []SharedFact{{Label: "Eyes", Value: "Grey"}},
@@ -103,22 +108,12 @@ func TestASharedSheetIsHandedNoCharacterID(t *testing.T) {
 		}
 	}
 }
-func TestASharedSpellLevelCarriesNoUsedCount(t *testing.T) {
-	fields := reflect.VisibleFields(reflect.TypeOf(SharedSpellLevel{}))
-	names := make([]string, 0, len(fields))
-	for _, field := range fields {
-		names = append(names, field.Name)
-	}
-	if want := []string{"Name", "Slots", "Spells"}; !slices.Equal(names, want) {
-		t.Errorf("SharedSpellLevel carries %v, want %v -- see the comment above", names, want)
-	}
-}
 func TestASheetWithNothingInItRendersNoEmptyPanels(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(SharedCharacterSheet{}))
 	for _, heading := range []string{
 		"Abilities", "Saving Throws", "Identity", "Core Stats", "Vitals", "Attacks",
-		"Proficiencies &amp; Training", "Skills", "Features &amp; Traits", "Equipment",
-		"Prepared Spells", "Spell Slots", "Personality", "Appearance",
+		"Proficiencies &amp; Training", "Skills", "Features &amp; Traits", "Inventory",
+		"Spells", "Personality", "Appearance",
 	} {
 		if strings.Contains(body, heading) {
 			t.Errorf("an empty sheet rendered the %s panel:\n%s", heading, body)
@@ -130,7 +125,9 @@ func TestASharedSheetRendersTheCharacterTabsPanels(t *testing.T) {
 	for _, want := range []string{
 		"Vex", "Half-Elf | Ranger 5", `src="/share/tok/portrait"`,
 		"Longbow", "1d8+5", "Slow",
-		"Studded Leather", "Hunter&#39;s Mark", "4 slots",
+		"Studded Leather", "45 gp", "Hempen Rope", "Fifty feet, knotted every ten.",
+		"Hunter&#39;s Mark", "Ensnaring Strike", "Divination", "90 feet", "You choose a creature you can see.",
+		"3 of 4 slots left", "Expertise",
 		"Favoured Enemy", "Undead", "Grey", "My brother.",
 		"Stealth", "+9", "Passive Perception",
 	} {
@@ -146,5 +143,14 @@ func TestAnUnnamedSharedCharacterStillHasATitle(t *testing.T) {
 	body := renderToString(t, SharedCharacterPage(SharedCharacterSheet{}))
 	if !strings.Contains(body, "Unnamed character") {
 		t.Errorf("an unnamed character rendered no heading:\n%s", body)
+	}
+}
+func TestASharedSheetLetsAReaderOpenSeveralDetailsAtOnce(t *testing.T) {
+	body := renderToString(t, SharedCharacterPage(testSharedSheet()))
+	if got := strings.Count(body, "<details"); got < 3 {
+		t.Fatalf("%d details on the page, want one per spell and one per described item", got)
+	}
+	if strings.Contains(body, "<details name=") {
+		t.Errorf("opening one spell on a shared sheet closes another:\n%s", body)
 	}
 }

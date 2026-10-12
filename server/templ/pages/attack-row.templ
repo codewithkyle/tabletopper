@@ -84,10 +84,10 @@ templ AttackRow(characterID string, attack Attack) {
 
 templ attacksTable(characterID string, attacks []Attack) {
 	<div id="attack-rows" class="grid gap-3">
-		<p class="hidden text-base-content/70 only:block">No attacks yet. Start one with the Add Attack button above.</p>
 		for _, attack := range attacks {
 			@AttackRow(characterID, attack)
 		}
+		<p class="hidden text-base-content/70 only:block">No attacks yet. Start one with the Add Attack button above.</p>
 	</div>
 }
 
@@ -97,7 +97,7 @@ templ attackAddButton(characterID string, class string) {
 		class={ class }
 		hx-post={ "/characters/" + characterID + "/attacks" }
 		hx-target="#attack-rows"
-		hx-swap="append show:bottom"
+		hx-swap="prepend"
 	>
 		Add Attack
 	</button>

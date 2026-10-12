@@ -10,9 +10,10 @@ type SharedAbility struct {
 	Mod   string
 }
 type SharedBonus struct {
-	Label string
-	Abbr  string
-	Total string
+	Label       string
+	Abbr        string
+	Proficiency string
+	Total       string
 }
 type SharedAttack struct {
 	Name       string
@@ -25,21 +26,25 @@ type SharedAttack struct {
 type SharedItem struct {
 	Name        string
 	Quantity    string
+	Value       string
+	Weight      string
+	Equipped    bool
 	Description string
 }
 type SharedSpell struct {
 	Name        string
-	Meta        string
+	Prepared    bool
+	CastingTime string
+	School      string
+	Range       string
+	Duration    string
+	Components  string
 	Description string
-}
-type SharedSpellGroup struct {
-	Name   string
-	Spells []SharedSpell
 }
 type SharedSpellLevel struct {
 	Name   string
 	Slots  string
-	Spells string
+	Spells []SharedSpell
 }
 type SharedCharacterSheet struct {
 	Header            CharacterHeader
@@ -55,9 +60,8 @@ type SharedCharacterSheet struct {
 	Training          []SharedFact
 	Attacks           []SharedAttack
 	Features          []SharedFact
-	Equipped          []SharedItem
-	SpellSlots        []SharedSpellLevel
-	Prepared          []SharedSpellGroup
+	Inventory         []SharedItem
+	Spells            []SharedSpellLevel
 	Personality       []SharedFact
 	Appearance        []SharedFact
 	Actions           SharedActions
@@ -65,4 +69,15 @@ type SharedCharacterSheet struct {
 
 func SharedCharacterTitle(name string) string {
 	return characterBarName(CharacterHeader{Name: name}) + " | Tabletopper"
+}
+func ProficiencyLabel(value string) string {
+	if value == ProficiencyNone {
+		return ""
+	}
+	for _, option := range proficiencyOptions {
+		if option.Value == value {
+			return option.Label
+		}
+	}
+	return ""
 }

@@ -18,18 +18,9 @@ templ SharedCharacterPage(data SharedCharacterSheet) {
 				@sharedAttacksPanel(data)
 				@sharedTrainingPanel(data)
 				@sharedSkillsPanel(data)
-				if len(data.Features) > 0 || len(data.Equipped) > 0 {
-					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-						@sharedFeaturesPanel(data)
-						@sharedItemsPanel("Equipment", data.Equipped)
-					</div>
-				}
-				if len(data.Prepared) > 0 || len(data.SpellSlots) > 0 {
-					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-						@sharedPreparedPanel(data)
-						@sharedSlotsPanel(data)
-					</div>
-				}
+				@sharedFeaturesPanel(data)
+				@sharedSpellsPanel(data)
+				@sharedInventoryPanel(data)
 				if len(data.Personality) > 0 || len(data.Appearance) > 0 {
 					<div class="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
 						@sharedPersonalityPanel(data)
@@ -166,71 +157,18 @@ templ sharedFeaturesPanel(data SharedCharacterSheet) {
 	}
 }
 
-templ sharedItemsPanel(title string, items []SharedItem) {
-	if len(items) > 0 {
-		@sheetPanel(title) {
-			<ul class="grid w-full gap-3">
-				for _, item := range items {
-					<li class={ surfaceInset + " p-3" }>
-						<p class="m-0 flex flex-wrap items-baseline justify-between gap-x-3 font-medium">
-							<span>{ item.Name }</span>
-							if item.Quantity != "" {
-								<span class="text-sm font-semibold text-base-content/75">&#215; { item.Quantity }</span>
-							}
-						</p>
-						if item.Description != "" {
-							<p class="m-0 mt-2 whitespace-pre-line text-base-content/75">{ item.Description }</p>
-						}
-					</li>
-				}
-			</ul>
+templ sharedSpellsPanel(data SharedCharacterSheet) {
+	if len(data.Spells) > 0 {
+		@sheetPanel("Spells") {
+			@spellBook(data.Spells, "")
 		}
 	}
 }
 
-templ sharedPreparedPanel(data SharedCharacterSheet) {
-	if len(data.Prepared) > 0 {
-		@sheetPanel("Prepared Spells") {
-			<div class="grid w-full gap-4">
-				for _, group := range data.Prepared {
-					<section class="grid gap-2">
-						<h3 class="m-0 font-serif text-sm leading-none font-bold">{ group.Name }</h3>
-						<ul class="grid w-full gap-2">
-							for _, spell := range group.Spells {
-								<li class={ surfaceInset + " p-3" }>
-									<p class="m-0 font-medium">{ spell.Name }</p>
-									if spell.Meta != "" {
-										<p class="m-0 mt-1 text-sm text-base-content/75">{ spell.Meta }</p>
-									}
-									if spell.Description != "" {
-										<details class="group mt-2">
-											<summary class="line-clamp-2 cursor-pointer whitespace-pre-line text-sm text-base-content/75 transition-colors duration-150 group-open:line-clamp-none hover:text-base-content">{ spell.Description }</summary>
-										</details>
-									}
-								</li>
-							}
-						</ul>
-					</section>
-				}
-			</div>
-		}
-	}
-}
-
-templ sharedSlotsPanel(data SharedCharacterSheet) {
-	if len(data.SpellSlots) > 0 {
-		@sheetPanel("Spell Slots") {
-			<ul class="grid w-full gap-3">
-				for _, level := range data.SpellSlots {
-					<li class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
-						<span class="flex min-w-0 flex-col gap-1">
-							<span class="font-serif text-base leading-none font-bold">{ level.Name }</span>
-							<span class="text-xs font-semibold text-base-content/75">{ level.Spells }</span>
-						</span>
-						<span class="text-sm text-base-content/60">{ level.Slots }</span>
-					</li>
-				}
-			</ul>
+templ sharedInventoryPanel(data SharedCharacterSheet) {
+	if len(data.Inventory) > 0 {
+		@sheetPanel("Inventory") {
+			@inventoryList(data.Inventory, "")
 		}
 	}
 }
@@ -318,8 +256,15 @@ templ sharedBonusGrid(rows []SharedBonus) {
 				<div class={ surfaceInset + " flex items-center gap-2 p-2" }>
 					<span class="flex min-w-0 flex-1 flex-col gap-0.5">
 						<span class="truncate text-sm font-medium">{ row.Label }</span>
-						if row.Abbr != "" {
-							<span class="text-xs font-semibold tracking-wider text-base-content/75">{ row.Abbr }</span>
+						if row.Abbr != "" || row.Proficiency != "" {
+							<span class="flex flex-wrap items-center gap-1.5">
+								if row.Abbr != "" {
+									<span class="text-xs font-semibold tracking-wider text-base-content/75">{ row.Abbr }</span>
+								}
+								if row.Proficiency != "" {
+									<span class="badge badge-soft badge-xs">{ row.Proficiency }</span>
+								}
+							</span>
 						}
 					</span>
 					@derivedValue("", row.Total, false)

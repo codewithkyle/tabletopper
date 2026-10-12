@@ -1459,7 +1459,7 @@ func TestAddAttackSitsInTheHeaderAndTheWindowAddsAboveTheRows(t *testing.T) {
 		for _, want := range []string{
 			`hx-post="/characters/` + sheetCharacterID + `/attacks"`,
 			`hx-target="#attack-rows"`,
-			`hx-swap="append show:bottom"`,
+			`hx-swap="prepend"`,
 		} {
 			if !strings.Contains(body, want) {
 				t.Errorf("the %s's Add Attack is missing %s", name, want)

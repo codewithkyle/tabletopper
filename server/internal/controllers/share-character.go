@@ -52,31 +52,31 @@ func (a *App) loadCharacterSheet(ctx context.Context, characterID, ownerID ulid.
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, fmt.Errorf("attacks: %w", err)
 	}
-	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
+	items, err := a.Queries.ListCharacterInventory(ctx, queries.ListCharacterInventoryParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	})
 	if err != nil {
-		return pages.SharedCharacterSheet{}, false, fmt.Errorf("equipment: %w", err)
+		return pages.SharedCharacterSheet{}, false, fmt.Errorf("inventory: %w", err)
 	}
-	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+	spells, err := a.Queries.ListCharacterSpells(ctx, queries.ListCharacterSpellsParams{
 		CharacterID: characterID,
 		OwnerID:     ownerID,
 	})
 	if err != nil {
-		return pages.SharedCharacterSheet{}, false, fmt.Errorf("prepared spells: %w", err)
+		return pages.SharedCharacterSheet{}, false, fmt.Errorf("spells: %w", err)
 	}
 	levels, err := a.spellLevels(ctx, characterID, ownerID)
 	if err != nil {
 		return pages.SharedCharacterSheet{}, false, err
 	}
-	return sharedCharacterSheet(character, attacks, equipped, prepared, levels), character.AssetID != nil, nil
+	return sharedCharacterSheet(character, attacks, items, spells, levels), character.AssetID != nil, nil
 }
 func sharedCharacterSheet(
 	character queries.Character,
 	attacks []queries.Attack,
-	equipped []queries.Inventory,
-	prepared []queries.Spell,
+	items []queries.Inventory,
+	spells []queries.Spell,
 	levels []pages.SpellLevel,
 ) pages.SharedCharacterSheet {
 	derived := characterDerived(character)
@@ -126,11 +126,10 @@ func sharedCharacterSheet(
 			pages.SharedFact{Label: "Languages", Value: strings.TrimSpace(character.Languages)},
 			pages.SharedFact{Label: "Other Proficiencies", Value: strings.TrimSpace(character.Proficiencies)},
 		),
-		Attacks:    sharedAttacks(attacks),
-		Features:   sharedFeatures(parseFeatures(character.Features)),
-		Equipped:   sharedItems(equipped),
-		SpellSlots: sharedSpellLevels(levels),
-		Prepared:   sharedSpellGroups(prepared),
+		Attacks:   sharedAttacks(attacks),
+		Features:  sharedFeatures(parseFeatures(character.Features)),
+		Inventory: sharedItems(items),
+		Spells:    sharedSpellBook(spells, levels),
 		Personality: sharedFacts(
 			pages.SharedFact{Label: "Personality Traits", Value: character.PersonalityTraits},
 			pages.SharedFact{Label: "Ideals", Value: character.Ideals},
@@ -184,9 +183,10 @@ func sharedBonuses(rows []pages.BonusRow) []pages.SharedBonus {
 	bonuses := make([]pages.SharedBonus, 0, len(rows))
 	for _, row := range rows {
 		bonuses = append(bonuses, pages.SharedBonus{
-			Label: row.Label,
-			Abbr:  row.Abbr,
-			Total: row.Total,
+			Label:       row.Label,
+			Abbr:        row.Abbr,
+			Proficiency: pages.ProficiencyLabel(row.Proficiency),
+			Total:       row.Total,
 		})
 	}
 	return bonuses
@@ -215,14 +215,14 @@ func sharedAttacks(rows []queries.Attack) []pages.SharedAttack {
 func sharedItems(rows []queries.Inventory) []pages.SharedItem {
 	items := make([]pages.SharedItem, 0, len(rows))
 	for _, row := range rows {
-		item := pages.SharedItem{
+		items = append(items, pages.SharedItem{
 			Name:        fallbackString(strings.TrimSpace(row.Name), "Unnamed item"),
+			Quantity:    strconv.FormatUint(uint64(row.Quantity), 10),
+			Value:       strings.TrimSpace(row.Value),
+			Weight:      formatInventoryWeight(row.Weight),
+			Equipped:    row.Equipped,
 			Description: row.Description,
-		}
-		if row.Quantity != 1 {
-			item.Quantity = strconv.FormatUint(uint64(row.Quantity), 10)
-		}
-		items = append(items, item)
+		})
 	}
 	return items
 }
@@ -239,41 +239,39 @@ func sharedFeatures(rows []pages.Feature) []pages.SharedFact {
 	}
 	return features
 }
-func sharedSpellGroups(rows []queries.Spell) []pages.SharedSpellGroup {
-	groups := make([]pages.SharedSpellGroup, 0, pages.MaxSpellLevel+1)
-	for _, group := range preparedSpellGroups(rows) {
-		spells := make([]pages.SharedSpell, 0, len(group.Spells))
-		for _, spell := range group.Spells {
-			spells = append(spells, pages.SharedSpell{
-				Name:        fallbackString(strings.TrimSpace(spell.Name), "Unnamed spell"),
-				Meta:        pages.SpellMetaLine(spell),
-				Description: spell.Description,
-			})
-		}
-		groups = append(groups, pages.SharedSpellGroup{Name: group.Name, Spells: spells})
-	}
-	return groups
-}
-func sharedSpellLevels(levels []pages.SpellLevel) []pages.SharedSpellLevel {
-	active := make([]pages.SharedSpellLevel, 0, len(levels))
+func sharedSpellBook(rows []queries.Spell, levels []pages.SpellLevel) []pages.SharedSpellLevel {
+	slots := make(map[int]pages.SpellLevel, len(levels))
 	for _, level := range levels {
-		if level.Count == 0 && level.Slots == "0" {
+		slots[level.Level] = level
+	}
+	book := make([]pages.SharedSpellLevel, 0, pages.MaxSpellLevel+1)
+	for level := 0; level <= pages.MaxSpellLevel; level++ {
+		entry := pages.SharedSpellLevel{Name: pages.SpellLevelName(level)}
+		for _, row := range rows {
+			if int(row.Level) == level {
+				entry.Spells = append(entry.Spells, sharedSpell(spellPageRow(row)))
+			}
+		}
+		known, counted := slots[level]
+		if len(entry.Spells) == 0 && (!counted || known.Slots == "0") {
 			continue
 		}
-		active = append(active, pages.SharedSpellLevel{
-			Name:   pages.SpellLevelName(level.Level),
-			Slots:  slotCountLabel(level),
-			Spells: pages.SpellCountLabel(level.Count),
-		})
+		if counted {
+			entry.Slots = pages.SpellSlotsLeft(known)
+		}
+		book = append(book, entry)
 	}
-	return active
+	return book
 }
-func slotCountLabel(level pages.SpellLevel) string {
-	if level.Level == 0 {
-		return "Unlimited"
+func sharedSpell(spell pages.Spell) pages.SharedSpell {
+	return pages.SharedSpell{
+		Name:        fallbackString(strings.TrimSpace(spell.Name), "Unnamed spell"),
+		Prepared:    spell.Prepared,
+		CastingTime: strings.TrimSpace(spell.CastingTime),
+		School:      spell.School,
+		Range:       strings.TrimSpace(spell.CastingRange),
+		Duration:    strings.TrimSpace(spell.Duration),
+		Components:  strings.TrimSpace(spell.Components),
+		Description: spell.Description,
 	}
-	if level.Slots == "1" {
-		return "1 slot"
-	}
-	return level.Slots + " slots"
 }
