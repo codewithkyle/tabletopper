@@ -4134,9 +4134,6 @@
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
-  .mt-3 {
-    margin-top: calc(var(--spacing) * 3);
-  }
   .mt-4 {
     margin-top: calc(var(--spacing) * 4);
   }
@@ -4780,6 +4777,9 @@
   .grid-cols-\[2\.5rem_repeat\(3\,minmax\(0\,1fr\)\)\] {
     grid-template-columns: 2.5rem repeat(3,minmax(0,1fr));
   }
+  .grid-cols-\[5rem_minmax\(0\,1fr\)_minmax\(0\,1fr\)_auto\] {
+    grid-template-columns: 5rem minmax(0,1fr) minmax(0,1fr) auto;
+  }
   .grid-cols-\[24rem_minmax\(0\,1fr\)\] {
     grid-template-columns: 24rem minmax(0,1fr);
   }
@@ -4946,6 +4946,9 @@
   }
   .overflow-y-auto {
     overflow-y: auto;
+  }
+  .overflow-y-hidden {
+    overflow-y: hidden;
   }
   @layer daisyui.l1.l2 {
     .menu-sm :where(li:not(.menu-title) > :not(ul, menu, details, .menu-title)) {
@@ -5516,6 +5519,9 @@
   }
   .pb-7 {
     padding-bottom: calc(var(--spacing) * 7);
+  }
+  .pb-px {
+    padding-bottom: 1px;
   }
   .pl-2 {
     padding-left: calc(var(--spacing) * 2);
@@ -6299,20 +6305,6 @@
       column-gap: calc(var(--spacing) * 8);
     }
   }
-  @container sheet (width < 1280px) {
-    .\@max-\[1280px\]\/sheet\:static {
-      position: static;
-    }
-    .\@max-\[1280px\]\/sheet\:max-h-none {
-      max-height: none;
-    }
-    .\@max-\[1280px\]\/sheet\:grid-cols-1 {
-      grid-template-columns: repeat(1, minmax(0, 1fr));
-    }
-    .\@max-\[1280px\]\/sheet\:pb-0 {
-      padding-bottom: 0px;
-    }
-  }
   @container sheet (width < 900px) {
     .\@max-\[900px\]\/sheet\:col-auto {
       grid-column: auto;
@@ -6349,8 +6341,15 @@
     .\@max-\[40rem\]\/sheet\:p-3 {
       padding: calc(var(--spacing) * 3);
     }
+    .\@max-\[40rem\]\/sheet\:px-3 {
+      padding-inline: calc(var(--spacing) * 3);
+    }
     .\@max-\[40rem\]\/sheet\:py-1 {
       padding-block: var(--spacing);
+    }
+    .\@max-\[40rem\]\/sheet\:text-sm {
+      font-size: var(--text-sm);
+      line-height: var(--tw-leading, var(--text-sm--line-height));
     }
     .\@max-\[40rem\]\/sheet\:text-xs {
       font-size: var(--text-xs);
@@ -6459,16 +6458,19 @@
     .\@\[38rem\]\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_6rem_8rem_10rem\] {
-      grid-template-columns: minmax(0,1fr) 6rem 8rem 10rem;
-    }
     .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_10rem_auto_auto\] {
       grid-template-columns: minmax(0,1fr) 10rem auto auto;
     }
   }
   @container (width >= 44rem) {
+    .\@\[44rem\]\:col-span-1 {
+      grid-column: span 1 / span 1;
+    }
     .\@\[44rem\]\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .\@\[44rem\]\:grid-cols-\[minmax\(0\,1fr\)_6rem_8rem_10rem_auto\] {
+      grid-template-columns: minmax(0,1fr) 6rem 8rem 10rem auto;
     }
   }
   @container (width >= 52rem) {

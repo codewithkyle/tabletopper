@@ -520,26 +520,3 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 		t.Errorf("the prepared view is not ordered by level:\n%s", statement)
 	}
 }
-func TestSpellsRootRedirectsToCantrips(t *testing.T) {
-	app, db := newPanelApp(1)
-	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
-	r.SetPathValue("id", testCharacterID.String())
-	rec := httptest.NewRecorder()
-	app.CharacterSpellsRedirect(rec, r)
-	if want := "/characters/" + testCharacterID.String() + "/edit/spells/0"; rec.Header().Get("Location") != want {
-		t.Errorf("Location = %q, want %q", rec.Header().Get("Location"), want)
-	}
-	if len(db.calls) != 0 {
-		t.Errorf("ran %d statements, want 0", len(db.calls))
-	}
-}
-func TestSpellsRootWillNotRedirectToAnUnparsedID(t *testing.T) {
-	app, _ := newPanelApp(1)
-	r := httptest.NewRequest(http.MethodGet, "/characters/x/edit/spells", nil)
-	r.SetPathValue("id", "https://elsewhere.example/")
-	rec := httptest.NewRecorder()
-	app.CharacterSpellsRedirect(rec, r)
-	if got := rec.Header().Get("Location"); got != "/characters" {
-		t.Errorf("Location = %q, want /characters", got)
-	}
-}

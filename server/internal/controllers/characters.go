@@ -144,85 +144,61 @@ func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, o
 	return nil
 }
 func (a *App) CharacterPage(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
+	a.characterSectionPage(w, r, pages.SheetSectionMain)
+}
+func (a *App) CharacterAbilitiesPage(w http.ResponseWriter, r *http.Request) {
+	a.characterSectionPage(w, r, pages.SheetSectionAbilities)
+}
+func (a *App) CharacterSkillsPage(w http.ResponseWriter, r *http.Request) {
+	a.characterSectionPage(w, r, pages.SheetSectionSkills)
+}
+func (a *App) CharacterAttacksPage(w http.ResponseWriter, r *http.Request) {
+	a.characterSectionPage(w, r, pages.SheetSectionAttacks)
+}
+func (a *App) CharacterPreparedSpellsPage(w http.ResponseWriter, r *http.Request) {
+	a.characterSectionPage(w, r, pages.SheetSectionSpells)
+}
+func (a *App) characterSectionPage(w http.ResponseWriter, r *http.Request, section string) {
+	sess := session.FromContext(r.Context())
 	character, characterID, ok := a.loadCharacter(w, r)
 	if !ok {
 		return
 	}
-	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
+	data, err := a.sheetSectionData(r.Context(), characterID, sess.UserID, character, section)
 	if err != nil {
-		slog.Error("Failed to load equipped inventory", "error", err)
+		slog.Error("Failed to load a character section", "section", section, "error", err)
 		redirectToError(w, r)
 		return
 	}
-	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to load attacks", "error", err)
-		redirectToError(w, r)
-		return
-	}
-	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to load prepared spells", "error", err)
-		redirectToError(w, r)
-		return
-	}
-	levels, ok := a.loadSpellLevels(w, r, characterID, sess.UserID)
-	if !ok {
-		return
-	}
-	data := characterToEditPageData(characterID.String(), character)
-	data.Attacks = attackPageRows(attacks)
-	data.Equipped = inventoryPageItems(equipped)
-	data.Prepared = preparedSpellGroups(prepared)
-	data.SpellSlots = levels
-	render(w, r, pages.EditCharacter(data))
+	render(w, r, pages.EditCharacterSection(data, section))
 }
-func (a *App) sheetData(ctx context.Context, characterID, ownerID ulid.ULID) (pages.EditCharacterPageData, error) {
-	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
-	if err != nil {
-		return pages.EditCharacterPageData{}, fmt.Errorf("character: %w", err)
-	}
-	equipped, err := a.Queries.ListEquippedInventory(ctx, queries.ListEquippedInventoryParams{
-		CharacterID: characterID,
-		OwnerID:     ownerID,
-	})
-	if err != nil {
-		return pages.EditCharacterPageData{}, fmt.Errorf("equipped inventory: %w", err)
-	}
-	attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
-		CharacterID: characterID,
-		OwnerID:     ownerID,
-	})
-	if err != nil {
-		return pages.EditCharacterPageData{}, fmt.Errorf("attacks: %w", err)
-	}
-	prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
-		CharacterID: characterID,
-		OwnerID:     ownerID,
-	})
-	if err != nil {
-		return pages.EditCharacterPageData{}, fmt.Errorf("prepared spells: %w", err)
-	}
-	levels, err := a.spellLevels(ctx, characterID, ownerID)
-	if err != nil {
-		return pages.EditCharacterPageData{}, err
-	}
+func (a *App) sheetSectionData(ctx context.Context, characterID, ownerID ulid.ULID, character queries.Character, section string) (pages.EditCharacterPageData, error) {
 	data := characterToEditPageData(characterID.String(), character)
-	data.Attacks = attackPageRows(attacks)
-	data.Equipped = inventoryPageItems(equipped)
-	data.Prepared = preparedSpellGroups(prepared)
-	data.SpellSlots = levels
+	switch section {
+	case pages.SheetSectionAttacks:
+		attacks, err := a.Queries.ListCharacterAttacks(ctx, queries.ListCharacterAttacksParams{
+			CharacterID: characterID,
+			OwnerID:     ownerID,
+		})
+		if err != nil {
+			return data, fmt.Errorf("attacks: %w", err)
+		}
+		data.Attacks = attackPageRows(attacks)
+	case pages.SheetSectionSpells:
+		prepared, err := a.Queries.ListPreparedSpells(ctx, queries.ListPreparedSpellsParams{
+			CharacterID: characterID,
+			OwnerID:     ownerID,
+		})
+		if err != nil {
+			return data, fmt.Errorf("prepared spells: %w", err)
+		}
+		levels, err := a.spellLevels(ctx, characterID, ownerID)
+		if err != nil {
+			return data, err
+		}
+		data.Prepared = preparedSpellGroups(prepared)
+		data.SpellSlots = levels
+	}
 	return data, nil
 }
 func (a *App) loadCharacter(w http.ResponseWriter, r *http.Request) (queries.Character, ulid.ULID, bool) {

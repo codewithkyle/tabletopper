@@ -8,7 +8,65 @@ import (
 
 const SheetBodyID = "character-sheet-body"
 const SheetWindow = "character-sheet"
-const SheetSectionMain = "main"
+const SpellsPrepared = -1
+
+const (
+	SheetSectionMain      = "main"
+	SheetSectionAbilities = "abilities"
+	SheetSectionSkills    = "skills"
+	SheetSectionAttacks   = "attacks"
+	SheetSectionInventory = "inventory"
+	SheetSectionSpells    = "spells"
+	SheetSectionIdentity  = "identity"
+	SheetSectionCoreStats = "core-stats"
+	SheetSectionVitals    = "vitals"
+)
+
+type SheetTab struct {
+	Section string
+	Label   string
+}
+
+func SheetTabs() []SheetTab {
+	return []SheetTab{
+		{Section: SheetSectionMain, Label: "Character"},
+		{Section: SheetSectionAbilities, Label: "Abilities"},
+		{Section: SheetSectionSkills, Label: "Skills"},
+		{Section: SheetSectionAttacks, Label: "Attacks"},
+		{Section: SheetSectionInventory, Label: "Inventory"},
+		{Section: SheetSectionSpells, Label: "Spells"},
+	}
+}
+
+func CharacterEditPath(characterID string, section string) string {
+	base := "/characters/" + characterID + "/edit"
+	if section == SheetSectionMain {
+		return base
+	}
+	return base + "/" + section
+}
+
+func SpellLevelEditPath(characterID string, level int) string {
+	if level == SpellsPrepared {
+		return CharacterEditPath(characterID, SheetSectionSpells)
+	}
+	return CharacterEditPath(characterID, SheetSectionSpells) + "/" + strconv.Itoa(level)
+}
+
+func sheetSectionTitle(section string) string {
+	switch section {
+	case SheetSectionMain:
+		return "Character Editor"
+	case SheetSectionSpells:
+		return "Prepared Spells"
+	}
+	for _, tab := range SheetTabs() {
+		if tab.Section == section {
+			return tab.Label
+		}
+	}
+	return "Character Editor"
+}
 
 type SheetWindowData struct {
 	RoomID    string
@@ -25,34 +83,23 @@ func (d SheetWindowData) SectionPath(section string) string {
 func (d SheetWindowData) LevelPath(level int) string {
 	return SheetLevelPath(d.RoomID, level)
 }
-func (d SheetWindowData) Tabs() []SheetTab {
-	return []SheetTab{
-		{Section: SheetSectionMain, Label: "Character"},
-		{Section: SheetSectionInventory, Label: "Inventory"},
-		{Section: SheetSectionSpells, Label: "Spells"},
+func (d SheetWindowData) Path() string {
+	if d.Section == SheetSectionSpells {
+		return d.LevelPath(d.Level)
 	}
-}
-
-type SheetTab struct {
-	Section string
-	Label   string
+	return d.SectionPath(d.Section)
 }
 
 func SheetLevelPath(roomID string, level int) string {
+	if level == SpellsPrepared {
+		return SheetSectionPath(roomID, SheetSectionSpells)
+	}
 	return SheetSectionPath(roomID, SheetSectionSpells) + "&level=" + strconv.Itoa(level)
 }
 
 func SheetWindowPath(roomID string) string {
 	return "/fragment/character/sheet?room=" + roomID
 }
-
-const (
-	SheetSectionInventory = "inventory"
-	SheetSectionSpells    = "spells"
-	SheetSectionIdentity  = "identity"
-	SheetSectionCoreStats = "core-stats"
-	SheetSectionVitals    = "vitals"
-)
 
 func LiveSheetSections() []string {
 	return []string{SheetSectionIdentity, SheetSectionCoreStats, SheetSectionVitals}
@@ -68,6 +115,9 @@ type SheetLive struct {
 func (l SheetLive) On() bool { return l.RoomID != "" }
 func (l SheetLive) Path(section string) string {
 	return SheetSectionPath(l.RoomID, section)
+}
+func (l SheetLive) LevelPath(level int) string {
+	return SheetLevelPath(l.RoomID, level)
 }
 func (l SheetLive) Trigger() string {
 	return uievents.Character + "[!" + typingInPanel + "] from:window"

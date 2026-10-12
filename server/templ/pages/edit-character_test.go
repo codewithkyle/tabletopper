@@ -1,8 +1,6 @@
 package pages
 
 import (
-	"bytes"
-	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,19 +10,14 @@ const levelTwentyXP = 355_000
 
 func characterSheet(t *testing.T) string {
 	t.Helper()
-	var buf bytes.Buffer
-	data := EditCharacterPageData{
+	return everyEditorTab(t, EditCharacterPageData{
 		XP:        "355000",
 		AC:        "17",
 		MaxHP:     "140",
 		CurrentHP: "92",
 		TempHP:    "0",
 		Str:       "16",
-	}
-	if err := EditCharacter(data).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	return buf.String()
+	})
 }
 func fieldTag(t *testing.T, markup string, attribute string) string {
 	t.Helper()

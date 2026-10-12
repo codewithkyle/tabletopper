@@ -13,6 +13,12 @@ type Attack struct {
 func AttackRowPanel(attackID string) string {
 	return "attack-" + attackID
 }
+func attackRowName(attack Attack) string {
+	if attack.Name == "" {
+		return "attack"
+	}
+	return attack.Name
+}
 
 var damageTypeOptions = []Option{
 	{Label: "—", Value: ""},

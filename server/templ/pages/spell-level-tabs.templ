@@ -1,13 +1,10 @@
 package pages
 
-import "strconv"
-
 templ spellLevelTabs(characterID string, active int) {
-	{{ base := "/characters/" + characterID + "/edit/spells/" }}
 	<div class="overflow-x-auto">
 		<nav class={ barGutter + " flex w-max min-w-full gap-1 py-2" } aria-label="Spell levels">
-			for level := 0; level <= MaxSpellLevel; level++ {
-				@spellLevelTabLink(base+strconv.Itoa(level), SpellLevelTab(level), active == level)
+			for _, level := range spellLevelChoices() {
+				@spellLevelTabLink(SpellLevelEditPath(characterID, level), SpellLevelTab(level), active == level)
 			}
 		</nav>
 	</div>

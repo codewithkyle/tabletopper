@@ -1,18 +1,14 @@
 package pages
 
 templ characterTabs(characterID string, active string) {
-	{{ base := "/characters/" + characterID + "/edit" }}
-	<nav class={ barGutter + " flex gap-1" } aria-label="Character sheet sections">
-		@tabLink(base, "Character", active == characterTabMain)
-		@tabLink(base+"/inventory", "Inventory", active == characterTabInventory)
-		@tabLink(base+"/spells/0", "Spells", active == characterTabSpells)
-		@tabLink(base+"/journal", "Journal", active == characterTabJournal)
-	</nav>
+	<div class={ tabScroller }>
+		<nav class={ barGutter + " flex w-max min-w-full gap-1" } aria-label="Character sheet sections">
+			for _, tab := range SheetTabs() {
+				@tabLink(CharacterEditPath(characterID, tab.Section), tab.Label, active == tab.Section)
+			}
+			@tabLink(CharacterEditPath(characterID, characterTabJournal), "Journal", active == characterTabJournal)
+		</nav>
+	</div>
 }
 
-const (
-	characterTabMain      = "character"
-	characterTabInventory = "inventory"
-	characterTabSpells    = "spells"
-	characterTabJournal   = "journal"
-)
+const characterTabJournal = "journal"

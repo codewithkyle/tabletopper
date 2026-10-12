@@ -5,7 +5,7 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
 	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
-		@editCharacterShell(data.CharacterID, data.Header, characterTabSpells, shellLayout{
+		@editCharacterShell(data.CharacterID, data.Header, SheetSectionSpells, shellLayout{
 			Actions: spellAddButton(data.CharacterID, data.Level, "btn btn-primary max-[640px]:flex-1"),
 			SubNav:  spellLevelTabs(data.CharacterID, data.Level),
 		}) {

@@ -18,15 +18,14 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-var sheetSections = sheetSectionSet(
-	pages.SheetSectionMain,
-	pages.SheetSectionInventory,
-	pages.SheetSectionSpells,
-)
+var sheetSections = sheetSectionSet()
 
-func sheetSectionSet(extra ...string) map[string]bool {
-	out := make(map[string]bool, len(extra)+len(pages.LiveSheetSections()))
-	for _, name := range append(extra, pages.LiveSheetSections()...) {
+func sheetSectionSet() map[string]bool {
+	out := make(map[string]bool, len(pages.SheetTabs())+len(pages.LiveSheetSections()))
+	for _, tab := range pages.SheetTabs() {
+		out[tab.Section] = true
+	}
+	for _, name := range pages.LiveSheetSections() {
 		out[name] = true
 	}
 	return out
@@ -63,10 +62,10 @@ func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	}
 	render(w, r, pages.CharacterSheetWindow(data))
 }
-func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULID, section string, level uint8) (pages.SheetWindowData, error) {
-	data := pages.SheetWindowData{Section: section, Level: int(level)}
-	switch section {
-	case pages.SheetSectionInventory:
+func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULID, section string, level int) (pages.SheetWindowData, error) {
+	data := pages.SheetWindowData{Section: section, Level: level}
+	switch {
+	case section == pages.SheetSectionInventory:
 		header, err := a.sheetHeader(ctx, characterID, ownerID)
 		if err != nil {
 			return data, err
@@ -83,19 +82,19 @@ func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULI
 			CharacterID: characterID.String(),
 			Items:       inventoryPageItems(items),
 		}
-	case pages.SheetSectionSpells:
+	case section == pages.SheetSectionSpells && level != pages.SpellsPrepared:
 		header, err := a.sheetHeader(ctx, characterID, ownerID)
 		if err != nil {
 			return data, err
 		}
-		counters, err := a.spellSlotCounters(ctx, characterID, ownerID, level)
+		counters, err := a.spellSlotCounters(ctx, characterID, ownerID, uint8(level))
 		if err != nil {
 			return data, err
 		}
 		rows, err := a.Queries.ListSpellsAtLevel(ctx, queries.ListSpellsAtLevelParams{
 			CharacterID: characterID,
 			OwnerID:     ownerID,
-			Level:       level,
+			Level:       uint8(level),
 		})
 		if err != nil {
 			return data, err
@@ -103,22 +102,20 @@ func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULI
 		data.Sheet.Header = header
 		data.Spells = pages.SpellLevelPageData{
 			CharacterID: characterID.String(),
-			Level:       int(level),
+			Level:       level,
 			Current:     counters,
 			Spells:      spellPageRows(rows),
 		}
-	case pages.SheetSectionMain:
-		sheet, err := a.sheetData(ctx, characterID, ownerID)
-		if err != nil {
-			return data, err
-		}
-		data.Sheet = sheet
 	default:
 		character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
 		if err != nil {
 			return data, err
 		}
-		data.Sheet = characterToEditPageData(characterID.String(), character)
+		sheet, err := a.sheetSectionData(ctx, characterID, ownerID, character, section)
+		if err != nil {
+			return data, err
+		}
+		data.Sheet = sheet
 	}
 	return data, nil
 }
@@ -137,15 +134,15 @@ func refuseSheet(w http.ResponseWriter, err error) {
 	slog.Error("Failed to read a character for its window", "error", err)
 	htmx.ServerError(w)
 }
-func sheetLevel(raw string) (uint8, bool) {
+func sheetLevel(raw string) (int, bool) {
 	if raw == "" {
-		return 0, true
+		return pages.SpellsPrepared, true
 	}
 	level, err := strconv.Atoi(raw)
 	if err != nil || level < 0 || level > pages.MaxSpellLevel {
 		return 0, false
 	}
-	return uint8(level), true
+	return level, true
 }
 func (a *App) characterPawn(ctx context.Context, roomID, characterID ulid.ULID) *room.Pawn {
 	if a.Hub == nil {

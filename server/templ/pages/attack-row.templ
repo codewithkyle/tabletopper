@@ -14,8 +14,8 @@ templ AttackRow(characterID string, attack Attack) {
 		{ autosaves... }
 	>
 		@PanelFormErrors(panel, []string{})
-		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_6rem_8rem_10rem]">
-			<label class="fieldset">
+		<div class="grid grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 @[44rem]:grid-cols-[minmax(0,1fr)_6rem_8rem_10rem_auto]">
+			<label class="fieldset col-span-full @[44rem]:col-span-1">
 				<span class={ "fieldset-legend " + denseLegend }>Attack</span>
 				<input
 					name="name"
@@ -56,10 +56,10 @@ templ AttackRow(characterID string, attack Attack) {
 					}
 				</select>
 			</label>
+			@rowDelete(action, "Delete "+attackRowName(attack))
 		</div>
-		<details open?={ attack.Name == "" }>
-			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
-			<div class="mt-3 grid gap-3">
+		@rowDetails("attack-details") {
+			<div class="grid gap-3">
 				<label class="fieldset">
 					<span class={ "fieldset-legend " + denseLegend }>Mastery</span>
 					<select name="mastery" class={ "select w-full @[38rem]:w-48 " + denseSelect }>
@@ -78,33 +78,26 @@ templ AttackRow(characterID string, attack Attack) {
 					>{ attack.Notes }</textarea>
 				</label>
 			</div>
-		</details>
-		<div class="flex justify-end">
-			<button
-				type="button"
-				class="btn btn-soft btn-error btn-sm"
-				hx-delete={ action }
-				hx-target="closest form"
-				hx-swap="delete"
-			>
-				Delete
-			</button>
-		</div>
+		}
 	</form>
 }
 
 templ attacksTable(characterID string, attacks []Attack) {
 	<div id="attack-rows" class="grid gap-3">
+		<p class="hidden text-base-content/70 only:block">No attacks yet. Start one with the Add Attack button above.</p>
 		for _, attack := range attacks {
 			@AttackRow(characterID, attack)
 		}
 	</div>
+}
+
+templ attackAddButton(characterID string, class string) {
 	<button
 		type="button"
-		class="btn btn-soft btn-warning"
+		class={ class }
 		hx-post={ "/characters/" + characterID + "/attacks" }
 		hx-target="#attack-rows"
-		hx-swap="append"
+		hx-swap="append show:bottom"
 	>
 		Add Attack
 	</button>

@@ -3,9 +3,13 @@ package pages
 import "tabletopper/templ/layouts"
 
 templ EditCharacter(data EditCharacterPageData) {
-	@layouts.Base("Character Editor | Tabletopper") {
-		@editCharacterShell(data.CharacterID, data.Header, characterTabMain, shellLayout{}) {
-			@characterPanels(data)
+	@EditCharacterSection(data, SheetSectionMain)
+}
+
+templ EditCharacterSection(data EditCharacterPageData, section string) {
+	@layouts.Base(sheetSectionTitle(section) + " | Tabletopper") {
+		@editCharacterShell(data.CharacterID, data.Header, section, sectionLayout(data.CharacterID, section)) {
+			@sheetSection(data, section)
 		}
 	}
 }
@@ -25,33 +29,35 @@ templ editCharacterShell(characterID string, header CharacterHeader, active stri
 	</character-editor>
 }
 
-templ characterPanels(data EditCharacterPageData) {
-	<div class="grid grid-cols-[24rem_minmax(0,1fr)] items-start gap-4 @max-[1280px]/sheet:grid-cols-1">
-		<div class="sticky top-0 grid max-h-[calc(100dvh-9rem)] content-start gap-4 overflow-y-auto pb-7 @max-[1280px]/sheet:static @max-[1280px]/sheet:max-h-none @max-[1280px]/sheet:pb-0">
-			@abilitiesPanel(data)
-			@savingThrowsPanel(data)
-		</div>
-		<div class="grid content-start gap-4">
-			@identityPanel(data)
-			@coreStatsPanel(data)
-			@vitalsPanel(data)
-			@attacksPanel(data)
-			@proficienciesPanel(data)
-			@skillsPanel(data)
-			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
-				@featuresPanel(data)
-				@equipmentPanel(data)
+const sheetPair = "grid grid-cols-2 items-start gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3"
+
+templ sheetSection(data EditCharacterPageData, section string) {
+	switch section {
+		case SheetSectionAbilities:
+			<div class={ sheetPair }>
+				@abilitiesPanel(data)
+				@savingThrowsPanel(data)
 			</div>
-			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
+		case SheetSectionSkills:
+			@skillsPanel(data)
+		case SheetSectionAttacks:
+			@attacksPanel(data)
+		case SheetSectionSpells:
+			<div class={ sheetPair }>
 				@preparedSpellsPanel(data)
 				@spellSlotsPanel(data)
 			</div>
-			<div class="grid grid-cols-2 gap-4 @max-[900px]/sheet:grid-cols-1">
+		default:
+			@vitalsPanel(data)
+			@coreStatsPanel(data)
+			@featuresPanel(data)
+			@proficienciesPanel(data)
+			@identityPanel(data)
+			<div class={ sheetPair }>
 				@personalityPanel(data)
 				@appearancePanel(data)
 			</div>
-		</div>
-	</div>
+	}
 }
 
 templ CharacterSheetSection(data EditCharacterPageData, section string) {
@@ -176,21 +182,15 @@ templ featuresPanel(data EditCharacterPageData) {
 	}
 }
 
-templ equipmentPanel(data EditCharacterPageData) {
-	@sheetPanel("Equipment") {
-		@equippedItems(data.CharacterID, data.Equipped)
-	}
-}
-
 templ preparedSpellsPanel(data EditCharacterPageData) {
 	@sheetPanel("Prepared Spells") {
-		@preparedSpells(data.CharacterID, data.Prepared)
+		@preparedSpells(data.Prepared)
 	}
 }
 
 templ spellSlotsPanel(data EditCharacterPageData) {
 	@sheetPanel("Spell Slots") {
-		@spellSlotsOverview(data.CharacterID, data.SpellSlots)
+		@spellSlotsOverview(data.CharacterID, data.Live, data.SpellSlots)
 	}
 }
 

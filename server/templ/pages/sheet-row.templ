@@ -1,0 +1,29 @@
+package pages
+
+const rowInlineCell = "flex h-10 items-center @max-[40rem]/sheet:h-8"
+
+templ rowDelete(action string, label string) {
+	<div class="fieldset">
+		<span class={ rowInlineCell }>
+			<button
+				type="button"
+				class="btn btn-soft btn-error btn-sm"
+				aria-label={ label }
+				hx-delete={ action }
+				hx-target="closest form"
+				hx-swap="delete"
+			>
+				Delete
+			</button>
+		</span>
+	</div>
+}
+
+templ rowDetails(group string) {
+	<details name={ group } class="collapse collapse-arrow rounded-field border border-base-300 bg-base-100">
+		<summary class="collapse-title py-2 ps-3 text-sm font-semibold text-base-content/75">Details</summary>
+		<div class="collapse-content px-3 pb-3">
+			{ children... }
+		</div>
+	</details>
+}

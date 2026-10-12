@@ -46,7 +46,6 @@ type EditCharacterPageData struct {
 	Features            []Feature
 	Derived             Derived
 	Attacks             []Attack
-	Equipped            []InventoryItem
 	Prepared            []PreparedSpellGroup
 	SpellSlots          []SpellLevel
 }

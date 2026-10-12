@@ -117,7 +117,8 @@ export function openWindow(spec: WindowSpec): void {
 }
 class RoomWindow {
 	readonly id: string;
-	readonly url: string;
+	readonly home: string;
+	private url: string;
 	private title: string;
 	private readonly el: HTMLElement;
 	private readonly bar: HTMLElement;
@@ -133,7 +134,8 @@ class RoomWindow {
 	constructor(spec: WindowSpec, into: HTMLElement, from: HTMLTemplateElement) {
 		this.id = spec.id;
 		this.title = spec.title;
-		this.url = spec.url;
+		this.home = spec.url;
+		this.url = whereToOpen(spec.url, read(placeKey(spec.id)));
 		const root = from.content.firstElementChild?.cloneNode(true);
 		if (!(root instanceof HTMLElement)) {
 			throw new Error("the window template has no element in it");
@@ -163,6 +165,7 @@ class RoomWindow {
 		this.load();
 	}
 	private wire(): void {
+		new MutationObserver(() => this.locate()).observe(this.content, { childList: true });
 		this.el.addEventListener("pointerdown", () => this.raise());
 		this.bar.addEventListener("pointerdown", (e) => this.startDrag(e));
 		for (const handle of this.el.querySelectorAll("[data-window-resize]")) {
@@ -212,8 +215,23 @@ class RoomWindow {
 				return;
 			}
 			const status = detail.ctx.response?.status;
+			if (status === 404 && this.url !== this.home) {
+				this.url = this.home;
+				store(placeKey(this.id), null);
+				this.load();
+				return;
+			}
 			this.show(status !== undefined && status < 400 ? "content" : "error");
 		});
+	}
+	private locate(): void {
+		const root = this.content.querySelector(":scope > [data-window-path]");
+		const path = root instanceof HTMLElement ? root.dataset.windowPath : undefined;
+		if (path === undefined || path === this.url || !path.startsWith(FRAGMENT_PREFIX)) {
+			return;
+		}
+		this.url = path;
+		store(placeKey(this.id), path);
 	}
 	private load(): void {
 		this.show("loading");
@@ -344,7 +362,7 @@ class RoomWindow {
 		remember();
 	}
 	spec(): WindowSpec {
-		return { id: this.id, title: this.title, url: this.url };
+		return { id: this.id, title: this.title, url: this.home };
 	}
 	commit(): void {
 		this.paint();
@@ -461,6 +479,12 @@ function geometry(id: string): Geometry | null {
 		w: typeof saved.w === "number" ? saved.w : DEFAULT_WIDTH,
 		h: typeof saved.h === "number" ? saved.h : DEFAULT_HEIGHT,
 	};
+}
+export function whereToOpen(home: string, saved: unknown): string {
+	return typeof saved === "string" && saved.startsWith(FRAGMENT_PREFIX) ? saved : home;
+}
+function placeKey(id: string): string {
+	return `window-path:${room}:${id}`;
 }
 function remember(): void {
 	const open: WindowSpec[] = [];

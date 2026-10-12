@@ -134,58 +134,76 @@ func render(c templ.Component) error {
 	var buf bytes.Buffer
 	return c.Render(context.Background(), &buf)
 }
-func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
+func TestEveryEditorTabRendersOneFormPerPanel(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	base := "/characters/" + id
-	panels := map[string]string{
-		"identity":      base + "/identity",
-		"abilities":     base + "/abilities",
-		"core-stats":    base + "/core-stats",
-		"vitals":        base + "/vitals",
-		"proficiencies": base + "/proficiencies",
-		"saving_throws": base + "/bonuses/saving_throws",
-		"skills":        base + "/bonuses/skills",
-		"features":      base + "/features",
-		"personality":   base + "/personality",
-		"appearance":    base + "/appearance",
+	for _, c := range []struct {
+		section string
+		panels  map[string]string
+		adds    int
+	}{
+		{SheetSectionMain, map[string]string{
+			"identity":      base + "/identity",
+			"core-stats":    base + "/core-stats",
+			"vitals":        base + "/vitals",
+			"proficiencies": base + "/proficiencies",
+			"features":      base + "/features",
+			"personality":   base + "/personality",
+			"appearance":    base + "/appearance",
+		}, 0},
+		{SheetSectionAbilities, map[string]string{
+			"abilities":     base + "/abilities",
+			"saving_throws": base + "/bonuses/saving_throws",
+		}, 0},
+		{SheetSectionSkills, map[string]string{
+			"skills": base + "/bonuses/skills",
+		}, 0},
+		{SheetSectionAttacks, map[string]string{}, 1},
+	} {
+		t.Run(c.section, func(t *testing.T) {
+			markup := renderString(t, EditCharacterSection(EditCharacterPageData{CharacterID: id}, c.section))
+			for panel, action := range c.panels {
+				if want := `hx-post="` + action + `"`; !strings.Contains(markup, want) {
+					t.Errorf("no panel posts to %s", action)
+				}
+				if want := `id="errors-` + panel + `"`; !strings.Contains(markup, want) {
+					t.Errorf("panel %q has no error block to swap into", panel)
+				}
+			}
+			for _, absent := range []string{base + "/spells", base + "/spells/slots/1"} {
+				if strings.Contains(markup, `hx-post="`+absent+`"`) {
+					t.Errorf("the %s tab carries %s, which belongs to the spells pages", c.section, absent)
+				}
+			}
+			if got, want := strings.Count(markup, "hx-post="), len(c.panels)+c.adds+1; got != want {
+				t.Errorf("posting elements = %d, want %d (one per panel, plus %d add buttons and the avatar upload)", got, want, c.adds)
+			}
+			if got := strings.Count(markup, "<form"); got != len(c.panels)+closingForms {
+				t.Errorf("forms = %d, want %d", got, len(c.panels)+closingForms)
+			}
+			if got := strings.Count(markup, `hx-trigger="input delay:1s, repeater:changed"`); got != len(c.panels) {
+				t.Errorf("debounced panels = %d, want %d", got, len(c.panels))
+			}
+			if strings.Contains(markup, `type="submit"`) {
+				t.Error("the editor still renders a submit button")
+			}
+			assertCharacterTabs(t, markup, CharacterEditPath(id, c.section))
+		})
 	}
-	var buf bytes.Buffer
-	if err := EditCharacter(EditCharacterPageData{CharacterID: id}).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	markup := buf.String()
-	for panel, action := range panels {
-		if want := `hx-post="` + action + `"`; !strings.Contains(markup, want) {
-			t.Errorf("no panel posts to %s", action)
-		}
-		if want := `id="errors-` + panel + `"`; !strings.Contains(markup, want) {
-			t.Errorf("panel %q has no error block to swap into", panel)
-		}
-	}
-	for _, absent := range []string{base + "/spells", base + "/spells/slots/1"} {
-		if strings.Contains(markup, `hx-post="`+absent+`"`) {
-			t.Errorf("the Character tab carries %s, which belongs to the spells pages", absent)
-		}
-	}
-	if got := strings.Count(markup, "hx-post="); got != len(panels)+2 {
-		t.Errorf("posting elements = %d, want %d (one per panel, plus Add Attack and the avatar upload)", got, len(panels)+2)
-	}
-	if got := strings.Count(markup, "<form"); got != len(panels)+closingForms {
-		t.Errorf("forms = %d, want %d", got, len(panels)+closingForms)
-	}
-	if got := strings.Count(markup, `hx-trigger="input delay:1s, repeater:changed"`); got != len(panels) {
-		t.Errorf("debounced panels = %d, want %d", got, len(panels))
-	}
-	if strings.Contains(markup, `type="submit"`) {
-		t.Error("the editor still renders a submit button")
-	}
-	assertCharacterTabs(t, markup, base+"/edit")
 }
 func assertCharacterTabs(t *testing.T, markup string, current string) {
 	t.Helper()
 	base := strings.TrimSuffix(current, "/edit")
 	base = strings.SplitN(base, "/edit/", 2)[0]
-	for _, href := range []string{base + "/edit", base + "/edit/inventory", base + "/edit/spells/0", base + "/edit/journal"} {
+	for _, href := range []string{
+		base + "/edit",
+		base + "/edit/abilities",
+		base + "/edit/skills",
+		base + "/edit/attacks",
+		base + "/edit/inventory",
+		base + "/edit/spells",
+		base + "/edit/journal",
+	} {
 		if !strings.Contains(markup, `href="`+href+`"`) {
 			t.Errorf("no way to reach %s from here", href)
 		}
@@ -318,70 +336,18 @@ func TestInventoryPageIsOneFormPerItem(t *testing.T) {
 		t.Error("the add button does not append its reply")
 	}
 }
-func TestEquippedItemsIsAViewAndNotAForm(t *testing.T) {
-	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	var buf bytes.Buffer
-	items := []InventoryItem{
-		{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Longsword", Quantity: "1", Description: "1d8 slashing"},
-		{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Name: "Javelin", Quantity: "4"},
-		{ID: "01BX5ZZKBKACTAV9WEVGEMMVS2", Name: "", Quantity: "1"},
-	}
-	if err := equippedItems(characterID, items).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	body := buf.String()
-	for _, forbidden := range []string{"<form", "<input", "<textarea", "hx-post", "hx-delete"} {
-		if strings.Contains(body, forbidden) {
-			t.Errorf("the equipped view carries %s\n%s", forbidden, body)
-		}
-	}
-	for _, want := range []string{"Longsword", "1d8 slashing", "Javelin"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("the equipped view is missing %q\n%s", want, body)
-		}
-	}
-	if strings.Contains(body, "&#215; 1<") {
-		t.Error("a quantity of 1 is printed beside an item")
-	}
-	if !strings.Contains(body, "&#215; 4") {
-		t.Errorf("a quantity above 1 is not printed\n%s", body)
-	}
-	if !strings.Contains(body, "Unnamed item") {
-		t.Errorf("an unnamed equipped row renders as nothing\n%s", body)
-	}
-}
-func TestEquippedItemsEmptyStatePointsAtTheInventoryPage(t *testing.T) {
-	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	var buf bytes.Buffer
-	if err := equippedItems(characterID, nil).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	body := buf.String()
-	if want := `href="/characters/` + characterID + `/edit/inventory"`; !strings.Contains(body, want) {
-		t.Errorf("the empty state does not point at %s\n%s", want, body)
-	}
-	if !strings.Contains(body, "Equipped") {
-		t.Errorf("the empty state does not name the control that fills it\n%s", body)
-	}
-}
 func TestCharacterPageHasNoWeaponsOrResourcesPanel(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	var buf bytes.Buffer
-	data := EditCharacterPageData{
-		CharacterID: id,
-		Equipped:    []InventoryItem{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Chain Mail", Quantity: "1"}},
-	}
+	data := EditCharacterPageData{CharacterID: id}
 	if err := EditCharacter(data).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	body := buf.String()
-	for _, gone := range []string{"/rows/weapons", "/rows/resources", "weapons-name", "resources-name"} {
+	for _, gone := range []string{"/rows/weapons", "/rows/resources", "weapons-name", "resources-name", ">Equipment<"} {
 		if strings.Contains(body, gone) {
 			t.Errorf("the page still carries %s", gone)
 		}
-	}
-	if !strings.Contains(body, "Chain Mail") {
-		t.Errorf("the equipped rows are not rendered on the page\n%s", body)
 	}
 }
 
@@ -491,7 +457,7 @@ func TestPreparedSitsInlineAfterTheCastTime(t *testing.T) {
 		at = next
 	}
 }
-func TestNothingLinksToASpellsIndex(t *testing.T) {
+func TestTheSpellsTabOpensOnThePreparedView(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	for _, page := range []struct {
 		name   string
@@ -516,16 +482,18 @@ func TestNothingLinksToASpellsIndex(t *testing.T) {
 				t.Fatalf("render: %v", err)
 			}
 			body := buf.String()
-			if strings.Contains(body, `href="/characters/`+characterID+`/edit/spells"`) {
-				t.Errorf("%s links to a spells index\n%s", page.name, body)
-			}
-			if want := `href="/characters/` + characterID + `/edit/spells/0"`; !strings.Contains(body, want) {
+			if want := `href="/characters/` + characterID + `/edit/spells"`; !strings.Contains(body, want) {
 				t.Errorf("%s has no way into the spells tab", page.name)
+			}
+			tabs := body[strings.Index(body, `aria-label="Character sheet sections"`):]
+			tabs = tabs[:strings.Index(tabs, "</nav>")]
+			if strings.Contains(tabs, "/edit/spells/") {
+				t.Errorf("%s's Spells tab opens on one level rather than the prepared view\n%s", page.name, tabs)
 			}
 		})
 	}
 }
-func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
+func TestSpellLevelTabsArePreparedAndTenStaticLabels(t *testing.T) {
 	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	var buf bytes.Buffer
 	data := SpellLevelPageData{
@@ -547,6 +515,9 @@ func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 			t.Errorf("no way to reach level %d", level)
 		}
 	}
+	if want := `href="/characters/` + characterID + `/edit/spells"`; !strings.Contains(body, want) {
+		t.Errorf("the level strip does not lead with the prepared view: no %s", want)
+	}
 	if strings.Contains(body, "Overview") {
 		t.Errorf("the level strip still carries an Overview tab\n%s", body)
 	}
@@ -556,6 +527,9 @@ func TestSpellLevelTabsAreTenStaticLabels(t *testing.T) {
 		if strings.Contains(tabs, digit) {
 			t.Errorf("the level tabs carry a count: %s\n%s", digit, tabs)
 		}
+	}
+	if prepared, cantrips := strings.Index(tabs, ">Prepared<"), strings.Index(tabs, ">Cantrips<"); prepared < 0 || prepared > cantrips {
+		t.Errorf("Prepared does not come before Cantrips\n%s", tabs)
 	}
 	for _, want := range []string{">Cantrips<", ">1st<", ">3rd<", ">9th<"} {
 		if !strings.Contains(tabs, want) {
@@ -609,7 +583,7 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 			t.Errorf("the level 3 page carries level %s's counters", level)
 		}
 	}
-	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells/0")
+	assertCharacterTabs(t, body, "/characters/"+characterID+"/edit/spells")
 	if want := `href="/characters/` + characterID + `/edit/spells/3" aria-current="page"`; !strings.Contains(body, want) {
 		t.Errorf("the level tabs do not mark level 3 as current\n%s", body)
 	}
@@ -651,7 +625,7 @@ func TestPreparedSpellsIsAViewAndNotAForm(t *testing.T) {
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS2", Level: 3, Name: ""},
 		}},
 	}
-	if err := preparedSpells(characterID, groups).Render(context.Background(), &buf); err != nil {
+	if err := preparedSpells(groups).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	body := buf.String()
@@ -672,15 +646,17 @@ func TestPreparedSpellsIsAViewAndNotAForm(t *testing.T) {
 		t.Errorf("an unnamed prepared row renders as nothing\n%s", body)
 	}
 }
-func TestPreparedSpellsEmptyStatePointsAtTheSpellsPage(t *testing.T) {
-	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+func TestPreparedSpellsEmptyStatePointsAtTheLevelsAboveIt(t *testing.T) {
 	var buf bytes.Buffer
-	if err := preparedSpells(characterID, nil).Render(context.Background(), &buf); err != nil {
+	if err := preparedSpells(nil).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	body := buf.String()
-	if want := `href="/characters/` + characterID + `/edit/spells/0"`; !strings.Contains(body, want) {
-		t.Errorf("the empty state does not point at %s\n%s", want, body)
+	if !strings.Contains(body, "levels above") {
+		t.Errorf("the empty state does not point at the level strip\n%s", body)
+	}
+	if strings.Contains(body, "href=") {
+		t.Errorf("the empty state links away from the strip it sits under\n%s", body)
 	}
 	if !strings.Contains(body, "Prepared") {
 		t.Errorf("the empty state does not name the control that fills it\n%s", body)
@@ -705,30 +681,36 @@ func TestSpellMetaLineSkipsWhatIsNotThere(t *testing.T) {
 		}
 	}
 }
-func TestCharacterPageRendersBothTickedViews(t *testing.T) {
+func TestThePreparedPageHoldsThePreparedSpellsAndTheSlots(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	var buf bytes.Buffer
 	data := EditCharacterPageData{
 		CharacterID: id,
-		Equipped:    []InventoryItem{{ID: "01BX5ZZKBKACTAV9WEVGEMMVS0", Name: "Chain Mail", Quantity: "1"}},
 		Prepared: []PreparedSpellGroup{{Level: 1, Name: "Level 1", Spells: []Spell{
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVS1", Level: 1, Name: "Cure Wounds", CastingTime: "Action"},
 		}}},
 	}
-	if err := EditCharacter(data).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	body := buf.String()
-	for _, want := range []string{"Equipment", "Chain Mail", "Prepared Spells", "Cure Wounds", "Level 1"} {
+	body := renderString(t, EditCharacterSection(data, SheetSectionSpells))
+	for _, want := range []string{"Prepared Spells", "Cure Wounds", "Level 1", "Spell Slots"} {
 		if !strings.Contains(body, want) {
-			t.Errorf("the Character page is missing %q", want)
+			t.Errorf("the prepared page is missing %q", want)
 		}
 	}
-	prepared := strings.Index(body, "Prepared Spells")
-	equipment := strings.Index(body, "Equipment")
-	slots := strings.Index(body, "Spell Slots")
-	if !(equipment < prepared && prepared < slots) {
-		t.Errorf("panel order is Equipment %d, Prepared %d, Slots %d", equipment, prepared, slots)
+	if prepared, slots := strings.Index(body, ">Prepared Spells<"), strings.Index(body, ">Spell Slots<"); prepared < 0 || prepared > slots {
+		t.Errorf("panel order is Prepared %d, Slots %d", prepared, slots)
+	}
+	strip := body[strings.Index(body, `aria-label="Spell levels"`):]
+	strip = strip[:strings.Index(strip, "</nav>")]
+	if want := `href="/characters/` + id + `/edit/spells" aria-current="page"`; !strings.Contains(strip, want) {
+		t.Errorf("the level strip does not mark Prepared as current\n%s", strip)
+	}
+	if strings.Contains(body, ">Add Spell<") {
+		t.Error("the prepared page offers Add Spell with no level to add it to")
+	}
+	character := renderString(t, EditCharacter(data))
+	for _, gone := range []string{">Prepared Spells<", ">Spell Slots<", ">Equipment<"} {
+		if strings.Contains(character, gone) {
+			t.Errorf("the Character tab still carries %s", gone)
+		}
 	}
 }
 func testSpellLevels() []SpellLevel {
@@ -749,11 +731,8 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 	levels[3].Count = 2
 	inUse := []int{0, 1, 2, 3}
 	unused := []int{4, 5, 6, 7, 8, 9}
-	var buf bytes.Buffer
-	if err := EditCharacter(EditCharacterPageData{CharacterID: id, SpellSlots: levels}).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	body := buf.String()
+	body := renderString(t, EditCharacterSection(EditCharacterPageData{CharacterID: id, SpellSlots: levels}, SheetSectionSpells))
+	panel := body[strings.Index(body, ">Spell Slots<"):]
 	for _, level := range []int{1, 2, 3} {
 		want := `hx-post="/characters/` + id + `/spells/slots/` + strconv.Itoa(level) + `"`
 		if !strings.Contains(body, want) {
@@ -766,19 +745,18 @@ func TestSpellSlotsPanelIsOneFormPerLevelInUse(t *testing.T) {
 	if !strings.Contains(body, "Unlimited") {
 		t.Errorf("cantrips do not say why they have no counters\n%s", body)
 	}
-	const panels = 10
-	if got := strings.Count(body, "<form"); got != panels+3+closingForms {
-		t.Errorf("forms = %d, want %d", got, panels+3+closingForms)
+	if got := strings.Count(body, "<form"); got != 3+closingForms {
+		t.Errorf("forms = %d, want %d", got, 3+closingForms)
 	}
 	for _, level := range inUse {
 		want := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
-		if !strings.Contains(body, want) {
+		if !strings.Contains(panel, want) {
 			t.Errorf("level %d is in use and not linked from the panel", level)
 		}
 	}
 	for _, level := range unused {
 		want := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
-		if strings.Contains(body, want) {
+		if strings.Contains(panel, want) {
 			t.Errorf("level %d has nothing at it and is on the panel", level)
 		}
 	}
@@ -841,7 +819,7 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := spellSlotsOverview(id, c.build()).Render(context.Background(), &buf); err != nil {
+			if err := spellSlotsOverview(id, SheetLive{}, c.build()).Render(context.Background(), &buf); err != nil {
 				t.Fatalf("render: %v", err)
 			}
 			body := buf.String()
@@ -855,7 +833,7 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 			}
 			for level := 0; level <= MaxSpellLevel; level++ {
 				href := `href="/characters/` + id + `/edit/spells/` + strconv.Itoa(level) + `"`
-				want := shown[level] || (empty && level == 0)
+				want := shown[level]
 				if got := strings.Contains(body, href); got != want {
 					t.Errorf("level %d linked = %v, want %v\n%s", level, got, want, body)
 				}
@@ -871,7 +849,7 @@ func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 		{ID: testSpellID, Level: 3, Name: "Fireball", CastingTime: "Action", Description: long},
 		{ID: "01BX5ZZKBKACTAV9WEVGEMMVS4", Level: 3, Name: "Counterspell", CastingTime: "Reaction"},
 	}}}
-	if err := preparedSpells(id, groups).Render(context.Background(), &buf); err != nil {
+	if err := preparedSpells(groups).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	body := buf.String()
@@ -1423,24 +1401,81 @@ func TestTwoAttackRowsShareNoElementID(t *testing.T) {
 		seen[match[1]] = true
 	}
 }
-func TestAnUnnamedAttackOpensItsOwnDetails(t *testing.T) {
-	for _, c := range []struct {
-		name string
-		row  Attack
-		open bool
-	}{
-		{"a row that was just added", Attack{ID: testAttackRowID}, true},
-		{"a row with a name", Attack{ID: testAttackRowID, Name: "Longsword"}, false},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			var buf bytes.Buffer
-			if err := AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", c.row).Render(context.Background(), &buf); err != nil {
-				t.Fatalf("render: %v", err)
+func TestAttackDetailsStartClosedInOneAccordion(t *testing.T) {
+	for _, name := range []string{"", "Longsword"} {
+		body := renderString(t, AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: testAttackRowID, Name: name}))
+		if got := strings.Count(body, "<details"); got != 1 {
+			t.Fatalf("name=%q: %d details, want 1\n%s", name, got, body)
+		}
+		opening := body[strings.Index(body, "<details"):]
+		opening = opening[:strings.Index(opening, ">")+1]
+		for _, want := range []string{`name="attack-details"`, `class="collapse collapse-arrow`} {
+			if !strings.Contains(opening, want) {
+				t.Errorf("name=%q: the details is missing %s: %s", name, want, opening)
 			}
-			if got := strings.Contains(buf.String(), "<details open"); got != c.open {
-				t.Errorf("details open = %v, want %v", got, c.open)
+		}
+		if strings.Contains(opening, " open") {
+			t.Errorf("name=%q: the details starts open: %s", name, opening)
+		}
+		for _, want := range []string{`<summary class="collapse-title`, `<div class="collapse-content`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("name=%q: the accordion is missing %s", name, want)
 			}
-		})
+		}
+	}
+}
+func TestDeleteSitsInlineAfterTheAttackInputs(t *testing.T) {
+	body := renderString(t, AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: testAttackRowID, Name: "Longsword"}))
+	order := []string{`name="name"`, `name="attack_bonus"`, `name="damage"`, `name="damage_type"`, "hx-delete=", "<details", `name="mastery"`, `name="notes"`}
+	at := -1
+	for _, marker := range order {
+		next := strings.Index(body, marker)
+		if next < 0 {
+			t.Fatalf("the row has no %s", marker)
+		}
+		if next < at {
+			t.Errorf("%s comes before the control ahead of it in %v", marker, order)
+		}
+		at = next
+	}
+	if !strings.Contains(body, `aria-label="Delete Longsword"`) {
+		t.Errorf("Delete does not say which attack it removes\n%s", body)
+	}
+	if !strings.Contains(renderString(t, AttackRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Attack{ID: testAttackRowID})), `aria-label="Delete attack"`) {
+		t.Error("an unnamed attack's Delete is labelled with nothing")
+	}
+}
+func TestAddAttackSitsInTheHeaderAndTheWindowAddsAboveTheRows(t *testing.T) {
+	data := EditCharacterPageData{CharacterID: sheetCharacterID}
+	page := renderString(t, EditCharacterSection(data, SheetSectionAttacks))
+	window := renderString(t, CharacterSheetWindow(SheetWindowData{Section: SheetSectionAttacks, Sheet: data}))
+	for name, body := range map[string]string{"page": page, "window": window} {
+		if got := strings.Count(body, "Add Attack</button>"); got != 1 {
+			t.Errorf("the %s has %d Add Attack buttons, want 1", name, got)
+		}
+		for _, want := range []string{
+			`hx-post="/characters/` + sheetCharacterID + `/attacks"`,
+			`hx-target="#attack-rows"`,
+			`hx-swap="append show:bottom"`,
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("the %s's Add Attack is missing %s", name, want)
+			}
+		}
+		if add, rows := strings.Index(body, ">Add Attack<"), strings.Index(body, `id="attack-rows"`); add < 0 || add > rows {
+			t.Errorf("the %s's Add Attack is not above the rows", name)
+		}
+		if !strings.Contains(body, "No attacks yet") {
+			t.Errorf("the %s says nothing when there are no attacks", name)
+		}
+	}
+	if add, tabs := strings.Index(page, ">Add Attack<"), strings.Index(page, `aria-label="Character sheet sections"`); add > tabs {
+		t.Error("Add Attack is not in the character bar above the tabs")
+	}
+	for _, section := range []string{SheetSectionMain, SheetSectionSkills, SheetSectionSpells} {
+		if strings.Contains(renderString(t, EditCharacterSection(data, section)), "Add Attack") {
+			t.Errorf("the %s tab offers Add Attack", section)
+		}
 	}
 }
 func TestTheAttackSelectsOfferOnlyWhatTheRulesDefine(t *testing.T) {
@@ -1480,12 +1515,9 @@ func testDerivedValues() Derived {
 	}
 	return d
 }
-func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
+func TestEveryDerivedValueHasATargetOnSomeTab(t *testing.T) {
 	derived := testDerivedValues()
-	var page bytes.Buffer
-	if err := EditCharacter(EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived}).Render(context.Background(), &page); err != nil {
-		t.Fatalf("render: %v", err)
-	}
+	page := everyEditorTab(t, EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived})
 	var block bytes.Buffer
 	if err := DerivedValues(derived).Render(context.Background(), &block); err != nil {
 		t.Fatalf("render: %v", err)
@@ -1495,30 +1527,27 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 		t.Errorf("the refresh carries %d values, want %d", len(ids), want)
 	}
 	for _, match := range ids {
-		if !strings.Contains(page.String(), `id="`+match[1]+`"`) {
-			t.Errorf("the refresh swaps #%s, which the page does not render", match[1])
+		if !strings.Contains(page, `id="`+match[1]+`"`) {
+			t.Errorf("the refresh swaps #%s, which no tab renders", match[1])
 		}
 	}
 	if got := strings.Count(block.String(), `hx-swap-oob="true"`); got != len(ids) {
 		t.Errorf("%d of %d refreshed values are out-of-band", got, len(ids))
 	}
-	if strings.Contains(page.String(), "hx-swap-oob") {
+	if strings.Contains(page, "hx-swap-oob") {
 		t.Error("the page renders a derived value already marked out-of-band")
 	}
 }
-func TestTheRefreshDrawsEveryDerivedValueTheWayThePageDid(t *testing.T) {
+func TestTheRefreshDrawsEveryDerivedValueTheWayItsTabDid(t *testing.T) {
 	derived := testDerivedValues()
-	var page bytes.Buffer
-	if err := EditCharacter(EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived}).Render(context.Background(), &page); err != nil {
-		t.Fatalf("render: %v", err)
-	}
+	page := everyEditorTab(t, EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: derived})
 	var block bytes.Buffer
 	if err := DerivedValues(derived).Render(context.Background(), &block); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	shapes := regexp.MustCompile(`id="([^"]+)" class="([^"]+)"`)
 	onThePage := map[string]string{}
-	for _, match := range shapes.FindAllStringSubmatch(page.String(), -1) {
+	for _, match := range shapes.FindAllStringSubmatch(page, -1) {
 		onThePage[match[1]] = match[2]
 	}
 	refreshed := shapes.FindAllStringSubmatch(block.String(), -1)
@@ -1529,7 +1558,7 @@ func TestTheRefreshDrawsEveryDerivedValueTheWayThePageDid(t *testing.T) {
 		id, class := match[1], match[2]
 		was, ok := onThePage[id]
 		if !ok {
-			t.Errorf("the refresh swaps #%s, which the page does not render", id)
+			t.Errorf("the refresh swaps #%s, which no tab renders", id)
 			continue
 		}
 		if was != class {
@@ -1570,17 +1599,21 @@ var panelBorder = regexp.MustCompile(`border(-[a-z])?-2 border-base-300`)
 
 func TestNothingWearsThePanelBorderAnyMore(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	sheet := EditCharacterPageData{
+		CharacterID: id,
+		Header:      testCharacterHeader(),
+		Derived:     testDerivedValues(),
+		Features:    []Feature{{Name: "Pact of the Blade"}},
+		Attacks:     []Attack{{ID: id, Name: "Pact Blade"}},
+		Prepared:    []PreparedSpellGroup{{Level: 1, Name: "1st Level", Spells: []Spell{{ID: id, Name: "Hex"}}}},
+		SpellSlots:  []SpellLevel{{Level: 1, Slots: "2", Used: "1", Count: 1}},
+	}
 	for name, page := range map[string]templ.Component{
-		"character": EditCharacter(EditCharacterPageData{
-			CharacterID: id,
-			Header:      testCharacterHeader(),
-			Derived:     testDerivedValues(),
-			Features:    []Feature{{Name: "Pact of the Blade"}},
-			Attacks:     []Attack{{ID: id, Name: "Pact Blade"}},
-			Equipped:    []InventoryItem{{ID: id, Name: "Studded Leather", Quantity: "1"}},
-			Prepared:    []PreparedSpellGroup{{Level: 1, Name: "1st Level", Spells: []Spell{{ID: id, Name: "Hex"}}}},
-			SpellSlots:  []SpellLevel{{Level: 1, Slots: "2", Used: "1", Count: 1}},
-		}),
+		"character": EditCharacter(sheet),
+		"abilities": EditCharacterSection(sheet, SheetSectionAbilities),
+		"skills":    EditCharacterSection(sheet, SheetSectionSkills),
+		"attacks":   EditCharacterSection(sheet, SheetSectionAttacks),
+		"prepared":  EditCharacterSection(sheet, SheetSectionSpells),
 		"inventory": EditCharacterInventory(InventoryPageData{
 			CharacterID: id, Header: testCharacterHeader(),
 			Items: []InventoryItem{{ID: id, Name: "Rope", Quantity: "1"}},
@@ -2380,13 +2413,16 @@ func TestTheSheetMeasuresItselfAgainstItsOwnBoxRatherThanTheWindow(t *testing.T)
 	if !strings.Contains(editor[1], container) {
 		t.Errorf("character-editor is %q, which names no %s", editor[1], container)
 	}
-	for name, part := range map[string]templ.Component{
-		"the panels": characterPanels(EditCharacterPageData{
+	parts := map[string]templ.Component{
+		"the chips": characterBarChips(testCharacterHeader(), false),
+	}
+	for _, section := range sheetSections() {
+		parts["the "+section+" panels"] = sheetSection(EditCharacterPageData{
 			CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 			Derived:     testDerivedValues(),
-		}),
-		"the chips": characterBarChips(testCharacterHeader(), false),
-	} {
+		}, section)
+	}
+	for name, part := range parts {
 		rendered := renderString(t, part)
 		if at := viewportVariant.FindStringIndex(rendered); at != nil {
 			t.Errorf("%s still measure the viewport: %s", name, excerpt(rendered, at[0]))
@@ -2399,6 +2435,23 @@ func TestTheSheetMeasuresItselfAgainstItsOwnBoxRatherThanTheWindow(t *testing.T)
 
 var viewportVariant = regexp.MustCompile(`(^|[^@])max-\[\d+px\]:`)
 
+func everyEditorTab(t *testing.T, data EditCharacterPageData) string {
+	t.Helper()
+	var out strings.Builder
+	for _, section := range sheetSections() {
+		out.WriteString(renderString(t, EditCharacterSection(data, section)))
+	}
+	return out.String()
+}
+func sheetSections() []string {
+	var out []string
+	for _, tab := range SheetTabs() {
+		if tab.Section != SheetSectionInventory {
+			out = append(out, tab.Section)
+		}
+	}
+	return out
+}
 func excerpt(s string, at int) string {
 	start := max(at-40, 0)
 	end := min(at+40, len(s))
@@ -2408,12 +2461,12 @@ func TestTheLivePanelsRefetchThemselvesOnlyInsideARoom(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
 	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues()}
-	page := renderString(t, characterPanels(data))
+	page := renderString(t, sheetSection(data, SheetSectionMain))
 	if strings.Contains(page, "room:character") {
 		t.Error("the standalone page listens for a socket event it will never hear")
 	}
 	data.Live = SheetLive{RoomID: roomID}
-	window := renderString(t, characterPanels(data))
+	window := renderString(t, sheetSection(data, SheetSectionMain))
 	for _, section := range LiveSheetSections() {
 		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, section), "&", "&amp;") + `"`
 		if !strings.Contains(window, want) {
@@ -2431,7 +2484,7 @@ func TestASheetSectionIsTheSamePanelThePageAlreadyRenders(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
 	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues(), Live: SheetLive{RoomID: roomID}}
-	page := renderString(t, characterPanels(data))
+	page := renderString(t, sheetSection(data, SheetSectionMain))
 	for _, section := range LiveSheetSections() {
 		fragment := strings.TrimSpace(renderString(t, CharacterSheetSection(data, section)))
 		if fragment == "" {
@@ -2454,23 +2507,65 @@ func TestTheSheetWindowSwapsSectionsInPlace(t *testing.T) {
 		Section: SheetSectionSpells,
 		Level:   3,
 	}))
-	for _, section := range []string{SheetSectionMain, SheetSectionInventory, SheetSectionSpells} {
-		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, section), "&", "&amp;") + `"`
+	for _, tab := range SheetTabs() {
+		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, tab.Section), "&", "&amp;") + `"`
 		if !strings.Contains(window, want) {
-			t.Errorf("the window offers no way back to %s: no %s", section, want)
+			t.Errorf("the window offers no way back to %s: no %s", tab.Section, want)
 		}
 	}
-	for level := 0; level <= MaxSpellLevel; level++ {
-		want := strings.ReplaceAll(SheetLevelPath(roomID, level), "&", "&amp;")
+	for _, level := range spellLevelChoices() {
+		want := `hx-get="` + strings.ReplaceAll(SheetLevelPath(roomID, level), "&", "&amp;") + `"`
 		if !strings.Contains(window, want) {
 			t.Errorf("spell level %d is not reachable inside the window", level)
 		}
 	}
-	if got := strings.Count(window, `hx-target="#`+SheetBodyID+`"`); got < 3+MaxSpellLevel+1 {
-		t.Errorf("%d controls swap the window body; every tab and every level must", got)
+	if got, want := strings.Count(window, `hx-target="#`+SheetBodyID+`"`), len(SheetTabs())+len(spellLevelChoices()); got < want {
+		t.Errorf("%d controls swap the window body, want at least %d: every tab and every level must", got, want)
 	}
 	if strings.Contains(window, `href="/characters/`) {
 		t.Error("a tab inside the window navigates the whole page away from the room")
+	}
+}
+func TestTheSheetWindowSaysWhereItIs(t *testing.T) {
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	for _, c := range []struct {
+		section string
+		level   int
+		want    string
+	}{
+		{SheetSectionMain, SpellsPrepared, SheetSectionPath(roomID, SheetSectionMain)},
+		{SheetSectionSkills, SpellsPrepared, SheetSectionPath(roomID, SheetSectionSkills)},
+		{SheetSectionSpells, SpellsPrepared, SheetSectionPath(roomID, SheetSectionSpells)},
+		{SheetSectionSpells, 3, SheetLevelPath(roomID, 3)},
+	} {
+		window := renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: c.section, Level: c.level}))
+		root := regexp.MustCompile(`^<div id="` + SheetBodyID + `"[^>]*>`).FindString(window)
+		want := `data-window-path="` + strings.ReplaceAll(c.want, "&", "&amp;") + `"`
+		if !strings.Contains(root, want) {
+			t.Errorf("%s level %d: the body root %q does not carry %s", c.section, c.level, root, want)
+		}
+	}
+	if got := strings.Count(renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: SheetSectionMain})), "data-window-path"); got != 1 {
+		t.Errorf("the window names %d places, want only its root", got)
+	}
+}
+func TestThePreparedViewInTheWindowStaysInTheWindow(t *testing.T) {
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	sheet := testSheetPage()
+	sheet.Live = SheetLive{RoomID: roomID}
+	sheet.SpellSlots = []SpellLevel{{Level: 0, Count: 2, Slots: "0", Used: "0"}, {Level: 1, Slots: "2", Used: "1", Count: 1}}
+	window := renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: SheetSectionSpells, Level: SpellsPrepared, Sheet: sheet}))
+	if strings.Contains(window, `href="/characters/`) {
+		t.Errorf("a level heading in the window navigates the room away\n%s", window)
+	}
+	for _, level := range []int{0, 1} {
+		want := `hx-get="` + strings.ReplaceAll(SheetLevelPath(roomID, level), "&", "&amp;") + `"`
+		if got := strings.Count(window, want); got != 2 {
+			t.Errorf("level %d is reached %d times, want 2: its tab and its heading", level, got)
+		}
+	}
+	if strings.Contains(window, ">Add Spell<") {
+		t.Error("the prepared view offers Add Spell with no level to add it to")
 	}
 }
 func TestTheSpellsWindowAddsAboveItsRows(t *testing.T) {
@@ -2633,7 +2728,10 @@ func TestNoPanelCanBeMadeUnsaveableByAnEmptyOptionalField(t *testing.T) {
 		Cha:         "10",
 		Derived:     testDerivedValues(),
 	}
-	rendered := renderString(t, characterPanels(sparse))
+	var rendered string
+	for _, section := range sheetSections() {
+		rendered += renderString(t, sheetSection(sparse, section))
+	}
 	inputs := regexp.MustCompile(`<input[^>]*>`)
 	named := regexp.MustCompile(`name="([^"]*)"`)
 	valued := regexp.MustCompile(`value="([^"]*)"`)
@@ -2675,61 +2773,57 @@ func testSheetPage() EditCharacterPageData {
 		Features:    []Feature{{Name: "Second Wind"}},
 	}
 }
-func TestTheSheetWindowOpensOnWhatIsUsedInPlay(t *testing.T) {
-	want := []string{
-		"Vitals",
-		"Saving Throws",
-		"Abilities",
-		"Skills",
-		"Attacks",
-		"Prepared Spells",
-		"Spell Slots",
-		"Equipment",
-		"Features & Traits",
-		"Identity",
-		"Core Stats",
-		"Proficiencies & Training",
-		"Personality",
-		"Appearance",
-	}
-	var buf bytes.Buffer
-	data := SheetWindowData{Section: SheetSectionMain, Sheet: testSheetPage()}
-	if err := CharacterSheetWindow(data).Render(context.Background(), &buf); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	got := panelOrder(buf.String())
-	if len(got) != len(want) {
-		t.Fatalf("panels = %v, want %v", got, want)
-	}
-	for i, name := range want {
-		if got[i] != name {
-			t.Errorf("panel %d = %q, want %q (order = %v)", i, got[i], name, got)
+func TestEveryTabHoldsItsOwnPanelsInPlayOrder(t *testing.T) {
+	for _, c := range []struct {
+		section string
+		want    []string
+	}{
+		{SheetSectionMain, []string{
+			"Vitals",
+			"Core Stats",
+			"Features & Traits",
+			"Proficiencies & Training",
+			"Identity",
+			"Personality",
+			"Appearance",
+		}},
+		{SheetSectionAbilities, []string{"Abilities", "Saving Throws"}},
+		{SheetSectionSkills, []string{"Skills"}},
+		{SheetSectionAttacks, []string{"Attacks"}},
+		{SheetSectionSpells, []string{"Prepared Spells", "Spell Slots"}},
+	} {
+		data := SheetWindowData{Section: c.section, Level: SpellsPrepared, Sheet: testSheetPage()}
+		window := panelOrder(renderString(t, CharacterSheetWindow(data)))
+		page := panelOrder(renderString(t, EditCharacterSection(testSheetPage(), c.section)))
+		for name, got := range map[string][]string{"window": window, "page": page} {
+			if !slices.Equal(got, c.want) {
+				t.Errorf("the %s %s holds %v, want %v", c.section, name, got, c.want)
+			}
 		}
 	}
 }
-func TestTheSheetWindowAndTheEditorHoldTheSamePanels(t *testing.T) {
+func TestTheSheetWindowAndTheEditorRenderTheSameSections(t *testing.T) {
 	data := testSheetPage()
-	var page, window bytes.Buffer
-	if err := EditCharacter(data).Render(context.Background(), &page); err != nil {
-		t.Fatalf("render page: %v", err)
-	}
-	if err := CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain, Sheet: data}).Render(context.Background(), &window); err != nil {
-		t.Fatalf("render window: %v", err)
-	}
-	onPage := panelOrder(page.String())
-	inWindow := panelOrder(window.String())
-	slices.Sort(onPage)
-	slices.Sort(inWindow)
-	if !slices.Equal(onPage, inWindow) {
-		t.Errorf("the two arrangements no longer hold the same panels:\n  page   = %v\n  window = %v", onPage, inWindow)
+	for _, section := range sheetSections() {
+		part := strings.TrimSpace(renderString(t, sheetSection(data, section)))
+		window := renderString(t, CharacterSheetWindow(SheetWindowData{Section: section, Level: SpellsPrepared, Sheet: data}))
+		page := renderString(t, EditCharacterSection(data, section))
+		if !strings.Contains(window, part) {
+			t.Errorf("the window's %s tab is not the section the page renders", section)
+		}
+		if !strings.Contains(page, part) {
+			t.Errorf("the page's %s tab is not the section the window renders", section)
+		}
 	}
 }
 
 var controlClass = regexp.MustCompile(`class="(input|select|textarea|checkbox)\b([^"]*)"`)
 
 func TestEveryControlOnTheSheetShrinksWithIt(t *testing.T) {
+	sheet := testSheetPage()
+	sheet.Derived = testDerivedValues()
+	sheet.SpellSlots = []SpellLevel{{Level: 1, Slots: "2", Used: "1", Count: 1}}
 	pages := map[string]templ.Component{
-		"character": CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain, Sheet: testSheetPage()}),
 		"inventory": CharacterSheetWindow(SheetWindowData{
 			Section:   SheetSectionInventory,
 			Inventory: InventoryPageData{CharacterID: sheetCharacterID, Items: []InventoryItem{{ID: testItemID}}},
@@ -2744,6 +2838,9 @@ func TestEveryControlOnTheSheetShrinksWithIt(t *testing.T) {
 				Spells:      []Spell{{ID: testSpellID}},
 			},
 		}),
+	}
+	for _, section := range sheetSections() {
+		pages[section] = CharacterSheetWindow(SheetWindowData{Section: section, Level: SpellsPrepared, Sheet: sheet})
 	}
 	for name, page := range pages {
 		var buf bytes.Buffer

@@ -36,9 +36,3 @@ func inventoryDetailsLabel(described bool) string {
 	}
 	return "Add item details"
 }
-func equippedItemName(item InventoryItem) string {
-	if item.Name == "" {
-		return "Unnamed item"
-	}
-	return item.Name
-}

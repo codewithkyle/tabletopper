@@ -62,10 +62,20 @@ func SpellLevelName(level int) string {
 	return "Level " + strconv.Itoa(level)
 }
 func SpellLevelTab(level int) string {
-	if level == 0 {
+	switch level {
+	case SpellsPrepared:
+		return "Prepared"
+	case 0:
 		return "Cantrips"
 	}
 	return strconv.Itoa(level) + spellLevelOrdinal(level)
+}
+func spellLevelChoices() []int {
+	levels := []int{SpellsPrepared}
+	for level := 0; level <= MaxSpellLevel; level++ {
+		levels = append(levels, level)
+	}
+	return levels
 }
 func spellLevelOrdinal(level int) string {
 	switch level {

@@ -27,14 +27,6 @@ const (
 	spellDescriptionLimit = 65535
 )
 
-func (a *App) CharacterSpellsRedirect(w http.ResponseWriter, r *http.Request) {
-	characterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		redirect(w, r, "/characters")
-		return
-	}
-	redirect(w, r, "/characters/"+characterID.String()+"/edit/spells/0")
-}
 func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
@@ -44,7 +36,7 @@ func (a *App) CharacterSpellLevelPage(w http.ResponseWriter, r *http.Request) {
 	}
 	level, valid := parseSpellLevel(r.PathValue("level"))
 	if !valid {
-		redirect(w, r, "/characters/"+characterID.String()+"/edit/spells/0")
+		redirect(w, r, pages.CharacterEditPath(characterID.String(), pages.SheetSectionSpells))
 		return
 	}
 	var counters pages.SpellLevel
@@ -97,15 +89,6 @@ func (a *App) spellSlotCounters(ctx context.Context, characterID, ownerID ulid.U
 	counters.Slots = strconv.FormatUint(uint64(row.Slots), 10)
 	counters.Used = strconv.FormatUint(uint64(row.Used), 10)
 	return counters, nil
-}
-func (a *App) loadSpellLevels(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, bool) {
-	levels, err := a.spellLevels(r.Context(), characterID, ownerID)
-	if err != nil {
-		slog.Error("Failed to load spell levels", "error", err)
-		redirectToError(w, r)
-		return nil, false
-	}
-	return levels, true
 }
 func (a *App) spellLevels(ctx context.Context, characterID, ownerID ulid.ULID) ([]pages.SpellLevel, error) {
 	slots, err := a.Queries.ListSpellSlots(ctx, queries.ListSpellSlotsParams{

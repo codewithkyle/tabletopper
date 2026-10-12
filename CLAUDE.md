@@ -202,6 +202,12 @@ RoomMenuItem{Label: "Player List", Window: RoomWindow{
 room. None of it reaches the server, and every accessor is wrapped — a private
 window throws on the first read.
 
+**A window reopens where it was left.** A fragment that moves its window
+somewhere else, as the character sheet's tabs do, puts `data-window-path` on its
+root element: the `/fragment/` URL that would render it again. The window
+remembers that path per room, because it carries the room, and opens on it next
+time. A 404 from a remembered path falls back to the menu's URL.
+
 **`server/js/room/window.ts` writes no class name**, for the same reason
 `public/js` cannot: `server/js` is not a Tailwind `@source` either. It sets text,
 `[hidden]` and inline geometry, and every class is in the template.
