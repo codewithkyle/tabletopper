@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -273,5 +275,33 @@ func TestAMalformedPlayerIsRefused(t *testing.T) {
 		session.UserSession{UserID: testOwnerID})
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+}
+func TestARefusedRoomCommandAnswersWithWhatWentWrong(t *testing.T) {
+	for name, c := range map[string]struct {
+		err     error
+		status  int
+		heading string
+	}{
+		"a room that has been closed":    {hub.ErrNoRoom, http.StatusNotFound, "Room Closed"},
+		"a room that unloaded under it":  {hub.ErrGone, http.StatusServiceUnavailable, "Room Busy"},
+		"a request that ran out of time": {fmt.Errorf("dispatch: %w", context.DeadlineExceeded), http.StatusServiceUnavailable, "Room Busy"},
+		"a request the client dropped":   {context.Canceled, http.StatusServiceUnavailable, "Room Busy"},
+		"a refusal from the rules":       {&room.Error{Code: room.CodeForbidden, Heading: "Not Yours", Message: "That pawn belongs to someone else."}, http.StatusForbidden, "Not Yours"},
+		"anything else":                  {errors.New("the disk is on fire"), http.StatusInternalServerError, "Server Error"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			(&App{}).rejectCommand(rec, "clear the tabletop", c.err)
+			if rec.Code != c.status {
+				t.Errorf("status = %d, want %d", rec.Code, c.status)
+			}
+			if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, `"heading":"`+c.heading+`"`) {
+				t.Errorf("HX-Trigger = %q, want an alert headed %q", alert, c.heading)
+			}
+			if body := rec.Body.String(); body != "" {
+				t.Errorf("body = %q, want nothing", body)
+			}
+		})
 	}
 }

@@ -16,9 +16,10 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-var errGone = errors.New("hub: the room unloaded")
+var ErrGone = errors.New("hub: the room unloaded")
 
 const (
+	reloadRetries = 2
 	inboxSize     = 64
 	storeTimeout  = 2 * time.Second
 	writeDeadline = 5 * time.Second
@@ -115,21 +116,21 @@ func (h *Hub) Dispatch(ctx context.Context, roomID ulid.ULID, who room.Actor, cm
 	if err := h.resolve(ctx, roomID, who, cmd); err != nil {
 		return err
 	}
-	for range 2 {
+	for range reloadRetries {
 		a, err := h.room(ctx, roomID)
 		if err != nil {
 			return err
 		}
 		reply := make(chan error, 1)
 		if err := a.post(ctx, dispatch{who: who, cmd: cmd, reply: reply}); err != nil {
-			if errors.Is(err, errGone) {
+			if errors.Is(err, ErrGone) {
 				continue
 			}
 			return err
 		}
 		select {
 		case err := <-reply:
-			if errors.Is(err, errGone) {
+			if errors.Is(err, ErrGone) {
 				continue
 			}
 			return err
@@ -137,7 +138,7 @@ func (h *Hub) Dispatch(ctx context.Context, roomID ulid.ULID, who room.Actor, cm
 			return ctx.Err()
 		}
 	}
-	return errGone
+	return ErrGone
 }
 func (h *Hub) Notify(roomID ulid.ULID, cmd room.Command) {
 	h.mu.Lock()
@@ -157,7 +158,7 @@ func (h *Hub) SyncCharacter(ctx context.Context, roomID, owner, character ulid.U
 	}
 	info, err := h.library(owner).Character(ctx, character)
 	if err != nil {
-		if gone(err) {
+		if room.IsGone(err) {
 			h.Notify(roomID, &room.CharacterGone{ID: character})
 			return
 		}
@@ -165,10 +166,6 @@ func (h *Hub) SyncCharacter(ctx context.Context, roomID, owner, character ulid.U
 		return
 	}
 	h.Notify(roomID, &room.CharacterSync{Info: info})
-}
-func gone(err error) bool {
-	e, ok := err.(*room.Error)
-	return ok && e.Code == room.CodeNotFound
 }
 func (h *Hub) ForgetCharacter(ctx context.Context, character ulid.ULID) {
 	h.everywhere(ctx, func() room.Command { return &room.CharacterGone{ID: character} })
@@ -230,16 +227,23 @@ func view[T any](ctx context.Context, h *Hub, roomID ulid.ULID, load bool, fn fu
 	} else if a = h.find(roomID); a == nil {
 		return nil, false
 	}
+	value, err := inquire(ctx, a, fn)
+	return value, err == nil && value != nil
+}
+func inquire[T any](ctx context.Context, a *actor, fn func(*actor) *T) (*T, error) {
 	reply := make(chan any, 1)
 	if err := a.post(ctx, ask{fn: func(a *actor) any { return fn(a) }, reply: reply}); err != nil {
-		return nil, false
+		return nil, err
 	}
 	select {
 	case answer := <-reply:
+		if answer == nil {
+			return nil, ErrGone
+		}
 		value, _ := answer.(*T)
-		return value, value != nil
+		return value, nil
 	case <-ctx.Done():
-		return nil, false
+		return nil, ctx.Err()
 	}
 }
 func (h *Hub) Players(ctx context.Context, roomID ulid.ULID) ([]room.Player, bool) {
@@ -369,12 +373,16 @@ func (h *Hub) resolve(ctx context.Context, roomID ulid.ULID, who room.Actor, cmd
 	if !ok || !who.GM() {
 		return nil
 	}
-	s, ok := view(ctx, h, roomID, true, func(a *actor) *room.State {
+	a, err := h.room(ctx, roomID)
+	if err != nil {
+		return err
+	}
+	s, err := inquire(ctx, a, func(a *actor) *room.State {
 		clone := a.state.Clone()
 		return &clone
 	})
-	if !ok {
-		return errGone
+	if err != nil {
+		return err
 	}
 	return resolver.Resolve(ctx, h.library(who.ID), s)
 }
@@ -502,14 +510,14 @@ func (h *Hub) live(roomID ulid.ULID) bool {
 func (a *actor) post(ctx context.Context, m any) error {
 	select {
 	case <-a.done:
-		return errGone
+		return ErrGone
 	default:
 	}
 	select {
 	case a.inbox <- m:
 		return nil
 	case <-a.done:
-		return errGone
+		return ErrGone
 	case <-ctx.Done():
 		return ctx.Err()
 	}

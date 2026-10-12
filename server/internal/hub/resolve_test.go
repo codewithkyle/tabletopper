@@ -2,6 +2,7 @@ package hub
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -83,5 +84,22 @@ func TestACommandThatDoesNotResolveIsDispatchedWithoutOne(t *testing.T) {
 	if err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM},
 		&room.TableSetActiveLayer{Layer: layer}); err != nil {
 		t.Fatalf("a command with nothing to resolve was refused: %v", err)
+	}
+}
+func TestACommandForAClosedRoomSaysTheRoomIsClosed(t *testing.T) {
+	for name, cmd := range map[string]room.Command{
+		"one that resolves first": &countingResolver{},
+		"one that does not":       &room.TableSetActiveLayer{Layer: testID(9)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tb := newTabletop(t, Options{Store: &memStore{loadErr: ErrNoRoom}})
+			err := tb.Dispatch(tb.ctx(), roomID, room.Actor{ID: gmID, Role: room.RoleGM}, cmd)
+			if !errors.Is(err, ErrNoRoom) {
+				t.Fatalf("Dispatch = %v, want ErrNoRoom so the GM is told the room is closed", err)
+			}
+			if resolver, ok := cmd.(*countingResolver); ok && resolver.reads != 0 {
+				t.Errorf("resolve ran %d times against a room that is not there", resolver.reads)
+			}
+		})
 	}
 }

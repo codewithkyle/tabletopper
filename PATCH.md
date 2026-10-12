@@ -68,8 +68,62 @@ These change what gets built. The phases below assume the recommended answer.
 
 ## Phase 1. Cache policy
 
+**Status: done 2026-10-12.** `make check` green and stop point passed. The plan
+below is kept as written; what was built differs in the ways listed under
+"Changes from this plan", and those take precedence.
+
 User-visible today. All three items are header policy; none change markup
 beyond the asset URLs.
+
+### Changes from this plan
+
+- **Assets are versioned by path, not by query.** `layouts.Asset(path)` returns
+  `/v/<version>` plus the path, and the routes are
+  `GET /v/{version}/css/`, `/js/`, `/static/` and `/images/`. The `?v=` design
+  would have run `toast.js` twice: Base loads it directly, while `modal.js` and
+  `public/js/room.js` import `./toast.js`, which resolves to the bare
+  `/js/toast.js`. Browsers key modules by full URL, so that is two instances,
+  two `htmx:after:request` listeners and every toast shown twice. With the
+  version in the path a relative import inherits it, so the whole module graph
+  shares one URL space. The bare imports (`events.js`, `modal.js`, `toast.js`)
+  are therefore immutable too, rather than `no-cache` as planned.
+  `TestARelativeImportResolvesToTheURLTheLayoutLoads` in
+  `templ/layouts/layouts_test.go` fails if this ever goes back to `?v=`.
+- **A stale version is served, not cached.** `/v/<version>/...` answers
+  `public, max-age=31536000, immutable` only when the version is the running
+  build's; any other version gets the current file with `no-cache`, so a page
+  left open across a deploy never pins new content under its old URL. The plan's
+  `Has("v")` check would have. Bare `/css/`, `/js/`, `/static/` and `/images/`
+  answer `no-cache`.
+- **`RoomPageData.Version` and `hubVersion()` stay.** `room.templ` reads
+  `Version` into `data-version` for the socket's version check. Only
+  `RoomPageData.Bundle()` was removed; `room.templ` passes `/static/room.js`
+  and `Base` versions it.
+- **`data-journal-editor-src` is versioned as well** (`journal-entry.templ`), so
+  the editor the room window loads with `import()` is cached like the rest.
+- **There was no `readVersion` test to move.** `internal/buildinfo` holds
+  `Version` and `readVersion` and nothing else.
+- **`streamObject` takes the getter and the key separately**
+  (`get func(context.Context, string) (io.ReadCloser, int64, error), key, etag, cache string`)
+  so the log lines keep the key. `ETag` is set only on 200 and 304, like
+  `Cache-Control`.
+- **An abandoned fetch answers 404, not nothing.** Returning without writing
+  makes `net/http` send an empty 200, so the cancelled branch writes the same
+  uncacheable 404 as a storage failure.
+- **Policy constants.** `cacheImmutable` and `cacheRevalidate` in
+  `controllers/assets.go` replace the five literals.
+- **Tests as built:** `controllers/stream_test.go` (five cases plus headers),
+  `templ/layouts/layouts_test.go` (every local `src`/`href` in Base and Share
+  starts `/v/<version>/`, plus the relative-import test), and in
+  `routes_test.go` the cache policy per path, a versioned and a bare path
+  serving the same bytes, and nothing outside the four directories served under
+  `/v/`. `room-page_test.go`, `journal_test.go` and `pages_test.go` now expect
+  `layouts.Asset(...)` URLs.
+- **Stop point as run:** steps 1 and 2 expect `/v/<version>/` URLs with the
+  immutable policy for every stylesheet and module including `events.js`, and
+  `toast.js` fetched once; the `no-cache` check moved to
+  `/images/default-avatar.webp` and to `/v/stale/css/app.css`. Step 4 also
+  expects no `ETag`.
 
 ### 1.1 Cache headers only on success (B1)
 

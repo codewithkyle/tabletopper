@@ -2,6 +2,7 @@ package pages
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -388,6 +389,44 @@ func TestAClosedRoomOffersReopenAndNothingElseToDoToIt(t *testing.T) {
 	want := []string{"Reopen room", "Player List", "Back to rooms"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("the closed room's menu is %v, want %v", got, want)
+	}
+}
+func TestAClosedRoomBarCarriesOnlyWhatAClosedRoomCanDo(t *testing.T) {
+	closed := testRoomPage(room.RoleGM)
+	closed.Closed = true
+	if got := strings.Join(menuLabels(closed), ","); got != "Room,Help" {
+		t.Errorf("the closed room's bar is %s, want Room,Help", got)
+	}
+	closed.Debug = true
+	if got := strings.Join(menuLabels(closed), ","); got != "Room,Help,Debug" {
+		t.Errorf("the closed room's bar in development is %s, want Room,Help,Debug", got)
+	}
+	open := menuLabels(testRoomPage(room.RoleGM))
+	for _, want := range []string{"Tabletop", "Fog", "Initiative"} {
+		if !slices.Contains(open, want) {
+			t.Errorf("the open room's bar %v has no %s menu", open, want)
+		}
+	}
+}
+func TestAClosedRoomRendersNoControlsForTheTable(t *testing.T) {
+	closed := testRoomPage(room.RoleGM)
+	closed.Closed = true
+	page := renderToString(t, roomContent(closed))
+	for _, gone := range []string{"data-room-tools", "data-pawn-menu", "data-table-menu-host", "data-pawn-remove"} {
+		if strings.Contains(page, gone) {
+			t.Errorf("a closed room still renders %s", gone)
+		}
+	}
+	for _, kept := range []string{"data-pawn-overlay", "data-window-template"} {
+		if !strings.Contains(page, kept) {
+			t.Errorf("a closed room lost %s, which the Player List window needs", kept)
+		}
+	}
+	open := renderToString(t, roomContent(testRoomPage(room.RoleGM)))
+	for _, want := range []string{"data-room-tools", "data-pawn-menu", "data-table-menu-host", "data-pawn-remove"} {
+		if !strings.Contains(open, want) {
+			t.Errorf("an open room is missing %s", want)
+		}
 	}
 }
 func TestTheLockItemNamesTheRouteItIsNotIn(t *testing.T) {

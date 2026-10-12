@@ -59,7 +59,7 @@ func CreatureSize(value string) Size {
 	}
 	return size
 }
-func gone(err error) bool {
+func IsGone(err error) bool {
 	e, ok := err.(*Error)
 	return ok && e.Code == CodeNotFound
 }

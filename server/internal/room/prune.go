@@ -189,7 +189,7 @@ func (p *pruner) music(ctx context.Context, s *State) error {
 }
 func Prune(ctx context.Context, lib Library, s *State) ([]string, error) {
 	pruned := s.Clone()
-	p := newPruner(lib, gone)
+	p := newPruner(lib, IsGone)
 	for _, step := range []func(context.Context, *State) error{p.maps, p.palette, p.pawns, p.seats, p.music} {
 		if err := step(ctx, &pruned); err != nil {
 			return nil, err

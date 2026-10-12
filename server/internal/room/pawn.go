@@ -216,7 +216,7 @@ func (c *PawnSpawnCharacters) Resolve(ctx context.Context, lib Library, s *State
 	for i, seat := range seats {
 		info, err := lib.Character(ctx, *seat.CharacterID)
 		if err != nil {
-			if gone(err) {
+			if IsGone(err) {
 				continue
 			}
 			return err

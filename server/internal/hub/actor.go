@@ -708,7 +708,7 @@ func (a *actor) drain() {
 			case join:
 				m.c.stop(closeGoingAway, reasonRestarting)
 			case dispatch:
-				m.reply <- errGone
+				m.reply <- ErrGone
 			case ask:
 				m.reply <- nil
 			case shutdown:

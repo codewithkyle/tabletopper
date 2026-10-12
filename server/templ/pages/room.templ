@@ -88,20 +88,20 @@ templ roomContent(data RoomPageData) {
 					if data.IsGM() {
 						@roomInitiativeMenu(data)
 					}
+					@roomPawnMenu(data)
+					<div
+						data-table-menu-host
+						class="pointer-events-none absolute inset-0 z-30"
+						hx-get={ data.TableMenuPath() }
+						hx-trigger={ data.TableMenuTrigger() }
+						hx-sync="this:queue last"
+						hx-swap="innerHTML"
+					></div>
+					if data.IsGM() {
+						@roomRemoveKey(data)
+					}
+					@roomToolbar(data)
 				}
-				@roomPawnMenu(data)
-				<div
-					data-table-menu-host
-					class="pointer-events-none absolute inset-0 z-30"
-					hx-get={ data.TableMenuPath() }
-					hx-trigger={ data.TableMenuTrigger() }
-					hx-sync="this:queue last"
-					hx-swap="innerHTML"
-				></div>
-				if data.IsGM() {
-					@roomRemoveKey(data)
-				}
-				@roomToolbar(data)
 				@roomWindowTemplate()
 				if !data.Closed {
 					<audio data-music-player preload="metadata" hidden></audio>

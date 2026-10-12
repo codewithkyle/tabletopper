@@ -146,7 +146,15 @@ func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) rejectCommand(w http.ResponseWriter, action string, err error) {
 	var refusal *room.Error
-	if !errors.As(err, &refusal) {
+	switch {
+	case errors.Is(err, hub.ErrNoRoom):
+		htmx.Error(w, "Room Closed", "This room has been closed. Reload the page to continue.", http.StatusNotFound)
+		return
+	case errors.Is(err, hub.ErrGone), errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		slog.Warn("A room command did not reach the room", "action", action, "error", err)
+		htmx.Error(w, "Room Busy", "The room was busy and did not take that. Try again in a moment.", http.StatusServiceUnavailable)
+		return
+	case !errors.As(err, &refusal):
 		slog.Error("Failed to dispatch a room command", "action", action, "error", err)
 		htmx.ServerError(w)
 		return

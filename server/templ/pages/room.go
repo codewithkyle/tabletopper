@@ -176,17 +176,17 @@ type RoomMenuItem struct {
 }
 
 func (d RoomPageData) Menus() []RoomMenu {
-	menus := []RoomMenu{d.roomMenu(), d.tabletopMenu()}
-	if d.IsGM() {
-		menus = append(menus, d.fogMenu(), d.initiativeMenu())
-	} else {
-		menus = append(menus, d.characterMenu())
+	menus := []RoomMenu{d.roomMenu()}
+	if !d.Closed {
+		menus = append(menus, d.tabletopMenu())
+		if d.IsGM() {
+			menus = append(menus, d.fogMenu(), d.initiativeMenu())
+		} else {
+			menus = append(menus, d.characterMenu())
+		}
+		menus = append(menus, d.toolsMenu(), d.viewMenu())
 	}
-	menus = append(menus,
-		d.toolsMenu(),
-		d.viewMenu(),
-		helpMenu(),
-	)
+	menus = append(menus, helpMenu())
 	if d.Debug {
 		menus = append(menus, d.debugMenu())
 	}

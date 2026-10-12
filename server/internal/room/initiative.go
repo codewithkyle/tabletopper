@@ -282,7 +282,7 @@ func (s *State) initiativeBonus(ctx context.Context, lib Library, e InitiativeEn
 	return 0, nil
 }
 func skipIfGone(err error) error {
-	if gone(err) {
+	if IsGone(err) {
 		return nil
 	}
 	return err
