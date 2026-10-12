@@ -16,7 +16,11 @@ SELECT * FROM inventory
 WHERE id = ? AND character_id = ? AND owner_id = ?;
 -- name: UpdateInventoryItem :execresult
 UPDATE inventory
-SET name = ?, quantity = ?, `value` = ?, weight = ?, equipped = ?, description = ?
+SET name = ?, quantity = ?, `value` = ?, weight = ?, equipped = ?
+WHERE id = ? AND character_id = ? AND owner_id = ?;
+-- name: UpdateInventoryDescription :execresult
+UPDATE inventory
+SET description = ?
 WHERE id = ? AND character_id = ? AND owner_id = ?;
 -- name: DeleteInventoryItem :execresult
 DELETE FROM inventory

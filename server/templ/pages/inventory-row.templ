@@ -1,11 +1,31 @@
 package pages
 
+const inventoryRowLayout = "list-row items-center gap-x-1 gap-y-0 px-1 py-1"
+const inventoryInput = "input input-ghost input-sm px-2 text-sm"
+const inventoryNameCell = "list-col-grow w-full min-w-0"
+const inventoryEquippedCell = "flex w-8 justify-center"
+const inventoryQuantityCell = "w-16"
+const inventoryValueCell = "w-20"
+const inventoryWeightCell = "w-18"
+const inventoryActionsCell = "flex w-16 justify-end"
+
+templ inventoryHeader() {
+	<div class={ inventoryRowLayout + " text-xs font-semibold tracking-wider whitespace-nowrap uppercase text-base-content/75" }>
+		<span class={ inventoryNameCell + " px-2" }>Item</span>
+		<span class={ inventoryEquippedCell }><abbr title="Equipped">Eq</abbr></span>
+		<span class={ inventoryQuantityCell + " px-2 text-right" }>Qty</span>
+		<span class={ inventoryValueCell + " px-2" }>Value</span>
+		<span class={ inventoryWeightCell + " px-2 text-right" }>Weight</span>
+		<span class={ inventoryActionsCell }></span>
+	</div>
+}
+
 templ InventoryRow(characterID string, item InventoryItem) {
-	{{ action := "/characters/" + characterID + "/inventory/" + item.ID }}
+	{{ action := inventoryItemPath(characterID, item.ID) }}
 	{{ panel := InventoryRowPanel(item.ID) }}
 	<form
 		data-inventory-row="true"
-		class={ surfaceInset + " @container grid gap-3 p-3" }
+		class={ inventoryRowLayout }
 		hx-post={ action }
 		hx-trigger="input delay:1s"
 		hx-target={ "#errors-" + panel }
@@ -13,89 +33,91 @@ templ InventoryRow(characterID string, item InventoryItem) {
 		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
 		{ autosaves... }
 	>
-		@PanelFormErrors(panel, []string{})
-		<div class="grid grid-cols-1 gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_5rem_7rem_6rem]">
-			<label class="fieldset">
-				<span class={ "fieldset-legend " + denseLegend }>Item</span>
-				<input
-					name="name"
-					type="text"
-					class={ "input w-full font-medium " + denseInput }
-					value={ item.Name }
-					placeholder="Longsword"
-				/>
-			</label>
-			<label class="fieldset">
-				<span class={ "fieldset-legend " + denseLegend }>Qty</span>
-				<input
-					name="quantity"
-					type="number"
-					inputmode="numeric"
-					step="1"
-					min="0"
-					class={ "input validator peer w-full text-right " + denseInput }
-					value={ item.Quantity }
-				/>
-				<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a whole number, 0 or more.</span>
-			</label>
-			<label class="fieldset">
-				<span class={ "fieldset-legend " + denseLegend }>Value</span>
-				<input
-					name="value"
-					type="text"
-					class={ "input w-full " + denseInput }
-					value={ item.Value }
-					placeholder="15 gp"
-				/>
-			</label>
-			<label class="fieldset">
-				<span class={ "fieldset-legend " + denseLegend }>Weight</span>
-				<input
-					name="weight"
-					type="number"
-					inputmode="decimal"
-					step="any"
-					min="0"
-					class={ "input validator peer w-full text-right " + denseInput }
-					value={ item.Weight }
-				/>
-				<span class="validator-hint hidden text-[10px] peer-user-invalid:block">Enter a weight of 0 or more.</span>
-			</label>
-		</div>
-		<details open?={ item.Name == "" }>
-			<summary class="cursor-pointer text-sm font-semibold text-base-content/75 transition-colors duration-150 hover:text-base-content">Details</summary>
-			<div class="mt-3 grid gap-3">
-				<label class="fieldset">
-					<span class={ "fieldset-legend " + denseLegend }>Description</span>
-					<textarea
-						name="description"
-						class={ "textarea w-full " + denseTextarea }
-						rows="3"
-						placeholder="What it does, and anything worth reading mid-session."
-					>{ item.Description }</textarea>
-				</label>
-				<label class="flex w-fit cursor-pointer items-center gap-2">
-					<input
-						name="equipped"
-						type="checkbox"
-						value="1"
-						class={ "checkbox " + denseCheckbox }
-						checked?={ item.Equipped }
-					/>
-					<span class="font-medium">Equipped</span>
-				</label>
-			</div>
-		</details>
-		<div class="flex justify-end">
+		<input
+			name="name"
+			type="text"
+			class={ inventoryNameCell + " " + inventoryInput + " font-medium text-ellipsis" }
+			value={ item.Name }
+			placeholder="Item name"
+			aria-label="Item name"
+			hx-on:dblclick="this.form.querySelector('[data-inventory-details]').click()"
+		/>
+		<label class={ inventoryEquippedCell + " cursor-pointer" }>
+			<input
+				name="equipped"
+				type="checkbox"
+				value="1"
+				class="checkbox checkbox-sm"
+				aria-label="Equipped"
+				checked?={ item.Equipped }
+			/>
+		</label>
+		<input
+			name="quantity"
+			type="number"
+			inputmode="numeric"
+			step="1"
+			min="0"
+			class={ inventoryQuantityCell + " " + inventoryInput + " validator peer/quantity text-right" }
+			value={ item.Quantity }
+			aria-label="Quantity"
+		/>
+		<input
+			name="value"
+			type="text"
+			class={ inventoryValueCell + " " + inventoryInput }
+			value={ item.Value }
+			placeholder="15 gp"
+			aria-label="Value"
+		/>
+		<input
+			name="weight"
+			type="number"
+			inputmode="decimal"
+			step="any"
+			min="0"
+			class={ inventoryWeightCell + " " + inventoryInput + " validator peer/weight text-right" }
+			value={ item.Weight }
+			aria-label="Weight"
+		/>
+		<div class={ inventoryActionsCell }>
+			@InventoryDetailsButton(characterID, item.ID, item.Description != "", false)
 			<button
 				type="button"
-				class="btn btn-soft btn-error btn-sm"
+				class="btn btn-ghost btn-sm btn-square text-base-content/70 hover:text-error"
+				aria-label="Delete item"
 				hx-delete={ action }
 				hx-target="closest form"
 				hx-swap="delete"
 			>
-				Delete
+				@trashLineIcon()
 			</button>
 		</div>
+		<div class="col-span-6 col-start-1 row-start-2">
+			@PanelFormErrors(panel, []string{})
+		</div>
+		<p class="validator-hint col-span-6 col-start-1 row-start-3 hidden px-2 peer-user-invalid/quantity:block">Quantity must be a whole number, 0 or more.</p>
+		<p class="validator-hint col-span-6 col-start-1 row-start-4 hidden px-2 peer-user-invalid/weight:block">Weight must be 0 or more.</p>
 	</form>
+}
+
+templ InventoryDetailsButton(characterID string, itemID string, described bool, oob bool) {
+	<button
+		id={ inventoryDetailsButtonID(itemID) }
+		type="button"
+		class={ "btn btn-ghost btn-sm btn-square", templ.KV("text-base-content/50", !described) }
+		aria-label={ inventoryDetailsLabel(described) }
+		data-inventory-details="true"
+		data-modal-open={ inventoryDetailsURL(characterID, itemID) }
+		data-modal-size="lg"
+		if oob {
+			hx-swap-oob="true"
+		}
+	>
+		if described {
+			@fileTextIcon()
+		} else {
+			@fileIcon()
+		}
+	</button>
 }

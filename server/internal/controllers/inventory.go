@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"database/sql"
+	"errors"
 	"log/slog"
 	"math"
 	"net/http"
@@ -106,12 +108,73 @@ func (a *App) SaveInventoryItem(w http.ResponseWriter, r *http.Request) {
 		Value:       input.Value,
 		Weight:      input.Weight,
 		Equipped:    input.Equipped,
-		Description: input.Description,
 		ID:          itemID,
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
 	})
 	finishRow(w, r, panel, inventoryToastLabel(input.Name), "item", result, err)
+}
+func (a *App) SaveInventoryDescription(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	itemID, ok := inventoryItemID(w, r)
+	if !ok {
+		return
+	}
+	panel := pages.InventoryDetailsPanel(itemID.String())
+	if !parsePanelForm(w, r, panel) {
+		return
+	}
+	description := strings.TrimSpace(r.PostFormValue("description"))
+	if len(description) > inventoryDescriptionLimit {
+		renderPanelBlock(w, r, panel, []string{"Details are too long to save."})
+		return
+	}
+	result, err := a.Queries.UpdateInventoryDescription(ctx, queries.UpdateInventoryDescriptionParams{
+		Description: description,
+		ID:          itemID,
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if !finishRow(w, r, panel, "Details", "item", result, err) {
+		return
+	}
+	render(w, r, pages.InventoryDetailsButton(characterID.String(), itemID.String(), description != "", true))
+}
+func (a *App) InventoryDetailsFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	params := r.URL.Query()
+	characterID, err := ulid.Parse(params.Get("character"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	itemID, err := ulid.Parse(params.Get("item"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	item, err := a.Queries.GetInventoryItem(ctx, queries.GetInventoryItemParams{
+		ID:          itemID,
+		CharacterID: characterID,
+		OwnerID:     sess.UserID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		slog.Error("Failed to load inventory item details", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.InventoryDetails(characterID.String(), inventoryPageItem(item)))
 }
 func (a *App) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -148,12 +211,11 @@ func inventoryToastLabel(name string) string {
 }
 
 type inventoryInput struct {
-	Name        string
-	Quantity    uint32
-	Value       string
-	Weight      float64
-	Equipped    bool
-	Description string
+	Name     string
+	Quantity uint32
+	Value    string
+	Weight   float64
+	Equipped bool
 }
 
 func buildInventoryInput(r *http.Request) (inventoryInput, []string) {
@@ -166,17 +228,12 @@ func buildInventoryInput(r *http.Request) (inventoryInput, []string) {
 	if len([]rune(value)) > inventoryValueLimit {
 		problems = append(problems, "Value must be 64 characters or fewer.")
 	}
-	description := strings.TrimSpace(r.PostFormValue("description"))
-	if len(description) > inventoryDescriptionLimit {
-		problems = append(problems, "Description is too long to save.")
-	}
 	return inventoryInput{
-		Name:        name,
-		Quantity:    parseInventoryQuantity(r.PostFormValue("quantity")),
-		Value:       value,
-		Weight:      parseInventoryWeight(r.PostFormValue("weight")),
-		Equipped:    r.PostFormValue("equipped") != "",
-		Description: description,
+		Name:     name,
+		Quantity: parseInventoryQuantity(r.PostFormValue("quantity")),
+		Value:    value,
+		Weight:   parseInventoryWeight(r.PostFormValue("weight")),
+		Equipped: r.PostFormValue("equipped") != "",
 	}, problems
 }
 func parseInventoryQuantity(raw string) uint32 {

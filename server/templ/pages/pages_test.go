@@ -274,10 +274,13 @@ func TestInventoryRowAlwaysRendersEveryControl(t *testing.T) {
 			t.Fatalf("render: %v", err)
 		}
 		body := buf.String()
-		for _, name := range []string{"name", "quantity", "value", "weight", "equipped", "description"} {
+		for _, name := range []string{"name", "quantity", "value", "weight", "equipped"} {
 			if !strings.Contains(body, `name="`+name+`"`) {
 				t.Errorf("equipped=%v: no control named %q\n%s", item.Equipped, name, body)
 			}
+		}
+		if strings.Contains(body, `name="description"`) || strings.Contains(body, "<textarea") {
+			t.Errorf("the row carries the details, which belong to the details modal\n%s", body)
 		}
 		if !strings.Contains(body, `type="checkbox"`) {
 			t.Errorf("equipped=%v: the equipped control is not a checkbox", item.Equipped)
@@ -860,22 +863,101 @@ func TestPreparedSpellsClampTheirDescriptions(t *testing.T) {
 		t.Errorf("the description collapses its line breaks\n%s", body)
 	}
 }
-func TestAnUnnamedItemOpensItsOwnDetails(t *testing.T) {
+func TestTheRowOpensItsDetailsInTheContentModal(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	row := renderString(t, InventoryRow(characterID, InventoryItem{ID: testItemID, Name: "Longsword"}))
+	url := inventoryDetailsURL(characterID, testItemID)
+	if !strings.HasPrefix(url, "/fragment/") {
+		t.Fatalf("the details are not a fragment, so the modal refuses them: %q", url)
+	}
+	if want := `data-modal-open="` + strings.ReplaceAll(url, "&", "&amp;") + `"`; !strings.Contains(row, want) {
+		t.Errorf("the details button does not open %s\n%s", url, row)
+	}
+	if strings.Count(row, "data-modal-open=") != 1 {
+		t.Errorf("the row names the details URL more than once\n%s", row)
+	}
+	dblclick := regexp.MustCompile(`<input[^>]*name="name"[^>]*hx-on:dblclick="([^"]*)"`).FindStringSubmatch(row)
+	if dblclick == nil {
+		t.Fatalf("double-clicking the name opens nothing\n%s", row)
+	}
+	if !strings.Contains(dblclick[1], "[data-inventory-details]") || !strings.Contains(row, `data-inventory-details="true"`) {
+		t.Errorf("double-clicking the name does not press the details button: %s", dblclick[1])
+	}
+}
+func TestEveryLineUnderARowStartsInItsFirstColumn(t *testing.T) {
+	row := renderString(t, InventoryRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", InventoryItem{ID: testItemID}))
+	classes := regexp.MustCompile(`class="([^"]*\brow-start-[2-9][^"]*)"`).FindAllStringSubmatch(row, -1)
+	if len(classes) == 0 {
+		t.Fatal("found nothing below the row, so this proves nothing")
+	}
+	for _, class := range classes {
+		if !strings.Contains(class[1], "col-start-1") {
+			t.Errorf("%q starts wherever the grid cursor is, which opens empty columns whose gaps push the cells out from under the headings", class[1])
+		}
+	}
+}
+func TestTheColumnHeadingsNeverWrap(t *testing.T) {
+	header := renderString(t, inventoryHeader())
+	if !strings.Contains(header, "whitespace-nowrap") {
+		t.Errorf("list-row breaks words, so a heading wider than its column splits mid-word\n%s", header)
+	}
+}
+func TestTheDetailsButtonSaysWhetherAnItemHasDetails(t *testing.T) {
 	for _, c := range []struct {
-		name string
-		open bool
+		description string
+		label       string
+		dim         bool
 	}{
-		{"", true},
-		{"Longsword", false},
+		{"", "Add item details", true},
+		{"1d8 slashing", "Edit item details", false},
 	} {
-		var buf bytes.Buffer
-		item := InventoryItem{ID: testItemID, Name: c.name, Quantity: "1"}
-		if err := InventoryRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", item).Render(context.Background(), &buf); err != nil {
-			t.Fatalf("render: %v", err)
+		row := renderString(t, InventoryRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", InventoryItem{ID: testItemID, Description: c.description}))
+		if !strings.Contains(row, `aria-label="`+c.label+`"`) {
+			t.Errorf("description %q: the button is not labelled %q\n%s", c.description, c.label, row)
 		}
-		if open := strings.Contains(buf.String(), "<details open"); open != c.open {
-			t.Errorf("name=%q: details open=%v, want %v", c.name, open, c.open)
+		if dim := strings.Contains(row, "text-base-content/50"); dim != c.dim {
+			t.Errorf("description %q: dimmed=%v, want %v", c.description, dim, c.dim)
 		}
+		if strings.Contains(row, "hx-swap-oob") {
+			t.Errorf("description %q: the page's own button is marked out-of-band", c.description)
+		}
+	}
+	reply := renderString(t, InventoryDetailsButton("01ARZ3NDEKTSV4RRFFQ69G5FAV", testItemID, true, true))
+	row := renderString(t, InventoryRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", InventoryItem{ID: testItemID, Description: "x"}))
+	id := `id="` + inventoryDetailsButtonID(testItemID) + `"`
+	if !strings.Contains(reply, id) || !strings.Contains(row, id) {
+		t.Errorf("the saved reply and the row's button do not share %s", id)
+	}
+	if !strings.Contains(reply, `hx-swap-oob="true"`) {
+		t.Errorf("the saved reply is not swapped out-of-band\n%s", reply)
+	}
+}
+func TestTheDetailsModalIsJustTheTextarea(t *testing.T) {
+	const characterID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	panel := "errors-" + InventoryDetailsPanel(testItemID)
+	body := renderString(t, InventoryDetails(characterID, InventoryItem{ID: testItemID, Name: "Longsword", Description: "1d8 slashing\nversatile"}))
+	for _, want := range []string{
+		`hx-post="/characters/` + characterID + `/inventory/` + testItemID + `/description"`,
+		`hx-trigger="input delay:1s"`,
+		`hx-target="#` + panel + `"`,
+		`hx-status:422="target:#` + panel + `,swap:outerHTML"`,
+		`id="` + panel + `"`,
+		`hx-on:submit="event.preventDefault()"`,
+		`name="description"`,
+		">1d8 slashing\nversatile</textarea>",
+		`>Close</button>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the details modal is missing %s\n%s", want, body)
+		}
+	}
+	for _, unwanted := range []string{"<input", "type=\"submit\"", "btn-ghost", "btn-soft", "<h", "Longsword"} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("the details modal carries %s\n%s", unwanted, body)
+		}
+	}
+	if fields := strings.Count(body, "<textarea"); fields != 1 {
+		t.Errorf("the details modal has %d textareas, want 1", fields)
 	}
 }
 func testJournalEntry() JournalEntry {

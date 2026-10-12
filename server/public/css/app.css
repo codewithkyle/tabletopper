@@ -3576,6 +3576,9 @@
   .col-span-2 {
     grid-column: span 2 / span 2;
   }
+  .col-span-6 {
+    grid-column: span 6 / span 6;
+  }
   .col-span-full {
     grid-column: 1 / -1;
   }
@@ -3684,6 +3687,15 @@
   }
   .row-start-1 {
     grid-row-start: 1;
+  }
+  .row-start-2 {
+    grid-row-start: 2;
+  }
+  .row-start-3 {
+    grid-row-start: 3;
+  }
+  .row-start-4 {
+    grid-row-start: 4;
   }
   .m-0 {
     margin: 0px;
@@ -4341,9 +4353,6 @@
   .w-auto {
     width: auto;
   }
-  .w-fit {
-    width: fit-content;
-  }
   .w-full {
     width: 100%;
   }
@@ -4400,6 +4409,9 @@
   }
   .min-w-18 {
     min-width: calc(var(--spacing) * 18);
+  }
+  .min-w-\[28rem\] {
+    min-width: 28rem;
   }
   .min-w-full {
     min-width: 100%;
@@ -4620,6 +4632,9 @@
   }
   .gap-x-8 {
     column-gap: calc(var(--spacing) * 8);
+  }
+  .gap-y-0 {
+    row-gap: 0px;
   }
   .gap-y-1 {
     row-gap: var(--spacing);
@@ -5063,6 +5078,10 @@
     object-fit: cover;
   }
   @layer daisyui.l1.l2 {
+    .checkbox-sm {
+      padding: 0.1875rem;
+      --size: calc(var(--size-selector, 0.25rem) * 5);
+    }
     .radio-xs {
       padding: 0.125rem;
     }
@@ -5789,6 +5808,12 @@
   .peer-user-invalid\/password\:block:is(:where(.peer\/password):user-invalid ~ *) {
     display: block;
   }
+  .peer-user-invalid\/quantity\:block:is(:where(.peer\/quantity):user-invalid ~ *) {
+    display: block;
+  }
+  .peer-user-invalid\/weight\:block:is(:where(.peer\/weight):user-invalid ~ *) {
+    display: block;
+  }
   .peer-has-\[\:user-invalid\]\:block:is(:where(.peer):has(:is(:user-invalid)) ~ *) {
     display: block;
   }
@@ -6151,9 +6176,6 @@
     }
     .\@\[38rem\]\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_5rem_7rem_6rem\] {
-      grid-template-columns: minmax(0,1fr) 5rem 7rem 6rem;
     }
     .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_6rem_8rem_10rem\] {
       grid-template-columns: minmax(0,1fr) 6rem 8rem 10rem;

@@ -1,0 +1,30 @@
+package pages
+
+templ InventoryDetails(characterID string, item InventoryItem) {
+	{{ panel := InventoryDetailsPanel(item.ID) }}
+	<form
+		class="grid gap-4"
+		hx-post={ inventoryItemPath(characterID, item.ID) + "/description" }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+		{ autosaves... }
+	>
+		@PanelFormErrors(panel, []string{})
+		<textarea
+			name="description"
+			class="textarea w-full"
+			rows="12"
+			aria-label="Item details"
+			placeholder="What it does, and anything worth reading mid-session."
+		>{ item.Description }</textarea>
+		<div class="modal-action">
+			<button
+				type="button"
+				class="btn border-base-content/50"
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+			>Close</button>
+		</div>
+	</form>
+}

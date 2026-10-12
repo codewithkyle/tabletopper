@@ -52,14 +52,109 @@ func TestSaveInventoryItemWritesOnlyItsOwnColumns(t *testing.T) {
 	if !strings.Contains(call.query, "UPDATE inventory") {
 		t.Fatalf("did not update inventory:\n%s", call.query)
 	}
-	want := []string{"description", "equipped", "name", "quantity", "value", "weight"}
+	want := []string{"equipped", "name", "quantity", "value", "weight"}
 	if got := sortedColumns(t, call.query); !reflect.DeepEqual(got, want) {
-		t.Errorf("wrote %v, want %v", got, want)
+		t.Errorf("wrote %v, want %v -- the row no longer carries the details, so writing them would blank them", got, want)
 	}
 	scope := call.args[len(call.args)-3:]
 	for i, want := range []ulid.ULID{testItemID, testCharacterID, testOwnerID} {
 		if got, ok := scope[i].(ulid.ULID); !ok || got != want {
 			t.Errorf("scope[%d] = %v, want %v", i, scope[i], want)
+		}
+	}
+}
+func TestSaveInventoryDescriptionWritesOnlyTheDescription(t *testing.T) {
+	app, db := newPanelApp(1)
+	form := url.Values{"description": {"  1d8 slashing, versatile (1d10)\n"}}
+	rec := inventoryRequest(t, app.SaveInventoryDescription, http.MethodPost, form, testItemID.String())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	call := db.only(t)
+	if got := sortedColumns(t, call.query); !reflect.DeepEqual(got, []string{"description"}) {
+		t.Errorf("wrote %v, want only the description", got)
+	}
+	if got, ok := call.args[0].(string); !ok || got != "1d8 slashing, versatile (1d10)" {
+		t.Errorf("description = %#v, want it trimmed", call.args[0])
+	}
+	for i, want := range []ulid.ULID{testItemID, testCharacterID, testOwnerID} {
+		if got, ok := call.args[i+1].(ulid.ULID); !ok || got != want {
+			t.Errorf("scope[%d] = %v, want %v", i, call.args[i+1], want)
+		}
+	}
+}
+func TestSavedDescriptionRedrawsTheRowsDetailsButton(t *testing.T) {
+	for _, c := range []struct {
+		description string
+		label       string
+	}{
+		{description: "1d8 slashing", label: "Edit item details"},
+		{description: "   ", label: "Add item details"},
+	} {
+		app, _ := newPanelApp(1)
+		form := url.Values{"description": {c.description}}
+		rec := inventoryRequest(t, app.SaveInventoryDescription, http.MethodPost, form, testItemID.String())
+		body := rec.Body.String()
+		for _, want := range []string{
+			`id="errors-inventory-details-` + testItemID.String() + `"`,
+			`id="inventory-details-button-` + testItemID.String() + `"`,
+			`hx-swap-oob="true"`,
+			`aria-label="` + c.label + `"`,
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("description %q: reply is missing %s\n%s", c.description, want, body)
+			}
+		}
+	}
+}
+func TestOverlongDescriptionIsRejectedNotTruncated(t *testing.T) {
+	app, db := newPanelApp(1)
+	form := url.Values{"description": {strings.Repeat("a", inventoryDescriptionLimit+1)}}
+	rec := inventoryRequest(t, app.SaveInventoryDescription, http.MethodPost, form, testItemID.String())
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnprocessableEntity)
+	}
+	if len(db.calls) != 0 {
+		t.Errorf("ran %d statements, want 0", len(db.calls))
+	}
+}
+func TestInventoryDetailsFragmentRefusesABadQuery(t *testing.T) {
+	for name, query := range map[string]string{
+		"no character": "?item=" + testItemID.String(),
+		"no item":      "?character=" + testCharacterID.String(),
+		"bad item":     "?character=" + testCharacterID.String() + "&item=nope",
+	} {
+		t.Run(name, func(t *testing.T) {
+			app, db := newPanelApp(1)
+			r := httptest.NewRequest(http.MethodGet, "/fragment/character/inventory-details"+query, nil)
+			r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+			rec := httptest.NewRecorder()
+			app.InventoryDetailsFragment(rec, r)
+			if rec.Code != http.StatusNotFound {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+			}
+			if body := rec.Body.String(); body != "" {
+				t.Errorf("body = %q, want empty", body)
+			}
+			if len(db.reads) != 0 {
+				t.Errorf("ran %d reads, want 0", len(db.reads))
+			}
+		})
+	}
+}
+func TestInventoryDetailsFragmentReadsOnlyTheOwnersItem(t *testing.T) {
+	app, db := newPanelApp(1)
+	query := "?character=" + testCharacterID.String() + "&item=" + testItemID.String()
+	r := httptest.NewRequest(http.MethodGet, "/fragment/character/inventory-details"+query, nil)
+	r = r.WithContext(session.NewContext(r.Context(), session.UserSession{UserID: testOwnerID}))
+	app.InventoryDetailsFragment(httptest.NewRecorder(), r)
+	if len(db.reads) != 1 {
+		t.Fatalf("ran %d reads, want 1", len(db.reads))
+	}
+	read := db.reads[0]
+	for i, want := range []ulid.ULID{testItemID, testCharacterID, testOwnerID} {
+		if got, ok := read.args[i].(ulid.ULID); !ok || got != want {
+			t.Errorf("arg[%d] = %v, want %v", i, read.args[i], want)
 		}
 	}
 }
@@ -194,6 +289,7 @@ func TestMissingInventoryRowIsAnItem404(t *testing.T) {
 	}{
 		{name: "save", handler: func(a *App) http.HandlerFunc { return a.SaveInventoryItem }, method: http.MethodPost},
 		{name: "delete", handler: func(a *App) http.HandlerFunc { return a.DeleteInventoryItem }, method: http.MethodDelete},
+		{name: "description", handler: func(a *App) http.HandlerFunc { return a.SaveInventoryDescription }, method: http.MethodPost},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			app, _ := newPanelApp(0)
