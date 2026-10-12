@@ -452,22 +452,43 @@ func TestSpellRowAlwaysRendersEveryControl(t *testing.T) {
 		}
 	}
 }
-func TestAnUnnamedSpellOpensItsOwnDetails(t *testing.T) {
-	for _, c := range []struct {
-		name string
-		open bool
-	}{
-		{"", true},
-		{"Fireball", false},
-	} {
-		var buf bytes.Buffer
-		spell := Spell{ID: testSpellID, Level: 1, Name: c.name, School: DefaultSpellSchool}
-		if err := SpellRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", spell).Render(context.Background(), &buf); err != nil {
-			t.Fatalf("render: %v", err)
+func TestSpellDetailsStartClosedInOneAccordion(t *testing.T) {
+	for _, name := range []string{"", "Fireball"} {
+		spell := Spell{ID: testSpellID, Level: 1, Name: name, School: DefaultSpellSchool}
+		body := renderString(t, SpellRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", spell))
+		if got := strings.Count(body, "<details"); got != 1 {
+			t.Fatalf("name=%q: %d details, want 1\n%s", name, got, body)
 		}
-		if open := strings.Contains(buf.String(), "<details open"); open != c.open {
-			t.Errorf("name=%q: details open=%v, want %v", c.name, open, c.open)
+		opening := body[strings.Index(body, "<details"):]
+		opening = opening[:strings.Index(opening, ">")+1]
+		for _, want := range []string{`name="spell-details"`, `class="collapse collapse-arrow`} {
+			if !strings.Contains(opening, want) {
+				t.Errorf("name=%q: the details is missing %s: %s", name, want, opening)
+			}
 		}
+		if strings.Contains(opening, " open") {
+			t.Errorf("name=%q: the details starts open: %s", name, opening)
+		}
+		for _, want := range []string{`<summary class="collapse-title`, `<div class="collapse-content`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("name=%q: the accordion is missing %s", name, want)
+			}
+		}
+	}
+}
+func TestPreparedSitsInlineAfterTheCastTime(t *testing.T) {
+	body := renderString(t, SpellRow("01ARZ3NDEKTSV4RRFFQ69G5FAV", Spell{ID: testSpellID, Level: 1, School: DefaultSpellSchool}))
+	order := []string{`name="name"`, `name="casting_time"`, `name="prepared"`, "<details"}
+	at := -1
+	for _, marker := range order {
+		next := strings.Index(body, marker)
+		if next < 0 {
+			t.Fatalf("the row has no %s", marker)
+		}
+		if next < at {
+			t.Errorf("%s comes before the control ahead of it in %v", marker, order)
+		}
+		at = next
 	}
 }
 func TestNothingLinksToASpellsIndex(t *testing.T) {
@@ -565,11 +586,17 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 		`hx-post="/characters/` + characterID + `/spells/slots/3"`,
 		`hx-post="/characters/` + characterID + `/spells/3"`,
 		`hx-target="#spell-rows"`,
-		`hx-swap="append"`,
+		`hx-swap="prepend"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the level page is missing %s\n%s", want, body)
 		}
+	}
+	if add, levels := strings.Index(body, ">Add Spell<"), strings.Index(body, `aria-label="Spell levels"`); add < 0 || add > levels {
+		t.Errorf("Add Spell is not in the character bar above the level tabs\n%s", body)
+	}
+	if got := strings.Count(body, "Add Spell</button>"); got != 1 {
+		t.Errorf("the level page has %d Add Spell buttons, want 1", got)
 	}
 	for _, spell := range data.Spells {
 		want := `hx-post="/characters/` + characterID + `/spells/3/` + spell.ID + `"`
@@ -2444,6 +2471,25 @@ func TestTheSheetWindowSwapsSectionsInPlace(t *testing.T) {
 	}
 	if strings.Contains(window, `href="/characters/`) {
 		t.Error("a tab inside the window navigates the whole page away from the room")
+	}
+}
+func TestTheSpellsWindowAddsAboveItsRows(t *testing.T) {
+	window := renderString(t, CharacterSheetWindow(SheetWindowData{
+		Section: SheetSectionSpells,
+		Level:   3,
+		Spells:  SpellLevelPageData{CharacterID: sheetCharacterID, Level: 3, Current: testSpellCounters(3)},
+	}))
+	for _, want := range []string{
+		`hx-post="/characters/` + sheetCharacterID + `/spells/3"`,
+		`hx-target="#spell-rows"`,
+		`hx-swap="prepend"`,
+	} {
+		if !strings.Contains(window, want) {
+			t.Errorf("the spells window is missing %s\n%s", want, window)
+		}
+	}
+	if add, rows := strings.Index(window, ">Add Spell<"), strings.Index(window, `id="spell-rows"`); add < 0 || add > rows {
+		t.Errorf("Add Spell is not above the spell rows\n%s", window)
 	}
 }
 func TestTheAutosaveGuardStopsTheBrowserSubmitting(t *testing.T) {

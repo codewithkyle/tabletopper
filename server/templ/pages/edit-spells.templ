@@ -5,10 +5,25 @@ import "tabletopper/templ/layouts"
 
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
 	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
-		@editCharacterShell(data.CharacterID, data.Header, characterTabSpells, shellLayout{SubNav: spellLevelTabs(data.CharacterID, data.Level)}) {
+		@editCharacterShell(data.CharacterID, data.Header, characterTabSpells, shellLayout{
+			Actions: spellAddButton(data.CharacterID, data.Level, "btn btn-primary max-[640px]:flex-1"),
+			SubNav:  spellLevelTabs(data.CharacterID, data.Level),
+		}) {
 			@spellsSection(data)
 		}
 	}
+}
+
+templ spellAddButton(characterID string, level int, class string) {
+	<button
+		type="button"
+		class={ class }
+		hx-post={ "/characters/" + characterID + "/spells/" + strconv.Itoa(level) }
+		hx-target="#spell-rows"
+		hx-swap="prepend"
+	>
+		Add Spell
+	</button>
 }
 
 templ spellsSection(data SpellLevelPageData) {
@@ -22,15 +37,7 @@ templ spellsSection(data SpellLevelPageData) {
 			for _, spell := range data.Spells {
 				@SpellRow(data.CharacterID, spell)
 			}
+			<p class="hidden text-base-content/70 only:block">No spells yet. Start one with the Add Spell button above.</p>
 		</div>
-		<button
-			type="button"
-			class="btn btn-soft btn-warning"
-			hx-post={ "/characters/" + data.CharacterID + "/spells/" + strconv.Itoa(data.Level) }
-			hx-target="#spell-rows"
-			hx-swap="append"
-		>
-			Add Spell
-		</button>
 	}
 }

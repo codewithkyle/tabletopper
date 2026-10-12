@@ -436,6 +436,24 @@ func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 		t.Errorf("the level page is not filtered in the statement:\n%s", statement)
 	}
 }
+func TestSpellsAreListedNewestFirst(t *testing.T) {
+	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
+	if err != nil {
+		t.Fatalf("cannot read the queries: %v", err)
+	}
+	body := string(source)
+	start := strings.Index(body, "-- name: ListSpellsAtLevel")
+	if start < 0 {
+		t.Fatal("no ListSpellsAtLevel query")
+	}
+	statement := body[start:]
+	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
+		statement = statement[:end+1]
+	}
+	if !strings.Contains(statement, "ORDER BY created_at DESC, id DESC") {
+		t.Errorf("the level page is not newest first:\n%s", statement)
+	}
+}
 func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
 	for level, want := range map[int]string{0: "Cantrips", 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 9: "9th"} {
 		if got := pages.SpellLevelTab(level); got != want {

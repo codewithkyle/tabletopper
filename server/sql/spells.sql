@@ -1,7 +1,7 @@
 -- name: ListSpellsAtLevel :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND level = ?
-ORDER BY id;
+ORDER BY created_at DESC, id DESC;
 -- name: ListPreparedSpells :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND is_prepared = TRUE

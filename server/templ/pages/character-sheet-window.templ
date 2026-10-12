@@ -13,6 +13,7 @@ templ CharacterSheetWindow(data SheetWindowData) {
 					@inventorySection(data.Inventory)
 				case SheetSectionSpells:
 					@sheetLevels(data)
+					@spellAddButton(data.Spells.CharacterID, data.Spells.Level, "btn btn-primary btn-sm")
 					@spellsSection(data.Spells)
 				default:
 					@sheetPanels(data.Sheet)
