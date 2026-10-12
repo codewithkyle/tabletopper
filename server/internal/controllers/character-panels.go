@@ -582,5 +582,5 @@ func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel
 	}
 	derived := characterDerived(character)
 	render(w, r, pages.DerivedValues(derived))
-	render(w, r, pages.CharacterBarValues(characterHeaderFrom(character, derived)))
+	render(w, r, pages.CharacterBarValues(characterID.String(), characterHeaderFrom(character, derived)))
 }

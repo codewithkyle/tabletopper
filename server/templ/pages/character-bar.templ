@@ -25,7 +25,7 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 		<div class={ barGutter + " flex flex-wrap items-center gap-x-6 gap-y-3 pt-3 pb-2" }>
 			<div class="flex min-w-0 items-center gap-3">
 				@backLink(layout.back())
-				@characterBarFigure(header, false)
+				@characterBarFigure(characterID, header, false)
 			</div>
 			@characterBarChips(header, false)
 			<div class="flex items-center gap-3 max-[640px]:w-full">
@@ -47,12 +47,12 @@ templ characterBar(characterID string, header CharacterHeader, active string, la
 	}
 }
 
-templ CharacterBarValues(header CharacterHeader) {
-	@characterBarFigure(header, true)
+templ CharacterBarValues(characterID string, header CharacterHeader) {
+	@characterBarFigure(characterID, header, true)
 	@characterBarChips(header, true)
 }
 
-templ characterBarFigure(header CharacterHeader, oob bool) {
+templ characterBarFigure(characterID string, header CharacterHeader, oob bool) {
 	<div
 		id="character-bar-figure"
 		class="flex min-w-0 items-center gap-3"
@@ -60,13 +60,12 @@ templ characterBarFigure(header CharacterHeader, oob bool) {
 			hx-swap-oob="true"
 		}
 	>
-		<div class="avatar avatar-placeholder shrink-0 rounded-full border border-base-300">
-			<div class="relative w-11 rounded-full bg-base-300 text-base-content">
-				<span class="font-serif text-lg font-bold">{ characterInitial(header.Name) }</span>
-				if header.AvatarID != "" {
-					<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + header.AvatarID } alt={ header.Name + " portrait" }/>
-				}
-			</div>
+		<div class="w-11 shrink-0">
+			if characterID == "" {
+				@characterPortrait(header.Name, header.AvatarID)
+			} else {
+				@CharacterAvatarControl(CharacterAvatar{CharacterID: characterID, Name: header.Name, AvatarID: header.AvatarID})
+			}
 		</div>
 		<div class="min-w-0">
 			<h1 class="m-0 truncate font-serif text-2xl leading-tight">{ characterBarName(header) }</h1>

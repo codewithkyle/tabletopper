@@ -17,54 +17,9 @@ templ Character(character queries.Character) {
 	<character-card class={ sheetSurface }>
 		<div class="card-body gap-4 p-4">
 			<div class="flex items-center gap-4">
-				if character.AssetID != nil {
-					<div class="relative shrink-0" aria-label="Portrait linked">
-						<div class="avatar avatar-placeholder rounded-full border border-base-300">
-							<div class="relative w-14 rounded-full bg-base-300 text-base-content">
-								<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
-								<img class="absolute inset-0 h-full w-full object-cover select-none" src={ "/assets/images/" + character.AssetID.String() } alt={ character.Name + " avatar" }/>
-							</div>
-						</div>
-						<label aria-label="Replace character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm" data-tip="Replace avatar" for={ "avatar-" + character.ID.String() }>
-							@pencilIcon()
-							<input
-								class="absolute h-0 w-0 opacity-0"
-								id={ "avatar-" + character.ID.String() }
-								type="file"
-								name="avatar"
-								accept="image/png, image/jpeg, image/webp"
-								required
-								hx-post={ "/characters/" + character.ID.String() + "/avatar" }
-								hx-target="closest character-card"
-								hx-swap="outerHTML"
-								hx-encoding="multipart/form-data"
-							/>
-						</label>
-					</div>
-				} else {
-					<div class="relative shrink-0" aria-label="No portrait yet">
-						<div class="avatar avatar-placeholder rounded-full border border-base-300">
-							<div class="w-14 rounded-full bg-base-300 text-base-content">
-								<span class="font-serif text-xl font-bold">{ characterInitial(character.Name) }</span>
-							</div>
-						</div>
-						<label aria-label="Upload character avatar" class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm" data-tip="Upload avatar" for={ "avatar-" + character.ID.String() }>
-							@pencilIcon()
-							<input
-								class="absolute h-0 w-0 opacity-0"
-								id={ "avatar-" + character.ID.String() }
-								type="file"
-								name="avatar"
-								accept="image/png, image/jpeg, image/webp"
-								required
-								hx-post={ "/characters/" + character.ID.String() + "/avatar" }
-								hx-target="closest character-card"
-								hx-swap="outerHTML"
-								hx-encoding="multipart/form-data"
-							/>
-						</label>
-					</div>
-				}
+				<div class="w-14 shrink-0">
+					@CharacterAvatarControl(characterAvatar(character))
+				</div>
 				<div class="min-w-0">
 					<h2 class="card-title font-serif text-xl leading-none">{ character.Name }</h2>
 					<p class="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-base-content/75">

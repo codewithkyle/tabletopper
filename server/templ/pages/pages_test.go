@@ -167,8 +167,8 @@ func TestEditCharacterRendersOneFormPerPanel(t *testing.T) {
 			t.Errorf("the Character tab carries %s, which belongs to the spells pages", absent)
 		}
 	}
-	if got := strings.Count(markup, "hx-post="); got != len(panels)+1 {
-		t.Errorf("posting elements = %d, want %d (one per panel, plus Add Attack)", got, len(panels)+1)
+	if got := strings.Count(markup, "hx-post="); got != len(panels)+2 {
+		t.Errorf("posting elements = %d, want %d (one per panel, plus Add Attack and the avatar upload)", got, len(panels)+2)
 	}
 	if got := strings.Count(markup, "<form"); got != len(panels)+closingForms {
 		t.Errorf("forms = %d, want %d", got, len(panels)+closingForms)
@@ -1381,7 +1381,7 @@ func TestEveryDerivedValueHasATargetOnThePage(t *testing.T) {
 	if err := DerivedValues(derived).Render(context.Background(), &block); err != nil {
 		t.Fatalf("render: %v", err)
 	}
-	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
+	ids := regexp.MustCompile(`<[a-z]+ id="([^"]+)"[^>]*hx-swap-oob="true"`).FindAllStringSubmatch(block.String(), -1)
 	if want := 6 + len(SkillEntries()) + len(SavingThrowEntries()) + 3; len(ids) != want {
 		t.Errorf("the refresh carries %d values, want %d", len(ids), want)
 	}
@@ -1519,10 +1519,10 @@ func TestTheBarRefreshHasATargetOnThePage(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	var block bytes.Buffer
-	if err := CharacterBarValues(header).Render(context.Background(), &block); err != nil {
+	if err := CharacterBarValues(id, header).Render(context.Background(), &block); err != nil {
 		t.Fatalf("render: %v", err)
 	}
-	ids := regexp.MustCompile(`id="([^"]+)"`).FindAllStringSubmatch(block.String(), -1)
+	ids := regexp.MustCompile(`<[a-z]+ id="([^"]+)"[^>]*hx-swap-oob="true"`).FindAllStringSubmatch(block.String(), -1)
 	if len(ids) != 2 {
 		t.Fatalf("the refresh carries %d blocks, want 2", len(ids))
 	}

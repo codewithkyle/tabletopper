@@ -1,0 +1,38 @@
+package pages
+
+templ CharacterAvatarControl(avatar CharacterAvatar) {
+	<character-avatar class="relative block w-full">
+		@characterPortrait(avatar.Name, avatar.AvatarID)
+		<label
+			aria-label={ avatar.Verb() + " character avatar" }
+			class="tooltip absolute -top-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 shadow-sm"
+			data-tip={ avatar.Verb() + " avatar" }
+			for={ characterAvatarInputID(avatar.CharacterID) }
+		>
+			@pencilIcon()
+			<input
+				class="absolute h-0 w-0 opacity-0"
+				id={ characterAvatarInputID(avatar.CharacterID) }
+				type="file"
+				name="avatar"
+				accept="image/png, image/jpeg, image/webp"
+				required
+				hx-post={ "/characters/" + avatar.CharacterID + "/avatar" }
+				hx-target="closest character-avatar"
+				hx-swap="outerHTML"
+				hx-encoding="multipart/form-data"
+			/>
+		</label>
+	</character-avatar>
+}
+
+templ characterPortrait(name string, avatarID string) {
+	<div class="avatar avatar-placeholder w-full rounded-full border border-base-300">
+		<div class="relative w-full rounded-full bg-base-300 text-base-content">
+			<span class="font-serif text-xl font-bold">{ characterInitial(name) }</span>
+			if avatarID != "" {
+				<img class="absolute inset-0 h-full w-full rounded-full object-cover select-none" src={ "/assets/images/" + avatarID } alt={ name + " portrait" }/>
+			}
+		</div>
+	</div>
+}

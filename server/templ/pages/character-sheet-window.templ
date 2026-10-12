@@ -3,7 +3,7 @@ package pages
 templ CharacterSheetWindow(data SheetWindowData) {
 	<div id={ SheetBodyID } class="@container/sheet grid content-start gap-3">
 		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-			@characterBarFigure(data.Sheet.Header, false)
+			@characterBarFigure("", data.Sheet.Header, false)
 			@characterBarChips(data.Sheet.Header, false)
 		</div>
 		@sheetTabs(data)

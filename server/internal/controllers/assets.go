@@ -453,8 +453,9 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
+	var assetID ulid.ULID
 	if character.AssetID != nil && character.FilePath.Valid {
-		assetID := *character.AssetID
+		assetID = *character.AssetID
 		if err := a.Storage.UploadImage(ctx, character.FilePath.String, avatar); err != nil {
 			slog.Error("Failed to upload character avatar", "error", err)
 			htmx.ServerError(w)
@@ -472,7 +473,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		assetID := ulid.Make()
+		assetID = ulid.Make()
 		err := a.Queries.InsertCharacterPortrait(ctx, queries.InsertCharacterPortraitParams{
 			ID:        assetID,
 			OwnerID:   sess.UserID,
@@ -510,16 +511,12 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	htmx.Toast(w, "Updated avatar for "+character.Name)
 	a.syncCharacterPawn(ctx, characterID)
-	updated, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{
-		ID:      characterID,
-		OwnerID: sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to reload character after avatar update", "error", err, "characterID", characterID.String())
-		htmx.Redirect(w, "/characters")
-		return
-	}
-	render(w, r, pages.Character(updated))
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	render(w, r, pages.CharacterAvatarControl(pages.CharacterAvatar{
+		CharacterID: characterID.String(),
+		Name:        character.Name,
+		AvatarID:    assetID.String(),
+	}))
 }
 func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
