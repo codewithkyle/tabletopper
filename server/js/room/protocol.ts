@@ -101,6 +101,7 @@ export interface Pawn {
 	height: number;
 	rotation: number;
 	visible: boolean;
+	shared: boolean;
 	hp: number | null;
 	maxHp: number | null;
 	hpBand: HPBand | null;
@@ -359,6 +360,12 @@ export interface PawnSetLayer {
 	ids: string[];
 	layer: string;
 }
+export interface PawnSetShared {
+	type: "pawn.setShared";
+	cid: string;
+	id: string;
+	shared: boolean;
+}
 export interface PawnSetVisible {
 	type: "pawn.setVisible";
 	cid: string;
@@ -560,6 +567,7 @@ export type Command =
 	| PawnRemove
 	| PawnSetConditions
 	| PawnSetLayer
+	| PawnSetShared
 	| PawnSetVisible
 	| PawnSpawn
 	| PawnSpawnCharacters

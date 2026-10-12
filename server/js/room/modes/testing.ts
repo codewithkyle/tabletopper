@@ -61,6 +61,7 @@ export function pawn(over: Partial<Pawn> = {}): Pawn {
 		height: 0,
 		rotation: 0,
 		visible: true,
+		shared: false,
 		hp: 7,
 		maxHp: 7,
 		hpBand: null,

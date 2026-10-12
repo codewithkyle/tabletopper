@@ -18,7 +18,7 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 	return {
 		id: "01PAWN", kind: "player", layerId: GROUND, name: "Ilya", image: "",
 		x: 400, y: 400, z: 1, size: "medium", width: 0, height: 0, rotation: 0,
-		visible: true, hp: 7, maxHp: 7, hpBand: null, ac: 15, conditions: [],
+		visible: true, shared: false, hp: 7, maxHp: 7, hpBand: null, ac: 15, conditions: [],
 		ownerId: null, monsterId: null, characterId: null, ...over,
 	};
 }

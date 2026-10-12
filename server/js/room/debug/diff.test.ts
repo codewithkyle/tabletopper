@@ -18,6 +18,7 @@ function pawn(id: string, x: number): Pawn {
 		height: 1,
 		rotation: 0,
 		visible: true,
+		shared: false,
 		hp: 7,
 		maxHp: 7,
 		hpBand: "healthy",

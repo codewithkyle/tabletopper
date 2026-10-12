@@ -441,3 +441,56 @@ func TestTheGMsTwoLiveControlsComeBeforeTheConditions(t *testing.T) {
 		t.Error("the visibility switch comes before the floor select")
 	}
 }
+func TestTheShareSwitchIsTheGMsAndOnlyOnAnNPC(t *testing.T) {
+	data := testPawnPanel()
+	data.Pawn.NPC = true
+	gm := html(t, RoomPawnFragment(data))
+	if !strings.Contains(gm, `name="shared"`) {
+		t.Errorf("the GM has no way to hand an NPC to the players:\n%s", gm)
+	}
+	if !strings.Contains(gm, `aria-label="`+data.SharedLabel()+`"`) {
+		t.Error("the share switch has no accessible name")
+	}
+	if !strings.Contains(gm, ">Players can edit<") {
+		t.Error("the share switch does not say what it does")
+	}
+	if strings.Index(gm, `name="shared"`) > strings.Index(gm, `name="conditionName"`) {
+		t.Error("the share switch is below the conditions, away from the GM's other live controls")
+	}
+	data.Pawn.NPC = false
+	if strings.Contains(html(t, RoomPawnFragment(data)), `name="shared"`) {
+		t.Error("a pawn that is not an NPC was offered to the players")
+	}
+	data.Pawn.NPC = true
+	data.IsGM = false
+	if strings.Contains(html(t, RoomPawnFragment(data)), `name="shared"`) {
+		t.Error("a player was given the share switch")
+	}
+}
+func TestATendingPlayerChangesHitPointsAndConditionsAlone(t *testing.T) {
+	data := testPawnPanel()
+	data.IsGM = false
+	data.CanEdit = false
+	data.CanTend = true
+	data.Pawn.NPC = true
+	data.Pawn.Shared = true
+	body := decoded(t, RoomPawnFragment(data))
+	for _, field := range []string{`name="hp"`, `name="conditionName"`, ">Add condition<"} {
+		if !strings.Contains(body, field) {
+			t.Errorf("a tending player has no %s:\n%s", field, body)
+		}
+	}
+	for _, locked := range []string{`name="maxHp"`, `name="ac"`, `name="size"`, `name="shared"`, data.RenameLabel()} {
+		if strings.Contains(body, locked) {
+			t.Errorf("a tending player was given %q", locked)
+		}
+	}
+	for _, reading := range []string{`text-xs">7</span>`, `text-xs">15</dd>`, `text-xs">Small</dd>`} {
+		if !strings.Contains(body, reading) {
+			t.Errorf("a tending player cannot read %q:\n%s", reading, body)
+		}
+	}
+	if strings.Count(body, "data-hp-math") != 1 {
+		t.Error("a tending player has a second sum box beside the hit points")
+	}
+}

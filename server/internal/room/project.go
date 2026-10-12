@@ -23,10 +23,7 @@ func (s *State) Project(role Role) State {
 	return c
 }
 func projectPawn(p Pawn, t Table) Pawn {
-	if p.Kind != PawnMonster && p.Kind != PawnNPC {
-		return p
-	}
-	if t.PawnLabels == LabelsFull {
+	if ExactHP(p, t.PawnLabels, RolePlayer) {
 		return p
 	}
 	p.AC = nil

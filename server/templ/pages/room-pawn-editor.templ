@@ -20,9 +20,12 @@ templ pawnEditor(data RoomPawnData) {
 					@pawnLayerSelect(data)
 				}
 				@pawnVisibleSwitch(data)
+				if data.Pawn.NPC {
+					@pawnSharedSwitch(data)
+				}
 			</div>
 		}
-		if data.Pawn.Object {
+		if data.CanEdit && data.Pawn.Object {
 			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnPixels(data.Field("width"), "width", "Width", data.Pawn.Width)
 				@pawnPixels(data.Field("height"), "height", "Height", data.Pawn.Height)
@@ -31,7 +34,7 @@ templ pawnEditor(data RoomPawnData) {
 				@pawnDegrees(data.Field("rotation"), data.Pawn.Rotation)
 				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC, ACLimit)
 			</div>
-		} else {
+		} else if data.CanEdit {
 			<div class="grid grid-cols-1 gap-1.5 @2xs:grid-cols-2">
 				@pawnSizeField(data.Field("size"), data.Pawn.SizeValue)
 				@pawnNumberField(data.Field("ac"), "ac", "Armour class", data.Pawn.AC, ACLimit)
@@ -149,6 +152,20 @@ templ pawnVisibleSwitch(data RoomPawnData) {
 		/>
 		<span class="text-[10px] text-warning peer-checked:hidden">Hidden</span>
 		<span class="hidden text-[10px] text-base-content/60 peer-checked:inline">Visible</span>
+	</label>
+}
+
+templ pawnSharedSwitch(data RoomPawnData) {
+	<label class="flex shrink-0 items-center gap-1.5">
+		<input
+			type="checkbox"
+			name="shared"
+			value="on"
+			checked?={ data.Pawn.Shared }
+			aria-label={ data.SharedLabel() }
+			class="toggle toggle-xs shrink-0 checked:text-info"
+		/>
+		<span class="text-[10px] text-base-content/60">Players can edit</span>
 	</label>
 }
 

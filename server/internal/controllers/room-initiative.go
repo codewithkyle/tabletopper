@@ -244,7 +244,7 @@ func initiativeEntryData(role room.Role, user ulid.ULID, view *hub.InitiativeVie
 	}
 	solo := members[0]
 	out.Solo = solo.ID.String()
-	if room.ExactHP(solo.Kind, view.Table.PawnLabels, role) {
+	if room.ExactHP(solo, view.Table.PawnLabels, role) {
 		out.HP = pages.PawnHPText(solo.HP, solo.MaxHP)
 	} else if solo.HPBand != nil {
 		out.HP = pages.PawnBandText(string(*solo.HPBand))

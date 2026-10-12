@@ -5798,6 +5798,9 @@
   .only\:flex:only-child {
     display: flex;
   }
+  .checked\:text-info:checked {
+    color: var(--color-info);
+  }
   .checked\:text-success:checked {
     color: var(--color-success);
   }

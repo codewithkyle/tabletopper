@@ -414,3 +414,124 @@ func TestAPawnFormWithABadLayerChangesNothing(t *testing.T) {
 		t.Error("the pawn was revealed by a form that was refused")
 	}
 }
+func npcApp(t *testing.T, shared bool, requests int) *App {
+	t.Helper()
+	s := room.NewState(testRoomID, "Curse of Strahd", room.Env{})
+	hp, ac := 45, 20
+	s.Pawns = append(s.Pawns, room.Pawn{
+		ID: testPawnA, Kind: room.PawnNPC, Name: "Bigby's Hand", Size: room.SizeLarge,
+		LayerID: s.Table.ActiveLayer, X: 96, Y: 96, Visible: true, Shared: shared,
+		HP: &hp, MaxHP: &hp, AC: &ac,
+	})
+	snapshot, err := room.Marshal(s)
+	if err != nil {
+		t.Fatalf("marshalling the room: %v", err)
+	}
+	answers := make([]roomAnswer, requests)
+	for i := range answers {
+		answers[i] = tableRoomAnswer()
+	}
+	app := newRoomApp(&roomDB{rows: 1, answers: answers})
+	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: snapshot}})
+	firstLayer(t, app)
+	return app
+}
+func theNPC(t *testing.T, app *App) *room.Pawn {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	pawn, ok := app.Hub.Pawn(ctx, testRoomID, testPawnA, room.RoleGM)
+	if !ok {
+		t.Fatal("the NPC is no longer on the table")
+	}
+	return pawn
+}
+func npcPath(suffix string) (string, map[string]string) {
+	return "/rooms/" + testRoomID.String() + "/pawns/" + testPawnA.String() + suffix,
+		map[string]string{"id": testRoomID.String(), "pawn": testPawnA.String()}
+}
+func TestATendingPlayerChangesHitPointsAndNotTheMaximum(t *testing.T) {
+	app := npcApp(t, true, 1)
+	path, values := npcPath("/hp")
+	rec := tableRequest(t, app.UpdatePawnHP, http.MethodPost, path, values,
+		url.Values{"hp": {"45"}, "hpEntry": {"-14"}, "maxHp": {"99"}}, memberSession(testRoomID))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	pawn := theNPC(t, app)
+	if *pawn.HP != 31 {
+		t.Errorf("the hand has %d hit points, want 31 after a player took 14 off", *pawn.HP)
+	}
+	if *pawn.MaxHP != 45 {
+		t.Errorf("a player moved the hand's maximum to %d; it is the GM's", *pawn.MaxHP)
+	}
+}
+func TestATendingPlayerChangesConditionsAndNotTheStats(t *testing.T) {
+	app := npcApp(t, true, 1)
+	path, values := npcPath("")
+	rec := tableRequest(t, app.UpdatePawn, http.MethodPost, path, values, url.Values{
+		"ac":                {"5"},
+		"size":              {string(room.SizeTiny)},
+		"shown":             {""},
+		"shared":            {""},
+		"conditionId":       {""},
+		"conditionName":     {"Grappling"},
+		"conditionColor":    {string(room.ColorOrange)},
+		"conditionDuration": {"-1"},
+		"conditionClear":    {string(room.ClearEnd)},
+	}, memberSession(testRoomID))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	pawn := theNPC(t, app)
+	if len(pawn.Conditions) != 1 || pawn.Conditions[0].Name != "Grappling" {
+		t.Errorf("the hand carries %v, want the condition the player gave it", pawn.Conditions)
+	}
+	if *pawn.AC != 20 || pawn.Size != room.SizeLarge {
+		t.Errorf("a player changed the hand to AC %d and %s; those are the GM's", *pawn.AC, pawn.Size)
+	}
+	if !pawn.Visible || !pawn.Shared {
+		t.Error("a player's form hid the hand or took it back from the table")
+	}
+}
+func TestAnNPCThatIsNotSharedIsNotThePlayersToChange(t *testing.T) {
+	app := npcApp(t, false, 3)
+	path, values := npcPath("/hp")
+	if rec := tableRequest(t, app.UpdatePawnHP, http.MethodPost, path, values,
+		url.Values{"hp": {"1"}}, memberSession(testRoomID)); rec.Code != http.StatusNotFound {
+		t.Errorf("the hit-point form answered %d, want 404", rec.Code)
+	}
+	path, values = npcPath("")
+	if rec := tableRequest(t, app.UpdatePawn, http.MethodPost, path, values,
+		url.Values{"conditionId": {""}, "conditionName": {"Prone"}, "conditionColor": {"red"}, "conditionDuration": {"-1"}, "conditionClear": {"end"}},
+		memberSession(testRoomID)); rec.Code != http.StatusNotFound {
+		t.Errorf("the panel form answered %d, want 404", rec.Code)
+	}
+	row := "/fragment/room/condition-row?room=" + testRoomID.String() + "&pawn=" + testPawnA.String()
+	if rec := tableRequest(t, app.RoomConditionRowFragment, http.MethodGet, row, nil, nil,
+		memberSession(testRoomID)); rec.Code != http.StatusNotFound || rec.Body.Len() != 0 {
+		t.Errorf("the condition row answered %d with %q, want an empty 404", rec.Code, rec.Body.String())
+	}
+	pawn := theNPC(t, app)
+	if *pawn.HP != 45 || len(pawn.Conditions) != 0 {
+		t.Errorf("a player changed an NPC nobody shared: %d HP, %v", *pawn.HP, pawn.Conditions)
+	}
+}
+func TestTheGMSharesAnNPCFromItsPanelAndTakesItBack(t *testing.T) {
+	app := npcApp(t, false, 2)
+	path, values := npcPath("")
+	form := url.Values{"size": {string(room.SizeLarge)}, "ac": {"20"}, "shown": {"on"}, "shared": {"on"}}
+	if rec := tableRequest(t, app.UpdatePawn, http.MethodPost, path, values, form, gmSession()); rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if !theNPC(t, app).Shared {
+		t.Fatal("the GM's switch did not hand the NPC to the players")
+	}
+	form.Del("shared")
+	if rec := tableRequest(t, app.UpdatePawn, http.MethodPost, path, values, form, gmSession()); rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body: %s", rec.Code, rec.Body.String())
+	}
+	if theNPC(t, app).Shared {
+		t.Fatal("turning the switch off left the NPC with the players")
+	}
+}

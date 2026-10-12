@@ -15,7 +15,7 @@ function pawn(hp: number): Pawn {
 	return {
 		id: "01PAWN", kind: "monster", layerId: GROUND, name: "Goblin", image: "",
 		x: 400, y: 400, z: 1, size: "medium", width: 0, height: 0, rotation: 0,
-		visible: true, hp, maxHp: 20, hpBand: null, ac: 13, conditions: [],
+		visible: true, shared: false, hp, maxHp: 20, hpBand: null, ac: 13, conditions: [],
 		ownerId: null, monsterId: null, characterId: null,
 	};
 }

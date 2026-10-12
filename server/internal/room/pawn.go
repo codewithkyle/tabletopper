@@ -417,6 +417,9 @@ type PawnUpdate struct {
 }
 
 func (c *PawnUpdate) Authorize(s *State, a Actor) error {
+	if *c == (PawnUpdate{ID: c.ID, HP: c.HP}) {
+		return s.requireTender(a, c.ID, "change that pawn")
+	}
 	return s.requireOwner(a, c.ID, "change that pawn")
 }
 func (c *PawnUpdate) Apply(s *State, a Actor, env Env) ([]Signal, error) {
@@ -475,7 +478,7 @@ type PawnSetConditions struct {
 }
 
 func (c *PawnSetConditions) Authorize(s *State, a Actor) error {
-	return s.requireOwner(a, c.ID, "change that pawn")
+	return s.requireTender(a, c.ID, "change that pawn")
 }
 func (c *PawnSetConditions) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	p, err := s.requirePawn(c.ID)
@@ -523,6 +526,27 @@ func (c *PawnSetVisible) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	for _, id := range c.IDs {
 		s.Pawn(id).Visible = c.Visible
 	}
+	s.Normalize()
+	return nil, nil
+}
+
+type PawnSetShared struct {
+	ID     ulid.ULID `json:"id"`
+	Shared bool      `json:"shared"`
+}
+
+func (c *PawnSetShared) Authorize(s *State, a Actor) error {
+	return requireGM(a, "share a pawn with the players")
+}
+func (c *PawnSetShared) Apply(s *State, a Actor, env Env) ([]Signal, error) {
+	p, err := s.requirePawn(c.ID)
+	if err != nil {
+		return nil, err
+	}
+	if p.Kind != PawnNPC {
+		return nil, invalid("Wrong pawn", "Only an NPC can be handed to the players.")
+	}
+	p.Shared = c.Shared
 	s.Normalize()
 	return nil, nil
 }
@@ -592,4 +616,14 @@ func (s *State) requireOwner(a Actor, id ulid.ULID, what string) error {
 		return forbidden("Not your pawn", "Only the GM can "+what+".")
 	}
 	return nil
+}
+func (s *State) requireTender(a Actor, id ulid.ULID, what string) error {
+	p, err := s.requirePawn(id)
+	if err != nil {
+		return err
+	}
+	if p.Shared && s.Shown(*p) {
+		return nil
+	}
+	return s.requireOwner(a, id, what)
 }

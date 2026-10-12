@@ -91,24 +91,29 @@ func TestExactHitPointsAreShownToTheRightViewers(t *testing.T) {
 	settings := []PawnLabels{LabelsNone, LabelsDefault, LabelsFull}
 	for _, labels := range settings {
 		for _, kind := range []PawnKind{PawnPlayer, PawnMonster, PawnNPC, PawnObject} {
-			if !ExactHP(kind, labels, RoleGM) {
+			if !ExactHP(Pawn{Kind: kind}, labels, RoleGM) {
 				t.Fatalf("the GM was refused a %s pawn's hit points under %q", kind, labels)
 			}
 		}
 	}
 	for _, labels := range settings {
 		for _, kind := range []PawnKind{PawnPlayer, PawnObject} {
-			if !ExactHP(kind, labels, RolePlayer) {
+			if !ExactHP(Pawn{Kind: kind}, labels, RolePlayer) {
 				t.Fatalf("a player was refused a %s pawn's hit points under %q", kind, labels)
 			}
 		}
 	}
 	for _, kind := range []PawnKind{PawnMonster, PawnNPC} {
-		if ExactHP(kind, LabelsNone, RolePlayer) || ExactHP(kind, LabelsDefault, RolePlayer) {
+		if ExactHP(Pawn{Kind: kind}, LabelsNone, RolePlayer) || ExactHP(Pawn{Kind: kind}, LabelsDefault, RolePlayer) {
 			t.Fatalf("a player was shown a %s's hit points in a room that labels words", kind)
 		}
-		if !ExactHP(kind, LabelsFull, RolePlayer) {
+		if !ExactHP(Pawn{Kind: kind}, LabelsFull, RolePlayer) {
 			t.Fatalf("a player was refused a %s's hit points in an open room", kind)
+		}
+	}
+	for _, labels := range settings {
+		if !ExactHP(Pawn{Kind: PawnNPC, Shared: true}, labels, RolePlayer) {
+			t.Fatalf("a player was refused the hit points of an NPC handed to them under %q", labels)
 		}
 	}
 }

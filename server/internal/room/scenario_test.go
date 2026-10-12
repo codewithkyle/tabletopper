@@ -123,6 +123,17 @@ func scenario(r *recorder) {
 	r.do("then takes it out of the fight", &InitiativeRemove{Entry: entryNamed(w.s, "The volcano erupts")}, gm)
 	r.do("the ambusher steps out", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: true}, gm)
 	r.do("no, back into the dark", &PawnSetVisible{IDs: []ulid.ULID{ambusher}, Visible: false}, gm)
+	r.do("Ari conjures a hand of force", &PawnSpawn{
+		Kind: PawnNPC, Layer: ground, X: 352, Y: 288, Visible: true, Name: "Bigby's Hand",
+		Pawn: &Pawn{Size: SizeLarge, HP: intp(45), MaxHP: intp(45), AC: intp(20)},
+	}, gm)
+	hand := newestPawn(w.s)
+	r.do("and the GM lets the table keep it", &PawnSetShared{ID: hand, Shared: true}, gm)
+	r.do("the hand soaks a blow", &PawnUpdate{ID: hand, HP: intp(31)}, pc)
+	r.do("and pins the goblin", &PawnSetConditions{ID: hand, Conditions: []Condition{
+		{Name: "Grappling", Color: ColorOrange, Duration: -1, Clear: ClearEnd},
+	}}, pc)
+	r.do("the spell ends and the GM takes it back", &PawnSetShared{ID: hand, Shared: false}, gm)
 	r.do("somebody points at the door", &Ping{Layer: ground, X: 512, Y: 96}, pc)
 	r.do("turn the fog on", &FogSetEnabled{Layer: ground, Enabled: true}, gm)
 	r.do("this map is better uncovered", &FogSetPrefill{Layer: ground, Prefill: false}, gm)

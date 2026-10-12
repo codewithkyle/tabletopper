@@ -119,6 +119,7 @@ var wireCommands = map[string]func() Command{
 	"pawn.update":          func() Command { return &PawnUpdate{} },
 	"pawn.setConditions":   func() Command { return &PawnSetConditions{} },
 	"pawn.setVisible":      func() Command { return &PawnSetVisible{} },
+	"pawn.setShared":       func() Command { return &PawnSetShared{} },
 	"pawn.setLayer":        func() Command { return &PawnSetLayer{} },
 	"pawn.remove":          func() Command { return &PawnRemove{} },
 	"initiative.set":       func() Command { return &InitiativeSet{} },

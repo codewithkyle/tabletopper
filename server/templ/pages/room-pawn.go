@@ -42,6 +42,7 @@ func conditionNameList(pawnID string) templ.Attributes {
 type RoomPawnData struct {
 	RoomID  string
 	CanEdit bool
+	CanTend bool
 	IsGM    bool
 	Pawn    RoomPawn
 	Layers  []RoomPawnLayer
@@ -64,6 +65,8 @@ type RoomPawn struct {
 	Image      string
 	Object     bool
 	Character  bool
+	NPC        bool
+	Shared     bool
 	HP         string
 	Band       string
 	HPValue    string
@@ -137,6 +140,7 @@ func (d RoomPawnData) HasActions() bool {
 func (d RoomPawnData) StatBlockLabel() string { return "Stat block for " + d.Pawn.Name }
 func (d RoomPawnData) RenameLabel() string    { return "Rename " + d.Pawn.Name }
 func (d RoomPawnData) VisibleLabel() string   { return "Players can see " + d.Pawn.Name }
+func (d RoomPawnData) SharedLabel() string    { return "Players can edit " + d.Pawn.Name }
 func (d RoomPawnData) RemovePrompt() string {
 	return "Remove " + d.Pawn.Name + " from the table. This cannot be undone."
 }

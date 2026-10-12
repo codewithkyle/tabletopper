@@ -28,6 +28,10 @@ templ RoomPawnFragment(data RoomPawnData) {
 		if data.CanEdit {
 			@pawnHPForm(data)
 			@pawnEditor(data)
+		} else if data.CanTend {
+			@pawnHPForm(data)
+			@pawnFixedStats(data)
+			@pawnEditor(data)
 		} else {
 			@pawnReadings(data)
 		}
@@ -137,6 +141,21 @@ templ pawnReadings(data RoomPawnData) {
 	}
 }
 
+templ pawnFixedStats(data RoomPawnData) {
+	<dl class="m-0 grid grid-cols-1 gap-x-2 gap-y-1 @2xs:grid-cols-2">
+		@pawnStat("Armour class") {
+			if data.Pawn.AC != "" {
+				{ data.Pawn.AC }
+			} else {
+				<span class="text-base-content/40">Unknown</span>
+			}
+		}
+		@pawnStat("Size") {
+			{ data.Pawn.Size }
+		}
+	</dl>
+}
+
 templ pawnPortrait(pawn RoomPawn) {
 	<div class="avatar avatar-placeholder shrink-0">
 		<div class="relative w-7 rounded-full border border-base-300 bg-base-300 text-base-content">
@@ -172,7 +191,11 @@ templ pawnHPForm(data RoomPawnData) {
 		<div class="flex items-center gap-1">
 			@pawnHPBox(data.Field("hp"), "hp", "Hit points", data.Pawn.HPValue)
 			<span class="shrink-0 text-xs text-base-content/45">/</span>
-			@pawnHPBox(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
+			if data.CanEdit {
+				@pawnHPBox(data.Field("maxHp"), "maxHp", "Maximum hit points", data.Pawn.MaxHP)
+			} else {
+				<span class="min-w-0 flex-1 truncate text-xs">{ data.Pawn.MaxHP }</span>
+			}
 		</div>
 	</form>
 }

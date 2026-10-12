@@ -401,6 +401,7 @@ func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pa
 		RoomID:  row.ID.String(),
 		IsGM:    role == room.RoleGM,
 		CanEdit: mayEditPawn(role, sess.UserID, pawn),
+		CanTend: mayTendPawn(role, sess.UserID, pawn),
 		Pawn:    pawnView(pawn, role, tableLabels(view), layerName(view, pawn.LayerID)),
 		LayerID: pawn.LayerID.String(),
 		Shown:   pawn.Visible,
@@ -420,7 +421,7 @@ func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 	_, role, pawn, ok := a.livePawn(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("pawn"))
-	if !ok || !mayEditPawn(role, sess.UserID, pawn) || pawn.Kind == room.PawnObject {
+	if !ok || !mayTendPawn(role, sess.UserID, pawn) || pawn.Kind == room.PawnObject {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -444,12 +445,17 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
-	if !live || !mayEditPawn(who.Role, sess.UserID, pawn) {
+	if !live || !mayTendPawn(who.Role, sess.UserID, pawn) {
 		htmx.NotFound(w, "pawn")
 		return
 	}
-	update, problems := pawnUpdateForm(r, pawn)
-	commands := []room.Command{update}
+	var commands []room.Command
+	var problems []string
+	if mayEditPawn(who.Role, sess.UserID, pawn) {
+		var update *room.PawnUpdate
+		update, problems = pawnUpdateForm(r, pawn)
+		commands = append(commands, update)
+	}
 	if pawn.Kind != room.PawnObject {
 		conditions, bad := pawnConditionsForm(r)
 		if bad != "" {
@@ -464,6 +470,9 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 		}
 		if layer, err := ulid.Parse(r.FormValue("layer")); err == nil && layer != pawn.LayerID {
 			commands = append(commands, &room.PawnSetLayer{IDs: []ulid.ULID{pawnID}, Layer: layer})
+		}
+		if shared := r.FormValue("shared") != ""; pawn.Kind == room.PawnNPC && shared != pawn.Shared {
+			commands = append(commands, &room.PawnSetShared{ID: pawnID, Shared: shared})
 		}
 	}
 	if len(problems) > 0 {
@@ -489,12 +498,17 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
-	if !live || !mayEditPawn(who.Role, sess.UserID, pawn) {
+	if !live || !mayTendPawn(who.Role, sess.UserID, pawn) {
 		htmx.NotFound(w, "pawn")
 		return
 	}
 	hp, hasHP, badHP := evaluateHP(hpEntry(r, "hp"), pawn.HP, "Hit points")
-	maxHP, hasMax, badMax := evaluateHP(hpEntry(r, "maxHp"), pawn.MaxHP, "Maximum hit points")
+	var maxHP int
+	var hasMax bool
+	var badMax string
+	if mayEditPawn(who.Role, sess.UserID, pawn) {
+		maxHP, hasMax, badMax = evaluateHP(hpEntry(r, "maxHp"), pawn.MaxHP, "Maximum hit points")
+	}
 	var problems []string
 	for _, bad := range []string{badHP, badMax} {
 		if bad != "" {
@@ -712,7 +726,7 @@ func pawnIDs(w http.ResponseWriter, r *http.Request) ([]ulid.ULID, bool) {
 	return ids, true
 }
 func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer string) pages.RoomPawn {
-	exact := room.ExactHP(pawn.Kind, labels, role)
+	exact := room.ExactHP(*pawn, labels, role)
 	out := pages.RoomPawn{
 		ID:        pawn.ID.String(),
 		Name:      pawn.Name,
@@ -721,6 +735,8 @@ func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer str
 		HP:        hpText(exact, pawn),
 		Layer:     layer,
 		Character: pawn.Kind == room.PawnPlayer,
+		NPC:       pawn.Kind == room.PawnNPC,
+		Shared:    pawn.Shared,
 	}
 	if pawn.HPBand != nil {
 		out.Band = pages.PawnBandText(string(*pawn.HPBand))
@@ -801,6 +817,9 @@ func mayEditPawn(role room.Role, user ulid.ULID, pawn *room.Pawn) bool {
 	}
 	return pawn.OwnerID != nil && *pawn.OwnerID == user
 }
+func mayTendPawn(role room.Role, user ulid.ULID, pawn *room.Pawn) bool {
+	return mayEditPawn(role, user, pawn) || (pawn != nil && pawn.Shared)
+}
 func hpEntry(r *http.Request, name string) string {
 	if entry := strings.TrimSpace(r.FormValue(name + "Entry")); entry != "" {
 		return entry
@@ -850,6 +869,9 @@ func pawnUpdateForm(r *http.Request, pawn *room.Pawn) (*room.PawnUpdate, []strin
 	return cmd, problems
 }
 func pawnConditionsForm(r *http.Request) ([]room.Condition, string) {
+	if err := r.ParseForm(); err != nil {
+		return nil, "That form could not be read. Close it and try again."
+	}
 	ids := r.Form["conditionId"]
 	names := r.Form["conditionName"]
 	colors := r.Form["conditionColor"]

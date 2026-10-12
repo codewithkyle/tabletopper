@@ -101,6 +101,7 @@ type Pawn struct {
 	Height      int         `json:"height"`
 	Rotation    int         `json:"rotation"`
 	Visible     bool        `json:"visible"`
+	Shared      bool        `json:"shared"`
 	HP          *int        `json:"hp"`
 	MaxHP       *int        `json:"maxHp"`
 	HPBand      *HPBand     `json:"hpBand"`
@@ -228,11 +229,11 @@ const (
 
 func (PawnLabels) Values() []string { return []string{"none", "default", "full"} }
 func (v PawnLabels) Valid() bool    { return inValues(v, v.Values()) }
-func ExactHP(kind PawnKind, labels PawnLabels, role Role) bool {
-	if role == RoleGM {
+func ExactHP(p Pawn, labels PawnLabels, role Role) bool {
+	if role == RoleGM || p.Shared {
 		return true
 	}
-	if kind != PawnMonster && kind != PawnNPC {
+	if p.Kind != PawnMonster && p.Kind != PawnNPC {
 		return true
 	}
 	return labels == LabelsFull
@@ -438,6 +439,9 @@ func (s *State) Normalize() {
 	}
 	for i := range s.Pawns {
 		s.Pawns[i].Conditions = emptied(s.Pawns[i].Conditions)
+		if s.Pawns[i].Kind != PawnNPC {
+			s.Pawns[i].Shared = false
+		}
 	}
 	for i := range s.Fog {
 		s.Fog[i].Points = emptied(s.Fog[i].Points)

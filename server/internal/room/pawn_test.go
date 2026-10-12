@@ -367,3 +367,96 @@ func TestASpawnedPawnLandsOnTop(t *testing.T) {
 	}
 }
 func sizep(s Size) *Size { return &s }
+func TestASharedNPCIsTendedByThePlayersAndNothingMore(t *testing.T) {
+	w := newWorld(t)
+	hand := w.spawn(Pawn{Kind: PawnNPC, Name: "Bigby's Hand", Size: SizeLarge, Visible: true, HP: intp(45), MaxHP: intp(45), AC: intp(20)})
+	grappling := []Condition{{Name: "Grappling", Color: ColorOrange, Duration: -1, Clear: ClearEnd}}
+	w.refuse(&PawnUpdate{ID: hand, HP: intp(30)}, w.pc, CodeForbidden)
+	w.refuse(&PawnSetConditions{ID: hand, Conditions: grappling}, w.pc, CodeForbidden)
+	w.refuse(&PawnSetShared{ID: hand, Shared: true}, w.pc, CodeForbidden)
+	w.apply(&PawnSetShared{ID: hand, Shared: true}, w.gm)
+	w.apply(&PawnUpdate{ID: hand, HP: intp(30)}, w.pc)
+	w.apply(&PawnUpdate{ID: hand, HP: intp(24)}, w.other)
+	w.apply(&PawnSetConditions{ID: hand, Conditions: grappling}, w.other)
+	large := SizeLarge
+	for _, locked := range []*PawnUpdate{
+		{ID: hand, HP: intp(20), MaxHP: intp(60)},
+		{ID: hand, MaxHP: intp(60)},
+		{ID: hand, AC: intp(5)},
+		{ID: hand, Name: strp("Mordenkainen's Hand")},
+		{ID: hand, Size: &large},
+		{ID: hand, Z: intp(99)},
+	} {
+		w.refuse(locked, w.pc, CodeForbidden)
+	}
+	p := w.s.Pawn(hand)
+	if *p.HP != 24 || *p.MaxHP != 45 || *p.AC != 20 || p.Name != "Bigby's Hand" {
+		t.Fatalf("the hand is %s at %d / %d, AC %d; only its hit points were the players' to change", p.Name, *p.HP, *p.MaxHP, *p.AC)
+	}
+	if len(p.Conditions) != 1 || p.Conditions[0].Name != "Grappling" {
+		t.Fatalf("the hand carries %v, want the condition a player gave it", p.Conditions)
+	}
+	w.apply(&PawnSetShared{ID: hand, Shared: false}, w.gm)
+	w.refuse(&PawnUpdate{ID: hand, HP: intp(10)}, w.pc, CodeForbidden)
+	w.refuse(&PawnSetConditions{ID: hand}, w.pc, CodeForbidden)
+}
+func TestOnlyAnNPCCanBeShared(t *testing.T) {
+	w := newWorld(t)
+	for _, p := range []Pawn{
+		{Kind: PawnMonster, Name: "Goblin", Visible: true},
+		{Kind: PawnPlayer, Name: "Ari", Visible: true, OwnerID: &testPlayerID},
+		{Kind: PawnObject, Name: "Crate", Width: 64, Height: 64, Visible: true},
+	} {
+		id := w.spawn(p)
+		w.refuse(&PawnSetShared{ID: id, Shared: true}, w.gm, CodeInvalid)
+		if w.s.Pawn(id).Shared {
+			t.Fatalf("the %s was shared despite the refusal", p.Kind)
+		}
+	}
+	w.refuse(&PawnSetShared{ID: testID(999), Shared: true}, w.gm, CodeNotFound)
+}
+func TestASharedNPCOutOfSightIsNotTended(t *testing.T) {
+	w := newWorld(t)
+	cellar := w.addLayer("Cellar")
+	unseen := w.spawn(Pawn{Kind: PawnNPC, Name: "Familiar", Visible: false, HP: intp(1), MaxHP: intp(1)})
+	downstairs := w.spawn(Pawn{Kind: PawnNPC, Name: "Steed", Visible: true, LayerID: cellar, HP: intp(11), MaxHP: intp(11)})
+	for _, id := range []ulid.ULID{unseen, downstairs} {
+		w.apply(&PawnSetShared{ID: id, Shared: true}, w.gm)
+		w.refuse(&PawnUpdate{ID: id, HP: intp(0)}, w.pc, CodeForbidden)
+		w.refuse(&PawnSetConditions{ID: id}, w.pc, CodeForbidden)
+	}
+}
+func TestSharingAnNPCShowsThePlayersItsNumbers(t *testing.T) {
+	w := newWorld(t)
+	hand := w.spawn(Pawn{Kind: PawnNPC, Name: "Bigby's Hand", Size: SizeLarge, Visible: true, HP: intp(45), MaxHP: intp(45), AC: intp(20)})
+	if p := w.s.ProjectedPawn(hand, RolePlayer); p.AC != nil || p.HPBand == nil {
+		t.Fatalf("before it was shared the players saw AC %v and band %v; want no AC and a band", p.AC, p.HPBand)
+	}
+	shared := w.change(&PawnSetShared{ID: hand, Shared: true}, w.gm)
+	for _, role := range []Role{RoleGM, RolePlayer} {
+		equalStrings(t, string(role), changeTypesOf(shared.changes(role)), []string{"pawns.upserted"})
+	}
+	seen := shared.changes(RolePlayer)[0].(*PawnsUpserted).Pawns[0]
+	if !seen.Shared || seen.AC == nil || *seen.AC != 20 || seen.HP == nil || *seen.HP != 45 || seen.HPBand != nil {
+		t.Fatalf("a shared NPC reached the players as %+v; want its own numbers and no band", seen)
+	}
+	taken := w.change(&PawnSetShared{ID: hand, Shared: false}, w.gm)
+	back := taken.changes(RolePlayer)[0].(*PawnsUpserted).Pawns[0]
+	if back.Shared || back.AC != nil || back.HPBand == nil {
+		t.Fatalf("taking the NPC back left the players %+v; want it banded again", back)
+	}
+}
+func TestOnlyAnNPCKeepsItsShareThroughNormalize(t *testing.T) {
+	s := NewState(testID(1), "Room", Env{})
+	s.Pawns = []Pawn{
+		{ID: testID(2), Kind: PawnMonster, Shared: true},
+		{ID: testID(3), Kind: PawnNPC, Shared: true},
+	}
+	s.Normalize()
+	if s.Pawn(testID(2)).Shared {
+		t.Fatal("a monster kept a share it can never have")
+	}
+	if !s.Pawn(testID(3)).Shared {
+		t.Fatal("normalizing took an NPC's share away")
+	}
+}
