@@ -221,14 +221,23 @@ test("a shift click on empty table keeps the selection", () => {
 	controller.tool.release(at(900, 900), at(0, 0), SHIFT);
 	assert.deepEqual(controller.selection.ids(), ["goblin"]);
 });
-test("a player pressing somebody else's pawn selects nothing", () => {
+test("a player drags somebody else's pawn", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32, ownerId: null });
 	const { controller, sent } = table([goblin], { role: "player", user: "01ME" });
 	controller.tool.press(at(32, 32), at(0, 0), NONE);
 	controller.tool.drag(at(200, 200), at(168, 168), NONE);
 	controller.tool.release(at(200, 200), at(168, 168), NONE);
-	assert.deepEqual(sent, [], "a player moved a pawn that is not theirs");
-	assert.deepEqual(controller.selection.ids(), []);
+	const move = sent.at(-1);
+	assert.equal(move?.type, "pawn.move", "a player could not move a pawn that is not theirs");
+	assert.equal(move?.anchor, "goblin");
+});
+test("a player moves a token they do not own but cannot reshape it", () => {
+	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 256, x: 0, y: 0 });
+	const { controller, handles } = table([wagon], { role: "player", user: "01ME" });
+	controller.tool.press(at(0, 0), at(0, 0), NONE);
+	controller.tool.release(at(0, 0), at(0, 0), NONE);
+	assert.deepEqual(controller.selection.ids(), ["wagon"]);
+	assert.equal(handles().length, 0, "a player was handed the GM's resize handles");
 });
 test("a token commits where the hand let go and a creature commits to the lattice", () => {
 	const wagon = pawn({ id: "wagon", kind: "object", width: 128, height: 128, x: 0, y: 0 });

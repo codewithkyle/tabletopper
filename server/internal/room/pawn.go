@@ -376,14 +376,8 @@ func (s *State) requireControl(a Actor, anchor ulid.ULID, others []ulid.ULID) er
 		if err != nil {
 			return err
 		}
-		if a.GM() {
-			continue
-		}
-		if p.OwnerID == nil || *p.OwnerID != a.ID {
-			return forbidden("Not your pawn", "You can only move pawns you own.")
-		}
-		if !s.Shown(*p) {
-			return forbidden("Not your pawn", "You can only move pawns you own.")
+		if !a.GM() && !s.Shown(*p) {
+			return forbidden("Out of sight", "You can only move pawns you can see.")
 		}
 	}
 	return nil

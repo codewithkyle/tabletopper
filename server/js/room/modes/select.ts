@@ -7,7 +7,7 @@ import type { Point, Rect } from "../model/types.ts";
 import type { Preview } from "./previews.ts";
 import type { Tool } from "../render/input.ts";
 import { SELECT_COLOR, SELF_COLOR, actorColor } from "../model/color.ts";
-import { Selection, marqueeSelect, mayMove } from "../selection.ts";
+import { Selection, marqueeSelect, mayEdit, mayMove } from "../selection.ts";
 import { blankDrawn, blankOutline, ghostOf, pool } from "../model/overlay.ts";
 import { boxAround } from "./board.ts";
 import { pawnExtents } from "../model/shape.ts";
@@ -78,7 +78,7 @@ export function createSelect(deps: SelectDeps): Select {
 	function selectedToken(): Pawn | null {
 		const one = selection.only();
 		const p = one ? board.pawn(one) : null;
-		if (!p || p.kind !== "object" || !board.onFloor(p) || !mayMove(p, board.role, board.user)) {
+		if (!p || p.kind !== "object" || !board.onFloor(p) || !mayEdit(p, board.role, board.user)) {
 			return null;
 		}
 		return p;
@@ -148,7 +148,7 @@ export function createSelect(deps: SelectDeps): Select {
 				return true;
 			}
 			const hit = under(map);
-			if (hit && mayMove(hit, board.role, board.user)) {
+			if (hit && mayMove(hit, board.role)) {
 				gesture = {
 					kind: "press",
 					anchor: hit.id,
@@ -173,7 +173,7 @@ export function createSelect(deps: SelectDeps): Select {
 				if (!past(gesture.screen, screen)) {
 					return;
 				}
-				gesture = beginDrag(board, selection, gesture);
+				gesture = beginDrag(board, selection, gesture, concealed);
 			}
 			const active = gesture;
 			if (!active) {
@@ -240,7 +240,7 @@ export function createSelect(deps: SelectDeps): Select {
 					}
 					const found = marqueeSelect(
 						board.state.pawns, board.viewed(), marqueeRect(active),
-						board.role, board.user, concealed,
+						board.role, concealed,
 					);
 					if (adding) {
 						selection.add(found);

@@ -49,13 +49,13 @@ test("a drag between two clicks breaks the pair", () => {
 	click(t, 32, 32);
 	assert.deepEqual(t.opened, []);
 });
-test("a player opens a monster they may not move", () => {
+test("a player selects and opens a monster", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const t = table([goblin], { role: "player", user: "01PLAYER" });
 	click(t, 32, 32);
 	click(t, 32, 32);
 	assert.deepEqual(t.opened, ["goblin"]);
-	assert.deepEqual(t.controller.selection.ids(), [], "a player selected a monster they may not move");
+	assert.deepEqual(t.controller.selection.ids(), ["goblin"]);
 });
 test("shift clicks never open anything", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });

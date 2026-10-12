@@ -89,7 +89,9 @@ export function proposedGhost(gesture: Shaping, pawn: Pawn, out: Ghostable): Gho
 	out.rotation = gesture.rotation;
 	return out;
 }
-export function beginDrag(board: Board, selection: Selection, from: Pressing): Dragging | null {
+export function beginDrag(
+	board: Board, selection: Selection, from: Pressing, concealed: (pawn: Pawn) => boolean,
+): Dragging | null {
 	const anchor = board.pawn(from.anchor);
 	if (!anchor) {
 		return null;
@@ -97,8 +99,8 @@ export function beginDrag(board: Board, selection: Selection, from: Pressing): D
 	const ids = dragSet(board.state.pawns, anchor, selection, {
 		withRiders: !from.mods.alt,
 		role: board.role,
-		user: board.user,
 		cellSize: board.grid().cellSize,
+		concealed,
 	});
 	const origins = new Map<string, Point>();
 	for (const id of ids) {

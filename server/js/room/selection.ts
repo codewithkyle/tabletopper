@@ -3,7 +3,10 @@ import type { Rect } from "./model/types.ts";
 import { compareStack } from "./model/stack.ts";
 import { pawnExtents } from "./model/shape.ts";
 export const SELECTION_MAX = 200;
-export function mayMove(pawn: Pawn, role: Role, user: string): boolean {
+export function mayMove(pawn: Pawn, role: Role): boolean {
+	return role === "gm" || pawn.visible;
+}
+export function mayEdit(pawn: Pawn, role: Role, user: string): boolean {
 	return role === "gm" || (pawn.ownerId !== null && pawn.ownerId === user);
 }
 export class Selection {
@@ -86,7 +89,6 @@ export function marqueeSelect(
 	layerID: string,
 	rect: Rect,
 	role: Role,
-	user: string,
 	concealed?: (pawn: Pawn) => boolean,
 ): string[] {
 	const x1 = Math.min(rect.x1, rect.x2);
@@ -95,7 +97,7 @@ export function marqueeSelect(
 	const y2 = Math.max(rect.y1, rect.y2);
 	const found: string[] = [];
 	for (const pawn of pawns) {
-		if (pawn.layerId !== layerID || !mayMove(pawn, role, user)) {
+		if (pawn.layerId !== layerID || !mayMove(pawn, role)) {
 			continue;
 		}
 		if (concealed?.(pawn)) {
@@ -133,7 +135,7 @@ export function dragSet(
 	pawns: readonly Pawn[],
 	anchor: Pawn,
 	selection: Selection,
-	options: { withRiders: boolean; role: Role; user: string; cellSize: number },
+	options: { withRiders: boolean; role: Role; cellSize: number; concealed?: (pawn: Pawn) => boolean },
 ): string[] {
 	const ids: string[] = [anchor.id];
 	const seen = new Set<string>([anchor.id]);
@@ -142,7 +144,7 @@ export function dragSet(
 			return;
 		}
 		const pawn = pawns.find((p) => p.id === id);
-		if (!pawn || !mayMove(pawn, options.role, options.user)) {
+		if (!pawn || !mayMove(pawn, options.role) || options.concealed?.(pawn)) {
 			return;
 		}
 		seen.add(id);

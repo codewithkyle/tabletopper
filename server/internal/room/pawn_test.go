@@ -65,16 +65,34 @@ func TestAGroupMoveKeepsEveryOffsetToThePixel(t *testing.T) {
 		t.Fatalf("the wagon sat at offset %v and is now at %v", offset, [2]int{carried.X - rider.X, carried.Y - rider.Y})
 	}
 }
-func TestAPlayerCannotSmuggleAMonsterIntoTheirSelection(t *testing.T) {
+func TestAPlayerMovesAnythingTheyCanSee(t *testing.T) {
 	w := newWorld(t)
-	mine := w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", X: 96, Y: 96, Visible: true, OwnerID: &testPlayerID})
+	theirs := w.spawn(Pawn{Kind: PawnPlayer, Name: "Rin", X: 96, Y: 96, Visible: true, OwnerID: &testOtherID})
 	goblin := w.spawn(Pawn{Name: "Goblin", X: 160, Y: 96, Visible: true})
-	w.refuse(&PawnMove{Anchor: mine, X: 300, Y: 300, Others: []ulid.ULID{goblin}}, w.pc, CodeForbidden)
-	if p := w.s.Pawn(mine); p.X != 96 || p.Y != 96 {
-		t.Fatalf("the player's own pawn moved to (%d, %d) despite the refusal", p.X, p.Y)
+	crate := w.spawn(Pawn{Kind: PawnObject, Name: "Crate", Width: 64, Height: 64, X: 224, Y: 96, Visible: true})
+	w.apply(&PawnDrag{Anchor: goblin, X: 300, Y: 300, Others: []ulid.ULID{theirs, crate}}, w.pc)
+	w.apply(&PawnMove{Anchor: goblin, X: 288, Y: 288, Others: []ulid.ULID{theirs, crate}}, w.pc)
+	for id, want := range map[ulid.ULID][2]int{goblin: {288, 288}, theirs: {224, 288}, crate: {352, 288}} {
+		if p := w.s.Pawn(id); p.X != want[0] || p.Y != want[1] {
+			t.Fatalf("%s landed at (%d, %d), want %v", p.Name, p.X, p.Y, want)
+		}
 	}
-	if p := w.s.Pawn(goblin); p.X != 160 || p.Y != 96 {
-		t.Fatalf("the goblin moved to (%d, %d) despite the refusal", p.X, p.Y)
+}
+func TestAPlayerCannotSmuggleWhatTheyCannotSeeIntoTheirSelection(t *testing.T) {
+	w := newWorld(t)
+	cellar := w.addLayer("Cellar")
+	goblin := w.spawn(Pawn{Name: "Goblin", X: 96, Y: 96, Visible: true})
+	ambusher := w.spawn(Pawn{Name: "Ambusher", X: 160, Y: 96, Visible: false})
+	downstairs := w.spawn(Pawn{Name: "Rat", X: 224, Y: 96, Visible: true, LayerID: cellar})
+	for _, unseen := range []ulid.ULID{ambusher, downstairs} {
+		w.refuse(&PawnMove{Anchor: goblin, X: 300, Y: 300, Others: []ulid.ULID{unseen}}, w.pc, CodeForbidden)
+		w.refuse(&PawnMove{Anchor: unseen, X: 300, Y: 300}, w.pc, CodeForbidden)
+		w.refuse(&PawnDrag{Anchor: goblin, X: 300, Y: 300, Others: []ulid.ULID{unseen}}, w.pc, CodeForbidden)
+	}
+	for id, want := range map[ulid.ULID][2]int{goblin: {96, 96}, ambusher: {160, 96}, downstairs: {224, 96}} {
+		if p := w.s.Pawn(id); p.X != want[0] || p.Y != want[1] {
+			t.Fatalf("%s moved to (%d, %d) despite the refusal", p.Name, p.X, p.Y)
+		}
 	}
 }
 func TestAGroupMoveThatWouldLeaveTheMapMovesNobody(t *testing.T) {

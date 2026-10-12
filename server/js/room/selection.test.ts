@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Pawn } from "./protocol.ts";
-import { SELECTION_MAX, Selection, dragSet, marqueeSelect, mayMove, riders } from "./selection.ts";
+import { SELECTION_MAX, Selection, dragSet, marqueeSelect, mayEdit, mayMove, riders } from "./selection.ts";
 const GROUND = "01LAYERGROUND";
 const CELLAR = "01LAYERCELLAR";
 const ME = "01PLAYERME";
@@ -33,15 +33,27 @@ function pawn(over: Partial<Pawn> = {}): Pawn {
 		...over,
 	};
 }
-test("the GM may move anything and a player only their own", () => {
+test("the GM may move anything and a player anything they can see", () => {
 	const mine = pawn({ ownerId: ME });
 	const theirs = pawn({ ownerId: THEM });
 	const nobodys = pawn({ ownerId: null });
-	assert.equal(mayMove(mine, "gm", "01GM"), true);
-	assert.equal(mayMove(nobodys, "gm", "01GM"), true);
-	assert.equal(mayMove(mine, "player", ME), true);
-	assert.equal(mayMove(theirs, "player", ME), false);
-	assert.equal(mayMove(nobodys, "player", ME), false);
+	const hidden = pawn({ ownerId: null, visible: false });
+	assert.equal(mayMove(mine, "gm"), true);
+	assert.equal(mayMove(hidden, "gm"), true);
+	assert.equal(mayMove(mine, "player"), true);
+	assert.equal(mayMove(theirs, "player"), true);
+	assert.equal(mayMove(nobodys, "player"), true);
+	assert.equal(mayMove(hidden, "player"), false);
+});
+test("the GM may edit anything and a player only their own", () => {
+	const mine = pawn({ ownerId: ME });
+	const theirs = pawn({ ownerId: THEM });
+	const nobodys = pawn({ ownerId: null });
+	assert.equal(mayEdit(mine, "gm", "01GM"), true);
+	assert.equal(mayEdit(nobodys, "gm", "01GM"), true);
+	assert.equal(mayEdit(mine, "player", ME), true);
+	assert.equal(mayEdit(theirs, "player", ME), false);
+	assert.equal(mayEdit(nobodys, "player", ME), false);
 });
 test("a marquee takes every movable pawn whose centre is inside", () => {
 	const pawns = [
@@ -49,13 +61,13 @@ test("a marquee takes every movable pawn whose centre is inside", () => {
 		pawn({ id: "out", x: 400, y: 100 }),
 		pawn({ id: "edge", x: 200, y: 200 }),
 	];
-	const found = marqueeSelect(pawns, GROUND, { x1: 0, y1: 0, x2: 200, y2: 200 }, "gm", "01GM");
+	const found = marqueeSelect(pawns, GROUND, { x1: 0, y1: 0, x2: 200, y2: 200 }, "gm");
 	assert.deepEqual(found, ["in", "edge"]);
 });
 test("a marquee dragged backwards is the same rectangle", () => {
 	const pawns = [pawn({ id: "in", x: 100, y: 100 })];
 	assert.deepEqual(
-		marqueeSelect(pawns, GROUND, { x1: 200, y1: 200, x2: 0, y2: 0 }, "gm", "01GM"),
+		marqueeSelect(pawns, GROUND, { x1: 200, y1: 200, x2: 0, y2: 0 }, "gm"),
 		["in"],
 	);
 });
@@ -64,10 +76,13 @@ test("a marquee takes only what the viewer may move", () => {
 		pawn({ id: "goblin", x: 10, y: 10, ownerId: null }),
 		pawn({ id: "mine", x: 20, y: 20, ownerId: ME }),
 		pawn({ id: "theirs", x: 30, y: 30, ownerId: THEM }),
+		pawn({ id: "lurker", x: 40, y: 40, ownerId: null }),
+		pawn({ id: "ambusher", x: 50, y: 50, visible: false }),
 	];
 	const rect = { x1: -100, y1: -100, x2: 100, y2: 100 };
-	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "player", ME), ["mine"]);
-	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm", "01GM").length, 3);
+	const dark = (p: Pawn) => p.id === "lurker";
+	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "player", dark), ["goblin", "mine", "theirs"]);
+	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm").length, 5);
 });
 test("a marquee takes nothing from another floor", () => {
 	const pawns = [
@@ -75,14 +90,14 @@ test("a marquee takes nothing from another floor", () => {
 		pawn({ id: "upstairs", x: 20, y: 20, layerId: CELLAR }),
 	];
 	const rect = { x1: -100, y1: -100, x2: 100, y2: 100 };
-	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm", "01GM"), ["here"]);
+	assert.deepEqual(marqueeSelect(pawns, GROUND, rect, "gm"), ["here"]);
 });
 test("a marquee stops at the protocol's own limit", () => {
 	const pawns: Pawn[] = [];
 	for (let i = 0; i < SELECTION_MAX + 50; i++) {
 		pawns.push(pawn({ id: `p${i}`, x: i, y: 0 }));
 	}
-	const found = marqueeSelect(pawns, GROUND, { x1: -1, y1: -1, x2: 1e6, y2: 1 }, "gm", "01GM");
+	const found = marqueeSelect(pawns, GROUND, { x1: -1, y1: -1, x2: 1e6, y2: 1 }, "gm");
 	assert.equal(found.length, SELECTION_MAX);
 });
 function wagon(): Pawn {
@@ -132,24 +147,39 @@ test("the drag set is the selection when the anchor is in it", () => {
 	const pawns = [a, b, c];
 	const selection = new Selection();
 	selection.set(["a", "b"]);
-	const options = { withRiders: true, role: "gm" as const, user: "01GM", cellSize: CELL };
+	const options = { withRiders: true, role: "gm" as const, cellSize: CELL };
 	assert.deepEqual(dragSet(pawns, a, selection, options), ["a", "b"]);
 	assert.deepEqual(dragSet(pawns, c, selection, options), ["c"]);
 });
 test("riders join a drag that selected nothing, and Alt leaves them", () => {
 	const pawns = [wagon(), pawn({ id: "aboard", x: 10, y: 10, z: 5 })];
 	const selection = new Selection();
-	const base = { role: "gm" as const, user: "01GM", cellSize: CELL };
+	const base = { role: "gm" as const, cellSize: CELL };
 	assert.deepEqual(dragSet(pawns, wagon(), selection, { ...base, withRiders: true }), ["wagon", "aboard"]);
 	assert.deepEqual(dragSet(pawns, wagon(), selection, { ...base, withRiders: false }), ["wagon"]);
 });
-test("a rider the viewer may not move does not join the drag", () => {
-	const cart = pawn({ id: "cart", kind: "object", width: 128, height: 128, z: 1, ownerId: ME });
-	const pawns = [cart, pawn({ id: "theirs", x: 10, y: 10, z: 5, ownerId: THEM })];
+test("a rider the viewer cannot see does not join the drag", () => {
+	const cart = pawn({ id: "cart", kind: "object", width: 128, height: 128, z: 1 });
+	const pawns = [
+		cart,
+		pawn({ id: "theirs", x: 10, y: 10, z: 5, ownerId: THEM }),
+		pawn({ id: "lurker", x: -10, y: -10, z: 6 }),
+		pawn({ id: "ambusher", x: 20, y: 20, z: 7, visible: false }),
+	];
 	const found = dragSet(pawns, cart, new Selection(), {
-		withRiders: true, role: "player", user: ME, cellSize: CELL,
+		withRiders: true, role: "player", cellSize: CELL, concealed: (p) => p.id === "lurker",
 	});
-	assert.deepEqual(found, ["cart"]);
+	assert.deepEqual(found, ["cart", "theirs"]);
+});
+test("a selected pawn that went dark stays behind", () => {
+	const a = pawn({ id: "a" });
+	const pawns = [a, pawn({ id: "b", x: 500 }), pawn({ id: "c", x: 900 })];
+	const selection = new Selection();
+	selection.set(["a", "b", "c"]);
+	const found = dragSet(pawns, a, selection, {
+		withRiders: false, role: "player", cellSize: CELL, concealed: (p) => p.id === "b",
+	});
+	assert.deepEqual(found, ["a", "c"]);
 });
 test("the anchor is always first and never doubled", () => {
 	const a = pawn({ id: "a" });
@@ -157,7 +187,7 @@ test("the anchor is always first and never doubled", () => {
 	const selection = new Selection();
 	selection.set(["b", "a"]);
 	const found = dragSet(pawns, a, selection, {
-		withRiders: true, role: "gm", user: "01GM", cellSize: CELL,
+		withRiders: true, role: "gm", cellSize: CELL,
 	});
 	assert.equal(found[0], "a");
 	assert.equal(new Set(found).size, found.length);
@@ -173,7 +203,7 @@ test("the drag set stops at the protocol's own limit", () => {
 	const selection = new Selection();
 	selection.set(ids);
 	const found = dragSet(pawns, anchor, selection, {
-		withRiders: false, role: "gm", user: "01GM", cellSize: CELL,
+		withRiders: false, role: "gm", cellSize: CELL,
 	});
 	assert.equal(found.length, SELECTION_MAX);
 });
